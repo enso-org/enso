@@ -5,7 +5,9 @@
 import * as semver from 'semver'
 
 import * as authentication from 'enso-authentication'
+import * as common from 'enso-common'
 import * as contentConfig from 'enso-content-config'
+import * as detect from 'enso-common/src/detect'
 
 import * as app from '../../../../../target/ensogl-pack/linked-dist'
 import GLOBAL_CONFIG from '../../../../gui/config.yaml' assert { type: 'yaml' }
@@ -16,12 +18,16 @@ const logger = app.log.logger
 // === Constants ===
 // =================
 
+/** The name of the `localStorage` key storing the initial URL of the app. */
+const INITIAL_URL_KEY = `${common.PRODUCT_NAME.toLowerCase()}-initial-url`
 /** Path to the SSE endpoint over which esbuild sends events. */
 const ESBUILD_PATH = '/esbuild'
 /** SSE event indicating a build has finished. */
 const ESBUILD_EVENT_NAME = 'change'
-/** Path to the service worker that resolves all extensionless paths to `/index.html`.
- * This service worker is required for client-side routing to work when doing `./run gui watch`. */
+/** Path to the serice worker that caches assets for offline usage.
+ * In development, it also resolves all extensionless paths to `/index.html`.
+ * This is required for client-side routing to work when doing `./run gui watch`.
+ */
 const SERVICE_WORKER_PATH = '/serviceWorker.js'
 /** One second in milliseconds. */
 const SECOND = 1000
@@ -32,14 +38,14 @@ const FETCH_TIMEOUT = 300
 // === Live reload ===
 // ===================
 
-if (IS_DEV_MODE) {
+if (IS_DEV_MODE && !detect.isRunningInElectron()) {
     new EventSource(ESBUILD_PATH).addEventListener(ESBUILD_EVENT_NAME, () => {
         // This acts like `location.reload`, but it preserves the query-string.
         // The `toString()` is to bypass a lint without using a comment.
         location.href = location.href.toString()
     })
-    void navigator.serviceWorker.register(SERVICE_WORKER_PATH)
 }
+void navigator.serviceWorker.register(SERVICE_WORKER_PATH)
 
 // =============
 // === Fetch ===
@@ -189,67 +195,86 @@ class Main implements AppRunner {
 
     /** The entrypoint into the IDE. */
     main(inputConfig?: StringConfig) {
-        contentConfig.OPTIONS.loadAll([app.urlParams()])
-        const isUsingAuthentication = contentConfig.OPTIONS.options.authentication.value
-        const isUsingNewDashboard =
-            contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value
-        const isOpeningMainEntryPoint =
-            contentConfig.OPTIONS.groups.startup.options.entry.value ===
-            contentConfig.OPTIONS.groups.startup.options.entry.default
-        const isNotOpeningProject =
-            contentConfig.OPTIONS.groups.startup.options.project.value === ''
-        if (
-            (isUsingAuthentication || isUsingNewDashboard) &&
-            isOpeningMainEntryPoint &&
-            isNotOpeningProject
-        ) {
-            const hideAuth = () => {
-                const auth = document.getElementById('dashboard')
-                const ide = document.getElementById('root')
-                if (auth) {
-                    auth.style.display = 'none'
-                }
-                if (ide) {
-                    ide.hidden = false
-                }
+        /** Note: Signing out always redirects to `/`. It is impossible to make this work,
+         * as it is not possible to distinguish between having just logged out, and explicitly
+         * opening a page with no URL parameters set.
+         *
+         * Client-side routing endpoints are explicitly not supported for live-reload, as they are
+         * transitional pages that should not need live-reload when running `gui watch`. */
+        const url = new URL(location.href)
+        const isInAuthenticationFlow = url.searchParams.has('code') && url.searchParams.has('state')
+        const authenticationUrl = location.href
+        if (isInAuthenticationFlow) {
+            history.replaceState(null, '', localStorage.getItem(INITIAL_URL_KEY))
+        }
+        const parseOk = contentConfig.OPTIONS.loadAllAndDisplayHelpIfUnsuccessful([app.urlParams()])
+        if (isInAuthenticationFlow) {
+            history.replaceState(null, '', authenticationUrl)
+        } else {
+            localStorage.setItem(INITIAL_URL_KEY, location.href)
+        }
+        if (parseOk) {
+            const isUsingAuthentication = contentConfig.OPTIONS.options.authentication.value
+            const isUsingNewDashboard =
+                contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value
+            const isOpeningMainEntryPoint =
+                contentConfig.OPTIONS.groups.startup.options.entry.value ===
+                contentConfig.OPTIONS.groups.startup.options.entry.default
+            // This MUST be removed as it would otherwise override the `startup.project` passed
+            // explicitly in `ide.tsx`.
+            if (isOpeningMainEntryPoint && url.searchParams.has('startup.project')) {
+                url.searchParams.delete('startup.project')
+                history.replaceState(null, '', url.toString())
             }
-            /** This package is an Electron desktop app (i.e., not in the Cloud), so
-             * we're running on the desktop. */
-            /** TODO [NP]: https://github.com/enso-org/cloud-v2/issues/345
-             * `content` and `dashboard` packages **MUST BE MERGED INTO ONE**. The IDE
-             * should only have one entry point. Right now, we have two. One for the cloud
-             * and one for the desktop. */
-            const currentPlatform = contentConfig.OPTIONS.groups.startup.options.platform.value
-            let platform = authentication.Platform.desktop
-            if (currentPlatform === 'web') {
-                platform = authentication.Platform.cloud
+            if ((isUsingAuthentication || isUsingNewDashboard) && isOpeningMainEntryPoint) {
+                this.runAuthentication(isInAuthenticationFlow, inputConfig)
+            } else {
+                void this.runApp(inputConfig)
             }
-            /** FIXME [PB]: https://github.com/enso-org/cloud-v2/issues/366
-             * React hooks rerender themselves multiple times. It is resulting in multiple
-             * Enso main scene being initialized. As a temporary workaround we check whether
-             * appInstance was already ran. Target solution should move running appInstance
-             * where it will be called only once. */
-            let appInstanceRan = false
-            const onAuthenticated = () => {
+        }
+    }
+
+    /** Begins the authentication UI flow. */
+    runAuthentication(isInAuthenticationFlow: boolean, inputConfig?: StringConfig) {
+        const initialProjectName =
+            contentConfig.OPTIONS.groups.startup.options.project.value || null
+        /** TODO [NP]: https://github.com/enso-org/cloud-v2/issues/345
+         * `content` and `dashboard` packages **MUST BE MERGED INTO ONE**. The IDE
+         * should only have one entry point. Right now, we have two. One for the cloud
+         * and one for the desktop. */
+        /** FIXME [PB]: https://github.com/enso-org/cloud-v2/issues/366
+         * React hooks rerender themselves multiple times. It is resulting in multiple
+         * Enso main scene being initialized. As a temporary workaround we check whether
+         * appInstance was already ran. Target solution should move running appInstance
+         * where it will be called only once. */
+        authentication.run({
+            appRunner: this,
+            logger,
+            supportsLocalBackend: SUPPORTS_LOCAL_BACKEND,
+            supportsDeepLinks: SUPPORTS_DEEP_LINKS,
+            showDashboard: contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value,
+            initialProjectName,
+            onAuthenticated: () => {
+                if (isInAuthenticationFlow) {
+                    const initialUrl = localStorage.getItem(INITIAL_URL_KEY)
+                    if (initialUrl != null) {
+                        // This is not used past this point, however it is set to the initial URL
+                        // to make refreshing work as expected.
+                        history.replaceState(null, '', initialUrl)
+                    }
+                }
                 if (!contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value) {
-                    hideAuth()
-                    if (!appInstanceRan) {
-                        appInstanceRan = true
+                    document.getElementById('enso-dashboard')?.remove()
+                    const ide = document.getElementById('root')
+                    if (ide) {
+                        ide.hidden = false
+                    }
+                    if (this.app == null) {
                         void this.runApp(inputConfig)
                     }
                 }
-            }
-            authentication.run({
-                appRunner: this,
-                logger,
-                platform,
-                showDashboard:
-                    contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value,
-                onAuthenticated,
-            })
-        } else {
-            void this.runApp(inputConfig)
-        }
+            },
+        })
     }
 }
 

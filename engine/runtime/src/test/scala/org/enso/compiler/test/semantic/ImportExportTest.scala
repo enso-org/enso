@@ -416,6 +416,328 @@ class ImportExportTest
     }
   }
 
+  "Import resolution from another library honor Main" should {
+    "resolve Api from Main" in {
+      val mainIr = """
+                     |from Test.Logical_Export import Api
+                     |
+                     |main =
+                     |    element = Api.Element.Element.create
+                     |    element.describe
+                     |""".stripMargin
+        .createModule(packageQualifiedName.createChild("Main"))
+        .getIr
+
+      mainIr.imports.size shouldEqual 1
+      val in = mainIr.imports.head
+        .asInstanceOf[IR.Module.Scope.Import.Module]
+
+      in.name.name.toString() should include("Test.Logical_Export.Main")
+      in.onlyNames.get.map(_.name.toString()) shouldEqual List("Api")
+
+      val errors = mainIr.preorder.filter(x => x.isInstanceOf[IR.Error])
+      errors.size shouldEqual 0
+    }
+
+    "don't expose Impl from Main" in {
+      val mainIr = """
+                     |from Test.Logical_Export import Impl
+                     |
+                     |main = Impl
+                     |""".stripMargin
+        .createModule(packageQualifiedName.createChild("Main"))
+        .getIr
+
+      mainIr.imports.head
+        .asInstanceOf[IR.Error.ImportExport]
+        .reason
+        .message should include(
+        "The symbol Impl (module or type) does not exist in module Test.Logical_Export.Main."
+      )
+    }
+  }
+
+  "Ambiguous symbol resolution" should {
+    "generate warning when importing same type twice with different import statements" in {
+      s"""
+         |type A_Type
+         |""".stripMargin
+        .createModule(packageQualifiedName.createChild("A_Module"))
+      val mainIr =
+        s"""
+           |import $namespace.$packageName.A_Module.A_Type
+           |from $namespace.$packageName.A_Module import A_Type
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("Main_Module"))
+          .getIr
+      mainIr.imports.size shouldEqual 2
+      val origImport = mainIr.imports(0)
+      val warn = mainIr
+        .imports(1)
+        .diagnostics
+        .collect({ case w: IR.Warning.DuplicatedImport => w })
+      warn.size shouldEqual 1
+      warn.head.originalImport shouldEqual origImport
+      warn.head.symbolName shouldEqual "A_Type"
+      warn.head.originalImport shouldEqual origImport
+    }
+
+    "generate warning when importing same type twice with one-symbol import and all-symbol import" in {
+      s"""
+         |type A_Type
+         |""".stripMargin
+        .createModule(packageQualifiedName.createChild("A_Module"))
+      val mainIr =
+        s"""
+           |import $namespace.$packageName.A_Module.A_Type
+           |from $namespace.$packageName.A_Module import all
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("Main_Module"))
+          .getIr
+      mainIr.imports.size shouldEqual 2
+      val origImport = mainIr.imports(0)
+      val warn = mainIr
+        .imports(1)
+        .diagnostics
+        .collect({ case w: IR.Warning.DuplicatedImport => w })
+      warn.size shouldEqual 1
+      warn.head.originalImport shouldEqual origImport
+      warn.head.symbolName shouldEqual "A_Type"
+      warn.head.originalImport shouldEqual origImport
+    }
+
+    "generate warning when importing same type twice with two all-symbol imports" in {
+      s"""
+         |type A_Type
+         |""".stripMargin
+        .createModule(packageQualifiedName.createChild("A_Module"))
+      val mainIr =
+        s"""
+           |from $namespace.$packageName.A_Module import all
+           |from $namespace.$packageName.A_Module import all
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("Main_Module"))
+          .getIr
+      mainIr.imports.size shouldEqual 2
+      val origImport = mainIr.imports(0)
+      val warn = mainIr
+        .imports(1)
+        .diagnostics
+        .collect({ case w: IR.Warning.DuplicatedImport => w })
+      warn.size shouldEqual 1
+      warn.head.originalImport shouldEqual origImport
+      warn.head.symbolName shouldEqual "A_Type"
+      warn.head.originalImport shouldEqual origImport
+    }
+
+    "generate two warnings when importing same type twice with two all-symbol imports" in {
+      s"""
+         |type A_Type
+         |type AA_Type
+         |""".stripMargin
+        .createModule(packageQualifiedName.createChild("A_Module"))
+      val mainIr =
+        s"""
+           |from $namespace.$packageName.A_Module import all
+           |from $namespace.$packageName.A_Module import all
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("Main_Module"))
+          .getIr
+      mainIr.imports.size shouldEqual 2
+      val origImport = mainIr.imports(0)
+      val warn = mainIr
+        .imports(1)
+        .diagnostics
+        .collect({ case w: IR.Warning.DuplicatedImport => w })
+      warn.size shouldEqual 2
+      warn.foreach(_.originalImport shouldEqual origImport)
+      warn.exists(_.symbolName == "A_Type") shouldEqual true
+      warn.exists(_.symbolName == "AA_Type") shouldEqual true
+    }
+
+    "work when importing two different types with hiding" in {
+      s"""
+         |type A_Type
+         |""".stripMargin
+        .createModule(packageQualifiedName.createChild("A_Module"))
+      s"""
+         |type A_Type
+         |""".stripMargin
+        .createModule(packageQualifiedName.createChild("B_Module"))
+      val mainIr =
+        s"""
+           |from $namespace.$packageName.A_Module import all hiding A_Type
+           |from $namespace.$packageName.B_Module import all
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("Main_Module"))
+          .getIr
+      mainIr.imports.size shouldEqual 2
+      mainIr.imports.foreach(
+        _.isInstanceOf[IR.Error.ImportExport] shouldEqual false
+      )
+    }
+
+    "result in error when importing same type twice with two one-symbol import and renamed import" in {
+      s"""
+         |type A_Type
+         |""".stripMargin
+        .createModule(packageQualifiedName.createChild("A_Module"))
+      s"""
+         |type B_Type
+         |""".stripMargin
+        .createModule(packageQualifiedName.createChild("B_Module"))
+      val mainIr =
+        s"""
+           |from $namespace.$packageName.A_Module import A_Type
+           |import $namespace.$packageName.B_Module.B_Type as A_Type
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("Main_Module"))
+          .getIr
+      mainIr.imports.size shouldEqual 2
+      val origImport = mainIr.imports(0)
+      val ambiguousImport = mainIr
+        .imports(1)
+        .asInstanceOf[IR.Error.ImportExport]
+        .reason
+        .asInstanceOf[IR.Error.ImportExport.AmbiguousImport]
+      ambiguousImport.symbolName shouldEqual "A_Type"
+      ambiguousImport.originalImport shouldEqual origImport
+    }
+
+    "generate warning when importing same type twice in one import statement" in {
+      s"""
+         |type A_Type
+         |static_method = 42
+         |""".stripMargin
+        .createModule(packageQualifiedName.createChild("A_Module"))
+      val mainIr =
+        s"""
+           |from $namespace.$packageName.A_Module import A_Type, static_method, A_Type
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("Main_Module"))
+          .getIr
+      val warns = mainIr
+        .imports(0)
+        .diagnostics
+        .collect({ case w: IR.Warning.DuplicatedImport => w })
+      warns.size shouldEqual 1
+      warns.head.symbolName shouldEqual "A_Type"
+    }
+
+    "generate error when importing different type twice with one-symbol import and renamed polyglot import" in {
+      s"""
+         |type A_Type
+         |""".stripMargin
+        .createModule(packageQualifiedName.createChild("A_Module"))
+      val mainIr =
+        s"""
+           |from $namespace.$packageName.A_Module import A_Type
+           |polyglot java import org.enso.example.TestClass as A_Type
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("Main_Module"))
+          .getIr
+      mainIr.imports.size shouldEqual 2
+      val origImport = mainIr.imports(0)
+      val ambiguousImport = mainIr
+        .imports(1)
+        .asInstanceOf[IR.Error.ImportExport]
+        .reason
+        .asInstanceOf[IR.Error.ImportExport.AmbiguousImport]
+      ambiguousImport.symbolName shouldEqual "A_Type"
+      ambiguousImport.originalImport shouldEqual origImport
+    }
+
+    "generate warning when importing same type twice with two renamed polyglot imports" in {
+      s"""
+         |type A_Type
+         |""".stripMargin
+        .createModule(packageQualifiedName.createChild("A_Module"))
+      val mainIr =
+        s"""
+           |polyglot java import org.enso.example.TestClass as A_Type
+           |polyglot java import org.enso.example.TestClass as A_Type
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("Main_Module"))
+          .getIr
+      mainIr.imports.size shouldEqual 2
+      val origImport = mainIr.imports(0)
+      val warns = mainIr
+        .imports(1)
+        .diagnostics
+        .collect({ case w: IR.Warning.DuplicatedImport => w })
+      warns.size shouldEqual 1
+      warns.head.symbolName shouldEqual "A_Type"
+      warns.head.originalImport shouldEqual origImport
+    }
+
+    "result in error when importing different polyglot types with two renamed polyglot imports" in {
+      val mainIr =
+        s"""
+           |polyglot java import org.enso.example.TestClass as A_Type
+           |polyglot java import org.enso.example.TestClass.StaticInnerClass as A_Type
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("Main_Module"))
+          .getIr
+      mainIr.imports.size shouldEqual 2
+      val origImport = mainIr.imports(0)
+      val ambiguousImport = mainIr
+        .imports(1)
+        .asInstanceOf[IR.Error.ImportExport]
+        .reason
+        .asInstanceOf[IR.Error.ImportExport.AmbiguousImport]
+      ambiguousImport.symbolName shouldEqual "A_Type"
+      ambiguousImport.originalImport shouldEqual origImport
+    }
+
+    "generate warnings when importing same type multiple times with one-symbol import statements" in {
+      s"""
+         |type A_Type
+         |""".stripMargin
+        .createModule(packageQualifiedName.createChild("A_Module"))
+      val mainIr =
+        s"""
+           |import $namespace.$packageName.A_Module.A_Type
+           |import $namespace.$packageName.A_Module.A_Type
+           |import $namespace.$packageName.A_Module.A_Type
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("Main_Module"))
+          .getIr
+      mainIr.imports.size shouldEqual 3
+      val origImport = mainIr.imports(0)
+      val allWarns =
+        mainIr.imports.flatMap(_.diagnostics.collect({
+          case w: IR.Warning.DuplicatedImport => w
+        }))
+      allWarns.size shouldEqual 2
+      allWarns.foreach(_.symbolName shouldEqual "A_Type")
+      allWarns.foreach(_.originalImport shouldEqual origImport)
+    }
+
+    "generate warnings when importing same type multiple times with import-all statements" in {
+      s"""
+         |type A_Type
+         |""".stripMargin
+        .createModule(packageQualifiedName.createChild("A_Module"))
+      val mainIr =
+        s"""
+           |from $namespace.$packageName.A_Module import all
+           |from $namespace.$packageName.A_Module import all
+           |from $namespace.$packageName.A_Module import all
+           |""".stripMargin
+          .createModule(packageQualifiedName.createChild("Main_Module"))
+          .getIr
+      mainIr.imports.size shouldEqual 3
+      val origImport = mainIr.imports(0)
+      val allWarns =
+        mainIr.imports.flatMap(_.diagnostics.collect({
+          case w: IR.Warning.DuplicatedImport => w
+        }))
+      allWarns.size shouldEqual 2
+      allWarns.foreach(_.symbolName shouldEqual "A_Type")
+      allWarns.foreach(_.originalImport shouldEqual origImport)
+    }
+  }
+
   "Import resolution for three modules" should {
 
     "not resolve symbol that is not explicitly exported" in {

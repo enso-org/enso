@@ -1,5 +1,13 @@
 package org.enso.compiler;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.file.Paths;
+import java.util.concurrent.TimeUnit;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.pkg.PackageManager;
 import org.enso.polyglot.LanguageInfo;
@@ -7,15 +15,6 @@ import org.enso.polyglot.MethodNames;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.junit.Test;
-
-import java.io.File;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.file.Paths;
-import java.util.concurrent.TimeUnit;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 
 public class SerializerTest {
   public Context ensoContextForPackage(String name, File pkgFile) throws IOException {

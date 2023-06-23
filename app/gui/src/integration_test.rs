@@ -83,7 +83,10 @@ impl Fixture {
         let project_management =
             controller.manage_projects().expect("Cannot access Managing Project API");
 
-        project_management.create_new_project(None).await.expect("Failed to create new project");
+        project_management
+            .create_new_project(None, None)
+            .await
+            .expect("Failed to create new project");
     }
 
     /// After returning, the IDE is in a state with the project opened and ready to work

@@ -1138,6 +1138,8 @@ pub const ENABLE_DOM_DEBUG_ALL: bool = true;
 /// The name of a display object when not specified. Object names are visible in the DOM inspector.
 pub const DEFAULT_NAME: &str = "UnnamedDisplayObject";
 
+
+
 // ==========
 // === Id ===
 // ==========
@@ -3148,7 +3150,7 @@ pub struct Row {
 pub struct ColumnOrRowRef<Dim> {
     instance: Instance,
     index:    usize,
-    axis:     PhantomData<Dim>,
+    axis:     ZST<Dim>,
 }
 
 /// The auto-layout column reference.
@@ -3159,7 +3161,7 @@ pub type RowRef = ColumnOrRowRef<Y>;
 
 impl<Dim> ColumnOrRowRef<Dim> {
     fn new(instance: Instance, index: usize) -> Self {
-        Self { instance, index, axis: PhantomData }
+        Self { instance, index, axis: ZST() }
     }
 }
 

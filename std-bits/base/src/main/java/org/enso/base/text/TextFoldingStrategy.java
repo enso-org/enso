@@ -1,8 +1,7 @@
 package org.enso.base.text;
 
-import org.enso.base.Text_Utils;
-
 import java.util.Locale;
+import org.enso.base.Text_Utils;
 
 /** A strategy for folding text values for comparison and hashing. */
 public interface TextFoldingStrategy {

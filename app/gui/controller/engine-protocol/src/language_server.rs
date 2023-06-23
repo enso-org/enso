@@ -118,7 +118,7 @@ trait API {
     /// Create a new execution context. Return capabilities executionContext/canModify and
     /// executionContext/receivesUpdates containing freshly created ContextId
     #[MethodInput=CreateExecutionContextInput, rpc_name="executionContext/create"]
-    fn create_execution_context(&self) -> response::CreateExecutionContext;
+    fn create_execution_context(&self, context_id: ContextId) -> response::CreateExecutionContext;
 
     /// Destroy an execution context and free its resources.
     #[MethodInput=DestroyExecutionContextInput, rpc_name="executionContext/destroy"]
@@ -205,6 +205,10 @@ trait API {
     /// VCS snapshot if no `commit_id` is provided.
     #[MethodInput=VcsRestoreInput, rpc_name="vcs/restore"]
     fn restore_vcs(&self, root: Path, commit_id: Option<String>) -> response::RestoreVcs;
+
+    /// An OpenAI-powered completion to the given prompt, with the given stop sequence.
+    #[MethodInput=AiCompletionInput, rpc_name="ai/completion"]
+    fn ai_completion(&self, prompt: String, stop_sequence: String) -> response::AiCompletion;
 
     /// Set the execution environment of the context for future evaluations.
     #[MethodInput=SetModeInput, rpc_name="executionContext/setExecutionEnvironment"]

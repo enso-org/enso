@@ -1,24 +1,26 @@
 package org.enso.table.data.column.storage;
 
 import java.util.BitSet;
-
 import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.ObjectBuilder;
-import org.enso.table.data.column.builder.object.StringBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.storage.type.AnyObjectType;
+import org.enso.table.data.column.storage.type.FloatType;
+import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
-import org.enso.table.data.column.storage.type.TextType;
 
 /** A column storing arbitrary objects. */
 public final class ObjectStorage extends SpecializedStorage<Object> {
+  private StorageType inferredType = null;
+
   /**
    * @param data the underlying data
    * @param size the number of items stored
    */
   public ObjectStorage(Object[] data, int size) {
     super(data, size, ops);
+    inferredType = null;
   }
 
   @Override
@@ -37,13 +39,48 @@ public final class ObjectStorage extends SpecializedStorage<Object> {
   }
 
   @Override
+  public StorageType inferPreciseType() {
+    if (inferredType == null) {
+      StorageType currentType = null;
+
+      for (int i = 0; i < size(); i++) {
+        var item = getItemBoxed(i);
+        if (item == null) {
+          continue;
+        }
+
+        var itemType = StorageType.forBoxedItem(item);
+        if (currentType == null) {
+          currentType = itemType;
+        } else if (currentType != itemType) {
+          // Allow mixed integer and float types in a column, returning a float.
+          if ((itemType instanceof IntegerType && currentType instanceof FloatType)
+              || (itemType instanceof FloatType && currentType instanceof IntegerType)) {
+            currentType = FloatType.FLOAT_64;
+          } else {
+            currentType = AnyObjectType.INSTANCE;
+          }
+        }
+
+        if (currentType instanceof AnyObjectType) {
+          break;
+        }
+      }
+
+      inferredType = currentType == null ? AnyObjectType.INSTANCE : currentType;
+    }
+
+    return inferredType;
+  }
+
+  @Override
   public Builder createDefaultBuilderOfSameType(int capacity) {
     return new ObjectBuilder(capacity);
   }
 
   private static final MapOpStorage<Object, SpecializedStorage<Object>> ops = buildObjectOps();
 
-  static <T, S extends SpecializedStorage<T>> MapOpStorage<T, S> buildObjectOps() {
+  public static <T, S extends SpecializedStorage<T>> MapOpStorage<T, S> buildObjectOps() {
     MapOpStorage<T, S> ops = new MapOpStorage<>();
     ops.add(
         new UnaryMapOperation<>(Maps.IS_NOTHING) {

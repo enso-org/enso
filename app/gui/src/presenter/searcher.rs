@@ -102,17 +102,6 @@ impl Model {
         }
     }
 
-    fn commit_editing(&self, entry_id: Option<view::searcher::entry::Id>) -> Option<AstNodeId> {
-        let result = match entry_id {
-            Some(id) => self.controller.execute_action_by_index(id),
-            None => self.controller.commit_node().map(Some),
-        };
-        result.unwrap_or_else(|err| {
-            error!("Error while executing action: {err}.");
-            None
-        })
-    }
-
     fn suggestion_for_entry_id(
         &self,
         id: component_grid::GroupEntryId,
@@ -130,13 +119,18 @@ impl Model {
     }
 
     /// Should be called if a suggestion is selected but not used yet.
-    fn suggestion_selected(&self, entry_id: component_grid::GroupEntryId) {
-        match self.suggestion_for_entry_id(entry_id) {
-            Ok(suggestion) =>
-                if let Err(error) = self.controller.preview_suggestion(suggestion) {
-                    warn!("Failed to preview suggestion {entry_id:?} because of error: {error}.");
-                },
-            Err(err) => warn!("Error while previewing suggestion: {err}."),
+    fn suggestion_selected(&self, entry_id: Option<component_grid::GroupEntryId>) {
+        let suggestion = entry_id.map(|id| self.suggestion_for_entry_id(id));
+        let to_preview = match suggestion {
+            Some(Ok(suggestion)) => Some(suggestion),
+            Some(Err(err)) => {
+                warn!("Error while previewing suggestion: {err}.");
+                None
+            }
+            None => None,
+        };
+        if let Err(error) = self.controller.preview(to_preview) {
+            error!("Failed to preview searcher input (selected suggestion: {entry_id:?}) because of error: {error}.");
         }
     }
 
@@ -231,10 +225,16 @@ impl Model {
         if let Some(entry_id) = entry_id {
             self.suggestion_accepted(entry_id);
         }
-        self.controller.commit_node().map(Some).unwrap_or_else(|err| {
-            error!("Error while committing node expression: {err}.");
+        if !self.controller.is_input_empty() {
+            self.controller.commit_node().map(Some).unwrap_or_else(|err| {
+                error!("Error while committing node expression: {err}.");
+                None
+            })
+        } else {
+            // if input is empty or contains spaces only, we cannot update the node (there is no
+            // valid AST to assign). Because it is an expected thing, we also do not report error.
             None
-        })
+        }
     }
 
     fn documentation_of_component(
@@ -265,6 +265,10 @@ impl Model {
         } else {
             default()
         }
+    }
+
+    fn should_select_first_entry(&self) -> bool {
+        self.controller.is_filtering() || self.controller.is_input_empty()
     }
 }
 
@@ -299,7 +303,13 @@ impl Searcher {
                 model.input_changed(expr, cursor_position);
             });
 
-            action_list_changed <- source::<()>();
+            action_list_changed <- any_mut::<()>();
+            // When the searcher input is changed, we need to update immediately the list of
+            // entries in the component browser (as opposed to waiting for a `NewActionList` event
+            // which is delivered asynchronously). This is because the input may be accepted
+            // before the asynchronous event is delivered and to accept the correct entry the list
+            // must be up-to-date.
+            action_list_changed <+ model.view.searcher_input_changed.constant(());
 
             eval_ model.view.toggle_component_browser_private_entries_visibility (
                 model.controller.reload_list());
@@ -318,10 +328,11 @@ impl Searcher {
                 let provider = provider::Component::provide_new_list(controller_provider, &grid);
                 *model.provider.borrow_mut() = Some(provider);
             });
+            grid.select_first_entry <+ action_list_changed.filter(f_!(model.should_select_first_entry()));
             input_edit <- grid.suggestion_accepted.filter_map(f!((e) model.suggestion_accepted(*e)));
             graph.edit_node_expression <+ input_edit;
 
-            entry_selected <- grid.active.filter_map(|&s| s?.as_entry_id());
+            entry_selected <- grid.active.map(|&s| s?.as_entry_id());
             selected_entry_changed <- entry_selected.on_change().constant(());
             grid.unhover_element <+ any2(
                 &selected_entry_changed,
@@ -358,9 +369,12 @@ impl Searcher {
 
         let weak_model = Rc::downgrade(&model);
         let notifications = model.controller.subscribe();
+        let graph = model.view.graph().clone();
         spawn_stream_handler(weak_model, notifications, move |notification, _| {
             match notification {
                 Notification::NewActionList => action_list_changed.emit(()),
+                Notification::AISuggestionUpdated(expr, range) =>
+                    graph.edit_node_expression((input_view, range, ImString::new(expr))),
             };
             std::future::ready(())
         });
@@ -394,8 +408,9 @@ impl Searcher {
         new_node.metadata = Some(metadata);
         new_node.introduce_pattern = false;
         let transaction_name = "Add code for created node's visualization preview.";
-        let _transaction =
-            graph_controller.undo_redo_repository().open_ignored_transaction(transaction_name);
+        let _transaction = graph_controller
+            .undo_redo_repository()
+            .open_ignored_transaction_or_ignore_current(transaction_name);
         let created_node = graph_controller.add_node(new_node)?;
 
         graph.assign_node_view_explicitly(input, created_node);
@@ -477,17 +492,6 @@ impl Searcher {
 
         let input = parameters.input;
         Ok(Self::new(searcher_controller, view, input))
-    }
-
-    /// Commit editing in the old Node Searcher.
-    ///
-    /// This method takes `self`, as the presenter (with the searcher view) should be dropped once
-    /// editing finishes. The `entry_id` might be none in case where the searcher should accept
-    /// the node input without any entry selected. If the commitment results in creating a new
-    /// node, its AST ID is returned.
-    #[profile(Task)]
-    pub fn commit_editing(self, entry_id: Option<view::searcher::entry::Id>) -> Option<AstNodeId> {
-        self.model.commit_editing(entry_id)
     }
 
     /// Expression accepted in Component Browser.

@@ -12,7 +12,7 @@ const THIS_PATH = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)))
 // === Configuration ===
 // =====================
 
-// This is a third-party API that we do not control.
+// The names come from a third-party API and cannot be changed.
 /* eslint-disable no-restricted-syntax, @typescript-eslint/naming-convention */
 export const content = [THIS_PATH + '/src/**/*.tsx']
 export const theme = {
@@ -46,6 +46,9 @@ export const theme = {
         },
         spacing: {
             '140': '35rem',
+        },
+        gridTemplateColumns: {
+            'fill-60': 'repeat(auto-fill, 15rem)',
         },
         boxShadow: {
             soft: `0 0.5px 2.2px 0px #00000008, 0 1.2px 5.3px 0px #0000000b, \

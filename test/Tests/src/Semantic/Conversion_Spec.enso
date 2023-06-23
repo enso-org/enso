@@ -112,4 +112,7 @@ spec =
             meta_from.rename "foo" 123 . should_equal "foo called"
             meta_from.rename "foo" . should_equal .foo
 
+        Test.specify "should not allow currying" <|
+            Panic.recover Any (Foo.from) . catch Any .to_display_text . should_equal "Conversion currying without `that` argument is not supported."
+
 main = Test_Suite.run_main spec

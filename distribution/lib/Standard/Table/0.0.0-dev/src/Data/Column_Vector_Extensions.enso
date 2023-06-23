@@ -53,7 +53,7 @@ Column.compute_bulk self statistics=[Statistic.Count, Statistic.Sum] =
    Arguments:
    - statistic: Statistic to calculate.
    - name: Name of the new column.
-Column.running : Statistic -> Column
+Column.running : Statistic -> Text -> Column
 Column.running self statistic=Statistic.Count name=statistic.to_text+" "+self.name =
     data = Statistic.running self.to_vector statistic
     Column.from_vector name data

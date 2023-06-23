@@ -19,6 +19,7 @@ object SuggestionRandom {
       case Suggestion.Kind.Module      => nextSuggestionModule()
       case Suggestion.Kind.Type        => nextSuggestionType()
       case Suggestion.Kind.Constructor => nextSuggestionConstructor()
+      case Suggestion.Kind.Getter      => nextSuggestionGetter()
       case Suggestion.Kind.Method      => nextSuggestionMethod()
       case Suggestion.Kind.Conversion  => nextSuggestionMethod()
       case Suggestion.Kind.Function    => nextSuggestionFunction()
@@ -28,41 +29,55 @@ object SuggestionRandom {
 
   def nextSuggestionModule(): Suggestion.Module =
     Suggestion.Module(
-      module            = nextString(),
-      documentation     = optional(nextString())
+      module        = nextString(),
+      documentation = optional(nextString())
     )
 
   def nextSuggestionType(): Suggestion.Type =
     Suggestion.Type(
-      externalId        = optional(UUID.randomUUID()),
-      module            = "Test.Main",
-      name              = nextString(),
-      params            = Seq(),
-      returnType        = nextString(),
-      parentType        = optional(nextString()),
-      documentation     = optional(nextString())
+      externalId    = optional(UUID.randomUUID()),
+      module        = "Test.Main",
+      name          = nextString(),
+      params        = Seq(),
+      returnType    = nextString(),
+      parentType    = optional(nextString()),
+      documentation = optional(nextString())
     )
 
   def nextSuggestionConstructor(): Suggestion.Constructor =
     Suggestion.Constructor(
-      externalId        = optional(UUID.randomUUID()),
-      module            = "Test.Main",
-      name              = nextString(),
-      arguments         = Seq(),
-      returnType        = nextString(),
-      documentation     = optional(nextString())
+      externalId    = optional(UUID.randomUUID()),
+      module        = "Test.Main",
+      name          = nextString(),
+      arguments     = Seq(),
+      returnType    = nextString(),
+      documentation = optional(nextString()),
+      annotations   = Seq()
+    )
+
+  def nextSuggestionGetter(): Suggestion.Getter =
+    Suggestion.Getter(
+      externalId    = optional(UUID.randomUUID()),
+      module        = "Test.Main",
+      name          = nextString(),
+      arguments     = Seq(),
+      selfType      = nextString(),
+      returnType    = nextString(),
+      documentation = optional(nextString()),
+      annotations   = Seq()
     )
 
   def nextSuggestionMethod(): Suggestion.Method =
-    Suggestion.Method(
-      externalId        = optional(UUID.randomUUID()),
-      module            = "Test.Main",
-      name              = nextString(),
-      arguments         = Seq(),
-      selfType          = nextString(),
-      returnType        = nextString(),
-      isStatic          = Random.nextBoolean(),
-      documentation     = optional(nextString())
+    Suggestion.DefinedMethod(
+      externalId    = optional(UUID.randomUUID()),
+      module        = "Test.Main",
+      name          = nextString(),
+      arguments     = Seq(),
+      selfType      = nextString(),
+      returnType    = nextString(),
+      isStatic      = Random.nextBoolean(),
+      documentation = optional(nextString()),
+      annotations   = Seq()
     )
 
   def nextSuggestionFunction(): Suggestion.Function =
@@ -99,12 +114,13 @@ object SuggestionRandom {
     )
 
   def nextKind(): Suggestion.Kind =
-    Random.nextInt(5) match {
+    Random.nextInt(6) match {
       case 0 => Suggestion.Kind.Module
       case 1 => Suggestion.Kind.Constructor
-      case 2 => Suggestion.Kind.Method
-      case 3 => Suggestion.Kind.Function
-      case 4 => Suggestion.Kind.Local
+      case 2 => Suggestion.Kind.Getter
+      case 3 => Suggestion.Kind.Method
+      case 4 => Suggestion.Kind.Function
+      case 5 => Suggestion.Kind.Local
       case x => throw new NoSuchElementException(s"nextKind: $x")
     }
 

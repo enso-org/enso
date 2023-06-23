@@ -7,6 +7,7 @@ import org.enso.cli.task.notifications.TaskNotificationApi.{
   TaskStarted
 }
 import org.enso.jsonrpc.Protocol
+import org.enso.languageserver.ai.AICompletion
 import org.enso.languageserver.capability.CapabilityApi.{
   AcquireCapability,
   ForceReleaseCapability,
@@ -79,6 +80,7 @@ object JsonRpc {
     .registerRequest(GetSuggestionsDatabaseVersion)
     .registerRequest(InvalidateSuggestionsDatabase)
     .registerRequest(Completion)
+    .registerRequest(AICompletion)
     .registerRequest(RenameProject)
     .registerRequest(ProjectInfo)
     .registerRequest(EditionsListAvailable)

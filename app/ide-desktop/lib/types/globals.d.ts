@@ -1,8 +1,6 @@
 /** @file Globals defined outside of TypeScript files.
  * These are from variables defined at build time, environment variables,
- * monkeypatching on `window` and generated code.
- *
- * This file MUST `export {}` for the globals to be visible to other files. */
+ * monkeypatching on `window` and generated code. */
 // This file is being imported for its types.
 // eslint-disable-next-line no-restricted-syntax
 import * as buildJson from './build.json' assert { type: 'json' }
@@ -52,7 +50,7 @@ interface AuthenticationApi {
 declare global {
     /** */
     interface Window {
-        enso: Enso
+        enso?: AppRunner & Enso
         authenticationApi: AuthenticationApi
     }
 
@@ -76,4 +74,7 @@ declare global {
     // eslint-disable-next-line no-restricted-syntax
     const REDIRECT_OVERRIDE: string | undefined
     /* eslint-disable @typescript-eslint/naming-convention */
+    // This is a function.
+    // eslint-disable-next-line no-restricted-syntax
+    const assert: (invariant: boolean, message: string) => void
 }

@@ -2,12 +2,11 @@ package org.enso.shttp;
 
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
-import sun.misc.Signal;
-import sun.misc.SignalHandler;
-
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.List;
+import sun.misc.Signal;
+import sun.misc.SignalHandler;
 
 public class SimpleHTTPBin {
 

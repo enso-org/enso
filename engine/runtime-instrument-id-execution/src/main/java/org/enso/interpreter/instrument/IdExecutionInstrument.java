@@ -15,7 +15,7 @@ import com.oracle.truffle.api.nodes.Node;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-import org.enso.interpreter.instrument.execution.Timer;
+import org.enso.interpreter.instrument.Timer;
 import org.enso.interpreter.instrument.profiling.ExecutionTime;
 import org.enso.interpreter.instrument.profiling.ProfilingInfo;
 import org.enso.interpreter.node.ExpressionNode;
@@ -308,8 +308,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
 
     @CompilerDirectives.TruffleBoundary
     private void onFunctionReturn(UUID nodeId, FunctionCallInstrumentationNode.FunctionCall result, EventContext context) throws ThreadDeath {
-        calls.put(
-                nodeId, new FunctionCallInfo(result));
+        calls.put(nodeId, new FunctionCallInfo(result));
         functionCallCallback.accept(new ExpressionCall(nodeId, result));
         // Return cached value after capturing the enterable function call in `functionCallCallback`
         Object cachedResult = cache.get(nodeId);

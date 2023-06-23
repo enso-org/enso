@@ -1,12 +1,11 @@
 package org.enso.table.aggregations;
 
+import java.util.List;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.InvalidAggregation;
-
-import java.util.List;
 
 /** Aggregate Column computing the mean value in a group. */
 public class Mean extends Aggregator {

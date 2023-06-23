@@ -5,7 +5,8 @@ from Standard.Table import Aggregate_Column, Value_Type, Table
 from Standard.Table.Errors import Invalid_Value_Type, Inexact_Type_Coercion
 
 import Standard.Database.Data.Dialect
-import Standard.Database.Extensions.Upload_Table
+import Standard.Database.Extensions.Upload_Database_Table
+import Standard.Database.Extensions.Upload_In_Memory_Table
 import Standard.Database.Internal.SQLite.SQLite_Type_Mapping
 from Standard.Database import Database, SQLite, In_Memory, SQL_Query
 from Standard.Database.Errors import Unsupported_Database_Operation
@@ -103,7 +104,7 @@ spec =
 
         Test.specify "does not support creating tables with date/time values" <|
             t = Table.new [["a", [Date.now]], ["b", [Time_Of_Day.now]], ["c", [Date_Time.now]]]
-            r1 = t.create_database_table connection temporary=True
+            r1 = t.select_into_database_table connection temporary=True
             r1.should_fail_with Unsupported_Database_Operation
 
         Test.specify "should be able to infer types for all supported operations" <|

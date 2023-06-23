@@ -66,10 +66,11 @@ impl ExecutionContext {
     pub fn create(
         language_server: Rc<language_server::Connection>,
         root_definition: language_server::MethodPointer,
+        id: model::execution_context::Id,
     ) -> impl Future<Output = FallibleResult<Self>> {
         async move {
             info!("Creating.");
-            let id = language_server.client.create_execution_context().await?.context_id;
+            let id = language_server.client.create_execution_context(&id).await?.context_id;
             let model = model::execution_context::Plain::new(root_definition);
             info!("Created. Id: {id}.");
             let this = Self { id, model, language_server };
@@ -169,6 +170,10 @@ impl model::execution_context::API for ExecutionContext {
 
     fn current_method(&self) -> language_server::MethodPointer {
         self.model.current_method()
+    }
+
+    fn method_at_frame_back(&self, count: usize) -> FallibleResult<language_server::MethodPointer> {
+        self.model.method_at_frame_back(count)
     }
 
     fn visualization_info(&self, id: VisualizationId) -> FallibleResult<Visualization> {
@@ -286,6 +291,19 @@ impl model::execution_context::API for ExecutionContext {
         debug!("Dispatching visualization update through the context {}", self.id());
         self.model.dispatch_visualization_update(visualization_id, data)
     }
+
+    fn get_ai_completion<'a>(
+        &'a self,
+        prompt: &str,
+        stop: &str,
+    ) -> BoxFuture<'a, FallibleResult<String>> {
+        self.language_server
+            .client
+            .ai_completion(&prompt.to_string(), &stop.to_string())
+            .map(|result| result.map(|completion| completion.code).map_err(Into::into))
+            .boxed_local()
+    }
+
 
     fn interrupt(&self) -> BoxFuture<FallibleResult> {
         async move {
@@ -415,7 +433,7 @@ pub mod test {
             let connection = language_server::Connection::new_mock_rc(ls_client);
             let mut test = TestWithLocalPoolExecutor::set_up();
             let method = data.main_method_pointer();
-            let context = ExecutionContext::create(connection, method);
+            let context = ExecutionContext::create(connection, method, data.context_id);
             let context = test.expect_completion(context).unwrap();
             Fixture { data, context, test }
         }
@@ -434,7 +452,7 @@ pub mod test {
         fn mock_create_destroy_calls(data: &MockData, ls: &mut language_server::MockClient) {
             let id = data.context_id;
             let result = Self::expected_creation_response(data);
-            expect_call!(ls.create_execution_context()    => Ok(result));
+            expect_call!(ls.create_execution_context(id)  => Ok(result));
             expect_call!(ls.destroy_execution_context(id) => Ok(()));
         }
 

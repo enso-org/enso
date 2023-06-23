@@ -2,8 +2,6 @@
 
 use crate::prelude::*;
 
-use crate::display::world::World;
-
 use super::command;
 use super::shortcut;
 use super::Application;
@@ -26,7 +24,6 @@ pub use command::View;
 #[derive(Debug, Clone, CloneRef)]
 #[allow(missing_docs)]
 pub struct Registry {
-    pub display:           World,
     pub command_registry:  command::Registry,
     pub shortcut_registry: shortcut::Registry,
     pub definitions:       Rc<RefCell<HashSet<String>>>,
@@ -35,15 +32,13 @@ pub struct Registry {
 impl Registry {
     /// Constructor.
     pub fn create(
-        display: &World,
         command_registry: &command::Registry,
         shortcut_registry: &shortcut::Registry,
     ) -> Self {
-        let display = display.clone_ref();
         let command_registry = command_registry.clone_ref();
         let shortcut_registry = shortcut_registry.clone_ref();
         let definitions = default();
-        Self { display, command_registry, shortcut_registry, definitions }
+        Self { command_registry, shortcut_registry, definitions }
     }
 
     /// View registration.

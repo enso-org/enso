@@ -5,9 +5,8 @@ import com.oracle.truffle.api.dsl.ReportPolymorphism;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.profiles.ConditionProfile;
-import org.enso.interpreter.runtime.number.EnsoBigInteger;
-
 import java.math.BigInteger;
+import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @ReportPolymorphism
 @NodeInfo(description = "Takes a big integer and casts it to a long, if the operation is safe.")

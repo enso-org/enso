@@ -89,14 +89,11 @@ impl Snippet {
     pub fn from_literal(literal: &input::Literal, db: &SuggestionDatabase) -> Self {
         use input::Literal::*;
         let text_repr = literal.to_string();
-        let snippet = match literal {
-            Text { closing_delimiter: missing_quotation_mark, .. } => {
-                let missing_quote = missing_quotation_mark.as_ref();
-                let code = &missing_quote.map(ToString::to_string).unwrap_or_default();
-                Self::new(&text_repr, code, IconId::TextInput)
-            }
-            Number(_) => Self::new(&text_repr, "", IconId::NumberInput),
+        let icon = match literal {
+            Text { .. } => IconId::TextInput,
+            Number { .. } => IconId::NumberInput,
         };
+        let snippet = Self::new(&text_repr, &text_repr, icon);
         let entry_path = match literal {
             Text { .. } => TEXT_ENTRY,
             Number(_) => NUMBER_ENTRY,

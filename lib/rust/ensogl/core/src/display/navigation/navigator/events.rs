@@ -245,14 +245,14 @@ impl NavigatorEvents {
                     event.prevent_default();
                     let position = data.mouse_position();
                     let zoom_speed = data.zoom_speed();
-                    let movement = Vector2::new(event.delta_x() as f32, -event.delta_y() as f32);
+                    let movement = Vector2::new(event.delta_x(), -event.delta_y());
                     let amount = movement_to_zoom(movement);
                     if let Some(event) = ZoomEvent::new(position, amount, zoom_speed) {
                         data.on_zoom(event);
                     }
                 } else if data.is_wheel_panning_enabled() {
-                    let x = -event.delta_x() as f32;
-                    let y = event.delta_y() as f32;
+                    let x = -event.delta_x();
+                    let y = event.delta_y();
                     let pan_speed = data.pan_speed();
                     let movement = Vector2::new(x, y) * pan_speed;
                     let pan_event = PanEvent::new(movement);

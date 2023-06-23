@@ -86,6 +86,10 @@ case object TypeSignatures extends IRPass {
         res
       case meth: IR.Module.Scope.Definition.Method =>
         val newMethod = meth.mapExpressions(resolveExpression)
+        newMethod.body.preorder.foreach {
+          case fn: IR.Function => verifyAscribedArguments(fn.arguments)
+          case _               =>
+        }
         val res = lastSignature match {
           case Some(asc @ IR.Type.Ascription(typed, sig, _, _, _)) =>
             val methodRef = meth.methodReference
@@ -130,6 +134,7 @@ case object TypeSignatures extends IRPass {
         lastSignature = None
         res
       case ut: IR.Module.Scope.Definition.Type =>
+        ut.members.foreach(d => verifyAscribedArguments(d.arguments))
         Some(
           ut
             .copy(
@@ -161,6 +166,20 @@ case object TypeSignatures extends IRPass {
 
     mod.copy(
       bindings = newBindings
+    )
+  }
+
+  /** Attaches {@link Signature} to each arguments of a function
+    * with ascribed type for correct resolution by {@link TypesNames}
+    * pass.
+    *
+    * @param fn the function to check arguments for
+    */
+  private def verifyAscribedArguments(
+    arguments: List[IR.DefinitionArgument]
+  ): Unit = {
+    arguments.foreach(arg =>
+      arg.ascribedType.map(t => arg.updateMetadata(this -->> Signature(t)))
     )
   }
 

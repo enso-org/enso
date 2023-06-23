@@ -13,9 +13,9 @@ import * as backendModule from '../../dashboard/backend'
 import * as backendProvider from '../../providers/backend'
 import * as errorModule from '../../error'
 import * as http from '../../http'
+import * as localBackend from '../../dashboard/localBackend'
 import * as loggerProvider from '../../providers/logger'
 import * as newtype from '../../newtype'
-import * as platformModule from '../../platform'
 import * as remoteBackend from '../../dashboard/remoteBackend'
 import * as sessionProvider from './session'
 
@@ -23,15 +23,21 @@ import * as sessionProvider from './session'
 // === Constants ===
 // =================
 
+/** The minimum delay between two requests. */
+const REQUEST_DELAY_MS = 200
 const MESSAGES = {
     signUpSuccess: 'We have sent you an email with further instructions!',
     confirmSignUpSuccess: 'Your account has been confirmed! Please log in.',
+    setUsernameLoading: 'Setting username...',
     setUsernameSuccess: 'Your username has been set!',
+    setUsernameFailure: 'Could not set your username.',
     signInWithPasswordSuccess: 'Successfully logged in!',
     forgotPasswordSuccess: 'We have sent you an email with further instructions!',
     changePasswordSuccess: 'Successfully changed password!',
     resetPasswordSuccess: 'Successfully reset password!',
+    signOutLoading: 'Logging out...',
     signOutSuccess: 'Successfully logged out!',
+    signOutError: 'Error logging out, please try again.',
     pleaseWait: 'Please wait...',
 } as const
 
@@ -41,8 +47,8 @@ const MESSAGES = {
 
 /** Possible types of {@link BaseUserSession}. */
 export enum UserSessionType {
+    offline = 'offline',
     partial = 'partial',
-    awaitingAcceptance = 'awaitingAcceptance',
     full = 'full',
 }
 
@@ -56,10 +62,20 @@ interface BaseUserSession<Type extends UserSessionType> {
     email: string
 }
 
-/** Object containing the currently signed-in user's session data. */
-export interface FullUserSession extends BaseUserSession<UserSessionType.full> {
-    /** User's organization information. */
-    organization: backendModule.UserOrOrganization
+// Extends `BaseUserSession` in order to inherit the documentation.
+/** Empty object of an offline user session.
+ * Contains some fields from {@link FullUserSession} to allow destructuring. */
+export interface OfflineUserSession extends Pick<BaseUserSession<UserSessionType.offline>, 'type'> {
+    accessToken: null
+    organization: null
+}
+
+/** The singleton instance of {@link OfflineUserSession}.
+ * Minimizes React re-renders. */
+const OFFLINE_USER_SESSION: OfflineUserSession = {
+    type: UserSessionType.offline,
+    accessToken: null,
+    organization: null,
 }
 
 /** Object containing the currently signed-in user's session data, if the user has not yet set their
@@ -70,9 +86,15 @@ export interface FullUserSession extends BaseUserSession<UserSessionType.full> {
  * used by the `SetUsername` component. */
 export interface PartialUserSession extends BaseUserSession<UserSessionType.partial> {}
 
+/** Object containing the currently signed-in user's session data. */
+export interface FullUserSession extends BaseUserSession<UserSessionType.full> {
+    /** User's organization information. */
+    organization: backendModule.UserOrOrganization
+}
+
 /** A user session for a user that may be either fully registered,
  * or in the process of registering. */
-export type UserSession = FullUserSession | PartialUserSession
+export type UserSession = FullUserSession | OfflineUserSession | PartialUserSession
 
 // ===================
 // === AuthContext ===
@@ -86,6 +108,7 @@ export type UserSession = FullUserSession | PartialUserSession
  *
  * See {@link Cognito} for details on each of the authentication functions. */
 interface AuthContextType {
+    goOffline: () => Promise<boolean>
     signUp: (email: string, password: string) => Promise<boolean>
     confirmSignUp: (email: string, code: string) => Promise<boolean>
     setUsername: (
@@ -140,7 +163,6 @@ const AuthContext = react.createContext<AuthContextType>({} as AuthContextType)
 /** Props for an {@link AuthProvider}. */
 export interface AuthProviderProps {
     authService: authServiceModule.AuthService
-    platform: platformModule.Platform
     /** Callback to execute once the user has authenticated successfully. */
     onAuthenticated: () => void
     children: react.ReactNode
@@ -148,15 +170,25 @@ export interface AuthProviderProps {
 
 /** A React provider for the Cognito API. */
 export function AuthProvider(props: AuthProviderProps) {
-    const { authService, platform, children } = props
+    const { authService, onAuthenticated, children } = props
     const { cognito } = authService
-    const { session } = sessionProvider.useSession()
-    const { setBackend } = backendProvider.useSetBackend()
+    const { session, deinitializeSession } = sessionProvider.useSession()
+    const { setBackendWithoutSavingType } = backendProvider.useSetBackend()
     const logger = loggerProvider.useLogger()
+    // This must not be `hooks.useNavigate` as `goOffline` would be inaccessible,
+    // and the function call would error.
+    // eslint-disable-next-line no-restricted-properties
     const navigate = router.useNavigate()
-    const onAuthenticated = react.useCallback(props.onAuthenticated, [])
     const [initialized, setInitialized] = react.useState(false)
     const [userSession, setUserSession] = react.useState<UserSession | null>(null)
+
+    // This is identical to `hooks.useOnlineCheck`, however it is inline here to avoid any possible
+    // circular dependency.
+    react.useEffect(() => {
+        if (!navigator.onLine) {
+            void goOffline()
+        }
+    }, [navigator.onLine])
 
     /** Fetch the JWT access token from the session via the AWS Amplify library.
      *
@@ -165,7 +197,9 @@ export function AuthProvider(props: AuthProviderProps) {
      * If the token has expired, automatically refreshes the token and returns the new token. */
     react.useEffect(() => {
         const fetchSession = async () => {
-            if (session.none) {
+            if (!navigator.onLine) {
+                goOfflineInternal()
+            } else if (session.none) {
                 setInitialized(true)
                 setUserSession(null)
             } else {
@@ -174,10 +208,30 @@ export function AuthProvider(props: AuthProviderProps) {
                 headers.append('Authorization', `Bearer ${accessToken}`)
                 const client = new http.Client(headers)
                 const backend = new remoteBackend.RemoteBackend(client, logger)
-                if (platform === platformModule.Platform.cloud) {
-                    setBackend(backend)
+                // The backend MUST be the remote backend before login is finished.
+                // This is because the "set username" flow requires the remote backend.
+                if (!initialized || userSession == null) {
+                    setBackendWithoutSavingType(backend)
                 }
-                const organization = await backend.usersMe().catch(() => null)
+                let organization
+                // eslint-disable-next-line no-restricted-syntax
+                while (organization === undefined) {
+                    try {
+                        organization = await backend.usersMe()
+                    } catch {
+                        // The value may have changed after the `await`.
+                        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+                        if (!navigator.onLine) {
+                            goOfflineInternal()
+                            // eslint-disable-next-line no-restricted-syntax
+                            return
+                        }
+                        // This prevents a busy loop when request blocking is enabled in DevTools.
+                        // The UI will be blank indefinitely. This is intentional, since for real
+                        // network outages, `navigator.onLine` will be false.
+                        await new Promise(resolve => setTimeout(resolve, REQUEST_DELAY_MS))
+                    }
+                }
                 let newUserSession: UserSession
                 const sharedSessionData = { email, accessToken }
                 if (!organization) {
@@ -229,6 +283,19 @@ export function AuthProvider(props: AuthProviderProps) {
             return result
         }
 
+    const goOfflineInternal = () => {
+        setInitialized(true)
+        setUserSession(OFFLINE_USER_SESSION)
+        setBackendWithoutSavingType(new localBackend.LocalBackend())
+    }
+
+    const goOffline = () => {
+        toast.error('You are offline, switching to offline mode.')
+        goOfflineInternal()
+        navigate(app.DASHBOARD_PATH)
+        return Promise.resolve(true)
+    }
+
     const signUp = async (username: string, password: string) => {
         const result = await cognito.signUp(username, password)
         if (result.ok) {
@@ -274,20 +341,25 @@ export function AuthProvider(props: AuthProviderProps) {
         username: string,
         email: string
     ) => {
-        if (backend.platform === platformModule.Platform.desktop) {
+        if (backend.type === backendModule.BackendType.local) {
             toast.error('You cannot set your username on the local backend.')
             return false
         } else {
             try {
-                await backend.createUser({
-                    userName: username,
-                    userEmail: newtype.asNewtype<backendModule.EmailAddress>(email),
-                })
+                await toast.promise(
+                    backend.createUser({
+                        userName: username,
+                        userEmail: newtype.asNewtype<backendModule.EmailAddress>(email),
+                    }),
+                    {
+                        success: MESSAGES.setUsernameSuccess,
+                        error: MESSAGES.setUsernameFailure,
+                        loading: MESSAGES.setUsernameLoading,
+                    }
+                )
                 navigate(app.DASHBOARD_PATH)
-                toast.success(MESSAGES.setUsernameSuccess)
                 return true
             } catch (e) {
-                toast.error('Could not set your username.')
                 return false
             }
         }
@@ -326,25 +398,32 @@ export function AuthProvider(props: AuthProviderProps) {
     }
 
     const signOut = async () => {
-        await cognito.signOut()
-        toast.success(MESSAGES.signOutSuccess)
+        deinitializeSession()
+        setInitialized(false)
+        setUserSession(null)
+        await toast.promise(cognito.signOut(), {
+            success: MESSAGES.signOutSuccess,
+            error: MESSAGES.signOutError,
+            loading: MESSAGES.signOutLoading,
+        })
         return true
     }
 
     const value = {
+        goOffline: goOffline,
         signUp: withLoadingToast(signUp),
         confirmSignUp: withLoadingToast(confirmSignUp),
         setUsername,
         signInWithGoogle: () =>
-            cognito
-                .signInWithGoogle()
-                .then(() => true)
-                .catch(() => false),
+            cognito.signInWithGoogle().then(
+                () => true,
+                () => false
+            ),
         signInWithGitHub: () =>
-            cognito
-                .signInWithGitHub()
-                .then(() => true)
-                .catch(() => false),
+            cognito.signInWithGitHub().then(
+                () => true,
+                () => false
+            ),
         signInWithPassword: withLoadingToast(signInWithPassword),
         forgotPassword: withLoadingToast(forgotPassword),
         resetPassword: withLoadingToast(resetPassword),
@@ -387,6 +466,16 @@ export function useAuth() {
     return react.useContext(AuthContext)
 }
 
+// ===============================
+// === shouldPreventNavigation ===
+// ===============================
+
+/** True if navigation should be prevented, for debugging purposes. */
+function getShouldPreventNavigation() {
+    const location = router.useLocation()
+    return new URLSearchParams(location.search).get('prevent-navigation') === 'true'
+}
+
 // =======================
 // === ProtectedLayout ===
 // =======================
@@ -394,10 +483,11 @@ export function useAuth() {
 /** A React Router layout route containing routes only accessible by users that are logged in. */
 export function ProtectedLayout() {
     const { session } = useAuth()
+    const shouldPreventNavigation = getShouldPreventNavigation()
 
-    if (!session) {
+    if (!shouldPreventNavigation && !session) {
         return <router.Navigate to={app.LOGIN_PATH} />
-    } else if (session.type === UserSessionType.partial) {
+    } else if (!shouldPreventNavigation && session?.type === UserSessionType.partial) {
         return <router.Navigate to={app.SET_USERNAME_PATH} />
     } else {
         return <router.Outlet context={session} />
@@ -412,8 +502,9 @@ export function ProtectedLayout() {
  * in the process of registering. */
 export function SemiProtectedLayout() {
     const { session } = useAuth()
+    const shouldPreventNavigation = getShouldPreventNavigation()
 
-    if (session?.type === UserSessionType.full) {
+    if (!shouldPreventNavigation && session?.type === UserSessionType.full) {
         return <router.Navigate to={app.DASHBOARD_PATH} />
     } else {
         return <router.Outlet context={session} />
@@ -428,10 +519,11 @@ export function SemiProtectedLayout() {
  * not logged in. */
 export function GuestLayout() {
     const { session } = useAuth()
+    const shouldPreventNavigation = getShouldPreventNavigation()
 
-    if (session?.type === UserSessionType.partial) {
+    if (!shouldPreventNavigation && session?.type === UserSessionType.partial) {
         return <router.Navigate to={app.SET_USERNAME_PATH} />
-    } else if (session?.type === UserSessionType.full) {
+    } else if (!shouldPreventNavigation && session?.type === UserSessionType.full) {
         return <router.Navigate to={app.DASHBOARD_PATH} />
     } else {
         return <router.Outlet />
@@ -448,11 +540,11 @@ export function usePartialUserSession() {
     return router.useOutletContext<PartialUserSession>()
 }
 
-// ==========================
-// === useFullUserSession ===
-// ==========================
+// ================================
+// === useNonPartialUserSession ===
+// ================================
 
-/** A React context hook returning the user session for a user that has completed registration. */
-export function useFullUserSession() {
-    return router.useOutletContext<FullUserSession>()
+/** A React context hook returning the user session for a user that can perform actions. */
+export function useNonPartialUserSession() {
+    return router.useOutletContext<Exclude<UserSession, PartialUserSession>>()
 }

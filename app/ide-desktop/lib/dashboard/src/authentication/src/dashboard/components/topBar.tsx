@@ -1,8 +1,8 @@
 /** @file The top-bar of dashboard. */
 import * as react from 'react'
 
+import * as backendModule from '../backend'
 import * as dashboard from './dashboard'
-import * as platformModule from '../../platform'
 import * as svg from '../../components/svg'
 
 import * as backendProvider from '../../providers/backend'
@@ -16,13 +16,13 @@ import UserMenu from './userMenu'
 
 /** Props for a {@link TopBar}. */
 export interface TopBarProps {
-    platform: platformModule.Platform
+    supportsLocalBackend: boolean
     projectName: string | null
     tab: dashboard.Tab
     toggleTab: () => void
-    setBackendPlatform: (backendPlatform: platformModule.Platform) => void
+    setBackendType: (backendType: backendModule.BackendType) => void
     isHelpChatOpen: boolean
-    setIsHelpChatOpen: (isHelpChatVisible: boolean) => void
+    setIsHelpChatOpen: (isHelpChatOpen: boolean) => void
     query: string
     setQuery: (value: string) => void
 }
@@ -31,38 +31,45 @@ export interface TopBarProps {
  * because `searchVal` may change parent component's project list. */
 function TopBar(props: TopBarProps) {
     const {
-        platform,
+        supportsLocalBackend,
         projectName,
         tab,
         toggleTab,
-        setBackendPlatform,
-        isHelpChatOpen: isHelpChatVisible,
-        setIsHelpChatOpen: setIsHelpChatVisible,
+        setBackendType,
+        isHelpChatOpen,
+        setIsHelpChatOpen,
         query,
         setQuery,
     } = props
-    const [userMenuVisible, setUserMenuVisible] = react.useState(false)
+    const [isUserMenuVisible, setIsUserMenuVisible] = react.useState(false)
+    const { modal } = modalProvider.useModal()
     const { setModal, unsetModal } = modalProvider.useSetModal()
     const { backend } = backendProvider.useBackend()
 
     react.useEffect(() => {
-        if (userMenuVisible) {
+        if (!modal) {
+            setIsUserMenuVisible(false)
+        }
+    }, [modal])
+
+    react.useEffect(() => {
+        if (isUserMenuVisible) {
             setModal(() => <UserMenu />)
         } else {
             unsetModal()
         }
-    }, [userMenuVisible])
+    }, [isUserMenuVisible])
 
     return (
         <div className="flex mb-2 h-8">
-            {platform === platformModule.Platform.desktop && (
+            {supportsLocalBackend && (
                 <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap p-1.5">
                     <button
                         onClick={() => {
-                            setBackendPlatform(platformModule.Platform.desktop)
+                            setBackendType(backendModule.BackendType.local)
                         }}
                         className={`${
-                            backend.platform === platformModule.Platform.desktop
+                            backend.type === backendModule.BackendType.local
                                 ? 'bg-white shadow-soft'
                                 : 'opacity-50'
                         } rounded-full px-1.5 py-1`}
@@ -71,10 +78,10 @@ function TopBar(props: TopBarProps) {
                     </button>
                     <button
                         onClick={() => {
-                            setBackendPlatform(platformModule.Platform.cloud)
+                            setBackendType(backendModule.BackendType.remote)
                         }}
                         className={`${
-                            backend.platform === platformModule.Platform.cloud
+                            backend.type === backendModule.BackendType.remote
                                 ? 'bg-white shadow-soft'
                                 : 'opacity-50'
                         } rounded-full px-1.5 py-1`}
@@ -108,6 +115,7 @@ function TopBar(props: TopBarProps) {
                 <div>{svg.MAGNIFYING_GLASS_ICON}</div>
                 <input
                     type="text"
+                    size={1}
                     placeholder="Click here or start typing to search for projects, data connectors, users, and more ..."
                     value={query}
                     onChange={event => {
@@ -117,11 +125,11 @@ function TopBar(props: TopBarProps) {
                 />
             </div>
             <div className="grow" />
-            {!isHelpChatVisible && (
+            {!isHelpChatOpen && (
                 <div
                     className="flex cursor-pointer items-center bg-help rounded-full px-2.5 text-white mx-2"
                     onClick={() => {
-                        setIsHelpChatVisible(true)
+                        setIsHelpChatOpen(true)
                     }}
                 >
                     <span>help chat</span>
@@ -133,7 +141,7 @@ function TopBar(props: TopBarProps) {
                 <div
                     onClick={event => {
                         event.stopPropagation()
-                        setUserMenuVisible(!userMenuVisible)
+                        setIsUserMenuVisible(!isUserMenuVisible)
                     }}
                     className="rounded-full w-8 h-8 bg-cover cursor-pointer"
                 >

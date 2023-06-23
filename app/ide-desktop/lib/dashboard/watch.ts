@@ -21,14 +21,30 @@ const HTTP_STATUS_OK = 200
 // However, the path should still be non-empty in order for `esbuild.serve` to work properly.
 const ARGS: bundler.Arguments = { outputPath: '/', devMode: true }
 const OPTS = bundler.bundlerOptions(ARGS)
+OPTS.define.REDIRECT_OVERRIDE = JSON.stringify(`http://localhost:${PORT}`)
 OPTS.entryPoints.push(
     path.resolve(THIS_PATH, 'src', 'index.html'),
     path.resolve(THIS_PATH, 'src', 'index.tsx'),
     path.resolve(THIS_PATH, 'src', 'serviceWorker.ts')
 )
+OPTS.minify = false
 OPTS.write = false
 // eslint-disable-next-line @typescript-eslint/naming-convention
 OPTS.loader = { '.html': 'copy' }
+OPTS.pure.splice(OPTS.pure.indexOf('assert'), 1)
+;(OPTS.inject = OPTS.inject ?? []).push(path.resolve(THIS_PATH, '..', '..', 'debugGlobals.ts'))
+OPTS.plugins.push({
+    name: 'react-dom-profiling',
+    setup: build => {
+        build.onResolve({ filter: /^react-dom$/ }, args => {
+            if (args.kind === 'import-statement') {
+                return { path: 'react-dom/profiling' }
+            } else {
+                return
+            }
+        })
+    },
+})
 
 // ===============
 // === Watcher ===

@@ -64,7 +64,7 @@ impl From<ExpressionUpdate> for ComputedValueInfo {
     fn from(update: ExpressionUpdate) -> Self {
         ComputedValueInfo {
             typename:    update.typename.map(ImString::new),
-            method_call: update.method_pointer,
+            method_call: update.method_call.map(|mc| mc.method_pointer),
             payload:     update.payload,
         }
     }
@@ -414,6 +414,10 @@ pub trait API: Debug {
     /// Obtain the method pointer to the method of the call stack's top frame.
     fn current_method(&self) -> MethodPointer;
 
+    /// Obtain the method pointer to the method of the call `count` frames back from the stack's top
+    /// (calling with 0 is the same as [`current_method`](Self::current_method).
+    fn method_at_frame_back(&self, count: usize) -> FallibleResult<MethodPointer>;
+
     /// Get the information about the given visualization. Fails, if there's no such visualization
     /// active.
     fn visualization_info(&self, id: VisualizationId) -> FallibleResult<Visualization>;
@@ -455,7 +459,6 @@ pub trait API: Debug {
         FallibleResult<futures::channel::mpsc::UnboundedReceiver<VisualizationUpdateData>>,
     >;
 
-
     /// Detach the visualization from this execution context.
     #[allow(clippy::needless_lifetimes)] // Note: Needless lifetimes
     fn detach_visualization<'a>(
@@ -493,6 +496,13 @@ pub trait API: Debug {
         let detach_actions = visualizations.into_iter().map(move |v| self.detach_visualization(v));
         futures::future::join_all(detach_actions).boxed_local()
     }
+
+    /// Get an AI completion for the given `prompt`, with specified `stop` sequence.
+    fn get_ai_completion<'a>(
+        &'a self,
+        prompt: &str,
+        stop: &str,
+    ) -> BoxFuture<'a, FallibleResult<String>>;
 
     /// Interrupt the program execution.
     #[allow(clippy::needless_lifetimes)] // Note: Needless lifetimes

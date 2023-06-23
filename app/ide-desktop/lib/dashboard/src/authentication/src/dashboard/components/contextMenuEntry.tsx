@@ -8,16 +8,18 @@ import * as react from 'react'
 /** Props for a {@link ContextMenuEntry}. */
 export interface ContextMenuEntryProps {
     disabled?: boolean
+    title?: string
     onClick: (event: react.MouseEvent<HTMLButtonElement>) => void
 }
 
 // This component MUST NOT use `useState` because it is not rendered directly.
 /** An item in a `ContextMenu`. */
 function ContextMenuEntry(props: react.PropsWithChildren<ContextMenuEntryProps>) {
-    const { children, disabled, onClick } = props
+    const { children, disabled, title, onClick } = props
     return (
         <button
             disabled={disabled}
+            title={title}
             className={`${
                 disabled ? 'opacity-50' : ''
             } p-1 hover:bg-gray-200 first:rounded-t-lg last:rounded-b-lg text-left`}

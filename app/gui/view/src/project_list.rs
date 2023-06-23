@@ -4,6 +4,7 @@
 use crate::prelude::*;
 use ensogl::display::shape::*;
 
+use engine_protocol::project_manager::ProjectMetadata;
 use enso_frp as frp;
 use ensogl::application::frp::API;
 use ensogl::application::Application;
@@ -11,7 +12,6 @@ use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::scene::Layer;
 use ensogl_component::grid_view;
-use ensogl_component::list_view;
 use ensogl_component::shadow;
 use ensogl_derive_theme::FromTheme;
 use ensogl_hardcoded_theme::application::project_list as theme;
@@ -196,6 +196,23 @@ mod background {
 
 
 
+// ===========
+// === FRP ===
+// ===========
+
+ensogl::define_endpoints! {
+    Input {
+        /// This is a list of projects to choose from.
+        project_list (Vec<ProjectMetadata>),
+    }
+    Output {
+        /// This is the selected project.
+        selected_project (Option<ProjectMetadata>),
+    }
+}
+
+
+
 // ===================
 // === ProjectList ===
 // ===================
@@ -205,18 +222,19 @@ mod background {
 /// This is a list of projects in a nice frame with a title.
 #[derive(Clone, CloneRef, Debug)]
 pub struct ProjectList {
-    network:        frp::Network,
     display_object: display::object::Instance,
     background:     background::View,
     caption:        text::Text,
+    grid:           grid_view::scrollable::SelectableGridView<Entry>,
     #[allow(missing_docs)]
-    pub grid:       grid_view::scrollable::SelectableGridView<Entry>,
+    pub frp:        Frp,
 }
 
 impl ProjectList {
     /// Create Project List Component.
     pub fn new(app: &Application) -> Self {
-        let network = frp::Network::new("ProjectList");
+        let frp = Frp::new();
+        let network = &frp.network;
         let display_object = display::object::Instance::new();
         let background = background::View::new();
         let caption = app.new_view::<text::Text>();
@@ -228,15 +246,8 @@ impl ProjectList {
         caption.set_content("Open Project");
         caption.add_to_scene_layer(&app.display.default_scene.layers.panel_text);
 
-        ensogl::shapes_order_dependencies! {
-            app.display.default_scene => {
-                background            -> list_view::selection;
-                list_view::background -> background;
-            }
-        }
-
         let style_frp = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
-        let style = Style::from_theme(&network, &style_frp);
+        let style = Style::from_theme(network, &style_frp);
 
         frp::extend! { network
             init <- source::<()>();
@@ -274,11 +285,30 @@ impl ProjectList {
             grid_x <- grid_width.map(|width| -width / 2.0);
             grid_y <- all_with3(&content_size, &bar_height, &paddings, |s,h,p| s.y / 2.0 - *h - *p);
             _eval <- all_with(&grid_x, &grid_y, f!((x, y) grid.set_xy(Vector2(*x, *y))));
+
+            grid.reset_entries <+ frp.input.project_list.map(|projects| (projects.len(), 1));
+            grid_model_for_entry <= grid.model_for_entry_needed.map2(
+                &frp.input.project_list,
+                |(row, col), projects| {
+                    let project = projects.get(*row)?;
+                    Some((*row, *col, project.name.clone().into()))
+                }
+            );
+            grid.model_for_entry <+ grid_model_for_entry;
+
+            frp.source.selected_project <+ grid.entry_selected.map2(
+                &frp.input.project_list,
+                |selected_entry, projects| {
+                    let (row, _) = (*selected_entry)?;
+                    projects.get(row).cloned()
+                }
+            );
+            grid.select_entry <+ frp.output.selected_project.filter_map(|s| s.as_ref().map(|_| None));
         }
         style.init.emit(());
         init.emit(());
 
-        Self { network, display_object, background, caption, grid }
+        Self { display_object, background, caption, grid, frp }
     }
 }
 

@@ -407,7 +407,7 @@ impl Glyph {
     fn update_atlas(&self) {
         let cpu_tex_height = self.view.data.borrow().font.msdf_texture_rows() as i32;
         let gpu_tex_height =
-            self.view.data.borrow().font.atlas.with_content(|texture| texture.storage().height);
+            self.view.data.borrow().font.atlas.with_item(|texture| texture.storage().height);
         let texture_changed = cpu_tex_height != gpu_tex_height;
         if texture_changed {
             let cpu_tex_width = font::msdf::Texture::WIDTH as i32;

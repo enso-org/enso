@@ -14,12 +14,12 @@ type Missing_Input_Columns
        One or more columns not found in the input table.
 
        Arguments:
-       - criteria: the names of the columns or regular expressions that did not
-         have any matches.
+       - criteria: the names of the columns, regular expressions or indices that
+         did not matches any columns.
        - where: an optional text describing to which object this error is
          related to (for example in join, whether the reported error is for the
          left or right table).
-    Error (criteria : [Text]) (where:Text|Nothing = Nothing)
+    Error (criteria : [Text | Integer]) (where:Text|Nothing = Nothing)
 
     ## PRIVATE
 
@@ -29,21 +29,11 @@ type Missing_Input_Columns
         where = case self.where of
             Nothing -> "."
             location : Text -> " in "+location+"."
-        "The criteria "+self.criteria.to_text+" did not match any columns"+where
-
-type Column_Indexes_Out_Of_Range
-    ## PRIVATE
-       One or more column indexes were invalid on the input table.
-       Can occur when using By_Index.
-    Error (indexes : [Integer])
-
-    ## PRIVATE
-
-       Convert a column indexes out of bounds error to a human-readable form.
-    to_display_text : Text
-    to_display_text self = case self.indexes.length == 1 of
-        True -> "The index " + (self.indexes.at 0).to_text + " is out of range."
-        False -> "The indexes "+self.indexes.short_display_text+" are out of range."
+        criteria_texts = self.criteria.map c-> case c of
+            _ : Integer -> c.to_text+" (index)"
+            _ -> c.pretty
+        criteria_text = criteria_texts.join ", "
+        "The criteria "+criteria_text+" did not match any columns"+where
 
 type Too_Many_Column_Names_Provided
     ## PRIVATE
@@ -241,7 +231,7 @@ type Unquoted_Characters_In_Output
 ## Indicates that a specified location was not valid.
 type Invalid_Location
     ## PRIVATE
-    Error (location:Text)
+    Error (location : Text | Any)
 
     ## PRIVATE
        Pretty print the invalid location error.
@@ -259,7 +249,7 @@ type Invalid_Location
      format.
 type Invalid_Format
     ## PRIVATE
-    Error column:(Text|Nothing) (value_type:Value_Type|Integer|Number|Date|Date_Time|Time_Of_Day|Boolean) (cells:[Text])
+    Error column:(Text|Nothing) (value_type:Value_Type|Integer|Number|Date|Date_Time|Time_Of_Day|Boolean|Any) (cells:[Text])
 
     ## PRIVATE
        Pretty print the invalid format error.
@@ -448,14 +438,14 @@ type Invalid_JSON_Format
 type Column_Type_Mismatch
     ## PRIVATE
        An error indicating a mismatch of column types of merged columns.
-    Error (column_name : Text) (expected_type : Text) (got_type : Text)
+    Error (column_name : Text) (expected_type : Text | Value_Type) (got_type : Text | Value_Type)
 
     ## PRIVATE
 
        Create a human-readable version of the error.
     to_display_text : Text
     to_display_text self =
-        "The column ["+self.column_name+"] expects type "+self.expected_type+" but one of the provided tables had type "+self.got_type+" which is not compatible with it."
+        "The column ["+self.column_name+"] expects type "+self.expected_type.to_display_text+" but one of the provided tables had type "+self.got_type.to_display_text+" which is not compatible with it."
 
 type No_Common_Type
     ## PRIVATE
@@ -473,11 +463,11 @@ type No_Common_Type
     to_display_text : Text
     to_display_text self =
         types = self.types.map .to_display_text . join ", "
-        prefix = "No common type could have been found for the types: "+types
+        prefix = "No common type was found for types: "+types
         infix = case self.related_column_name of
-            column_name : Text -> " when unifying the column ["+column_name+"]."
+            column_name : Text -> " when unifying column ["+column_name+"]."
             _ -> "."
-        suffix = "If you want to allow mixed types, please retype the columns to the `Mixed` before the concatenation (note however that most Database backends do not support `Mixed` types, so it may work only for the in-memory backend)."
+        suffix = " If you want to allow mixed types, please cast one of the columns to `Mixed` beforehand."
         prefix + infix + suffix
 
 type Unmatched_Columns
@@ -492,7 +482,7 @@ type Unmatched_Columns
        Create a human-readable version of the error.
     to_display_text : Text
     to_display_text self =
-        "The following columns were not present in some of the provided tables: " + (self.column_names.map (n -> "["+n+"]") . join ", ") + ". The missing values have been filled with `Nothing`."
+        "The following columns were not present in some of the provided tables: " + (self.column_names.map (n -> "["+n+"]") . join ", ") + "."
 
 type Cross_Join_Row_Limit_Exceeded
     ## PRIVATE
@@ -558,7 +548,11 @@ type Conversion_Failure
 
        This may occur for example when a number does not fit the range of the
        target type.
-    Error (target_type : Value_Type) (related_column : Text) (affected_rows_count : Nothing|Integer)
+    Error (target_type : Value_Type) (related_column : Text) (affected_rows_count : Nothing|Integer) (example_values : Vector Any)
+
+    ## Indicates that for some values, their text representation is too long for
+       the target text type.
+    Text_Too_Long (target_type : Value_Type) (related_column : Text) (affected_rows_count : Nothing|Integer) (example_values : Vector Text)
 
     ## PRIVATE
 
@@ -567,8 +561,22 @@ type Conversion_Failure
     to_display_text self =
         rows_info = case self.affected_rows_count of
             Nothing -> "Some values"
-            count -> count.to_text+" rows"
-        rows_info + " could not be converted into the target type "+self.target_type.to_display_text+" when converting the column ["+self.related_column+"]."
+            count -> case self.example_values.is_empty of
+                True -> count.to_text+" rows"
+                False ->
+                    # We first `pretty` to wrap texts in quotes and avoid special characters, but then also `to_display_text` to limit the result length.
+                    examples = self.example_values.map (t-> t.pretty.to_display_text) . join ", "
+                    remaining_count = count - self.example_values.length
+                    additional = if remaining_count <= 0 then "" else
+                        cases = if remaining_count == 1 then "case" else "cases"
+                        " and "+remaining_count.to_text+" other "+cases
+                    "["+examples+additional+"]"
+
+        case self of
+            Conversion_Failure.Error _ _ _ _ ->
+                rows_info + " could not be converted into the target type "+self.target_type.to_display_text+" when converting the column ["+self.related_column+"]."
+            Conversion_Failure.Text_Too_Long _ _ _ _ ->
+                rows_info + " have a text representation that does not fit the target type "+self.target_type.to_display_text+" when converting the column ["+self.related_column+"]."
 
 type Invalid_Value_For_Type
     ## PRIVATE

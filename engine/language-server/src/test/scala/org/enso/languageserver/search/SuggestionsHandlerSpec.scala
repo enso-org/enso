@@ -357,7 +357,8 @@ class SuggestionsHandlerSpec
           name          = "Foo",
           arguments     = Vector(),
           returnType    = moduleName,
-          documentation = None
+          documentation = None,
+          annotations   = Seq()
         )
         val module = Suggestion.Module(
           module        = moduleName,
@@ -761,10 +762,10 @@ class SuggestionsHandlerSpec
               inserted(0),
               inserted(1),
               inserted(2),
-              inserted(6),
               inserted(7),
               inserted(8),
-              inserted(3)
+              inserted(9),
+              inserted(4)
             )
           )
         )
@@ -772,7 +773,7 @@ class SuggestionsHandlerSpec
 
     "search entries by self type" taggedAs Retry in withDb {
       (config, repo, _, _, handler) =>
-        val (_, Seq(_, _, _, methodId, _, _, methodOnAnyId, _, _)) =
+        val (_, Seq(_, _, _, getterId, methodId, _, _, methodOnAnyId, _, _)) =
           Await.result(repo.insertAll(Suggestions.all), Timeout)
         handler ! SearchProtocol.Completion(
           file       = mkModulePath(config, "Main.enso"),
@@ -786,7 +787,7 @@ class SuggestionsHandlerSpec
         expectMsg(
           SearchProtocol.CompletionResult(
             1L,
-            Seq(methodId, methodOnAnyId)
+            Seq(getterId, methodId, methodOnAnyId)
           )
         )
     }
@@ -795,7 +796,7 @@ class SuggestionsHandlerSpec
       (config, repo, _, _, handler) =>
         val (
           _,
-          Seq(_, _, _, _, _, _, anyMethodId, numberMethodId, integerMethodId)
+          Seq(_, _, _, _, _, _, _, anyMethodId, numberMethodId, integerMethodId)
         ) =
           Await.result(repo.insertAll(Suggestions.all), Timeout)
 
@@ -818,7 +819,7 @@ class SuggestionsHandlerSpec
 
     "search entries for any" taggedAs Retry in withDb {
       (config, repo, _, _, handler) =>
-        val (_, Seq(_, _, _, _, _, _, anyMethodId, _, _)) =
+        val (_, Seq(_, _, _, _, _, _, _, anyMethodId, _, _)) =
           Await.result(repo.insertAll(Suggestions.all), Timeout)
 
         handler ! SearchProtocol.Completion(
@@ -840,7 +841,7 @@ class SuggestionsHandlerSpec
 
     "search entries by return type" taggedAs Retry in withDb {
       (config, repo, _, _, handler) =>
-        val (_, Seq(_, _, _, _, functionId, _, _, _, _)) =
+        val (_, Seq(_, _, _, _, _, functionId, _, _, _, _)) =
           Await.result(repo.insertAll(Suggestions.all), Timeout)
         handler ! SearchProtocol.Completion(
           file       = mkModulePath(config, "Main.enso"),
@@ -861,7 +862,7 @@ class SuggestionsHandlerSpec
 
     "search entries by tags" taggedAs Retry in withDb {
       (config, repo, _, _, handler) =>
-        val (_, Seq(_, _, _, _, _, localId, _, _, _)) =
+        val (_, Seq(_, _, _, _, _, _, localId, _, _, _)) =
           Await.result(repo.insertAll(Suggestions.all), Timeout)
         handler ! SearchProtocol.Completion(
           file       = mkModulePath(config, "Main.enso"),
@@ -993,7 +994,8 @@ class SuggestionsHandlerSpec
       ExecutionContextConfig(requestTimeout = 3.seconds),
       ProjectDirectoriesConfig.initialize(root.file),
       ProfilingConfig(),
-      StartupConfig()
+      StartupConfig(),
+      None
     )
   }
 
@@ -1083,11 +1085,12 @@ class SuggestionsHandlerSpec
           Suggestion.Argument("b", "Any", false, false, None)
         ),
         returnType    = "Pair",
-        documentation = Some("Awesome")
+        documentation = Some("Awesome"),
+        annotations   = Seq()
       )
 
     val method: Suggestion.Method =
-      Suggestion.Method(
+      Suggestion.DefinedMethod(
         externalId    = Some(UUID.randomUUID()),
         module        = "Test.Main",
         name          = "main",
@@ -1095,7 +1098,8 @@ class SuggestionsHandlerSpec
         selfType      = "Test.Main",
         returnType    = "IO",
         isStatic      = true,
-        documentation = None
+        documentation = None,
+        annotations   = Seq()
       )
   }
 

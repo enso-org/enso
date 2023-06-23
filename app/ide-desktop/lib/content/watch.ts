@@ -31,15 +31,22 @@ async function watch() {
     // This MUST be called before `builder.watch()` as `tailwind.css` must be generated
     // before the copy plugin runs.
     await dashboardBuilder.watch()
-    const opts = bundler.bundlerOptions({
-        ...bundler.argumentsFromEnv(),
-        devMode: true,
-    })
+    const opts = bundler.bundlerOptions(
+        bundler.argumentsFromEnv({
+            devMode: true,
+            supportsLocalBackend: true,
+            supportsDeepLinks: false,
+        })
+    )
+    opts.pure.splice(opts.pure.indexOf('assert'), 1)
+    ;(opts.inject = opts.inject ?? []).push(path.resolve(THIS_PATH, '..', '..', 'debugGlobals.ts'))
     opts.define.REDIRECT_OVERRIDE = JSON.stringify('http://localhost:8080')
-    opts.entryPoints.push({
-        in: path.resolve(THIS_PATH, 'src', 'serviceWorker.ts'),
-        out: 'serviceWorker',
-    })
+    // This is safe as this entry point is statically known.
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const serviceWorkerEntryPoint = opts.entryPoints.find(
+        entryPoint => entryPoint.out === 'serviceWorker'
+    )!
+    serviceWorkerEntryPoint.in = path.resolve(THIS_PATH, 'src', 'devServiceWorker.ts')
     const builder = await esbuild.context(opts)
     await builder.watch()
     await builder.serve({

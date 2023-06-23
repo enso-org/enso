@@ -4,6 +4,7 @@ import project.Data.Locale.Locale
 import project.Data.Numbers.Integer
 import project.Data.Ordering.Comparable
 import project.Data.Text.Text
+from project.Data.Text.Extensions import all
 import project.Data.Time.Date.Date
 import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Duration.Duration
@@ -18,6 +19,8 @@ import project.Nothing.Nothing
 import project.Panic.Panic
 
 from project.Data.Boolean import Boolean, True, False
+
+from project.Widget_Helpers import make_time_format_selector
 
 polyglot java import java.time.Instant
 polyglot java import java.time.LocalTime
@@ -38,18 +41,6 @@ polyglot java import java.lang.Exception as JException
    Recommended to use `Time_Of_Day.new` instead which handles potential exceptions.
 new_builtin : Integer -> Integer -> Integer -> Integer -> Time_Of_Day
 new_builtin hour minute second nanosecond = @Builtin_Method "Time_Of_Day.new_builtin"
-
-## PRIVATE
-
-   Obtains an instance of `Time_Of_Day` from a text such as "10:15".
-
-   Arguments:
-   - text: The text to parse as a time of day.
-
-   Recommended to use `Time_Of_Day.parse_builtin` instead which handles potential
-   exceptions and different time formats.
-parse_builtin : Text -> Time_Of_Day
-parse_builtin text = @Builtin_Method "Time_Of_Day.parse_builtin"
 
 ## PRIVATE
 
@@ -167,12 +158,17 @@ type Time_Of_Day
              from Standard.Base import Time_Of_Day
 
              example_parse = Time_Of_Day.parse "4:30AM" "h:mma"
-    parse : Text -> Text | Nothing -> Locale -> Time_Of_Day ! Time_Error
-    parse text pattern=Nothing locale=Locale.default =
-        Panic.catch JException handler=(cause -> Error.throw (Time_Error.Error cause.payload.getMessage)) <|
-            case pattern of
-                Nothing -> parse_builtin text
-                _ : Text    -> Time_Utils.parse_time text pattern locale.java_locale
+    @pattern make_time_format_selector
+    @locale Locale.default_widget
+    parse : Text -> Text -> Locale -> Time_Of_Day ! Time_Error
+    parse text:Text pattern:Text="" locale:Locale=Locale.default =
+        result = Panic.recover Any <|
+            formatter = if pattern.is_empty then Time_Utils.default_time_of_day_formatter else
+                Time_Utils.make_formatter pattern locale.java_locale
+            Time_Utils.parse_time_of_day text.trim formatter
+        result . map_error <| case _ of
+            err : JException -> Time_Error.Error err.getMessage
+            ex -> ex
 
     ## Get the hour portion of the time of day.
 
@@ -250,30 +246,43 @@ type Time_Of_Day
 
              example_to_time = Time_Of_Day.new 12 30 . to_time (Date.new 2020)
     to_date_time : Date -> Time_Zone -> Date_Time
-    to_date_time self date (zone=Time_Zone.system) = self.to_date_time_builtin date zone
+    to_date_time self date (zone=Time_Zone.system) =
+        Time_Utils.make_zoned_date_time date self zone
 
-    ## Add the specified amount of time to this instant to get a new instant.
+    ## ALIAS Add Duration
+       Add the specified amount of time to this instant to get a new instant.
 
        Arguments:
-       - amount: The amount of time to add to this instant. Can be only
-         `Duration`.
+       - amount: The amount of time to add to this instant. It can be a
+         `Duration` or `Time_Period`.
 
        > Example
+         Add a `Duration` to a `Time_Of_Day`.
 
              from Standard.Base import Time_Of_Day, Duration
 
              example_plus = Time_Of_Day.new + (Duration.new seconds=3)
-    + : Duration -> Time_Of_Day ! Time_Error
-    + self amount =
+
+       > Example
+         Add a `Time_Period` to a `Time_Of_Day`.
+
+             from Standard.Base import Time_Of_Day, Time_Period
+
+             example_plus = Time_Of_Day.new + Time_Period.Hour
+    + : Duration | Time_Period -> Time_Of_Day ! Time_Error
+    + self amount:(Duration|Time_Period) =
         case amount of
             duration : Duration -> self.plus_builtin duration
-            _ : Period -> Error.throw (Time_Error.Error "Time_Of_Day does not support date intervals (periods)")
+            time_period : Time_Period ->
+                self + time_period.to_duration
 
-    ## Subtract the  specified amount of time from this instant to get a new
+    ## ALIAS Subtract Duration
+       Subtract the  specified amount of time from this instant to get a new
        instant.
 
        Arguments:
-       - amount: The amount of time to subtract from this instant.
+       - amount: The amount of time to add to this instant. It can be a
+         `Duration` or `Time_Period`.
 
        > Example
          Subtract 12 hours from a local time.
@@ -281,11 +290,19 @@ type Time_Of_Day
              from Standard.Base import Time_Of_Day, Duration
 
              example_minus = Time_Of_Day.now - (Duration.new hours=12)
-    - : Duration -> Time_Of_Day ! Time_Error
-    - self amount =
+
+       > Example
+         Subtract a `Time_Period` from a `Time_Of_Day`.
+
+             from Standard.Base import Time_Of_Day, Time_Period
+
+             example_plus = Time_Of_Day.new - Time_Period.Hour
+    - : Duration | Time_Period -> Time_Of_Day ! Time_Error
+    - self amount:(Duration|Time_Period) =
         case amount of
             duration : Duration -> self.minus_builtin duration
-            _ : Period -> Error.throw (Time_Error.Error "Time_Of_Day does not support date intervals (periods)")
+            time_period : Time_Period ->
+                self - time_period.to_duration
 
     ## PRIVATE
        Convert to a JavaScript Object representing this Time_Of_Day.
@@ -354,7 +371,10 @@ type Time_Of_Day
              from Standard.Base import Time_Of_Day
 
              example_format = Time_Of_Day.new 16 21 10 . format "'hour:'h"
+    @pattern (value-> make_time_format_selector value)
+    @locale Locale.default_widget
     format : Text -> Locale -> Text
-    format self pattern locale=Locale.default = case locale of
-        Nothing -> Time_Utils.time_of_day_format self pattern
-        _ -> Time_Utils.time_of_day_format_with_locale self pattern locale.java_locale
+    format self pattern:Text locale:Locale=Locale.default =
+        formatter = if pattern.is_empty then Time_Utils.default_time_of_day_formatter else
+            Time_Utils.make_formatter pattern locale.java_locale
+        Time_Utils.time_of_day_format self formatter

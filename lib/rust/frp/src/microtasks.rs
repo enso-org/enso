@@ -80,7 +80,7 @@ use enso_callback::traits::*;
 use enso_callback as callback;
 use enso_generics::Cons;
 use enso_generics::Nil;
-use enso_generics::PushBack;
+use enso_generics::PushLastField;
 use enso_web::traits::WindowOps;
 use enso_web::Closure;
 use enso_web::JsEventHandler;
@@ -186,19 +186,30 @@ impl Scheduler {
     }
 
     fn add(&self, f: impl FnOnce() + 'static) -> callback::Handle {
-        let handle = self.data.callbacks.add(f);
+        let handle = self.data.callbacks.add(profile(f));
         self.data.schedule_task();
         handle
     }
 
     fn add_late(&self, f: impl FnOnce() + 'static) -> callback::Handle {
-        let handle = self.data.late_callbacks.add(f);
+        let handle = self.data.late_callbacks.add(profile(f));
         self.data.schedule_task();
         handle
     }
 
     fn flush(&self) {
         self.data.flush();
+    }
+}
+
+/// Add profiling to a function. The current profiler (if any) will be the parent, regardless of
+/// when the scheduled task is actually executed.
+fn profile(f: impl FnOnce() + 'static) -> impl FnOnce() + 'static {
+    let profiler = profiler::create_debug!("<microtask>");
+    move || {
+        profiler.resume();
+        f();
+        profiler.pause();
     }
 }
 
@@ -213,6 +224,7 @@ struct SchedulerData {
 }
 
 impl SchedulerData {
+    #[profile(Task)]
     fn schedule_task(&self) {
         if !self.is_scheduled.replace(true) {
             // Result left unused on purpose. We only care about `closure` being run in the next
@@ -227,6 +239,7 @@ impl SchedulerData {
         }
     }
 
+    #[profile(Task)]
     fn run_all(&self) {
         let current_count = self.schedule_depth.get();
         let task_limit_reached = current_count >= MAX_RECURSIVE_MICROTASKS;
@@ -294,9 +307,9 @@ impl<T> TickPhases<T> {
     /// Add a phase to the list. The phase will be performed after all the phases that were added
     /// before.
     pub fn then<F>(self, f: F) -> TickPhases<T::Output>
-    where T: PushBack<F> {
+    where T: PushLastField<F> {
         let handle_cell = self.handle_cell;
-        let phase_list = self.phase_list.push_back(f);
+        let phase_list = self.phase_list.push_last_field(f);
         TickPhases { handle_cell, phase_list }
     }
 

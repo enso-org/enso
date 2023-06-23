@@ -15,6 +15,7 @@ use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::scene::layer::LayerSymbolPartition;
 use ensogl::display::shape;
+use span_tree::PortId;
 
 
 
@@ -111,7 +112,7 @@ impl PortLayers {
 pub struct Port {
     /// Drop source must be kept at the top of the struct, so it will be dropped first.
     _on_cleanup:   frp::DropSource,
-    crumbs:        Rc<RefCell<span_tree::Crumbs>>,
+    port_id:       frp::Source<PortId>,
     port_root:     display::object::Instance,
     widget_root:   display::object::Instance,
     widget:        DynWidget,
@@ -149,7 +150,6 @@ impl Port {
         let mouse_leave = hover_shape.on_event::<mouse::Leave>();
         let mouse_down = hover_shape.on_event::<mouse::Down>();
 
-        let crumbs: Rc<RefCell<span_tree::Crumbs>> = default();
 
         if frp.set_ports_visible.value() {
             port_root.add_child(&hover_shape);
@@ -160,16 +160,14 @@ impl Port {
 
         frp::extend! { network
             on_cleanup <- on_drop();
+            port_id <- source();
             hovering <- bool(&mouse_leave, &mouse_enter);
             cleanup_hovering <- on_cleanup.constant(false);
             hovering <- any(&hovering, &cleanup_hovering);
             hovering <- hovering.on_change();
 
-            frp.on_port_hover <+ hovering.map(
-                f!([crumbs](t) Switch::new(crumbs.borrow().clone(), *t))
-            );
-
-            frp.on_port_press <+ mouse_down.map(f_!(crumbs.borrow().clone()));
+            frp.on_port_hover <+ hovering.map2(&port_id, |t, id| Switch::new(*id, *t));
+            frp.on_port_press <+ port_id.sample(&mouse_down);
             eval frp.set_ports_visible([port_root_weak, hover_shape] (active) {
                 if let Some(port_root) = port_root_weak.upgrade() {
                     if *active {
@@ -194,7 +192,7 @@ impl Port {
             widget,
             widget_root,
             port_root,
-            crumbs,
+            port_id,
             current_depth: 0,
         }
     }
@@ -210,7 +208,11 @@ impl Port {
         ctx: ConfigContext,
         pad_x_override: Option<f32>,
     ) {
-        self.crumbs.replace(ctx.span_node.crumbs.clone());
+        match ctx.span_node.port_id {
+            Some(id) => self.port_id.emit(id),
+            None => error!("Port widget created on node with no port ID assigned."),
+        };
+
         self.set_connected(ctx.info.connection);
         self.set_port_layout(&ctx, pad_x_override.unwrap_or(HOVER_PADDING_X));
         self.widget.configure(config, ctx);

@@ -5,7 +5,6 @@
  * the API. */
 import * as backend from './backend'
 import * as newtype from '../newtype'
-import * as platformModule from '../platform'
 import * as projectManager from './projectManager'
 
 // ========================
@@ -32,7 +31,7 @@ interface CurrentlyOpenProjectInfo {
 export class LocalBackend implements Partial<backend.Backend> {
     static currentlyOpeningProjectId: backend.ProjectId | null = null
     static currentlyOpenProject: CurrentlyOpenProjectInfo | null = null
-    readonly platform = platformModule.Platform.desktop
+    readonly type = backend.BackendType.local
     private readonly projectManager = projectManager.ProjectManager.default()
 
     /** Return a list of assets in a directory.
@@ -44,7 +43,7 @@ export class LocalBackend implements Partial<backend.Backend> {
             type: backend.AssetType.project,
             id: project.id,
             title: project.name,
-            modifiedAt: project.lastOpened,
+            modifiedAt: project.lastOpened ?? project.created,
             parentId: newtype.asNewtype<backend.AssetId>(''),
             permissions: [],
             projectState: {
@@ -103,11 +102,10 @@ export class LocalBackend implements Partial<backend.Backend> {
         if (LocalBackend.currentlyOpeningProjectId === projectId) {
             LocalBackend.currentlyOpeningProjectId = null
         }
-        await this.projectManager.closeProject({ projectId })
-        if (projectId === LocalBackend.currentlyOpeningProjectId) {
-            LocalBackend.currentlyOpeningProjectId = null
+        if (LocalBackend.currentlyOpenProject?.id === projectId) {
             LocalBackend.currentlyOpenProject = null
         }
+        await this.projectManager.closeProject({ projectId })
     }
 
     /** Close the project identified by the given project ID.
@@ -181,7 +179,9 @@ export class LocalBackend implements Partial<backend.Backend> {
             projectId,
             missingComponentAction: projectManager.MissingComponentAction.install,
         })
-        LocalBackend.currentlyOpenProject = { id: projectId, project }
+        if (LocalBackend.currentlyOpeningProjectId === projectId) {
+            LocalBackend.currentlyOpenProject = { id: projectId, project }
+        }
     }
 
     /** Change the name of a project.
@@ -233,9 +233,9 @@ export class LocalBackend implements Partial<backend.Backend> {
         if (LocalBackend.currentlyOpeningProjectId === projectId) {
             LocalBackend.currentlyOpeningProjectId = null
         }
-        await this.projectManager.deleteProject({ projectId })
         if (LocalBackend.currentlyOpenProject?.id === projectId) {
             LocalBackend.currentlyOpenProject = null
         }
+        await this.projectManager.deleteProject({ projectId })
     }
 }

@@ -1,7 +1,5 @@
 //! Definition of the Node component.
 
-// WARNING! UNDER HEAVY DEVELOPMENT. EXPECT DRASTIC CHANGES.
-
 use crate::prelude::*;
 use ensogl::display::shape::*;
 use ensogl::display::traits::*;
@@ -22,14 +20,12 @@ use ensogl::application::Application;
 use ensogl::control::io::mouse;
 use ensogl::data::color;
 use ensogl::display;
-use ensogl::display::scene::Layer;
+use ensogl::display::shape::compound::rectangle;
 use ensogl::gui;
 use ensogl::Animation;
-use ensogl_component::shadow;
 use ensogl_component::text;
 use ensogl_hardcoded_theme as theme;
 use ensogl_hardcoded_theme;
-use std::f32::EPSILON;
 
 
 // ==============
@@ -100,72 +96,55 @@ pub type Comment = ImString;
 
 
 
-// =============
-// === Shape ===
-// =============
+// ==============
+// === Shapes ===
+// ==============
 
-/// Node backdrop. Contains shadow and selection.
-pub mod backdrop {
-    use super::*;
+/// A node's background area and selection.
+#[derive(Debug, Clone, CloneRef)]
+pub struct Background {
+    shape:           Rectangle,
+    inset:           Immutable<f32>,
+    selection_color: Immutable<color::Rgba>,
+}
 
-    ensogl::shape! {
-        // Disabled to allow interaction with the output port.
-        below = [compound::rectangle::shape];
-        pointer_events = false;
-        alignment = center;
-        (style:Style, selection:f32) {
+impl Background {
+    fn new(style: &StyleWatchFrp) -> Self {
+        let selection_color =
+            style.get_color(ensogl_hardcoded_theme::graph_editor::node::selection).value();
+        let selection_size =
+            style.get_number(ensogl_hardcoded_theme::graph_editor::node::selection::size).value();
+        let selection_offset =
+            style.get_number(ensogl_hardcoded_theme::graph_editor::node::selection::offset).value();
+        let inset = selection_size + selection_offset;
+        let shape = Rectangle();
+        shape.set_corner_radius(RADIUS);
+        shape.set_border(selection_size);
+        shape.set_border_color(color::Rgba::transparent());
+        shape.set_inset(inset);
+        Self { shape, inset: Immutable(inset), selection_color: Immutable(selection_color) }
+    }
 
-            let width  = Var::<Pixels>::from("input_size.x");
-            let height = Var::<Pixels>::from("input_size.y");
-            let width  = width  - PADDING.px() * 2.0;
-            let height = height - PADDING.px() * 2.0;
+    fn set_selected(&self, degree: f32) {
+        let selected = self.selection_color;
+        let blended = color::Rgba(selected.red, selected.green, selected.blue, degree);
+        self.shape.set_border_color(blended);
+    }
 
-            // === Shadow ===
-
-            let shadow_radius = &height / 2.0;
-            let shadow_base   = Rect((&width,&height)).corners_radius(shadow_radius);
-            let shadow        = shadow::from_shape(shadow_base.into(),style);
-
-
-            // === Selection ===
-
-            let sel_color  = style.get_color(ensogl_hardcoded_theme::graph_editor::node::selection);
-            let sel_size   = style.get_number(ensogl_hardcoded_theme::graph_editor::node::selection::size);
-            let sel_offset = style.get_number(ensogl_hardcoded_theme::graph_editor::node::selection::offset);
-
-            let sel_width   = &width  - 2.px() + &sel_offset.px() * 2.0 * &selection;
-            let sel_height  = &height - 2.px() + &sel_offset.px() * 2.0 * &selection;
-            let sel_radius  = &sel_height / 2.0;
-            let select      = Rect((&sel_width,&sel_height)).corners_radius(sel_radius);
-
-            let sel2_width  = &width  - 2.px() + &(sel_size + sel_offset).px() * 2.0 * &selection;
-            let sel2_height = &height - 2.px() + &(sel_size + sel_offset).px() * 2.0 * &selection;
-            let sel2_radius = &sel2_height / 2.0;
-            let select2     = Rect((&sel2_width,&sel2_height)).corners_radius(sel2_radius);
-
-            let select = select2 - select;
-            let select = select.fill(sel_color);
-
-
-             // === Error Pattern  Alternative ===
-             // TODO: Remove once the error indicator design is finalised.
-             // let repeat      =  Var::<Vector2<Pixels>>::from((10.px(), 10.px()));
-             // let error_width =  Var::<Pixels>::from(5.px());
-             //
-             // let stripe_red   = Rect((error_width, 99999.px()));
-             // let pattern = stripe_red.repeat(repeat).rotate(45.0.radians());
-             // let mask    = Rect((&width,&height)).corners_radius(&radius);
-             // let pattern1 = mask.intersection(pattern).fill(color::Rgba::red());
-
-             // let out =  select + shadow + shape + pattern1;
-
-            // === Final Shape ===
-
-            let out = select + shadow;
-            out.into()
-        }
+    fn set_size_and_center_xy(&self, size: Vector2<f32>, center: Vector2<f32>) {
+        let size_with_inset = size + 2.0 * Vector2(*self.inset, *self.inset);
+        let origin = center - size_with_inset / 2.0;
+        self.shape.set_size(size_with_inset);
+        self.shape.set_xy(origin);
     }
 }
+
+impl display::Object for Background {
+    fn display_object(&self) -> &display::object::Instance {
+        self.shape.display_object()
+    }
+}
+
 
 
 // =======================
@@ -177,6 +156,7 @@ pub mod error_shape {
     use super::*;
 
     ensogl::shape! {
+        below = [rectangle];
         alignment = center;
         (style:Style,color_rgba:Vector4<f32>) {
             use ensogl_hardcoded_theme::graph_editor::node as node_theme;
@@ -208,47 +188,6 @@ pub mod error_shape {
 }
 
 
-
-// ==============
-// === Crumbs ===
-// ==============
-
-#[derive(Clone, Copy, Debug)]
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
-pub enum Endpoint {
-    Input,
-    Output,
-}
-
-#[derive(Clone, Debug)]
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
-pub struct Crumbs {
-    pub endpoint: Endpoint,
-    pub crumbs:   span_tree::Crumbs,
-}
-
-impl Crumbs {
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
-    pub fn input(crumbs: span_tree::Crumbs) -> Self {
-        let endpoint = Endpoint::Input;
-        Self { endpoint, crumbs }
-    }
-
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
-    pub fn output(crumbs: span_tree::Crumbs) -> Self {
-        let endpoint = Endpoint::Output;
-        Self { endpoint, crumbs }
-    }
-}
-
-impl Default for Crumbs {
-    fn default() -> Self {
-        Self::output(default())
-    }
-}
-
-
-
 // ============
 // === Node ===
 // ============
@@ -258,10 +197,11 @@ ensogl::define_endpoints_2! {
         select                (),
         deselect              (),
         enable_visualization  (),
+        enable_fullscreen_visualization  (),
         disable_visualization (),
         set_visualization     (Option<visualization::Definition>),
         set_disabled          (bool),
-        set_input_connected   (span_tree::Crumbs,Option<color::Lcha>),
+        set_connections       (HashMap<span_tree::PortId, color::Lcha>),
         set_expression        (Expression),
         edit_expression       (text::Range<text::Byte>, ImString),
         set_skip_macro        (bool),
@@ -317,12 +257,6 @@ ensogl::define_endpoints_2! {
         freeze                   (bool),
         hover                    (bool),
         error                    (Option<Error>),
-        /// Whether visualization was permanently enabled (e.g. by pressing the button).
-        visualization_enabled    (bool),
-        /// Visualization can be visible even when it is not enabled, e.g. when showing preview.
-        /// Visualization can be invisible even when enabled, e.g. when the node has an error.
-        visualization_visible    (bool),
-        visualization_path       (Option<visualization::Path>),
         expression_label_visible (bool),
         /// The [`display::object::Model::position`] of the Node. Emitted when the Display Object
         /// hierarchy is updated (see: [`ensogl_core::display::object::Instance::update`]).
@@ -426,10 +360,10 @@ impl Deref for Node {
 #[derive(Clone, CloneRef, Debug)]
 #[allow(missing_docs)]
 pub struct NodeModel {
+    // Required for switching the node to a different layer
     pub app:                 Application,
     pub display_object:      display::object::Instance,
-    pub backdrop:            backdrop::View,
-    pub background:          Rectangle,
+    pub background:          Background,
     pub error_indicator:     error_shape::View,
     pub profiling_label:     ProfilingLabel,
     pub input:               input::Area,
@@ -440,25 +374,32 @@ pub struct NodeModel {
     pub vcs_indicator:       vcs::StatusIndicator,
     pub style:               StyleWatchFrp,
     pub comment:             text::Text,
+    pub interaction_state:   Rc<Cell<InteractionState>>,
 }
 
 impl NodeModel {
     /// Constructor.
     #[profile(Debug)]
     pub fn new(app: &Application, registry: visualization::Registry) -> Self {
-        let scene = &app.display.default_scene;
+        use display::shape::compound::rectangle;
+        ensogl::shapes_order_dependencies! {
+            app.display.default_scene => {
+                error_shape               -> output::port::single_port;
+                error_shape               -> output::port::multi_port;
+                output::port::single_port -> rectangle;
+                output::port::multi_port  -> rectangle;
+            }
+        }
+
+        let style = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
 
         let error_indicator = error_shape::View::new();
         let profiling_label = ProfilingLabel::new(app);
-        let backdrop = backdrop::View::new();
-        let background = Rectangle::new().build(|v| {
-            v.set_corner_radius(RADIUS);
-        });
+        let background = Background::new(&style);
         let vcs_indicator = vcs::StatusIndicator::new(app);
         let display_object = display::object::Instance::new_named("Node");
 
         display_object.add_child(&profiling_label);
-        display_object.add_child(&backdrop);
         display_object.add_child(&background);
         display_object.add_child(&vcs_indicator);
 
@@ -474,21 +415,19 @@ impl NodeModel {
 
         let action_bar = action_bar::ActionBar::new(app);
         display_object.add_child(&action_bar);
-        scene.layers.above_nodes.add(&action_bar);
 
         let output = output::Area::new(app);
         display_object.add_child(&output);
 
-        let style = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
-
         let comment = text::Text::new(app);
         display_object.add_child(&comment);
+
+        let interaction_state = default();
 
         let app = app.clone_ref();
         Self {
             app,
             display_object,
-            backdrop,
             background,
             error_indicator,
             profiling_label,
@@ -500,6 +439,7 @@ impl NodeModel {
             vcs_indicator,
             style,
             comment,
+            interaction_state,
         }
         .init()
     }
@@ -507,49 +447,61 @@ impl NodeModel {
     #[profile(Debug)]
     fn init(self) -> Self {
         self.set_expression(Expression::new_plain("empty"));
+        self.set_layers_for_state(self.interaction_state.get());
         self
     }
 
-    #[profile(Debug)]
-    fn set_layers(&self, layer: &Layer, text_layer: &Layer, action_bar_layer: &Layer) {
-        layer.add(&self.display_object);
+    /// Set whether the node is being edited. This is used to adjust the camera.
+    pub fn set_editing_expression(&self, editing: bool) {
+        let new_state = self.interaction_state.update(|state| state.editing_expression(editing));
+        self.set_layers_for_state(new_state);
+    }
+
+    /// Set whether the node is being interacted with by moving an edge with the mouse.
+    pub fn set_editing_edge(&self, editing: bool) {
+        let new_state = self.interaction_state.update(|state| state.editing_edge(editing));
+        self.set_layers_for_state(new_state);
+    }
+
+    fn set_layers_for_state(&self, new_state: InteractionState) {
+        let scene = &self.app.display.default_scene;
+        let main_layer;
+        let background_layer;
+        let text_layer;
+        let action_bar_layer;
+        match new_state {
+            InteractionState::EditingExpression => {
+                // Move all sub-components to `edited_node` layer.
+                //
+                // `action_bar` is moved to the `edited_node` layer as well, though normally it
+                // lives on a separate `above_nodes` layer, unlike every other node component.
+                main_layer = scene.layers.edited_node.default_partition();
+                background_layer = main_layer.clone();
+                text_layer = &scene.layers.edited_node_text;
+                action_bar_layer = &scene.layers.edited_node;
+            }
+            InteractionState::EditingEdge => {
+                main_layer = scene.layers.main_nodes_level.clone();
+                background_layer = scene.layers.main_active_nodes_level.clone();
+                text_layer = &scene.layers.label;
+                action_bar_layer = &scene.layers.above_nodes;
+            }
+            InteractionState::Normal => {
+                main_layer = scene.layers.main_nodes_level.clone();
+                background_layer = main_layer.clone();
+                text_layer = &scene.layers.label;
+                action_bar_layer = &scene.layers.above_nodes;
+            }
+        }
+        main_layer.add(&self.display_object);
+        background_layer.add(&self.background);
         action_bar_layer.add(&self.action_bar);
+        // For the text layer, [`Layer::add`] can't be used because text rendering currently uses a
+        // separate layer management API.
         self.output.set_label_layer(text_layer);
         self.input.set_label_layer(text_layer);
         self.profiling_label.set_label_layer(text_layer);
         self.comment.add_to_scene_layer(text_layer);
-    }
-
-    /// Move all sub-components to `edited_node` layer.
-    ///
-    /// A simple [`Layer::add`] wouldn't work because text rendering in ensogl uses a
-    /// separate layer management API.
-    ///
-    /// `action_bar` is moved to the `edited_node` layer as well, though normally it lives on a
-    /// separate `above_nodes` layer, unlike every other node component.
-    #[profile(Debug)]
-    pub fn move_to_edited_node_layer(&self) {
-        let scene = &self.app.display.default_scene;
-        let layer = &scene.layers.edited_node;
-        let text_layer = &scene.layers.edited_node_text;
-        let action_bar_layer = &scene.layers.edited_node;
-        self.set_layers(layer, text_layer, action_bar_layer);
-    }
-
-    /// Move all sub-components to `main` layer.
-    ///
-    /// A simple [`Layer::add`] wouldn't work because text rendering in ensogl uses a
-    /// separate layer management API.
-    ///
-    /// `action_bar` is handled separately, as it uses `above_nodes` scene layer unlike any other
-    /// node component.
-    #[profile(Debug)]
-    pub fn move_to_main_layer(&self) {
-        let scene = &self.app.display.default_scene;
-        let layer = &scene.layers.main;
-        let text_layer = &scene.layers.label;
-        let action_bar_layer = &scene.layers.above_nodes;
-        self.set_layers(layer, text_layer, action_bar_layer);
     }
 
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
@@ -580,19 +532,13 @@ impl NodeModel {
         let height = self.height();
         let size = Vector2(width, height);
         let padded_size = size + Vector2(PADDING, PADDING) * 2.0;
-        self.backdrop.set_size(padded_size);
-        self.background.set_size(size);
         self.error_indicator.set_size(padded_size);
         self.vcs_indicator.frp.set_size(padded_size);
         let x_offset_to_node_center = x_offset_to_node_center(width);
-
-        // Position shapes such that the center of their left edge is at the node origin:
-        // - Most shapes are still center-aligned, we have to move them horizontally.
-        self.backdrop.set_x(x_offset_to_node_center);
+        let background_origin = Vector2(x_offset_to_node_center, 0.0);
+        self.background.set_size_and_center_xy(size, background_origin);
         self.error_indicator.set_x(x_offset_to_node_center);
         self.vcs_indicator.set_x(x_offset_to_node_center);
-        // - Background is a bottom-left aligned Rectangle, thus we have to move it vertically.
-        self.background.set_y(-height / 2.0);
 
         let action_bar_width = ACTION_BAR_WIDTH;
         self.action_bar
@@ -607,17 +553,11 @@ impl NodeModel {
     }
 
     #[profile(Debug)]
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
-    pub fn visualization(&self) -> &visualization::Container {
-        &self.visualization
-    }
-
-    #[profile(Debug)]
     fn set_error(&self, error: Option<&Error>) {
         if let Some(error) = error {
             self.error_visualization.display_kind(*error.kind);
             if let Some(error_data) = error.visualization_data() {
-                self.error_visualization.set_data(&error_data);
+                self.error_visualization.set_data(error_data);
             }
             if error.should_display() {
                 self.display_object.add_child(&self.error_visualization);
@@ -630,11 +570,15 @@ impl NodeModel {
     #[profile(Debug)]
     fn set_error_color(&self, color: &color::Lcha) {
         self.error_indicator.color_rgba.set(color::Rgba::from(color).into());
-        if color.alpha < EPSILON {
+        if color.alpha < f32::EPSILON {
             self.error_indicator.unset_parent();
         } else {
             self.display_object.add_child(&self.error_indicator);
         }
+    }
+
+    fn set_selected(&self, degree: f32) {
+        self.background.set_selected(degree);
     }
 }
 
@@ -667,7 +611,7 @@ impl Node {
 
             // === Hover ===
             // The hover discovery of a node is an interesting process. First, we discover whether
-            // ths user hovers the drag area. The input port manager merges this information with
+            // ths user hovers the background. The input port manager merges this information with
             // port hover events and outputs the final hover event for any part inside of the node.
 
             let background_enter = model.background.on_event::<mouse::Enter>();
@@ -698,7 +642,7 @@ impl Node {
             deselect_target  <- input.deselect.constant(0.0);
             select_target    <- input.select.constant(1.0);
             selection.target <+ any(&deselect_target, &select_target);
-            eval selection.value ((t) model.backdrop.selection.set(*t));
+            eval selection.value ((t) model.set_selected(*t));
 
 
             // === Expression ===
@@ -707,16 +651,16 @@ impl Node {
             filtered_usage_type <- input.set_expression_usage_type.filter(
                 move |(_,tp)| *tp != unresolved_symbol_type
             );
-            eval filtered_usage_type   (((a,b)) model.set_expression_usage_type(*a,b));
-            eval input.set_expression  ((a)     model.set_expression(a));
+            eval filtered_usage_type(((a,b)) model.set_expression_usage_type(*a,b));
+            eval input.set_expression((a) model.set_expression(a));
             model.input.edit_expression <+ input.edit_expression;
-            out.on_expression_modified  <+ model.input.frp.on_port_code_update;
-            out.requested_widgets       <+ model.input.frp.requested_widgets;
-            out.request_import          <+ model.input.frp.request_import;
+            out.on_expression_modified <+ model.input.frp.on_port_code_update;
+            out.requested_widgets <+ model.input.frp.requested_widgets;
+            out.request_import <+ model.input.frp.request_import;
 
-            model.input.set_connected              <+ input.set_input_connected;
-            model.input.set_disabled               <+ input.set_disabled;
-            model.input.update_widgets             <+ input.update_widgets;
+            model.input.set_connections <+ input.set_connections;
+            model.input.set_disabled <+ input.set_disabled;
+            model.input.update_widgets <+ input.update_widgets;
             model.output.set_expression_visibility <+ input.set_output_expression_visibility;
 
 
@@ -752,7 +696,6 @@ impl Node {
 
             // === Action Bar ===
 
-            let visualization_button_state = action_bar.action_visibility.clone_ref();
             out.context_switch <+ action_bar.action_context_switch;
             out.skip   <+ action_bar.action_skip;
             out.freeze <+ action_bar.action_freeze;
@@ -789,7 +732,10 @@ impl Node {
         hover_onset_delay.set_delay(VIS_PREVIEW_ONSET_MS);
         hover_onset_delay.set_duration(0.0);
 
+        let visualization = &model.visualization.frp;
+
         frp::extend! { network
+            enabled <- bool(&input.disable_visualization, &input.enable_visualization);
 
             out.error <+ input.set_error;
             is_error_set <- input.set_error.map(
@@ -805,11 +751,23 @@ impl Node {
                     }
                 ));
 
-            eval input.set_visualization ((t) model.visualization.frp.set_visualization.emit(t));
-            visualization_enabled_frp <- bool(&input.disable_visualization,&input.enable_visualization);
-            eval visualization_enabled_frp ((enabled)
-                model.action_bar.set_action_visibility_state(enabled)
-            );
+            viz_enabled <- enabled && no_error_set;
+            visualization.set_view_state <+ viz_enabled.on_true().constant(visualization::ViewState::Enabled);
+            visualization.set_view_state <+ viz_enabled.on_false().constant(visualization::ViewState::Disabled);
+
+            // Integration between visualization and action bar.
+            visualization.set_visualization <+ input.set_visualization;
+            is_enabled <- visualization.view_state.map(|state|{
+                matches!(state,visualization::ViewState::Enabled)
+            });
+            action_bar.set_action_visibility_state <+ is_enabled;
+            button_set_to_true <- action_bar.user_action_visibility.on_true();
+            button_set_to_true_without_error <- button_set_to_true.gate_not(&is_error_set);
+            button_set_to_true_with_error <- button_set_to_true.gate(&is_error_set);
+            visualization.set_view_state <+ button_set_to_true_without_error.constant(visualization::ViewState::Enabled);
+            action_bar.set_action_visibility_state <+ button_set_to_true_with_error.constant(false);
+
+            visualization.set_view_state <+ action_bar.user_action_visibility.on_false().constant(visualization::ViewState::Disabled);
 
             // Show preview visualisation after some delay, depending on whether we show an error
             // or are in quick preview mode. Also, omit the preview if we don't have an
@@ -826,7 +784,7 @@ impl Node {
                 }
             });
             hover_onset_delay.set_delay <+ preview_show_delay;
-            hide_tooltip                <- preview_show_delay.map(|&delay| delay <= EPSILON);
+            hide_tooltip                <- preview_show_delay.map(|&delay| delay <= f32::EPSILON);
 
             output_hover            <- model.output.on_port_hover.map(|s| s.is_on());
             hover_onset_delay.start <+ output_hover.on_true();
@@ -839,38 +797,10 @@ impl Node {
             hide_preview <+ editing_finished;
             preview_enabled <- bool(&hide_preview, &input.show_preview);
             preview_visible <- hover_preview_visible || preview_enabled;
-            preview_visible <- preview_visible.on_change();
-
-            // If the preview is visible while the visualization button is disabled, clicking the
-            // visualization button hides the preview and keeps the visualization button disabled.
-            vis_button_on <- visualization_button_state.filter(|e| *e).constant(());
-            vis_button_off <- visualization_button_state.filter(|e| !*e).constant(());
-            visualization_on <- vis_button_on.gate_not(&preview_visible);
-            vis_button_on_while_preview_visible <- vis_button_on.gate(&preview_visible);
-            hide_preview <+ vis_button_on_while_preview_visible;
-            hide_preview <+ vis_button_off;
-            action_bar.set_action_visibility_state <+
-                vis_button_on_while_preview_visible.constant(false);
-            visualization_enabled <- bool(&vis_button_off, &visualization_on);
-
-            visualization_visible            <- visualization_enabled || preview_visible;
-            visualization_visible            <- visualization_visible && no_error_set;
-            visualization_visible_on_change  <- visualization_visible.on_change();
-            out.visualization_visible <+ visualization_visible_on_change;
-            out.visualization_enabled <+ visualization_enabled;
-            eval visualization_visible_on_change ((is_visible)
-                model.visualization.frp.set_visibility(is_visible)
-            );
-            out.visualization_path <+ model.visualization.frp.visualisation.all_with(&init,|def_opt,_| {
-                def_opt.as_ref().map(|def| def.signature.path.clone_ref())
-            });
-
-            // Ensure the preview is visible above all other elements, but the normal visualisation
-            // is below nodes.
-            layer_on_hover     <- hover_preview_visible.on_false().map(|_| visualization::Layer::Default);
-            layer_on_not_hover <- hover_preview_visible.on_true().map(|_| visualization::Layer::Front);
-            layer              <- any(layer_on_hover,layer_on_not_hover);
-            model.visualization.frp.set_layer <+ layer;
+            vis_preview_visible <- preview_visible && no_error_set;
+            vis_preview_visible <- vis_preview_visible.on_change();
+            visualization.set_view_state <+ vis_preview_visible.on_true().constant(visualization::ViewState::Preview);
+            visualization.set_view_state <+ vis_preview_visible.on_false().constant(visualization::ViewState::Disabled);
 
             update_error <- all(input.set_error,preview_visible);
             eval update_error([model]((error,visible)){
@@ -882,6 +812,10 @@ impl Node {
             });
 
             eval error_color_anim.value ((value) model.set_error_color(value));
+            visualization.set_view_state <+ input.set_error.is_some().constant(visualization::ViewState::Disabled);
+
+            enable_fullscreen <- frp.enable_fullscreen_visualization.gate(&no_error_set);
+            visualization.set_view_state <+ enable_fullscreen.constant(visualization::ViewState::Fullscreen);
 
         }
 
@@ -933,7 +867,7 @@ impl Node {
             // }));
             // bg_color_anim.target <+ bg_color;
 
-            eval bg_color_anim.value ([model] (c) { model.background.set_color(c.into()); });
+            eval bg_color_anim.value ((c) model.background.shape.set_color(c.into()););
 
 
             // === Tooltip ===
@@ -948,16 +882,14 @@ impl Node {
             // === Type Labels ===
 
             model.output.set_type_label_visibility
-                <+ visualization_visible.not().and(&no_error_set);
+                <+ visualization.visible.not().and(&no_error_set);
 
 
             // === Bounding Box ===
 
             let visualization_size = &model.visualization.frp.size;
-            // Visualization can be enabled and not visible when the node has an error.
-            visualization_enabled_and_visible <- visualization_enabled && visualization_visible;
             bbox_input <- all4(
-                &out.position,&new_size,&visualization_enabled_and_visible,visualization_size);
+                &out.position,&new_size,&visualization.visible,visualization_size);
             out.bounding_box <+ bbox_input.map(|(a,b,c,d)| bounding_box(*a,*b,c.then(|| *d)));
 
             inner_bbox_input <- all2(&out.position,&new_size);
@@ -995,6 +927,11 @@ impl Node {
         } else {
             color::Lcha::transparent()
         }
+    }
+
+    /// FRP API of the visualization container attached to this node.
+    pub fn visualization(&self) -> &visualization::container::Frp {
+        &self.model().visualization.frp
     }
 }
 
@@ -1035,6 +972,38 @@ fn bounding_box(
         node_bbox.concat_ref(visualization_bbox)
     } else {
         node_bbox
+    }
+}
+
+
+// === Interaction state ===
+
+/// Information about how the node is being interacted with.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
+pub enum InteractionState {
+    /// The node is being edited (with the cursor / Component Browser).
+    EditingExpression,
+    /// An edge of the node is being interacted with.
+    EditingEdge,
+    /// The node is not being interacted with.
+    #[default]
+    Normal,
+}
+
+impl InteractionState {
+    fn editing_expression(self, editing: bool) -> Self {
+        match editing {
+            true => Self::EditingExpression,
+            false => Self::Normal,
+        }
+    }
+
+    fn editing_edge(self, active: bool) -> Self {
+        match (self, active) {
+            (Self::EditingExpression, _) => self,
+            (_, true) => Self::EditingEdge,
+            (_, false) => Self::Normal,
+        }
     }
 }
 
