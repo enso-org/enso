@@ -202,13 +202,16 @@ public abstract class InvokeMethodNode extends BaseNode {
     }
     var resolvedFuncArgCount = function.getSchema().getArgumentsCount();
     CallArgumentInfo[] invokeFuncSchema = invokeFunctionNode.getSchema();
-    long defArgCount = Arrays.stream(function.getSchema().getArgumentInfos())
-        .filter(ArgumentDefinition::hasDefaultValue)
-        .count();
+    long argsWithDefaultValCount = 0;
+    for (var argDef : function.getSchema().getArgumentInfos()) {
+      if (argDef.hasDefaultValue()) {
+        argsWithDefaultValCount++;
+      }
+    }
     // Static method calls on Any are resolved to `Any.type.method`. Such methods take one additional
     // self argument (with Any.type) as opposed to static method calls resolved on any other
     // types. This case is handled in the following block.
-    boolean shouldPrependSyntheticSelfArg = resolvedFuncArgCount - defArgCount == arguments.length + 1;
+    boolean shouldPrependSyntheticSelfArg = resolvedFuncArgCount - argsWithDefaultValCount == arguments.length + 1;
     if (isAnyEigenType(selfTpe) && shouldPrependSyntheticSelfArg) {
       // function is a static method on Any, so the first two arguments in `invokeFuncSchema`
       // represent self arguments.
