@@ -33,6 +33,13 @@ const REACTION_EMOJIS = ['❤️', '👍', '👎', '😀', '🙁', '👀', '🎉
 /** The initial title of the thread. */
 const DEFAULT_THREAD_TITLE = 'New chat thread'
 
+// =============
+// === Types ===
+// =============
+
+/** All possible reaction emojis. */
+type Reaction = (typeof REACTION_EMOJIS)[number]
+
 // =====================
 // === Message Types ===
 // =====================
@@ -47,34 +54,40 @@ export type MessageId = newtype.Newtype<string, 'MessageId'>
 
 /** Types of chat message (both server and client messages). */
 export enum ChatMessageDataType {
+    // Messages internal to the server.
+    /** Like the authenticate message, but with user details. */
+    internalAuthenticate = 'internal-authenticate',
     // Messages from the server to the client.
     /** Metadata for all threads associated with a user. */
-    serverThreads = 'serverThreads',
+    serverThreads = 'server-threads',
     /** Metadata for the currently open thread. */
-    serverThread = 'serverThread',
+    serverThread = 'server-thread',
     /** A message from the server to the client. */
-    serverMessage = 'serverMessage',
+    serverMessage = 'server-message',
     /** An edited message from the server to the client. */
-    serverEditedMessage = 'serverEditedMessage',
+    serverEditedMessage = 'server-edited-message',
+    /** A message from the client to the server, sent from the server to the client as part of
+     * the message history. */
+    serverReplayedMessage = 'server-replayed-message',
     // Messages from the client to the server.
     /** The authentication token. */
     authenticate = 'authenticate',
     /** Create a new thread with an initial message. */
     newThread = 'newThread',
     /** Rename an existing thread. */
-    renameThread = 'renameThread',
+    renameThread = 'rename-thread',
     /** Change the currently active thread. */
-    switchThread = 'switchThread',
+    switchThread = 'switch-thread',
     /** A message from the client to the server. */
     message = 'message',
     /** A reaction from the client. */
     reaction = 'reaction',
     /** Mark a message as read. Used to determine whether to show the notification dot
      * next to a thread. */
-    markAsRead = 'markAsRead',
+    markAsRead = 'mark-as-read',
 }
 
-/** Properties common to all chat messages. */
+/** Properties common to all WebSocket messages. */
 interface ChatBaseMessageData<Type extends ChatMessageDataType> {
     type: Type
 }
@@ -100,16 +113,18 @@ export interface ChatServerThreadsMessageData
  * This message is sent every time the user switches threads. */
 export interface ChatServerThreadMessageData
     extends ChatBaseMessageData<ChatMessageDataType.serverThread> {
-    title: string
+    title: MessageId
     id: ThreadId
     // FIXME: decide on the format for serialized messages.
-    messages: ChatServerMessageData[]
+    messages: (ChatServerMessageMessageData | ChatServerReplayedMessageMessageData)[]
 }
 
 /** A regular chat message from the server to the client. */
 export interface ChatServerMessageMessageData
     extends ChatBaseMessageData<ChatMessageDataType.serverMessage> {
-    id: string
+    id: MessageId
+    authorAvatar: string | null
+    authorName: string
     timestamp: number
     content: string
 }
@@ -117,7 +132,15 @@ export interface ChatServerMessageMessageData
 /** A regular edited chat message from the server to the client. */
 export interface ChatServerEditedMessageMessageData
     extends ChatBaseMessageData<ChatMessageDataType.serverEditedMessage> {
-    id: string
+    id: MessageId
+    timestamp: number
+    content: string
+}
+
+/** A replayed message from the client to the server. Includes the timestamp of the message. */
+export interface ChatServerReplayedMessageMessageData
+    extends ChatBaseMessageData<ChatMessageDataType.serverReplayedMessage> {
+    id: MessageId
     timestamp: number
     content: string
 }
@@ -126,6 +149,7 @@ export interface ChatServerEditedMessageMessageData
 export type ChatServerMessageData =
     | ChatServerEditedMessageMessageData
     | ChatServerMessageMessageData
+    | ChatServerReplayedMessageMessageData
     | ChatServerThreadMessageData
     | ChatServerThreadsMessageData
 
@@ -133,7 +157,7 @@ export type ChatServerMessageData =
 // === Messages from client to server ===
 // ======================================
 
-/** Sent when the user first opens the chat sidebar. */
+/** Sent whenever the user opens the chat sidebar. */
 export interface ChatAuthenticateMessageData
     extends ChatBaseMessageData<ChatMessageDataType.authenticate> {
     accessToken: string
@@ -190,14 +214,34 @@ export type ChatClientMessageData =
     | ChatRenameThreadMessageData
     | ChatSwitchThreadMessageData
 
+// ==========================
+// === ChatDisplayMessage ===
+// ==========================
+
+/** Information needed to display a chat message. */
+interface ChatDisplayMessage {
+    id: MessageId
+    /** If `true`, this is a message from the staff to the user.
+     * If `false`, this is a message from the user to the staff. */
+    isStaffMessage: boolean
+    avatar: string | null
+    /** Name of the author of the message. */
+    name: string
+    content: string
+    /** Given in milliseconds since the unix epoch. */
+    timestamp: number
+    /** Given in milliseconds since the unix epoch. */
+    editedTimestamp: number | null
+}
+
 // ===================
 // === ReactionBar ===
 // ===================
 
 /** Props for a {@link ReactionBar}. */
 export interface ReactionBarProps {
-    threadId: string
-    messageId: string
+    threadId: ThreadId
+    messageId: MessageId
     sendMessage: (message: ChatClientMessageData) => void
 }
 
@@ -228,7 +272,7 @@ function ReactionBar(props: ReactionBarProps) {
 
 // =================
 // === Reactions ===
-// =================
+// =================lib/dashboard/src/authentication/src/dashboard/events/directoryListEvent.ts
 
 /** Props for a {@link Reactions}. */
 export interface ReactionsProps {
@@ -252,13 +296,13 @@ function Reactions(props: ReactionsProps) {
     }
 }
 
-// ====================
+// ===================
 // === ChatMessage ===
-// ====================
+// ===================
 
 /** Props for a {@link ChatMessage}. */
 export interface ChatMessageProps {
-    threadId: string
+    threadId: ThreadId
     message: ChatDisplayMessage
     reactions: Reaction[]
     shouldShowReactionBar: boolean
@@ -271,7 +315,8 @@ function ChatMessage(props: ChatMessageProps) {
     return (
         <div>
             <div>
-                <img src={message.avatar} />
+                {/* FIXME: This should default to the default user image. */}
+                <img src={message.avatar ?? 'unknown'} />
                 {message.name}
             </div>
             <div>
@@ -299,12 +344,19 @@ export interface ChatProps {
 /** Chat sidebar. */
 function Chat(props: ChatProps) {
     const { isOpen, doClose } = props
-    const { accessToken } = authProvider.useFullUserSession()
+    const { accessToken: rawAccessToken } = authProvider.useNonPartialUserSession()
     const logger = loggerProvider.useLogger()
 
+    /** This is SAFE, because this component is only rendered when `accessToken` is present.
+     * See `dashboard.tsx` for its sole usage. */
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const accessToken = rawAccessToken!
+
     const [isPaidUser, setIsPaidUser] = react.useState(true)
+    const [threads, setThreads] = react.useState<ThreadData[]>([])
     const [messages, setMessages] = react.useState<ChatDisplayMessage[]>([])
-    const [threadId, setThreadId] = react.useState<string | null>(null)
+    const [threadId, setThreadId] = react.useState<ThreadId | null>(null)
+    const [isThreadListVisible, setIsThreadListVisible] = react.useState(false)
     const [threadTitle, setThreadTitle] = react.useState(DEFAULT_THREAD_TITLE)
     const [isThreadTitleEditable, setIsThreadTitleEditable] = react.useState(false)
     // TODO: proper URL
@@ -332,14 +384,82 @@ function Chat(props: ChatProps) {
             if (typeof data.data !== 'string') {
                 logger.error('Chat cannot handle binary messages.')
             } else {
+                // This is SAFE, as the format of server messages is known.
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                 const message: ChatServerMessageData = JSON.parse(data.data)
                 switch (message.type) {
+                    case ChatMessageDataType.serverThreads: {
+                        setThreads(message.threads)
+                        break
+                    }
+                    case ChatMessageDataType.serverThread: {
+                        setThreadId(message.id)
+                        setThreadTitle(message.title)
+                        setMessages(
+                            message.messages.flatMap(innerMessage => {
+                                switch (innerMessage.type) {
+                                    case ChatMessageDataType.serverMessage: {
+                                        const displayMessage: ChatDisplayMessage = {
+                                            id: innerMessage.id,
+                                            isStaffMessage: true,
+                                            content: innerMessage.content,
+                                            avatar: innerMessage.authorAvatar,
+                                            name: innerMessage.authorName,
+                                            timestamp: innerMessage.timestamp,
+                                            editedTimestamp: null, // FIXME:
+                                        }
+                                        return displayMessage
+                                    }
+                                    case ChatMessageDataType.serverReplayedMessage: {
+                                        const displayMessage: ChatDisplayMessage = {
+                                            id: innerMessage.id,
+                                            isStaffMessage: false,
+                                            content: innerMessage.content,
+                                            avatar: null,
+                                            name: 'Me',
+                                            timestamp: innerMessage.timestamp,
+                                            editedTimestamp: null,
+                                        }
+                                        return displayMessage
+                                    }
+                                }
+                            })
+                        )
+                        break
+                    }
                     case ChatMessageDataType.serverMessage: {
-                        setMessages([
-                            ...messages,
-                            { id: message.messageId, timestamp: message.timestamp },
-                        ])
+                        const newMessage: ChatDisplayMessage = {
+                            id: message.id,
+                            isStaffMessage: true,
+                            avatar: message.authorAvatar,
+                            name: message.authorName,
+                            content: message.content,
+                            timestamp: message.timestamp,
+                            editedTimestamp: null,
+                        }
+                        setMessages([...messages, newMessage])
+                        break
+                    }
+                    case ChatMessageDataType.serverEditedMessage: {
+                        setMessages(
+                            messages.map(otherMessage => {
+                                if (otherMessage.id !== message.id) {
+                                    return otherMessage
+                                } else {
+                                    return {
+                                        ...otherMessage,
+                                        content: message.content,
+                                        editedTimestamp: message.timestamp,
+                                    }
+                                }
+                            })
+                        )
+                        break
+                    }
+                    case ChatMessageDataType.serverReplayedMessage: {
+                        // This message is only sent as part of the `serverThread` message and
+                        // can safely be ignored.
+                        break
                     }
                 }
             }
@@ -380,29 +500,46 @@ function Chat(props: ChatProps) {
         }
     }, [isOpen])
 
-    const showThreadList = () => {
-        // TODO:
-    }
+    const toggleThreadListVisibility = react.useCallback(() => {
+        setIsThreadListVisible(visible => !visible)
+    }, [])
 
-    const sendMessage = (message: ChatClientMessageData) => {
-        websocket.send(JSON.stringify(message))
-    }
+    const sendMessage = react.useCallback(
+        (message: ChatClientMessageData) => {
+            websocket.send(JSON.stringify(message))
+        },
+        [websocket]
+    )
 
-    const sendCurrentMessage = (event: react.FormEvent) => {
-        console.log('a', threadId)
-        event.preventDefault()
-        if (threadId == null) {
-            sendMessage({
-                type: ChatMessageDataType.newThread,
-                title: threadTitle,
-                content: messageInput.current.value,
-            })
-        }
-        messageInput.current.value = ''
-    }
+    const sendCurrentMessage = react.useCallback(
+        (event: react.FormEvent) => {
+            event.preventDefault()
+            const content = messageInput.current.value
+            messageInput.current.value = ''
+            const newMessage: ChatDisplayMessage = {
+                id: newtype.asNewtype<MessageId>(''),
+                isStaffMessage: false,
+                avatar: null,
+                name: 'Me',
+                content,
+                timestamp: Number(new Date()),
+                editedTimestamp: null,
+            }
+            if (threadId == null) {
+                sendMessage({
+                    type: ChatMessageDataType.newThread,
+                    title: threadTitle,
+                    content,
+                })
+                setMessages([newMessage])
+            } else {
+                setMessages(oldMessages => [...oldMessages, newMessage])
+            }
+        },
+        [sendMessage]
+    )
 
     const createNewThread = () => {
-        console.log('b')
         sendMessage({
             type: ChatMessageDataType.newThread,
             title: threadTitle,
@@ -441,7 +578,7 @@ function Chat(props: ChatProps) {
     }
 
     if (container == null) {
-        console.error('Chat container not found.')
+        logger.error('Chat container not found.')
         return null
     } else {
         // This should be `findLast`, but that requires ES2023.
@@ -456,7 +593,7 @@ function Chat(props: ChatProps) {
                 <div className="flex">
                     <button
                         className="flex grow items-center text-sm font-semibold"
-                        onClick={showThreadList}
+                        onClick={toggleThreadListVisibility}
                     >
                         {svg.DOWN_ARROW_ICON}{' '}
                         {/* TODO: reset to current value when editing canceled */}
@@ -469,6 +606,19 @@ function Chat(props: ChatProps) {
                         />
                     </button>
                     <button onClick={doClose}>{svg.LARGE_CLOSE_ICON}</button>
+                    {isThreadListVisible && (
+                        <div>
+                            {threads.map(thread => (
+                                <div
+                                    key={thread.id}
+                                    className={thread.id === threadId ? 'bold' : ''}
+                                >
+                                    {thread.hasUnreadMessages ? '(!) ' : ''}
+                                    {thread.title}
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
                 <div className="grow">
                     {threadId != null &&

@@ -285,11 +285,12 @@ export const LARGE_CLOSE_ICON = (
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
     >
-        <circle cx={12} cy={12} r={12} fill="currentColor" fillOpacity={0.1} />
-        <g opacity={0.66} transform="rotate(45 12 12)">
-            <rect x={11} y={6} width={2} height={12} fill="currentColor" />
-            <rect x={6} y={11} width={12} height={2} fill="currentColor" />
-        </g>
+        <path
+            d="M0 12a12 12 0 1 0 24 0 12 12 0 1 0-24 0ZM11 5h2v6h6v2h-6v6h-2v-6h-6v-2h6Z"
+            fill="currentColor"
+            transform="rotate(45 12 12)"
+            fillOpacity={0.33}
+        />
     </svg>
 )
 

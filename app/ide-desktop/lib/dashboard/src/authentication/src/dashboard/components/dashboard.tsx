@@ -1475,7 +1475,8 @@ function Dashboard(props: DashboardProps) {
             )}
             {/* This should be just `{modal}`, however TypeScript incorrectly throws an error. */}
             {project && <Ide project={project} appRunner={appRunner} />}
-            {isHelpChatVisible && (
+            {/* `session.accessToken` MUST be present in order for the `Chat` component to work. */}
+            {isHelpChatVisible && session.accessToken != null && (
                 <Chat
                     isOpen={isHelpChatOpen}
                     doClose={() => {
