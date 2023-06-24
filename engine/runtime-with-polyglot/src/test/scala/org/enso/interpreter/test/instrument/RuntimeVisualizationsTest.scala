@@ -2396,7 +2396,7 @@ class RuntimeVisualizationsTest
               ),
               Vector()
             ),
-            "Enso_Test.Test.Visualisation"
+            visualisationModule
           )
         )
       )
