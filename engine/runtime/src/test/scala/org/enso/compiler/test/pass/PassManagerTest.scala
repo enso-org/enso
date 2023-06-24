@@ -1,7 +1,7 @@
 package org.enso.compiler.test.pass
 
 import org.enso.compiler.Passes
-import org.enso.compiler.exception.CompilerError
+import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.{
   IRPass,
   PassConfiguration,

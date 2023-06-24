@@ -531,6 +531,11 @@ pub mod tests {
 
     impl MockData {
         pub fn controller(&self) -> Handle {
+            let db = self.graph.suggestion_db();
+            self.controller_with_db(db)
+        }
+
+        pub fn controller_with_db(&self, suggestion_db: Rc<model::SuggestionDatabase>) -> Handle {
             let parser = parser::Parser::new();
             let repository = Rc::new(model::undo_redo::Repository::new());
             let module = self.module.plain(&parser, repository);
@@ -546,7 +551,6 @@ pub mod tests {
             // Root ID is needed to generate module path used to get the module.
             model::project::test::expect_root_id(&mut project, crate::test::mock::data::ROOT_ID);
             // Both graph controllers need suggestion DB to provide context to their span trees.
-            let suggestion_db = self.graph.suggestion_db();
             model::project::test::expect_suggestion_db(&mut project, suggestion_db);
             let project = Rc::new(project);
             Handle::new(project.clone_ref(), method).boxed_local().expect_ok()
