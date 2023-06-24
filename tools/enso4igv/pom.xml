@@ -194,6 +194,19 @@
             <type>jar</type>
         </dependency>
         <dependency>
+            <!--
+                $ sbt runtime-parser/assembly
+                $ mvn install:install-file
+                    -Dfile=engine/runtime-parser/target/scala-2.13/runtime-parser-assembly-0.0.0-dev.jar
+                    -DgroupId=org.enso.engine -DartifactId=runtime-parser
+                    -Dpackaging=jar -Dversion=1.0-SNAPSHOT
+            -->
+            <groupId>org.enso.engine</groupId>
+            <artifactId>runtime-parser</artifactId>
+            <version>1.0-SNAPSHOT</version>
+            <type>jar</type>
+        </dependency>
+        <dependency>
             <groupId>org.netbeans.api</groupId>
             <artifactId>org-netbeans-modules-nbjunit</artifactId>
             <version>${netbeans.version}</version>
