@@ -142,7 +142,7 @@ type List
 
              example_fold = Examples.list.reduce (+)
     reduce : (Any -> Any -> Any) -> Any -> Any
-    reduce self function ~if_empty=(Error.throw Empty_Error) = case self of
+    reduce self function ~if_empty=(Error.throw Empty_Error.Error) = case self of
         Nil -> if_empty
         Cons x xs -> xs.fold x function
 
@@ -560,6 +560,9 @@ type List
 
 ## An error representing that the list is empty.
 type Empty_Error
+    ## PRIVATE
+    Error
+
     ## PRIVATE
 
        Pretty prints the empty error.
