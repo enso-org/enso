@@ -1,4 +1,4 @@
-package org.enso.table.data.column.builder.object;
+package org.enso.table.data.column.builder;
 
 import java.util.Arrays;
 import java.util.Objects;

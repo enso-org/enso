@@ -142,7 +142,7 @@ type List
 
              example_fold = Examples.list.reduce (+)
     reduce : (Any -> Any -> Any) -> Any -> Any
-    reduce self function ~if_empty=(Error.throw Empty_Error) = case self of
+    reduce self function ~if_empty=(Error.throw Empty_Error.Error) = case self of
         Nil -> if_empty
         Cons x xs -> xs.fold x function
 
@@ -458,8 +458,7 @@ type List
         Nil -> Error.throw (Index_Out_Of_Bounds.Error 1 0)
         Cons _ b -> b
 
-    ## UNSTABLE
-       Convert this list to a vector with the same elements.
+    ## Convert this list to a vector with the same elements.
     to_vector : Vector
     to_vector self =
         builder = self.fold (Vector.new_builder self.length) builder-> elem->
@@ -559,10 +558,9 @@ type List
                         @Tail_Call loop xs idx+1 new_match
                 loop self 0 Nothing
 
-## UNSTABLE
-
-   An error representing that the list is empty.
+## An error representing that the list is empty.
 type Empty_Error
+    ## PRIVATE
     Error
 
     ## PRIVATE

@@ -51,7 +51,8 @@ type Suite_Config
 
         Suite_Config.Value only_group_regexp print_only_failures results_path
 
-    ## PRIVATE - construct a configuration
+    ## PRIVATE
+       Construct a configuration
     Value only_group_regexp print_only_failures output_path
 
     should_run_group self name =

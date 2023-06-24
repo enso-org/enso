@@ -167,7 +167,7 @@ type SQLite_Connection
          - An `SQL_Error` may be reported if there is a failure on the database
            side.
     @structure make_structure_creator
-    create_table : Text|Nothing -> Vector Column_Description | Database_Table | Materialized_Table -> Vector Text | Nothing -> Boolean -> Boolean -> Problem_Behavior -> Database_Table ! Table_Already_Exists
+    create_table : Text | Nothing -> Vector Column_Description | Database_Table | Materialized_Table -> Vector Text | Nothing -> Boolean -> Boolean -> Problem_Behavior -> Database_Table ! Table_Already_Exists
     create_table self (table_name : Text | Nothing = Nothing) (structure : Vector Column_Description | Database_Table | Materialized_Table) (primary_key : (Vector Text | Nothing) = [first_column_in_structure structure]) (temporary : Boolean = False) (allow_existing : Boolean = False) (on_problems:Problem_Behavior = Problem_Behavior.Report_Warning) =
         self.connection.create_table table_name structure primary_key temporary allow_existing on_problems
 

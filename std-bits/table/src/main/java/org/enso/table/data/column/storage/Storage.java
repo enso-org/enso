@@ -6,9 +6,9 @@ import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import org.enso.base.polyglot.Polyglot_Utils;
-import org.enso.table.data.column.builder.object.Builder;
-import org.enso.table.data.column.builder.object.InferredBuilder;
-import org.enso.table.data.column.builder.object.ObjectBuilder;
+import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.builder.InferredBuilder;
+import org.enso.table.data.column.builder.ObjectBuilder;
 import org.enso.table.data.column.operation.cast.CastProblemBuilder;
 import org.enso.table.data.column.operation.cast.StorageConverter;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
@@ -118,7 +118,7 @@ public abstract class Storage<T> {
       boolean skipNulls,
       StorageType expectedResultType,
       MapOperationProblemBuilder problemBuilder) {
-    if (name != null && isOpVectorized(name)) {
+    if (isOpVectorized(name)) {
       return runVectorizedMap(name, argument, problemBuilder);
     }
 
@@ -161,7 +161,7 @@ public abstract class Storage<T> {
       Value onMissing,
       StorageType expectedResultType,
       MapOperationProblemBuilder problemBuilder) {
-    if (name != null && isOpVectorized(name)) {
+    if (isOpVectorized(name)) {
       return runVectorizedMap(name, null, problemBuilder);
     }
 

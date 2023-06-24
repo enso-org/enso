@@ -181,22 +181,16 @@ type Column
             self.naming_helpers.function_name op_kind [self]
         self.make_op op_kind [] effective_new_name
 
-    ## UNSTABLE
-
-       Returns the length of this column.
+    ## Returns the length of this column.
     length : Integer
     length self = self.to_table.row_count
 
-    ## UNSTABLE
-
-       Returns the number of missing items in this column.
+    ## Returns the number of missing items in this column.
     count_nothing : Integer
     count_nothing self =
         self.to_table.filter 0 Filter_Condition.Is_Nothing . row_count
 
-    ## UNSTABLE
-
-       Returns the number of non-null items in this column.
+    ## Returns the number of non-null items in this column.
     count : Integer
     count self =
         self.to_table.filter 0 Filter_Condition.Not_Nothing . row_count
@@ -535,9 +529,7 @@ type Column
             new_name = self.naming_helpers.binary_operation_name "||" self other
             self.make_binary_op "OR" other new_name
 
-    ## UNSTABLE
-
-       Boolean negation of each element in this column.
+    ## Boolean negation of each element in this column.
     not : Column
     not self =
         Value_Type.expect_boolean self <|
@@ -642,17 +634,14 @@ type Column
             new_name = self.naming_helpers.function_name "max" [self]+args
             self.make_op "ROW_MAX" args new_name
 
-    ## UNSTABLE
-
-       Returns a column of booleans, with `True` items at the positions where
+    ## Returns a column of booleans, with `True` items at the positions where
        this column contains a `Nothing`.
     is_nothing : Column
     is_nothing self =
         new_name = self.naming_helpers.to_expression_text self + " is null"
         self.make_unary_op "IS_NULL" new_name
 
-    ## UNSTABLE
-       Returns a column of booleans, with `True` items at the positions where
+    ## Returns a column of booleans, with `True` items at the positions where
        this column contains a NaN. This is only applicable to double columns.
     is_nan : Column
     is_nan self = Value_Type.expect_floating_point self <|
@@ -767,8 +756,7 @@ type Column
     sort self order=Sort_Direction.Ascending =
         self.to_table.order_by [Sort_Column.Index 0 order] . at 0
 
-    ## UNSTABLE
-       Creates a new Column with the specified range of rows from the input
+    ## Creates a new Column with the specified range of rows from the input
        Column.
 
        Arguments:
@@ -780,8 +768,7 @@ type Column
         msg = "`Column.take` is not yet implemented."
         Error.throw (Unsupported_Database_Operation.Error msg)
 
-    ## UNSTABLE
-       Creates a new Column from the input with the specified range of rows
+    ## Creates a new Column from the input with the specified range of rows
        removed.
 
        Arguments:
@@ -793,9 +780,7 @@ type Column
         msg = "`Column.drop` is not yet implemented."
         Error.throw (Unsupported_Database_Operation.Error msg)
 
-    ## UNSTABLE
-
-       Checks for each element of the column if it starts with `other`.
+    ## Checks for each element of the column if it starts with `other`.
 
        Arguments:
        - other: A column or text to check for each item in `self`.
@@ -811,9 +796,7 @@ type Column
         new_name = self.naming_helpers.function_name "starts_with" [self, other]
         make_text_case_op self "starts_with" other case_sensitivity new_name
 
-    ## UNSTABLE
-
-       Checks for each element of the column if it ends with `other`.
+    ## Checks for each element of the column if it ends with `other`.
 
        Arguments:
        - other: A column ot text to check for each item in `self`.
@@ -829,9 +812,7 @@ type Column
         new_name = self.naming_helpers.function_name "ends_with" [self, other]
         make_text_case_op self "ends_with" other case_sensitivity new_name
 
-    ## UNSTABLE
-
-       Checks for each element of the column if it contains `other`.
+    ## Checks for each element of the column if it contains `other`.
 
        Arguments:
        - other: A column ot text to check for each item in `self`.

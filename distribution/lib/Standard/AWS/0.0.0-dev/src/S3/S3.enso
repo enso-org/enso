@@ -7,14 +7,13 @@ import project.Internal.Auth
 polyglot java import software.amazon.awssdk.services.s3.S3Client
 polyglot java import software.amazon.awssdk.services.s3.model.S3Exception
 
-type S3
-    ## Gets the list of the S3 buckets.
-    @credentials AWS_Credential.default_widget
-    list_buckets : AWS_Credential | Nothing -> Vector Text ! S3_Error
-    list_buckets credentials:(AWS_Credential | Nothing)=Nothing = handle_s3_errors <|
-        client = make_client credentials
-        buckets = client.listBuckets.buckets
-        buckets.map b->b.name
+## Gets the list of the S3 bucket names.
+@credentials AWS_Credential.default_widget
+list_buckets : AWS_Credential | Nothing -> Vector Text ! S3_Error
+list_buckets credentials:(AWS_Credential | Nothing)=Nothing = handle_s3_errors <|
+    client = make_client credentials
+    buckets = client.listBuckets.buckets
+    buckets.map b->b.name
 
 ## PRIVATE
 handle_s3_errors : Function -> Any ! S3_Error
@@ -25,6 +24,6 @@ handle_s3_errors  ~action =
 
 ## PRIVATE
 make_client : (AWS_Credential | Nothing) -> S3Client
-make_client credentials =
+make_client credentials:(AWS_Credential | Nothing) =
     provider = Auth.create_provider credentials
     S3Client.builder.credentialsProvider provider . build
