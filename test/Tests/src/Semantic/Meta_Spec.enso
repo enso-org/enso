@@ -260,6 +260,9 @@ spec =
         Test.specify "static methods of Integer" <|
             Meta.meta (Meta.type_of Integer) . methods . sort . should_equal ['parse', 'parse_builtin', 'round', 'truncate']
 
+        Test.specify "methods of Any" <|
+            Meta.meta Any . methods . should_contain "to_text"
+
         Test.specify "should correctly handle Java values" <|
             java_meta = Meta.meta Java_Random.new
             java_meta . should_be_a Meta.Polyglot
