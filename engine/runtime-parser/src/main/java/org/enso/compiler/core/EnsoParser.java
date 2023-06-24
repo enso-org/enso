@@ -1,14 +1,12 @@
-package org.enso.compiler;
+package org.enso.compiler.core;
 
-import com.oracle.truffle.api.source.Source;
-import org.enso.compiler.core.IR;
 import org.enso.syntax2.Parser;
 import org.enso.syntax2.Tree;
 
-public final class EnsoCompiler implements AutoCloseable {
+public final class EnsoParser implements AutoCloseable {
   private final Parser parser;
 
-  public EnsoCompiler() {
+  public EnsoParser() {
     Parser p;
     try {
       p = Parser.create();
@@ -29,15 +27,6 @@ public final class EnsoCompiler implements AutoCloseable {
   public IR.Module compile(CharSequence src) {
     var tree = parser.parse(src);
     return generateIR(tree);
-  }
-
-  IR.Module compile(Source src) {
-    var tree = parse(src);
-    return generateIR(tree);
-  }
-
-  public Tree parse(Source src) {
-    return parser.parse(src.getCharacters());
   }
 
   public Tree parse(CharSequence src) {

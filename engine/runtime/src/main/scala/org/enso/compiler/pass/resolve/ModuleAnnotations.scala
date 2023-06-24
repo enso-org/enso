@@ -1,6 +1,5 @@
 package org.enso.compiler.pass.resolve
 
-import org.enso.compiler.Compiler
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.Definition
@@ -117,9 +116,9 @@ case object ModuleAnnotations extends IRPass {
     * @param annotations the initial annotations for the container
     */
   case class Annotations(annotations: Seq[IR.Name.Annotation])
-      extends IRPass.Metadata {
-    override val metadataName: String                 = "Annotations"
-    override def duplicate(): Option[IRPass.Metadata] = Some(this.copy())
+      extends IRPass.IRMetadata {
+    override val metadataName: String                   = "Annotations"
+    override def duplicate(): Option[IRPass.IRMetadata] = Some(this.copy())
 
     /** Add an annotation to the annotations container.
       *
@@ -140,7 +139,7 @@ case object ModuleAnnotations extends IRPass {
     /** @inheritdoc */
     override def restoreFromSerialization(
       compiler: Compiler
-    ): Option[IRPass.Metadata] = {
+    ): Option[IRPass.IRMetadata] = {
       annotations.foreach { ann =>
         ann.preorder.foreach { ir =>
           if (!ir.passData.restoreFromSerialization(compiler)) {

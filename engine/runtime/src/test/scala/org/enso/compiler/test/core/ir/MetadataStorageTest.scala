@@ -1,11 +1,10 @@
 package org.enso.compiler.test.core.ir
 
-import org.enso.compiler.Compiler
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.MetadataStorage
 import org.enso.compiler.core.ir.MetadataStorage._
-import org.enso.compiler.exception.CompilerError
+import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.test.CompilerTest
 import shapeless.test.illTyped
@@ -36,7 +35,7 @@ class MetadataStorageTest extends CompilerTest {
       copyOfIr: T
     ): T = copyOfIr
 
-    sealed case class Metadata1() extends IRPass.Metadata {
+    sealed case class Metadata1() extends IRPass.IRMetadata {
       override val metadataName: String = "TestPass1.Metadata1"
 
       override def prepareForSerialization(
@@ -47,7 +46,7 @@ class MetadataStorageTest extends CompilerTest {
         compiler: Compiler
       ): Option[Metadata1] = Some(this)
 
-      override def duplicate(): Option[IRPass.Metadata] = Some(Metadata1())
+      override def duplicate(): Option[IRPass.IRMetadata] = Some(Metadata1())
     }
   }
 
@@ -73,7 +72,7 @@ class MetadataStorageTest extends CompilerTest {
       copyOfIr: T
     ): T = copyOfIr
 
-    sealed case class Metadata2() extends IRPass.Metadata {
+    sealed case class Metadata2() extends IRPass.IRMetadata {
       override val metadataName: String = "TestPass2.Metadata2"
 
       override def prepareForSerialization(
@@ -84,7 +83,7 @@ class MetadataStorageTest extends CompilerTest {
         compiler: Compiler
       ): Option[Metadata2] = Some(this)
 
-      override def duplicate(): Option[IRPass.Metadata] = Some(Metadata2())
+      override def duplicate(): Option[IRPass.IRMetadata] = Some(Metadata2())
     }
   }
 

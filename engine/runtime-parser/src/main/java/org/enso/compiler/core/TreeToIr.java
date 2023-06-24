@@ -1,4 +1,4 @@
-package org.enso.compiler;
+package org.enso.compiler.core;
 
 import java.util.ArrayList;
 import java.util.Objects;
@@ -61,7 +61,6 @@ import org.enso.compiler.core.IR$Type$Function;
 import org.enso.compiler.core.IR.IdentifiedLocation;
 import org.enso.compiler.core.ir.DiagnosticStorage;
 import org.enso.compiler.core.ir.MetadataStorage;
-import org.enso.interpreter.epb.EpbParser;
 import org.enso.syntax.text.Location;
 import org.enso.syntax2.ArgumentDefinition;
 import org.enso.syntax2.Base;
@@ -279,7 +278,7 @@ final class TreeToIr {
         var methodRef = new IR$Name$MethodReference(Option.empty(), buildName(name), nameLoc, meta(), diag());
         var args = translateArgumentsDefinition(fn.getArgs());
         var languageName = fn.getLanguage().codeRepr();
-        var language = EpbParser.ForeignLanguage.getBySyntacticTag(languageName);
+        var language = languageName;
         if (language == null) {
           var message = "Language '" + languageName + "' is not a supported polyglot language.";
           var error = translateSyntaxError(inputAst, new IR$Error$Syntax$InvalidForeignDefinition(message));
@@ -424,7 +423,7 @@ final class TreeToIr {
         var name = buildName(fn.getName());
         var args = translateArgumentsDefinition(fn.getArgs());
         var languageName = fn.getLanguage().codeRepr();
-        var language = EpbParser.ForeignLanguage.getBySyntacticTag(languageName);
+        var language = languageName;
         if (language == null) {
           var message = "Language '" + languageName + "' is not a supported polyglot language.";
           var error = translateSyntaxError(inputAst, new IR$Error$Syntax$InvalidForeignDefinition(message));

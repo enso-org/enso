@@ -1,9 +1,9 @@
 package org.enso.compiler.core.ir
 
-import org.enso.compiler.Compiler
 import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
-import org.enso.compiler.exception.CompilerError
-import org.enso.compiler.pass.IRPass
+import org.enso.compiler.core.ir.ProcessingPass
+import org.enso.compiler.core.CompilerError
+import org.enso.compiler.core.CompilerStub
 
 /** Stores metadata for the various passes.
   *
@@ -14,8 +14,8 @@ import org.enso.compiler.pass.IRPass
 class MetadataStorage(
   startingMeta: Seq[MetadataPair[_]] = Seq()
 ) extends Serializable {
-  private var metadata: Map[IRPass, Any] = Map(
-    startingMeta.map(_.asPair.asInstanceOf[(IRPass, Any)]): _*
+  private var metadata: Map[ProcessingPass, Any] = Map(
+    startingMeta.map(_.asPair.asInstanceOf[(ProcessingPass, Any)]): _*
   )
 
   /** Adds a metadata pair to the node metadata.
@@ -25,7 +25,7 @@ class MetadataStorage(
     * @param metadataPair the pair to add to the storage
     * @tparam K the concrete type of the pass
     */
-  def update[K <: IRPass](metadataPair: MetadataPair[K]): Unit = {
+  def update[K <: ProcessingPass](metadataPair: MetadataPair[K]): Unit = {
     update(metadataPair.pass)(metadataPair.metadata)
   }
 
@@ -36,7 +36,7 @@ class MetadataStorage(
     * @param newMeta the metadata to add for `pass`
     * @tparam K the concrete type of `pass`
     */
-  def update[K <: IRPass](pass: K)(newMeta: pass.Metadata): Unit = {
+  def update[K <: ProcessingPass](pass: K)(newMeta: pass.Metadata): Unit = {
     metadata = metadata + (pass -> newMeta)
   }
 
@@ -46,7 +46,7 @@ class MetadataStorage(
     * @tparam K the concrete type of `pass`
     * @return the removed metadata for that pass, if it exists
     */
-  def remove[K <: IRPass](pass: K): Option[pass.Metadata] = {
+  def remove[K <: ProcessingPass](pass: K): Option[pass.Metadata] = {
     if (metadata.contains(pass)) {
       val res = get(pass)
       metadata = metadata.filter(t => t._1 != pass)
@@ -62,7 +62,7 @@ class MetadataStorage(
     * @tparam K the concrete type of `pass`
     * @return the metadata for `pass`, if it exists
     */
-  def get[K <: IRPass](pass: K): Option[pass.Metadata] = {
+  def get[K <: ProcessingPass](pass: K): Option[pass.Metadata] = {
     metadata.get(pass).map(_.asInstanceOf[pass.Metadata])
   }
 
@@ -74,8 +74,7 @@ class MetadataStorage(
     * @throws CompilerError if no metadata exists for `pass`
     * @return the metadata for `pass`, if it exists
     */
-  @throws[CompilerError]
-  def getUnsafe[K <: IRPass](
+  def getUnsafe[K <: ProcessingPass](
     pass: K
   )(msg: => String = s"Missing metadata for pass $pass"): pass.Metadata = {
     get(pass).getOrElse(throw new CompilerError(msg))
@@ -99,8 +98,12 @@ class MetadataStorage(
     * @tparam V the output value type
     * @return a map containing the results of transforming the metadata storage
     */
-  def map[K, V](f: (IRPass, IRPass.Metadata) => (K, V)): Map[K, V] = {
-    metadata.asInstanceOf[Map[IRPass, IRPass.Metadata]].map(f.tupled)
+  def map[K, V](
+    f: (ProcessingPass, ProcessingPass.Metadata) => (K, V)
+  ): Map[K, V] = {
+    metadata
+      .asInstanceOf[Map[ProcessingPass, ProcessingPass.Metadata]]
+      .map(f.tupled)
   }
 
   /** Prepares the metadata for serialization.
@@ -118,10 +121,12 @@ class MetadataStorage(
     *
     * @param compiler the Enso compiler
     */
-  def prepareForSerialization(compiler: Compiler): Unit = {
+  def prepareForSerialization(compiler: CompilerStub): Unit = {
     this.metadata = metadata.map { case (pass, value) =>
-      val newVal =
-        value.asInstanceOf[IRPass.Metadata].prepareForSerialization(compiler)
+      val metadata = value.asInstanceOf[ProcessingPass.Metadata]
+      val newVal = metadata
+        // HP: could avoid casting by wrapping Metadata with some global compiler reference
+        .prepareForSerialization(compiler.asInstanceOf[metadata.Compiler])
       (pass, newVal)
     }
   }
@@ -136,11 +141,11 @@ class MetadataStorage(
     * @param compiler the Enso compiler
     * @return `true` if restoration was successful, `false` otherwise
     */
-  def restoreFromSerialization(compiler: Compiler): Boolean = {
+  def restoreFromSerialization(compiler: CompilerStub): Boolean = {
     this.metadata = metadata.map { case (pass, value) =>
-      val meta = value
-        .asInstanceOf[IRPass.Metadata]
-        .restoreFromSerialization(compiler)
+      val metadata = value.asInstanceOf[ProcessingPass.Metadata]
+      val meta = metadata
+        .restoreFromSerialization(compiler.asInstanceOf[metadata.Compiler])
         .getOrElse(return false)
       (pass, meta)
     }
@@ -167,7 +172,7 @@ class MetadataStorage(
     val res = MetadataStorage()
     res.metadata = for {
       (pass, meta) <- this.metadata
-      duplicated   <- meta.asInstanceOf[IRPass.Metadata].duplicate()
+      duplicated   <- meta.asInstanceOf[ProcessingPass.Metadata].duplicate()
     } yield (pass, duplicated)
 
     res
@@ -188,7 +193,7 @@ object MetadataStorage extends MetadataStorageSyntax {
     *
     * @tparam P the concrete pass type
     */
-  sealed trait MetadataPair[P <: IRPass] {
+  sealed trait MetadataPair[P <: ProcessingPass] {
 
     /** The pass itself. */
     val pass: P
@@ -231,7 +236,7 @@ object MetadataStorage extends MetadataStorageSyntax {
       * @tparam P the concrete type of `newPass`
       * @return a metadata pair containing `newPass` and `configuration`
       */
-    def apply[P <: IRPass](newPass: P)(
+    def apply[P <: ProcessingPass](newPass: P)(
       newMetadata: newPass.Metadata
     ): MetadataPair[newPass.type] = {
       new MetadataPair[newPass.type] {
@@ -249,7 +254,7 @@ trait MetadataStorageSyntax {
     * @param pass the pass to create a pair with
     * @tparam P the concrete type of `pass`
     */
-  implicit final class ToPair[P <: IRPass](val pass: P) {
+  implicit final class ToPair[P <: ProcessingPass](val pass: P) {
 
     /** Concatenates [[pass]] with a metadata object for that pass.
       *
