@@ -6,3 +6,4 @@ public interface ConstantsNames {
   public static final String THAT_ARGUMENT = "that";
   public static final String FROM_MEMBER = "from";
 }
+
