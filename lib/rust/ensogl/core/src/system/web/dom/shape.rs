@@ -141,6 +141,12 @@ impl<T> WithKnownShape<T> {
         }
     }
 
+    /// Treat this object as if id had the provided shape. Note that this function does not cause
+    /// the actual DOM object to change its shape. Useful for testing.
+    pub fn override_shape(&self, shape: Shape) {
+        self.shape_source.emit(shape);
+    }
+
     /// Get the current shape of the object.
     pub fn shape(&self) -> Shape {
         self.shape.value()

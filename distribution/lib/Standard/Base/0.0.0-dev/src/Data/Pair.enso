@@ -2,13 +2,14 @@ import project.Any.Any
 import project.Data.Boolean.Boolean
 import project.Data.Numbers.Integer
 import project.Data.Text.Text
-from project.Data.Text.Extensions import all
 import project.Data.Vector.Vector
+import project.Error.Error
 import project.Errors.Common.Index_Out_Of_Bounds
 import project.Errors.Common.Not_Found
-import project.Error.Error
 import project.Function.Function
 import project.Nothing.Nothing
+
+from project.Data.Text.Extensions import all
 
 ## A pair of elements.
 type Pair
@@ -20,9 +21,7 @@ type Pair
     new : Any -> Any -> Pair
     new first second = Pair.Value first second
 
-    ## UNSTABLE
-
-       A simple pair of elements.
+    ## A simple pair of elements.
 
        Arguments:
        - first: The first element.
@@ -38,9 +37,7 @@ type Pair
     last : Any
     last self = self.second
 
-    ## UNSTABLE
-
-       Applies the provided function to both elements of the pair.
+    ## Applies the provided function to both elements of the pair.
 
        > Example
          Adding one to two elements of the pair.
@@ -50,13 +47,11 @@ type Pair
     map self fun =
         Pair.new (fun self.first) (fun self.second)
 
-    ## UNSTABLE
-       Returns the length (2) of the Pair.
+    ## Returns the length (2) of the Pair.
     length : Integer
     length self = 2
 
-    ## UNSTABLE
-       Returns the pair as a Vector.
+    ## Returns the pair as a Vector.
     to_vector : Vector
     to_vector self = [self.first, self.second]
 

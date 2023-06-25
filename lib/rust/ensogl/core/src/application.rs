@@ -140,8 +140,11 @@ impl display::Object for Application {
 pub mod test_utils {
     use super::*;
 
-    /// Screen size for unit and integration tests.
-    const TEST_SCREEN_SIZE: (f32, f32) = (1920.0, 1080.0);
+    use crate::system::web::dom::Shape;
+
+    /// Screen shape for unit and integration tests.
+    pub const TEST_SCREEN_SHAPE: Shape =
+        Shape { width: 1920.0, height: 1080.0, pixel_ratio: 1.5 };
 
     /// Extended API for tests.
     pub trait ApplicationExt {
@@ -152,14 +155,8 @@ pub mod test_utils {
 
     impl ApplicationExt for Application {
         fn set_screen_size_for_tests(&self) {
-            let (screen_width, screen_height) = TEST_SCREEN_SIZE;
             let scene = &self.display.default_scene;
-            scene.layers.iter_sublayers_and_masks_nested(|layer| {
-                let camera = layer.camera();
-                camera.set_screen(screen_width, screen_height);
-                camera.reset_zoom();
-                camera.update(scene);
-            });
+            scene.dom.root.override_shape(TEST_SCREEN_SHAPE);
         }
     }
 }

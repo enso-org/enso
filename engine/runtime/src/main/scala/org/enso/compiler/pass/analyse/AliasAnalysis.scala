@@ -1,11 +1,10 @@
 package org.enso.compiler.pass.analyse
 
-import org.enso.compiler.Compiler
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Pattern
 import org.enso.compiler.core.ir.MetadataStorage._
-import org.enso.compiler.exception.CompilerError
+import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Occurrence, Scope}
 import org.enso.compiler.pass.desugar._
@@ -801,7 +800,7 @@ case object AliasAnalysis extends IRPass {
   // === Data Definitions =====================================================
 
   /** Information about the aliasing state for a given IR node. */
-  sealed trait Info extends IRPass.Metadata {
+  sealed trait Info extends IRPass.IRMetadata {
 
     /** The aliasing graph. */
     val graph: Graph
@@ -830,7 +829,7 @@ case object AliasAnalysis extends IRPass {
         ): Option[Root] = Some(this)
 
         /** @inheritdoc */
-        override def duplicate(): Option[IRPass.Metadata] = None
+        override def duplicate(): Option[IRPass.IRMetadata] = None
       }
 
       /** Aliasing information about a child scope.
@@ -853,7 +852,7 @@ case object AliasAnalysis extends IRPass {
         ): Option[Child] = Some(this)
 
         /** @inheritdoc */
-        override def duplicate(): Option[IRPass.Metadata] = None
+        override def duplicate(): Option[IRPass.IRMetadata] = None
       }
     }
 
@@ -878,7 +877,7 @@ case object AliasAnalysis extends IRPass {
       ): Option[Occurrence] = Some(this)
 
       /** @inheritdoc */
-      override def duplicate(): Option[IRPass.Metadata] = None
+      override def duplicate(): Option[IRPass.IRMetadata] = None
     }
   }
 

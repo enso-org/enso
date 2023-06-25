@@ -64,25 +64,13 @@ define_style! {
 
 #[allow(missing_docs)]
 impl Style {
-    pub fn new_highlight<H, Color: Into<color::Lcha>>(
-        host: H,
-        size: Vector2<f32>,
-        radius: f32,
-        color: Option<Color>,
-    ) -> Self
-    where
-        H: display::Object,
-    {
-        let host = Some(StyleValue::new(host.display_object().clone_ref()));
+    pub fn new_highlight(host: display::object::Instance, size: Vector2<f32>, radius: f32) -> Self {
+        let host = Some(StyleValue::new(host));
         let size = Some(StyleValue::new(size));
         let radius = Some(StyleValue::new(radius));
         let press = Some(StyleValue::new(0.0));
-        let color = color.map(|color| {
-            let color = color.into();
-            StyleValue::new(color)
-        });
         let port_selection_layer = Some(StyleValue::new_no_animation(true));
-        Self { host, size, radius, color, port_selection_layer, press, ..default() }
+        Self { host, size, radius, port_selection_layer, press, ..default() }
     }
 
     pub fn new_color(color: color::Lcha) -> Self {
@@ -541,10 +529,13 @@ impl Cursor {
             //     ╲│ z = camera.z
             screen_position <- position.map(f!([model](position) {
                 let cam_pos = model.scene.layers.cursor.camera().position();
-                let coeff   = cam_pos.z / (cam_pos.z - position.z);
-                let x       = position.x * coeff;
-                let y       = position.y * coeff;
-                Vector3(x,y,0.0)
+                let z_diff = cam_pos.z - position.z;
+                if z_diff == 0.0 {
+                    Vector3::zero()
+                } else {
+                    let coeff = cam_pos.z / z_diff;
+                    (position.xy() * coeff).push(0.0)
+                }
             }));
 
             scene_position       <- screen_position.map(f!((p) scene.screen_to_scene_coordinates(*p)));

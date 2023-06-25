@@ -6,10 +6,12 @@ use enso_text::unit::*;
 use crate::generate::context::CalledMethodInfo;
 use crate::node;
 use crate::node::InsertionPointType;
+use crate::node::PortId;
 use crate::ArgumentInfo;
 use crate::Node;
 use crate::SpanTree;
 
+use ast::crumbs::BlockCrumb;
 use ast::crumbs::InfixCrumb;
 use ast::crumbs::Located;
 use ast::crumbs::PrefixCrumb;
@@ -49,6 +51,8 @@ pub trait SpanTreeGenerator {
     /// Generate tree for this AST treated as root for the whole expression.
     fn generate_tree(&self, context: &impl Context) -> FallibleResult<SpanTree> {
         let root = self.generate_node(node::Kind::Root, context)?;
+        let port_id = root.port_id.or(Some(PortId::Root));
+        let root = root.with_port_id(port_id);
         Ok(SpanTree { root })
     }
 }
@@ -103,7 +107,7 @@ impl ChildGenerator {
 
     fn generate_ast_node(
         &mut self,
-        child_ast: Located<Ast>,
+        child_ast: Located<&Ast>,
         kind: impl Into<node::Kind>,
         context: &impl Context,
     ) -> FallibleResult<&mut node::Child> {
@@ -140,7 +144,7 @@ impl ChildGenerator {
         let kind = kind.into();
         let size = self.current_offset;
         let children = self.children;
-        Node { kind, size, children, ast_id, ..default() }
+        Node::new().with_kind(kind).with_size(size).with_children(children).with_ast_id(ast_id)
     }
 }
 
@@ -342,18 +346,22 @@ fn generate_node_for_ast(
                 ast::prefix::Chain::from_ast(ast).unwrap().generate_node(kind, context),
             ast::Shape::Tree(tree) if tree.type_info != ast::TreeType::Lambda =>
                 tree_generate_node(tree, kind, context, ast.id),
+            ast::Shape::Block(block) => block_generate_node(block, kind, context, ast.id),
             _ => {
                 let size = (ast.len().value as i32).byte_diff();
                 let ast_id = ast.id;
-                if let Some(info) = ast.id.and_then(|id| context.call_info(id)) {
-                    let node = { Node { kind: node::Kind::Operation, size, ast_id, ..default() } };
+                if let Some(info) = ast_id.and_then(|id| context.call_info(id)) {
+                    let node = Node::new()
+                        .with_kind(node::Kind::Operation)
+                        .with_size(size)
+                        .with_ast_id(ast_id);
                     // Note that in this place it is impossible that Ast is in form of
                     // `this.method` -- it is covered by the former if arm. As such, we don't
                     // need to use `ApplicationBase` here as we do elsewhere.
-                    let params = info.with_call_id(ast.id).parameters.into_iter();
+                    let params = info.with_call_id(ast_id).parameters.into_iter();
                     Ok(generate_trailing_expected_arguments(node, params).with_kind(kind))
                 } else {
-                    Ok(Node { kind, size, ast_id, ..default() })
+                    Ok(Node::new().with_kind(kind).with_size(size).with_ast_id(ast_id))
                 }
             }
         }
@@ -439,7 +447,7 @@ fn generate_node_for_opr_chain(
         let is_last = i + 1 == this.args.len();
         let has_left = !node.is_insertion_point();
         let opr_crumbs = elem.crumb_to_operator(has_left);
-        let opr_ast = Located::new(opr_crumbs, elem.operator.ast().clone_ref());
+        let opr_ast = Located::new(opr_crumbs, elem.operator.ast());
         let left_crumbs = if has_left { vec![elem.crumb_to_previous()] } else { vec![] };
 
         let mut gen = ChildGenerator::default();
@@ -491,7 +499,7 @@ fn generate_node_for_opr_chain(
         gen.generate_ast_node(opr_ast, node::Kind::Operation, context)?;
         if let Some(operand) = &elem.operand {
             let arg_crumbs = elem.crumb_to_operand(has_left);
-            let arg_ast = Located::new(arg_crumbs, operand.arg.clone_ref());
+            let arg_ast = Located::new(arg_crumbs, &operand.arg);
 
             gen.spacing(operand.offset);
             if has_left {
@@ -515,16 +523,8 @@ fn generate_node_for_opr_chain(
             gen.reverse_children();
         }
 
-        Ok((
-            Node {
-                kind: if is_last { kind.clone() } else { node::Kind::chained().into() },
-                size: gen.current_offset,
-                children: gen.children,
-                ast_id: elem.infix_id,
-                ..default()
-            },
-            elem.offset,
-        ))
+        let kind = if is_last { kind.clone() } else { node::Kind::chained().into() };
+        Ok((gen.into_node(kind, elem.infix_id), elem.offset))
     })?;
     Ok(node)
 }
@@ -631,7 +631,7 @@ fn generate_node_for_prefix_chain(
                             gen.add_node(vec![PrefixCrumb::Arg.into()], node);
                         }
                         None => {
-                            let arg_ast = Located::new(PrefixCrumb::Arg, arg.sast.wrapped.clone());
+                            let arg_ast = Located::new(PrefixCrumb::Arg, &arg.sast.wrapped);
                             gen.generate_ast_node(arg_ast, arg_kind, context)?;
                         }
                     }
@@ -657,19 +657,11 @@ fn generate_node_for_named_argument(
     let NamedArgumentDef { id, larg, loff, opr, roff, rarg, .. } = this;
     let mut gen = ChildGenerator::default();
 
-    gen.generate_ast_node(
-        Located::new(InfixCrumb::LeftOperand, larg.clone()),
-        node::Kind::Token,
-        context,
-    )?;
+    gen.generate_ast_node(Located::new(InfixCrumb::LeftOperand, larg), node::Kind::Token, context)?;
     gen.spacing(loff);
-    gen.generate_ast_node(
-        Located::new(InfixCrumb::Operator, opr.clone()),
-        node::Kind::Token,
-        context,
-    )?;
+    gen.generate_ast_node(Located::new(InfixCrumb::Operator, opr), node::Kind::Token, context)?;
     gen.spacing(roff);
-    let arg_ast = Located::new(InfixCrumb::RightOperand, rarg.clone());
+    let arg_ast = Located::new(InfixCrumb::RightOperand, rarg);
     gen.generate_ast_node(arg_ast, arg_kind, context)?;
     Ok(gen.into_node(node::Kind::NamedArgument, id))
 }
@@ -800,10 +792,11 @@ fn generate_expected_argument(
     let mut gen = ChildGenerator::default();
     let extended_ast_id = node.ast_id.or(node.extended_ast_id);
     gen.add_node(ast::Crumbs::new(), node);
+    let port_id = argument_info.call_id.map(|id| PortId::ArgPlaceholder { application: id, index });
     let arg_node = gen.generate_empty_node(InsertionPointType::ExpectedArgument { index, named });
     arg_node.node.set_argument_info(argument_info);
-    let kind = node::Kind::chained().into();
-    Node { kind, size: gen.current_offset, children: gen.children, extended_ast_id, ..default() }
+    arg_node.node.set_port_id(port_id);
+    gen.into_node(node::Kind::chained(), None).with_extended_ast_id(extended_ast_id)
 }
 
 /// Build a prefix application-like span tree structure where no prefix argument has been provided
@@ -842,6 +835,10 @@ fn tree_generate_node(
         let first_token_or_child =
             tree.span_info.iter().find(|span| !matches!(span, SpanSeed::Space(_)));
         let is_array = matches!(first_token_or_child, Some(SpanSeed::Token(ast::SpanSeedToken { token })) if token == "[");
+        let array_id = ast_id.filter(|_| is_array);
+        let mut insert_port_iter = (0..)
+            .map_while(|insert_at| array_id.map(|array| PortId::ArrayInsert { array, insert_at }));
+
         let last_token_index =
             tree.span_info.iter().rposition(|span| matches!(span, SpanSeed::Token(_)));
         for (index, raw_span_info) in tree.span_info.iter().enumerate() {
@@ -852,9 +849,10 @@ fn tree_generate_node(
                 }
                 SpanSeed::Token(ast::SpanSeedToken { token }) => {
                     if is_array && Some(index) == last_token_index {
-                        let kind = InsertionPointType::Append;
                         children.push(node::Child {
-                            node: Node::new().with_kind(kind),
+                            node: Node::new()
+                                .with_kind(InsertionPointType::Append)
+                                .with_port_id(insert_port_iter.next()),
                             parent_offset,
                             sibling_offset,
                             ast_crumbs: vec![],
@@ -864,16 +862,17 @@ fn tree_generate_node(
                     let kind = node::Kind::Token;
                     let size = ByteDiff::from(token.len());
                     let ast_crumbs = vec![TreeCrumb { index }.into()];
-                    let node = Node { kind, size, ..default() };
+                    let node = Node::new().with_kind(kind).with_size(size);
                     children.push(node::Child { node, parent_offset, sibling_offset, ast_crumbs });
                     parent_offset += size;
                     sibling_offset = 0.byte_diff();
                 }
                 SpanSeed::Child(ast::SpanSeedChild { node }) => {
                     if is_array {
-                        let kind = InsertionPointType::BeforeArgument(index);
                         children.push(node::Child {
-                            node: Node::new().with_kind(kind),
+                            node: Node::new()
+                                .with_kind(InsertionPointType::BeforeArgument(index))
+                                .with_port_id(insert_port_iter.next()),
                             parent_offset,
                             sibling_offset,
                             ast_crumbs: vec![],
@@ -895,7 +894,37 @@ fn tree_generate_node(
     }
 
     let tree_type = Some(tree.type_info.clone());
-    Ok(Node { kind, tree_type, size, children, ast_id, ..default() })
+    Ok(Node { kind, tree_type, size, children, ..default() }.with_ast_id(ast_id))
+}
+
+fn block_generate_node(
+    block: &ast::Block<Ast>,
+    kind: node::Kind,
+    context: &impl Context,
+    ast_id: Option<Id>,
+) -> FallibleResult<Node> {
+    let mut gen = ChildGenerator::default();
+    let newline = Node::new().with_kind(node::Kind::Token).with_size(1.byte_diff());
+
+    gen.add_node(vec![], newline.clone());
+    for empty_line_space in &block.empty_lines {
+        gen.spacing(*empty_line_space);
+        gen.add_node(vec![], newline.clone());
+    }
+    gen.spacing(block.indent);
+    let first_line = Located::new(BlockCrumb::HeadLine, &block.first_line.elem);
+    gen.generate_ast_node(first_line, node::Kind::BlockLine, context)?;
+    gen.spacing(block.first_line.off);
+    for (tail_index, line) in block.lines.iter().enumerate() {
+        gen.add_node(vec![], newline.clone());
+        if let Some(elem) = &line.elem {
+            gen.spacing(block.indent);
+            let line = Located::new(BlockCrumb::TailLine { tail_index }, elem);
+            gen.generate_ast_node(line, node::Kind::BlockLine, context)?;
+        }
+        gen.spacing(line.off);
+    }
+    Ok(gen.into_node(kind, ast_id))
 }
 
 
@@ -961,6 +990,7 @@ mod test {
     fn clear_expression_ids(node: &mut Node) {
         node.ast_id = None;
         node.extended_ast_id = None;
+        node.port_id = None;
         node.application = None;
         for child in &mut node.children {
             clear_expression_ids(&mut child.node);

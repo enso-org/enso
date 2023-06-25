@@ -1,6 +1,6 @@
 package org.enso.table.data.column.operation.cast;
 
-import org.enso.table.data.column.builder.object.DateTimeBuilder;
+import org.enso.table.data.column.builder.DateTimeBuilder;
 import org.enso.table.data.column.storage.datetime.DateStorage;
 import org.enso.table.data.column.storage.datetime.DateTimeStorage;
 import org.enso.table.data.column.storage.Storage;

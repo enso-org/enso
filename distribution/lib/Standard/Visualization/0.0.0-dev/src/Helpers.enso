@@ -214,7 +214,7 @@ Column.default_visualization self = Id.table
 
 ## PRIVATE
 
-  Checks if the column stores numbers.
+   Checks if the column stores numbers.
 Column.is_numeric : Boolean
 Column.is_numeric self =
     self.value_type.is_numeric

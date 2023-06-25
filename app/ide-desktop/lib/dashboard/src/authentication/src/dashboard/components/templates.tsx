@@ -1,7 +1,7 @@
 /** @file Renders the list of templates from which a project can be created. */
 import * as React from 'react'
 
-import * as svg from '../../components/svg'
+import PlusCircledIcon from 'enso-assets/plus_circled.svg'
 
 // =================
 // === Templates ===
@@ -80,7 +80,9 @@ function TemplatesRender(props: TemplatesRenderProps) {
         >
             <div className="flex h-full w-full border-dashed-custom rounded-2xl text-primary">
                 <div className="m-auto text-center">
-                    <button>{svg.CIRCLED_PLUS_ICON}</button>
+                    <button>
+                        <img src={PlusCircledIcon} />
+                    </button>
                     <p className="font-semibold text-sm">New empty project</p>
                 </div>
             </div>

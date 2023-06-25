@@ -8,7 +8,8 @@ import project.Data.Vector.Vector
 @Builtin_Type
 type Function
 
-    ## Applies the function `self` to the provided argument.
+    ## ADVANCED
+       Applies the function `self` to the provided argument.
 
        Arguments:
        - argument: The argument to apply `self` to.
@@ -27,7 +28,8 @@ type Function
     <| : Any -> Any
     <| self ~argument = @Builtin_Method "Function.<|"
 
-    ## Composes two functions together, for `f << g` creating the function
+    ## ADVANCED
+       Composes two functions together, for `f << g` creating the function
        composition `f ∘ g` (equivalent to `x -> f (g x)`).
 
        Arguments:
@@ -40,7 +42,8 @@ type Function
     << : (Any -> Any) -> (Any -> Any)
     << self ~that = x -> self (that x)
 
-    ## Composes two functions together in the forward direction, for `f >> g`
+    ## ADVANCED
+       Composes two functions together in the forward direction, for `f >> g`
        creating the function composition `g ∘ f` (equivalent to `x -> g (f (x))`).
 
        Arguments:
@@ -61,8 +64,6 @@ type Function
 
    > Example
      five = Function.identity 5 # returns number 5
-
-# identity : a -> a
 identity : Any -> Any
 identity x = x
 
@@ -74,8 +75,6 @@ identity x = x
 
    > Example
     IO.println <| Function.flip (+) "world" "hello" # Prints 'helloworld'
-
-# flip : (a -> b -> c) -> (b -> a -> c)
 flip : (Any -> Any -> Any) -> (Any -> Any -> Any)
 flip f = (x -> y -> f y x)
 
@@ -88,8 +87,6 @@ flip f = (x -> y -> f y x)
 
    > Example
     IO.println <| [1, 2, 3].map (Function.const 7) # Prints '[7, 7, 7]'
-
-# const : a -> b -> a
 const : Any -> Any -> Any
 const x _ = x
 
@@ -97,8 +94,6 @@ const x _ = x
 
    Arguments:
    - f function accepting pair of values
-
-# curry : ([a, b] -> c) -> (a -> b -> c)
 curry : (Vector Any -> Any) -> (Any -> Any -> Any)
 curry f = x -> y -> f [x, y]
 
@@ -106,7 +101,5 @@ curry f = x -> y -> f [x, y]
 
    Arguments:
    - f function accepting multiple arguments
-
-# uncurry : (a -> b -> c) -> ([a, b] -> c)
 uncurry : (Any -> Any -> Any) -> (Vector Any -> Any)
 uncurry f = (pair -> f pair.first pair.second)
