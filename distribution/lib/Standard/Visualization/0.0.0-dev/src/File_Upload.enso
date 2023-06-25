@@ -14,11 +14,10 @@ file_uploading path =
         _ -> ""
     Error.throw err
 
-## UNSTABLE
-
-   Represents that a file is being uploaded to the given `file_path`.
+## Represents that a file is being uploaded to the given `file_path`.
 
    Arguments:
    - file_path: The path at which the file is being uploaded.
 type File_Being_Uploaded
+    ## PRIVATE
     Value file_path

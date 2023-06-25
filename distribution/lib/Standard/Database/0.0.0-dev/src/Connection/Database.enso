@@ -13,9 +13,7 @@ from project.Errors import SQL_Error
 
 polyglot java import org.enso.database.DatabaseConnectionDetailsSPI
 
-## UNSTABLE
-
-   Tries to connect to the database.
+## Tries to connect to the database.
 
    Arguments:
    - details: `Connection_Details` specifying the database to connect to.

@@ -13,8 +13,7 @@ import project.Panic.Panic
 
 from project.Data.Boolean import Boolean, True, False
 
-## UNSTABLE
-   An unordered collection of unique values.
+## An unordered collection of unique values.
 type Set
     ## PRIVATE
     Value (underlying_map : Map Any Nothing)

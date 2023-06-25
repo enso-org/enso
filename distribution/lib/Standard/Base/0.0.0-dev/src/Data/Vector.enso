@@ -948,8 +948,7 @@ type Vector a
         compare_funcs = comps.map (it-> it.compare)
         self.sort_builtin order.to_sign comps compare_funcs by on on_incomparable.to_number
 
-    ## UNSTABLE
-       Keeps only unique elements within the vector, removing any duplicates.
+    ## Keeps only unique elements within the vector, removing any duplicates.
 
        Arguments:
        - on: A projection from the element type to the value of that element
@@ -981,13 +980,11 @@ type Vector a
                     existing.insert key True
         if result.is_error then result else builder.to_vector
 
-    ## UNSTABLE
-       Returns the vector as a `Vector`.
+    ## Returns the vector as a `Vector`.
     to_vector : Vector
     to_vector self = self
 
-    ## UNSTABLE
-       Converts the vector to a list with the same elements.
+    ## Converts the vector to a list with the same elements.
     to_list : List
     to_list self =
         self.reverse.fold List.Nil acc-> elem-> List.Cons elem acc

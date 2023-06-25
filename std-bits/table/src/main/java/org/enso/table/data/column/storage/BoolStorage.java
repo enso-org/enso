@@ -1,8 +1,8 @@
 package org.enso.table.data.column.storage;
 
 import org.enso.base.polyglot.Polyglot_Utils;
-import org.enso.table.data.column.builder.object.BoolBuilder;
-import org.enso.table.data.column.builder.object.Builder;
+import org.enso.table.data.column.builder.BoolBuilder;
+import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.MapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;

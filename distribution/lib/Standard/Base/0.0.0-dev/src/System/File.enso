@@ -62,7 +62,7 @@ type File
 
              example_new = File.new Examples.csv_path
     new : (Text | File) -> File
-    new (path : Text|File) =
+    new (path : Text | File) =
       case path of
         _ : Text -> get_file path
         _ : File -> path
