@@ -16,12 +16,13 @@
   "name": "root",
   "private": true,
   "workspaces": [
+    "lib/assets",
     "lib/client",
     "lib/common",
     "lib/content",
+    "lib/content-config",
     "lib/dashboard",
     "lib/dashboard/src/authentication",
-    "lib/content-config",
     "lib/esbuild-plugin-copy-directories",
     "lib/icons"
   ],

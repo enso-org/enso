@@ -421,7 +421,7 @@ type Date
 
              example_add = Date.new 2020 + Date_Period.Month
     + : Period | Date_Period -> Date ! (Time_Error | Illegal_Argument)
-    + self amount:(Period|Date_Period) =
+    + self (amount : Period | Date_Period) =
         case amount of
             period : Period ->
                 Time_Utils.date_adjust self Time_Utils.AdjustOp.PLUS period.internal_period
@@ -621,7 +621,7 @@ type Date
 
              example_add = Date.new 2020 - Date_Period.Month
     - : Period | Date_Period -> Date ! (Time_Error | Illegal_Argument)
-    - self amount:(Period|Date_Period) =
+    - self amount:(Period | Date_Period) =
         case amount of
             period : Period ->
                 new_java_date = Time_Utils.date_adjust self Time_Utils.AdjustOp.MINUS period.internal_period

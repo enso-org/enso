@@ -549,7 +549,9 @@ mod tests {
     use super::*;
     use crate::test::mock::Fixture;
     use crate::test::mock::Unified;
-    use span_tree::SpanTree;
+    use ast::crumbs::InfixCrumb;
+    use controller::graph::Connection;
+    use controller::graph::Endpoint;
 
     fn check_atomic_undo(fixture: Fixture, action: impl FnOnce()) {
         let Fixture { project, module, searcher, .. } = fixture;
@@ -622,16 +624,11 @@ main =
             assert_eq!(sum_node.expression().to_string(), "2 + 2");
             assert_eq!(product_node.expression().to_string(), "5 * 5");
 
-            let context = &span_tree::generate::context::Empty;
-            let sum_tree = SpanTree::new(&sum_node.expression(), context).unwrap();
-            let sum_input =
-                sum_tree.root_ref().leaf_iter().find(|n| n.is_argument()).unwrap().crumbs;
-            let connection = controller::graph::Connection {
-                source:      controller::graph::Endpoint::new(product_node.id(), []),
-                destination: controller::graph::Endpoint::new(sum_node.id(), sum_input),
+            let connection = Connection {
+                source: Endpoint::root(product_node.id()),
+                target: Endpoint::target_at(sum_node, [InfixCrumb::LeftOperand]).unwrap(),
             };
-
-            graph.connect(&connection, context).unwrap();
+            graph.connect(&connection, &span_tree::generate::context::Empty).unwrap();
         });
     }
 

@@ -2,8 +2,9 @@
 import * as React from 'react'
 import toast from 'react-hot-toast'
 
+import CloseIcon from 'enso-assets/close.svg'
+
 import * as modalProvider from '../../providers/modal'
-import * as svg from '../../components/svg'
 import * as toastPromise from '../toastPromise'
 
 import Input from './input'
@@ -63,7 +64,7 @@ function RenameModal(props: RenameModalProps) {
                 className="relative bg-white shadow-soft rounded-lg w-96 p-2"
             >
                 <button type="button" className="absolute right-0 top-0 m-2" onClick={unsetModal}>
-                    {svg.CLOSE_ICON}
+                    <img src={CloseIcon} />
                 </button>
                 What do you want to rename the {assetType} &apos;{name}&apos; to?
                 <div className="m-2">

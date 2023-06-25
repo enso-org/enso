@@ -1,9 +1,10 @@
 /** @file Column types and column display modes. */
 import * as React from 'react'
 
+import DefaultUserSmallIcon from 'enso-assets/default_user_small.svg'
+
 import * as backend from './backend'
 import * as dateTime from './dateTime'
-import * as svg from '../components/svg'
 import * as table from './components/table'
 
 import PermissionDisplay, * as permissionDisplay from './components/permissionDisplay'
@@ -122,7 +123,7 @@ export function SharedWithColumn(props: AnyAssetColumnProps) {
                     key={user.user.organization_id}
                     permissions={PERMISSION[user.permission]}
                 >
-                    {svg.DEFAULT_USER_ICON}
+                    <img src={DefaultUserSmallIcon} />
                 </PermissionDisplay>
             ))}
         </>

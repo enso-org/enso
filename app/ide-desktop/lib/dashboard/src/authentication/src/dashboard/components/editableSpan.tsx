@@ -1,8 +1,10 @@
 /** @file A text `<span>` which turns into an `input` when desired. */
 import * as React from 'react'
 
+import CrossIcon from 'enso-assets/cross.svg'
+import TickIcon from 'enso-assets/tick.svg'
+
 import * as shortcuts from '../shortcuts'
-import * as svg from '../../components/svg'
 
 // ====================
 // === EditableSpan ===
@@ -68,7 +70,7 @@ function EditableSpan(props: EditableSpanProps) {
                     {...passthroughProps}
                 />
                 <button type="submit" className="mx-0.5">
-                    {svg.TICK_ICON}
+                    <img src={TickIcon} />
                 </button>
                 <button
                     className="mx-0.5"
@@ -77,7 +79,7 @@ function EditableSpan(props: EditableSpanProps) {
                         onCancel()
                     }}
                 >
-                    {svg.CROSS_ICON}
+                    <img src={CrossIcon} />
                 </button>
             </form>
         )

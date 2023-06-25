@@ -226,25 +226,21 @@ type Duration
     hours : Integer
     hours self = @Builtin_Method "Duration.hours"
 
-    ## UNSTABLE
-       Convert the duration to total milliseconds.
+    ## Convert the duration to total milliseconds.
     total_milliseconds : Integer ! Illegal_State
     total_milliseconds self =
         Panic.catch ArithmeticException (self.total_milliseconds_builtin) _->
             Error.throw (Illegal_State.Error "The duration is too large to convert it to milliseconds")
 
-    ## UNSTABLE
-       Convert the duration to total seconds.
+    ## Convert the duration to total seconds.
     total_seconds : Decimal ! Illegal_State
     total_seconds self = self.total_milliseconds / 1000.0
 
-    ## UNSTABLE
-       Convert the duration to total minutes.
+    ## Convert the duration to total minutes.
     total_minutes : Decimal ! Illegal_State
     total_minutes self = self.total_seconds / 60.0
 
-    ## UNSTABLE
-       Convert the duration to total minutes.
+    ## Convert the duration to total minutes.
     total_hours : Decimal ! Illegal_State
     total_hours self = self.total_minutes / 60.0
 

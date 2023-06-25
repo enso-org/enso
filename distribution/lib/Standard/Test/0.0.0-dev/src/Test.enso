@@ -261,7 +261,7 @@ type Behavior
 
     ## PRIVATE
 
-      Checks if the behavior is pending.
+       Checks if the behavior is pending.
     is_pending : Boolean
     is_pending self = self.result.is_pending
 

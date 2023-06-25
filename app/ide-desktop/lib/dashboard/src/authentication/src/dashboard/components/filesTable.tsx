@@ -2,6 +2,8 @@
 import * as React from 'react'
 import toast from 'react-hot-toast'
 
+import PlusIcon from 'enso-assets/plus.svg'
+
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as columnModule from '../column'
@@ -13,7 +15,6 @@ import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
 import * as shortcuts from '../shortcuts'
 import * as string from '../../string'
-import * as svg from '../../components/svg'
 import * as toastPromiseMultiple from '../../toastPromiseMultiple'
 import * as uniqueString from '../../uniqueString'
 
@@ -178,7 +179,7 @@ function FileNameHeading(props: InternalFileNameHeadingProps) {
                     )
                 }}
             >
-                {svg.ADD_ICON}
+                <img src={PlusIcon} />
             </button>
         </div>
     )

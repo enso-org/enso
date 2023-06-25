@@ -40,6 +40,7 @@ pub mod node;
 pub use node::Crumb;
 pub use node::Crumbs;
 pub use node::Node;
+pub use node::PortId;
 
 
 
@@ -269,6 +270,7 @@ impl SpanTree {
     pub fn debug_print(&self, code: &str) -> String {
         use std::fmt::Write;
 
+        let max_length = code.lines().map(|l| l.len()).max().unwrap_or(0);
         let mut code = code.to_string();
         let code_padding = self.root.size.as_usize().saturating_sub(code.len());
         for _ in 0..code_padding {
@@ -276,7 +278,7 @@ impl SpanTree {
         }
 
         let mut buffer = String::new();
-        let span_padding = " ".repeat(code.len() + 2);
+        let spaces = " ".repeat(max_length + 3);
 
         struct PrintState {
             indent:       String,
@@ -285,20 +287,41 @@ impl SpanTree {
         let state = PrintState { indent: String::new(), num_children: 1 };
         self.root_ref().dfs_with_layer_data(state, |node, state| {
             let span = node.span();
+            let offset_in_line = code[..span.start.value].lines().last().unwrap_or("").len();
             let node_code = &code[span];
-            buffer.push_str(&span_padding[0..node.span_offset.value]);
+            buffer.push_str(&spaces[0..offset_in_line]);
             buffer.push('▷');
-            buffer.push_str(node_code);
-            buffer.push('◁');
-            let written = node.span_offset.value + node_code.len() + 2;
-            buffer.push_str(&span_padding[written..]);
+            let mut written_in_line = offset_in_line + 1;
+
+            let mut span_lines = node_code.lines();
+            // Make sure that empty spans are still printed as single line.
+            let mut next_line = Some(span_lines.next().unwrap_or(""));
+            while let Some(line) = next_line {
+                buffer.push_str(line);
+                written_in_line += line.len();
+                next_line = span_lines.next();
+                let is_last = next_line.is_none();
+                if is_last {
+                    buffer.push('◁');
+                    written_in_line += 1;
+                }
+
+                buffer.push_str(&spaces[written_in_line..]);
+                buffer.push_str(&state.indent);
+
+                if !is_last {
+                    if !node.crumbs.is_empty() {
+                        buffer.push_str(" │");
+                    }
+                    buffer.push_str("\n ");
+                    written_in_line = 1;
+                }
+            }
 
             let indent = if let Some(index) = node.crumbs.last() {
                 let is_last = *index == state.num_children - 1;
                 let indent_targeted = if is_last { " ╰─" } else { " ├─" };
                 let indent_continue = if is_last { "   " } else { " │ " };
-
-                buffer.push_str(&state.indent);
                 buffer.push_str(indent_targeted);
                 format!("{}{}", state.indent, indent_continue)
             } else {
@@ -322,10 +345,6 @@ impl SpanTree {
                 write!(buffer, " ast_id={ast_id:?}").unwrap();
             } else if let Some(ext_id) = node.extended_ast_id {
                 write!(buffer, " ext_id={ext_id:?}").unwrap();
-            }
-
-            if let Some(tt) = node.tree_type.as_ref() {
-                write!(buffer, " tt={tt:?}").unwrap();
             }
 
             buffer.push('\n');

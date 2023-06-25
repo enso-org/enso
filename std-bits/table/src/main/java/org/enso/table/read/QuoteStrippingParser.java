@@ -1,7 +1,7 @@
 package org.enso.table.read;
 
-import org.enso.table.data.column.builder.object.Builder;
-import org.enso.table.data.column.builder.object.StringBuilder;
+import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.builder.StringBuilder;
 import org.enso.table.parsing.IncrementalDatatypeParser;
 import org.enso.table.parsing.problems.ProblemAggregator;
 

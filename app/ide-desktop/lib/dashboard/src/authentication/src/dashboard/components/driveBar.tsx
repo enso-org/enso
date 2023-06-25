@@ -2,12 +2,15 @@
  * the current directory and some configuration options. */
 import * as React from 'react'
 
+import ArrowRightSmallIcon from 'enso-assets/arrow_right_small.svg'
+import DownloadIcon from 'enso-assets/download.svg'
+import UploadIcon from 'enso-assets/upload.svg'
+
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as column from '../column'
 import * as featureFlags from '../featureFlags'
 import * as modalProvider from '../../providers/modal'
-import * as svg from '../../components/svg'
 
 import ColumnDisplayModeSwitcher from './columnDisplayModeSwitcher'
 import UploadFileModal from './uploadFileModal'
@@ -52,7 +55,7 @@ function DriveBar(props: DriveBarProps) {
                             <button className="mx-2" onClick={exitDirectory}>
                                 {parentDirectory?.title ?? '/'}
                             </button>
-                            {svg.SMALL_RIGHT_ARROW_ICON}
+                            <img src={ArrowRightSmallIcon} />
                         </>
                     )}
                     <span className="mx-2">{directory?.title ?? '/'}</span>
@@ -74,7 +77,7 @@ function DriveBar(props: DriveBarProps) {
                             )
                         }}
                     >
-                        {svg.UPLOAD_ICON}
+                        <img src={UploadIcon} />
                     </button>
                     <button
                         className={`mx-1 opacity-50`}
@@ -84,7 +87,7 @@ function DriveBar(props: DriveBarProps) {
                             /* TODO */
                         }}
                     >
-                        {svg.DOWNLOAD_ICON}
+                        <img src={DownloadIcon} />
                     </button>
                 </div>
                 {featureFlags.FEATURE_FLAGS.columnDisplayModeSwitcher && (

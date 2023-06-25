@@ -3,8 +3,13 @@
 use crate::model::traits::*;
 use crate::prelude::*;
 
+use crate::controller::graph::executed::Handle;
 use crate::controller::graph::FailedToCreateNode;
+use crate::controller::graph::ImportType;
+use crate::controller::graph::RequiredImport;
 use crate::controller::searcher::component::group;
+use crate::model::execution_context::QualifiedMethodPointer;
+use crate::model::execution_context::Visualization;
 use crate::model::module::NodeEditStatus;
 use crate::model::module::NodeMetadata;
 use crate::model::suggestion_database;
@@ -12,7 +17,6 @@ use crate::model::suggestion_database;
 use breadcrumbs::Breadcrumbs;
 use double_representation::graph::GraphInfo;
 use double_representation::graph::LocationHint;
-use double_representation::import;
 use double_representation::name::project;
 use double_representation::name::QualifiedName;
 use double_representation::name::QualifiedNameRef;
@@ -36,10 +40,8 @@ pub mod breadcrumbs;
 pub mod component;
 pub mod input;
 
-use crate::controller::graph::executed::Handle;
-use crate::model::execution_context::QualifiedMethodPointer;
-use crate::model::execution_context::Visualization;
 pub use action::Action;
+
 
 
 // =================
@@ -157,21 +159,6 @@ impl Default for Actions {
     fn default() -> Self {
         Self::Loading
     }
-}
-
-
-
-// ======================
-// === RequiredImport ===
-// ======================
-
-/// An import that is needed for the picked suggestion.
-#[derive(Debug, Clone)]
-pub enum RequiredImport {
-    /// A specific entry needs to be imported.
-    Entry(Rc<enso_suggestion_database::Entry>),
-    /// An entry with a specific name needs to be imported.
-    Name(QualifiedName),
 }
 
 
@@ -781,7 +768,7 @@ impl Searcher {
             let picked_suggestion_requirement = suggestion_change.and_then(|change| change.import);
             let all_requirements =
                 current_input_requirements.chain(picked_suggestion_requirement.iter().cloned());
-            self.add_required_imports(all_requirements, false)?;
+            self.graph.graph().add_required_imports(all_requirements, ImportType::Temporary)?;
         }
         self.graph.graph().set_expression_ast(self.mode.node_id(), expression)?;
 
@@ -851,7 +838,7 @@ impl Searcher {
         {
             let data = self.data.borrow();
             let requirements = data.picked_suggestions.iter().filter_map(|ps| ps.import.clone());
-            self.add_required_imports(requirements, true)?;
+            self.graph.graph().add_required_imports(requirements, ImportType::Permanent)?;
         }
 
         let node_id = self.mode.node_id();
@@ -935,78 +922,14 @@ impl Searcher {
         data.picked_suggestions.drain_filter(|frag| !frag.is_still_unmodified(input));
     }
 
-    #[profile(Debug)]
-    fn add_required_imports<'a>(
-        &self,
-        import_requirements: impl Iterator<Item = RequiredImport>,
-        permanent: bool,
-    ) -> FallibleResult {
-        let imports = import_requirements
-            .filter_map(|requirement| match requirement {
-                RequiredImport::Entry(entry) => Some(
-                    entry.required_imports(&self.database, self.module_qualified_name().as_ref()),
-                ),
-                RequiredImport::Name(name) => {
-                    let (_id, entry) = self.database.lookup_by_qualified_name(&name)?;
-                    let defined_in = self.module_qualified_name();
-                    Some(entry.required_imports(&self.database, defined_in.as_ref()))
-                }
-            })
-            .flatten();
-        let mut module = self.module();
-        for entry_import in imports {
-            let already_imported =
-                module.iter_imports().any(|existing| entry_import.covered_by(&existing));
-            let import: import::Info = entry_import.into();
-            let import_id = import.id();
-            let already_inserted = module.contains_import(import_id);
-            let need_to_insert = !already_imported;
-            let old_import_became_permanent = permanent && already_inserted;
-            let need_to_update_md = need_to_insert || old_import_became_permanent;
-            if need_to_insert {
-                module.add_import(self.ide.parser(), import);
-            }
-            if need_to_update_md {
-                self.graph.graph().module.with_import_metadata(
-                    import_id,
-                    Box::new(|import_metadata| {
-                        import_metadata.is_temporary = !permanent;
-                    }),
-                )?;
-            }
-        }
-        self.graph.graph().module.update_ast(module.ast)
-    }
-
     fn clear_temporary_imports(&self) {
         let transaction_name = "Clearing temporary imports after closing searcher.";
         let _skip = self
             .graph
             .undo_redo_repository()
             .open_ignored_transaction_or_ignore_current(transaction_name);
-        let mut module = self.module();
-        let import_metadata = self.graph.graph().module.all_import_metadata();
-        let metadata_to_remove = import_metadata
-            .into_iter()
-            .filter_map(|(id, import_metadata)| {
-                import_metadata.is_temporary.then(|| {
-                    if let Err(e) = module.remove_import_by_id(id) {
-                        warn!("Failed to remove import because of: {e:?}");
-                    }
-                    id
-                })
-            })
-            .collect_vec();
-        if let Err(e) = self.graph.graph().module.update_ast(module.ast) {
-            warn!("Failed to update module ast when removing imports because of: {e:?}");
-        }
-        for id in metadata_to_remove {
-            if let Err(e) = self.graph.graph().module.remove_import_metadata(id) {
-                warn!("Failed to remove import metadata for import id {id} because of: {e:?}");
-            }
-        }
+        self.graph.graph().clear_temporary_imports();
     }
-
 
     /// Reload Action List.
     ///
@@ -1167,10 +1090,6 @@ impl Searcher {
         self.location_to_utf16(location)
     }
 
-    fn module(&self) -> double_representation::module::Info {
-        double_representation::module::Info { ast: self.graph.graph().module.ast() }
-    }
-
     fn module_qualified_name(&self) -> QualifiedName {
         self.graph.module_qualified_name(&*self.project)
     }
@@ -1194,7 +1113,7 @@ fn component_list_builder_with_favorites<'a>(
     } else {
         component::builder::List::new()
     };
-    if let Some((id, _)) = suggestion_db.lookup_by_qualified_name(local_scope_module) {
+    if let Ok((id, _)) = suggestion_db.lookup_by_qualified_name(local_scope_module) {
         builder = builder.with_local_scope_module_id(id);
     }
     builder.set_grouping_and_order_of_favorites(suggestion_db, groups);
@@ -1402,6 +1321,7 @@ pub mod test {
     use crate::test::mock::data::MAIN_FINISH;
     use crate::test::mock::data::MODULE_NAME;
 
+    use crate::controller::graph::RequiredImport;
     use engine_protocol::language_server::types::test::value_update_with_type;
     use engine_protocol::language_server::SuggestionId;
     use enso_suggestion_database::entry::Argument;
@@ -1484,12 +1404,12 @@ pub mod test {
             let start_of_code = enso_text::Location::default();
             let end_of_code = code.location_of_text_end_utf16_code_unit();
             let code_range = start_of_code..=end_of_code;
-            let graph = data.graph.controller();
+            let database = database_setup(code_range);
+            let graph = data.graph.controller_with_db(database.clone_ref());
             let node = &graph.graph().nodes().unwrap()[0];
             let searcher_target = graph.graph().nodes().unwrap().last().unwrap().id();
             let this = ThisNode::new(node.info.id(), &graph.graph());
             let this = data.selected_node.and_option(this);
-            let database = database_setup(code_range);
             let mut ide = controller::ide::MockAPI::new();
             let mut project = model::project::MockAPI::new();
             let project_qname = project_qualified_name();
