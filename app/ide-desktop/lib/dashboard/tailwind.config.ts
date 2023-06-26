@@ -54,6 +54,9 @@ export const theme = {
             soft: `0 0.5px 2.2px 0px #00000008, 0 1.2px 5.3px 0px #0000000b, \
 0 2.3px 10px 0 #0000000e, 0 4px 18px 0 #00000011, 0 7.5px 33.4px 0 #00000014, \
 0 18px 80px 0 #0000001c`,
+            'soft-bottom': `0 0.5px 2.2px -2.2px #00000008, 0 1.2px 5.3px -5.3px #0000000b, \
+0 2.3px 10px -10px #0000000e, 0 4px 18px -18px #00000011, 0 7.5px 33.4px -33.4px #00000014, \
+0 18px 80px -80px #0000001c`,
         },
         animation: {
             'spin-ease': 'spin cubic-bezier(0.67, 0.33, 0.33, 0.67) 1.5s infinite',
@@ -61,9 +64,14 @@ export const theme = {
         transitionProperty: {
             width: 'width',
             'stroke-dasharray': 'stroke-dasharray',
+            'grid-template-rows': 'grid-template-rows',
         },
         transitionDuration: {
             '90000': '90000ms',
+        },
+        gridTemplateRows: {
+            '0fr': '0fr',
+            '1fr': '1fr',
         },
     },
 }

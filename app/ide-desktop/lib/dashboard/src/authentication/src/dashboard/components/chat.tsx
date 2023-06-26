@@ -328,11 +328,11 @@ function ChatMessage(props: ChatMessageProps) {
                 <img
                     crossOrigin="anonymous"
                     src={message.avatar ?? DefaultUserIcon}
-                    className="rounded-full h-8 w-8 m-2"
+                    className="rounded-full h-8 w-8 m-1"
                 />
                 <div className="m-1">
                     <div className="font-semibold">{message.name}</div>
-                    <div className="opacity-50">
+                    <div className="text-opacity-50 text-primary">
                         {dateTime.formatDateTimeChatFriendly(new Date(message.timestamp))}
                     </div>
                 </div>
@@ -631,14 +631,11 @@ function Chat(props: ChatProps) {
         return reactDom.createPortal(
             <div
                 style={{ right }}
-                className="text-xs text-primary flex flex-col fixed top-0 right-0 h-screen bg-ide-bg border-ide-bg-dark border-l-2 w-80 p-1"
+                className="text-xs text-primary flex flex-col fixed top-0 right-0 h-screen bg-ide-bg border-ide-bg-dark border-l-2 w-80 py-1"
                 onKeyDown={stopEditing}
             >
-                <div className="flex">
-                    <button
-                        className="flex grow items-center text-sm font-semibold"
-                        onClick={toggleThreadListVisibility}
-                    >
+                <div className="flex text-sm font-semibold mx-1">
+                    <button className="flex grow items-center" onClick={toggleThreadListVisibility}>
                         <img src={TriangleDownIcon} />{' '}
                         {/* TODO: reset to current value when editing canceled */}
                         <input
@@ -652,21 +649,29 @@ function Chat(props: ChatProps) {
                     <button onClick={doClose}>
                         <img src={CloseLargeIcon} />
                     </button>
-                    {isThreadListVisible && (
-                        <div>
+                </div>
+                <div className="relative text-sm font-semibold">
+                    <div
+                        className={`grid absolute w-full bg-ide-bg shadow-soft-bottom overflow-hidden transition-grid-template-rows ${
+                            isThreadListVisible ? 'grid-rows-1fr' : 'grid-rows-0fr'
+                        }`}
+                    >
+                        <div className="min-h-0 mx-1">
                             {threads.map(thread => (
                                 <div
                                     key={thread.id}
-                                    className={thread.id === threadId ? 'bold' : ''}
+                                    className={`flex my-1 ${thread.id === threadId ? 'bold' : ''}`}
                                 >
-                                    {thread.hasUnreadMessages ? '(!) ' : ''}
-                                    {thread.title}
+                                    <div className="w-8 text-center">
+                                        {thread.hasUnreadMessages ? '(!) ' : ''}
+                                    </div>
+                                    <div>{thread.title}</div>
                                 </div>
                             ))}
                         </div>
-                    )}
+                    </div>
                 </div>
-                <div className="grow">
+                <div className="grow mx-1">
                     {threadId != null &&
                         messages.map(message => (
                             <ChatMessage
@@ -680,7 +685,7 @@ function Chat(props: ChatProps) {
                             />
                         ))}
                 </div>
-                <div className="rounded-xl bg-white p-2 m-1">
+                <div className="rounded-xl bg-white p-2 mx-2 my-1">
                     <form onSubmit={sendCurrentMessage}>
                         <div>
                             <input
@@ -701,7 +706,7 @@ function Chat(props: ChatProps) {
                 </div>
                 {!isPaidUser && (
                     <button
-                        className="rounded-xl bg-call-to-action text-white p-2 m-1"
+                        className="rounded-xl bg-call-to-action text-white p-2 mx-2 my-1"
                         onClick={upgradeToPro}
                     >
                         Click here to upgrade to Enso Pro and get access to high-priority, live
