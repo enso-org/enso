@@ -411,10 +411,8 @@ impl Project {
             eval_ graph.nodes_collapsed([]analytics::remote_log_event("graph_editor::nodes_collapsed"));
             eval_ graph.node_entered([]analytics::remote_log_event("graph_editor::node_enter_request"));
             eval_ graph.node_exited([]analytics::remote_log_event("graph_editor::node_exit_request"));
-            eval_ graph.on_edge_endpoints_set([]analytics::remote_log_event("graph_editor::edge_endpoints_set"));
             eval_ graph.visualization_shown([]analytics::remote_log_event("graph_editor::visualization_shown"));
             eval_ graph.visualization_hidden([]analytics::remote_log_event("graph_editor::visualization_hidden"));
-            eval_ graph.on_edge_endpoint_unset([]analytics::remote_log_event("graph_editor::connection_removed"));
             eval_ project.editing_committed([]analytics::remote_log_event("project::editing_committed"));
         }
         self

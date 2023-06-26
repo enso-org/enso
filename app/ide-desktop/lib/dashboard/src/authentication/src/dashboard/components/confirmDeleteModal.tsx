@@ -1,8 +1,9 @@
 /** @file Modal for confirming delete of any type of asset. */
 import toast from 'react-hot-toast'
 
+import CloseIcon from 'enso-assets/close.svg'
+
 import * as modalProvider from '../../providers/modal'
-import * as svg from '../../components/svg'
 
 import Modal from './modal'
 
@@ -56,7 +57,7 @@ function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
                     {/* Padding. */}
                     <div className="grow" />
                     <button type="button" onClick={unsetModal}>
-                        {svg.CLOSE_ICON}
+                        <img src={CloseIcon} />
                     </button>
                 </div>
                 <div className="m-2">

@@ -520,7 +520,7 @@ type Date_Time
 
              example_plus = Date_Time.new 2020 + Date_Period.Quarter
     + : (Duration | Period | Time_Period | Date_Period) -> Date_Time ! Time_Error
-    + self amount:(Duration|Period|Time_Period|Date_Period) =
+    + self (amount : Duration | Period | Time_Period | Date_Period) =
         case amount of
             duration : Duration ->
                 Panic.catch ArithmeticException (self.plus_builtin duration) (err -> Error.throw (Time_Error.Error err.getMessage))
@@ -597,7 +597,7 @@ type Date_Time
 
              example_plus = Date_Time.new 2020 - Date_Period.Quarter
     - : (Duration | Period | Time_Period | Date_Period) -> Date_Time ! Time_Error
-    - self amount:(Duration|Period|Time_Period|Date_Period) =
+    - self amount:(Duration | Period | Time_Period | Date_Period) =
         result = case amount of
             duration : Duration ->
                 Panic.catch ArithmeticException (self.minus_builtin duration) (err -> Error.throw (Time_Error.Error err.getMessage))
@@ -676,7 +676,7 @@ type Date_Time
 
              example_format =
                  Date_Time.parse "2020-06-21T16:41:13+03:00" . format "d. MMMM yyyy" (Locale.new "fr")
-    @pattern make_date_time_format_selector
+    @pattern (value-> make_date_time_format_selector value)
     @locale Locale.default_widget
     format : Text -> Locale -> Text
     format self pattern:Text locale:Locale=Locale.default =

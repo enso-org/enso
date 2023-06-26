@@ -3,6 +3,14 @@
 import * as react from 'react'
 import toast from 'react-hot-toast'
 
+import ArrowRightSmallIcon from 'enso-assets/arrow_right_small.svg'
+import DefaultUserIcon from 'enso-assets/default_user.svg'
+import DirectoryIcon from 'enso-assets/directory.svg'
+import DownloadIcon from 'enso-assets/download.svg'
+import PlusIcon from 'enso-assets/plus.svg'
+import SecretIcon from 'enso-assets/secret.svg'
+import UploadIcon from 'enso-assets/upload.svg'
+
 import * as common from 'enso-common'
 
 import * as backendModule from '../backend'
@@ -14,7 +22,6 @@ import * as localBackend from '../localBackend'
 import * as newtype from '../../newtype'
 import * as projectManager from '../projectManager'
 import * as remoteBackendModule from '../remoteBackend'
-import * as svg from '../../components/svg'
 import * as uploadMultipleFiles from '../../uploadMultipleFiles'
 
 import * as authProvider from '../../authentication/providers/auth'
@@ -643,7 +650,7 @@ function Dashboard(props: DashboardProps) {
                     enterDirectory(directoryAsset)
                 }}
             >
-                {svg.DIRECTORY_ICON} <span className="px-2">{directoryAsset.title}</span>
+                <img src={DirectoryIcon} /> <span className="px-2">{directoryAsset.title}</span>
             </div>
         ),
         [backendModule.AssetType.secret]: secret => (
@@ -670,7 +677,7 @@ function Dashboard(props: DashboardProps) {
                     }
                 }}
             >
-                {svg.SECRET_ICON} <span className="px-2">{secret.title}</span>
+                <img src={SecretIcon} /> <span className="px-2">{secret.title}</span>
             </div>
         ),
         [backendModule.AssetType.file]: file => (
@@ -697,7 +704,7 @@ function Dashboard(props: DashboardProps) {
                     }
                 }}
             >
-                {fileInfo.fileIcon()} <span className="px-2">{file.title}</span>
+                <img src={fileInfo.fileIcon()} /> <span className="px-2">{file.title}</span>
             </div>
         ),
     }
@@ -718,7 +725,7 @@ function Dashboard(props: DashboardProps) {
                         key={user.user.organization_id}
                         permissions={PERMISSION[user.permission]}
                     >
-                        <svg.DefaultUserIcon size={24} />
+                        <img src={DefaultUserIcon} height={24} width={24} />
                     </PermissionDisplay>
                 ))}
             </>
@@ -797,7 +804,7 @@ function Dashboard(props: DashboardProps) {
                         onInput={uploadFilesFromInput}
                     />
                     <label htmlFor="files_table_upload_files_input" className="cursor-pointer mx-1">
-                        {svg.ADD_ICON}
+                        <img src={PlusIcon} />
                     </label>
                 </div>
             ) : (
@@ -848,7 +855,7 @@ function Dashboard(props: DashboardProps) {
                             }
                         }}
                     >
-                        {svg.ADD_ICON}
+                        <img src={PlusIcon} />
                     </button>
                 </div>
             )
@@ -1118,7 +1125,7 @@ function Dashboard(props: DashboardProps) {
                                                 <button className="mx-2" onClick={exitDirectory}>
                                                     {parentDirectory?.title ?? '/'}
                                                 </button>
-                                                {svg.SMALL_RIGHT_ARROW_ICON}
+                                                <img src={ArrowRightSmallIcon} />
                                             </>
                                         )}
                                         <span className="mx-2">{directory?.title ?? '/'}</span>
@@ -1147,7 +1154,7 @@ function Dashboard(props: DashboardProps) {
                                             : 'cursor-pointer'
                                     }`}
                                 >
-                                    {svg.UPLOAD_ICON}
+                                    <img src={UploadIcon} />
                                 </label>
                                 <button
                                     className={`mx-1 opacity-50`}
@@ -1158,7 +1165,7 @@ function Dashboard(props: DashboardProps) {
                                         /* TODO */
                                     }}
                                 >
-                                    {svg.DOWNLOAD_ICON}
+                                    <img src={DownloadIcon} />
                                 </button>
                             </div>
                             {EXPERIMENTAL.columnModeSwitcher && (

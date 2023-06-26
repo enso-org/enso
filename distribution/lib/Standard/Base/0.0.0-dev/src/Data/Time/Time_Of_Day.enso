@@ -270,7 +270,7 @@ type Time_Of_Day
 
              example_plus = Time_Of_Day.new + Time_Period.Hour
     + : Duration | Time_Period -> Time_Of_Day ! Time_Error
-    + self amount:(Duration|Time_Period) =
+    + self (amount : Duration | Time_Period) =
         case amount of
             duration : Duration -> self.plus_builtin duration
             time_period : Time_Period ->
@@ -298,7 +298,7 @@ type Time_Of_Day
 
              example_plus = Time_Of_Day.new - Time_Period.Hour
     - : Duration | Time_Period -> Time_Of_Day ! Time_Error
-    - self amount:(Duration|Time_Period) =
+    - self amount:(Duration | Time_Period) =
         case amount of
             duration : Duration -> self.minus_builtin duration
             time_period : Time_Period ->
@@ -371,7 +371,7 @@ type Time_Of_Day
              from Standard.Base import Time_Of_Day
 
              example_format = Time_Of_Day.new 16 21 10 . format "'hour:'h"
-    @pattern make_time_format_selector
+    @pattern (value-> make_time_format_selector value)
     @locale Locale.default_widget
     format : Text -> Locale -> Text
     format self pattern:Text locale:Locale=Locale.default =

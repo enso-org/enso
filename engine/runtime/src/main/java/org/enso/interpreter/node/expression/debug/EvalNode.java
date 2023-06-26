@@ -67,7 +67,7 @@ public abstract class EvalNode extends BaseNode {
         InlineContext.fromJava(
             localScope, moduleScope, getTailStatus(), context.getCompilerConfig());
     ExpressionNode expr =
-        context.getCompiler().runInline(expression, inlineContext).getOrElse(null);
+        context.getCompiler().runInline(expression, inlineContext).getOrElse(() -> null);
     if (expr == null) {
       throw new RuntimeException("Invalid code passed to `eval`: " + expression);
     }

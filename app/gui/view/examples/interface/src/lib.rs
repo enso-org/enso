@@ -178,15 +178,6 @@ fn init(app: &Application) {
     let expression_4 = expression_mock_trim();
     graph_editor.frp.set_node_expression.emit((node4_id, expression_4));
 
-
-    // === Connections ===
-
-    let src = graph_editor::EdgeEndpoint::new(node1_id, span_tree::Crumbs::new(default()));
-    let tgt =
-        graph_editor::EdgeEndpoint::new(node2_id, span_tree::Crumbs::new(vec![0, 0, 0, 0, 1]));
-    graph_editor.frp.connect_nodes.emit((src, tgt));
-
-
     // === VCS ===
 
     let dummy_node_added_id = graph_editor.model.add_node();
@@ -268,14 +259,14 @@ fn init(app: &Application) {
     graph_editor.frp.set_node_position.emit((node_id, Vector2(-300.0, -100.0)));
     let expression = expression_mock_string("Click me to show a pop-up");
     graph_editor.frp.set_node_expression.emit((node_id, expression));
-    let node = graph_editor.nodes().all.get_cloned_ref(&node_id).unwrap();
-
-    let popup = project_view.popup();
-    let network = node.network();
-    let node_clicked = node.on_event::<mouse::Down>();
-    frp::extend! { network
-        eval_ node_clicked (popup.set_label.emit("This is a test pop-up."));
-    }
+    graph_editor.model.with_node(node_id, |node| {
+        let popup = project_view.popup();
+        let network = node.network();
+        let node_clicked = node.on_event::<mouse::Down>();
+        frp::extend! { network
+            eval_ node_clicked (popup.set_label.emit("This is a test pop-up."));
+        }
+    });
 
 
     // === Rendering ===

@@ -2,7 +2,8 @@ import project.Data.Text.Text
 import project.Nothing.Nothing
 
 type Illegal_State
-    ## UNSTABLE
+    ## PRIVATE
+       UNSTABLE
 
        A generic error that indicates that a given operation cannot be performed
        in some specific conditions.
