@@ -4,19 +4,19 @@ import java.util.UUID
 
 import org.enso.jsonrpc.{HasParams, HasResult, Method, Unused}
 
-/** The visualisation JSON RPC API provided by the language server.
+/** The visualization JSON RPC API provided by the language server.
   *
   * @see [[https://github.com/enso-org/enso/blob/develop/docs/language-server/README.md]]
   */
-object VisualisationApi {
+object VisualizationApi {
 
   case object ExecuteExpression
       extends Method("executionContext/executeExpression") {
 
     case class Params(
-      visualisationId: UUID,
+      visualizationId: UUID,
       expressionId: UUID,
-      visualisationConfig: VisualisationConfiguration
+      visualizationConfig: VisualizationConfiguration
     )
 
     implicit val hasParams: HasParams.Aux[this.type, ExecuteExpression.Params] =
@@ -29,19 +29,19 @@ object VisualisationApi {
       }
   }
 
-  case object AttachVisualisation
-      extends Method("executionContext/attachVisualisation") {
+  case object AttachVisualization
+      extends Method("executionContext/attachVisualization") {
 
     case class Params(
-      visualisationId: UUID,
+      visualizationId: UUID,
       expressionId: UUID,
-      visualisationConfig: VisualisationConfiguration
+      visualizationConfig: VisualizationConfiguration
     )
 
     implicit
-    val hasParams: HasParams.Aux[this.type, AttachVisualisation.Params] =
+    val hasParams: HasParams.Aux[this.type, AttachVisualization.Params] =
       new HasParams[this.type] {
-        type Params = AttachVisualisation.Params
+        type Params = AttachVisualization.Params
       }
     implicit val hasResult: HasResult.Aux[this.type, Unused.type] =
       new HasResult[this.type] {
@@ -49,19 +49,19 @@ object VisualisationApi {
       }
   }
 
-  case object DetachVisualisation
-      extends Method("executionContext/detachVisualisation") {
+  case object DetachVisualization
+      extends Method("executionContext/detachVisualization") {
 
     case class Params(
       contextId: UUID,
-      visualisationId: UUID,
+      visualizationId: UUID,
       expressionId: UUID
     )
 
     implicit
-    val hasParams: HasParams.Aux[this.type, DetachVisualisation.Params] =
+    val hasParams: HasParams.Aux[this.type, DetachVisualization.Params] =
       new HasParams[this.type] {
-        type Params = DetachVisualisation.Params
+        type Params = DetachVisualization.Params
       }
     implicit val hasResult: HasResult.Aux[this.type, Unused.type] =
       new HasResult[this.type] {
@@ -69,18 +69,18 @@ object VisualisationApi {
       }
   }
 
-  case object ModifyVisualisation
-      extends Method("executionContext/modifyVisualisation") {
+  case object ModifyVisualization
+      extends Method("executionContext/modifyVisualization") {
 
     case class Params(
-      visualisationId: UUID,
-      visualisationConfig: VisualisationConfiguration
+      visualizationId: UUID,
+      visualizationConfig: VisualizationConfiguration
     )
 
     implicit
-    val hasParams: HasParams.Aux[this.type, ModifyVisualisation.Params] =
+    val hasParams: HasParams.Aux[this.type, ModifyVisualization.Params] =
       new HasParams[this.type] {
-        type Params = ModifyVisualisation.Params
+        type Params = ModifyVisualization.Params
       }
     implicit val hasResult: HasResult.Aux[this.type, Unused.type] =
       new HasResult[this.type] {

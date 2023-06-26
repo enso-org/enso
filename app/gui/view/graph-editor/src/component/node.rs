@@ -222,7 +222,7 @@ ensogl::define_endpoints_2! {
         /// visualization state is explicitly changed by the user. The preview looks the same as
         /// normal visualization, but its state is not persisted in the node's metadata.
         show_preview                      (),
-        /// Indicate whether preview visualisations should be delayed or immediate.
+        /// Indicate whether preview visualizations should be delayed or immediate.
         quick_preview_vis                 (bool),
         set_view_mode                     (view::Mode),
         set_profiling_min_global_duration (f32),
@@ -769,7 +769,7 @@ impl Node {
 
             visualization.set_view_state <+ action_bar.user_action_visibility.on_false().constant(visualization::ViewState::Disabled);
 
-            // Show preview visualisation after some delay, depending on whether we show an error
+            // Show preview visualization after some delay, depending on whether we show an error
             // or are in quick preview mode. Also, omit the preview if we don't have an
             // expression.
             has_tooltip    <- model.output.frp.tooltip.map(|tt| tt.has_content());

@@ -3,29 +3,29 @@ import java.util.UUID
 import io.circe.literal._
 import org.enso.languageserver.runtime.{
   MethodPointer,
-  VisualisationConfiguration
+  VisualizationConfiguration
 }
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.text.editing.model
 
-class VisualisationOperationsTest extends BaseServerTest {
+class VisualizationOperationsTest extends BaseServerTest {
 
-  "executionContext/attachVisualisation" must {
+  "executionContext/attachVisualization" must {
 
     "return an empty response when the operation succeeds" in {
-      val visualisationId = UUID.randomUUID()
+      val visualizationId = UUID.randomUUID()
       val expressionId    = UUID.randomUUID()
 
       val client    = getInitialisedWsClient()
       val contextId = createExecutionContext(client)
-      val visualisationConfig =
-        VisualisationConfiguration(contextId, "Foo.Bar.baz", "a=x+y")
+      val visualizationConfig =
+        VisualizationConfiguration(contextId, "Foo.Bar.baz", "a=x+y")
       client.send(
-        ExecutionContextJsonMessages.executionContextAttachVisualisationRequest(
+        ExecutionContextJsonMessages.executionContextAttachVisualizationRequest(
           1,
-          visualisationId,
+          visualizationId,
           expressionId,
-          visualisationConfig
+          visualizationConfig
         )
       )
 
@@ -33,15 +33,15 @@ class VisualisationOperationsTest extends BaseServerTest {
         runtimeConnectorProbe.receiveN(1).head match {
           case Api.Request(
                 requestId,
-                Api.AttachVisualisation(
-                  `visualisationId`,
+                Api.AttachVisualization(
+                  `visualizationId`,
                   `expressionId`,
                   config
                 )
               ) =>
-            config.expression shouldBe visualisationConfig.expression.toApi
-            config.visualisationModule shouldBe visualisationConfig.visualisationModule
-            config.executionContextId shouldBe visualisationConfig.executionContextId
+            config.expression shouldBe visualizationConfig.expression.toApi
+            config.visualizationModule shouldBe visualizationConfig.visualizationModule
+            config.executionContextId shouldBe visualizationConfig.executionContextId
             requestId
 
           case msg =>
@@ -50,36 +50,36 @@ class VisualisationOperationsTest extends BaseServerTest {
 
       runtimeConnectorProbe.lastSender ! Api.Response(
         requestId,
-        Api.VisualisationAttached()
+        Api.VisualizationAttached()
       )
       client.expectJson(ExecutionContextJsonMessages.ok(1))
     }
 
-    "allow attaching method pointer without arguments as a visualisation expression" in {
-      val visualisationId = UUID.randomUUID()
+    "allow attaching method pointer without arguments as a visualization expression" in {
+      val visualizationId = UUID.randomUUID()
       val expressionId    = UUID.randomUUID()
 
       val client              = getInitialisedWsClient()
       val contextId           = createExecutionContext(client)
-      val visualisationModule = "Foo.Bar"
-      val visualisationMethod = "baz"
-      val visualisationConfig =
-        VisualisationConfiguration(
+      val visualizationModule = "Foo.Bar"
+      val visualizationMethod = "baz"
+      val visualizationConfig =
+        VisualizationConfiguration(
           contextId,
           MethodPointer(
-            visualisationModule,
-            visualisationModule,
-            visualisationMethod
+            visualizationModule,
+            visualizationModule,
+            visualizationMethod
           ),
           Vector()
         )
 
       client.send(
-        ExecutionContextJsonMessages.executionContextAttachVisualisationRequest(
+        ExecutionContextJsonMessages.executionContextAttachVisualizationRequest(
           1,
-          visualisationId,
+          visualizationId,
           expressionId,
-          visualisationConfig
+          visualizationConfig
         )
       )
 
@@ -87,15 +87,15 @@ class VisualisationOperationsTest extends BaseServerTest {
         runtimeConnectorProbe.receiveN(1).head match {
           case Api.Request(
                 requestId,
-                Api.AttachVisualisation(
-                  `visualisationId`,
+                Api.AttachVisualization(
+                  `visualizationId`,
                   `expressionId`,
                   config
                 )
               ) =>
-            config.expression shouldBe visualisationConfig.expression.toApi
-            config.visualisationModule shouldBe visualisationConfig.visualisationModule
-            config.executionContextId shouldBe visualisationConfig.executionContextId
+            config.expression shouldBe visualizationConfig.expression.toApi
+            config.visualizationModule shouldBe visualizationConfig.visualizationModule
+            config.executionContextId shouldBe visualizationConfig.executionContextId
             requestId
 
           case msg =>
@@ -104,36 +104,36 @@ class VisualisationOperationsTest extends BaseServerTest {
 
       runtimeConnectorProbe.lastSender ! Api.Response(
         requestId,
-        Api.VisualisationAttached()
+        Api.VisualizationAttached()
       )
       client.expectJson(ExecutionContextJsonMessages.ok(1))
     }
 
-    "allow attaching method pointer with arguments as a visualisation expression" in {
-      val visualisationId = UUID.randomUUID()
+    "allow attaching method pointer with arguments as a visualization expression" in {
+      val visualizationId = UUID.randomUUID()
       val expressionId    = UUID.randomUUID()
 
       val client              = getInitialisedWsClient()
       val contextId           = createExecutionContext(client)
-      val visualisationModule = "Foo.Bar"
-      val visualisationMethod = "baz"
-      val visualisationConfig =
-        VisualisationConfiguration(
+      val visualizationModule = "Foo.Bar"
+      val visualizationMethod = "baz"
+      val visualizationConfig =
+        VisualizationConfiguration(
           contextId,
           MethodPointer(
-            visualisationModule,
-            visualisationModule,
-            visualisationMethod
+            visualizationModule,
+            visualizationModule,
+            visualizationMethod
           ),
           Vector("1", "2", "3")
         )
 
       client.send(
-        ExecutionContextJsonMessages.executionContextAttachVisualisationRequest(
+        ExecutionContextJsonMessages.executionContextAttachVisualizationRequest(
           1,
-          visualisationId,
+          visualizationId,
           expressionId,
-          visualisationConfig
+          visualizationConfig
         )
       )
 
@@ -141,15 +141,15 @@ class VisualisationOperationsTest extends BaseServerTest {
         runtimeConnectorProbe.receiveN(1).head match {
           case Api.Request(
                 requestId,
-                Api.AttachVisualisation(
-                  `visualisationId`,
+                Api.AttachVisualization(
+                  `visualizationId`,
                   `expressionId`,
                   config
                 )
               ) =>
-            config.expression shouldBe visualisationConfig.expression.toApi
-            config.visualisationModule shouldBe visualisationConfig.visualisationModule
-            config.executionContextId shouldBe visualisationConfig.executionContextId
+            config.expression shouldBe visualizationConfig.expression.toApi
+            config.visualizationModule shouldBe visualizationConfig.visualizationModule
+            config.executionContextId shouldBe visualizationConfig.executionContextId
             requestId
 
           case msg =>
@@ -158,24 +158,24 @@ class VisualisationOperationsTest extends BaseServerTest {
 
       runtimeConnectorProbe.lastSender ! Api.Response(
         requestId,
-        Api.VisualisationAttached()
+        Api.VisualizationAttached()
       )
       client.expectJson(ExecutionContextJsonMessages.ok(1))
     }
 
     "reply with AccessDenied when context doesn't belong to client" in {
-      val visualisationId = UUID.randomUUID()
+      val visualizationId = UUID.randomUUID()
       val expressionId    = UUID.randomUUID()
       val contextId       = UUID.randomUUID()
       val client          = getInitialisedWsClient()
-      val visualisationConfig =
-        VisualisationConfiguration(contextId, "Foo.Bar.baz", "a=x+y")
+      val visualizationConfig =
+        VisualizationConfiguration(contextId, "Foo.Bar.baz", "a=x+y")
       client.send(
-        ExecutionContextJsonMessages.executionContextAttachVisualisationRequest(
+        ExecutionContextJsonMessages.executionContextAttachVisualizationRequest(
           1,
-          visualisationId,
+          visualizationId,
           expressionId,
-          visualisationConfig
+          visualizationConfig
         )
       )
       client.expectJson(json"""
@@ -189,20 +189,20 @@ class VisualisationOperationsTest extends BaseServerTest {
           """)
     }
 
-    "reply with ModuleNotFound error when attaching a visualisation" in {
-      val visualisationId = UUID.randomUUID()
+    "reply with ModuleNotFound error when attaching a visualization" in {
+      val visualizationId = UUID.randomUUID()
       val expressionId    = UUID.randomUUID()
 
       val client    = getInitialisedWsClient()
       val contextId = createExecutionContext(client)
-      val visualisationConfig =
-        VisualisationConfiguration(contextId, "Foo.Bar", "_")
+      val visualizationConfig =
+        VisualizationConfiguration(contextId, "Foo.Bar", "_")
       client.send(
-        ExecutionContextJsonMessages.executionContextAttachVisualisationRequest(
+        ExecutionContextJsonMessages.executionContextAttachVisualizationRequest(
           1,
-          visualisationId,
+          visualizationId,
           expressionId,
-          visualisationConfig
+          visualizationConfig
         )
       )
 
@@ -210,15 +210,15 @@ class VisualisationOperationsTest extends BaseServerTest {
         runtimeConnectorProbe.receiveN(1).head match {
           case Api.Request(
                 requestId,
-                Api.AttachVisualisation(
-                  `visualisationId`,
+                Api.AttachVisualization(
+                  `visualizationId`,
                   `expressionId`,
                   config
                 )
               ) =>
-            config.expression shouldBe visualisationConfig.expression.toApi
-            config.visualisationModule shouldBe visualisationConfig.visualisationModule
-            config.executionContextId shouldBe visualisationConfig.executionContextId
+            config.expression shouldBe visualizationConfig.expression.toApi
+            config.visualizationModule shouldBe visualizationConfig.visualizationModule
+            config.executionContextId shouldBe visualizationConfig.executionContextId
             requestId
 
           case msg =>
@@ -227,31 +227,31 @@ class VisualisationOperationsTest extends BaseServerTest {
 
       runtimeConnectorProbe.lastSender ! Api.Response(
         requestId,
-        Api.ModuleNotFound(visualisationConfig.visualisationModule)
+        Api.ModuleNotFound(visualizationConfig.visualizationModule)
       )
       client.expectJson(
         ExecutionContextJsonMessages.executionContextModuleNotFound(
           1,
-          visualisationConfig.visualisationModule
+          visualizationConfig.visualizationModule
         )
       )
     }
 
-    "reply with VisualisationExpressionFailed error when attaching a visualisation" in {
-      val visualisationId = UUID.randomUUID()
+    "reply with VisualizationExpressionFailed error when attaching a visualization" in {
+      val visualizationId = UUID.randomUUID()
       val expressionId    = UUID.randomUUID()
 
       val client    = getInitialisedWsClient()
       val contextId = createExecutionContext(client)
-      val visualisationConfig =
-        VisualisationConfiguration(contextId, "Foo.Bar", "_")
+      val visualizationConfig =
+        VisualizationConfiguration(contextId, "Foo.Bar", "_")
       val expressionFailureMessage = "Method `to_json` could not be found."
       client.send(
-        ExecutionContextJsonMessages.executionContextAttachVisualisationRequest(
+        ExecutionContextJsonMessages.executionContextAttachVisualizationRequest(
           1,
-          visualisationId,
+          visualizationId,
           expressionId,
-          visualisationConfig
+          visualizationConfig
         )
       )
 
@@ -259,15 +259,15 @@ class VisualisationOperationsTest extends BaseServerTest {
         runtimeConnectorProbe.receiveN(1).head match {
           case Api.Request(
                 requestId,
-                Api.AttachVisualisation(
-                  `visualisationId`,
+                Api.AttachVisualization(
+                  `visualizationId`,
                   `expressionId`,
                   config
                 )
               ) =>
-            config.expression shouldBe visualisationConfig.expression.toApi
-            config.visualisationModule shouldBe visualisationConfig.visualisationModule
-            config.executionContextId shouldBe visualisationConfig.executionContextId
+            config.expression shouldBe visualizationConfig.expression.toApi
+            config.visualizationModule shouldBe visualizationConfig.visualizationModule
+            config.executionContextId shouldBe visualizationConfig.executionContextId
             requestId
 
           case msg =>
@@ -276,7 +276,7 @@ class VisualisationOperationsTest extends BaseServerTest {
 
       runtimeConnectorProbe.lastSender ! Api.Response(
         requestId,
-        Api.VisualisationExpressionFailed(
+        Api.VisualizationExpressionFailed(
           expressionFailureMessage,
           Some(
             Api.ExecutionResult.Diagnostic.error(
@@ -290,7 +290,7 @@ class VisualisationOperationsTest extends BaseServerTest {
         )
       )
       val errorMessage =
-        s"Evaluation of the visualisation expression failed [$expressionFailureMessage]"
+        s"Evaluation of the visualization expression failed [$expressionFailureMessage]"
       client.expectJson(
         json"""
           { "jsonrpc" : "2.0",
@@ -323,18 +323,18 @@ class VisualisationOperationsTest extends BaseServerTest {
 
   }
 
-  "executionContext/detachVisualisation" must {
+  "executionContext/detachVisualization" must {
 
     "return an empty response when the operation succeeds" in {
-      val visualisationId = UUID.randomUUID()
+      val visualizationId = UUID.randomUUID()
       val expressionId    = UUID.randomUUID()
       val client          = getInitialisedWsClient()
       val contextId       = createExecutionContext(client)
       client.send(
-        ExecutionContextJsonMessages.executionContextDetachVisualisationRequest(
+        ExecutionContextJsonMessages.executionContextDetachVisualizationRequest(
           1,
           contextId,
-          visualisationId,
+          visualizationId,
           expressionId
         )
       )
@@ -342,9 +342,9 @@ class VisualisationOperationsTest extends BaseServerTest {
         runtimeConnectorProbe.receiveN(1).head match {
           case Api.Request(
                 requestId,
-                Api.DetachVisualisation(
+                Api.DetachVisualization(
                   `contextId`,
-                  `visualisationId`,
+                  `visualizationId`,
                   `expressionId`
                 )
               ) =>
@@ -356,21 +356,21 @@ class VisualisationOperationsTest extends BaseServerTest {
 
       runtimeConnectorProbe.lastSender ! Api.Response(
         requestId,
-        Api.VisualisationDetached()
+        Api.VisualizationDetached()
       )
       client.expectJson(ExecutionContextJsonMessages.ok(1))
     }
 
     "reply with AccessDenied when context doesn't belong to client" in {
-      val visualisationId = UUID.randomUUID()
+      val visualizationId = UUID.randomUUID()
       val expressionId    = UUID.randomUUID()
       val contextId       = UUID.randomUUID()
       val client          = getInitialisedWsClient()
       client.send(
-        ExecutionContextJsonMessages.executionContextDetachVisualisationRequest(
+        ExecutionContextJsonMessages.executionContextDetachVisualizationRequest(
           1,
           contextId,
-          visualisationId,
+          visualizationId,
           expressionId
         )
       )
@@ -387,19 +387,19 @@ class VisualisationOperationsTest extends BaseServerTest {
 
   }
 
-  "executionContext/modifyVisualisation" must {
+  "executionContext/modifyVisualization" must {
 
     "return an empty response when the operation succeeds" in {
-      val visualisationId = UUID.randomUUID()
+      val visualizationId = UUID.randomUUID()
       val client          = getInitialisedWsClient()
       val contextId       = createExecutionContext(client)
-      val visualisationConfig =
-        VisualisationConfiguration(contextId, "Foo.Bar.baz", "a=x+y")
+      val visualizationConfig =
+        VisualizationConfiguration(contextId, "Foo.Bar.baz", "a=x+y")
       client.send(
-        ExecutionContextJsonMessages.executionContextModifyVisualisationRequest(
+        ExecutionContextJsonMessages.executionContextModifyVisualizationRequest(
           1,
-          visualisationId,
-          visualisationConfig
+          visualizationId,
+          visualizationConfig
         )
       )
 
@@ -407,11 +407,11 @@ class VisualisationOperationsTest extends BaseServerTest {
         runtimeConnectorProbe.receiveN(1).head match {
           case Api.Request(
                 requestId,
-                Api.ModifyVisualisation(`visualisationId`, config)
+                Api.ModifyVisualization(`visualizationId`, config)
               ) =>
-            config.expression shouldBe visualisationConfig.expression.toApi
-            config.visualisationModule shouldBe visualisationConfig.visualisationModule
-            config.executionContextId shouldBe visualisationConfig.executionContextId
+            config.expression shouldBe visualizationConfig.expression.toApi
+            config.visualizationModule shouldBe visualizationConfig.visualizationModule
+            config.executionContextId shouldBe visualizationConfig.executionContextId
             requestId
 
           case msg =>
@@ -420,23 +420,23 @@ class VisualisationOperationsTest extends BaseServerTest {
 
       runtimeConnectorProbe.lastSender ! Api.Response(
         requestId,
-        Api.VisualisationModified()
+        Api.VisualizationModified()
       )
       client.expectJson(ExecutionContextJsonMessages.ok(1))
     }
 
     "reply with AccessDenied when context doesn't belong to client" in {
-      val visualisationId = UUID.randomUUID()
+      val visualizationId = UUID.randomUUID()
       val contextId       = UUID.randomUUID()
       val client          = getInitialisedWsClient()
-      val visualisationConfig =
-        VisualisationConfiguration(contextId, "Foo.Bar.baz", "a=x+y")
+      val visualizationConfig =
+        VisualizationConfiguration(contextId, "Foo.Bar.baz", "a=x+y")
 
       client.send(
-        ExecutionContextJsonMessages.executionContextModifyVisualisationRequest(
+        ExecutionContextJsonMessages.executionContextModifyVisualizationRequest(
           1,
-          visualisationId,
-          visualisationConfig
+          visualizationId,
+          visualizationConfig
         )
       )
       client.expectJson(json"""

@@ -570,7 +570,7 @@ object Runtime {
     sealed trait VisualizationExpression extends ToLogString {
       def module: String
     }
-    object VisualisationExpression {
+    object VisualizationExpression {
 
       /** Visualization expression represented as a text.
         *
@@ -578,7 +578,7 @@ object Runtime {
         * @param expression an expression that creates a visualization
         */
       case class Text(module: String, expression: String)
-          extends VisualisationExpression {
+          extends VisualizationExpression {
 
         /** @inheritdoc */
         override def toLogString(shouldMask: Boolean): String =
@@ -597,7 +597,7 @@ object Runtime {
       case class ModuleMethod(
         methodPointer: MethodPointer,
         positionalArgumentsExpressions: Vector[String]
-      ) extends VisualisationExpression {
+      ) extends VisualizationExpression {
 
         /** @inheritdoc */
         override val module: String = methodPointer.module
@@ -611,23 +611,23 @@ object Runtime {
       }
     }
 
-    /** A configuration object for properties of the visualisation.
+    /** A configuration object for properties of the visualization.
       *
-      * @param executionContextId an execution context of the visualisation
-      * @param expression the expression that creates a visualisation
+      * @param executionContextId an execution context of the visualization
+      * @param expression the expression that creates a visualization
       */
-    case class VisualisationConfiguration(
+    case class VisualizationConfiguration(
       executionContextId: ContextId,
-      expression: VisualisationExpression
+      expression: VisualizationExpression
     ) extends ToLogString {
 
       /** A qualified module name containing the expression. */
-      def visualisationModule: String =
+      def visualizationModule: String =
         expression.module
 
       /** @inheritdoc */
       override def toLogString(shouldMask: Boolean): String =
-        s"VisualisationConfiguration(" +
+        s"VisualizationConfiguration(" +
         s"executionContextId=$executionContextId," +
         s"expression=${expression.toLogString(shouldMask)})"
     }
@@ -1108,20 +1108,20 @@ object Runtime {
         ")"
     }
 
-    /** An event signaling a visualisation update.
+    /** An event signaling a visualization update.
       *
-      * @param visualisationContext a visualisation context
-      * @param data a visualisation data
+      * @param visualizationContext a visualization context
+      * @param data a visualization data
       */
-    final case class VisualisationUpdate(
-      visualisationContext: VisualisationContext,
+    final case class VisualizationUpdate(
+      visualizationContext: VisualizationContext,
       data: Array[Byte]
     ) extends ApiNotification
         with ToLogString {
 
       override def toLogString(shouldMask: Boolean): String = {
-        "VisualisationUpdate(" +
-        s"visualisationContext=$visualisationContext,data=" +
+        "VisualizationUpdate(" +
+        s"visualizationContext=$visualizationContext,data=" +
         (if (shouldMask) STUB else data.toString()) +
         ")"
       }
@@ -1320,13 +1320,13 @@ object Runtime {
     final case class ExecutionComplete(contextId: ContextId)
         extends ApiNotification
 
-    /** Signals that an expression specified in a [[AttachVisualisation]] or
-      * a [[ModifyVisualisation]] cannot be evaluated.
+    /** Signals that an expression specified in a [[AttachVisualization]] or
+      * a [[ModifyVisualization]] cannot be evaluated.
       *
       * @param message the reason of the failure
       * @param failure the detailed information about the failure
       */
-    final case class VisualisationExpressionFailed(
+    final case class VisualizationExpressionFailed(
       message: String,
       failure: Option[ExecutionResult.Diagnostic]
     ) extends Error
@@ -1334,24 +1334,24 @@ object Runtime {
 
       /** @inheritdoc */
       override def toLogString(shouldMask: Boolean): String =
-        "VisualisationExpressionFailed(" +
+        "VisualizationExpressionFailed(" +
         s"message=${MaskedString(message).toLogString(shouldMask)}," +
         s"failure=${failure.map(_.toLogString(shouldMask))}" +
         ")"
     }
 
     /** Signals that an evaluation of a code responsible for generating
-      * visualisation data failed.
+      * visualization data failed.
       *
       * @param contextId the context's id.
-      * @param visualisationId the visualisation identifier
+      * @param visualizationId the visualization identifier
       * @param expressionId the identifier of a visualised expression
       * @param message the reason of the failure
       * @param diagnostic the detailed information about the failure
       */
-    final case class VisualisationEvaluationFailed(
+    final case class VisualizationEvaluationFailed(
       contextId: ContextId,
-      visualisationId: VisualisationId,
+      visualizationId: VisualizationId,
       expressionId: ExpressionId,
       message: String,
       diagnostic: Option[ExecutionResult.Diagnostic]
@@ -1360,17 +1360,17 @@ object Runtime {
 
       /** @inheritdoc */
       override def toLogString(shouldMask: Boolean): String =
-        "VisualisationEvaluationFailed(" +
+        "VisualizationEvaluationFailed(" +
         s"contextId=$contextId," +
-        s"visualisationId=$visualisationId," +
+        s"visualizationId=$visualizationId," +
         s"expressionId=$expressionId," +
         s"message=${MaskedString(message).toLogString(shouldMask)}," +
         s"diagnostic=${diagnostic.map(_.toLogString(shouldMask))}" +
         ")"
     }
 
-    /** Signals that visualisation cannot be found. */
-    final case class VisualisationNotFound() extends Error
+    /** Signals that visualization cannot be found. */
+    final case class VisualizationNotFound() extends Error
 
     /** An error response signifying that stack is empty.
       *
@@ -1472,74 +1472,74 @@ object Runtime {
     final case class InitializedNotification() extends ApiResponse
 
     /** A request sent from the client to the runtime server, to create a new
-      * visualisation for an expression identified by `expressionId`.
+      * visualization for an expression identified by `expressionId`.
       *
-      * @param visualisationId an identifier of a visualisation
+      * @param visualizationId an identifier of a visualization
       * @param expressionId an identifier of an expression which is visualised
-      * @param visualisationConfig a configuration object for properties of the
-      *                            visualisation
+      * @param visualizationConfig a configuration object for properties of the
+      *                            visualization
       */
-    final case class AttachVisualisation(
-      visualisationId: VisualisationId,
+    final case class AttachVisualization(
+      visualizationId: VisualizationId,
       expressionId: ExpressionId,
-      visualisationConfig: VisualisationConfiguration
+      visualizationConfig: VisualizationConfiguration
     ) extends ApiRequest
         with ToLogString {
 
       /** @inheritdoc */
       override def toLogString(shouldMask: Boolean): String =
-        s"AttachVisualisation(" +
-        s"visualisationId=$visualisationId," +
-        s"expressionId=$expressionId,visualisationConfig=" +
-        visualisationConfig.toLogString(shouldMask) +
+        s"AttachVisualization(" +
+        s"visualizationId=$visualizationId," +
+        s"expressionId=$expressionId,visualizationConfig=" +
+        visualizationConfig.toLogString(shouldMask) +
         ")"
     }
 
-    /** Signals that attaching a visualisation has succeeded.
+    /** Signals that attaching a visualization has succeeded.
       */
-    final case class VisualisationAttached() extends ApiResponse
+    final case class VisualizationAttached() extends ApiResponse
 
     /** A request sent from the client to the runtime server, to detach a
-      * visualisation from an expression identified by `expressionId`.
+      * visualization from an expression identified by `expressionId`.
       *
       * @param contextId an execution context identifier
-      * @param visualisationId an identifier of a visualisation
+      * @param visualizationId an identifier of a visualization
       * @param expressionId an identifier of an expression which is visualised
       */
-    final case class DetachVisualisation(
+    final case class DetachVisualization(
       contextId: ContextId,
-      visualisationId: VisualisationId,
+      visualizationId: VisualizationId,
       expressionId: ExpressionId
     ) extends ApiRequest
 
-    /** Signals that detaching a visualisation has succeeded.
+    /** Signals that detaching a visualization has succeeded.
       */
-    final case class VisualisationDetached() extends ApiResponse
+    final case class VisualizationDetached() extends ApiResponse
 
     /** A request sent from the client to the runtime server, to modify a
-      * visualisation identified by `visualisationId`.
+      * visualization identified by `visualizationId`.
       *
-      * @param visualisationId     an identifier of a visualisation
-      * @param visualisationConfig a configuration object for properties of the
-      *                            visualisation
+      * @param visualizationId     an identifier of a visualization
+      * @param visualizationConfig a configuration object for properties of the
+      *                            visualization
       */
-    final case class ModifyVisualisation(
-      visualisationId: VisualisationId,
-      visualisationConfig: VisualisationConfiguration
+    final case class ModifyVisualization(
+      visualizationId: VisualizationId,
+      visualizationConfig: VisualizationConfiguration
     ) extends ToLogString
         with ApiRequest {
 
       /** @inheritdoc */
       override def toLogString(shouldMask: Boolean): String =
-        "ModifyVisualisation(" +
-        s"visualisationId=$visualisationId,visualisationConfig=" +
-        visualisationConfig.toLogString(shouldMask) +
+        "ModifyVisualization(" +
+        s"visualizationId=$visualizationId,visualizationConfig=" +
+        visualizationConfig.toLogString(shouldMask) +
         ")"
     }
 
-    /** Signals that a visualisation modification has succeeded.
+    /** Signals that a visualization modification has succeeded.
       */
-    final case class VisualisationModified() extends ApiResponse
+    final case class VisualizationModified() extends ApiResponse
 
     /** A request to shut down the runtime server.
       */

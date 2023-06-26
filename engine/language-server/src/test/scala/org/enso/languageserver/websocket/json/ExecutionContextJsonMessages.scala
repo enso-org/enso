@@ -3,8 +3,8 @@ package org.enso.languageserver.websocket.json
 import org.enso.polyglot.runtime.Runtime.Api
 import io.circe.literal._
 import org.enso.languageserver.runtime.{
-  VisualisationConfiguration,
-  VisualisationExpression
+  VisualizationConfiguration,
+  VisualizationExpression
 }
 
 object ExecutionContextJsonMessages {
@@ -109,36 +109,36 @@ object ExecutionContextJsonMessages {
 
   def executionContextExecuteExpressionRequest(
     reqId: Int,
-    visualisationId: Api.VisualisationId,
+    visualizationId: Api.VisualizationId,
     expressionId: Api.ExpressionId,
-    configuration: VisualisationConfiguration
+    configuration: VisualizationConfiguration
   ) =
     configuration.expression match {
-      case VisualisationExpression.Text(module, expression) =>
+      case VisualizationExpression.Text(module, expression) =>
         json"""
               { "jsonrpc": "2.0",
                 "method": "executionContext/executeExpression",
                 "id": $reqId,
                 "params": {
-                  "visualisationId": $visualisationId,
+                  "visualizationId": $visualizationId,
                   "expressionId": $expressionId,
-                  "visualisationConfig": {
+                  "visualizationConfig": {
                     "executionContextId": ${configuration.executionContextId},
-                    "visualisationModule": $module,
+                    "visualizationModule": $module,
                     "expression": $expression
                   }
                 }
               }
               """
-      case VisualisationExpression.ModuleMethod(methodPointer, Vector()) =>
+      case VisualizationExpression.ModuleMethod(methodPointer, Vector()) =>
         json"""
           { "jsonrpc": "2.0",
             "method": "executionContext/executeExpression",
             "id": $reqId,
             "params": {
-              "visualisationId": $visualisationId,
+              "visualizationId": $visualizationId,
               "expressionId": $expressionId,
-              "visualisationConfig": {
+              "visualizationConfig": {
                 "executionContextId": ${configuration.executionContextId},
                 "expression": {
                   "module": ${methodPointer.module},
@@ -149,15 +149,15 @@ object ExecutionContextJsonMessages {
             }
           }
           """
-      case VisualisationExpression.ModuleMethod(methodPointer, arguments) =>
+      case VisualizationExpression.ModuleMethod(methodPointer, arguments) =>
         json"""
           { "jsonrpc": "2.0",
             "method": "executionContext/executeExpression",
             "id": $reqId,
             "params": {
-              "visualisationId": $visualisationId,
+              "visualizationId": $visualizationId,
               "expressionId": $expressionId,
-              "visualisationConfig": {
+              "visualizationConfig": {
                 "executionContextId": ${configuration.executionContextId},
                 "expression": {
                   "module": ${methodPointer.module},
@@ -171,38 +171,38 @@ object ExecutionContextJsonMessages {
           """
     }
 
-  def executionContextAttachVisualisationRequest(
+  def executionContextAttachVisualizationRequest(
     reqId: Int,
-    visualisationId: Api.VisualisationId,
+    visualizationId: Api.VisualizationId,
     expressionId: Api.ExpressionId,
-    configuration: VisualisationConfiguration
+    configuration: VisualizationConfiguration
   ) = {
     configuration.expression match {
-      case VisualisationExpression.Text(module, expression) =>
+      case VisualizationExpression.Text(module, expression) =>
         json"""
           { "jsonrpc": "2.0",
-            "method": "executionContext/attachVisualisation",
+            "method": "executionContext/attachVisualization",
             "id": $reqId,
             "params": {
-              "visualisationId": $visualisationId,
+              "visualizationId": $visualizationId,
               "expressionId": $expressionId,
-              "visualisationConfig": {
+              "visualizationConfig": {
                 "executionContextId": ${configuration.executionContextId},
-                "visualisationModule": $module,
+                "visualizationModule": $module,
                 "expression": $expression
               }
             }
           }
           """
-      case VisualisationExpression.ModuleMethod(methodPointer, Vector()) =>
+      case VisualizationExpression.ModuleMethod(methodPointer, Vector()) =>
         json"""
           { "jsonrpc": "2.0",
-            "method": "executionContext/attachVisualisation",
+            "method": "executionContext/attachVisualization",
             "id": $reqId,
             "params": {
-              "visualisationId": $visualisationId,
+              "visualizationId": $visualizationId,
               "expressionId": $expressionId,
-              "visualisationConfig": {
+              "visualizationConfig": {
                 "executionContextId": ${configuration.executionContextId},
                 "expression": {
                   "module": ${methodPointer.module},
@@ -213,15 +213,15 @@ object ExecutionContextJsonMessages {
             }
           }
           """
-      case VisualisationExpression.ModuleMethod(methodPointer, arguments) =>
+      case VisualizationExpression.ModuleMethod(methodPointer, arguments) =>
         json"""
           { "jsonrpc": "2.0",
-            "method": "executionContext/attachVisualisation",
+            "method": "executionContext/attachVisualization",
             "id": $reqId,
             "params": {
-              "visualisationId": $visualisationId,
+              "visualizationId": $visualizationId,
               "expressionId": $expressionId,
-              "visualisationConfig": {
+              "visualizationConfig": {
                 "executionContextId": ${configuration.executionContextId},
                 "expression": {
                   "module": ${methodPointer.module},
@@ -253,23 +253,23 @@ object ExecutionContextJsonMessages {
           """
   }
 
-  def executionContextVisualisationNotFound(reqId: Int) =
+  def executionContextVisualizationNotFound(reqId: Int) =
     json"""
           { "jsonrpc": "2.0",
             "id": $reqId,
             "error": {
               "code": 2006,
-              "message": "Visualisation not found"
+              "message": "Visualization not found"
             }
           }
           """
 
-  def executionContextVisualisationExpressionFailed(
+  def executionContextVisualizationExpressionFailed(
     reqId: Int,
     message: String
   ) = {
     val errorMessage =
-      s"Evaluation of the visualisation expression failed [$message]"
+      s"Evaluation of the visualization expression failed [$message]"
     json"""
           { "jsonrpc": "2.0",
             "id": $reqId,
@@ -281,53 +281,53 @@ object ExecutionContextJsonMessages {
           """
   }
 
-  def executionContextDetachVisualisationRequest(
+  def executionContextDetachVisualizationRequest(
     reqId: Int,
     contextId: Api.ContextId,
-    visualisationId: Api.VisualisationId,
+    visualizationId: Api.VisualizationId,
     expressionId: Api.ExpressionId
   ) =
     json"""
           { "jsonrpc": "2.0",
-            "method": "executionContext/detachVisualisation",
+            "method": "executionContext/detachVisualization",
             "id": $reqId,
             "params": {
               "contextId": $contextId,
-              "visualisationId": $visualisationId,
+              "visualizationId": $visualizationId,
               "expressionId": $expressionId
             }
           }
           """
 
-  def executionContextModifyVisualisationRequest(
+  def executionContextModifyVisualizationRequest(
     reqId: Int,
-    visualisationId: Api.VisualisationId,
-    configuration: VisualisationConfiguration
+    visualizationId: Api.VisualizationId,
+    configuration: VisualizationConfiguration
   ) = {
     configuration.expression match {
-      case VisualisationExpression.Text(module, expression) =>
+      case VisualizationExpression.Text(module, expression) =>
         json"""
           { "jsonrpc": "2.0",
-            "method": "executionContext/modifyVisualisation",
+            "method": "executionContext/modifyVisualization",
             "id": $reqId,
             "params": {
-              "visualisationId": $visualisationId,
-              "visualisationConfig": {
+              "visualizationId": $visualizationId,
+              "visualizationConfig": {
                 "executionContextId": ${configuration.executionContextId},
-                "visualisationModule": $module,
+                "visualizationModule": $module,
                 "expression": $expression
               }
             }
           }
           """
-      case VisualisationExpression.ModuleMethod(methodPointer, Vector()) =>
+      case VisualizationExpression.ModuleMethod(methodPointer, Vector()) =>
         json"""
           { "jsonrpc": "2.0",
-            "method": "executionContext/modifyVisualisation",
+            "method": "executionContext/modifyVisualization",
             "id": $reqId,
             "params": {
-              "visualisationId": $visualisationId,
-              "visualisationConfig": {
+              "visualizationId": $visualizationId,
+              "visualizationConfig": {
                 "executionContextId": ${configuration.executionContextId},
                 "expression": {
                   "module": ${methodPointer.module},
@@ -338,14 +338,14 @@ object ExecutionContextJsonMessages {
             }
           }
           """
-      case VisualisationExpression.ModuleMethod(methodPointer, arguments) =>
+      case VisualizationExpression.ModuleMethod(methodPointer, arguments) =>
         json"""
           { "jsonrpc": "2.0",
-            "method": "executionContext/modifyVisualisation",
+            "method": "executionContext/modifyVisualization",
             "id": $reqId,
             "params": {
-              "visualisationId": $visualisationId,
-              "visualisationConfig": {
+              "visualizationId": $visualizationId,
+              "visualizationConfig": {
                 "executionContextId": ${configuration.executionContextId},
                 "expression": {
                   "module": ${methodPointer.module},
