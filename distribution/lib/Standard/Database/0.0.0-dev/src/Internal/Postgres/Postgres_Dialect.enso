@@ -161,6 +161,10 @@ type Postgres_Dialect
     supports_negative_round_decimal_places self = True
 
     ## PRIVATE
+    rounding_decimal_places_not_allowed_for_floats : Boolean
+    rounding_decimal_places_not_allowed_for_floats self = False
+
+    ## PRIVATE
        There is a bug in Postgres type inference, where if we unify two
        fixed-length char columns of length N and M, the result type is said to
        be a **fixed-length** column of length max_int4. This is wrong, and in
