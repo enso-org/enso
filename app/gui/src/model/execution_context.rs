@@ -1,6 +1,7 @@
 //! This module consists of all structures describing Execution Context.
 
 use crate::prelude::*;
+use std::collections::hash_map::Entry;
 
 use double_representation::identifier::Identifier;
 use double_representation::name::project;
@@ -60,6 +61,20 @@ pub struct ComputedValueInfo {
     pub method_call: Option<MethodPointer>,
 }
 
+impl ComputedValueInfo {
+    fn apply_update(&mut self, update: ExpressionUpdate) {
+        // We do not erase method_call information to avoid ports "flickering" on every computation.
+        // the method_call should be updated soon anyway.
+        // The type of the expression could also be kept, but so far we use the "lack of type"
+        // information to inform user the results are recomputed.
+        if !matches!(update.payload, ExpressionUpdatePayload::Pending { .. }) {
+            self.method_call = update.method_call.map(|mc| mc.method_pointer);
+        }
+        self.typename = update.typename.map(ImString::new);
+        self.payload = update.payload
+    }
+}
+
 impl From<ExpressionUpdate> for ComputedValueInfo {
     fn from(update: ExpressionUpdate) -> Self {
         ComputedValueInfo {
@@ -104,8 +119,13 @@ impl ComputedValueInfoRegistry {
         let updated_expressions = updates.iter().map(|update| update.expression_id).collect();
         for update in updates {
             let id = update.expression_id;
-            let info = Rc::new(ComputedValueInfo::from(update));
-            self.map.borrow_mut().insert(id, info);
+            match self.map.borrow_mut().entry(id) {
+                Entry::Occupied(mut entry) => {
+                    let info = Rc::make_mut(entry.get_mut());
+                    info.apply_update(update);
+                }
+                Entry::Vacant(entry) => entry.insert(Rc::new(update.into())).void(),
+            }
         }
         self.emit(updated_expressions);
     }
@@ -556,9 +576,11 @@ pub type Synchronized = synchronized::ExecutionContext;
 
 #[cfg(test)]
 mod tests {
+    use engine_protocol::language_server::types::test::value_pending_update;
     use engine_protocol::language_server::types::test::value_update_with_dataflow_error;
     use engine_protocol::language_server::types::test::value_update_with_dataflow_panic;
     use engine_protocol::language_server::types::test::value_update_with_type;
+    use engine_protocol::language_server::types::test::value_update_with_type_and_method_ptr;
 
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
 
@@ -602,10 +624,15 @@ mod tests {
 
         let typename1 = "Test.Typename1".to_owned();
         let typename2 = "Test.Typename2".to_owned();
+        let method_ptr = MethodPointer {
+            module:          "Main".to_owned(),
+            defined_on_type: "test.Test.Main".to_owned(),
+            name:            "test".to_owned(),
+        };
         let error_msg = "Test Message".to_owned();
 
         // Set two values.
-        let update1 = value_update_with_type(expr1, &typename1);
+        let update1 = value_update_with_type_and_method_ptr(expr1, &typename1, method_ptr.clone());
         let update2 = value_update_with_type(expr2, &typename2);
         registry.apply_updates(vec![update1, update2]);
         assert_eq!(registry.get(&expr1).unwrap().typename, Some(typename1.clone().into()));
@@ -639,5 +666,17 @@ mod tests {
         ));
         let notification = test.expect_completion(subscriber.next()).unwrap();
         assert_eq!(notification, vec![expr2, expr3]);
+
+        // Set pending value
+        let update1 = value_pending_update(expr1);
+        registry.apply_updates(vec![update1]);
+        // Method pointer should not be cleared to avoid port's flickering.
+        assert_eq!(registry.get(&expr1).unwrap().method_call, Some(method_ptr));
+        // The type is erased to show invalidated path.
+        assert_eq!(registry.get(&expr1).unwrap().typename, None);
+        assert!(matches!(
+            registry.get(&expr1).unwrap().payload,
+            ExpressionUpdatePayload::Pending { message: None, progress: None }
+        ));
     }
 }
