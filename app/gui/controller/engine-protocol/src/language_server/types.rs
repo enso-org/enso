@@ -713,7 +713,7 @@ pub type ExpressionId = Uuid;
 #[serde(rename_all = "camelCase")]
 #[allow(missing_docs)]
 pub struct VisualisationConfiguration {
-    /// FQN of module to use the visualisation from
+    /// Module to evaluate visualization in context of.
     pub visualisation_module: String,
     /// An execution context of the visualization.
     pub execution_context_id: ContextId,
