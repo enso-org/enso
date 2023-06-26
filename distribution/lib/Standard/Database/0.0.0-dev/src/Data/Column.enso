@@ -590,15 +590,8 @@ type Column
        - use_bankers: Rounds mid-point to nearest even number.
 
        ! NaN/Inf
-         `round` behaves differently on different database engines.
-         - Postgres:
-           - NaN: Error
-           - +Inf: Error
-           - -Inf: Error
-         - SQLite:
-           - NaN: Returns Nothing
-           - +Inf: Returns Java `Long.MAX_VALUE`
-           - -Inf: Returns Java `Long.MIN_VALUE`
+         If a `NaN` or `Inf` value is passed to `round`, it immediately returns
+         the same value.
 
        ! Error Conditions
 
@@ -689,6 +682,10 @@ type Column
        Truncate the floating-point values to an integer by dropping the
        fractional part. This is equivalent to "round-toward-zero".
 
+       ! NaN/Inf
+         If a `NaN` or `Inf` value is passed to `truncate`, it immediately returns
+         the same value.
+
        > Example
          Truncate a column of floating-point values.
 
@@ -704,6 +701,10 @@ type Column
 
     ## Takes the ceiling of floating-point values, returning integer values.
 
+       ! NaN/Inf
+         If a `NaN` or `Inf` value is passed to `ceil`, it immediately returns
+         the same value.
+
        > Example
          Take the ceiling of a column of floating-point values.
 
@@ -718,6 +719,10 @@ type Column
                 self.make_unary_op "CEIL" new_name
 
     ## Takes the floor of floating-point values, returning integer values.
+
+       ! NaN/Inf
+         If a `NaN` or `Inf` value is passed to `floor`, it immediately returns
+         the same value.
 
        > Example
          Take the floor of a column of floating-point values.
