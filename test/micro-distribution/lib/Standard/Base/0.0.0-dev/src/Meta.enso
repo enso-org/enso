@@ -1,4 +1,3 @@
-from Standard.Base.Any import Any
 from Standard.Base.Nothing import Nothing
 
 type Unresolved_Symbol
@@ -34,6 +33,3 @@ type Project_Description
     name self = self.prim_config.name
 
 enso_project = Project_Description.enso_project_builtin Nothing
-
-Any.is_a self typ = is_a self typ
-is_a value typ = @Builtin_Method "Meta.is_a"
