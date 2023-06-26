@@ -10,6 +10,7 @@ use crate::model::execution_context::VisualizationId;
 use crate::model::execution_context::VisualizationUpdateData;
 use crate::sync::Synchronized;
 
+use double_representation::name::QualifiedName;
 use futures::channel::mpsc::UnboundedReceiver;
 use futures::future::ready;
 use ide_view::graph_editor::component::visualization::Metadata;
@@ -158,7 +159,7 @@ impl Default for Status {
 #[allow(missing_docs)]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Desired {
-    pub module:           String,
+    pub module:           QualifiedName,
     pub visualization_id: VisualizationId,
     pub expression_id:    ast::Id,
     pub metadata:         Metadata,
@@ -288,7 +289,7 @@ impl Manager {
         };
         let prj = self.executed_graph.module_qualified_name(&*self.executed_graph.project);
         let graph = self.executed_graph.graph();
-        let module = format!("{prj}.{}", graph.module.name());
+        let module = prj.new_child(graph.module.name());
         let current_id = current.as_ref().and_then(|current| current.latest_id());
         let new_desired = new_desired.map(|new_desired| Desired {
             module,
