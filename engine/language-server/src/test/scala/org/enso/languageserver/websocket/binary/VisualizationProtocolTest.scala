@@ -41,7 +41,7 @@ class VisualizationProtocolTest
       lastConnectionController ! VisualizationUpdate(ctx, data)
       val Right(msg) = client.receiveMessage[OutboundMessage]()
       //then
-      msg.payloadType() shouldBe OutboundPayload.VISUALIzATION_UPDATE
+      msg.payloadType() shouldBe OutboundPayload.VISUALIZATION_UPDATE
       val payload = msg
         .payload(new BinaryVisualizationUpdate)
         .asInstanceOf[BinaryVisualizationUpdate]

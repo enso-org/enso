@@ -362,7 +362,7 @@ impl SerializableUnion for FromServerPayloadOwned {
             FromServerPayloadOwned::FileContentsReply { .. } =>
                 OutboundPayload::FILE_CONTENTS_REPLY,
             FromServerPayloadOwned::VisualizationUpdate { .. } =>
-                OutboundPayload::VISUALIzATION_UPDATE,
+                OutboundPayload::VISUALIZATION_UPDATE,
             FromServerPayloadOwned::WriteBytesReply { .. } => OutboundPayload::WRITE_BYTES_REPLY,
             FromServerPayloadOwned::ReadBytesReply { .. } => OutboundPayload::READ_BYTES_REPLY,
             FromServerPayloadOwned::ChecksumBytesReply { .. } =>
@@ -424,7 +424,7 @@ impl<'a> DeserializableUnionField<'a, OutboundMessage<'a>> for FromServerPayload
                 })
             }
             OutboundPayload::SUCCESS => Ok(FromServerPayload::Success {}),
-            OutboundPayload::VISUALIzATION_UPDATE => {
+            OutboundPayload::VISUALIZATION_UPDATE => {
                 let payload = message.payload_as_visualization_update().unwrap();
                 let context = payload.visualizationContext();
                 Ok(FromServerPayload::VisualizationUpdate {
@@ -531,7 +531,7 @@ impl<'a> DeserializableUnionField<'a, OutboundMessage<'a>> for FromServerPayload
                 })
             }
             OutboundPayload::SUCCESS => Ok(FromServerPayloadOwned::Success {}),
-            OutboundPayload::VISUALIzATION_UPDATE => {
+            OutboundPayload::VISUALIZATION_UPDATE => {
                 let payload = message.payload_as_visualization_update().unwrap();
                 let context = payload.visualizationContext();
                 Ok(FromServerPayloadOwned::VisualizationUpdate {

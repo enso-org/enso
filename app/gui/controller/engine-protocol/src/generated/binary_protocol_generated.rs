@@ -131,7 +131,7 @@ pub mod org {
                         NONE                 = 0,
                         ERROR                = 1,
                         SUCCESS              = 2,
-                        VISUALIzATION_UPDATE = 3,
+                        VISUALIZATION_UPDATE = 3,
                         FILE_CONTENTS_REPLY  = 4,
                         WRITE_BYTES_REPLY    = 5,
                         READ_BYTES_REPLY     = 6,
@@ -177,7 +177,7 @@ pub mod org {
                         OutboundPayload::NONE,
                         OutboundPayload::ERROR,
                         OutboundPayload::SUCCESS,
-                        OutboundPayload::VISUALIzATION_UPDATE,
+                        OutboundPayload::VISUALIZATION_UPDATE,
                         OutboundPayload::FILE_CONTENTS_REPLY,
                         OutboundPayload::WRITE_BYTES_REPLY,
                         OutboundPayload::READ_BYTES_REPLY,
@@ -189,7 +189,7 @@ pub mod org {
                         "NONE",
                         "ERROR",
                         "SUCCESS",
-                        "VISUALIzATION_UPDATE",
+                        "VISUALIZATION_UPDATE",
                         "FILE_CONTENTS_REPLY",
                         "WRITE_BYTES_REPLY",
                         "READ_BYTES_REPLY",
@@ -632,7 +632,7 @@ pub mod org {
                         pub fn payload_as_visualization_update(
                             &self,
                         ) -> Option<VisualizationUpdate<'a>> {
-                            if self.payload_type() == OutboundPayload::VISUALIzATION_UPDATE {
+                            if self.payload_type() == OutboundPayload::VISUALIZATION_UPDATE {
                                 let u = self.payload();
                                 Some(VisualizationUpdate::init_from_table(u))
                             } else {

@@ -165,7 +165,7 @@ class BinaryConnectionController(
     val msg = OutboundMessageFactory.create(
       UUID.randomUUID(),
       None,
-      OutboundPayload.VISUALIzATION_UPDATE,
+      OutboundPayload.VISUALIZATION_UPDATE,
       event
     )
 
