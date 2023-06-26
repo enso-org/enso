@@ -444,40 +444,45 @@ class IrToTruffle(
               }
               .map(fOpt =>
                 fOpt.map { m =>
-                  val irFunctionArgumentsCount = fn.arguments.length
-                  val builtinArgumentsCount =
-                    m.getFunction.getSchema.getArgumentsCount
-                  if (irFunctionArgumentsCount != builtinArgumentsCount) {
-                    val irFunctionArguments =
-                      fn.arguments.map(_.name.name).mkString(",")
-                    val builtinArguments =
-                      m.getFunction.getSchema.getArgumentInfos
-                        .map(_.getName)
-                        .mkString(",")
-                    throw new CompilerError(
-                      s"Wrong number of arguments provided in the definition of builtin function ${cons.getName}.${methodDef.methodName.name}. " +
-                      s"[$irFunctionArguments] vs [$builtinArguments]"
+                  if (m.isAutoRegister) {
+                    val irFunctionArgumentsCount = fn.arguments.length
+                    val builtinArgumentsCount =
+                      m.getFunction.getSchema.getArgumentsCount
+                    if (irFunctionArgumentsCount != builtinArgumentsCount) {
+                      val irFunctionArguments =
+                        fn.arguments.map(_.name.name).mkString(",")
+                      val builtinArguments =
+                        m.getFunction.getSchema.getArgumentInfos
+                          .map(_.getName)
+                          .mkString(",")
+                      throw new CompilerError(
+                        s"Wrong number of arguments provided in the definition of builtin function ${cons.getName}.${methodDef.methodName.name}. " +
+                        s"[$irFunctionArguments] vs [$builtinArguments]"
+                      )
+                    }
+                    val bodyBuilder =
+                      new expressionProcessor.BuildFunctionBody(
+                        fn.arguments,
+                        fn.body,
+                        effectContext,
+                        true
+                      )
+                    val builtinRootNode =
+                      m.getFunction.getCallTarget.getRootNode
+                        .asInstanceOf[BuiltinRootNode]
+                    builtinRootNode.setModuleName(moduleScope.getModule.getName)
+                    builtinRootNode.setTypeName(cons.getQualifiedName)
+                    new RuntimeFunction(
+                      m.getFunction.getCallTarget,
+                      null,
+                      new FunctionSchema(
+                        new Array[RuntimeAnnotation](0),
+                        bodyBuilder.args(): _*
+                      )
                     )
+                  } else {
+                    m.getFunction
                   }
-                  val bodyBuilder =
-                    new expressionProcessor.BuildFunctionBody(
-                      fn.arguments,
-                      fn.body,
-                      effectContext,
-                      true
-                    )
-                  val builtinRootNode = m.getFunction.getCallTarget.getRootNode
-                    .asInstanceOf[BuiltinRootNode]
-                  builtinRootNode.setModuleName(moduleScope.getModule.getName)
-                  builtinRootNode.setTypeName(cons.getQualifiedName)
-                  new RuntimeFunction(
-                    m.getFunction.getCallTarget,
-                    null,
-                    new FunctionSchema(
-                      new Array[RuntimeAnnotation](0),
-                      bodyBuilder.args(): _*
-                    )
-                  )
                 }
               )
           case fn: IR.Function =>
