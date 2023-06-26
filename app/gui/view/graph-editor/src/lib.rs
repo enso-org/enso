@@ -3023,7 +3023,8 @@ fn init_remaining_graph_editor_frp(
         );
         out.node_added <+ new_node;
         node_to_edit_after_adding <- new_node.filter_map(|&(id,_,do_edit)| do_edit.as_some(id));
-        eval node_to_edit_after_adding((id) model.with_node(*id, |node| node.show_preview()));
+         // eval node_to_edit_after_adding((id) model.with_node(*id, |node| node.show_preview()));
+        // TODO re-implement preview vis for component browser
 
         let on_before_rendering = ensogl::animation::on_before_rendering();
         node_to_pan <- new_node._0().debounce();
@@ -3035,7 +3036,7 @@ fn init_remaining_graph_editor_frp(
 
     // === Node Editing ===
 
-    frp::extend! { network
+    frp::extend! { TRACE_ALL network
         node_in_edit_mode <- out.node_being_edited.map(|n| n.is_some());
         edit_mode <- bool(&inputs.edit_mode_off,&inputs.edit_mode_on);
         clicked_node <- touch.nodes.down.gate(&edit_mode);

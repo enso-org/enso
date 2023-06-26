@@ -166,7 +166,7 @@ impl ViewState {
 }
 
 
-ensogl::define_endpoints_2! {
+ensogl::define_endpoints_2! { [TRACE_ALL]
     Input {
         set_view_state      (ViewState),
         set_visualization   (Option<visualization::Definition>),

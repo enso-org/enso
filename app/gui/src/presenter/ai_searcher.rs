@@ -131,6 +131,7 @@ impl crate::searcher::SearcherPresenter for AISearcher {
         node_id: NodeId,
         _entry_id: Option<GroupEntryId>,
     ) -> Option<AstNodeId> {
+        console_log!("Expression accepted: {:?}", node_id);
         let ast_id = self.model.graph_presenter.ast_node_of_view(node_id)?;
         let expression = self.model.input_expression.borrow().clone();
         if let Err(e) = self.handle_ai_query(expression.repr()) {

@@ -56,7 +56,7 @@ const INPUT_CHANGE_DELAY_MS: i32 = 200;
 // ===========
 
 /// The searcher that should be displayed.
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub enum SearcherType {
     /// The Searcher with Component Browser.
     #[default]
@@ -97,7 +97,7 @@ impl SearcherParams {
     }
 }
 
-ensogl::define_endpoints! {
+ensogl::define_endpoints! { [TRACE_ALL]
     Input {
         /// Open the Open Project Dialog.
         show_project_list(),
@@ -135,6 +135,8 @@ ensogl::define_endpoints! {
         start_node_creation_with_ai_searcher(),
         /// Started creation of a new node using the Component Browser.
         start_node_creation_with_component_browser(),
+        /// Accept the current input of the searcher.
+        accept_searcher_input(),
     }
 
     Output {
@@ -149,6 +151,7 @@ ensogl::define_endpoints! {
         adding_new_node                (bool),
         old_expression_of_edited_node  (Expression),
         editing_aborted                (NodeId),
+        // TODO: this should not contain the group entry id as that is searcher specific.
         editing_committed              (NodeId, Option<component_list_panel::grid::GroupEntryId>),
         project_list_shown             (bool),
         code_editor_shown              (bool),
@@ -518,7 +521,7 @@ impl View {
         let network = &frp.network;
         let graph = &self.model.graph_editor;
 
-        frp::extend! { network
+        frp::extend! { TRACE_ALL network
             node_added_by_user <- graph.node_added.filter(|(_, _, should_edit)| *should_edit);
             searcher_for_adding <- node_added_by_user.map2(&frp.searcher_type,
                 |&(node, src, _), searcher_type| SearcherParams::new_for_new_node(node, src, *searcher_type)
@@ -545,8 +548,13 @@ impl View {
         let grid = &self.model.searcher.model().list.model().grid;
         let graph = &self.model.graph_editor;
 
-        frp::extend! { network
+        frp::extend! { TRACE_ALL network
             last_searcher <- frp.searcher.filter_map(|&s| s);
+
+            ai_searcher_active <- frp.searcher_type.map(|t| *t == SearcherType::AiCompletion);
+            committed_in_ai_searcher <- frp.accept_searcher_input.gate(&ai_searcher_active);
+            committed_in_ai_searcher <- committed_in_ai_searcher.map2(&last_searcher, |_, &s| (s.input, None));
+            frp.source.editing_committed <+ committed_in_ai_searcher;
 
             node_editing_finished <- graph.node_editing_finished.gate(&frp.is_searcher_opened);
             committed_in_searcher <-
@@ -582,7 +590,7 @@ impl View {
         let graph = &self.model.graph_editor;
         let input_change_delay = frp::io::timer::Timeout::new(network);
 
-        frp::extend! { network
+        frp::extend! { TRACE_ALL network
             searcher_input_change_opt <- graph.node_expression_edited.map2(&frp.searcher,
                 |(node_id, expr, selections), searcher| {
                     let input_change = || (*node_id, expr.clone_ref(), selections.clone());
@@ -781,9 +789,11 @@ impl application::View for View {
             (Press, "", "cmd alt r", "execution_context_restart"),
             // TODO(#6179): Remove this temporary shortcut when Play button is ready.
             (Press, "", "ctrl shift b", "toggle_read_only"),
-            (Press, "", "cmd enter", "start_node_creation_with_ai_searcher"),
+            // (Press, "", "cmd enter", "start_node_creation_with_ai_searcher"),
             (Press, "", "cmd tab", "start_node_creation_with_ai_searcher"),
-            (Press, "", "enter", "start_node_creation_with_component_browser"),
+            (Press, "!is_searcher_opened", "enter", "start_node_creation_with_component_browser"),
+            (Press, "is_searcher_opened", "enter", "accept_searcher_input"),
+            (Press, "is_searcher_opened", "cmd b", "accept_searcher_input"),
             (Press, "", "tab", "start_node_creation_with_component_browser"),
         ]
         .iter()
