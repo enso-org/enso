@@ -4,6 +4,7 @@ import * as reactDom from 'react-dom'
 
 import * as animations from '../../animations'
 import * as authProvider from '../../authentication/providers/auth'
+import * as dateTime from '../dateTime'
 import * as loggerProvider from '../../providers/logger'
 import * as newtype from '../../newtype'
 import * as svg from '../../components/svg'
@@ -243,16 +244,18 @@ export interface ReactionBarProps {
     threadId: ThreadId
     messageId: MessageId
     sendMessage: (message: ChatClientMessageData) => void
+    selectedReactions: Set<Reaction>
 }
 
 /** A list of emoji reactions to choose from. */
 function ReactionBar(props: ReactionBarProps) {
-    const { threadId, messageId, sendMessage } = props
+    const { threadId, messageId, sendMessage, selectedReactions } = props
 
     return (
         <div className="inline-block bg-white rounded-full m-1">
             {REACTION_EMOJIS.map(emoji => (
                 <button
+                    key={emoji}
                     onClick={() => {
                         sendMessage({
                             type: ChatMessageDataType.reaction,
@@ -261,7 +264,10 @@ function ReactionBar(props: ReactionBarProps) {
                             reaction: emoji,
                         })
                     }}
-                    className="rounded-full hover:bg-gray-200 m-1 p-1"
+                    // FIXME: Grayscale has the wrong lightness
+                    className={`rounded-full hover:bg-gray-200 m-1 p-1 ${
+                        selectedReactions.has(emoji) ? '' : 'opacity-70 grayscale'
+                    }`}
                 >
                     <Twemoji key={emoji} emoji={emoji} size={REACTION_BUTTON_SIZE} />
                 </button>
@@ -314,17 +320,32 @@ function ChatMessage(props: ChatMessageProps) {
     const { threadId, message, reactions, shouldShowReactionBar, sendMessage } = props
     return (
         <div>
-            <div>
+            <div className="flex">
                 {/* FIXME: This should default to the default user image. */}
-                <img src={message.avatar ?? 'unknown'} />
-                {message.name}
+                <img
+                    crossOrigin="anonymous"
+                    src={message.avatar ?? 'unknown'}
+                    className="rounded-full h-8 w-8 m-2"
+                />
+                <div className="m-1">
+                    <div className="font-semibold">{message.name}</div>
+                    <div className="opacity-50">
+                        {dateTime.formatDateTimeChatFriendly(new Date(message.timestamp))}
+                    </div>
+                </div>
             </div>
-            <div>
+            <div className="mx-1">
                 {message.content}
                 <Reactions reactions={reactions} />
             </div>
             {shouldShowReactionBar && (
-                <ReactionBar threadId={threadId} messageId={message.id} sendMessage={sendMessage} />
+                <ReactionBar
+                    threadId={threadId}
+                    messageId={message.id}
+                    sendMessage={sendMessage}
+                    // FIXME:
+                    selectedReactions={new Set()}
+                />
             )}
         </div>
     )
@@ -515,28 +536,36 @@ function Chat(props: ChatProps) {
         (event: react.FormEvent) => {
             event.preventDefault()
             const content = messageInput.current.value
-            messageInput.current.value = ''
-            const newMessage: ChatDisplayMessage = {
-                id: newtype.asNewtype<MessageId>(''),
-                isStaffMessage: false,
-                avatar: null,
-                name: 'Me',
-                content,
-                timestamp: Number(new Date()),
-                editedTimestamp: null,
-            }
-            if (threadId == null) {
-                sendMessage({
-                    type: ChatMessageDataType.newThread,
-                    title: threadTitle,
+            if (content !== '') {
+                messageInput.current.value = ''
+                const newMessage: ChatDisplayMessage = {
+                    // This MUST be unique.
+                    id: newtype.asNewtype<MessageId>(String(Number(new Date()))),
+                    isStaffMessage: false,
+                    avatar: null,
+                    name: 'Me',
                     content,
-                })
-                setMessages([newMessage])
-            } else {
-                setMessages(oldMessages => [...oldMessages, newMessage])
+                    timestamp: Number(new Date()),
+                    editedTimestamp: null,
+                }
+                if (threadId == null) {
+                    sendMessage({
+                        type: ChatMessageDataType.newThread,
+                        title: threadTitle,
+                        content,
+                    })
+                    setMessages([newMessage])
+                } else {
+                    sendMessage({
+                        type: ChatMessageDataType.message,
+                        threadId,
+                        content,
+                    })
+                    setMessages(oldMessages => [...oldMessages, newMessage])
+                }
             }
         },
-        [sendMessage]
+        [sendMessage, threadId]
     )
 
     const createNewThread = () => {
@@ -548,30 +577,42 @@ function Chat(props: ChatProps) {
         setMessages([])
     }
 
-    const stopEditing = (event: react.KeyboardEvent) => {
-        if (!event.ctrlKey && !event.altKey && !event.metaKey && !event.shiftKey) {
-            if (event.key === 'Escape') {
-                titleInput.current.value = threadTitle
-                setIsThreadTitleEditable(false)
-            } else if (event.key === 'Enter') {
-                if (threadId) {
-                    sendMessage({
-                        type: ChatMessageDataType.renameThread,
-                        threadId: threadId,
-                        title: threadTitle,
-                    })
+    const stopEditing = react.useCallback(
+        (event: react.KeyboardEvent) => {
+            if (
+                isThreadTitleEditable &&
+                !event.ctrlKey &&
+                !event.altKey &&
+                !event.metaKey &&
+                !event.shiftKey
+            ) {
+                if (event.key === 'Escape') {
+                    titleInput.current.value = threadTitle
+                    setIsThreadTitleEditable(false)
+                } else if (event.key === 'Enter') {
+                    const newTitle = titleInput.current.value
+                    if (threadTitle !== newTitle) {
+                        if (threadId != null) {
+                            sendMessage({
+                                type: ChatMessageDataType.renameThread,
+                                threadId: threadId,
+                                title: threadTitle,
+                            })
+                        }
+                        setThreadTitle(newTitle)
+                    }
+                    setIsThreadTitleEditable(false)
                 }
-                setThreadTitle(titleInput.current.value)
-                setIsThreadTitleEditable(false)
             }
-        }
-    }
+        },
+        [sendMessage, threadId]
+    )
 
-    const onThreadTitleClick = (event: react.MouseEvent) => {
+    const onThreadTitleClick = react.useCallback((event: react.MouseEvent) => {
         if (event.ctrlKey && !event.altKey && !event.metaKey && !event.shiftKey) {
             setIsThreadTitleEditable(true)
         }
-    }
+    }, [])
 
     const upgradeToPro = () => {
         // TODO:
@@ -582,7 +623,7 @@ function Chat(props: ChatProps) {
         return null
     } else {
         // This should be `findLast`, but that requires ES2023.
-        const lastStaffMessage = messages.reverse().find(message => message.isStaffMessage)
+        const lastStaffMessage = [...messages].reverse().find(message => message.isStaffMessage)
 
         return reactDom.createPortal(
             <div
@@ -629,6 +670,7 @@ function Chat(props: ChatProps) {
                                 message={message}
                                 reactions={[]}
                                 sendMessage={sendMessage}
+                                // FIXME: Consider adding reaction bars to other messages, on hover.
                                 shouldShowReactionBar={message === lastStaffMessage}
                             />
                         ))}

@@ -93,7 +93,7 @@ export function interpolationFunctionCubicBezier(
             // https://en.wikipedia.org/wiki/B%C3%A9zier_curve#Cubic_B%C3%A9zier_curves
             // `x0 = 0` and `x3 = 1` have been substituted in.
             // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-            let estimatedProgress = 3 * u * t * (u * x1 + t * x2) + t * t * t
+            const estimatedProgress = 3 * u * t * (u * x1 + t * x2) + t * t * t
             if (estimatedProgress > progress) {
                 maximum = t
             } else {
@@ -138,6 +138,7 @@ export enum StepJumpSides {
     none = 'jump-none',
 }
 
+/** Equivalent to the CSS easing function `steps(stepCount, jumpSides)`. */
 export function interpolationFunctionSteps(
     stepCount: number,
     jumpSides: StepJumpSides

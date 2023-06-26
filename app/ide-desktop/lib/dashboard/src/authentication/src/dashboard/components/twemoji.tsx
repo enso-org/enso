@@ -26,12 +26,13 @@ type MustBeLength2String<T extends string> = T extends `${string}${string}${infe
     : 'Error: string must have a length of 2'
 
 /** Props for a {@link Twemoji}, but with extra validation. */
-interface ValidTwemojiProps<T extends string> {
+interface InternalValidTwemojiProps<T extends string> {
     emoji: MustBeLength2String<T>
     size: number
 }
 
-function Twemoji<T extends string>(props: ValidTwemojiProps<T>) {
+/** Serves a Twemoji image from the JSDelivr CDN. */
+function Twemoji<T extends string>(props: InternalValidTwemojiProps<T>) {
     const { emoji, size } = props
 
     // This is safe as the that the string is required to be non-empty by the type of `props`.
