@@ -26,7 +26,7 @@ table InboundMessage {
 union OutboundPayload {
   ERROR: Error,
   SUCCESS: Success,
-  VISUALIzATION_UPDATE: VisualizationUpdate,
+  VISUALIZATION_UPDATE: VisualizationUpdate,
   FILE_CONTENTS_REPLY: FileContentsReply,
   WRITE_BYTES_REPLY: WriteBytesReply,
   READ_BYTES_REPLY: ReadBytesReply,
