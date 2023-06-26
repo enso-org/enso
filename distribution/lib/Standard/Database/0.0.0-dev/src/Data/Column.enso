@@ -725,8 +725,7 @@ type Column
     truncate self =
         Value_Type.expect_numeric self <| self.short_circuit_special_floating_point <|
             new_name = self.naming_helpers.function_name "truncate" [self]
-            if self.value_type.is_integer then self.rename new_name else
-                self.make_unary_op "TRUNCATE" new_name
+            self.make_unary_op "TRUNCATE" new_name
 
     ## Takes the ceiling of floating-point values, returning integer values.
 
@@ -744,8 +743,7 @@ type Column
     ceil self =
         Value_Type.expect_numeric self <| self.short_circuit_special_floating_point <|
             new_name = self.naming_helpers.function_name "ceil" [self]
-            if self.value_type.is_integer then self.rename new_name else
-                self.make_unary_op "CEIL" new_name
+            self.make_unary_op "CEIL" new_name
 
     ## Takes the floor of floating-point values, returning integer values.
 
@@ -763,8 +761,7 @@ type Column
     floor self =
         Value_Type.expect_numeric self <| self.short_circuit_special_floating_point <|
             new_name = self.naming_helpers.function_name "floor" [self]
-            if self.value_type.is_integer then self.rename new_name else
-                self.make_unary_op "FLOOR" new_name
+            self.make_unary_op "FLOOR" new_name
 
     ## PRVIATE
        `/` for decimals.

@@ -520,31 +520,6 @@ spec setup =
                 do_op Number.positive_infinity op . should_equal Number.positive_infinity
                 do_op Number.negative_infinity op . should_equal Number.negative_infinity
 
-        Test.group "return types" <|
-            roundlike_ops = [["floor", .floor], ["ceil", .ceil], ["truncate", .truncate], ["round", .round]]
-
-            test_op pair =
-                op_name = pair.at 0
-                op = pair.at 1
-
-                Test.specify "rounding-like should return a column of the same type as the argument (floats): "+op_name <|
-                    col = table_builder [["x", [0.1, 0.9, 3.1, 3.9, -0.1, -0.9, -3.1, -3.9]]] . at "x"
-                    op (col.cast Value_Type.Float) . value_type . should_equal Value_Type.Float
-
-
-                Test.specify "rounding-like should return a column of the same type as the argument (integers): "+op_name <|
-                    col = table_builder [["x", [0.1, 0.9, 3.1, 3.9, -0.1, -0.9, -3.1, -3.9]]] . at "x"
-                    bits_32_expected = if setup.test_selection.all_integers_64_bit then Value_Type.Integer Bits.Bits_64 else Value_Type.Integer Bits.Bits_32
-                    op (col.cast (Value_Type.Integer Bits.Bits_32)) . value_type . should_equal bits_32_expected
-                    op (col.cast (Value_Type.Integer Bits.Bits_64)) . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
-
-                if setup.test_selection.supports_decimal_type then
-                    Test.specify "rounding-like should return a column of the same type as the argument (floats): "+op_name <|
-                        col = table_builder [["x", [0.1, 0.9, 3.1, 3.9, -0.1, -0.9, -3.1, -3.9]]] . at "x"
-                        op (col.cast Value_Type.Decimal) . value_type . should_equal Value_Type.Decimal
-
-            roundlike_ops.each op-> test_op op
-
         if setup.test_selection.supports_decimal_type then
             Test.specify "should return decimals when rounding decimals" <|
                 i1 = 9223372036854775807 - 1
