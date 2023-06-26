@@ -16,6 +16,8 @@ use enso_text as text;
 use enso_text::Byte;
 use enso_text::Location;
 use enso_text::Rope;
+use ensogl::application::Application;
+use ensogl::display::object::Instance;
 use ensogl_component::list_view::entry::Id;
 use ide_view as view;
 use ide_view::component_browser::component_list_panel::grid::GroupEntryId;
@@ -80,7 +82,7 @@ pub struct AISearcher {
     model:    Rc<Model>,
 }
 
-impl crate::searcher::Searcher for AISearcher {
+impl crate::searcher::SearcherPresenter for AISearcher {
     fn setup_searcher(
         ide_controller: controller::Ide,
         _project_controller: Project,
@@ -88,7 +90,7 @@ impl crate::searcher::Searcher for AISearcher {
         graph_presenter: &Graph,
         view: View,
         parameters: SearcherParams,
-    ) -> FallibleResult<Box<dyn crate::searcher::Searcher>>
+    ) -> FallibleResult<Box<dyn crate::searcher::SearcherPresenter>>
     where
         Self: Sized,
     {
@@ -147,6 +149,11 @@ impl crate::searcher::Searcher for AISearcher {
     fn input_view(&self) -> ViewNodeId {
         self.model.input_view
     }
+
+    // fn view(_app: &ensogl::application::Application) -> Option<Instance>
+    // where Self: Sized {
+    //     None
+    // }
 }
 
 

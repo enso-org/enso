@@ -7,7 +7,11 @@ use enso_frp as frp;
 use enso_suggestion_database::documentation_ir::EntryDocumentation;
 use enso_suggestion_database::documentation_ir::Placeholder;
 use enso_text as text;
+use ensogl::application::Application;
+use ensogl::display::object::Instance;
+use ensogl::system::js::app::js_bindings::App;
 use ide_view as view;
+use ide_view::component_browser;
 use ide_view::component_browser::component_list_panel::grid as component_grid;
 use ide_view::component_browser::component_list_panel::BreadcrumbId;
 use ide_view::component_browser::component_list_panel::SECTION_NAME_CRUMB_INDEX;
@@ -77,20 +81,22 @@ fn doc_placeholder_for(suggestion: &model::suggestion_database::Entry) -> String
 #[derive(Clone, CloneRef, Debug)]
 struct Model {
     controller: controller::Searcher,
-    view:       view::project::View,
+    project:    view::project::View,
     provider:   Rc<RefCell<Option<provider::Component>>>,
     input_view: ViewNodeId,
+    view:       component_browser::View,
 }
 
 impl Model {
     #[profile(Debug)]
     fn new(
         controller: controller::Searcher,
-        view: view::project::View,
+        project: view::project::View,
         input_view: ViewNodeId,
+        view: component_browser::View,
     ) -> Self {
         let provider = default();
-        Self { controller, view, provider, input_view }
+        Self { controller, project, view, provider, input_view }
     }
 
     #[profile(Debug)]
@@ -165,7 +171,7 @@ impl Model {
 
     fn update_breadcrumbs(&self) {
         let names = self.controller.breadcrumbs().into_iter();
-        let browser = self.view.searcher();
+        let browser = &self.view;
         // We only update the breadcrumbs starting from the second element because the first
         // one is reserved as a section name.
         let from = 1;
@@ -174,12 +180,12 @@ impl Model {
     }
 
     fn show_breadcrumbs_ellipsis(&self, show: bool) {
-        let browser = self.view.searcher();
+        let browser = &self.view;
         browser.model().list.model().breadcrumbs.show_ellipsis(show);
     }
 
     fn set_section_name_crumb(&self, text: ImString) {
-        let browser = self.view.searcher();
+        let browser = &self.view;
         let breadcrumbs = &browser.model().list.model().breadcrumbs;
         breadcrumbs.set_entry((SECTION_NAME_CRUMB_INDEX, text.into()));
     }
@@ -283,7 +289,7 @@ pub struct DefaultSearcher {
 }
 
 
-impl crate::searcher::Searcher for DefaultSearcher {
+impl crate::searcher::SearcherPresenter for DefaultSearcher {
     #[profile(Task)]
     fn setup_searcher(
         ide_controller: controller::Ide,
@@ -292,7 +298,7 @@ impl crate::searcher::Searcher for DefaultSearcher {
         graph_presenter: &presenter::Graph,
         view: view::project::View,
         parameters: SearcherParams,
-    ) -> FallibleResult<Box<dyn crate::searcher::Searcher>> {
+    ) -> FallibleResult<Box<dyn crate::searcher::SearcherPresenter>> {
         // We get the position for searcher before initializing the input node, because the
         // added node will affect the AST, and the position will become incorrect.
         let position_in_code = graph_controller.graph().definition_end_location()?;
@@ -343,6 +349,11 @@ impl crate::searcher::Searcher for DefaultSearcher {
     fn input_view(&self) -> ViewNodeId {
         self.model.input_view
     }
+
+    // fn view(app: &Application) -> Option<Instance>
+    // where Self: Sized {
+    //     Some(component_browser::View::new(app).display_object().clone_ref())
+    // }
 }
 
 impl DefaultSearcher {
@@ -352,21 +363,22 @@ impl DefaultSearcher {
         view: view::project::View,
         input_view: ViewNodeId,
     ) -> Self {
-        let model = Rc::new(Model::new(controller, view, input_view));
+        let searcher_view = view.searcher().clone_ref();
+        let model = Rc::new(Model::new(controller, view, input_view, searcher_view));
         let network = frp::Network::new("presenter::Searcher");
 
-        let graph = &model.view.graph().frp;
-        let browser = model.view.searcher();
+        let graph = &model.project.graph().frp;
+        let browser = &model.view;
 
         frp::extend! { network
-            eval model.view.searcher_input_changed ([model]((expr, selections)) {
+            eval model.project.searcher_input_changed ([model]((expr, selections)) {
                 let cursor_position = selections.last().map(|sel| sel.end).unwrap_or_default();
                 model.input_changed(expr, cursor_position);
             });
 
             action_list_changed <- source::<()>();
 
-            eval_ model.view.toggle_component_browser_private_entries_visibility (
+            eval_ model.project.toggle_component_browser_private_entries_visibility (
                 model.controller.reload_list());
         }
 
@@ -391,7 +403,7 @@ impl DefaultSearcher {
             selected_entry_changed <- entry_selected.on_change().constant(());
             grid.unhover_element <+ any2(
                 &selected_entry_changed,
-                &model.view.toggle_component_browser_private_entries_visibility,
+                &model.project.toggle_component_browser_private_entries_visibility,
             );
             hovered_not_selected <- all_with(&grid.hovered, &grid.active, |h, s| {
                 match (h, s) {

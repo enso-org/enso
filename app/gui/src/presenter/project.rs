@@ -8,12 +8,15 @@ use crate::model::project::synchronized::ProjectNameInvalid;
 use crate::presenter;
 
 use crate::presenter::ai_searcher::AISearcher;
-use crate::searcher::Searcher;
+use crate::presenter::DefaultSearcher;
+use crate::searcher::SearcherPresenter;
 use engine_protocol::language_server::ExecutionEnvironment;
 use engine_protocol::project_manager::ProjectMetadata;
 use enso_frp as frp;
+use ensogl::application::Application;
 use ide_view as view;
 use ide_view::project::SearcherParams;
+use ide_view::project::SearcherType;
 use model::module::NotificationKind;
 use model::project::Notification;
 use model::project::VcsStatus;
@@ -36,7 +39,7 @@ struct Model {
     status_bar:           view::status_bar::View,
     graph:                presenter::Graph,
     code:                 presenter::Code,
-    searcher:             RefCell<Option<Box<dyn Searcher>>>,
+    searcher:             RefCell<Option<Box<dyn SearcherPresenter>>>,
     available_projects:   Rc<RefCell<Vec<ProjectMetadata>>>,
     shortcut_transaction: RefCell<Option<Rc<model::undo_redo::Transaction>>>,
 }
@@ -78,10 +81,9 @@ impl Model {
     }
 
     fn setup_searcher_presenter(&self, params: SearcherParams) {
-        let searcher_constructor = if USE_AI_SEARCHER {
-            AISearcher::setup_searcher
-        } else {
-            presenter::DefaultSearcher::setup_searcher
+        let searcher_constructor = match params.searcher_type {
+            SearcherType::AiCompletion => AISearcher::setup_searcher,
+            SearcherType::ComponentBrowser => DefaultSearcher::setup_searcher,
         };
 
         let new_presenter = searcher_constructor(

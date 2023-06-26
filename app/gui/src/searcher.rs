@@ -6,6 +6,8 @@ use crate::prelude::*;
 use crate::presenter;
 use crate::presenter::graph::AstNodeId;
 use crate::presenter::graph::ViewNodeId;
+use ensogl::application::Application;
+use ensogl::display;
 use ide_view as view;
 use ide_view::component_browser::component_list_panel::grid as component_grid;
 use ide_view::graph_editor::GraphEditor;
@@ -51,7 +53,7 @@ fn create_input_node(
 }
 
 /// Trait for the searcher.
-pub trait Searcher: Debug {
+pub trait SearcherPresenter: Debug {
     /// Initiate the operating mode for the searcher based on the given [`SearcherParams`]. If the
     /// view associated with the input node given in the parameters does not yet exist, it will
     /// be created.
@@ -93,7 +95,7 @@ pub trait Searcher: Debug {
         graph_presenter: &presenter::Graph,
         view: view::project::View,
         parameters: SearcherParams,
-    ) -> FallibleResult<Box<dyn Searcher>>
+    ) -> FallibleResult<Box<dyn SearcherPresenter>>
     where
         Self: Sized;
 
@@ -117,4 +119,7 @@ pub trait Searcher: Debug {
 
     /// Returns the node view that is being edited by the searcher.
     fn input_view(&self) -> ViewNodeId;
+
+    // fn view(app: &ensogl::application::Application) -> Option<display::object::Instance>
+    // where Self: Sized;
 }

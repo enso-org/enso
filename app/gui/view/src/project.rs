@@ -55,6 +55,16 @@ const INPUT_CHANGE_DELAY_MS: i32 = 200;
 // === FRP ===
 // ===========
 
+/// The searcher that should be displayed.
+#[derive(Clone, Copy, Debug, Default)]
+pub enum SearcherType {
+    /// The Searcher with Component Browser.
+    #[default]
+    ComponentBrowser,
+    /// The Searcher with AI completion.
+    AiCompletion,
+}
+
 /// The parameters of the displayed searcher.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct SearcherParams {
@@ -65,15 +75,25 @@ pub struct SearcherParams {
     pub source_node:     Option<NodeSource>,
     /// A position of the cursor in the input node.
     pub cursor_position: text::Byte,
+    /// The type of the searcher.
+    pub searcher_type:   SearcherType,
 }
 
 impl SearcherParams {
-    fn new_for_new_node(node_id: NodeId, source_node: Option<NodeSource>) -> Self {
-        Self { input: node_id, source_node, cursor_position: default() }
+    fn new_for_new_node(
+        node_id: NodeId,
+        source_node: Option<NodeSource>,
+        searcher_type: SearcherType,
+    ) -> Self {
+        Self { input: node_id, source_node, cursor_position: default(), searcher_type }
     }
 
-    fn new_for_edited_node(node_id: NodeId, cursor_position: text::Byte) -> Self {
-        Self { input: node_id, source_node: None, cursor_position }
+    fn new_for_edited_node(
+        node_id: NodeId,
+        cursor_position: text::Byte,
+        searcher_type: SearcherType,
+    ) -> Self {
+        Self { input: node_id, source_node: None, cursor_position, searcher_type }
     }
 }
 
@@ -109,9 +129,16 @@ ensogl::define_endpoints! {
         execution_context_restart(),
         toggle_read_only(),
         set_read_only(bool),
+        enable_ai_searcher(),
+        disable_ai_searcher(),
+        /// Started creation of a new node using the AI searcher.
+        start_node_creation_with_ai_searcher(),
+        /// Started creation of a new node using the Component Browser.
+        start_node_creation_with_component_browser(),
     }
 
     Output {
+        searcher_type                  (SearcherType),
         searcher                       (Option<SearcherParams>),
         /// The searcher input has changed and the Component Browser content should be refreshed.
         /// Is **not** emitted with every graph's node expression change, only when
@@ -168,11 +195,9 @@ impl Model {
 
         display_object.add_child(&graph_editor);
         display_object.add_child(&code_editor);
-        display_object.add_child(&searcher);
         display_object.add_child(&debug_mode_popup);
         display_object.add_child(&popup);
         display_object.add_child(&project_view_top_bar);
-        display_object.remove_child(&searcher);
 
         let graph_editor = Rc::new(graph_editor);
         Self {
@@ -341,12 +366,13 @@ impl View {
         model.set_style(theme);
 
         Self { model, frp }
+            .init_start_node_edit_frp()
             .init_top_bar_frp(scene)
             .init_graph_editor_frp()
             .init_code_editor_frp()
             .init_searcher_position_frp(scene)
             .init_searcher_input_changes_frp()
-            .init_opening_searcher_frp()
+            .init_opening_default_searcher_frp()
             .init_closing_searcher_frp()
             .init_open_projects_dialog_frp(scene)
             .init_style_toggle_frp()
@@ -473,7 +499,7 @@ impl View {
             eval position ((pos) model.searcher.set_xy(*pos));
 
             // Showing searcher.
-            searcher.show <+ frp.searcher.is_some().on_true().constant(());
+            searcher.show <+ frp.searcher.unwrap().map(|params| matches!(params.searcher_type, SearcherType::ComponentBrowser)).on_true();
             searcher.hide <+ frp.searcher.is_none().on_true().constant(());
             eval searcher.is_visible ([model](is_visible) {
                 let is_attached = model.searcher.has_parent();
@@ -487,15 +513,15 @@ impl View {
         self
     }
 
-    fn init_opening_searcher_frp(self) -> Self {
+    fn init_opening_default_searcher_frp(self) -> Self {
         let frp = &self.frp;
         let network = &frp.network;
         let graph = &self.model.graph_editor;
 
         frp::extend! { network
             node_added_by_user <- graph.node_added.filter(|(_, _, should_edit)| *should_edit);
-            searcher_for_adding <- node_added_by_user.map(
-                |&(node, src, _)| SearcherParams::new_for_new_node(node, src)
+            searcher_for_adding <- node_added_by_user.map2(&frp.searcher_type,
+                |&(node, src, _), searcher_type| SearcherParams::new_for_new_node(node, src, *searcher_type)
             );
             frp.source.adding_new_node <+ searcher_for_adding.to_true();
             new_node_edited <- graph.node_editing_started.gate(&frp.adding_new_node);
@@ -503,9 +529,10 @@ impl View {
 
             edit_which_opens_searcher <-
                 graph.node_expression_edited.gate_not(&frp.is_searcher_opened).debounce();
-            frp.source.searcher <+ edit_which_opens_searcher.map(|(node_id, _, selections)| {
+            frp.source.searcher <+ edit_which_opens_searcher.map2(&frp.searcher_type,
+                |(node_id, _, selections), searcher_type| {
                 let cursor_position = selections.last().map(|sel| sel.end).unwrap_or_default();
-                Some(SearcherParams::new_for_edited_node(*node_id, cursor_position))
+                Some(SearcherParams::new_for_edited_node(*node_id, cursor_position, *searcher_type))
             });
             frp.source.is_searcher_opened <+ frp.searcher.map(|s| s.is_some());
         }
@@ -653,6 +680,27 @@ impl View {
         self
     }
 
+    fn init_start_node_edit_frp(self) -> Self {
+        let frp = &self.frp;
+        let network = &frp.network;
+        let graph_editor = &self.model.graph_editor.frp;
+        frp::extend! { network
+            // Searcher type to use for node creation
+            ai_searcher <- frp.start_node_creation_with_ai_searcher.constant(SearcherType::AiCompletion);
+            component_browser_searcher <- frp.start_node_creation_with_component_browser.constant(SearcherType::ComponentBrowser);
+            searcher_type <- any(&ai_searcher, &component_browser_searcher);
+
+            frp.source.searcher_type <+ searcher_type;
+
+            should_not_create_node <- graph_editor.node_editing || graph_editor.read_only;
+            should_not_create_node <- should_not_create_node || graph_editor.is_fs_visualization_displayed;
+            start_node_creation <- searcher_type.gate_not(&should_not_create_node);
+            trace start_node_creation;
+            graph_editor.start_node_creation <+ start_node_creation.constant(());
+        }
+        self
+    }
+
     fn init_shortcut_observer(self, app: &Application) -> Self {
         let frp = &self.frp;
         frp::extend! { network
@@ -733,6 +781,10 @@ impl application::View for View {
             (Press, "", "cmd alt r", "execution_context_restart"),
             // TODO(#6179): Remove this temporary shortcut when Play button is ready.
             (Press, "", "ctrl shift b", "toggle_read_only"),
+            (Press, "", "cmd enter", "start_node_creation_with_ai_searcher"),
+            (Press, "", "cmd tab", "start_node_creation_with_ai_searcher"),
+            (Press, "", "enter", "start_node_creation_with_component_browser"),
+            (Press, "", "tab", "start_node_creation_with_component_browser"),
         ]
         .iter()
         .map(|(a, b, c, d)| Self::self_shortcut_when(*a, *c, *d, *b))
