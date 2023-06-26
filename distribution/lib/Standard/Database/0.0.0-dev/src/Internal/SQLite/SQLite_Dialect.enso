@@ -168,6 +168,10 @@ type SQLite_Dialect
     supports_separate_nan self = False
 
     ## PRIVATE
+    supports_negative_round_decimal_places : Boolean
+    supports_negative_round_decimal_places self = False
+
+    ## PRIVATE
        SQLite allows mixed type columns, but we want our columns to be uniform.
        So after unifying columns with mixed types, we add a cast to ensure that.
     adapt_unified_column : Internal_Column -> Value_Type -> (SQL_Expression -> SQL_Type_Reference) -> Internal_Column

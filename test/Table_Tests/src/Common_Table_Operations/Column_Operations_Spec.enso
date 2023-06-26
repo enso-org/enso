@@ -545,12 +545,13 @@ spec setup =
 
             roundlike_ops.each op-> test_op op
 
-        Test.specify "should not lose precision rounding large integers" <|
-            i1 = 9223372036854775807 - 1
-            i2 = i1 - 1
-            t = table_builder [["X", [i1, i2]]]
-            [(.floor), (.ceil), (.truncate), (x-> x.round 0), (x-> x.round 2)].each op->
-                op (t.at "X") . to_vector . should_equal [i1, i2]
+        if setup.test_selection.supports_decimal_type then
+            Test.specify "should not lose precision rounding large integers" <|
+                i1 = 9223372036854775807 - 1
+                i2 = i1 - 1
+                t = table_builder [["X", [i1, i2]]]
+                [(.floor), (.ceil), (.truncate), (x-> x.round 0), (x-> x.round 2)].each op->
+                    op (t.at "X") . to_vector . should_equal [i1, i2]
 
             Test.specify "should return decimals when rounding decimals" <|
                 i1 = 9223372036854775807 - 1
@@ -844,10 +845,10 @@ spec setup =
             do_round -12251 -2 use_bankers=True . should_equal -12300
 
         Test.specify "Returns the correct type" <|
-            do_round 231 1 . should_be_a Integer
-            do_round 231 0 . should_be_a Integer
-            do_round 231 . should_be_a Integer
-            do_round 231 -1 . should_be_a Integer
+            do_round 231 1 . should_be_a Decimal
+            do_round 231 0 . should_be_a Decimal
+            do_round 231 . should_be_a Decimal
+            do_round 231 -1 . should_be_a Decimal
 
     Test.group prefix+"Text Column Operations" <|
         t3 = table_builder [["s1", ["foobar", "bar", "baz", "BAB", Nothing]], ["s2", ["foo", "ar", "a", "b", Nothing]]]

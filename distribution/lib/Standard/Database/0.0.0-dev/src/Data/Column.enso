@@ -611,14 +611,33 @@ type Column
              example_round = Examples.decimal_column.round 2
     round : Integer -> Boolean -> Column | Illegal_Argument | Invalid_Value_Type
     round self decimal_places=0 use_bankers=False =
-        Rounding_Helpers.check_decimal_places decimal_places <| self.short_circuit_special_floating_point <|
-            case self.value_type of
-                Value_Type.Integer _ -> self.round_integer decimal_places use_bankers
-                Value_Type.Float _ -> self.round_float decimal_places use_bankers
-                Value_Type.Decimal _ _ -> self.round_decimal decimal_places use_bankers
-                _ ->
-                    expected = "Value_Type.Decimal, Value_Type.Float, or Value_Type.Integer"
-                    Error.throw (Invalid_Value_Type.Column expected self.value_type self.name)
+        Rounding_Helpers.check_decimal_places decimal_places <| Value_Type.expect_numeric self <|
+            if self.should_use_builtin_round decimal_places use_bankers then self.round_builtin decimal_places else
+                self.short_circuit_special_floating_point <|
+                    case self.value_type of
+                        Value_Type.Integer _ -> self.round_integer decimal_places use_bankers
+                        Value_Type.Float _ -> self.round_float decimal_places use_bankers
+                        Value_Type.Decimal _ _ -> self.round_decimal decimal_places use_bankers
+                        _ ->
+                            expected = "Value_Type.Decimal, Value_Type.Float, or Value_Type.Integer"
+                            Error.throw (Invalid_Value_Type.Column expected self.value_type self.name)
+
+    ## PRIVATE
+       Round a float-like column using the backend's builtin ROUND function.
+    should_use_builtin_round : Integer -> Boolean -> Boolean
+    should_use_builtin_round self decimal_places use_bankers =
+        use_bankers.not && (decimal_places >= 0 || self.connection.dialect.supports_negative_round_decimal_places) && (self.value_type.is_floating.not || decimal_places == 0)
+
+    ## PRIVATE
+       Round a float-like column using the backend's builtin ROUND function.
+    round_builtin : Integer -> Boolean -> Column
+    round_builtin self decimal_places =
+        new_name = self.naming_helpers.function_name "round" [self]
+        case decimal_places == 0 of
+            True ->
+                self.make_unary_op "ROUND" new_name
+            False ->
+                self.make_binary_op "ROUND" decimal_places new_name
 
     ## PRIVATE
        Round a float-like column.
@@ -675,7 +694,7 @@ type Column
                 round_up.iif (result_unnudged - scale) result_unnudged
 
             result = (self >= 0).iif if_non_neg if_neg
-            result.rename new_name
+            result.cast Value_Type.Float . rename new_name
 
     ## ALIAS int
 
@@ -1381,7 +1400,6 @@ type Column
        Helper for the expression to tell it which functions needs a Vector.
     var_args_functions : Array
     var_args_functions = ['is_in', 'coalesce', 'min', 'max']
-
 
     ## PRVIATE
        If the column is NaN/Inf, return it immediately as the value; otherwise

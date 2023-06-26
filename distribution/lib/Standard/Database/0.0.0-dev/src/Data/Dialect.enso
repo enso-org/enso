@@ -146,6 +146,13 @@ type Dialect
         Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
+       Specifies whether the Database ROUND() function supports negative
+       decimal places.
+    supports_negative_round_decimal_places : Boolean
+    supports_negative_round_decimal_places self =
+        Unimplemented.throw "This is an interface only."
+
+    ## PRIVATE
        Performs any transformations on a column resulting from unifying other
        columns.
 

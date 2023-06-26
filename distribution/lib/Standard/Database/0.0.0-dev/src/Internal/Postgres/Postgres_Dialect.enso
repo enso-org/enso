@@ -157,6 +157,10 @@ type Postgres_Dialect
     supports_separate_nan self = True
 
     ## PRIVATE
+    supports_negative_round_decimal_places : Boolean
+    supports_negative_round_decimal_places self = True
+
+    ## PRIVATE
        There is a bug in Postgres type inference, where if we unify two
        fixed-length char columns of length N and M, the result type is said to
        be a **fixed-length** column of length max_int4. This is wrong, and in

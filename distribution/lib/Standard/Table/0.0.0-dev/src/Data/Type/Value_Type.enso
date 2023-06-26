@@ -179,6 +179,13 @@ type Value_Type
         _ -> False
 
     ## UNSTABLE
+       Checks if the `Value_Type` represents a floating-point type.
+    is_floating : Boolean
+    is_floating self = case self of
+        Value_Type.Float _ -> True
+        _ -> False
+
+    ## UNSTABLE
        Checks if the `Value_Type` represents a decimal type.
     is_decimal : Boolean
     is_decimal self = case self of
