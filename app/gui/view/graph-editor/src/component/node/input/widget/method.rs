@@ -10,6 +10,7 @@ use ide_view_component_list_panel_icons as icons;
 
 use icons::any::View as AnyIcon;
 use icons::component_icons::Id;
+use icons::SIZE;
 
 
 // =================
@@ -17,7 +18,7 @@ use icons::component_icons::Id;
 // =================
 
 /// Distance between the icon and next widget.
-const ICON_GAP: f32 = 20.0;
+const ICON_GAP: f32 = 10.0;
 
 
 
@@ -35,6 +36,7 @@ pub struct Config {}
 #[allow(dead_code)]
 pub struct Widget {
     display_object: display::object::Instance,
+    icon_wrapper:   display::object::Instance,
     icon_id:        Id,
     icon:           AnyIcon,
 }
@@ -50,8 +52,9 @@ impl SpanWidget for Widget {
     }
 
     fn match_node(ctx: &ConfigContext) -> Score {
-        let icon = ctx.span_node.application.as_ref().and_then(|a| a.icon_name.as_ref());
-        if icon.is_some() && ctx.get_extension::<MethodAlreadyInTree>().is_none() {
+        if ctx.span_node.application.is_some()
+            && ctx.get_extension::<MethodAlreadyInTree>().is_none()
+        {
             Score::Perfect
         } else {
             Score::Mismatch
@@ -73,14 +76,20 @@ impl SpanWidget for Widget {
         let display_object = display::object::Instance::new_named("widget::Method");
         display_object
             .use_auto_layout()
-            .set_column_flow()
+            .set_row_flow()
             .set_gap_x(ICON_GAP)
             .set_children_alignment_left_center()
             .justify_content_center_y();
 
+        let icon_wrapper = display::object::Instance::new_named("icon_wrapper");
+        icon_wrapper.set_size((SIZE, SIZE));
         let icon_id = Id::default();
         let icon = icon_id.cached_view();
-        Self { display_object, icon_id, icon }
+        icon.set_size((SIZE, SIZE));
+        icon.set_xy((SIZE / 2.0, SIZE / 2.0));
+        icon_wrapper.add_child(icon.display_object());
+        icon.r_component.set(Vector4(1.0, 1.0, 1.0, 1.0));
+        Self { display_object, icon_id, icon, icon_wrapper }
     }
 
     fn configure(&mut self, _: &Config, mut ctx: ConfigContext) {
@@ -91,15 +100,17 @@ impl SpanWidget for Widget {
             .as_ref()
             .and_then(|app| app.icon_name.as_ref())
             .and_then(|name| name.parse::<Id>().ok())
-            .unwrap_or_default();
+            .unwrap_or(Id::Method);
         if icon_id != self.icon_id {
             self.icon_id = icon_id;
             self.icon = icon_id.cached_view();
+            self.icon.set_size((SIZE, SIZE));
+            self.icon.set_xy((SIZE / 2.0, SIZE / 2.0));
+            self.icon.r_component.set(Vector4(1.0, 1.0, 1.0, 1.0));
+            self.icon_wrapper.replace_children(&[self.icon.display_object()]);
         }
 
         let child = ctx.builder.child_widget(ctx.span_node, ctx.info.nesting_level);
-
-
-        self.display_object.replace_children(&[self.icon.display_object(), &child.root_object]);
+        self.display_object.replace_children(&[&self.icon_wrapper, &child.root_object]);
     }
 }

@@ -632,7 +632,8 @@ define_themes! { [light:0, dark:1]
     }
     widget {
         activation_shape {
-            base      = Lcha(0.56708, 0.23249, 0.71372, 1.0), Lcha(0.56708, 0.23249, 0.71372, 1.0);
+            base      = graph_editor::node::background , graph_editor::node::background;
+            // base      = Lcha(0.56708, 0.23249, 0.71372, 1.0), Lcha(0.56708, 0.23249, 0.71372, 1.0);
             connected = graph_editor::node::background , graph_editor::node::background;
         }
         list_view {

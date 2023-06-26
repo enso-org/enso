@@ -297,6 +297,12 @@ macro_rules! define_widget_modules(
                 }
             }
 
+            fn name(&self) -> &'static str {
+                match self {
+                    $(DynWidget::$name(_) => stringify!($name),)*
+                }
+            }
+
             pub(super) fn configure(&mut self, config: &DynConfig, ctx: ConfigContext) {
                 match (self, config) {
                     $((DynWidget::$name(model), DynConfig::$name(config)) => {
@@ -645,6 +651,7 @@ impl Tree {
     ) {
         self.model.rebuild_tree(self.widgets_frp.clone_ref(), tree, node_expression, styles);
         self.frp.private.output.on_rebuild_finished.emit(());
+        console_log!("TREE:\n{}", self.debug_print());
     }
 
     /// Get the root display object of the widget port for given span tree node. Not all nodes must
@@ -669,6 +676,30 @@ impl Tree {
         if dirty_flag_just_set {
             self.frp.private.output.marked_dirty_sync.emit(());
         }
+    }
+
+    /// Get pretty-printed representation of this widget tree for debugging purposes.
+    fn debug_print(&self) -> String {
+        let mut result = String::new();
+        let hierarchy = self.model.hierarchy.borrow();
+        let Some(root) = hierarchy.first() else { return "<EMPTY>".to_string() };
+        self.print_subtree(&mut result, "", root.identity);
+        result
+    }
+
+    fn print_subtree(&self, dst: &mut String, indent: &str, pointer: WidgetIdentity) {
+        dst.push_str(indent);
+        match self.model.nodes_map.borrow().get(&pointer) {
+            Some(entry) => {
+                dst.push_str(entry.node.widget().name());
+            }
+            None => {
+                dst.push_str("<MISSING>");
+            }
+        }
+        dst.push_str("\n");
+        let indent = format!("{}  ", indent);
+        self.model.iter_children(pointer).for_each(|child| self.print_subtree(dst, &indent, child));
     }
 }
 
