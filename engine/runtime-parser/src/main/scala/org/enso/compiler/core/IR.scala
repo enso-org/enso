@@ -7868,6 +7868,11 @@ object IR {
         override def explanation: String = "Ambiguous expression"
       }
 
+      case object InvalidSelfArgUsage extends Reason {
+        override def explanation: String =
+          "Self argument can only be used in non-static method definitions"
+      }
+
       case object UnrecognizedToken extends Reason {
         override def explanation: String = "Unrecognized token"
       }
