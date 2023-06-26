@@ -1,5 +1,6 @@
 /** @file Form to create a project. */
 import * as React from 'react'
+import toast from 'react-hot-toast'
 
 import DirectoryIcon from 'enso-assets/directory.svg'
 import PlusIcon from 'enso-assets/plus.svg'
@@ -7,6 +8,8 @@ import PlusIcon from 'enso-assets/plus.svg'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as columnModule from '../column'
+import * as dateTime from '../dateTime'
+import * as directoryListEventModule from '../events/directoryListEvent'
 import * as errorModule from '../../error'
 import * as eventModule from '../event'
 import * as hooks from '../../hooks'
@@ -29,6 +32,10 @@ import RenameModal from './renameModal'
 // === Constants ===
 // =================
 
+/** The {@link RegExp} matching a directory name following the default naming convention. */
+const DIRECTORY_NAME_REGEX = /^New_Folder_(?<directoryIndex>\d+)$/
+/** The default prefix of an automatically generated directory. */
+const DIRECTORY_NAME_DEFAULT_PREFIX = 'New_Folder_'
 /** The user-facing name of this asset type. */
 const ASSET_TYPE_NAME = 'folder'
 /** The user-facing plural name of this asset type. */
@@ -181,11 +188,11 @@ function DirectoryName(props: InternalDirectoryNameProps) {
 
 /** Props for a {@link DirectoriesTable}. */
 export interface DirectoriesTableProps {
+    directoryId: backendModule.DirectoryId | null
     items: backendModule.DirectoryAsset[]
     filter: ((item: backendModule.DirectoryAsset) => boolean) | null
     isLoading: boolean
     columnDisplayMode: columnModule.ColumnDisplayMode
-    doCreateDirectory: () => void
     onRename: () => void
     onDelete: () => void
     enterDirectory: (directory: backendModule.DirectoryAsset) => void
@@ -194,11 +201,11 @@ export interface DirectoriesTableProps {
 /** The table of directory assets. */
 function DirectoriesTable(props: DirectoriesTableProps) {
     const {
+        directoryId,
         items: rawItems,
         filter,
         isLoading,
         columnDisplayMode,
-        doCreateDirectory,
         onRename,
         onDelete,
         enterDirectory,
@@ -207,9 +214,17 @@ function DirectoriesTable(props: DirectoriesTableProps) {
     const { backend } = backendProvider.useBackend()
     const { setModal } = modalProvider.useSetModal()
 
-    const items = React.useMemo(
-        () => (filter != null ? rawItems.filter(filter) : rawItems),
-        [rawItems, filter]
+    const [items, setItems] = React.useState(rawItems)
+    const [directoryListEvent, dispatchDirectoryListEvent] =
+        React.useState<directoryListEventModule.DirectoryListEvent | null>(null)
+
+    React.useEffect(() => {
+        setItems(rawItems)
+    }, [rawItems])
+
+    const visibleItems = React.useMemo(
+        () => (filter != null ? items.filter(filter) : items),
+        [items, filter]
     )
 
     const state = React.useMemo(
@@ -218,12 +233,75 @@ function DirectoriesTable(props: DirectoriesTableProps) {
         [enterDirectory]
     )
 
+    const createNewDirectory = React.useCallback(() => {
+        dispatchDirectoryListEvent({
+            type: directoryListEventModule.DirectoryListEventType.create,
+        })
+    }, [])
+
+    hooks.useEvent(directoryListEvent, async event => {
+        switch (event.type) {
+            case directoryListEventModule.DirectoryListEventType.create: {
+                if (backend.type !== backendModule.BackendType.remote) {
+                    const message = 'Folders cannot be created on the local backend.'
+                    toast.error(message)
+                    logger.error(message)
+                } else {
+                    const directoryIndices = items
+                        .map(item => DIRECTORY_NAME_REGEX.exec(item.title))
+                        .map(match => match?.groups?.directoryIndex)
+                        .map(maybeIndex => (maybeIndex != null ? parseInt(maybeIndex, 10) : 0))
+                    const title = `${DIRECTORY_NAME_DEFAULT_PREFIX}${
+                        Math.max(...directoryIndices) + 1
+                    }`
+                    const placeholderItem: backendModule.DirectoryAsset = {
+                        title,
+                        type: backendModule.AssetType.directory,
+                        id: backendModule.DirectoryId(uniqueString.uniqueString()),
+                        modifiedAt: dateTime.toRfc3339(new Date()),
+                        parentId: directoryId ?? backendModule.DirectoryId(''),
+                        permissions: [],
+                        projectState: null,
+                    }
+                    setItems(oldItems => [placeholderItem, ...oldItems])
+                    const createDirectoryPromise = backend.createDirectory({
+                        parentId: directoryId,
+                        title,
+                    })
+                    const createdDirectory = await toastPromise.toastPromise(
+                        createDirectoryPromise,
+                        {
+                            loading: 'Creating folder...',
+                            success: 'Sucessfully created folder.',
+                            // This is UNSAFE, as the original function's parameter is
+                            // of type `any`.
+                            error: (promiseError: Error) =>
+                                `Error creating new folder: ${promiseError.message}`,
+                        }
+                    )
+                    const newItem: backendModule.DirectoryAsset = {
+                        ...placeholderItem,
+                        ...createdDirectory,
+                    }
+                    setItems(oldItems =>
+                        oldItems.map(item => (item !== placeholderItem ? item : newItem))
+                    )
+                }
+                break
+            }
+            case directoryListEventModule.DirectoryListEventType.delete: {
+                setItems(oldItems => oldItems.filter(item => item.id !== event.directoryId))
+                break
+            }
+        }
+    })
+
     if (backend.type === backendModule.BackendType.local) {
         return <></>
     } else {
         return (
             <Table<backendModule.DirectoryAsset, DirectoryNamePropsState>
-                items={items}
+                items={visibleItems}
                 isLoading={isLoading}
                 state={state}
                 getKey={backendModule.getAssetId}
@@ -234,7 +312,7 @@ function DirectoriesTable(props: DirectoriesTableProps) {
                               id: column,
                               className: columnModule.COLUMN_CSS_CLASS[column],
                               heading: (
-                                  <DirectoryNameHeading doCreateDirectory={doCreateDirectory} />
+                                  <DirectoryNameHeading doCreateDirectory={createNewDirectory} />
                               ),
                               render: DirectoryName,
                           }

@@ -8,13 +8,9 @@ import * as authProvider from '../../authentication/providers/auth'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as columnModule from '../column'
-import * as dateTime from '../dateTime'
 import * as hooks from '../../hooks'
 import * as loggerProvider from '../../providers/logger'
-import * as toastPromise from '../toastPromise'
-import * as uniqueString from '../../uniqueString'
 
-import * as directoryListEventModule from '../events/directoryListEvent'
 import * as projectEventModule from '../events/projectEvent'
 import * as projectListEventModule from '../events/projectListEvent'
 
@@ -30,10 +26,6 @@ import SecretsTable from './secretsTable'
 
 /** The `localStorage` key under which the ID of the current directory is stored. */
 const DIRECTORY_STACK_KEY = `${common.PRODUCT_NAME.toLowerCase()}-dashboard-directory-stack`
-/** The {@link RegExp} matching a directory name following the default naming convention. */
-const DIRECTORY_NAME_REGEX = /^New_Directory_(?<directoryIndex>\d+)$/
-/** The default prefix of an automatically generated directory. */
-const DIRECTORY_NAME_DEFAULT_PREFIX = 'New_Directory_'
 
 // ========================
 // === Helper functions ===
@@ -109,9 +101,6 @@ function DirectoryView(props: DirectoryViewProps) {
     const [fileAssets, setFileAssets] = React.useState<backendModule.FileAsset[]>([])
     const [projectEvent, dispatchProjectEvent] =
         React.useState<projectEventModule.ProjectEvent | null>(null)
-
-    const [directoryListEvent, dispatchDirectoryListEvent] =
-        React.useState<directoryListEventModule.DirectoryListEvent | null>(null)
 
     const assetFilter = React.useMemo(() => {
         if (query === '') {
@@ -241,83 +230,12 @@ function DirectoryView(props: DirectoryViewProps) {
         /* should never change */ dispatchProjectEvent,
     ])
 
-    React.useEffect(() => {
-        void (async () => {
-            if (directoryEvent != null) {
-                switch (directoryEvent.type) {
-                    case directoryEventModule.DirectoryEventType.createDirectory: {
-                        if (backend.type !== backendModule.BackendType.remote) {
-                            toast.error('Folders cannot be created on the local backend.')
-                        } else {
-                            const directoryIndices = directoryAssets
-                                .map(directoryAsset =>
-                                    DIRECTORY_NAME_REGEX.exec(directoryAsset.title)
-                                )
-                                .map(match => match?.groups?.directoryIndex)
-                                .map(maybeIndex =>
-                                    maybeIndex != null ? parseInt(maybeIndex, 10) : 0
-                                )
-                            const title = `${DIRECTORY_NAME_DEFAULT_PREFIX}${
-                                Math.max(...directoryIndices) + 1
-                            }`
-                            const placeholderNewDirectoryAsset: backendModule.DirectoryAsset = {
-                                title,
-                                type: backendModule.AssetType.directory,
-                                id: backendModule.DirectoryId(uniqueString.uniqueString()),
-                                modifiedAt: dateTime.toRfc3339(new Date()),
-                                parentId: directoryId ?? backendModule.DirectoryId(''),
-                                permissions: [],
-                                projectState: null,
-                            }
-                            setDirectoryAssets(oldDirectoryAssets => [
-                                placeholderNewDirectoryAsset,
-                                ...oldDirectoryAssets,
-                            ])
-                            const createDirectoryPromise = backend.createDirectory({
-                                parentId: directoryId,
-                                title,
-                            })
-                            const createdDirectory = await toastPromise.toastPromise(
-                                createDirectoryPromise,
-                                {
-                                    loading: 'Creating folder...',
-                                    success: 'Sucessfully created folder.',
-                                    // This is UNSAFE, as the original function's parameter is
-                                    // of type `any`.
-                                    error: (promiseError: Error) =>
-                                        `Error creating new folder: ${promiseError.message}`,
-                                }
-                            )
-                            setDirectoryAssets(oldDirectoryAssets => {
-                                const newDirectoryAssets = [...oldDirectoryAssets]
-                                newDirectoryAssets[
-                                    newDirectoryAssets.indexOf(placeholderNewDirectoryAsset)
-                                ] = {
-                                    ...placeholderNewDirectoryAsset,
-                                    ...createdDirectory,
-                                }
-                                return newDirectoryAssets
-                            })
-                        }
-                        break
-                    }
-                }
-            }
-        })()
-    }, [backend, directoryId, directoryAssets, /* should never change */ dispatchProjectEvent])
-
     const doCreateProject = React.useCallback(() => {
         dispatchProjectListEvent({
             type: projectListEventModule.ProjectListEventType.create,
             templateId: null,
         })
     }, [/* should never change */ dispatchProjectListEvent])
-
-    const doCreateDirectory = React.useCallback(() => {
-        dispatchDirectoryListEvent({
-            type: directoryListEventModule.DirectoryListEventType.create,
-        })
-    }, [/* should never change */ dispatchDirectoryListEvent])
 
     const enterDirectory = React.useCallback(
         (directoryAsset: backendModule.DirectoryAsset) => {
@@ -359,6 +277,8 @@ function DirectoryView(props: DirectoryViewProps) {
                 columnDisplayMode={columnDisplayMode}
                 projectEvent={projectEvent}
                 dispatchProjectEvent={dispatchProjectEvent}
+                projectListEvent={projectListEvent}
+                dispatchProjectListEvent={dispatchProjectListEvent}
                 doCreateProject={doCreateProject}
                 onRename={doRefresh}
                 onDelete={doRefresh}
@@ -367,11 +287,11 @@ function DirectoryView(props: DirectoryViewProps) {
             />
             <div className="h-10" />
             <DirectoriesTable
+                directoryId={directoryId}
                 items={directoryAssets}
                 filter={assetFilter}
                 isLoading={isLoadingAssets}
                 columnDisplayMode={columnDisplayMode}
-                doCreateDirectory={doCreateDirectory}
                 onRename={doRefresh}
                 onDelete={doRefresh}
                 enterDirectory={enterDirectory}

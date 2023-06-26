@@ -251,29 +251,48 @@ function SecretName(props: InternalSecretNameProps) {
 export interface SecretsTableProps {
     directoryId: backendModule.DirectoryId | null
     items: backendModule.SecretAsset[]
+    filter: ((item: backendModule.SecretAsset) => boolean) | null
     isLoading: boolean
     columnDisplayMode: columnModule.ColumnDisplayMode
-    query: string
     onCreate: () => void
     onDelete: () => void
 }
 
 /** The table of secret assets. */
 function SecretsTable(props: SecretsTableProps) {
-    const { directoryId, items, isLoading, columnDisplayMode, query, onCreate, onDelete } = props
+    const {
+        directoryId,
+        items: rawItems,
+        filter,
+        isLoading,
+        columnDisplayMode,
+        onCreate,
+        onDelete,
+    } = props
     const logger = loggerProvider.useLogger()
     const { backend } = backendProvider.useBackend()
     const { setModal } = modalProvider.useSetModal()
+
+    const [items, setItems] = React.useState(rawItems)
+
+    React.useEffect(() => {
+        setItems(rawItems)
+    }, [rawItems])
+
+    const visibleItems = React.useMemo(
+        () => (filter != null ? items.filter(filter) : items),
+        [items, filter]
+    )
 
     if (backend.type === backendModule.BackendType.local) {
         return <></>
     } else {
         return (
             <Table<backendModule.SecretAsset>
-                items={items}
+                items={visibleItems}
                 isLoading={isLoading}
                 getKey={backendModule.getAssetId}
-                placeholder={query ? PLACEHOLDER_WITH_QUERY : PLACEHOLDER_WITHOUT_QUERY}
+                placeholder={filter != null ? PLACEHOLDER_WITH_QUERY : PLACEHOLDER_WITHOUT_QUERY}
                 columns={columnModule.columnsFor(columnDisplayMode, backend.type).map(column =>
                     column === columnModule.Column.name
                         ? {

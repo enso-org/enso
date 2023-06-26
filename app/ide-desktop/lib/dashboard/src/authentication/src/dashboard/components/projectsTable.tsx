@@ -218,6 +218,9 @@ function ProjectName(props: InternalProjectNameProps) {
 interface InternalProjectRowContextMenuProps {
     innerProps: table.RowInnerProps<backendModule.ProjectAsset, projectRowState.ProjectRowState>
     event: React.MouseEvent
+    dispatchProjectEvent: (projectListEvent: projectEventModule.ProjectEvent) => void
+    onRename: () => void
+    onDelete: () => void
 }
 
 /** The context menu for a row of a {@link ProjectsTable}. */
@@ -225,9 +228,12 @@ function ProjectRowContextMenu(props: InternalProjectRowContextMenuProps) {
     const {
         innerProps: { item, rowState },
         event,
+        dispatchProjectEvent,
+        onRename,
+        onDelete,
     } = props
     const { backend } = backendProvider.useBackend()
-    const { unsetModal } = modalProvider.useSetModal()
+    const { setModal, unsetModal } = modalProvider.useSetModal()
 
     const isDeleteDisabled = backend.type === backendModule.BackendType.local && rowState.isRunning
     const doOpenForEditing = () => {
@@ -341,7 +347,7 @@ function ProjectsTable(props: ProjectsTableProps) {
         doCloseIde: rawDoCloseIde,
     } = props
     const { backend } = backendProvider.useBackend()
-    const { setModal, unsetModal } = modalProvider.useSetModal()
+    const { setModal } = modalProvider.useSetModal()
     const [items, setItems] = React.useState(rawItems)
 
     React.useEffect(() => {
@@ -386,7 +392,7 @@ function ProjectsTable(props: ProjectsTableProps) {
                     type: projectEventModule.ProjectEventType.showAsOpening,
                     projectId: dummyId,
                 })
-                // FIXME: individual rows should handle this
+                // FIXME: individual rows should handle this?
                 const createProjectPromise = backend.createProject({
                     projectName,
                     projectTemplateName: event.templateId ?? null,
@@ -522,7 +528,15 @@ function ProjectsTable(props: ProjectsTableProps) {
             onRowContextMenu={(innerProps, event) => {
                 event.preventDefault()
                 event.stopPropagation()
-                setModal(<ProjectRowContextMenu innerProps={innerProps} event={event} />)
+                setModal(
+                    <ProjectRowContextMenu
+                        innerProps={innerProps}
+                        event={event}
+                        dispatchProjectEvent={dispatchProjectEvent}
+                        onRename={onRename}
+                        onDelete={onDelete}
+                    />
+                )
             }}
         />
     )
