@@ -52,8 +52,8 @@ function changeExtension(file, extension) {
  * @param {string} path - The path to the file.
  * @param {ChecksumType} type - The checksum algorithm to use. */
 async function writeFileChecksum(path, type) {
-    let checksum = await getChecksum(path, type)
-    let targetPath = changeExtension(path, type)
+    const checksum = await getChecksum(path, type)
+    const targetPath = changeExtension(path, type)
     console.log(`Writing ${targetPath}. Checksum is ${checksum}.`)
     await fs.promises.writeFile(targetPath, checksum, 'utf8')
 }

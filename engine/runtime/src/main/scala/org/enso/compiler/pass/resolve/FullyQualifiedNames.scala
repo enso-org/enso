@@ -12,7 +12,7 @@ import org.enso.compiler.data.BindingsMap.{
   Resolution,
   ResolvedType
 }
-import org.enso.compiler.exception.CompilerError
+import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{AliasAnalysis, BindingAnalysis}
 import org.enso.compiler.pass.desugar.Imports
@@ -401,7 +401,7 @@ case object FullyQualifiedNames extends IRPass {
     * @param target the partially resolved name
     */
   sealed case class FQNResolution(target: PartiallyResolvedFQN)
-      extends IRPass.Metadata {
+      extends IRPass.IRMetadata {
 
     override val metadataName: String =
       "FullyQualifiedNames.Resolution"
@@ -417,7 +417,7 @@ case object FullyQualifiedNames extends IRPass {
       target.restoreFromSerialization(compiler).map(FQNResolution)
 
     /** @inheritdoc */
-    override def duplicate(): Option[IRPass.Metadata] = Some(this)
+    override def duplicate(): Option[IRPass.IRMetadata] = Some(this)
   }
 
   sealed trait PartiallyResolvedFQN {

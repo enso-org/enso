@@ -33,7 +33,9 @@ type Encoding
     all_character_sets =
         Charset.availableCharsets.keys
 
-    ## Get all available Encodings.
+    ## PRIVATE
+       ADVANCED
+       Get all available Encodings.
     all_encodings : Vector Encoding
     all_encodings =
         Encoding.all_character_sets.map Encoding.Value

@@ -39,15 +39,15 @@ type Table_Update
    Return a sub-window of a table. The window is defined by a cell row/col and line/chunk
    coordinate as origin and the extent of the window in text chunks and lines. The size of
    a chunk (the characters in it) is defined by `chunk_width`. The output is formatted as a message
-   that can be sent to the IDE's lazy text visualisation.
-get_lazy_visualisation_data : Table_Module.Table -> Vector Integer -> Vector Integer -> Vector Integer -> Integer -> Text
-get_lazy_visualisation_data table table_cell_position text_window_position text_window_size chunk_size =
+   that can be sent to the IDE's lazy text visualization.
+get_lazy_visualization_data : Table_Module.Table -> Vector Integer -> Vector Integer -> Vector Integer -> Integer -> Text
+get_lazy_visualization_data table table_cell_position text_window_position text_window_size chunk_size =
     update = compute_table_update table table_cell_position text_window_position text_window_size chunk_size
     update.to_json
 
 ## PRIVATE
 
-   Compute the table visualisation update. The table update contains information about the table
+   Compute the table visualization update. The table update contains information about the table
    layout and the table content.
 compute_table_update table table_cell_position text_window_position text_window_size chunk_size =
     text_window_width = text_window_size.get 0

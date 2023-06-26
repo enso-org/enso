@@ -1,6 +1,6 @@
 package org.enso.compiler.phase
 
-import org.enso.compiler.EnsoCompiler
+import org.enso.compiler.core.EnsoParser
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, ModuleContext}
 import org.enso.compiler.data.CompilerConfig
@@ -38,7 +38,7 @@ object BuiltinsIrBuilder {
       freshNameSupply = Some(freshNameSupply),
       compilerConfig  = CompilerConfig(warningsEnabled = false)
     )
-    val initialIr = Using(new EnsoCompiler) { compiler =>
+    val initialIr = Using(new EnsoParser) { compiler =>
       compiler.compile(module.getSource.getCharacters)
     }.get
     val irAfterModDiscovery = passManager.runPassesOnModule(

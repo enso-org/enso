@@ -1,0 +1,56 @@
+from Standard.Base import Any, Meta, Integer, True, False, Nothing
+
+type Gen
+    Generator n:Integer
+
+    next : Gen
+    next self = Gen.Generator self.n+1
+
+natural : Gen
+natural =
+    gen n = Gen.Generator n
+    gen 2
+
+type Filter
+    Empty
+    Item n:Integer next
+    Head first:Filter set_last:Filter->Nothing
+
+    acceptAndAdd : Integer
+    acceptAndAdd self n =
+        iterate f = case f of
+            Filter.Item p next -> if n % p == 0 then False else
+                if p * p > n then True else @Tail_Call iterate next
+            Filter.Empty -> True
+
+        appendN head set_last =
+            pair = Meta.atom_with_hole (h -> Filter.Item n h)
+            newLast = pair.value
+            set_last newLast
+            Filter.Head head.first pair.fill
+
+        case self of
+            Filter.Empty ->
+                pair = Meta.atom_with_hole (h -> Filter.Item n h)
+                Filter.Head pair.value pair.fill
+            Filter.Head _ _ -> if iterate self.first then appendN self self.set_last else self
+
+type Primes
+    Alg generator filter
+
+Primes.next self = case self of
+    Primes.Alg g f ->
+        filter = f.acceptAndAdd g.n
+        new_primes = Primes.Alg g.next filter
+        if Meta.is_same_object filter f then @Tail_Call new_primes.next else new_primes
+
+Primes.last_prime self = case self of
+    Primes.Alg g _ -> g.n - 1
+
+
+compute_nth_prime n =
+    loop p n = if n == 0 then p else
+        pn = p.next
+        @Tail_Call loop pn n-1
+    p = Primes.Alg natural Filter.Empty
+    loop p n . last_prime

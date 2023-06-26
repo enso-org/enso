@@ -5,6 +5,7 @@ import org.enso.interpreter.instrument.execution.model.PendingEdit
 import org.enso.interpreter.instrument.job.{EnsureCompiledJob, ExecuteJob}
 import org.enso.polyglot.runtime.Runtime.Api
 
+import java.util.logging.Level
 import scala.concurrent.{ExecutionContext, Future}
 
 /** A command that performs edition of a file.
@@ -22,8 +23,9 @@ class EditFileCmd(request: Api.EditFileNotification)
     ctx: RuntimeContext,
     ec: ExecutionContext
   ): Future[Unit] = {
-    ctx.locking.acquireFileLock(request.path)
-    ctx.locking.acquirePendingEditsLock()
+    val logger                    = ctx.executionService.getLogger
+    val fileLockTimestamp         = ctx.locking.acquireFileLock(request.path)
+    val pendingEditsLockTimestamp = ctx.locking.acquirePendingEditsLock()
     try {
       val edits =
         request.edits.map(edit => PendingEdit.ApplyEdit(edit, request.execute))
@@ -36,7 +38,15 @@ class EditFileCmd(request: Api.EditFileNotification)
       Future.successful(())
     } finally {
       ctx.locking.releasePendingEditsLock()
+      logger.log(
+        Level.FINEST,
+        "Kept pending edits lock [EditFileCmd] for " + (System.currentTimeMillis - pendingEditsLockTimestamp) + " milliseconds"
+      )
       ctx.locking.releaseFileLock(request.path)
+      logger.log(
+        Level.FINEST,
+        "Kept file lock [EditFileCmd] for " + (System.currentTimeMillis - fileLockTimestamp) + " milliseconds"
+      )
     }
   }
 

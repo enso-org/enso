@@ -21,6 +21,7 @@ serde = { version = "1.0", features = ["derive"] }
 typenum = { version = "1.11.2" }
 rustversion = { version = "1.0" }
 failure = { workspace = true }
+bytemuck = { workspace = true }
 
 [dev-dependencies]
 itertools = { workspace = true }

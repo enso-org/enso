@@ -357,13 +357,11 @@ type Array
     is_empty : Boolean
     is_empty self = self.length == 0
 
-    ## UNSTABLE
-       Converts the array to a list with the same elements.
+    ## Converts the array to a list with the same elements.
     to_list : List
     to_list self = Vector.to_list self
 
-    ## UNSTABLE
-       Keeps only unique elements within the array, removing any duplicates.
+    ## Keeps only unique elements within the array, removing any duplicates.
 
        Arguments:
        - on: A projection from the element type to the value of that element
@@ -733,8 +731,7 @@ type Array
     zip : Vector Any -> (Any -> Any -> Any) -> Vector Any
     zip self that function=[_,_] = Vector.zip self that function
 
-    ## UNSTABLE
-       Returns the array as a `Vector`.
+    ## Returns the array as a `Vector`.
     to_vector : Vector
     to_vector self = Vector.from_polyglot_array self
 

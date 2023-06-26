@@ -423,7 +423,7 @@ fn test_execution_context() {
         unit_json.clone(),
         (),
     );
-    let visualisation_id = Uuid::default();
+    let visualization_id = Uuid::default();
     let expression_id = Uuid::default();
     let visualization_function = "foo";
     let visualization_module = "[Foo.Bar.Baz]";
@@ -433,20 +433,20 @@ fn test_execution_context() {
         name:            visualization_function.to_string(),
     };
     let positional_arguments_expressions = vec![1, 2, 3].iter().map(|x| x.to_string()).collect();
-    let visualisation_config = VisualisationConfiguration {
+    let visualization_config = VisualizationConfiguration {
         execution_context_id: context_id,
         expression,
         positional_arguments_expressions,
     };
     test_request(
         |client| {
-            client.attach_visualisation(&visualisation_id, &expression_id, &visualisation_config)
+            client.attach_visualization(&visualization_id, &expression_id, &visualization_config)
         },
-        "executionContext/attachVisualisation",
+        "executionContext/attachVisualization",
         json!({
-            "visualisationId"     : "00000000-0000-0000-0000-000000000000",
+            "visualizationId"     : "00000000-0000-0000-0000-000000000000",
             "expressionId"        : "00000000-0000-0000-0000-000000000000",
-            "visualisationConfig" : {
+            "visualizationConfig" : {
                 "executionContextId"  : "00000000-0000-0000-0000-000000000000",
                 "expression"          : {
                     "module"        : "[Foo.Bar.Baz]",
@@ -460,11 +460,11 @@ fn test_execution_context() {
         (),
     );
     test_request(
-        |client| client.detach_visualisation(&context_id, &visualisation_id, &expression_id),
-        "executionContext/detachVisualisation",
+        |client| client.detach_visualization(&context_id, &visualization_id, &expression_id),
+        "executionContext/detachVisualization",
         json!({
             "contextId"       : "00000000-0000-0000-0000-000000000000",
-            "visualisationId" : "00000000-0000-0000-0000-000000000000",
+            "visualizationId" : "00000000-0000-0000-0000-000000000000",
             "expressionId"    : "00000000-0000-0000-0000-000000000000"
         }),
         unit_json.clone(),
@@ -478,17 +478,17 @@ fn test_execution_context() {
         name:            visualization_function.to_string(),
     };
     let positional_arguments_expressions = vec!["foo"].iter().map(|x| x.to_string()).collect();
-    let visualisation_config = VisualisationConfiguration {
+    let visualization_config = VisualizationConfiguration {
         execution_context_id: context_id,
         expression,
         positional_arguments_expressions,
     };
     test_request(
-        |client| client.modify_visualisation(&visualisation_id, &visualisation_config),
-        "executionContext/modifyVisualisation",
+        |client| client.modify_visualization(&visualization_id, &visualization_config),
+        "executionContext/modifyVisualization",
         json!({
-            "visualisationId"     : "00000000-0000-0000-0000-000000000000",
-            "visualisationConfig" : {
+            "visualizationId"     : "00000000-0000-0000-0000-000000000000",
+            "visualizationConfig" : {
                 "executionContextId"  : "00000000-0000-0000-0000-000000000000",
                 "expression"          : {
                     "module"        : "[Foo.Bar.Baz]",

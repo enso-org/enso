@@ -33,9 +33,9 @@ class RenameProjectCmd(
     } yield ()
 
   private def doRename(implicit ctx: RuntimeContext): Unit = {
-    ctx.locking.acquireWriteCompilationLock()
+    val logger             = ctx.executionService.getLogger
+    val writeLockTimestamp = ctx.locking.acquireWriteCompilationLock()
     try {
-      val logger = ctx.executionService.getLogger
       logger.log(
         Level.FINE,
         s"Renaming project [old:${request.namespace}.${request.oldName},new:${request.namespace}.${request.newName}]..."
@@ -76,6 +76,11 @@ class RenameProjectCmd(
       )
     } finally {
       ctx.locking.releaseWriteCompilationLock()
+      logger.log(
+        Level.FINEST,
+        "Kept write compilation lock [RenameProjectCmd] for " + (System.currentTimeMillis - writeLockTimestamp) + " milliseconds"
+      )
+
     }
   }
 

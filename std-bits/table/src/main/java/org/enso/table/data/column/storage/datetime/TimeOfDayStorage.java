@@ -1,8 +1,8 @@
 package org.enso.table.data.column.storage.datetime;
 
 import java.time.LocalTime;
-import org.enso.table.data.column.builder.object.Builder;
-import org.enso.table.data.column.builder.object.TimeOfDayBuilder;
+import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.builder.TimeOfDayBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.datetime.DateTimeIsInOp;
 import org.enso.table.data.column.storage.ObjectStorage;

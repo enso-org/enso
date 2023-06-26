@@ -257,7 +257,6 @@ lazy val enso = (project in file("."))
     `syntax-definition`,
     `syntax-rust-definition`,
     `text-buffer`,
-    graph,
     logger,
     pkg,
     cli,
@@ -274,6 +273,7 @@ lazy val enso = (project in file("."))
     searcher,
     launcher,
     downloader,
+    `runtime-parser`,
     `runtime-language-epb`,
     `runtime-instrument-common`,
     `runtime-instrument-id-execution`,
@@ -360,17 +360,7 @@ val akka =
 
 // === Cats ===================================================================
 
-val catsVersion    = "2.9.0"
-val kittensVersion = "3.0.0"
-val cats = {
-  Seq(
-    "org.typelevel" %% "cats-core"   % catsVersion,
-    "org.typelevel" %% "cats-effect" % catsVersion,
-    "org.typelevel" %% "cats-free"   % catsVersion,
-    "org.typelevel" %% "cats-macros" % catsVersion,
-    "org.typelevel" %% "kittens"     % kittensVersion
-  )
-}
+val catsVersion = "2.9.0"
 
 // === Circe ==================================================================
 
@@ -424,17 +414,6 @@ val jmh = Seq(
   "org.openjdk.jmh" % "jmh-generator-annprocess" % jmhVersion % Benchmark
 )
 
-// === Monocle ================================================================
-
-val monocleVersion = "2.1.0"
-val monocle = {
-  Seq(
-    "com.github.julien-truffaut" %% "monocle-core"  % monocleVersion,
-    "com.github.julien-truffaut" %% "monocle-macro" % monocleVersion,
-    "com.github.julien-truffaut" %% "monocle-law"   % monocleVersion % "test"
-  )
-}
-
 // === Scala Compiler =========================================================
 
 val scalaCompiler = Seq(
@@ -445,7 +424,8 @@ val scalaCompiler = Seq(
 // === std-lib ================================================================
 
 val antlrVersion            = "4.13.0"
-val awsJavaSdkVersion       = "1.12.480"
+val awsJavaSdkV1Version     = "1.12.480"
+val awsJavaSdkV2Version     = "2.20.78"
 val icuVersion              = "73.1"
 val poiOoxmlVersion         = "5.2.3"
 val redshiftVersion         = "2.1.0.15"
@@ -485,7 +465,7 @@ val scalatestVersion        = "3.3.0-SNAP4"
 val shapelessVersion        = "2.3.10"
 val slf4jVersion            = "1.7.36"
 val slickVersion            = "3.4.1"
-val sqliteVersion           = "3.41.2.1"
+val sqliteVersion           = "3.42.0.0"
 val tikaVersion             = "2.4.1"
 val typesafeConfigVersion   = "1.4.2"
 val junitVersion            = "4.13.2"
@@ -505,15 +485,7 @@ lazy val logger = (project in file("lib/scala/logger"))
   )
 
 lazy val `syntax-definition` =
-  (project in file("lib/scala/syntax/definition"))
-    .dependsOn(logger)
-    .settings(
-      scalacOptions ++= Seq("-Ypatmat-exhaust-depth", "off"),
-      libraryDependencies ++= monocle ++ scalaCompiler ++ Seq(
-        "org.typelevel" %% "cats-core" % catsVersion,
-        "org.typelevel" %% "kittens"   % kittensVersion
-      )
-    )
+  project in file("lib/scala/syntax/definition")
 
 lazy val syntax = (project in file("lib/scala/syntax/specialization"))
   .dependsOn(`syntax-definition`)
@@ -525,11 +497,7 @@ lazy val syntax = (project in file("lib/scala/syntax/specialization"))
     version := "0.1",
     logBuffered := false,
     libraryDependencies ++= Seq(
-      "org.scalatest" %% "scalatest"     % scalatestVersion % Test,
-      "com.lihaoyi"   %% "pprint"        % pprintVersion,
-      "io.circe"      %% "circe-core"    % circeVersion,
-      "io.circe"      %% "circe-generic" % circeVersion,
-      "io.circe"      %% "circe-parser"  % circeVersion
+      "org.scalatest" %% "scalatest" % scalatestVersion % Test
     ),
     (Compile / compile) := (Compile / compile)
       .dependsOn(RecompileParser.run(`syntax-definition`))
@@ -645,30 +613,6 @@ lazy val `syntax-rust-definition` = project
     Compile / resourceGenerators += generateRustParserLib,
     Compile / javaSource := baseDirectory.value / "generate-java" / "java",
     frgaalJavaCompilerSetting
-  )
-
-lazy val graph = (project in file("lib/scala/graph/"))
-  .dependsOn(logger)
-  .configs(Test)
-  .settings(
-    frgaalJavaCompilerSetting,
-    version := "0.1",
-    resolvers ++= (
-      Resolver.sonatypeOssRepos("releases") ++
-      Resolver.sonatypeOssRepos("snapshots")
-    ),
-    scalacOptions += "-Ymacro-annotations",
-    libraryDependencies ++= scalaCompiler ++ Seq(
-      "com.chuusai"                %% "shapeless"     % shapelessVersion,
-      "io.estatico"                %% "newtype"       % newtypeVersion,
-      "org.scalatest"              %% "scalatest"     % scalatestVersion  % Test,
-      "org.scalacheck"             %% "scalacheck"    % scalacheckVersion % Test,
-      "com.github.julien-truffaut" %% "monocle-core"  % monocleVersion,
-      "org.apache.commons"          % "commons-lang3" % commonsLangVersion
-    ),
-    addCompilerPlugin(
-      "org.typelevel" %% "kind-projector" % kindProjectorVersion cross CrossVersion.full
-    )
   )
 
 lazy val pkg = (project in file("lib/scala/pkg"))
@@ -1412,12 +1356,25 @@ lazy val runtime = (project in file("engine/runtime"))
   .dependsOn(`logging-utils`)
   .dependsOn(`polyglot-api`)
   .dependsOn(`text-buffer`)
+  .dependsOn(`runtime-parser`)
   .dependsOn(pkg)
   .dependsOn(`edition-updater`)
   .dependsOn(`connected-lock-manager`)
-  .dependsOn(syntax)
-  .dependsOn(`syntax-rust-definition`)
   .dependsOn(testkit % Test)
+
+lazy val `runtime-parser` =
+  (project in file("engine/runtime-parser"))
+    .settings(
+      frgaalJavaCompilerSetting,
+      instrumentationSettings,
+      libraryDependencies ++= Seq(
+        "junit"          % "junit"           % junitVersion     % Test,
+        "com.novocode"   % "junit-interface" % junitIfVersion   % Test exclude ("junit", "junit-dep"),
+        "org.scalatest" %% "scalatest"       % scalatestVersion % Test
+      )
+    )
+    .dependsOn(syntax)
+    .dependsOn(`syntax-rust-definition`)
 
 lazy val `runtime-instrument-common` =
   (project in file("engine/runtime-instrument-common"))
@@ -1594,6 +1551,12 @@ lazy val `engine-runner` = project
           .mkString(File.pathSeparator)
       Seq(s"-Dtruffle.class.path.append=$runtimeClasspath")
     },
+    packageOptions := Seq(
+      // The `Multi-Release: true` comes from the `org.xerial/sqlite-jdbc` dependency.
+      // But the current version of sbt-assembly does not allow to merge MANIFEST.MF
+      // files this way.
+      Package.ManifestAttributes(("Multi-Release", "true"))
+    ),
     Compile / run / mainClass := Some("org.enso.runner.Main"),
     assembly / mainClass := (Compile / run / mainClass).value,
     assembly / assemblyJarName := "runner.jar",
@@ -2132,11 +2095,13 @@ lazy val `std-aws` = project
     Compile / packageBin / artifactPath :=
       `std-aws-polyglot-root` / "std-aws.jar",
     libraryDependencies ++= Seq(
-      "org.netbeans.api"    % "org-openide-util-lookup" % netbeansApiVersion % "provided",
-      "com.amazon.redshift" % "redshift-jdbc42"         % redshiftVersion,
-      "com.amazonaws"       % "aws-java-sdk-core"       % awsJavaSdkVersion,
-      "com.amazonaws"       % "aws-java-sdk-redshift"   % awsJavaSdkVersion,
-      "com.amazonaws"       % "aws-java-sdk-sts"        % awsJavaSdkVersion
+      "org.netbeans.api"       % "org-openide-util-lookup" % netbeansApiVersion % "provided",
+      "com.amazon.redshift"    % "redshift-jdbc42"         % redshiftVersion,
+      "com.amazonaws"          % "aws-java-sdk-core"       % awsJavaSdkV1Version,
+      "com.amazonaws"          % "aws-java-sdk-redshift"   % awsJavaSdkV1Version,
+      "com.amazonaws"          % "aws-java-sdk-sts"        % awsJavaSdkV1Version,
+      "software.amazon.awssdk" % "auth"                    % awsJavaSdkV2Version,
+      "software.amazon.awssdk" % "s3"                      % awsJavaSdkV2Version
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value

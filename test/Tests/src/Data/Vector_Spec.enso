@@ -9,6 +9,7 @@ import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Common.Unsupported_Argument_Types
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Runtime.Ref.Ref
+import Standard.Base.Runtime.State
 from Standard.Base.Data.Index_Sub_Range.Index_Sub_Range import While, By_Index, Sample, Every
 
 from Standard.Test import Test, Test_Suite
@@ -641,6 +642,26 @@ type_spec name alter = Test.group name <|
         alter [1, 2, 3] . map Error.throw . catch . should_equal 1
         fun a = if a == 3 then Error.throw (My_Error.Value a) else a
         alter [1, 2, 3, 4] . map fun . catch My_Error . should_equal (My_Error.Value 3)
+
+    Test.specify "should correctly propagate state through each" <|
+        v = State.run Number 77 <|
+            b = Vector.new_builder
+            (alter ["A", "B"]).each x->
+                b.append x
+                b.append (State.get Number).to_text
+            b.to_vector
+
+        v.should_equal ['A', '77', 'B', '77']
+
+    Test.specify "should correctly propagate state through map" <|
+        v = State.run Number 55 <|
+            b = Vector.new_builder
+            (alter ["X", "Y"]).map x->
+                b.append x
+                b.append (State.get Number).to_text
+            b.to_vector
+
+        v.should_equal ['X', '55', 'Y', '55']
 
     Test.specify "should pad elements" <|
         alter [] . pad 3 0 . should_equal [0, 0, 0]

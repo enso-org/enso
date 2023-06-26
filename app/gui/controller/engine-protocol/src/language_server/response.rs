@@ -99,6 +99,14 @@ pub struct Completion {
     pub current_version: SuggestionsDatabaseVersion,
 }
 
+/// Response of `ai/completion` method.
+#[derive(Hash, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[allow(missing_docs)]
+pub struct AiCompletion {
+    pub code: String,
+}
+
 /// Response of `get_component_groups` method.
 #[derive(Hash, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

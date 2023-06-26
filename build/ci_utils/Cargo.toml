@@ -23,6 +23,7 @@ derivative = { workspace = true }
 derive_more = { workspace = true }
 dirs = "4.0.0"
 enso-build-base = { path = "../base" }
+enso-zst = { path = "../../lib/rust/zst" }
 filetime = "0.2.15"
 flate2 = "1.0.22"
 flume = "0.10.10"

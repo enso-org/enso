@@ -125,36 +125,36 @@ object CacheInvalidation {
   ): Unit =
     instructions.foreach(run(stack, _))
 
-  /** Run a sequence of invalidation instructions on all visualisations.
+  /** Run a sequence of invalidation instructions on all visualizations.
     *
-    * @param visualisations the list of available visualisations
+    * @param visualizations the list of available visualizations
     * @param instructions the list of cache invalidation instructions
     */
-  def runAllVisualisations(
-    visualisations: Iterable[Visualisation],
+  def runAllVisualizations(
+    visualizations: Iterable[Visualization],
     instructions: Iterable[CacheInvalidation]
   ): Unit =
     instructions.foreach { instruction =>
-      runVisualisations(
-        visualisations,
+      runVisualizations(
+        visualizations,
         instruction.command,
         instruction.indexes
       )
     }
 
-  /** Run cache invalidation of a multiple visualisations
+  /** Run cache invalidation of a multiple visualizations
     *
-    * @param visualisations visualisations cache should be invalidated
+    * @param visualizations visualizations cache should be invalidated
     * @param command the invalidation instruction
     * @param indexes the list of indexes to invalidate
     */
-  def runVisualisations(
-    visualisations: Iterable[Visualisation],
+  def runVisualizations(
+    visualizations: Iterable[Visualization],
     command: Command,
     indexes: Set[IndexSelector] = Set()
   ): Unit =
-    visualisations.foreach { visualisation =>
-      run(visualisation.cache, command, indexes)
+    visualizations.foreach { visualization =>
+      run(visualization.cache, command, indexes)
     }
 
   /** Run a cache invalidation instruction on an execution stack.

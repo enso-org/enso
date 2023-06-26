@@ -8,6 +8,7 @@ import Standard.Database.Connection.SSL_Mode.SSL_Mode
 import Standard.Database.Internal.JDBC_Connection
 import Standard.Database.Internal.Postgres.Pgpass
 
+import project.AWS_Credential.AWS_Credential
 import project.Database.Redshift.Internal.Redshift_Dialect
 
 polyglot java import com.amazon.redshift.jdbc.Driver
@@ -20,10 +21,11 @@ type Redshift_Details
        - host: The hostname of the database server (defaults to localhost).
        - port: The port of the database server (defaults to 5432).
        - schema: The schema to connect to (if not provided or empty, the default schema will be used).
-       - credentials: The credentials to use for the connection (defaults to PGPass or No Authentication).
+       - db_user: The user to connect to the database as.
+       - credentials: The credentials to use for the connection (defaults AWS_Profile).
        - use_ssl: Whether to use SSL (defaults to `SSL_Mode.Require`).
        - client_cert: The client certificate to use or `Nothing` if not needed.
-    Redshift (host:Text) (port:Integer=5439) (schema:Text='') (credentials:Credentials|AWS_Credential|Nothing=Nothing) (use_ssl:SSL_Mode=SSL_Mode.Require) (client_cert:Client_Certificate|Nothing=Nothing)
+    Redshift (host:Text) (port:Integer=5439) (schema:Text='') (db_user:Text='') (credentials:Credentials|AWS_Credential=AWS_Credential.Profile) (use_ssl:SSL_Mode=SSL_Mode.Require) (client_cert:Client_Certificate|Nothing=Nothing)
 
     ## PRIVATE
        Build the Connection resource.
@@ -57,10 +59,10 @@ type Redshift_Details
     jdbc_properties self =
         credentials = case self.credentials of
             Nothing -> Pgpass.read self.host self.port self.schema
-            AWS_Credential.Profile db_user profile ->
-                [Pair.new 'user' db_user] + (if profile == '' then [] else [Pair.new 'profile' profile])
-            AWS_Credential.Key db_user access_key secret_access_key ->
-                [Pair.new 'user' db_user, Pair.new 'AccessKeyID' access_key, Pair.new 'SecretAccessKey' secret_access_key]
+            AWS_Credential.Profile profile ->
+                [Pair.new 'user' self.db_user] + (if profile == '' then [] else [Pair.new 'profile' profile])
+            AWS_Credential.Key access_key_id secret_access_key ->
+                [Pair.new 'user' self.db_user, Pair.new 'AccessKeyID' access_key_id, Pair.new 'SecretAccessKey' secret_access_key]
             Credentials.Username_And_Password username password ->
                 [Pair.new 'user' username, Pair.new 'password' password]
 
@@ -71,19 +73,3 @@ type Redshift_Details
             self.client_cert.properties
 
         credentials + ssl_properties + cert_properties
-
-type AWS_Credential
-    ## Access Redshift using IAM via an AWS profile.
-
-       Arguments:
-       - db_user: Redshift username to connect as.
-       - profile: AWS profile name (if empty uses default).
-    Profile db_user:Text profile:Text=''
-
-    ## Access Redshift using IAM via an AWS access key ID and secret access key.
-
-       Arguments:
-       - db_user: Redshift username to connect as.
-       - access_key: AWS access key ID.
-       - secret_access_key: AWS secret access key.
-    Key db_user:Text access_key:Text secret_access_key:Text

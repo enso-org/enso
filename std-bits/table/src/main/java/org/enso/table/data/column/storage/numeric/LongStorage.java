@@ -3,7 +3,7 @@ package org.enso.table.data.column.storage.numeric;
 import java.util.BitSet;
 import java.util.List;
 import org.enso.base.polyglot.NumericConverter;
-import org.enso.table.data.column.builder.object.NumericBuilder;
+import org.enso.table.data.column.builder.NumericBuilder;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;

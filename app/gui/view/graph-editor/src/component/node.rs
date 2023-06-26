@@ -188,47 +188,6 @@ pub mod error_shape {
 }
 
 
-
-// ==============
-// === Crumbs ===
-// ==============
-
-#[derive(Clone, Copy, Debug)]
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
-pub enum Endpoint {
-    Input,
-    Output,
-}
-
-#[derive(Clone, Debug)]
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
-pub struct Crumbs {
-    pub endpoint: Endpoint,
-    pub crumbs:   span_tree::Crumbs,
-}
-
-impl Crumbs {
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
-    pub fn input(crumbs: span_tree::Crumbs) -> Self {
-        let endpoint = Endpoint::Input;
-        Self { endpoint, crumbs }
-    }
-
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
-    pub fn output(crumbs: span_tree::Crumbs) -> Self {
-        let endpoint = Endpoint::Output;
-        Self { endpoint, crumbs }
-    }
-}
-
-impl Default for Crumbs {
-    fn default() -> Self {
-        Self::output(default())
-    }
-}
-
-
-
 // ============
 // === Node ===
 // ============
@@ -242,7 +201,7 @@ ensogl::define_endpoints_2! {
         disable_visualization (),
         set_visualization     (Option<visualization::Definition>),
         set_disabled          (bool),
-        set_input_connected   (span_tree::Crumbs,Option<color::Lcha>),
+        set_connections       (HashMap<span_tree::PortId, color::Lcha>),
         set_expression        (Expression),
         edit_expression       (text::Range<text::Byte>, ImString),
         set_skip_macro        (bool),
@@ -263,7 +222,7 @@ ensogl::define_endpoints_2! {
         /// visualization state is explicitly changed by the user. The preview looks the same as
         /// normal visualization, but its state is not persisted in the node's metadata.
         show_preview                      (),
-        /// Indicate whether preview visualisations should be delayed or immediate.
+        /// Indicate whether preview visualizations should be delayed or immediate.
         quick_preview_vis                 (bool),
         set_view_mode                     (view::Mode),
         set_profiling_min_global_duration (f32),
@@ -692,16 +651,16 @@ impl Node {
             filtered_usage_type <- input.set_expression_usage_type.filter(
                 move |(_,tp)| *tp != unresolved_symbol_type
             );
-            eval filtered_usage_type   (((a,b)) model.set_expression_usage_type(*a,b));
-            eval input.set_expression  ((a)     model.set_expression(a));
+            eval filtered_usage_type(((a,b)) model.set_expression_usage_type(*a,b));
+            eval input.set_expression((a) model.set_expression(a));
             model.input.edit_expression <+ input.edit_expression;
-            out.on_expression_modified  <+ model.input.frp.on_port_code_update;
-            out.requested_widgets       <+ model.input.frp.requested_widgets;
-            out.request_import          <+ model.input.frp.request_import;
+            out.on_expression_modified <+ model.input.frp.on_port_code_update;
+            out.requested_widgets <+ model.input.frp.requested_widgets;
+            out.request_import <+ model.input.frp.request_import;
 
-            model.input.set_connected              <+ input.set_input_connected;
-            model.input.set_disabled               <+ input.set_disabled;
-            model.input.update_widgets             <+ input.update_widgets;
+            model.input.set_connections <+ input.set_connections;
+            model.input.set_disabled <+ input.set_disabled;
+            model.input.update_widgets <+ input.update_widgets;
             model.output.set_expression_visibility <+ input.set_output_expression_visibility;
 
 
@@ -810,7 +769,7 @@ impl Node {
 
             visualization.set_view_state <+ action_bar.user_action_visibility.on_false().constant(visualization::ViewState::Disabled);
 
-            // Show preview visualisation after some delay, depending on whether we show an error
+            // Show preview visualization after some delay, depending on whether we show an error
             // or are in quick preview mode. Also, omit the preview if we don't have an
             // expression.
             has_tooltip    <- model.output.frp.tooltip.map(|tt| tt.has_content());

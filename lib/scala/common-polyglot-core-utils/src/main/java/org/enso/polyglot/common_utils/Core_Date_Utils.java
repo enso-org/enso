@@ -3,8 +3,10 @@ package org.enso.polyglot.common_utils;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
+import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoField;
 import java.time.temporal.TemporalQueries;
+import java.util.Locale;
 
 import static java.time.temporal.ChronoField.INSTANT_SECONDS;
 import static java.time.temporal.ChronoField.NANO_OF_SECOND;
@@ -44,6 +46,38 @@ public class Core_Date_Utils {
   }
 
   /**
+   * Parse a date string into a LocalDate.
+   * Allows missing day (assumes first day of month) or missing year (assumes current year).
+   *
+   * @param dateString the date time string
+   * @param formatter the formatter to use
+   * @return the parsed date time
+   */
+  public static LocalDate parseLocalDate(String dateString, DateTimeFormatter formatter) {
+    var parsed = formatter.parse(dateString);
+
+    if (parsed.isSupported(ChronoField.EPOCH_DAY)) {
+      return LocalDate.ofEpochDay(parsed.getLong(ChronoField.EPOCH_DAY));
+    }
+
+    // Allow Year and Month to be parsed without a day (use first day of month).
+    if (parsed.isSupported(ChronoField.YEAR) && parsed.isSupported(ChronoField.MONTH_OF_YEAR)) {
+      var dayOfMonth = parsed.isSupported(ChronoField.DAY_OF_MONTH)
+          ? parsed.get(ChronoField.DAY_OF_MONTH)
+          : 1;
+      return LocalDate.of(parsed.get(ChronoField.YEAR), parsed.get(ChronoField.MONTH_OF_YEAR), dayOfMonth);
+    }
+
+    // Allow Month and Day to be parsed without a year (use current year).
+    if (parsed.isSupported(ChronoField.DAY_OF_MONTH) && parsed.isSupported(ChronoField.MONTH_OF_YEAR)) {
+      return LocalDate.of(LocalDate.now().getYear(), parsed.get(ChronoField.MONTH_OF_YEAR), parsed.get(ChronoField.DAY_OF_MONTH));
+    }
+
+    throw new DateTimeParseException("Unable to parse date.", dateString, 0);
+
+  }
+
+  /**
    * Parse a date time string into a ZonedDateTime.
    *
    * @param dateString the date time string
@@ -77,5 +111,25 @@ public class Core_Date_Utils {
     } catch (ArithmeticException e) {
       throw new DateTimeException("Unable to parse Text '" + dateString + "' to Date_Time due to arithmetic error.", e);
     }
+  }
+
+  /**
+   * Creates a DateTimeFormatter from a format string, supporting building standard formats.
+   *
+   * @param format format string
+   * @param locale locale needed for custom formats
+   * @return DateTimeFormatter
+   */
+  public static DateTimeFormatter make_formatter(String format, Locale locale) {
+    var usedLocale = locale == Locale.ROOT ? Locale.US : locale;
+    return switch (format) {
+      case "ENSO_ZONED_DATE_TIME" -> defaultZonedDateTimeFormatter();
+      case "ISO_ZONED_DATE_TIME" -> DateTimeFormatter.ISO_ZONED_DATE_TIME;
+      case "ISO_OFFSET_DATE_TIME" -> DateTimeFormatter.ISO_OFFSET_DATE_TIME;
+      case "ISO_LOCAL_DATE_TIME" -> DateTimeFormatter.ISO_LOCAL_DATE_TIME;
+      case "ISO_LOCAL_DATE" -> DateTimeFormatter.ISO_LOCAL_DATE;
+      case "ISO_LOCAL_TIME" -> DateTimeFormatter.ISO_LOCAL_TIME;
+      default -> DateTimeFormatter.ofPattern(format, usedLocale);
+    };
   }
 }

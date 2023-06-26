@@ -1,6 +1,6 @@
 package org.enso.table.data.column.operation.cast;
 
-import org.enso.table.data.column.builder.object.BoolBuilder;
+import org.enso.table.data.column.builder.BoolBuilder;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
