@@ -580,8 +580,7 @@ type Column
        "round towards 0." If use_bankers=True, then it uses "round-half-even",
        also known as "banker's rounding".
 
-       If `decimal_places` > 0, `round` returns a column of the same type as the
-       input. Otherwise, it returns an `Integer` column.
+       The return type depends on the backend.
 
        Arguments:
        - decimal_places: The number of decimal places to round to. Can be
@@ -625,9 +624,9 @@ type Column
     ## PRIVATE
        Determine whether to use built-in rounding. We use built-in rounding if:
        - It's not banker's rounding, and
-       - If decimal_places is negative, the builtin rounding supports that, and
+       - If decimal_places is negative, the builtin `ROUND` supports that, and
        - We are not passing a floating point value to round with a non-zero decimal_places param (prohibited by postgres)
-         (Note that Postgres is fine with a `numeric` value, just not `double precision`.)
+         (Note that Postgres is fine with a `numeric` value here, just not `double precision`.)
     should_use_builtin_round : Integer -> Boolean -> Boolean
     should_use_builtin_round self decimal_places use_bankers =
         # Don't use for banker's rounding
@@ -686,7 +685,6 @@ type Column
     round_integer : Integer -> Boolean -> Column
     round_integer self decimal_places use_bankers =
         new_name = self.naming_helpers.function_name "round" [self]
-        # If non-negative decimal places, there's nothing to do.
         scale = 10 ^ -decimal_places
         halfway = scale.div 2
         remainder = self % scale
