@@ -3,6 +3,7 @@ import Standard.Table.Data.Table.Table
 
 goal_placeholder = "__$$GOAL$$__"
 
+## PRIVATE
 Table.build_ai_prompt self =
     ops = ["aggregate","filter_by_expression","order_by","row_count","set","select_columns","transpose","join"]
     aggs = ["Count","Average","Sum","Median","First","Last","Maximum","Minimum"]
@@ -26,6 +27,8 @@ Table.build_ai_prompt self =
     goal_line = "goal=" + goal_placeholder + "==>>`"
     base_prompt + '\n' + columns + goal_line
 
+## PRIVATE
 Any.build_ai_prompt self = "````"
 
+## PRIVATE
 build_ai_prompt subject = subject.build_ai_prompt

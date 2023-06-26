@@ -6,8 +6,8 @@ import project.Panic.Panic
 polyglot java import java.lang.IllegalArgumentException
 
 type Illegal_Argument
-
-    ## UNSTABLE
+    ## PRIVATE
+       UNSTABLE
 
        A generic error that indicates that the provided argument is not valid
        for the operation.

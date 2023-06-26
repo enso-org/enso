@@ -4,6 +4,7 @@ import cats.implicits._
 import com.oracle.truffle.api.TruffleLogger
 import org.enso.compiler.CompilerResult
 import org.enso.compiler.context._
+import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.analyse.{
   CachePreferenceAnalysis,
@@ -286,12 +287,10 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
   private def buildCacheInvalidationCommands(
     changeset: Changeset[_],
     source: CharSequence
-  )(implicit ctx: RuntimeContext): Seq[CacheInvalidation] = {
+  ): Seq[CacheInvalidation] = {
     val invalidateExpressionsCommand =
       CacheInvalidation.Command.InvalidateKeys(changeset.invalidated)
-    val scopeIds = ctx.executionService.getContext.getCompiler
-      .parseMeta(source)
-      .map(_._2)
+    val scopeIds = splitMeta(source.toString())._2.map(_._2)
     val invalidateStaleCommand =
       CacheInvalidation.Command.InvalidateStale(scopeIds)
     Seq(
@@ -306,6 +305,37 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
         Set(CacheInvalidation.IndexSelector.All)
       )
     )
+  }
+
+  type IDMap = Seq[(org.enso.data.Span, java.util.UUID)]
+  private def splitMeta(code: String): (String, IDMap, io.circe.Json) = {
+    import io.circe.Json
+    import io.circe.Error
+    import io.circe.generic.auto._
+    import io.circe.parser._
+
+    def idMapFromJson(json: String): Either[Error, IDMap] = decode[IDMap](json)
+
+    val METATAG = "\n\n\n#### METADATA ####\n"
+    code.split(METATAG) match {
+      case Array(input) => (input, Seq(), Json.obj())
+      case Array(input, rest) =>
+        val meta = rest.split('\n')
+        if (meta.length < 2) {
+          throw new CompilerError(s"Expected two lines after METADATA.")
+        }
+        val idmap = idMapFromJson(meta(0)).left.map { error =>
+          throw new CompilerError("Could not deserialize idmap.", error)
+        }.merge
+        val metadata = decode[Json](meta(1)).left.map { error =>
+          throw new CompilerError("Could not deserialize metadata.", error)
+        }.merge
+        (input, idmap, metadata)
+      case arr: Array[_] =>
+        throw new CompilerError(
+          s"Could not not deserialize metadata (found ${arr.length - 1} metadata sections)"
+        )
+    }
   }
 
   /** Run the invalidation commands.

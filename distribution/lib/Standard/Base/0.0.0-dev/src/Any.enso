@@ -257,8 +257,7 @@ type Any
     is_nothing : Boolean
     is_nothing self = False
 
-    ## UNSTABLE
-       If `self` is Nothing then returns `function`.
+    ## If `self` is Nothing then returns `function`.
 
        > Example
          If the value "Hello" is nothing return "".
@@ -329,7 +328,8 @@ type Any
     is_error : Boolean
     is_error self = False
 
-    ## UNSTABLE
+    ## PRIVATE
+       ADVANCED
        Returns the provided `other` value, unless `self` is an error.
 
        Arguments:
@@ -365,7 +365,8 @@ type Any
         Nothing -> Nothing
         a -> f a
 
-    ## Applies the function on the right hand side to the argument on the left.
+    ## ADVANCED
+       Applies the function on the right hand side to the argument on the left.
 
        Arguments
        - function: The function to apply to `self`.

@@ -22,7 +22,6 @@ import Standard.Table.Data.Row.Row
 import Standard.Table.Data.Table.Table as Materialized_Table
 import Standard.Table.Data.Type.Value_Type_Helpers
 import Standard.Table.Internal.Aggregate_Column_Helper
-import Standard.Table.Internal.Java_Exports
 import Standard.Table.Internal.Table_Helpers
 import Standard.Table.Internal.Table_Helpers.Table_Column_Helper
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
@@ -97,9 +96,7 @@ type Table
         True -> JS_Object.from_pairs [["query", Nothing], ["message", "The table has no columns so a query cannot be generated."]]
         False -> self.to_sql.to_js_object
 
-    ## UNSTABLE
-
-       Returns the column with the given name.
+    ## Returns the column with the given name.
 
        Arguments:
        - selector: The name or index of the column to get.
@@ -504,8 +501,7 @@ type Table
         column = self.evaluate_expression expression on_problems
         self.filter column Filter_Condition.Is_True
 
-    ## UNSTABLE
-       Creates a new Table with the specified range of rows from the input
+    ## Creates a new Table with the specified range of rows from the input
        Table.
 
        Arguments:
@@ -517,8 +513,7 @@ type Table
         msg = "`Table.take` is not yet implemented."
         Error.throw (Unsupported_Database_Operation.Error msg)
 
-    ## UNSTABLE
-       Creates a new Table from the input with the specified range of rows
+    ## Creates a new Table from the input with the specified range of rows
        removed.
 
 
@@ -714,17 +709,13 @@ type Table
         on_problems.attach_problems_before problems <|
             Warning.set result []
 
-    ## UNSTABLE
-
-       Returns the vector of columns contained in this table.
+    ## Returns the vector of columns contained in this table.
     columns : Vector Column
     columns self = Vector.from_polyglot_array <|
         Array_Proxy.new self.internal_columns.length i->
             self.make_column (self.internal_columns.at i)
 
-    ## UNSTABLE
-
-       Returns the vector of column names contained in this table.
+    ## Returns the vector of column names contained in this table.
     column_names : Vector Text
     column_names self = Vector.from_polyglot_array <|
         Array_Proxy.new self.internal_columns.length i->
@@ -1741,8 +1732,7 @@ type Table
         # assert cols.not_empty
         Query.Select cols self.context
 
-    ## UNSTABLE
-       Returns an SQL statement that will be used for materializing this table.
+    ## Returns an SQL statement that will be used for materializing this table.
     to_sql : SQL_Statement
     to_sql self = self.connection.dialect.generate_sql self.to_select_query
 

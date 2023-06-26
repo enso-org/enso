@@ -2,12 +2,15 @@
 import * as react from 'react'
 import * as reactDom from 'react-dom'
 
+import CloseLargeIcon from 'enso-assets/close_large.svg'
+import DefaultUserIcon from 'enso-assets/default_user.svg'
+import TriangleDownIcon from 'enso-assets/triangle_down.svg'
+
 import * as animations from '../../animations'
 import * as authProvider from '../../authentication/providers/auth'
 import * as dateTime from '../dateTime'
 import * as loggerProvider from '../../providers/logger'
 import * as newtype from '../../newtype'
-import * as svg from '../../components/svg'
 
 import Twemoji from './twemoji'
 
@@ -324,7 +327,7 @@ function ChatMessage(props: ChatMessageProps) {
                 {/* FIXME: This should default to the default user image. */}
                 <img
                     crossOrigin="anonymous"
-                    src={message.avatar ?? 'unknown'}
+                    src={message.avatar ?? DefaultUserIcon}
                     className="rounded-full h-8 w-8 m-2"
                 />
                 <div className="m-1">
@@ -636,7 +639,7 @@ function Chat(props: ChatProps) {
                         className="flex grow items-center text-sm font-semibold"
                         onClick={toggleThreadListVisibility}
                     >
-                        {svg.DOWN_ARROW_ICON}{' '}
+                        <img src={TriangleDownIcon} />{' '}
                         {/* TODO: reset to current value when editing canceled */}
                         <input
                             type="text"
@@ -646,7 +649,9 @@ function Chat(props: ChatProps) {
                             onClick={onThreadTitleClick}
                         />
                     </button>
-                    <button onClick={doClose}>{svg.LARGE_CLOSE_ICON}</button>
+                    <button onClick={doClose}>
+                        <img src={CloseLargeIcon} />
+                    </button>
                     {isThreadListVisible && (
                         <div>
                             {threads.map(thread => (
