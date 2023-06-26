@@ -16,6 +16,9 @@ import * as common from 'enso-common'
 const IS_TEMPLATES_OPEN_KEY = `${common.PRODUCT_NAME.toLowerCase()}-is-templates-expanded`
 /** The max width at which the bottom shadow should be visible. */
 const MAX_WIDTH_NEEDING_SCROLL = 1031
+/** The height of the bottom padding - 8px for the grid gap, and another 8px for the height
+ * of the padding div. */
+const PADDING_HEIGHT = 16
 
 // =============
 // === Types ===
@@ -180,19 +183,22 @@ function Templates(props: TemplatesProps) {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const containerRef = react.useRef<HTMLDivElement>(null!)
 
-    const toggleIsOpen = () => {
-        setIsOpen(!isOpen)
-    }
+    const toggleIsOpen = react.useCallback(() => {
+        setIsOpen(oldIsOpen => !oldIsOpen)
+    }, [])
 
     const updateShadowClass = () => {
         const element = containerRef.current
         const boundingBox = element.getBoundingClientRect()
         let newShadowClass: ShadowClass
         const shouldShowTopShadow = element.scrollTop !== 0
+        // `window.innerWidth <= MAX_WIDTH_NEEDING_SCROLL` is repeated. This is intentional,
+        // to avoid adding it as a dependency.
+        const paddingHeight = window.innerWidth <= MAX_WIDTH_NEEDING_SCROLL ? 0 : PADDING_HEIGHT
         // Chrome has decimal places in its bounding box, which can overshoot the target size
         // slightly.
         const shouldShowBottomShadow =
-            element.scrollTop + boundingBox.height + 1 < element.scrollHeight
+            element.scrollTop + boundingBox.height + paddingHeight + 1 < element.scrollHeight
         if (shouldShowTopShadow && shouldShowBottomShadow) {
             newShadowClass = ShadowClass.both
         } else if (shouldShowTopShadow) {
@@ -249,6 +255,8 @@ function Templates(props: TemplatesProps) {
                 onScroll={updateShadowClass}
             >
                 <TemplatesRender templates={TEMPLATES} onTemplateClick={onTemplateClick} />
+                {/* Spacing. */}
+                <div className="col-span-full h-2" />
             </div>
         </div>
     )
