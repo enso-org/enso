@@ -287,7 +287,7 @@ impl Manager {
             // Early return: requested to remove visualization that was already removed.
             return;
         };
-        let prj = self.executed_graph.module_qualified_name(&*self.executed_graph.project);
+        let prj = self.executed_graph.module_qualified_name();
         let graph = self.executed_graph.graph();
         let module = prj.new_child(graph.module.name());
         let current_id = current.as_ref().and_then(|current| current.latest_id());

@@ -96,7 +96,7 @@ pub struct Handle {
     execution_ctx: model::ExecutionContext,
     /// The handle to project controller is necessary, as entering nodes might need to switch
     /// modules, and only the project can provide their controllers.
-    pub project:   model::Project,
+    project:       model::Project,
     /// The publisher allowing sending notification to subscribed entities. Note that its outputs
     /// is merged with publishers from the stored graph and execution controllers.
     notifier:      notification::Publisher<Notification>,
@@ -405,8 +405,17 @@ impl Handle {
 
     /// Get a full qualified name of the module in the [`graph`]. The name is obtained from the
     /// module's path and the `project` name.
-    pub fn module_qualified_name(&self, project: &dyn model::project::API) -> QualifiedName {
+    pub fn module_qualified_name_with_project(
+        &self,
+        project: &dyn model::project::API,
+    ) -> QualifiedName {
         self.graph().module.path().qualified_module_name(project.qualified_name())
+    }
+
+    /// Get a full qualified name of the module in the [`graph`]. The name is obtained from the
+    /// module's path and the `project` name.
+    pub fn module_qualified_name(&self) -> QualifiedName {
+        self.graph().module.path().qualified_module_name(self.project.qualified_name())
     }
 
     /// Returns information about all the connections between graph's nodes.

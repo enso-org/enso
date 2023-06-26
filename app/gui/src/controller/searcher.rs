@@ -1091,7 +1091,7 @@ impl Searcher {
     }
 
     fn module_qualified_name(&self) -> QualifiedName {
-        self.graph.module_qualified_name(&*self.project)
+        self.graph.module_qualified_name_with_project(&*self.project)
     }
 
     fn filter(&self) -> Filter {
