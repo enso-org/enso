@@ -187,9 +187,9 @@ pub struct ZeroableRefCell<T> {
     //
     // 3. `value: UnsafeCell<T>`, which is zeroable if `T` is zeroable, according to:
     // https://docs.rs/bytemuck/latest/bytemuck/trait.Zeroable.html
-    #[cfg(version("1.72"))]
+    #[cfg(not(version("1.73")))] // 1.72 and below.
     cell: core::cell::RefCell<T>,
-    #[cfg(not(version("1.72")))]
+    #[cfg(version("1.73"))] // 1.73 and above.
     after_compiler_version_bump: update_this_code_according_to_the_comment_above,
 }
 
