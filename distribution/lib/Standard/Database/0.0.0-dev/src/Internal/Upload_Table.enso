@@ -214,10 +214,18 @@ raise_duplicated_primary_key_error source_table primary_key original_panic =
 ## PRIVATE
 align_structure : Database_Table | In_Memory_Table | Vector Column_Description -> Vector Column_Description
 align_structure table_or_columns = case table_or_columns of
-    _ : Vector -> table_or_columns.map def->
-        if def.is_a Column_Description . not then Error.throw (Illegal_Argument.Error "The structure must be an existing Table or vector of Column_Description.") else
-            def
-    _ -> table_or_columns.columns.map column->
+    vector : Vector -> vector.map def-> case def of
+        _ : Column_Description -> def
+        _ : Function ->
+            Error.throw (Illegal_Argument.Error "The structure should be a vector of Column_Description. Maybe some arguments of Column_Description are missing?")
+        _ ->
+            Error.throw (Illegal_Argument.Error "The structure must be an existing Table or vector of Column_Description.") else
+    table : Database_Table  -> structure_from_existing_table table
+    table : In_Memory_Table -> structure_from_existing_table table
+
+## PRIVATE
+structure_from_existing_table table =
+    table.columns.map column->
         Column_Description.Value column.name column.value_type
 
 ## PRIVATE
