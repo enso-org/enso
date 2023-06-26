@@ -32,7 +32,6 @@ import org.enso.compiler.pass.resolve.{
   TypeSignatures
 }
 import org.enso.interpreter.epb.EpbParser
-import org.enso.interpreter.node.callable.InvokeCallableNode.DefaultsExecutionMode
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode
 import org.enso.interpreter.node.callable.function.{
   BlockNode,
@@ -49,6 +48,7 @@ import org.enso.interpreter.node.expression.atom.{
   ConstantNode,
   QualifiedAccessorNode
 }
+import org.enso.interpreter.node.expression.builtin.BuiltinRootNode
 import org.enso.interpreter.node.expression.constant._
 import org.enso.interpreter.node.expression.foreign.ForeignMethodCallNode
 import org.enso.interpreter.node.expression.literal.LiteralNode
@@ -466,28 +466,12 @@ class IrToTruffle(
                       effectContext,
                       true
                     )
-                  val rootNode = MethodRootNode.build(
-                    language,
-                    expressionProcessor.scope,
-                    moduleScope,
-                    () =>
-                      ApplicationNode.build(
-                        CreateFunctionNode.build(
-                          m.getFunction.getCallTarget,
-                          bodyBuilder.args()
-                        ),
-                        bodyBuilder
-                          .argExpressions()
-                          .map(new CallArgument(_))
-                          .toArray,
-                        DefaultsExecutionMode.IGNORE
-                      ),
-                    makeSection(moduleScope, methodDef.location),
-                    cons,
-                    methodDef.methodName.name
-                  )
+                  val builtinRootNode = m.getFunction.getCallTarget.getRootNode
+                    .asInstanceOf[BuiltinRootNode]
+                  builtinRootNode.setModuleName(moduleScope.getModule.getName)
+                  builtinRootNode.setTypeName(cons.getQualifiedName)
                   new RuntimeFunction(
-                    rootNode.getCallTarget,
+                    m.getFunction.getCallTarget,
                     null,
                     new FunctionSchema(
                       new Array[RuntimeAnnotation](0),
@@ -1681,12 +1665,11 @@ class IrToTruffle(
       private lazy val slots = computeSlots()
       private lazy val bodyN = computeBodyNode()
 
-      def args(): Array[ArgumentDefinition]               = slots._2
-      def argExpressions(): ArrayBuffer[ReadArgumentNode] = slots._4
-      def bodyNode(): RuntimeExpression                   = bodyN
+      def args(): Array[ArgumentDefinition] = slots._2
+      def bodyNode(): RuntimeExpression     = bodyN
 
       private def computeBodyNode(): RuntimeExpression = {
-        val (argSlotIdxs, _, argExpressions, _) = slots
+        val (argSlotIdxs, _, argExpressions) = slots
 
         val bodyExpr = body match {
           case IR.Foreign.Definition(lang, code, _, _, _) =>
@@ -1705,13 +1688,11 @@ class IrToTruffle(
       private def computeSlots(): (
         List[Int],
         Array[ArgumentDefinition],
-        ArrayBuffer[RuntimeExpression],
-        ArrayBuffer[ReadArgumentNode]
+        ArrayBuffer[RuntimeExpression]
       ) = {
         val seenArgNames   = mutable.Set[String]()
         val argDefinitions = new Array[ArgumentDefinition](arguments.size)
         val argExpressions = new ArrayBuffer[RuntimeExpression]
-        val readArgs       = new ArrayBuffer[ReadArgumentNode]
         // Note [Rewriting Arguments]
         val argSlots = arguments.zipWithIndex.map {
           case (unprocessedArg, idx) =>
@@ -1733,7 +1714,6 @@ class IrToTruffle(
                 arg.getDefaultValue.orElse(null),
                 runtimeTypes.asJava
               )
-            readArgs.append(readArg)
             val assignArg = AssignmentNode.build(readArg, slotIdx)
 
             argExpressions.append(assignArg)
@@ -1751,7 +1731,7 @@ class IrToTruffle(
             } else seenArgNames.add(argName)
             slotIdx
         }
-        (argSlots, argDefinitions, argExpressions, readArgs)
+        (argSlots, argDefinitions, argExpressions)
       }
     }
 
