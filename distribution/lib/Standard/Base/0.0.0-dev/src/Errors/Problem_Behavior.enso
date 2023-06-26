@@ -7,16 +7,13 @@ from project.Errors.Problem_Behavior.Problem_Behavior import all
 
 ## Specifies how to handle problems.
 type Problem_Behavior
-    ## UNSTABLE
-       Ignore the problem and attempt to complete the operation
+    ## Ignore the problem and attempt to complete the operation
     Ignore
 
-    ## UNSTABLE
-       Report the problem as a warning and attempt to complete the operation
+    ## Report the problem as a warning and attempt to complete the operation
     Report_Warning
 
-    ## UNSTABLE
-       Report the problem as a dataflow error and abort the operation
+    ## Report the problem as a dataflow error and abort the operation
     Report_Error
 
     ## PRIVATE

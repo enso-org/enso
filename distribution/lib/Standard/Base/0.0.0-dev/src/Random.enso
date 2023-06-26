@@ -14,7 +14,8 @@ polyglot java import java.util.Random as Java_Random
 polyglot java import java.util.UUID
 polyglot java import org.enso.base.Random_Utils
 
-## UNSTABLE
+## PRIVATE
+   UNSTABLE
    Returns a default seed to use for random number generation.
 
    The returned seed may differ between each call to this method.

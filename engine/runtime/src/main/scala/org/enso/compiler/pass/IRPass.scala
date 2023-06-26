@@ -1,9 +1,9 @@
 package org.enso.compiler.pass
 
-import org.enso.compiler.Compiler
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.exception.CompilerError
+import org.enso.compiler.core.ir.ProcessingPass
+import org.enso.compiler.core.CompilerError
 import shapeless.=:!=
 
 import java.util.UUID
@@ -19,13 +19,13 @@ import scala.reflect.ClassTag
   * its header the requirements it has for pass configuration and for passes
   * that must run before it.
   */
-trait IRPass extends Serializable {
+trait IRPass extends ProcessingPass {
 
   /** An identifier for the pass. Useful for keying it in maps. */
   val key: IRPass.Identifier = IRPass.genId
 
   /** The type of the metadata object that the pass writes to the IR. */
-  type Metadata <: IRPass.Metadata
+  type Metadata <: ProcessingPass.Metadata
 
   /** The type of configuration for the pass. */
   type Config <: IRPass.Configuration
@@ -114,39 +114,13 @@ object IRPass {
     * they are guaranteed to have `restoreFromSerialization` called after they
     * have been deserialized and before any other operations occur.
     */
-  trait Metadata extends Serializable {
+  trait IRMetadata extends ProcessingPass.Metadata {
+
+    type Metadata = IRMetadata
+    type Compiler = org.enso.compiler.Compiler
 
     /** The name of the metadata as a string. */
     val metadataName: String
-
-    /** Prepares the metadata for serialization.
-      *
-      * Metadata prepared for serialization should not contain any links that
-      * span more than one module, or any other properties that are problematic
-      * when serialized.
-      *
-      * Due to the type safety properties of
-      * [[org.enso.compiler.core.ir.MetadataStorage]], to allow this conversion
-      * to work it must be type-refined to return `typeof this`. To that end,
-      * there is no default definition for this method.
-      *
-      * @param compiler the Enso compiler
-      * @return `this`, but prepared for serialization
-      */
-    def prepareForSerialization(compiler: Compiler): Metadata
-
-    /** Restores metadata after it has been deserialized.
-      *
-      * Due to the type safety properties of
-      * [[org.enso.compiler.core.ir.MetadataStorage]], to allow this conversion
-      * to work it must be type-refined to return `typeof this`. To that end,
-      * there is no default definition for this method.
-      *
-      * @param compiler the Enso compiler
-      * @return `this`, but restored from serialization, or [[None]] if
-      *         restoration could not be performed
-      */
-    def restoreFromSerialization(compiler: Compiler): Option[Metadata]
 
     /** Casts the pass to the provided type.
       *
@@ -195,7 +169,7 @@ object IRPass {
   object Metadata {
 
     /** An empty metadata type for passes that do not create any metadata. */
-    sealed case class Empty() extends Metadata {
+    sealed case class Empty() extends IRMetadata {
       override val metadataName: String = "Empty"
 
       /** @inheritdoc */

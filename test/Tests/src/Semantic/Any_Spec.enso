@@ -42,19 +42,71 @@ spec =
             My_Type.Value 33 . x . should_equal "Any:(My_Type.Value 33)"
             With_X.Value 44 . x . should_equal "With_X:(With_X.Value 44)"
             With_Y.Value 44 . x . should_equal "With_Y:With_Y(44)"
-            Any.x . to_text . should_equal "Any.type.x[Any_Types.enso:6-26]"
             My_Type.x . should_equal "Any:My_Type"
             With_X.x . to_text . should_equal "Any:With_X"
-            With_X.y . to_text . should_equal "With_X.type.y[Any_Types.enso:12-32]"
+            With_X.y.should_be_a Function
             With_Y.x . to_text . should_equal "Any:With_Y"
-            With_Y.y . to_text . should_equal "With_Y.type.y[Any_Types.enso:18-38]"
+            With_Y.y.should_be_a Function
             With_X.to_text . to_text . should_equal "With_X"
             With_Y.to_text . to_text . should_equal "With_Y"
+            Any.x . to_text . should_equal "Any:Any"
+            Any.x self=Any . to_text . should_equal "Any:Any"
             Any.x self=With_X . should_equal "Any:With_X"
             Any.x self=With_Y . should_equal "Any:With_Y"
             Any.x (My_Type.Value 22) . should_equal "Any:(My_Type.Value 22)"
             Any.x (With_X.Value 22) . should_equal "Any:(With_X.Value 22)"
             Any.x (With_Y.Value 22) . should_equal "Any:With_Y(22)"
             Date.to_display_text . should_equal "Date"
+
+        Test.specify "static method calls on Any should have defaulted self argument to Any" <|
+            # Any.== is a method that takes two arguments (self other)
+            (Any.==) . should_be_a Function
+            (Any.== self=Boolean) . should_be_a Function
+            (Any.== self=Any Boolean) . should_be_false
+            (Any.== Any Any) . should_be_true
+            (Any.== Boolean) . should_be_false
+            (Any.== Any) . should_be_true
+            (Any == Boolean) . should_be_false
+            (Any == Any) . should_be_true
+
+            # Any.to_text is a method that takes one argument (self)
+            Any.to_text . should_equal "Any"
+            Any.to_text self=Any . should_equal "Any"
+            Any.to_text self=Vector . should_equal "Vector"
+            Any.to_text self=[1,2,3] . should_equal "[1, 2, 3]"
+            Any.to_text Any . should_equal "Any"
+            Any.to_text Vector . should_equal "Vector"
+            Any.to_text [1,2,3] . should_equal "[1, 2, 3]"
+
+            Vector.to_text . should_equal "Vector"
+            Text.to_text . should_equal "Text"
+            Number.to_text . should_equal "Number"
+            Integer.to_text . should_equal "Integer"
+
+            # Any.spec_method is a method that takes three arguments (self, arg1, arg2)
+            (Any.spec_method) . should_be_a Function
+            (Any.spec_method Boolean) . should_be_a Function
+            (Any.spec_method self=Boolean) . should_be_a Function
+            (Any.spec_method self=Boolean Vector) . should_be_a Function
+            Any.spec_method Boolean Vector . should_equal "Any.spec_method:{Any}{Boolean}{Vector}"
+            Any.spec_method Any Boolean Vector . should_equal "Any.spec_method:{Any}{Boolean}{Vector}"
+            Any.spec_method Date Boolean Vector . should_equal "Any.spec_method:{Date}{Boolean}{Vector}"
+            Any.spec_method self=Date Boolean Vector . should_equal "Any.spec_method:{Date}{Boolean}{Vector}"
+            Any.spec_method self=Any Boolean Vector . should_equal "Any.spec_method:{Any}{Boolean}{Vector}"
+            Date.spec_method Boolean Vector . should_equal "Any.spec_method:{Date}{Boolean}{Vector}"
+
+
+        Test.specify "instance methods on different types should not have defaulted self argument" <|
+            # Vector.contains has two arguments (self elem)
+            Vector.contains . to_text . contains "Vector.type.contains" . should_be_true
+            (Vector.contains [42]) . to_text . contains "Vector.type.contains" . should_be_true
+            Vector.contains self=[1,2,3] 1 . should_be_true
+            Vector.contains [1,2,3] 1 . should_be_true
+
+            # Vector.is_empty has just one argument (self)
+            Vector.is_empty . to_text . contains "Vector.type.is_empty" . should_be_true
+            Vector.is_empty self=[] . should_be_true
+            Vector.is_empty [] . should_be_true
+
 
 main = Test_Suite.run_main spec

@@ -136,7 +136,8 @@ type Error
     is_error : Boolean
     is_error self = True
 
-    ## UNSTABLE
+    ## PRIVATE
+       ADVANCED
        Returns the provided `other` value, unless `self` is an error.
 
        Arguments:
