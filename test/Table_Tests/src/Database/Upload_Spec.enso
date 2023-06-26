@@ -856,7 +856,8 @@ spec make_new_connection prefix persistent_connector=True =
            Currently this test seems to work fine, but if there are ever issues
            due to GC nondeterminism, it may need to be disabled - currently we
            do not have a more robust way to test finalizers.
-        Test.specify "will drop a dry run table once it is garbage collected" pending="Relying on GC seems not stable enough. Keeping this test so it can be checked manually. In the future we may improve it with better instrumentation of Managed_Resource." <|
+        gc_test_pending = "Relying on GC seems not stable enough. Keeping this test so it can be checked manually. In the future we may improve it with better instrumentation of Managed_Resource."
+        Test.specify "will drop a dry run table once it is garbage collected" pending=gc_test_pending <|
             src = Table.new [["X", [1, 2, 3]]]
             name = Name_Generator.random_name "dry-run-list-test"
 

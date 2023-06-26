@@ -2,6 +2,8 @@ package org.enso.database.dryrun;
 
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
+import java.util.logging.Logger;
+
 import org.graalvm.polyglot.Value;
 
 /**
@@ -54,8 +56,8 @@ public class OperationSynchronizer {
           try {
             maintenanceAction.apply(null);
           } catch (Exception e) {
-            System.err.println("A maintenance action failed with exception: " + e.getMessage());
-            throw e;
+            Logger.getLogger("enso-std-database").severe(
+                "A maintenance action failed with exception: " + e.getMessage());
           } finally {
             nestingLevel--;
           }

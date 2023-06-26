@@ -369,6 +369,10 @@ type Connection
 
        This method should be run by most database operations to ensure that
        unused tables are cleaned at some point.
+
+       All errors are swallowed and not propagated, so it is safe to call this
+       method wherever. There is no point of calling this method inside of
+       critical sections as then it will not do anything.
     maybe_run_maintenance self =
         callback _ =
             Hidden_Table_Registry.run_maintenance_table_cleanup self
