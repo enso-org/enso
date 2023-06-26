@@ -19,8 +19,9 @@ import project.Internal.IR.Query.Query
 import project.Internal.JDBC_Connection
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 
-from project.Connection.Connection import make_table_types_selector, make_schema_selector, make_table_name_selector, first_column_in_structure, make_structure_creator
+from project.Connection.Connection import make_table_types_selector, make_schema_selector, make_table_name_selector, make_structure_creator
 from project.Errors import SQL_Error, Table_Not_Found, Table_Already_Exists
+from project.Internal.Upload_Table import first_column_name_in_structure
 
 type SQLite_Connection
     ## PRIVATE
@@ -181,7 +182,7 @@ type SQLite_Connection
          a `Dry_Run_Operation` warning attached.
     @structure make_structure_creator
     create_table : Text  -> Vector Column_Description | Database_Table | Materialized_Table -> Vector Text | Nothing -> Boolean -> Boolean -> Problem_Behavior -> Database_Table ! Table_Already_Exists
-    create_table self (table_name : Text) (structure : Vector Column_Description | Database_Table | Materialized_Table) (primary_key : (Vector Text | Nothing) = [first_column_in_structure structure]) (temporary : Boolean = False) (allow_existing : Boolean = False) (on_problems:Problem_Behavior = Problem_Behavior.Report_Warning) =
+    create_table self (table_name : Text) (structure : Vector Column_Description | Database_Table | Materialized_Table) (primary_key : (Vector Text | Nothing) = [first_column_name_in_structure structure]) (temporary : Boolean = False) (allow_existing : Boolean = False) (on_problems:Problem_Behavior = Problem_Behavior.Report_Warning) =
         self.connection.create_table table_name structure primary_key temporary allow_existing on_problems
 
     ## ADVANCED

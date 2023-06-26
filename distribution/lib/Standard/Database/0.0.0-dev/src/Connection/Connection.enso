@@ -32,7 +32,7 @@ import project.Internal.Hidden_Table_Registry
 from project.Internal.Result_Set import read_column, result_set_to_table
 from project.Internal.JDBC_Connection import JDBC_Connection, handle_sql_errors
 from project.Errors import SQL_Error, Table_Not_Found, Table_Already_Exists
-from project.Internal.Upload_Table import create_table_implementation
+from project.Internal.Upload_Table import create_table_implementation, first_column_name_in_structure
 
 polyglot java import java.lang.UnsupportedOperationException
 polyglot java import java.util.UUID
@@ -291,7 +291,7 @@ type Connection
          a `Dry_Run_Operation` warning attached.
     @structure make_structure_creator
     create_table : Text  -> Vector Column_Description | Database_Table | Materialized_Table -> Vector Text | Nothing -> Boolean -> Boolean -> Problem_Behavior -> Database_Table ! Table_Already_Exists
-    create_table self (table_name : Text) (structure : Vector Column_Description | Database_Table | Materialized_Table) (primary_key : (Vector Text | Nothing) = [first_column_in_structure structure]) (temporary : Boolean = False) (allow_existing : Boolean = False) (on_problems:Problem_Behavior = Problem_Behavior.Report_Warning) =
+    create_table self (table_name : Text) (structure : Vector Column_Description | Database_Table | Materialized_Table) (primary_key : (Vector Text | Nothing) = [first_column_name_in_structure structure]) (temporary : Boolean = False) (allow_existing : Boolean = False) (on_problems:Problem_Behavior = Problem_Behavior.Report_Warning) =
         create_table_implementation self table_name structure primary_key temporary allow_existing on_problems
 
     ## PRIVATE
@@ -472,11 +472,6 @@ make_structure_creator : Widget
 make_structure_creator =
     item_editor = Single_Choice display=Display.Always values=[Option "new column" "(Column_Description.Value)"]
     Vector_Editor item_editor=item_editor item_default=item_editor.values.first.value display=Display.Always
-
-## PRIVATE
-first_column_in_structure structure = case structure of
-    _ : Vector -> structure.first.name
-    _ -> structure.column_names.first
 
 ## PRIVATE
 make_table_for_name connection name alias internal_temporary_keep_alive_reference=Nothing =
