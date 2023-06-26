@@ -8,69 +8,69 @@ import org.enso.polyglot.runtime.Runtime.Api
 
 import java.util.UUID
 
-/** A configuration object for properties of the visualisation.
+/** A configuration object for properties of the visualization.
   *
-  * @param executionContextId an execution context of the visualisation
-  * @param expression an expression that creates a visualisation
+  * @param executionContextId an execution context of the visualization
+  * @param expression an expression that creates a visualization
   */
-case class VisualisationConfiguration(
+case class VisualizationConfiguration(
   executionContextId: UUID,
-  expression: VisualisationExpression
+  expression: VisualizationExpression
 ) extends ToLogString {
 
   /** A qualified module name containing the expression. */
-  def visualisationModule: String =
+  def visualizationModule: String =
     expression.module
 
   /** @inheritdoc */
   override def toLogString(shouldMask: Boolean): String =
-    s"VisualisationConfiguration(" +
+    s"VisualizationConfiguration(" +
     s"executionContextId=$executionContextId," +
     s"expression=${expression.toLogString(shouldMask)})"
 
   /** Convert to corresponding [[Api]] message. */
-  def toApi: Api.VisualisationConfiguration =
-    Api.VisualisationConfiguration(
+  def toApi: Api.VisualizationConfiguration =
+    Api.VisualizationConfiguration(
       executionContextId = executionContextId,
       expression         = expression.toApi
     )
 
 }
-object VisualisationConfiguration {
+object VisualizationConfiguration {
 
-  /** Create a visualisation configuration.
+  /** Create a visualization configuration.
     *
-    * @param contextId an execution context of the visualisation
-    * @param module a qualified module name containing the visualisation
-    * @param expression a visualisation expression
-    * @return an instance of [[VisualisationConfiguration]]
+    * @param contextId an execution context of the visualization
+    * @param module a qualified module name containing the visualization
+    * @param expression a visualization expression
+    * @return an instance of [[VisualizationConfiguration]]
     */
   def apply(
     contextId: UUID,
     module: String,
     expression: String
-  ): VisualisationConfiguration =
-    new VisualisationConfiguration(
+  ): VisualizationConfiguration =
+    new VisualizationConfiguration(
       contextId,
-      VisualisationExpression.Text(module, expression)
+      VisualizationExpression.Text(module, expression)
     )
 
-  /** Create a visualisation configuration.
+  /** Create a visualization configuration.
     *
-    * @param contextId an execution context of the visualisation
-    * @param expression a visualisation expression
+    * @param contextId an execution context of the visualization
+    * @param expression a visualization expression
     * @param positionalArgumentsExpressions the list of arguments that will
-    * be passed to the visualisation expression
-    * @return an instance of [[VisualisationConfiguration]]
+    * be passed to the visualization expression
+    * @return an instance of [[VisualizationConfiguration]]
     */
   def apply(
     contextId: UUID,
     expression: MethodPointer,
     positionalArgumentsExpressions: Vector[String]
-  ): VisualisationConfiguration =
-    new VisualisationConfiguration(
+  ): VisualizationConfiguration =
+    new VisualizationConfiguration(
       contextId,
-      VisualisationExpression.ModuleMethod(
+      VisualizationExpression.ModuleMethod(
         expression,
         positionalArgumentsExpressions
       )
@@ -84,11 +84,11 @@ object VisualisationConfiguration {
 
     val ExecutionContextId = "executionContextId"
 
-    val VisualisationModule = "visualisationModule"
+    val VisualizationModule = "visualizationModule"
   }
 
   /** Json decoder that supports both old and new formats. */
-  implicit val decoder: Decoder[VisualisationConfiguration] =
+  implicit val decoder: Decoder[VisualizationConfiguration] =
     Decoder.instance { cursor =>
       cursor.downField(CodecField.Expression).as[String] match {
         case Left(_) =>
@@ -102,7 +102,7 @@ object VisualisationConfiguration {
             arguments <- cursor
               .downField(CodecField.Arguments)
               .as[Option[Vector[String]]]
-          } yield VisualisationConfiguration(
+          } yield VisualizationConfiguration(
             contextId,
             expression,
             arguments.getOrElse(Vector())
@@ -113,28 +113,28 @@ object VisualisationConfiguration {
             contextId <- cursor
               .downField(CodecField.ExecutionContextId)
               .as[UUID]
-            visualisationModule <- cursor
-              .downField(CodecField.VisualisationModule)
+            visualizationModule <- cursor
+              .downField(CodecField.VisualizationModule)
               .as[String]
-          } yield VisualisationConfiguration(
+          } yield VisualizationConfiguration(
             contextId,
-            visualisationModule,
+            visualizationModule,
             expression
           )
       }
     }
 }
 
-/** A visualisation expression. */
-sealed trait VisualisationExpression extends ToLogString {
+/** A visualization expression. */
+sealed trait VisualizationExpression extends ToLogString {
 
   /** A qualified module name. */
   def module: String
 
   /** Convert to corresponding [[Api]] message. */
-  def toApi: Api.VisualisationExpression
+  def toApi: Api.VisualizationExpression
 }
-object VisualisationExpression {
+object VisualizationExpression {
 
   /** Visualization expression represented as a text.
     *
@@ -142,11 +142,11 @@ object VisualisationExpression {
     * @param expression an expression that creates a visualization
     */
   case class Text(module: String, expression: String)
-      extends VisualisationExpression {
+      extends VisualizationExpression {
 
     /** @inheritdoc */
-    override def toApi: Api.VisualisationExpression =
-      Api.VisualisationExpression.Text(module, expression)
+    override def toApi: Api.VisualizationExpression =
+      Api.VisualizationExpression.Text(module, expression)
 
     /** @inheritdoc */
     override def toLogString(shouldMask: Boolean): String =
@@ -165,14 +165,14 @@ object VisualisationExpression {
   case class ModuleMethod(
     methodPointer: MethodPointer,
     positionalArgumentsExpressions: Vector[String]
-  ) extends VisualisationExpression {
+  ) extends VisualizationExpression {
 
     /** @inheritdoc */
     override val module: String = methodPointer.module
 
     /** @inheritdoc */
-    override def toApi: Api.VisualisationExpression =
-      Api.VisualisationExpression.ModuleMethod(
+    override def toApi: Api.VisualizationExpression =
+      Api.VisualizationExpression.ModuleMethod(
         methodPointer.toApi,
         positionalArgumentsExpressions
       )
@@ -196,29 +196,29 @@ object VisualisationExpression {
     val ModuleMethod = "ModuleMethod"
   }
 
-  implicit val encoder: Encoder[VisualisationExpression] =
-    Encoder.instance[VisualisationExpression] {
-      case text: VisualisationExpression.Text =>
-        Encoder[VisualisationExpression.Text]
+  implicit val encoder: Encoder[VisualizationExpression] =
+    Encoder.instance[VisualizationExpression] {
+      case text: VisualizationExpression.Text =>
+        Encoder[VisualizationExpression.Text]
           .apply(text)
           .deepMerge(Json.obj(CodecField.Type -> PayloadType.Text.asJson))
 
-      case moduleMethod: VisualisationExpression.ModuleMethod =>
-        Encoder[VisualisationExpression.ModuleMethod]
+      case moduleMethod: VisualizationExpression.ModuleMethod =>
+        Encoder[VisualizationExpression.ModuleMethod]
           .apply(moduleMethod)
           .deepMerge(
             Json.obj(CodecField.Type -> PayloadType.ModuleMethod.asJson)
           )
     }
 
-  implicit val decoder: Decoder[VisualisationExpression] =
+  implicit val decoder: Decoder[VisualizationExpression] =
     Decoder.instance { cursor =>
       cursor.downField(CodecField.Type).as[String].flatMap {
         case PayloadType.Text =>
-          Decoder[VisualisationExpression.Text].tryDecode(cursor)
+          Decoder[VisualizationExpression.Text].tryDecode(cursor)
 
         case PayloadType.ModuleMethod =>
-          Decoder[VisualisationExpression.ModuleMethod].tryDecode(cursor)
+          Decoder[VisualizationExpression.ModuleMethod].tryDecode(cursor)
       }
     }
 

@@ -137,7 +137,7 @@ impl ExecutionContext {
         let ast_id = vis.expression_id;
         let ls = self.language_server.clone_ref();
         info!("About to detach visualization by id: {vis_id}.");
-        ls.detach_visualisation(&exe_id, &vis_id, &ast_id).await?;
+        ls.detach_visualization(&exe_id, &vis_id, &ast_id).await?;
         if let Err(err) = self.model.detach_visualization(vis_id) {
             warn!("Failed to update model after detaching visualization: {err:?}.")
         }
@@ -244,7 +244,7 @@ impl model::execution_context::API for ExecutionContext {
         async move {
             let result = self
                 .language_server
-                .attach_visualisation(&vis.id, &vis.expression_id, &config)
+                .attach_visualization(&vis.id, &vis.expression_id, &config)
                 .await;
             if let Err(e) = result {
                 self.model.detach_visualization(vis.id)?;
@@ -277,7 +277,7 @@ impl model::execution_context::API for ExecutionContext {
         let new_config = self.model.visualization_config(id, self.id);
         async move {
             result?;
-            self.language_server.modify_visualisation(&id, &new_config?).await?;
+            self.language_server.modify_visualization(&id, &new_config?).await?;
             Ok(())
         }
         .boxed_local()
@@ -542,8 +542,8 @@ pub mod test {
             let ast_id = vis.expression_id;
             let config = vis.config(exe_id);
 
-            expect_call!(ls.attach_visualisation(vis_id,ast_id,config) => Ok(()));
-            expect_call!(ls.detach_visualisation(exe_id,vis_id,ast_id) => Ok(()));
+            expect_call!(ls.attach_visualization(vis_id,ast_id,config) => Ok(()));
+            expect_call!(ls.detach_visualization(exe_id,vis_id,ast_id) => Ok(()));
         });
 
         test.run_task(async move {
@@ -595,10 +595,10 @@ pub mod test {
             let config = vis.config(exe_id);
             let config2 = vis2.config(exe_id);
 
-            expect_call!(ls.attach_visualisation(vis_id,ast_id,config)   => Ok(()));
-            expect_call!(ls.attach_visualisation(vis2_id,ast_id,config2) => Ok(()));
-            expect_call!(ls.detach_visualisation(exe_id,vis_id,ast_id)   => Ok(()));
-            expect_call!(ls.detach_visualisation(exe_id,vis2_id,ast_id)  => Ok(()));
+            expect_call!(ls.attach_visualization(vis_id,ast_id,config)   => Ok(()));
+            expect_call!(ls.attach_visualization(vis2_id,ast_id,config2) => Ok(()));
+            expect_call!(ls.detach_visualization(exe_id,vis_id,ast_id)   => Ok(()));
+            expect_call!(ls.detach_visualization(exe_id,vis2_id,ast_id)  => Ok(()));
         });
         test.run_task(async move {
             // We discard visualization update streams -- they are covered by a separate test.
@@ -632,14 +632,14 @@ pub mod test {
             let ast_id = vis.expression_id;
             let config = vis.config(exe_id);
 
-            let expected_config = language_server::types::VisualisationConfiguration {
+            let expected_config = language_server::types::VisualizationConfiguration {
                 execution_context_id: data.context_id,
                 expression: new_expression.clone().into(),
                 positional_arguments_expressions: arguments.clone(),
             };
 
-            expect_call!(ls.attach_visualisation(vis_id,ast_id,config) => Ok(()));
-            expect_call!(ls.modify_visualisation(vis_id,expected_config) => Ok(()));
+            expect_call!(ls.attach_visualization(vis_id,ast_id,config) => Ok(()));
+            expect_call!(ls.modify_visualization(vis_id,expected_config) => Ok(()));
         });
 
         test.run_task(async move {

@@ -11,7 +11,7 @@ use engine_protocol::language_server::ExecutionEnvironment;
 use engine_protocol::language_server::ExpressionUpdate;
 use engine_protocol::language_server::ExpressionUpdatePayload;
 use engine_protocol::language_server::MethodPointer;
-use engine_protocol::language_server::VisualisationConfiguration;
+use engine_protocol::language_server::VisualizationConfiguration;
 use ensogl::data::color;
 use flo_stream::Subscriber;
 use mockall::automock;
@@ -341,11 +341,11 @@ impl Visualization {
         Visualization { id, expression_id, method_pointer, arguments }
     }
 
-    /// Creates a `VisualisationConfiguration` that is used in communication with language server.
-    pub fn config(&self, execution_context_id: Uuid) -> VisualisationConfiguration {
+    /// Creates a `VisualizationConfiguration` that is used in communication with language server.
+    pub fn config(&self, execution_context_id: Uuid) -> VisualizationConfiguration {
         let expression = self.method_pointer.clone().into();
         let positional_arguments_expressions = self.arguments.clone();
-        VisualisationConfiguration {
+        VisualizationConfiguration {
             execution_context_id,
             expression,
             positional_arguments_expressions,

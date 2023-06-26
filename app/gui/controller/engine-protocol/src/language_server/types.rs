@@ -166,9 +166,9 @@ pub enum Notification {
     ContentRootRemoved { id: Uuid },
 
     /// Sent from server to the client to inform about a failure during execution of a
-    /// visualisation.
-    #[serde(rename = "executionContext/visualisationEvaluationFailed")]
-    VisualisationEvaluationFailed(VisualisationEvaluationFailed),
+    /// visualization.
+    #[serde(rename = "executionContext/visualizationEvaluationFailed")]
+    VisualizationEvaluationFailed(VisualizationEvaluationFailed),
 }
 
 /// Sent from the server to the client to inform about a failure during execution of an execution
@@ -181,13 +181,13 @@ pub struct ExecutionFailed {
     pub message:    String,
 }
 
-/// Sent from server to the client to inform about a failure during execution of a visualisation.
+/// Sent from server to the client to inform about a failure during execution of a visualization.
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize, Eq)]
 #[allow(missing_docs)]
 #[serde(rename_all = "camelCase")]
-pub struct VisualisationEvaluationFailed {
+pub struct VisualizationEvaluationFailed {
     pub context_id:       ContextId,
-    pub visualisation_id: Uuid,
+    pub visualization_id: Uuid,
     pub expression_id:    ExpressionId,
     pub message:          String,
     pub diagnostic:       Option<Diagnostic>,
@@ -708,11 +708,11 @@ pub type ContextId = Uuid;
 /// Execution context expression ID.
 pub type ExpressionId = Uuid;
 
-/// A configuration object for properties of the visualisation.
+/// A configuration object for properties of the visualization.
 #[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 #[allow(missing_docs)]
-pub struct VisualisationConfiguration {
+pub struct VisualizationConfiguration {
     /// An execution context of the visualization.
     pub execution_context_id: ContextId,
     /// An enso function that will transform the data into expected format.

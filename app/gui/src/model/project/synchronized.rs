@@ -12,7 +12,7 @@ use crate::transport::web::WebSocket;
 
 use double_representation::name::project;
 use engine_protocol::binary;
-use engine_protocol::binary::message::VisualisationContext;
+use engine_protocol::binary::message::VisualizationContext;
 use engine_protocol::common::error::code;
 use engine_protocol::language_server;
 use engine_protocol::language_server::response;
@@ -80,7 +80,7 @@ impl ExecutionContextsRegistry {
     /// Route the visualization update into the appropriate execution context.
     pub fn dispatch_visualization_update(
         &self,
-        context: VisualisationContext,
+        context: VisualizationContext,
         data: VisualizationUpdateData,
     ) -> FallibleResult {
         self.with_context(context.context_id, |ctx| {
@@ -577,12 +577,12 @@ impl Project {
                         content_roots.remove(id);
                     }
                 }
-                Event::Notification(Notification::VisualisationEvaluationFailed(update)) => {
+                Event::Notification(Notification::VisualizationEvaluationFailed(update)) => {
                     error!(
-                        "Visualisation evaluation failed in context {} for visualisation {} of \
+                        "Visualization evaluation failed in context {} for visualization {} of \
                         expression {}. Error: {}",
                         update.context_id,
-                        update.visualisation_id,
+                        update.visualization_id,
                         update.expression_id,
                         update.message
                     );
