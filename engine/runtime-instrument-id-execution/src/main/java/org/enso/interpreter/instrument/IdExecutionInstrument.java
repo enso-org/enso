@@ -271,9 +271,9 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
       // appropriately invalidate all dependent expressions.
       if (!isPanic) {
         cache.offer(nodeId, result);
+        cache.putCall(nodeId, call);
       }
       cache.putType(nodeId, resultType);
-      cache.putCall(nodeId, call);
 
       passExpressionValueToCallback(expressionValue);
       if (isPanic) {
