@@ -106,5 +106,75 @@ body {
     .border-dashed-custom {
       background-image: url("enso-assets/dashed_border.svg");
     }
+
+    .grid-cols-fill-60-minmax-scrollbar-aware {
+      /* Graceful degradation for extremely large monitors. */
+      @media screen and (min-width: 1275px) {
+        grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+      }
+
+      /* Each column is 240px (tile) + 8px (padding). */
+      /* Hardcore scrollbar-aware values for monitors up to 3840px wide. */
+
+      @media screen and (min-width: 3755px) and (max-width: 4002px) {
+        grid-template-columns: repeat(14, minmax(15rem, 1fr));
+      }
+
+      @media screen and (min-width: 3507px) and (max-width: 3754px) {
+        grid-template-columns: repeat(14, minmax(15rem, 1fr));
+      }
+
+      @media screen and (min-width: 3259px) and (max-width: 3506px) {
+        grid-template-columns: repeat(13, minmax(15rem, 1fr));
+      }
+
+      @media screen and (min-width: 3011px) and (max-width: 3258px) {
+        grid-template-columns: repeat(12, minmax(15rem, 1fr));
+      }
+
+      @media screen and (min-width: 2763px) and (max-width: 3010px) {
+        grid-template-columns: repeat(11, minmax(15rem, 1fr));
+      }
+
+      @media screen and (min-width: 2515px) and (max-width: 2762px) {
+        grid-template-columns: repeat(10, minmax(15rem, 1fr));
+      }
+
+      @media screen and (min-width: 2267px) and (max-width: 2514px) {
+        grid-template-columns: repeat(9, minmax(15rem, 1fr));
+      }
+
+      @media screen and (min-width: 2019px) and (max-width: 2266px) {
+        grid-template-columns: repeat(8, minmax(15rem, 1fr));
+      }
+
+      @media screen and (min-width: 1771px) and (max-width: 2018px) {
+        grid-template-columns: repeat(7, minmax(15rem, 1fr));
+      }
+
+      @media screen and (min-width: 1523px) and (max-width: 1770px) {
+        grid-template-columns: repeat(6, minmax(15rem, 1fr));
+      }
+
+      @media screen and (min-width: 1275px) and (max-width: 1522px) {
+        grid-template-columns: repeat(5, minmax(15rem, 1fr));
+      }
+
+      @media screen and (min-width: 1027px) and (max-width: 1274px) {
+        grid-template-columns: repeat(4, minmax(15rem, 1fr));
+      }
+
+      @media screen and (min-width: 779px) and (max-width: 1026px) {
+        grid-template-columns: repeat(3, minmax(15rem, 1fr));
+      }
+
+      @media screen and (min-width: 531px) and (max-width: 778px) {
+        grid-template-columns: repeat(2, minmax(15rem, 1fr));
+      }
+
+      @media screen and (max-width: 530) {
+        grid-template-columns: repeat(1, 1fr);
+      }
+    }
   }
 }

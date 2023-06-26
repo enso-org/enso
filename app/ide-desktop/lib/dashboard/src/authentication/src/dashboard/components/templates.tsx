@@ -132,7 +132,7 @@ function Templates(props: TemplatesProps) {
 
     return (
         <div className="my-2 p-2">
-            <div className="grid gap-2 grid-cols-fill-60-minmax justify-center">
+            <div className="grid gap-2 grid-cols-fill-60-minmax-scrollbar-aware justify-center">
                 <TemplatesRender templates={TEMPLATES} onTemplateClick={onTemplateClick} />
             </div>
         </div>
