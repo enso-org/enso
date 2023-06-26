@@ -77,10 +77,8 @@ function TemplatesRender(props: TemplatesRenderProps) {
             className="h-40 w-60 cursor-pointer"
         >
             <div className="flex h-full w-full border-dashed-custom rounded-2xl text-primary">
-                <div className="m-auto text-center">
-                    <button>
-                        <img src={PlusCircledIcon} />
-                    </button>
+                <div className="flex flex-col text-center items-center m-auto">
+                    <img src={PlusCircledIcon} />
                     <p className="font-semibold text-sm">New empty project</p>
                 </div>
             </div>
