@@ -2508,7 +2508,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 1.0.107",
- "wasm-bindgen-test",
 ]
 
 [[package]]

@@ -30,6 +30,3 @@ paste = { workspace = true }
 [dependencies.syn]
 version = "1.0"
 features = ['extra-traits', 'visit', 'full']
-
-[dev-dependencies]
-wasm-bindgen-test = "0.3.8"
