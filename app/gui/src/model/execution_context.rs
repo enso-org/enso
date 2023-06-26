@@ -581,7 +581,6 @@ mod tests {
     use engine_protocol::language_server::types::test::value_update_with_dataflow_panic;
     use engine_protocol::language_server::types::test::value_update_with_type;
     use engine_protocol::language_server::types::test::value_update_with_type_and_method_ptr;
-    use engine_protocol::language_server::MethodCall;
 
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
 
