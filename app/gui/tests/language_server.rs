@@ -60,7 +60,7 @@ Number.foo = x ->
 [[{"index": {"value": 98}, "size": {"value": 5}}, "5fc0c11d-bd83-4ca3-b847-b8e362f7658c"],[{"index": {"value": 81}, "size": {"value": 8}}, "1cda3676-bd62-41f8-b6a1-a1e1b7c73d18"],[{"index": {"value": 42}, "size": {"value": 5}}, "899a11e5-4d2b-43dc-a867-2f2ef2d2ba62"],[{"index": {"value": 26}, "size": {"value": 7}}, "37f284d4-c593-4e65-a4be-4948fbd2adfb"],[{"index": {"value": 16}, "size": {"value": 1}}, "c553533e-a2b9-4305-9f12-b8fe7781f933"]]
 []"#;
 
-const VISUALIzATION_CODE: &str = r#"
+const VISUALIZATION_CODE: &str = r#"
 encode = x -> x.to_text
 
 incAndEncode = x -> here.encode x+1
@@ -85,7 +85,7 @@ async fn ls_text_protocol_test() {
     result.expect("Couldn't write main code file.");
 
     let visualization_file = Path::new(root_id, &["src", "Visualization.enso"]);
-    let contents = VISUALIzATION_CODE.to_string();
+    let contents = VISUALIZATION_CODE.to_string();
     let response = client.write_file(&visualization_file, &contents).await;
     response.expect("Couldn't write visualization file.");
 
