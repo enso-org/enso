@@ -19,6 +19,12 @@ spec setup =
     prefix = setup.prefix
     table_builder = setup.table_builder
 
+    do_op n op =
+        table = table_builder [["x", [n]]]
+        result = table.at "x" |> op
+        result.to_vector.at 0
+    do_round n dp=0 use_bankers=False = do_op n (_.round dp use_bankers)
+
     Test.group prefix+"Boolean Column Operations" <|
         Test.specify "iif" <|
             t = table_builder [["X", [True, False, Nothing, True]]]
@@ -330,14 +336,15 @@ spec setup =
             (y ^ "a").should_fail_with Invalid_Value_Type
             (y ^ 42).should_fail_with Invalid_Value_Type
 
-        case setup.test_selection.is_nan_and_nothing_distinct of
-            True -> Test.specify "should support is_nan" <|
-                t = table_builder [["X", [1.5, 2, Number.nan]], ["Y", [1, 2, 3]]]
-                t.at "X" . is_nan . to_vector . should_equal [False, False, True]
-                t.at "Y" . is_nan . should_fail_with Invalid_Value_Type
-            False -> Test.specify "should report that is_nan is not supported" <|
-                t = table_builder [["X", [1.5]]]
-                t.at "X" . is_nan . should_fail_with Unsupported_Database_Operation
+        ##
+            case setup.test_selection.is_nan_and_nothing_distinct of
+                True -> Test.specify "should support is_nan" <|
+                    t = table_builder [["X", [1.5, 2, Number.nan]], ["Y", [1, 2, 3]]]
+                    t.at "X" . is_nan . to_vector . should_equal [False, False, True]
+                    t.at "Y" . is_nan . should_fail_with Invalid_Value_Type
+                False -> Test.specify "should report that is_nan is not supported" <|
+                    t = table_builder [["X", [1.5]]]
+                    t.at "X" . is_nan . should_fail_with Unsupported_Database_Operation
 
         Test.specify "should support is_blank" <|
             t = table_builder [["X", [1.5, 2, Number.nan, Nothing]], ["Y", [1, Nothing, 3, 4]]]
@@ -506,6 +513,14 @@ spec setup =
             table = table_builder [["x", [0, 3, -3, 1, -2]]]
             table.at "x" . round 16 . should_fail_with Illegal_Argument
 
+        Test.specify "Can handle NaN/Infinity" <|
+            nan_result = if setup.test_selection.is_nan_and_nothing_distinct then Number.nan else Nothing
+            ops = [.round, .truncate, .ceil, .floor]
+            ops.each op->
+                do_op Number.nan op . should_equal nan_result
+                do_op Number.positive_infinity op . should_equal Number.positive_infinity
+                do_op Number.negative_infinity op . should_equal Number.negative_infinity
+
         Test.group "return types" <|
             roundlike_ops = [["floor", .floor], ["ceil", .ceil], ["truncate", .truncate], ["round", .round]]
 
@@ -513,11 +528,21 @@ spec setup =
                 op_name = pair.at 0
                 op = pair.at 1
 
+                Test.specify "rounding-like should return a column of the same type as the argument (floats): "+op_name <|
+                    col = table_builder [["x", [0.1, 0.9, 3.1, 3.9, -0.1, -0.9, -3.1, -3.9]]] . at "x"
+                    op (col.cast Value_Type.Float) . value_type . should_equal Value_Type.Float
+
+
                 Test.specify "rounding-like should return a column of the same type as the argument (integers): "+op_name <|
                     col = table_builder [["x", [0.1, 0.9, 3.1, 3.9, -0.1, -0.9, -3.1, -3.9]]] . at "x"
                     bits_32_expected = if setup.test_selection.all_integers_64_bit then Value_Type.Integer Bits.Bits_64 else Value_Type.Integer Bits.Bits_32
                     op (col.cast (Value_Type.Integer Bits.Bits_32)) . value_type . should_equal bits_32_expected
                     op (col.cast (Value_Type.Integer Bits.Bits_64)) . value_type . should_equal (Value_Type.Integer Bits.Bits_64)
+
+                if setup.test_selection.supports_decimal_type then
+                    Test.specify "rounding-like should return a column of the same type as the argument (floats): "+op_name <|
+                        col = table_builder [["x", [0.1, 0.9, 3.1, 3.9, -0.1, -0.9, -3.1, -3.9]]] . at "x"
+                        op (col.cast Value_Type.Decimal) . value_type . should_equal Value_Type.Decimal
 
             roundlike_ops.each op-> round_with op
 
@@ -528,7 +553,6 @@ spec setup =
             [(.floor), (.ceil), (.truncate), (x-> x.round 0), (x-> x.round 2)].each op->
                 op (t.at "X") . to_vector . should_equal [i1, i2]
 
-        if setup.test_selection.supports_decimal_type then
             Test.specify "should return decimals when rounding decimals" pending="fails on postgres" <|
                 i1 = 9223372036854775807 - 1
                 c = table_builder [["X", [i1]]] . at "X"
@@ -548,11 +572,6 @@ spec setup =
             table.at "x" . round . should_fail_with Invalid_Value_Type
 
     Test.group prefix+"Rounding numeric tests" <|
-        do_round n dp=0 use_bankers=False =
-            table = table_builder [["x", [n]]]
-            result = table.at "x" . round dp use_bankers
-            result.to_vector.at 0
-
         Test.specify "Can round positive decimals correctly" <|
             do_round 3.0 . should_equal 3
             do_round 3.00001 . should_equal 3
@@ -662,9 +681,9 @@ spec setup =
 
         Test.specify "Returns the correct type" <|
             do_round 231.2 1 . should_be_a Decimal
-            do_round 231.2 0 . should_be_a Integer
-            do_round 231.2 . should_be_a Integer
-            do_round 231.2 -1 . should_be_a Integer
+            do_round 231.2 0 . should_be_a Decimal
+            do_round 231.2 . should_be_a Decimal
+            do_round 231.2 -1 . should_be_a Decimal
 
         Test.specify "Can round correctly near the precision limit" <|
             do_round 1.22222222225 10 . should_equal 1.2222222223
@@ -731,13 +750,6 @@ spec setup =
         Test.specify "Floating point imperfect representation counter-examples" <|
             do_round 1.225 2 use_bankers=True . should_equal 1.22 # Actual result 1.23
             do_round 37.785 2 . should_equal 37.79
-
-        ##
-            Test.specify "Can handle NaN/Infinity" <|
-                nan_result = if setup.test_selection.is_nan_and_nothing_distinct then Number.nan else Nothing
-                do_round Number.nan . should_equal nan_result
-                do_round Number.positive_infinity . should_equal Number.positive_infinity
-                do_round Number.negative_infinity . should_equal Number.negative_infinity
 
         Test.specify "Can round small integers to a specified number of decimal places correctly (value is unchanged)"
             do_round 0 . should_equal 0

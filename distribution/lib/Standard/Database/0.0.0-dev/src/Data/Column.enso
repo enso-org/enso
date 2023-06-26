@@ -618,17 +618,14 @@ type Column
              example_round = Examples.decimal_column.round 2
     round : Integer -> Boolean -> Column | Illegal_Argument | Invalid_Value_Type
     round self decimal_places=0 use_bankers=False =
-        Rounding_Helpers.check_decimal_places decimal_places <|
-            round_maybe = if decimal_places <= 0 then roundlike_cast self.value_type else identity
-            result_uncast = case self.value_type of
+        Rounding_Helpers.check_decimal_places decimal_places <| short_circuit_special_floating_point self <|
+            case self.value_type of
                 Value_Type.Integer _ -> self.round_integer decimal_places use_bankers
                 Value_Type.Float _ -> self.round_float decimal_places use_bankers
                 Value_Type.Decimal _ _ -> self.round_decimal decimal_places use_bankers
                 _ ->
                     expected = "Value_Type.Decimal, Value_Type.Float, or Value_Type.Integer"
                     Error.throw (Invalid_Value_Type.Column expected self.value_type self.name)
-            result_uncast.if_not_error <|
-                round_maybe result_uncast
 
     ## PRIVATE
        Round a float-like column.
@@ -700,10 +697,10 @@ type Column
              example_truncate = Examples.decimal_column.truncate
     truncate : Column ! Invalid_Value_Type
     truncate self =
-        Value_Type.expect_numeric self <|
+        Value_Type.expect_numeric self <| short_circuit_special_floating_point self <|
             new_name = self.naming_helpers.function_name "truncate" [self]
             if self.value_type.is_integer then self.rename new_name else
-                roundlike_cast self.value_type <| self.make_unary_op "TRUNCATE" new_name
+                self.make_unary_op "TRUNCATE" new_name
 
     ## Takes the ceiling of floating-point values, returning integer values.
 
@@ -715,10 +712,10 @@ type Column
              example_truncate = Examples.decimal_column.ceil
     ceil : Column ! Invalid_Value_Type
     ceil self =
-        Value_Type.expect_numeric self <|
+        Value_Type.expect_numeric self <| short_circuit_special_floating_point self <|
             new_name = self.naming_helpers.function_name "ceil" [self]
             if self.value_type.is_integer then self.rename new_name else
-                roundlike_cast self.value_type <| self.make_unary_op "CEIL" new_name
+                self.make_unary_op "CEIL" new_name
 
     ## Takes the floor of floating-point values, returning integer values.
 
@@ -730,10 +727,10 @@ type Column
              example_truncate = Examples.decimal_column.floor
     floor : Column ! Invalid_Value_Type
     floor self =
-        Value_Type.expect_numeric self <|
+        Value_Type.expect_numeric self <| short_circuit_special_floating_point self <|
             new_name = self.naming_helpers.function_name "floor" [self]
             if self.value_type.is_integer then self.rename new_name else
-                roundlike_cast self.value_type <| self.make_unary_op "FLOOR" new_name
+                self.make_unary_op "FLOOR" new_name
 
     ## PRVIATE
        `/` for decimals.
@@ -824,9 +821,20 @@ type Column
        Returns a column of booleans, with `True` items at the positions where
        this column contains a NaN. This is only applicable to double columns.
     is_nan : Column
-    is_nan self = Value_Type.expect_floating_point self <|
+    is_nan self =
+      IO.println 'IS_NAN'
+      Value_Type.expect_floating_point self <|
         new_name = self.naming_helpers.function_name "is_nan" [self]
         self.make_unary_op "IS_NAN" new_name
+
+    ## UNSTABLE
+       Returns a column of booleans, with `True` items at the positions where
+       this column contains a +Inf/-Inf. This is only applicable to double
+       columns.
+    is_infinite : Column
+    is_infinite self = Value_Type.expect_floating_point self <|
+        new_name = self.naming_helpers.function_name "is_infinite" [self]
+        self.make_unary_op "IS_INF" new_name
 
     ## PRIVATE
        Returns a column of booleans, with `True` items at the positions where
@@ -1417,13 +1425,11 @@ adapt_unified_column column expected_type =
     adapted = dialect.adapt_unified_column column.as_internal expected_type infer_return_type
     Column.Value name=column.name connection=column.connection sql_type_reference=adapted.sql_type_reference expression=adapted.expression context=column.context
 
-## PRIVATE
-   Cast the result of a round-like method to the correct type.
-   - Integer types should retain their bit-width
-   - Floating point should return integer
-   - Decimal should stay Decimal (for precision reasons)
-roundlike_cast : Value_Type -> Column -> Column
-roundlike_cast value_type column = case value_type of
-    Value_Type.Integer _ -> column.cast value_type
-    Value_Type.Float _ -> column . cast Value_Type.Integer
-    Value_Type.Decimal _ _ -> column.cast value_type
+## PRVIATE
+   If the input is NaN/Inf, return it immediately as the value; otherwise
+   return the expression. If returning immediately, rename to the expression's
+   name. If the input is not floating point, just return the expression.
+short_circuit_special_floating_point : Column -> Column -> Column
+short_circuit_special_floating_point input exp =
+    if input.value_type.is_floating_point.not then exp else
+        ((input.is_nan || input.is_infinite).iif input exp).rename exp.name

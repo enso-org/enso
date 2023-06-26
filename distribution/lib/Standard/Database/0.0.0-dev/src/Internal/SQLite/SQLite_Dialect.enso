@@ -235,7 +235,7 @@ make_internal_generator_dialect =
     text = [starts_with, contains, ends_with, make_case_sensitive]+concat_ops+trim_ops
     counts = [agg_count_is_null, agg_count_empty, agg_count_not_empty, ["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null]]
     stats = [agg_stddev_pop, agg_stddev_samp]
-    arith_extensions = [floating_point_div, mod_op]
+    arith_extensions = [is_nan, is_inf, floating_point_div, mod_op]
 
     bool = [bool_or]
     my_mappings = text + counts + stats + arith_extensions + bool
@@ -317,6 +317,14 @@ trim_ops =
                     False ->
                         Builder.code "CASE WHEN " ++ chars ++ " IS NULL OR " ++ chars ++ " == '' THEN " ++ fn_name ++ "(" ++ input ++ ") ELSE " ++ fn_name ++ "(" ++ input ++ ", " ++ chars ++ ") END"
     [make_fn "TRIM", make_fn "LTRIM", make_fn "RTRIM"]
+
+## PRIVATE
+is_nan = Base_Generator.lift_unary_op "IS_NAN" arg->
+    (arg ++ " IS NULL").paren
+
+## PRIVATE
+is_inf = Base_Generator.lift_unary_op "IS_INF" arg->
+    (arg ++ " in (9e999, -9e999)").paren
 
 ## PRIVATE
 agg_count_distinct args = case args.length == 1 of
