@@ -106,7 +106,7 @@ const PERMISSION: Record<backend.PermissionAction, permissionDisplay.Permissions
 /** {@link table.ColumnProps} for an unknown variant of {@link backend.Asset}. */
 type AnyAssetColumnProps = Omit<
     table.ColumnProps<backend.Asset>,
-    'rowState' | 'setRowState' | 'state'
+    'rowState' | 'setItem' | 'setRowState' | 'state'
 >
 
 /** A column displaying the time at which the asset was last modified. */
@@ -140,9 +140,7 @@ export function PlaceholderColumn() {
 // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unused-vars
 export const COLUMN_RENDERER: Record<
     Exclude<Column, Column.name>,
-    (
-        props: Omit<table.ColumnProps<backend.Asset>, 'rowState' | 'setRowState' | 'state'>
-    ) => JSX.Element
+    (props: AnyAssetColumnProps) => JSX.Element
 > = {
     [Column.lastModified]: LastModifiedColumn,
     [Column.sharedWith]: SharedWithColumn,

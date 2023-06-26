@@ -310,7 +310,6 @@ function Dashboard(props: DashboardProps) {
                         dispatchProjectListEvent={dispatchProjectListEvent}
                         query={query}
                         refresh={refresh}
-                        doRefresh={doRefresh}
                         onOpenIde={openIde}
                         onCloseIde={closeIde}
                         appRunner={appRunner}

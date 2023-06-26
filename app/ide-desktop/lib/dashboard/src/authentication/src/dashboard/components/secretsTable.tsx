@@ -10,7 +10,6 @@ import * as backendProvider from '../../providers/backend'
 import * as columnModule from '../column'
 import * as errorModule from '../../error'
 import * as eventModule from '../event'
-import * as hooks from '../../hooks'
 import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
 import * as shortcuts from '../shortcuts'
@@ -62,12 +61,11 @@ const TOAST_PROMISE_MULTIPLE_MESSAGES: toastPromiseMultiple.ToastPromiseMultiple
 /** Props for a {@link SecretCreateForm}. */
 interface InternalSecretCreateFormProps extends createForm.CreateFormPassthroughProps {
     directoryId: backendModule.DirectoryId | null
-    onSuccess: () => void
 }
 
 /** A form to create a new secret asset. */
 function SecretCreateForm(props: InternalSecretCreateFormProps) {
-    const { directoryId, onSuccess, ...passThrough } = props
+    const { directoryId, ...passThrough } = props
     const { backend } = backendProvider.useBackend()
     const { unsetModal } = modalProvider.useSetModal()
 
@@ -86,20 +84,18 @@ function SecretCreateForm(props: InternalSecretCreateFormProps) {
                 toast.error('Please provide a secret value.')
             } else {
                 unsetModal()
-                await toast
-                    .promise(
-                        backend.createSecret({
-                            parentDirectoryId: directoryId,
-                            secretName: name,
-                            secretValue: value,
-                        }),
-                        {
-                            loading: 'Creating secret...',
-                            success: 'Sucessfully created secret.',
-                            error: errorModule.tryGetMessage,
-                        }
-                    )
-                    .then(onSuccess)
+                await toast.promise(
+                    backend.createSecret({
+                        parentDirectoryId: directoryId,
+                        secretName: name,
+                        secretValue: value,
+                    }),
+                    {
+                        loading: 'Creating secret...',
+                        success: 'Sucessfully created secret.',
+                        error: errorModule.tryGetMessage,
+                    }
+                )
             }
         }
 
@@ -145,12 +141,11 @@ function SecretCreateForm(props: InternalSecretCreateFormProps) {
 /** Props for a {@link SecretNameHeading}. */
 interface InternalSecretNameHeadingProps {
     directoryId: backendModule.DirectoryId | null
-    onCreate: () => void
 }
 
 /** The column header for the "name" column for the table of secret assets. */
 function SecretNameHeading(props: InternalSecretNameHeadingProps) {
-    const { directoryId, onCreate } = props
+    const { directoryId } = props
     const { setModal } = modalProvider.useSetModal()
 
     return (
@@ -166,7 +161,6 @@ function SecretNameHeading(props: InternalSecretNameHeadingProps) {
                             left={buttonPosition.left + window.scrollX}
                             top={buttonPosition.top + window.scrollY}
                             directoryId={directoryId}
-                            onSuccess={onCreate}
                         />
                     )
                 }}
@@ -186,8 +180,7 @@ interface InternalSecretNameProps extends table.ColumnProps<backendModule.Secret
 
 /** The icon and name of a specific secret asset. */
 function SecretName(props: InternalSecretNameProps) {
-    const { item, selected } = props
-    const [, doRefresh] = hooks.useRefresh()
+    const { item, setItem, selected } = props
     const [isNameEditable, setIsNameEditable] = React.useState(false)
 
     // TODO[sb]: Wait for backend implementation.
@@ -219,16 +212,11 @@ function SecretName(props: InternalSecretNameProps) {
                     setIsNameEditable(false)
                     if (newTitle !== item.title) {
                         const oldTitle = item.title
-                        // Mutation is bad practice as it does not cause a re-render. However, a
-                        // `useState` is not an option because a new value may come from the props.
-                        // `doRefresh()` ensures that a re-render always happens.
-                        item.title = newTitle
-                        doRefresh()
+                        setItem(oldItem => ({ ...oldItem, title: newTitle }))
                         try {
                             await doRename(/* newTitle */)
                         } catch {
-                            item.title = oldTitle
-                            doRefresh()
+                            setItem(oldItem => ({ ...oldItem, title: oldTitle }))
                         }
                     }
                 }}
@@ -254,21 +242,11 @@ export interface SecretsTableProps {
     filter: ((item: backendModule.SecretAsset) => boolean) | null
     isLoading: boolean
     columnDisplayMode: columnModule.ColumnDisplayMode
-    onCreate: () => void
-    onDelete: () => void
 }
 
 /** The table of secret assets. */
 function SecretsTable(props: SecretsTableProps) {
-    const {
-        directoryId,
-        items: rawItems,
-        filter,
-        isLoading,
-        columnDisplayMode,
-        onCreate,
-        onDelete,
-    } = props
+    const { directoryId, items: rawItems, filter, isLoading, columnDisplayMode } = props
     const logger = loggerProvider.useLogger()
     const { backend } = backendProvider.useBackend()
     const { setModal } = modalProvider.useSetModal()
@@ -298,12 +276,7 @@ function SecretsTable(props: SecretsTableProps) {
                         ? {
                               id: column,
                               className: columnModule.COLUMN_CSS_CLASS[column],
-                              heading: (
-                                  <SecretNameHeading
-                                      directoryId={directoryId}
-                                      onCreate={onCreate}
-                                  />
-                              ),
+                              heading: <SecretNameHeading directoryId={directoryId} />,
                               render: SecretName,
                           }
                         : {
@@ -330,7 +303,6 @@ function SecretsTable(props: SecretsTableProps) {
                                         TOAST_PROMISE_MULTIPLE_MESSAGES
                                     )
                                 }}
-                                onSuccess={onDelete}
                             />
                         )
                     }
@@ -355,7 +327,6 @@ function SecretsTable(props: SecretsTableProps) {
                                 description={item.title}
                                 assetType={item.type}
                                 doDelete={() => backend.deleteSecret(item.id, item.title)}
-                                onSuccess={onDelete}
                             />
                         )
                     }

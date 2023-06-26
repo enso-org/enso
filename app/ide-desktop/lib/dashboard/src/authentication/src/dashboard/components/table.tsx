@@ -23,6 +23,7 @@ const SPINNER_LOADING_CLASSES = 'grow dasharray-75 duration-1000 ease-linear'
 /** Props for a {@link Column}. */
 export interface ColumnProps<T, State = never, RowState = never> {
     item: T
+    setItem: React.Dispatch<React.SetStateAction<T>>
     selected: boolean
     state: State
     rowState: RowState
@@ -159,6 +160,7 @@ function Row<T, State = never, RowState = never>(props: RowProps<T, State, RowSt
                     >
                         <Render
                             item={item}
+                            setItem={setItem}
                             selected={selected}
                             /** This is SAFE, as the type is defined such that they MUST be
                              * present if it is specified as a generic parameter.

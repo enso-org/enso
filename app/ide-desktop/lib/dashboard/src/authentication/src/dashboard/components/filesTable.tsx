@@ -7,9 +7,10 @@ import PlusIcon from 'enso-assets/plus.svg'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as columnModule from '../column'
-import * as errorModule from '../../error'
+import * as dateTime from '../dateTime'
 import * as eventModule from '../event'
 import * as fileInfo from '../../fileInfo'
+import * as fileListEventModule from '../events/fileListEvent'
 import * as hooks from '../../hooks'
 import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
@@ -18,7 +19,6 @@ import * as string from '../../string'
 import * as toastPromiseMultiple from '../../toastPromiseMultiple'
 import * as uniqueString from '../../uniqueString'
 
-import CreateForm, * as createForm from './createForm'
 import Table, * as table from './table'
 import ConfirmDeleteModal from './confirmDeleteModal'
 import ContextMenu from './contextMenu'
@@ -55,97 +55,6 @@ const TOAST_PROMISE_MULTIPLE_MESSAGES: toastPromiseMultiple.ToastPromiseMultiple
         error: asset => `Could not delete ${ASSET_TYPE_NAME} '${asset.title}'.`,
     }
 
-// ======================
-// === FileCreateForm ===
-// ======================
-
-/** Props for a {@link FileCreateForm}. */
-interface InternalFileCreateFormProps extends createForm.CreateFormPassthroughProps {
-    directoryId: backendModule.DirectoryId | null
-    onSuccess: () => void
-}
-
-/** A form to create a new file asset. */
-function FileCreateForm(props: InternalFileCreateFormProps) {
-    const { directoryId, onSuccess, ...passThrough } = props
-    const { backend } = backendProvider.useBackend()
-    const { unsetModal } = modalProvider.useSetModal()
-    const [name, setName] = React.useState<string | null>(null)
-    const [file, setFile] = React.useState<File | null>(null)
-
-    if (backend.type === backendModule.BackendType.local) {
-        return <></>
-    } else {
-        const onSubmit = async (event: React.FormEvent) => {
-            event.preventDefault()
-            if (file == null) {
-                // TODO[sb]: Uploading a file may be a mistake when creating a new file.
-                toast.error('Please select a file to upload.')
-            } else {
-                unsetModal()
-                await toast
-                    .promise(
-                        backend.uploadFile(
-                            {
-                                fileId: null,
-                                fileName: name ?? file.name,
-                                parentDirectoryId: directoryId,
-                            },
-                            file
-                        ),
-                        {
-                            loading: 'Uploading file...',
-                            success: 'Sucessfully uploaded file.',
-                            error: errorModule.tryGetMessage,
-                        }
-                    )
-                    .then(onSuccess)
-            }
-        }
-
-        return (
-            <CreateForm title="New File" onSubmit={onSubmit} {...passThrough}>
-                <div className="flex flex-row flex-nowrap m-1">
-                    <label className="inline-block flex-1 grow m-1" htmlFor="file_name">
-                        Name
-                    </label>
-                    <input
-                        id="file_name"
-                        type="text"
-                        size={1}
-                        className="bg-gray-200 rounded-full flex-1 grow-2 px-2 m-1"
-                        onChange={event => {
-                            setName(event.target.value)
-                        }}
-                        defaultValue={name ?? file?.name ?? ''}
-                    />
-                </div>
-                <div className="flex flex-row flex-nowrap m-1">
-                    <div className="inline-block flex-1 grow m-1">File</div>
-                    <div className="inline-block bg-gray-200 rounded-full flex-1 grow-2 px-2 m-1">
-                        <label className="bg-transparent rounded-full w-full" htmlFor="file_file">
-                            <div className="inline-block bg-gray-300 hover:bg-gray-400 rounded-l-full px-2 -ml-2">
-                                <u>𐌣</u>
-                            </div>
-                            <div className="inline-block px-2 -mr-2">
-                                {file?.name ?? 'No file chosen'}
-                            </div>
-                        </label>
-                        <input
-                            id="file_file"
-                            type="file"
-                            className="hidden"
-                            onChange={event => {
-                                setFile(event.target.files?.[0] ?? null)
-                            }}
-                        />
-                    </div>
-                </div>
-            </CreateForm>
-        )
-    }
-}
-
 // =======================
 // === FileNameHeading ===
 // =======================
@@ -153,34 +62,63 @@ function FileCreateForm(props: InternalFileCreateFormProps) {
 /** Props for a {@link FileNameHeading}. */
 interface InternalFileNameHeadingProps {
     directoryId: backendModule.DirectoryId | null
-    onCreate: () => void
+    dispatchFileListEvent: (fileListEvent: fileListEventModule.FileListEvent) => void
 }
 
 /** The column header for the "name" column for the table of file assets. */
 function FileNameHeading(props: InternalFileNameHeadingProps) {
-    const { directoryId, onCreate } = props
-    const { setModal } = modalProvider.useSetModal()
+    const { directoryId, dispatchFileListEvent } = props
+    const logger = loggerProvider.useLogger()
+    const { backend } = backendProvider.useBackend()
+
+    const uploadFiles = React.useCallback(
+        (event: React.FormEvent<HTMLInputElement>) => {
+            if (backend.type === backendModule.BackendType.local) {
+                // TODO[sb]: Allow uploading `.enso-project`s
+                // https://github.com/enso-org/cloud-v2/issues/510
+                const message = 'Files cannot be uploaded to the local backend.'
+                toast.error(message)
+                logger.error(message)
+            } else if (
+                event.currentTarget.files == null ||
+                event.currentTarget.files.length === 0
+            ) {
+                toast.success('No files selected to upload.')
+            } else if (directoryId == null) {
+                // This should never happen, however display a nice error message in case
+                // it somehow does.
+                const message = 'Files cannot be uploaded while offline.'
+                toast.error(message)
+                logger.error(message)
+            } else {
+                dispatchFileListEvent({
+                    type: fileListEventModule.FileListEventType.uploadMultiple,
+                    files: event.currentTarget.files,
+                })
+            }
+        },
+        [
+            backend.type,
+            directoryId,
+            /* should not change */ logger,
+            /* should never change */ dispatchFileListEvent,
+        ]
+    )
 
     return (
         <div className="inline-flex">
             File
-            <button
-                className="mx-1"
-                onClick={event => {
-                    event.stopPropagation()
-                    const buttonPosition = event.currentTarget.getBoundingClientRect()
-                    setModal(
-                        <FileCreateForm
-                            left={buttonPosition.left + window.scrollX}
-                            top={buttonPosition.top + window.scrollY}
-                            directoryId={directoryId}
-                            onSuccess={onCreate}
-                        />
-                    )
-                }}
-            >
+            <input
+                type="file"
+                id="files_table_upload_files_input"
+                name="files_table_upload_files_input"
+                multiple
+                className="w-0 h-0"
+                onInput={uploadFiles}
+            />
+            <label htmlFor="files_table_upload_files_input" className="cursor-pointer mx-1">
                 <img src={PlusIcon} />
-            </button>
+            </label>
         </div>
     )
 }
@@ -194,8 +132,7 @@ interface InternalFileNameProps extends table.ColumnProps<backendModule.FileAsse
 
 /** The icon and name of a specific file asset. */
 function FileName(props: InternalFileNameProps) {
-    const { item, selected } = props
-    const [, doRefresh] = hooks.useRefresh()
+    const { item, setItem, selected } = props
     const [isNameEditable, setIsNameEditable] = React.useState(false)
 
     // TODO[sb]: Wait for backend implementation.
@@ -227,16 +164,11 @@ function FileName(props: InternalFileNameProps) {
                     setIsNameEditable(false)
                     if (newTitle !== item.title) {
                         const oldTitle = item.title
-                        // Mutation is bad practice as it does not cause a re-render. However, a
-                        // `useState` is not an option because a new value may come from the props.
-                        // `doRefresh()` ensures that a re-render always happens.
-                        item.title = newTitle
-                        doRefresh()
+                        setItem(oldItem => ({ ...oldItem, title: newTitle }))
                         try {
                             await doRename(/* newTitle */)
                         } catch {
-                            item.title = oldTitle
-                            doRefresh()
+                            setItem(oldItem => ({ ...oldItem, title: oldTitle }))
                         }
                     }
                 }}
@@ -262,8 +194,8 @@ export interface FilesTableProps {
     filter: ((item: backendModule.FileAsset) => boolean) | null
     isLoading: boolean
     columnDisplayMode: columnModule.ColumnDisplayMode
-    onCreate: () => void
-    onDelete: () => void
+    fileListEvent: fileListEventModule.FileListEvent | null
+    dispatchFileListEvent: (projectListEvent: fileListEventModule.FileListEvent) => void
 }
 
 /** The table of file assets. */
@@ -274,8 +206,8 @@ function FilesTable(props: FilesTableProps) {
         filter,
         isLoading,
         columnDisplayMode,
-        onCreate,
-        onDelete,
+        fileListEvent,
+        dispatchFileListEvent,
     } = props
     const logger = loggerProvider.useLogger()
     const { backend } = backendProvider.useBackend()
@@ -290,6 +222,31 @@ function FilesTable(props: FilesTableProps) {
         () => (filter != null ? items.filter(filter) : items),
         [items, filter]
     )
+
+    hooks.useEvent(fileListEvent, event => {
+        switch (event.type) {
+            case fileListEventModule.FileListEventType.uploadMultiple: {
+                const placeholderItems: backendModule.FileAsset[] = Array.from(event.files)
+                    .reverse()
+                    .map(file => ({
+                        type: backendModule.AssetType.file,
+                        id: backendModule.FileId(uniqueString.uniqueString()),
+                        title: file.name,
+                        parentId: directoryId ?? backendModule.DirectoryId(''),
+                        permissions: [],
+                        modifiedAt: dateTime.toRfc3339(new Date()),
+                        projectState: null,
+                    }))
+                setItems(oldItems => [...placeholderItems, ...oldItems])
+                // FIXME: dispatchFileEvent
+                break
+            }
+            case fileListEventModule.FileListEventType.delete: {
+                setItems(oldItems => oldItems.filter(item => item.id !== event.fileId))
+                break
+            }
+        }
+    })
 
     if (backend.type === backendModule.BackendType.local) {
         return <></>
@@ -306,7 +263,10 @@ function FilesTable(props: FilesTableProps) {
                               id: column,
                               className: columnModule.COLUMN_CSS_CLASS[column],
                               heading: (
-                                  <FileNameHeading directoryId={directoryId} onCreate={onCreate} />
+                                  <FileNameHeading
+                                      directoryId={directoryId}
+                                      dispatchFileListEvent={dispatchFileListEvent}
+                                  />
                               ),
                               render: FileName,
                           }
@@ -334,7 +294,6 @@ function FilesTable(props: FilesTableProps) {
                                         TOAST_PROMISE_MULTIPLE_MESSAGES
                                     )
                                 }}
-                                onSuccess={onDelete}
                             />
                         )
                     }
@@ -364,8 +323,9 @@ function FilesTable(props: FilesTableProps) {
                             <ConfirmDeleteModal
                                 description={`'${item.title}'`}
                                 assetType={item.type}
-                                doDelete={() => backend.deleteFile(item.id, item.title)}
-                                onSuccess={onDelete}
+                                doDelete={async () => {
+                                    await backend.deleteFile(item.id, item.title)
+                                }}
                             />
                         )
                     }

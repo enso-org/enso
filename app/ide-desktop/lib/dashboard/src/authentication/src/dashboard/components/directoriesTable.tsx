@@ -110,11 +110,11 @@ interface InternalDirectoryNameProps
 function DirectoryName(props: InternalDirectoryNameProps) {
     const {
         item,
+        setItem,
         selected,
         state: { enterDirectory },
     } = props
     const { backend } = backendProvider.useBackend()
-    const [, doRefresh] = hooks.useRefresh()
     const [isNameEditable, setIsNameEditable] = React.useState(false)
 
     const doRename = async (newName: string) => {
@@ -158,16 +158,11 @@ function DirectoryName(props: InternalDirectoryNameProps) {
                     setIsNameEditable(false)
                     if (newTitle !== item.title) {
                         const oldTitle = item.title
-                        // Mutation is bad practice as it does not cause a re-render. However, a
-                        // `useState` is not an option because a new value may come from the props.
-                        // `doRefresh()` ensures that a re-render always happens.
-                        item.title = newTitle
-                        doRefresh()
+                        setItem(oldItem => ({ ...oldItem, title: newTitle }))
                         try {
                             await doRename(newTitle)
                         } catch {
-                            item.title = oldTitle
-                            doRefresh()
+                            setItem(oldItem => ({ ...oldItem, title: oldTitle }))
                         }
                     }
                 }}
@@ -193,8 +188,6 @@ export interface DirectoriesTableProps {
     filter: ((item: backendModule.DirectoryAsset) => boolean) | null
     isLoading: boolean
     columnDisplayMode: columnModule.ColumnDisplayMode
-    onRename: () => void
-    onDelete: () => void
     enterDirectory: (directory: backendModule.DirectoryAsset) => void
 }
 
@@ -206,8 +199,6 @@ function DirectoriesTable(props: DirectoriesTableProps) {
         filter,
         isLoading,
         columnDisplayMode,
-        onRename,
-        onDelete,
         enterDirectory,
     } = props
     const logger = loggerProvider.useLogger()
@@ -331,7 +322,6 @@ function DirectoriesTable(props: DirectoriesTableProps) {
                             <ConfirmDeleteModal
                                 description={`${directories.size} selected folders`}
                                 assetType="folders"
-                                shouldShowToast={false}
                                 doDelete={async () => {
                                     setSelectedItems(new Set())
                                     await toastPromiseMultiple.toastPromiseMultiple(
@@ -342,7 +332,6 @@ function DirectoriesTable(props: DirectoriesTableProps) {
                                         TOAST_PROMISE_MULTIPLE_MESSAGES
                                     )
                                 }}
-                                onSuccess={onDelete}
                             />
                         )
                     }
@@ -370,9 +359,6 @@ function DirectoriesTable(props: DirectoriesTableProps) {
                                 name={item.title}
                                 assetType={item.type}
                                 doRename={innerDoRename}
-                                // This is incredibly inefficient as it refreshes
-                                // the entire directory when only one row has been changed.
-                                onSuccess={onRename}
                             />
                         )
                     }
@@ -382,7 +368,6 @@ function DirectoriesTable(props: DirectoriesTableProps) {
                                 description={item.title}
                                 assetType={item.type}
                                 doDelete={() => backend.deleteDirectory(item.id, item.title)}
-                                onSuccess={onDelete}
                             />
                         )
                     }

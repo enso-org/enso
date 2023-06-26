@@ -15,7 +15,7 @@ declare module '../../hooks' {
 
 /** Possible changes to the file list. */
 export enum FileListEventType {
-    create = 'create',
+    uploadMultiple = 'upload-multiple',
     delete = 'delete',
 }
 
@@ -24,8 +24,10 @@ interface FileListBaseEvent<Type extends FileListEventType> {
     type: Type
 }
 
-/** A signal to create a new file. */
-interface FileListCreateEvent extends FileListBaseEvent<FileListEventType.create> {}
+/** A signal to upload multiple files. */
+interface FileListUploadMultipleEvent extends FileListBaseEvent<FileListEventType.uploadMultiple> {
+    files: FileList
+}
 
 /** A signal to delete a file. */
 interface FileListDeleteEvent extends FileListBaseEvent<FileListEventType.delete> {
@@ -33,4 +35,4 @@ interface FileListDeleteEvent extends FileListBaseEvent<FileListEventType.delete
 }
 
 /** Every possible type of file list event. */
-export type FileListEvent = FileListCreateEvent | FileListDeleteEvent
+export type FileListEvent = FileListDeleteEvent | FileListUploadMultipleEvent

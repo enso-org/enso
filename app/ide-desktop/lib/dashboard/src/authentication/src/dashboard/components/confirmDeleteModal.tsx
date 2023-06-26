@@ -18,43 +18,24 @@ export interface ConfirmDeleteModalProps {
     assetType: string
     /** Must fit in the sentence "Are you sure you want to delete <description>"? */
     description: string
-    /** Whether a toast notification indicating progress should be shown.
-     * Set this to `false` when showing a custom toast notification. */
-    shouldShowToast?: boolean
     doDelete: () => Promise<void>
-    onSuccess: () => void
 }
 
 /** A modal for confirming the deletion of an asset. */
 function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
-    const { assetType, description, shouldShowToast = true, doDelete, onSuccess } = props
+    const { assetType, description, doDelete } = props
     const { unsetModal } = modalProvider.useSetModal()
 
-    const [isSubmitting, setIsSubmitting] = React.useState(false)
-
     const onSubmit = async () => {
-        if (!isSubmitting) {
-            try {
-                setIsSubmitting(true)
-                const deletePromise = doDelete()
-                if (!shouldShowToast) {
-                    await deletePromise
-                } else {
-                    await toastPromise.toastPromise(deletePromise, {
-                        loading: `Deleting ${assetType}...`,
-                        success: `Deleted ${assetType}.`,
-                        error: error =>
-                            `Could not delete ${assetType}: ${
-                                errorModule.tryGetMessage(error) ?? 'unknown error'
-                            }`,
-                    })
-                }
-                unsetModal()
-                onSuccess()
-            } finally {
-                setIsSubmitting(false)
-            }
-        }
+        unsetModal()
+        await toastPromise.toastPromise(doDelete(), {
+            loading: `Deleting ${assetType}...`,
+            success: `Deleted ${assetType}.`,
+            error: error =>
+                `Could not delete ${assetType}: ${
+                    errorModule.tryGetMessage(error) ?? 'unknown error'
+                }`,
+        })
     }
 
     return (
@@ -78,19 +59,13 @@ function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
                 <div className="m-1">
                     <button
                         type="submit"
-                        disabled={isSubmitting}
-                        className={`hover:cursor-pointer inline-block text-white bg-red-500 rounded-full px-4 py-1 m-1 ${
-                            isSubmitting ? 'opacity-50' : ''
-                        }`}
+                        className="hover:cursor-pointer inline-block text-white bg-red-500 rounded-full px-4 py-1 m-1"
                     >
                         Delete
                     </button>
                     <button
                         type="button"
-                        disabled={isSubmitting}
-                        className={`hover:cursor-pointer inline-block bg-gray-200 rounded-full px-4 py-1 m-1 ${
-                            isSubmitting ? 'opacity-50' : ''
-                        }`}
+                        className="hover:cursor-pointer inline-block bg-gray-200 rounded-full px-4 py-1 m-1"
                         onClick={unsetModal}
                     >
                         Cancel

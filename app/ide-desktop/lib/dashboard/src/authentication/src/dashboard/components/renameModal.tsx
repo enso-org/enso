@@ -21,36 +21,28 @@ export interface RenameModalProps {
     namePattern?: string
     title?: string
     doRename: (newName: string) => Promise<void>
-    onSuccess: () => void
 }
 
 /** A modal for renaming an asset. */
 function RenameModal(props: RenameModalProps) {
-    const { assetType, name, namePattern, title, doRename, onSuccess } = props
+    const { assetType, name, namePattern, title, doRename } = props
     const { unsetModal } = modalProvider.useSetModal()
 
-    const [isSubmitting, setIsSubmitting] = React.useState(false)
     const [newName, setNewName] = React.useState<string | null>(null)
 
     const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault()
         if (newName == null) {
             toast.error('Please provide a new name.')
-        } else if (!isSubmitting) {
-            try {
-                setIsSubmitting(true)
-                await toastPromise.toastPromise(doRename(newName), {
-                    loading: `Renaming ${assetType}...`,
-                    success: `Renamed ${assetType}.`,
-                    // This is UNSAFE, as the original function's parameter is of type `any`.
-                    error: (promiseError: Error) =>
-                        `Error renaming ${assetType}: ${promiseError.message}`,
-                })
-                unsetModal()
-                onSuccess()
-            } finally {
-                setIsSubmitting(false)
-            }
+        } else {
+            unsetModal()
+            await toastPromise.toastPromise(doRename(newName), {
+                loading: `Renaming ${assetType}...`,
+                success: `Renamed ${assetType}.`,
+                // This is UNSAFE, as the original function's parameter is of type `any`.
+                error: (promiseError: Error) =>
+                    `Error renaming ${assetType}: ${promiseError.message}`,
+            })
         }
     }
 
@@ -87,19 +79,13 @@ function RenameModal(props: RenameModalProps) {
                 <div className="m-1">
                     <button
                         type="submit"
-                        disabled={isSubmitting}
-                        className={`hover:cursor-pointer inline-block text-white bg-blue-600 rounded-full px-4 py-1 m-1 ${
-                            isSubmitting ? 'opacity-50' : ''
-                        }`}
+                        className="hover:cursor-pointer inline-block text-white bg-blue-600 rounded-full px-4 py-1 m-1"
                     >
                         Rename
                     </button>
                     <button
                         type="button"
-                        disabled={isSubmitting}
-                        className={`hover:cursor-pointer inline-block bg-gray-200 rounded-full px-4 py-1 m-1 ${
-                            isSubmitting ? 'opacity-50' : ''
-                        }`}
+                        className="hover:cursor-pointer inline-block bg-gray-200 rounded-full px-4 py-1 m-1"
                         onClick={unsetModal}
                     >
                         Cancel

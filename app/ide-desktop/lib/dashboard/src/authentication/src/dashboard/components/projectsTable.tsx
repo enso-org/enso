@@ -102,6 +102,7 @@ interface InternalProjectNameProps
 function ProjectName(props: InternalProjectNameProps) {
     const {
         item,
+        setItem,
         selected,
         rowState,
         setRowState,
@@ -115,7 +116,6 @@ function ProjectName(props: InternalProjectNameProps) {
         },
     } = props
     const { backend } = backendProvider.useBackend()
-    const [, doRefresh] = hooks.useRefresh()
     const [isNameEditable, setIsNameEditable] = React.useState(false)
 
     const doRename = async (newName: string) => {
@@ -180,16 +180,11 @@ function ProjectName(props: InternalProjectNameProps) {
                     setIsNameEditable(false)
                     if (newTitle !== item.title) {
                         const oldTitle = item.title
-                        // Mutation is bad practice as it does not cause a re-render. However, a
-                        // `useState` is not an option because a new value may come from the props.
-                        // `doRefresh()` ensures that a re-render always happens.
-                        item.title = newTitle
-                        doRefresh()
+                        setItem(oldItem => ({ ...oldItem, title: newTitle }))
                         try {
                             await doRename(newTitle)
                         } catch {
-                            item.title = oldTitle
-                            doRefresh()
+                            setItem(oldItem => ({ ...oldItem, title: oldTitle }))
                         }
                     }
                 }}
@@ -219,8 +214,6 @@ interface InternalProjectRowContextMenuProps {
     innerProps: table.RowInnerProps<backendModule.ProjectAsset, projectRowState.ProjectRowState>
     event: React.MouseEvent
     dispatchProjectEvent: (projectListEvent: projectEventModule.ProjectEvent) => void
-    onRename: () => void
-    onDelete: () => void
 }
 
 /** The context menu for a row of a {@link ProjectsTable}. */
@@ -229,8 +222,6 @@ function ProjectRowContextMenu(props: InternalProjectRowContextMenuProps) {
         innerProps: { item, rowState },
         event,
         dispatchProjectEvent,
-        onRename,
-        onDelete,
     } = props
     const { backend } = backendProvider.useBackend()
     const { setModal, unsetModal } = modalProvider.useSetModal()
@@ -260,7 +251,6 @@ function ProjectRowContextMenu(props: InternalProjectRowContextMenuProps) {
                 name={item.title}
                 assetType={item.type}
                 doRename={innerDoRename}
-                onSuccess={onRename}
                 {...(backend.type === backendModule.BackendType.local
                     ? {
                           namePattern: validation.LOCAL_PROJECT_NAME_PATTERN,
@@ -276,7 +266,6 @@ function ProjectRowContextMenu(props: InternalProjectRowContextMenuProps) {
                 description={item.title}
                 assetType={item.type}
                 doDelete={() => backend.deleteProject(item.id, item.title)}
-                onSuccess={onDelete}
             />
         )
     }
@@ -321,8 +310,6 @@ export interface ProjectsTableProps {
     projectListEvent: projectListEventModule.ProjectListEvent | null
     dispatchProjectListEvent: (projectListEvent: projectListEventModule.ProjectListEvent) => void
     doCreateProject: () => void
-    onRename: () => void
-    onDelete: () => void
     doOpenIde: (project: backendModule.ProjectAsset) => void
     doCloseIde: () => void
 }
@@ -341,8 +328,6 @@ function ProjectsTable(props: ProjectsTableProps) {
         projectListEvent,
         dispatchProjectListEvent,
         doCreateProject,
-        onRename,
-        onDelete,
         doOpenIde,
         doCloseIde: rawDoCloseIde,
     } = props
@@ -501,7 +486,6 @@ function ProjectsTable(props: ProjectsTableProps) {
                         <ConfirmDeleteModal
                             description={`${projects.size} selected projects`}
                             assetType="projects"
-                            shouldShowToast={false}
                             doDelete={() => {
                                 setSelectedItems(new Set())
                                 dispatchProjectEvent({
@@ -510,7 +494,6 @@ function ProjectsTable(props: ProjectsTableProps) {
                                 })
                                 return Promise.resolve()
                             }}
-                            onSuccess={onDelete}
                         />
                     )
                 }
@@ -533,8 +516,6 @@ function ProjectsTable(props: ProjectsTableProps) {
                         innerProps={innerProps}
                         event={event}
                         dispatchProjectEvent={dispatchProjectEvent}
-                        onRename={onRename}
-                        onDelete={onDelete}
                     />
                 )
             }}

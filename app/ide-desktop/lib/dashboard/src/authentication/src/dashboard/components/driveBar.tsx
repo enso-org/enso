@@ -1,6 +1,7 @@
 /** @file Header menubar for the directory listing, containing information about
  * the current directory and some configuration options. */
 import * as React from 'react'
+import toast from 'react-hot-toast'
 
 import ArrowRightSmallIcon from 'enso-assets/arrow_right_small.svg'
 import DownloadIcon from 'enso-assets/download.svg'
@@ -10,10 +11,10 @@ import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as column from '../column'
 import * as featureFlags from '../featureFlags'
-import * as modalProvider from '../../providers/modal'
+import * as fileListEventModule from '../events/fileListEvent'
+import * as loggerProvider from '../../providers/logger'
 
 import ColumnDisplayModeSwitcher from './columnDisplayModeSwitcher'
-import UploadFileModal from './uploadFileModal'
 
 // ================
 // === DriveBar ===
@@ -26,7 +27,7 @@ export interface DriveBarProps {
     parentDirectory: backendModule.DirectoryAsset | null
     columnDisplayMode: column.ColumnDisplayMode
     setColumnDisplayMode: (columnDisplayMode: column.ColumnDisplayMode) => void
-    onUpload: () => void
+    dispatchFileListEvent: (fileListEvent: fileListEventModule.FileListEvent) => void
     exitDirectory: () => void
 }
 
@@ -39,11 +40,45 @@ function DriveBar(props: DriveBarProps) {
         parentDirectory,
         columnDisplayMode,
         setColumnDisplayMode,
-        onUpload,
+        dispatchFileListEvent,
         exitDirectory,
     } = props
+    const logger = loggerProvider.useLogger()
     const { backend } = backendProvider.useBackend()
-    const { setModal } = modalProvider.useSetModal()
+
+    const uploadFiles = React.useCallback(
+        (event: React.FormEvent<HTMLInputElement>) => {
+            if (backend.type === backendModule.BackendType.local) {
+                // TODO[sb]: Allow uploading `.enso-project`s
+                // https://github.com/enso-org/cloud-v2/issues/510
+                const message = 'Files cannot be uploaded to the local backend.'
+                toast.error(message)
+                logger.error(message)
+            } else if (
+                event.currentTarget.files == null ||
+                event.currentTarget.files.length === 0
+            ) {
+                toast.success('No files selected to upload.')
+            } else if (directoryId == null) {
+                // This should never happen, however display a nice error message in case
+                // it somehow does.
+                const message = 'Files cannot be uploaded while offline.'
+                toast.error(message)
+                logger.error(message)
+            } else {
+                dispatchFileListEvent({
+                    type: fileListEventModule.FileListEventType.uploadMultiple,
+                    files: event.currentTarget.files,
+                })
+            }
+        },
+        [
+            backend.type,
+            directoryId,
+            /* should not change */ logger,
+            /* should never change */ dispatchFileListEvent,
+        ]
+    )
 
     return (
         <div className="flex flex-row flex-nowrap my-2">
@@ -65,20 +100,23 @@ function DriveBar(props: DriveBarProps) {
                     <div></div>
                 </div>
                 <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap px-1.5 py-1 mx-4">
-                    <button
+                    <input
+                        type="file"
+                        multiple
+                        disabled={backend.type === backendModule.BackendType.local}
+                        id="upload_files_input"
+                        name="upload_files_input"
+                        className="w-0 h-0"
+                        onInput={uploadFiles}
+                    />
+                    <label
+                        htmlFor="upload_files_input"
                         className={`mx-1 ${
                             backend.type === backendModule.BackendType.local ? 'opacity-50' : ''
                         }`}
-                        disabled={backend.type === backendModule.BackendType.local}
-                        onClick={event => {
-                            event.stopPropagation()
-                            setModal(
-                                <UploadFileModal directoryId={directoryId} onSuccess={onUpload} />
-                            )
-                        }}
                     >
                         <img src={UploadIcon} />
-                    </button>
+                    </label>
                     <button
                         className={`mx-1 opacity-50`}
                         disabled={true}

@@ -11,6 +11,7 @@ import * as columnModule from '../column'
 import * as hooks from '../../hooks'
 import * as loggerProvider from '../../providers/logger'
 
+import * as fileListEventModule from '../events/fileListEvent'
 import * as projectEventModule from '../events/projectEvent'
 import * as projectListEventModule from '../events/projectListEvent'
 
@@ -51,7 +52,6 @@ export interface DirectoryViewProps {
     dispatchProjectListEvent: (directoryEvent: projectListEventModule.ProjectListEvent) => void
     query: string
     refresh: hooks.RefreshState
-    doRefresh: () => void
     onOpenIde: (project: backendModule.ProjectAsset) => void
     onCloseIde: () => void
     appRunner: AppRunner | null
@@ -73,7 +73,6 @@ function DirectoryView(props: DirectoryViewProps) {
         refresh,
         projectListEvent,
         dispatchProjectListEvent,
-        doRefresh,
         onOpenIde,
         onCloseIde,
         appRunner,
@@ -101,6 +100,8 @@ function DirectoryView(props: DirectoryViewProps) {
     const [fileAssets, setFileAssets] = React.useState<backendModule.FileAsset[]>([])
     const [projectEvent, dispatchProjectEvent] =
         React.useState<projectEventModule.ProjectEvent | null>(null)
+    const [fileListEvent, dispatchFileListEvent] =
+        React.useState<fileListEventModule.FileListEvent | null>(null)
 
     const assetFilter = React.useMemo(() => {
         if (query === '') {
@@ -264,8 +265,8 @@ function DirectoryView(props: DirectoryViewProps) {
                 parentDirectory={parentDirectory}
                 columnDisplayMode={columnDisplayMode}
                 setColumnDisplayMode={setColumnDisplayMode}
-                onUpload={doRefresh}
                 exitDirectory={exitDirectory}
+                dispatchFileListEvent={dispatchFileListEvent}
             />
             <div className="h-10" />
             <ProjectsTable
@@ -280,8 +281,6 @@ function DirectoryView(props: DirectoryViewProps) {
                 projectListEvent={projectListEvent}
                 dispatchProjectListEvent={dispatchProjectListEvent}
                 doCreateProject={doCreateProject}
-                onRename={doRefresh}
-                onDelete={doRefresh}
                 doOpenIde={onOpenIde}
                 doCloseIde={onCloseIde}
             />
@@ -292,8 +291,6 @@ function DirectoryView(props: DirectoryViewProps) {
                 filter={assetFilter}
                 isLoading={isLoadingAssets}
                 columnDisplayMode={columnDisplayMode}
-                onRename={doRefresh}
-                onDelete={doRefresh}
                 enterDirectory={enterDirectory}
             />
             <div className="h-10" />
@@ -303,8 +300,6 @@ function DirectoryView(props: DirectoryViewProps) {
                 filter={assetFilter}
                 isLoading={isLoadingAssets}
                 columnDisplayMode={columnDisplayMode}
-                onCreate={doRefresh}
-                onDelete={doRefresh}
             />
             <div className="h-10" />
             <FilesTable
@@ -313,8 +308,8 @@ function DirectoryView(props: DirectoryViewProps) {
                 filter={assetFilter}
                 isLoading={isLoadingAssets}
                 columnDisplayMode={columnDisplayMode}
-                onCreate={doRefresh}
-                onDelete={doRefresh}
+                fileListEvent={fileListEvent}
+                dispatchFileListEvent={dispatchFileListEvent}
             />
         </>
     )
