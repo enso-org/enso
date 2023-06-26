@@ -17,7 +17,6 @@ import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
 import * as shortcuts from '../shortcuts'
 import * as string from '../../string'
-import * as toastPromise from '../toastPromise'
 import * as toastPromiseMultiple from '../../toastPromiseMultiple'
 import * as uniqueString from '../../uniqueString'
 
@@ -114,22 +113,21 @@ function DirectoryName(props: InternalDirectoryNameProps) {
         selected,
         state: { enterDirectory },
     } = props
+    const logger = loggerProvider.useLogger()
     const { backend } = backendProvider.useBackend()
     const [isNameEditable, setIsNameEditable] = React.useState(false)
 
     const doRename = async (newName: string) => {
         if (backend.type !== backendModule.BackendType.local) {
-            await toastPromise.toastPromise(
-                backend.updateDirectory(item.id, { title: newName }, item.title),
-                {
-                    loading: 'Renaming folder...',
-                    success: 'Renamed folder',
-                    error: error =>
-                        `Error renaming folder: ${
-                            errorModule.tryGetMessage(error) ?? 'unknown error'
-                        }`,
-                }
-            )
+            try {
+                await backend.updateDirectory(item.id, { title: newName }, item.title)
+            } catch (error) {
+                const message = `Error renaming folder: ${
+                    errorModule.tryGetMessage(error) ?? 'unknown error'
+                }`
+                toast.error(message)
+                logger.error(message)
+            }
         }
     }
 
@@ -255,28 +253,25 @@ function DirectoriesTable(props: DirectoriesTableProps) {
                         projectState: null,
                     }
                     setItems(oldItems => [placeholderItem, ...oldItems])
-                    const createDirectoryPromise = backend.createDirectory({
-                        parentId: directoryId,
-                        title,
-                    })
-                    const createdDirectory = await toastPromise.toastPromise(
-                        createDirectoryPromise,
-                        {
-                            loading: 'Creating folder...',
-                            success: 'Sucessfully created folder.',
-                            // This is UNSAFE, as the original function's parameter is
-                            // of type `any`.
-                            error: (promiseError: Error) =>
-                                `Error creating new folder: ${promiseError.message}`,
+                    try {
+                        const createdDirectory = await backend.createDirectory({
+                            parentId: directoryId,
+                            title,
+                        })
+                        const newItem: backendModule.DirectoryAsset = {
+                            ...placeholderItem,
+                            ...createdDirectory,
                         }
-                    )
-                    const newItem: backendModule.DirectoryAsset = {
-                        ...placeholderItem,
-                        ...createdDirectory,
+                        setItems(oldItems =>
+                            oldItems.map(item => (item !== placeholderItem ? item : newItem))
+                        )
+                    } catch (error) {
+                        const message = `Error creating new folder: ${
+                            errorModule.tryGetMessage(error) ?? 'unknown error.'
+                        }`
+                        toast.error(message)
+                        logger.error(message)
                     }
-                    setItems(oldItems =>
-                        oldItems.map(item => (item !== placeholderItem ? item : newItem))
-                    )
                 }
                 break
             }

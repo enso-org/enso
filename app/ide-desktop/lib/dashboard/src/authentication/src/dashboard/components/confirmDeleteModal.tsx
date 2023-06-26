@@ -1,11 +1,12 @@
 /** @file Modal for confirming delete of any type of asset. */
 import * as React from 'react'
+import toast from 'react-hot-toast'
 
 import CloseIcon from 'enso-assets/close.svg'
 
 import * as errorModule from '../../error'
+import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
-import * as toastPromise from '../toastPromise'
 
 import Modal from './modal'
 
@@ -24,18 +25,20 @@ export interface ConfirmDeleteModalProps {
 /** A modal for confirming the deletion of an asset. */
 function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
     const { assetType, description, doDelete } = props
+    const logger = loggerProvider.useLogger()
     const { unsetModal } = modalProvider.useSetModal()
 
     const onSubmit = async () => {
         unsetModal()
-        await toastPromise.toastPromise(doDelete(), {
-            loading: `Deleting ${assetType}...`,
-            success: `Deleted ${assetType}.`,
-            error: error =>
-                `Could not delete ${assetType}: ${
-                    errorModule.tryGetMessage(error) ?? 'unknown error'
-                }`,
-        })
+        try {
+            await doDelete()
+        } catch (error) {
+            const message = `Could not delete ${assetType}: ${
+                errorModule.tryGetMessage(error) ?? 'unknown error.'
+            }`
+            toast.error(message)
+            logger.error(message)
+        }
     }
 
     return (

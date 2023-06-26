@@ -4,8 +4,9 @@ import toast from 'react-hot-toast'
 
 import CloseIcon from 'enso-assets/close.svg'
 
+import * as errorModule from '../../error'
+import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
-import * as toastPromise from '../toastPromise'
 
 import Input from './input'
 import Modal from './modal'
@@ -26,6 +27,7 @@ export interface RenameModalProps {
 /** A modal for renaming an asset. */
 function RenameModal(props: RenameModalProps) {
     const { assetType, name, namePattern, title, doRename } = props
+    const logger = loggerProvider.useLogger()
     const { unsetModal } = modalProvider.useSetModal()
 
     const [newName, setNewName] = React.useState<string | null>(null)
@@ -36,13 +38,15 @@ function RenameModal(props: RenameModalProps) {
             toast.error('Please provide a new name.')
         } else {
             unsetModal()
-            await toastPromise.toastPromise(doRename(newName), {
-                loading: `Renaming ${assetType}...`,
-                success: `Renamed ${assetType}.`,
-                // This is UNSAFE, as the original function's parameter is of type `any`.
-                error: (promiseError: Error) =>
-                    `Error renaming ${assetType}: ${promiseError.message}`,
-            })
+            try {
+                await doRename(newName)
+            } catch (error) {
+                const message = `Error renaming ${assetType}: ${
+                    errorModule.tryGetMessage(error) ?? 'unknown error.'
+                }`
+                toast.error(message)
+                logger.error(message)
+            }
         }
     }
 

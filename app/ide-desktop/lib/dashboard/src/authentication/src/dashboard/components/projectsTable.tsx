@@ -1,5 +1,6 @@
 /** @file Form to create a project. */
 import * as React from 'react'
+import toast from 'react-hot-toast'
 
 import PlusIcon from 'enso-assets/plus.svg'
 
@@ -10,13 +11,13 @@ import * as dateTime from '../dateTime'
 import * as errorModule from '../../error'
 import * as eventModule from '../event'
 import * as hooks from '../../hooks'
+import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
 import * as projectEventModule from '../events/projectEvent'
 import * as projectListEventModule from '../events/projectListEvent'
 import * as projectRowState from '../projectRowState'
 import * as shortcuts from '../shortcuts'
 import * as string from '../../string'
-import * as toastPromise from '../toastPromise'
 import * as uniqueString from '../../uniqueString'
 import * as validation from '../validation'
 
@@ -115,12 +116,13 @@ function ProjectName(props: InternalProjectNameProps) {
             doCloseIde,
         },
     } = props
+    const logger = loggerProvider.useLogger()
     const { backend } = backendProvider.useBackend()
     const [isNameEditable, setIsNameEditable] = React.useState(false)
 
     const doRename = async (newName: string) => {
-        await toastPromise.toastPromise(
-            backend.projectUpdate(
+        try {
+            await backend.projectUpdate(
                 item.id,
                 {
                     ami: null,
@@ -128,16 +130,14 @@ function ProjectName(props: InternalProjectNameProps) {
                     projectName: newName,
                 },
                 item.title
-            ),
-            {
-                loading: 'Renaming project...',
-                success: 'Renamed project',
-                error: error =>
-                    `Error renaming project: ${
-                        errorModule.tryGetMessage(error) ?? 'unknown error'
-                    }`,
-            }
-        )
+            )
+        } catch (error) {
+            const message = `Error renaming project: ${
+                errorModule.tryGetMessage(error) ?? 'unknown error'
+            }`
+            toast.error(message)
+            logger.error(message)
+        }
     }
 
     return (
@@ -331,6 +331,7 @@ function ProjectsTable(props: ProjectsTableProps) {
         doOpenIde,
         doCloseIde: rawDoCloseIde,
     } = props
+    const logger = loggerProvider.useLogger()
     const { backend } = backendProvider.useBackend()
     const { setModal } = modalProvider.useSetModal()
     const [items, setItems] = React.useState(rawItems)
@@ -377,34 +378,34 @@ function ProjectsTable(props: ProjectsTableProps) {
                     type: projectEventModule.ProjectEventType.showAsOpening,
                     projectId: dummyId,
                 })
-                // FIXME: individual rows should handle this?
-                const createProjectPromise = backend.createProject({
-                    projectName,
-                    projectTemplateName: event.templateId ?? null,
-                    parentDirectoryId: directoryId,
-                })
-                const createdProject = await toastPromise.toastPromise(createProjectPromise, {
-                    loading: 'Creating new empty project...',
-                    success: 'Created new empty project.',
-                    error: error =>
-                        `Could not create new empty project: ${
-                            errorModule.tryGetMessage(error) ?? 'unknown error.'
-                        }`,
-                })
-                const newItem: backendModule.ProjectAsset = {
-                    ...placeholderItem,
-                    type: backendModule.AssetType.project,
-                    title: createdProject.name,
-                    id: createdProject.projectId,
-                    projectState: createdProject.state,
+                try {
+                    // FIXME: individual rows should handle this?
+                    const createdProject = await backend.createProject({
+                        projectName,
+                        projectTemplateName: event.templateId ?? null,
+                        parentDirectoryId: directoryId,
+                    })
+                    const newItem: backendModule.ProjectAsset = {
+                        ...placeholderItem,
+                        type: backendModule.AssetType.project,
+                        title: createdProject.name,
+                        id: createdProject.projectId,
+                        projectState: createdProject.state,
+                    }
+                    setItems(oldItems =>
+                        oldItems.map(item => (item !== placeholderItem ? item : newItem))
+                    )
+                    dispatchProjectEvent({
+                        type: projectEventModule.ProjectEventType.open,
+                        projectId: createdProject.projectId,
+                    })
+                } catch (error) {
+                    const message = `Could not create new empty project: ${
+                        errorModule.tryGetMessage(error) ?? 'unknown error.'
+                    }`
+                    toast.error(message)
+                    logger.error(message)
                 }
-                setItems(oldItems =>
-                    oldItems.map(item => (item !== placeholderItem ? item : newItem))
-                )
-                dispatchProjectEvent({
-                    type: projectEventModule.ProjectEventType.open,
-                    projectId: createdProject.projectId,
-                })
                 break
             }
             case projectListEventModule.ProjectListEventType.delete: {
