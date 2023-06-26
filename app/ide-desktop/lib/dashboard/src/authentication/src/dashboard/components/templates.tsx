@@ -14,6 +14,8 @@ import * as common from 'enso-common'
 /** The `localStorage` key used to store whether the {@link Templates} element should be
  * expanded by default. */
 const IS_TEMPLATES_OPEN_KEY = `${common.PRODUCT_NAME.toLowerCase()}-is-templates-expanded`
+/** The max width at which the bottom shadow should be visible. */
+const MAX_WIDTH_NEEDING_SCROLL = 1031
 
 // =============
 // === Types ===
@@ -103,10 +105,8 @@ function TemplatesRender(props: TemplatesRenderProps) {
             className="h-40 w-60 cursor-pointer"
         >
             <div className="flex h-full w-full border-dashed-custom rounded-2xl text-primary">
-                <div className="m-auto text-center">
-                    <button>
-                        <img src={PlusCircledIcon} />
-                    </button>
+                <div className="flex flex-col text-center items-center m-auto">
+                    <img src={PlusCircledIcon} />
                     <p className="font-semibold text-sm">New empty project</p>
                 </div>
             </div>
@@ -155,10 +155,10 @@ export interface TemplatesProps {
 /** A container for a {@link TemplatesRender} which passes it a list of templates. */
 function Templates(props: TemplatesProps) {
     const { onTemplateClick } = props
-    // This is incorrect, but SAFE, as its value will always be assigned before any hooks are run.
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const containerRef = react.useRef<HTMLDivElement>(null!)
-    const [shadowClass, setShadowClass] = react.useState(ShadowClass.none)
+
+    const [shadowClass, setShadowClass] = react.useState(
+        window.innerWidth <= MAX_WIDTH_NEEDING_SCROLL ? ShadowClass.bottom : ShadowClass.none
+    )
     const [isOpen, setIsOpen] = react.useState(() => {
         /** This must not be in a `useEffect` as it would flash open for one frame.
          * It can be in a `useLayoutEffect` but as that needs to be checked every re-render,
@@ -176,6 +176,10 @@ function Templates(props: TemplatesProps) {
         return result
     })
 
+    // This is incorrect, but SAFE, as its value will always be assigned before any hooks are run.
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const containerRef = react.useRef<HTMLDivElement>(null!)
+
     const toggleIsOpen = () => {
         setIsOpen(!isOpen)
     }
@@ -185,7 +189,10 @@ function Templates(props: TemplatesProps) {
         const boundingBox = element.getBoundingClientRect()
         let newShadowClass: ShadowClass
         const shouldShowTopShadow = element.scrollTop !== 0
-        const shouldShowBottomShadow = element.scrollTop + boundingBox.height < element.scrollHeight
+        // Chrome has decimal places in its bounding box, which can overshoot the target size
+        // slightly.
+        const shouldShowBottomShadow =
+            element.scrollTop + boundingBox.height + 1 < element.scrollHeight
         if (shouldShowTopShadow && shouldShowBottomShadow) {
             newShadowClass = ShadowClass.both
         } else if (shouldShowTopShadow) {
@@ -204,10 +211,6 @@ function Templates(props: TemplatesProps) {
             window.removeEventListener('resize', updateShadowClass)
         }
     })
-
-    react.useEffect(() => {
-        updateShadowClass()
-    }, [])
 
     react.useEffect(() => {
         localStorage.setItem(IS_TEMPLATES_OPEN_KEY, JSON.stringify(isOpen))
@@ -240,8 +243,8 @@ function Templates(props: TemplatesProps) {
             </div>
             <div
                 ref={containerRef}
-                className={`grid gap-2 grid-cols-fill-60 justify-center overflow-y-scroll scroll-hidden transition-all duration-300 ease-in-out ${
-                    isOpen ? `h-80 ${shadowClass}` : 'h-0'
+                className={`grid gap-2 grid-cols-fill-60 justify-center overflow-y-scroll scroll-hidden transition-all duration-300 ease-in-out px-4 ${
+                    isOpen ? `h-templates-custom ${shadowClass}` : 'h-0'
                 }`}
                 onScroll={updateShadowClass}
             >

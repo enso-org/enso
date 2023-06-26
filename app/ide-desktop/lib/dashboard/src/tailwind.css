@@ -114,5 +114,13 @@ body {
     .scroll-hidden::-webkit-scrollbar {
       display: none; /* Safari and Chrome */
     }
+
+    .h-templates-custom {
+      height: 21.5rem;
+
+      @media screen and (min-width: 1771px) {
+        height: 11rem;
+      }
+    }
   }
 }
