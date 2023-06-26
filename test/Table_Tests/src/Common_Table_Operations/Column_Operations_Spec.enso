@@ -524,7 +524,7 @@ spec setup =
         Test.group "return types" <|
             roundlike_ops = [["floor", .floor], ["ceil", .ceil], ["truncate", .truncate], ["round", .round]]
 
-            round_with pair =
+            test_op pair =
                 op_name = pair.at 0
                 op = pair.at 1
 
@@ -544,7 +544,7 @@ spec setup =
                         col = table_builder [["x", [0.1, 0.9, 3.1, 3.9, -0.1, -0.9, -3.1, -3.9]]] . at "x"
                         op (col.cast Value_Type.Decimal) . value_type . should_equal Value_Type.Decimal
 
-            roundlike_ops.each op-> round_with op
+            roundlike_ops.each op-> test_op op
 
         Test.specify "should not lose precision rounding large integers" <|
             i1 = 9223372036854775807 - 1
