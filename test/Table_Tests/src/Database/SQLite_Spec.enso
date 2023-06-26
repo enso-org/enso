@@ -132,6 +132,10 @@ sqlite_specific_spec prefix connection setup =
             col . cast Value_Type.Integer . round 1 . value_type . should_equal Value_Type.Float
             col . cast Value_Type.Decimal . round 1 . value_type . should_equal Value_Type.Float
 
+            col . cast Value_Type.Float . round use_bankers=True . value_type . should_equal Value_Type.Float
+            col . cast Value_Type.Integer . round use_bankers=True . value_type . should_equal Value_Type.Float
+            col . cast Value_Type.Decimal . round use_bankers=True . value_type . should_equal Value_Type.Float
+
             col . cast Value_Type.Float . ceil . value_type . should_equal Value_Type.Float
             col . cast Value_Type.Integer . ceil . value_type . should_equal Value_Type.Integer
             col . cast Value_Type.Decimal . ceil . value_type . should_equal Value_Type.Float

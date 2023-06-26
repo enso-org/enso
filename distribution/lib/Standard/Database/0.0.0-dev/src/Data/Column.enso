@@ -687,24 +687,23 @@ type Column
     round_integer self decimal_places use_bankers =
         new_name = self.naming_helpers.function_name "round" [self]
         # If non-negative decimal places, there's nothing to do.
-        if decimal_places >= 0 then self.rename new_name else
-            scale = 10 ^ -decimal_places
-            halfway = scale.div 2
-            remainder = self % scale
-            scaled_down = (self / scale).truncate . cast Value_Type.Integer
-            result_unnudged = scaled_down * scale
+        scale = 10 ^ -decimal_places
+        halfway = scale.div 2
+        remainder = self % scale
+        scaled_down = (self / scale).truncate . cast Value_Type.Integer
+        result_unnudged = scaled_down * scale
 
-            if_non_neg =
-                half_goes_up = if use_bankers then (scaled_down % 2) != 0 else self >= 0
-                round_up = half_goes_up.iif (remainder >= halfway) (remainder > halfway)
-                round_up.iif (result_unnudged + scale) result_unnudged
-            if_neg =
-                half_goes_up = if use_bankers then (scaled_down % 2) == 0 else self >= 0
-                round_up = half_goes_up.iif (remainder < -halfway) (remainder <= -halfway)
-                round_up.iif (result_unnudged - scale) result_unnudged
+        if_non_neg =
+            half_goes_up = if use_bankers then (scaled_down % 2) != 0 else self >= 0
+            round_up = half_goes_up.iif (remainder >= halfway) (remainder > halfway)
+            round_up.iif (result_unnudged + scale) result_unnudged
+        if_neg =
+            half_goes_up = if use_bankers then (scaled_down % 2) == 0 else self >= 0
+            round_up = half_goes_up.iif (remainder < -halfway) (remainder <= -halfway)
+            round_up.iif (result_unnudged - scale) result_unnudged
 
-            result = (self >= 0).iif if_non_neg if_neg
-            result.cast Value_Type.Float . rename new_name
+        result = (self >= 0).iif if_non_neg if_neg
+        result.cast Value_Type.Float . rename new_name
 
     ## ALIAS int
 
