@@ -442,12 +442,12 @@ spec = Test.group "Dataflow Warnings" <|
         elem1 = Warning.attach "WARNING1" 998
         vec.contains 998 . should_equal True
         res1 = vec.contains elem1
-        res1 . should_equal True
+        res1 . should_be_true
         Warning.get_all res1 . map .value . should_equal ["WARNING1"]
 
         elem2 = Warning.attach "WARNING2" 9988
-        vec.contains 9988 . should_equal True
-        vec.contains elem2 . should_equal True
+        vec.contains 9988 . should_be_true
+        vec.contains elem2 . should_be_true
 
         res2 = vec.contains elem2
         res2 . should_equal True
