@@ -92,6 +92,15 @@ body {
       );
     }
 
+    .clip-path-bottom-shadow {
+      clip-path: polygon(
+        0 0,
+        100% 0,
+        100% calc(100% + 100vh),
+        0 calc(100% + 100vh)
+      );
+    }
+
     .dasharray-5 {
       stroke-dasharray: calc(12 * 0.05 * 6.2832) calc(12 * 6.2832);
     }

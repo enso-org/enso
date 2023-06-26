@@ -1,6 +1,7 @@
 /** @file A WebSocket-based chat directly to official support on the official Discord server. */
 import * as react from 'react'
 import * as reactDom from 'react-dom'
+import toast from 'react-hot-toast'
 
 import CloseLargeIcon from 'enso-assets/close_large.svg'
 import DefaultUserIcon from 'enso-assets/default_user.svg'
@@ -24,8 +25,8 @@ import Twemoji from './twemoji'
 // to switch projects, and undo history may be lost.
 
 const HELP_CHAT_ID = 'enso-chat'
-export const ANIMATION_DURATION_MS = 1000
-const WIDTH_PX = 300
+export const ANIMATION_DURATION_MS = 200
+const WIDTH_PX = 352
 /** The size (both width and height) of each reaction button. */
 const REACTION_BUTTON_SIZE = 20
 /** The size (both width and height) of each reaction on a message. */
@@ -103,7 +104,7 @@ interface ChatBaseMessageData<Type extends ChatMessageDataType> {
 /** Basic metadata for a single thread. */
 export interface ThreadData {
     title: string
-    id: string
+    id: ThreadId
     hasUnreadMessages: boolean
 }
 
@@ -269,7 +270,7 @@ function ReactionBar(props: ReactionBarProps) {
                     }}
                     // FIXME: Grayscale has the wrong lightness
                     className={`rounded-full hover:bg-gray-200 m-1 p-1 ${
-                        selectedReactions.has(emoji) ? '' : 'opacity-70 grayscale'
+                        selectedReactions.has(emoji) ? '' : 'opacity-70 grayscale hover:grayscale-0'
                     }`}
                 >
                     <Twemoji key={emoji} emoji={emoji} size={REACTION_BUTTON_SIZE} />
@@ -322,7 +323,7 @@ export interface ChatMessageProps {
 function ChatMessage(props: ChatMessageProps) {
     const { threadId, message, reactions, shouldShowReactionBar, sendMessage } = props
     return (
-        <div>
+        <div className="m-1">
             <div className="flex">
                 {/* FIXME: This should default to the default user image. */}
                 <img
@@ -377,6 +378,7 @@ function Chat(props: ChatProps) {
     const accessToken = rawAccessToken!
 
     const [isPaidUser, setIsPaidUser] = react.useState(true)
+    const [isReplyEnabled, setIsReplyEnabled] = react.useState(false)
     const [threads, setThreads] = react.useState<ThreadData[]>([])
     const [messages, setMessages] = react.useState<ChatDisplayMessage[]>([])
     const [threadId, setThreadId] = react.useState<ThreadId | null>(null)
@@ -535,6 +537,23 @@ function Chat(props: ChatProps) {
         [websocket]
     )
 
+    const switchThread = react.useCallback(
+        (newThreadId: ThreadId) => {
+            const threadData = threads.find(thread => thread.id === newThreadId)
+            if (threadData == null) {
+                const message = `Unknown thread id '${newThreadId}'.`
+                toast.error(message)
+                logger.error(message)
+            } else {
+                sendMessage({
+                    type: ChatMessageDataType.switchThread,
+                    threadId: newThreadId,
+                })
+            }
+        },
+        [threads, /* should never change */ logger]
+    )
+
     const sendCurrentMessage = react.useCallback(
         (event: react.FormEvent) => {
             event.preventDefault()
@@ -631,7 +650,7 @@ function Chat(props: ChatProps) {
         return reactDom.createPortal(
             <div
                 style={{ right }}
-                className="text-xs text-primary flex flex-col fixed top-0 right-0 h-screen bg-ide-bg border-ide-bg-dark border-l-2 w-80 py-1"
+                className="text-xs text-primary flex flex-col fixed top-0 right-0 h-screen bg-ide-bg border-ide-bg-dark border-l-2 w-88 py-1"
                 onKeyDown={stopEditing}
             >
                 <div className="flex text-sm font-semibold mx-1">
@@ -643,6 +662,7 @@ function Chat(props: ChatProps) {
                             ref={titleInput}
                             disabled={!isThreadTitleEditable}
                             defaultValue={threadTitle}
+                            className="cursor-pointer"
                             onClick={onThreadTitleClick}
                         />
                     </button>
@@ -652,15 +672,24 @@ function Chat(props: ChatProps) {
                 </div>
                 <div className="relative text-sm font-semibold">
                     <div
-                        className={`grid absolute w-full bg-ide-bg shadow-soft-bottom overflow-hidden transition-grid-template-rows ${
+                        className={`grid absolute w-full bg-ide-bg shadow-soft clip-path-bottom-shadow overflow-hidden transition-grid-template-rows ${
                             isThreadListVisible ? 'grid-rows-1fr' : 'grid-rows-0fr'
                         }`}
                     >
-                        <div className="min-h-0 mx-1">
+                        <div className="min-h-0">
                             {threads.map(thread => (
                                 <div
                                     key={thread.id}
-                                    className={`flex my-1 ${thread.id === threadId ? 'bold' : ''}`}
+                                    className={`flex p-1 ${
+                                        thread.id === threadId
+                                            ? 'cursor-default bg-gray-300'
+                                            : 'cursor-pointer'
+                                    }`}
+                                    onClick={() => {
+                                        if (thread.id !== threadId) {
+                                            switchThread(thread.id)
+                                        }
+                                    }}
                                 >
                                     <div className="w-8 text-center">
                                         {thread.hasUnreadMessages ? '(!) ' : ''}
@@ -671,7 +700,7 @@ function Chat(props: ChatProps) {
                         </div>
                     </div>
                 </div>
-                <div className="grow mx-1">
+                <div className="flex flex-col grow mx-1">
                     {threadId != null &&
                         messages.map(message => (
                             <ChatMessage
@@ -693,13 +722,36 @@ function Chat(props: ChatProps) {
                                 required
                                 type="text"
                                 placeholder="Type your message..."
-                                className="w-full rounded-full"
+                                className="w-full rounded-full p-1"
+                                onInput={event => {
+                                    const newIsReplyEnabled = event.currentTarget.value !== ''
+                                    if (newIsReplyEnabled !== isReplyEnabled) {
+                                        setIsReplyEnabled(newIsReplyEnabled)
+                                    }
+                                }}
                             ></input>
                             <div className="flex">
-                                <button type="button" className="grow" onClick={createNewThread}>
+                                <button
+                                    type="button"
+                                    disabled={!isReplyEnabled}
+                                    className={`text-white rounded-full grow text-left p-1 ${
+                                        isReplyEnabled ? 'bg-gray-400' : 'bg-gray-300'
+                                    }`}
+                                    onClick={createNewThread}
+                                >
                                     New question? Click to start a new thread!
                                 </button>
-                                <button type="submit">Reply!</button>
+                                {/* Spacing. */}
+                                <div className="w-0.5" />
+                                <button
+                                    type="submit"
+                                    disabled={!isReplyEnabled}
+                                    className={`text-white bg-blue-600 rounded-full p-1 ${
+                                        isReplyEnabled ? '' : 'opacity-50'
+                                    }`}
+                                >
+                                    Reply!
+                                </button>
                             </div>
                         </div>
                     </form>
