@@ -842,6 +842,7 @@
 - [Add special handling for static method calls on Any][7033]
 - [Improve parallel execution of commands and jobs in Language Server][7042]
 - [Added retries when executing GraalVM updater][7079]
+- [Add method call info for infix operators][7090]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -963,6 +964,7 @@
 [7033]: https://github.com/enso-org/enso/pull/7033
 [7042]: https://github.com/enso-org/enso/pull/7042
 [7079]: https://github.com/enso-org/enso/pull/7079
+[7090]: https://github.com/enso-org/enso/pull/7090
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 
