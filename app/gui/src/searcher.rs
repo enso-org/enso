@@ -13,6 +13,7 @@ use ide_view::component_browser::component_list_panel::grid as component_grid;
 use ide_view::graph_editor::GraphEditor;
 use ide_view::graph_editor::NodeId;
 use ide_view::project::SearcherParams;
+use ide_view::project::SearcherType;
 
 /// Create a new input node for use in the searcher. Initiates a new node in the ast and
 /// associates it with the already existing view.
@@ -81,7 +82,16 @@ pub trait SearcherPresenter: Debug {
         };
         let target_node = mode.as_ref().map(|mode| mode.node_id());
         if let Ok(target_node) = target_node {
+            if let Some(target_node_view) = graph.view_id_of_ast_node(target_node) {
+                if matches!(parameters.searcher_type, SearcherType::ComponentBrowser) {
+                    graph_editor.model.with_node(target_node_view, |node| node.show_preview());
+                }
+            } else {
+                warn!("No view associated with node {:?}.", target_node);
+            }
             graph.allow_expression_auto_updates(target_node, false);
+        } else {
+            warn!("No target node for searcher.");
         }
         mode
     }
