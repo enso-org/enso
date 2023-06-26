@@ -109,32 +109,32 @@ object Runtime {
         name  = "closeFileNotification"
       ),
       new JsonSubTypes.Type(
-        value = classOf[Api.VisualisationUpdate],
-        name  = "visualisationUpdate"
+        value = classOf[Api.VisualizationUpdate],
+        name  = "visualizationUpdate"
       ),
       new JsonSubTypes.Type(
-        value = classOf[Api.AttachVisualisation],
-        name  = "attachVisualisation"
+        value = classOf[Api.AttachVisualization],
+        name  = "attachVisualization"
       ),
       new JsonSubTypes.Type(
-        value = classOf[Api.VisualisationAttached],
-        name  = "visualisationAttached"
+        value = classOf[Api.VisualizationAttached],
+        name  = "visualizationAttached"
       ),
       new JsonSubTypes.Type(
-        value = classOf[Api.DetachVisualisation],
-        name  = "detachVisualisation"
+        value = classOf[Api.DetachVisualization],
+        name  = "detachVisualization"
       ),
       new JsonSubTypes.Type(
-        value = classOf[Api.VisualisationDetached],
-        name  = "visualisationDetached"
+        value = classOf[Api.VisualizationDetached],
+        name  = "visualizationDetached"
       ),
       new JsonSubTypes.Type(
-        value = classOf[Api.ModifyVisualisation],
-        name  = "modifyVisualisation"
+        value = classOf[Api.ModifyVisualization],
+        name  = "modifyVisualization"
       ),
       new JsonSubTypes.Type(
-        value = classOf[Api.VisualisationModified],
-        name  = "visualisationModified"
+        value = classOf[Api.VisualizationModified],
+        name  = "visualizationModified"
       ),
       new JsonSubTypes.Type(
         value = classOf[Api.ExpressionUpdates],
@@ -173,16 +173,16 @@ object Runtime {
         name  = "executionSuccessful"
       ),
       new JsonSubTypes.Type(
-        value = classOf[Api.VisualisationExpressionFailed],
-        name  = "visualisationExpressionFailed"
+        value = classOf[Api.VisualizationExpressionFailed],
+        name  = "visualizationExpressionFailed"
       ),
       new JsonSubTypes.Type(
-        value = classOf[Api.VisualisationEvaluationFailed],
-        name  = "visualisationEvaluationFailed"
+        value = classOf[Api.VisualizationEvaluationFailed],
+        name  = "visualizationEvaluationFailed"
       ),
       new JsonSubTypes.Type(
-        value = classOf[Api.VisualisationNotFound],
-        name  = "visualisationNotFound"
+        value = classOf[Api.VisualizationNotFound],
+        name  = "visualizationNotFound"
       ),
       new JsonSubTypes.Type(
         value = classOf[Api.InvalidStackItemError],
@@ -301,7 +301,7 @@ object Runtime {
     type ContextId       = UUID
     type ExpressionId    = UUID
     type RequestId       = UUID
-    type VisualisationId = UUID
+    type VisualizationId = UUID
 
     /** Indicates error response.
       */
@@ -541,14 +541,14 @@ object Runtime {
       updates: Set[ExpressionUpdate]
     ) extends ApiNotification
 
-    /** Represents a visualisation context.
+    /** Represents a visualization context.
       *
-      * @param visualisationId a visualisation identifier
+      * @param visualizationId a visualization identifier
       * @param contextId a context identifier
       * @param expressionId an expression identifier
       */
-    case class VisualisationContext(
-      visualisationId: VisualisationId,
+    case class VisualizationContext(
+      visualizationId: VisualizationId,
       contextId: ContextId,
       expressionId: ExpressionId
     )
@@ -558,16 +558,16 @@ object Runtime {
     @JsonSubTypes(
       Array(
         new JsonSubTypes.Type(
-          value = classOf[VisualisationExpression.Text],
-          name  = "visualisationExpressionText"
+          value = classOf[VisualizationExpression.Text],
+          name  = "visualizationExpressionText"
         ),
         new JsonSubTypes.Type(
-          value = classOf[VisualisationExpression.ModuleMethod],
-          name  = "visualisationExpressionModuleMethod"
+          value = classOf[VisualizationExpression.ModuleMethod],
+          name  = "visualizationExpressionModuleMethod"
         )
       )
     )
-    sealed trait VisualisationExpression extends ToLogString {
+    sealed trait VisualizationExpression extends ToLogString {
       def module: String
     }
     object VisualisationExpression {
