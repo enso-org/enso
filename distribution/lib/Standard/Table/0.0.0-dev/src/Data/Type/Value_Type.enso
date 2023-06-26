@@ -315,10 +315,6 @@ type Value_Type
        error.
     expect_floating_point : Any -> Any -> Any ! Invalid_Value_Type
     expect_floating_point argument ~action =
-        ##
-            IO.println 'WWW'
-            IO.println argument
-            IO.println argument.value_type
         expect_type argument .is_floating_point "Float" action
 
     ## PRIVATE

@@ -618,7 +618,7 @@ type Column
              example_round = Examples.decimal_column.round 2
     round : Integer -> Boolean -> Column | Illegal_Argument | Invalid_Value_Type
     round self decimal_places=0 use_bankers=False =
-        Rounding_Helpers.check_decimal_places decimal_places <| short_circuit_special_floating_point self <|
+        Rounding_Helpers.check_decimal_places decimal_places <| self.short_circuit_special_floating_point <|
             case self.value_type of
                 Value_Type.Integer _ -> self.round_integer decimal_places use_bankers
                 Value_Type.Float _ -> self.round_float decimal_places use_bankers
@@ -697,7 +697,7 @@ type Column
              example_truncate = Examples.decimal_column.truncate
     truncate : Column ! Invalid_Value_Type
     truncate self =
-        Value_Type.expect_numeric self <| short_circuit_special_floating_point self <|
+        Value_Type.expect_numeric self <| self.short_circuit_special_floating_point <|
             new_name = self.naming_helpers.function_name "truncate" [self]
             if self.value_type.is_integer then self.rename new_name else
                 self.make_unary_op "TRUNCATE" new_name
@@ -712,7 +712,7 @@ type Column
              example_truncate = Examples.decimal_column.ceil
     ceil : Column ! Invalid_Value_Type
     ceil self =
-        Value_Type.expect_numeric self <| short_circuit_special_floating_point self <|
+        Value_Type.expect_numeric self <| self.short_circuit_special_floating_point <|
             new_name = self.naming_helpers.function_name "ceil" [self]
             if self.value_type.is_integer then self.rename new_name else
                 self.make_unary_op "CEIL" new_name
@@ -727,7 +727,7 @@ type Column
              example_truncate = Examples.decimal_column.floor
     floor : Column ! Invalid_Value_Type
     floor self =
-        Value_Type.expect_numeric self <| short_circuit_special_floating_point self <|
+        Value_Type.expect_numeric self <| self.short_circuit_special_floating_point <|
             new_name = self.naming_helpers.function_name "floor" [self]
             if self.value_type.is_integer then self.rename new_name else
                 self.make_unary_op "FLOOR" new_name
@@ -821,9 +821,7 @@ type Column
        Returns a column of booleans, with `True` items at the positions where
        this column contains a NaN. This is only applicable to double columns.
     is_nan : Column
-    is_nan self =
-      IO.println 'IS_NAN'
-      Value_Type.expect_floating_point self <|
+    is_nan self = Value_Type.expect_floating_point self <|
         new_name = self.naming_helpers.function_name "is_nan" [self]
         self.make_unary_op "IS_NAN" new_name
 
@@ -1379,6 +1377,16 @@ type Column
     var_args_functions : Array
     var_args_functions = ['is_in', 'coalesce', 'min', 'max']
 
+
+    ## PRVIATE
+       If the column is NaN/Inf, return it immediately as the value; otherwise
+       return the expression. If returning immediately, rename to the expression's
+       name. If the column is not floating point, just return the expression.
+    short_circuit_special_floating_point : Column -> Column
+    short_circuit_special_floating_point self exp =
+        self_is_nan = if self.connection.dialect.supports_separate_nan then self.is_nan else self.is_nothing
+        if self.value_type.is_floating_point.not then exp else
+            ((self_is_nan || self.is_infinite).iif self exp).rename exp.name
 ## PRIVATE
    Helper for case case_sensitivity based text operations
 make_text_case_op left op other case_sensitivity new_name =
@@ -1424,12 +1432,3 @@ adapt_unified_column column expected_type =
         SQL_Type_Reference.new column.connection column.context expression
     adapted = dialect.adapt_unified_column column.as_internal expected_type infer_return_type
     Column.Value name=column.name connection=column.connection sql_type_reference=adapted.sql_type_reference expression=adapted.expression context=column.context
-
-## PRVIATE
-   If the input is NaN/Inf, return it immediately as the value; otherwise
-   return the expression. If returning immediately, rename to the expression's
-   name. If the input is not floating point, just return the expression.
-short_circuit_special_floating_point : Column -> Column -> Column
-short_circuit_special_floating_point input exp =
-    if input.value_type.is_floating_point.not then exp else
-        ((input.is_nan || input.is_infinite).iif input exp).rename exp.name
