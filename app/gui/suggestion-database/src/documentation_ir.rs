@@ -723,7 +723,7 @@ impl FilteredDocSections {
         let mut examples = Vec::new();
         for section in doc_sections {
             match section {
-                DocSection::Tag { name, body } => tags.push(Tag::new(name, body)),
+                DocSection::Tag { tag, body } => tags.push(Tag::new(tag.to_str(), body)),
                 DocSection::Marked { mark: Mark::Example, .. } => examples.push(section.clone()),
                 section => synopsis.push(section.clone()),
             }
@@ -744,9 +744,10 @@ impl FilteredDocSections {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::doc_section;
-    use crate::mock_suggestion_database;
+    use crate::test_utils::*;
     use double_representation::name::QualifiedName;
+    use mock::doc_section;
+    use mock::mock_suggestion_database;
 
     #[test]
     fn test_entry_documentation_not_found() {
@@ -838,21 +839,21 @@ mod tests {
                     Bar (b);
 
                     #[with_doc_section(doc_section!("Documentation of method A.baz."))]
-                    #[with_doc_section(doc_section!(@ "Tag", "Tag body."))]
+                    #[with_doc_section(doc_section!(@ Deprecated, "Tag body."))]
                     fn baz() -> Standard.Base.B;
                 }
 
                 #[with_doc_section(doc_section!("Documentation of type B."))]
                 type B {
                     #[with_doc_section(doc_section!("Documentation of constructor B.New."))]
-                    #[with_doc_section(doc_section!(@ "AnotherTag", "Tag body."))]
+                    #[with_doc_section(doc_section!(@ Alias, "Tag body."))]
                     #[with_doc_section(doc_section!(! "Important", "Important note."))]
                     #[with_doc_section(doc_section!(> "Example", "Example of constructor B.New usage."))]
                     New;
                 }
 
                 #[with_doc_section(doc_section!("Documentation of module method."))]
-                #[with_doc_section(doc_section!(@ "Deprecated", ""))]
+                #[with_doc_section(doc_section!(@ Deprecated, ""))]
                 #[with_doc_section(doc_section!(> "Example", "Example of module method usage."))]
                 fn module_method() -> Standard.Base.A;
             }
