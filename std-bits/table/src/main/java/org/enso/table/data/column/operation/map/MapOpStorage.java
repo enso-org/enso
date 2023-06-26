@@ -24,7 +24,7 @@ public class MapOpStorage<T, S extends Storage<? super T>> {
    * @return whether the operation is supported
    */
   public boolean isSupported(String n) {
-    return ops.get(n) != null;
+    return n != null && ops.get(n) != null;
   }
 
   /**

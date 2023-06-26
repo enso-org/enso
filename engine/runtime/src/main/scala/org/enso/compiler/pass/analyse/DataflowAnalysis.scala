@@ -1,12 +1,11 @@
 package org.enso.compiler.pass.analyse
 
-import org.enso.compiler.Compiler
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.Definition.Method
 import org.enso.compiler.core.IR.{ExternalId, Pattern}
 import org.enso.compiler.core.ir.MetadataStorage._
-import org.enso.compiler.exception.CompilerError
+import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.DataflowAnalysis.DependencyInfo.Type.asStatic
 
@@ -956,7 +955,7 @@ case object DataflowAnalysis extends IRPass {
   sealed case class DependencyInfo(
     dependents: DependencyMapping   = DependencyMapping(),
     dependencies: DependencyMapping = DependencyMapping()
-  ) extends IRPass.Metadata {
+  ) extends IRPass.IRMetadata {
     override val metadataName: String = "DataflowAnalysis.DependencyInfo"
 
     /** Combines two dependency information containers.
@@ -971,7 +970,7 @@ case object DataflowAnalysis extends IRPass {
       )
     }
 
-    override def duplicate(): Option[IRPass.Metadata] = None
+    override def duplicate(): Option[IRPass.IRMetadata] = None
 
     /** @inheritdoc */
     override def prepareForSerialization(compiler: Compiler): DependencyInfo =

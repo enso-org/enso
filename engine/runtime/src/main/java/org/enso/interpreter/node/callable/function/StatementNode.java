@@ -1,14 +1,11 @@
 package org.enso.interpreter.node.callable.function;
 
-import com.oracle.truffle.api.Assumption;
-import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.StandardTags;
 import com.oracle.truffle.api.instrumentation.Tag;
 import com.oracle.truffle.api.source.SourceSection;
 import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
 
 /**

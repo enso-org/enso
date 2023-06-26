@@ -7,7 +7,7 @@ import org.enso.compiler.core.IR.Module.Scope.Definition
 import org.enso.compiler.core.IR.Module.Scope.Definition.Method
 import org.enso.compiler.core.IR.Name.MethodReference
 import org.enso.compiler.core.ir.{DiagnosticStorage, MetadataStorage}
-import org.enso.compiler.exception.CompilerError
+import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{
   AliasAnalysis,

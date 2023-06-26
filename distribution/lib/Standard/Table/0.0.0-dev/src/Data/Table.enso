@@ -51,7 +51,7 @@ from project.Data.Column import get_item_string, normalize_string_for_display
 from project.Internal.Filter_Condition_Helpers import make_filter_column
 
 polyglot java import org.enso.base.ObjectComparator
-polyglot java import org.enso.table.data.column.builder.object.StorageTypeMismatch
+polyglot java import org.enso.table.data.column.builder.StorageTypeMismatch
 polyglot java import org.enso.table.data.table.Table as Java_Table
 polyglot java import org.enso.table.data.table.Column as Java_Column
 polyglot java import org.enso.table.data.table.join.Equals as Java_Join_Equals
@@ -1320,9 +1320,7 @@ type Table
         Array_Proxy.new self.java_table.getColumns.length i->
             Column.Value (self.java_table.getColumns.at i)
 
-    ## UNSTABLE
-
-       Returns the vector of column names contained in this table.
+    ## Returns the vector of column names contained in this table.
     column_names : Vector Text
     column_names self = Vector.from_polyglot_array <|
         Array_Proxy.new self.java_table.getColumns.length i->

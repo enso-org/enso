@@ -142,9 +142,8 @@ type No_Such_Method
        - symbol: The symbol that was attempted to be called on target.
     Error target symbol
 
-    ## ADVANCED
-       UNSTABLE
-
+    ## PRIVATE
+       ADVANCED
        Returns the method name of the method that could not be found.
 
        > Example

@@ -363,9 +363,7 @@ type Column_Name_Mismatch
             Error.throw (Column_Name_Mismatch.Error (Vector.from_polyglot_array cause.getMissing) (Vector.from_polyglot_array cause.getExtras) cause.getMessage)
         Panic.catch ColumnNameMismatchException handler=throw_column_name_mismatch
 
-## UNSTABLE
-
-   An error returned when a non-existent column is being looked up.
+## An error returned when a non-existent column is being looked up.
 
    Arguments:
    - column_name: The name of the column that doesn't exist.
@@ -380,9 +378,7 @@ type No_Such_Column
     to_display_text self =
         "The column " + self.column_name + " does not exist."
 
-## UNSTABLE
-
-   An error returned when getting an index but no index is set for that table.
+## An error returned when getting an index but no index is set for that table.
 type No_Index_Set_Error
     ## PRIVATE
 
@@ -421,9 +417,7 @@ type Invalid_Value_Type
         Invalid_Value_Type.Incomparable type_1 type_2 ->
             "Types "+type_1.to_display_text+" and "+type_2.to_display_text+" cannot be compared to each other."
 
-## UNSTABLE
-
-   An error representing an invalid JSON format for conversion.
+## An error representing an invalid JSON format for conversion.
 type Invalid_JSON_Format
     ## PRIVATE
     Error input message
