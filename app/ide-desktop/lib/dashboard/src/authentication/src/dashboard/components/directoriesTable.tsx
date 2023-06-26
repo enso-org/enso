@@ -241,7 +241,7 @@ function DirectoriesTable(props: DirectoriesTableProps) {
                         .map(match => match?.groups?.directoryIndex)
                         .map(maybeIndex => (maybeIndex != null ? parseInt(maybeIndex, 10) : 0))
                     const title = `${DIRECTORY_NAME_DEFAULT_PREFIX}${
-                        Math.max(...directoryIndices) + 1
+                        Math.max(0, ...directoryIndices) + 1
                     }`
                     const placeholderItem: backendModule.DirectoryAsset = {
                         title,
