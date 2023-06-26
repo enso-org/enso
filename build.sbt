@@ -1917,7 +1917,7 @@ lazy val `std-base` = project
     Compile / packageBin / artifactPath :=
       `base-polyglot-root` / "std-base.jar",
     libraryDependencies ++= Seq(
-      "org.graalvm.truffle" % "truffle-api"             % graalVersion       % "provided",
+      "org.graalvm.truffle" % "truffle-sdk"             % graalVersion       % "provided",
       "org.netbeans.api"    % "org-openide-util-lookup" % netbeansApiVersion % "provided"
     ),
     Compile / packageBin := Def.task {
@@ -1945,7 +1945,7 @@ lazy val `common-polyglot-core-utils` = project
       `base-polyglot-root` / "common-polyglot-core-utils.jar",
     libraryDependencies ++= Seq(
       "com.ibm.icu"         % "icu4j"       % icuVersion,
-      "org.graalvm.truffle" % "truffle-api" % graalVersion % "provided"
+      "org.graalvm.truffle" % "truffle-sdk" % graalVersion % "provided"
     )
   )
 
@@ -1957,7 +1957,7 @@ lazy val `enso-test-java-helpers` = project
     Compile / packageBin / artifactPath :=
       file("test/Tests/polyglot/java/helpers.jar"),
     libraryDependencies ++= Seq(
-      "org.graalvm.truffle" % "truffle-api" % graalVersion % "provided"
+      "org.graalvm.truffle" % "truffle-sdk" % graalVersion % "provided"
     ),
     Compile / packageBin := Def.task {
       val result          = (Compile / packageBin).value
@@ -1990,7 +1990,7 @@ lazy val `std-table` = project
       (Antlr4 / sourceManaged).value / "main" / "antlr4"
     },
     libraryDependencies ++= Seq(
-      "org.graalvm.truffle" % "truffle-api"             % graalVersion       % "provided",
+      "org.graalvm.truffle" % "truffle-sdk"             % graalVersion       % "provided",
       "org.netbeans.api"    % "org-openide-util-lookup" % netbeansApiVersion % "provided",
       "com.univocity"       % "univocity-parsers"       % univocityParsersVersion,
       "org.apache.poi"      % "poi-ooxml"               % poiOoxmlVersion,
@@ -2068,7 +2068,7 @@ lazy val `std-database` = project
     Compile / packageBin / artifactPath :=
       `database-polyglot-root` / "std-database.jar",
     libraryDependencies ++= Seq(
-      "org.graalvm.truffle" % "truffle-api"             % graalVersion       % "provided",
+      "org.graalvm.truffle" % "truffle-sdk"             % graalVersion       % "provided",
       "org.netbeans.api"    % "org-openide-util-lookup" % netbeansApiVersion % "provided",
       "org.xerial"          % "sqlite-jdbc"             % sqliteVersion,
       "org.postgresql"      % "postgresql"              % "42.4.0"
