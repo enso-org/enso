@@ -288,7 +288,7 @@ impl Manager {
         };
         let prj = self.executed_graph.module_qualified_name(&*self.executed_graph.project);
         let graph = self.executed_graph.graph();
-        let module = prj.to_string() + "." + graph.module.name();
+        let module = format!("{prj}.{}", graph.module.name());
         let current_id = current.as_ref().and_then(|current| current.latest_id());
         let new_desired = new_desired.map(|new_desired| Desired {
             module,

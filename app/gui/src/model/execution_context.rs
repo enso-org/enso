@@ -303,7 +303,7 @@ pub struct Visualization {
     pub id:             VisualizationId,
     /// Expression that is to be visualized.
     pub expression_id:  ExpressionId,
-    /// module to evaluate visualization in context of
+    /// Module to evaluate visualization in context of.
     pub module:         String,
     /// A pointer to the enso method that will transform the data into expected format.
     pub method_pointer: QualifiedMethodPointer,
