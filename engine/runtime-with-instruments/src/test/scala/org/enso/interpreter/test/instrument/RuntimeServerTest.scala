@@ -1827,13 +1827,13 @@ class RuntimeServerTest
     val moduleName = "Enso_Test.Test.Main"
 
     val metadata = new Metadata
-    val id_x     = metadata.addItem(42, 17, "aa")
+    val id_x     = metadata.addItem(52, 25, "aa")
 
     val code =
-      """import Standard.Base.Meta
+      """import Standard.Base.Data.Time.Date
         |
         |main =
-        |    x = Meta.is_a 42 Meta
+        |    x = Date.new_builtin 2022 1 1
         |    x
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
@@ -1868,7 +1868,7 @@ class RuntimeServerTest
     context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
       Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, id_x, ConstantsGen.BOOLEAN),
+      TestMessages.update(contextId, id_x, "Standard.Base.Data.Time.Date.Date"),
       context.executionComplete(contextId)
     )
   }
