@@ -183,9 +183,9 @@ function FileName(props: InternalFileNameProps) {
     )
 }
 
-// ================
-// === FileRows ===
-// ================
+// ==================
+// === FilesTable ===
+// ==================
 
 /** Props for a {@link FilesTable}. */
 export interface FilesTableProps {

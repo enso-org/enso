@@ -231,9 +231,9 @@ function SecretName(props: InternalSecretNameProps) {
     )
 }
 
-// ==================
-// === SecretRows ===
-// ==================
+// ====================
+// === SecretsTable ===
+// ====================
 
 /** Props for a {@link SecretsTable}. */
 export interface SecretsTableProps {

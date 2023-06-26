@@ -1,6 +1,10 @@
 /** @file State for each row of the table of projects. */
 import * as optimistic from './optimistic'
 
+// =======================
+// === ProjectRowState ===
+// =======================
+
 /** Data associated with a project, used for rendering. */
 export interface ProjectRowState {
     isRunning: boolean

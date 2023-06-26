@@ -9,6 +9,7 @@ import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as columnModule from '../column'
 import * as dateTime from '../dateTime'
+import * as directoryEventModule from '../events/directoryEvent'
 import * as directoryListEventModule from '../events/directoryListEvent'
 import * as errorModule from '../../error'
 import * as eventModule from '../event'
@@ -17,7 +18,6 @@ import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
 import * as shortcuts from '../shortcuts'
 import * as string from '../../string'
-import * as toastPromiseMultiple from '../../toastPromiseMultiple'
 import * as uniqueString from '../../uniqueString'
 
 import Table, * as table from './table'
@@ -54,14 +54,6 @@ const PLACEHOLDER_WITHOUT_FILTER = (
         This folder does not contain any sub{ASSET_TYPE_NAME_PLURAL}.
     </span>
 )
-/** Messages to be passed to {@link toastPromiseMultiple.toastPromiseMultiple}. */
-const TOAST_PROMISE_MULTIPLE_MESSAGES: toastPromiseMultiple.ToastPromiseMultipleMessages<backendModule.DirectoryAsset> =
-    {
-        begin: total => `Deleting ${total} ${pluralize(total)}...`,
-        inProgress: (successful, total) => `Deleted ${successful}/${total} ${pluralize(total)}.`,
-        end: (successful, total) => `Deleted ${successful}/${total} ${pluralize(total)}.`,
-        error: asset => `Could not delete ${ASSET_TYPE_NAME} '${asset.title}'.`,
-    }
 
 // ============================
 // === DirectoryNameHeading ===
@@ -98,6 +90,7 @@ function DirectoryNameHeading(props: InternalDirectoryNameHeadingProps) {
 
 /** State passed through from a {@link DirectoriesTable} to every cell. */
 interface DirectoryNamePropsState {
+    directoryEvent: directoryEventModule.DirectoryEvent | null
     enterDirectory: (directory: backendModule.DirectoryAsset) => void
 }
 
@@ -175,9 +168,9 @@ function DirectoryName(props: InternalDirectoryNameProps) {
     )
 }
 
-// =====================
-// === DirectoryRows ===
-// =====================
+// ========================
+// === DirectoriesTable ===
+// ========================
 
 /** Props for a {@link DirectoriesTable}. */
 export interface DirectoriesTableProps {
@@ -204,6 +197,8 @@ function DirectoriesTable(props: DirectoriesTableProps) {
     const { setModal } = modalProvider.useSetModal()
 
     const [items, setItems] = React.useState(rawItems)
+    const [directoryEvent, dispatchDirectoryEvent] =
+        React.useState<directoryEventModule.DirectoryEvent | null>(null)
     const [directoryListEvent, dispatchDirectoryListEvent] =
         React.useState<directoryListEventModule.DirectoryListEvent | null>(null)
 
@@ -218,8 +213,8 @@ function DirectoriesTable(props: DirectoriesTableProps) {
 
     const state = React.useMemo(
         // The type MUST be here to trigger excess property errors at typecheck time.
-        (): DirectoryNamePropsState => ({ enterDirectory }),
-        [enterDirectory]
+        (): DirectoryNamePropsState => ({ directoryEvent, enterDirectory }),
+        [directoryEvent, enterDirectory]
     )
 
     const createNewDirectory = React.useCallback(() => {
@@ -318,14 +313,15 @@ function DirectoriesTable(props: DirectoriesTableProps) {
                                 description={`${directories.size} selected folders`}
                                 assetType="folders"
                                 doDelete={async () => {
+                                    dispatchDirectoryEvent({
+                                        type: directoryEventModule.DirectoryEventType
+                                            .deleteMultiple,
+                                        directoryIds: new Set(
+                                            [...directories].map(item => item.id)
+                                        ),
+                                    })
                                     setSelectedItems(new Set())
-                                    await toastPromiseMultiple.toastPromiseMultiple(
-                                        logger,
-                                        [...directories],
-                                        directory =>
-                                            backend.deleteDirectory(directory.id, directory.title),
-                                        TOAST_PROMISE_MULTIPLE_MESSAGES
-                                    )
+                                    return Promise.resolve()
                                 }}
                             />
                         )
