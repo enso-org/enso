@@ -412,7 +412,7 @@ type Connection
                occur in practice - it would mean that the Database contains
                unimaginable amounts of dry run tables or has impractically small
                table name length limit.
-            if prefix.length > max_length then Error.throw (Illegal_State.Error "Reached the table name length limit ("+max_length.to_text+") while trying to find a unused table name. It seems that all possible names are already taken. The Database may need to be cleaned up for dry run to work." else
+            if prefix.length > max_length then Error.throw (Illegal_State.Error "Reached the table name length limit ("+max_length.to_text+") while trying to find a unused table name. It seems that all possible names are already taken. The Database may need to be cleaned up for dry run to work.") else
                 name = (prefix + table_name) . take max_length
                 ## The dry run name is ok if it is already registered (that means it
                    may exist in the Database, but it was created by other dry runs

@@ -219,7 +219,7 @@ align_structure table_or_columns = case table_or_columns of
         _ : Function ->
             Error.throw (Illegal_Argument.Error "The structure should be a vector of Column_Description. Maybe some arguments of Column_Description are missing?")
         _ ->
-            Error.throw (Illegal_Argument.Error "The structure must be an existing Table or vector of Column_Description.") else
+            Error.throw (Illegal_Argument.Error "The structure must be an existing Table or vector of Column_Description.")
     table : Database_Table  -> structure_from_existing_table table
     table : In_Memory_Table -> structure_from_existing_table table
 
