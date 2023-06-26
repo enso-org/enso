@@ -570,7 +570,7 @@ mod tests {
             let faux_vis = Visualization {
                 id: default(),
                 expression_id: default(),
-                module: "local.Widgets.Main".to_string(),
+                module: qualified_module,
                 method_pointer,
                 arguments,
             };
