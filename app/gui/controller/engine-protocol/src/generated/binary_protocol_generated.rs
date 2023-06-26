@@ -1154,14 +1154,14 @@ pub mod org {
                             builder.finish()
                         }
 
-                        pub const VT_VISUALIzATIONID: flatbuffers::VOffsetT = 4;
+                        pub const VT_VISUALIZATIONID: flatbuffers::VOffsetT = 4;
                         pub const VT_CONTEXTID: flatbuffers::VOffsetT = 6;
                         pub const VT_EXPRESSIONID: flatbuffers::VOffsetT = 8;
 
                         #[inline]
                         pub fn visualizationId(&self) -> &'a EnsoUUID {
                             self._tab
-                                .get::<EnsoUUID>(VisualizationContext::VT_VISUALIzATIONID, None)
+                                .get::<EnsoUUID>(VisualizationContext::VT_VISUALIZATIONID, None)
                                 .unwrap()
                         }
                         #[inline]
@@ -1201,7 +1201,7 @@ pub mod org {
                         #[inline]
                         pub fn add_visualizationId(&mut self, visualizationId: &'b EnsoUUID) {
                             self.fbb_.push_slot_always::<&EnsoUUID>(
-                                VisualizationContext::VT_VISUALIzATIONID,
+                                VisualizationContext::VT_VISUALIZATIONID,
                                 visualizationId,
                             );
                         }
@@ -1231,7 +1231,7 @@ pub mod org {
                             let o = self.fbb_.end_table(self.start_);
                             self.fbb_.required(
                                 o,
-                                VisualizationContext::VT_VISUALIzATIONID,
+                                VisualizationContext::VT_VISUALIZATIONID,
                                 "visualization_id",
                             );
                             self.fbb_.required(o, VisualizationContext::VT_CONTEXTID, "context_id");
@@ -1280,14 +1280,14 @@ pub mod org {
                             builder.finish()
                         }
 
-                        pub const VT_VISUALIzATIONCONTEXT: flatbuffers::VOffsetT = 4;
+                        pub const VT_VISUALIZATIONCONTEXT: flatbuffers::VOffsetT = 4;
                         pub const VT_DATA: flatbuffers::VOffsetT = 6;
 
                         #[inline]
                         pub fn visualizationContext(&self) -> VisualizationContext<'a> {
                             self._tab
                                 .get::<flatbuffers::ForwardsUOffset<VisualizationContext<'a>>>(
-                                    VisualizationUpdate::VT_VISUALIzATIONCONTEXT,
+                                    VisualizationUpdate::VT_VISUALIZATIONCONTEXT,
                                     None,
                                 )
                                 .unwrap()
@@ -1330,7 +1330,7 @@ pub mod org {
                         ) {
                             self.fbb_
                                 .push_slot_always::<flatbuffers::WIPOffset<VisualizationContext>>(
-                                    VisualizationUpdate::VT_VISUALIzATIONCONTEXT,
+                                    VisualizationUpdate::VT_VISUALIZATIONCONTEXT,
                                     visualizationContext,
                                 );
                         }
@@ -1356,7 +1356,7 @@ pub mod org {
                             let o = self.fbb_.end_table(self.start_);
                             self.fbb_.required(
                                 o,
-                                VisualizationUpdate::VT_VISUALIzATIONCONTEXT,
+                                VisualizationUpdate::VT_VISUALIZATIONCONTEXT,
                                 "visualization_context",
                             );
                             self.fbb_.required(o, VisualizationUpdate::VT_DATA, "data");
