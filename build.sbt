@@ -1917,8 +1917,8 @@ lazy val `std-base` = project
     Compile / packageBin / artifactPath :=
       `base-polyglot-root` / "std-base.jar",
     libraryDependencies ++= Seq(
-      "org.graalvm.truffle" % "truffle-api"             % graalVersion       % "provided",
-      "org.netbeans.api"    % "org-openide-util-lookup" % netbeansApiVersion % "provided"
+      "org.graalvm.sdk"  % "graal-sdk"               % graalVersion       % "provided",
+      "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided"
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
@@ -1944,8 +1944,8 @@ lazy val `common-polyglot-core-utils` = project
     Compile / packageBin / artifactPath :=
       `base-polyglot-root` / "common-polyglot-core-utils.jar",
     libraryDependencies ++= Seq(
-      "com.ibm.icu"         % "icu4j"       % icuVersion,
-      "org.graalvm.truffle" % "truffle-api" % graalVersion % "provided"
+      "com.ibm.icu"     % "icu4j"     % icuVersion,
+      "org.graalvm.sdk" % "graal-sdk" % graalVersion % "provided"
     )
   )
 
@@ -1957,7 +1957,7 @@ lazy val `enso-test-java-helpers` = project
     Compile / packageBin / artifactPath :=
       file("test/Tests/polyglot/java/helpers.jar"),
     libraryDependencies ++= Seq(
-      "org.graalvm.truffle" % "truffle-api" % graalVersion % "provided"
+      "org.graalvm.sdk" % "graal-sdk" % graalVersion % "provided"
     ),
     Compile / packageBin := Def.task {
       val result          = (Compile / packageBin).value
@@ -1990,7 +1990,7 @@ lazy val `std-table` = project
       (Antlr4 / sourceManaged).value / "main" / "antlr4"
     },
     libraryDependencies ++= Seq(
-      "org.graalvm.truffle" % "truffle-api"             % graalVersion       % "provided",
+      "org.graalvm.sdk"     % "graal-sdk"               % graalVersion       % "provided",
       "org.netbeans.api"    % "org-openide-util-lookup" % netbeansApiVersion % "provided",
       "com.univocity"       % "univocity-parsers"       % univocityParsersVersion,
       "org.apache.poi"      % "poi-ooxml"               % poiOoxmlVersion,
@@ -2068,10 +2068,10 @@ lazy val `std-database` = project
     Compile / packageBin / artifactPath :=
       `database-polyglot-root` / "std-database.jar",
     libraryDependencies ++= Seq(
-      "org.graalvm.truffle" % "truffle-api"             % graalVersion       % "provided",
-      "org.netbeans.api"    % "org-openide-util-lookup" % netbeansApiVersion % "provided",
-      "org.xerial"          % "sqlite-jdbc"             % sqliteVersion,
-      "org.postgresql"      % "postgresql"              % "42.4.0"
+      "org.graalvm.sdk"  % "graal-sdk"               % graalVersion       % "provided",
+      "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided",
+      "org.xerial"       % "sqlite-jdbc"             % sqliteVersion,
+      "org.postgresql"   % "postgresql"              % "42.4.0"
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
