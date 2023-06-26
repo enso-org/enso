@@ -637,7 +637,7 @@ pub mod test {
 
             let expected_config = language_server::types::VisualisationConfiguration {
                 execution_context_id: data.context_id,
-                visualisation_module: "foo".to_string(),
+                visualisation_module: MockData::new().module_qualified_name().to_string(),
                 expression: new_expression.clone().into(),
                 positional_arguments_expressions: arguments.clone(),
             };
