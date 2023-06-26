@@ -60,7 +60,7 @@ Number.foo = x ->
 [[{"index": {"value": 98}, "size": {"value": 5}}, "5fc0c11d-bd83-4ca3-b847-b8e362f7658c"],[{"index": {"value": 81}, "size": {"value": 8}}, "1cda3676-bd62-41f8-b6a1-a1e1b7c73d18"],[{"index": {"value": 42}, "size": {"value": 5}}, "899a11e5-4d2b-43dc-a867-2f2ef2d2ba62"],[{"index": {"value": 26}, "size": {"value": 7}}, "37f284d4-c593-4e65-a4be-4948fbd2adfb"],[{"index": {"value": 16}, "size": {"value": 1}}, "c553533e-a2b9-4305-9f12-b8fe7781f933"]]
 []"#;
 
-const VISUALISATION_CODE: &str = r#"
+const VISUALIZATION_CODE: &str = r#"
 encode = x -> x.to_text
 
 incAndEncode = x -> here.encode x+1
@@ -84,10 +84,10 @@ async fn ls_text_protocol_test() {
     let result = client.write_file(&file, &contents).await;
     result.expect("Couldn't write main code file.");
 
-    let visualisation_file = Path::new(root_id, &["src", "Visualisation.enso"]);
-    let contents = VISUALISATION_CODE.to_string();
-    let response = client.write_file(&visualisation_file, &contents).await;
-    response.expect("Couldn't write visualisation file.");
+    let visualization_file = Path::new(root_id, &["src", "Visualization.enso"]);
+    let contents = VISUALIZATION_CODE.to_string();
+    let response = client.write_file(&visualization_file, &contents).await;
+    response.expect("Couldn't write visualization file.");
 
     let package_file = Path::new(root_id, &["package.yaml"]);
     let contents = PACKAGE_YAML.to_string();
@@ -125,45 +125,45 @@ async fn ls_text_protocol_test() {
 
 
     // Setting visualization.
-    let visualisation_id = uuid::Uuid::new_v4();
+    let visualization_id = uuid::Uuid::new_v4();
     let expression_id = uuid::Uuid::parse_str("c553533e-a2b9-4305-9f12-b8fe7781f933");
     let expression_id = expression_id.expect("Couldn't parse expression ID.");
     let visualization_function = "foo".to_string();
-    let visualization_module = "Test.Visualisation";
+    let visualization_module = "Test.Visualization";
     let expression = MethodPointer {
         module:          visualization_module.to_string(),
         defined_on_type: visualization_module.to_string(),
         name:            visualization_function,
     };
     let positional_arguments_expressions = vec!["1".to_owned()];
-    let visualisation_config = VisualisationConfiguration {
+    let visualization_config = VisualizationConfiguration {
         execution_context_id,
         expression,
         positional_arguments_expressions,
     };
     let response =
-        client.attach_visualisation(&visualisation_id, &expression_id, &visualisation_config);
-    response.await.expect("Couldn't attach visualisation.");
+        client.attach_visualization(&visualization_id, &expression_id, &visualization_config);
+    response.await.expect("Couldn't attach visualization.");
 
     let visualization_function = "bar".to_string();
-    let visualization_module = "Test.Visualisation";
+    let visualization_module = "Test.Visualization";
     let expression = MethodPointer {
         module:          visualization_module.to_string(),
         defined_on_type: visualization_module.to_string(),
         name:            visualization_function,
     };
     let positional_arguments_expressions = vec!["1".to_owned(), "2".to_owned()];
-    let visualisation_config = VisualisationConfiguration {
+    let visualization_config = VisualizationConfiguration {
         execution_context_id,
         expression,
         positional_arguments_expressions,
     };
-    let response = client.modify_visualisation(&visualisation_id, &visualisation_config).await;
-    response.expect("Couldn't modify visualisation.");
+    let response = client.modify_visualization(&visualization_id, &visualization_config).await;
+    response.expect("Couldn't modify visualization.");
 
     let response =
-        client.detach_visualisation(&execution_context_id, &visualisation_id, &expression_id).await;
-    response.expect("Couldn't detach visualisation.");
+        client.detach_visualization(&execution_context_id, &visualization_id, &expression_id).await;
+    response.expect("Couldn't detach visualization.");
 
     let response = client.destroy_execution_context(&execution_context_id).await;
     response.expect("Couldn't destroy execution context.");

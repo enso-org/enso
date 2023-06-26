@@ -8,7 +8,7 @@ import org.enso.compiler.pass.analyse.{
   DataflowAnalysis
 }
 import org.enso.interpreter.instrument.execution.{Executable, RuntimeContext}
-import org.enso.interpreter.instrument.job.UpsertVisualisationJob.{
+import org.enso.interpreter.instrument.job.UpsertVisualizationJob.{
   EvaluationFailed,
   EvaluationResult,
   ModuleNotFound
@@ -17,7 +17,7 @@ import org.enso.interpreter.instrument.{
   CacheInvalidation,
   InstrumentFrame,
   RuntimeCache,
-  Visualisation
+  Visualization
 }
 import org.enso.interpreter.runtime.Module
 import org.enso.interpreter.runtime.control.ThreadInterruptedException
@@ -27,29 +27,29 @@ import org.enso.polyglot.runtime.Runtime.Api
 
 import java.util.logging.Level
 
-/** A job that upserts a visualisation.
+/** A job that upserts a visualization.
   *
   * @param requestId maybe a request id
-  * @param visualisationId an identifier of visualisation
+  * @param visualizationId an identifier of visualization
   * @param expressionId an identifier of expression
-  * @param config a visualisation config
+  * @param config a visualization config
   */
-class UpsertVisualisationJob(
+class UpsertVisualizationJob(
   requestId: Option[Api.RequestId],
-  visualisationId: Api.VisualisationId,
+  visualizationId: Api.VisualizationId,
   expressionId: Api.ExpressionId,
-  config: Api.VisualisationConfiguration
+  config: Api.VisualizationConfiguration
 ) extends UniqueJob[Option[Executable]](
       expressionId,
       List(config.executionContextId),
       false
     ) {
 
-  /** Return the id of the visualisation associated with this job
+  /** Return the id of the visualization associated with this job
     *
-    * @return visualisation id
+    * @return visualization id
     */
-  def getVisualizationId(): Api.VisualisationId = visualisationId
+  def getVisualizationId(): Api.VisualizationId = visualizationId
 
   /** @inheritdoc */
   override def run(implicit ctx: RuntimeContext): Option[Executable] = {
@@ -58,7 +58,7 @@ class UpsertVisualisationJob(
       ctx.locking.acquireContextLock(config.executionContextId)
     try {
       val maybeCallable =
-        UpsertVisualisationJob.evaluateVisualisationExpression(
+        UpsertVisualizationJob.evaluateVisualizationExpression(
           config.expression
         )
 
@@ -72,9 +72,9 @@ class UpsertVisualisationJob(
           None
 
         case Right(EvaluationResult(module, callable, arguments)) =>
-          val visualisation =
-            UpsertVisualisationJob.updateVisualisation(
-              visualisationId,
+          val visualization =
+            UpsertVisualizationJob.updateVisualization(
+              visualizationId,
               expressionId,
               module,
               config,
@@ -84,16 +84,16 @@ class UpsertVisualisationJob(
           val stack = ctx.contextManager.getStack(config.executionContextId)
           val cachedValue = stack.headOption
             .flatMap(frame => Option(frame.cache.get(expressionId)))
-          UpsertVisualisationJob.requireVisualisationSynchronization(
+          UpsertVisualizationJob.requireVisualizationSynchronization(
             stack,
             expressionId
           )
           cachedValue match {
             case Some(value) =>
-              ProgramExecutionSupport.sendVisualisationUpdate(
+              ProgramExecutionSupport.sendVisualizationUpdate(
                 config.executionContextId,
                 stack.headOption.get.syncState,
-                visualisation,
+                visualization,
                 expressionId,
                 value
               )
@@ -106,7 +106,7 @@ class UpsertVisualisationJob(
       ctx.locking.releaseContextLock(config.executionContextId)
       logger.log(
         Level.FINEST,
-        s"Kept context lock [UpsertVisualisationJob] for ${System.currentTimeMillis() - lockTimestamp} milliseconds"
+        s"Kept context lock [UpsertVisualizationJob] for ${System.currentTimeMillis() - lockTimestamp} milliseconds"
       )
     }
   }
@@ -118,7 +118,7 @@ class UpsertVisualisationJob(
     ctx.endpoint.sendToClient(
       Api.Response(
         requestId,
-        Api.VisualisationExpressionFailed(message, executionResult)
+        Api.VisualizationExpressionFailed(message, executionResult)
       )
     )
   }
@@ -130,7 +130,7 @@ class UpsertVisualisationJob(
   }
 }
 
-object UpsertVisualisationJob {
+object UpsertVisualizationJob {
 
   /** The number of times to retry the expression evaluation. */
   val MaxEvaluationRetryCount: Int = 5
@@ -168,32 +168,32 @@ object UpsertVisualisationJob {
     arguments: Vector[AnyRef]
   )
 
-  /** Upsert the provided visualisation.
+  /** Upsert the provided visualization.
     *
-    * @param visualisation the visualisation to update
+    * @param visualization the visualization to update
     * @param ctx the runtime context
     */
-  def upsertVisualisation(
-    visualisation: Visualisation
+  def upsertVisualization(
+    visualization: Visualization
   )(implicit ctx: RuntimeContext, logger: TruffleLogger): Unit = {
-    val visualisationConfig = visualisation.config
-    val expressionId        = visualisation.expressionId
-    val visualisationId     = visualisation.id
+    val visualizationConfig = visualization.config
+    val expressionId        = visualization.expressionId
+    val visualizationId     = visualization.id
     val maybeCallable =
-      evaluateVisualisationExpression(visualisation.config.expression)
+      evaluateVisualizationExpression(visualization.config.expression)
 
     maybeCallable.foreach { result =>
-      updateVisualisation(
-        visualisationId,
+      updateVisualization(
+        visualizationId,
         expressionId,
         result.module,
-        visualisationConfig,
+        visualizationConfig,
         result.callback,
         result.arguments
       )
       val stack =
-        ctx.contextManager.getStack(visualisationConfig.executionContextId)
-      requireVisualisationSynchronization(stack, expressionId)
+        ctx.contextManager.getStack(visualizationConfig.executionContextId)
+      requireVisualizationSynchronization(stack, expressionId)
     }
   }
 
@@ -213,17 +213,17 @@ object UpsertVisualisationJob {
     else Left(ModuleNotFound(moduleName))
   }
 
-  /** Evaluate the visualisation expression in a given module.
+  /** Evaluate the visualization expression in a given module.
     *
     * @param module the module where to evaluate the expression
-    * @param expression the visualisation expression
+    * @param expression the visualization expression
     * @param retryCount the number of attempted retries
     * @param ctx the runtime context
     * @return either the evaluation result or an evaluation failure
     */
   private def evaluateModuleExpression(
     module: Module,
-    expression: Api.VisualisationExpression,
+    expression: Api.VisualizationExpression,
     retryCount: Int = 0
   )(implicit
     ctx: RuntimeContext
@@ -231,14 +231,14 @@ object UpsertVisualisationJob {
     Either
       .catchNonFatal {
         val (callback, arguments) = expression match {
-          case Api.VisualisationExpression.Text(_, expression) =>
+          case Api.VisualizationExpression.Text(_, expression) =>
             val callback = ctx.executionService.evaluateExpression(
               module,
               expression
             )
             val arguments = Vector()
             (callback, arguments)
-          case Api.VisualisationExpression.ModuleMethod(
+          case Api.VisualizationExpression.ModuleMethod(
                 Api.MethodPointer(_, definedOnType, name),
                 argumentExpressions
               ) =>
@@ -259,7 +259,7 @@ object UpsertVisualisationJob {
             if retryCount < MaxEvaluationRetryCount =>
           ctx.executionService.getLogger.log(
             Level.FINE,
-            s"Evaluation of visualisation was interrupted. Retrying [${retryCount + 1}]."
+            s"Evaluation of visualization was interrupted. Retrying [${retryCount + 1}]."
           )
           evaluateModuleExpression(module, expression, retryCount + 1)
 
@@ -295,14 +295,14 @@ object UpsertVisualisationJob {
           )
       }
 
-  /** Evaluate the visualisation expression.
+  /** Evaluate the visualization expression.
     *
-    * @param expression the visualisation expression to evaluate
+    * @param expression the visualization expression to evaluate
     * @param ctx the runtime context
     * @return either the evaluation result or an evaluation error
     */
-  private def evaluateVisualisationExpression(
-    expression: Api.VisualisationExpression
+  private def evaluateVisualizationExpression(
+    expression: Api.VisualizationExpression
   )(implicit
     ctx: RuntimeContext
   ): Either[EvaluationFailure, EvaluationResult] = {
@@ -312,66 +312,66 @@ object UpsertVisualisationJob {
     } yield expression
   }
 
-  /** Update the visualisation state.
+  /** Update the visualization state.
     *
-    * @param visualisationId the visualisation identifier
-    * @param expressionId the expression to which the visualisation is applied
-    * @param module the module containing the visualisation
-    * @param visualisationConfig the visualisation configuration
-    * @param callback the visualisation callback function
+    * @param visualizationId the visualization identifier
+    * @param expressionId the expression to which the visualization is applied
+    * @param module the module containing the visualization
+    * @param visualizationConfig the visualization configuration
+    * @param callback the visualization callback function
     * @param arguments the list of arugments that will be passed to the callback
     * @param ctx the runtime context
-    * @return the re-evaluated visualisation
+    * @return the re-evaluated visualization
     */
-  private def updateVisualisation(
-    visualisationId: Api.VisualisationId,
+  private def updateVisualization(
+    visualizationId: Api.VisualizationId,
     expressionId: Api.ExpressionId,
     module: Module,
-    visualisationConfig: Api.VisualisationConfiguration,
+    visualizationConfig: Api.VisualizationConfiguration,
     callback: AnyRef,
     arguments: Vector[AnyRef]
-  )(implicit ctx: RuntimeContext, logger: TruffleLogger): Visualisation = {
-    val visualisationExpressionId =
-      findVisualisationExpressionId(module, visualisationConfig.expression)
-    val visualisation = Visualisation(
-      visualisationId,
+  )(implicit ctx: RuntimeContext, logger: TruffleLogger): Visualization = {
+    val visualizationExpressionId =
+      findVisualizationExpressionId(module, visualizationConfig.expression)
+    val visualization = Visualization(
+      visualizationId,
       expressionId,
       new RuntimeCache(),
       module,
-      visualisationConfig,
-      visualisationExpressionId,
+      visualizationConfig,
+      visualizationExpressionId,
       callback,
       arguments
     )
     val writeLockTimestamp = ctx.locking.acquireWriteCompilationLock()
     try {
-      invalidateCaches(visualisation)
+      invalidateCaches(visualization)
     } finally {
       ctx.locking.releaseWriteCompilationLock()
       logger.log(
         Level.FINEST,
-        s"Kept write compilation lock [UpsertVisualisationJob] for ${System.currentTimeMillis() - writeLockTimestamp} milliseconds"
+        s"Kept write compilation lock [UpsertVisualizationJob] for ${System.currentTimeMillis() - writeLockTimestamp} milliseconds"
       )
     }
-    ctx.contextManager.upsertVisualisation(
-      visualisationConfig.executionContextId,
-      visualisation
+    ctx.contextManager.upsertVisualization(
+      visualizationConfig.executionContextId,
+      visualization
     )
-    visualisation
+    visualization
   }
 
-  /** Find the expressionId of visualisation function.
+  /** Find the expressionId of visualization function.
     *
     * @param module the module environment
-    * @param visualisationExpression the visualisation expression
-    * @return the expression id of required visualisation function
+    * @param visualizationExpression the visualization expression
+    * @return the expression id of required visualization function
     */
-  private def findVisualisationExpressionId(
+  private def findVisualizationExpressionId(
     module: Module,
-    visualisationExpression: Api.VisualisationExpression
+    visualizationExpression: Api.VisualizationExpression
   ): Option[Api.ExpressionId] =
-    visualisationExpression match {
-      case Api.VisualisationExpression.ModuleMethod(methodPointer, _) =>
+    visualizationExpression match {
+      case Api.VisualizationExpression.ModuleMethod(methodPointer, _) =>
         module.getIr.bindings
           .collect { case method: IR.Module.Scope.Definition.Method =>
             val methodReference        = method.methodReference
@@ -390,14 +390,14 @@ object UpsertVisualisationJob {
           .flatten
           .headOption
 
-      case _: Api.VisualisationExpression.Text => None
+      case _: Api.VisualizationExpression.Text => None
     }
 
   /** Update the caches. */
   private def invalidateCaches(
-    visualisation: Visualisation
+    visualization: Visualization
   )(implicit ctx: RuntimeContext): Unit = {
-    setCacheWeights(visualisation)
+    setCacheWeights(visualization)
     val stacks = ctx.contextManager.getAllContexts.values
     /* The invalidation of the first cached dependent node is required for
      * attaching the visualizations to sub-expressions. Consider the example
@@ -412,8 +412,8 @@ object UpsertVisualisationJob {
      * visualized expression is a sub-expression and invalidate the first parent
      * expression accordingly.
      */
-    if (!stacks.exists(isExpressionCached(visualisation.expressionId, _))) {
-      invalidateFirstDependent(visualisation.expressionId)
+    if (!stacks.exists(isExpressionCached(visualization.expressionId, _))) {
+      invalidateFirstDependent(visualization.expressionId)
     }
   }
 
@@ -432,15 +432,15 @@ object UpsertVisualisationJob {
     }
   }
 
-  /** Set the cache weights for the provided visualisation.
+  /** Set the cache weights for the provided visualization.
     *
-    * @param visualisation the visualisation to update
+    * @param visualization the visualization to update
     */
-  private def setCacheWeights(visualisation: Visualisation): Unit = {
-    visualisation.module.getIr.getMetadata(CachePreferenceAnalysis).foreach {
+  private def setCacheWeights(visualization: Visualization): Unit = {
+    visualization.module.getIr.getMetadata(CachePreferenceAnalysis).foreach {
       metadata =>
-        CacheInvalidation.runVisualisations(
-          Seq(visualisation),
+        CacheInvalidation.runVisualizations(
+          Seq(visualization),
           CacheInvalidation.Command.SetMetadata(metadata)
         )
     }
@@ -495,15 +495,15 @@ object UpsertVisualisationJob {
       }
   }
 
-  /** Require to send the visualisation update.
+  /** Require to send the visualization update.
     *
     * @param stack the execution stack
-    * @param expressionId the expression id to which the visualisation is applied
+    * @param expressionId the expression id to which the visualization is applied
     */
-  private def requireVisualisationSynchronization(
+  private def requireVisualizationSynchronization(
     stack: Iterable[InstrumentFrame],
     expressionId: Api.ExpressionId
   ): Unit =
-    stack.foreach(_.syncState.setVisualisationUnsync(expressionId))
+    stack.foreach(_.syncState.setVisualizationUnsync(expressionId))
 
 }

@@ -12,7 +12,7 @@ spec =
             type_name = Meta.get_qualified_type_name value . to_text
             type_name . should_equal <| expected_text
 
-    Test.group "Type Names of Visualisation Defaults" <|
+    Test.group "Type Names of Visualization Defaults" <|
         """ IMPORTANT: When updating this, also update the default values in
              app/gui/view/graph-editor/src/builtin/visualization/java_script/table.js:18 as this
              verifies that the type names do not go out of sync. Should be removed once

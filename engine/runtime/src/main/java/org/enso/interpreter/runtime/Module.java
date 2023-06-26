@@ -636,7 +636,8 @@ public final class Module implements TruffleObject {
           eval.getFunction(),
           callerInfo,
           context.emptyState(),
-          new Object[] {builtins.debug(), Text.create(expr)});
+          new Object[] {builtins.debug(), Text.create(expr)},
+          null);
     }
 
     private static Object generateDocs(Module module, EnsoContext context) {
