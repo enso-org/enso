@@ -26,13 +26,16 @@ type Warning
         origin = Runtime.get_stack_trace
         attach_with_stacktrace value warning (origin.drop (Index_Sub_Range.First 1))
 
-    ## ADVANCED
+    ## PRIVATE
+       ADVANCED
        Are any warnings attached to the value?
     has_warnings : Any -> Any -> Boolean
     has_warnings value warning_type=Any =
         Warning.get_all value . any (w-> w.value.is_a warning_type)
 
-    ## Remove the warnings (either all or of a specified type) attached to the value.
+    ## PRIVATE
+       ADVANCED
+       Remove the warnings (either all or of a specified type) attached to the value.
 
        Arguments:
        - warning_type: The type to remove if attached to the value. Defaults to all warnings.
@@ -50,13 +53,15 @@ type Warning
         first = warnings.find (w-> w.value.is_a warning_type) if_missing=Nothing
         if first.is_nothing then self else Error.throw first.value
 
-    ## ADVANCED
+    ## PRIVATE
+       ADVANCED
        Gets all the warnings attached to the given value. Warnings are returned in the
        reverse-chronological order with respect to their attachment time.
     get_all : Any -> Vector Warning
     get_all value = Vector.from_polyglot_array (get_all_array value)
 
-    ## ADVANCED
+    ## PRIVATE
+       ADVANCED
        Returns `True` if the maximal number of reported warnings for a value has been reached, `False` otherwise.
     limit_reached : Any -> Boolean
     limit_reached value = @Builtin_Method "Warning.limit_reached"
@@ -73,7 +78,8 @@ type Warning
     set : Any -> Vector Warning -> Any
     set value warnings = set_array value warnings.to_array
 
-    ## ADVANCED
+    ## PRIVATE
+       ADVANCED
        Returns the provided value with any warnings removed from it.
 
        Arguments:
@@ -166,7 +172,8 @@ type Warning
                    original dataflow error as-is, to preserve its stacktrace.
                 Nothing -> mapped_warnings_or_error
 
-    ## ADVANCED
+    ## PRIVATE
+       ADVANCED
        A helper function which selects warnings matching a predicate and returns a
        pair whose first element is the original value with the matched warnings
        removed and the second element is the list of matched warnings.
