@@ -32,11 +32,15 @@ from project.Data.Boolean import Boolean, True, False
    treated as a Map.
 @Builtin_Type
 type Map key value
-    ## Returns an empty map.
+    ## PRIVATE
+       ADVANCED
+       Returns an empty map.
     empty : Map
     empty = @Builtin_Method "Map.empty"
 
-    ## Returns a single-element map with the given key and value.
+    ## PRIVATE
+       ADVANCED
+       Returns a single-element map with the given key and value.
        A Call to `Map.singleton key value` is the same as a call to
        `Map.empty.insert key value`.
 

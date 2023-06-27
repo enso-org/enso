@@ -30,7 +30,8 @@ polyglot java import java.net.ProxySelector
 polyglot java import org.enso.base.Http_Utils
 
 type HTTP
-    ## Create a new instance of the HTTP client.
+    ## ADVANCED
+       Create a new instance of the HTTP client.
 
        Arguments:
        - timeout: The length of time the client will wait for responses.
@@ -59,8 +60,8 @@ type HTTP
     new (timeout = (Duration.new seconds=10)) (follow_redirects = True) (proxy = Proxy.System) (version = HTTP_Version.HTTP_1_1) =
         HTTP.Value timeout follow_redirects proxy version
 
-    ## ALIAS Fetch Data
-
+    ## PRIVATE
+       ADVANCED
        Send the Get request and return the body.
 
        Arguments:

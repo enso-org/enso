@@ -21,6 +21,7 @@ spec =
             (exclusive_1 == exclusive_1) . should_be_true
             (exclusive_1 == exclusive_2) . should_be_false
             (inclusive_1 == exclusive_1) . should_be_false
+
     Test.group "Interval" <|
         Test.specify "should allow constructing exclusive intervals" <|
             interval = Interval.new 1 5 Interval_Type.Exclusive

@@ -34,7 +34,9 @@ type Set
         map = Map.from_vector pairs error_on_duplicates=error_on_duplicates
         Set.Value map
 
-    ## Constructs an empty set.
+    ## PRIVATE
+       ADVANCED
+       Constructs an empty set.
     empty : Set
     empty = Set.Value Map.empty
 
