@@ -68,8 +68,7 @@ pub fn new_node_position(
             let pos = on_ray(graph_editor, screen_center, Vector2(0.0, -1.0)).unwrap();
             magnet_alignment(graph_editor, pos, HorizontallyAndVertically)
         }
-        DroppingEdge { endpoint } =>
-            at_mouse_aligned_to_source_node(graph_editor, endpoint.node_id, mouse_position),
+        DroppingEdge { endpoint } => mouse_position,
         StartCreationFromPortEvent { endpoint } => under(graph_editor, endpoint.node_id),
     }
 }
