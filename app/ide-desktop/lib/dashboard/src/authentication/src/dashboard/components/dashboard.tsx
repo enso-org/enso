@@ -145,15 +145,15 @@ const COLUMN_NAME: Record<Exclude<Column, Column.name>, string> = {
 
 /** CSS classes for every column. Currently only used to set the widths. */
 const COLUMN_CSS_CLASS: Record<Column, string> = {
-    [Column.name]: 'w-60',
-    [Column.lastModified]: 'w-40',
-    [Column.sharedWith]: 'w-36',
-    [Column.docs]: 'w-96',
-    [Column.labels]: 'w-80',
-    [Column.dataAccess]: 'w-96',
+    [Column.name]: 'min-w-60',
+    [Column.lastModified]: 'min-w-40',
+    [Column.sharedWith]: 'min-w-36',
+    [Column.docs]: 'min-w-96',
+    [Column.labels]: 'min-w-80',
+    [Column.dataAccess]: 'min-w-96',
     [Column.usagePlan]: '',
-    [Column.engine]: 'w-20',
-    [Column.ide]: 'w-20',
+    [Column.engine]: 'min-w-20',
+    [Column.ide]: 'min-w-20',
 } as const
 
 /** The list of columns displayed on each `ColumnDisplayMode`. */
@@ -639,11 +639,26 @@ function Dashboard(props: DashboardProps) {
         [Column.lastModified]: asset =>
             asset.modifiedAt && <>{dateTime.formatDateTime(new Date(asset.modifiedAt))}</>,
         [Column.sharedWith]: asset => (
-            <div className="flex flex-nowrap">
-                {(asset.permissions ?? []).map(user => (
+            <div className="flex">
+                {(asset.permissions ?? []).map((user, index) => (
                     <PermissionDisplay
                         key={user.user.organization_id}
                         permissions={permissionDisplay.PERMISSION[user.permission]}
+                        className={`cursor-pointer border-2 rounded-full hover:shadow-soft hover:z-10 ${
+                            index === 0 ? '' : '-ml-5'
+                        }`}
+                        onClick={event => {
+                            event.stopPropagation()
+                            setModal(() => (
+                                <ShareWithModal
+                                    key={Number(new Date())}
+                                    user={user.user}
+                                    asset={asset}
+                                    eventTarget={event.currentTarget}
+                                    onSuccess={doRefresh}
+                                />
+                            ))
+                        }}
                     >
                         <img src={DefaultUserSmallIcon} />
                     </PermissionDisplay>
@@ -653,6 +668,7 @@ function Dashboard(props: DashboardProps) {
                         event.stopPropagation()
                         setModal(() => (
                             <ShareWithModal
+                                key={Number(new Date())}
                                 asset={asset}
                                 eventTarget={event.currentTarget}
                                 onSuccess={doRefresh}
@@ -1093,11 +1109,14 @@ function Dashboard(props: DashboardProps) {
                             )}
                         </div>
                     </div>
-                    <table className="items-center border-collapse mt-2 w-0 whitespace-nowrap">
+                    <table className="items-center self-start border-collapse mt-2 whitespace-nowrap">
                         <tbody>
                             <tr className="h-10">
                                 {columnsFor(columnDisplayMode, backend.type).map(column => (
-                                    <td key={column} className={COLUMN_CSS_CLASS[column]} />
+                                    <td
+                                        key={column}
+                                        className={`block ${COLUMN_CSS_CLASS[column]}`}
+                                    />
                                 ))}
                             </tr>
                             <Rows<backendModule.Asset<backendModule.AssetType.project>>

@@ -245,7 +245,7 @@ export enum PermissionAction {
     own = 'Own',
     execute = 'Execute',
     edit = 'Edit',
-    read = 'Read',
+    view = 'View',
 }
 
 /** User permissions for a specific user. */

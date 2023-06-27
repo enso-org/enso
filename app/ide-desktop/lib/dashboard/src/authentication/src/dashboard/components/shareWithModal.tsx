@@ -31,6 +31,8 @@ const BLINK_ANIMATION_LENGTH_MS = 500
 /** Props for a {@link ShareWithModal}. */
 export interface ShareWithModalProps {
     asset: backendModule.Asset
+    /* If present, the user cannot be changed. */
+    user?: backendModule.User
     onSuccess: () => void
     eventTarget: HTMLElement
 }
@@ -39,6 +41,7 @@ export interface ShareWithModalProps {
 export function ShareWithModal(props: ShareWithModalProps) {
     const {
         asset: { type: assetType, id: assetId },
+        user,
         onSuccess,
         eventTarget,
     } = props
@@ -50,7 +53,7 @@ export function ShareWithModal(props: ShareWithModalProps) {
     const [users, setUsers] = react.useState<backendModule.SimpleUser[]>([])
     const [matchingUsers, setMatchingUsers] = react.useState(users)
     const [canSubmit, setCanSubmit] = react.useState(true)
-    const [email, setEmail] = react.useState('')
+    const [email, setEmail] = react.useState<string>(user?.user_email ?? '')
     const [permission, setPermission] = react.useState<backendModule.PermissionAction | null>(null)
     const [userEmailClassName, setUserEmailClassName] = react.useState<string | null>(null)
     const [permissionClassName, setPermissionClassName] = react.useState<string | null>(null)
@@ -71,7 +74,9 @@ export function ShareWithModal(props: ShareWithModalProps) {
         react.useEffect(() => {
             void (async () => {
                 const listedUsers = await backend.listUsers()
-                const newUsers = listedUsers.filter(user => user.email !== organization.email)
+                const newUsers = listedUsers.filter(
+                    listedUser => listedUser.email !== organization.email
+                )
                 setUsers(newUsers)
                 const lowercaseEmail = email.toLowerCase()
                 setMatchingUsers(
@@ -89,7 +94,9 @@ export function ShareWithModal(props: ShareWithModalProps) {
                     // A new user will be invited to the organization.
                     setWillInviteNewUser(
                         lowercaseEmail !== '' &&
-                            !users.some(user => user.email.toLowerCase() === lowercaseEmail)
+                            !users.some(
+                                innerUser => innerUser.email.toLowerCase() === lowercaseEmail
+                            )
                     )
                 }
             },
@@ -102,9 +109,13 @@ export function ShareWithModal(props: ShareWithModalProps) {
                 const isEmailInvalid = !userEmailRef.current.validity.valid
                 const isPermissionInvalid = !willInviteNewUser && permission == null
                 const lowercaseEmail = email.toLowerCase()
-                const user = willInviteNewUser
-                    ? null
-                    : users.find(theUser => theUser.email.toLowerCase() === lowercaseEmail)
+                const finalUser: backendModule.SimpleUser | null =
+                    user != null
+                        ? { id: user.pk, email: user.user_email, name: user.user_name }
+                        : willInviteNewUser
+                        ? null
+                        : users.find(theUser => theUser.email.toLowerCase() === lowercaseEmail) ??
+                          null
                 if (isEmailInvalid || isPermissionInvalid) {
                     if (isEmailInvalid) {
                         setUserEmailClassName(BLINK_BACKGROUND_CLASS_NAME)
@@ -136,25 +147,25 @@ export function ShareWithModal(props: ShareWithModalProps) {
                             }`
                         )
                     }
-                } else if (user != null && permission != null) {
+                } else if (finalUser != null && permission != null) {
                     unsetModal()
                     try {
                         await backend.createPermission({
-                            userSubject: user.id,
+                            userSubject: finalUser.id,
                             resourceId: assetId,
                             action: permission,
                         })
                         onSuccess()
                     } catch (error) {
                         toast.error(
-                            `Unable to give permission '${permission}' to '${user.email}': ${
+                            `Unable to give permission '${permission}' to '${finalUser.email}': ${
                                 errorModule.tryGetMessage(error) ?? 'unknown error'
                             }.`
                         )
                     }
                 }
             },
-            [email, permission, willInviteNewUser]
+            [email, permission, willInviteNewUser, /* should never change */ user]
         )
 
         return (
@@ -180,15 +191,18 @@ export function ShareWithModal(props: ShareWithModalProps) {
                         <label htmlFor="share_with_user_email">Email</label>
                         <Autocomplete
                             autoFocus
+                            disabled={user != null}
                             inputRef={userEmailRef}
                             type="email"
                             initialValue={email}
-                            items={matchingUsers.map(user => user.email)}
+                            items={matchingUsers.map(matchingUser => matchingUser.email)}
                             className={userEmailClassName ?? ''}
                             onInput={newEmail => {
                                 const lowercaseEmail = newEmail.toLowerCase()
                                 setMatchingUsers(
-                                    users.filter(user => user.email.includes(lowercaseEmail))
+                                    users.filter(innerUser =>
+                                        innerUser.email.includes(lowercaseEmail)
+                                    )
                                 )
                             }}
                             onChange={onEmailChange}

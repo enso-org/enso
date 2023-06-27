@@ -45,6 +45,9 @@ export type Permissions = AdminPermissions | OwnerPermissions | RegularPermissio
 // === Constants ===
 // =================
 
+/** Classes common between all permission borders. */
+const PERMISSION_BORDER_SHARED_CLASSES = 'border-2 rounded-full absolute w-full h-full'
+
 /** The corresponding `Permissions` for each backend `PermissionAction`. */
 export const PERMISSION: Record<backend.PermissionAction, Permissions> = {
     [backend.PermissionAction.own]: { type: Permission.owner },
@@ -62,7 +65,7 @@ export const PERMISSION: Record<backend.PermissionAction, Permissions> = {
         docsWrite: false,
         exec: false,
     },
-    [backend.PermissionAction.read]: {
+    [backend.PermissionAction.view]: {
         type: Permission.regular,
         read: true,
         write: false,
@@ -79,22 +82,23 @@ export const PERMISSION: Record<backend.PermissionAction, Permissions> = {
 export interface PermissionDisplayProps extends react.PropsWithChildren {
     permissions: Permissions
     className?: string
+    onClick?: react.MouseEventHandler<HTMLDivElement>
 }
 
 /** Colored border around icons and text indicating permissions. */
 function PermissionDisplay(props: PermissionDisplayProps) {
-    const { permissions, className, children } = props
+    const { permissions, className, onClick, children } = props
     let permissionBorder
     switch (permissions.type) {
         case Permission.owner: {
             permissionBorder = (
-                <div className="border-perm-owner border-2 rounded-full absolute w-full h-full"></div>
+                <div className={`border-perm-owner ${PERMISSION_BORDER_SHARED_CLASSES}`}></div>
             )
             break
         }
         case Permission.admin: {
             permissionBorder = (
-                <div className="border-perm-admin border-2 rounded-full absolute w-full h-full"></div>
+                <div className={`border-perm-admin ${PERMISSION_BORDER_SHARED_CLASSES}`}></div>
             )
             break
         }
@@ -104,22 +108,22 @@ function PermissionDisplay(props: PermissionDisplayProps) {
                     <div
                         className={`${
                             permissions.write ? 'border-perm-write' : 'border-perm-none'
-                        } clip-path-top-left border-2 rounded-full absolute w-full h-full`}
+                        } clip-path-top-left ${PERMISSION_BORDER_SHARED_CLASSES}`}
                     ></div>
                     <div
                         className={`${
                             permissions.read ? 'border-perm-read' : 'border-perm-none'
-                        } clip-path-top-right border-2 rounded-full absolute w-full h-full`}
+                        } clip-path-top-right ${PERMISSION_BORDER_SHARED_CLASSES}`}
                     ></div>
                     <div
                         className={`${
                             permissions.exec ? 'border-perm-exec' : 'border-perm-none'
-                        } clip-path-bottom-left border-2 rounded-full absolute w-full h-full`}
+                        } clip-path-bottom-left ${PERMISSION_BORDER_SHARED_CLASSES}`}
                     ></div>
                     <div
                         className={`${
                             permissions.docsWrite ? 'border-perm-docs-write' : 'border-perm-none'
-                        } clip-path-bottom-right border-2 rounded-full absolute w-full h-full`}
+                        } clip-path-bottom-right ${PERMISSION_BORDER_SHARED_CLASSES}`}
                     ></div>
                 </>
             )
@@ -128,7 +132,10 @@ function PermissionDisplay(props: PermissionDisplayProps) {
     }
 
     return (
-        <div className={`m-1 relative inline-block rounded-full ${className ?? ''}`}>
+        <div
+            className={`m-1 bg-white relative inline-block rounded-full ${className ?? ''}`}
+            onClick={onClick}
+        >
             {permissionBorder}
             <div className="bg-label rounded-full m-1">{children}</div>
         </div>

@@ -7,6 +7,7 @@ export interface AutocompleteProps {
     inputRef?: react.MutableRefObject<HTMLInputElement>
     initialValue: string
     autoFocus?: boolean
+    disabled?: boolean
     items: string[]
     onInput?: (value: string) => void
     onChange: (value: string) => void
@@ -20,7 +21,8 @@ function Autocomplete(props: AutocompleteProps) {
         type = 'text',
         inputRef: rawInputRef,
         initialValue,
-        autoFocus = false,
+        autoFocus,
+        disabled,
         items,
         onInput,
         onChange,
@@ -99,12 +101,15 @@ function Autocomplete(props: AutocompleteProps) {
 
     return (
         <div onKeyDown={onKeyDown}>
-            <div className="flex flex-1">
+            <div className={`flex flex-1 ${disabled ? 'cursor-not-allowed' : ''}`}>
                 <input
                     type={type}
                     ref={inputRef}
                     autoFocus={autoFocus}
-                    className={`grow bg-gray-200 rounded-full px-1 ${className ?? ''}`}
+                    disabled={disabled}
+                    className={`grow bg-gray-200 rounded-full px-1 ${
+                        disabled ? 'pointer-events-none opacity-70' : ''
+                    } ${className ?? ''}`}
                     defaultValue={value}
                     onFocus={() => {
                         setIsDropdownVisible(true)

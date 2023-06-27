@@ -15,7 +15,7 @@ const PERMISSIONS = [
     { action: backend.PermissionAction.own, name: 'Own' },
     { action: backend.PermissionAction.execute, name: 'Execute' },
     { action: backend.PermissionAction.edit, name: 'Edit' },
-    { action: backend.PermissionAction.read, name: 'Read' },
+    { action: backend.PermissionAction.view, name: 'View' },
 ].map(object => ({
     ...object,
     permission: permissionDisplay.PERMISSION[object.action],

@@ -45,6 +45,13 @@ export const theme = {
             '10lh': '10lh',
             '140': '35rem',
         },
+        minWidth: {
+            '20': '5rem',
+            '36': '9rem',
+            '40': '10rem',
+            '60': '15rem',
+            '96': '24rem',
+        },
         gridTemplateColumns: {
             'fill-60': 'repeat(auto-fill, 15rem)',
         },
