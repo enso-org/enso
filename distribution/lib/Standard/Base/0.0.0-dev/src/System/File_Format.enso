@@ -73,7 +73,9 @@ type Auto_Detect
         get_format f-> f.for_web content_type uri
 
 type File_Format
-    ## Gets all the currently available file formats.
+    ## PRIVATE
+       ADVANCED
+       Gets all the currently available file formats.
 
        The available file formats are ones provided by libraries which are
        imported within the current project. Importing an new library may cause

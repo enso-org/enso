@@ -9,7 +9,9 @@ from project.Data.Boolean import True, False
 polyglot java import org.enso.base.Text_Utils
 polyglot java import com.ibm.icu.text.BreakIterator
 
-## Compares two text values according to the natural dictionary ordering.
+## PRIVATE
+   ADVANCED
+   Compares two text values according to the natural dictionary ordering.
 
    > Example
      Compare two texts according to the natural dictionary ordering.
