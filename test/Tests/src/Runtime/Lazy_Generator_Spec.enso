@@ -1,11 +1,12 @@
 from Standard.Test import Test, Test_Suite
+from Standard.Base import Nothing
 import Standard.Test.Extensions
 
 type Generator
     Value h t
 
 natural =
-    gen ~n = if (n >= 10) then self else Generator.Value n (@Tail_Call gen n+1)
+    gen ~n = if (n >= 10) then Nothing else Generator.Value n (@Tail_Call gen n+1)
     gen 2
 
 Generator.n self = case self of
