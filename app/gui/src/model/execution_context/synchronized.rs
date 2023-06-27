@@ -532,6 +532,7 @@ pub mod test {
         let arguments = vec![];
         let vis = Visualization {
             id: model::execution_context::VisualizationId::new_v4(),
+            module: method_pointer.module.clone(),
             expression_id: model::execution_context::ExpressionId::new_v4(),
             method_pointer,
             arguments,
@@ -581,6 +582,7 @@ pub mod test {
         let arguments = vec!["foo".to_owned()];
         let vis = Visualization {
             id: model::execution_context::VisualizationId::new_v4(),
+            module: method_pointer.module.clone(),
             expression_id: model::execution_context::ExpressionId::new_v4(),
             method_pointer,
             arguments,
@@ -618,6 +620,7 @@ pub mod test {
         let arguments = vec!["bar".to_owned()];
         let vis = Visualization {
             id: model::execution_context::VisualizationId::new_v4(),
+            module: method_pointer.module.clone(),
             expression_id: model::execution_context::ExpressionId::new_v4(),
             method_pointer,
             arguments: arguments.clone(),
@@ -634,6 +637,7 @@ pub mod test {
 
             let expected_config = language_server::types::VisualizationConfiguration {
                 execution_context_id: data.context_id,
+                visualization_module: MockData::new().module_qualified_name().to_string(),
                 expression: new_expression.clone().into(),
                 positional_arguments_expressions: arguments.clone(),
             };

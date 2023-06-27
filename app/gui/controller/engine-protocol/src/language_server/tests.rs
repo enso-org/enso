@@ -434,6 +434,7 @@ fn test_execution_context() {
     };
     let positional_arguments_expressions = vec![1, 2, 3].iter().map(|x| x.to_string()).collect();
     let visualization_config = VisualizationConfiguration {
+        visualization_module: "Foo.Bar.Baz".to_string(),
         execution_context_id: context_id,
         expression,
         positional_arguments_expressions,
@@ -453,6 +454,7 @@ fn test_execution_context() {
                     "definedOnType" : "[Foo.Bar.Baz]",
                     "name"          : "foo"
                 },
+                "visualizationModule" : "Foo.Bar.Baz",
                 "positionalArgumentsExpressions" : ["1", "2", "3"]
             }
         }),
@@ -479,6 +481,7 @@ fn test_execution_context() {
     };
     let positional_arguments_expressions = vec!["foo"].iter().map(|x| x.to_string()).collect();
     let visualization_config = VisualizationConfiguration {
+        visualization_module: "Foo.Bar.Baz".to_string(),
         execution_context_id: context_id,
         expression,
         positional_arguments_expressions,
@@ -495,6 +498,7 @@ fn test_execution_context() {
                     "definedOnType" : "[Foo.Bar.Baz]",
                     "name"          : "foo"
                 },
+                "visualizationModule" : "Foo.Bar.Baz",
                 "positionalArgumentsExpressions" : ["foo"]
             }
         }),
