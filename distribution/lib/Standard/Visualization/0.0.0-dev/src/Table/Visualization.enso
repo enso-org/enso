@@ -54,7 +54,8 @@ prepare_visualization y max_rows=1000 =
 
     result.to_text
 
-## Column Limit
+## PRIVATE
+   Column Limit
 max_columns = 250
 
 ## PRIVATE

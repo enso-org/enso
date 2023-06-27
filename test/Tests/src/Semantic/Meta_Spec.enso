@@ -127,7 +127,7 @@ spec =
             Meta.is_a err Error . should_be_true
             Meta.is_a err Text . should_be_false
 
-            Meta.is_a Date.now Date . should_be_true
+            Meta.is_a Date.today Date . should_be_true
             Meta.is_a Date_Time.now Date_Time . should_be_true
             Meta.is_a Date_Time.now Date . should_be_false
             Meta.is_a Time_Of_Day.now Time_Of_Day . should_be_true
@@ -182,8 +182,8 @@ spec =
             Meta.type_of True . should_equal_type Boolean
             Meta.type_of False . should_not_equal_type Any
 
-            (Meta.type_of Date.now) . should_equal_type Date
-            (Meta.type_of Date.now) . should_not_equal_type Date_Time
+            (Meta.type_of Date.today) . should_equal_type Date
+            (Meta.type_of Date.today) . should_not_equal_type Date_Time
             (Meta.type_of Date_Time.now) . should_equal_type Date_Time
             (Meta.type_of Date_Time.now) . should_not_equal_type Date
             (Meta.type_of Time_Of_Day.now) . should_equal_type Time_Of_Day

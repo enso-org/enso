@@ -105,7 +105,7 @@ spec =
             t.at "d" . value_type . should_equal Value_Type.Char
 
         Test.specify "does not support creating tables with date/time values" <|
-            t = Table.new [["a", [Date.now]], ["b", [Time_Of_Day.now]], ["c", [Date_Time.now]]]
+            t = Table.new [["a", [Date.today]], ["b", [Time_Of_Day.now]], ["c", [Date_Time.now]]]
             r1 = t.select_into_database_table connection table_name=(Name_Generator.random_name "date-time-table") temporary=True
             r1.should_fail_with Unsupported_Database_Operation
 
