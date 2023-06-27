@@ -79,3 +79,21 @@ type From_Spec
        - alias: the name upon which the results of this sub-query can be
          referred to in other parts of the query.
     Sub_Query (columns : Vector (Pair Text SQL_Expression)) (context : Context) (alias : Text)
+
+
+## PRIVATE
+type From_Spec_Comparator
+    ## PRIVATE
+       Special handling to ignore the alias and internal temporary keep alive
+       reference when comparing two `From_Spec.Table` values.
+    compare x y = case x of
+        From_Spec.Table table_name _ _ -> case y of
+            From_Spec.Table other_table_name _ _ ->
+                if table_name == other_table_name then Ordering.Equal else Nothing
+            _ -> Nothing
+        _ -> Default_Comparator.compare x y
+
+    ## PRIVATE
+    hash x = Default_Comparator.hash x
+
+Comparable.from (_ : From_Spec) = From_Spec_Comparator

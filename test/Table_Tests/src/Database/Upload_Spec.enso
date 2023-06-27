@@ -49,6 +49,7 @@ spec make_new_connection prefix persistent_connector=True =
             t.at "Y" . to_vector . should_equal []
             t.at "Y" . value_type . is_text . should_be_true
             t.row_count . should_equal 0
+            t.is_trivial_query . should_be_true
 
         Test.specify "should allow to inherit the structure of an existing in-memory table" <|
             t = Table.new [["X", [1, 2]], ["Y", ['a', 'b']]]
@@ -179,6 +180,7 @@ spec make_new_connection prefix persistent_connector=True =
             db_table.at "X" . value_type . is_integer . should_be_true
             db_table.at "Y" . value_type . is_text . should_be_true
             db_table.row_count . should_equal 3
+            db_table.is_trivial_query . should_be_true
 
         Test.specify "should include the created table in the tables directory" <|
             db_table = in_memory_table.select_into_database_table connection (Name_Generator.random_name "permanent_table 1") temporary=False
@@ -302,6 +304,7 @@ spec make_new_connection prefix persistent_connector=True =
             db_table = t.select_into_database_table tmp_connection (Name_Generator.random_name "source-table") temporary=True
 
             copied_table = db_table.select_into_database_table tmp_connection (Name_Generator.random_name "copied-table") temporary=False
+            copied_table.is_trivial_query . should_be_true
             name = copied_table.name
             Panic.with_finalizer (connection.drop_table name) <|
                 copied_table.at "X" . value_type . is_integer . should_be_true
@@ -323,6 +326,7 @@ spec make_new_connection prefix persistent_connector=True =
             db_table_3 = db_table_1.aggregate [Aggregate_Column.Group_By "X", Aggregate_Column.Sum "[Y]*[Y]" "C3"] . set "[X] + 1" "X"
 
             db_table_4 = db_table_2.join db_table_3 join_kind=Join_Kind.Left_Outer
+            db_table_4.is_trivial_query . should_fail_with Table_Not_Found
 
             copied_table = db_table_4.select_into_database_table connection (Name_Generator.random_name "copied-table") temporary=True primary_key=Nothing
             copied_table.column_names . should_equal ["X", "Y", "C1", "C2", "Right X", "C3"]
@@ -331,6 +335,7 @@ spec make_new_connection prefix persistent_connector=True =
             copied_table.at "C2" . to_vector . should_equal ["constant_text", "constant_text", "constant_text"]
             copied_table.at "Right X" . to_vector . should_equal [Nothing, Nothing, 2]
             copied_table.at "C3" . to_vector . should_equal [Nothing, Nothing, 5]
+            copied_table.is_trivial_query . should_be_true
 
             # We check that this is indeed querying a simple DB table and not a complex query like `db_table_4` would be,
             sql = copied_table.to_sql.prepare.first
@@ -439,8 +444,13 @@ spec make_new_connection prefix persistent_connector=True =
         Test.specify "should be able to append new rows to a table" <|
             dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]] primary_key=["X"]
             src = source_table_builder [["X", [4, 5, 6]], ["Y", ['d', 'e', 'f']]]
+
             result = src.update_database_table dest key_columns=["X"]
             result.column_names . should_equal ["X", "Y"]
+
+            result.is_trivial_query . should_be_true
+            (result == dest) . should_be_true
+
             expected_rows = [[1, 'a'], [2, 'b'], [3, 'c'], [4, 'd'], [5, 'e'], [6, 'f']]
             rows1 = result.rows.to_vector.map .to_vector
             rows1.should_contain_the_same_elements_as expected_rows
@@ -837,6 +847,7 @@ spec make_new_connection prefix persistent_connector=True =
                 Problems.expect_only_warning Dry_Run_Operation r1
                 r1.column_names . should_equal ["x"]
                 r1.name . should_not_equal name
+                r1.is_trivial_query . should_be_true
 
         Test.specify "will not show dry-run tables in the list by default" <|
             src = Table.new [["X", [1, 2, 3]]]
@@ -935,6 +946,7 @@ spec make_new_connection prefix persistent_connector=True =
                     # A small table is uploaded whole.
                     r1.at "X" . to_vector . should_contain_the_same_elements_as [1, 2, 3]
                     r1.row_count . should_equal 3
+                    r1.is_trivial_query . should_be_true
 
                     # But a big one will be sampled.
                     n = 2000
@@ -945,6 +957,7 @@ spec make_new_connection prefix persistent_connector=True =
                     r2.column_names . should_equal ["X"]
                     # Only a sample is uploaded.
                     r2.row_count . should_equal 1000
+                    r2.is_trivial_query . should_be_true
 
             Test.specify "should return the target table unchanged for update_database_table"+suffix <|
                 dest_data = Table.new [["X", [1, 2, 3]]]
@@ -958,6 +971,7 @@ spec make_new_connection prefix persistent_connector=True =
                     r1.name . should_equal dest.name
                     # But the data is not appended due to the dry-run - the table is unmodified.
                     r1.at "X" . to_vector . should_contain_the_same_elements_as [1, 2, 3]
+                    r1.is_trivial_query . should_be_true
 
             if persistent_connector then
                 Test.specify "will not overwrite an existing table with a dry-run table if the name is clashing (select_into_database_table)"+suffix <|
