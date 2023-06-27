@@ -9,7 +9,6 @@ import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.desugar._
 
 import java.util
-import scala.annotation.unused
 import scala.collection.mutable
 import scala.jdk.CollectionConverters._
 
@@ -66,12 +65,6 @@ case object CachePreferenceAnalysis extends IRPass {
     inlineContext: InlineContext
   ): IR.Expression =
     analyseExpression(ir, WeightInfo())
-
-  /** @inheritdoc */
-  override def updateMetadataInDuplicate[T <: IR](
-    @unused sourceIr: T,
-    copyOfIr: T
-  ): T = copyOfIr
 
   // === Pass Internals =======================================================
 
