@@ -31,7 +31,7 @@ object NoSelfInStatic extends IRPass {
             body = method.body.transformExpressions(transformSelfToError)
           )
         case method: IR.Module.Scope.Definition.Method.Binding =>
-          throw new CompilerError("Unreachable: Method.Binding should not be present in this pass: " + method)
+          throw new CompilerError(s"unexpected Method.Binding $method present in pass NoSelfInStatic")
         case binding => binding
       }
     )
@@ -84,10 +84,7 @@ object NoSelfInStatic extends IRPass {
                 _,
                 _
               ) =>
-            findSelfArgument(arguments) match {
-              case Some(_) => false
-              case None    => true
-            }
+            findSelfArgument(arguments).isEmpty
           case body =>
             throw new CompilerError(
               s"Method body is not a lambda: $body - should have been transformed to lambda by GenerateMethodBodies pass"
