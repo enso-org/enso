@@ -2031,9 +2031,9 @@ type Table
 
              fill_nothing = table.fill_nothing ["col0", "col1"] 20.5
     fill_nothing : Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector) -> Column | Any -> Table
-    fill_nothing self selectors default error_on_missing_columns=True on_problems=Report_Warning =
+    fill_nothing self selectors default =
         transformer col = col.fill_nothing default
-        replace_columns_with_transformed_columns self selectors transformer error_on_missing_columns=error_on_missing_columns on_problems=on_problems
+        replace_columns_with_transformed_columns self selectors transformer
 
     ## ALIAS Fill Empty, if_empty
 
@@ -2050,9 +2050,9 @@ type Table
 
              fill_nothing = table.fill_empty ["col0", "col1"] "hello"
     fill_empty : Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector) -> Column | Any -> Table
-    fill_empty self selectors default error_on_missing_columns=True on_problems=Report_Warning =
+    fill_empty self selectors default =
         transformer col = col.fill_empty default
-        replace_columns_with_transformed_columns self selectors transformer error_on_missing_columns=error_on_missing_columns on_problems=on_problems
+        replace_columns_with_transformed_columns self selectors transformer
 
 ## PRIVATE
 
