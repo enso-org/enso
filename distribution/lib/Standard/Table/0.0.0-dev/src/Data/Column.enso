@@ -733,7 +733,7 @@ type Column
                     half_goes_up = if use_bankers then even_is_up else self >= 0
                     do_round_up = half_goes_up.iif (self >= round_midpoint) (self > round_midpoint)
                     result_float = do_round_up.iif ((round_base + 1.0) / scale) (round_base / scale)
-                    cast_if_not result_float target_value_type
+                    cast_if_needed result_float target_value_type
                 result.rename new_name
 
     ## PRIVATE
@@ -2092,5 +2092,5 @@ wrap_text_argument_as_value_provider val =
 
 ## PRIVATE
    Cast a column to a `Value_Type`, unless it already has that type.
-cast_if_not : Column -> Value_Type -> Column
-cast_if_not column value_type = if column.value_type == value_type then column else column.cast value_type
+cast_if_needed : Column -> Value_Type -> Column
+cast_if_needed column value_type = if column.value_type == value_type then column else column.cast value_type
