@@ -28,7 +28,7 @@ public final class EnsoDate implements TruffleObject {
 
   @Builtin.Method(description = "Return current Date", autoRegister = false)
   @CompilerDirectives.TruffleBoundary
-  public static EnsoDate now() {
+  public static EnsoDate today() {
     return new EnsoDate(LocalDate.now());
   }
 
