@@ -55,7 +55,8 @@ type Json
     stringify object =
         json_stringify (make_javascript object.to_js_object)
 
-    ## Convert a Vector of Keys and Values to JSON.
+    ## PRIVATE
+       Convert a Vector of Keys and Values to JSON.
        Keys must be `Text` values.
     from_pairs : Vector -> Text
     from_pairs pairs =
