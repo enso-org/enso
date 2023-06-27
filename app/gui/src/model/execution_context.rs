@@ -349,7 +349,7 @@ impl Visualization {
         let expression = self.method_pointer.clone().into();
         let positional_arguments_expressions = self.arguments.clone();
         VisualizationConfiguration {
-            visualization_module: self.module.to_string(),
+            visualization_module: self.module.to_string_with_main_segment(),
             execution_context_id,
             expression,
             positional_arguments_expressions,
