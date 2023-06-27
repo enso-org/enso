@@ -555,7 +555,7 @@ function Chat(props: ChatProps) {
     )
 
     const sendCurrentMessage = react.useCallback(
-        (event: react.FormEvent) => {
+        (event: react.SyntheticEvent, createNewThread?: boolean) => {
             event.preventDefault()
             const content = messageInput.current.value
             if (content !== '') {
@@ -570,7 +570,7 @@ function Chat(props: ChatProps) {
                     timestamp: Number(new Date()),
                     editedTimestamp: null,
                 }
-                if (threadId == null) {
+                if (threadId == null || createNewThread) {
                     sendMessage({
                         type: ChatMessageDataType.newThread,
                         title: threadTitle,
@@ -589,15 +589,6 @@ function Chat(props: ChatProps) {
         },
         [sendMessage, threadId]
     )
-
-    const createNewThread = () => {
-        sendMessage({
-            type: ChatMessageDataType.newThread,
-            title: threadTitle,
-            content: messageInput.current.value,
-        })
-        setMessages([])
-    }
 
     const stopEditing = react.useCallback(
         (event: react.KeyboardEvent) => {
@@ -737,7 +728,9 @@ function Chat(props: ChatProps) {
                                     className={`text-white rounded-full grow text-left p-1 ${
                                         isReplyEnabled ? 'bg-gray-400' : 'bg-gray-300'
                                     }`}
-                                    onClick={createNewThread}
+                                    onClick={event => {
+                                        sendCurrentMessage(event, true)
+                                    }}
                                 >
                                     New question? Click to start a new thread!
                                 </button>
