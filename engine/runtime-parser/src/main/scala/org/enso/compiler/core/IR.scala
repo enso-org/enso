@@ -7870,7 +7870,7 @@ object IR {
 
       case object InvalidSelfArgUsage extends Reason {
         override def explanation: String =
-          "Self argument can only be used in non-static method definitions"
+          "Self argument cannot be used in static methods"
       }
 
       case object UnrecognizedToken extends Reason {
