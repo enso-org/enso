@@ -413,7 +413,7 @@ impl QueryData {
     /// Creates unresolved symbol via ".name" syntax. Unresolved symbol contains name and also
     /// module scope to resolve it properly.
     fn as_unresolved_symbol(arg: &str) -> String {
-        format!(".{}", arg)
+        format!(".{arg}")
     }
 
     /// Escape a list of strings to be used as a visualization argument. Transforms the strings into

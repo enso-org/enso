@@ -378,7 +378,7 @@ async fn binary_visualization_updates_test_hlp() {
         Identifier::from_text("quux").unwrap(),
     );
     let visualization = Visualization::new(
-        method_pointer.module.to_string(),
+        method_pointer.module.clone(),
         the_node.id(),
         method_pointer,
         vec![],

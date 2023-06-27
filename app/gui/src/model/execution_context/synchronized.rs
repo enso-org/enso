@@ -532,7 +532,7 @@ pub mod test {
         let arguments = vec![];
         let vis = Visualization {
             id: model::execution_context::VisualizationId::new_v4(),
-            module: method_pointer.module.to_string(),
+            module: method_pointer.module.clone(),
             expression_id: model::execution_context::ExpressionId::new_v4(),
             method_pointer,
             arguments,
@@ -582,7 +582,7 @@ pub mod test {
         let arguments = vec!["foo".to_owned()];
         let vis = Visualization {
             id: model::execution_context::VisualizationId::new_v4(),
-            module: method_pointer.module.to_string(),
+            module: method_pointer.module.clone(),
             expression_id: model::execution_context::ExpressionId::new_v4(),
             method_pointer,
             arguments,
@@ -620,7 +620,7 @@ pub mod test {
         let arguments = vec!["bar".to_owned()];
         let vis = Visualization {
             id: model::execution_context::VisualizationId::new_v4(),
-            module: method_pointer.module.to_string(),
+            module: method_pointer.module.clone(),
             expression_id: model::execution_context::ExpressionId::new_v4(),
             method_pointer,
             arguments: arguments.clone(),

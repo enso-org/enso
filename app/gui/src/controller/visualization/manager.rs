@@ -563,7 +563,7 @@ mod tests {
             let qualified_module = inner.project.qualified_module_name(inner.module.path());
             let method_pointer = QualifiedMethodPointer {
                 module:          qualified_module.clone(),
-                defined_on_type: qualified_module,
+                defined_on_type: qualified_module.clone(),
                 name:            Identifier::from_text("faux").unwrap(),
             };
             let arguments = vec!["foo".to_owned()];
@@ -674,7 +674,7 @@ mod tests {
         // We don't attach it separately, as Manager identifies visualizations by their
         // expression ID rather than visualization ID.
         let desired_vis_3 = Desired {
-            module:           "local.Widgets.Main".to_string(),
+            module:           QualifiedName::from_text("local.Widgets.Main").unwrap(),
             visualization_id: VisualizationId::from_u128(900),
             expression_id:    node_id,
             metadata:         desired_vis_1,
