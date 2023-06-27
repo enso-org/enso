@@ -162,7 +162,7 @@ type Postgres_Dialect
 
     ## PRIVATE
     rounding_decimal_places_not_allowed_for_floats : Boolean
-    rounding_decimal_places_not_allowed_for_floats self = False
+    rounding_decimal_places_not_allowed_for_floats self = True
 
     ## PRIVATE
        There is a bug in Postgres type inference, where if we unify two

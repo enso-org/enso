@@ -143,6 +143,8 @@ type Column
                 other_column : Column ->
                     if Helpers.check_integrity self other_column then other_column.expression else
                         Error.throw <| Unsupported_Database_Operation.Error "Cannot use columns coming from different contexts in one expression without a join."
+                sql_expression : SQL_Expression ->
+                    sql_expression
                 constant ->
                     SQL_Expression.Constant constant
 
@@ -649,7 +651,7 @@ type Column
             True ->
                 self.make_unary_op "ROUND" new_name
             False ->
-                self.make_binary_op "ROUND" decimal_places new_name
+                self.make_binary_op "ROUND" (SQL_Expression.Literal decimal_places.to_text) new_name
 
     ## PRIVATE
        Round a float-like column.

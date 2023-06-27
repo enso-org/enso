@@ -202,7 +202,7 @@ postgres_specific_spec connection db_name setup =
             col . cast Value_Type.Decimal . round . value_type . should_equal Value_Type.Decimal
 
             col . cast Value_Type.Float . round 1 . value_type . should_equal Value_Type.Float
-            col . cast Value_Type.Integer . round 1 . value_type . should_equal Value_Type.Float
+            col . cast Value_Type.Integer . round 1 . value_type . should_equal Value_Type.Decimal
             col . cast Value_Type.Decimal . round 1 . value_type . should_equal Value_Type.Decimal
 
             col . cast Value_Type.Float . round use_bankers=True . value_type . should_equal Value_Type.Float

@@ -173,7 +173,7 @@ type SQLite_Dialect
 
     ## PRIVATE
     rounding_decimal_places_not_allowed_for_floats : Boolean
-    rounding_decimal_places_not_allowed_for_floats self = True
+    rounding_decimal_places_not_allowed_for_floats self = False
 
     ## PRIVATE
        SQLite allows mixed type columns, but we want our columns to be uniform.
