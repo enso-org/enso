@@ -239,7 +239,7 @@ object UpsertVisualizationJob {
         val (callback, arguments) = expression match {
           case Api.VisualizationExpression.Text(_, expression) =>
             val callback = ctx.executionService.evaluateExpression(
-              module,
+              expressionModule,
               expression
             )
             val arguments = Vector()
