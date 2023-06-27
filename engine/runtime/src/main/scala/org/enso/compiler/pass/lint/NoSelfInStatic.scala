@@ -31,7 +31,9 @@ object NoSelfInStatic extends IRPass {
             body = method.body.transformExpressions(transformSelfToError)
           )
         case method: IR.Module.Scope.Definition.Method.Binding =>
-          throw new CompilerError(s"unexpected Method.Binding $method present in pass NoSelfInStatic")
+          throw new CompilerError(
+            s"unexpected Method.Binding $method present in pass NoSelfInStatic"
+          )
         case binding => binding
       }
     )

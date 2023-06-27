@@ -18,26 +18,26 @@ class NoSelfInStaticTests extends CompilerTest {
     new PassManager(List(precursorPasses), passConfiguration)
 
   /** Adds an extension method for running linting on the input IR.
-   *
-   * @param ir the IR to lint
-   */
+    *
+    * @param ir the IR to lint
+    */
   implicit class LintModule(ir: IR.Module) {
 
     /** Runs unused name linting on [[ir]].
-     *
-     * @param moduleContext the inline context in which the desugaring takes
-     *                      place
-     * @return [[ir]], with all unused names linted
-     */
+      *
+      * @param moduleContext the inline context in which the desugaring takes
+      *                      place
+      * @return [[ir]], with all unused names linted
+      */
     def lint(implicit moduleContext: ModuleContext): IR.Module = {
       NoSelfInStatic.runModule(ir, moduleContext)
     }
   }
 
   /** Makes a module context.
-   *
-   * @return a new inline context
-   */
+    *
+    * @return a new inline context
+    */
   def mkModuleContext: ModuleContext = {
     buildModuleContext(freshNameSupply = Some(new FreshNameSupply))
   }
@@ -53,7 +53,11 @@ class NoSelfInStaticTests extends CompilerTest {
           |    Value x
           |    bar = self.x + self.x
           |""".stripMargin.preprocessModule.lint
-      val errs = ir.bindings.flatMap(_.preorder).collect { case err@IR.Error.Syntax(_, IR.Error.Syntax.InvalidSelfArgUsage, _, _) => err }
+      val errs = ir.bindings.flatMap(_.preorder).collect {
+        case err @ IR.Error
+              .Syntax(_, IR.Error.Syntax.InvalidSelfArgUsage, _, _) =>
+          err
+      }
       errs should have size 2
     }
 
@@ -63,7 +67,11 @@ class NoSelfInStaticTests extends CompilerTest {
         """
           |static_method x y = x + y + self.data
           |""".stripMargin.preprocessModule.lint
-      val errs = ir.bindings.flatMap(_.preorder).collect { case err@IR.Error.Syntax(_, IR.Error.Syntax.InvalidSelfArgUsage, _, _) => err }
+      val errs = ir.bindings.flatMap(_.preorder).collect {
+        case err @ IR.Error
+              .Syntax(_, IR.Error.Syntax.InvalidSelfArgUsage, _, _) =>
+          err
+      }
       errs should have size 1
     }
 
@@ -77,7 +85,11 @@ class NoSelfInStaticTests extends CompilerTest {
           |        self.data + tmp
           |    nested_method (x + y)
           |""".stripMargin.preprocessModule.lint
-      val errs = ir.bindings.flatMap(_.preorder).collect { case err@IR.Error.Syntax(_, IR.Error.Syntax.InvalidSelfArgUsage, _, _) => err }
+      val errs = ir.bindings.flatMap(_.preorder).collect {
+        case err @ IR.Error
+              .Syntax(_, IR.Error.Syntax.InvalidSelfArgUsage, _, _) =>
+          err
+      }
       errs should have size 1
     }
 
@@ -92,7 +104,11 @@ class NoSelfInStaticTests extends CompilerTest {
           |        nested_method x = self.value + 1
           |        nested_method 42
           |""".stripMargin.preprocessModule.lint
-      val errs = ir.bindings.flatMap(_.preorder).collect { case err@IR.Error.Syntax(_, IR.Error.Syntax.InvalidSelfArgUsage, _, _) => err }
+      val errs = ir.bindings.flatMap(_.preorder).collect {
+        case err @ IR.Error
+              .Syntax(_, IR.Error.Syntax.InvalidSelfArgUsage, _, _) =>
+          err
+      }
       errs should be(empty)
     }
   }
