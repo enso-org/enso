@@ -2047,6 +2047,13 @@ class RuntimeVisualizationsTest
       TestMessages.error(
         contextId,
         idMain,
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Error",
+            "Standard.Base.Error.Error",
+            "throw"
+          )
+        ),
         Api.ExpressionUpdate.Payload.DataflowError(Seq(idMain))
       ),
       context.executionComplete(contextId)
@@ -2138,7 +2145,15 @@ class RuntimeVisualizationsTest
       TestMessages.panic(
         contextId,
         idMain,
-        Api.ExpressionUpdate.Payload.Panic("42 (Integer)", Seq(idMain))
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Panic",
+            "Standard.Base.Panic.Panic",
+            "throw"
+          )
+        ),
+        Api.ExpressionUpdate.Payload.Panic("42 (Integer)", Seq(idMain)),
+        Some("Standard.Base.Panic.Panic")
       ),
       context.executionComplete(contextId)
     )
@@ -2167,9 +2182,15 @@ class RuntimeVisualizationsTest
       TestMessages.panic(
         contextId,
         idMain,
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Panic",
+            "Standard.Base.Panic.Panic",
+            "throw"
+          )
+        ),
         Api.ExpressionUpdate.Payload.Panic("42 (Integer)", Seq(idMain)),
-        builtin     = false,
-        typeChanged = false
+        builtin = false
       ),
       Api.Response(
         Api.VisualizationEvaluationFailed(
@@ -2253,6 +2274,13 @@ class RuntimeVisualizationsTest
       TestMessages.error(
         contextId,
         idMain,
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Error",
+            "Standard.Base.Error.Error",
+            "throw"
+          )
+        ),
         Api.ExpressionUpdate.Payload.DataflowError(Seq(idMain))
       ),
       context.executionComplete(contextId)
