@@ -1,7 +1,5 @@
 package org.enso.interpreter.dsl.builtins;
 
-import org.enso.interpreter.dsl.BuiltinsProcessor;
-
 import java.util.Optional;
 import java.util.stream.Stream;
 

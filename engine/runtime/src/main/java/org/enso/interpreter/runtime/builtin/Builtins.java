@@ -19,7 +19,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import org.enso.compiler.Passes;
 import org.enso.compiler.context.FreshNameSupply;
-import org.enso.compiler.exception.CompilerError;
+import org.enso.compiler.core.CompilerError;
 import org.enso.compiler.phase.BuiltinsIrBuilder;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.dsl.TypeProcessor;

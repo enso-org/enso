@@ -2,7 +2,6 @@
 from Standard.Base import all
 from Standard.Test import Bench
 
-import Standard.Base.Data.Vector.Vector
 import Standard.Base.Data.Array_Proxy.Array_Proxy
 
 sum arr =

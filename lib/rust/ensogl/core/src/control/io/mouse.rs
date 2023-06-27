@@ -100,7 +100,7 @@ macro_rules! define_bindings {
                     let js_name = stringify!($js_name);
                     let opt = event_listener_options();
                     let $name = web::add_event_listener_with_options
-                        (&$event_target, js_name, closure, &opt);
+                        (&$event_target, js_name, closure, opt);
                 )*
                 let handles = Rc::new(MouseManagerEventListenerHandles {$($name),*});
                 Self {dispatchers,handles,dom}
@@ -111,15 +111,13 @@ macro_rules! define_bindings {
 
 /// Return options for addEventListener function. See also
 /// https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener
-fn event_listener_options() -> web::AddEventListenerOptions {
-    let mut options = web::AddEventListenerOptions::new();
-    // We listen for events in the bubbling phase. If we ever would like to listen in the capture
+fn event_listener_options() -> web::EventListenerHandleOptions {
+    // 1. We listen for events in the bubbling phase. If we ever would like to listen in the capture
     // phase, it would need to be set to "bubbling" for the "mouseleave" and "mouseenter" events,
     // as they provide incorrect events for the "capture" phase.
-    options.capture(false);
-    // We want to prevent default action on wheel events, thus listener cannot be passive.
-    options.passive(false);
-    options
+    //
+    // 2. We want to prevent default action on wheel events, thus listener cannot be passive.
+    web::EventListenerHandleOptions::new().not_passive()
 }
 
 define_bindings! { target, gloabl_target,

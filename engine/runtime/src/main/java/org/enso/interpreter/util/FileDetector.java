@@ -17,7 +17,6 @@ public final class FileDetector implements TruffleFile.FileTypeDetector {
    *
    * @param file the {@link TruffleFile file} to find a MIME type for
    * @return the MIME type or {@code null} if the MIME type is not recognized
-   * @throws IOException if an I/O error occurs
    */
   @Override
   public String findMimeType(TruffleFile file) {

@@ -13,12 +13,10 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
-import org.enso.polyglot.common_utils.Core_Date_Utils;
 
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
@@ -45,35 +43,6 @@ public final class EnsoDateTime implements TruffleObject {
   @CompilerDirectives.TruffleBoundary
   public static EnsoDateTime now() {
     return new EnsoDateTime(ZonedDateTime.now());
-  }
-
-  /**
-   * Obtains an instance of EnsoDateTime (ZonedDateTime) from a text string.
-   *
-   * <p>Accepts:
-   *
-   * <ul>
-   *   <li>Local date time, such as '2011-12-03T10:15:30' adding system default timezone.
-   *   <li>Offset date time, such as '2011-12-03T10:15:30+01:00' parsing offset as a timezone.
-   *   <li>Zoned date time, such as '2011-12-03T10:15:30+01:00[Europe/Paris]' with optional region
-   *       id in square brackets.
-   * </ul>
-   *
-   * @param text the string to parse.
-   * @return parsed ZonedDateTime instance wrapped in EnsoDateTime.
-   */
-  @Builtin.Method(
-      name = "parse_builtin",
-      description = "Constructs a new DateTime from text with optional pattern",
-      autoRegister = false)
-  @Builtin.Specialize
-  @Builtin.WrapException(from = DateTimeParseException.class)
-  @CompilerDirectives.TruffleBoundary
-  public static EnsoDateTime parse(String text) {
-    String iso = Core_Date_Utils.normaliseISODateTime(text);
-
-    var datetime = Core_Date_Utils.parseZonedDateTime(iso, DATE_TIME_FORMATTER);
-    return new EnsoDateTime(datetime);
   }
 
   @Builtin.Method(
@@ -248,7 +217,4 @@ public final class EnsoDateTime implements TruffleObject {
   /** 15. October 1582 in UTC timezone. Note that Java considers an epoch start 1.1.1970 UTC. */
   private static final EnsoDateTime epochStart =
       EnsoDateTime.create(1582, 10, 15, 0, 0, 0, 0, EnsoTimeZone.parse("UTC"));
-
-  private static final DateTimeFormatter DATE_TIME_FORMATTER =
-      Core_Date_Utils.defaultZonedDateTimeFormatter();
 }

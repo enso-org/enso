@@ -132,6 +132,8 @@
   quickly understand each button's function.
 - [File associations are created on Windows and macOS][6077]. This allows
   opening Enso files by double-clicking them in the file explorer.
+- [AI-powered code completions][5910]. It is now possible to get AI-powered
+  completions when using node searcher with Tables.
 - [Added capability to create node widgets with complex UI][6347]. Node widgets
   such as dropdown can now be placed in the node and affect the code text flow.
 - [The IDE UI element for selecting the execution mode of the project is now
@@ -183,7 +185,14 @@
   execution failed][6918].
 - [Performance and readability of documentation panel was improved][6893]. The
   documentation is now split into separate pages, which are much smaller.
+- [IDE no longer inserts redundant imports when selecting options from dropdown
+  widgets][7028]. The code was unified with the component browser, and it now
+  correctly handles reexports and already existing imports.
+- [Fixed cursor position when ctrl-clicking the node][7014]. Sometimes
+  ctrl-clicking to edit the node placed the mouse cursor in the wrong position
+  in the text. This is fixed now.
 
+[5910]: https://github.com/enso-org/enso/pull/5910
 [6279]: https://github.com/enso-org/enso/pull/6279
 [6421]: https://github.com/enso-org/enso/pull/6421
 [6530]: https://github.com/enso-org/enso/pull/6530
@@ -197,6 +206,8 @@
 [6827]: https://github.com/enso-org/enso/pull/6827
 [6918]: https://github.com/enso-org/enso/pull/6918
 [6893]: https://github.com/enso-org/enso/pull/6893
+[7028]: https://github.com/enso-org/enso/pull/7028
+[7014]: https://github.com/enso-org/enso/pull/7014
 
 #### EnsoGL (rendering engine)
 
@@ -485,6 +496,9 @@
 - [Speed improvements to `Column` `.truncate`, `.ceil`, and `.floor`.][6941]
 - [Implemented addition and subtraction for `Date_Period` and
   `Time_Period`.][6956]
+- [Implemented `Table.update_database_table`.][7035]
+- [Added AWS credential support and initial S3 list buckets API.][6973]
+- [Removed `module` argument from `enso_project` and other minor tweaks.][7052]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -704,6 +718,9 @@
 [6925]: https://github.com/enso-org/enso/pull/6925
 [6941]: https://github.com/enso-org/enso/pull/6941
 [6956]: https://github.com/enso-org/enso/pull/6956
+[6973]: https://github.com/enso-org/enso/pull/6973
+[7035]: https://github.com/enso-org/enso/pull/7035
+[7052]: https://github.com/enso-org/enso/pull/7052
 
 #### Enso Compiler
 
@@ -818,8 +835,13 @@
 - [Add project creation time to project metadata][6780]
 - [Upgrade GraalVM to 22.3.1 JDK17][6750]
 - [Ascribed types are checked during runtime][6790]
+- [Add compiler pass that discovers ambiguous and duplicated symbols][6868]
 - [Improve and colorize compiler's diagnostic messages][6931]
 - [Execute some runtime commands synchronously to avoid race conditions][6998]
+- [Scala 2.13.11 update][7010]
+- [Add special handling for static method calls on Any][7033]
+- [Improve parallel execution of commands and jobs in Language Server][7042]
+- [Added retries when executing GraalVM updater][7079]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -934,8 +956,13 @@
 [6755]: https://github.com/enso-org/enso/pull/6755
 [6780]: https://github.com/enso-org/enso/pull/6780
 [6790]: https://github.com/enso-org/enso/pull/6790
+[6868]: https://github.com/enso-org/enso/pull/6868
 [6931]: https://github.com/enso-org/enso/pull/6931
 [6998]: https://github.com/enso-org/enso/pull/6998
+[7010]: https://github.com/enso-org/enso/pull/7010
+[7033]: https://github.com/enso-org/enso/pull/7033
+[7042]: https://github.com/enso-org/enso/pull/7042
+[7079]: https://github.com/enso-org/enso/pull/7079
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

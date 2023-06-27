@@ -1,9 +1,8 @@
 package org.enso.table.data.column.operation.map;
 
-import org.enso.table.data.column.storage.Storage;
-
 import java.util.HashMap;
 import java.util.Map;
+import org.enso.table.data.column.storage.Storage;
 
 /**
  * Stores map-like operations that can be performed on a given type.
@@ -25,7 +24,7 @@ public class MapOpStorage<T, S extends Storage<? super T>> {
    * @return whether the operation is supported
    */
   public boolean isSupported(String n) {
-    return ops.get(n) != null;
+    return n != null && ops.get(n) != null;
   }
 
   /**

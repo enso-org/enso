@@ -100,18 +100,16 @@ impl display::Object for Model {
 pub struct FloatLabel {
     pub frp: Rc<Frp>,
     model:   Rc<Model>,
-    app:     Application,
 }
 
 impl FloatLabel {
     /// Constructor.
     pub fn new(app: &Application) -> Self {
-        let app = app.clone_ref();
-        let model = Rc::new(Model::new(&app));
+        let model = Rc::new(Model::new(app));
         let frp = Frp::default();
         frp.init(&model);
         let frp = Rc::new(frp);
-        Self { frp, model, app }
+        Self { frp, model }
     }
 }
 

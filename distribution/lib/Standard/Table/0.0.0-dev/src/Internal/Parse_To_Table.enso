@@ -4,18 +4,12 @@ import project.Data.Column.Column
 import project.Data.Data_Formatter.Data_Formatter
 import project.Data.Table.Table
 import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
-import Standard.Base.Data.Text.Regex
-import Standard.Base.Data.Text.Regex.Pattern
-import Standard.Base.Data.Text.Regex.Match.Match
 import Standard.Base.Data.Text.Regex.Regex_Syntax_Error
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
-import Standard.Base.Errors.Problem_Behavior.Problem_Behavior
-import Standard.Base.Function.Function
 
 from project import Value_Type
 from project.Errors import Duplicate_Output_Column_Names
-from Standard.Base.Errors.Problem_Behavior.Problem_Behavior import all
 
 ## PRIVATE
 

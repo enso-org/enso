@@ -1,17 +1,16 @@
 package org.enso.table.write;
 
-import org.enso.table.data.table.Table;
-import org.enso.table.data.table.problems.UnquotedCharactersInOutput;
-import org.enso.table.formatting.DataFormatter;
-import org.enso.table.problems.AggregatedProblems;
-import org.enso.table.read.DelimitedReader;
-
 import java.io.IOException;
 import java.io.Writer;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
+import org.enso.table.data.table.Table;
+import org.enso.table.data.table.problems.UnquotedCharactersInOutput;
+import org.enso.table.formatting.DataFormatter;
+import org.enso.table.problems.AggregatedProblems;
+import org.enso.table.read.DelimitedReader;
 
 public class DelimitedWriter {
   private final String newline;

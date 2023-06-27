@@ -1,8 +1,12 @@
 package org.enso.table.data.index;
 
+import java.util.*;
+import java.util.function.IntFunction;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.aggregations.Aggregator;
-import org.enso.table.data.column.builder.object.Builder;
+import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
@@ -10,11 +14,6 @@ import org.enso.table.data.table.problems.FloatingPointGrouping;
 import org.enso.table.problems.AggregatedProblems;
 import org.enso.table.util.ConstantList;
 import org.enso.table.util.NameDeduplicator;
-
-import java.util.*;
-import java.util.function.IntFunction;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
   private final int keyColumnsLength;

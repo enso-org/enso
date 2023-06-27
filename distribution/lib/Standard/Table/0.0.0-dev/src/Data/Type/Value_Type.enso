@@ -139,29 +139,25 @@ type Value_Type
        In-Memory and SQLite tables support this.
     Mixed
 
-    ## UNSTABLE
-       Checks if the `Value_Type` represents a boolean type.
+    ## Checks if the `Value_Type` represents a boolean type.
     is_boolean : Boolean
     is_boolean self = case self of
         Value_Type.Boolean -> True
         _ -> False
 
-    ## UNSTABLE
-       Checks if the `Value_Type` represents a floating-point number type.
+    ## Checks if the `Value_Type` represents a floating-point number type.
     is_floating_point : Boolean
     is_floating_point self = case self of
         Value_Type.Float _ -> True
         _ -> False
 
-    ## UNSTABLE
-       Checks if the `Value_Type` represents a text type.
+    ## Checks if the `Value_Type` represents a text type.
     is_text : Boolean
     is_text self = case self of
         Value_Type.Char _ _ -> True
         _ -> False
 
-    ## UNSTABLE
-       Checks if the `Value_Type` represents any numeric type - integer, byte,
+    ## Checks if the `Value_Type` represents any numeric type - integer, byte,
        floating point or decimal.
     is_numeric : Boolean
     is_numeric self = case self of
@@ -171,15 +167,13 @@ type Value_Type
         Value_Type.Decimal _ _ -> True
         _ -> False
 
-    ## UNSTABLE
-       Checks if the `Value_Type` represents an integer type.
+    ## Checks if the `Value_Type` represents an integer type.
     is_integer : Boolean
     is_integer self = case self of
         Value_Type.Integer _ -> True
         _ -> False
 
-    ## UNSTABLE
-       Checks if the `Value_Type` represents a type that holds a date.
+    ## Checks if the `Value_Type` represents a type that holds a date.
 
        It will return true for both `Date` and `Date_Time` types.
     has_date : Boolean
@@ -204,6 +198,48 @@ type Value_Type
         ## Not all mixed types are ordered, but some can, so we allow ordering
            for mixed columns.
         Value_Type.Mixed -> True
+        _ -> False
+
+    ## PRIVATE
+       Checks if this type can be widened to the provided type.
+
+       The widening is permitted if the target type is in a way 'larger' than
+       the source type, so that there is no loss of information. In practice,
+       there are cases where widening can still lose information - notably
+       integers can be widened into floats and big enough integers may not be
+       able to be exactly represented in floats.
+    can_be_widened_to : Value_Type -> Boolean
+    can_be_widened_to self target_type = if (self == target_type) || (target_type == Value_Type.Mixed) then True else case self of
+        Value_Type.Integer self_bits -> case target_type of
+            Value_Type.Integer target_bits -> target_bits >= self_bits
+            Value_Type.Float _ -> True
+            Value_Type.Decimal _ _ -> True
+            _ -> False
+        Value_Type.Byte -> case target_type of
+            Value_Type.Integer _ -> True
+            Value_Type.Float _ -> True
+            Value_Type.Decimal _ _ -> True
+            _ -> False
+        Value_Type.Boolean -> case target_type of
+            Value_Type.Byte -> True
+            Value_Type.Integer _ -> True
+            Value_Type.Float _ -> True
+            Value_Type.Decimal _ _ -> True
+            _ -> False
+        Value_Type.Float self_bits -> case target_type of
+            Value_Type.Float target_bits -> target_bits >= self_bits
+            Value_Type.Decimal _ _ -> True
+            _ -> False
+        Value_Type.Char self_size self_variable_length -> case target_type of
+            Value_Type.Char target_size target_variable_length ->
+                fits_variability = if target_variable_length then True else self_variable_length == target_variable_length
+                fits_variability && (target_size >= self_size)
+            _ -> False
+        Value_Type.Binary self_size self_variable_length -> case target_type of
+            Value_Type.Binary target_size target_variable_length ->
+                fits_variability = if target_variable_length then True else self_variable_length == target_variable_length
+                fits_variability && (target_size >= self_size)
+            _ -> False
         _ -> False
 
     ## PRIVATE

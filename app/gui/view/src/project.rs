@@ -130,6 +130,8 @@ ensogl::define_endpoints! {
         drop_files_enabled             (bool),
         debug_mode                     (bool),
         go_to_dashboard_button_pressed (),
+        /// The name of the command currently being handled due to shortcut being pressed.
+        current_shortcut               (Option<ImString>),
     }
 }
 
@@ -141,7 +143,6 @@ ensogl::define_endpoints! {
 
 #[derive(Clone, CloneRef, Debug)]
 struct Model {
-    app:                  Application,
     display_object:       display::object::Instance,
     project_view_top_bar: ProjectViewTopBar,
     graph_editor:         Rc<GraphEditor>,
@@ -173,10 +174,8 @@ impl Model {
         display_object.add_child(&project_view_top_bar);
         display_object.remove_child(&searcher);
 
-        let app = app.clone_ref();
         let graph_editor = Rc::new(graph_editor);
         Self {
-            app,
             display_object,
             project_view_top_bar,
             graph_editor,
@@ -213,24 +212,18 @@ impl Model {
     }
 
     fn searcher_anchor_next_to_node(&self, node_id: NodeId) -> Vector2<f32> {
-        if let Some(node) = self.graph_editor.nodes().get_cloned_ref(&node_id) {
-            node.position().xy()
-        } else {
-            error!("Trying to show searcher under non existing node");
-            default()
-        }
+        self.graph_editor.model.with_node(node_id, |node| node.position().xy()).unwrap_or_default()
     }
 
     fn show_fullscreen_visualization(&self, node_id: NodeId) {
-        let node = self.graph_editor.nodes().get_cloned_ref(&node_id);
-        if let Some(node) = node {
+        self.graph_editor.model.with_node(node_id, |node| {
             let visualization =
                 node.view.model().visualization.fullscreen_visualization().clone_ref();
             self.display_object.remove_child(&*self.graph_editor);
             self.display_object.remove_child(&self.project_view_top_bar);
             self.display_object.add_child(&visualization);
             *self.fullscreen_vis.borrow_mut() = Some(visualization);
-        }
+        });
     }
 
     fn hide_fullscreen_visualization(&self) {
@@ -352,13 +345,13 @@ impl View {
             .init_graph_editor_frp()
             .init_code_editor_frp()
             .init_searcher_position_frp(scene)
-            .init_searcher_input_changes_frp()
+            .init_searcher_input_handling()
             .init_opening_searcher_frp()
-            .init_closing_searcher_frp()
             .init_open_projects_dialog_frp(scene)
             .init_style_toggle_frp()
             .init_fullscreen_visualization_frp()
             .init_debug_mode_frp()
+            .init_shortcut_observer(app)
     }
 
     fn init_top_bar_frp(self, scene: &Scene) -> Self {
@@ -408,6 +401,7 @@ impl View {
             graph.set_navigator_disabled <+ disable_navigation;
 
             model.popup.set_label <+ graph.model.breadcrumbs.project_name_error;
+            model.popup.set_label <+ graph.visualization_update_error._1();
             graph.set_read_only <+ frp.set_read_only;
             graph.set_debug_mode <+ frp.source.debug_mode;
 
@@ -517,20 +511,79 @@ impl View {
         self
     }
 
-    fn init_closing_searcher_frp(self) -> Self {
+    /// Handles changes to the searcher input and accepting the input.
+    fn init_searcher_input_handling(self) -> Self {
         let frp = &self.frp;
         let network = &frp.network;
         let grid = &self.model.searcher.model().list.model().grid;
         let graph = &self.model.graph_editor;
+        let input_change_delay = frp::io::timer::Timeout::new(network);
 
         frp::extend! { network
-            last_searcher <- frp.searcher.filter_map(|&s| s);
 
-            node_editing_finished <- graph.node_editing_finished.gate(&frp.is_searcher_opened);
+            last_searcher <- frp.searcher.filter_map(|&s| s);
+            // The searcher will be closed due to accepting the input (e.g., pressing enter).
             committed_in_searcher <-
                 grid.expression_accepted.map2(&last_searcher, |&entry, &s| (s.input, entry));
+
+
+            // === Handling Inputs to the Searcher and Committing Edit ===
+
+            searcher_input_change_opt <- graph.node_expression_edited.map2(&frp.searcher,
+                |(node_id, expr, selections), searcher| {
+                    let input_change = || (*node_id, expr.clone_ref(), selections.clone());
+                    (searcher.as_ref()?.input == *node_id).then(input_change)
+                }
+            ).on_change();
+            input_change <- searcher_input_change_opt.unwrap();
+            // We wait with processing an updated input to avoid unnecessary refreshes during
+            // typing. This is done by delaying the input change by a short amount of time.
+            input_change_delay.restart <+ input_change.constant(INPUT_CHANGE_DELAY_MS);
+
+            // When accepting the input, we need to make sure we correctly process any outstanding
+            // key presses. If we don't, we may end up with a stale selection. But we do not want
+            // to refresh the searcher if we don't have outstanding key presses, as this will
+            // cause the searcher to lose the selected entry and instead select the default entry.
+
+            let needs_refresh = input_change_delay.is_running;
+            // We have retained key presses that we need to process.
+            update_with_refresh <- committed_in_searcher.gate(&needs_refresh);
+            // No key presses retained, accept the selection as is.
+            update_without_refresh <- committed_in_searcher.gate_not(&needs_refresh);
+
+            on_update_with_refresh <- update_with_refresh.constant(());
+            // We only need to cancel the delay if the timer is running, that is, if we have
+            // unprocessed changes and need to refresh.
+            input_change_delay.cancel <+ on_update_with_refresh;
+
+            update_input <- any(&input_change_delay.on_expired, &on_update_with_refresh);
+            input_change_and_searcher <-
+                all_with(&input_change, &frp.searcher, |c, s| (c.clone(), *s));
+            updated_input <- input_change_and_searcher.sample(&update_input);
+            input_changed <- updated_input.filter_map(|((node_id, expr, selections), searcher)| {
+                let input_change = || (expr.clone_ref(), selections.clone());
+                (searcher.as_ref()?.input == *node_id).then(input_change)
+            });
+            frp.source.searcher_input_changed <+ input_changed;
+
+            // Since the input was updated, the selected item might have been replaced, so we need
+            // discard it and instead use the currently selected item. Note that this will be the
+            // default item, and we loose any selection that was made. But that is fine, as the
+            // user was typing and a change to the selection was to be expected.
+            frp.source.editing_committed <+ on_update_with_refresh.map3(
+                &committed_in_searcher,&grid.active,
+                |_, (node_id, _), &entry| Some((*node_id, entry?.as_entry_id()))).unwrap();
+
+            // If we have no outstanding key presses, we can accept the selection as is.
+            frp.source.editing_committed <+ committed_in_searcher.sample(&update_without_refresh);
+
+
+            // === Closing the Searcher / End of Editing ===
+
+            // The searcher will be closed due to no longer editing the node (e.g., a click
+            // on the background of the scene).
+            node_editing_finished <- graph.node_editing_finished.gate(&frp.is_searcher_opened);
             aborted_in_searcher <- frp.close_searcher.map2(&last_searcher, |(), &s| s.input);
-            frp.source.editing_committed <+ committed_in_searcher;
             frp.source.editing_committed <+ node_editing_finished.map(|id| (*id,None));
             frp.source.editing_aborted <+ aborted_in_searcher;
 
@@ -550,36 +603,6 @@ impl View {
             graph.stop_editing <+ any(&committed_in_searcher_event, &aborted_in_searcher_event);
             frp.source.searcher <+ searcher_should_close.constant(None);
             frp.source.adding_new_node <+ searcher_should_close.constant(false);
-        }
-        self
-    }
-
-    fn init_searcher_input_changes_frp(self) -> Self {
-        let frp = &self.frp;
-        let network = &frp.network;
-        let graph = &self.model.graph_editor;
-        let input_change_delay = frp::io::timer::Timeout::new(network);
-
-        frp::extend! { network
-            searcher_input_change_opt <- graph.node_expression_edited.map2(&frp.searcher,
-                |(node_id, expr, selections), searcher| {
-                    let input_change = || (*node_id, expr.clone_ref(), selections.clone());
-                    (searcher.as_ref()?.input == *node_id).then(input_change)
-                }
-            );
-            input_change <- searcher_input_change_opt.unwrap();
-            input_change_delay.restart <+ input_change.constant(INPUT_CHANGE_DELAY_MS);
-            update_input_on_commit <- frp.output.editing_committed.constant(());
-            input_change_delay.cancel <+ update_input_on_commit;
-            update_input <- any(&input_change_delay.on_expired, &update_input_on_commit);
-            input_change_and_searcher <-
-                all_with(&input_change, &frp.searcher, |c, s| (c.clone(), *s));
-            updated_input <- input_change_and_searcher.sample(&update_input);
-            input_changed <- updated_input.filter_map(|((node_id, expr, selections), searcher)| {
-                let input_change = || (expr.clone_ref(), selections.clone());
-                (searcher.as_ref()?.input == *node_id).then(input_change)
-            });
-            frp.source.searcher_input_changed <+ input_changed;
         }
         self
     }
@@ -658,6 +681,15 @@ impl View {
         self
     }
 
+    fn init_shortcut_observer(self, app: &Application) -> Self {
+        let frp = &self.frp;
+        frp::extend! { network
+            frp.source.current_shortcut <+ app.shortcuts.currently_handled;
+        }
+
+        self
+    }
+
     /// Graph Editor View.
     pub fn graph(&self) -> &GraphEditor {
         &self.model.graph_editor
@@ -708,10 +740,6 @@ impl application::View for View {
 
     fn new(app: &Application) -> Self {
         View::new(app)
-    }
-
-    fn app(&self) -> &Application {
-        &self.model.app
     }
 
     fn default_shortcuts() -> Vec<application::shortcut::Shortcut> {

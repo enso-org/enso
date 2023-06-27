@@ -2,6 +2,9 @@
  * registration. */
 import * as react from 'react'
 
+import ArrowRightIcon from 'enso-assets/arrow_right.svg'
+import AtIcon from 'enso-assets/at.svg'
+
 import * as auth from '../providers/auth'
 import * as backendProvider from '../../providers/backend'
 import * as svg from '../../components/svg'
@@ -41,7 +44,9 @@ function SetUsername() {
                     >
                         <div className="flex flex-col mb-6">
                             <div className="relative">
-                                <SvgIcon svg={svg.AT} />
+                                <SvgIcon>
+                                    <svg.SvgMask src={AtIcon} />
+                                </SvgIcon>
 
                                 <Input
                                     id="username"
@@ -63,7 +68,9 @@ function SetUsername() {
                                 }
                             >
                                 <span className="mr-2 uppercase">Set username</span>
-                                <span>{svg.RIGHT_ARROW}</span>
+                                <span>
+                                    <svg.SvgMask src={ArrowRightIcon} />
+                                </span>
                             </button>
                         </div>
                     </form>

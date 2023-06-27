@@ -5,7 +5,7 @@
     name="clippy/ensogl-examples [wasm, macos]"
     type="CargoCommandRunConfiguration" 
     factoryName="Cargo Command"
-    folderName="🎨 EnsoGl      example"
+    folderName="🎨 EnsoGl      examples"
   >
     <option name="command" value="clippy --all-targets --target wasm32-unknown-unknown --target aarch64-apple-darwin --target-dir dist/intellij_wasm_macos --package ensogl-examples" />
     <option name="workingDirectory" value="file://$PROJECT_DIR$" />

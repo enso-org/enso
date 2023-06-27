@@ -518,12 +518,12 @@ impl Entry {
 
     fn self_type_entry(&self, db: &SuggestionDatabase) -> Option<Rc<Entry>> {
         let self_type_ref = self.self_type.as_ref();
-        let lookup = self_type_ref.and_then(|tp| db.lookup_by_qualified_name(tp));
+        let lookup = self_type_ref.and_then(|tp| db.lookup_by_qualified_name(tp).ok());
         lookup.map(|(_, entry)| entry)
     }
 
     fn defined_in_entry(&self, db: &SuggestionDatabase) -> Option<Rc<Entry>> {
-        let lookup = db.lookup_by_qualified_name(&self.defined_in);
+        let lookup = db.lookup_by_qualified_name(&self.defined_in).ok();
         lookup.map(|(_, entry)| entry)
     }
 }
@@ -891,7 +891,7 @@ fn resolve_tag_value<'a>(
     let stripped_expr = raw_expression.trim_start_matches(['(', ' ']).trim_end_matches([')', ' ']);
     let qualified_name = QualifiedName::from_text(stripped_expr).ok();
     if let Some(qualified_name) = qualified_name {
-        let entry = db.lookup_by_qualified_name(&qualified_name);
+        let entry = db.lookup_by_qualified_name(&qualified_name).ok();
 
         // If a lookup of a fully qualified name have failed, the name is likely not actually fully
         // qualified. Try to resolve it as partially qualified, ignoring potential ambiguity. Only

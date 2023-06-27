@@ -1,9 +1,8 @@
 package org.enso.table.data.column.operation.map;
 
+import java.util.BitSet;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.column.storage.numeric.LongStorage;
-
-import java.util.BitSet;
 
 /** An operation that takes a single double argumebnt and returns a long. */
 public abstract class UnaryDoubleToLongOp extends UnaryMapOperation<Double, DoubleStorage> {

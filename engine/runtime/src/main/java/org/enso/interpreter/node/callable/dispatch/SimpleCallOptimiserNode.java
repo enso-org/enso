@@ -3,14 +3,14 @@ package org.enso.interpreter.node.callable.dispatch;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import java.util.concurrent.locks.Lock;
 import org.enso.interpreter.node.callable.ExecuteCallNode;
 import org.enso.interpreter.node.callable.ExecuteCallNodeGen;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.control.TailCallException;
+import org.enso.interpreter.runtime.error.Warning;
 import org.enso.interpreter.runtime.state.State;
-
-import java.util.concurrent.locks.Lock;
 
 /**
  * Optimistic version of {@link CallOptimiserNode} for the non tail call recursive case. Tries to
@@ -41,6 +41,7 @@ public class SimpleCallOptimiserNode extends CallOptimiserNode {
    * @param callerInfo the caller info to pass to the function
    * @param state the state to pass to the function
    * @param arguments the arguments to {@code function}
+   * @param warnings warnings associated with the callable, null if empty
    * @return the result of executing {@code function} using {@code arguments}
    */
   @Override
@@ -49,7 +50,8 @@ public class SimpleCallOptimiserNode extends CallOptimiserNode {
       Function function,
       CallerInfo callerInfo,
       State state,
-      Object[] arguments) {
+      Object[] arguments,
+      Warning[] warnings) {
     try {
       return executeCallNode.executeCall(frame, function, callerInfo, state, arguments);
     } catch (TailCallException e) {
@@ -66,7 +68,7 @@ public class SimpleCallOptimiserNode extends CallOptimiserNode {
         }
       }
       return next.executeDispatch(
-          frame, e.getFunction(), e.getCallerInfo(), state, e.getArguments());
+          frame, e.getFunction(), e.getCallerInfo(), state, e.getArguments(), e.getWarnings());
     }
   }
 }

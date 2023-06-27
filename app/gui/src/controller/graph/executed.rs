@@ -2,7 +2,7 @@
 //!
 //! This controller provides operations on a specific graph with some execution context - these
 //! operations usually involves retrieving values on nodes: that's are i.e. operations on
-//! visualisations, retrieving types on ports, etc.
+//! visualizations, retrieving types on ports, etc.
 
 use crate::prelude::*;
 
@@ -156,6 +156,11 @@ impl Handle {
         visualization: Visualization,
     ) -> FallibleResult<impl Stream<Item = VisualizationUpdateData>> {
         self.execution_ctx.attach_visualization(visualization).await
+    }
+
+    /// See [`model::ExecutionContext::get_ai_completion`].
+    pub async fn get_ai_completion(&self, code: &str, stop: &str) -> FallibleResult<String> {
+        self.execution_ctx.get_ai_completion(code, stop).await
     }
 
     /// See [`model::ExecutionContext::modify_visualization`].
@@ -425,13 +430,11 @@ impl Handle {
         }
     }
 
-    /// Remove the connections from the graph. Returns an updated edge destination endpoint for
-    /// disconnected edge, in case it is still used as destination-only edge. When `None` is
-    /// returned, no update is necessary.
+    /// Remove the connections from the graph.
     ///
     /// ### Errors
     /// - Fails if the project is in read-only mode.
-    pub fn disconnect(&self, connection: &Connection) -> FallibleResult<Option<span_tree::Crumbs>> {
+    pub fn disconnect(&self, connection: &Connection) -> FallibleResult {
         if self.project.read_only() {
             Err(ReadOnly.into())
         } else {
@@ -510,7 +513,8 @@ pub mod tests {
     use crate::test;
 
     use crate::test::mock::Fixture;
-    use controller::graph::SpanTree;
+    use ast::crumbs::InfixCrumb;
+    use controller::graph::Endpoint;
     use engine_protocol::language_server::types::test::value_update_with_type;
     use wasm_bindgen_test::wasm_bindgen_test_configure;
 
@@ -527,6 +531,11 @@ pub mod tests {
 
     impl MockData {
         pub fn controller(&self) -> Handle {
+            let db = self.graph.suggestion_db();
+            self.controller_with_db(db)
+        }
+
+        pub fn controller_with_db(&self, suggestion_db: Rc<model::SuggestionDatabase>) -> Handle {
             let parser = parser::Parser::new();
             let repository = Rc::new(model::undo_redo::Repository::new());
             let module = self.module.plain(&parser, repository);
@@ -542,7 +551,6 @@ pub mod tests {
             // Root ID is needed to generate module path used to get the module.
             model::project::test::expect_root_id(&mut project, crate::test::mock::data::ROOT_ID);
             // Both graph controllers need suggestion DB to provide context to their span trees.
-            let suggestion_db = self.graph.suggestion_db();
             model::project::test::expect_suggestion_db(&mut project, suggestion_db);
             let project = Rc::new(project);
             Handle::new(project.clone_ref(), method).boxed_local().expect_ok()
@@ -676,15 +684,10 @@ main =
             assert_eq!(sum_node.expression().to_string(), "2 + 2");
             assert_eq!(product_node.expression().to_string(), "5 * 5");
 
-            let context = &span_tree::generate::context::Empty;
-            let sum_tree = SpanTree::new(&sum_node.expression(), context).unwrap();
-            let sum_input =
-                sum_tree.root_ref().leaf_iter().find(|n| n.is_argument()).unwrap().crumbs;
             let connection = Connection {
-                source:      controller::graph::Endpoint::new(product_node.id(), []),
-                destination: controller::graph::Endpoint::new(sum_node.id(), sum_input),
+                source: Endpoint::root(product_node.id()),
+                target: Endpoint::target_at(sum_node, [InfixCrumb::LeftOperand]).unwrap(),
             };
-
             assert!(executed.connect(&connection).is_err());
         });
     }

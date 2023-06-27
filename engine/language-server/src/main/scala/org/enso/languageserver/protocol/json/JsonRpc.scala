@@ -7,6 +7,7 @@ import org.enso.cli.task.notifications.TaskNotificationApi.{
   TaskStarted
 }
 import org.enso.jsonrpc.Protocol
+import org.enso.languageserver.ai.AICompletion
 import org.enso.languageserver.capability.CapabilityApi.{
   AcquireCapability,
   ForceReleaseCapability,
@@ -19,7 +20,7 @@ import org.enso.languageserver.monitoring.MonitoringApi.{InitialPing, Ping}
 import org.enso.languageserver.refactoring.RefactoringApi.RenameProject
 import org.enso.languageserver.runtime.ExecutionApi._
 import org.enso.languageserver.search.SearchApi._
-import org.enso.languageserver.runtime.VisualisationApi._
+import org.enso.languageserver.runtime.VisualizationApi._
 import org.enso.languageserver.session.SessionApi.InitProtocolConnection
 import org.enso.languageserver.text.TextApi._
 import org.enso.languageserver.libraries.LibraryApi._
@@ -72,13 +73,14 @@ object JsonRpc {
     .registerRequest(ExecutionContextInterrupt)
     .registerRequest(ExecutionContextGetComponentGroups)
     .registerRequest(ExecuteExpression)
-    .registerRequest(AttachVisualisation)
-    .registerRequest(DetachVisualisation)
-    .registerRequest(ModifyVisualisation)
+    .registerRequest(AttachVisualization)
+    .registerRequest(DetachVisualization)
+    .registerRequest(ModifyVisualization)
     .registerRequest(GetSuggestionsDatabase)
     .registerRequest(GetSuggestionsDatabaseVersion)
     .registerRequest(InvalidateSuggestionsDatabase)
     .registerRequest(Completion)
+    .registerRequest(AICompletion)
     .registerRequest(RenameProject)
     .registerRequest(ProjectInfo)
     .registerRequest(EditionsListAvailable)
@@ -113,5 +115,5 @@ object JsonRpc {
     .registerNotification(StandardErrorAppended)
     .registerNotification(WaitingForStandardInput)
     .registerNotification(SuggestionsDatabaseUpdates)
-    .registerNotification(VisualisationEvaluationFailed)
+    .registerNotification(VisualizationEvaluationFailed)
 }

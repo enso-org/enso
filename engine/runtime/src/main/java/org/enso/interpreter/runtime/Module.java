@@ -23,14 +23,13 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.WeakHashMap;
 import java.util.logging.Level;
-
 import org.enso.compiler.ModuleCache;
 import org.enso.compiler.context.SimpleUpdate;
 import org.enso.compiler.core.IR;
 import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
 import org.enso.interpreter.node.callable.dispatch.LoopingCallOptimiserNode;
-import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.builtin.BuiltinFunction;
+import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Array;
@@ -101,6 +100,13 @@ public final class Module implements TruffleObject {
   private boolean wasLoadedFromCache;
   private boolean hasCrossModuleLinks;
   private final boolean synthetic;
+  /**
+   * This list is filled in case there is a directory with the same name as this module. The
+   * directory then contains submodules of this module that should be directly accessible from this
+   * module - achieved by both filling in this list, and inserting synthetic imports and exports
+   * into this module - See {@link
+   * org.enso.compiler.Compiler#injectSyntheticModuleExports(IR.Module, List)}.
+   */
   private List<QualifiedName> directModulesRefs;
 
   /**
@@ -630,7 +636,8 @@ public final class Module implements TruffleObject {
           eval.getFunction(),
           callerInfo,
           context.emptyState(),
-          new Object[] {builtins.debug(), Text.create(expr)});
+          new Object[] {builtins.debug(), Text.create(expr)},
+          null);
     }
 
     private static Object generateDocs(Module module, EnsoContext context) {

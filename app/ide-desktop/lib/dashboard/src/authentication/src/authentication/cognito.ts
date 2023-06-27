@@ -33,8 +33,9 @@ import * as amplify from '@aws-amplify/auth'
 import * as cognito from 'amazon-cognito-identity-js'
 import * as results from 'ts-results'
 
+import * as detect from 'enso-common/src/detect'
+
 import * as config from './config'
-import * as detect from '../detect'
 import * as loggerProvider from '../providers/logger'
 
 // =================

@@ -1,10 +1,10 @@
 package org.enso.compiler.data
 
-import org.enso.compiler.{Compiler, PackageRepository}
+import org.enso.compiler.{PackageRepository}
 import org.enso.compiler.PackageRepository.ModuleMap
 import org.enso.compiler.core.IR
 import org.enso.compiler.data.BindingsMap.{DefinedEntity, ModuleReference}
-import org.enso.compiler.exception.CompilerError
+import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.compiler.pass.resolve.MethodDefinitions
@@ -26,12 +26,12 @@ import scala.annotation.unused
 case class BindingsMap(
   definedEntities: List[DefinedEntity],
   currentModule: ModuleReference
-) extends IRPass.Metadata {
+) extends IRPass.IRMetadata {
   import BindingsMap._
 
   override val metadataName: String = "Bindings Map"
 
-  override def duplicate(): Option[IRPass.Metadata] = Some(this)
+  override def duplicate(): Option[IRPass.IRMetadata] = Some(this)
 
   /** Other modules, imported by [[currentModule]].
     */
@@ -941,21 +941,45 @@ object BindingsMap {
 
   /** A representation of an error during name resolution.
     */
-  sealed trait ResolutionError
+  sealed trait ResolutionError extends IR.Error.Resolution.ExplainResolution
 
   /** A representation of a resolution error due to symbol ambiguity.
     *
     * @param candidates all the possible resolutions for the name.
     */
   case class ResolutionAmbiguous(candidates: List[ResolvedName])
-      extends ResolutionError
+      extends ResolutionError {
+    override def explain(originalName: IR.Name): String = {
+      val firstLine =
+        s"The name ${originalName.name} is ambiguous. Possible candidates are:"
+      val lines = candidates.map {
+        case BindingsMap.ResolvedConstructor(
+              definitionType,
+              cons
+            ) =>
+          s"    Constructor ${cons.name} defined in module ${definitionType.module.getName};"
+        case BindingsMap.ResolvedModule(module) =>
+          s"    The module ${module.getName};"
+        case BindingsMap.ResolvedPolyglotSymbol(_, symbol) =>
+          s"    The imported polyglot symbol ${symbol.name};"
+        case BindingsMap.ResolvedMethod(module, symbol) =>
+          s"    The method ${symbol.name} defined in module ${module.getName}"
+        case BindingsMap.ResolvedType(module, typ) =>
+          s"    Type ${typ.name} defined in module ${module.getName}"
+      }
+      (firstLine :: lines).mkString("\n")
+    }
+  }
 
   /** A resolution error due to the symbol not being found.
     */
-  case object ResolutionNotFound extends ResolutionError
+  case object ResolutionNotFound extends ResolutionError {
+    override def explain(originalName: IR.Name): String =
+      s"The name `${originalName.name}` could not be found"
+  }
 
   /** A metadata-friendly storage for resolutions */
-  case class Resolution(target: ResolvedName) extends IRPass.Metadata {
+  case class Resolution(target: ResolvedName) extends IRPass.IRMetadata {
 
     /** The name of the metadata as a string. */
     override val metadataName: String = "Resolution"
@@ -981,7 +1005,7 @@ object BindingsMap {
       * @return Some duplicate of this metadata or None if this metadata should
       *         not be preserved
       */
-    override def duplicate(): Option[IRPass.Metadata] = Some(this)
+    override def duplicate(): Option[IRPass.IRMetadata] = Some(this)
   }
 
   /** A reference to a module.

@@ -1,8 +1,10 @@
 package org.enso.interpreter.instrument.job
 
 import cats.implicits._
+import com.oracle.truffle.api.TruffleLogger
 import org.enso.compiler.CompilerResult
 import org.enso.compiler.context._
+import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.analyse.{
   CachePreferenceAnalysis,
@@ -15,7 +17,7 @@ import org.enso.interpreter.instrument.execution.{
 import org.enso.interpreter.instrument.{
   CacheInvalidation,
   InstrumentFrame,
-  Visualisation
+  Visualization
 }
 import org.enso.interpreter.runtime.Module
 import org.enso.interpreter.service.error.ModuleNotFoundForFileException
@@ -26,7 +28,6 @@ import org.enso.text.buffer.Rope
 
 import java.io.File
 import java.util.logging.Level
-
 import scala.jdk.OptionConverters._
 
 /** A job that ensures that specified files are compiled.
@@ -40,7 +41,8 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
 
   /** @inheritdoc */
   override def run(implicit ctx: RuntimeContext): CompilationStatus = {
-    ctx.locking.acquireWriteCompilationLock()
+    val writeLockTimestamp             = ctx.locking.acquireWriteCompilationLock()
+    implicit val logger: TruffleLogger = ctx.executionService.getLogger
 
     try {
       val compilationResult = ensureCompiledFiles(files)
@@ -48,6 +50,10 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
       compilationResult
     } finally {
       ctx.locking.releaseWriteCompilationLock()
+      logger.log(
+        Level.FINEST,
+        s"Kept write compilation lock [EnsureCompiledJob] for ${System.currentTimeMillis() - writeLockTimestamp} milliseconds"
+      )
     }
   }
 
@@ -59,7 +65,7 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
     */
   private def ensureCompiledFiles(
     files: Iterable[File]
-  )(implicit ctx: RuntimeContext): CompilationStatus = {
+  )(implicit ctx: RuntimeContext, logger: TruffleLogger): CompilationStatus = {
     val modules = files.flatMap { file =>
       ctx.executionService.getContext.getModuleForFile(file).toScala
     }
@@ -79,7 +85,10 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
     */
   private def ensureCompiledModule(
     module: Module
-  )(implicit ctx: RuntimeContext): Option[CompilationStatus] = {
+  )(implicit
+    ctx: RuntimeContext,
+    logger: TruffleLogger
+  ): Option[CompilationStatus] = {
     compile(module)
     applyEdits(new File(module.getPath)).map { changeset =>
       compile(module)
@@ -228,9 +237,12 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
     */
   private def applyEdits(
     file: File
-  )(implicit ctx: RuntimeContext): Option[Changeset[Rope]] = {
-    ctx.locking.acquireFileLock(file)
-    ctx.locking.acquirePendingEditsLock()
+  )(implicit
+    ctx: RuntimeContext,
+    logger: TruffleLogger
+  ): Option[Changeset[Rope]] = {
+    val fileLockTimestamp         = ctx.locking.acquireFileLock(file)
+    val pendingEditsLockTimestamp = ctx.locking.acquirePendingEditsLock()
     try {
       val pendingEdits = ctx.state.pendingEdits.dequeue(file)
       val edits        = pendingEdits.map(_.edit)
@@ -252,7 +264,16 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
       Option.when(shouldExecute)(changeset)
     } finally {
       ctx.locking.releasePendingEditsLock()
+      logger.log(
+        Level.FINEST,
+        s"Kept pending edits lock [EnsureCompiledJob] for ${System.currentTimeMillis() - pendingEditsLockTimestamp} milliseconds"
+      )
       ctx.locking.releaseFileLock(file)
+      logger.log(
+        Level.FINEST,
+        s"Kept file lock [EnsureCompiledJob] for ${System.currentTimeMillis() - fileLockTimestamp} milliseconds"
+      )
+
     }
   }
 
@@ -266,12 +287,10 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
   private def buildCacheInvalidationCommands(
     changeset: Changeset[_],
     source: CharSequence
-  )(implicit ctx: RuntimeContext): Seq[CacheInvalidation] = {
+  ): Seq[CacheInvalidation] = {
     val invalidateExpressionsCommand =
       CacheInvalidation.Command.InvalidateKeys(changeset.invalidated)
-    val scopeIds = ctx.executionService.getContext.getCompiler
-      .parseMeta(source)
-      .map(_._2)
+    val scopeIds = splitMeta(source.toString())._2.map(_._2)
     val invalidateStaleCommand =
       CacheInvalidation.Command.InvalidateStale(scopeIds)
     Seq(
@@ -288,6 +307,37 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
     )
   }
 
+  type IDMap = Seq[(org.enso.data.Span, java.util.UUID)]
+  private def splitMeta(code: String): (String, IDMap, io.circe.Json) = {
+    import io.circe.Json
+    import io.circe.Error
+    import io.circe.generic.auto._
+    import io.circe.parser._
+
+    def idMapFromJson(json: String): Either[Error, IDMap] = decode[IDMap](json)
+
+    val METATAG = "\n\n\n#### METADATA ####\n"
+    code.split(METATAG) match {
+      case Array(input) => (input, Seq(), Json.obj())
+      case Array(input, rest) =>
+        val meta = rest.split('\n')
+        if (meta.length < 2) {
+          throw new CompilerError(s"Expected two lines after METADATA.")
+        }
+        val idmap = idMapFromJson(meta(0)).left.map { error =>
+          throw new CompilerError("Could not deserialize idmap.", error)
+        }.merge
+        val metadata = decode[Json](meta(1)).left.map { error =>
+          throw new CompilerError("Could not deserialize metadata.", error)
+        }.merge
+        (input, idmap, metadata)
+      case arr: Array[_] =>
+        throw new CompilerError(
+          s"Could not not deserialize metadata (found ${arr.length - 1} metadata sections)"
+        )
+    }
+  }
+
   /** Run the invalidation commands.
     *
     * @param module the compiled module
@@ -297,7 +347,7 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
   private def invalidateCaches(
     module: Module,
     changeset: Changeset[_]
-  )(implicit ctx: RuntimeContext): Unit = {
+  )(implicit ctx: RuntimeContext, logger: TruffleLogger): Unit = {
     val invalidationCommands =
       buildCacheInvalidationCommands(
         changeset,
@@ -309,23 +359,23 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
           CacheInvalidation.runAll(stack, invalidationCommands)
         }
       }
-    CacheInvalidation.runAllVisualisations(
-      ctx.contextManager.getVisualisations(module.getName),
+    CacheInvalidation.runAllVisualizations(
+      ctx.contextManager.getVisualizations(module.getName),
       invalidationCommands
     )
 
-    val invalidatedVisualisations =
-      ctx.contextManager.getInvalidatedVisualisations(
+    val invalidatedVisualizations =
+      ctx.contextManager.getInvalidatedVisualizations(
         module.getName,
         changeset.invalidated
       )
-    invalidatedVisualisations.foreach { visualisation =>
-      UpsertVisualisationJob.upsertVisualisation(visualisation)
+    invalidatedVisualizations.foreach { visualization =>
+      UpsertVisualizationJob.upsertVisualization(visualization)
     }
-    if (invalidatedVisualisations.nonEmpty) {
+    if (invalidatedVisualizations.nonEmpty) {
       ctx.executionService.getLogger.log(
         Level.FINEST,
-        s"Invalidated visualisations [${invalidatedVisualisations.map(_.id)}]"
+        s"Invalidated visualizations [${invalidatedVisualizations.map(_.id)}]"
       )
     }
 
@@ -400,10 +450,10 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
         )
       }
     }
-    val visualisations = ctx.contextManager.getAllVisualisations
-    visualisations.flatMap(getCacheMetadata).foreach { metadata =>
-      CacheInvalidation.runVisualisations(
-        visualisations,
+    val visualizations = ctx.contextManager.getAllVisualizations
+    visualizations.flatMap(getCacheMetadata).foreach { metadata =>
+      CacheInvalidation.runVisualizations(
+        visualizations,
         CacheInvalidation.Command.SetMetadata(metadata)
       )
     }
@@ -426,9 +476,9 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
     }
 
   private def getCacheMetadata(
-    visualisation: Visualisation
+    visualization: Visualization
   ): Option[CachePreferenceAnalysis.Metadata] = {
-    val module = visualisation.module
+    val module = visualization.module
     module.getIr.getMetadata(CachePreferenceAnalysis)
   }
 

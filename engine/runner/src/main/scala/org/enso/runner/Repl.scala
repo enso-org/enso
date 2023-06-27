@@ -130,7 +130,9 @@ case class Repl(replIO: ReplIO) extends SessionManager {
         case EndOfInput =>
           continueRunning = false
         case Line(line) =>
-          if (line == ":list" || line == ":l") {
+          if (line.isEmpty) {
+            // nop
+          } else if (line == ":list" || line == ":l") {
             val bindings = executor.listBindings()
             bindings.foreach { case (varName, value) =>
               replIO.println(s"$varName = $value")

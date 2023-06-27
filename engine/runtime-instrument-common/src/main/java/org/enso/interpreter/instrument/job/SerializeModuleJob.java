@@ -1,13 +1,12 @@
 package org.enso.interpreter.instrument.job;
 
+import java.util.logging.Level;
 import org.enso.compiler.SerializationManager;
 import org.enso.interpreter.instrument.execution.RuntimeContext;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.RuntimeOptions;
-
-import java.util.logging.Level;
 
 /** The job that serializes module. */
 public final class SerializeModuleJob extends BackgroundJob<Void> {
@@ -30,7 +29,7 @@ public final class SerializeModuleJob extends BackgroundJob<Void> {
             .getEnvironment()
             .getOptions()
             .get(RuntimeOptions.USE_GLOBAL_IR_CACHE_LOCATION_KEY);
-    ctx.locking().acquireWriteCompilationLock();
+    var writeLockTimestamp = ctx.locking().acquireWriteCompilationLock();
     try {
       ctx.executionService()
           .getContext()
@@ -51,6 +50,13 @@ public final class SerializeModuleJob extends BackgroundJob<Void> {
               });
     } finally {
       ctx.locking().releaseWriteCompilationLock();
+      ctx.executionService()
+          .getLogger()
+          .log(
+              Level.FINEST,
+              "Kept write compilation lock [SetExecutionEnvironmentCommand] for "
+                  + (System.currentTimeMillis() - writeLockTimestamp)
+                  + " milliseconds");
     }
     return null;
   }

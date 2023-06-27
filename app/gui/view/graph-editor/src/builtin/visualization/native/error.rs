@@ -1,4 +1,4 @@
-//! Example visualisation showing the provided data as text.
+//! Example visualization showing the provided data as text.
 
 use crate::component::visualization::*;
 use crate::prelude::*;
@@ -35,12 +35,12 @@ const PADDING_TEXT: f32 = 10.0;
 
 /// The module containing the `PREPROCESSOR_FUNCTION`. See there.
 // NOTE: contents of this const need to be kept in sync with Scala test in
-// RuntimeVisualisationsTest.scala, used to verify the snippet's correctness
+// RuntimeVisualizationsTest.scala, used to verify the snippet's correctness
 const PREPROCESSOR_MODULE: &str = "Standard.Visualization.Preprocessor";
 
 /// The method name of the error preprocessor.
 // NOTE: contents of this const need to be kept in sync with Scala test in
-// RuntimeVisualisationsTest.scala, used to verify the snippet's correctness
+// RuntimeVisualizationsTest.scala, used to verify the snippet's correctness
 const PREPROCESSOR_METHOD: &str = "error_preprocessor";
 
 /// The list of arguments passed to the error preprocessor.
@@ -139,7 +139,7 @@ impl Error {
 
     /// Sets the visualization data directly from the [`Input`] structure (not from the serialized
     /// JSON).
-    pub fn set_data(&self, input: &Input) {
+    pub fn set_data(&self, input: Input) {
         self.model.set_data(input);
     }
 
@@ -207,24 +207,19 @@ impl Model {
         self.reload_style();
     }
 
+    #[profile(Debug)]
     fn receive_data(&self, data: &Data) -> Result<(), DataError> {
-        match data {
-            Data::Json { content } => {
-                let input_result = serde_json::from_value(content.deref().clone());
-                let input: Input = input_result.map_err(|_| DataError::InvalidDataType)?;
-                self.set_data(&input);
-                Ok(())
-            }
-            Data::Binary => Err(DataError::BinaryNotSupported),
-        }
+        let input: Input = data.as_json()?.deserialize()?;
+        self.set_data(input);
+        Ok(())
     }
 
-    fn set_data(&self, input: &Input) {
+    fn set_data(&self, input: Input) {
         if let Some(kind) = input.kind {
-            self.messages.insert(kind, input.message.clone().into());
             if kind == self.displayed.get() {
                 self.dom.dom().set_inner_text(&input.message);
             }
+            self.messages.insert(kind, input.message.into());
         }
         // else we don't update the text, as the node does not contain error anymore. The
         // visualization will be hidden once we receive expression update message.
