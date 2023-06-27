@@ -73,7 +73,7 @@ pub const COMMENT_MARGIN: f32 = 10.0;
 const INFINITE: f32 = 99999.0;
 const ERROR_VISUALIZATION_SIZE: (f32, f32) = visualization::container::DEFAULT_SIZE;
 
-const VISUALIZATION_OFFSET_Y: f32 = -120.0;
+const VISUALIZATION_OFFSET_Y: f32 = -20.0;
 
 const ENABLE_VIS_PREVIEW: bool = false;
 const VIS_PREVIEW_ONSET_MS: f32 = 4000.0;
@@ -951,7 +951,7 @@ fn x_offset_to_node_center(node_width: f32) -> f32 {
 /// Calculate a position where to render the [`visualization::Container`] of a node, relative to
 /// the node's origin.
 fn visualization_offset(node_width: f32) -> Vector2 {
-    Vector2(x_offset_to_node_center(node_width), VISUALIZATION_OFFSET_Y)
+    Vector2(0.0, VISUALIZATION_OFFSET_Y)
 }
 
 #[profile(Debug)]
