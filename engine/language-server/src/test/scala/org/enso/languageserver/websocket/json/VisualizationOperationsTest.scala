@@ -66,7 +66,7 @@ class VisualizationOperationsTest extends BaseServerTest {
       val visualizationConfig =
         VisualizationConfiguration(
           contextId,
-          visualisationModule,
+          visualizationModule,
           MethodPointer(
             visualizationModule,
             visualizationModule,
@@ -121,7 +121,7 @@ class VisualizationOperationsTest extends BaseServerTest {
       val visualizationConfig =
         VisualizationConfiguration(
           contextId,
-          visualisationModule,
+          visualizationModule,
           MethodPointer(
             visualizationModule,
             visualizationModule,

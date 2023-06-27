@@ -359,7 +359,7 @@ class RuntimeVisualizationsTest
               "Enso_Test.Test.Visualization",
               "x -> encode x"
             ),
-            "Enso_Test.Test.Visualisation"
+            "Enso_Test.Test.Visualization"
           )
         )
       )
@@ -478,7 +478,7 @@ class RuntimeVisualizationsTest
               "Enso_Test.Test.Visualization",
               "x -> encode x"
             ),
-            "Enso_Test.Test.Visualisation"
+            "Enso_Test.Test.Visualization"
           )
         )
       )
@@ -614,7 +614,7 @@ class RuntimeVisualizationsTest
               "Enso_Test.Test.Visualization",
               "x -> encode x"
             ),
-            "Enso_Test.Test.Visualisation"
+            "Enso_Test.Test.Visualization"
           )
         )
       )
@@ -743,7 +743,7 @@ class RuntimeVisualizationsTest
               "Enso_Test.Test.Visualization",
               "encode"
             ),
-            "Enso_Test.Test.Visualisation"
+            "Enso_Test.Test.Visualization"
           )
         )
       )
@@ -872,7 +872,7 @@ class RuntimeVisualizationsTest
               "Enso_Test.Test.Visualization",
               "encode"
             ),
-            "Enso_Test.Test.Visualisation"
+            "Enso_Test.Test.Visualization"
           )
         )
       )
@@ -925,7 +925,7 @@ class RuntimeVisualizationsTest
               "Enso_Test.Test.Visualization",
               "encode"
             ),
-            "Enso_Test.Test.Visualisation"
+            "Enso_Test.Test.Visualization"
           )
         )
       )
@@ -1092,7 +1092,7 @@ class RuntimeVisualizationsTest
               "Enso_Test.Test.Visualization",
               "x -> encode x"
             ),
-            "Enso_Test.Test.Visualisation"
+            "Enso_Test.Test.Visualization"
           )
         )
       )
@@ -1131,7 +1131,7 @@ class RuntimeVisualizationsTest
               "Enso_Test.Test.Visualization",
               "x -> incAndEncode x"
             ),
-            "Enso_Test.Test.Visualisation"
+            "Enso_Test.Test.Visualization"
           )
         )
       )
@@ -1201,7 +1201,7 @@ class RuntimeVisualizationsTest
               "Enso_Test.Test.Visualization",
               "x -> encode x"
             ),
-            "Enso_Test.Test.Visualisation"
+            "Enso_Test.Test.Visualization"
           )
         )
       )
@@ -1366,7 +1366,7 @@ class RuntimeVisualizationsTest
               "Enso_Test.Test.Visualization",
               "encode"
             ),
-            "Enso_Test.Test.Visualisation"
+            "Enso_Test.Test.Visualization"
           )
         )
       )
@@ -1479,7 +1479,7 @@ class RuntimeVisualizationsTest
               "Enso_Test.Test.Visualization",
               "x -> encode x"
             ),
-            "Enso_Test.Test.Visualisation"
+            "Enso_Test.Test.Visualization"
           )
         )
       )
@@ -1518,7 +1518,7 @@ class RuntimeVisualizationsTest
               "Enso_Test.Test.Visualization",
               "x -> incAndEncode x"
             ),
-            "Enso_Test.Test.Visualisation"
+            "Enso_Test.Test.Visualization"
           )
         )
       )
@@ -1972,7 +1972,7 @@ class RuntimeVisualizationsTest
               "Enso_Test.Test.Visualization",
               "inc_and_encode"
             ),
-            "Enso_Test.Test.Visualisation"
+            "Enso_Test.Test.Visualization"
           )
         )
       )
@@ -2294,7 +2294,7 @@ class RuntimeVisualizationsTest
               ),
               Vector()
             ),
-            visualisationModule
+            visualizationModule
           )
         )
       )
@@ -2396,7 +2396,7 @@ class RuntimeVisualizationsTest
               ),
               Vector()
             ),
-            visualisationModule
+            visualizationModule
           )
         )
       )
@@ -2494,7 +2494,7 @@ class RuntimeVisualizationsTest
               ),
               Vector()
             ),
-            "Enso_Test.Test.Visualisation"
+            "Enso_Test.Test.Visualization"
           )
         )
       )
@@ -2623,7 +2623,7 @@ class RuntimeVisualizationsTest
               ),
               Vector("2", "3")
             ),
-            "Enso_Test.Test.Visualisation"
+            "Enso_Test.Test.Visualization"
           )
         )
       )
@@ -2694,7 +2694,7 @@ class RuntimeVisualizationsTest
               ),
               Vector("2", "4")
             ),
-            "Enso_Test.Test.Visualisation"
+            "Enso_Test.Test.Visualization"
           )
         )
       )
@@ -2798,7 +2798,7 @@ class RuntimeVisualizationsTest
               ),
               Vector()
             ),
-            "Enso_Test.Test.Visualisation"
+            "Enso_Test.Test.Visualization"
           )
         )
       )
