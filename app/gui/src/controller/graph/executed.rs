@@ -403,7 +403,7 @@ impl Handle {
     }
 
 
-    /// Get a full qualified name of the module in the [`graph`]. The name is obtained from the
+    /// Get a fully qualified name of the module in the [`graph`]. The name is obtained from the
     /// module's path and the `project` name.
     pub fn module_qualified_name_with_project(
         &self,
