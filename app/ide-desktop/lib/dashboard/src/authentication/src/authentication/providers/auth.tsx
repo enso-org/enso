@@ -346,11 +346,17 @@ export function AuthProvider(props: AuthProviderProps) {
             return false
         } else {
             try {
+                const organizationId = await authService.cognito.organizationId()
                 await toast.promise(
                     backend.createUser({
                         userName: username,
                         userEmail: newtype.asNewtype<backendModule.EmailAddress>(email),
-                        organizationId: null,
+                        organizationId:
+                            organizationId != null
+                                ? newtype.asNewtype<backendModule.UserOrOrganizationId>(
+                                      organizationId
+                                  )
+                                : null,
                     }),
                     {
                         success: MESSAGES.setUsernameSuccess,
