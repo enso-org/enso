@@ -26,6 +26,12 @@ type Hidden_Table_Registry
     Registry (reference_counter : HiddenTableReferenceCounter)
 
     ## PRIVATE
+       Creates a new reference to the table with the given name.
+
+       Once this and any other references to this table name are garbage
+       collected, the table will be scheduled for disposal and removed on the
+       next `run_maintenance_table_cleanup` invocation (unless the table is
+       'brought back to life' by new references being introduced).
     make_reference : Text -> Managed_Resource
     make_reference self table_name =
         self.reference_counter.increment table_name
@@ -33,11 +39,14 @@ type Hidden_Table_Registry
         Managed_Resource.register reference dispose_reference
 
     ## PRIVATE
+       Lists all tables that were added to the registry by calling
+       `make_reference` and not yet removed.
     list_hidden_tables : Vector Text
     list_hidden_tables self =
         Vector.from_polyglot_array self.reference_counter.getKnownTables
 
     ## PRIVATE
+       Checks if the given table name is registered in the registry.
     is_registered : Text -> Boolean
     is_registered self table_name =
         self.reference_counter.isRegistered table_name

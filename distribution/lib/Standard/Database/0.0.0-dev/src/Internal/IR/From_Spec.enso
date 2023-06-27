@@ -94,6 +94,9 @@ type From_Spec_Comparator
         _ -> Default_Comparator.compare x y
 
     ## PRIVATE
-    hash x = Default_Comparator.hash x
+    hash x = case x of
+        From_Spec.Table table_name _ _ ->
+            Default_Comparator.hash table_name
+        _ -> Default_Comparator.hash x
 
 Comparable.from (_ : From_Spec) = From_Spec_Comparator

@@ -62,6 +62,12 @@ public class HiddenTableReferenceCounter {
         });
   }
 
+  /**
+   * Checks if the given table name is currently present in the registry.
+   *
+   * <p>A table is 'registered' even if its reference count has dropped to zero, as long as it has
+   * not been disposed yet.
+   */
   public synchronized boolean isRegistered(String name) {
     return tableRefCounts.containsKey(name);
   }
