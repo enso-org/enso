@@ -16,12 +16,18 @@ declare module '../../hooks' {
 
 /** Possible types of directory state change. */
 export enum DirectoryEventType {
+    create = 'create',
     deleteMultiple = 'delete-multiple',
 }
 
 /** Properties common to all directory state change events. */
 interface DirectoryBaseEvent<Type extends DirectoryEventType> {
     type: Type
+}
+
+/** A signal to create a directory. */
+export interface DirectoryCreateEvent extends DirectoryBaseEvent<DirectoryEventType.create> {
+    placeholderId: backendModule.DirectoryId
 }
 
 /** A signal to delete multiple directories. */
@@ -31,6 +37,4 @@ export interface DirectoryDeleteMultipleEvent
 }
 
 /** Every possible type of directory event. */
-// This renamed type is intentional. Semantically, it is a union type with one member.
-// eslint-disable-next-line no-restricted-syntax
-export type DirectoryEvent = DirectoryDeleteMultipleEvent
+export type DirectoryEvent = DirectoryCreateEvent | DirectoryDeleteMultipleEvent

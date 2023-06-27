@@ -5,7 +5,7 @@ import DefaultUserSmallIcon from 'enso-assets/default_user_small.svg'
 
 import * as backend from './backend'
 import * as dateTime from './dateTime'
-import * as table from './components/table'
+import * as tableColumn from './components/tableColumn'
 
 import PermissionDisplay, * as permissionDisplay from './components/permissionDisplay'
 
@@ -105,7 +105,7 @@ const PERMISSION: Record<backend.PermissionAction, permissionDisplay.Permissions
 
 /** {@link table.ColumnProps} for an unknown variant of {@link backend.Asset}. */
 type AnyAssetColumnProps = Omit<
-    table.ColumnProps<backend.Asset>,
+    tableColumn.TableColumnProps<backend.Asset>,
     'rowState' | 'setItem' | 'setRowState' | 'state'
 >
 

@@ -293,7 +293,9 @@ export interface BaseAsset {
     id: AssetId
     title: string
     modifiedAt: dateTime.Rfc3339DateTime | null
-    parentId: AssetId
+    /** This is defined as a generic {@link AssetId} in the backend, however it is more convenient
+     * (and currently safe) to assume it is always a {@link DirectoryId}. */
+    parentId: DirectoryId
     permissions: UserPermission[] | null
 }
 

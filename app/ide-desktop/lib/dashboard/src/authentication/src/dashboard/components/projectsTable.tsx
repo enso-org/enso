@@ -21,13 +21,15 @@ import * as string from '../../string'
 import * as uniqueString from '../../uniqueString'
 import * as validation from '../validation'
 
-import Table, * as table from './table'
+import * as tableColumn from './tableColumn'
+import * as tableRow from './tableRow'
 import ConfirmDeleteModal from './confirmDeleteModal'
 import ContextMenu from './contextMenu'
 import ContextMenuEntry from './contextMenuEntry'
 import EditableSpan from './editableSpan'
 import ProjectActionButton from './projectActionButton'
 import RenameModal from './renameModal'
+import Table from './table'
 
 // =================
 // === Constants ===
@@ -93,7 +95,7 @@ interface ProjectNamePropsState {
 
 /** Props for a {@link ProjectName}. */
 interface InternalProjectNameProps
-    extends table.ColumnProps<
+    extends tableColumn.TableColumnProps<
         backendModule.ProjectAsset,
         ProjectNamePropsState,
         projectRowState.ProjectRowState
@@ -211,7 +213,10 @@ function ProjectName(props: InternalProjectNameProps) {
 
 /** Props for a {@link ProjectRowContextMenu}. */
 interface InternalProjectRowContextMenuProps {
-    innerProps: table.RowInnerProps<backendModule.ProjectAsset, projectRowState.ProjectRowState>
+    innerProps: tableRow.TableRowInnerProps<
+        backendModule.ProjectAsset,
+        projectRowState.ProjectRowState
+    >
     event: React.MouseEvent
     dispatchProjectEvent: (projectListEvent: projectEventModule.ProjectEvent) => void
 }
@@ -273,10 +278,10 @@ function ProjectRowContextMenu(props: InternalProjectRowContextMenuProps) {
         <ContextMenu key={item.id} event={event}>
             <ContextMenuEntry onClick={doOpenForEditing}>Open for editing</ContextMenuEntry>
             {/*backend.type !== backendModule.BackendType.local && (
-                            <ContextMenuEntry disabled onClick={doOpenAsFolder}>
-                                Open as folder
-                            </ContextMenuEntry>
-                        )*/}
+                <ContextMenuEntry disabled onClick={doOpenAsFolder}>
+                    Open as folder
+                </ContextMenuEntry>
+            )*/}
             <ContextMenuEntry onClick={doRename}>Rename</ContextMenuEntry>
             <ContextMenuEntry
                 disabled={isDeleteDisabled}

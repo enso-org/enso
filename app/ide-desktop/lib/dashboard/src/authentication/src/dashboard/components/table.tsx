@@ -1,9 +1,11 @@
-/** @file Table that projects an object into each column. */
+/** @file A table that projects an object into each column. */
 import * as React from 'react'
 
-import * as modalProvider from '../../providers/modal'
 import * as shortcuts from '../shortcuts'
 import * as svg from '../../components/svg'
+
+import * as tableColumn from './tableColumn'
+import TableRow, * as tableRow from './tableRow'
 
 // =================
 // === Constants ===
@@ -16,28 +18,6 @@ const SPINNER_INITIAL_CLASSES = 'grow dasharray-5 ease-linear'
 /** The classes for the final state of the spinner. */
 const SPINNER_LOADING_CLASSES = 'grow dasharray-75 duration-1000 ease-linear'
 
-// =============
-// === Types ===
-// =============
-
-/** Props for a {@link Column}. */
-export interface ColumnProps<T, State = never, RowState = never> {
-    item: T
-    setItem: React.Dispatch<React.SetStateAction<T>>
-    selected: boolean
-    state: State
-    rowState: RowState
-    setRowState: React.Dispatch<React.SetStateAction<RowState>>
-}
-
-/** Metadata describing how to render a column of the table. */
-export interface Column<T, State = never, RowState = never> {
-    id: string
-    className?: string
-    heading: JSX.Element
-    render: (props: ColumnProps<T, State, RowState>) => JSX.Element
-}
-
 // =============================
 // === Partial `Props` types ===
 // =============================
@@ -47,135 +27,9 @@ interface StateProp<State> {
     state: State
 }
 
-/** `rowState` and `setRowState` */
-interface InternalRowStateProps<RowState> {
-    rowState: RowState
-    setRowState: React.Dispatch<React.SetStateAction<RowState>>
-}
-
 /** `initialRowState: RowState`. */
 interface InitialRowStateProp<RowState> {
     initialRowState: RowState
-}
-
-// ===========
-// === Row ===
-// ===========
-
-/** Common properties for state and setters passed to event handlers on a {@link Row}. */
-interface InternalRowInnerProps<T> {
-    item: T
-    setItem: (newItem: T) => void
-    setNewKey: (newKey: string) => void
-}
-
-/** State and setters passed to event handlers on a {@link Row}. */
-export type RowInnerProps<T, RowState = never> = InternalRowInnerProps<T> &
-    ([RowState] extends never ? unknown : InternalRowStateProps<RowState>)
-
-/** Props for a {@link Row}. */
-interface InternalBaseRowProps<T, State = never, RowState = never> {
-    item: T
-    state?: State
-    initialRowState?: RowState
-    columns: Column<T, State, RowState>[]
-    selected: boolean
-    allowContextMenu: boolean
-    setNewKey: (newKey: string) => void
-    onClick: (props: RowInnerProps<T, RowState>, event: React.MouseEvent) => void
-    onContextMenu: (
-        props: RowInnerProps<T, RowState>,
-        event: React.MouseEvent<HTMLTableRowElement>
-    ) => void
-}
-
-/** Props for a {@link Row}. */
-export type RowProps<T, State = never, RowState = never> = InternalBaseRowProps<
-    T,
-    State,
-    RowState
-> &
-    ([RowState] extends [never] ? unknown : InitialRowStateProp<RowState>) &
-    ([State] extends [never] ? unknown : StateProp<State>)
-
-/** A row of a table. This is required because each row may store its own state. */
-function Row<T, State = never, RowState = never>(props: RowProps<T, State, RowState>) {
-    const {
-        item: rawItem,
-        state,
-        initialRowState,
-        columns,
-        selected,
-        allowContextMenu,
-        setNewKey,
-        onClick,
-        onContextMenu,
-    } = props
-    const { unsetModal } = modalProvider.useSetModal()
-
-    /** The internal state for this row. This may change as backend requests are sent. */
-    const [item, setItem] = React.useState(rawItem)
-    /** This is SAFE, as the type is defined such that they MUST be
-     * present if it is specified as a generic parameter.
-     * See the type definitions of {@link RowProps} and {@link TableProps}. */
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const [rowState, setRowState] = React.useState<RowState>(initialRowState!)
-
-    React.useEffect(() => {
-        setItem(rawItem)
-    }, [rawItem])
-
-    const innerProps = {
-        item,
-        setItem,
-        setNewKey,
-        rowState,
-        setRowState,
-    }
-
-    return (
-        <tr
-            tabIndex={-1}
-            onClick={event => {
-                unsetModal()
-                onClick(innerProps, event)
-            }}
-            onContextMenu={event => {
-                if (allowContextMenu) {
-                    onContextMenu(innerProps, event)
-                }
-            }}
-            className={`h-10 transition duration-300 ease-in-out hover:bg-gray-100 ${
-                selected ? 'bg-gray-200' : ''
-            }`}
-        >
-            {columns.map(column => {
-                // This is a React component even though it does not contain JSX.
-                // eslint-disable-next-line no-restricted-syntax
-                const Render = column.render
-                return (
-                    <td
-                        key={column.id}
-                        className={`px-4 border-0 border-r ${column.className ?? ''}`}
-                    >
-                        <Render
-                            item={item}
-                            setItem={setItem}
-                            selected={selected}
-                            /** This is SAFE, as the type is defined such that they MUST be
-                             * present if it is specified as a generic parameter.
-                             * See the type definitions of {@link RowProps} and {@link TableProps}.
-                             */
-                            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                            state={state!}
-                            rowState={rowState}
-                            setRowState={setRowState}
-                        />
-                    </td>
-                )
-            })}
-        </tr>
-    )
 }
 
 // =============
@@ -184,11 +38,12 @@ function Row<T, State = never, RowState = never>(props: RowProps<T, State, RowSt
 
 /** Props for a {@link Table}. */
 interface InternalTableProps<T, State = never, RowState = never> {
+    rowComponent?: (props: tableRow.TableRowProps<T, State, RowState>) => JSX.Element
     items: T[]
     state?: State
     initialRowState?: RowState
     getKey: (item: T) => string
-    columns: Column<T, State, RowState>[]
+    columns: tableColumn.TableColumn<T, State, RowState>[]
     isLoading: boolean
     placeholder: JSX.Element
     onContextMenu: (
@@ -197,7 +52,7 @@ interface InternalTableProps<T, State = never, RowState = never> {
         setSelectedItems: (items: Set<T>) => void
     ) => void
     onRowContextMenu: (
-        props: RowInnerProps<T, RowState>,
+        props: tableRow.TableRowInnerProps<T, RowState>,
         event: React.MouseEvent<HTMLTableRowElement>
     ) => void
 }
@@ -214,6 +69,7 @@ export type TableProps<T, State = never, RowState = never> = InternalTableProps<
 /** Table that projects an object into each column. */
 function Table<T, State = never, RowState = never>(props: TableProps<T, State, RowState>) {
     const {
+        rowComponent: RowComponent = TableRow,
         items,
         getKey: rawGetKey,
         columns,
@@ -221,6 +77,7 @@ function Table<T, State = never, RowState = never>(props: TableProps<T, State, R
         placeholder,
         onContextMenu,
         onRowContextMenu,
+        ...rowProps
     } = props
 
     const [spinnerClasses, setSpinnerClasses] = React.useState(SPINNER_INITIAL_CLASSES)
@@ -290,8 +147,8 @@ function Table<T, State = never, RowState = never>(props: TableProps<T, State, R
     }, [isLoading])
 
     const onRowClick = React.useCallback(
-        (rowProps: RowInnerProps<T, RowState>, event: React.MouseEvent) => {
-            const { item } = rowProps
+        (innerRowProps: tableRow.TableRowInnerProps<T, RowState>, event: React.MouseEvent) => {
+            const { item } = innerRowProps
             event.stopPropagation()
             const getNewlySelectedItems = () => {
                 if (previouslySelectedItem == null) {
@@ -370,8 +227,15 @@ function Table<T, State = never, RowState = never>(props: TableProps<T, State, R
         items.map(item => {
             const key = getKey(item)
             return (
-                <Row<T, State, RowState>
-                    {...props}
+                <RowComponent
+                    {...rowProps}
+                    columns={columns}
+                    // The following two lines are safe; the type error occurs because a property
+                    // with a conditional type is being destructured.
+                    // eslint-disable-next-line no-restricted-syntax
+                    state={rowProps.state as never}
+                    // eslint-disable-next-line no-restricted-syntax
+                    initialRowState={rowProps.initialRowState as never}
                     key={key}
                     item={item}
                     selected={selectedItems.has(item)}

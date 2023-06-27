@@ -19,11 +19,12 @@ import * as string from '../../string'
 import * as toastPromiseMultiple from '../../toastPromiseMultiple'
 import * as uniqueString from '../../uniqueString'
 
-import Table, * as table from './table'
+import * as tableColumn from './tableColumn'
 import ConfirmDeleteModal from './confirmDeleteModal'
 import ContextMenu from './contextMenu'
 import ContextMenuEntry from './contextMenuEntry'
 import EditableSpan from './editableSpan'
+import Table from './table'
 
 // =================
 // === Constants ===
@@ -128,7 +129,7 @@ function FileNameHeading(props: InternalFileNameHeadingProps) {
 // ================
 
 /** Props for a {@link FileName}. */
-interface InternalFileNameProps extends table.ColumnProps<backendModule.FileAsset> {}
+interface InternalFileNameProps extends tableColumn.TableColumnProps<backendModule.FileAsset> {}
 
 /** The icon and name of a specific file asset. */
 function FileName(props: InternalFileNameProps) {

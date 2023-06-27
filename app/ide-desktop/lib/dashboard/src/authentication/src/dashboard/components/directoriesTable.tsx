@@ -16,16 +16,19 @@ import * as eventModule from '../event'
 import * as hooks from '../../hooks'
 import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
+import * as optimistic from '../optimistic'
 import * as shortcuts from '../shortcuts'
 import * as string from '../../string'
 import * as uniqueString from '../../uniqueString'
 
-import Table, * as table from './table'
+import * as tableColumn from './tableColumn'
+import TableRow, * as tableRow from './tableRow'
 import ConfirmDeleteModal from './confirmDeleteModal'
 import ContextMenu from './contextMenu'
 import ContextMenuEntry from './contextMenuEntry'
 import EditableSpan from './editableSpan'
 import RenameModal from './renameModal'
+import Table from './table'
 
 // =================
 // === Constants ===
@@ -88,15 +91,9 @@ function DirectoryNameHeading(props: InternalDirectoryNameHeadingProps) {
 // === DirectoryName ===
 // =====================
 
-/** State passed through from a {@link DirectoriesTable} to every cell. */
-interface DirectoryNamePropsState {
-    directoryEvent: directoryEventModule.DirectoryEvent | null
-    enterDirectory: (directory: backendModule.DirectoryAsset) => void
-}
-
 /** Props for a {@link DirectoryName}. */
 interface InternalDirectoryNameProps
-    extends table.ColumnProps<backendModule.DirectoryAsset, DirectoryNamePropsState> {}
+    extends tableColumn.TableColumnProps<backendModule.DirectoryAsset, DirectoriesTableState> {}
 
 /** The icon and name of a specific directory asset. */
 function DirectoryName(props: InternalDirectoryNameProps) {
@@ -168,9 +165,92 @@ function DirectoryName(props: InternalDirectoryNameProps) {
     )
 }
 
+// ====================
+// === DirectoryRow ===
+// ====================
+
+/** A row in a {@link DirectoriesTable}. */
+function DirectoryRow(
+    props: tableRow.TableRowProps<backendModule.DirectoryAsset, DirectoriesTableState>
+) {
+    const {
+        item: rawItem,
+        state: { directoryEvent, dispatchDirectoryListEvent },
+    } = props
+    const { current: key } = React.useRef(rawItem.id)
+    const logger = loggerProvider.useLogger()
+    const { backend } = backendProvider.useBackend()
+    const [item, setItem] = React.useState(rawItem)
+    const [status, setStatus] = React.useState(optimistic.OptimisticStatus.present)
+
+    React.useEffect(() => {
+        setItem(rawItem)
+    }, [rawItem])
+
+    hooks.useEvent(directoryEvent, async event => {
+        switch (event.type) {
+            case directoryEventModule.DirectoryEventType.create: {
+                if (key === event.placeholderId) {
+                    if (backend.type !== backendModule.BackendType.remote) {
+                        const message = 'Folders cannot be created on the local backend.'
+                        toast.error(message)
+                        logger.error(message)
+                    } else {
+                        try {
+                            const createdDirectory = await backend.createDirectory({
+                                parentId: item.parentId,
+                                title: item.title,
+                            })
+                            const newItem: backendModule.DirectoryAsset = {
+                                ...item,
+                                ...createdDirectory,
+                            }
+                            setItem(newItem)
+                        } catch (error) {
+                            const message = `Error creating new folder: ${
+                                errorModule.tryGetMessage(error) ?? 'unknown error.'
+                            }`
+                            toast.error(message)
+                            logger.error(message)
+                        }
+                    }
+                }
+                break
+            }
+            case directoryEventModule.DirectoryEventType.deleteMultiple: {
+                if (
+                    event.directoryIds.has(key) &&
+                    backend.type !== backendModule.BackendType.local
+                ) {
+                    setStatus(optimistic.OptimisticStatus.deleting)
+                    try {
+                        await backend.deleteDirectory(item.id, item.title)
+                        dispatchDirectoryListEvent({
+                            type: directoryListEventModule.DirectoryListEventType.delete,
+                            directoryId: key,
+                        })
+                    } catch {
+                        setStatus(optimistic.OptimisticStatus.present)
+                    }
+                }
+                break
+            }
+        }
+    })
+
+    return <TableRow className={optimistic.CLASS_NAME[status]} {...props} />
+}
+
 // ========================
 // === DirectoriesTable ===
 // ========================
+
+/** State passed through from a {@link DirectoriesTable} to every cell. */
+interface DirectoriesTableState {
+    directoryEvent: directoryEventModule.DirectoryEvent | null
+    enterDirectory: (directory: backendModule.DirectoryAsset) => void
+    dispatchDirectoryListEvent: (event: directoryListEventModule.DirectoryListEvent) => void
+}
 
 /** Props for a {@link DirectoriesTable}. */
 export interface DirectoriesTableProps {
@@ -213,8 +293,12 @@ function DirectoriesTable(props: DirectoriesTableProps) {
 
     const state = React.useMemo(
         // The type MUST be here to trigger excess property errors at typecheck time.
-        (): DirectoryNamePropsState => ({ directoryEvent, enterDirectory }),
-        [directoryEvent, enterDirectory]
+        (): DirectoriesTableState => ({
+            directoryEvent,
+            enterDirectory,
+            dispatchDirectoryListEvent,
+        }),
+        [directoryEvent, enterDirectory, dispatchDirectoryListEvent]
     )
 
     const createNewDirectory = React.useCallback(() => {
@@ -223,7 +307,7 @@ function DirectoriesTable(props: DirectoriesTableProps) {
         })
     }, [])
 
-    hooks.useEvent(directoryListEvent, async event => {
+    hooks.useEvent(directoryListEvent, event => {
         switch (event.type) {
             case directoryListEventModule.DirectoryListEventType.create: {
                 if (backend.type !== backendModule.BackendType.remote) {
@@ -238,35 +322,21 @@ function DirectoriesTable(props: DirectoriesTableProps) {
                     const title = `${DIRECTORY_NAME_DEFAULT_PREFIX}${
                         Math.max(0, ...directoryIndices) + 1
                     }`
+                    const placeholderId = backendModule.DirectoryId(uniqueString.uniqueString())
                     const placeholderItem: backendModule.DirectoryAsset = {
                         title,
                         type: backendModule.AssetType.directory,
-                        id: backendModule.DirectoryId(uniqueString.uniqueString()),
+                        id: placeholderId,
                         modifiedAt: dateTime.toRfc3339(new Date()),
                         parentId: directoryId ?? backendModule.DirectoryId(''),
                         permissions: [],
                         projectState: null,
                     }
                     setItems(oldItems => [placeholderItem, ...oldItems])
-                    try {
-                        const createdDirectory = await backend.createDirectory({
-                            parentId: directoryId,
-                            title,
-                        })
-                        const newItem: backendModule.DirectoryAsset = {
-                            ...placeholderItem,
-                            ...createdDirectory,
-                        }
-                        setItems(oldItems =>
-                            oldItems.map(item => (item !== placeholderItem ? item : newItem))
-                        )
-                    } catch (error) {
-                        const message = `Error creating new folder: ${
-                            errorModule.tryGetMessage(error) ?? 'unknown error.'
-                        }`
-                        toast.error(message)
-                        logger.error(message)
-                    }
+                    dispatchDirectoryEvent({
+                        type: directoryEventModule.DirectoryEventType.create,
+                        placeholderId: placeholderId,
+                    })
                 }
                 break
             }
@@ -281,7 +351,8 @@ function DirectoriesTable(props: DirectoriesTableProps) {
         return <></>
     } else {
         return (
-            <Table<backendModule.DirectoryAsset, DirectoryNamePropsState>
+            <Table<backendModule.DirectoryAsset, DirectoriesTableState>
+                rowComponent={DirectoryRow}
                 items={visibleItems}
                 isLoading={isLoading}
                 state={state}

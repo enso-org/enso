@@ -17,12 +17,13 @@ import * as string from '../../string'
 import * as toastPromiseMultiple from '../../toastPromiseMultiple'
 import * as uniqueString from '../../uniqueString'
 
+import * as tableColumn from './tableColumn'
 import CreateForm, * as createForm from './createForm'
-import Table, * as table from './table'
 import ConfirmDeleteModal from './confirmDeleteModal'
 import ContextMenu from './contextMenu'
 import ContextMenuEntry from './contextMenuEntry'
 import EditableSpan from './editableSpan'
+import Table from './table'
 
 // =================
 // === Constants ===
@@ -176,7 +177,7 @@ function SecretNameHeading(props: InternalSecretNameHeadingProps) {
 // ==================
 
 /** Props for a {@link SecretName}. */
-interface InternalSecretNameProps extends table.ColumnProps<backendModule.SecretAsset> {}
+interface InternalSecretNameProps extends tableColumn.TableColumnProps<backendModule.SecretAsset> {}
 
 /** The icon and name of a specific secret asset. */
 function SecretName(props: InternalSecretNameProps) {
