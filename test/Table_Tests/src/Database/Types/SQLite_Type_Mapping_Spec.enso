@@ -14,6 +14,8 @@ from Standard.Database.Errors import Unsupported_Database_Operation
 from Standard.Test import Problems, Test, Test_Suite
 import Standard.Test.Extensions
 
+import project.Database.Helpers.Name_Generator
+
 spec =
     connection = Database.connect (SQLite In_Memory)
     make_table prefix columns =
@@ -104,7 +106,7 @@ spec =
 
         Test.specify "does not support creating tables with date/time values" <|
             t = Table.new [["a", [Date.now]], ["b", [Time_Of_Day.now]], ["c", [Date_Time.now]]]
-            r1 = t.select_into_database_table connection temporary=True
+            r1 = t.select_into_database_table connection table_name=(Name_Generator.random_name "date-time-table") temporary=True
             r1.should_fail_with Unsupported_Database_Operation
 
         Test.specify "should be able to infer types for all supported operations" <|
