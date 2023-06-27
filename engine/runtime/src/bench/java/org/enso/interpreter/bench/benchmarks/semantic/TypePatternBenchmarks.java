@@ -43,8 +43,8 @@ public class TypePatternBenchmarks {
                 @Tail_Call sum (acc + arr.at i) i+1
             (sum 0 0) / arr.length
 
-        avg_pattern self arr pattern =
-            avg (arr.map (pattern self))
+        avg_pattern self_obj arr pattern =
+            avg (arr.map (pattern self_obj))
 
         gen_vec size value =
             b = Vector.new_builder size
@@ -71,14 +71,9 @@ public class TypePatternBenchmarks {
     var length = 100;
     this.vec = getMethod.apply("gen_vec").execute(self, length, 1.1);
     switch (SrcUtil.findName(params)) {
-      case "matchOverAny":
-        this.patternMatch = getMethod.apply("match_any");
-        break;
-      case "matchOverDecimal":
-        this.patternMatch = getMethod.apply("match_dec");
-        break;
-      default:
-        throw new IllegalStateException("Unexpected benchmark: " + params.getBenchmark());
+      case "matchOverAny" -> this.patternMatch = getMethod.apply("match_any");
+      case "matchOverDecimal" -> this.patternMatch = getMethod.apply("match_dec");
+      default -> throw new IllegalStateException("Unexpected benchmark: " + params.getBenchmark());
     }
     this.avg = getMethod.apply("avg_pattern");
   }
