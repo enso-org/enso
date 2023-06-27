@@ -55,7 +55,7 @@ type HTTP
              import Standard.Base.Network.Proxy.Proxy
 
              example_new =
-                HTTP.new (timeout = (Duration.new seconds=30)) (proxy = Proxy.new "example.com" 8080)
+                HTTP.new (timeout = (Duration.new seconds=30)) (proxy = Proxy.Address "example.com" 8080)
     new : Duration -> Boolean -> Proxy -> HTTP_Version -> HTTP
     new (timeout = (Duration.new seconds=10)) (follow_redirects = True) (proxy = Proxy.System) (version = HTTP_Version.HTTP_1_1) =
         HTTP.Value timeout follow_redirects proxy version

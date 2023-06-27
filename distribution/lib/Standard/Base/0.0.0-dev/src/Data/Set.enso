@@ -18,7 +18,9 @@ type Set
     ## PRIVATE
     Value (underlying_map : Map Any Nothing)
 
-    ## Constructs a new set from a vector.
+    ## PRIVATE
+       ADVANCED
+       Constructs a new set from a vector.
 
        Arguments:
        - vector: the vector of elements to add to the set.

@@ -51,7 +51,9 @@ polyglot java import org.enso.base.Array_Builder
 
 @Builtin_Type
 type Vector a
-    ## Creates a new vector of the given length, initializing elements using
+    ## PRIVATE
+       ADVANCED
+       Creates a new vector of the given length, initializing elements using
        the provided constructor function.
 
        Arguments:
@@ -98,7 +100,8 @@ type Vector a
         arr : Array -> Vector.from_polyglot_array arr
         single_element -> [single_element]
 
-    ## Creates a new vector of the given length, filling the elements with
+    ## ALIAS repeat
+       Creates a new vector of the given length, filling the elements with
        the provided constant.
 
        Arguments:
@@ -116,7 +119,9 @@ type Vector a
     fill length item =
         Vector.new length _->item
 
-    ## Creates a new vector builder instance.
+    ## PRIVATE
+       ADVANCED
+       Creates a new vector builder instance.
 
        A vector builder is a mutable data structure, that allows for gathering
        a number of elements and then converting them into a vector. This is
