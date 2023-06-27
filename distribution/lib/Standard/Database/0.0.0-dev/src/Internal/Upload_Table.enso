@@ -1,6 +1,9 @@
 from Standard.Base import all
-from Standard.Base.Random import random_uuid
+import Standard.Base.Errors.Common.Dry_Run_Operation
+import Standard.Base.Errors.Common.Forbidden_Operation
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Illegal_State.Illegal_State
+import Standard.Base.Runtime.Context
 
 import Standard.Table.Data.Table.Table as In_Memory_Table
 from Standard.Table import Aggregate_Column, Join_Kind, Value_Type, Column_Selector
@@ -17,51 +20,93 @@ import project.Internal.In_Transaction.In_Transaction
 import project.Internal.IR.Create_Column_Descriptor.Create_Column_Descriptor
 import project.Internal.IR.Query.Query
 import project.Internal.IR.SQL_Expression.SQL_Expression
-from project.Connection.Connection import all_known_table_names
 from project.Errors import all
 from project.Internal.Result_Set import result_set_to_table
 
 ## PRIVATE
    Creates a new database table with the provided structure and returns the name
    of the created table.
-create_table_structure connection table_name structure primary_key temporary allow_existing on_problems =
-    case table_name.is_nothing.not && all_known_table_names connection . contains table_name of
+
+   The user-facing function that handles the dry-run logic.
+create_table_implementation connection table_name structure primary_key temporary allow_existing on_problems = Panic.recover SQL_Error <|
+    connection.base_connection.maybe_run_maintenance
+    case connection.base_connection.table_exists table_name of
         True ->
-            if allow_existing then table_name else Error.throw (Table_Already_Exists.Error table_name)
+            if allow_existing then connection.query (SQL_Query.Table_Name table_name) else Error.throw (Table_Already_Exists.Error table_name)
         False ->
-            effective_table_name = resolve_effective_table_name table_name temporary
-            aligned_structure = align_structure structure
-            if aligned_structure.is_empty then Error.throw (Illegal_Argument.Error "An empty table cannot be created: the `structure` must consist of at list one column description.") else
-                resolved_primary_key = resolve_primary_key aligned_structure primary_key
-                create_table_statement = prepare_create_table_statement connection effective_table_name aligned_structure resolved_primary_key temporary on_problems
-                update_result = create_table_statement.if_not_error <|
-                    connection.execute_update create_table_statement
-                update_result.if_not_error <|
-                    effective_table_name
+            dry_run = Context.Output.is_enabled.not
+            effective_table_name = if dry_run.not then table_name else connection.base_connection.generate_dry_run_table_name table_name
+            effective_temporary = temporary || dry_run
+            created_table_name = Context.Output.with_enabled <|
+                connection.jdbc_connection.run_within_transaction <|
+                    if dry_run then
+                        ## This temporary table can be safely dropped if it
+                           exists, because it only existed if it was created by
+                           a previous dry run. `generate_dry_run_table_name`
+                           will never return a name of a table that exists but
+                           was created outside of a dry run.
+                        connection.drop_table table_name if_exists=True
+                    internal_create_table_structure connection effective_table_name structure primary_key effective_temporary on_problems
+            if dry_run.not then connection.query (SQL_Query.Table_Name created_table_name) else
+                created_table = connection.base_connection.internal_allocate_dry_run_table created_table_name
+                warning = Dry_Run_Operation.Warning "Only a dry run of `create_table` has occurred, creating a temporary table ("+created_table_name.pretty+") instead of the actual one."
+                Warning.attach warning created_table
+
+## PRIVATE
+   Assumes the output context is enabled for it to work.
+   Does not check if the table already exists - so if it does, it may fail with
+   `SQL_Error`. The caller should perform the check for better error handling.
+internal_create_table_structure connection table_name structure primary_key temporary on_problems =
+    aligned_structure = align_structure structure
+    resolved_primary_key = resolve_primary_key aligned_structure primary_key
+    create_table_statement = prepare_create_table_statement connection table_name aligned_structure resolved_primary_key temporary on_problems
+    check_transaction_ddl_support connection
+    update_result = create_table_statement.if_not_error <|
+        connection.execute_update create_table_statement
+    update_result.if_not_error <|
+        table_name
 
 ## PRIVATE
    A helper that can upload a table from any backend to a database.
    It should be run within a transaction and wrapped in `handle_upload_errors`.
-internal_upload_table source_table connection table_name primary_key temporary on_problems =
+internal_upload_table source_table connection table_name primary_key temporary on_problems=Problem_Behavior.Report_Error row_limit=Nothing =
     case source_table of
         _ : In_Memory_Table ->
-            internal_upload_in_memory_table source_table connection table_name primary_key temporary on_problems
+            internal_upload_in_memory_table source_table connection table_name primary_key temporary on_problems row_limit
         _ : Database_Table ->
-            internal_upload_database_table source_table connection table_name primary_key temporary on_problems
+            internal_upload_database_table source_table connection table_name primary_key temporary on_problems row_limit
         _ ->
             Panic.throw <| Illegal_Argument.Error ("Unsupported table type: " + Meta.get_qualified_type_name source_table)
 
 ## PRIVATE
-upload_in_memory_table source_table connection table_name primary_key temporary on_problems =
-    Panic.recover SQL_Error <| handle_upload_errors <|
-        connection.jdbc_connection.run_within_transaction <|
-            internal_upload_in_memory_table source_table connection table_name primary_key temporary on_problems
+select_into_table_implementation source_table connection table_name primary_key temporary on_problems =
+    connection.base_connection.maybe_run_maintenance
+    real_target_already_exists = connection.base_connection.table_exists table_name
+    if real_target_already_exists then Error.throw (Table_Already_Exists.Error table_name) else
+        Panic.recover SQL_Error <| handle_upload_errors <|
+            dry_run = Context.Output.is_enabled.not
+            connection.jdbc_connection.run_within_transaction <| case dry_run of
+                False ->
+                    internal_upload_table source_table connection table_name primary_key temporary on_problems=on_problems row_limit=Nothing
+                True ->
+                    tmp_table_name = connection.base_connection.generate_dry_run_table_name table_name
+                    table = Context.Output.with_enabled <|
+                        ## This temporary table can be safely dropped if it
+                           exists, because it only existed if it was created by
+                           a previous dry run. `generate_dry_run_table_name`
+                           will never return a name of a table that exists but
+                           was created outside of a dry run.
+                        connection.drop_table tmp_table_name if_exists=True
+                        internal_upload_table source_table connection tmp_table_name primary_key temporary on_problems=on_problems row_limit=dry_run_row_limit
+                    temporary_table = connection.base_connection.internal_allocate_dry_run_table table.name
+                    warning = Dry_Run_Operation.Warning "Only a dry run of `select_into_database_table` was performed - a temporary table ("+tmp_table_name+") was created, containing a sample of the data."
+                    Warning.attach warning temporary_table
 
 ## PRIVATE
    It should be run within a transaction and wrapped in `handle_upload_errors`.
-internal_upload_in_memory_table source_table connection table_name primary_key temporary on_problems =
+internal_upload_in_memory_table source_table connection table_name primary_key temporary on_problems row_limit =
     In_Transaction.ensure_in_transaction <|
-        created_table_name = create_table_structure connection table_name structure=source_table primary_key=primary_key temporary=temporary allow_existing=False on_problems=on_problems
+        created_table_name = internal_create_table_structure connection table_name structure=source_table primary_key=primary_key temporary=temporary on_problems=on_problems
         column_names = source_table.column_names
 
         ## `created_table_name.if_not_error` is used to ensure that if there are
@@ -72,34 +117,33 @@ internal_upload_in_memory_table source_table connection table_name primary_key t
             internal_translate_known_upload_errors source_table connection primary_key <|
                 insert_template = make_batched_insert_template connection created_table_name column_names
                 statement_setter = connection.dialect.get_statement_setter
-                Panic.rethrow <| connection.jdbc_connection.batch_insert insert_template statement_setter source_table default_batch_size
+                Panic.rethrow <|
+                    connection.jdbc_connection.batch_insert insert_template statement_setter source_table batch_size=default_batch_size row_limit=row_limit
 
         upload_status.if_not_error <|
             connection.query (SQL_Query.Table_Name created_table_name)
 
 ## PRIVATE
-upload_database_table source_table connection table_name primary_key temporary on_problems =
-    Panic.recover SQL_Error <| handle_upload_errors <|
-        connection.jdbc_connection.run_within_transaction <|
-            internal_upload_database_table source_table connection table_name primary_key temporary on_problems
-
-## PRIVATE
    It should be run within a transaction and wrapped in `handle_upload_errors`.
-internal_upload_database_table source_table connection table_name primary_key temporary on_problems =
+internal_upload_database_table source_table connection table_name primary_key temporary on_problems row_limit =
     In_Transaction.ensure_in_transaction <|
         connection_check = if source_table.connection.jdbc_connection == connection.jdbc_connection then True else
             Error.throw (Unsupported_Database_Operation.Error "The Database table to be uploaded must be coming from the same connection as the connection on which the new table is being created. Cross-connection uploads are currently not supported. To work around this, you can first `.read` the table into memory and then upload it from memory to a different connection.")
 
         connection_check.if_not_error <|
-            created_table_name = create_table_structure connection table_name structure=source_table primary_key=primary_key temporary=temporary allow_existing=False on_problems=on_problems
+            # Warning: in some DBs, calling a DDL query in a transaction may commit it. We may have to have some special handling for this.
+            created_table_name = internal_create_table_structure connection table_name structure=source_table primary_key=primary_key temporary=temporary on_problems=on_problems
             upload_status = created_table_name.if_not_error <|
                 internal_translate_known_upload_errors source_table connection primary_key <|
+                    effective_source_table = case row_limit of
+                        Nothing -> source_table
+                        _ : Integer -> source_table.limit row_limit
                     ## We need to ensure that the columns in this statement are
                        matching positionally the columns in the newly created
                        table. But we create both from the same source table, so
                        that is guaranteed.
                     copy_into_statement = connection.dialect.generate_sql <|
-                        Query.Insert_From_Select created_table_name source_table.column_names source_table.to_select_query
+                        Query.Insert_From_Select created_table_name effective_source_table.column_names effective_source_table.to_select_query
                     Panic.rethrow <| connection.execute_update copy_into_statement
 
             upload_status.if_not_error <|
@@ -113,7 +157,7 @@ resolve_primary_key structure primary_key = case primary_key of
     _ : Vector -> if primary_key.is_empty then Nothing else
         validated = primary_key.map key->
             if key.is_a Text then key else
-                Error.throw (Illegal_Argument.Error "Primary key must be a vector of column names.")
+                Error.throw (Illegal_Argument.Error ("Primary key must be a vector of column names, instead got a " + (Meta.type_of key . to_display_text)))
         validated.if_not_error <|
             column_names = Set.from_vector (structure.map .name)
             missing_columns = (Set.from_vector primary_key).difference column_names
@@ -169,11 +213,28 @@ raise_duplicated_primary_key_error source_table primary_key original_panic =
 ## PRIVATE
 align_structure : Database_Table | In_Memory_Table | Vector Column_Description -> Vector Column_Description
 align_structure table_or_columns = case table_or_columns of
-    _ : Vector -> table_or_columns.map def->
-        if def.is_a Column_Description . not then Error.throw (Illegal_Argument.Error "The structure must be an existing Table or vector of Column_Description.") else
-            def
-    _ -> table_or_columns.columns.map column->
+    vector : Vector -> if vector.is_empty then Error.throw (Illegal_Argument.Error "A table with no columns cannot be created. The `structure` must consist of at list one column description.") else
+        vector.map def-> case def of
+            _ : Column_Description -> def
+            _ : Function ->
+                Error.throw (Illegal_Argument.Error "The structure should be a vector of Column_Description. Maybe some arguments of Column_Description are missing?")
+            _ ->
+                Error.throw (Illegal_Argument.Error "The structure must be an existing Table or vector of Column_Description.")
+    table : Database_Table  -> structure_from_existing_table table
+    table : In_Memory_Table -> structure_from_existing_table table
+
+## PRIVATE
+structure_from_existing_table table =
+    table.columns.map column->
         Column_Description.Value column.name column.value_type
+
+## PRIVATE
+   Returns the name of the first column in the provided table structure.
+   It also verifies that the structure is correct.
+   Used to provide the default value for `primary_key` in `create_table`.
+first_column_name_in_structure structure =
+    aligned = align_structure structure
+    aligned.first.name
 
 ## PRIVATE
    Creates a statement that will create a table with structure determined by the
@@ -193,13 +254,6 @@ prepare_create_table_statement connection table_name columns primary_key tempora
         Query.Create_Table table_name column_descriptors primary_key temporary
 
 ## PRIVATE
-   Generates a random table name if it was nothing, if it is allowed (temporary=True).
-resolve_effective_table_name table_name temporary = case table_name of
-    Nothing -> if temporary then "temporary-table-"+random_uuid else
-        Error.throw (Illegal_Argument.Error "A name must be provided when creating a non-temporary table.")
-    _ : Text -> table_name
-
-## PRIVATE
    The recommended batch size seems to be between 50 and 100.
    See: https://docs.oracle.com/cd/E18283_01/java.112/e16548/oraperf.htm#:~:text=batch%20sizes%20in%20the%20general%20range%20of%2050%20to%20100
 default_batch_size = 100
@@ -214,62 +268,78 @@ make_batched_insert_template connection table_name column_names =
     template
 
 ## PRIVATE
-common_update_table source_table connection table_name update_action key_columns error_on_missing_columns on_problems =
-    Panic.recover SQL_Error <| handle_upload_errors <|
-        connection.jdbc_connection.run_within_transaction <|
-            target_table = connection.query (SQL_Query.Table_Name table_name)
-            # We catch the `Table_Not_Found` error and handle it specially, if the error was different, it will just get passed through further.
-            handle_error = target_table.catch Table_Not_Found error->
-                # Rethrow the error with more info.
-                msg_suffix = " Use `Connection.create_table` to create a table before trying to append to it."
-                new_error = error.with_changed_extra_message msg_suffix
-                Error.throw new_error
-            if target_table.is_error then handle_error else
-                tmp_table_name = "temporary-source-table-"+random_uuid
-                tmp_table = internal_upload_table source_table connection tmp_table_name primary_key=key_columns temporary=True on_problems=Problem_Behavior.Report_Error
-                tmp_table.if_not_error <|
-                    resulting_table = append_to_existing_table tmp_table target_table update_action key_columns error_on_missing_columns on_problems
-                    connection.drop_table tmp_table.name
-                    resulting_table
+common_update_table (source_table : In_Memory_Table | Database_Table) (target_table : In_Memory_Table | Database_Table) update_action key_columns error_on_missing_columns on_problems =
+    check_target_table_for_update target_table <|
+        connection = target_table.connection
+        Panic.recover SQL_Error <| handle_upload_errors <|
+            connection.jdbc_connection.run_within_transaction <|
+                effective_key_columns = if key_columns.is_nothing then [] else key_columns
+                check_update_arguments_structure_match source_table target_table effective_key_columns update_action error_on_missing_columns on_problems <|
+                    tmp_table_name = connection.base_connection.generate_random_table_name "enso-temp-source-table-"
+                    dry_run = Context.Output.is_enabled.not
+                    row_limit = if dry_run then dry_run_row_limit else Nothing
+                    Context.Output.with_enabled <|
+                        tmp_table = internal_upload_table source_table connection tmp_table_name primary_key=effective_key_columns temporary=True on_problems=Problem_Behavior.Report_Error row_limit=row_limit
+                        tmp_table.if_not_error <|
+                            resulting_table = append_to_existing_table tmp_table target_table update_action effective_key_columns dry_run=dry_run
+                            ## We don't need to drop the table if append panics, because
+                               all of this happens within a transaction, so in case the
+                               above fails, the whole transaction will be rolled back.
+                            connection.drop_table tmp_table.name
+                            if dry_run.not then resulting_table else
+                                warning = Dry_Run_Operation.Warning "Only a dry run of `update_database_table` was performed - the target table has been returned unchanged."
+                                Warning.attach warning resulting_table
+
+## PRIVATE
+check_target_table_for_update target_table ~action = case target_table of
+    _ : In_Memory_Table -> Error.throw (Illegal_Argument.Error "The target table must be a Database table.")
+    _ : Database_Table -> if target_table.is_trivial_query . not then Error.throw (Illegal_Argument.Error "The target table must be a simple table reference, like returned by `Connection.query`, without any changes like joins, aggregations or even column modifications.") else
+        action
 
 ## PRIVATE
    Assumes that `source_table` is a simple table query without any filters,
    joins and other composite operations - if a complex query is needed, it
    should be first materialized into a temporary table.
-append_to_existing_table source_table target_table update_action key_columns error_on_missing_columns on_problems = In_Transaction.ensure_in_transaction <|
-    effective_key_columns = if key_columns.is_nothing then [] else key_columns
-    check_update_arguments source_table target_table effective_key_columns update_action error_on_missing_columns on_problems <|
-        helper = Append_Helper.Context source_table target_table effective_key_columns
-        upload_status = case update_action of
-            Update_Action.Insert ->
-                helper.check_already_existing_rows <|
-                    helper.insert_rows source_table
-            Update_Action.Update ->
-                helper.check_rows_unmatched_in_target <|
-                    helper.check_multiple_target_rows_match <|
-                        helper.update_common_rows
-            Update_Action.Update_Or_Insert ->
+
+   If `dry_run` is set to True, only the checks are performed, but the
+   operations actually modifying the target table are not.
+append_to_existing_table source_table target_table update_action key_columns dry_run = In_Transaction.ensure_in_transaction <|
+    helper = Append_Helper.Context source_table target_table key_columns dry_run
+    upload_status = case update_action of
+        Update_Action.Insert ->
+            helper.check_already_existing_rows <|
+                helper.insert_rows source_table
+        Update_Action.Update ->
+            helper.check_rows_unmatched_in_target <|
                 helper.check_multiple_target_rows_match <|
                     helper.update_common_rows
-                    helper.insert_rows helper.new_source_rows
-            Update_Action.Align_Records ->
-                helper.check_multiple_target_rows_match <|
-                    helper.update_common_rows
-                    helper.insert_rows helper.new_source_rows
-                    helper.delete_unmatched_target_rows
-        upload_status.if_not_error target_table
+        Update_Action.Update_Or_Insert ->
+            helper.check_multiple_target_rows_match <|
+                helper.update_common_rows
+                helper.insert_rows helper.new_source_rows
+        Update_Action.Align_Records ->
+            helper.check_multiple_target_rows_match <|
+                helper.update_common_rows
+                helper.insert_rows helper.new_source_rows
+                helper.delete_unmatched_target_rows
+    upload_status.if_not_error target_table
 
 ## PRIVATE
 type Append_Helper
     ## PRIVATE
-    Context source_table target_table key_columns
+    Context source_table target_table key_columns dry_run
 
     ## PRIVATE
     connection self = self.target_table.connection
 
     ## PRIVATE
+       Runs the action only if running in normal mode.
+       In dry run mode, it will just return `Nothing`.
+    if_not_dry_run self ~action = if self.dry_run then Nothing else action
+
+    ## PRIVATE
        The update only affects matched rows, unmatched rows are ignored.
-    update_common_rows self =
+    update_common_rows self = self.if_not_dry_run <|
         update_statement = self.connection.dialect.generate_sql <|
             Query.Update_From_Table self.target_table.name self.source_table.name self.source_table.column_names self.key_columns
         Panic.rethrow <| self.connection.execute_update update_statement
@@ -280,22 +350,22 @@ type Append_Helper
        Behaviour is ill-defined if any of the rows already exist in the target.
        If only new rows are supposed to be inserted, they have to be filtered
        before inserting.
-    insert_rows self table_to_insert =
+    insert_rows self table_to_insert = self.if_not_dry_run <|
         insert_statement = self.connection.dialect.generate_sql <|
             Query.Insert_From_Select self.target_table.name table_to_insert.column_names table_to_insert.to_select_query
         Panic.rethrow <| self.connection.execute_update insert_statement
 
     ## PRIVATE
-       Finds rows that are present in the source but not in the target.
-    new_source_rows self =
-        self.source_table.join self.target_table on=self.key_columns join_kind=Join_Kind.Left_Exclusive
-
-    ## PRIVATE
        Deletes rows from target table that were not present in the source.
-    delete_unmatched_target_rows self =
+    delete_unmatched_target_rows self = self.if_not_dry_run <|
         delete_statement = self.connection.dialect.generate_sql <|
             Query.Delete_Unmatched_Rows self.target_table.name self.source_table.name self.key_columns
         Panic.rethrow <| self.connection.execute_update delete_statement
+
+    ## PRIVATE
+       Finds rows that are present in the source but not in the target.
+    new_source_rows self =
+        self.source_table.join self.target_table on=self.key_columns join_kind=Join_Kind.Left_Exclusive
 
     ## PRIVATE
        Checks if any rows from the source table already exist in the target, and
@@ -342,7 +412,7 @@ type Append_Helper
    - all columns in `source_table` have a corresponding column in `target_table`
      (with the same name),
    - all `key_columns` are present in both source and target tables.
-check_update_arguments source_table target_table key_columns update_action error_on_missing_columns on_problems ~action =
+check_update_arguments_structure_match source_table target_table key_columns update_action error_on_missing_columns on_problems ~action =
     check_source_column source_column =
         # The column must exist because it was verified earlier.
         target_column = target_table.get source_column.name
@@ -370,10 +440,11 @@ check_update_arguments source_table target_table key_columns update_action error
                             on_problems.attach_problems_before problems action
 
 ## PRIVATE
-default_key_columns connection table_name =
-    keys = get_primary_key connection table_name
-    keys.catch Any _->
-        Error.throw (Illegal_Argument.Error "Could not determine the primary key for table "+table_name+". Please provide it explicitly.")
+default_key_columns (table : Database_Table | In_Memory_Table) =
+    check_target_table_for_update table <|
+        keys = get_primary_key table
+        keys.catch Any _->
+            Error.throw (Illegal_Argument.Error "Could not determine the primary key for table "+table.name+". Please provide it explicitly.")
 
 ## PRIVATE
 
@@ -390,13 +461,32 @@ default_key_columns connection table_name =
      UNION both `sqlite_schema` and `temp.sqlite_schema` tables to get results
      for both temporary and permanent tables.
 
-     TODO [RW] fix keys for SQLite temporary tables and test it
-get_primary_key connection table_name =
-    connection.query (SQL_Query.Table_Name table_name) . if_not_error <|
-        connection.jdbc_connection.with_connection java_connection->
-            rs = java_connection.getMetaData.getPrimaryKeys Nothing Nothing table_name
-            keys_table = result_set_to_table rs connection.dialect.make_column_fetcher_for_type
-            # The names of the columns are sometimes lowercase and sometimes uppercase, so we do a case insensitive select first.
-            selected = keys_table.select_columns [Column_Selector.By_Name "COLUMN_NAME", Column_Selector.By_Name "KEY_SEQ"] reorder=True
-            key_column_names = selected.order_by 1 . at 0 . to_vector
-            if key_column_names.is_empty then Nothing else key_column_names
+     TODO [RW] fix keys for SQLite temporary tables #7037
+get_primary_key table =
+    connection = table.connection
+    connection.jdbc_connection.with_metadata metadata->
+        rs = metadata.getPrimaryKeys Nothing Nothing table.name
+        keys_table = result_set_to_table rs connection.dialect.make_column_fetcher_for_type
+        # The names of the columns are sometimes lowercase and sometimes uppercase, so we do a case insensitive select first.
+        selected = keys_table.select_columns [Column_Selector.By_Name "COLUMN_NAME", Column_Selector.By_Name "KEY_SEQ"] reorder=True
+        key_column_names = selected.order_by 1 . at 0 . to_vector
+        if key_column_names.is_empty then Nothing else key_column_names
+
+## PRIVATE
+dry_run_row_limit = 1000
+
+## PRIVATE
+   Verifies that the used driver supports transactional DDL statements.
+
+   Currently, all our drivers should support them. This check is added, so that
+   when we are adding a new drivers, we don't forget to check if it supports
+   transactional DDL statements - if it does not - we will need to add some
+   additional logic to our code.
+
+   It is a panic, because it is never expected to happen in user code - if it
+   happens, it is a bug in our code.
+check_transaction_ddl_support connection =
+    supports_ddl = connection.jdbc_connection.with_metadata metadata->
+        metadata.supportsDataDefinitionAndDataManipulationTransactions
+    if supports_ddl.not then
+        Panic.throw (Illegal_State.Error "The connection "+connection.to_text+" does not support transactional DDL statements. Our current implementation of table updates relies on transactional DDL. To support this driver, the logic needs to be amended.")

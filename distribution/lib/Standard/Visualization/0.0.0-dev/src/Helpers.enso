@@ -6,8 +6,8 @@ from Standard.Table import Table, Column
 import Standard.Table.Data.Row.Row
 
 import project.Id.Id
-from project.Text import get_lazy_visualisation_text_window
-import project.Table as Table_Visualisation
+from project.Text import get_lazy_visualization_text_window
+import project.Table as Table_Visualization
 
 ## PRIVATE
    Specifies that the builtin JSON visualization should be used for any type,
@@ -220,37 +220,37 @@ Column.is_numeric self =
     self.value_type.is_numeric
 
 ## PRIVATE
-   Returns the data requested to render a lazy view of the default visualisation. Decides
+   Returns the data requested to render a lazy view of the default visualization. Decides
    whether to return a simplified version of the lazy data format.
-make_lazy_visualisation_data : Text -> Vector Integer -> Vector Integer -> Integer -> Text
-make_lazy_visualisation_data text text_window_position text_window_size chunk_size =
+make_lazy_visualization_data : Text -> Vector Integer -> Vector Integer -> Integer -> Text
+make_lazy_visualization_data text text_window_position text_window_size chunk_size =
     min_length_for_laziness = chunk_size * (text_window_size.first) * (text_window_size.second)
     if text.length < min_length_for_laziness then text else
-        get_lazy_visualisation_text_window text text_window_position text_window_size chunk_size
+        get_lazy_visualization_text_window text text_window_position text_window_size chunk_size
 
 ## PRIVATE
-   Returns the data requested to render a lazy view of the default visualisation.
+   Returns the data requested to render a lazy view of the default visualization.
 Any.to_lazy_visualization_data : Vector Integer -> Vector Integer -> Integer -> Text
 Any.to_lazy_visualization_data self text_window_position text_window_size chunk_size =
     ## Workaround so that the JS String is converted to a Text
        https://www.pivotaltracker.com/story/show/184061302
-    "" + make_lazy_visualisation_data self.to_default_visualization_data text_window_position text_window_size chunk_size
+    "" + make_lazy_visualization_data self.to_default_visualization_data text_window_position text_window_size chunk_size
 
 ## PRIVATE
-   Returns the data requested to render a lazy view of the default visualisation.
+   Returns the data requested to render a lazy view of the default visualization.
 Text.to_default_visualization_data : Text
 Text.to_default_visualization_data self =
     self.to_lazy_visualization_data [0,0] [10,10] 20
 
 ## PRIVATE
-   Returns the data requested to render a lazy view of the default visualisation.
+   Returns the data requested to render a lazy view of the default visualization.
 Text.to_lazy_visualization_data : Vector Integer -> Vector Integer -> Integer -> Text
 Text.to_lazy_visualization_data self text_window_position text_window_size chunk_size =
     min_length_for_laziness = chunk_size * (text_window_size.first) * (text_window_size.second)
     if self.length < min_length_for_laziness then "" + self.to_json else
         ## Workaround so that the JS String is converted to a Text
                https://www.pivotaltracker.com/story/show/184061302
-        "" + get_lazy_visualisation_text_window self text_window_position text_window_size chunk_size
+        "" + get_lazy_visualization_text_window self text_window_position text_window_size chunk_size
 
 ## PRIVATE
    Shows a JSON serialization of a truncated version of this column, for the
@@ -279,7 +279,7 @@ Row.to_default_visualization_data self =
     self.to_vector.to_default_visualization_data
 
 ## PRIVATE
-   Returns the data requested to render a lazy view of the default visualisation.
+   Returns the data requested to render a lazy view of the default visualization.
 Table.to_lazy_visualization_data : Vector Integer ->  Vector Integer -> Vector Integer -> Integer -> Text
 Table.to_lazy_visualization_data self table_cell_position text_window_position text_window_size chunk_size =
-    Table_Visualisation.get_lazy_visualisation_data self table_cell_position text_window_position text_window_size chunk_size
+    Table_Visualization.get_lazy_visualization_data self table_cell_position text_window_position text_window_size chunk_size

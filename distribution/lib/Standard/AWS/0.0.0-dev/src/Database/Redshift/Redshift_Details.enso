@@ -42,7 +42,7 @@ type Redshift_Details
             java_props.setProperty pair.first pair.second
 
         jdbc_connection = JDBC_Connection.create self.jdbc_url properties
-        Connection.Value jdbc_connection Redshift_Dialect.redshift
+        Connection.new jdbc_connection Redshift_Dialect.redshift
 
     ## PRIVATE
        Provides the jdbc url for the connection.

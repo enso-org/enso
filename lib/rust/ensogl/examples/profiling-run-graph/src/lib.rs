@@ -1,6 +1,6 @@
 //! Demo scene showing a sample flame graph. Can be used to display a log file, if you have one.
 //! To do so, set a query parameter in the url to contain `file=<name _of_log_file>` and it
-//! will be used for rendering the visualisation. Note that the log file needs to be located in
+//! will be used for rendering the visualization. Note that the log file needs to be located in
 //! the assets subdirectory that is served by the webserver, i.e. `enso/dist/content` or
 //! `app/ide-desktop/lib/content/assets`. If no name is given a file named `profile.json` will
 //! be loaded by default. If that file is not present, some dummy data will be displayed.

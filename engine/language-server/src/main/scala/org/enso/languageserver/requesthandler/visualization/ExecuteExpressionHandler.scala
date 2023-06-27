@@ -1,11 +1,11 @@
-package org.enso.languageserver.requesthandler.visualisation
+package org.enso.languageserver.requesthandler.visualization
 
 import akka.actor.{Actor, ActorRef, Cancellable, Props}
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.jsonrpc._
 import org.enso.languageserver.data.ClientId
 import org.enso.languageserver.requesthandler.RequestTimeout
-import org.enso.languageserver.runtime.VisualisationApi.ExecuteExpression
+import org.enso.languageserver.runtime.VisualizationApi.ExecuteExpression
 import org.enso.languageserver.runtime.{
   ContextRegistryProtocol,
   RuntimeFailureMapper
@@ -40,9 +40,9 @@ class ExecuteExpressionHandler(
         ) =>
       contextRegistry ! ContextRegistryProtocol.ExecuteExpression(
         clientId,
-        params.visualisationId,
+        params.visualizationId,
         params.expressionId,
-        params.visualisationConfig
+        params.visualizationConfig
       )
       val cancellable =
         context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
@@ -59,7 +59,7 @@ class ExecuteExpressionHandler(
       replyTo ! ResponseError(Some(id), Errors.RequestTimeout)
       context.stop(self)
 
-    case ContextRegistryProtocol.VisualisationAttached =>
+    case ContextRegistryProtocol.VisualizationAttached =>
       replyTo ! ResponseResult(ExecuteExpression, id, Unused)
       cancellable.cancel()
       context.stop(self)

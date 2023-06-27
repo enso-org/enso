@@ -264,16 +264,16 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
       new ExpressionValue(
       nodeId, result, resultType, cachedType, call, cachedCall, profilingInfo, false);
       syncState.setExpressionUnsync(nodeId);
-      syncState.setVisualisationUnsync(nodeId);
+      syncState.setVisualizationUnsync(nodeId);
 
       // Panics are not cached because a panic can be fixed by changing seemingly unrelated code,
       // like imports, and the invalidation mechanism can not always track those changes and
       // appropriately invalidate all dependent expressions.
       if (!isPanic) {
         cache.offer(nodeId, result);
+        cache.putCall(nodeId, call);
       }
       cache.putType(nodeId, resultType);
-      cache.putCall(nodeId, call);
 
       passExpressionValueToCallback(expressionValue);
       if (isPanic) {

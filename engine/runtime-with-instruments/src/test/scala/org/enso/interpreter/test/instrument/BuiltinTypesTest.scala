@@ -411,13 +411,13 @@ class BuiltinTypesTest
     val requestId = UUID.randomUUID()
 
     val metadata = new Metadata
-    val idMain   = metadata.addItem(43, 18)
+    val idMain   = metadata.addItem(48, 25)
 
     val code =
       """import Standard.Base.Data.Time.Date
         |
         |main =
-        |    Date.new 2000
+        |    Date.new_builtin 2000 1 1
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
 

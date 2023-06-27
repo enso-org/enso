@@ -506,3 +506,38 @@ Any.should_contain self element frames_to_skip=0 =
 Error.should_contain : Any -> Integer -> Test_Result
 Error.should_contain self _ frames_to_skip=0 =
     Test.fail_match_on_unexpected_error self 1+frames_to_skip
+
+## Asserts that `self` value does not contain an element.
+
+   Arguments:
+   - element: The element to check.
+   - frames_to_skip (optional, advanced): used to alter the location which is
+     displayed as the source of this error.
+
+   This method delegates to the `contains` method of `self` and will use the
+   rules of the particular type - be it a `Vector`, `Text` or any custom type
+   implementing a method `contains : a -> Boolean`.
+Any.should_not_contain : Any -> Integer -> Test_Result
+Any.should_not_contain self element frames_to_skip=0 =
+    loc = Meta.get_source_location 1+frames_to_skip
+    contains_result = Panic.catch No_Such_Method (self.contains element) caught_panic->
+        if caught_panic.payload.method_name != "contains" then Panic.throw caught_panic else
+            msg = "The value (" + self.to_text + ") does not support the method `contains` (at " + loc + ")."
+            Test.fail msg
+    if contains_result.not then Test_Result.Success else
+        msg = "The value (" + self.to_text + ") contained the element (" + element.to_text + "), but it was expected to not contain it (at " + loc + ")."
+        Test.fail msg
+
+## Asserts that `self` value does not contain an element.
+
+   Arguments:
+   - element: The element to check.
+   - frames_to_skip (optional, advanced): used to alter the location which is
+     displayed as the source of this error.
+
+   This method delegates to the `contains` method of `self` and will use the
+   rules of the particular type - be it a `Vector`, `Text` or any custom type
+   implementing a method `contains : a -> Boolean`.
+Error.should_not_contain : Any -> Integer -> Test_Result
+Error.should_not_contain self _ frames_to_skip=0 =
+    Test.fail_match_on_unexpected_error self 1+frames_to_skip

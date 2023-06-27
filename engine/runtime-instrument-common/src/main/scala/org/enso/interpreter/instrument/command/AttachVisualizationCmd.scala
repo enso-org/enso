@@ -1,20 +1,20 @@
 package org.enso.interpreter.instrument.command
 
 import org.enso.interpreter.instrument.execution.RuntimeContext
-import org.enso.interpreter.instrument.job.{ExecuteJob, UpsertVisualisationJob}
+import org.enso.interpreter.instrument.job.{ExecuteJob, UpsertVisualizationJob}
 import org.enso.polyglot.runtime.Runtime.Api
 
 import java.util.logging.Level
 import scala.concurrent.{ExecutionContext, Future}
 
-/** A command that attaches a visualisation to an expression.
+/** A command that attaches a visualization to an expression.
   *
   * @param maybeRequestId an option with request id
   * @param request a request for a service
   */
-class AttachVisualisationCmd(
+class AttachVisualizationCmd(
   maybeRequestId: Option[Api.RequestId],
-  request: Api.AttachVisualisation
+  request: Api.AttachVisualization
 ) extends AsynchronousCommand(maybeRequestId) {
 
   /** @inheritdoc */
@@ -23,11 +23,11 @@ class AttachVisualisationCmd(
     ec: ExecutionContext
   ): Future[Unit] = {
     val logger        = ctx.executionService.getLogger
-    val contextId     = request.visualisationConfig.executionContextId
+    val contextId     = request.visualizationConfig.executionContextId
     val lockTimestamp = ctx.locking.acquireContextLock(contextId)
     try {
       if (doesContextExist) {
-        attachVisualisation()
+        attachVisualization()
       } else {
         replyWithContextNotExistError()
       }
@@ -35,31 +35,31 @@ class AttachVisualisationCmd(
       ctx.locking.releaseContextLock(contextId)
       logger.log(
         Level.FINEST,
-        s"Kept context lock [AttachVisualisationCmd] for ${System.currentTimeMillis() - lockTimestamp} milliseconds"
+        s"Kept context lock [AttachVisualizationCmd] for ${System.currentTimeMillis() - lockTimestamp} milliseconds"
       )
     }
   }
 
   private def doesContextExist(implicit ctx: RuntimeContext): Boolean = {
     ctx.contextManager.contains(
-      request.visualisationConfig.executionContextId
+      request.visualizationConfig.executionContextId
     )
   }
 
-  private def attachVisualisation()(implicit
+  private def attachVisualization()(implicit
     ctx: RuntimeContext,
     ec: ExecutionContext
   ): Future[Unit] = {
     ctx.endpoint.sendToClient(
-      Api.Response(maybeRequestId, Api.VisualisationAttached())
+      Api.Response(maybeRequestId, Api.VisualizationAttached())
     )
     val maybeFutureExecutable =
       ctx.jobProcessor.run(
-        new UpsertVisualisationJob(
+        new UpsertVisualizationJob(
           maybeRequestId,
-          request.visualisationId,
+          request.visualizationId,
           request.expressionId,
-          request.visualisationConfig
+          request.visualizationConfig
         )
       )
 
@@ -75,13 +75,13 @@ class AttachVisualisationCmd(
   ): Future[Unit] = {
     Future {
       reply(
-        Api.ContextNotExistError(request.visualisationConfig.executionContextId)
+        Api.ContextNotExistError(request.visualizationConfig.executionContextId)
       )
     }
   }
 
   override def toString: String = {
-    "AttachVisualizationCmd(visualizationId: " + request.visualisationId + ",expressionId=" + request.expressionId + ")"
+    "AttachVisualizationCmd(visualizationId: " + request.visualizationId + ",expressionId=" + request.expressionId + ")"
   }
 
 }

@@ -4,19 +4,19 @@ import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.polyglot.runtime.Runtime.Api.{
   ContextId,
   ExpressionId,
-  VisualisationId
+  VisualizationId
 }
 
 import java.util.logging.Level
 
-/** A job that detaches a visualisation.
+/** A job that detaches a visualization.
   *
-  * @param visualisationId an identifier of visualisation
+  * @param visualizationId an identifier of visualization
   * @param expressionId an identifier of expression
   * @param contextId an execution context id
   */
-class DetachVisualisationJob(
-  visualisationId: VisualisationId,
+class DetachVisualizationJob(
+  visualizationId: VisualizationId,
   expressionId: ExpressionId,
   contextId: ContextId
 ) extends UniqueJob[Unit](expressionId, List(contextId), false) {
@@ -26,16 +26,16 @@ class DetachVisualisationJob(
     val logger        = ctx.executionService.getLogger
     val lockTimestamp = ctx.locking.acquireContextLock(contextId)
     try {
-      ctx.contextManager.removeVisualisation(
+      ctx.contextManager.removeVisualization(
         contextId,
         expressionId,
-        visualisationId
+        visualizationId
       )
     } finally {
       ctx.locking.releaseContextLock(contextId)
       logger.log(
         Level.FINEST,
-        s"Kept context lock [DetachVisualisationJob] for ${System.currentTimeMillis() - lockTimestamp} milliseconds"
+        s"Kept context lock [DetachVisualizationJob] for ${System.currentTimeMillis() - lockTimestamp} milliseconds"
       )
     }
   }
