@@ -453,7 +453,7 @@ interface VisualizationConfiguration {
   executionContextId: UUID;
 
   /**
-   * A qualified name of the module containing the value to be visualized.
+   * A qualified name of the module to be used to evaluate the arguments for the visualization expression.
    */
   visualizationModule: String;
 
