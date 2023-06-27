@@ -12,15 +12,15 @@ import java.util.UUID
   *
   * @param executionContextId an execution context of the visualization
   * @param expression an expression that creates a visualization
+  * @param visualizationModule the name of a module to execute expression at
+  * @param executionContextId an execution context of the visualization
+  * @param expression an expression that creates a visualization
   */
 case class VisualizationConfiguration(
   executionContextId: UUID,
-  expression: VisualizationExpression
+  expression: VisualizationExpression,
+  visualizationModule: String
 ) extends ToLogString {
-
-  /** A qualified module name containing the expression. */
-  def visualizationModule: String =
-    expression.module
 
   /** @inheritdoc */
   override def toLogString(shouldMask: Boolean): String =
@@ -31,8 +31,9 @@ case class VisualizationConfiguration(
   /** Convert to corresponding [[Api]] message. */
   def toApi: Api.VisualizationConfiguration =
     Api.VisualizationConfiguration(
-      executionContextId = executionContextId,
-      expression         = expression.toApi
+      executionContextId  = executionContextId,
+      expression          = expression.toApi,
+      visualizationModule = visualizationModule
     )
 
 }
@@ -52,7 +53,8 @@ object VisualizationConfiguration {
   ): VisualizationConfiguration =
     new VisualizationConfiguration(
       contextId,
-      VisualizationExpression.Text(module, expression)
+      VisualizationExpression.Text(module, expression),
+      module
     )
 
   /** Create a visualization configuration.
@@ -65,6 +67,7 @@ object VisualizationConfiguration {
     */
   def apply(
     contextId: UUID,
+    module: String,
     expression: MethodPointer,
     positionalArgumentsExpressions: Vector[String]
   ): VisualizationConfiguration =
@@ -73,7 +76,8 @@ object VisualizationConfiguration {
       VisualizationExpression.ModuleMethod(
         expression,
         positionalArgumentsExpressions
-      )
+      ),
+      module
     )
 
   private object CodecField {
@@ -99,11 +103,15 @@ object VisualizationConfiguration {
             expression <- cursor
               .downField(CodecField.Expression)
               .as[MethodPointer]
+            visualizationModule <- cursor
+              .downField(CodecField.VisualizationModule)
+              .as[String]
             arguments <- cursor
               .downField(CodecField.Arguments)
               .as[Option[Vector[String]]]
           } yield VisualizationConfiguration(
             contextId,
+            visualizationModule,
             expression,
             arguments.getOrElse(Vector())
           )

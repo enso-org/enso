@@ -358,7 +358,8 @@ class RuntimeVisualizationsTest
             Api.VisualizationExpression.Text(
               "Enso_Test.Test.Visualization",
               "x -> encode x"
-            )
+            ),
+            "Enso_Test.Test.Visualization"
           )
         )
       )
@@ -476,7 +477,8 @@ class RuntimeVisualizationsTest
             Api.VisualizationExpression.Text(
               "Enso_Test.Test.Visualization",
               "x -> encode x"
-            )
+            ),
+            "Enso_Test.Test.Visualization"
           )
         )
       )
@@ -611,7 +613,8 @@ class RuntimeVisualizationsTest
             Api.VisualizationExpression.Text(
               "Enso_Test.Test.Visualization",
               "x -> encode x"
-            )
+            ),
+            "Enso_Test.Test.Visualization"
           )
         )
       )
@@ -739,7 +742,8 @@ class RuntimeVisualizationsTest
             Api.VisualizationExpression.Text(
               "Enso_Test.Test.Visualization",
               "encode"
-            )
+            ),
+            "Enso_Test.Test.Visualization"
           )
         )
       )
@@ -867,7 +871,8 @@ class RuntimeVisualizationsTest
             Api.VisualizationExpression.Text(
               "Enso_Test.Test.Visualization",
               "encode"
-            )
+            ),
+            "Enso_Test.Test.Visualization"
           )
         )
       )
@@ -919,7 +924,8 @@ class RuntimeVisualizationsTest
             Api.VisualizationExpression.Text(
               "Enso_Test.Test.Visualization",
               "encode"
-            )
+            ),
+            "Enso_Test.Test.Visualization"
           )
         )
       )
@@ -1085,7 +1091,8 @@ class RuntimeVisualizationsTest
             Api.VisualizationExpression.Text(
               "Enso_Test.Test.Visualization",
               "x -> encode x"
-            )
+            ),
+            "Enso_Test.Test.Visualization"
           )
         )
       )
@@ -1123,7 +1130,8 @@ class RuntimeVisualizationsTest
             Api.VisualizationExpression.Text(
               "Enso_Test.Test.Visualization",
               "x -> incAndEncode x"
-            )
+            ),
+            "Enso_Test.Test.Visualization"
           )
         )
       )
@@ -1192,7 +1200,8 @@ class RuntimeVisualizationsTest
             Api.VisualizationExpression.Text(
               "Enso_Test.Test.Visualization",
               "x -> encode x"
-            )
+            ),
+            "Enso_Test.Test.Visualization"
           )
         )
       )
@@ -1356,7 +1365,8 @@ class RuntimeVisualizationsTest
             Api.VisualizationExpression.Text(
               "Enso_Test.Test.Visualization",
               "encode"
-            )
+            ),
+            "Enso_Test.Test.Visualization"
           )
         )
       )
@@ -1468,7 +1478,8 @@ class RuntimeVisualizationsTest
             Api.VisualizationExpression.Text(
               "Enso_Test.Test.Visualization",
               "x -> encode x"
-            )
+            ),
+            "Enso_Test.Test.Visualization"
           )
         )
       )
@@ -1506,7 +1517,8 @@ class RuntimeVisualizationsTest
             Api.VisualizationExpression.Text(
               "Enso_Test.Test.Visualization",
               "x -> incAndEncode x"
-            )
+            ),
+            "Enso_Test.Test.Visualization"
           )
         )
       )
@@ -1600,7 +1612,8 @@ class RuntimeVisualizationsTest
             Api.VisualizationExpression.Text(
               "Test.Undefined",
               "x -> x"
-            )
+            ),
+            "Test.Undefined"
           )
         )
       )
@@ -1666,7 +1679,8 @@ class RuntimeVisualizationsTest
             Api.VisualizationExpression.Text(
               "Standard.Visualization.Main",
               "x -> x.default_visualization.to_text"
-            )
+            ),
+            "Standard.Visualization.Main"
           )
         )
       )
@@ -1762,7 +1776,8 @@ class RuntimeVisualizationsTest
             Api.VisualizationExpression.Text(
               "Enso_Test.Test.Main",
               "Main.does_not_exist"
-            )
+            ),
+            "Enso_Test.Test.Main"
           )
         )
       )
@@ -1843,7 +1858,8 @@ class RuntimeVisualizationsTest
             Api.VisualizationExpression.Text(
               moduleName,
               "x -> x.visualise_me"
-            )
+            ),
+            moduleName
           )
         )
       )
@@ -1955,7 +1971,8 @@ class RuntimeVisualizationsTest
             Api.VisualizationExpression.Text(
               "Enso_Test.Test.Visualization",
               "inc_and_encode"
-            )
+            ),
+            "Enso_Test.Test.Visualization"
           )
         )
       )
@@ -2047,6 +2064,13 @@ class RuntimeVisualizationsTest
       TestMessages.error(
         contextId,
         idMain,
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Error",
+            "Standard.Base.Error.Error",
+            "throw"
+          )
+        ),
         Api.ExpressionUpdate.Payload.DataflowError(Seq(idMain))
       ),
       context.executionComplete(contextId)
@@ -2064,7 +2088,8 @@ class RuntimeVisualizationsTest
             Api.VisualizationExpression.Text(
               moduleName,
               "x -> x.catch_primitive _.to_text"
-            )
+            ),
+            moduleName
           )
         )
       )
@@ -2138,7 +2163,15 @@ class RuntimeVisualizationsTest
       TestMessages.panic(
         contextId,
         idMain,
-        Api.ExpressionUpdate.Payload.Panic("42 (Integer)", Seq(idMain))
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Panic",
+            "Standard.Base.Panic.Panic",
+            "throw"
+          )
+        ),
+        Api.ExpressionUpdate.Payload.Panic("42 (Integer)", Seq(idMain)),
+        Some("Standard.Base.Panic.Panic")
       ),
       context.executionComplete(contextId)
     )
@@ -2155,7 +2188,8 @@ class RuntimeVisualizationsTest
             Api.VisualizationExpression.Text(
               moduleName,
               "x -> Panic.catch_primitive x caught_panic-> caught_panic.payload.to_text"
-            )
+            ),
+            moduleName
           )
         )
       )
@@ -2167,9 +2201,15 @@ class RuntimeVisualizationsTest
       TestMessages.panic(
         contextId,
         idMain,
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Panic",
+            "Standard.Base.Panic.Panic",
+            "throw"
+          )
+        ),
         Api.ExpressionUpdate.Payload.Panic("42 (Integer)", Seq(idMain)),
-        builtin     = false,
-        typeChanged = false
+        builtin = false
       ),
       Api.Response(
         Api.VisualizationEvaluationFailed(
@@ -2253,6 +2293,13 @@ class RuntimeVisualizationsTest
       TestMessages.error(
         contextId,
         idMain,
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Error",
+            "Standard.Base.Error.Error",
+            "throw"
+          )
+        ),
         Api.ExpressionUpdate.Payload.DataflowError(Seq(idMain))
       ),
       context.executionComplete(contextId)
@@ -2274,7 +2321,8 @@ class RuntimeVisualizationsTest
                 visualizationFunction
               ),
               Vector()
-            )
+            ),
+            visualizationModule
           )
         )
       )
@@ -2375,7 +2423,8 @@ class RuntimeVisualizationsTest
                 visualizationFunction
               ),
               Vector()
-            )
+            ),
+            visualizationModule
           )
         )
       )
@@ -2472,7 +2521,8 @@ class RuntimeVisualizationsTest
                 "incAndEncode"
               ),
               Vector()
-            )
+            ),
+            "Enso_Test.Test.Visualization"
           )
         )
       )
@@ -2600,7 +2650,8 @@ class RuntimeVisualizationsTest
                 "incAndEncode"
               ),
               Vector("2", "3")
-            )
+            ),
+            "Enso_Test.Test.Visualization"
           )
         )
       )
@@ -2670,7 +2721,8 @@ class RuntimeVisualizationsTest
                 "incAndEncode"
               ),
               Vector("2", "4")
-            )
+            ),
+            "Enso_Test.Test.Visualization"
           )
         )
       )
@@ -2773,7 +2825,8 @@ class RuntimeVisualizationsTest
                 "incAndEncode"
               ),
               Vector()
-            )
+            ),
+            "Enso_Test.Test.Visualization"
           )
         )
       )
@@ -2935,7 +2988,8 @@ class RuntimeVisualizationsTest
             Api.VisualizationExpression.Text(
               "Enso_Test.Test.Main",
               "x -> x.to_text"
-            )
+            ),
+            "Enso_Test.Test.Main"
           )
         )
       )
@@ -3035,7 +3089,8 @@ class RuntimeVisualizationsTest
             Api.VisualizationExpression.Text(
               "Enso_Test.Test.Main",
               "x -> x.to_text"
-            )
+            ),
+            "Enso_Test.Test.Main"
           )
         )
       )
@@ -3163,7 +3218,8 @@ class RuntimeVisualizationsTest
             Api.VisualizationExpression.Text(
               "Enso_Test.Test.Main",
               "x -> x.to_text"
-            )
+            ),
+            "Enso_Test.Test.Main"
           )
         )
       )
@@ -3280,7 +3336,8 @@ class RuntimeVisualizationsTest
             Api.VisualizationExpression.Text(
               moduleName,
               "x -> x.to_text"
-            )
+            ),
+            moduleName
           )
         )
       )

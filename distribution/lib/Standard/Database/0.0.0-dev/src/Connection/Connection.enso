@@ -1,7 +1,11 @@
 from Standard.Base import all
+import Standard.Base.Errors.Common.Forbidden_Operation
+import Standard.Base.Errors.Common.Dry_Run_Operation
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
+import Standard.Base.Runtime.Context as Execution_Context
 import Standard.Base.Runtime.Managed_Resource.Managed_Resource
+import Standard.Base.Runtime.Ref.Ref
 
 import Standard.Base.Metadata.Widget
 from Standard.Base.Metadata.Widget import Single_Choice, Vector_Editor
@@ -12,6 +16,7 @@ import Standard.Table.Data.Table.Table as Materialized_Table
 import Standard.Table.Data.Type.Value_Type.Value_Type
 
 import project.Data.Column_Description.Column_Description
+import project.Data.Dialect.Dialect
 import project.Data.SQL_Query.SQL_Query
 import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
@@ -22,11 +27,12 @@ import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.Query.Query
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.Internal.Statement_Setter.Statement_Setter
+import project.Internal.Hidden_Table_Registry
 
 from project.Internal.Result_Set import read_column, result_set_to_table
-from project.Internal.JDBC_Connection import handle_sql_errors
+from project.Internal.JDBC_Connection import JDBC_Connection, handle_sql_errors
 from project.Errors import SQL_Error, Table_Not_Found, Table_Already_Exists
-from project.Internal.Upload_Table import create_table_structure
+from project.Internal.Upload_Table import create_table_implementation, first_column_name_in_structure
 
 polyglot java import java.lang.UnsupportedOperationException
 polyglot java import java.util.UUID
@@ -40,7 +46,27 @@ type Connection
        - jdbc_connection: the resource managing the underlying JDBC
          connection.
        - dialect: the dialect associated with the database we are connected to.
-    Value jdbc_connection dialect
+       - supports_large_update: whether the connection should try to use
+         `executeLargeUpdate`. Set to `True` by default and if the operation
+         fails with `UnsupportedOperationException`, it is updated to be
+         `False`.
+       - hidden_table_registry: a registry of hidden tables that are not
+         shown to the user, but are used internally by the dry-run system.
+    Value jdbc_connection dialect supports_large_update hidden_table_registry
+
+    ## PRIVATE
+       Constructs a new Connection.
+
+       Arguments:
+       - jdbc_connection: the resource managing the underlying JDBC
+         connection.
+       - dialect: the dialect associated with the database we are connected to.
+       - try_large_update: whether the connection should try to use
+         `executeLargeUpdate`.
+    new : JDBC_Connection -> Dialect -> Boolean -> Connection
+    new jdbc_connection dialect try_large_update=True =
+        registry = Hidden_Table_Registry.new
+        Connection.Value jdbc_connection dialect (Ref.new try_large_update) registry
 
     ## PRIVATE
        Closes the connection releasing the underlying database resources
@@ -125,17 +151,43 @@ type Connection
     @schema make_schema_selector
     tables : Text -> Text -> Text -> Vector Text | Text | Nothing -> Boolean -> Materialized_Table
     tables self name_like=Nothing database=self.database schema=Nothing types=self.dialect.default_table_types all_fields=False =
+        self.get_tables_advanced name_like=name_like database=database schema=schema types=types all_fields=all_fields include_hidden=False
+
+    ## PRIVATE
+       A helper that allows to access all tables in a database, including hidden
+       ones.
+
+       Later, once nodes can have expandable arguments, we can merge this with
+       `tables`, marking the `include_hidden` argument as expandable.
+    get_tables_advanced self name_like=Nothing database=self.database schema=Nothing types=self.dialect.default_table_types all_fields=False include_hidden=False =
+        self.maybe_run_maintenance
         types_vector = case types of
             Nothing -> Nothing
             _ : Vector -> types
             _ -> [types]
         name_map = Map.from_vector [["TABLE_CAT", "Database"], ["TABLE_SCHEM", "Schema"], ["TABLE_NAME", "Name"], ["TABLE_TYPE", "Type"], ["REMARKS", "Description"], ["TYPE_CAT", "Type Database"], ["TYPE_SCHEM", "Type Schema"], ["TYPE_NAME", "Type Name"]]
-        self.jdbc_connection.with_metadata metadata->
+        result = self.jdbc_connection.with_metadata metadata->
             table = Managed_Resource.bracket (metadata.getTables database schema name_like types_vector) .close result_set->
                 result_set_to_table result_set self.dialect.make_column_fetcher_for_type
             renamed = table.rename_columns name_map
             if all_fields then renamed else
                 renamed.select_columns ["Database", "Schema", "Name", "Type", "Description"]
+        case include_hidden of
+            True -> result
+            False ->
+                hidden_tables = self.hidden_table_registry.list_hidden_tables
+                result.filter "Name" (Filter_Condition.Not_In hidden_tables)
+
+    ## PRIVATE
+       Checks if the table with the given name exists in the database.
+    table_exists : Text -> Boolean
+    table_exists self table_name =
+        # We fetch tables whose name is like the requested `table_name`.
+        tables = self.get_tables_advanced name_like=table_name database=self.database schema=Nothing types=Nothing all_fields=False include_hidden=True
+        ## If the name contains special patterns, this may match more than the
+           desired table so instead of an `not_empty` check, we check if the
+           exact name is contained.
+        tables.at "Name" . to_vector . contains table_name
 
     ## PRIVATE
        Set up a query returning a Table object, which can be used to work with
@@ -159,7 +211,7 @@ type Connection
     query self query alias="" = case query of
         _ : Text ->
             result = self.query alias=alias <|
-                if (all_known_table_names self).contains query then (SQL_Query.Table_Name query) else
+                if self.table_exists query then (SQL_Query.Table_Name query) else
                     SQL_Query.Raw_SQL query
             result.catch SQL_Error sql_error->
                 case self.dialect.is_probably_a_query query of
@@ -173,14 +225,8 @@ type Connection
                 ctx = Context.for_query raw_sql name
                 Database_Table_Module.make_table self name columns ctx
         SQL_Query.Table_Name name ->
-            result = handle_sql_errors <|
-                ctx = Context.for_table name (if alias == "" then name else alias)
-                statement = self.dialect.generate_sql (Query.Select Nothing ctx)
-                statement_setter = self.dialect.get_statement_setter
-                columns = self.fetch_columns statement statement_setter
-                Database_Table_Module.make_table self name columns ctx
-            result.catch SQL_Error sql_error->
-                Error.throw (Table_Not_Found.Error name sql_error treated_as_query=False extra_message="")
+            make_table_for_name self name alias
+
 
     ## PRIVATE
        Execute the query and load the results into memory as a Table.
@@ -189,6 +235,14 @@ type Connection
        - query: name of the table or sql statement to query.
          If supplied as `Text`, the name is checked against the `tables` list to determine if it is a table or a query.
        - limit: the maximum number of rows to return.
+
+       ? Side Effects
+
+         Note that the `read` method is running without restrictions when the
+         output context is disabled, but it can technically cause side effects,
+         if it is provided with a DML query. Usually it is preferred to use
+         `execute_update` for DML queries, or if they are supposed to return
+         results, the `read` should be wrapped in an execution context check.
     @query make_table_name_selector
     read : Text | SQL_Query -> Integer | Nothing -> Materialized_Table ! Table_Not_Found
     read self query limit=Nothing =
@@ -199,9 +253,7 @@ type Connection
        the new table.
 
        Arguments:
-       - table_name: the name of the table to create. If not provided, a random
-         name will be generated for temporary tables. If `temporary=False`, then
-         a name must be provided.
+       - table_name: the name of the table to create.
        - structure: the structure of the table, provided as either an existing
          `Table` (no data will be copied) or a `Vector` of `Column_Description`.
        - primary_key: the names of the columns to use as the primary key. The
@@ -230,11 +282,17 @@ type Connection
            structure provided, `Missing_Input_Columns` error is raised.
          - An `SQL_Error` may be reported if there is a failure on the database
            side.
+
+       ? Dry Run if Output disabled
+
+         If performing output actions is disabled, only a dry run is performed
+         and no permanent changes occur. The operation will test for errors
+         (like missing columns) and if successful, return a temporary table with
+         a `Dry_Run_Operation` warning attached.
     @structure make_structure_creator
-    create_table : Text | Nothing -> Vector Column_Description | Database_Table | Materialized_Table -> Vector Text | Nothing -> Boolean -> Boolean -> Problem_Behavior -> Database_Table ! Table_Already_Exists
-    create_table self (table_name : Text | Nothing = Nothing) (structure : Vector Column_Description | Database_Table | Materialized_Table) (primary_key : (Vector Text | Nothing) = [first_column_in_structure structure]) (temporary : Boolean = False) (allow_existing : Boolean = False) (on_problems:Problem_Behavior = Problem_Behavior.Report_Warning) =
-        created_table_name = create_table_structure self table_name structure primary_key temporary allow_existing on_problems
-        self.query (SQL_Query.Table_Name created_table_name)
+    create_table : Text  -> Vector Column_Description | Database_Table | Materialized_Table -> Vector Text | Nothing -> Boolean -> Boolean -> Problem_Behavior -> Database_Table ! Table_Already_Exists
+    create_table self (table_name : Text) (structure : Vector Column_Description | Database_Table | Materialized_Table) (primary_key : (Vector Text | Nothing) = [first_column_name_in_structure structure]) (temporary : Boolean = False) (allow_existing : Boolean = False) (on_problems:Problem_Behavior = Problem_Behavior.Report_Warning) =
+        create_table_implementation self table_name structure primary_key temporary allow_existing on_problems
 
     ## PRIVATE
        Internal read function for a statement with optional types.
@@ -274,15 +332,123 @@ type Connection
          representing the query to execute.
     execute_update : Text | SQL_Statement -> Integer
     execute_update self query =
-        statement_setter = self.dialect.get_statement_setter
-        self.jdbc_connection.with_prepared_statement query statement_setter stmt->
-            Panic.catch UnsupportedOperationException stmt.executeLargeUpdate _->
-                stmt.executeUpdate
+        if Execution_Context.Output.is_enabled.not then Error.throw (Forbidden_Operation.Error "Executing update queries is forbidden as the Output context is disabled.") else
+            statement_setter = self.dialect.get_statement_setter
+            self.jdbc_connection.with_prepared_statement query statement_setter stmt->
+                case self.supports_large_update.get of
+                    True -> Panic.catch UnsupportedOperationException stmt.executeLargeUpdate _->
+                        self.supports_large_update.put False
+                        stmt.executeUpdate
+                    False -> stmt.executeUpdate
 
     ## PRIVATE
-    drop_table : Text -> Nothing
-    drop_table self table_name =
-        self.execute_update (self.dialect.generate_sql (Query.Drop_Table table_name))
+       Drops a table.
+
+       Arguments:
+       - table_name: the name of the table to drop.
+       - if_exists: if set to `True`, the operation will not fail if the table
+         does not exist. Defaults to `False`.
+    drop_table : Text -> Boolean -> Nothing
+    drop_table self table_name if_exists=False =
+        self.execute_update (self.dialect.generate_sql (Query.Drop_Table table_name if_exists))
+
+    ## PRIVATE
+       Returns the base `Connection` instance.
+
+       Used, so that all internal helper functions do not need to be replicated
+       on the 'subclasses'.
+    base_connection : Connection
+    base_connection self = self
+
+    ## PRIVATE
+       If no thread (including the current one) is currently running operations
+       on the connection, maintenance will be performed.
+
+       Currently, this consists of removing dry run tables that are no longer
+       used.
+
+       This method should be run by most database operations to ensure that
+       unused tables are cleaned at some point.
+
+       All errors are swallowed and not propagated, so it is safe to call this
+       method wherever. There is no point of calling this method inside of
+       critical sections as then it will not do anything.
+    maybe_run_maintenance self =
+        callback _ =
+            Hidden_Table_Registry.run_maintenance_table_cleanup self
+        self.jdbc_connection.run_maintenance_action_if_possible callback
+
+    ## PRIVATE
+    max_table_name_length : Integer | Nothing
+    max_table_name_length self =
+        reported = self.jdbc_connection.with_metadata .getMaxTableNameLength
+        if reported == 0 then Nothing else reported
+
+    ## PRIVATE
+       Generates a temporary table name for the given table name, used for dry
+       runs.
+
+       The table name is 'stable', meaning that the same name will be returned
+       for the given input `table_name` on subsequent calls, unless the user
+       creates a clashing table in the meantime.
+
+       The table name is guaranteed to be unique for the database at the time it
+       is generated - this is used to ensure that the dry run tables never
+       overwrite pre-existing user data.
+
+       ! Safety
+
+         It is safe to drop/overwrite the table returned by this method, as it
+         can be assumed that it was not created by the user. It either does not
+         (yet) exist, or if it exists, it is present in our hidden table
+         registry - but that means it was created by Enso as a hidden table.
+    generate_dry_run_table_name : Text -> Text
+    generate_dry_run_table_name self table_name =
+        max_length = (self.max_table_name_length.if_nothing 60) - 1
+        go ix =
+            prefix = "enso-dry-run-" + if ix == 0 then "" else ix.to_text + "-"
+            ## This check ensures that if all possible names are taken, the
+               method will not loop forever but report an error. It should never
+               occur in practice - it would mean that the Database contains
+               unimaginable amounts of dry run tables or has impractically small
+               table name length limit.
+            if prefix.length > max_length then Error.throw (Illegal_State.Error "Reached the table name length limit ("+max_length.to_text+") while trying to find a unused table name. It seems that all possible names are already taken. The Database may need to be cleaned up for dry run to work.") else
+                name = (prefix + table_name) . take max_length
+                ## The dry run name is ok if it is already registered (that means it
+                   may exist in the Database, but it was created by other dry runs
+                   and is safe to overwrite) or if it does not exist in the database.
+                name_ok = (self.hidden_table_registry.is_registered name) || (self.table_exists name . not)
+                if name_ok then name else
+                    @Tail_Call go (ix + 1)
+        go 0
+
+    ## PRIVATE
+       Generates a random table name that does not currently exist in the
+       database.
+    generate_random_table_name : Text -> Text
+    generate_random_table_name self prefix="enso-table-" =
+        max_length = self.max_table_name_length
+        minimum_randomness = 5
+        maximum_retries = 20^minimum_randomness
+        if max_length.is_nothing.not && (prefix.length + minimum_randomness > max_length) then Error.throw (Illegal_State.Error "The prefix has length "+prefix.length.to_text+" while max table name is "+max_length.to_text+" - there is not enough space to safely generate random names.") else
+            go ix =
+                if ix > maximum_retries then Error.throw (Illegal_State.Error "Could not generate a non-assigned random table name after "+maximum_retries+". Giving up.") else
+                    base_name = prefix + Random.random_uuid
+                    name = if max_length.is_nothing then base_name else base_name.take max_length
+                    if self.table_exists name . not then name else
+                        @Tail_Call go (ix + 1)
+            go 0
+
+
+    ## PRIVATE
+       Creates a Table reference that refers to a table with the given name.
+
+       Once all references to the table with this name are destroyed, the table
+       will be marked for removal and dropped at the next maintenance.
+    internal_allocate_dry_run_table : Text -> Database_Table
+    internal_allocate_dry_run_table self table_name =
+        ref = self.hidden_table_registry.make_reference table_name
+        make_table_for_name self table_name table_name ref
 
 ## PRIVATE
 make_table_types_selector : Connection -> Widget
@@ -294,11 +460,6 @@ make_schema_selector : Connection -> Widget
 make_schema_selector connection =
     schemas_without_nothing = connection.schemas.filter Filter_Condition.Not_Nothing
     Single_Choice values=(schemas_without_nothing.map t-> Option t t.pretty)+[Option "any schema" "Nothing"]
-
-## PRIVATE
-all_known_table_names connection =
-    tables = connection.tables name_like=Nothing database=connection.database schema=Nothing types=Nothing all_fields=False
-    tables.at "Name" . to_vector
 
 ## PRIVATE
 make_table_name_selector : Connection -> Widget
@@ -313,6 +474,12 @@ make_structure_creator =
     Vector_Editor item_editor=item_editor item_default=item_editor.values.first.value display=Display.Always
 
 ## PRIVATE
-first_column_in_structure structure = case structure of
-    _ : Vector -> structure.first.name
-    _ -> structure.column_names.first
+make_table_for_name connection name alias internal_temporary_keep_alive_reference=Nothing =
+    result = handle_sql_errors <|
+        ctx = Context.for_table name (if alias == "" then name else alias) internal_temporary_keep_alive_reference
+        statement = connection.dialect.generate_sql (Query.Select Nothing ctx)
+        statement_setter = connection.dialect.get_statement_setter
+        columns = connection.fetch_columns statement statement_setter
+        Database_Table_Module.make_table connection name columns ctx
+    result.catch SQL_Error sql_error->
+        Error.throw (Table_Not_Found.Error name sql_error treated_as_query=False extra_message="")

@@ -453,10 +453,9 @@ interface VisualizationConfiguration {
   executionContextId: UUID;
 
   /**
-   * A qualified name of the module containing the expression which creates
-   * visualization.
+   * A qualified name of the module to be used to evaluate the arguments for the visualization expression.
    */
-  visualizationModule?: String;
+  visualizationModule: String;
 
   /** An expression that creates a visualization. */
   expression: String | MethodPointer;

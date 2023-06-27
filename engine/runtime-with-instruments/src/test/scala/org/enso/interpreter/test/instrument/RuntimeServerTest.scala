@@ -1692,6 +1692,187 @@ class RuntimeServerTest
     )
   }
 
+  it should "send method pointer updates of a builtin method" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+
+    val metadata = new Metadata
+    val id_x     = metadata.addItem(46, 17, "aa")
+
+    val code =
+      """from Standard.Base import all
+        |
+        |main =
+        |    x = "hello" + "world"
+        |    x
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, moduleName, "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(
+        contextId,
+        id_x,
+        ConstantsGen.TEXT,
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Data.Text",
+            "Standard.Base.Data.Text.Text",
+            "+"
+          )
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+  }
+
+  it should "send method pointer updates of a builtin method called as static" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+
+    val metadata = new Metadata
+    val id_x     = metadata.addItem(52, 25, "aa")
+    val id_y     = metadata.addItem(86, 16, "ab")
+
+    val code =
+      """import Standard.Base.Data.Time.Date
+        |
+        |main =
+        |    x = Date.new_builtin 1970 1 1
+        |    y = Date.Date.year x
+        |    y
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, moduleName, "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(contextId, id_x, ConstantsGen.DATE),
+      TestMessages.update(
+        contextId,
+        id_y,
+        ConstantsGen.INTEGER_BUILTIN,
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Data.Time.Date",
+            "Standard.Base.Data.Time.Date.Date",
+            "year"
+          )
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+  }
+
+  it should "not send method pointer updates of a builtin method defined as static" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+
+    val metadata = new Metadata
+    val id_x     = metadata.addItem(52, 25, "aa")
+
+    val code =
+      """import Standard.Base.Data.Time.Date
+        |
+        |main =
+        |    x = Date.new_builtin 2022 1 1
+        |    x
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, moduleName, "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(contextId, id_x, "Standard.Base.Data.Time.Date.Date"),
+      context.executionComplete(contextId)
+    )
+  }
+
   it should "send updates from last line" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
@@ -2108,7 +2289,12 @@ class RuntimeServerTest
     context.receiveN(4) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PopContextResponse(contextId)),
       TestMessages
-        .update(contextId, mainRes, ConstantsGen.NOTHING, typeChanged = false),
+        .update(
+          contextId,
+          mainRes,
+          ConstantsGen.NOTHING,
+          typeChanged = false
+        ),
       TestMessages.update(
         contextId,
         mainFoo,
@@ -2231,8 +2417,12 @@ class RuntimeServerTest
         fromCache   = false,
         typeChanged = false
       ),
-      TestMessages
-        .update(contextId, mainRes, ConstantsGen.NOTHING, typeChanged = false),
+      TestMessages.update(
+        contextId,
+        mainRes,
+        ConstantsGen.NOTHING,
+        typeChanged = false
+      ),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("6")
@@ -2489,8 +2679,12 @@ class RuntimeServerTest
         ConstantsGen.INTEGER,
         Api.MethodCall(Api.MethodPointer(moduleName, ConstantsGen.NUMBER, "x"))
       ),
-      TestMessages
-        .update(contextId, idMainP, ConstantsGen.NOTHING, typeChanged = false),
+      TestMessages.update(
+        contextId,
+        idMainP,
+        ConstantsGen.NOTHING,
+        typeChanged = false
+      ),
       TestMessages
         .update(contextId, idMain, ConstantsGen.NOTHING, typeChanged = false),
       context.executionComplete(contextId)
@@ -2522,8 +2716,12 @@ class RuntimeServerTest
         fromCache   = false,
         typeChanged = false
       ),
-      TestMessages
-        .update(contextId, idMainP, ConstantsGen.NOTHING, typeChanged = false),
+      TestMessages.update(
+        contextId,
+        idMainP,
+        ConstantsGen.NOTHING,
+        typeChanged = false
+      ),
       TestMessages
         .update(contextId, idMain, ConstantsGen.NOTHING, typeChanged = false),
       context.executionComplete(contextId)
@@ -2555,8 +2753,12 @@ class RuntimeServerTest
         fromCache   = false,
         typeChanged = true
       ),
-      TestMessages
-        .update(contextId, idMainP, ConstantsGen.NOTHING, typeChanged = false),
+      TestMessages.update(
+        contextId,
+        idMainP,
+        ConstantsGen.NOTHING,
+        typeChanged = false
+      ),
       TestMessages
         .update(contextId, idMain, ConstantsGen.NOTHING, typeChanged = false),
       context.executionComplete(contextId)
@@ -2588,8 +2790,12 @@ class RuntimeServerTest
         fromCache   = false,
         typeChanged = true
       ),
-      TestMessages
-        .update(contextId, idMainP, ConstantsGen.NOTHING, typeChanged = false),
+      TestMessages.update(
+        contextId,
+        idMainP,
+        ConstantsGen.NOTHING,
+        typeChanged = false
+      ),
       TestMessages
         .update(contextId, idMain, ConstantsGen.NOTHING, typeChanged = false),
       context.executionComplete(contextId)
@@ -2619,8 +2825,12 @@ class RuntimeServerTest
         ConstantsGen.TEXT,
         Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "hie"))
       ),
-      TestMessages
-        .update(contextId, idMainP, ConstantsGen.NOTHING, typeChanged = false),
+      TestMessages.update(
+        contextId,
+        idMainP,
+        ConstantsGen.NOTHING,
+        typeChanged = false
+      ),
       TestMessages
         .update(contextId, idMain, ConstantsGen.NOTHING, typeChanged = false),
       context.executionComplete(contextId)
@@ -2652,8 +2862,12 @@ class RuntimeServerTest
         fromCache   = false,
         typeChanged = true
       ),
-      TestMessages
-        .update(contextId, idMainP, ConstantsGen.NOTHING, typeChanged = false),
+      TestMessages.update(
+        contextId,
+        idMainP,
+        ConstantsGen.NOTHING,
+        typeChanged = false
+      ),
       TestMessages
         .update(contextId, idMain, ConstantsGen.NOTHING, typeChanged = false),
       context.executionComplete(contextId)
@@ -3500,8 +3714,12 @@ class RuntimeServerTest
     ) should contain theSameElementsAs Seq(
       TestMessages
         .update(contextId, idText, ConstantsGen.TEXT, typeChanged = false),
-      TestMessages
-        .update(contextId, idRes, ConstantsGen.NOTHING, typeChanged = false),
+      TestMessages.update(
+        contextId,
+        idRes,
+        ConstantsGen.NOTHING,
+        typeChanged = false
+      ),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List(prompt2)

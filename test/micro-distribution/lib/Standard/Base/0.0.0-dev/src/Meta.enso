@@ -21,6 +21,8 @@ meta value =
 is_unresolved_symbol value = @Builtin_Method "Meta.is_unresolved_symbol"
 get_unresolved_symbol_name symbol = @Builtin_Method "Meta.get_unresolved_symbol_name"
 get_unresolved_symbol_scope symbol = @Builtin_Method "Meta.get_unresolved_symbol_scope"
+get_atom_constructor atom = @Builtin_Method "Meta.get_atom_constructor"
+get_constructor_name atom_constructor = @Builtin_Method "Meta.get_constructor_name"
 
 @Builtin_Type
 type Project_Description

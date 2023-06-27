@@ -17,9 +17,11 @@ type Context
        Arguments:
        - table_name: The name of the table for which the context is being created.
        - alias: An alias name to use for table within the query.
-    for_table : Text -> Text -> Context
-    for_table table_name alias=table_name =
-        Context.Value (From_Spec.Table table_name alias) [] [] [] Nothing Nothing
+       - internal_temporary_keep_alive_reference: See `From_Spec.Table` for more
+         details.
+    for_table : Text -> Text -> Any -> Context
+    for_table table_name alias=table_name internal_temporary_keep_alive_reference=Nothing =
+        Context.Value (From_Spec.Table table_name alias internal_temporary_keep_alive_reference=internal_temporary_keep_alive_reference) [] [] [] Nothing Nothing
 
     ## PRIVATE
 

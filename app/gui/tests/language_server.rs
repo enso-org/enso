@@ -140,6 +140,7 @@ async fn ls_text_protocol_test() {
         execution_context_id,
         expression,
         positional_arguments_expressions,
+        visualization_module: visualization_module.to_string(),
     };
     let response =
         client.attach_visualization(&visualization_id, &expression_id, &visualization_config);
@@ -157,6 +158,7 @@ async fn ls_text_protocol_test() {
         execution_context_id,
         expression,
         positional_arguments_expressions,
+        visualization_module: visualization_module.to_string(),
     };
     let response = client.modify_visualization(&visualization_id, &visualization_config).await;
     response.expect("Couldn't modify visualization.");
@@ -375,7 +377,8 @@ async fn binary_visualization_updates_test_hlp() {
         module_qualified_name,
         Identifier::from_text("quux").unwrap(),
     );
-    let visualization = Visualization::new(the_node.id(), method_pointer, vec![]);
+    let visualization =
+        Visualization::new(method_pointer.module.clone(), the_node.id(), method_pointer, vec![]);
     let stream = graph_executed.attach_visualization(visualization.clone()).await.unwrap();
     info!("Attached the visualization {}", visualization.id);
     let mut stream = stream.boxed_local();
