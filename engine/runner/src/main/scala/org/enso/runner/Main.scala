@@ -213,7 +213,7 @@ object Main {
       .hasArg(true)
       .numberOfArgs(1)
       .argName("data-port")
-      .desc("Data port for visualisation protocol")
+      .desc("Data port for visualization protocol")
       .build()
     val uuidOption = CliOption.builder
       .hasArg(true)

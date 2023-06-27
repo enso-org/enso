@@ -24,7 +24,7 @@ type Range
     new start=0 end=100 step=1 =
         Range.Between start end (if start > end then -1 else 1) . with_step step
 
-    ## UNSTABLE
+    ## PRIVATE
        A representation of a right-exclusive range of integer values.
 
        Arguments:
@@ -496,9 +496,7 @@ get_index range min max value =
         if index < min || index > max then Nothing else
             index
 
-## UNSTABLE
-
-   An error representing that the list is empty.
+## An error representing that the list is empty.
 type Empty_Error
     ## PRIVATE
 

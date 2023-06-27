@@ -2,11 +2,12 @@
 import * as react from 'react'
 import toast from 'react-hot-toast'
 
+import CloseIcon from 'enso-assets/close.svg'
+
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as fileInfo from '../../fileInfo'
 import * as modalProvider from '../../providers/modal'
-import * as svg from '../../components/svg'
 
 import Modal from './modal'
 
@@ -67,7 +68,7 @@ function UploadFileModal(props: UploadFileModalProps) {
                         className="absolute right-0 top-0 m-2"
                         onClick={unsetModal}
                     >
-                        {svg.CLOSE_ICON}
+                        <img src={CloseIcon} />
                     </button>
                     <div className="m-2">
                         <label className="w-1/3" htmlFor="uploaded_file_name">

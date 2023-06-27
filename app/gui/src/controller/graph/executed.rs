@@ -2,7 +2,7 @@
 //!
 //! This controller provides operations on a specific graph with some execution context - these
 //! operations usually involves retrieving values on nodes: that's are i.e. operations on
-//! visualisations, retrieving types on ports, etc.
+//! visualizations, retrieving types on ports, etc.
 
 use crate::prelude::*;
 
@@ -403,10 +403,19 @@ impl Handle {
     }
 
 
+    /// Get a fully qualified name of the module in the [`graph`]. The name is obtained from the
+    /// module's path and the `project` name.
+    pub fn module_qualified_name_with_project(
+        &self,
+        project: &dyn model::project::API,
+    ) -> QualifiedName {
+        self.graph().module.path().qualified_module_name(project.qualified_name())
+    }
+
     /// Get a full qualified name of the module in the [`graph`]. The name is obtained from the
     /// module's path and the `project` name.
-    pub fn module_qualified_name(&self, project: &dyn model::project::API) -> QualifiedName {
-        self.graph().module.path().qualified_module_name(project.qualified_name())
+    pub fn module_qualified_name(&self) -> QualifiedName {
+        self.graph().module.path().qualified_module_name(self.project.qualified_name())
     }
 
     /// Returns information about all the connections between graph's nodes.

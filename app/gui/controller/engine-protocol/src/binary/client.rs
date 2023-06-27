@@ -8,7 +8,7 @@ use crate::binary::message::FromServerPayloadOwned;
 use crate::binary::message::MessageFromServerOwned;
 use crate::binary::message::MessageToServerRef;
 use crate::binary::message::ToServerPayload;
-use crate::binary::message::VisualisationContext;
+use crate::binary::message::VisualizationContext;
 use crate::common::error::UnexpectedMessage;
 use crate::handler::Disposition;
 use crate::handler::Handler;
@@ -44,7 +44,7 @@ pub enum Notification {
     /// A new data has been sent for a visualization.
     VisualizationUpdate {
         /// Identifies the specific visualization.
-        context: VisualisationContext,
+        context: VisualizationContext,
         /// Data to be passed to the visualization.
         data:    Vec<u8>,
     },
@@ -371,7 +371,7 @@ mod tests {
         fixture.executor.run_until_stalled();
         event_fut.expect_pending();
 
-        let context = VisualisationContext {
+        let context = VisualizationContext {
             visualization_id: Uuid::new_v4(),
             expression_id:    Uuid::new_v4(),
             context_id:       Uuid::new_v4(),

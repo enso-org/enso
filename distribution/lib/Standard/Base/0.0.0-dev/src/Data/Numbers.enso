@@ -1108,9 +1108,7 @@ type Integer
 
     parse_builtin text radix = @Builtin_Method "Integer.parse"
 
-## UNSTABLE
-
-   A syntax error when parsing a double.
+## A syntax error when parsing a double.
 @Builtin_Type
 type Number_Parse_Error
     ## PRIVATE

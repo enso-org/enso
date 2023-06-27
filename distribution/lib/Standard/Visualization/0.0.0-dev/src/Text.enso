@@ -19,8 +19,8 @@ type Message
 ## PRIVATE
    Return a sub-window of a string. The window is defined by line/chunk coordinates. The size of
    a chunk is defined by `chunk_width`. The output is formatted as a message that can be sent to
-   the IDE's lazy text visualisation.
-get_lazy_visualisation_text_window text pos size chunk_width =
+   the IDE's lazy text visualization.
+get_lazy_visualization_text_window text pos size chunk_width =
     get_text_chunk = get_item_from text chunk_width
     lines = text.lines.length
     pos_x = Math.max pos.first 0
@@ -33,11 +33,11 @@ get_lazy_visualisation_text_window text pos size chunk_width =
     chunks = coordinates.map (ix -> [ix, (get_text_chunk ix)])
     active_lines = y_range.map text.lines.at
     max_line_length = (active_lines.map (line -> line.length)).fold 0 (l -> r -> Math.max l r)
-    make_grid_visualisation_response chunks lines max_line_length
+    make_grid_visualization_response chunks lines max_line_length
 
 ## PRIVATE
-   Format a chunk of text and meta information for the lazy visualisation.
-make_grid_visualisation_response chunks lines max_line_length =
+   Format a chunk of text and meta information for the lazy visualization.
+make_grid_visualization_response chunks lines max_line_length =
     message = Message.Value chunks lines max_line_length
     message.to_json + ""
 

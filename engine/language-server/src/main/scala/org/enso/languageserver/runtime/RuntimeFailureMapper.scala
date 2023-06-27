@@ -37,14 +37,14 @@ final class RuntimeFailureMapper(contentRootManager: ContentRootManager) {
         ContextRegistryProtocol.InvalidStackItemError(contextId)
       case Api.ModuleNotFound(moduleName) =>
         ContextRegistryProtocol.ModuleNotFound(moduleName)
-      case Api.VisualisationExpressionFailed(message, result) =>
+      case Api.VisualizationExpressionFailed(message, result) =>
         for (diagnostic <- result.map(toProtocolDiagnostic).sequence)
-          yield ContextRegistryProtocol.VisualisationExpressionFailed(
+          yield ContextRegistryProtocol.VisualizationExpressionFailed(
             message,
             diagnostic
           )
-      case Api.VisualisationNotFound() =>
-        ContextRegistryProtocol.VisualisationNotFound
+      case Api.VisualizationNotFound() =>
+        ContextRegistryProtocol.VisualizationNotFound
     }
   }
 
@@ -160,11 +160,11 @@ object RuntimeFailureMapper {
         EmptyStackError
       case ContextRegistryProtocol.InvalidStackItemError(_) =>
         InvalidStackItemError
-      case ContextRegistryProtocol.VisualisationNotFound =>
-        VisualisationNotFoundError
+      case ContextRegistryProtocol.VisualizationNotFound =>
+        VisualizationNotFoundError
       case ContextRegistryProtocol.ModuleNotFound(name) =>
         ModuleNotFoundError(name)
-      case ContextRegistryProtocol.VisualisationExpressionFailed(msg, result) =>
-        VisualisationExpressionError(msg, result)
+      case ContextRegistryProtocol.VisualizationExpressionFailed(msg, result) =>
+        VisualizationExpressionError(msg, result)
     }
 }
