@@ -62,11 +62,33 @@ spec =
             test_column.reverse.to_vector . should_equal expected_1.to_vector
             empty_column.reverse.to_vector . should_equal empty_column.to_vector
 
-        Test.specify "should allow to fill missing values from another column" <|
-            nulled = Column.from_vector "col" [0, Nothing, 4, 5, Nothing, Nothing]
+        Test.specify "should allow to fill_nothing from a value" <|
+            col = Column.from_vector "col" [0, Nothing, 4, 5, Nothing, Nothing]
+            default = 300
+            r = col.fill_nothing default
+            r.to_vector . should_equal [0, 300, 4, 5, 300, 300]
+            r.name . should_equal "col"
+
+        Test.specify "should allow to fill_nothing from another column" <|
+            col = Column.from_vector "col" [0, Nothing, 4, 5, Nothing, Nothing]
             defaults = Column.from_vector "def" [1, 2, 10, 20, Nothing, 30]
-            r = nulled.fill_nothing defaults
+            r = col.fill_nothing defaults
             r.to_vector . should_equal [0, 2, 4, 5, Nothing, 30]
+            r.name . should_equal "col"
+
+        Test.specify "should allow to fill_empty from a value" <|
+            col = Column.from_vector "col" ["0", Nothing, "4", "5", Nothing, Nothing]
+            default = "default"
+            r = col.fill_empty default
+            r.to_vector . should_equal ["0", "default", "4", "5", "default", "default"]
+            r.name . should_equal "col"
+
+        Test.specify "should allow to fill_empty from another column" <|
+            col = Column.from_vector "col" ["0", Nothing, "4", "5", Nothing, Nothing]
+            defaults = Column.from_vector "def" ["1", "2", "10", "20", Nothing, "30"]
+            r = col.fill_empty defaults
+            r.to_vector . should_equal ["0", "2", "4", "5", Nothing, "30"]
+            r.name . should_equal "col"
 
         Test.specify "should allow to count duplicate value occurences" <|
             c_1 = Column.from_vector "c 1" [0, 1, 2, 2, 1, 0, 2]
