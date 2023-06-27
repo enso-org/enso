@@ -10,7 +10,6 @@ use crate::executor::global::spawn_stream_handler;
 use crate::presenter;
 
 use enso_frp as frp;
-use ensogl::application::Application;
 use ensogl::system::js;
 use ide_view as view;
 use ide_view::graph_editor::SharedHashMap;

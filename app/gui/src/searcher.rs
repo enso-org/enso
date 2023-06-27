@@ -1,5 +1,6 @@
 //! Searcher trait.
 use crate::controller::graph::NewNodeInfo;
+use crate::controller::searcher::apply_this_argument;
 use crate::controller::searcher::Mode;
 use crate::model::module::NodeMetadata;
 use crate::prelude::*;
@@ -72,7 +73,7 @@ pub trait SearcherPresenter: Debug {
         let SearcherParams { input, .. } = parameters;
         let ast_node = graph.ast_node_of_view(input);
 
-        let mode = match ast_node {
+        let mode: FallibleResult<_> = match ast_node {
             Some(node_id) => Ok(Mode::EditNode { node_id }),
             None => {
                 let (new_node, source_node) =
@@ -80,20 +81,39 @@ pub trait SearcherPresenter: Debug {
                 Ok(Mode::NewNode { node_id: new_node, source_node })
             }
         };
-        let target_node = mode.as_ref().map(|mode| mode.node_id());
-        if let Ok(target_node) = target_node {
-            if let Some(target_node_view) = graph.view_id_of_ast_node(target_node) {
-                if matches!(parameters.searcher_type, SearcherType::ComponentBrowser) {
-                    graph_editor.model.with_node(target_node_view, |node| node.show_preview());
-                }
-            } else {
-                warn!("No view associated with node {:?}.", target_node);
+        let mode = mode?;
+        let target_node = mode.node_id();
+
+        if let Some(target_node_view) = graph.view_id_of_ast_node(target_node) {
+            // We only want to show the preview of the node if it is a component browser searcher.
+            if matches!(parameters.searcher_type, SearcherType::ComponentBrowser) {
+                graph_editor.model.with_node(target_node_view, |node| node.show_preview());
             }
-            graph.allow_expression_auto_updates(target_node, false);
         } else {
-            warn!("No target node for searcher.");
+            warn!("No view associated with node {:?}.", target_node);
         }
-        mode
+        // We disable auto-updates for the expression of the node, so we can set the expression
+        // of the input node without triggering an update of the graph. This is used, for example,
+        // to show a preview of the item selected in the component browser without changing the
+        // text the user has typed on the searcher input node.
+        graph.allow_expression_auto_updates(target_node, false);
+
+        // We are setting the initial expression to the variable name of the source node, in order
+        // to correctly render an edge from the source node to the new node.
+        let source_node = mode.source_node();
+        let node = source_node.and_then(|node| graph_controller.node(node).ok());
+        let this_expr = node.and_then(|node| node.variable_name().map(|name| name.to_string()));
+        let initial_expression = this_expr.map(|expr| apply_this_argument(&expr, &Ast::blank()));
+        if let Some(initial_expression) = initial_expression {
+            if let Err(e) = graph_controller.set_expression(target_node, initial_expression.repr())
+            {
+                warn!("Failed to set initial expression for node {:?}: {}", target_node, e);
+            }
+        } else {
+            warn!("Failed to create initial expression for node {:?}.", target_node);
+        }
+
+        Ok(mode)
     }
 
     /// Setup new, appropriate searcher controller for the edition of `node_view`, and construct
@@ -129,7 +149,4 @@ pub trait SearcherPresenter: Debug {
 
     /// Returns the node view that is being edited by the searcher.
     fn input_view(&self) -> ViewNodeId;
-
-    // fn view(app: &ensogl::application::Application) -> Option<display::object::Instance>
-    // where Self: Sized;
 }

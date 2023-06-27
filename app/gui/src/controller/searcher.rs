@@ -18,12 +18,10 @@ use enso_text::Byte;
 use enso_text::Location;
 use enso_text::Rope;
 
-use crate::controller::graph::executed::Handle;
 use crate::controller::graph::FailedToCreateNode;
 use crate::controller::graph::ImportType;
 use crate::controller::graph::RequiredImport;
 use crate::controller::searcher::component::group;
-use crate::model::execution_context::Visualization;
 use crate::model::module::NodeEditStatus;
 use crate::model::module::NodeMetadata;
 use crate::model::suggestion_database;
@@ -175,6 +173,7 @@ impl ThisNode {
     pub fn new(id: double_representation::node::Id, graph: &controller::Graph) -> Option<Self> {
         let node = graph.node(id).ok()?;
         let (var, needs_to_introduce_pattern) = if let Some(ast) = node.info.pattern() {
+            // TODO use Node::variable_name
             // TODO [mwu]
             //   Here we just require that the whole node's pattern is a single var, like
             //   `var = expr`. This prevents using pattern subpart (like `x` in
@@ -223,6 +222,14 @@ impl Mode {
         match self {
             Mode::NewNode { node_id, .. } => *node_id,
             Mode::EditNode { node_id, .. } => *node_id,
+        }
+    }
+
+    /// Return the ID of the node used as source for the Searcher.
+    pub fn source_node(&self) -> Option<ast::Id> {
+        match self {
+            Mode::NewNode { source_node, .. } => *source_node,
+            Mode::EditNode { .. } => None,
         }
     }
 }
@@ -1183,6 +1190,7 @@ impl Drop for EditGuard {
 
 // === Helpers ===
 
+// TODO move to shared searcher module
 pub fn apply_this_argument(this_var: &str, ast: &Ast) -> Ast {
     if let Ok(opr) = ast::known::Opr::try_from(ast) {
         let shape = ast::SectionLeft { arg: Ast::var(this_var), off: 1, opr: opr.into() };

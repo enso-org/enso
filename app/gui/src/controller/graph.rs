@@ -127,6 +127,18 @@ impl Node {
     pub fn has_position(&self) -> bool {
         self.metadata.as_ref().map_or(false, |m| m.position.is_some())
     }
+
+    /// Get the nodes variable name, if it has one.
+    pub fn variable_name(&self) -> Option<&str> {
+        // TODO [mwu]
+        //   Here we just require that the whole node's pattern is a single var, like
+        //   `var = expr`. This prevents using pattern subpart (like `x` in
+        //   `Point x y = get_pos`), or basically any node that doesn't stick to `var = expr`
+        //   form. If we wanted to support pattern subparts, the engine would need to send us
+        //   value updates for matched pattern pieces. See the issue:
+        //   https://github.com/enso-org/enso/issues/1038
+        ast::identifier::as_var(self.info.pattern()?)
+    }
 }
 
 impl Deref for Node {

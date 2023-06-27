@@ -2047,7 +2047,6 @@ impl GraphEditorModel {
     fn set_node_expression(&self, node_id: impl Into<NodeId>, expr: impl Into<node::Expression>) {
         let node_id = node_id.into();
         let expr = expr.into();
-        console_log!("set_node_expression with expr: {:?}", expr);
         if let Some(node) = self.nodes.get_cloned_ref(&node_id) {
             node.set_expression.emit(expr);
         }
@@ -3036,7 +3035,7 @@ fn init_remaining_graph_editor_frp(
 
     // === Node Editing ===
 
-    frp::extend! { TRACE_ALL network
+    frp::extend! { network
         node_in_edit_mode <- out.node_being_edited.map(|n| n.is_some());
         edit_mode <- bool(&inputs.edit_mode_off,&inputs.edit_mode_on);
         clicked_node <- touch.nodes.down.gate(&edit_mode);

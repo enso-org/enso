@@ -204,14 +204,10 @@ impl AISearcher {
         )?;
         let vis = Visualization::new(this.id, vis_ptr, vec![]);
         let mut result = graph.attach_visualization(vis.clone()).await?;
-        console_log!("Attached visualization: {:?}", vis);
         let next = result.next().await.ok_or(NoAIVisualizationDataReceived)?;
-        console_log!("Got next: {:?}", next);
         let prompt = std::str::from_utf8(&next)?;
-        console_log!("Got prompt: {}", prompt);
         let prompt_with_goal = prompt.replace(Self::AI_GOAL_PLACEHOLDER, &query);
         graph.detach_visualization(vis.id).await?;
-        console_log!("Detached visualization: {:?}", vis);
         let completion = graph.get_ai_completion(&prompt_with_goal, Self::AI_STOP_SEQUENCE).await?;
         console_log!("Got completion: {}", completion);
         let parser = ide.parser();

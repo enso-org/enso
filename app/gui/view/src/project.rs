@@ -97,7 +97,7 @@ impl SearcherParams {
     }
 }
 
-ensogl::define_endpoints! { [TRACE_ALL]
+ensogl::define_endpoints! {
     Input {
         /// Open the Open Project Dialog.
         show_project_list(),
@@ -521,7 +521,7 @@ impl View {
         let network = &frp.network;
         let graph = &self.model.graph_editor;
 
-        frp::extend! { TRACE_ALL network
+        frp::extend! { network
             node_added_by_user <- graph.node_added.filter(|(_, _, should_edit)| *should_edit);
             searcher_for_adding <- node_added_by_user.map2(&frp.searcher_type,
                 |&(node, src, _), searcher_type| SearcherParams::new_for_new_node(node, src, *searcher_type)
