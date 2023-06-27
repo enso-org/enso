@@ -1,6 +1,10 @@
 package org.enso.polyglot.runtime
 
-import com.fasterxml.jackson.annotation.{JsonSubTypes, JsonTypeInfo}
+import com.fasterxml.jackson.annotation.{
+  JsonIgnoreProperties,
+  JsonSubTypes,
+  JsonTypeInfo
+}
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.cbor.CBORFactory
 import com.fasterxml.jackson.module.scala.{
@@ -855,10 +859,19 @@ object Runtime {
         )
       )
     )
-    sealed trait DiagnosticType
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    sealed trait DiagnosticType {
+
+      /** Checks if this diagnostic type represents an error. */
+      def isError(): Boolean
+    }
     object DiagnosticType {
-      case class Error()   extends DiagnosticType
-      case class Warning() extends DiagnosticType
+      case class Error() extends DiagnosticType {
+        override def isError(): Boolean = true
+      }
+      case class Warning() extends DiagnosticType {
+        override def isError(): Boolean = false
+      }
     }
 
     /** The element in the stack trace.
@@ -898,7 +911,15 @@ object Runtime {
         )
       )
     )
-    sealed trait ExecutionResult extends ToLogString
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    sealed trait ExecutionResult extends ToLogString {
+
+      /** Checks if this result represents a critical failure. * */
+      def isFailure: Boolean
+
+      /** Checks if this result represents a non-critical error. * */
+      def isError: Boolean
+    }
     object ExecutionResult {
 
       /** A diagnostic object produced as a compilation outcome, like error or
@@ -930,6 +951,10 @@ object Runtime {
           s"expressionId=$expressionId," +
           s"stack=${stack.map(_.toLogString(shouldMask))}" +
           ")"
+
+        override def isFailure: Boolean = false
+
+        override def isError: Boolean = kind.isError()
       }
 
       case object Diagnostic {
@@ -998,6 +1023,10 @@ object Runtime {
           s"Failure(message=$message,file=" +
           file.map(f => MaskedPath(f.toPath).toLogString(shouldMask)) +
           ")"
+
+        override def isFailure: Boolean = true
+
+        override def isError: Boolean = true
       }
 
     }
@@ -1088,22 +1117,22 @@ object Runtime {
         ")"
     }
 
-    /** Signals about the critical failure during the context execution.
+    /** Signals about the failure during the context execution.
       *
       * @param contextId the context's id
-      * @param failure the error description
+      * @param result the result of the execution
       */
     final case class ExecutionFailed(
       contextId: ContextId,
-      failure: ExecutionResult.Failure
+      result: ExecutionResult
     ) extends ApiNotification
         with ToLogString {
 
       /** @inheritdoc */
       override def toLogString(shouldMask: Boolean): String =
         "ExecutionFailed(" +
-        s"contextId=$contextId,failure=" +
-        failure.toLogString(shouldMask) +
+        s"contextId=$contextId,result=" +
+        result.toLogString(shouldMask) +
         ")"
     }
 

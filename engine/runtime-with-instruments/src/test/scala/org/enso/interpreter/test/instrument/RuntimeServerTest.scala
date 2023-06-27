@@ -4012,7 +4012,7 @@ class RuntimeServerTest
           Api.ExecutionResult.Failure("Module Unnamed.Main not found.", None)
         )
       ),
-      context.executionComplete(contextId)
+      Api.Response(Api.BackgroundJobsStartedNotification())
     )
   }
 
@@ -4064,7 +4064,7 @@ class RuntimeServerTest
           )
         )
       ),
-      context.executionComplete(contextId)
+      Api.Response(Api.BackgroundJobsStartedNotification())
     )
   }
 
@@ -4116,7 +4116,7 @@ class RuntimeServerTest
           )
         )
       ),
-      context.executionComplete(contextId)
+      Api.Response(Api.BackgroundJobsStartedNotification())
     )
   }
 
@@ -4159,33 +4159,30 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(4) should contain theSameElementsAs Seq(
+    context.receiveN(3) should contain theSameElementsAs Seq(
       Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
-        Api.ExecutionUpdate(
+        Api.ExecutionFailed(
           contextId,
-          Seq(
-            Api.ExecutionResult.Diagnostic.error(
-              "Not_Invokable.Error",
-              Some(mainFile),
-              Some(model.Range(model.Position(0, 7), model.Position(0, 19))),
-              None,
-              Vector(
-                Api.StackTraceElement(
-                  "Main.main",
-                  Some(mainFile),
-                  Some(
-                    model.Range(model.Position(0, 7), model.Position(0, 19))
-                  ),
-                  None
-                )
+          Api.ExecutionResult.Diagnostic.error(
+            "Not_Invokable.Error",
+            Some(mainFile),
+            Some(model.Range(model.Position(0, 7), model.Position(0, 19))),
+            None,
+            Vector(
+              Api.StackTraceElement(
+                "Main.main",
+                Some(mainFile),
+                Some(
+                  model.Range(model.Position(0, 7), model.Position(0, 19))
+                ),
+                None
               )
             )
           )
         )
-      ),
-      context.executionComplete(contextId)
+      )
     )
   }
 
@@ -4233,29 +4230,27 @@ class RuntimeServerTest
       Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
-        Api.ExecutionUpdate(
+        Api.ExecutionFailed(
           contextId,
-          Seq(
-            Api.ExecutionResult.Diagnostic.error(
-              "Type error: expected a function, but got 42.",
-              Some(mainFile),
-              Some(model.Range(model.Position(1, 7), model.Position(1, 19))),
-              None,
-              Vector(
-                Api.StackTraceElement(
-                  "Main.main",
-                  Some(mainFile),
-                  Some(
-                    model.Range(model.Position(1, 7), model.Position(1, 19))
-                  ),
-                  None
-                )
+          Api.ExecutionResult.Diagnostic.error(
+            "Type error: expected a function, but got 42.",
+            Some(mainFile),
+            Some(model.Range(model.Position(1, 7), model.Position(1, 19))),
+            None,
+            Vector(
+              Api.StackTraceElement(
+                "Main.main",
+                Some(mainFile),
+                Some(
+                  model.Range(model.Position(1, 7), model.Position(1, 19))
+                ),
+                None
               )
             )
           )
         )
       ),
-      context.executionComplete(contextId)
+      Api.Response(Api.BackgroundJobsStartedNotification())
     )
   }
 
@@ -4298,41 +4293,38 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(4) should contain theSameElementsAs Seq(
+    context.receiveN(3) should contain theSameElementsAs Seq(
       Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
-        Api.ExecutionUpdate(
+        Api.ExecutionFailed(
           contextId,
-          Seq(
-            Api.ExecutionResult.Diagnostic.error(
-              "No_Such_Method.Error",
-              Some(mainFile),
-              Some(model.Range(model.Position(2, 14), model.Position(2, 23))),
-              None,
-              Vector(
-                Api.StackTraceElement(
-                  "Main.bar",
-                  Some(mainFile),
-                  Some(
-                    model.Range(model.Position(2, 14), model.Position(2, 23))
-                  ),
-                  None
+          Api.ExecutionResult.Diagnostic.error(
+            "No_Such_Method.Error",
+            Some(mainFile),
+            Some(model.Range(model.Position(2, 14), model.Position(2, 23))),
+            None,
+            Vector(
+              Api.StackTraceElement(
+                "Main.bar",
+                Some(mainFile),
+                Some(
+                  model.Range(model.Position(2, 14), model.Position(2, 23))
                 ),
-                Api.StackTraceElement(
-                  "Main.main",
-                  Some(mainFile),
-                  Some(
-                    model.Range(model.Position(0, 7), model.Position(0, 16))
-                  ),
-                  None
-                )
+                None
+              ),
+              Api.StackTraceElement(
+                "Main.main",
+                Some(mainFile),
+                Some(
+                  model.Range(model.Position(0, 7), model.Position(0, 16))
+                ),
+                None
               )
             )
           )
         )
-      ),
-      context.executionComplete(contextId)
+      )
     )
   }
 
@@ -4380,37 +4372,35 @@ class RuntimeServerTest
       Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
-        Api.ExecutionUpdate(
+        Api.ExecutionFailed(
           contextId,
-          Seq(
-            Api.ExecutionResult.Diagnostic.error(
-              "Method `+` of type Function could not be found.",
-              Some(mainFile),
-              Some(model.Range(model.Position(3, 14), model.Position(3, 23))),
-              None,
-              Vector(
-                Api.StackTraceElement(
-                  "Main.bar",
-                  Some(mainFile),
-                  Some(
-                    model.Range(model.Position(3, 14), model.Position(3, 23))
-                  ),
-                  None
+          Api.ExecutionResult.Diagnostic.error(
+            "Method `+` of type Function could not be found.",
+            Some(mainFile),
+            Some(model.Range(model.Position(3, 14), model.Position(3, 23))),
+            None,
+            Vector(
+              Api.StackTraceElement(
+                "Main.bar",
+                Some(mainFile),
+                Some(
+                  model.Range(model.Position(3, 14), model.Position(3, 23))
                 ),
-                Api.StackTraceElement(
-                  "Main.main",
-                  Some(mainFile),
-                  Some(
-                    model.Range(model.Position(1, 7), model.Position(1, 16))
-                  ),
-                  None
-                )
+                None
+              ),
+              Api.StackTraceElement(
+                "Main.main",
+                Some(mainFile),
+                Some(
+                  model.Range(model.Position(1, 7), model.Position(1, 16))
+                ),
+                None
               )
             )
           )
         )
       ),
-      context.executionComplete(contextId)
+      Api.Response(Api.BackgroundJobsStartedNotification())
     )
   }
 
@@ -4453,41 +4443,38 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(4) should contain theSameElementsAs Seq(
+    context.receiveN(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
-        Api.ExecutionUpdate(
+        Api.ExecutionFailed(
           contextId,
-          Seq(
-            Api.ExecutionResult.Diagnostic.error(
-              "Type_Error.Error",
-              Some(mainFile),
-              Some(model.Range(model.Position(2, 10), model.Position(2, 15))),
-              None,
-              Vector(
-                Api.StackTraceElement(
-                  "Main.bar",
-                  Some(mainFile),
-                  Some(
-                    model.Range(model.Position(2, 10), model.Position(2, 15))
-                  ),
-                  None
+          Api.ExecutionResult.Diagnostic.error(
+            "Type_Error.Error",
+            Some(mainFile),
+            Some(model.Range(model.Position(2, 10), model.Position(2, 15))),
+            None,
+            Vector(
+              Api.StackTraceElement(
+                "Main.bar",
+                Some(mainFile),
+                Some(
+                  model.Range(model.Position(2, 10), model.Position(2, 15))
                 ),
-                Api.StackTraceElement(
-                  "Main.main",
-                  Some(mainFile),
-                  Some(
-                    model.Range(model.Position(0, 7), model.Position(0, 18))
-                  ),
-                  None
-                )
+                None
+              ),
+              Api.StackTraceElement(
+                "Main.main",
+                Some(mainFile),
+                Some(
+                  model.Range(model.Position(0, 7), model.Position(0, 18))
+                ),
+                None
               )
             )
           )
         )
       ),
-      Api.Response(Api.BackgroundJobsStartedNotification()),
-      context.executionComplete(contextId)
+      Api.Response(Api.BackgroundJobsStartedNotification())
     )
   }
 
@@ -4531,41 +4518,38 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
-        Api.ExecutionUpdate(
+        Api.ExecutionFailed(
           contextId,
-          Seq(
-            Api.ExecutionResult.Diagnostic.error(
-              "Type error: expected `str` to be Text, but got Integer.",
-              Some(mainFile),
-              Some(model.Range(model.Position(3, 10), model.Position(3, 15))),
-              None,
-              Vector(
-                Api.StackTraceElement(
-                  "Main.bar",
-                  Some(mainFile),
-                  Some(
-                    model.Range(model.Position(3, 10), model.Position(3, 15))
-                  ),
-                  None
+          Api.ExecutionResult.Diagnostic.error(
+            "Type error: expected `str` to be Text, but got Integer.",
+            Some(mainFile),
+            Some(model.Range(model.Position(3, 10), model.Position(3, 15))),
+            None,
+            Vector(
+              Api.StackTraceElement(
+                "Main.bar",
+                Some(mainFile),
+                Some(
+                  model.Range(model.Position(3, 10), model.Position(3, 15))
                 ),
-                Api.StackTraceElement(
-                  "Main.main",
-                  Some(mainFile),
-                  Some(
-                    model.Range(model.Position(1, 7), model.Position(1, 18))
-                  ),
-                  None
-                )
+                None
+              ),
+              Api.StackTraceElement(
+                "Main.main",
+                Some(mainFile),
+                Some(
+                  model.Range(model.Position(1, 7), model.Position(1, 18))
+                ),
+                None
               )
             )
           )
         )
       ),
-      Api.Response(Api.BackgroundJobsStartedNotification()),
-      context.executionComplete(contextId)
+      Api.Response(Api.BackgroundJobsStartedNotification())
     )
   }
 
@@ -4609,33 +4593,30 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
       Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
-        Api.ExecutionUpdate(
+        Api.ExecutionFailed(
           contextId,
-          Seq(
-            Api.ExecutionResult.Diagnostic.error(
-              "No_Such_Method.Error",
-              Some(mainFile),
-              Some(model.Range(model.Position(2, 7), model.Position(2, 16))),
-              None,
-              Vector(
-                Api.StackTraceElement(
-                  "Main.main",
-                  Some(mainFile),
-                  Some(
-                    model.Range(model.Position(2, 7), model.Position(2, 16))
-                  ),
-                  None
-                )
+          Api.ExecutionResult.Diagnostic.error(
+            "No_Such_Method.Error",
+            Some(mainFile),
+            Some(model.Range(model.Position(2, 7), model.Position(2, 16))),
+            None,
+            Vector(
+              Api.StackTraceElement(
+                "Main.main",
+                Some(mainFile),
+                Some(
+                  model.Range(model.Position(2, 7), model.Position(2, 16))
+                ),
+                None
               )
             )
           )
         )
-      ),
-      context.executionComplete(contextId)
+      )
     )
   }
 
@@ -4680,33 +4661,30 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
       Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
-        Api.ExecutionUpdate(
+        Api.ExecutionFailed(
           contextId,
-          Seq(
-            Api.ExecutionResult.Diagnostic.error(
-              "Method `pi` of type Number.type could not be found.",
-              Some(mainFile),
-              Some(model.Range(model.Position(3, 7), model.Position(3, 16))),
-              None,
-              Vector(
-                Api.StackTraceElement(
-                  "Main.main",
-                  Some(mainFile),
-                  Some(
-                    model.Range(model.Position(3, 7), model.Position(3, 16))
-                  ),
-                  None
-                )
+          Api.ExecutionResult.Diagnostic.error(
+            "Method `pi` of type Number.type could not be found.",
+            Some(mainFile),
+            Some(model.Range(model.Position(3, 7), model.Position(3, 16))),
+            None,
+            Vector(
+              Api.StackTraceElement(
+                "Main.main",
+                Some(mainFile),
+                Some(
+                  model.Range(model.Position(3, 7), model.Position(3, 16))
+                ),
+                None
               )
             )
           )
         )
-      ),
-      context.executionComplete(contextId)
+      )
     )
   }
 
@@ -4759,57 +4737,54 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(4) should contain theSameElementsAs Seq(
+    context.receiveN(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
-        Api.ExecutionUpdate(
+        Api.ExecutionFailed(
           contextId,
-          Seq(
-            Api.ExecutionResult.Diagnostic.error(
-              "Type_Error.Error",
-              Some(mainFile),
-              Some(model.Range(model.Position(10, 8), model.Position(10, 17))),
-              None,
-              Vector(
-                Api.StackTraceElement(
-                  "Main.baz",
-                  Some(mainFile),
-                  Some(
-                    model.Range(model.Position(10, 8), model.Position(10, 17))
-                  ),
-                  None
+          Api.ExecutionResult.Diagnostic.error(
+            "Type_Error.Error",
+            Some(mainFile),
+            Some(model.Range(model.Position(10, 8), model.Position(10, 17))),
+            None,
+            Vector(
+              Api.StackTraceElement(
+                "Main.baz",
+                Some(mainFile),
+                Some(
+                  model.Range(model.Position(10, 8), model.Position(10, 17))
                 ),
-                Api.StackTraceElement(
-                  "Main.bar",
-                  Some(mainFile),
-                  Some(
-                    model.Range(model.Position(7, 8), model.Position(7, 11))
-                  ),
-                  None
+                None
+              ),
+              Api.StackTraceElement(
+                "Main.bar",
+                Some(mainFile),
+                Some(
+                  model.Range(model.Position(7, 8), model.Position(7, 11))
                 ),
-                Api.StackTraceElement(
-                  "Main.foo",
-                  Some(mainFile),
-                  Some(
-                    model.Range(model.Position(4, 8), model.Position(4, 11))
-                  ),
-                  None
+                None
+              ),
+              Api.StackTraceElement(
+                "Main.foo",
+                Some(mainFile),
+                Some(
+                  model.Range(model.Position(4, 8), model.Position(4, 11))
                 ),
-                Api.StackTraceElement(
-                  "Main.main",
-                  Some(mainFile),
-                  Some(
-                    model.Range(model.Position(1, 4), model.Position(1, 7))
-                  ),
-                  None
-                )
+                None
+              ),
+              Api.StackTraceElement(
+                "Main.main",
+                Some(mainFile),
+                Some(
+                  model.Range(model.Position(1, 4), model.Position(1, 7))
+                ),
+                None
               )
             )
           )
         )
       ),
-      Api.Response(Api.BackgroundJobsStartedNotification()),
-      context.executionComplete(contextId)
+      Api.Response(Api.BackgroundJobsStartedNotification())
     )
   }
 
@@ -4863,57 +4838,54 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
-        Api.ExecutionUpdate(
+        Api.ExecutionFailed(
           contextId,
-          Seq(
-            Api.ExecutionResult.Diagnostic.error(
-              "Type error: expected `that` to be Number, but got Function.",
-              Some(mainFile),
-              Some(model.Range(model.Position(11, 8), model.Position(11, 17))),
-              None,
-              Vector(
-                Api.StackTraceElement(
-                  "Main.baz",
-                  Some(mainFile),
-                  Some(
-                    model.Range(model.Position(11, 8), model.Position(11, 17))
-                  ),
-                  None
+          Api.ExecutionResult.Diagnostic.error(
+            "Type error: expected `that` to be Number, but got Function.",
+            Some(mainFile),
+            Some(model.Range(model.Position(11, 8), model.Position(11, 17))),
+            None,
+            Vector(
+              Api.StackTraceElement(
+                "Main.baz",
+                Some(mainFile),
+                Some(
+                  model.Range(model.Position(11, 8), model.Position(11, 17))
                 ),
-                Api.StackTraceElement(
-                  "Main.bar",
-                  Some(mainFile),
-                  Some(
-                    model.Range(model.Position(8, 8), model.Position(8, 11))
-                  ),
-                  None
+                None
+              ),
+              Api.StackTraceElement(
+                "Main.bar",
+                Some(mainFile),
+                Some(
+                  model.Range(model.Position(8, 8), model.Position(8, 11))
                 ),
-                Api.StackTraceElement(
-                  "Main.foo",
-                  Some(mainFile),
-                  Some(
-                    model.Range(model.Position(5, 8), model.Position(5, 11))
-                  ),
-                  None
+                None
+              ),
+              Api.StackTraceElement(
+                "Main.foo",
+                Some(mainFile),
+                Some(
+                  model.Range(model.Position(5, 8), model.Position(5, 11))
                 ),
-                Api.StackTraceElement(
-                  "Main.main",
-                  Some(mainFile),
-                  Some(
-                    model.Range(model.Position(2, 4), model.Position(2, 7))
-                  ),
-                  None
-                )
+                None
+              ),
+              Api.StackTraceElement(
+                "Main.main",
+                Some(mainFile),
+                Some(
+                  model.Range(model.Position(2, 4), model.Position(2, 7))
+                ),
+                None
               )
             )
           )
         )
       ),
-      Api.Response(Api.BackgroundJobsStartedNotification()),
-      context.executionComplete(contextId)
+      Api.Response(Api.BackgroundJobsStartedNotification())
     )
   }
 
