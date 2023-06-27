@@ -713,9 +713,9 @@ week_days_between start end =
                     _ -> days_between
         False ->
             # We count the days in the first week up until Friday - the weekend is not counted.
-            first_week_days = Math.max 0 (Time_Utils.days_between start (start_of_first_full_week - (Period.new days=2)))
+            first_week_days = (Time_Utils.days_between start (start_of_first_full_week - (Period.new days=2))).max 0
             # We count the days in the last week, not including the weekend.
-            last_week_days = Math.min (Time_Utils.days_between start_of_last_week end) 5
+            last_week_days = (Time_Utils.days_between start_of_last_week end).min 5
             full_weeks_between * 5 + first_week_days + last_week_days
 
 ## PRIVATE

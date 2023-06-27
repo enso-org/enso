@@ -288,7 +288,7 @@ type Map key value
              import Standard.Base.Data.Map.Map
              import Standard.Examples
 
-             example_fold = Examples.map.fold 0 (l -> r -> Math.max l r.length)
+             example_fold = Examples.map.fold 0 (l -> r -> l.max r.length)
     fold : Any -> (Any -> Any -> Any) -> Any
     fold self init function = self.values.fold init function
 

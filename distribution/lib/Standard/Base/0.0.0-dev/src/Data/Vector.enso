@@ -6,7 +6,6 @@ import project.Data.Map.Map
 import project.Data.Numbers.Integer
 import project.Data.Pair.Pair
 import project.Data.Range.Range
-from project.Data.Range.Extensions import all
 import project.Data.Text.Text
 import project.Data.Sort_Direction.Sort_Direction
 import project.Errors.Common.Incomparable_Values
@@ -25,7 +24,7 @@ import project.Panic.Panic
 import project.Random
 import project.Warning.Warning
 
-import project.IO
+from project.Data.Range.Extensions import all
 
 ## We have to import also conversion methods, therefore, we import all from the Ordering
    module
@@ -812,7 +811,7 @@ type Vector a
              [1, 2, 3].zip [4, 5, 6] == [[1, 4], [2, 5], [3, 6]]
     zip : Vector Any -> (Any -> Any -> Any) -> Vector Any
     zip self that function=[_,_] =
-        len = Math.min self.length that.length
+        len = self.length.min that.length
         Vector.new len i-> function (self.at i) (that.at i)
 
     ## Extend `self` vector to the length of `n` appending elements `elem` to

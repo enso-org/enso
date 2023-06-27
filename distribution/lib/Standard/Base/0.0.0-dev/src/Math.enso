@@ -24,7 +24,8 @@ pi = 3.1415926535897932385
 e : Decimal
 e = 2.718281828459045235360
 
-## ALIAS Minimum
+## PRIVATE
+   ADVANCED
 
    Returns the smaller value of `a` and `b`.
 
@@ -44,7 +45,8 @@ e = 2.718281828459045235360
 min : Number -> Number -> Number
 min a b = if a <= b then a else b
 
-## ALIAS Maximum
+## PRIVATE
+   ADVANCED
 
    Returns the larger value of `a` and `b`.
 

@@ -23,16 +23,16 @@ type Message
 get_lazy_visualization_text_window text pos size chunk_width =
     get_text_chunk = get_item_from text chunk_width
     lines = text.lines.length
-    pos_x = Math.max pos.first 0
-    pos_y = Math.max pos.second 0
+    pos_x = pos.first.max 0
+    pos_y = pos.second.max 0
     size_x = size.first
     size_y = size.second
     x_range = pos_x.up_to (pos_x + size_x)
-    y_range = pos_y.up_to (Math.min (pos_y + size_y) lines)
+    y_range = pos_y.up_to ((pos_y + size_y).min lines)
     coordinates = x_range.map (x -> y_range.map (y -> [x,y])) . flatten
     chunks = coordinates.map (ix -> [ix, (get_text_chunk ix)])
     active_lines = y_range.map text.lines.at
-    max_line_length = (active_lines.map (line -> line.length)).fold 0 (l -> r -> Math.max l r)
+    max_line_length = (active_lines.map (line -> line.length)).fold 0 (l -> r -> l.max r)
     make_grid_visualization_response chunks lines max_line_length
 
 ## PRIVATE
@@ -56,7 +56,7 @@ get_item_from text chunk_size index =
 get_chunk_from_line text chunk_size ix =
     upper_bound = text.length
     start = ix * chunk_size
-    end = Math.min (start + chunk_size) upper_bound
+    end = (start + chunk_size).min upper_bound
     range = start.up_to end
     if start > text.length then Nothing else
         slice_text text [range]
