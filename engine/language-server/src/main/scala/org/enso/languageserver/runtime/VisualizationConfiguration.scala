@@ -21,6 +21,7 @@ case class VisualizationConfiguration(
   expression: VisualizationExpression,
   visualizationModule: String
 ) extends ToLogString {
+
   /** @inheritdoc */
   override def toLogString(shouldMask: Boolean): String =
     s"VisualizationConfiguration(" +
@@ -30,8 +31,8 @@ case class VisualizationConfiguration(
   /** Convert to corresponding [[Api]] message. */
   def toApi: Api.VisualizationConfiguration =
     Api.VisualizationConfiguration(
-      executionContextId = executionContextId,
-      expression         = expression.toApi,
+      executionContextId  = executionContextId,
+      expression          = expression.toApi,
       visualizationModule = visualizationModule
     )
 
