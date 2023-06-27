@@ -219,8 +219,9 @@ object UpsertVisualizationJob {
 
   /** Evaluate the visualization expression in a given module.
     *
-    * @param module the module where to evaluate the expression
+    * @param module the module where to evaluate arguments for the expression
     * @param expression the visualization expression
+    * @param expressionModule the module where to evaluate the expression
     * @param retryCount the number of attempted retries
     * @param ctx the runtime context
     * @return either the evaluation result or an evaluation failure
@@ -307,6 +308,7 @@ object UpsertVisualizationJob {
 
   /** Evaluate the visualization expression.
     *
+    * @param module module to evaluate the expression arguments at
     * @param expression the visualization expression to evaluate
     * @param ctx the runtime context
     * @return either the evaluation result or an evaluation error

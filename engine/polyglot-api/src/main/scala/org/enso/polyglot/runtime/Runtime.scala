@@ -615,6 +615,7 @@ object Runtime {
       *
       * @param executionContextId an execution context of the visualization
       * @param expression the expression that creates a visualization
+      * @param visualizationModule module to evaluate arguments for visualization at
       */
     case class VisualizationConfiguration(
       executionContextId: ContextId,
