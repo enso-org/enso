@@ -623,7 +623,7 @@ type Column
                         Value_Type.Float _ -> self.round_float decimal_places use_bankers
                         Value_Type.Decimal _ _ -> self.round_decimal decimal_places use_bankers
                         _ ->
-                            expected = "Value_Type.Decimal, Value_Type.Float, or Value_Type.Integer"
+                            expected = "Decimal, Float, or Integer"
                             Error.throw (Invalid_Value_Type.Column expected self.value_type self.name)
 
     ## PRIVATE
@@ -639,7 +639,7 @@ type Column
         # Don't use for negative decimal places, if the backend doesn't support it
         negative_dp_ok = decimal_places >= 0 || self.connection.dialect.supports_negative_round_decimal_places
         # Don't use for floating-point inputs if deciaml_places != 0, for Postgres
-        dp_param_ok = (self.connection.dialect.rounding_decimal_places_not_allowed_for_floats && self.value_type.is_floating && decimal_places != 0).not
+        dp_param_ok = (self.connection.dialect.rounding_decimal_places_not_allowed_for_floats && self.value_type.is_floating_point && decimal_places != 0).not
         not_bankers && negative_dp_ok && dp_param_ok
 
     ## PRIVATE
