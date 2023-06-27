@@ -50,7 +50,7 @@ type Json
 
     ## PRIVATE
        ADVANCED
-       Serialize an Object to JSON
+       Serialize an Object to JSON.
     stringify : (JS_Object | Boolean | Number | Nothing | Text | Vector) -> Text
     stringify object =
         json_stringify (make_javascript object.to_js_object)

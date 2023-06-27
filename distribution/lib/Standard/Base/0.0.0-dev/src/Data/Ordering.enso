@@ -163,7 +163,7 @@ type Ordering
 
     ## PRIVATE
        ADVANCED
-       Compares to values and returns an Ordering
+       Compares values and returns an Ordering.
     compare : Any -> Any -> Ordering ! Incomparable_Values
     compare x y =
         if x < y then Ordering.Less else
