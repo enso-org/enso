@@ -3,7 +3,6 @@ from Standard.Base import all
 import project.Data.Column.Column
 import project.Data.Table.Table
 import project.Data.Type.Value_Type.Value_Type
-import project.Internal.Java_Exports
 import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 import Standard.Base.Data.Text.Regex.Pattern.Pattern
@@ -382,5 +381,5 @@ uniform_length target_length v problem_builder = if v.length == target_length th
     case v.length < target_length of
         # Pad.
         True -> v.pad target_length Nothing
-		# Truncate.
+        # Truncate.
         False -> v.take target_length

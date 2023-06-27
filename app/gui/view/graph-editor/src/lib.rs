@@ -589,8 +589,8 @@ ensogl::define_endpoints_2! {
         // === Scene Navigation ===
 
         /// Stop the scene camera from moving around, locking the scene in place.
-        /// Can be used, e.g., if there is a fullscreen visualisation active, or navigation should
-        ///only work for a selected visualisation.
+        /// Can be used, e.g., if there is a fullscreen visualization active, or navigation should
+        ///only work for a selected visualization.
         set_navigator_disabled(bool),
 
 
@@ -655,9 +655,9 @@ ensogl::define_endpoints_2! {
         reset_visualization_registry (),
         /// Reload visualization registry
         reload_visualization_registry(),
-        /// Show visualisation previews on nodes without delay.
+        /// Show visualization previews on nodes without delay.
         enable_quick_visualization_preview(),
-        /// Show visualisation previews on nodes with delay.
+        /// Show visualization previews on nodes with delay.
         disable_quick_visualization_preview(),
 
         /// Drop an edge that is being dragged.
@@ -720,7 +720,7 @@ ensogl::define_endpoints_2! {
         visualization_update_error ((NodeId, String)),
 
         on_visualization_select     (Switch<NodeId>),
-        some_visualisation_selected (bool),
+        some_visualization_selected (bool),
         navigator_active (bool),
 
         widgets_requested                       (NodeId, ast::Id, ast::Id),
@@ -1458,15 +1458,15 @@ struct Edges {
 }
 
 #[derive(Debug, Clone, CloneRef, Default)]
-struct Visualisations {
-    /// This keeps track of the currently selected visualisation. There should only ever be one
-    /// visualisations selected, however due to the way that the selection is determined, it can
-    /// happen that while the FRP is resolved, temporarily, we have multiple visualisation in this
+struct Visualizations {
+    /// This keeps track of the currently selected visualization. There should only ever be one
+    /// visualizations selected, however due to the way that the selection is determined, it can
+    /// happen that while the FRP is resolved, temporarily, we have multiple visualization in this
     /// set. This happens because the selection status is determined bottom up from each
-    /// visualisation and the reported via FRP to the graph editor. That means if the status
-    /// we might see the new selection status for a visualisation getting set before we see the
-    /// previously selected visualisation report its deselection. If we ever have more than one
-    /// visualisation in this set after the status updates have been resolved, that is a bug.
+    /// visualization and the reported via FRP to the graph editor. That means if the status
+    /// we might see the new selection status for a visualization getting set before we see the
+    /// previously selected visualization report its deselection. If we ever have more than one
+    /// visualization in this set after the status updates have been resolved, that is a bug.
     selected: SharedHashSet<NodeId>,
 }
 
@@ -1776,9 +1776,9 @@ impl GraphEditorModel {
 
             // === Visualizations ===
 
-            let visualisation = node.visualization();
-            visualization_shown <- visualisation.visible.on_true();
-            visualization_hidden <- visualisation.visible.on_false();
+            let visualization = node.visualization();
+            visualization_shown <- visualization.visible.on_true();
+            visualization_hidden <- visualization.visible.on_false();
 
             let vis_is_selected = node_model.visualization.frp.is_selected.clone_ref();
 
@@ -1797,10 +1797,10 @@ impl GraphEditorModel {
             metadata <- any(...);
             metadata <+ node_model.visualization.frp.preprocessor.map(visualization::Metadata::new);
 
-            // Ensure the graph editor knows about internal changes to the visualisation. If the
-            // visualisation changes that should indicate that the old one has been disabled and a
+            // Ensure the graph editor knows about internal changes to the visualization. If the
+            // visualization changes that should indicate that the old one has been disabled and a
             // new one has been enabled.
-            // TODO: Create a better API for updating the controller about visualisation changes
+            // TODO: Create a better API for updating the controller about visualization changes
             // (see #896)
             out.visualization_hidden <+ visualization_hidden.constant(node_id);
             out.visualization_shown  <+
@@ -1808,7 +1808,7 @@ impl GraphEditorModel {
 
             init <- source::<()>();
             enabled_visualization_path <- init.all_with3(
-                &visualisation.visible, &visualisation.visualization_path,
+                &visualization.visible, &visualization.visualization_path,
                 move |_init, is_enabled, path| (node_id, is_enabled.and_option(path.clone()))
             );
             out.enabled_visualization_path <+ enabled_visualization_path;
@@ -1866,7 +1866,7 @@ pub struct GraphEditorModel {
     pub add_node_button: Rc<component::add_node_button::AddNodeButton>,
     tooltip: Tooltip,
     touch_state: TouchState,
-    visualisations: Visualisations,
+    visualizations: Visualizations,
     frp: api::Private,
     frp_public: api::Public,
     profiling_statuses: profiling::Statuses,
@@ -1889,7 +1889,7 @@ impl GraphEditorModel {
         let nodes = Nodes::new();
         let edges = RefCell::new(Edges::default());
         let vis_registry = visualization::Registry::with_default_visualizations();
-        let visualisations = default();
+        let visualizations = default();
         let touch_state = TouchState::new(network, scene);
         let breadcrumbs = component::Breadcrumbs::new(app.clone_ref());
         let execution_environment_selector =
@@ -1922,7 +1922,7 @@ impl GraphEditorModel {
             drop_manager,
             tooltip,
             touch_state,
-            visualisations,
+            visualizations,
             navigator,
             profiling_statuses,
             add_node_button,
@@ -2911,7 +2911,7 @@ fn init_remaining_graph_editor_frp(
     // ========================
 
     frp::extend! { network
-        navigator_disabled <- out.some_visualisation_selected.or(&inputs.set_navigator_disabled);
+        navigator_disabled <- out.some_visualization_selected.or(&inputs.set_navigator_disabled);
         model.navigator.frp.set_enabled <+ navigator_disabled.not();
         out.navigator_active <+ model.navigator.frp.enabled;
     }
@@ -3281,14 +3281,14 @@ fn init_remaining_graph_editor_frp(
     frp::extend! { network
         eval out.on_visualization_select ([model](switch) {
             if switch.is_on() {
-                model.visualisations.selected.insert(switch.value);
+                model.visualizations.selected.insert(switch.value);
             } else {
-                model.visualisations.selected.remove(&switch.value);
+                model.visualizations.selected.remove(&switch.value);
             }
         });
 
-        out.some_visualisation_selected <+  out.on_visualization_select.map(f_!([model] {
-            !model.visualisations.selected.is_empty()
+        out.some_visualization_selected <+  out.on_visualization_select.map(f_!([model] {
+            !model.visualizations.selected.is_empty()
         }));
     };
 
@@ -3339,7 +3339,7 @@ fn init_remaining_graph_editor_frp(
         // it was a key hold and we want to enter preview mode.
         let long_enough = diff > VIZ_PREVIEW_MODE_TOGGLE_TIME_MS;
         // We also check the number of passed frames, since the time measure can be misleading, if
-        // there were dropped frames. The visualisation might have just appeared while more than
+        // there were dropped frames. The visualization might have just appeared while more than
         // the threshold time has passed.
         let enough_frames = if let Some(counter) = counter {
             let frames = counter.frames_since_start();
@@ -3477,9 +3477,9 @@ fn init_remaining_graph_editor_frp(
         eval selection_controller.area_selection ((area_selection) model.nodes.show_quick_actions(!area_selection));
     }
 
-    // === Visualisation + Selection ===
+    // === Visualization + Selection ===
 
-    // Do not allow area selection while we show a fullscreen visualisation.
+    // Do not allow area selection while we show a fullscreen visualization.
     frp::extend! { network
         allow_area_selection <- out.is_fs_visualization_displayed.not();
         eval allow_area_selection ((area_selection)
