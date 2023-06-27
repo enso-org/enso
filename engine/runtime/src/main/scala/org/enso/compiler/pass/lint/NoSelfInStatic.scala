@@ -5,6 +5,11 @@ import org.enso.compiler.core.{CompilerError, IR}
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.desugar.GenerateMethodBodies
 
+/** This linting pass ensures that `self` argument is not used in static methods.
+  *
+  * This pass requires the context to provide:
+  * - Nothing
+  */
 object NoSelfInStatic extends IRPass {
   override type Metadata = IRPass.Metadata.Empty
   override type Config   = IRPass.Configuration.Default
@@ -25,12 +30,8 @@ object NoSelfInStatic extends IRPass {
           method.copy(
             body = method.body.transformExpressions(transformSelfToError)
           )
-        // TODO: Is this case reachable here?
-        case method: IR.Module.Scope.Definition.Method.Binding
-            if isStaticMethod(method) =>
-          method.copy(
-            body = method.body.transformExpressions(transformSelfToError)
-          )
+        case method: IR.Module.Scope.Definition.Method.Binding =>
+          throw new CompilerError("Unreachable: Method.Binding should not be present in this pass: " + method)
         case binding => binding
       }
     )
@@ -40,7 +41,6 @@ object NoSelfInStatic extends IRPass {
     : PartialFunction[IR.Expression, IR.Expression] = {
     case IR.Name.Self(location, false, passData, diagnostics) =>
       IR.Error.Syntax(
-        // TODO: OK to get here?
         location.get,
         IR.Error.Syntax.InvalidSelfArgUsage,
         passData,
