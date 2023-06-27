@@ -45,7 +45,7 @@ class NoSelfInStaticTests extends CompilerTest {
   // === The Tests ============================================================
 
   "No self argument in static methods linting" should {
-    "generate an error when self argument used in a type static method" in {
+    "generate an error when self argument is used in a type static method" in {
       implicit val ctx: ModuleContext = mkModuleContext
       val ir =
         """
@@ -53,22 +53,47 @@ class NoSelfInStaticTests extends CompilerTest {
           |    Value x
           |    bar = self.x + self.x
           |""".stripMargin.preprocessModule.lint
-      val methods = ir.bindings.collect{ case method: IR.Module.Scope.Definition.Method => method }
-      methods should have size 1
-      val errs = methods.head.body.preorder.collect { case err @ IR.Error.Syntax(_, IR.Error.Syntax.InvalidSelfArgUsage, _, _) => err }
+      val errs = ir.bindings.flatMap(_.preorder).collect { case err@IR.Error.Syntax(_, IR.Error.Syntax.InvalidSelfArgUsage, _, _) => err }
       errs should have size 2
     }
 
-    "generate an error when self argument used in a module static method" in {
+    "generate an error when self argument is used in a module static method" in {
       implicit val ctx: ModuleContext = mkModuleContext
       val ir =
         """
           |static_method x y = x + y + self.data
           |""".stripMargin.preprocessModule.lint
-      val methods = ir.bindings.collect { case method: IR.Module.Scope.Definition.Method => method }
-      methods should have size 1
-      val errs = methods.head.body.preorder.collect { case err@IR.Error.Syntax(_, IR.Error.Syntax.InvalidSelfArgUsage, _, _) => err }
+      val errs = ir.bindings.flatMap(_.preorder).collect { case err@IR.Error.Syntax(_, IR.Error.Syntax.InvalidSelfArgUsage, _, _) => err }
       errs should have size 1
+    }
+
+    "generate an error when self argument is used in a nested static method" in {
+      implicit val ctx: ModuleContext = mkModuleContext
+      val ir =
+        """
+          |static_method x y =
+          |    nested_method z =
+          |        tmp = z + x + y
+          |        self.data + tmp
+          |    nested_method (x + y)
+          |""".stripMargin.preprocessModule.lint
+      val errs = ir.bindings.flatMap(_.preorder).collect { case err@IR.Error.Syntax(_, IR.Error.Syntax.InvalidSelfArgUsage, _, _) => err }
+      errs should have size 1
+    }
+
+    "succeed when self argument is used in a nested instance method" in {
+      implicit val ctx: ModuleContext = mkModuleContext
+      val ir =
+        """
+          |type My_Type
+          |    Value value
+          |
+          |    instance_method self =
+          |        nested_method x = self.value + 1
+          |        nested_method 42
+          |""".stripMargin.preprocessModule.lint
+      val errs = ir.bindings.flatMap(_.preorder).collect { case err@IR.Error.Syntax(_, IR.Error.Syntax.InvalidSelfArgUsage, _, _) => err }
+      errs should be(empty)
     }
   }
 }
