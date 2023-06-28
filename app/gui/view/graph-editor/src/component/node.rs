@@ -548,6 +548,7 @@ impl NodeModel {
         let visualization_offset = visualization_offset(width);
         self.error_visualization.set_xy(visualization_offset);
         self.visualization.set_xy(visualization_offset);
+        self.visualization.frp.set_width(width);
 
         size
     }

@@ -88,28 +88,6 @@ pub mod overlay {
     }
 }
 
-pub mod resize_overlay {
-    use super::*;
-
-    ensogl::shape! {
-        alignment = center;
-        (style: Style, radius: f32, roundness: f32, selection: f32) {
-            let width         = Var::<Pixels>::from("input_size.x");
-            let height        = Var::<Pixels>::from("input_size.y");
-            let width_s = &width - 10.px();
-            let height_s = &height - 10.px();
-            let radius        = 1.px() * &radius;
-            let corner_radius = &radius * &roundness;
-            let color_overlay = color::Rgba::new(1.0,0.0,0.0,1.0);
-            let overlay       = Rect((&width,&height)).corners_radius(corner_radius);
-            let overlay = overlay - Rect((&width_s, height_s));
-            let overlay       = overlay.fill(color_overlay);
-            let out           = overlay;
-            out.into()
-        }
-    }
-}
-
 /// Container's background, including selection.
 // TODO[ao] : Currently it does not contain the real background, which is rendered in HTML instead.
 //        This should be fixed in https://github.com/enso-org/ide/issues/526
@@ -200,6 +178,7 @@ ensogl::define_endpoints_2! {
         deselect            (),
         set_size            (Vector2),
         set_vis_input_type  (Option<enso::Type>),
+        set_width           (f32),
     }
     Output {
         preprocessor   (PreprocessorConfiguration),
@@ -239,7 +218,7 @@ impl View {
         let display_object = display::object::Instance::new();
         let background = background::View::new();
         let overlay = Rectangle::default().build(|r| {
-            r.set_color(Rgba::red());
+            r.set_color(INVISIBLE_HOVER_COLOR);
         });
         let resize_grip = Rectangle::default().build(|r| {
             r.set_color(Rgba::green());
@@ -417,6 +396,12 @@ impl ContainerModel {
     fn resize(&self, mut size_diff: Vector2, view_state: ViewState) {
         size_diff.y = -size_diff.y;
         let mut new_size = self.size.get() + size_diff;
+        new_size.x = new_size.x.max(MIN_SIZE.x);
+        new_size.y = new_size.y.max(MIN_SIZE.y);
+        self.update_layout_without_setting_size(new_size, view_state);
+    }
+
+    fn resize_to(&self, mut new_size: Vector2, view_state: ViewState) {
         new_size.x = new_size.x.max(MIN_SIZE.x);
         new_size.y = new_size.y.max(MIN_SIZE.y);
         self.update_layout_without_setting_size(new_size, view_state);
@@ -636,17 +621,23 @@ impl Container {
         let action_bar = &model.action_bar.frp;
         let registry = &model.registry;
         let selection = Animation::new(network);
+        let width_anim = Animation::new(network);
 
         let on_down = model.view.resize_grip.on_event_capturing::<mouse::Down>();
         let on_up_source = scene.on_event::<mouse::Up>();
         let on_move = scene.on_event::<mouse::Move>();
 
         frp::extend! { network
+            init <- source_();
             eval input.set_view_state((state) model.apply_view_state(*state));
             output.view_state <+ input.set_view_state.on_change();
             output.fullscreen <+ output.view_state.map(|state| state.is_fullscreen()).on_change();
             output.visible <+ output.view_state.map(|state| state.is_visible()).on_change();
 
+
+            // Drag-resize.
+
+            on_down <- on_down.gate(&output.visible);
             on_up <- on_up_source.identity();
             on_up_cleaning_phase <- on_up_source.identity();
 
@@ -654,7 +645,6 @@ impl Container {
             on_move_down <- on_move.gate(&is_down);
             glob_pos_on_down <- on_down.map(|event| event.client_centered());
             glob_pos_on_move_down <- on_move_down.map(|event| event.client_centered());
-            glob_pos_on_move <- on_move.map(|event| event.client_centered());
             pos_on_down <- glob_pos_on_down.map(f!((p) model.screen_to_object_space(*p)));
             pos_on_move_down <- glob_pos_on_move_down.map(f!((p) model.screen_to_object_space(*p)));
             pos_diff_on_move <- pos_on_move_down.map2(&pos_on_down, |a, b| a - b);
@@ -666,7 +656,24 @@ impl Container {
             last_diff <- pos_diff.sample(&on_up);
             _eval <- last_diff.map2(&output.view_state, f!((diff, view_state) model.finalize_resize(*diff, *view_state)));
 
-            output.size <+ input.set_size.on_change();
+            // Size changes.
+            size_was_not_changed_manually <- any(...);
+            size_was_not_changed_manually <+ init.constant(true);
+            size_was_not_changed_manually <+ pos_diff.filter(|d| *d != Vector2::default()).constant(false);
+            size_was_not_changed_manually <+ output.visible.on_change().constant(true);
+            trace size_was_not_changed_manually;
+
+            width_target <- input.set_width;
+            on_visible <- output.is_visible.on_true();
+            width_change_after_open <- width_target.sample(&on_visible);
+            width_changed <- any(&width_target, &width_change_after_open);
+            width_anim.target <+ width_target.gate(&size_was_not_changed_manually);
+            new_size <- width_anim.value.map2(&output.size, |w, s| Vector2(*w, s.y));
+            size_change <- any(&new_size, &input.set_size).on_change();
+
+            _eval <- size_change.map2(&output.view_state, f!((new_size, view_state) model.resize_to(*new_size, *view_state)));
+
+            output.size <+ size_change;
 
             visualisation_not_selected <- input.set_visualization.map(|t| t.is_none());
             input_type_not_set <- input.set_vis_input_type.is_some().not();
@@ -843,6 +850,7 @@ impl Container {
         // an animation on an invisible component running.
         self.frp.public.set_size(Vector2(DEFAULT_SIZE.0, DEFAULT_SIZE.1));
         self.frp.public.set_visualization(None);
+        init.emit(());
         self
     }
 
