@@ -192,7 +192,7 @@
   ctrl-clicking to edit the node placed the mouse cursor in the wrong position
   in the text. This is fixed now.
 - [Added prototype AI Searcher that can be used to create new nodes from  
-  natural language input][7146] 
+  natural language input][7146]
 
 [5910]: https://github.com/enso-org/enso/pull/5910
 [6279]: https://github.com/enso-org/enso/pull/6279
