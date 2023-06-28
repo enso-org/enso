@@ -243,9 +243,10 @@ impl Style {
 // === Model ===
 
 /// A [Model](component::Model) of [Component List Panel Grid View](View).
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 pub struct Model {
     display_object:         display::object::Instance,
+    #[focus_receiver]
     grid:                   Grid,
     grid_layer:             Layer,
     selection_layer:        Layer,
@@ -584,15 +585,6 @@ impl Model {
         } else {
             grid_view::Margins { top: vertical_margin, ..default() }
         }
-    }
-}
-
-
-// === display::Object Implementation ===
-
-impl display::Object for Model {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
     }
 }
 

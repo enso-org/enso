@@ -101,8 +101,9 @@ pub type Comment = ImString;
 // ==============
 
 /// A node's background area and selection.
-#[derive(Debug, Clone, CloneRef)]
+#[derive(Debug, Clone, CloneRef, display::Object)]
 pub struct Background {
+    #[display_object]
     shape:           Rectangle,
     inset:           Immutable<f32>,
     selection_color: Immutable<color::Rgba>,
@@ -136,12 +137,6 @@ impl Background {
         let origin = center - size_with_inset / 2.0;
         self.shape.set_size(size_with_inset);
         self.shape.set_xy(origin);
-    }
-}
-
-impl display::Object for Background {
-    fn display_object(&self) -> &display::object::Instance {
-        self.shape.display_object()
     }
 }
 
@@ -330,7 +325,7 @@ ensogl::define_endpoints_2! {
 ///    emitted back to the right node).
 ///
 /// Currently, the solution "C" (nearest to optimal) is implemented here.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 #[allow(missing_docs)]
 pub struct Node {
     widget: gui::Widget<NodeModel, Frp>,
@@ -357,7 +352,7 @@ impl Deref for Node {
 }
 
 /// Internal data of `Node`
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 #[allow(missing_docs)]
 pub struct NodeModel {
     // Required for switching the node to a different layer
@@ -908,8 +903,7 @@ impl Node {
         frp.set_disabled.emit(false);
         frp.show_quick_action_bar_on_hover.emit(true);
 
-        let display_object = model.display_object.clone_ref();
-        let widget = gui::Widget::new(app, frp, model, display_object);
+        let widget = gui::Widget::new(app, frp, model);
         Node { widget }
     }
 
@@ -935,11 +929,6 @@ impl Node {
     }
 }
 
-impl display::Object for Node {
-    fn display_object(&self) -> &display::object::Instance {
-        self.deref().display_object()
-    }
-}
 
 
 // === Positioning ===

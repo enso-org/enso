@@ -75,7 +75,7 @@ pub struct EntryStyle {
 // === Data ===
 
 /// The model of the list entry. Displays the name of the project.
-#[derive(Debug, Clone, CloneRef)]
+#[derive(Debug, Clone, CloneRef, display::Object)]
 struct Data {
     display_object: display::object::Instance,
     text:           text::Text,
@@ -102,16 +102,11 @@ impl Data {
 // === Entry ===
 
 /// The list entry. Displays the name of the project.
-#[derive(Debug, Clone, CloneRef)]
+#[derive(Debug, Clone, CloneRef, display::Object)]
 pub struct Entry {
+    #[display_object]
     data: Data,
     frp:  grid_view::entry::EntryFrp<Self>,
-}
-
-impl display::Object for Entry {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.data.display_object
-    }
 }
 
 impl grid_view::Entry for Entry {
@@ -220,7 +215,7 @@ ensogl::define_endpoints! {
 /// The Project List GUI Component.
 ///
 /// This is a list of projects in a nice frame with a title.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 pub struct ProjectList {
     display_object: display::object::Instance,
     background:     background::View,
@@ -309,11 +304,5 @@ impl ProjectList {
         init.emit(());
 
         Self { display_object, background, caption, grid, frp }
-    }
-}
-
-impl display::Object for ProjectList {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
     }
 }

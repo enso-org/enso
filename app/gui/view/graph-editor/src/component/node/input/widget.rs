@@ -143,7 +143,7 @@ pub struct OverrideKey {
 
 /// Common trait for constructing and reconfiguring all widget variants. See "Widget Lifecycle"
 /// section of the module documentation for more details.
-pub trait SpanWidget {
+pub trait SpanWidget: display::Object {
     /// Configuration associated with specific widget variant.
     type Config: Debug + Clone + PartialEq;
     /// Score how well a widget kind matches current [`ConfigContext`], e.g. checking if the span
@@ -156,8 +156,6 @@ pub trait SpanWidget {
     /// automatically derived configuration. It is not called for widgets that have a configuration
     /// provided externally or by a parent widget.
     fn default_config(ctx: &ConfigContext) -> Configuration<Self::Config>;
-    /// Root display object of a widget. It is returned to the parent widget for positioning.
-    fn root_object(&self) -> &display::object::Instance;
     /// Create a new widget with given configuration.
     fn new(config: &Self::Config, ctx: &ConfigContext) -> Self;
     /// Update configuration for existing widget.
@@ -281,13 +279,6 @@ macro_rules! define_widget_modules(
         )*
 
         impl DynWidget {
-            #[allow(missing_docs)]
-            pub fn root_object(&self) -> &display::object::Instance {
-                match self {
-                    $(DynWidget::$name(inner) => inner.root_object(),)*
-                }
-            }
-
             fn new(config: &DynConfig, ctx: &ConfigContext) -> Self {
                 match config {
                     $(DynConfig::$name(config) => DynWidget::$name(SpanWidget::new(config, ctx)),)*
@@ -312,6 +303,20 @@ macro_rules! define_widget_modules(
             ) {
                 match (self) {
                     $(DynWidget::$name(model) => model.receive_ownership(req, nodes),)*
+                }
+            }
+        }
+
+        impl display::Object for DynWidget {
+            fn display_object(&self) -> &display::object::Instance {
+                match self {
+                    $(DynWidget::$name(inner) => inner.display_object(),)*
+                }
+            }
+
+            fn focus_receiver(&self) -> &display::object::Instance {
+                match self {
+                    $(DynWidget::$name(inner) => inner.focus_receiver(),)*
                 }
             }
         }
@@ -515,18 +520,13 @@ pub struct TransferRequest {
 /// The node widget tree view. Contains all widgets created from the node's span tree, as well as
 /// all input ports of a node. The tree is initialized to empty state, waiting for first
 /// `rebuild_tree` call to build appropriate view hierarchy.
-#[derive(Debug, Deref, Clone, CloneRef)]
+#[derive(Debug, Deref, Clone, CloneRef, display::Object)]
 pub struct Tree {
     #[deref]
     frp:         Frp,
     widgets_frp: WidgetsFrp,
+    #[display_object]
     model:       Rc<TreeModel>,
-}
-
-impl display::Object for Tree {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.model.display_object
-    }
 }
 
 impl Tree {
@@ -713,7 +713,14 @@ impl display::Object for TreeNode {
     fn display_object(&self) -> &display::object::Instance {
         match self {
             TreeNode::Port(port) => port.display_object(),
-            TreeNode::Widget(widget) => widget.root_object(),
+            TreeNode::Widget(widget) => widget.display_object(),
+        }
+    }
+
+    fn focus_receiver(&self) -> &display::object::Instance {
+        match self {
+            TreeNode::Port(port) => port.focus_receiver(),
+            TreeNode::Widget(widget) => widget.focus_receiver(),
         }
     }
 }
@@ -757,7 +764,7 @@ pub struct EdgeData {
 // === TreeModel ===
 // =================
 
-#[derive(Debug)]
+#[derive(Debug, display::Object)]
 struct TreeModel {
     app:            Application,
     display_object: display::object::Instance,

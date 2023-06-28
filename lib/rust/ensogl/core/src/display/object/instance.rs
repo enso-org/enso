@@ -1103,6 +1103,7 @@ use crate::data::dirty::traits::*;
 use crate::display::object::layout::*;
 use crate::prelude::*;
 
+use crate::display;
 use crate::display::layout::alignment;
 use crate::display::object::event;
 use crate::display::object::transformation;
@@ -1389,7 +1390,7 @@ impl Hash for WeakInstance {
 
 /// A root element of a display object hierarchy. Unlike [`Instance`], [`Root`] is visible by
 /// default and has explicit methods to hide and show it.
-#[derive(Clone, CloneRef, Debug, Deref)]
+#[derive(Clone, CloneRef, Debug, Deref, display::Object)]
 #[repr(transparent)]
 pub struct Root {
     def: Instance,
@@ -1428,12 +1429,6 @@ impl Root {
 impl Default for Root {
     fn default() -> Self {
         Self::new()
-    }
-}
-
-impl Object for Root {
-    fn display_object(&self) -> &Instance {
-        &self.def
     }
 }
 
@@ -4070,6 +4065,18 @@ impl Model {
 #[allow(missing_docs)]
 pub trait Object {
     fn display_object(&self) -> &Instance;
+
+    /// Return an object that should be focused if this object is the target of
+    /// [`ObjectOps::focus()`]. The returned instance should be a child (or descendant) of the
+    /// object returned by [`display_object()`].
+    ///
+    /// Note that the implementation should never have the same body as [`display_object()`]. A leaf
+    /// implementation that returns its own [`Instance`] can be derived with
+    /// [`derive(display::Object)`], so hand-written implementations are only needed in (certain
+    /// cases of) delegation to another [`Object`] implementation. When delegating to another
+    /// implementation, [`focus_receiver`] should delegate to [`focus_receiver`].
+    fn focus_receiver(&self) -> &Instance;
+
     fn weak_display_object(&self) -> WeakInstance {
         self.display_object().downgrade()
     }
@@ -4085,22 +4092,32 @@ impl Object for Instance {
     fn display_object(&self) -> &Instance {
         self
     }
-}
 
-impl<T: Object + ?Sized> Object for &T {
-    fn display_object(&self) -> &Instance {
-        let t: &T = self;
-        t.display_object()
+    fn focus_receiver(&self) -> &Instance {
+        // [`Instance`] is a leaf in the focus-receiver tree. This is the only case where a
+        // non-derivable [`Object`] implementation should use the same expression for both display
+        // object and focus receiver.
+        self
     }
 }
 
-impl<T> Object for std::mem::ManuallyDrop<T>
-where T: Object
-{
-    fn display_object(&self) -> &Instance {
-        self.deref().display_object()
-    }
+macro_rules! deref_impl {
+    ($param:ident, $ty:ty) => {
+        impl<$param: Object + ?Sized> Object for $ty {
+            fn display_object(&self) -> &Instance {
+                self.deref().display_object()
+            }
+
+            fn focus_receiver(&self) -> &Instance {
+                self.deref().focus_receiver()
+            }
+        }
+    };
 }
+
+deref_impl!(T, &T);
+deref_impl!(T, core::mem::ManuallyDrop<T>);
+
 
 
 // ==================
@@ -4112,7 +4129,7 @@ where T: Object
 /// You can convert structure into `Any` using `Object::into_any`. Unfortunately it is not possible
 /// to make general `From` implementation, because `Any` itself would use it as well, and it clashes
 /// with base implementation `From<T> for T`.
-#[derive(CloneRef)]
+#[derive(CloneRef, display::Object)]
 pub struct Any {
     wrapped: Rc<dyn Object>,
 }
@@ -4126,12 +4143,6 @@ impl Clone for Any {
 impl Debug for Any {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "display::object::Any")
-    }
-}
-
-impl Object for Any {
-    fn display_object(&self) -> &Instance {
-        self.wrapped.display_object()
     }
 }
 
@@ -4388,9 +4399,10 @@ pub trait ObjectOps: Object + AutoLayoutOps + LayoutOps {
         self.display_object().def.is_focused()
     }
 
-    /// Focus this object. See docs of [`Event::Focus`] to learn more.
+    /// Focus this object, and some descendant if this object has a `focus_receiver()`.
+    /// See docs of [`Event::Focus`] to learn more about focus.
     fn focus(&self) {
-        self.display_object().def.focus()
+        self.focus_receiver().def.focus()
     }
 
     /// Blur ("unfocus") this object. See docs of [`Event::Blur`] to learn more.
@@ -4804,18 +4816,13 @@ mod hierarchy_tests {
     }
 
     /// A utility to test display object instances' visibility.
-    #[derive(Clone, CloneRef, Debug, Deref)]
+    #[derive(Clone, CloneRef, Debug, Deref, display::Object)]
     struct TestedNode {
         #[deref]
+        #[display_object]
         node:         Instance,
         show_counter: Rc<Cell<usize>>,
         hide_counter: Rc<Cell<usize>>,
-    }
-
-    impl Object for TestedNode {
-        fn display_object(&self) -> &Instance {
-            &self.node
-        }
     }
 
     impl TestedNode {

@@ -141,7 +141,7 @@ ensogl::define_endpoints! {
 // === Model ===
 // =============
 
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 struct Model {
     display_object:       display::object::Instance,
     project_view_top_bar: ProjectViewTopBar,
@@ -310,8 +310,9 @@ mod js {
 
 /// The main view of single project opened in IDE.
 #[allow(missing_docs)]
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 pub struct View {
+    #[display_object]
     model:   Model,
     pub frp: Frp,
 }
@@ -718,12 +719,6 @@ impl View {
     /// Pop-up
     pub fn popup(&self) -> &popup::View {
         &self.model.popup
-    }
-}
-
-impl display::Object for View {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.model.display_object
     }
 }
 

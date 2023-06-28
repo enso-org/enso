@@ -214,7 +214,7 @@ ensogl_core::define_endpoints_2! {
 
 /// The Model of [`GridView`].
 #[allow(missing_docs)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, display::Object)]
 pub struct Model<Entry, EntryParams> {
     display_object:         display::object::Instance,
     visible_entries:        RefCell<HashMap<(Row, Col), entry::visible::VisibleEntry<Entry>>>,
@@ -420,7 +420,7 @@ impl<E: Entry> Model<E, E::Params> {
 /// `Entry` bound in each place. Otherwise, it's better to use [`GridView`].
 ///
 /// Note that some bounds are still required, as we use [`Widget`] and [`Frp`] nodes.
-#[derive(CloneRef, Debug, Deref, Derivative)]
+#[derive(CloneRef, Debug, Deref, Derivative, display::Object)]
 #[derivative(Clone(bound = ""))]
 pub struct GridViewTemplate<
     Entry: 'static,
@@ -604,8 +604,7 @@ impl<E: Entry> GridView<E> {
                 );
             out.entry_shown <+ input.model_for_entry.map(|(row, col, _)| (*row, *col));
         }
-        let display_object = model.display_object.clone_ref();
-        let widget = Widget::new(app, frp, model, display_object);
+        let widget = Widget::new(app, frp, model);
         Self { widget }
     }
 }
@@ -666,14 +665,6 @@ impl<Entry, EntryModel: frp::node::Data, EntryParams: frp::node::Data> AsRef<Sel
     }
 }
 
-impl<Entry, EntryModel: frp::node::Data, EntryParams: frp::node::Data> display::Object
-    for GridViewTemplate<Entry, EntryModel, EntryParams>
-{
-    fn display_object(&self) -> &display::object::Instance {
-        self.widget.display_object()
-    }
-}
-
 impl<E: Entry> FrpNetworkProvider for GridView<E> {
     fn network(&self) -> &frp::Network {
         self.widget.network()
@@ -720,7 +711,7 @@ pub(crate) mod tests {
         pub param: Immutable<usize>,
     }
 
-    #[derive(Clone, CloneRef, Debug)]
+    #[derive(Clone, CloneRef, Debug, display::Object)]
     pub struct TestEntry {
         pub frp:            EntryFrp<Self>,
         pub param_set:      Rc<Cell<usize>>,
@@ -747,12 +738,6 @@ pub(crate) mod tests {
 
         fn frp(&self) -> &EntryFrp<Self> {
             &self.frp
-        }
-    }
-
-    impl display::Object for TestEntry {
-        fn display_object(&self) -> &display::object::Instance {
-            &self.display_object
         }
     }
 

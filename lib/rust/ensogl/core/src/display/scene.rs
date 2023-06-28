@@ -868,7 +868,7 @@ pub struct UpdateStatus {
 // === SceneData ===
 // =================
 
-#[derive(Debug)]
+#[derive(Debug, display::Object)]
 pub struct SceneData {
     pub display_object: display::object::Root,
     pub dom: Rc<Dom>,
@@ -1134,20 +1134,14 @@ impl SceneData {
 }
 
 
-impl display::Object for SceneData {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
-    }
-}
-
-
 
 // =============
 // === Scene ===
 // =============
 
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 pub struct Scene {
+    #[display_object]
     no_mut_access:        Rc<SceneData>,
     // Context handlers keep reference to SceneData, thus cannot be put inside it.
     context_lost_handler: Rc<RefCell<Option<ContextLostHandler>>>,
@@ -1361,12 +1355,6 @@ impl Scene {
 impl AsRef<Scene> for Scene {
     fn as_ref(&self) -> &Scene {
         self
-    }
-}
-
-impl display::Object for Scene {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
     }
 }
 

@@ -193,7 +193,7 @@ fn get_bottom_buttons_pos((buttons_count, style): &(usize, AllStyles)) -> Vector
 /// The first set on top of the bar contains "Libraries" and "Marketplace" buttons. The second
 /// set on the bottom contains section navigation buttons used to quickly scroll to a specific
 /// section.
-#[derive(Debug, Clone, CloneRef)]
+#[derive(Debug, Clone, CloneRef, display::Object)]
 pub struct Navigator {
     display_object: display::object::Instance,
     network: frp::Network,
@@ -330,11 +330,5 @@ impl Navigator {
         let x_pos = left + (width / 2.0).floor() - size / 2.0;
         let top_buttons_y = top - top_padding;
         self.top_buttons.set_xy(Vector2(x_pos, top_buttons_y));
-    }
-}
-
-impl display::Object for Navigator {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
     }
 }

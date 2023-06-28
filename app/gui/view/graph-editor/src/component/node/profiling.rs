@@ -177,30 +177,23 @@ ensogl::define_endpoints! {
 /// The color of the label will reflect the status and be determined by [`Status::display_color`].
 /// The necessary theme will be taken from the application's style sheet. The origin of the label,
 /// as a `display::Object` should be placed on the node's center.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, Deref, display::Object)]
 pub struct ProfilingLabel {
-    root:   display::object::Instance,
-    label:  text::Text,
-    frp:    Frp,
-    styles: StyleWatchFrp,
-}
-
-impl Deref for ProfilingLabel {
-    type Target = Frp;
-
-    fn deref(&self) -> &Self::Target {
-        &self.frp
-    }
+    display_object: display::object::Instance,
+    label:          text::Text,
+    #[deref]
+    frp:            Frp,
+    styles:         StyleWatchFrp,
 }
 
 impl ProfilingLabel {
     /// Constructs a `ProfilingLabel` for the given application.
     pub fn new(app: &Application) -> Self {
         let scene = &app.display.default_scene;
-        let root = display::object::Instance::new();
+        let display_object = display::object::Instance::new();
 
         let label = text::Text::new(app);
-        root.add_child(&label);
+        display_object.add_child(&label);
         label.set_y(crate::component::node::input::area::TEXT_SIZE / 2.0);
         scene.layers.main.remove(&label);
         label.add_to_scene_layer(&scene.layers.label);
@@ -244,17 +237,11 @@ impl ProfilingLabel {
             label.set_content <+ frp.set_status.map(|status| status.to_im_string());
         }
 
-        ProfilingLabel { root, label, frp, styles }
+        ProfilingLabel { display_object, label, frp, styles }
     }
 
     /// Set a scene layer for text rendering.
     pub fn set_label_layer(&self, layer: &display::scene::Layer) {
         self.label.add_to_scene_layer(layer);
-    }
-}
-
-impl display::Object for ProfilingLabel {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.root
     }
 }

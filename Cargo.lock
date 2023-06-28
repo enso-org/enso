@@ -2269,7 +2269,7 @@ dependencies = [
  "Inflector",
  "proc-macro2",
  "quote",
- "syn 1.0.107",
+ "syn 2.0.15",
 ]
 
 [[package]]
@@ -2470,7 +2470,7 @@ dependencies = [
  "Inflector",
  "proc-macro2",
  "quote",
- "syn 1.0.107",
+ "syn 2.0.15",
 ]
 
 [[package]]
@@ -2671,6 +2671,7 @@ dependencies = [
  "enso-shortcuts",
  "enso-types",
  "enso-web",
+ "ensogl-derive",
  "ensogl-text-embedded-fonts",
  "enum_dispatch",
  "failure",
@@ -2691,6 +2692,15 @@ dependencies = [
  "wasm-bindgen",
  "wasm-bindgen-test",
  "web-sys",
+]
+
+[[package]]
+name = "ensogl-derive"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.15",
 ]
 
 [[package]]
@@ -4227,7 +4237,7 @@ dependencies = [
  "sha2",
  "strum",
  "symlink",
- "syn 1.0.107",
+ "syn 2.0.15",
  "sysinfo",
  "tar",
  "tempfile",

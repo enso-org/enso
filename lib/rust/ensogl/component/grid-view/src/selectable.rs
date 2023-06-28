@@ -268,6 +268,10 @@ where
     fn display_object(&self) -> &display::object::Instance {
         self.grid.display_object()
     }
+
+    fn focus_receiver(&self) -> &display::object::Instance {
+        self.grid.focus_receiver()
+    }
 }
 
 
@@ -318,7 +322,7 @@ mod tests {
         }
     }
 
-    #[derive(Clone, CloneRef, Debug)]
+    #[derive(Clone, CloneRef, Debug, display::Object)]
     struct TestEntry {
         display_object: display::object::Instance,
         frp:            EntryFrp<Self>,
@@ -350,12 +354,6 @@ mod tests {
 
         fn frp(&self) -> &EntryFrp<Self> {
             &self.frp
-        }
-    }
-
-    impl display::Object for TestEntry {
-        fn display_object(&self) -> &display::object::Instance {
-            &self.display_object
         }
     }
 

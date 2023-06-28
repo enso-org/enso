@@ -65,10 +65,11 @@ pub struct Application {
     inner: Rc<ApplicationData>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, display::Object)]
 #[allow(missing_docs)]
 pub struct ApplicationData {
     pub cursor:    Cursor,
+    #[display_object]
     pub display:   World,
     pub commands:  command::Registry,
     pub shortcuts: shortcut::Registry,
@@ -121,12 +122,6 @@ impl Application {
     /// Create a new instance of a view.
     pub fn new_view<T: View>(&self) -> T {
         self.views.new_view(self)
-    }
-}
-
-impl display::Object for Application {
-    fn display_object(&self) -> &display::object::Instance {
-        self.display.display_object()
     }
 }
 

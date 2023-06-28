@@ -331,11 +331,12 @@ ensogl_core::define_endpoints_2! {
 /// value within the specified range. Dragging the slider in a vertical direction adjusts the
 /// resolution of the slider. The resolution affects the increments by which the value changes when
 /// the mouse is moved.
-#[derive(Debug, Deref, Clone, CloneRef)]
+#[derive(Debug, Deref, Clone, CloneRef, display::Object)]
 pub struct Slider {
     /// Public FRP api of the component.
     #[deref]
     pub frp: Frp,
+    #[display_object]
     model:   Rc<Model>,
 }
 
@@ -816,12 +817,6 @@ impl Slider {
         self.enable_start_track_drag(true);
         self.enable_end_track_drag(true);
         self.enable_middle_track_drag(true);
-    }
-}
-
-impl display::Object for Slider {
-    fn display_object(&self) -> &display::object::Instance {
-        self.model.display_object()
     }
 }
 

@@ -52,18 +52,13 @@ ensogl::define_endpoints! {
 // ============
 
 /// The View of IDE Code Editor.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Deref, Debug, display::Object)]
 pub struct View {
+    #[display_object]
     model:  text::Text,
     styles: StyleWatchFrp,
+    #[deref]
     frp:    Frp,
-}
-
-impl Deref for View {
-    type Target = Frp;
-    fn deref(&self) -> &Self::Target {
-        &self.frp
-    }
 }
 
 impl View {
@@ -131,12 +126,6 @@ impl View {
     /// Return the Text Area component inside this editor.
     pub fn text_area(&self) -> &text::Text {
         &self.model
-    }
-}
-
-impl display::Object for View {
-    fn display_object(&self) -> &display::object::Instance {
-        self.model.display_object()
     }
 }
 

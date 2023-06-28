@@ -223,8 +223,9 @@ impl Shortcut {
 /// ## Implementation Notes
 /// There should be a layer for user shortcuts which will remember handles permanently until a
 /// shortcut is unregistered.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, Deref)]
 pub struct Registry {
+    #[deref]
     model:                 RegistryModel,
     network:               frp::Network,
     /// An FRP node that contains the name of the command currently being executed.
@@ -240,13 +241,6 @@ pub struct RegistryModel {
     command_registry:   command::Registry,
     shortcuts_registry: shortcuts::HashSetRegistry<Shortcut>,
     currently_handled:  frp::Source<Option<ImString>>,
-}
-
-impl Deref for Registry {
-    type Target = RegistryModel;
-    fn deref(&self) -> &Self::Target {
-        &self.model
-    }
 }
 
 impl Registry {

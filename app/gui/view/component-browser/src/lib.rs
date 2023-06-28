@@ -44,7 +44,7 @@ pub use ide_view_component_list_panel_breadcrumbs as breadcrumbs;
 
 /// The Model of Component Browser View.
 #[allow(missing_docs)]
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 pub struct Model {
     display_object:    display::object::Instance,
     pub list:          component_list_panel::View,
@@ -102,12 +102,6 @@ impl Model {
         let panel_snapped = Vector2(panel_left_top_pos.x.floor(), panel_left_top_pos.y.floor());
         let panel_offset = panel_snapped - panel_left_top_pos;
         origin_offset - panel_offset
-    }
-}
-
-impl display::Object for Model {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
     }
 }
 

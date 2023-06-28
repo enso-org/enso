@@ -163,11 +163,12 @@ impl From<LinesVec> for Lines {
 
 /// The visual text area implementation. It is meant to be a generic rich text component which you
 /// should use everywhere you want to display text.
-#[derive(Clone, CloneRef, Debug, Deref)]
+#[derive(Clone, CloneRef, Debug, Deref, display::Object)]
 #[allow(missing_docs)]
 pub struct Text {
     #[deref]
     pub frp:  Frp,
+    #[display_object]
     pub data: TextModel,
 }
 
@@ -703,13 +704,13 @@ impl Text {
 // =================
 
 /// Internal representation of `Text`.
-#[derive(Clone, CloneRef, Debug, Deref)]
+#[derive(Clone, CloneRef, Debug, Deref, display::Object)]
 pub struct TextModel {
     rc: Rc<TextModelData>,
 }
 
 /// Internal representation of `Text`.
-#[derive(Debug, Deref)]
+#[derive(Debug, Deref, display::Object)]
 pub struct TextModelData {
     #[deref]
     buffer:         buffer::Buffer,
@@ -1942,18 +1943,6 @@ where T: for<'t> FromInContextSnapped<&'t TextModel, S>
 {
     fn from_in_context_snapped(context: &Text, arg: S) -> Self {
         T::from_in_context_snapped(&context.data, arg)
-    }
-}
-
-impl display::Object for TextModel {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
-    }
-}
-
-impl display::Object for Text {
-    fn display_object(&self) -> &display::object::Instance {
-        self.data.display_object()
     }
 }
 

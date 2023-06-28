@@ -64,7 +64,7 @@ impl<S: Shape> AnyShapeView for ShapeView<S> {
 /// A view for a shape definition. The view manages the lifetime and scene-registration of a shape
 /// instance. In particular, it registers / unregisters callbacks for shape initialization and mouse
 /// events handling.
-#[derive(CloneRef, Debug, Deref, Derivative)]
+#[derive(CloneRef, Debug, Deref, Derivative, display::Object)]
 #[derivative(Clone(bound = ""))]
 #[allow(missing_docs)]
 pub struct ShapeView<S: Shape> {
@@ -154,7 +154,7 @@ where
 // ======================
 
 /// Model of [`ShapeView`].
-#[derive(Deref, Debug)]
+#[derive(Deref, Debug, display::Object)]
 #[allow(missing_docs)]
 pub struct ShapeViewModel<S: Shape> {
     #[deref]
@@ -252,18 +252,6 @@ impl<S: Shape> ShapeViewModel<S> {
     }
 }
 
-impl<S: Shape> display::Object for ShapeViewModel<S> {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
-    }
-}
-
-impl<S: Shape> display::Object for ShapeView<S> {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
-    }
-}
-
 
 
 // ==============
@@ -272,26 +260,19 @@ impl<S: Shape> display::Object for ShapeView<S> {
 
 // === WidgetData ===
 
-// We use type bounds here, because Drop implementation requires them
+// 'static bounds here is required by Drop implementation.
 #[derive(Debug)]
 struct WidgetData<Model: 'static, Frp: 'static> {
-    app:            Application,
-    display_object: display::object::Instance,
-    frp:            mem::ManuallyDrop<Frp>,
-    model:          mem::ManuallyDrop<Rc<Model>>,
+    app:   Application,
+    frp:   mem::ManuallyDrop<Frp>,
+    model: mem::ManuallyDrop<Rc<Model>>,
 }
 
 impl<Model: 'static, Frp: 'static> WidgetData<Model, Frp> {
-    pub fn new(
-        app: &Application,
-        frp: Frp,
-        model: Rc<Model>,
-        display_object: display::object::Instance,
-    ) -> Self {
+    pub fn new(app: &Application, frp: Frp, model: Rc<Model>) -> Self {
         Self {
-            app: app.clone_ref(),
-            display_object,
-            frp: mem::ManuallyDrop::new(frp),
+            app:   app.clone_ref(),
+            frp:   mem::ManuallyDrop::new(frp),
             model: mem::ManuallyDrop::new(model),
         }
     }
@@ -299,7 +280,6 @@ impl<Model: 'static, Frp: 'static> WidgetData<Model, Frp> {
 
 impl<Model: 'static, Frp: 'static> Drop for WidgetData<Model, Frp> {
     fn drop(&mut self) {
-        self.display_object.unset_parent();
         // Taking the value from `ManuallyDrop` requires us to not use it anymore.
         // This is clearly the case, because the structure will be soon dropped anyway.
         #[allow(unsafe_code)]
@@ -349,13 +329,8 @@ impl<Model: 'static, Frp: 'static> Deref for Widget<Model, Frp> {
 
 impl<Model: 'static, Frp: 'static> Widget<Model, Frp> {
     /// Create a new widget.
-    pub fn new(
-        app: &Application,
-        frp: Frp,
-        model: Rc<Model>,
-        display_object: display::object::Instance,
-    ) -> Self {
-        Self { data: Rc::new(WidgetData::new(app, frp, model, display_object)) }
+    pub fn new(app: &Application, frp: Frp, model: Rc<Model>) -> Self {
+        Self { data: Rc::new(WidgetData::new(app, frp, model)) }
     }
 
     /// Get the FRP structure. It is also a result of deref-ing the widget.
@@ -369,9 +344,15 @@ impl<Model: 'static, Frp: 'static> Widget<Model, Frp> {
     }
 }
 
-impl<Model: 'static, Frp: 'static> display::Object for Widget<Model, Frp> {
+impl<Model: 'static, Frp: 'static> display::Object for Widget<Model, Frp>
+where Model: display::Object
+{
     fn display_object(&self) -> &display::object::Instance {
-        &self.data.display_object
+        self.data.model.display_object()
+    }
+
+    fn focus_receiver(&self) -> &display::object::Instance {
+        self.data.model.focus_receiver()
     }
 }
 

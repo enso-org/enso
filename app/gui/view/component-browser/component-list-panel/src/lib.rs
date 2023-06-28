@@ -235,10 +235,11 @@ pub mod background {
 
 /// The Model of Select Component.
 #[allow(missing_docs)]
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 pub struct Model {
     display_object:        display::object::Instance,
     background:            background::View,
+    #[focus_receiver]
     pub grid:              grid::View,
     pub section_navigator: SectionNavigator,
     pub breadcrumbs:       breadcrumbs::Breadcrumbs,
@@ -296,12 +297,6 @@ impl Model {
         let size = style.size();
         let viewport = BoundingBox::from_center_and_size(default(), size);
         viewport.contains(pos)
-    }
-}
-
-impl display::Object for Model {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
     }
 }
 

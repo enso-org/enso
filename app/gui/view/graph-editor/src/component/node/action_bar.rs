@@ -93,7 +93,7 @@ ensogl::define_endpoints! {
 // === Action Bar Icons ===
 // ========================
 
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 struct Icons {
     display_object: display::object::Instance,
     visibility:     ToggleButton<icon::visibility::Shape>,
@@ -132,12 +132,6 @@ impl Icons {
     }
 }
 
-impl display::Object for Icons {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
-    }
-}
-
 fn labeled_button<Icon: ColorableShape>(app: &Application, label: &str) -> ToggleButton<Icon> {
     let tooltip_style = tooltip::Style::set_label(label.to_owned());
     ToggleButton::new(app, tooltip_style)
@@ -152,7 +146,7 @@ fn labeled_button<Icon: ColorableShape>(app: &Application, label: &str) -> Toggl
 /// A button to enable/disable the output context for a particular node. It holds two buttons
 /// internally for each shape, but only one is shown at a time, based on the execution environment
 /// which sets the global permission for the output context.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 struct ContextSwitchButton {
     globally_enabled: Rc<Cell<bool>>,
     disable_button:   ToggleButton<icon::disable_output_context::Shape>,
@@ -213,19 +207,13 @@ impl ContextSwitchButton {
     }
 }
 
-impl display::Object for ContextSwitchButton {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
-    }
-}
-
 
 
 // ========================
 // === Action Bar Model ===
 // ========================
 
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 struct Model {
     display_object: display::object::Instance,
     hover_area:     Rectangle,
@@ -328,12 +316,6 @@ impl Model {
     }
 }
 
-impl display::Object for Model {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
-    }
-}
-
 
 
 // ==================
@@ -349,18 +331,13 @@ impl display::Object for Model {
 ///    | <icon1> <icon2> <icon3>       |
 ///    \ ----------------------------- /
 /// ```
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, Deref, display::Object)]
 #[allow(missing_docs)]
 pub struct ActionBar {
+    #[deref]
     pub frp: Frp,
+    #[display_object]
     model:   Rc<Model>,
-}
-
-impl Deref for ActionBar {
-    type Target = Frp;
-    fn deref(&self) -> &Self::Target {
-        &self.frp
-    }
 }
 
 impl ActionBar {
@@ -461,12 +438,6 @@ impl ActionBar {
         visibility_init.emit(false);
 
         self
-    }
-}
-
-impl display::Object for ActionBar {
-    fn display_object(&self) -> &display::object::Instance {
-        self.model.display_object()
     }
 }
 

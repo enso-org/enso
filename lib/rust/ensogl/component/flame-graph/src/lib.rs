@@ -108,7 +108,7 @@ impl<BlockType: IntoThemePath> IntoThemePath for profiler_flame_graph::Block<Blo
 
 /// EnsoGL FlameGraph component. Consists of stacked blocks that indicate hierarchical time
 /// intervals. The blocks can be hovered to reveal a label associated with the block.
-#[derive(Debug)]
+#[derive(Debug, display::Object)]
 pub struct FlameGraph {
     display_object: display::object::Instance,
     blocks:         Vec<Block>,
@@ -271,11 +271,5 @@ impl FlameGraph {
         self.marks.iter().for_each(|mark| mark.update_x(|pos| pos - delta));
         self.blocks.iter().for_each(|block| block.update_x(|pos| pos - delta));
         self.origin_x = new_origin
-    }
-}
-
-impl display::Object for FlameGraph {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
     }
 }

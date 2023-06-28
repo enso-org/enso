@@ -52,8 +52,9 @@ ensogl::define_endpoints! {
 // === Model ===
 // =============
 
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 struct Model {
+    #[display_object]
     selection_menu: drop_down_menu::DropDownMenu,
     registry:       visualization::Registry,
 }
@@ -74,12 +75,6 @@ impl Model {
     }
 }
 
-impl display::Object for Model {
-    fn display_object(&self) -> &display::object::Instance {
-        self.selection_menu.display_object()
-    }
-}
-
 
 
 // ============================
@@ -88,9 +83,10 @@ impl display::Object for Model {
 
 /// UI entity that shows a button that opens a list of visualizations that can be selected from.
 #[allow(missing_docs)]
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 pub struct VisualizationChooser {
     pub frp: Frp,
+    #[display_object]
     model:   Model,
 }
 
@@ -165,11 +161,5 @@ impl VisualizationChooser {
             }));
         }
         self
-    }
-}
-
-impl display::Object for VisualizationChooser {
-    fn display_object(&self) -> &display::object::Instance {
-        self.model.display_object()
     }
 }

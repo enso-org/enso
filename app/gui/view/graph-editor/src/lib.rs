@@ -759,10 +759,11 @@ impl FrpNetworkProvider for GraphEditor {
 // === Node ===
 // ============
 
-#[derive(Clone, CloneRef, Debug, Deref)]
+#[derive(Clone, CloneRef, Debug, Deref, display::Object)]
 #[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub struct Node {
     #[deref]
+    #[display_object]
     pub view:  component::Node,
     in_edges:  SharedHashSet<EdgeId>,
     out_edges: SharedHashSet<EdgeId>,
@@ -801,12 +802,6 @@ impl Node {
     }
 }
 
-impl display::Object for Node {
-    fn display_object(&self) -> &display::object::Instance {
-        self.view.display_object()
-    }
-}
-
 impl Display for NodeId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         Display::fmt(&self.0, f)
@@ -819,10 +814,11 @@ impl Display for NodeId {
 // === Edge ===
 // ============
 
-#[derive(Debug, Deref)]
+#[derive(Debug, Deref, display::Object)]
 #[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 struct Edge {
     #[deref]
+    #[display_object]
     view:       component::Edge,
     color:      color::Lcha,
     source:     Option<EdgeEndpoint>,
@@ -913,12 +909,6 @@ impl Edge {
             self.view.set_color.emit(color);
         }
         changed
-    }
-}
-
-impl display::Object for Edge {
-    fn display_object(&self) -> &display::object::Instance {
-        self.view.display_object()
     }
 }
 
@@ -1851,7 +1841,7 @@ impl GraphEditorModel {
 // === GraphEditorModel ===
 // ========================
 
-#[derive(Debug)]
+#[derive(Debug, display::Object)]
 #[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub struct GraphEditorModel {
     pub display_object: display::object::Instance,
@@ -2352,13 +2342,6 @@ fn some_if_negative(x: f32) -> Option<f32> {
 }
 
 
-// === Display object ===
-
-impl display::Object for GraphEditorModel {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
-    }
-}
 
 // ============================
 // === FRP internal signals ===
@@ -2425,8 +2408,9 @@ struct EdgeInteractionFrp {
 /// the graph and allows the user to interact with it. It manages the views of all nodes and edges
 /// on the scene.
 #[allow(missing_docs)]
-#[derive(Debug, Clone, CloneRef, Deref)]
+#[derive(Debug, Clone, CloneRef, Deref, display::Object)]
 pub struct GraphEditor {
+    #[display_object]
     pub model: Rc<GraphEditorModel>,
     #[deref]
     pub frp:   Frp,
@@ -3574,13 +3558,6 @@ fn init_remaining_graph_editor_frp(
     frp.set_debug_mode.emit(false);
 }
 
-
-
-impl display::Object for GraphEditor {
-    fn display_object(&self) -> &display::object::Instance {
-        self.model.display_object()
-    }
-}
 
 
 // =============

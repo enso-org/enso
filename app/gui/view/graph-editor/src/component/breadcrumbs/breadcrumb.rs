@@ -273,7 +273,7 @@ pub struct BreadcrumbInfo {
 // =======================
 
 /// Breadcrumbs model.
-#[derive(Debug, Clone, CloneRef)]
+#[derive(Debug, Clone, CloneRef, display::Object)]
 pub struct BreadcrumbModel {
     display_object:    display::object::Instance,
     view:              background::View,
@@ -460,12 +460,6 @@ impl BreadcrumbModel {
     }
 }
 
-impl display::Object for BreadcrumbModel {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
-    }
-}
-
 
 
 // ==================
@@ -473,10 +467,11 @@ impl display::Object for BreadcrumbModel {
 // ==================
 
 /// The breadcrumb's view which displays its name and exposes mouse press interactions.
-#[derive(Debug, Clone, CloneRef, Deref)]
+#[derive(Debug, Clone, CloneRef, Deref, display::Object)]
 #[allow(missing_docs)]
 pub struct Breadcrumb {
     #[deref]
+    #[display_object]
     model:   Rc<BreadcrumbModel>,
     pub frp: Frp,
 }
@@ -526,11 +521,5 @@ impl Breadcrumb {
         }
 
         Self { model, frp }
-    }
-}
-
-impl display::Object for Breadcrumb {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
     }
 }

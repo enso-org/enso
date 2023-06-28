@@ -61,9 +61,10 @@ pub struct Params {
 // ============
 
 /// The grid view entry.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 pub struct View {
     frp:  grid::entry::EntryFrp<Self>,
+    #[display_object]
     icon: any_icon::View,
 }
 
@@ -117,11 +118,5 @@ impl grid::entry::Entry for View {
 
     fn frp(&self) -> &grid::entry::EntryFrp<Self> {
         &self.frp
-    }
-}
-
-impl display::Object for View {
-    fn display_object(&self) -> &display::object::Instance {
-        self.icon.display_object()
     }
 }

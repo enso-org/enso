@@ -105,7 +105,7 @@ impl<T: DocumentationProvider + 'static> From<Rc<T>> for AnyDocumentationProvide
 /// A type of ListView entry used in searcher.
 pub type Entry = list_view::entry::GlyphHighlightedLabel;
 
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 struct Model {
     display_object: display::object::Instance,
     list:           ListView<Entry>,
@@ -183,17 +183,12 @@ ensogl::define_endpoints! {
 /// additional graph node in edit mode, so we could easily display e.g. connections between selected
 /// node and searcher input.
 #[allow(missing_docs)]
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, Deref, display::Object)]
 pub struct View {
+    #[deref]
     pub frp: Frp,
+    #[display_object]
     model:   Model,
-}
-
-impl Deref for View {
-    type Target = Frp;
-    fn deref(&self) -> &Self::Target {
-        &self.frp
-    }
 }
 
 impl View {
@@ -266,12 +261,6 @@ impl View {
     pub fn clear_actions(&self) {
         let provider = Rc::new(list_view::entry::EmptyProvider);
         self.set_actions(provider);
-    }
-}
-
-impl display::Object for View {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.model.display_object
     }
 }
 
