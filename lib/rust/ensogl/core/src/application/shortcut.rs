@@ -4,7 +4,6 @@ use crate::prelude::*;
 use enso_shortcuts::traits::*;
 
 use crate::frp;
-use crate::frp::io::keyboard;
 use crate::frp::io::mouse::Mouse_DEPRECATED;
 
 use super::command;
@@ -236,35 +235,79 @@ pub struct Registry {
 /// Internal representation of `Registry`.
 #[derive(Clone, CloneRef, Debug)]
 pub struct RegistryModel {
-    keyboard:           keyboard::Keyboard,
     mouse:              Mouse_DEPRECATED,
     command_registry:   command::Registry,
     shortcuts_registry: shortcuts::HashSetRegistry<Shortcut>,
     currently_handled:  frp::Source<Option<ImString>>,
+    /// If present, this is the receiver of commands.
+    target:             Option<frp::NetworkId>,
 }
 
 impl Registry {
     /// Constructor.
     pub fn new(
         mouse: &Mouse_DEPRECATED,
-        keyboard: &keyboard::Keyboard,
+        keyboard_target: &crate::display::object::Instance,
         cmd_registry: &command::Registry,
     ) -> Self {
         frp::new_network! { network
             def currently_handled = source();
         }
-        let model =
-            RegistryModel::new(mouse, keyboard, cmd_registry, currently_handled.clone_ref());
-        let mouse = &model.mouse;
-        frp::extend! { network
-            kb_down    <- keyboard.down.map (f!((t) model.shortcuts_registry.on_press(t.simple_name())));
-            kb_up      <- keyboard.up.map   (f!((t) model.shortcuts_registry.on_release(t.simple_name())));
-            mouse_down <- mouse.down.map    (f!((t) model.shortcuts_registry.on_press(t.simple_name())));
-            mouse_up   <- mouse.up.map      (f!((t) model.shortcuts_registry.on_release(t.simple_name())));
-            event      <- any(kb_down,kb_up,mouse_down,mouse_up);
-            eval event ((m) model.process_rules(m));
-        }
+        let model = RegistryModel::new(mouse, cmd_registry, currently_handled.clone_ref(), None);
+        Self::extend_network(&network, &model, keyboard_target);
         Self { model, network, currently_handled }
+    }
+
+    /// Create a shortcut registry inheriting global parameters, bound to the given instance, and
+    /// owned by the given network.
+    pub fn instance_bound_child_in_network(
+        &self,
+        instance: frp::NetworkId,
+        keyboard_target: &crate::display::object::Instance,
+        network: &frp::Network,
+    ) -> RegistryModel {
+        let mouse = &self.mouse;
+        let cmd_registry = &self.command_registry;
+        let currently_handled = self.currently_handled.clone_ref();
+        let model = RegistryModel::new(mouse, cmd_registry, currently_handled, Some(instance));
+        Self::extend_network(network, &model, keyboard_target);
+        model
+    }
+
+    /// Connect the model to the given network and keyboard target.
+    fn extend_network(
+        network: &frp::Network,
+        model: &RegistryModel,
+        keyboard_target: &crate::display::object::Instance,
+    ) {
+        let mouse = &model.mouse;
+        let kb_down = keyboard_target.on_event::<crate::control::io::keyboard::KeyDown>();
+        let kb_up = keyboard_target.on_event::<crate::control::io::keyboard::KeyUp>();
+        let registry = &model.shortcuts_registry;
+        frp::extend! { network
+            kb_down <- kb_down.map(f!([registry](e)
+                (e.propagation_stopper(), registry.on_press(e.key().simple_name()))));
+            kb_up <- kb_up.map(f!([registry](e)
+                (e.propagation_stopper(), registry.on_release(e.key().simple_name()))));
+            mouse_down <- mouse.down.map(f!([registry](e)
+                (default(), registry.on_press(e.simple_name()))));
+            mouse_up <- mouse.up.map(f!([registry](e)
+                (default(), registry.on_release(e.simple_name()))));
+            event <- any(kb_down, kb_up, mouse_down, mouse_up);
+            // Delay command execution. Because pointer-based shortcut events are delivered
+            // regardless of pointer location, a pattern used e.g. by `ensogl_text` is to:
+            // A. Update the focus state as appropriate.
+            // B. Use the focus state as a condition for shortcuts.
+            //
+            // Note that the other handler (A), and the shortcut (B) may be triggered in response to
+            // the same event. Thus relative timing of the event handlers is important, and in
+            // particular users of the `shortcut` API may need to run other events *before*
+            // shortcuts are run and their conditions are checked. We achieve this by using
+            // `batch()` to schedule the events. Any handlers connected directly to pointer events
+            // (not delayed through a `microtask`) will be run first.
+            delayed_event <- event.batch().iter();
+            eval delayed_event (((event, rules)) model.process_rules(event, rules));
+        }
     }
 }
 
@@ -272,40 +315,53 @@ impl RegistryModel {
     /// Constructor.
     pub fn new(
         mouse: &Mouse_DEPRECATED,
-        keyboard: &keyboard::Keyboard,
         command_registry: &command::Registry,
         currently_handled: frp::Source<Option<ImString>>,
+        target: Option<frp::NetworkId>,
     ) -> Self {
-        let keyboard = keyboard.clone_ref();
         let mouse = mouse.clone_ref();
         let command_registry = command_registry.clone_ref();
         let shortcuts_registry = default();
-        Self { keyboard, mouse, command_registry, shortcuts_registry, currently_handled }
+        Self { mouse, command_registry, shortcuts_registry, currently_handled, target }
     }
 
-    fn process_rules(&self, rules: &[Shortcut]) {
+    fn process_rules(&self, stop_propagation: impl FnOnce<()>, rules: &[Shortcut]) {
         let mut targets = Vec::new();
         {
             let borrowed_command_map = self.command_registry.name_map.borrow();
+            let bound_target =
+                self.target.and_then(|id| self.command_registry.id_map.borrow().get(&id).cloned());
             for rule in rules {
-                let target = &rule.action.target;
-                borrowed_command_map.get(target).for_each(|instances| {
-                    for instance in instances {
-                        if Self::condition_checker(&rule.condition, &instance.status_map) {
-                            let command_name = &rule.command.name;
-                            match instance.command_map.borrow().get(command_name) {
-                                Some(cmd) =>
-                                    if cmd.enabled {
-                                        targets.push((cmd.frp.clone_ref(), command_name))
-                                    },
-                                None => warn!("Command {command_name} was not found on {target}."),
-                            }
+                let instances = match bound_target.as_ref() {
+                    Some(target) => slice::from_ref(target),
+                    None => borrowed_command_map
+                        .get(&rule.action.target)
+                        .map(Vec::as_slice)
+                        .unwrap_or_default(),
+                };
+                for instance in instances {
+                    if Self::condition_checker(&rule.condition, &instance.status_map) {
+                        let command_name = &rule.command.name;
+                        match instance.command_map.borrow().get(command_name) {
+                            Some(cmd) =>
+                                if cmd.enabled {
+                                    targets.push((cmd.frp.clone_ref(), command_name))
+                                },
+                            None => error!(
+                                "Command {command_name} was not found on {}.",
+                                match bound_target.as_ref() {
+                                    Some(_) => "bound instance",
+                                    None => &rule.action.target,
+                                }
+                            ),
                         }
                     }
-                })
+                }
             }
         }
-
+        if !targets.is_empty() {
+            stop_propagation();
+        }
         for (target, name) in targets {
             debug_span!("Emitting command {name} on {target:?}.").in_scope(|| {
                 let name = Some(ImString::from(name));
@@ -332,13 +388,9 @@ impl RegistryModel {
     }
 }
 
-impl Add<Shortcut> for &Registry {
+impl Add<Shortcut> for &RegistryModel {
     type Output = ();
     fn add(self, shortcut: Shortcut) {
-        self.model.shortcuts_registry.add(
-            shortcut.rule.tp,
-            &shortcut.rule.pattern,
-            shortcut.clone(),
-        );
+        self.shortcuts_registry.add(shortcut.rule.tp, &shortcut.rule.pattern, shortcut.clone());
     }
 }
