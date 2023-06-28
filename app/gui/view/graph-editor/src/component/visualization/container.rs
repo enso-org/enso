@@ -302,8 +302,8 @@ impl View {
         self.show_waiting_screen();
         self.set_layer(visualization::Layer::Default);
         self.scene.layers.viz.add(&self);
-        self.scene.layers.viz_overlay.add(&self.overlay);
         self.scene.layers.viz_resize_grip.add(&self.resize_grip);
+        self.scene.layers.viz_overlay.add(&self.overlay);
         self
     }
 }
@@ -663,11 +663,11 @@ impl Container {
             size_was_not_changed_manually <+ output.visible.on_change().constant(true);
             trace size_was_not_changed_manually;
 
-            width_target <- input.set_width;
-            on_visible <- output.is_visible.on_true();
+            width_target <- input.set_width.identity();
+            on_visible <- output.visible.on_true();
             width_change_after_open <- width_target.sample(&on_visible);
-            width_changed <- any(&width_target, &width_change_after_open);
             width_anim.target <+ width_target.gate(&size_was_not_changed_manually);
+            width_anim.target <+ width_change_after_open;
             new_size <- width_anim.value.map2(&output.size, |w, s| Vector2(*w, s.y));
             size_change <- any(&new_size, &input.set_size).on_change();
 
@@ -764,6 +764,7 @@ impl Container {
                 let vis        = &model.visualization;
                 let activate   = || vis.borrow().as_ref().map(|v| v.activate.clone_ref());
                 let deactivate = || vis.borrow().as_ref().map(|v| v.deactivate.clone_ref());
+                console_log!("Click {}", model.is_this_target(*target));
                 if model.is_this_target(*target) {
                     if let Some(activate) = activate() {
                         activate.emit(());
