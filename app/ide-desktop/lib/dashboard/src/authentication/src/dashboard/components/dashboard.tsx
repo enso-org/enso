@@ -642,7 +642,7 @@ function Dashboard(props: DashboardProps) {
             <div className="flex">
                 {(asset.permissions ?? []).map((user, index) => (
                     <PermissionDisplay
-                        key={user.user.organization_id}
+                        key={user.user.pk}
                         permissions={permissionDisplay.PERMISSION[user.permission]}
                         className={`cursor-pointer border-2 rounded-full hover:shadow-soft hover:z-10 ${
                             index === 0 ? '' : '-ml-5'
