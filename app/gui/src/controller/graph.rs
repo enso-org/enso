@@ -82,6 +82,11 @@ pub struct NoPatternOnNode {
 #[fail(display = "AST node is missing ID.")]
 pub struct MissingAstId;
 
+#[allow(missing_docs)]
+#[derive(Clone, Copy, Debug, Fail)]
+#[fail(display = "AST node is missing ID.")]
+pub struct UnsupportedPattern;
+
 
 
 // ====================
@@ -112,6 +117,18 @@ pub struct Node {
     pub metadata: Option<NodeMetadata>,
 }
 
+/// Description of the nodes variable name.
+#[derive(Clone, Debug)]
+pub enum VariableName {
+    /// The node has a variable name.
+    Some(String),
+    /// The node has no variable name.
+    None,
+    /// The node has a variable name, that is not currently supported. For example, it is a
+    /// pattern subpart. See notes on [Node::variable_name].
+    NotSupported,
+}
+
 impl Node {
     /// Get the node's id.
     pub fn id(&self) -> double_representation::node::Id {
@@ -129,7 +146,7 @@ impl Node {
     }
 
     /// Get the nodes variable name, if it has one.
-    pub fn variable_name(&self) -> Option<&str> {
+    pub fn variable_name(&self) -> Result<Option<&str>, UnsupportedPattern> {
         // TODO [mwu]
         //   Here we just require that the whole node's pattern is a single var, like
         //   `var = expr`. This prevents using pattern subpart (like `x` in
@@ -137,7 +154,11 @@ impl Node {
         //   form. If we wanted to support pattern subparts, the engine would need to send us
         //   value updates for matched pattern pieces. See the issue:
         //   https://github.com/enso-org/enso/issues/1038
-        ast::identifier::as_var(self.info.pattern()?)
+        if let Some(pattern) = self.info.pattern() {
+            ast::identifier::as_var(pattern).map(Some).ok_or(UnsupportedPattern)
+        } else {
+            Ok(None)
+        }
     }
 }
 

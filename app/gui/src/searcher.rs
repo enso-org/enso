@@ -142,7 +142,8 @@ fn initialise_with_this_argument(
     graph_controller: &controller::Graph,
 ) {
     let node = source_node.and_then(|node| graph_controller.node(node).ok());
-    let this_expr = node.and_then(|node| node.variable_name().map(|name| name.to_string()));
+    let this_expr =
+        node.and_then(|node| node.variable_name().ok().flatten().map(|name| name.to_string()));
     let initial_expression =
         this_expr.map(|this_expr| apply_this_argument(&this_expr, &Ast::blank()));
     if let Some(initial_expression) = initial_expression {

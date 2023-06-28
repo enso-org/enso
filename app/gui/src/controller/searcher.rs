@@ -178,7 +178,7 @@ impl ThisNode {
     pub fn new(id: double_representation::node::Id, graph: &controller::Graph) -> Option<Self> {
         let node = graph.node(id).ok()?;
 
-        let existing_var = node.variable_name().map(|name| name.to_owned());
+        let existing_var = node.variable_name().ok()?.map(|name| name.to_owned());
         let needs_to_introduce_pattern = existing_var.is_none();
         let make_new_var = || graph.variable_name_for(&node.info).ok().map(|var| var.repr());
         let var = existing_var.or_else(make_new_var)?;
