@@ -128,19 +128,12 @@ impl crate::searcher::SearcherPresenter for AISearcher {
     fn input_view(&self) -> ViewNodeId {
         self.model.input_view
     }
-
-    // fn view(_app: &ensogl::application::Application) -> Option<Instance>
-    // where Self: Sized {
-    //     None
-    // }
 }
-
 
 #[allow(missing_docs)]
 #[derive(Copy, Clone, Debug, Fail)]
 #[fail(display = "An action cannot be executed when searcher is run without `this` argument.")]
 pub struct CannotRunWithoutThisArgument;
-
 
 #[allow(missing_docs)]
 #[derive(Copy, Clone, Debug, Fail)]

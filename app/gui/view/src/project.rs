@@ -129,8 +129,6 @@ ensogl::define_endpoints! {
         execution_context_restart(),
         toggle_read_only(),
         set_read_only(bool),
-        enable_ai_searcher(),
-        disable_ai_searcher(),
         /// Started creation of a new node using the AI searcher.
         start_node_creation_with_ai_searcher(),
         /// Started creation of a new node using the Component Browser.
@@ -140,6 +138,7 @@ ensogl::define_endpoints! {
     }
 
     Output {
+        /// The type of the searcher currently in use.
         searcher_type                  (SearcherType),
         searcher                       (Option<SearcherParams>),
         /// The searcher input has changed and the Component Browser content should be refreshed.
@@ -151,7 +150,9 @@ ensogl::define_endpoints! {
         adding_new_node                (bool),
         old_expression_of_edited_node  (Expression),
         editing_aborted                (NodeId),
-        // TODO: this should not contain the group entry id as that is searcher specific.
+        // TODO[MM]: this should not contain the group entry id as that is component browser
+        // specific. It should be refactored to be an implementation detail of the component
+        // browser.
         editing_committed              (NodeId, Option<component_list_panel::grid::GroupEntryId>),
         project_list_shown             (bool),
         code_editor_shown              (bool),
@@ -198,9 +199,11 @@ impl Model {
 
         display_object.add_child(&graph_editor);
         display_object.add_child(&code_editor);
+        display_object.add_child(&searcher);
         display_object.add_child(&debug_mode_popup);
         display_object.add_child(&popup);
         display_object.add_child(&project_view_top_bar);
+        display_object.remove_child(&searcher);
 
         let graph_editor = Rc::new(graph_editor);
         Self {
@@ -375,7 +378,7 @@ impl View {
             .init_code_editor_frp()
             .init_searcher_position_frp(scene)
             .init_searcher_input_handling()
-            .init_opening_default_searcher_frp()
+            .init_opening_searcher_frp()
             .init_open_projects_dialog_frp(scene)
             .init_style_toggle_frp()
             .init_fullscreen_visualization_frp()
@@ -503,10 +506,7 @@ impl View {
             // Showing searcher.
             searcher.show <+ frp.searcher.unwrap().map(|params| matches!(params.searcher_type, SearcherType::ComponentBrowser)).on_true();
             searcher.hide <+ frp.searcher.is_none().on_true().constant(());
-
-            searcher_visibility <- searcher.is_visible.batch();
-            eval searcher_visibility ([model](is_visible) {
-                let is_visible = is_visible.iter().any(|&v| v);
+            eval searcher.is_visible ([model](is_visible) {
                 let is_attached = model.searcher.has_parent();
                 match (is_attached, is_visible) {
                     (false, true) => model.display_object.add_child(&model.searcher),
@@ -518,7 +518,7 @@ impl View {
         self
     }
 
-    fn init_opening_default_searcher_frp(self) -> Self {
+    fn init_opening_searcher_frp(self) -> Self {
         let frp = &self.frp;
         let network = &frp.network;
         let graph = &self.model.graph_editor;
