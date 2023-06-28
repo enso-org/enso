@@ -4,6 +4,7 @@ from project.Data.Text.Extensions import all
 import project.Data.Text.Regex
 import project.Data.Text.Text
 import project.Data.Vector.Vector
+import project.Error.Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Function.Function
 import project.Meta
@@ -292,10 +293,18 @@ unify_condition_predicate_or_element condition =
    that is just missing arguments. If so, it will report a more friendly error.
    Otherwise it will just return the `function` as is.
 handle_constructor_missing_arguments function =
-    case Meta.meta function of
+    is_filter_condition_constructor = case Meta.meta function of
         constructor : Meta.Constructor ->
-            is_filter_condition_constructor = constructor.declaring_type == Meta.meta Filter_Condition
-            if is_filter_condition_constructor.not then function else
-                message = "Got a Filter_Condition." + constructor.name + " constructor without all required arguments provided. Please provide the missing arguments."
-                Error.throw (Illegal_Argument.Error message)
-        _ -> function
+            constructor.declaring_type == Meta.meta Filter_Condition
+        ## Special case for multi-argument constructors with some but not all
+           arguments applied.
+
+           For example, `Meta.meta (Filter_Condition.Between 10)` will return a `Meta.Primitive`.
+           We rely on its text representation being of the form `Filter_Condition.Between[Filter_Condition.enso:41-343]`.
+        _ : Meta.Primitive ->
+            regex = "Filter_Condition\.\w+\[Filter_Condition.enso:\d+-\d+\]"
+            function.to_text.match regex
+        _ -> False
+    if is_filter_condition_constructor.not then function else
+        message = "Got a Filter_Condition constructor without all required arguments provided. Please provide the missing arguments."
+        Error.throw (Illegal_Argument.Error message)
