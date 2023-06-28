@@ -1,5 +1,5 @@
-//! The module containing [`DefaultSearcher`] presenter. See [`crate::presenter`] documentation to
-//! know more about presenters in general.
+//! The module containing [`ComponentBrowserSearcher`] presenter. See [`crate::presenter`]
+//! documentation to know more about presenters in general.
 
 use crate::prelude::*;
 
@@ -284,13 +284,13 @@ impl Model {
 /// being edited). Alternatively, the [`setup_controller`] method covers constructing the controller
 /// and the presenter.
 #[derive(Debug)]
-pub struct DefaultSearcher {
+pub struct ComponentBrowserSearcher {
     _network: frp::Network,
     model:    Rc<Model>,
 }
 
 
-impl crate::searcher::SearcherPresenter for DefaultSearcher {
+impl crate::searcher::SearcherPresenter for ComponentBrowserSearcher {
     #[profile(Task)]
     fn setup_searcher(
         ide_controller: controller::Ide,
@@ -357,7 +357,7 @@ impl crate::searcher::SearcherPresenter for DefaultSearcher {
     // }
 }
 
-impl DefaultSearcher {
+impl ComponentBrowserSearcher {
     #[profile(Task)]
     fn new(
         controller: controller::Searcher,

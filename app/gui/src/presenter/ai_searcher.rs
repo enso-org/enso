@@ -30,6 +30,7 @@ use crate::searcher::apply_this_argument;
 // =============
 // === Model ===
 // =============
+
 #[derive(Debug)]
 struct Model {
     view:             project::View,
@@ -49,10 +50,9 @@ impl Model {
 }
 
 
-
-// =============
-// === Model ===
-// =============
+// ==================
+// === AISearcher ===
+// ==================
 
 /// Searcher that uses the user input as a prompt for an AI model that then generates a new node
 /// that is inserted into the graph.

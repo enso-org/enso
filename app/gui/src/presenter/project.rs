@@ -8,7 +8,7 @@ use crate::model::project::synchronized::ProjectNameInvalid;
 use crate::presenter;
 
 use crate::presenter::ai_searcher::AISearcher;
-use crate::presenter::DefaultSearcher;
+use crate::presenter::ComponentBrowserSearcher;
 use crate::searcher::SearcherPresenter;
 use engine_protocol::language_server::ExecutionEnvironment;
 use engine_protocol::project_manager::ProjectMetadata;
@@ -82,7 +82,7 @@ impl Model {
     fn setup_searcher_presenter(&self, params: SearcherParams) {
         let searcher_constructor = match params.searcher_type {
             SearcherType::AiCompletion => AISearcher::setup_searcher,
-            SearcherType::ComponentBrowser => DefaultSearcher::setup_searcher,
+            SearcherType::ComponentBrowser => ComponentBrowserSearcher::setup_searcher,
         };
 
         let new_presenter = searcher_constructor(

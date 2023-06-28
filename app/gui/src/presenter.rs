@@ -29,7 +29,7 @@ pub mod searcher;
 pub use code::Code;
 pub use graph::Graph;
 pub use project::Project;
-pub use searcher::DefaultSearcher;
+pub use searcher::ComponentBrowserSearcher;
 
 
 
