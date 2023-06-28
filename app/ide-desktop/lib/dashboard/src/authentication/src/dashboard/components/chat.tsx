@@ -385,6 +385,7 @@ function Chat(props: ChatProps) {
     const [isThreadListVisible, setIsThreadListVisible] = react.useState(false)
     const [threadTitle, setThreadTitle] = react.useState(DEFAULT_THREAD_TITLE)
     const [isThreadTitleEditable, setIsThreadTitleEditable] = react.useState(false)
+    const [isThreadTitleEditingCanceled, setIsThreadTitleEditingCanceled] = react.useState(false)
     // TODO: proper URL
     const [websocket] = react.useState(() => new WebSocket('ws://localhost:8082'))
     const [right, setTargetRight] = animations.useInterpolateOverTime(
@@ -394,7 +395,7 @@ function Chat(props: ChatProps) {
     )
     // These will never be `null` as their values are set immediately.
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const titleInput = react.useRef<HTMLInputElement>(null!)
+    const titleInputRef = react.useRef<HTMLInputElement>(null!)
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const messageInput = react.useRef<HTMLInputElement>(null!)
 
@@ -421,6 +422,7 @@ function Chat(props: ChatProps) {
                     case ChatMessageDataType.serverThread: {
                         setThreadId(message.id)
                         setThreadTitle(message.title)
+                        titleInputRef.current.value = message.title
                         setMessages(
                             message.messages.flatMap(innerMessage => {
                                 switch (innerMessage.type) {
@@ -463,7 +465,7 @@ function Chat(props: ChatProps) {
                             timestamp: message.timestamp,
                             editedTimestamp: null,
                         }
-                        setMessages([...messages, newMessage])
+                        setMessages(oldMessages => [...oldMessages, newMessage])
                         break
                     }
                     case ChatMessageDataType.serverEditedMessage: {
@@ -590,40 +592,15 @@ function Chat(props: ChatProps) {
         [sendMessage, threadId]
     )
 
-    const stopEditing = react.useCallback(
-        (event: react.KeyboardEvent) => {
-            if (
-                isThreadTitleEditable &&
-                !event.ctrlKey &&
-                !event.altKey &&
-                !event.metaKey &&
-                !event.shiftKey
-            ) {
-                if (event.key === 'Escape') {
-                    titleInput.current.value = threadTitle
-                    setIsThreadTitleEditable(false)
-                } else if (event.key === 'Enter') {
-                    const newTitle = titleInput.current.value
-                    if (threadTitle !== newTitle) {
-                        if (threadId != null) {
-                            sendMessage({
-                                type: ChatMessageDataType.renameThread,
-                                threadId: threadId,
-                                title: threadTitle,
-                            })
-                        }
-                        setThreadTitle(newTitle)
-                    }
-                    setIsThreadTitleEditable(false)
-                }
-            }
-        },
-        [sendMessage, threadId]
-    )
-
-    const onThreadTitleClick = react.useCallback((event: react.MouseEvent) => {
+    const maybeMakeThreadTitleEditable = react.useCallback((event: react.MouseEvent) => {
         if (event.ctrlKey && !event.altKey && !event.metaKey && !event.shiftKey) {
+            event.stopPropagation()
             setIsThreadTitleEditable(true)
+            setIsThreadTitleEditingCanceled(false)
+            setIsThreadListVisible(false)
+            setTimeout(() => {
+                titleInputRef.current.focus()
+            }, 0)
         }
     }, [])
 
@@ -642,20 +619,58 @@ function Chat(props: ChatProps) {
             <div
                 style={{ right }}
                 className="text-xs text-primary flex flex-col fixed top-0 right-0 h-screen bg-ide-bg border-ide-bg-dark border-l-2 w-88 py-1"
-                onKeyDown={stopEditing}
             >
                 <div className="flex text-sm font-semibold mx-1">
                     <button className="flex grow items-center" onClick={toggleThreadListVisibility}>
                         <img src={TriangleDownIcon} />{' '}
                         {/* TODO: reset to current value when editing canceled */}
-                        <input
-                            type="text"
-                            ref={titleInput}
-                            disabled={!isThreadTitleEditable}
-                            defaultValue={threadTitle}
-                            className="cursor-pointer"
-                            onClick={onThreadTitleClick}
-                        />
+                        <div onClick={maybeMakeThreadTitleEditable}>
+                            <input
+                                type="text"
+                                ref={titleInputRef}
+                                disabled={!isThreadTitleEditable}
+                                defaultValue={threadTitle}
+                                className={`cursor-pointer bg-transparent ${
+                                    isThreadTitleEditable ? '' : 'pointer-events-none'
+                                }`}
+                                onKeyDown={event => {
+                                    switch (event.key) {
+                                        case 'Escape': {
+                                            setIsThreadTitleEditable(false)
+                                            setIsThreadTitleEditingCanceled(true)
+                                            break
+                                        }
+                                        case 'Enter': {
+                                            event.currentTarget.blur()
+                                            break
+                                        }
+                                    }
+                                }}
+                                onBlur={event => {
+                                    setIsThreadTitleEditable(false)
+                                    if (isThreadTitleEditingCanceled) {
+                                        event.currentTarget.value = threadTitle
+                                    } else {
+                                        const newTitle = event.currentTarget.value
+                                        setThreadTitle(newTitle)
+                                        if (threadId != null) {
+                                            setThreads(oldThreads =>
+                                                oldThreads.map(thread =>
+                                                    thread.id !== threadId
+                                                        ? thread
+                                                        : { ...thread, title: newTitle }
+                                                )
+                                            )
+                                            sendMessage({
+                                                type: ChatMessageDataType.renameThread,
+                                                title: newTitle,
+                                                threadId: threadId,
+                                            })
+                                        }
+                                    }
+                                }}
+                            />
+                        </div>
                     </button>
                     <button onClick={doClose}>
                         <img src={CloseLargeIcon} />
@@ -663,7 +678,7 @@ function Chat(props: ChatProps) {
                 </div>
                 <div className="relative text-sm font-semibold">
                     <div
-                        className={`grid absolute w-full bg-ide-bg shadow-soft clip-path-bottom-shadow overflow-hidden transition-grid-template-rows ${
+                        className={`grid absolute w-full bg-ide-bg shadow-soft clip-path-bottom-shadow overflow-hidden transition-grid-template-rows z-10 ${
                             isThreadListVisible ? 'grid-rows-1fr' : 'grid-rows-0fr'
                         }`}
                     >
@@ -679,11 +694,12 @@ function Chat(props: ChatProps) {
                                     onClick={() => {
                                         if (thread.id !== threadId) {
                                             switchThread(thread.id)
+                                            setIsThreadListVisible(false)
                                         }
                                     }}
                                 >
                                     <div className="w-8 text-center">
-                                        {thread.hasUnreadMessages ? '(!) ' : ''}
+                                        {/* {thread.hasUnreadMessages ? '(!) ' : ''} */}
                                     </div>
                                     <div>{thread.title}</div>
                                 </div>
@@ -710,6 +726,7 @@ function Chat(props: ChatProps) {
                         <div>
                             <input
                                 ref={messageInput}
+                                autoFocus
                                 required
                                 type="text"
                                 placeholder="Type your message..."
