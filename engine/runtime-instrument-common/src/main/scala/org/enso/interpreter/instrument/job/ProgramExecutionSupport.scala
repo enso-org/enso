@@ -25,13 +25,12 @@ import org.enso.interpreter.runtime.error.{
 import org.enso.interpreter.service.error._
 import org.enso.polyglot.LanguageInfo
 import org.enso.polyglot.runtime.Runtime.Api
-import org.enso.polyglot.runtime.Runtime.Api.ContextId
+import org.enso.polyglot.runtime.Runtime.Api.{ContextId, ExecutionResult}
 
 import java.io.File
 import java.util.UUID
 import java.util.function.Consumer
 import java.util.logging.Level
-
 import scala.jdk.OptionConverters._
 
 /** Provides support for executing Enso code. Adds convenient methods to
@@ -235,17 +234,17 @@ object ProgramExecutionSupport {
     }
     val executionUpdate = getExecutionOutcome(error)
     val reason          = VisualizationResult.findExceptionMessage(error)
-    val message = error match {
+    def onFailure() = error match {
       case _: ThreadInterruptedException =>
         val message = s"Execution of function $itemName interrupted."
         ctx.executionService.getLogger.log(Level.FINE, message)
-        message
+        ExecutionResult.Diagnostic.warning(message, None)
       case _ =>
         val message = s"Execution of function $itemName failed ($reason)."
         ctx.executionService.getLogger.log(Level.WARNING, message, error)
-        message
+        ExecutionResult.Failure(message, None)
     }
-    executionUpdate.getOrElse(Api.ExecutionResult.Failure(message, None))
+    executionUpdate.getOrElse(onFailure())
   }
 
   /** Convert the runtime exception to the corresponding API error messages.
