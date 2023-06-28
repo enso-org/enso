@@ -145,6 +145,7 @@ spec =
                 r.map .day_of_week . should_equal (r.to_vector.map .day_of_week)
                 p = d-> d.day_of_week == Day_Of_Week.Monday
                 r.filter p . should_equal (r.to_vector.filter p)
+                r.partition p . should_equal (r.to_vector.partition p)
                 r.all p . should_equal (r.to_vector.all p)
                 r.any p . should_equal (r.to_vector.any p)
                 r.find p . should_equal (r.to_vector.find p)
@@ -157,6 +158,7 @@ spec =
 
                 fc = Filter_Condition.Greater than=(Date.new 2021 02 15)
                 r.filter fc . should_equal (r.to_vector.filter fc)
+                r.partition fc . should_equal (r.to_vector.partition fc)
                 r.all fc . should_equal (r.to_vector.all fc)
                 r.any fc . should_equal (r.to_vector.any fc)
                 r.find fc . should_equal (r.to_vector.find fc)

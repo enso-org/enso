@@ -160,6 +160,16 @@ spec = Test.group "Range" <|
         range.filter Filter_Condition.Is_Empty . should_equal []
         range.filter Filter_Condition.Not_Empty . should_equal [1, 2, 3, 4, 5]
 
+    Test.specify "should allow to partition its elements" <|
+        elements = 0.up_to 10
+        r1 = elements.partition (x -> x % 2 == 0)
+        r1.first . should_equal [0, 2, 4, 6, 8]
+        r1.second . should_equal [1, 3, 5, 7, 9]
+
+        r2 = elements.partition (Filter_Condition.Greater than=3)
+        r2.first . should_equal [4, 5, 6, 7, 8, 9]
+        r2.second . should_equal [0, 1, 2, 3]
+
     Test.specify "should allow iteration" <|
         vec_mut = Vector.new_builder
         1.up_to 6 . each (i -> vec_mut.append i)

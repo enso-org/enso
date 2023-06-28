@@ -1,6 +1,7 @@
 import project.Any.Any
 import project.Data.Filter_Condition.Filter_Condition
 import project.Data.Numbers.Integer
+import project.Data.Pair.Pair
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Errors.Common.Index_Out_Of_Bounds
@@ -182,6 +183,35 @@ type Range
             builder = self.fold Vector.new_builder builder-> elem->
                 if predicate elem then builder.append elem else builder
             builder.to_vector
+
+    ## Partitions the range into `Vector`s of elements which satisfy a given
+       condition and ones that do not.
+
+       Returns a `Pair` whose `first` element is the `Vector` of elements
+       satisfying the predicate and the `second` element is a `Vector` of
+       elements which did not satisfy it.
+
+       The relative order of elements kept in each returned list is the same as
+       in the input.
+
+       Arguments:
+       - condition: A `Filter_Condition` or a function that takes an element and
+         returns a boolean value.
+
+       > Example
+         Splitting a range into even and odd elements.
+
+             (0.up_to 4).partition (x-> x%2 == 0) == (Pair [0, 2] [1, 3])
+    partition : (Filter_Condition | (Integer -> Boolean)) -> Pair (Vector Integer) (Vector Integer)
+    partition self condition =
+        predicate = unify_condition_or_predicate condition
+        pair = self.fold (Pair.new Vector.new_builder Vector.new_builder) acc-> elem->
+            case predicate elem of
+                True ->
+                    Pair.new (acc.first.append elem) acc.second
+                False ->
+                    Pair.new acc.first (acc.second.append elem)
+        pair.map .to_vector
 
     ## PRIVATE
        ADVANCED

@@ -4,6 +4,7 @@ import project.Data.Json.JS_Object
 import project.Data.Numbers.Integer
 import project.Data.Range.Empty_Error
 from project.Data.Range.Extensions import all
+import project.Data.Pair.Pair
 import project.Data.Text.Text
 import project.Data.Time.Date.Date
 import project.Data.Time.Date_Period.Date_Period
@@ -230,6 +231,37 @@ type Date_Range
         builder = self.fold Vector.new_builder builder-> elem->
             if predicate elem then builder.append elem else builder
         builder.to_vector
+
+    ## Partitions the range into `Vector`s of elements which satisfy a given
+       condition and ones that do not.
+
+       Returns a `Pair` whose `first` element is the `Vector` of elements
+       satisfying the predicate and the `second` element is a `Vector` of
+       elements which did not satisfy it.
+
+       The relative order of elements kept in each returned list is the same as
+       in the input.
+
+       Arguments:
+       - condition: A `Filter_Condition` or a function that takes an element and
+         returns a boolean value.
+
+       > Example
+         Splitting a range into weekends and weekdays.
+
+             is_weekend day =
+                [Day_Of_Week.Saturday, Day_Of_Week.Sunday].contains day.day_of_week
+             (Date.new 2020 10 01).up_to (Date.new 2020 10 15).partition is_weekend
+    partition : (Filter_Condition | (Date -> Boolean)) -> Pair (Vector Date) (Vector Date)
+    partition self condition =
+        predicate = unify_condition_or_predicate condition
+        pair = self.fold (Pair.new Vector.new_builder Vector.new_builder) acc-> elem->
+            case predicate elem of
+                True ->
+                    Pair.new (acc.first.append elem) acc.second
+                False ->
+                    Pair.new acc.first (acc.second.append elem)
+        pair.map .to_vector
 
     ## PRIVATE
        ADVANCED
