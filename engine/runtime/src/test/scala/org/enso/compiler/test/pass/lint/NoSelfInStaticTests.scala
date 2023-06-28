@@ -111,5 +111,22 @@ class NoSelfInStaticTests extends CompilerTest {
       }
       errs should be(empty)
     }
+
+    "generate an error when self argument is used in a static extension method" in {
+      implicit val ctx: ModuleContext = mkModuleContext
+      val ir =
+        """
+          |type My_Type
+          |    Value value
+          |
+          |My_Type.extension_method = self.value + 1
+          |""".stripMargin.preprocessModule.lint
+      val errs = ir.bindings.flatMap(_.preorder).collect {
+        case err@IR.Error
+        .Syntax(_, IR.Error.Syntax.InvalidSelfArgUsage, _, _) =>
+          err
+      }
+      errs should have size 1
+    }
   }
 }
