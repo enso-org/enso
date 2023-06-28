@@ -133,8 +133,7 @@ type Data_Formatter
     with_locale : Locale -> Data_Formatter
     with_locale self datetime_locale = self.clone datetime_locale=datetime_locale
 
-    ## UNSTABLE
-       Create a clone of self with a changed format string for a particular
+    ## Create a clone of self with a changed format string for a particular
        datatype.
 
        It is mostly a convenience function to easily specify a datatype format.

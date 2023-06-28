@@ -6,7 +6,7 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.Import
 import org.enso.compiler.core.IR.Module.Scope.Import.Polyglot
 import org.enso.compiler.data.BindingsMap
-import org.enso.compiler.exception.CompilerError
+import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 
 import scala.collection.mutable

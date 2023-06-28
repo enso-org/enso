@@ -70,6 +70,7 @@ public abstract class MethodNodeClassGenerator {
               + "\"\"\""
               + moduleOwnerInfo
               + ")");
+      out.println("@ImportStatic(" + ownerClazz.fullyQualifiedName() + ".class)");
       if (isAbstract()) {
         out.println("public abstract class " + builtinNode.jvmFriendlyName() + " extends Node {");
         out.println();

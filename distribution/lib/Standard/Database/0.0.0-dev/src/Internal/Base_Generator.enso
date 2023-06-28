@@ -307,7 +307,7 @@ alias dialect name =
    - from_spec: A description of the FROM clause.
 generate_from_part : Internal_Dialect -> From_Spec -> Builder
 generate_from_part dialect from_spec = case from_spec of
-    From_Spec.Table name as_name ->
+    From_Spec.Table name as_name _ ->
         dialect.wrap_identifier name ++ alias dialect as_name
     From_Spec.Query raw_sql as_name ->
         Builder.code raw_sql . paren ++ alias dialect as_name
@@ -434,8 +434,9 @@ generate_query dialect query = case query of
         generate_insert_query dialect table_name pairs
     Query.Create_Table name columns primary_key temporary ->
         generate_create_table dialect name columns primary_key temporary
-    Query.Drop_Table name ->
-        Builder.code "DROP TABLE " ++ dialect.wrap_identifier name
+    Query.Drop_Table name if_exists ->
+        maybe_if_exists = if if_exists then Builder.code "IF EXISTS " else Builder.empty
+        Builder.code "DROP TABLE " ++ maybe_if_exists ++ dialect.wrap_identifier name
     Query.Insert_From_Select table_name column_names select_query -> case select_query of
         Query.Select _ _ ->
             inner_query = generate_query dialect select_query

@@ -25,7 +25,6 @@ from project.Data.Type.Value_Type import Value_Type, Auto
 from project.Errors import No_Index_Set_Error, Floating_Point_Equality, Invalid_Value_Type, Inexact_Type_Coercion, Conversion_Failure
 from project.Internal.Java_Exports import make_string_builder, make_double_builder, make_long_builder, make_date_builder_adapter
 
-polyglot java import org.enso.table.data.column.builder.object.DateBuilder
 polyglot java import org.enso.table.data.column.operation.map.MapOperationProblemBuilder
 polyglot java import org.enso.table.data.column.storage.Storage as Java_Storage
 polyglot java import org.enso.table.data.table.Column as Java_Column
@@ -99,7 +98,7 @@ type Column
         col_name = normalize_string_for_display java_col.getName
         storage = java_col.getStorage
         num_rows = java_col.getSize
-        display_rows = Math.min num_rows show_rows
+        display_rows = num_rows.min show_rows
         items = Vector.new display_rows num->
             row = if storage.isNa num then "Nothing" else
                 get_item_string storage num
@@ -111,7 +110,6 @@ type Column
 
     ## PRIVATE
        ADVANCED
-       TEXT_ONLY
 
        Prints an ASCII-art table with this data to the standard output.
 
@@ -834,8 +832,7 @@ type Column
         new_name = Naming_Helpers.to_expression_text self + " is null"
         run_vectorized_unary_op self "is_nothing" (== Nothing) expected_result_type=Value_Type.Boolean new_name on_missing=True
 
-    ## UNSTABLE
-       Returns a column of booleans, with `True` items at the positions where
+    ## Returns a column of booleans, with `True` items at the positions where
        this column contains a NaN. This is only applicable to double columns.
     is_nan : Column
     is_nan self =
@@ -1596,9 +1593,7 @@ type Column
             if storage.isNa index then Nothing else
                 storage.getItem index
 
-    ## UNSTABLE
-
-       Returns a column containing rows of this column.
+    ## Returns a column containing rows of this column.
 
        Arguments:
        - max_rows: specifies a maximum amount of rows to fetch; if not set, all
@@ -1756,8 +1751,8 @@ type Column
     slice : Integer -> Integer -> Column
     slice self start end =
         length = self.length
-        offset = Math.max (Math.min start length) 0
-        limit = Math.max (Math.min (end - offset) (length - offset)) 0
+        offset = (start.min length).max 0
+        limit = ((end - offset).min (length - offset)).max 0
         Column.Value (self.java_column.slice offset limit)
 
     ## Returns the first element in the column, if it exists.

@@ -1,4 +1,4 @@
-//! Example visualisation showing the provided data as text.
+//! Example visualization showing the provided data as text.
 
 use crate::component::visualization::*;
 use crate::prelude::*;
@@ -35,12 +35,12 @@ const PADDING_TEXT: f32 = 10.0;
 
 /// The module containing the `PREPROCESSOR_FUNCTION`. See there.
 // NOTE: contents of this const need to be kept in sync with Scala test in
-// RuntimeVisualisationsTest.scala, used to verify the snippet's correctness
+// RuntimeVisualizationsTest.scala, used to verify the snippet's correctness
 const PREPROCESSOR_MODULE: &str = "Standard.Visualization.Preprocessor";
 
 /// The method name of the error preprocessor.
 // NOTE: contents of this const need to be kept in sync with Scala test in
-// RuntimeVisualisationsTest.scala, used to verify the snippet's correctness
+// RuntimeVisualizationsTest.scala, used to verify the snippet's correctness
 const PREPROCESSOR_METHOD: &str = "error_preprocessor";
 
 /// The list of arguments passed to the error preprocessor.

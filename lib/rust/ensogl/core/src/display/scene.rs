@@ -891,7 +891,6 @@ pub struct SceneData {
     display_mode: Rc<Cell<glsl::codes::DisplayModes>>,
     extensions: Extensions,
     disable_context_menu: Rc<EventListenerHandle>,
-    trace: leak_detector::Trace,
 }
 
 impl SceneData {
@@ -958,7 +957,6 @@ impl SceneData {
             initial_shader_compilation,
             extensions,
             disable_context_menu,
-            trace: leak_detector::Trace::enabled("SceneData"),
         }
         .init()
     }
@@ -1153,7 +1151,6 @@ pub struct Scene {
     no_mut_access:        Rc<SceneData>,
     // Context handlers keep reference to SceneData, thus cannot be put inside it.
     context_lost_handler: Rc<RefCell<Option<ContextLostHandler>>>,
-    trace:                leak_detector::Trace,
 }
 
 impl Scene {
@@ -1164,11 +1161,7 @@ impl Scene {
     ) -> Self {
         let no_mut_access = SceneData::new(stats, on_mut, display_mode);
         let context_lost_handler = default();
-        let this = Self {
-            no_mut_access: Rc::new(no_mut_access),
-            context_lost_handler,
-            trace: leak_detector::Trace::enabled("Scene"),
-        };
+        let this = Self { no_mut_access: Rc::new(no_mut_access), context_lost_handler };
         this
     }
 
