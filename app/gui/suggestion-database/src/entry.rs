@@ -1264,7 +1264,7 @@ mod test {
     #[test]
     fn icon_name_case_insensitiveness() {
         let name_from_small_snake_case = IconName::from_tag_body("an_example_name");
-        let name_from_mixed_snake_case = IconName::from_tag_body("aN_EXAMPLE_name");
+        let name_from_mixed_snake_case = IconName::from_tag_body("An_EXAMPLE_name");
         const PASCAL_CASE_NAME: &str = "AnExampleName";
         assert_eq!(name_from_small_snake_case, name_from_mixed_snake_case);
         assert_eq!(name_from_small_snake_case.to_pascal_case(), PASCAL_CASE_NAME);

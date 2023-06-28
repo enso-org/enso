@@ -875,7 +875,7 @@ mod tests {
             name:      QualifiedName::from_text("Standard.Base.module_method").unwrap().into(),
             tags:      Tags {
                 list: SortedVec::new([Tag {
-                    name: "Deprecated".to_im_string(),
+                    name: "DEPRECATED".to_im_string(),
                     body: "".to_im_string(),
                 }]),
             },
@@ -936,7 +936,7 @@ mod tests {
     fn a_baz_method() -> Function {
         Function {
             name:      QualifiedName::from_text("Standard.Base.A.baz").unwrap().into(),
-            tags:      Tags { list: vec![Tag::new("Tag", "Tag body.")].into() },
+            tags:      Tags { list: vec![Tag::new("DEPRECATED", "Tag body.")].into() },
             arguments: default(),
             synopsis:  Synopsis::from_doc_sections([doc_section!(
                 "Documentation of method A.baz."
@@ -960,7 +960,7 @@ mod tests {
     fn b_new_constructor() -> Function {
         Function {
             name:      QualifiedName::from_text("Standard.Base.B.New").unwrap().into(),
-            tags:      Tags { list: vec![Tag::new("AnotherTag", "Tag body.")].into() },
+            tags:      Tags { list: vec![Tag::new("ALIAS", "Tag body.")].into() },
             arguments: default(),
             synopsis:  Synopsis::from_doc_sections([
                 doc_section!("Documentation of constructor B.New."),
