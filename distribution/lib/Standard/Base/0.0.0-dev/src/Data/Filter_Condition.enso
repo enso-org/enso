@@ -241,11 +241,24 @@ unify_condition_or_predicate : Filter_Condition | (Any -> Boolean) -> (Any -> Bo
 unify_condition_or_predicate (condition_or_predicate : Filter_Condition | Function) =
     case condition_or_predicate of
         condition : Filter_Condition -> condition.to_predicate
-        predicate -> predicate
+        predicate -> handle_constructor_missing_arguments predicate
 
 ## PRIVATE
 unify_condition_predicate_or_element condition =
     case condition of
         condition : Filter_Condition -> condition.to_predicate
-        predicate : Function -> predicate
+        predicate : Function -> handle_constructor_missing_arguments predicate
         element -> (== element)
+
+## PRIVATE
+   Checks if the given `function` is actually a `Filter_Condition` constructor
+   that is just missing arguments. If so, it will report a more friendly error.
+   Otherwise it will just return the `function` as is.
+handle_constructor_missing_arguments function =
+    case Meta.meta function of
+        constructor : Meta.Constructor ->
+            is_filter_condition_constructor = constructor.declaring_type == Meta.meta Filter_Condition
+            if is_filter_condition_constructor.not then function else
+                message = "Got a Filter_Condition." + constructor.name + " constructor without all required arguments provided. Please provide the missing arguments."
+                Error.throw (Illegal_Argument.Error message)
+        _ -> function
