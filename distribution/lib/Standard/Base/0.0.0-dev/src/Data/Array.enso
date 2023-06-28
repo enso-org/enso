@@ -333,6 +333,11 @@ type Array
          Find the index of an element in an array.
 
              [1, 2, 3].to_array.index_of 2 == 1
+
+       > Example
+         Find the index of the first palindrome.
+
+             ["ab", "abab", "aba", "bbb"].to_array.index_of (s-> s == s.reverse) == 2
     index_of : (Any | Filter_Condition | (Any -> Boolean)) -> Integer -> Integer | Nothing
     index_of self condition start=0 = Vector.index_of self condition start
 
@@ -349,6 +354,11 @@ type Array
          Find the last index of an element in an array.
 
              [1, 2, 3, 1, 2, 3].to_array.last_index_of 2 == 4
+
+       > Example
+         Find the index of the last palindrome.
+
+             ["ab", "abab", "aba", "bbb"].to_array.last_index_of (s-> s == s.reverse) == 3
     last_index_of : (Any | Filter_Condition | (Any -> Boolean)) -> Integer -> Integer | Nothing
     last_index_of self condition start=-1 = Vector.last_index_of self condition start
 
@@ -520,7 +530,7 @@ type Array
     pad self n elem = Vector.pad self n elem
 
     ## Partitions the array into `Vector`s of elements which satisfy a given
-       predicate and ones that do not.
+       condition and ones that do not.
 
        Returns a `Pair` whose `first` element is the `Vector` of elements
        satisfying the predicate and the `second` element is a `Vector` of elements
@@ -532,6 +542,11 @@ type Array
        Arguments:
        - condition: A `Filter_Condition` or a function that takes an element and
          returns a boolean value.
+
+       > Example
+         Splitting an array into elements that start with a prefix.
+
+             ["a", "b", "ax", "bx"].to_array.partition (Filter_Condition.Starts_With "a") == (Pair ["a", "ax"].to_array ["b", "bx"].to_array)
 
        > Example
          Splitting an array into even and odd elements.
@@ -581,7 +596,7 @@ type Array
     slice : Integer -> Integer -> Vector Any
     slice self start end = Vector.slice self start end
 
-    ## Returns the first element of the array that satisfies the predicate or
+    ## Returns the first element of the array that satisfies the condition or
        `if_missing` if no elements of the array satisfy it.
 
        Arguments:
@@ -680,7 +695,12 @@ type Array
        > Example
          Checking if any element of the array is larger than 3.
 
-             [1, 2, 3, 4, 5].to_array.any (> 3)
+             [1, 2, 3, 4, 5].to_array.any (Filter_Condition.Greater than=3)
+
+       > Example
+         Checking if any element of the array is even.
+
+             [1, 2, 3, 4, 5].to_array.any (x-> x%2 == 0)
     any : (Filter_Condition | (Any -> Boolean)) -> Boolean
     any self condition = Vector.any self condition
 
@@ -695,6 +715,11 @@ type Array
          Check if all elements in the array are less than zero.
 
              [-1, 1, 5, 8].to_array.all (Filter_Condition.Less than=0)
+
+       > Example
+         Check if all elements in the array are even.
+
+             [-1, 1, 5, 8].to_array.all (x-> x%2 == 0)
     all : (Filter_Condition | (Any -> Boolean)) -> Boolean
     all self condition = Vector.all self condition
 

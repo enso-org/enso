@@ -11,6 +11,7 @@ import project.Nothing.Nothing
 import project.Errors.Illegal_State.Illegal_State
 
 from project.Data.Boolean import Boolean, True, False
+from project.Data.Filter_Condition import unify_condition_or_predicate, unify_condition_predicate_or_element
 
 ## Represents a right-exclusive range of integer values.
 type Range
@@ -294,16 +295,23 @@ type Range
     ## Checks whether `predicate` is satisfied for all numbers in this range.
 
        Arguments:
-       - predicate: A function that takes a list element and returns a boolean
-         value that says whether that value satisfies the conditions of the
-         function.
+       - condition: A `Filter_Condition` or a function that takes an element and
+         returns a boolean value that says whether that value satisfies a
+         condition.
 
        > Example
          Checking that all numbers in the range are greater than 5.
 
-             10.up_to 100 . all (> 5)
-    all : (Integer -> Boolean) -> Boolean
-    all self predicate = self . any (predicate >> .not) . not
+             10.up_to 100 . all (Filter_Condition.Greater than=5)
+
+       > Example
+         Checking that all numbers in the range are even.
+
+             10.up_to 100 . with_step 2 . all (x-> x%2 == 0)
+    all : (Filter_Condition | (Any -> Boolean)) -> Boolean
+    all self condition =
+        predicate = unify_condition_or_predicate condition
+        self.any (predicate >> .not) . not
 
     ## Checks whether `predicate` is satisfied for any number in this range.
 
