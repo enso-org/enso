@@ -87,10 +87,6 @@ case object SuspendedArguments extends IRPass {
   ): IR.Expression = resolveExpression(ir)
 
   /** @inheritdoc */
-  override def updateMetadataInDuplicate[T <: IR](
-    sourceIr: T,
-    copyOfIr: T
-  ): T = copyOfIr
 
   // === Pass Internals =======================================================
 

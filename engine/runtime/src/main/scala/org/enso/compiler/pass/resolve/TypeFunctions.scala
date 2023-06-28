@@ -75,12 +75,6 @@ case object TypeFunctions extends IRPass {
       resolveExpression(a)
     }
 
-  /** @inheritdoc */
-  override def updateMetadataInDuplicate[T <: IR](
-    @unused sourceIr: T,
-    copyOfIr: T
-  ): T = copyOfIr
-
   // === Pass Internals =======================================================
 
   /** The names of the known typing functions. */

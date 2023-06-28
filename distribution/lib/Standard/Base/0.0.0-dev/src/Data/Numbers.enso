@@ -1117,7 +1117,7 @@ type Number_Parse_Error
     ## PRIVATE
        Pretty print the syntax error.
     to_display_text : Text
-    to_display_text =
+    to_display_text self =
         "Could not parse " + self.text.to_text + " as a double."
 
 ## PRIVATE
