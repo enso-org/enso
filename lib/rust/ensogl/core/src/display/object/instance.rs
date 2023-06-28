@@ -1473,6 +1473,9 @@ impl ParentBind {
         debug_assert!(parent.downgrade() == self.parent);
         parent.dirty.modified_children.unset(&self.child_index);
         if let Some(child) = removed_children_entry.upgrade() {
+            if child.is_focused() {
+                parent.propagate_up_no_focus_instance();
+            }
             child.dirty.new_parent.set();
         }
         parent.dirty.removed_children.set(removed_children_entry);
@@ -1876,14 +1879,7 @@ impl Model {
     /// Removes and returns the parent bind. Please note that the parent is not updated as long as
     /// the parent bind is not dropped.
     fn take_parent_bind(&self) -> Option<ParentBind> {
-        let parent_bind = self.parent_bind.take_bind();
-        if let Some(parent) = parent_bind.as_ref().and_then(|t| t.parent.upgrade()) {
-            let is_focused = self.event.focused_descendant.borrow().is_some();
-            if is_focused {
-                parent.propagate_up_no_focus_instance();
-            }
-        }
-        parent_bind
+        self.parent_bind.take_bind()
     }
 
     /// Set parent of the object. If the object already has a parent, the parent would be replaced.
@@ -1892,7 +1888,8 @@ impl Model {
         if let Some(parent) = bind.parent() {
             self.parent_bind.set_bind(bind);
             self.dirty.new_parent.set();
-            if let Some(focus_instance) = &*self.event.focused_descendant.borrow() {
+            let focus_instance = self.event.focused_descendant.borrow().clone_ref();
+            if let Some(focus_instance) = focus_instance {
                 parent.blur_tree();
                 parent.propagate_up_new_focus_instance(focus_instance);
             }
@@ -2651,7 +2648,7 @@ impl InstanceDef {
 
     fn focus(&self) {
         self.blur_tree();
-        self.propagate_up_new_focus_instance(&self.downgrade());
+        self.propagate_up_new_focus_instance(self.downgrade());
         let focus_event = self.new_event(event::Focus);
         let focus_in_event = self.new_event(event::FocusIn);
         focus_event.bubbles.set(false);
@@ -2695,7 +2692,7 @@ impl InstanceDef {
 
     /// Set the focus instance to the provided one here and in all instances on the path to the
     /// root.
-    fn propagate_up_new_focus_instance(&self, instance: &WeakInstance) {
+    fn propagate_up_new_focus_instance(&self, instance: WeakInstance) {
         debug_assert!(self.event.focused_descendant.borrow().is_none());
         *self.event.focused_descendant.borrow_mut() = Some(instance.clone());
         self.parent().for_each(|parent| parent.propagate_up_new_focus_instance(instance));
