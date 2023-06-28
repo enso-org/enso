@@ -30,13 +30,14 @@ use ensogl_core::application;
 use ensogl_core::application::command::FrpNetworkProvider;
 use ensogl_core::application::shortcut;
 use ensogl_core::application::Application;
+use ensogl_core::control::io::keyboard::event::*;
 use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::gui::cursor;
 use ensogl_core::system::web::clipboard;
 use ensogl_text_font_family::NonVariableFaceHeader;
 use owned_ttf_parser::AsFaceRef;
-use std::ops::Not;
+
 
 
 // ==============
@@ -364,6 +365,7 @@ ensogl_core::define_endpoints_2! {
 impl Text {
     fn init(self) -> Self {
         self.init_hover();
+        self.init_focus();
         self.init_single_line_mode();
         self.init_cursors();
         self.init_selections();
@@ -385,6 +387,21 @@ impl Text {
             hovered <- any(&input.set_hover,&hovered);
             out.hovered <+ hovered;
             out.pointer_style <+ out.hovered.map(|h| h.then_or_default(cursor::Style::cursor));
+        }
+    }
+
+    fn init_focus(&self) {
+        let network = self.frp.network();
+        let input = &self.frp.input;
+
+        let focus_in = self.on_event::<ensogl_core::event::FocusIn>();
+        let focus_out = self.on_event::<ensogl_core::event::FocusOut>();
+
+        frp::extend! { network
+            // The `shortcut` API uses the old focus API. By forwarding the new API to the old API
+            // here, the text component is compatible with either.
+            input.deprecated_focus <+_ focus_in;
+            input.deprecated_defocus <+_ focus_out;
         }
     }
 
@@ -561,11 +578,11 @@ impl Text {
     fn init_edits(&self) {
         let m = &self.data;
         let scene = &m.app.display.default_scene;
-        let keyboard = &scene.global_keyboard;
         let network = self.frp.network();
         let input = &self.frp.input;
         let out = &self.frp.private.output;
         let after_animations = ensogl_core::animation::on_after_animations();
+        let key_down = scene.on_event::<KeyDown>();
 
         frp::extend! { network
 
@@ -576,9 +593,7 @@ impl Text {
             eval_ input.delete_word_left (m.buffer.frp.delete_word_left());
             eval_ input.delete_word_right (m.buffer.frp.delete_word_right());
 
-            key_down <- keyboard.frp.down.gate_not(&keyboard.frp.is_meta_down);
-            key_down <- key_down.gate_not(&keyboard.frp.is_control_down);
-            key_to_insert <= key_down.map(f!((key) m.key_to_string(key).map(ImString::from)));
+            key_to_insert <= key_down.map2(&out.single_line_mode, TextModel::process_key_event);
             str_to_insert <- any(&input.insert, &key_to_insert);
             eval str_to_insert ((s) m.buffer.frp.insert(s));
             eval input.set_content ((s) {
@@ -1914,10 +1929,23 @@ impl TextModel {
         *s = s.lines().next().unwrap_or("").to_string();
     }
 
-    fn key_to_string(&self, key: &Key) -> Option<String> {
+    fn process_key_event(
+        event: &ensogl_core::event::Event<KeyDown>,
+        single_line_mode: &bool,
+    ) -> Option<ImString> {
+        let check_modifiers = (!event.ctrl() && !event.meta()).then_some(());
+        let text =
+            check_modifiers.and_then(|_| Self::key_to_string(event.key(), *single_line_mode));
+        if text.is_some() {
+            event.stop_propagation();
+        }
+        text
+    }
+
+    fn key_to_string(key: &Key, single_line_mode: bool) -> Option<ImString> {
         match key {
-            Key::Character(s) => Some(s.clone()),
-            Key::Enter => self.frp.output.single_line_mode.value().not().as_some("\n".into()),
+            Key::Character(s) => Some(s.into()),
+            Key::Enter if !single_line_mode => Some("\n".into()),
             Key::Space => Some(" ".into()),
             _ => None,
         }
