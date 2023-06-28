@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.{
   JsonSubTypes,
   JsonTypeInfo
 }
+import com.fasterxml.jackson.module.scala.deser.ScalaObjectDeserializerModule
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.cbor.CBORFactory
 import com.fasterxml.jackson.module.scala.{
@@ -22,7 +23,6 @@ import org.enso.text.editing.model.{Range, TextEdit}
 import java.io.File
 import java.nio.ByteBuffer
 import java.util.UUID
-
 import scala.util.Try
 
 object Runtime {
@@ -850,28 +850,20 @@ object Runtime {
     @JsonSubTypes(
       Array(
         new JsonSubTypes.Type(
-          value = classOf[DiagnosticType.Error],
+          value = classOf[DiagnosticType.Error.type],
           name  = "diagnosticTypeError"
         ),
         new JsonSubTypes.Type(
-          value = classOf[DiagnosticType.Warning],
+          value = classOf[DiagnosticType.Warning.type],
           name  = "diagnosticTypeWarning"
         )
       )
     )
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    sealed trait DiagnosticType {
+    sealed trait DiagnosticType
 
-      /** Checks if this diagnostic type represents an error. */
-      def isError(): Boolean
-    }
     object DiagnosticType {
-      case class Error() extends DiagnosticType {
-        override def isError(): Boolean = true
-      }
-      case class Warning() extends DiagnosticType {
-        override def isError(): Boolean = false
-      }
+      case object Error   extends DiagnosticType
+      case object Warning extends DiagnosticType
     }
 
     /** The element in the stack trace.
@@ -911,7 +903,7 @@ object Runtime {
         )
       )
     )
-    @JsonIgnoreProperties(ignoreUnknown = true)
+    @JsonIgnoreProperties(Array("error", "failure"))
     sealed trait ExecutionResult extends ToLogString {
 
       /** Checks if this result represents a critical failure. * */
@@ -954,10 +946,10 @@ object Runtime {
 
         override def isFailure: Boolean = false
 
-        override def isError: Boolean = kind.isError()
+        override def isError: Boolean = kind == DiagnosticType.Error
       }
 
-      case object Diagnostic {
+      object Diagnostic {
 
         /** Create an error diagnostic message.
           *
@@ -975,8 +967,8 @@ object Runtime {
           expressionId: Option[ExpressionId] = None,
           stack: Vector[StackTraceElement]   = Vector()
         ): Diagnostic =
-          new Diagnostic(
-            DiagnosticType.Error(),
+          Diagnostic(
+            DiagnosticType.Error,
             Option(message),
             file,
             location,
@@ -1000,8 +992,8 @@ object Runtime {
           expressionId: Option[ExpressionId] = None,
           stack: Vector[StackTraceElement]   = Vector()
         ): Diagnostic =
-          new Diagnostic(
-            DiagnosticType.Warning(),
+          Diagnostic(
+            DiagnosticType.Warning,
             Option(message),
             file,
             location,
@@ -1798,7 +1790,9 @@ object Runtime {
     private lazy val mapper = {
       val factory = new CBORFactory()
       val mapper  = new ObjectMapper(factory) with ClassTagExtensions
-      mapper.registerModule(DefaultScalaModule)
+      mapper
+        .registerModule(DefaultScalaModule)
+        .registerModule(ScalaObjectDeserializerModule)
     }
 
     /** Serializes an ApiEnvelope into a byte buffer.
