@@ -4,6 +4,7 @@ import java.util.BitSet;
 import java.util.List;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.NumericBuilder;
+import org.enso.table.data.column.operation.map.DoubleLongMapOpWithSpecialNumericHandling;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.operation.map.UnaryDoubleToLongOp;
@@ -246,28 +247,9 @@ public final class DoubleStorage extends NumericStorage<Double> {
               }
             })
         .add(
-            new UnaryMapOperationWithProblemBuilder<>(Maps.TRUNCATE) {
-              @Override
-              public LongStorage run(DoubleStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
-                long[] out = new long[storage.size()];
-                BitSet isMissing = new BitSet();
-
-                for (int i = 0; i < storage.size; i++) {
-                  if (!storage.isNa(i)) {
-                    double item = storage.getItem(i);
-                    boolean special = Double.isNaN(item) || Double.isInfinite(item);
-                    if (!special) {
-                      out[i] = (long) item;
-                    } else {
-                      String msg = "Value is " + item;
-                      problemBuilder.reportArithmeticError(msg, i);
-                      isMissing.set(i);
-                    }
-                  } else {
-                    isMissing.set(i);
-                  }
-                }
-                return new LongStorage(out, storage.size(), isMissing);
+            new DoubleLongMapOpWithSpecialNumericHandling(Maps.TRUNCATE) {
+              protected long doOperation(double a) {
+                return (long) a;
               }
             })
         .add(

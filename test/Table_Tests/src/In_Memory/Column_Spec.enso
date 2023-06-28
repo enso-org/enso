@@ -189,6 +189,7 @@ spec =
             do_round 231 . should_be_a Integer
             do_round 231 -1 . should_be_a Integer
 
+    Test.group "asdfasdf" <|
         Test.specify "nan/inf" <|
             ops = [.truncate] # [.round, .truncate, .ceil, .floor]
             ops.map op->
