@@ -37,6 +37,12 @@ const REACTION_SIZE = 16
 const REACTION_EMOJIS = ['❤️', '👍', '👎', '😀', '🙁', '👀', '🎉'] as const
 /** The initial title of the thread. */
 const DEFAULT_THREAD_TITLE = 'New chat thread'
+/** The maximum number of lines to show in the message input, past which a scrollbar is shown. */
+const MAX_MESSAGE_INPUT_LINES = 10
+/** The maximum number of messages to fetch when opening a new thread.
+ * This SHOULD be the same limit as the chat backend (the maximum number of messages sent in
+ * `serverThread` events). */
+const MAX_MESSAGE_HISTORY = 25
 
 // =============
 // === Types ===
@@ -323,7 +329,7 @@ export interface ChatMessageProps {
 function ChatMessage(props: ChatMessageProps) {
     const { threadId, message, reactions, shouldShowReactionBar, sendMessage } = props
     return (
-        <div className="m-1">
+        <div className="m-2">
             <div className="flex">
                 {/* FIXME: This should default to the default user image. */}
                 <img
@@ -338,7 +344,7 @@ function ChatMessage(props: ChatMessageProps) {
                     </div>
                 </div>
             </div>
-            <div className="mx-1">
+            <div className="mx-1 whitespace-pre-wrap">
                 {message.content}
                 <Reactions reactions={reactions} />
             </div>
@@ -397,7 +403,7 @@ function Chat(props: ChatProps) {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const titleInputRef = react.useRef<HTMLInputElement>(null!)
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const messageInput = react.useRef<HTMLInputElement>(null!)
+    const messageInputRef = react.useRef<HTMLTextAreaElement>(null!)
 
     react.useEffect(() => {
         setIsPaidUser(false)
@@ -465,7 +471,9 @@ function Chat(props: ChatProps) {
                             timestamp: message.timestamp,
                             editedTimestamp: null,
                         }
-                        setMessages(oldMessages => [...oldMessages, newMessage])
+                        setMessages(oldMessages =>
+                            [...oldMessages, newMessage].slice(-MAX_MESSAGE_HISTORY)
+                        )
                         break
                     }
                     case ChatMessageDataType.serverEditedMessage: {
@@ -559,9 +567,10 @@ function Chat(props: ChatProps) {
     const sendCurrentMessage = react.useCallback(
         (event: react.SyntheticEvent, createNewThread?: boolean) => {
             event.preventDefault()
-            const content = messageInput.current.value
+            const content = messageInputRef.current.value
             if (content !== '') {
-                messageInput.current.value = ''
+                messageInputRef.current.style.height = '1lh'
+                messageInputRef.current.value = ''
                 const newMessage: ChatDisplayMessage = {
                     // This MUST be unique.
                     id: newtype.asNewtype<MessageId>(String(Number(new Date()))),
@@ -585,7 +594,9 @@ function Chat(props: ChatProps) {
                         threadId,
                         content,
                     })
-                    setMessages(oldMessages => [...oldMessages, newMessage])
+                    setMessages(oldMessages =>
+                        [...oldMessages, newMessage].slice(-MAX_MESSAGE_HISTORY)
+                    )
                 }
             }
         },
@@ -707,7 +718,7 @@ function Chat(props: ChatProps) {
                         </div>
                     </div>
                 </div>
-                <div className="flex flex-col grow mx-1">
+                <div className="grow">
                     {threadId != null &&
                         messages.map(message => (
                             <ChatMessage
@@ -724,20 +735,36 @@ function Chat(props: ChatProps) {
                 <div className="rounded-xl bg-white p-2 mx-2 my-1">
                     <form onSubmit={sendCurrentMessage}>
                         <div>
-                            <input
-                                ref={messageInput}
+                            <textarea
+                                ref={messageInputRef}
+                                rows={1}
                                 autoFocus
                                 required
-                                type="text"
-                                placeholder="Type your message..."
-                                className="w-full rounded-full p-1"
+                                placeholder="Type your message... (Shift+Enter to add a newline)"
+                                className="w-full rounded-lg resize-none p-1"
+                                onKeyDown={event => {
+                                    switch (event.key) {
+                                        case 'Enter': {
+                                            // If the shift key is not pressed, submit the form.
+                                            // If the shift key is pressed, keep the default
+                                            // behavior of adding a newline.
+                                            if (!event.shiftKey) {
+                                                event.preventDefault()
+                                                event.currentTarget.form?.requestSubmit()
+                                            }
+                                        }
+                                    }
+                                }}
                                 onInput={event => {
-                                    const newIsReplyEnabled = event.currentTarget.value !== ''
+                                    const element = event.currentTarget
+                                    element.style.height = '0px'
+                                    element.style.height = `min(${MAX_MESSAGE_INPUT_LINES}lh, ${element.scrollHeight}px)`
+                                    const newIsReplyEnabled = element.value !== ''
                                     if (newIsReplyEnabled !== isReplyEnabled) {
                                         setIsReplyEnabled(newIsReplyEnabled)
                                     }
                                 }}
-                            ></input>
+                            />
                             <div className="flex">
                                 <button
                                     type="button"

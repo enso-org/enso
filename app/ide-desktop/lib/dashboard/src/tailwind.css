@@ -17,7 +17,8 @@ body {
   font-feature-settings: normal;
 }
 
-.enso-dashboard *:focus {
+.enso-dashboard *:focus,
+.enso-chat *:focus {
   outline: none !important;
 }
 
