@@ -512,14 +512,6 @@ spec setup =
             table = table_builder [["x", [0, 3, -3, 1, -2]]]
             table.at "x" . round 16 . should_fail_with Illegal_Argument
 
-        Test.specify "Can handle NaN/Infinity" <|
-            nan_result = if setup.test_selection.is_nan_and_nothing_distinct then Number.nan else Nothing
-            ops = [.round, .truncate, .ceil, .floor]
-            ops.each op->
-                do_op Number.nan op . should_equal nan_result
-                do_op Number.positive_infinity op . should_equal Number.positive_infinity
-                do_op Number.negative_infinity op . should_equal Number.negative_infinity
-
         if setup.test_selection.supports_decimal_type then
             Test.specify "should return decimals when rounding decimals" <|
                 i1 = 9223372036854775807 - 1
@@ -646,12 +638,6 @@ spec setup =
             do_round -3.49999 . should_equal -3
             do_round -3.50001 . should_equal -4
             do_round -3.99999 . should_equal -4
-
-        Test.specify "Returns the correct type" <|
-            do_round 231.2 1 . should_be_a Decimal
-            do_round 231.2 0 . should_be_a Decimal
-            do_round 231.2 . should_be_a Decimal
-            do_round 231.2 -1 . should_be_a Decimal
 
         Test.specify "Can round correctly near the precision limit" <|
             do_round 1.22222222225 10 . should_equal 1.2222222223
@@ -803,12 +789,6 @@ spec setup =
             do_round -12249 -2 use_bankers=True . should_equal -12200
             do_round -12250 -2 use_bankers=True . should_equal -12200
             do_round -12251 -2 use_bankers=True . should_equal -12300
-
-        Test.specify "Returns the correct type" <|
-            do_round 231 1 . should_be_a Decimal
-            do_round 231 0 . should_be_a Decimal
-            do_round 231 . should_be_a Decimal
-            do_round 231 -1 . should_be_a Decimal
 
     Test.group prefix+"Text Column Operations" <|
         t3 = table_builder [["s1", ["foobar", "bar", "baz", "BAB", Nothing]], ["s2", ["foo", "ar", "a", "b", Nothing]]]

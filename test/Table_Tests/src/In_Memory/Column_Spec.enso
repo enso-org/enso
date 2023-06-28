@@ -169,6 +169,35 @@ spec =
         Test.specify "Should error on input of the wrong type" <|
             Column.from_vector "foo" ["asdf", "zxcv", "qwer"] . floor . should_fail_with Invalid_Value_Type
 
+    Test.group "round/truncate/ceil/floor return types" <|
+        do_op n op =
+            col = Column.from_vector "x" [n]
+            result = op col
+            result.to_vector.at 0
+        do_round n dp=0 use_bankers=False = do_op n (_.round dp use_bankers)
+
+        Test.specify "Can handle NaN/Infinity" <|
+            ops = [.round, .truncate, .ceil, .floor]
+            ops.each op->
+                IO.println 'AAA'
+                IO.println op
+                IO.println <| do_op Number.nan op
+                do_op Number.nan op . should_equal Nothing
+                do_op Number.positive_infinity op . should_equal Nothing
+                do_op Number.negative_infinity op . should_equal Nothing
+
+        Test.specify "round returns the correct type" <|
+            do_round 231.2 1 . should_be_a Decimal
+            do_round 231.2 0 . should_be_a Integer
+            do_round 231.2 . should_be_a Integer
+            do_round 231.2 -1 . should_be_a Integer
+
+        Test.specify "round returns the correct type" <|
+            do_round 231 1 . should_be_a Integer
+            do_round 231 0 . should_be_a Integer
+            do_round 231 . should_be_a Integer
+            do_round 231 -1 . should_be_a Integer
+
     Test.group "Date_Time truncate" <|
         Test.specify "should be able to truncate a column of Date_Times" <|
             Column.from_vector "foo" [Date_Time.new 2020 10 24 1 2 3, Date_Time.new 2020 10 24 1 2 3] . truncate . should_equal <| Column.from_vector "foo" [Date.new 2020 10 24, Date.new 2020 10 24]

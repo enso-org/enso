@@ -223,6 +223,32 @@ postgres_specific_spec connection db_name setup =
             col . cast Value_Type.Integer . truncate . value_type . should_equal Value_Type.Float
             col . cast Value_Type.Decimal . truncate . value_type . should_equal Value_Type.Decimal
 
+        do_op n op =
+            table = table_builder [["x", [n]]]
+            result = table.at "x" |> op
+            result.to_vector.at 0
+        do_round n dp=0 use_bankers=False = do_op n (_.round dp use_bankers)
+
+        Test.specify "Can handle NaN/Infinity" <|
+            nan_result = if setup.test_selection.is_nan_and_nothing_distinct then Number.nan else Nothing
+            ops = [.round, .truncate, .ceil, .floor]
+            ops.each op->
+                do_op Number.nan op . should_equal nan_result
+                do_op Number.positive_infinity op . should_equal Number.positive_infinity
+                do_op Number.negative_infinity op . should_equal Number.negative_infinity
+
+        Test.specify "round returns the correct type" <|
+            do_round 231.2 1 . should_be_a Decimal
+            do_round 231.2 0 . should_be_a Decimal
+            do_round 231.2 . should_be_a Decimal
+            do_round 231.2 -1 . should_be_a Decimal
+
+        Test.specify "round returns the correct type" <|
+            do_round 231 1 . should_be_a Decimal
+            do_round 231 0 . should_be_a Decimal
+            do_round 231 . should_be_a Decimal
+            do_round 231 -1 . should_be_a Decimal
+
 run_tests connection db_name =
     prefix = "[PostgreSQL] "
     name_counter = Ref.new 0
