@@ -8,6 +8,7 @@ import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.operation.map.UnaryDoubleToLongOp;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
+import org.enso.table.data.column.operation.map.UnaryMapOperationWithProblemBuilder;
 import org.enso.table.data.column.operation.map.numeric.DoubleBooleanOp;
 import org.enso.table.data.column.operation.map.numeric.DoubleIsInOp;
 import org.enso.table.data.column.operation.map.numeric.DoubleNumericOp;
@@ -245,10 +246,28 @@ public final class DoubleStorage extends NumericStorage<Double> {
               }
             })
         .add(
-            new UnaryDoubleToLongOp(Maps.TRUNCATE) {
+            new UnaryMapOperationWithProblemBuilder<>(Maps.TRUNCATE) {
               @Override
-              protected long doOperation(double a) {
-                return (long) a;
+              public LongStorage run(DoubleStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
+                long[] out = new long[storage.size()];
+                BitSet isMissing = new BitSet();
+
+                for (int i = 0; i < storage.size; i++) {
+                  if (!storage.isNa(i)) {
+                    double item = storage.getItem(i);
+                    boolean special = Double.isNaN(item) || Double.isInfinite(item);
+                    if (!special) {
+                      out[i] = (long) item;
+                    } else {
+                      String msg = "Value is " + item;
+                      problemBuilder.reportArithmeticError(msg, i);
+                      isMissing.set(i);
+                    }
+                  } else {
+                    isMissing.set(i);
+                  }
+                }
+                return new LongStorage(out, storage.size(), isMissing);
               }
             })
         .add(
