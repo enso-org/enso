@@ -1,6 +1,7 @@
 from Standard.Base import all
 import Standard.Table.Data.Table.Table
 
+## PRIVATE
 goal_placeholder = "__$$GOAL$$__"
 
 ## PRIVATE

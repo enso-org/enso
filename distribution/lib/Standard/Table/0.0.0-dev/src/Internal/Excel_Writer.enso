@@ -33,7 +33,8 @@ make_java_existing_data_mode on_existing_file match_columns = case on_existing_f
 
    Arguments:
 write_file : File -> Table -> Existing_File_Behavior -> Excel_Section -> (Boolean|Infer) -> Match_Columns -> Problem_Behavior -> Boolean -> File
-write_file file table on_existing_file section headers match_columns _ xls_format=False =
+write_file file table on_existing_file section headers match_columns on_problems xls_format=False =
+    _ = [on_problems]
     workbook = if file.exists.not then ExcelWriter.createWorkbook xls_format else
         Excel_Reader.handle_reader file stream->(ExcelReader.getWorkbook stream xls_format)
 

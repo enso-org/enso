@@ -102,7 +102,8 @@ Error.is_valid self = self.is_error.not
    - _: a function that will be used to generate return value from a non-error
         `self` value.
 Error.map_valid : Any -> Any
-Error.map_valid self _ = self
+Error.map_valid self f =
+    const self f
 
 ## PRIVATE
 

@@ -8,7 +8,9 @@ from project.Errors.Common import Module_Not_In_Package_Error
 ## Functionality for inspecting the current project.
 @Builtin_Type
 type Project_Description
-    ## Returns the Enso project description for the given module. If no module is
+    ## PRIVATE
+       ADVANCED
+       Returns the Enso project description for the given module. If no module is
        given, returns the description of the project that the engine was executed
        with, i.e., the project that contains the `main` method, or throws
        `Module_Not_In_Package_Error` if there is no such project, e.g., when

@@ -105,7 +105,8 @@ Any.should_equal_type self that frames_to_skip=0 = case (self.is_same_object_as 
         Test.fail msg
 
 ## Added so that dataflow errors are not silently lost.
-Error.should_equal_type self _ frames_to_skip=0 =
+Error.should_equal_type self that frames_to_skip=0 =
+    _ = [that]
     Test.fail_match_on_unexpected_error self 1+frames_to_skip
 
 ## Asserts that `self` value is not equal to the expected value.
@@ -131,7 +132,8 @@ Any.should_not_equal self that frames_to_skip=0 = case self != that of
         Test.fail msg
 
 ## Added so that dataflow errors are not silently lost.
-Error.should_not_equal self _ frames_to_skip=0 =
+Error.should_not_equal self that frames_to_skip=0 =
+    _ = [that]
     Test.fail_match_on_unexpected_error self 1+frames_to_skip
 
 ## Asserts that `self` value is not equal to the expected type value.
@@ -157,7 +159,8 @@ Any.should_not_equal_type self that frames_to_skip=0 = case (self.is_same_object
         Test.fail msg
 
 ## Added so that dataflow errors are not silently lost.
-Error.should_not_equal_type self _ frames_to_skip=0 =
+Error.should_not_equal_type self that frames_to_skip=0 =
+    _ = [that]
     Test.fail_match_on_unexpected_error self 1+frames_to_skip
 
 ## Asserts that `self` value is a Text value and starts with `that`.
@@ -198,7 +201,9 @@ Any.should_start_with self that frames_to_skip=0 = case self of
 
          example_should_start_with = "Hello World!" . should_start_with "Hello"
 Error.should_start_with : Any -> Integer -> Test_Result
-Error.should_start_with self _ frames_to_skip=0 = Test.fail_match_on_unexpected_error self 1+frames_to_skip
+Error.should_start_with self that frames_to_skip=0 =
+    _ = [that]
+    Test.fail_match_on_unexpected_error self 1+frames_to_skip
 
 ## Asserts that `self` value is equal to the expected value.
 
@@ -213,7 +218,9 @@ Error.should_start_with self _ frames_to_skip=0 = Test.fail_match_on_unexpected_
 
          example_should_equal = Examples.add_1_to 1 . should_equal 2
 Error.should_equal : Any -> Integer -> Test_Result
-Error.should_equal self _ frames_to_skip=0 = Test.fail_match_on_unexpected_error self 1+frames_to_skip
+Error.should_equal self that frames_to_skip=0 =
+    _ = [that]
+    Test.fail_match_on_unexpected_error self 1+frames_to_skip
 
 ## Asserts that `self` is within `epsilon` from `that`.
 
@@ -456,7 +463,9 @@ Any.should_contain_the_same_elements_as self that frames_to_skip=0 =
 
          example_should_equal = [1, 2] . should_contain_the_same_elements_as [2, 1]
 Error.should_contain_the_same_elements_as : Any -> Integer -> Test_Result
-Error.should_contain_the_same_elements_as self _ frames_to_skip=0 = Test.fail_match_on_unexpected_error self 1+frames_to_skip
+Error.should_contain_the_same_elements_as self that frames_to_skip=0 =
+    _ = [that]
+    Test.fail_match_on_unexpected_error self 1+frames_to_skip
 
 ## Asserts that `self` value contains an element.
 
@@ -504,7 +513,8 @@ Any.should_contain self element frames_to_skip=0 =
 
          example_should_equal = "foobar".should_contain "foo"
 Error.should_contain : Any -> Integer -> Test_Result
-Error.should_contain self _ frames_to_skip=0 =
+Error.should_contain self element frames_to_skip=0 =
+    _ = [element]
     Test.fail_match_on_unexpected_error self 1+frames_to_skip
 
 ## Asserts that `self` value does not contain an element.

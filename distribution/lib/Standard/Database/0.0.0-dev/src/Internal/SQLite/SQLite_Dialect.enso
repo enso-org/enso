@@ -144,7 +144,8 @@ type SQLite_Dialect
 
     ## PRIVATE
     make_cast : Internal_Column -> SQL_Type -> (SQL_Expression -> SQL_Type_Reference) -> Internal_Column
-    make_cast self column target_type _ =
+    make_cast self column target_type infer_result_type_from_database_callback =
+        _ = [infer_result_type_from_database_callback]
         mapping = self.get_type_mapping
         target_value_type = mapping.sql_type_to_value_type target_type
         custom_cast = make_custom_cast column target_value_type mapping

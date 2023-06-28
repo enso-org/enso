@@ -94,7 +94,8 @@ type SQLite_Type_Mapping
        Database to tell the expected types, because it has been found to be
        unreliable in more complex expressions.
     infer_return_type : (SQL_Expression -> SQL_Type_Reference) -> Text -> Vector -> SQL_Expression -> SQL_Type_Reference
-    infer_return_type _ op_name arguments _ =
+    infer_return_type infer_from_database_callback op_name arguments expression =
+        _ = [infer_from_database_callback, expression]
         handler = operations_map.get op_name (_ -> Error.throw (Illegal_State.Error "Impossible: Unknown operation "+op_name+". This is a bug in the Database library."))
         sql_type = handler arguments
         SQL_Type_Reference.from_constant sql_type

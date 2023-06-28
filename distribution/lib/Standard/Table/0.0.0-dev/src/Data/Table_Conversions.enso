@@ -114,7 +114,7 @@ Table.from_objects value fields=Nothing =
    will be named `Column <N>` where `N` is the number of the marked group.
    (Group 0 is not included.)
 Text.parse_to_table : Text -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table ! Type_Error | Regex_Syntax_Error | Illegal_Argument
-Text.parse_to_table self pattern="." case_sensitivity=Case_Sensitivity.Sensitive parse_values=True on_problems=Report_Warning =
+Text.parse_to_table self pattern case_sensitivity=Case_Sensitivity.Sensitive parse_values=True on_problems=Report_Warning =
     Parse_To_Table.parse_text_to_table self pattern case_sensitivity parse_values on_problems
 
 ## PRIVATE

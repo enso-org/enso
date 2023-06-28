@@ -68,7 +68,8 @@ type Random_Number_Generator
     to_display_text : Text
     to_display_text self = "Random_Number_Generator"
 
-## Returns a new vector containing a random sample of the input vector, without
+## PRIVATE
+   Returns a new vector containing a random sample of the input vector, without
    replacement.
 
    If the amount of elements to select is larger than the input vector size, it
@@ -78,7 +79,8 @@ sample vector k rng =
     new_array = Random_Utils.sample vector.to_array k rng.java_random
     Vector.from_polyglot_array new_array
 
-## Returns `k` indices sampled from the range [0, n-1] without replacement.
+## PRIVATE
+   Returns `k` indices sampled from the range [0, n-1] without replacement.
 
    If `k >= n`, it will return a random permutation of the indices.
 random_indices : Integer -> Integer -> Random_Number_Generator -> Vector Integer
