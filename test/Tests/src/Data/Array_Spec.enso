@@ -11,7 +11,7 @@ Array.method self = 0
    the Enso Array primitive.
 make_enso_array vector =
     enso_array = Array.allocate vector.length
-    Array.copy vector 0 enso_array 0 vector.length
+    Array.copy vector.to_array 0 enso_array 0 vector.length
     enso_array
 
 test_arrays array_from_vector =
