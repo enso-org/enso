@@ -4,6 +4,7 @@ from project.Data.Text.Extensions import all
 import project.Data.Text.Regex
 import project.Data.Text.Text
 import project.Data.Vector.Vector
+import project.Function.Function
 import project.Nothing.Nothing
 
 from project.Data.Boolean import all

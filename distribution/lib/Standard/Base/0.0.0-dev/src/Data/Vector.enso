@@ -366,17 +366,17 @@ type Vector a
     ## Checks whether a predicate holds for at least one element of self vector.
 
        Arguments:
-       - condition: A `Filter_Condition` or a function that takes a vector
-         element and returns a boolean value that says whether that value
-         satisfies a condition.
+       - condition: A `Filter_Condition` or a function that takes an element and
+         returns a boolean value that says whether that value satisfies a
+         condition.
 
        > Example
-         Checking if any element of the list is larger than 3.
+         Checking if any element of the vector is larger than 3.
 
              [1, 2, 3, 4, 5].any (Filter_Condition.Greater than=3)
 
        > Example
-         Checking if any element of the list is even
+         Checking if any element of the vector is even.
 
              [1, 2, 3, 4, 5].any (x-> x%2 == 0)
     any : (Filter_Condition | (Any -> Boolean)) -> Boolean
@@ -387,9 +387,9 @@ type Vector a
     ## Checks whether a condition holds for all elements in this vector.
 
        Arguments:
-       - condition: A `Filter_Condition` or a function that takes a vector
-         element and returns a boolean value that says whether that value
-         satisfies a condition.
+       - condition: A `Filter_Condition` or a function that takes an element and
+         returns a boolean value that says whether that value satisfies a
+         condition.
 
        > Example
          Check if all elements in the vector are less than zero.
@@ -1177,7 +1177,6 @@ type Builder
        - condition: A `Filter_Condition` or a function that takes a vector
          element and returns a boolean value that says whether that value
          satisfies a condition.
-
     any : (Filter_Condition | (Any -> Boolean)) -> Boolean
     any self condition =
         predicate = unify_condition_or_predicate condition
