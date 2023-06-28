@@ -9,10 +9,7 @@ import project.Nothing.Nothing
 
 from project.Data.Boolean import all
 
-import project.Metadata.Widget
-from project.Metadata.Widget import Single_Choice
-from project.Metadata.Choice import Option
-import project.Metadata.Display
+from project.Metadata import Widget, make_single_choice
 
 polyglot java import org.enso.base.Regex_Utils
 
@@ -230,6 +227,44 @@ type Filter_Condition
             Is_In values -> "is in " + values.to_display_text
             Not_In values -> "is not in " + values.to_display_text
         "Filter Condition: " + condition
+
+    ## PRIVATE
+       Creates a Single_Choice Widget for delimiters.
+    default_widget : Boolean -> Boolean -> Boolean -> Widget
+    default_widget include_comparable=True include_text=True include_boolean=True include_nullable=True =
+        options_builder = Vector.new_builder
+        if include_comparable then
+            options_builder.append "Less"
+            options_builder.append "Equal_Or_Less"
+            options_builder.append "Equal"
+            options_builder.append "Equal_Or_Greater"
+            options_builder.append "Greater"
+            options_builder.append "Not_Equal"
+            options_builder.append "Between"
+        if include_boolean then
+            options_builder.append "Is_True"
+            options_builder.append "Is_False"
+        if include_nullable then
+            options_builder.append "Is_Nothing"
+            options_builder.append "Not_Nothing"
+        if include_text then
+            options_builder.append "Is_Empty"
+            options_builder.append "Not_Empty"
+            options_builder.append "Starts_With"
+            options_builder.append "Ends_With"
+            options_builder.append "Contains"
+            options_builder.append "Not_Contains"
+            options_builder.append "Like"
+            options_builder.append "Not_Like"
+        options_builder.append "Is_In"
+        options_builder.append "Not_In"
+
+        options = options_builder.to_vector.map constructor_name->
+            name = constructor_name.replace "_" " "
+            code = "(Filter_Condition." + constructor_name + ")"
+            [name, code]
+        make_single_choice options
+
 
 ## PRIVATE
 sql_like_to_regex sql_pattern =

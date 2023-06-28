@@ -225,6 +225,7 @@ type Date_Range
 
              (Date.new 2020 10 01).up_to (Date.new 2020 10 15) . filter (> (Date.new 2020 10 12))
              (Date.new 2020 10 01).up_to (Date.new 2020 10 15) . filter (Filter_Condition.Greater than=(Date.new 2020 10 12))
+    @filter date_range_default_filter_condition_widget
     filter : (Filter_Condition | (Date -> Boolean)) -> Vector Date
     filter self filter =
         predicate = unify_condition_or_predicate filter
@@ -252,6 +253,7 @@ type Date_Range
              is_weekend day =
                 [Day_Of_Week.Saturday, Day_Of_Week.Sunday].contains day.day_of_week
              (Date.new 2020 10 01).up_to (Date.new 2020 10 15).partition is_weekend
+    @condition date_range_default_filter_condition_widget
     partition : (Filter_Condition | (Date -> Boolean)) -> Pair (Vector Date) (Vector Date)
     partition self condition =
         predicate = unify_condition_or_predicate condition
@@ -340,6 +342,7 @@ type Date_Range
          Checking that all dates in the range are after 2020-10-01.
 
              (Date.new 2020 10 01).up_to (Date.new 2020 10 31) . all (> (Date.new 2020 10 01))
+    @condition date_range_default_filter_condition_widget
     all : (Filter_Condition | (Date -> Boolean)) -> Boolean
     all self condition =
         predicate = unify_condition_or_predicate condition
@@ -356,6 +359,7 @@ type Date_Range
          Checking that at least one date in the range is after 2020-10-01.
 
              (Date.new 2020 10 01).up_to (Date.new 2020 10 31) . any (> (Date.new 2020 10 01))
+    @condition date_range_default_filter_condition_widget
     any : (Filter_Condition | (Date -> Boolean)) -> Boolean
     any self condition = self.find condition . is_nothing . not
 
@@ -374,6 +378,7 @@ type Date_Range
          Get the first date in the range that is a Monday.
 
                 (Date.new 2020 10 01).up_to (Date.new 2020 10 31) . find (d-> d.day_of_week == Day_Of_Week.Monday)
+    @condition date_range_default_filter_condition_widget
     find : (Filter_Condition | (Date -> Boolean)) -> Integer -> Any -> Any
     find self condition start=0 ~if_missing=Nothing =
         predicate = unify_condition_or_predicate condition
@@ -404,6 +409,7 @@ type Date_Range
          Find the index of a first day that is a Monday.
 
              (Date.new 2020 10 01).up_to (Date.new 2020 10 31) . index_of (d-> d.day_of_week == Day_Of_Week.Monday)
+    @condition date_range_default_filter_condition_widget
     index_of : (Date | Filter_Condition | (Date -> Boolean)) -> Integer -> Integer | Nothing
     index_of self condition start=0 =
         predicate = unify_condition_for_index_of condition
@@ -422,6 +428,7 @@ type Date_Range
          Find the index of a first day that is a Monday.
 
              (Date.new 2020 10 01).up_to (Date.new 2020 10 31) . last_index_of (d-> d.day_of_week == Day_Of_Week.Monday)
+    @condition date_range_default_filter_condition_widget
     last_index_of : (Date | Filter_Condition | (Date -> Boolean)) -> Integer -> Integer | Nothing
     last_index_of self condition start=-1 =
         predicate = unify_condition_for_index_of condition
@@ -534,3 +541,7 @@ compute_length_step_brute_force start end step increasing =
    This adds an additional type check.
 unify_condition_for_index_of (condition : Date | Filter_Condition | Function) =
     unify_condition_predicate_or_element condition
+
+## PRIVATE
+date_range_default_filter_condition_widget =
+    Filter_Condition.default_widget include_text=False include_boolean=False include_nullable=False

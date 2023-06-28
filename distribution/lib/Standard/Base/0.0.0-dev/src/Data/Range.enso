@@ -176,6 +176,7 @@ type Range
 
              (0.up_to 7).filter (> 3)
              (0.up_to 7).filter (Filter_Condition.Greater than=3)
+    @filter range_default_filter_condition_widget
     filter : (Filter_Condition | (Integer -> Boolean)) -> Vector Integer
     filter self filter = case filter of
         _ : Filter_Condition -> self.filter filter.to_predicate
@@ -202,6 +203,7 @@ type Range
          Splitting a range into even and odd elements.
 
              (0.up_to 4).partition (x-> x%2 == 0) == (Pair [0, 2] [1, 3])
+    @condition range_default_filter_condition_widget
     partition : (Filter_Condition | (Integer -> Boolean)) -> Pair (Vector Integer) (Vector Integer)
     partition self condition =
         predicate = unify_condition_or_predicate condition
@@ -338,6 +340,7 @@ type Range
          Checking that all numbers in the range are even.
 
              10.up_to 100 . with_step 2 . all (x-> x%2 == 0)
+    @condition range_default_filter_condition_widget
     all : (Filter_Condition | (Integer -> Boolean)) -> Boolean
     all self condition =
         predicate = unify_condition_or_predicate condition
@@ -359,6 +362,7 @@ type Range
          Checking that at least one number in the range is even.
 
              1.up_to 100 . any (x-> x%2 == 0)
+    @condition range_default_filter_condition_widget
     any : (Filter_Condition | (Integer -> Boolean)) -> Boolean
     any self condition = self.find condition . is_nothing . not
 
@@ -382,6 +386,7 @@ type Range
          Get the first number in the range that is greater than 10.
 
              1.up_to 100 . find (Filter_Condition.Greater than=10)
+    @condition range_default_filter_condition_widget
     find : (Filter_Condition | (Integer -> Boolean)) -> Integer -> Any -> Any
     find self condition start=0 ~if_missing=Nothing =
         predicate = unify_condition_or_predicate condition
@@ -423,6 +428,7 @@ type Range
              0.up_to 100 . index_of 20 == 20
              0.up_to 100 . with_step 5 . index_of 20 == 4
              0.up_to 100 . with_step 5 . index_of (>10) == 3
+    @condition range_default_filter_condition_widget
     index_of : (Integer | Filter_Condition | (Integer -> Boolean)) -> Integer -> Integer | Nothing
     index_of self condition start=0 =
         check_start_valid start self used_start->
@@ -448,6 +454,7 @@ type Range
          Find the last index of an element in a pair.
 
              Pair.new 2 2 . last_index_of 2 == 1
+    @condition range_default_filter_condition_widget
     last_index_of : (Integer | Filter_Condition | (Integer -> Boolean)) -> Integer -> Integer | Nothing
     last_index_of self condition start=-1 =
         if self.is_empty && (start==-1 || start==0) then Nothing else
@@ -558,3 +565,7 @@ type Empty_Error
        Pretty prints the empty error.
     to_display_text : Text
     to_display_text self = "The Range is empty."
+
+## PRIVATE
+range_default_filter_condition_widget =
+    Filter_Condition.default_widget include_text=False include_boolean=False include_nullable=False
