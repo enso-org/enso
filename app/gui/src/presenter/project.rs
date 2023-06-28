@@ -6,20 +6,20 @@ use crate::prelude::*;
 use crate::executor::global::spawn_stream_handler;
 use crate::model::project::synchronized::ProjectNameInvalid;
 use crate::presenter;
-
 use crate::presenter::ai_searcher::AISearcher;
 use crate::presenter::ComponentBrowserSearcher;
 use crate::searcher::SearcherPresenter;
+
 use engine_protocol::language_server::ExecutionEnvironment;
 use engine_protocol::project_manager::ProjectMetadata;
 use enso_frp as frp;
-
 use ide_view as view;
 use ide_view::project::SearcherParams;
 use ide_view::project::SearcherType;
 use model::module::NotificationKind;
 use model::project::Notification;
 use model::project::VcsStatus;
+
 
 
 // =============

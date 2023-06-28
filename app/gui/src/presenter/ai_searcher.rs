@@ -1,18 +1,8 @@
 //! AI Searcher presenter. This is a presenter for the AI Searcher component. It contains the
 //! logic for handling the user input and the logic for processing the searcher input as a prompt
 //! used for the AI model.
-use crate::prelude::*;
 
-use enso_frp as frp;
-use enso_prelude::FallibleResult;
-use enso_text as text;
-use enso_text::Byte;
-use ide_view::component_browser::component_list_panel::grid::GroupEntryId;
-use ide_view::graph_editor::component::node;
-use ide_view::graph_editor::GraphEditor;
-use ide_view::graph_editor::NodeId;
-use ide_view::project;
-use ide_view::project::SearcherParams;
+use crate::prelude::*;
 
 use crate::controller::searcher::input;
 use crate::controller::searcher::Mode;
@@ -25,6 +15,18 @@ use crate::presenter::graph::AstNodeId;
 use crate::presenter::graph::ViewNodeId;
 use crate::presenter::Graph;
 use crate::searcher::apply_this_argument;
+
+use enso_frp as frp;
+use enso_prelude::FallibleResult;
+use enso_text as text;
+use enso_text::Byte;
+use ide_view::component_browser::component_list_panel::grid::GroupEntryId;
+use ide_view::graph_editor::component::node;
+use ide_view::graph_editor::GraphEditor;
+use ide_view::graph_editor::NodeId;
+use ide_view::project;
+use ide_view::project::SearcherParams;
+
 
 
 // =============

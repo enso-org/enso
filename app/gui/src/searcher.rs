@@ -1,14 +1,15 @@
 //! Searcher trait. This trait is implemented by all searchers and exposes the API that is used by
 //! the project presenter to interact with the searcher. Contains also some shared logic and
 //! utility functions.
+
+use crate::prelude::*;
+
 use crate::controller::graph::NewNodeInfo;
 use crate::controller::searcher::Mode;
 use crate::model::module::NodeMetadata;
-use crate::prelude::*;
 use crate::presenter;
 use crate::presenter::graph::AstNodeId;
 use crate::presenter::graph::ViewNodeId;
-
 
 use ide_view as view;
 use ide_view::component_browser::component_list_panel::grid as component_grid;
@@ -16,6 +17,7 @@ use ide_view::graph_editor::GraphEditor;
 use ide_view::graph_editor::NodeId;
 use ide_view::project::SearcherParams;
 use ide_view::project::SearcherType;
+
 
 
 /// Trait for the searcher.

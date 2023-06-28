@@ -1,8 +1,17 @@
 //! This module contains all structures related to Searcher Controller.
 
-use flo_stream::Subscriber;
+use crate::model::traits::*;
+use crate::prelude::*;
 
-pub use action::Action;
+use crate::controller::graph::FailedToCreateNode;
+use crate::controller::graph::ImportType;
+use crate::controller::graph::RequiredImport;
+use crate::controller::searcher::component::group;
+use crate::model::module::NodeEditStatus;
+use crate::model::module::NodeMetadata;
+use crate::model::suggestion_database;
+use crate::searcher;
+
 use breadcrumbs::Breadcrumbs;
 use double_representation::graph::GraphInfo;
 use double_representation::graph::LocationHint;
@@ -17,17 +26,8 @@ use enso_text as text;
 use enso_text::Byte;
 use enso_text::Location;
 use enso_text::Rope;
+use flo_stream::Subscriber;
 
-use crate::controller::graph::FailedToCreateNode;
-use crate::controller::graph::ImportType;
-use crate::controller::graph::RequiredImport;
-use crate::controller::searcher::component::group;
-use crate::model::module::NodeEditStatus;
-use crate::model::module::NodeMetadata;
-use crate::model::suggestion_database;
-use crate::model::traits::*;
-use crate::prelude::*;
-use crate::searcher;
 
 // ==============
 // === Export ===
@@ -37,6 +37,10 @@ pub mod action;
 pub mod breadcrumbs;
 pub mod component;
 pub mod input;
+
+pub use action::Action;
+
+
 
 // =================
 // === Constants ===
