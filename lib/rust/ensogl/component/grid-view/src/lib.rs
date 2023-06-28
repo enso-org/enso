@@ -680,7 +680,7 @@ impl<E: Entry> application::View for GridView<E> {
         GridView::<E>::new(app)
     }
 
-    fn default_shortcuts() -> Vec<application::shortcut::Shortcut> {
+    fn focused_shortcuts() -> Vec<application::shortcut::Shortcut> {
         use application::shortcut::ActionType::*;
         [
             (PressAndRepeat, "up", "move_selection_up"),
@@ -690,7 +690,7 @@ impl<E: Entry> application::View for GridView<E> {
             (Press, "enter", "accept_selected_entry"),
         ]
         .iter()
-        .map(|(a, b, c)| Self::self_shortcut_when(*a, *b, *c, "focused"))
+        .map(|(a, b, c)| Self::self_shortcut(*a, *b, *c))
         .collect()
     }
 }

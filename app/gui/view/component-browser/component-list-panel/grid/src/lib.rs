@@ -615,6 +615,7 @@ impl component::Frp<Model> for Frp {
         let colors = entry::style::Colors::from_theme(network, style_frp);
         let selection_colors = entry::style::SelectionColors::from_theme(network, style_frp);
         frp::extend! { network
+
             // === Active and Hovered Entry ===
 
             out.active <+ grid.entry_selected.map(f!((loc)
@@ -741,12 +742,6 @@ impl component::Frp<Model> for Frp {
             grid_extra_scroll_frp.select_and_scroll_to_entry <+ entry_on_jump_up.filter_map(
                 f!((loc) model.selection_after_jump_group_down(loc.as_ref()?))
             );
-
-
-            // === Focus propagation ===
-
-            // The underlying grid should handle keyboard events only when any element is active.
-            grid.deprecated_set_focus <+ out.focused && out.is_active;
         }
 
         // Set the proper number of columns so we can set column widths.
