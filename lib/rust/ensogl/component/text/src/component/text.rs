@@ -561,7 +561,7 @@ impl Text {
     fn init_edits(&self) {
         let m = &self.data;
         let scene = &m.app.display.default_scene;
-        let keyboard = &scene.keyboard;
+        let keyboard = &scene.global_keyboard;
         let network = self.frp.network();
         let input = &self.frp.input;
         let out = &self.frp.private.output;

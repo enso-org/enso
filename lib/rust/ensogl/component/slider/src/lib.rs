@@ -371,7 +371,7 @@ impl Slider {
         let model = &self.model;
         let scene = &app.display.default_scene;
         let mouse = &scene.mouse.frp_deprecated;
-        let keyboard = &scene.keyboard.frp;
+        let keyboard = &scene.global_keyboard.frp;
 
         let ptr_down_any = model.background.on_event::<mouse::Down>();
         let ptr_up_any = scene.on_event::<mouse::Up>();
