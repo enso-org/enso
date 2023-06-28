@@ -71,7 +71,7 @@ final class RuntimeFailureMapper(contentRootManager: ContentRootManager) {
   ): (Option[File], String) = {
     result match {
       case ExecutionResult.Diagnostic(
-            DiagnosticType.Error(),
+            DiagnosticType.Error,
             message,
             file,
             _,
@@ -117,9 +117,9 @@ final class RuntimeFailureMapper(contentRootManager: ContentRootManager) {
     kind: Api.DiagnosticType
   ): ContextRegistryProtocol.ExecutionDiagnosticKind =
     kind match {
-      case Api.DiagnosticType.Error() =>
+      case Api.DiagnosticType.Error =>
         ContextRegistryProtocol.ExecutionDiagnosticKind.Error
-      case Api.DiagnosticType.Warning() =>
+      case Api.DiagnosticType.Warning =>
         ContextRegistryProtocol.ExecutionDiagnosticKind.Warning
     }
 
