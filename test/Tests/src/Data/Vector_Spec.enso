@@ -279,6 +279,15 @@ type_spec name alter = Test.group name <|
         boolvec.filter Filter_Condition.Is_True . should_equal [True, True]
         boolvec.filter Filter_Condition.Is_False . should_equal [False]
 
+    Test.specify "should have a friendly error when missing Filter_Condition arguments" <|
+        v = alter [0, 1, 2]
+
+        r1 = v.filter Filter_Condition.Less
+        r1 . should_fail_with Illegal_Argument
+        r1.catch.to_display_text . should_contain "missing arguments"
+
+        v.filter (Filter_Condition.Between 10) . should_fail_with Illegal_Argument
+
     Test.specify "should filter elements with indices" <|
         (alter [0, 10, 2, 2] . filter_with_index (==)) . should_equal [0, 2]
         (alter [1, 2, 3, 4] . filter_with_index ix-> _-> ix < 2) . should_equal [1, 2]
