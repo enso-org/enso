@@ -744,10 +744,9 @@ impl FilteredDocSections {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_utils::*;
+    use crate::doc_section;
+    use crate::mock_suggestion_database;
     use double_representation::name::QualifiedName;
-    use mock::doc_section;
-    use mock::mock_suggestion_database;
 
     #[test]
     fn test_entry_documentation_not_found() {
