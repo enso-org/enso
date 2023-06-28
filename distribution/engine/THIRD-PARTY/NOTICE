@@ -86,6 +86,16 @@ The license information can be found along with the copyright notices.
 Copyright notices related to this dependency can be found in the directory `com.ibm.icu.icu4j-73.1`.
 
 
+'fansi_2.13', licensed under the MIT, is distributed with the engine.
+The license information can be found along with the copyright notices.
+Copyright notices related to this dependency can be found in the directory `com.lihaoyi.fansi_2.13-0.4.0`.
+
+
+'sourcecode_2.13', licensed under the MIT, is distributed with the engine.
+The license information can be found along with the copyright notices.
+Copyright notices related to this dependency can be found in the directory `com.lihaoyi.sourcecode_2.13-0.3.0`.
+
+
 'decline_2.13', licensed under the Apache-2.0, is distributed with the engine.
 The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `com.monovore.decline_2.13-2.4.1`.

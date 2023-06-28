@@ -6,7 +6,6 @@ import project.Data.Map.Map
 import project.Data.Numbers.Integer
 import project.Data.Pair.Pair
 import project.Data.Range.Range
-from project.Data.Range.Extensions import all
 import project.Data.Text.Text
 import project.Data.Sort_Direction.Sort_Direction
 import project.Errors.Common.Incomparable_Values
@@ -25,7 +24,7 @@ import project.Panic.Panic
 import project.Random
 import project.Warning.Warning
 
-import project.IO
+from project.Data.Range.Extensions import all
 
 ## We have to import also conversion methods, therefore, we import all from the Ordering
    module
@@ -51,7 +50,9 @@ polyglot java import org.enso.base.Array_Builder
 
 @Builtin_Type
 type Vector a
-    ## Creates a new vector of the given length, initializing elements using
+    ## PRIVATE
+       ADVANCED
+       Creates a new vector of the given length, initializing elements using
        the provided constructor function.
 
        Arguments:
@@ -98,7 +99,8 @@ type Vector a
         arr : Array -> Vector.from_polyglot_array arr
         single_element -> [single_element]
 
-    ## Creates a new vector of the given length, filling the elements with
+    ## ALIAS repeat
+       Creates a new vector of the given length, filling the elements with
        the provided constant.
 
        Arguments:
@@ -116,7 +118,9 @@ type Vector a
     fill length item =
         Vector.new length _->item
 
-    ## Creates a new vector builder instance.
+    ## PRIVATE
+       ADVANCED
+       Creates a new vector builder instance.
 
        A vector builder is a mutable data structure, that allows for gathering
        a number of elements and then converting them into a vector. This is
@@ -807,7 +811,7 @@ type Vector a
              [1, 2, 3].zip [4, 5, 6] == [[1, 4], [2, 5], [3, 6]]
     zip : Vector Any -> (Any -> Any -> Any) -> Vector Any
     zip self that function=[_,_] =
-        len = Math.min self.length that.length
+        len = self.length.min that.length
         Vector.new len i-> function (self.at i) (that.at i)
 
     ## Extend `self` vector to the length of `n` appending elements `elem` to

@@ -20,7 +20,11 @@ type From_Spec
          parts of the query, this is especially useful for example in
          self-joins, allowing to differentiate between different instances of
          the same table.
-    Table (table_name : Text) (alias : Text)
+       - internal_temporary_keep_alive_reference: a reference that can be used
+         to track the lifetime of a temporary dry-run table. Once this context
+         is garbage collected, the temporary table may be dropped.
+         See `Hidden_Table_Registry` for more details.
+    Table (table_name : Text) (alias : Text) internal_temporary_keep_alive_reference=Nothing
 
     ## PRIVATE
 
@@ -75,3 +79,24 @@ type From_Spec
        - alias: the name upon which the results of this sub-query can be
          referred to in other parts of the query.
     Sub_Query (columns : Vector (Pair Text SQL_Expression)) (context : Context) (alias : Text)
+
+
+## PRIVATE
+type From_Spec_Comparator
+    ## PRIVATE
+       Special handling to ignore the alias and internal temporary keep alive
+       reference when comparing two `From_Spec.Table` values.
+    compare x y = case x of
+        From_Spec.Table table_name _ _ -> case y of
+            From_Spec.Table other_table_name _ _ ->
+                if table_name == other_table_name then Ordering.Equal else Nothing
+            _ -> Nothing
+        _ -> Default_Comparator.compare x y
+
+    ## PRIVATE
+    hash x = case x of
+        From_Spec.Table table_name _ _ ->
+            Default_Comparator.hash table_name
+        _ -> Default_Comparator.hash x
+
+Comparable.from (_ : From_Spec) = From_Spec_Comparator

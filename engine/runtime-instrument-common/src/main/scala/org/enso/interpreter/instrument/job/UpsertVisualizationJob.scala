@@ -59,6 +59,7 @@ class UpsertVisualizationJob(
     try {
       val maybeCallable =
         UpsertVisualizationJob.evaluateVisualizationExpression(
+          config.visualizationModule,
           config.expression
         )
 
@@ -180,7 +181,10 @@ object UpsertVisualizationJob {
     val expressionId        = visualization.expressionId
     val visualizationId     = visualization.id
     val maybeCallable =
-      evaluateVisualizationExpression(visualization.config.expression)
+      evaluateVisualizationExpression(
+        visualizationConfig.visualizationModule,
+        visualizationConfig.expression
+      )
 
     maybeCallable.foreach { result =>
       updateVisualization(
@@ -215,8 +219,9 @@ object UpsertVisualizationJob {
 
   /** Evaluate the visualization expression in a given module.
     *
-    * @param module the module where to evaluate the expression
+    * @param module the module where to evaluate arguments for the expression
     * @param expression the visualization expression
+    * @param expressionModule the module where to evaluate the expression
     * @param retryCount the number of attempted retries
     * @param ctx the runtime context
     * @return either the evaluation result or an evaluation failure
@@ -224,6 +229,7 @@ object UpsertVisualizationJob {
   private def evaluateModuleExpression(
     module: Module,
     expression: Api.VisualizationExpression,
+    expressionModule: Module,
     retryCount: Int = 0
   )(implicit
     ctx: RuntimeContext
@@ -233,7 +239,7 @@ object UpsertVisualizationJob {
         val (callback, arguments) = expression match {
           case Api.VisualizationExpression.Text(_, expression) =>
             val callback = ctx.executionService.evaluateExpression(
-              module,
+              expressionModule,
               expression
             )
             val arguments = Vector()
@@ -243,7 +249,7 @@ object UpsertVisualizationJob {
                 argumentExpressions
               ) =>
             val callback = ctx.executionService.prepareFunctionCall(
-              module,
+              expressionModule,
               QualifiedName.fromString(definedOnType).item,
               name
             )
@@ -261,7 +267,12 @@ object UpsertVisualizationJob {
             Level.FINE,
             s"Evaluation of visualization was interrupted. Retrying [${retryCount + 1}]."
           )
-          evaluateModuleExpression(module, expression, retryCount + 1)
+          evaluateModuleExpression(
+            module,
+            expression,
+            expressionModule,
+            retryCount + 1
+          )
 
         case error: ThreadInterruptedException =>
           val message =
@@ -297,18 +308,25 @@ object UpsertVisualizationJob {
 
   /** Evaluate the visualization expression.
     *
+    * @param module module to evaluate the expression arguments at
     * @param expression the visualization expression to evaluate
     * @param ctx the runtime context
     * @return either the evaluation result or an evaluation error
     */
   private def evaluateVisualizationExpression(
+    module: String,
     expression: Api.VisualizationExpression
   )(implicit
     ctx: RuntimeContext
   ): Either[EvaluationFailure, EvaluationResult] = {
     for {
-      module     <- findModule(expression.module)
-      expression <- evaluateModuleExpression(module, expression)
+      module           <- findModule(module)
+      expressionModule <- findModule(expression.module)
+      expression <- evaluateModuleExpression(
+        module,
+        expression,
+        expressionModule
+      )
     } yield expression
   }
 
