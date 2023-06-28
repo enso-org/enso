@@ -189,14 +189,16 @@ spec =
             do_round 231 . should_be_a Integer
             do_round 231 -1 . should_be_a Integer
 
-    Test.group "asdfasdf" <|
         Test.specify "nan/inf" <|
-            ops = [.truncate] # [.round, .truncate, .ceil, .floor]
+            ops = [.truncate, .ceil, .floor, .round]
             ops.map op->
                 col = Column.from_vector "x" [2.1, 0.0, Number.nan, Number.positive_infinity, Number.negative_infinity, Nothing, 12.1]
                 result = op col
                 result.to_vector . drop 2 . take 4 . should_equal [Nothing, Nothing, Nothing, Nothing]
-                Warning.get_all result . map .value . should_equal [(Arithmetic_Error.Error 'Value is -Infinity (at rows [4]).'), (Arithmetic_Error.Error 'Value is Infinity (at rows [3]).'), (Arithmetic_Error.Error 'Value is NaN (at rows [2]).')]
+                warnings = Warning.get_all result . map .value
+                warnings . should_contain <| Arithmetic_Error.Error 'Value is -Infinity (at rows [4]).'
+                warnings . should_contain <| Arithmetic_Error.Error 'Value is Infinity (at rows [3]).'
+                warnings . should_contain <| Arithmetic_Error.Error 'Value is NaN (at rows [2]).'
 
     Test.group "Date_Time truncate" <|
         Test.specify "should be able to truncate a column of Date_Times" <|

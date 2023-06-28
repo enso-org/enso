@@ -248,19 +248,20 @@ public final class DoubleStorage extends NumericStorage<Double> {
             })
         .add(
             new DoubleLongMapOpWithSpecialNumericHandling(Maps.TRUNCATE) {
+              @Override
               protected long doOperation(double a) {
                 return (long) a;
               }
             })
         .add(
-            new UnaryDoubleToLongOp(Maps.CEIL) {
+            new DoubleLongMapOpWithSpecialNumericHandling(Maps.CEIL) {
               @Override
               protected long doOperation(double a) {
                 return (long) Math.ceil(a);
               }
             })
         .add(
-            new UnaryDoubleToLongOp(Maps.FLOOR) {
+            new DoubleLongMapOpWithSpecialNumericHandling(Maps.FLOOR) {
               @Override
               protected long doOperation(double a) {
                 return (long) Math.floor(a);

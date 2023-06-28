@@ -21,7 +21,7 @@ public abstract class DoubleLongMapOpWithSpecialNumericHandling extends UnaryMap
                 double item = storage.getItem(i);
                 boolean special = Double.isNaN(item) || Double.isInfinite(item);
                 if (!special) {
-                    out[i] = runOne(item);
+                    out[i] = doOperation(item);
                 } else {
                     String msg = "Value is " + item;
                     problemBuilder.reportArithmeticError(msg, i);
