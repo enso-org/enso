@@ -382,7 +382,7 @@ impl DefaultSearcher {
             // which is delivered asynchronously). This is because the input may be accepted
             // before the asynchronous event is delivered and to accept the correct entry the list
             // must be up-to-date.
-            action_list_changed <+ model.view.searcher_input_changed.constant(());
+            action_list_changed <+ model.project.searcher_input_changed.constant(());
 
             eval_ model.project.toggle_component_browser_private_entries_visibility (
                 model.controller.reload_list());

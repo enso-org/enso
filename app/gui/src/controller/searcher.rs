@@ -173,19 +173,12 @@ impl ThisNode {
     /// introduce a variable.
     pub fn new(id: double_representation::node::Id, graph: &controller::Graph) -> Option<Self> {
         let node = graph.node(id).ok()?;
-        let (var, needs_to_introduce_pattern) = if let Some(ast) = node.info.pattern() {
-            // TODO use Node::variable_name
-            // TODO [mwu]
-            //   Here we just require that the whole node's pattern is a single var, like
-            //   `var = expr`. This prevents using pattern subpart (like `x` in
-            //   `Point x y = get_pos`), or basically any node that doesn't stick to `var = expr`
-            //   form. If we wanted to support pattern subparts, the engine would need to send us
-            //   value updates for matched pattern pieces. See the issue:
-            //   https://github.com/enso-org/enso/issues/1038
-            (ast::identifier::as_var(ast)?.to_owned(), false)
-        } else {
-            (graph.variable_name_for(&node.info).ok()?.repr(), true)
-        };
+
+        let existing_var = node.variable_name().map(|name| name.to_owned());
+        let needs_to_introduce_pattern = existing_var.is_none();
+        let make_new_var = || graph.variable_name_for(&node.info).ok().map(|var| var.repr());
+        let var = existing_var.or_else(make_new_var)?;
+
         Some(ThisNode { id, var, needs_to_introduce_pattern })
     }
 

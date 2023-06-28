@@ -555,18 +555,21 @@ impl View {
         frp::extend! { network
 
             last_searcher <- frp.searcher.filter_map(|&s| s);
+
+
+            // === Handling Inputs to the AI Searcher and Committing Edit ===
+
             ai_searcher_active <- frp.searcher_type.map(|t| *t == SearcherType::AiCompletion);
             committed_in_ai_searcher <- frp.accept_searcher_input.gate(&ai_searcher_active);
             committed_in_ai_searcher <- committed_in_ai_searcher.map2(&last_searcher, |_, &s| (s.input, None));
             frp.source.editing_committed <+ committed_in_ai_searcher;
 
-            node_editing_finished <- graph.node_editing_finished.gate(&frp.is_searcher_opened);
+
+            // === Handling Inputs to the Searcher and Committing Edit ===
+
             // The searcher will be closed due to accepting the input (e.g., pressing enter).
             committed_in_searcher <-
                 grid.expression_accepted.map2(&last_searcher, |&entry, &s| (s.input, entry));
-
-
-            // === Handling Inputs to the Searcher and Committing Edit ===
 
             searcher_input_change_opt <- graph.node_expression_edited.map2(&frp.searcher,
                 |(node_id, expr, selections), searcher| {
