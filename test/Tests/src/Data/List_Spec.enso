@@ -184,6 +184,25 @@ spec = Test.group "List" <|
         bools.filter Filter_Condition.Is_True . should_equal [True, True].to_list
         bools.filter Filter_Condition.Is_False . should_equal [False].to_list
 
+    Test.specify "should allow to partition a list" <|
+        r1 = l.partition (x-> x%2==0)
+        r1.first . should_equal (List.Cons 2 List.Nil)
+        r1.second . should_equal (List.Cons 1 (List.Cons 3 List.Nil))
+
+        r2 = l.partition (Filter_Condition.Greater than=1)
+        r2.first . should_equal (List.Cons 2 (List.Cons 3 List.Nil))
+        r2.second . should_equal (List.Cons 1 List.Nil)
+
+        r3 = l.partition (Filter_Condition.Equal_Or_Greater than=10)
+        r3.first . should_equal List.Nil
+        r3.second . should_equal l
+
+        r4 = l.partition (Filter_Condition.Less than=10)
+        r4.first . should_equal l
+        r4.second . should_equal List.Nil
+
+        Test.expect_panic_with (l.partition "invalid arg") Type_Error
+
     Test.specify "should allow mapping a function over its elements with .map" <|
         l.map +1 . first . should_equal 2
 

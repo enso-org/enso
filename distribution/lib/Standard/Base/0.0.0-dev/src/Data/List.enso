@@ -2,6 +2,7 @@ import project.Any.Any
 import project.Data.Filter_Condition.Filter_Condition
 import project.Data.Numbers.Integer
 import project.Data.Numbers.Number
+import project.Data.Pair.Pair
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Errors.Common.Index_Out_Of_Bounds
@@ -255,7 +256,7 @@ type List
 
              example_filter = Examples.list.filter (< 3)
              example_filter = Examples.list.filter (Filter_Condition.Less than=3)
-    filter : (Filter_Condition | (Any -> Boolean)) -> Vector Any
+    filter : (Filter_Condition | (Any -> Boolean)) -> List Any
     filter self filter =
         predicate = unify_condition_or_predicate filter
         case self of
@@ -271,6 +272,32 @@ type List
                 res = Meta.atom_with_hole (Cons x _)
                 go xs res.fill
                 res.value
+
+    ## Partitions the list into lists of elements which satisfy a given
+       condition and ones that do not.
+
+       Returns a `Pair` whose `first` element is the list of elements satisfying
+       the predicate and the `second` element is a list of elements which did
+       not satisfy it.
+
+       The relative order of elements kept in each returned list is the same as
+       in the input.
+
+       Arguments:
+       - condition: A `Filter_Condition` or a function that takes an element and
+         returns a boolean value.
+
+       > Example
+         Splitting a list into even and odd elements.
+
+             (Cons 1 (Cons 2 (Cons 3 Nil))).partition (x -> x % 2 == 0) == (Pair (Cons 2 Nil) (Cons 1 (Cons 3 Nil)))
+    partition : (Filter_Condition | (Any -> Boolean)) -> Pair (List Any) (List Any)
+    partition self condition =
+        predicate = unify_condition_or_predicate condition
+        self.reverse.fold (Pair.new Nil Nil) acc-> elem->
+            case predicate elem of
+                True  -> Pair.new (Cons elem acc.first) acc.second
+                False -> Pair.new acc.first (Cons elem acc.second)
 
     ## Applies a function to each element of the list, returning the list of
        results.
