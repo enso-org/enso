@@ -673,9 +673,9 @@ type Array
     ## Checks whether a predicate holds for at least one element of self array.
 
        Arguments:
-       - condition: A `Filter_Condition` or a function that takes a vector
-         element and returns a boolean value that says whether that value
-         satisfies a condition.
+       - condition: A `Filter_Condition` or a function that takes an element and
+         returns a boolean value that says whether that value satisfies a
+         condition.
 
        > Example
          Checking if any element of the array is larger than 3.
