@@ -565,7 +565,7 @@ type File
         if Context.Output.is_enabled.not then Error.throw (Forbidden_Operation.Error "File copying is forbidden as the Output context is disabled.") else
             File_Error.handle_java_exceptions self <| case replace_existing of
                 True ->
-                  copy_options = [StandardCopyOption.REPLACE_EXISTING].to_array
+                  copy_options = [StandardCopyOption.REPLACE_EXISTING]
                   self.copy_builtin destination copy_options
                 False -> self.copy_builtin destination []
 
@@ -580,7 +580,7 @@ type File
         if Context.Output.is_enabled.not then Error.throw (Forbidden_Operation.Error "File moving is forbidden as the Output context is disabled.") else
             File_Error.handle_java_exceptions self <| case replace_existing of
                 True ->
-                  copy_options = [StandardCopyOption.REPLACE_EXISTING].to_array
+                  copy_options = [StandardCopyOption.REPLACE_EXISTING]
                   self.move_builtin destination copy_options
                 False -> self.move_builtin destination []
 
@@ -759,7 +759,7 @@ type Output_Stream
     write_bytes : Vector File_Access -> Nothing ! File_Error
     write_bytes self contents = self.stream_resource . with java_stream->
         File_Error.handle_java_exceptions self.file <|
-            java_stream.write contents.to_array
+            java_stream.write contents
             java_stream.flush
             Nothing
 
@@ -810,7 +810,7 @@ type Output_Stream
            the `?` character.
         replacement_sequence = Encoding_Utils.INVALID_CHARACTER.bytes encoding on_problems=Problem_Behavior.Ignore
         java_charset = encoding.to_java_charset
-        results = Encoding_Utils.with_stream_encoder java_stream java_charset replacement_sequence.to_array action
+        results = Encoding_Utils.with_stream_encoder java_stream java_charset replacement_sequence action
         problems = Vector.from_polyglot_array results.problems . map Encoding_Error.Error
         on_problems.attach_problems_after results.result problems
 

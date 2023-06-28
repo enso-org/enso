@@ -55,7 +55,7 @@ type Vector_Builder
        Materializes the actual vector from this builder.
     build : Vector Any
     build self =
-       array = Array.new self.length
+       array = Array.allocate self.length
        go ix elem = case elem of
            Leaf vec ->
                Array.copy vec.to_array 0 array ix vec.length

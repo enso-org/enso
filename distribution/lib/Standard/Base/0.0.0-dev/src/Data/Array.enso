@@ -35,9 +35,9 @@ type Array
        > Example
          Create a new array of size 10.
 
-             Array.new 10
-    new : Integer -> Array
-    new size = @Builtin_Method "Array.new"
+             Array.allocate 10
+    allocate : Integer -> Array
+    allocate size = @Builtin_Method "Array.allocate"
 
     ## PRIVATE
        Copies from the source array, beginning at the specified position, to the
@@ -548,7 +548,7 @@ type Array
        - end: The index to stop slicing at.
 
        > Example
-         Remove the first 2 elements then continue until index 5 from the vector.
+         Remove the first 2 elements then continue until index 5 from the array.
 
              [1, 2, 3, 4, 5, 6, 7, 8].to_array.slice 2 5 == [3, 4, 5].to_array
     slice : Integer -> Integer -> Vector Any

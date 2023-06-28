@@ -10,8 +10,8 @@ Array.method self = 0
 ## Returns an array with the same contents as the given vector, surely backed by
    the Enso Array primitive.
 make_enso_array vector =
-    enso_array = Array.new vector.length
-    Array.copy vector.to_array 0 enso_array 0 vector.length
+    enso_array = Array.allocate vector.length
+    Array.copy vector 0 enso_array 0 vector.length
     enso_array
 
 test_arrays array_from_vector =
@@ -40,7 +40,7 @@ spec =
 
         Test.specify "should propagate dataflow errors" <|
             err = Error.throw (Illegal_State.Error "Foo")
-            res = Array.new err
+            res = Array.allocate err
             res . should_fail_with Illegal_State
 
         Test.specify "should not sort in place" <|

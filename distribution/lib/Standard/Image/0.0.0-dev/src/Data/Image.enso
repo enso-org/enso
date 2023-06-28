@@ -40,7 +40,7 @@ type Image
                  Image.from_vector [0, 0, 0, 0, 0, 0] rows=2 channels=1
     from_vector : Vector -> Integer -> Integer -> Image
     from_vector values rows=1 channels=1 =
-        Image.Value (Java_Image.from_vector values.to_array rows channels)
+        Image.Value (Java_Image.from_vector values rows channels)
 
     ## UNSTABLE
 
@@ -105,7 +105,7 @@ type Image
             write_flags = case flags of
                 _ : Vector -> flags
                 _ -> [flags]
-            int_flags = MatOfInt.new (write_flags.flat_map x-> [x.to_integer, x.value]).to_array
+            int_flags = MatOfInt.new (write_flags.flat_map x-> [x.to_integer, x.value])
             Panic.catch JException (Java_Codecs.write path self.opencv_mat int_flags) _->
                 Error.throw (File_Error.IO_Error (File.new path) 'Failed to write to the file')
 
@@ -435,12 +435,10 @@ core_op : Mat -> Any -> (Mat -> Scalar -> Mat -> Nothing) -> Nothing
 core_op mat value function =
     result = Mat.new
     scalar = case value of
-        _ : Vector ->
-            Scalar.new value.to_array
+        _ : Vector -> Scalar.new value
         Matrix.Value m ->
             if ((m.rows == mat.rows) && (m.cols == mat.cols) && (m.channels == mat.channels)) then m else Panic.throw Matrix_Error.Dimensions_Not_Equal
-        _ ->
-            Scalar.all value
+        _ -> Scalar.all value
     function mat scalar result
     Image.Value result
 

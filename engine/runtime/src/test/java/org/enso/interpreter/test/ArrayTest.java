@@ -29,7 +29,7 @@ public class ArrayTest extends TestBase {
     from Standard.Base import all
 
     null =
-        a = Array.new 1
+        a = Array.allocate 1
         b = a.at 0
         b
     """, "nulls.enso")

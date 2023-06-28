@@ -48,7 +48,7 @@ public final class Array implements TruffleObject {
   @Builtin.Method(
       description = "Creates an uninitialized array of a given size.",
       autoRegister = false,
-      name = "new")
+      name = "allocate")
   public static Array allocate(long size) {
     var arr = new Object[(int) size];
     var ctx = EnsoContext.get(null);
@@ -109,6 +109,7 @@ public final class Array implements TruffleObject {
       }
       return WithWarnings.wrap(EnsoContext.get(warnings), v, extracted);
     }
+
     return v;
   }
 
