@@ -143,7 +143,7 @@ domain requires a highly tailored toolbox for working with such data, and Enso
 provides a coherent and unified foundation for building such toolboxes, on top
 of a growing library of existing ones. At its core, Enso delivers a powerful
 environment for the modelling of data flows, with extensive inbuilt capabilities
-for data visualisation and manipulation.
+for data visualization and manipulation.
 
 ## Tenets of Enso
 
@@ -162,7 +162,7 @@ the cognitive load for users. They are elucidated below
 - **Unified Syntax:** The language syntax should be simple, concise, and be
   usable on both the type and term levels.
 - **Visual Communication:** A pure and functional language that lends itself
-  easily to visualisation of data-flows.
+  easily to visualization of data-flows.
 - **One Right Way:** There should, overwhelmingly, be only one way to perform a
   given task. Limited choice breeds simplicity.
 - **Help the User:** Enso should do its utmost to make things easier for the
@@ -225,10 +225,10 @@ between _too many_ and _not enough_ syntactic constructs.
 
 Humans are inherently visual creatures, and Enso is designed to enable a
 _visual_ style of communication. When designing new language features, it is
-overwhelmingly important to consider their impact on Enso's visualisation
+overwhelmingly important to consider their impact on Enso's visualization
 functionality.
 
-- _How_ they impact the existing visualisation capabilities.
+- _How_ they impact the existing visualization capabilities.
 - _How_ they can be visualised themselves.
 
 ### One Right Way

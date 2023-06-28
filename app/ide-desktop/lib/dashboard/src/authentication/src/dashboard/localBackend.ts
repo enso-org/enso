@@ -57,7 +57,9 @@ export class LocalBackend implements Partial<backend.Backend> {
             permissions: [],
             projectState: {
                 type:
-                    project.id === LocalBackend.currentlyOpeningProjectId
+                    project.id === LocalBackend.currentlyOpenProject?.id
+                        ? backend.ProjectState.opened
+                        : project.id === LocalBackend.currentlyOpeningProjectId
                         ? backend.ProjectState.openInProgress
                         : project.lastOpened != null
                         ? backend.ProjectState.closed

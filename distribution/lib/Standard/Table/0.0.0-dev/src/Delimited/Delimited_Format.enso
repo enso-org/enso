@@ -75,7 +75,8 @@ type Delimited_Format
        ADVANCED
        If the File_Format supports reading from the web response, return a configured instance.
     for_web : Text -> URI -> Delimited_Format | Nothing
-    for_web content_type _ =
+    for_web content_type uri =
+        _ = [uri]
         parts = content_type.split ";" . map .trim
 
         charset_part = parts.find if_missing=Nothing (x-> x.starts_with "charset=")

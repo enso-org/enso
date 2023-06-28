@@ -38,7 +38,7 @@ type Date_Range
          decreasing range, flip the start and the end or use `down_to`, but
          keeping the positive step.
     new : Date -> Date -> Date_Period|Period -> Date_Range
-    new start=Date.now end=Date.now step=Date_Period.Day =
+    new start=Date.today end=Date.today step=Date_Period.Day =
         increasing = start <= end
         Date_Range.new_internal start end increasing step
 

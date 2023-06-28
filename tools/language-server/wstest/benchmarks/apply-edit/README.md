@@ -57,8 +57,8 @@ avg [min..max] (of 100 records)
 1ms [0..2] [org.enso.languageserver.runtime.RuntimeConnector] received handled Request(None
 0ms [0..1] [enso] Executing command: EditFileCmd...
 14ms [11..24] [enso] Job EnsureCompiledJob finished in 23 ms.
-1ms [1..9] [enso] Visualisation computed 524dd815-b652-4bbe-b9f2-26b35d17993a.
-0ms [0..1] [org.enso.languageserver.runtime.ContextRegistry] received handled Visualisation
+1ms [1..9] [enso] Visualization computed 524dd815-b652-4bbe-b9f2-26b35d17993a.
+0ms [0..1] [org.enso.languageserver.runtime.ContextRegistry] received handled Visualization
 0ms [0..1] [main] wstest handled response [<binary>]
 17ms [15..33] Total
 ```

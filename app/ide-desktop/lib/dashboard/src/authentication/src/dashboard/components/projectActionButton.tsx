@@ -70,8 +70,6 @@ const LOADING_MESSAGE =
 const CHECK_STATUS_INTERVAL_MS = 5000
 /** The interval between requests checking whether the VM is ready. */
 const CHECK_RESOURCES_INTERVAL_MS = 1000
-/** The fallback project state, when it is set to `null` before it is first set. */
-const DEFAULT_PROJECT_STATE = backendModule.ProjectState.created
 /** The corresponding {@link SpinnerState} for each {@link backendModule.ProjectState}. */
 const SPINNER_STATE: Record<backendModule.ProjectState, SpinnerState> = {
     [backendModule.ProjectState.closed]: SpinnerState.initial,
@@ -120,10 +118,21 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
     const { backend } = backendProvider.useBackend()
     const { unsetModal } = modalProvider.useSetModal()
 
-    const [state, setState] = React.useState<backendModule.ProjectState | null>(null)
+    const shouldCheckIfActuallyOpen =
+        backend.type === backendModule.BackendType.remote &&
+        (project.projectState.type === backendModule.ProjectState.opened ||
+            project.projectState.type === backendModule.ProjectState.openInProgress)
+
+    const [state, setState] = React.useState(() => {
+        if (shouldCheckIfActuallyOpen) {
+            return backendModule.ProjectState.created
+        } else {
+            return project.projectState.type
+        }
+    })
     const [isCheckingStatus, setIsCheckingStatus] = React.useState(false)
     const [isCheckingResources, setIsCheckingResources] = React.useState(false)
-    const [spinnerState, setSpinnerState] = React.useState(SpinnerState.initial)
+    const [spinnerState, setSpinnerState] = React.useState(SPINNER_STATE[state])
     const [shouldOpenWhenReady, setShouldOpenWhenReady] = React.useState(false)
     const [toastId, setToastId] = React.useState<string | null>(null)
 
@@ -140,7 +149,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
     React.useEffect(() => {
         // Ensure that the previous spinner state is visible for at least one frame.
         requestAnimationFrame(() => {
-            setSpinnerState(SPINNER_STATE[state ?? DEFAULT_PROJECT_STATE])
+            setSpinnerState(SPINNER_STATE[state])
         })
     }, [state])
 
@@ -151,22 +160,11 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
     }, [state, toastId])
 
     React.useEffect(() => {
-        switch (project.projectState.type) {
-            case backendModule.ProjectState.opened:
-                setState(backendModule.ProjectState.openInProgress)
-                setIsCheckingResources(true)
-                break
-            case backendModule.ProjectState.openInProgress:
-                setState(backendModule.ProjectState.openInProgress)
-                setIsCheckingStatus(true)
-                break
-            default:
-                // Some functions below set the state to something different to
-                // the backend state. In that case, the state should not be overridden.
-                setState(oldState => oldState ?? project.projectState.type)
-                break
+        if (shouldCheckIfActuallyOpen) {
+            setState(backendModule.ProjectState.openInProgress)
+            setIsCheckingResources(true)
         }
-    }, [project.projectState.type])
+    }, [shouldCheckIfActuallyOpen])
 
     const openProject = React.useCallback(async () => {
         setState(backendModule.ProjectState.openInProgress)

@@ -98,7 +98,7 @@ type Column
         col_name = normalize_string_for_display java_col.getName
         storage = java_col.getStorage
         num_rows = java_col.getSize
-        display_rows = Math.min num_rows show_rows
+        display_rows = num_rows.min show_rows
         items = Vector.new display_rows num->
             row = if storage.isNa num then "Nothing" else
                 get_item_string storage num
@@ -1751,8 +1751,8 @@ type Column
     slice : Integer -> Integer -> Column
     slice self start end =
         length = self.length
-        offset = Math.max (Math.min start length) 0
-        limit = Math.max (Math.min (end - offset) (length - offset)) 0
+        offset = (start.min length).max 0
+        limit = ((end - offset).min (length - offset)).max 0
         Column.Value (self.java_column.slice offset limit)
 
     ## Returns the first element in the column, if it exists.

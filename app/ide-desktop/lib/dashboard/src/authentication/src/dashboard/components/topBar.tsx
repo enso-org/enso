@@ -22,6 +22,7 @@ import UserMenu from './userMenu'
 
 /** Props for a {@link TopBar}. */
 export interface TopBarProps {
+    /** Whether the application may have the local backend running. */
     supportsLocalBackend: boolean
     projectName: string | null
     tab: dashboard.Tab

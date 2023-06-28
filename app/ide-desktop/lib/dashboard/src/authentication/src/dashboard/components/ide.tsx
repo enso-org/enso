@@ -10,7 +10,7 @@ import GLOBAL_CONFIG from '../../../../../../../../gui/config.yaml' assert { typ
 // === Constants ===
 // =================
 
-const IDE_CDN_URL = 'https://ensocdn.s3.us-west-1.amazonaws.com/ide'
+const IDE_CDN_URL = 'https://cdn.enso.org/ide'
 const JS_EXTENSION: Record<backendModule.BackendType, string> = {
     [backendModule.BackendType.remote]: '.js.gz',
     [backendModule.BackendType.local]: '.js',
