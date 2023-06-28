@@ -122,8 +122,8 @@ class NoSelfInStaticTests extends CompilerTest {
           |My_Type.extension_method = self.value + 1
           |""".stripMargin.preprocessModule.lint
       val errs = ir.bindings.flatMap(_.preorder).collect {
-        case err@IR.Error
-        .Syntax(_, IR.Error.Syntax.InvalidSelfArgUsage, _, _) =>
+        case err @ IR.Error
+              .Syntax(_, IR.Error.Syntax.InvalidSelfArgUsage, _, _) =>
           err
       }
       errs should have size 1
