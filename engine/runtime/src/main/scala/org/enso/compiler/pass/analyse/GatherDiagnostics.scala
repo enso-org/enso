@@ -1,6 +1,5 @@
 package org.enso.compiler.pass.analyse
 
-import org.enso.compiler.Compiler
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.MetadataStorage._
@@ -120,12 +119,12 @@ case object GatherDiagnostics extends IRPass {
     * @param diagnostics a list of the errors found in the IR
     */
   case class DiagnosticsMeta(diagnostics: List[IR.Diagnostic])
-      extends IRPass.Metadata {
+      extends IRPass.IRMetadata {
 
     /** The name of the metadata as a string. */
     override val metadataName: String = "GatherDiagnostics.Diagnostics"
 
-    override def duplicate(): Option[IRPass.Metadata] =
+    override def duplicate(): Option[IRPass.IRMetadata] =
       Some(this)
 
     /** @inheritdoc */

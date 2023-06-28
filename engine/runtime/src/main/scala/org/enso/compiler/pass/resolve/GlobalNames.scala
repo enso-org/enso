@@ -10,7 +10,7 @@ import org.enso.compiler.data.BindingsMap.{
   ResolvedMethod,
   ResolvedModule
 }
-import org.enso.compiler.exception.CompilerError
+import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{AliasAnalysis, BindingAnalysis}
 import org.enso.interpreter.Constants

@@ -133,7 +133,7 @@ function PermissionDisplay(props: PermissionDisplayProps) {
 
     return (
         <div
-            className={`m-1 bg-white relative inline-block rounded-full ${className ?? ''}`}
+            className={`mx-1 bg-white relative inline-block rounded-full ${className ?? ''}`}
             onClick={onClick}
         >
             {permissionBorder}

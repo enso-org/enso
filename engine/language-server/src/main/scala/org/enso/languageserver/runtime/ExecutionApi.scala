@@ -18,7 +18,7 @@ object ExecutionApi {
 
   type ContextId       = UUID
   type ExpressionId    = UUID
-  type VisualisationId = UUID
+  type VisualizationId = UUID
 
   case object ExecutionContextCreate extends Method("executionContext/create") {
 
@@ -212,21 +212,21 @@ object ExecutionApi {
       }
   }
 
-  case object VisualisationEvaluationFailed
-      extends Method("executionContext/visualisationEvaluationFailed") {
+  case object VisualizationEvaluationFailed
+      extends Method("executionContext/visualizationEvaluationFailed") {
 
     case class Params(
       contextId: ContextId,
-      visualisationId: VisualisationId,
+      visualizationId: VisualizationId,
       expressionId: ExpressionId,
       message: String,
       diagnostic: Option[ExecutionDiagnostic]
     )
 
     implicit val hasParams
-      : HasParams.Aux[this.type, VisualisationEvaluationFailed.Params] =
+      : HasParams.Aux[this.type, VisualizationEvaluationFailed.Params] =
       new HasParams[this.type] {
-        type Params = VisualisationEvaluationFailed.Params
+        type Params = VisualizationEvaluationFailed.Params
       }
   }
 
@@ -261,15 +261,15 @@ object ExecutionApi {
   case class ModuleNotFoundError(moduleName: String)
       extends Error(2005, s"Module not found [$moduleName]")
 
-  case object VisualisationNotFoundError
-      extends Error(2006, s"Visualisation not found")
+  case object VisualizationNotFoundError
+      extends Error(2006, s"Visualization not found")
 
-  case class VisualisationExpressionError(
+  case class VisualizationExpressionError(
     msg: String,
     diagnostic: Option[ContextRegistryProtocol.ExecutionDiagnostic]
   ) extends Error(
         2007,
-        s"Evaluation of the visualisation expression failed [$msg]"
+        s"Evaluation of the visualization expression failed [$msg]"
       ) {
 
     override def payload: Option[Json] =

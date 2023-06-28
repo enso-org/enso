@@ -118,7 +118,7 @@ impl InstanceModel {
         Ok(root_node)
     }
 
-    /// We need to provide a closure to the Visualisation on the JS side, which we then later
+    /// We need to provide a closure to the Visualization on the JS side, which we then later
     /// can hook up to the FRP. Here we create a `PreprocessorCallbackCell`, which can hold a
     /// closure, and a `PreprocessorCallback` which holds a weak reference to the closure inside of
     /// the `PreprocessorCallbackCell`. This allows us to pass the `PreprocessorCallback` to the
@@ -161,7 +161,7 @@ impl InstanceModel {
         Ok(java_script::binding::Visualization::new())
     }
 
-    /// Tries to create a InstanceModel from the given visualisation class.
+    /// Tries to create a InstanceModel from the given visualization class.
     pub fn from_class(class: &JsValue, scene: &Scene) -> result::Result<Self, Error> {
         let root_node = Self::create_root(scene)?;
         let (preprocessor_change, closure) = Self::preprocessor_change_callback();

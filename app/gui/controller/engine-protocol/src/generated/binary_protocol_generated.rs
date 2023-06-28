@@ -131,7 +131,7 @@ pub mod org {
                         NONE                 = 0,
                         ERROR                = 1,
                         SUCCESS              = 2,
-                        VISUALISATION_UPDATE = 3,
+                        VISUALIZATION_UPDATE = 3,
                         FILE_CONTENTS_REPLY  = 4,
                         WRITE_BYTES_REPLY    = 5,
                         READ_BYTES_REPLY     = 6,
@@ -177,7 +177,7 @@ pub mod org {
                         OutboundPayload::NONE,
                         OutboundPayload::ERROR,
                         OutboundPayload::SUCCESS,
-                        OutboundPayload::VISUALISATION_UPDATE,
+                        OutboundPayload::VISUALIZATION_UPDATE,
                         OutboundPayload::FILE_CONTENTS_REPLY,
                         OutboundPayload::WRITE_BYTES_REPLY,
                         OutboundPayload::READ_BYTES_REPLY,
@@ -189,7 +189,7 @@ pub mod org {
                         "NONE",
                         "ERROR",
                         "SUCCESS",
-                        "VISUALISATION_UPDATE",
+                        "VISUALIZATION_UPDATE",
                         "FILE_CONTENTS_REPLY",
                         "WRITE_BYTES_REPLY",
                         "READ_BYTES_REPLY",
@@ -629,12 +629,12 @@ pub mod org {
 
                         #[inline]
                         #[allow(non_snake_case)]
-                        pub fn payload_as_visualisation_update(
+                        pub fn payload_as_visualization_update(
                             &self,
-                        ) -> Option<VisualisationUpdate<'a>> {
-                            if self.payload_type() == OutboundPayload::VISUALISATION_UPDATE {
+                        ) -> Option<VisualizationUpdate<'a>> {
+                            if self.payload_type() == OutboundPayload::VISUALIZATION_UPDATE {
                                 let u = self.payload();
-                                Some(VisualisationUpdate::init_from_table(u))
+                                Some(VisualizationUpdate::init_from_table(u))
                             } else {
                                 None
                             }
@@ -1115,179 +1115,179 @@ pub mod org {
                         }
                     }
 
-                    pub enum VisualisationContextOffset {}
+                    pub enum VisualizationContextOffset {}
                     #[derive(Copy, Clone, Debug, PartialEq)]
 
-                    pub struct VisualisationContext<'a> {
+                    pub struct VisualizationContext<'a> {
                         pub _tab: flatbuffers::Table<'a>,
                     }
 
-                    impl<'a> flatbuffers::Follow<'a> for VisualisationContext<'a> {
-                        type Inner = VisualisationContext<'a>;
+                    impl<'a> flatbuffers::Follow<'a> for VisualizationContext<'a> {
+                        type Inner = VisualizationContext<'a>;
                         #[inline]
                         fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
                             Self { _tab: flatbuffers::Table { buf, loc } }
                         }
                     }
 
-                    impl<'a> VisualisationContext<'a> {
+                    impl<'a> VisualizationContext<'a> {
                         #[inline]
                         pub fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
-                            VisualisationContext { _tab: table }
+                            VisualizationContext { _tab: table }
                         }
                         #[allow(unused_mut)]
                         pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
                             _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
-                            args: &'args VisualisationContextArgs<'args>,
-                        ) -> flatbuffers::WIPOffset<VisualisationContext<'bldr>>
+                            args: &'args VisualizationContextArgs<'args>,
+                        ) -> flatbuffers::WIPOffset<VisualizationContext<'bldr>>
                         {
-                            let mut builder = VisualisationContextBuilder::new(_fbb);
+                            let mut builder = VisualizationContextBuilder::new(_fbb);
                             if let Some(x) = args.expressionId {
                                 builder.add_expressionId(x);
                             }
                             if let Some(x) = args.contextId {
                                 builder.add_contextId(x);
                             }
-                            if let Some(x) = args.visualisationId {
-                                builder.add_visualisationId(x);
+                            if let Some(x) = args.visualizationId {
+                                builder.add_visualizationId(x);
                             }
                             builder.finish()
                         }
 
-                        pub const VT_VISUALISATIONID: flatbuffers::VOffsetT = 4;
+                        pub const VT_VISUALIZATIONID: flatbuffers::VOffsetT = 4;
                         pub const VT_CONTEXTID: flatbuffers::VOffsetT = 6;
                         pub const VT_EXPRESSIONID: flatbuffers::VOffsetT = 8;
 
                         #[inline]
-                        pub fn visualisationId(&self) -> &'a EnsoUUID {
+                        pub fn visualizationId(&self) -> &'a EnsoUUID {
                             self._tab
-                                .get::<EnsoUUID>(VisualisationContext::VT_VISUALISATIONID, None)
+                                .get::<EnsoUUID>(VisualizationContext::VT_VISUALIZATIONID, None)
                                 .unwrap()
                         }
                         #[inline]
                         pub fn contextId(&self) -> &'a EnsoUUID {
                             self._tab
-                                .get::<EnsoUUID>(VisualisationContext::VT_CONTEXTID, None)
+                                .get::<EnsoUUID>(VisualizationContext::VT_CONTEXTID, None)
                                 .unwrap()
                         }
                         #[inline]
                         pub fn expressionId(&self) -> &'a EnsoUUID {
                             self._tab
-                                .get::<EnsoUUID>(VisualisationContext::VT_EXPRESSIONID, None)
+                                .get::<EnsoUUID>(VisualizationContext::VT_EXPRESSIONID, None)
                                 .unwrap()
                         }
                     }
 
-                    pub struct VisualisationContextArgs<'a> {
-                        pub visualisationId: Option<&'a EnsoUUID>,
+                    pub struct VisualizationContextArgs<'a> {
+                        pub visualizationId: Option<&'a EnsoUUID>,
                         pub contextId:       Option<&'a EnsoUUID>,
                         pub expressionId:    Option<&'a EnsoUUID>,
                     }
-                    impl<'a> Default for VisualisationContextArgs<'a> {
+                    impl<'a> Default for VisualizationContextArgs<'a> {
                         #[inline]
                         fn default() -> Self {
-                            VisualisationContextArgs {
-                                visualisationId: None, // required field
+                            VisualizationContextArgs {
+                                visualizationId: None, // required field
                                 contextId:       None, // required field
                                 expressionId:    None, // required field
                             }
                         }
                     }
-                    pub struct VisualisationContextBuilder<'a: 'b, 'b> {
+                    pub struct VisualizationContextBuilder<'a: 'b, 'b> {
                         fbb_:   &'b mut flatbuffers::FlatBufferBuilder<'a>,
                         start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
                     }
-                    impl<'a: 'b, 'b> VisualisationContextBuilder<'a, 'b> {
+                    impl<'a: 'b, 'b> VisualizationContextBuilder<'a, 'b> {
                         #[inline]
-                        pub fn add_visualisationId(&mut self, visualisationId: &'b EnsoUUID) {
+                        pub fn add_visualizationId(&mut self, visualizationId: &'b EnsoUUID) {
                             self.fbb_.push_slot_always::<&EnsoUUID>(
-                                VisualisationContext::VT_VISUALISATIONID,
-                                visualisationId,
+                                VisualizationContext::VT_VISUALIZATIONID,
+                                visualizationId,
                             );
                         }
                         #[inline]
                         pub fn add_contextId(&mut self, contextId: &'b EnsoUUID) {
                             self.fbb_.push_slot_always::<&EnsoUUID>(
-                                VisualisationContext::VT_CONTEXTID,
+                                VisualizationContext::VT_CONTEXTID,
                                 contextId,
                             );
                         }
                         #[inline]
                         pub fn add_expressionId(&mut self, expressionId: &'b EnsoUUID) {
                             self.fbb_.push_slot_always::<&EnsoUUID>(
-                                VisualisationContext::VT_EXPRESSIONID,
+                                VisualizationContext::VT_EXPRESSIONID,
                                 expressionId,
                             );
                         }
                         #[inline]
                         pub fn new(
                             _fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>,
-                        ) -> VisualisationContextBuilder<'a, 'b> {
+                        ) -> VisualizationContextBuilder<'a, 'b> {
                             let start = _fbb.start_table();
-                            VisualisationContextBuilder { fbb_: _fbb, start_: start }
+                            VisualizationContextBuilder { fbb_: _fbb, start_: start }
                         }
                         #[inline]
-                        pub fn finish(self) -> flatbuffers::WIPOffset<VisualisationContext<'a>> {
+                        pub fn finish(self) -> flatbuffers::WIPOffset<VisualizationContext<'a>> {
                             let o = self.fbb_.end_table(self.start_);
                             self.fbb_.required(
                                 o,
-                                VisualisationContext::VT_VISUALISATIONID,
-                                "visualisation_id",
+                                VisualizationContext::VT_VISUALIZATIONID,
+                                "visualization_id",
                             );
-                            self.fbb_.required(o, VisualisationContext::VT_CONTEXTID, "context_id");
+                            self.fbb_.required(o, VisualizationContext::VT_CONTEXTID, "context_id");
                             self.fbb_.required(
                                 o,
-                                VisualisationContext::VT_EXPRESSIONID,
+                                VisualizationContext::VT_EXPRESSIONID,
                                 "expression_id",
                             );
                             flatbuffers::WIPOffset::new(o.value())
                         }
                     }
 
-                    pub enum VisualisationUpdateOffset {}
+                    pub enum VisualizationUpdateOffset {}
                     #[derive(Copy, Clone, Debug, PartialEq)]
 
-                    pub struct VisualisationUpdate<'a> {
+                    pub struct VisualizationUpdate<'a> {
                         pub _tab: flatbuffers::Table<'a>,
                     }
 
-                    impl<'a> flatbuffers::Follow<'a> for VisualisationUpdate<'a> {
-                        type Inner = VisualisationUpdate<'a>;
+                    impl<'a> flatbuffers::Follow<'a> for VisualizationUpdate<'a> {
+                        type Inner = VisualizationUpdate<'a>;
                         #[inline]
                         fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
                             Self { _tab: flatbuffers::Table { buf, loc } }
                         }
                     }
 
-                    impl<'a> VisualisationUpdate<'a> {
+                    impl<'a> VisualizationUpdate<'a> {
                         #[inline]
                         pub fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
-                            VisualisationUpdate { _tab: table }
+                            VisualizationUpdate { _tab: table }
                         }
                         #[allow(unused_mut)]
                         pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
                             _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
-                            args: &'args VisualisationUpdateArgs<'args>,
-                        ) -> flatbuffers::WIPOffset<VisualisationUpdate<'bldr>>
+                            args: &'args VisualizationUpdateArgs<'args>,
+                        ) -> flatbuffers::WIPOffset<VisualizationUpdate<'bldr>>
                         {
-                            let mut builder = VisualisationUpdateBuilder::new(_fbb);
+                            let mut builder = VisualizationUpdateBuilder::new(_fbb);
                             if let Some(x) = args.data {
                                 builder.add_data(x);
                             }
-                            if let Some(x) = args.visualisationContext {
-                                builder.add_visualisationContext(x);
+                            if let Some(x) = args.visualizationContext {
+                                builder.add_visualizationContext(x);
                             }
                             builder.finish()
                         }
 
-                        pub const VT_VISUALISATIONCONTEXT: flatbuffers::VOffsetT = 4;
+                        pub const VT_VISUALIZATIONCONTEXT: flatbuffers::VOffsetT = 4;
                         pub const VT_DATA: flatbuffers::VOffsetT = 6;
 
                         #[inline]
-                        pub fn visualisationContext(&self) -> VisualisationContext<'a> {
+                        pub fn visualizationContext(&self) -> VisualizationContext<'a> {
                             self._tab
-                                .get::<flatbuffers::ForwardsUOffset<VisualisationContext<'a>>>(
-                                    VisualisationUpdate::VT_VISUALISATIONCONTEXT,
+                                .get::<flatbuffers::ForwardsUOffset<VisualizationContext<'a>>>(
+                                    VisualizationUpdate::VT_VISUALIZATIONCONTEXT,
                                     None,
                                 )
                                 .unwrap()
@@ -1296,7 +1296,7 @@ pub mod org {
                         pub fn data(&self) -> &'a [u8] {
                             self._tab
                                 .get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, u8>>>(
-                                    VisualisationUpdate::VT_DATA,
+                                    VisualizationUpdate::VT_DATA,
                                     None,
                                 )
                                 .map(|v| v.safe_slice())
@@ -1304,34 +1304,34 @@ pub mod org {
                         }
                     }
 
-                    pub struct VisualisationUpdateArgs<'a> {
-                        pub visualisationContext:
-                            Option<flatbuffers::WIPOffset<VisualisationContext<'a>>>,
+                    pub struct VisualizationUpdateArgs<'a> {
+                        pub visualizationContext:
+                            Option<flatbuffers::WIPOffset<VisualizationContext<'a>>>,
                         pub data: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, u8>>>,
                     }
-                    impl<'a> Default for VisualisationUpdateArgs<'a> {
+                    impl<'a> Default for VisualizationUpdateArgs<'a> {
                         #[inline]
                         fn default() -> Self {
-                            VisualisationUpdateArgs {
-                                visualisationContext: None, // required field
+                            VisualizationUpdateArgs {
+                                visualizationContext: None, // required field
                                 data:                 None, // required field
                             }
                         }
                     }
-                    pub struct VisualisationUpdateBuilder<'a: 'b, 'b> {
+                    pub struct VisualizationUpdateBuilder<'a: 'b, 'b> {
                         fbb_:   &'b mut flatbuffers::FlatBufferBuilder<'a>,
                         start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
                     }
-                    impl<'a: 'b, 'b> VisualisationUpdateBuilder<'a, 'b> {
+                    impl<'a: 'b, 'b> VisualizationUpdateBuilder<'a, 'b> {
                         #[inline]
-                        pub fn add_visualisationContext(
+                        pub fn add_visualizationContext(
                             &mut self,
-                            visualisationContext: flatbuffers::WIPOffset<VisualisationContext<'b>>,
+                            visualizationContext: flatbuffers::WIPOffset<VisualizationContext<'b>>,
                         ) {
                             self.fbb_
-                                .push_slot_always::<flatbuffers::WIPOffset<VisualisationContext>>(
-                                    VisualisationUpdate::VT_VISUALISATIONCONTEXT,
-                                    visualisationContext,
+                                .push_slot_always::<flatbuffers::WIPOffset<VisualizationContext>>(
+                                    VisualizationUpdate::VT_VISUALIZATIONCONTEXT,
+                                    visualizationContext,
                                 );
                         }
                         #[inline]
@@ -1340,26 +1340,26 @@ pub mod org {
                             data: flatbuffers::WIPOffset<flatbuffers::Vector<'b, u8>>,
                         ) {
                             self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(
-                                VisualisationUpdate::VT_DATA,
+                                VisualizationUpdate::VT_DATA,
                                 data,
                             );
                         }
                         #[inline]
                         pub fn new(
                             _fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>,
-                        ) -> VisualisationUpdateBuilder<'a, 'b> {
+                        ) -> VisualizationUpdateBuilder<'a, 'b> {
                             let start = _fbb.start_table();
-                            VisualisationUpdateBuilder { fbb_: _fbb, start_: start }
+                            VisualizationUpdateBuilder { fbb_: _fbb, start_: start }
                         }
                         #[inline]
-                        pub fn finish(self) -> flatbuffers::WIPOffset<VisualisationUpdate<'a>> {
+                        pub fn finish(self) -> flatbuffers::WIPOffset<VisualizationUpdate<'a>> {
                             let o = self.fbb_.end_table(self.start_);
                             self.fbb_.required(
                                 o,
-                                VisualisationUpdate::VT_VISUALISATIONCONTEXT,
-                                "visualisation_context",
+                                VisualizationUpdate::VT_VISUALIZATIONCONTEXT,
+                                "visualization_context",
                             );
-                            self.fbb_.required(o, VisualisationUpdate::VT_DATA, "data");
+                            self.fbb_.required(o, VisualizationUpdate::VT_DATA, "data");
                             flatbuffers::WIPOffset::new(o.value())
                         }
                     }

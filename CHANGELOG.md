@@ -499,6 +499,7 @@
 - [Implemented `Table.update_database_table`.][7035]
 - [Added AWS credential support and initial S3 list buckets API.][6973]
 - [Removed `module` argument from `enso_project` and other minor tweaks.][7052]
+- [Integrated Database write operations with Execution Contexts.][7072]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -721,6 +722,7 @@
 [6973]: https://github.com/enso-org/enso/pull/6973
 [7035]: https://github.com/enso-org/enso/pull/7035
 [7052]: https://github.com/enso-org/enso/pull/7052
+[7072]: https://github.com/enso-org/enso/pull/7072
 
 #### Enso Compiler
 
@@ -839,8 +841,10 @@
 - [Improve and colorize compiler's diagnostic messages][6931]
 - [Execute some runtime commands synchronously to avoid race conditions][6998]
 - [Scala 2.13.11 update][7010]
-- [Improve parallel execution of commands and jobs in Language Server][7042]
 - [Add special handling for static method calls on Any][7033]
+- [Improve parallel execution of commands and jobs in Language Server][7042]
+- [Added retries when executing GraalVM updater][7079]
+- [Add method call info for infix operators][7090]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -959,8 +963,10 @@
 [6931]: https://github.com/enso-org/enso/pull/6931
 [6998]: https://github.com/enso-org/enso/pull/6998
 [7010]: https://github.com/enso-org/enso/pull/7010
-[7042]: https://github.com/enso-org/enso/pull/7042
 [7033]: https://github.com/enso-org/enso/pull/7033
+[7042]: https://github.com/enso-org/enso/pull/7042
+[7079]: https://github.com/enso-org/enso/pull/7079
+[7090]: https://github.com/enso-org/enso/pull/7090
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

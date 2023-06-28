@@ -62,7 +62,7 @@ type File
 
              example_new = File.new Examples.csv_path
     new : (Text | File) -> File
-    new (path : Text|File) =
+    new (path : Text | File) =
       case path of
         _ : Text -> get_file path
         _ : File -> path
@@ -331,7 +331,7 @@ type File
     ## PRIVATE
        Internal method to join two path segments together.
     resolve : File
-    resolve self = @Builtin_Method "File.resolve"
+    resolve self subpath = @Builtin_Method "File.resolve"
 
     ## PRIVATE
        Convert the file descriptor to a JS_Object.

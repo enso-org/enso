@@ -161,7 +161,9 @@ type Ordering
     ## A representation that the first value orders as greater than the second.
     Greater
 
-    ## Compares to values and returns an Ordering
+    ## PRIVATE
+       ADVANCED
+       Compares values and returns an Ordering.
     compare : Any -> Any -> Ordering ! Incomparable_Values
     compare x y =
         if x < y then Ordering.Less else
@@ -190,7 +192,9 @@ type Ordering
         Ordering.Equal -> other
         Ordering.Greater -> Ordering.Greater
 
-    ## Converts a sign-based representation of ordering to Enso's native ordering.
+    ## PRIVATE
+       ADVANCED
+       Converts a sign-based representation of ordering to Enso's native ordering.
 
        Arguments:
        - sign: The number representing the relative ordering of two entities.

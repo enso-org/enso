@@ -7,7 +7,7 @@ import Standard.Table.Data.Type.Value_Type.Value_Type
 import Standard.Table.Data.Type.Value_Type.Bits
 from Standard.Table.Errors import Inexact_Type_Coercion
 
-polyglot java import org.enso.table.data.column.builder.object.Builder
+polyglot java import org.enso.table.data.column.builder.Builder
 polyglot java import org.enso.table.data.column.storage.type.StorageType
 polyglot java import org.enso.table.data.column.storage.type.IntegerType
 polyglot java import org.enso.table.data.column.storage.type.FloatType

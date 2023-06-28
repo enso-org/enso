@@ -95,7 +95,7 @@ function Rows<T>(props: RowsProps<T>) {
                 className="h-10 transition duration-300 ease-in-out hover:bg-gray-100 focus:bg-gray-200"
             >
                 {columns.map(column => (
-                    <td key={column.id} className="px-4 border-0 border-r">
+                    <td key={column.id} className="px-4 border-0 border-r vertical-align-middle">
                         {column.render(item, index)}
                     </td>
                 ))}
