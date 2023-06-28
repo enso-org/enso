@@ -5,7 +5,6 @@ import project.Data.List.List
 import project.Data.Ordering.Ordering
 import project.Data.Sort_Direction.Sort_Direction
 import project.Data.Pair.Pair
-from project.Data.Range.Extensions import all
 import project.Data.Range.Range
 import project.Data.Text.Text
 import project.Data.Vector.Vector
@@ -21,21 +20,11 @@ import project.Panic.Panic
 
 from project.Data.Boolean import Boolean, False
 from project.Data.Index_Sub_Range import Index_Sub_Range
+from project.Data.Range.Extensions import all
 
 ## The type of primitive mutable arrays.
 @Builtin_Type
 type Array
-    ## PRIVATE
-       ADVANCED
-       Creates an array with length 0.
-
-       > Example
-         Create an empty array.
-
-             Array.empty
-    empty : Array
-    empty = @Builtin_Method "Array.empty"
-
     ## PRIVATE
        ADVANCED
        Creates a new array of length size, with all elements uninitialized.
@@ -49,48 +38,6 @@ type Array
              Array.new 10
     new : Integer -> Array
     new size = @Builtin_Method "Array.new"
-
-    ## PRIVATE
-
-       Create an array with one element provided.
-
-       Arguments:
-       - item_1: The one element in the array.
-    new_1 : Any -> Array
-    new_1 item_1 = @Builtin_Method "Array.new_1"
-
-    ## PRIVATE
-
-       Create an array with two elements provided.
-
-       Arguments:
-       - item_1: The first element.
-       - item_2: The second element.
-    new_2 : Any -> Any -> Array
-    new_2 item_1 item_2 = @Builtin_Method "Array.new_2"
-
-    ## PRIVATE
-
-       Create an array with three elements provided.
-
-       Arguments:
-       - item_1: The first element.
-       - item_2: The second element.
-       - item_3: The third element.
-    new_3 : Any -> Any -> Any -> Array
-    new_3 item_1 item_2 item_3 = @Builtin_Method "Array.new_3"
-
-    ## PRIVATE
-
-       Create an array with four elements provided.
-
-       Arguments:
-       - item_1: The first element.
-       - item_2: The second element.
-       - item_3: The third element.
-       - item_4: The fourth element.
-    new_4 : Any -> Any -> Any -> Any -> Array
-    new_4 item_1 item_2 item_3 item_4 = @Builtin_Method "Array.new_4"
 
     ## PRIVATE
        Copies from the source array, beginning at the specified position, to the
@@ -593,6 +540,17 @@ type Array
     map_with_index : (Integer -> Any -> Any) -> Vector Any
     map_with_index self function = Vector.map_with_index self function
 
+    ## Creates a new array with the skipping elements until `start` and then
+       continuing until `end` index.
+
+       Arguments:
+       - start: The index of the first element to include.
+       - end: The index to stop slicing at.
+
+       > Example
+         Remove the first 2 elements then continue until index 5 from the vector.
+
+             [1, 2, 3, 4, 5, 6, 7, 8].to_array.slice 2 5 == [3, 4, 5]
     slice : Integer -> Integer -> Vector Any
     slice self start end = Vector.slice self start end
 

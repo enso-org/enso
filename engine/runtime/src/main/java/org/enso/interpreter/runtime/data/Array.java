@@ -35,10 +35,6 @@ public final class Array implements TruffleObject {
    *
    * @param items the element values
    */
-  @Builtin.Method(
-      expandVarargs = 4,
-      description = "Creates an array with given elements.",
-      autoRegister = false)
   public Array(Object... items) {
     assert noNulls(items);
     this.items = items;
@@ -57,15 +53,13 @@ public final class Array implements TruffleObject {
     var arr = new Object[(int) size];
     var ctx = EnsoContext.get(null);
     var nothing = ctx.getBuiltins().nothing();
-    for (int i = 0; i < arr.length; i++) {
-      arr[i] = nothing;
-    }
+    Arrays.fill(arr, nothing);
     return new Array(arr);
   }
 
-  private static final boolean noNulls(Object[] arr) {
-    for (int i = 0; i < arr.length; i++) {
-      if (arr[i] == null) {
+  private static boolean noNulls(Object[] arr) {
+    for (Object o : arr) {
+      if (o == null) {
         return false;
       }
     }
@@ -123,7 +117,6 @@ public final class Array implements TruffleObject {
   }
 
   /** @return an empty array */
-  @Builtin.Method(description = "Creates an empty Array", autoRegister = false)
   public static Array empty() {
     return allocate(0);
   }
@@ -190,8 +183,8 @@ public final class Array implements TruffleObject {
   }
 
   private boolean hasWarningElements(Object[] items, WarningsLibrary warnings) {
-    for (int i = 0; i < items.length; i++) {
-      if (warnings.hasWarnings(items[i])) {
+    for (Object item : items) {
+      if (warnings.hasWarnings(item)) {
         return true;
       }
     }
@@ -219,9 +212,9 @@ public final class Array implements TruffleObject {
   private EconomicSet<Warning> collectAllWarnings(WarningsLibrary warnings, Node location)
       throws UnsupportedMessageException {
     EconomicSet<Warning> setOfWarnings = EconomicSet.create(new WithWarnings.WarningEquivalence());
-    for (int i = 0; i < items.length; i++) {
-      if (warnings.hasWarnings(items[i])) {
-        setOfWarnings.addAll(Arrays.asList(warnings.getWarnings(items[i], location)));
+    for (Object item : items) {
+      if (warnings.hasWarnings(item)) {
+        setOfWarnings.addAll(Arrays.asList(warnings.getWarnings(item, location)));
       }
     }
     return setOfWarnings;

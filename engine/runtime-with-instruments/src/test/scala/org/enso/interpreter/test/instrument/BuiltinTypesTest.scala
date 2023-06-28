@@ -336,10 +336,10 @@ class BuiltinTypesTest
     val idMain   = metadata.addItem(45, 19)
 
     val code =
-      """import Standard.Base.Data.Array.Array
+      """from Standard.Base import Vector
         |
         |main =
-        |    Array.new_1 42
+        |    [42].to_array
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
 
@@ -362,10 +362,10 @@ class BuiltinTypesTest
     val idMain   = metadata.addItem(47, 34)
 
     val code =
-      """from Standard.Base import Vector, Array
+      """from Standard.Base import Vector
         |
         |main =
-        |    Vector.from_array Array.empty
+        |    []
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
 

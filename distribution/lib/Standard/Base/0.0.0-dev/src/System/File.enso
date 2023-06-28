@@ -567,7 +567,7 @@ type File
                 True ->
                   copy_options = [StandardCopyOption.REPLACE_EXISTING].to_array
                   self.copy_builtin destination copy_options
-                False -> self.copy_builtin destination Array.empty
+                False -> self.copy_builtin destination []
 
     ## Moves the file to the specified destination.
 
@@ -582,7 +582,7 @@ type File
                 True ->
                   copy_options = [StandardCopyOption.REPLACE_EXISTING].to_array
                   self.move_builtin destination copy_options
-                False -> self.move_builtin destination Array.empty
+                False -> self.move_builtin destination []
 
     ## Deletes the file if it exists on disk.
 
