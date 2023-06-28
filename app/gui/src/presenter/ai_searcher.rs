@@ -1,38 +1,19 @@
-use flo_stream::Subscriber;
+//! AI Searcher presenter. This is a presenter for the AI Searcher component. It contains the
+//! logic for handling the user input and the logic for processing the searcher input as a prompt
+//! used for the AI model.
+use crate::prelude::*;
 
-use double_representation::graph::GraphInfo;
-use double_representation::graph::LocationHint;
-use double_representation::name::project;
-use double_representation::name::QualifiedName;
-use double_representation::name::QualifiedNameRef;
-use double_representation::node::NodeInfo;
-use engine_protocol::language_server;
-use enso_executor::global::spawn_stream_handler;
 use enso_frp as frp;
 use enso_prelude::FallibleResult;
-use enso_suggestion_database::documentation_ir::EntryDocumentation;
-use enso_suggestion_database::entry::Id as EntryId;
 use enso_text as text;
 use enso_text::Byte;
-use enso_text::Location;
-use enso_text::Rope;
-use ensogl::application::Application;
-use ensogl::display::object::Instance;
-use ensogl_component::list_view::entry::Id;
-use ide_view as view;
 use ide_view::component_browser::component_list_panel::grid::GroupEntryId;
 use ide_view::graph_editor::component::node;
-use ide_view::graph_editor::component::node::input::area::Expression;
 use ide_view::graph_editor::GraphEditor;
 use ide_view::graph_editor::NodeId;
+use ide_view::project;
 use ide_view::project::SearcherParams;
-use ide_view::project::View;
 
-use crate::controller::graph::FailedToCreateNode;
-use crate::controller::graph::ImportType;
-use crate::controller::graph::RequiredImport;
-use crate::controller::searcher::apply_this_argument;
-use crate::controller::searcher::component::group;
 use crate::controller::searcher::input;
 use crate::controller::searcher::Mode;
 use crate::controller::searcher::ThisNode;
@@ -40,21 +21,18 @@ use crate::controller::ExecutedGraph;
 use crate::controller::Project;
 use crate::model::execution_context::QualifiedMethodPointer;
 use crate::model::execution_context::Visualization;
-use crate::model::module::NodeEditStatus;
-use crate::model::module::NodeMetadata;
-use crate::model::suggestion_database;
-use crate::model::traits::*;
-use crate::prelude::*;
 use crate::presenter::graph::AstNodeId;
 use crate::presenter::graph::ViewNodeId;
 use crate::presenter::Graph;
+use crate::searcher::apply_this_argument;
+
 
 // =============
 // === Model ===
 // =============
 #[derive(Debug)]
 struct Model {
-    view:             view::project::View,
+    view:             project::View,
     input_view:       ViewNodeId,
     graph_controller: ExecutedGraph,
     graph_presenter:  Graph,
@@ -76,6 +54,8 @@ impl Model {
 // === Model ===
 // =============
 
+/// Searcher that uses the user input as a prompt for an AI model that then generates a new node
+/// that is inserted into the graph.
 #[derive(Clone, Debug)]
 pub struct AISearcher {
     _network: frp::Network,
@@ -88,7 +68,7 @@ impl crate::searcher::SearcherPresenter for AISearcher {
         _project_controller: Project,
         graph_controller: ExecutedGraph,
         graph_presenter: &Graph,
-        view: View,
+        view: project::View,
         parameters: SearcherParams,
     ) -> FallibleResult<Box<dyn crate::searcher::SearcherPresenter>>
     where
@@ -131,7 +111,6 @@ impl crate::searcher::SearcherPresenter for AISearcher {
         node_id: NodeId,
         _entry_id: Option<GroupEntryId>,
     ) -> Option<AstNodeId> {
-        console_log!("Expression accepted: {:?}", node_id);
         let ast_id = self.model.graph_presenter.ast_node_of_view(node_id)?;
         let expression = self.model.input_expression.borrow().clone();
         if let Err(e) = self.handle_ai_query(expression.repr()) {
@@ -141,7 +120,6 @@ impl crate::searcher::SearcherPresenter for AISearcher {
     }
 
     fn abort_editing(self: Box<Self>) {
-        console_log!("Aborting editing");
         let graph = self.model.view.graph().clone();
         let expression = node::Expression::new_plain(self.model.input_expression.borrow().clone());
         graph.set_node_expression((self.input_view(), expression));
@@ -192,11 +170,10 @@ impl AISearcher {
         query: String,
         this: ThisNode,
         graph: ExecutedGraph,
-        graph_view: GraphEditor,
-        input_view: ViewNodeId,
+        _graph_view: GraphEditor,
+        _input_view: ViewNodeId,
         ide: controller::Ide,
     ) -> FallibleResult {
-        console_log!("Accepting AI query: {}", query);
         let vis_ptr = QualifiedMethodPointer::from_qualified_text(
             "Standard.Visualization.AI",
             "Standard.Visualization.AI",
@@ -209,13 +186,11 @@ impl AISearcher {
         let prompt_with_goal = prompt.replace(Self::AI_GOAL_PLACEHOLDER, &query);
         graph.detach_visualization(vis.id).await?;
         let completion = graph.get_ai_completion(&prompt_with_goal, Self::AI_STOP_SEQUENCE).await?;
-        console_log!("Got completion: {}", completion);
         let parser = ide.parser();
-        let new_expression = input::Input::parse(parser, &completion, 0.into());
+        let new_expression = input::Input::parse(parser, completion, 0.into());
         let new_expression_ast = new_expression.ast().cloned().unwrap();
         let expression_to_insert = apply_this_argument(&this.var, &new_expression_ast);
         Self::commit_node(mode, graph, expression_to_insert, this)?;
-        console_log!("Edited node expression");
         Ok(())
     }
 
@@ -241,10 +216,8 @@ impl AISearcher {
     /// sequence. Otherwise, calls `Self::accept_ai_query` to perform the final
     /// replacement.
     fn handle_ai_query(&self, query: String) -> FallibleResult {
-        console_log!("Handling AI query: {}", query);
         let this = self.model.this_arg.clone();
         if this.is_none() {
-            console_log!("Cannot run AI query without this argument");
             return Err(CannotRunWithoutThisArgument.into());
         }
         let this = this.as_ref().as_ref().unwrap().clone();

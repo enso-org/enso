@@ -504,7 +504,10 @@ impl View {
             // Showing searcher.
             searcher.show <+ frp.searcher.unwrap().map(|params| matches!(params.searcher_type, SearcherType::ComponentBrowser)).on_true();
             searcher.hide <+ frp.searcher.is_none().on_true().constant(());
-            eval searcher.is_visible ([model](is_visible) {
+
+            searcher_visibility <- searcher.is_visible.batch();
+            eval searcher_visibility ([model](is_visible) {
+                let is_visible = is_visible.iter().any(|&v| v);
                 let is_attached = model.searcher.has_parent();
                 match (is_attached, is_visible) {
                     (false, true) => model.display_object.add_child(&model.searcher),
@@ -548,7 +551,7 @@ impl View {
         let grid = &self.model.searcher.model().list.model().grid;
         let graph = &self.model.graph_editor;
 
-        frp::extend! { TRACE_ALL network
+        frp::extend! { network
             last_searcher <- frp.searcher.filter_map(|&s| s);
 
             ai_searcher_active <- frp.searcher_type.map(|t| *t == SearcherType::AiCompletion);
@@ -590,7 +593,7 @@ impl View {
         let graph = &self.model.graph_editor;
         let input_change_delay = frp::io::timer::Timeout::new(network);
 
-        frp::extend! { TRACE_ALL network
+        frp::extend! { network
             searcher_input_change_opt <- graph.node_expression_edited.map2(&frp.searcher,
                 |(node_id, expr, selections), searcher| {
                     let input_change = || (*node_id, expr.clone_ref(), selections.clone());
@@ -703,7 +706,6 @@ impl View {
             should_not_create_node <- graph_editor.node_editing || graph_editor.read_only;
             should_not_create_node <- should_not_create_node || graph_editor.is_fs_visualization_displayed;
             start_node_creation <- searcher_type.gate_not(&should_not_create_node);
-            trace start_node_creation;
             graph_editor.start_node_creation <+ start_node_creation.constant(());
         }
         self
@@ -787,14 +789,9 @@ impl application::View for View {
             (Press, "debug_mode", DEBUG_MODE_SHORTCUT, "disable_debug_mode"),
             (Press, "", "cmd alt t", "execution_context_interrupt"),
             (Press, "", "cmd alt r", "execution_context_restart"),
-            // TODO(#6179): Remove this temporary shortcut when Play button is ready.
-            (Press, "", "ctrl shift b", "toggle_read_only"),
-            // (Press, "", "cmd enter", "start_node_creation_with_ai_searcher"),
-            (Press, "", "cmd tab", "start_node_creation_with_ai_searcher"),
-            (Press, "!is_searcher_opened", "enter", "start_node_creation_with_component_browser"),
-            (Press, "is_searcher_opened", "enter", "accept_searcher_input"),
-            (Press, "is_searcher_opened", "cmd b", "accept_searcher_input"),
-            (Press, "", "tab", "start_node_creation_with_component_browser"),
+            (Press, "!is_searcher_opened", "cmd tab", "start_node_creation_with_ai_searcher"),
+            (Press, "!is_searcher_opened", "tab", "start_node_creation_with_component_browser"),
+            (Press, "is_searcher_opened", "tab", "accept_searcher_input"),
         ]
         .iter()
         .map(|(a, b, c, d)| Self::self_shortcut_when(*a, *c, *d, *b))

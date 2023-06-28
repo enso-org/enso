@@ -7,25 +7,25 @@ use enso_frp as frp;
 use enso_suggestion_database::documentation_ir::EntryDocumentation;
 use enso_suggestion_database::documentation_ir::Placeholder;
 use enso_text as text;
-use ensogl::application::Application;
-use ensogl::display::object::Instance;
-use ensogl::system::js::app::js_bindings::App;
+
+
+
 use ide_view as view;
 use ide_view::component_browser;
 use ide_view::component_browser::component_list_panel::grid as component_grid;
 use ide_view::component_browser::component_list_panel::BreadcrumbId;
 use ide_view::component_browser::component_list_panel::SECTION_NAME_CRUMB_INDEX;
-use ide_view::graph_editor::GraphEditor;
+
 use ide_view::graph_editor::NodeId;
 use ide_view::project::SearcherParams;
 
-use crate::controller::graph::NewNodeInfo;
+
 use crate::controller::searcher::action::Suggestion;
 use crate::controller::searcher::component;
 use crate::controller::searcher::Mode;
 use crate::controller::searcher::Notification;
 use crate::executor::global::spawn_stream_handler;
-use crate::model::module::NodeMetadata;
+
 use crate::model::suggestion_database::entry::Kind;
 use crate::presenter;
 use crate::presenter::graph::AstNodeId;

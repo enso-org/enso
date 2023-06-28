@@ -27,6 +27,7 @@ use crate::model::module::NodeMetadata;
 use crate::model::suggestion_database;
 use crate::model::traits::*;
 use crate::prelude::*;
+use crate::searcher;
 
 // ==============
 // === Export ===
@@ -784,7 +785,7 @@ impl Searcher {
 
     fn get_expression(&self, input: Ast) -> Ast {
         match self.this_var() {
-            Some(this_var) => apply_this_argument(this_var, &input),
+            Some(this_var) => searcher::apply_this_argument(this_var, &input),
             None => input,
         }
     }
@@ -1190,33 +1191,6 @@ impl Drop for EditGuard {
 
 // === Helpers ===
 
-// TODO move to shared searcher module
-pub fn apply_this_argument(this_var: &str, ast: &Ast) -> Ast {
-    if let Ok(opr) = ast::known::Opr::try_from(ast) {
-        let shape = ast::SectionLeft { arg: Ast::var(this_var), off: 1, opr: opr.into() };
-        Ast::new(shape, None)
-    } else if let Some(mut infix) = ast::opr::GeneralizedInfix::try_new(ast) {
-        if let Some(ref mut larg) = &mut infix.left {
-            larg.arg = apply_this_argument(this_var, &larg.arg);
-        } else {
-            infix.left = Some(ast::opr::ArgWithOffset { arg: Ast::var(this_var), offset: 1 });
-        }
-        infix.into_ast()
-    } else if let Some(mut prefix_chain) = ast::prefix::Chain::from_ast(ast) {
-        prefix_chain.func = apply_this_argument(this_var, &prefix_chain.func);
-        prefix_chain.into_ast()
-    } else {
-        let shape = ast::Infix {
-            larg: Ast::var(this_var),
-            loff: 0,
-            opr:  Ast::opr(ast::opr::predefined::ACCESS),
-            roff: 0,
-            rarg: ast.clone_ref(),
-        };
-        Ast::new(shape, None)
-    }
-}
-
 /// Build a component list with a single component, representing the given literal. When used as a
 /// suggestion, a number literal will be inserted without changes, but a string literal will be
 /// surrounded by quotation marks.
@@ -1251,6 +1225,7 @@ pub mod test {
     use crate::controller::graph::RequiredImport;
     use crate::controller::ide::plain::ProjectOperationsNotSupported;
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
+    use crate::searcher::apply_this_argument;
     use crate::test::mock::data::project_qualified_name;
     use crate::test::mock::data::MAIN_FINISH;
     use crate::test::mock::data::MODULE_NAME;
