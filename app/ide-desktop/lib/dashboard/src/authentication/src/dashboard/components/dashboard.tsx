@@ -40,7 +40,6 @@ import TopBar from './topBar'
 
 import ConfirmDeleteModal from './confirmDeleteModal'
 import RenameModal from './renameModal'
-import UploadFileModal from './uploadFileModal'
 
 import FileCreateForm from './fileCreateForm'
 import SecretCreateForm from './secretCreateForm'
@@ -230,6 +229,23 @@ function columnsFor(displayMode: ColumnDisplayMode, backendType: backendModule.B
         : columns
 }
 
+/** Returns a new array, in which the given asset is replaced with a new asset with the new name. */
+function arrayWithAssetTitleChanged<T extends backendModule.AssetType>(
+    assets: backendModule.Asset<T>[],
+    asset: backendModule.Asset<T>,
+    newTitle: string
+) {
+    return assets.map(item => (item === asset ? { ...asset, title: newTitle } : item))
+}
+
+/** Returns a new array, in which the given asset is omitted. */
+function arrayWithAssetOmitted<T extends backendModule.AssetType>(
+    assets: backendModule.Asset<T>[],
+    asset: backendModule.Asset<T>
+) {
+    return assets.filter(item => item !== asset)
+}
+
 /** Sanitizes a string for use as a regex. */
 function regexEscape(string: string) {
     return string.replace(/[\\^$.|?*+()[{]/g, '\\$&')
@@ -241,6 +257,7 @@ function regexEscape(string: string) {
 
 /** Props for {@link Dashboard}s that are common to all platforms. */
 export interface DashboardProps {
+    /** Whether the application may have the local backend running. */
     supportsLocalBackend: boolean
     appRunner: AppRunner
     initialProjectName: string | null
@@ -300,6 +317,7 @@ function Dashboard(props: DashboardProps) {
     const [project, setProject] = react.useState<backendModule.Project | null>(null)
     const [selectedAssets, setSelectedAssets] = react.useState<backendModule.Asset[]>([])
     const [isFileBeingDragged, setIsFileBeingDragged] = react.useState(false)
+    const [isScrollBarVisible, setIsScrollBarVisible] = react.useState(false)
 
     const [isLoadingAssets, setIsLoadingAssets] = react.useState(true)
     const [projectAssets, setProjectAssetsRaw] = react.useState<
@@ -540,9 +558,21 @@ function Dashboard(props: DashboardProps) {
                                               '(Numbers (_0, _1) are also allowed.)',
                                       }
                                     : {})}
-                                // TODO: Wait for backend implementation.
-                                doRename={() => Promise.resolve()}
-                                onSuccess={doRefresh}
+                                doRename={async newName => {
+                                    setProjectAssets(
+                                        arrayWithAssetTitleChanged(
+                                            projectAssets,
+                                            projectAsset,
+                                            newName
+                                        )
+                                    )
+                                    await backend.projectUpdate(projectAsset.id, {
+                                        ami: null,
+                                        ideVersion: null,
+                                        projectName: newName,
+                                    })
+                                }}
+                                onComplete={doRefresh}
                             />
                         ))
                     }
@@ -599,8 +629,19 @@ function Dashboard(props: DashboardProps) {
                                 assetType={directoryAsset.type}
                                 name={directoryAsset.title}
                                 // TODO: Wait for backend implementation.
-                                doRename={() => Promise.resolve()}
-                                onSuccess={doRefresh}
+                                doRename={newName => {
+                                    setDirectoryAssets(
+                                        arrayWithAssetTitleChanged(
+                                            directoryAssets,
+                                            directoryAsset,
+                                            newName
+                                        )
+                                    )
+                                    return Promise.reject(
+                                        'The backend endpoint does not exist yet.'
+                                    )
+                                }}
+                                onComplete={doRefresh}
                             />
                         ))
                     }
@@ -622,8 +663,15 @@ function Dashboard(props: DashboardProps) {
                                 assetType={secret.type}
                                 name={secret.title}
                                 // FIXME[sb]: Wait for backend implementation.
-                                doRename={() => Promise.resolve()}
-                                onSuccess={doRefresh}
+                                doRename={newName => {
+                                    setSecretAssets(
+                                        arrayWithAssetTitleChanged(secretAssets, secret, newName)
+                                    )
+                                    return Promise.reject(
+                                        'The backend endpoint does not exist yet.'
+                                    )
+                                }}
+                                onComplete={doRefresh}
                             />
                         ))
                     }
@@ -642,8 +690,15 @@ function Dashboard(props: DashboardProps) {
                                 assetType={file.type}
                                 name={file.title}
                                 // TODO: Wait for backend implementation.
-                                doRename={() => Promise.resolve()}
-                                onSuccess={doRefresh}
+                                doRename={newName => {
+                                    setFileAssets(
+                                        arrayWithAssetTitleChanged(fileAssets, file, newName)
+                                    )
+                                    return Promise.reject(
+                                        'The backend endpoint does not exist yet.'
+                                    )
+                                }}
+                                onComplete={doRefresh}
                             />
                         ))
                     }
@@ -670,7 +725,7 @@ function Dashboard(props: DashboardProps) {
                         key={user.user.organization_id}
                         permissions={PERMISSION[user.permission]}
                     >
-                        <img src={DefaultUserIcon} />
+                        <img src={DefaultUserIcon} height={24} width={24} />
                     </PermissionDisplay>
                 ))}
             </>
@@ -713,59 +768,97 @@ function Dashboard(props: DashboardProps) {
             : columnRenderer[column]
     }
 
+    const uploadFilesFromInput = async (event: React.FormEvent<HTMLInputElement>) => {
+        if (backend.type === backendModule.BackendType.local) {
+            // TODO[sb]: Allow uploading `.enso-project`s
+            // https://github.com/enso-org/cloud-v2/issues/510
+            toast.error('Cannot upload files to the local backend.')
+        } else if (event.currentTarget.files == null || event.currentTarget.files.length === 0) {
+            toast.success('No files selected to upload.')
+        } else if (directoryId == null) {
+            // This should never happen, however display a nice
+            // error message in case it somehow does.
+            toast.error('You cannot upload files while offline.')
+        } else {
+            await uploadMultipleFiles.uploadMultipleFiles(
+                backend,
+                directoryId,
+                Array.from(event.currentTarget.files)
+            )
+            doRefresh()
+        }
+    }
+
     /** Heading element for every column. */
     const ColumnHeading = (column: Column, assetType: backendModule.AssetType) =>
         column === Column.name ? (
-            <div className="inline-flex">
-                {ASSET_TYPE_NAME[assetType]}
-                <button
-                    className="mx-1"
-                    onClick={event => {
-                        event.stopPropagation()
-                        const buttonPosition =
-                            // This type assertion is safe as this event handler is on a button.
-                            // eslint-disable-next-line no-restricted-syntax
-                            (event.target as HTMLButtonElement).getBoundingClientRect()
-                        if (assetType === backendModule.AssetType.project) {
-                            void toast.promise(handleCreateProject(null), {
-                                loading: 'Creating new empty project...',
-                                success: 'Created new empty project.',
-                                // This is UNSAFE, as the original function's parameter is of type
-                                // `any`.
-                                error: (promiseError: Error) =>
-                                    `Error creating new empty project: ${promiseError.message}`,
-                            })
-                        } else if (assetType === backendModule.AssetType.directory) {
-                            void toast.promise(handleCreateDirectory(), {
-                                loading: 'Creating new directory...',
-                                success: 'Created new directory.',
-                                // This is UNSAFE, as the original function's parameter is of type
-                                // `any`.
-                                error: (promiseError: Error) =>
-                                    `Error creating new directory: ${promiseError.message}`,
-                            })
-                        } else {
-                            // This is a React component even though it doesn't contain JSX.
-                            // eslint-disable-next-line no-restricted-syntax
-                            const CreateForm = ASSET_TYPE_CREATE_FORM[assetType]
-                            setModal(() => (
-                                <CreateForm
-                                    left={buttonPosition.left + window.scrollX}
-                                    top={buttonPosition.top + window.scrollY}
-                                    getNewProjectName={getNewProjectName}
-                                    // This is safe; headings are not rendered when there is no
-                                    // internet connection.
-                                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                                    directoryId={directoryId!}
-                                    onSuccess={doRefresh}
-                                />
-                            ))
-                        }
-                    }}
-                >
-                    <img src={PlusIcon} />
-                </button>
-            </div>
+            assetType === backendModule.AssetType.file ? (
+                <div className="inline-flex">
+                    {ASSET_TYPE_NAME[assetType]}
+                    <input
+                        type="file"
+                        id="files_table_upload_files_input"
+                        name="files_table_upload_files_input"
+                        multiple
+                        className="w-0 h-0"
+                        onInput={uploadFilesFromInput}
+                    />
+                    <label htmlFor="files_table_upload_files_input" className="cursor-pointer mx-1">
+                        <img src={PlusIcon} />
+                    </label>
+                </div>
+            ) : (
+                <div className="inline-flex">
+                    {ASSET_TYPE_NAME[assetType]}
+                    <button
+                        className="mx-1"
+                        onClick={event => {
+                            event.stopPropagation()
+                            const buttonPosition =
+                                // This type assertion is safe as this event handler is on a button.
+                                // eslint-disable-next-line no-restricted-syntax
+                                (event.target as HTMLButtonElement).getBoundingClientRect()
+                            if (assetType === backendModule.AssetType.project) {
+                                void toast.promise(handleCreateProject(null), {
+                                    loading: 'Creating new empty project...',
+                                    success: 'Created new empty project.',
+                                    // This is UNSAFE, as the original function's parameter is of type
+                                    // `any`.
+                                    error: (promiseError: Error) =>
+                                        `Error creating new empty project: ${promiseError.message}`,
+                                })
+                            } else if (assetType === backendModule.AssetType.directory) {
+                                void toast.promise(handleCreateDirectory(), {
+                                    loading: 'Creating new directory...',
+                                    success: 'Created new directory.',
+                                    // This is UNSAFE, as the original function's parameter is of type
+                                    // `any`.
+                                    error: (promiseError: Error) =>
+                                        `Error creating new directory: ${promiseError.message}`,
+                                })
+                            } else {
+                                // This is a React component even though it doesn't contain JSX.
+                                // eslint-disable-next-line no-restricted-syntax
+                                const CreateForm = ASSET_TYPE_CREATE_FORM[assetType]
+                                setModal(() => (
+                                    <CreateForm
+                                        left={buttonPosition.left + window.scrollX}
+                                        top={buttonPosition.top + window.scrollY}
+                                        getNewProjectName={getNewProjectName}
+                                        // This is safe; headings are not rendered when there is no
+                                        // internet connection.
+                                        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                                        directoryId={directoryId!}
+                                        onSuccess={doRefresh}
+                                    />
+                                ))
+                            }
+                        }}
+                    >
+                        <img src={PlusIcon} />
+                    </button>
+                </div>
+            )
         ) : (
             <>{COLUMN_NAME[column]}</>
         )
@@ -778,6 +871,15 @@ function Dashboard(props: DashboardProps) {
         setVisibleSecretAssets(secretAssets.filter(doesItMatchQuery))
         setVisibleFileAssets(fileAssets.filter(doesItMatchQuery))
     }, [query])
+
+    react.useLayoutEffect(() => {
+        if (isLoadingAssets) {
+            document.body.style.overflowY = isScrollBarVisible ? 'scroll' : ''
+        } else {
+            document.body.style.overflowY = ''
+            setIsScrollBarVisible(document.body.scrollHeight > document.body.clientHeight)
+        }
+    }, [isLoadingAssets, projectAssets, directoryAssets, secretAssets, fileAssets])
 
     const setAssets = (assets: backendModule.Asset[]) => {
         const newProjectAssets = assets.filter(
@@ -896,7 +998,28 @@ function Dashboard(props: DashboardProps) {
             projectTemplateName: templateId ?? null,
             parentDirectoryId: directoryId,
         }
-        await backend.createProject(body)
+        const templateText = templateId != null ? ` from template '${templateId}'` : ''
+        setProjectAssets([
+            {
+                type: backendModule.AssetType.project,
+                title: projectName,
+                // The ID must be unique in order to be updated correctly in the UI.
+                id: newtype.asNewtype<backendModule.ProjectId>(String(Number(new Date()))),
+                modifiedAt: dateTime.toRfc3339(new Date()),
+                // Falling back to the empty string is okay as this is what the local backend does.
+                parentId: directoryId ?? newtype.asNewtype<backendModule.AssetId>(''),
+                permissions: [],
+                projectState: { type: backendModule.ProjectState.new },
+            },
+            ...projectAssets,
+        ])
+        await toast.promise(backend.createProject(body), {
+            loading: `Creating project '${projectName}'${templateText}...`,
+            success: `Created project '${projectName}'${templateText}.`,
+            // This is UNSAFE, as the original function's parameter is of type `any`.
+            error: (promiseError: Error) =>
+                `Error creating '${projectName}'${templateText}: ${promiseError.message}`,
+        })
         // `newProject.projectId` cannot be used directly in a `ProjectEvet` as the project
         // does not yet exist in the project list. Opening the project would work, but the project
         // would display as closed as it would be created after the event is sent.
@@ -914,7 +1037,7 @@ function Dashboard(props: DashboardProps) {
                 .map(directoryAsset => DIRECTORY_NAME_REGEX.exec(directoryAsset.title))
                 .map(match => match?.groups?.directoryIndex)
                 .map(maybeIndex => (maybeIndex != null ? parseInt(maybeIndex, 10) : 0))
-            const title = `${DIRECTORY_NAME_DEFAULT_PREFIX}${Math.max(...directoryIndices) + 1}`
+            const title = `${DIRECTORY_NAME_DEFAULT_PREFIX}${Math.max(0, ...directoryIndices) + 1}`
             setDirectoryAssets([
                 {
                     title,
@@ -1014,28 +1137,25 @@ function Dashboard(props: DashboardProps) {
                                 </>
                             )}
                             <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap px-1.5 py-1 mx-4">
-                                <button
+                                <input
+                                    type="file"
+                                    multiple
+                                    disabled={backend.type === backendModule.BackendType.local}
+                                    id="upload_files_input"
+                                    name="upload_files_input"
+                                    className="w-0 h-0"
+                                    onInput={uploadFilesFromInput}
+                                />
+                                <label
+                                    htmlFor="upload_files_input"
                                     className={`mx-1 ${
                                         backend.type === backendModule.BackendType.local
                                             ? 'opacity-50'
-                                            : ''
+                                            : 'cursor-pointer'
                                     }`}
-                                    disabled={backend.type === backendModule.BackendType.local}
-                                    onClick={event => {
-                                        event.stopPropagation()
-                                        setModal(() => (
-                                            <UploadFileModal
-                                                // This should never be `null` because of
-                                                // the checks above.
-                                                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                                                directoryId={directoryId!}
-                                                onSuccess={doRefresh}
-                                            />
-                                        ))
-                                    }}
                                 >
                                     <img src={UploadIcon} />
-                                </button>
+                                </label>
                                 <button
                                     className={`mx-1 opacity-50`}
                                     disabled={true}
@@ -1174,14 +1294,21 @@ function Dashboard(props: DashboardProps) {
                                                               '(Numbers (_0, _1) are also allowed.)',
                                                       }
                                                     : {})}
-                                                doRename={async name => {
+                                                doRename={async newName => {
+                                                    setProjectAssets(
+                                                        arrayWithAssetTitleChanged(
+                                                            projectAssets,
+                                                            projectAsset,
+                                                            newName
+                                                        )
+                                                    )
                                                     await backend.projectUpdate(projectAsset.id, {
                                                         ami: null,
                                                         ideVersion: null,
-                                                        projectName: name,
+                                                        projectName: newName,
                                                     })
                                                 }}
-                                                onSuccess={doRefresh}
+                                                onComplete={doRefresh}
                                             />
                                         ))
                                     }
@@ -1192,10 +1319,16 @@ function Dashboard(props: DashboardProps) {
                                             <ConfirmDeleteModal
                                                 name={projectAsset.title}
                                                 assetType={projectAsset.type}
-                                                doDelete={() =>
-                                                    backend.deleteProject(projectAsset.id)
-                                                }
-                                                onSuccess={doRefresh}
+                                                doDelete={() => {
+                                                    setProjectAssets(
+                                                        arrayWithAssetOmitted(
+                                                            projectAssets,
+                                                            projectAsset
+                                                        )
+                                                    )
+                                                    return backend.deleteProject(projectAsset.id)
+                                                }}
+                                                onComplete={doRefresh}
                                             />
                                         ))
                                     }
@@ -1325,12 +1458,18 @@ function Dashboard(props: DashboardProps) {
                                                         <ConfirmDeleteModal
                                                             name={secret.title}
                                                             assetType={secret.type}
-                                                            doDelete={() =>
-                                                                remoteBackend.deleteSecret(
+                                                            doDelete={() => {
+                                                                setSecretAssets(
+                                                                    arrayWithAssetOmitted(
+                                                                        secretAssets,
+                                                                        secret
+                                                                    )
+                                                                )
+                                                                return remoteBackend.deleteSecret(
                                                                     secret.id
                                                                 )
-                                                            }
-                                                            onSuccess={doRefresh}
+                                                            }}
+                                                            onComplete={doRefresh}
                                                         />
                                                     ))
                                                 }
@@ -1395,10 +1534,18 @@ function Dashboard(props: DashboardProps) {
                                                         <ConfirmDeleteModal
                                                             name={file.title}
                                                             assetType={file.type}
-                                                            doDelete={() =>
-                                                                remoteBackend.deleteFile(file.id)
-                                                            }
-                                                            onSuccess={doRefresh}
+                                                            doDelete={() => {
+                                                                setFileAssets(
+                                                                    arrayWithAssetOmitted(
+                                                                        fileAssets,
+                                                                        file
+                                                                    )
+                                                                )
+                                                                return remoteBackend.deleteFile(
+                                                                    file.id
+                                                                )
+                                                            }}
+                                                            onComplete={doRefresh}
                                                         />
                                                     ))
                                                 }
