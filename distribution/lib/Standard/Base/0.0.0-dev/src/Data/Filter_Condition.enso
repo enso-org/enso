@@ -234,3 +234,17 @@ type Filter_Condition
 sql_like_to_regex sql_pattern =
     regex_pattern = Regex_Utils.sql_like_pattern_to_regex sql_pattern
     Regex.compile regex_pattern
+
+## PRIVATE
+unify_condition_or_predicate : Filter_Condition | (Any -> Boolean) -> (Any -> Boolean)
+unify_condition_or_predicate (condition_or_predicate : Filter_Condition | Function) =
+    case condition_or_predicate of
+        condition : Filter_Condition -> condition.to_predicate
+        predicate -> predicate
+
+## PRIVATE
+unify_condition_predicate_or_element condition =
+    case condition of
+        condition : Filter_Condition -> condition.to_predicate
+        predicate : Function -> predicate
+        element -> (== element)
