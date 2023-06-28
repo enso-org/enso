@@ -371,19 +371,24 @@ type Vector a
     any self predicate =
         0.up_to self.length . any (idx -> (predicate (self.at idx)))
 
-    ## Checks whether a predicate holds for all elements in this vector.
+    ## Checks whether a condition holds for all elements in this vector.
 
        Arguments:
-       - predicate: A function that takes a list element and returns a boolean
-         value that says whether that value satisfies the conditions of the
-         function.
+       - condition: A `Filter_Condition` or a function that takes a vector
+         element and returns a boolean value that says whether that value
+         satisfies a condition.
 
        > Example
          Check if all elements in the vector are less than zero.
 
-             [-1, 1, 5, 8].all (< 0)
-    all : (Any -> Boolean) -> Boolean
-    all self predicate = self . any (predicate >> .not) . not
+             [-1, 1, 5, 8].all (Filter_Condition.Less than=0)
+
+       > Example
+         Check if all elements in the vector are even.
+
+             [-1, 1, 5, 8].all (x-> x%2 == 0)
+    all : (Filter_Condition | (Any -> Boolean)) -> Boolean
+    all self condition = self . any (predicate >> .not) . not
 
     ## Checks whether this vector contains a given value as an element.
 
@@ -1152,9 +1157,11 @@ type Builder
        - predicate: A function that takes a list element and returns a boolean
          that says whether that value satisfies the conditions of the function.
 
-    any : (Any -> Boolean) -> Boolean
-    any self predicate =
-        0.up_to self.length . any (idx -> (predicate (self.java_builder.get idx)))
+    any : (Filter_Condition | (Any -> Boolean)) -> Boolean
+    any self condition = case condition of
+        _ : Filter_Condition -> self.any condition.to_predicate
+        predicate : Function ->
+            0.up_to self.length . any (idx -> (predicate (self.java_builder.get idx)))
 
     ## Converts this builder to a vector containing all the appended elements.
 
