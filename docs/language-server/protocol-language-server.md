@@ -3803,22 +3803,21 @@ None
 
 ### `executionContext/executionFailed`
 
-Sent from the server to the client to inform about a failure when
-attempting to execute a context.
+Sent from the server to the client to inform about a failure when attempting to
+execute a context.
 
 The [`executionContext/executionStatus`](#executioncontextexecutionstatus)
-notifies about potential problems in the code found by compiler which did
-not prevent the execution from completing successfully.
-This message signals about the non-critical errors during runtime, or critical
-failures in the logic or the implementation.
-A critical failure can be a compiler crash, an attempt to execute an empty
-stack, an error location a method or a module when issuing a
+notifies about potential problems in the code found by compiler which did not
+prevent the execution from completing successfully. This message signals about
+the non-critical errors during runtime, or critical failures in the logic or the
+implementation. A critical failure can be a compiler crash, an attempt to
+execute an empty stack, an error location a method or a module when issuing a
 [`executionContext/push`](#executioncontextpush) command.
 
 `executionContext/executionFailed` and
 [`executionContext/executionComplete`](#executioncontextexecutioncomplete)
-messages are mutually exclusive, indicating a failed or a successful
-execution, respectively.
+messages are mutually exclusive, indicating a failed or a successful execution,
+respectively.
 
 - **Type:** Notification
 - **Direction:** Server -> Client
@@ -3852,8 +3851,8 @@ context.
 
 `executionContext/executionFailed` and
 [`executionContext/executionComplete`](#executioncontextexecutioncomplete)
-messages are mutually exclusive, indicating a failed or a successful
-execution, respectively.
+messages are mutually exclusive, indicating a failed or a successful execution,
+respectively.
 
 - **Type:** Notification
 - **Direction:** Server -> Client
