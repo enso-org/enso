@@ -4,6 +4,8 @@ type My_Type
     Value a
 
 Any.x self = "Any:" + self.to_text
+Any.spec_method self arg1 arg2 =
+    "Any.spec_method:" + "{" + self.to_text + "}{" + arg1.to_text + "}{" + arg2.to_text + "}"
 
 type With_X
     Value b

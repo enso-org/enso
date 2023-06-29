@@ -5,8 +5,6 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.desugar.ComplexType
 
-import scala.annotation.unused
-
 /** Generates warnings about potential name conflicts between types and synthetic modules
   */
 case object ModuleNameConflicts extends IRPass {
@@ -72,12 +70,6 @@ case object ModuleNameConflicts extends IRPass {
     inlineContext: InlineContext
   ): IR.Expression =
     ir
-
-  /** @inheritdoc */
-  override def updateMetadataInDuplicate[T <: IR](
-    @unused sourceIr: T,
-    copyOfIr: T
-  ): T = copyOfIr
 
   // === Pass Internals =======================================================
 

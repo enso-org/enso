@@ -51,7 +51,7 @@ from project.Data.Column import get_item_string, normalize_string_for_display
 from project.Internal.Filter_Condition_Helpers import make_filter_column
 
 polyglot java import org.enso.base.ObjectComparator
-polyglot java import org.enso.table.data.column.builder.object.StorageTypeMismatch
+polyglot java import org.enso.table.data.column.builder.StorageTypeMismatch
 polyglot java import org.enso.table.data.table.Table as Java_Table
 polyglot java import org.enso.table.data.table.Column as Java_Column
 polyglot java import org.enso.table.data.table.join.Equals as Java_Join_Equals
@@ -147,7 +147,7 @@ type Table
         col_names = ([index.getName] + cols.map .getName) . map normalize_string_for_display
         col_vals = cols.map .getStorage
         num_rows = self.row_count
-        display_rows = Math.min num_rows show_rows
+        display_rows = num_rows.min show_rows
         rows = Vector.new display_rows row_num->
             cols = col_vals.map col->
                 if col.isNa row_num then "Nothing" else get_item_string col row_num
@@ -1319,9 +1319,7 @@ type Table
         Array_Proxy.new self.java_table.getColumns.length i->
             Column.Value (self.java_table.getColumns.at i)
 
-    ## UNSTABLE
-
-       Returns the vector of column names contained in this table.
+    ## Returns the vector of column names contained in this table.
     column_names : Vector Text
     column_names self = Vector.from_polyglot_array <|
         Array_Proxy.new self.java_table.getColumns.length i->
@@ -1910,8 +1908,8 @@ type Table
     slice : Integer -> Integer -> Table
     slice self start end =
         length = self.row_count
-        offset = Math.max (Math.min start length) 0
-        limit = Math.max (Math.min (end - offset) (length - offset)) 0
+        offset = (start.min length).max 0
+        limit = ((end - offset).min (length - offset)).max 0
         Table.Value (self.java_table.slice offset limit)
 
     ## Returns a table containing the rows of `self` table with their order
@@ -2059,8 +2057,8 @@ ansi_bold enabled txt =
 print_table : Vector Text -> (Vector (Vector Text)) -> Integer -> Boolean -> Text
 print_table header rows indices_count format_term =
     content_lengths = Vector.new header.length i->
-        max_row = 0.up_to rows.length . fold 0 a-> j-> Math.max a (rows.at j . at i . characters . length)
-        Math.max max_row (header.at i . characters . length)
+        max_row = 0.up_to rows.length . fold 0 a-> j-> a.max (rows.at j . at i . characters . length)
+        max_row.max (header.at i . characters . length)
     header_line = header.zip content_lengths pad . map (ansi_bold format_term) . join ' | '
     divider = content_lengths . map (l -> "-".repeat l+2) . join '+'
     row_lines = rows.map r->

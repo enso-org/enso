@@ -1,11 +1,10 @@
 package org.enso.compiler.pass.resolve
 
-import org.enso.compiler.Compiler
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.{Case, Pattern}
 import org.enso.compiler.core.ir.MetadataStorage._
-import org.enso.compiler.exception.CompilerError
+import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{
   AliasAnalysis,
@@ -19,8 +18,6 @@ import org.enso.compiler.pass.desugar.{
   LambdaShorthandToLambda,
   NestedPatternMatch
 }
-
-import scala.annotation.unused
 
 /** This pass translates ignored bindings (of the form `_`) into fresh names
   * internally, as well as marks all bindings as whether or not they were
@@ -95,12 +92,6 @@ case object IgnoredBindings extends IRPass {
       resolveExpression(ir, freshNameSupply)
     } else ir
   }
-
-  /** @inheritdoc */
-  override def updateMetadataInDuplicate[T <: IR](
-    @unused sourceIr: T,
-    copyOfIr: T
-  ): T = copyOfIr
 
   private def setNotIgnored[T <: IR](ir: T): T = {
     if (ir.getMetadata(this).isEmpty) {
@@ -379,7 +370,7 @@ case object IgnoredBindings extends IRPass {
   // === Pass Metadata ========================================================
 
   /** States whether or not the binding was ignored. */
-  sealed trait State extends IRPass.Metadata {
+  sealed trait State extends IRPass.IRMetadata {
     val isIgnored: Boolean
   }
   object State {
@@ -399,7 +390,7 @@ case object IgnoredBindings extends IRPass {
       ): Option[Ignored.type] = Some(this)
 
       /** @inheritdoc */
-      override def duplicate(): Option[IRPass.Metadata] = Some(Ignored)
+      override def duplicate(): Option[IRPass.IRMetadata] = Some(Ignored)
     }
 
     /** States that the binding is not ignored. */
@@ -418,7 +409,7 @@ case object IgnoredBindings extends IRPass {
       ): Option[NotIgnored.type] = Some(this)
 
       /** @inheritdoc */
-      override def duplicate(): Option[IRPass.Metadata] = Some(NotIgnored)
+      override def duplicate(): Option[IRPass.IRMetadata] = Some(NotIgnored)
     }
   }
 }

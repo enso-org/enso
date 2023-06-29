@@ -58,10 +58,6 @@ case object ExpressionAnnotations extends IRPass {
   }
 
   /** @inheritdoc */
-  override def updateMetadataInDuplicate[T <: IR](
-    sourceIr: T,
-    copyOfIr: T
-  ): T = copyOfIr
 
   private def doExpression(
     ir: IR.Expression
