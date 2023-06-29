@@ -101,7 +101,7 @@ export function isFileOpenable(path: string): boolean {
  * it receives the `open-file` event (and no new instance is created for us). In this case,
  * we manually start a new instance of the application and pass the file path to it (using the
  * Windows-style command). */
-export function onFileOpened(event: Event, path: string): string | null {
+export function onFileOpened(event: electron.Event, path: string): string | null {
     logger.log(`Received 'open-file' event for path '${path}'.`)
     if (isFileOpenable(path)) {
         logger.log(`The file '${path}' is openable.`)
