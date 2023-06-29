@@ -1,5 +1,6 @@
 from Standard.Base import all
 
+import project.Common_Table_Operations.Add_Row_Number_Spec
 import project.Common_Table_Operations.Aggregate_Spec
 import project.Common_Table_Operations.Column_Operations_Spec
 import project.Common_Table_Operations.Core_Spec
@@ -111,6 +112,7 @@ spec setup =
     Distinct_Spec.spec setup
     Cross_Tab_Spec.spec setup
     Transpose_Spec.spec setup
+    Add_Row_Number_Spec.spec setup
     Integration_Tests.spec setup
 
 main = run_default_backend spec
