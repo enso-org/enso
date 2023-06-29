@@ -193,7 +193,7 @@ spec setup =
             r2.to_vector . should_equal [False, True, False]
             Problems.expect_warning Floating_Point_Equality r2
 
-    Test.group prefix+"fill_nothing/emptyasdfasdf" <|
+    Test.group prefix+"Column.fill_nothing/empty" <|
         Test.specify "should allow to fill_nothing from a value" <|
             col = table_builder [["col", [0, Nothing, 4, 5, Nothing, Nothing]]] . at "col"
             default = 300
@@ -219,6 +219,51 @@ spec setup =
             r = t.at "col" . fill_nothing (t.at "def")
             r.to_vector . should_equal ["0", "2", "4", "5", Nothing, "30"]
             r.name . should_equal "col"
+
+    Test.group prefix+"Table.fill_nothing/empty" <|
+        Test.specify "should allow to fill_nothing from a value" <|
+            t = table_builder [["col0", [0, Nothing, 4, 5, Nothing, Nothing]], ["col1", [Nothing, 200, Nothing, 400, 500, Nothing]]]
+            default = 1000
+            actual = t.fill_nothing ["col0", "col1"] default
+            actual.at "col0" . to_vector . should_equal [0, 1000, 4, 5, 1000, 1000]
+            actual.at "col1" . to_vector . should_equal [1000, 200, 1000, 400, 500, 1000]
+
+        Test.specify "should allow to fill_nothing from other columns" <|
+            t = table_builder [["col0", [0, Nothing, 4, 5, Nothing, Nothing]], ["col1", [Nothing, 200, Nothing, 400, 500, Nothing]], ["def", [1, 2, 10, 20, Nothing, 30]]]
+            actual = t.fill_nothing ["col0", "col1"] (t.at "def")
+            actual.at "col0" . to_vector . should_equal [0, 2, 4, 5, Nothing, 30]
+            actual.at "col1" . to_vector . should_equal [1, 200, 10, 400, 500, 30]
+
+        Test.specify "should allow to fill_empty from a value" <|
+            t = table_builder [["col0", ["0", Nothing, "4", "5", Nothing, Nothing]], ["col1", [Nothing, "200", Nothing, "400", "500", Nothing]]]
+            default = "1000"
+            actual = t.fill_empty ["col0", "col1"] default
+            actual.at "col0" . to_vector . should_equal ["0", "1000", "4", "5", "1000", "1000"]
+            actual.at "col1" . to_vector . should_equal ["1000", "200", "1000", "400", "500", "1000"]
+
+        Test.specify "should allow to fill_empty from other columns" <|
+            t = table_builder [["col0", ["0", Nothing, "4", "5", Nothing, Nothing]], ["col1", [Nothing, "200", Nothing, "400", "500", Nothing]], ["def", ["1", "2", "10", "20", Nothing, "30"]]]
+            actual = t.fill_empty ["col0", "col1"] (t.at "def")
+            actual.at "col0" . to_vector . should_equal ["0", "2", "4", "5", Nothing, "30"]
+            actual.at "col1" . to_vector . should_equal ["1", "200", "10", "400", "500", "30"]
+
+        Test.specify "fill_nothing should leave other columns alone" <|
+            t = table_builder [["col0", [0, Nothing, 4, 5, Nothing, Nothing]], ["col_between", [3, 4, 5, 6, 7, 8]], ["col1", [Nothing, 200, Nothing, 400, 500, Nothing]], ["def", [1, 2, 10, 20, Nothing, 30]]]
+            default = 1000
+            actual = t.fill_nothing ["col0", "col1"] default
+            actual.at "col0" . to_vector . should_equal [0, 1000, 4, 5, 1000, 1000]
+            actual.at "col_between" . to_vector . should_equal [3, 4, 5, 6, 7, 8]
+            actual.at "col1" . to_vector . should_equal [1000, 200, 1000, 400, 500, 1000]
+            actual.column_names . should_equal ["col0", "col_between", "col1", "def"]
+
+        Test.specify "fill_nothing should work with integer column selectors" <|
+            t = table_builder [["col0", [0, Nothing, 4, 5, Nothing, Nothing]], ["col_between", [3, 4, 5, 6, 7, 8]], ["col1", [Nothing, 200, Nothing, 400, 500, Nothing]], ["def", [1, 2, 10, 20, Nothing, 30]]]
+            default = 1000
+            actual = t.fill_nothing [0, 2] default
+            actual.at "col0" . to_vector . should_equal [0, 1000, 4, 5, 1000, 1000]
+            actual.at "col_between" . to_vector . should_equal [3, 4, 5, 6, 7, 8]
+            actual.at "col1" . to_vector . should_equal [1000, 200, 1000, 400, 500, 1000]
+            actual.column_names . should_equal ["col0", "col_between", "col1", "def"]
 
     Test.group prefix+"Column Comparisons" <|
         Test.specify "should allow to compare numbers" <|
