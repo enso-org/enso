@@ -2041,7 +2041,7 @@ type Table
        provided default(s).
 
        Arguments:
-       - default: The value to replace missing values with. If this argument
+       - default: The value to replace empty values with. If this argument
          is a column, the value from `default` at the corresponding position
          will be used.
 

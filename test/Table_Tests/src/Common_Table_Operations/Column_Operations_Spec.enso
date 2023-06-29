@@ -780,14 +780,14 @@ spec setup =
             t.at "b" . like "%abc%" . name . should_equal "[b] like '%abc%'"
             t.at "b" . ends_with "abc" . name . should_equal "ends_with([b], 'abc')"
             t.at "b" . is_empty . name . should_equal "[b] is empty"
-            t.at "b" . fill_empty "<empty>" . name . should_equal "fill_empty([b], '<empty>')"
+            t.at "b" . fill_empty "<empty>" . name . should_equal "b"
 
         Test.specify "nulls" <|
             t.at "a" . coalesce [Nothing, 42] . name . should_equal "coalesce([a], Nothing, 42)"
             t.at "a" . is_nothing . name . should_equal "[a] is null"
             t.at "a" . is_present . name . should_equal "is_present([a])"
             t.at "a" . is_blank . name . should_equal "is_blank([a])"
-            t.at "a" . fill_nothing 100 . name . should_equal "fill_nothing([a], 100)"
+            t.at "a" . fill_nothing 100 . name . should_equal "a"
 
         Test.specify "misc"
             t.at "a" . min [1, 2] . name . should_equal "min([a], 1, 2)"

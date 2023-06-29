@@ -934,7 +934,7 @@ type Column
        provided default.
 
        Arguments:
-       - default: The value to replace missing values with. If this argument
+       - default: The value to replace empty values with. If this argument
          is a column, the value from `default` at the corresponding position
          will be used.
 
@@ -943,7 +943,7 @@ type Column
 
              import Standard.Examples
 
-             example_fill_empty = Examples.text_column_1 "hello"
+             example_fill_empty = Examples.text_column_1.fill_empty "hello"
     fill_empty : Column | Any -> Column
     fill_empty self default =
         Value_Type.expect_text self <|
