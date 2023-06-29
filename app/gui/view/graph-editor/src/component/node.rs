@@ -786,9 +786,16 @@ impl Node {
             hover_onset_delay.set_delay <+ preview_show_delay;
             hide_tooltip                <- preview_show_delay.map(|&delay| delay <= f32::EPSILON);
 
-            output_hover            <- model.output.on_port_hover.map(|s| s.is_on());
-            hover_onset_delay.start <+ output_hover.on_true();
-            hover_onset_delay.reset <+ output_hover.on_false();
+            output_hover <- model.output.on_port_hover.map(|s| s.is_on());
+            visualization_hover <- bool(&model.visualization.on_event::<mouse::Out>(), &model.visualization.on_event::<mouse::Over>());
+            hovered_for_preview <- output_hover || visualization_hover;
+            // The debounce is needed for a case where user moves mouse cursor from output port to
+            // visualization preview. Moving out of the port make `output_hover` emit `false`,
+            // making `hovered_for_preview` false for a brief moment - and that moment would cause
+            // preview to be hidden, if not debounced.
+            hovered_for_preview <- hovered_for_preview.debounce();
+            hover_onset_delay.start <+ hovered_for_preview.on_true();
+            hover_onset_delay.reset <+ hovered_for_preview.on_false();
             hover_onset_active <- bool(&hover_onset_delay.on_reset, &hover_onset_delay.on_end);
             hover_preview_visible <- has_expression && hover_onset_active;
             hover_preview_visible <- hover_preview_visible.on_change();
