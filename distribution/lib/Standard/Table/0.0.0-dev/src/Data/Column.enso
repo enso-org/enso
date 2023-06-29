@@ -707,6 +707,16 @@ type Column
          If `decimal_places` is outside the range -15..15 (inclusive), an
          `Illegal_Argument` error is thrown.
 
+       ! Precision
+         As floating-point numbers are inexact, rounding can have unexpected
+         results near the precision limit (about 15 decimal places), especially
+         when rounding mid-point values. For example:
+
+         Postgres: rounding 1.2222222222222235 to 15 decimal places returns:
+             1.222222222222223
+         SQLite: rounding 1.2222222222222235 to 15 decimal places returns:
+             1.222222222222224
+
        ? Negative decimal place counts
          Rounding to `n` digits can be thought of as "rounding to the nearest
          multiple of 10^(-n)". For negative decimal counts, this results in

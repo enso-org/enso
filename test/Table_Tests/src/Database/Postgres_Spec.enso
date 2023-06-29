@@ -229,6 +229,18 @@ postgres_specific_spec connection db_name setup =
             result.to_vector.at 0
         do_round n dp=0 use_bankers=False = do_op n (_.round dp use_bankers)
 
+        Test.specify "Can round correctly near the precision limit" <|
+            do_round 1.2222222222222225 15 . should_equal 1.222222222222223
+            do_round -1.2222222222222225 15 . should_equal -1.222222222222223
+            do_round 1.2222222222222235 15 . should_equal 1.222222222222224
+            do_round -1.2222222222222235 15 . should_equal -1.222222222222224
+
+        Test.specify "Can round correctly near the precision limit, using banker's rounding" <|
+            do_round 1.2222222222222225 15 use_bankers=True . should_equal 1.222222222222222
+            do_round -1.2222222222222225 15 use_bankers=True . should_equal -1.222222222222222
+            do_round 1.2222222222222235 15 use_bankers=True . should_equal 1.222222222222224
+            do_round -1.2222222222222235 15 use_bankers=True . should_equal -1.222222222222224
+
         Test.specify "Can handle NaN/Infinity" <|
             nan_result = if setup.test_selection.is_nan_and_nothing_distinct then Number.nan else Nothing
             ops = [.round, .truncate, .ceil, .floor]
