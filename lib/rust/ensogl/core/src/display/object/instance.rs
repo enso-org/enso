@@ -1473,9 +1473,6 @@ impl ParentBind {
         debug_assert!(parent.downgrade() == self.parent);
         parent.dirty.modified_children.unset(&self.child_index);
         if let Some(child) = removed_children_entry.upgrade() {
-            if child.is_focused() {
-                parent.propagate_up_no_focus_instance();
-            }
             child.dirty.new_parent.set();
         }
         parent.dirty.removed_children.set(removed_children_entry);
@@ -1879,7 +1876,14 @@ impl Model {
     /// Removes and returns the parent bind. Please note that the parent is not updated as long as
     /// the parent bind is not dropped.
     fn take_parent_bind(&self) -> Option<ParentBind> {
-        self.parent_bind.take_bind()
+        let parent_bind = self.parent_bind.take_bind();
+        if let Some(parent) = parent_bind.as_ref().and_then(|t| t.parent.upgrade()) {
+            let is_focused = self.event.focused_descendant.borrow().is_some();
+            if is_focused {
+                parent.propagate_up_no_focus_instance();
+            }
+        }
+        parent_bind
     }
 
     /// Set parent of the object. If the object already has a parent, the parent would be replaced.

@@ -83,7 +83,7 @@ pub struct ComponentView<Model: 'static, Frp: 'static> {
 
 impl<M, F> ComponentView<M, F>
 where
-    M: Model + 'static,
+    M: Model + 'static + display::Object,
     F: Frp<M> + 'static,
 {
     /// Constructor.

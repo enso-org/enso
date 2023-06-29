@@ -263,23 +263,28 @@ impl<S: Shape> ShapeViewModel<S> {
 // 'static bounds here is required by Drop implementation.
 #[derive(Debug)]
 struct WidgetData<Model: 'static, Frp: 'static> {
-    app:   Application,
-    frp:   mem::ManuallyDrop<Frp>,
-    model: mem::ManuallyDrop<Rc<Model>>,
+    app:            Application,
+    /// Clone of the [`Model`]'s display object so that we can defocus ancestors on drop without
+    /// requiring a [`display::Object`] bound on the whole struct.
+    display_object: display::object::Instance,
+    frp:            mem::ManuallyDrop<Frp>,
+    model:          mem::ManuallyDrop<Rc<Model>>,
 }
 
-impl<Model: 'static, Frp: 'static> WidgetData<Model, Frp> {
+impl<Model: 'static + display::Object, Frp: 'static> WidgetData<Model, Frp> {
     pub fn new(app: &Application, frp: Frp, model: Rc<Model>) -> Self {
         Self {
-            app:   app.clone_ref(),
-            frp:   mem::ManuallyDrop::new(frp),
-            model: mem::ManuallyDrop::new(model),
+            app:            app.clone_ref(),
+            display_object: model.display_object().clone_ref(),
+            frp:            mem::ManuallyDrop::new(frp),
+            model:          mem::ManuallyDrop::new(model),
         }
     }
 }
 
 impl<Model: 'static, Frp: 'static> Drop for WidgetData<Model, Frp> {
     fn drop(&mut self) {
+        self.display_object.unset_parent();
         // Taking the value from `ManuallyDrop` requires us to not use it anymore.
         // This is clearly the case, because the structure will be soon dropped anyway.
         #[allow(unsafe_code)]
@@ -327,12 +332,14 @@ impl<Model: 'static, Frp: 'static> Deref for Widget<Model, Frp> {
     }
 }
 
-impl<Model: 'static, Frp: 'static> Widget<Model, Frp> {
+impl<Model: 'static + display::Object, Frp: 'static> Widget<Model, Frp> {
     /// Create a new widget.
     pub fn new(app: &Application, frp: Frp, model: Rc<Model>) -> Self {
         Self { data: Rc::new(WidgetData::new(app, frp, model)) }
     }
+}
 
+impl<Model: 'static, Frp: 'static> Widget<Model, Frp> {
     /// Get the FRP structure. It is also a result of deref-ing the widget.
     pub fn frp(&self) -> &Frp {
         &self.data.frp
