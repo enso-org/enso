@@ -27,23 +27,31 @@ import java.util.Arrays;
 
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.node.callable.InvokeCallableNode.ArgumentsExecutionMode;
+import org.enso.interpreter.node.callable.InvokeCallableNode.DefaultsExecutionMode;
+import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
 import org.enso.interpreter.node.expression.builtin.ordering.CustomComparatorNode;
+import org.enso.interpreter.node.expression.builtin.ordering.CustomComparatorNodeGen;
 import org.enso.interpreter.node.expression.builtin.ordering.HashCallbackNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
+import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.atom.StructsLibrary;
+import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.EnsoFile;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.WarningsLibrary;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 import org.enso.interpreter.runtime.scope.ModuleScope;
+import org.enso.interpreter.runtime.state.State;
 
 /**
  * Implements {@code hash_code} functionality.
@@ -194,10 +202,11 @@ public abstract class HashCodeNode extends Node {
   }
 
   @Specialization(guards = {
-      "atomCtorCached == atom.getConstructor()"
-  }, limit = "5")
+      "atomCtorCached == atom.getConstructor()",
+      "customComparatorNode.execute(atom) == null",
+  }, limit = "10")
   @ExplodeLoop
-  long hashCodeForAtom(
+  long hashCodeForAtomWithDefaultComparator(
       Atom atom,
       @Cached("atom.getConstructor()") AtomConstructor atomCtorCached,
       @Cached("atomCtorCached.getFields().length") int fieldsLenCached,
@@ -233,11 +242,74 @@ public abstract class HashCodeNode extends Node {
     return atomHashCode;
   }
 
+  @Specialization(
+      guards = {
+        "atomCtorCached == atom.getConstructor()",
+        "cachedComparator != null"
+      }
+  )
+  long hashCodeForAtomWithCustomComparator(
+      Atom atom,
+      @Cached("atom.getConstructor()") AtomConstructor atomCtorCached,
+      @Cached CustomComparatorNode customComparatorNode,
+      @CachedLibrary(limit = "5") InteropLibrary interop,
+      @Cached(value = "customComparatorNode.execute(atom)") Type cachedComparator,
+      @Cached(value = "findHashMethod(cachedComparator)", allowUncached = true)
+        Function compareMethod,
+      @Cached(value = "createInvokeNode(compareMethod)") InvokeFunctionNode invokeFunctionNode
+  ) {
+    var ctx = EnsoContext.get(this);
+    var args = new Object[] { cachedComparator, atom};
+    var result = invokeFunctionNode.execute(compareMethod, null, State.create(ctx), args);
+    if (!interop.isNumber(result)) {
+      throw new PanicException("Custom comparator must return a number", this);
+    } else {
+      try {
+        return interop.asLong(result);
+      } catch (UnsupportedMessageException e) {
+        throw new IllegalStateException(e);
+      }
+    }
+  }
+
   @TruffleBoundary
-  @Specialization(replaces = "hashCodeForAtom")
+  static Function findHashMethod(Type comparator) {
+    var fn = comparator.getDefinitionScope().getMethods().get(comparator).get("hash");
+    if (fn == null) {
+      throw new AssertionError("No hash method for type " + comparator);
+    }
+    return fn;
+  }
+
+  static InvokeFunctionNode createInvokeNode(Function compareFn) {
+    CallArgumentInfo[] argsInfo = new CallArgumentInfo[compareFn.getSchema().getArgumentsCount()];
+    for (int i = 0; i < argsInfo.length; i++) {
+      var argDef = compareFn.getSchema().getArgumentInfos()[i];
+      argsInfo[i] = new CallArgumentInfo(argDef.getName());
+    }
+    return InvokeFunctionNode.build(
+        argsInfo, DefaultsExecutionMode.EXECUTE, ArgumentsExecutionMode.EXECUTE);
+  }
+
+  @TruffleBoundary
+  @Specialization(replaces = {"hashCodeForAtomWithDefaultComparator", "hashCodeForAtomWithCustomComparator"})
   long hashCodeForAtomUncached(Atom atom) {
     if (atom.getHashCode() != null) {
       return atom.getHashCode();
+    }
+
+    Type customComparator = CustomComparatorNode.getUncached().execute(atom);
+    if (customComparator != null) {
+      Function compareMethod = findHashMethod(customComparator);
+      return hashCodeForAtomWithCustomComparator(
+          atom,
+          atom.getConstructor(),
+          CustomComparatorNodeGen.getUncached(),
+          InteropLibrary.getFactory().getUncached(),
+          customComparator,
+          compareMethod,
+          createInvokeNode(compareMethod)
+      );
     }
 
     Object[] fields = StructsLibrary.getUncached().getFields(atom);
