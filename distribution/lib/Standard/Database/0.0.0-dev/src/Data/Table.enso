@@ -853,15 +853,25 @@ type Table
     default_ordering self =
         explicit_ordering = self.context.orders
         if explicit_ordering.not_empty then explicit_ordering else
-            self.get_primary_key
+            case self.get_primary_key of
+                Nothing -> Nothing
+                primary_key_column_names : Vector -> case self.context.from_spec of
+                    From_Spec.Table _ alias _ ->
+                        primary_key_column_names.map column_name->
+                            column_expression = SQL_Expression.Column alias column_name
+                            Order_Descriptor.Value column_expression Sort_Direction.Ascending
+                    _ -> Nothing
 
     ## PRIVATE
        Returns the primary key defined for the table, if applicable.
     get_primary_key : Vector Text | Nothing
     get_primary_key self = case self.context.from_spec of
         From_Spec.Table table_name _ _ ->
-            result = self.connection.dialect.fetch_primary_key self.connection table_name
-            result.catch Any _->Nothing
+            # The primary key may not be valid anymore after grouping!
+            is_primary_key_still_valid = self.context.groups.is_empty
+            if is_primary_key_still_valid.not then Nothing else
+                result = self.connection.dialect.fetch_primary_key self.connection table_name
+                result.catch Any _->Nothing
         # If the key is a result of a join, union or a subquery then it has no notion of primary key.
         _ -> Nothing
 
