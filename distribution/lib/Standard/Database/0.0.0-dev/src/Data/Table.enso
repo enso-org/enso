@@ -36,15 +36,16 @@ import project.Data.Column.Column
 import project.Data.SQL_Query.SQL_Query
 import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
-import project.Internal.Helpers
 import project.Internal.Aggregate_Helper
 import project.Internal.Common.Database_Join_Helper
+import project.Internal.Helpers
 import project.Internal.IR.Context.Context
-import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.From_Spec.From_Spec
 import project.Internal.IR.Internal_Column.Internal_Column
-import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
+import project.Internal.IR.Order_Descriptor.Order_Descriptor
 import project.Internal.IR.Query.Query
+import project.Internal.IR.SQL_Expression.SQL_Expression
+import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 
 from project.Errors import Unsupported_Database_Operation, Integrity_Error, Unsupported_Name, Table_Not_Found
@@ -840,6 +841,29 @@ type Table
                     self.connection.dialect.prepare_order_descriptor column associated_selector.direction effective_text_ordering
             new_ctx = self.context.add_orders new_order_descriptors
             self.updated_context new_ctx
+
+    ## PRIVATE
+       Returns the default ordering used for operations like `add_row_number` or
+       `take`.
+
+       If the table was recently ordered by operations like `order_by`, that
+       will determine the ordering. Otherwise, the primary key is used if
+       available.
+    default_ordering : Vector Order_Descriptor | Nothing
+    default_ordering self =
+        explicit_ordering = self.context.orders
+        if explicit_ordering.not_empty then explicit_ordering else
+            self.get_primary_key
+
+    ## PRIVATE
+       Returns the primary key defined for the table, if applicable.
+    get_primary_key : Vector Text | Nothing
+    get_primary_key self = case self.context.from_spec of
+        From_Spec.Table table_name _ _ ->
+            result = self.connection.dialect.fetch_primary_key self.connection table_name . catch Any _->[]
+            if result.is_empty then Nothing else result
+        # If the key is a result of a join, union or a subquery then it has no notion of primary key.
+        _ -> Nothing
 
     ## Returns the distinct set of rows within the specified columns from the
        input table.
