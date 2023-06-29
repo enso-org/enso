@@ -110,7 +110,7 @@ public final class EnsoHashMap implements TruffleObject {
   }
 
   @ExportMessage
-  int getHashSize() {
+  public int getHashSize() {
     return snapshotSize;
   }
 
@@ -165,14 +165,15 @@ public final class EnsoHashMap implements TruffleObject {
 
   @ExportMessage
   @TruffleBoundary
-  Object toDisplayString(boolean allowSideEffects) {
+  Object toDisplayString(boolean allowSideEffects,
+      @CachedLibrary(limit = "5") InteropLibrary interop) {
     var sb = new StringBuilder();
     sb.append("{");
     boolean empty = true;
     for (StorageEntry entry : mapBuilder.getStorage().getValues()) {
       if (isEntryInThisMap(entry)) {
         empty = false;
-        sb.append(entry.key()).append("=").append(entry.value()).append(", ");
+        sb.append(entryToString(entry, interop)).append(", ");
       }
     }
     if (!empty) {
@@ -185,8 +186,28 @@ public final class EnsoHashMap implements TruffleObject {
 
   @Override
   public String toString() {
-    return (String) toDisplayString(true);
+    // We are not using uncached InteropLibrary in this method, as it may substantially
+    // slow down Java debugger.
+    return (String) toDisplayString(true, null);
   }
+
+  private static String entryToString(StorageEntry entry, InteropLibrary interop) {
+    String keyStr;
+    String valStr;
+    if (interop != null) {
+      try {
+        keyStr = interop.asString(interop.toDisplayString(entry.key()));
+        valStr = interop.asString(interop.toDisplayString(entry.value()));
+      } catch (UnsupportedMessageException e) {
+        throw new IllegalStateException("Unreachable", e);
+      }
+    } else {
+      keyStr = entry.key().toString();
+      valStr = entry.value().toString();
+    }
+    return keyStr + "=" + valStr;
+  }
+
 
   private boolean isEntryInThisMap(StorageEntry entry) {
     return entry != null && entry.index() < snapshotSize;
