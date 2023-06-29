@@ -590,6 +590,11 @@ spec make_new_connection prefix persistent_connector=True =
             r2.column_names . should_equal ["X"]
             r2.at "X" . to_vector . should_contain_the_same_elements_as expected
 
+            default_key_columns dest . should_equal Nothing
+            r3 = src.update_database_table dest update_action=Update_Action.Insert
+            r3.column_names . should_equal ["X"]
+            r3.at "X" . to_vector . should_contain_the_same_elements_as expected
+
         Test.specify "should fail if no key is specified in other modes" <|
             dest = target_table_builder [["X", [1, 10, 100]]]
             src = source_table_builder [["X", [1, 2, 3]]]
@@ -600,10 +605,9 @@ spec make_new_connection prefix persistent_connector=True =
                 r1.catch.to_display_text.should_contain "`key_columns` must be specified"
 
                 # The default will also fail because no primary key is detected in the DB.
-                default_key_columns dest . should_fail_with Illegal_Argument
+                default_key_columns dest . should_equal Nothing
                 r2 = src.update_database_table dest update_action=Update_Action.Update
                 r2.should_fail_with Illegal_Argument
-                r2.catch.to_display_text.should_contain "No primary key found"
 
                 r3 = src.update_database_table dest update_action=Update_Action.Update_Or_Insert key_columns=[]
                 r3.should_fail_with Illegal_Argument

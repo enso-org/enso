@@ -221,7 +221,9 @@ type Postgres_Dialect
 
     ## PRIVATE
        The dialect-dependent strategy to get the Primary Key for a given table.
-    fetch_primary_key : Connection -> Text -> Vector Text
+
+       Returns `Nothing` if the key is not defined.
+    fetch_primary_key : Connection -> Text -> Vector Text ! Nothing
     fetch_primary_key self connection table_name =
         Dialect.default_fetch_primary_key connection table_name
 

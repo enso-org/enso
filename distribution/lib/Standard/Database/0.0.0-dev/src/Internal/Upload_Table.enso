@@ -442,10 +442,7 @@ check_update_arguments_structure_match source_table target_table key_columns upd
 ## PRIVATE
 default_key_columns (table : Database_Table | In_Memory_Table) =
     check_target_table_for_update table <|
-        no_key_found_error =
-            Error.throw (Illegal_Argument.Error "No primary key found for table "+table.name+". Please provide a key explicitly.")
-        keys = table.get_primary_key . catch Any _->no_key_found_error
-        keys.if_nothing no_key_found_error
+        table.get_primary_key
 
 ## PRIVATE
 dry_run_row_limit = 1000
