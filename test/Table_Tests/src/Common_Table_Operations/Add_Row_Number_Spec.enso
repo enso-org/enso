@@ -22,7 +22,7 @@ spec setup =
     Test.group prefix+"Table.add_row_number (common)" <|
         Test.specify "should rename existing column upon a name clash" <|
             t1 = table_builder [["X", ['a', 'b']], ["Y", ['c', 'd']], ["Z", [40, 20]]]
-            t2 = t1.add_row_number name="Y" |> materialize |> _.order_by "X"
+            t2 = t1.add_row_number name="Y" order_by=["X"] |> materialize |> _.order_by "X"
 
             t2.column_names . should_equal ["X", "Y 1", "Z", "Y"]
             t2.at "X" . to_vector . should_equal ['a', 'b']
@@ -54,25 +54,26 @@ spec setup =
 
         Test.specify "should report floating point equality warning when grouping on float columns" <|
             t = table_builder [["X", [1.0, 1.5, 1.0, 2.5, 2.5]], ["row_id", [1, 2, 3, 4, 5]]]
-            t1 = t.add_row_number group_by=["X"] |> materialize |> _.order_by "row_id"
+            t1 = t.add_row_number group_by=["X"] order_by=["row_id"] |> materialize |> _.order_by "row_id"
             Problems.expect_warning Floating_Point_Equality t1
             t1.at "Row" . to_vector . should_equal [1, 1, 2, 1, 2]
 
-            r2 = t.add_row_number group_by=["X"] on_problems=Problem_Behavior.Report_Error
+            r2 = t.add_row_number group_by=["X"] order_by=["row_id"] on_problems=Problem_Behavior.Report_Error
             r2.should_fail_with Floating_Point_Equality
 
             t3 = t.add_row_number order_by=["X"] |> materialize |> _.order_by "row_id"
             Problems.assume_no_problems t3
             t3.at "Row" . to_vector . should_equal [1, 3, 2, 4, 5]
 
-            t4 = table_builder [["X", [1, "A", 1, 24.0, 24.0, 24.0, 24]], ["row_id", [1, 2, 3, 4, 5, 6, 7]]]
-            t5 = t4.add_row_number group_by=["X"] |> materialize |> _.order_by "row_id"
-            Problems.expect_warning Floating_Point_Equality t5
-            t5.at "Row" . to_vector . should_equal [1, 1, 2, 1, 2, 3, 4]
+            if setup.is_database.not then
+                t4 = table_builder [["X", [1, "A", 1, 24.0, 24.0, 24.0, 24]], ["row_id", [1, 2, 3, 4, 5, 6, 7]]]
+                t5 = t4.add_row_number group_by=["X"] order_by=["row_id"] |> materialize |> _.order_by "row_id"
+                Problems.expect_warning Floating_Point_Equality t5
+                t5.at "Row" . to_vector . should_equal [1, 1, 2, 1, 2, 3, 4]
 
         Test.specify "should fail if columns provided in ordering/grouping do not exist" <|
             t = table_builder [["X", [20, 30, 10]]]
-            r1 = t.add_row_number group_by=["X", "Y", "Z"]
+            r1 = t.add_row_number group_by=["X", "Y", "Z"] order_by=["X"]
             r1.should_fail_with Missing_Input_Columns
             r1.catch.criteria . should_equal ["Y", "Z"]
 
@@ -80,7 +81,7 @@ spec setup =
             r2.should_fail_with Missing_Input_Columns
             r2.catch.criteria . should_equal ["Z", "Y"]
 
-            r3 = t.add_row_number group_by=[44]
+            r3 = t.add_row_number group_by=[44] order_by=["X"]
             r3.should_fail_with Missing_Input_Columns
 
         Test.specify "will respect the row order of order_by" <|
@@ -167,6 +168,6 @@ spec setup =
             db_table = src.select_into_database_table setup.connection (Name_Generator.random_name "add-row-number-test-1") temporary=True primary_key=["X"]
 
             t2 = db_table.add_row_number |> materialize |> _.order_by ["Y"]
-            t2.at "Y" . to_vector . should_equal [10, 20, 30, 50, 40]
-            t2.at "X" . to_vector . should_equal [500, 400, 30, 2, 1]
+            t2.at "Y" . to_vector . should_equal [10, 20, 30, 40, 50]
+            t2.at "X" . to_vector . should_equal [500, 400, 30, 1, 2]
             t2.at "Row" . to_vector . should_equal [5, 4, 3, 1, 2]

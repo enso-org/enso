@@ -564,7 +564,8 @@ type Table
     add_row_number self (name:Text = "Row") (from:Integer = 1) (step:Integer = 1) group_by=[] order_by=[] on_problems=Problem_Behavior.Report_Warning =
         problem_builder = Problem_Builder.new error_on_missing_columns=True
         grouping_columns = self.columns_helper.select_columns_helper group_by True problem_builder
-        grouping_columns.each column->
+        grouping_columns.each internal_column->
+            column = self.make_column internal_column
             if column.value_type.is_floating_point then
                 problem_builder.report_other_warning (Floating_Point_Equality.Error column.name)
         ordering = Table_Helpers.resolve_order_by self.columns order_by problem_builder
@@ -578,7 +579,18 @@ type Table
                     Nothing -> Error.throw (Illegal_Argument.Error "No `order_by` is specified and the table has no existing ordering (e.g. from an `order_by` operation or a primary key). Some ordering is required for `add_row_number` in Database tables.")
                     descriptors -> descriptors
             grouping_expressions = grouping_columns.map .expression
-            params = [SQL_Expression.Constant from, SQL_Expression.Constant step] + order_descriptors + grouping_expressions
+            ## This is a terrible hack, but I could not figure a decent way to
+               have an operation take a variable number of arguments of multiple
+               kinds (here both groups and orders are varying).
+               Currently, the IR just allows to put a list of parameters for the
+               operation and they are all converted into SQL code before being
+               passed to the particular operation builder. So at this stage
+               there is no way to distinguish the arguments.
+               This is yet another argument for the IR redesign.
+            separator = SQL_Expression.Literal "<!EXPRESSION_SEPARATOR!>"
+            # The SQL row_number() counts from 1, so we adjust the offset.
+            offset = from - step
+            params = [SQL_Expression.Constant offset, SQL_Expression.Constant step] + order_descriptors + [separator] + grouping_expressions
             new_expr = SQL_Expression.Operation "ROW_NUMBER" params
 
             type_mapping = self.connection.dialect.get_type_mapping
