@@ -60,6 +60,7 @@ pub const DEFAULT_SIZE: (f32, f32) = (200.0, 200.0);
 const PADDING: f32 = 20.0;
 const CORNER_RADIUS: f32 = super::super::node::CORNER_RADIUS;
 const ACTION_BAR_HEIGHT: f32 = 2.0 * CORNER_RADIUS;
+const MIN_SIZE: Vector2 = Vector2(200.0, 200.0);
 
 
 
@@ -178,6 +179,8 @@ ensogl::define_endpoints_2! {
 // ============
 
 /// View of the visualization container.
+///
+/// Container has its origin in the top left corner.
 #[derive(Debug)]
 #[allow(missing_docs)]
 pub struct View {
@@ -369,8 +372,8 @@ impl ContainerModel {
 
 // === Private API ===
 
-const MIN_SIZE: Vector2 = Vector2(200.0, 200.0);
 impl ContainerModel {
+    /// Resize the container to the given size. The size is clamped to [`MIN_SIZE`].
     fn resize(&self, mut new_size: Vector2, view_state: ViewState) -> Vector2 {
         new_size.x = new_size.x.max(MIN_SIZE.x);
         new_size.y = new_size.y.max(MIN_SIZE.y);
@@ -378,6 +381,7 @@ impl ContainerModel {
         new_size
     }
 
+    /// Convert the given position from screen space to object space of the container.
     fn screen_to_object_space(&self, screen_pos: Vector2) -> Vector2 {
         let object = &self.display_object;
         let pos = scene().screen_to_object_space(object, screen_pos);
@@ -465,7 +469,8 @@ impl ContainerModel {
         self.update_layout(size, view_state);
     }
 
-    fn update_layout_without_setting_size(&self, size: Vector2, view_state: ViewState) {
+    fn update_layout(&self, size: Vector2, view_state: ViewState) {
+        self.size.set(size);
         let dom = self.view.background_dom.dom();
         let bg_dom = self.fullscreen_view.background_dom.dom();
         if view_state.is_fullscreen() {
@@ -489,9 +494,9 @@ impl ContainerModel {
 
             let action_bar_size = Vector2::new(size.x, ACTION_BAR_HEIGHT);
             self.action_bar.frp.set_size.emit(action_bar_size);
-            let x = size.x / 2.0;
-            let y = -size.y / 2.0;
-            self.drag_root.set_xy(Vector2(x, y));
+            self.drag_root.set_xy(Vector2(size.x / 2.0, -size.y / 2.0));
+            // Though the drag root is already offset, we need to offset the overlay as well because
+            // it has the origin in the bottom left corner.
             self.view.overlay.set_xy(Vector2(-size.x / 2.0, -size.y / 2.0));
         }
 
@@ -500,11 +505,6 @@ impl ContainerModel {
         if let Some(viz) = &*self.visualization.borrow() {
             viz.frp.set_size.emit(size);
         }
-    }
-
-    fn update_layout(&self, size: Vector2, view_state: ViewState) {
-        self.size.set(size);
-        self.update_layout_without_setting_size(size, view_state);
     }
 
     fn init_corner_roundness(&self) {
@@ -625,10 +625,9 @@ impl Container {
             on_visible <- output.visible.on_true();
             width_change_after_open <- width_target.sample(&on_visible);
             width_anim.target <+ width_target.gate(&size_was_not_changed_manually);
-            width_anim.target <+ width_change_after_open;
-            new_width <- any(&width_anim.value, &width_change_after_open);
-            new_size <- new_width.map2(&output.size, |w, s| Vector2(*w, s.y));
-            size_change <- any(&new_size, &input.set_size).on_change();
+            new_size <- width_anim.value.map2(&output.size, |w, s| Vector2(*w, s.y));
+            size_reset <- width_change_after_open.map(|w| Vector2(*w, DEFAULT_SIZE.1));
+            size_change <- any3(&new_size, &input.set_size, &size_reset);
 
             output.size <+ size_change.map2(&output.view_state, f!((new_size, view_state) model.resize(*new_size, *view_state)));
 
