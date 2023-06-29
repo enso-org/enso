@@ -3710,6 +3710,8 @@ mod tests {
     }
 
     #[test]
+    // The alignment is disabled for mouse-oriented node placement. See [`new_node_position`] docs.
+    #[ignore]
     fn test_magnet_alignment_when_adding_node_by_shortcut() {
         test_magnet_alignment_when_adding_node(move_mouse_and_add_node_by_shortcut);
     }

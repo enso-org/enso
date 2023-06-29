@@ -31,6 +31,11 @@ pub mod free_place_finder;
 /// Return a position for a newly created node. The position is calculated by establishing a
 /// reference position and then aligning it to existing nodes.
 ///
+/// **Note** The aligning nodes is currently disabled for nodes which were created under mouse
+/// position (including dropping an edge), as it turned out to be confusing for users. It may be
+/// brought back once the algorithm will be improved (the [`at_mouse_aligned_to_close_nodes`]
+/// function)
+///
 /// The reference position is chosen from among:
 ///  - the position of a source node of the dropped edge (if available),
 ///  - the bottom-most selected node (if available),
@@ -63,13 +68,12 @@ pub fn new_node_position(
         AddNodeEvent => default(),
         StartCreationEvent | ClickingButton if some_nodes_are_selected =>
             under_selected_nodes(graph_editor),
-        StartCreationEvent => at_mouse_aligned_to_close_nodes(graph_editor, mouse_position),
+        StartCreationEvent => mouse_position,
         ClickingButton => {
             let pos = on_ray(graph_editor, screen_center, Vector2(0.0, -1.0)).unwrap();
             magnet_alignment(graph_editor, pos, HorizontallyAndVertically)
         }
-        DroppingEdge { endpoint } =>
-            at_mouse_aligned_to_source_node(graph_editor, endpoint.node_id, mouse_position),
+        DroppingEdge { .. } => mouse_position,
         StartCreationFromPortEvent { endpoint } => under(graph_editor, endpoint.node_id),
     }
 }
