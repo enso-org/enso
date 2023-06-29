@@ -138,6 +138,8 @@ pub struct Mouse {
     /// sampled and the most recent sample is stored here. Please note, that this sample may be
     /// from a few frames back, as it is not guaranteed when we will receive the data from GPU.
     pub pointer_target_encoded:  Uniform<Vector4<u32>>,
+    /// The display objects which believe they are currently hovered by mouse.
+    pub hovered_objects:         Rc<RefCell<Vec<display::object::WeakInstance>>>,
     pub target:                  Rc<Cell<PointerTargetId>>,
     pub handles:                 Rc<[callback::Handle; 6]>,
     pub scene_frp:               Frp,
@@ -257,6 +259,7 @@ impl Mouse {
         ));
 
         let handles = Rc::new([on_move, on_down, on_up, on_wheel, on_leave, on_enter]);
+        let hovered_objects = default();
         Self {
             pointer_target_registry,
             mouse_manager,
@@ -270,6 +273,7 @@ impl Mouse {
             scene_frp,
             last_move_event,
             background,
+            hovered_objects,
         }
     }
 
@@ -289,18 +293,38 @@ impl Mouse {
         if new_target != current_target {
             self.target.set(new_target);
             if let Some(event) = (*self.last_move_event.borrow()).clone() {
+                let new_hovered = self
+                    .pointer_target_registry
+                    .with_mouse_target(new_target, |_, d| d.rev_parent_chain())
+                    .unwrap_or_default();
+                let currently_hovered = self
+                    .hovered_objects
+                    .take()
+                    .into_iter()
+                    .filter_map(|w| w.upgrade())
+                    .collect_vec();
+                let left = currently_hovered.iter().filter(|t| !new_hovered.contains(t));
+                for d in left {
+                    let out_event = event.clone().unchecked_convert_to::<mouse::Out>();
+                    d.emit_event_target_only(out_event);
+                }
+                let entered = new_hovered.iter().filter(|t| !currently_hovered.contains(t));
+                for d in entered {
+                    let over_event = event.clone().unchecked_convert_to::<mouse::Over>();
+                    d.emit_event_target_only(over_event);
+                }
+                self.hovered_objects
+                    .replace(new_hovered.into_iter().map(|t| t.downgrade()).collect_vec());
                 self.pointer_target_registry.with_mouse_target(current_target, |t, d| {
                     t.mouse_out.emit(());
-                    let out_event = event.clone().unchecked_convert_to::<mouse::Out>();
                     let leave_event = event.clone().unchecked_convert_to::<mouse::Leave>();
-                    d.emit_event(out_event);
+                    // d.emit_event(out_event);
                     d.emit_event_without_bubbling(leave_event);
                 });
                 self.pointer_target_registry.with_mouse_target(new_target, |t, d| {
                     t.mouse_over.emit(());
-                    let over_event = event.clone().unchecked_convert_to::<mouse::Over>();
                     let enter_event = event.clone().unchecked_convert_to::<mouse::Enter>();
-                    d.emit_event(over_event);
+                    // d.emit_event(over_event);
                     d.emit_event_without_bubbling(enter_event);
                 });
 
