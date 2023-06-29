@@ -123,7 +123,7 @@ sqlite_specific_spec prefix connection setup =
             expected_code = code_template.replace "{Tinfo}" tinfo
             t.distinct ["strs"] . to_sql . prepare . should_equal [expected_code, []]
 
-    Test.group "[PostgreSQL] math functions" <|
+    Test.group prefix+"math functions" <|
         Test.specify "round, trunc, ceil, floor" <|
             col = table_builder [["x", [0.1, 0.9, 3.1, 3.9, -0.1, -0.9, -3.1, -3.9]]] . at "x"
 
@@ -158,7 +158,8 @@ sqlite_specific_spec prefix connection setup =
         do_round n dp=0 use_bankers=False = do_op n (_.round dp use_bankers)
 
         Test.specify "Can round correctly near the precision limit" <|
-            do_round 1.2222222222222225 15 . should_equal 1.222222222222223
+            # This value varies depending on the version of SQLite.
+            do_round 1.2222222222222225 15 . should_equal 1.222222222222223 0.000000000000002
             do_round -1.2222222222222225 15 . should_equal -1.222222222222223
             do_round 1.2222222222222235 15 . should_equal 1.222222222222223
             do_round -1.2222222222222235 15 . should_equal -1.222222222222223
