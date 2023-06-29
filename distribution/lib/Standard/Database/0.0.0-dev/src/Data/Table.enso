@@ -561,7 +561,7 @@ type Table
     @group_by Widget_Helpers.make_column_name_vector_selector
     @order_by Widget_Helpers.make_order_by_selector
     add_row_number : Text -> Integer -> Integer -> Vector (Text | Integer | Column_Selector) | Text | Integer -> Vector (Text | Sort_Column) | Text -> Problem_Behavior -> Table
-    add_row_number self name="Row" from=1 step=1 group_by=[] order_by=[] on_problems=Problem_Behavior.Report_Warning =
+    add_row_number self (name:Text = "Row") (from:Integer = 1) (step:Integer = 1) group_by=[] order_by=[] on_problems=Problem_Behavior.Report_Warning =
         problem_builder = Problem_Builder.new error_on_missing_columns=True
         grouping_columns = self.columns_helper.select_columns_helper group_by True problem_builder
         grouping_columns.each column->
@@ -577,17 +577,20 @@ type Table
                 True -> case self.default_ordering of
                     Nothing -> Error.throw (Illegal_Argument.Error "No `order_by` is specified and the table has no existing ordering (e.g. from an `order_by` operation or a primary key). Some ordering is required for `add_row_number` in Database tables.")
                     descriptors -> descriptors
+            grouping_expressions = grouping_columns.map .expression
+            params = [SQL_Expression.Constant from, SQL_Expression.Constant step] + order_descriptors + grouping_expressions
+            new_expr = SQL_Expression.Operation "ROW_NUMBER" params
 
-            new_expr = SQL_Expression.Operation "ROW_NUMBER" order_descriptors
+            type_mapping = self.connection.dialect.get_type_mapping
             infer_from_database_callback expression =
                 SQL_Type_Reference.new self.connection self.context expression
             new_type_ref = type_mapping.infer_return_type infer_from_database_callback "ROW_NUMBER" [] new_expr
+
             new_column = Internal_Column.Value name new_type_ref new_expr
 
             rebuild_table columns =
                 self.updated_columns (columns.map .as_internal)
             renamed_table = Add_Row_Number.rename_columns_if_needed self name on_problems rebuild_table
-
             renamed_table.updated_columns (renamed_table.internal_columns + [new_column])
 
 

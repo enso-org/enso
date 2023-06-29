@@ -33,7 +33,6 @@ add_row_number table name from step group_by order_by on_problems =
                     False -> make_grouped_enumeration name grouping_columns from step
             False -> make_grouped_ordered_enumeration name grouping_columns ordering from step
 
-        column_names = table.column_names
         renamed_table = rename_columns_if_needed table name on_problems Table.new
         renamed_table.set new_column name set_mode=Set_Mode.Add
 
@@ -41,6 +40,7 @@ add_row_number table name from step group_by order_by on_problems =
    If the table already contains a column called `name` it will be renamed to a
    unique name, so that a new column with this name can be added.
 rename_columns_if_needed table name on_problems build_table_from_columns =
+    column_names = table.column_names
     if column_names.contains name . not then table else
         problems = [Duplicate_Output_Column_Names.Error [name]]
         on_problems.attach_problems_before problems <|

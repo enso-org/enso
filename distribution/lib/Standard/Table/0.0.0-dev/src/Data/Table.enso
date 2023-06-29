@@ -1202,7 +1202,7 @@ type Table
     @group_by Widget_Helpers.make_column_name_vector_selector
     @order_by Widget_Helpers.make_order_by_selector
     add_row_number : Text -> Integer -> Integer -> Vector (Text | Integer | Column_Selector) | Text | Integer -> Vector (Text | Sort_Column) | Text -> Problem_Behavior -> Table
-    add_row_number self name="Row" from=1 step=1 group_by=[] order_by=[] on_problems=Problem_Behavior.Report_Warning =
+    add_row_number self (name:Text = "Row") (from:Integer = 1) (step:Integer = 1) group_by=[] order_by=[] on_problems=Problem_Behavior.Report_Warning =
         Add_Row_Number.add_row_number self name from step group_by order_by on_problems
 
     ## ALIAS Add Column, Update Column, New Column
