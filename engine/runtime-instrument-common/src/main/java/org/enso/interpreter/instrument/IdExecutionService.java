@@ -257,6 +257,26 @@ public interface IdExecutionService {
   /** Information about the function call. */
   record FunctionCallInfo(FunctionPointer functionPointer, int[] notAppliedArguments) {
 
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      FunctionCallInfo that = (FunctionCallInfo) o;
+      return Objects.equals(functionPointer, that.functionPointer) && Arrays.equals(
+          notAppliedArguments, that.notAppliedArguments);
+    }
+
+    @Override
+    public int hashCode() {
+      int result = Objects.hash(functionPointer);
+      result = 31 * result + Arrays.hashCode(notAppliedArguments);
+      return result;
+    }
+
     /**
      * Creates a new instance of this record from a function call.
      *
