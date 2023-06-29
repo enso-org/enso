@@ -2634,6 +2634,14 @@ impl InstanceDef {
         self.event.source.emit(event);
     }
 
+    fn emit_event_target_only<T>(&self, payload: T)
+    where T: 'static {
+        let event = self.new_event(payload);
+        event.set_capturing(false);
+        event.set_bubbling(false);
+        self.event.source.emit(event);
+    }
+
     pub(crate) fn resume_event(&self, event: event::SomeEvent) {
         self.event.source.emit(event);
     }
@@ -4360,6 +4368,13 @@ pub trait ObjectOps: Object + AutoLayoutOps + LayoutOps {
     fn emit_event_without_bubbling<T>(&self, event: T)
     where T: 'static {
         self.display_object().def.emit_event_without_bubbling(event)
+    }
+
+    /// Emit a new event that does not participate in the bubbling nor capturing propagation phase.
+    /// See docs of [`event::Event`] to learn more.
+    fn emit_event_target_only<T>(&self, event: T)
+    where T: 'static {
+        self.display_object().def.emit_event_target_only(event)
     }
 
     /// Get event stream for bubbling events. See docs of [`event::Event`] to learn more.
