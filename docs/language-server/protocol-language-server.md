@@ -51,6 +51,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`TextEdit`](#textedit)
   - [`DiagnosticType`](#diagnostictype)
   - [`StackTraceElement`](#stacktraceelement)
+  - [`ExecutionResult`](#executionresult)
   - [`Diagnostic`](#diagnostic)
   - [`SHA3-224`](#sha3-224)
   - [`FileEdit`](#fileedit)
@@ -1157,6 +1158,12 @@ interface StackTraceElement {
   location?: Range;
 }
 ```
+
+### `ExecutionResult`
+
+An execution result object is produced as a result of an execution attempt.
+Compared to `Diagnostic` object it can also represent a critical failure
+information.
 
 ### `Diagnostic`
 
@@ -3796,15 +3803,21 @@ None
 
 ### `executionContext/executionFailed`
 
-Sent from the server to the client to inform about a critical failure when
-attempting to execute a context.
+Sent from the server to the client to inform about a failure when attempting to
+execute a context.
 
-When the [`executionContext/executionStatus`](#executioncontextexecutionstatus)
-notifies about potential problems in the code found by compiler, or the errors
-during runtime, this message signals about the errors in the logic or the
-implementation. It can be a compiler crash, an attempt to execute an empty
-stack, an error location a method or a module when issuing a
+The [`executionContext/executionStatus`](#executioncontextexecutionstatus)
+notifies about potential problems in the code found by compiler which did not
+prevent the execution from completing successfully. This message signals about
+the non-critical errors during runtime, or critical failures in the logic or the
+implementation. A critical failure can be a compiler crash, an attempt to
+execute an empty stack, an error location a method or a module when issuing a
 [`executionContext/push`](#executioncontextpush) command.
+
+`executionContext/executionFailed` and
+[`executionContext/executionComplete`](#executioncontextexecutioncomplete)
+messages are mutually exclusive, indicating a failed or a successful execution,
+respectively.
 
 - **Type:** Notification
 - **Direction:** Server -> Client
@@ -3821,14 +3834,9 @@ stack, an error location a method or a module when issuing a
   contextId: ContextId;
 
   /**
-   * The error message.
+   * The details of the failed execution.
    */
-  message: String;
-
-  /**
-   * The location of a file producing the error.
-   */
-  path?: Path;
+  result: ExecutionResult;
 }
 ```
 
@@ -3840,6 +3848,11 @@ None
 
 Sent from the server to the client to inform about the successful execution of a
 context.
+
+`executionContext/executionFailed` and
+[`executionContext/executionComplete`](#executioncontextexecutioncomplete)
+messages are mutually exclusive, indicating a failed or a successful execution,
+respectively.
 
 - **Type:** Notification
 - **Direction:** Server -> Client
