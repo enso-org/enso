@@ -262,7 +262,8 @@ type Table
     column_count : Integer
     column_count self = self.java_table.getColumns.length
 
-    ## Returns a new table with a chosen subset of columns, as specified by the
+    ## ICON select_column
+       Returns a new table with a chosen subset of columns, as specified by the
        `columns`, from the input table. Any unmatched input columns will be
        dropped from the output.
 
@@ -309,8 +310,6 @@ type Table
          Select the first two columns and the last column, moving the last one to front.
 
              table.select_columns [-1, 0, 1] reorder=True
-
-       Icon: select_column
     @columns Widget_Helpers.make_column_name_vector_selector
     select_columns :  Vector (Integer | Text | Column_Selector) | Text | Integer -> Boolean -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns
     select_columns self columns=[self.columns.first.name] (reorder = False) (error_on_missing_columns = True) (on_problems = Report_Warning) =
