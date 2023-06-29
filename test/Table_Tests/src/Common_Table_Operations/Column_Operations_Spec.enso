@@ -182,15 +182,6 @@ spec setup =
             ((t.at "A") == (t.at "B")) . to_vector . should_equal r_sensitive
             ((t.at "A").equals_ignore_case (t.at "B")) . to_vector . should_equal r_insensitive
 
-        Test.specify "should allow to fill empty/nothing values" <|
-            t = table_builder [["X", ["a", "", " ", Nothing, "b"]]]
-
-            c1 = t.at "X" . fill_nothing "NA"
-            c1.to_vector . should_equal ["a", "", " ", "NA", "b"]
-
-            c2 = t.at "X" . fill_empty "<empty>"
-            c2.to_vector . should_equal ["a", "<empty>", " ", "<empty>", "b"]
-
         Test.specify "should report a warning if checking equality on floating point columns" <|
             t = table_builder [["X", [1.0, 2.1, 3.2]], ["Y", [1.0, 2.0, 3.2]]]
 
@@ -201,6 +192,33 @@ spec setup =
             r2 = (t.at "X") != (t.at "Y")
             r2.to_vector . should_equal [False, True, False]
             Problems.expect_warning Floating_Point_Equality r2
+
+    Test.group prefix+"fill_nothing/emptyasdfasdf" <|
+        Test.specify "should allow to fill_nothing from a value" <|
+            col = table_builder [["col", [0, Nothing, 4, 5, Nothing, Nothing]]] . at "col"
+            default = 300
+            r = col.fill_nothing default
+            r.to_vector . should_equal [0, 300, 4, 5, 300, 300]
+            r.name . should_equal "col"
+
+        Test.specify "should allow to fill_nothing from another column" <|
+            t = table_builder [["col", [0, Nothing, 4, 5, Nothing, Nothing]], ["def", [1, 2, 10, 20, Nothing, 30]]]
+            r = t.at "col" . fill_nothing (t.at "def")
+            r.to_vector . should_equal [0, 2, 4, 5, Nothing, 30]
+            r.name . should_equal "col"
+
+        Test.specify "should allow to fill_empty from a value" <|
+            col = table_builder [["col", ["0", Nothing, "4", "5", Nothing, Nothing]]] . at "col"
+            default = "default"
+            r = col.fill_empty default
+            r.to_vector . should_equal ["0", "default", "4", "5", "default", "default"]
+            r.name . should_equal "col"
+
+        Test.specify "should allow to fill_empty from another column" <|
+            t = table_builder [["col", ["0", Nothing, "4", "5", Nothing, Nothing]], ["def", ["1", "2", "10", "20", Nothing, "30"]]]
+            r = t.at "col" . fill_nothing (t.at "def")
+            r.to_vector . should_equal ["0", "2", "4", "5", Nothing, "30"]
+            r.name . should_equal "col"
 
     Test.group prefix+"Column Comparisons" <|
         Test.specify "should allow to compare numbers" <|

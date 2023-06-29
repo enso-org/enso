@@ -939,11 +939,11 @@ type Column
          will be used.
 
        > Example
-         Fill missing values in a column with the value "hello".
+         Fill empty values in a column with the value "hello".
 
              import Standard.Examples
 
-             example_fill_nothing = Examples.text_column_1 "hello"
+             example_fill_empty = Examples.text_column_1 "hello"
     fill_empty : Column | Any -> Column
     fill_empty self default =
         Value_Type.expect_text self <|
