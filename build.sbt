@@ -775,6 +775,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
     (Compile / run / fork) := true,
     (Test / fork) := true,
     (Compile / run / connectInput) := true,
+    commands += WithDebugCommand.withDebug,
     libraryDependencies ++= akka ++ Seq(akkaTestkit % Test),
     libraryDependencies ++= circe,
     libraryDependencies ++= Seq(
