@@ -165,8 +165,8 @@ public final class EnsoHashMap implements TruffleObject {
 
   @ExportMessage
   @TruffleBoundary
-  Object toDisplayString(boolean allowSideEffects,
-      @CachedLibrary(limit = "5") InteropLibrary interop) {
+  Object toDisplayString(
+      boolean allowSideEffects, @CachedLibrary(limit = "5") InteropLibrary interop) {
     var sb = new StringBuilder();
     sb.append("{");
     boolean empty = true;
@@ -207,7 +207,6 @@ public final class EnsoHashMap implements TruffleObject {
     }
     return keyStr + "=" + valStr;
   }
-
 
   private boolean isEntryInThisMap(StorageEntry entry) {
     return entry != null && entry.index() < snapshotSize;

@@ -101,7 +101,8 @@ public abstract class EqualsAtomNode extends Node {
   }
 
   @CompilerDirectives.TruffleBoundary
-  @Specialization(replaces = {"equalsAtomsWithDefaultComparator", "equalsAtomsWithCustomComparator"})
+  @Specialization(
+      replaces = {"equalsAtomsWithDefaultComparator", "equalsAtomsWithCustomComparator"})
   boolean equalsAtomsUncached(Atom self, Atom other) {
     if (self.getConstructor() != other.getConstructor()) {
       return false;
@@ -117,8 +118,7 @@ public abstract class EqualsAtomNode extends Node {
           CustomComparatorNode.getUncached(),
           customComparator,
           compareFunc,
-          invokeFuncNode
-      );
+          invokeFuncNode);
     }
     Object[] selfFields = StructsLibrary.getUncached().getFields(self);
     Object[] otherFields = StructsLibrary.getUncached().getFields(other);
