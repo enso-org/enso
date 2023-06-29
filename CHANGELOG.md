@@ -500,6 +500,8 @@
 - [Added AWS credential support and initial S3 list buckets API.][6973]
 - [Removed `module` argument from `enso_project` and other minor tweaks.][7052]
 - [Integrated Database write operations with Execution Contexts.][7072]
+- [`Column.fill_nothing` and `.fill_empty` no longer rename the column. Added
+  `Table.fill_nothing` and `.fill_empty`.][7166]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -723,6 +725,7 @@
 [7035]: https://github.com/enso-org/enso/pull/7035
 [7052]: https://github.com/enso-org/enso/pull/7052
 [7072]: https://github.com/enso-org/enso/pull/7072
+[7166]: https://github.com/enso-org/enso/pull/7166
 
 #### Enso Compiler
 
