@@ -713,9 +713,9 @@ type Column
          when rounding mid-point values. For example:
 
          Postgres: rounding 1.2222222222222235 to 15 decimal places returns:
-             1.222222222222223
-         SQLite: rounding 1.2222222222222235 to 15 decimal places returns:
              1.222222222222224
+         SQLite: rounding 1.2222222222222235 to 15 decimal places returns:
+             1.222222222222223
 
        ? Negative decimal place counts
          Rounding to `n` digits can be thought of as "rounding to the nearest

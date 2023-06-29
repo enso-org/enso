@@ -194,7 +194,7 @@ postgres_specific_spec connection db_name setup =
             Test.with_clue "d.value_type="+d.value_type.to_display_text+": " <|
                 d.value_type.variable_length.should_be_true
 
-    Test.group "[PostgreSQL] math functions" <|
+    Test.group "[PostgreSQL] math functionsasdfasdf" <|
         Test.specify "round, trunc, ceil, floor" <|
             col = table_builder [["x", [0.1, 0.9, 3.1, 3.9, -0.1, -0.9, -3.1, -3.9]]] . at "x"
             col . cast Value_Type.Integer . ceil . value_type . should_equal Value_Type.Float
