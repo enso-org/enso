@@ -1572,14 +1572,16 @@ class RuntimeServerTest
         contextId,
         id_x1_1,
         ConstantsGen.FUNCTION_BUILTIN,
-        methodCall = Some(Api.MethodCall(
-          Api.MethodPointer(
-            "Enso_Test.Test.Main",
-            "Enso_Test.Test.Main.T",
-            "func1"
-          ),
-          Vector(1, 2)
-        )),
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Enso_Test.Test.Main",
+              "Enso_Test.Test.Main.T",
+              "func1"
+            ),
+            Vector(1, 2)
+          )
+        ),
         payload = Api.ExpressionUpdate.Payload.Value(
           functionSchema = Some(
             Api.FunctionSchema(
@@ -1593,14 +1595,16 @@ class RuntimeServerTest
         contextId,
         id_x1_2,
         ConstantsGen.FUNCTION_BUILTIN,
-        methodCall = Some(Api.MethodCall(
-          Api.MethodPointer(
-            "Enso_Test.Test.Main",
-            "Enso_Test.Test.Main.T",
-            "func1"
-          ),
-          Vector(2)
-        )),
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Enso_Test.Test.Main",
+              "Enso_Test.Test.Main.T",
+              "func1"
+            ),
+            Vector(2)
+          )
+        ),
         payload = Api.ExpressionUpdate.Payload.Value(
           functionSchema = Some(
             Api.FunctionSchema(
