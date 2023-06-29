@@ -623,7 +623,7 @@ class RuntimeVersionManager(
           val msg = translateError(error)
           logger.warn(
             "Failed to install required components on the existing [{}]. " +
-            "Some language features may be unavailable. {}.",
+            "Some language features may be unavailable. {}",
             runtime,
             msg
           )
@@ -642,7 +642,7 @@ class RuntimeVersionManager(
       case OS.MacOS => msg
       case OS.Windows =>
         if (msg.contains("-1073741515")) {
-          "Required Microsoft Visual C++ installation is missing"
+          "Required Microsoft Visual C++ installation is missing."
         } else {
           msg
         }
