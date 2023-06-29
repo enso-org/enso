@@ -688,11 +688,12 @@ type Vector a
              [1] + [2]
     + : Vector Any -> Vector Any
     + self that = case that of
-        _ : Vector ->
-            get_value idx = if idx < self.length then self.at idx else that.at (idx - self.length)
-            Vector.new (self.length + that.length) get_value
+        _ : Vector -> self.insert_builtin self.length that
         _ : Array -> self + Vector.from_polyglot_array that
         _ -> Error.throw (Type_Error.Error Vector that "that")
+
+    ## PRIVATE
+    insert_builtin self at values = @Builtin_Method("Vector.insert_builtin")
 
     ## Inserts the given item into the vector at the given index.
 
@@ -716,7 +717,7 @@ type Vector a
         if used_index < 0 || used_index > self_len then Error.throw (Index_Out_Of_Bounds.Error at self_len+1) else
             if used_index == self_len then self + [item] else
                 if used_index == 0 then [item] + self else
-                    (self.slice 0 used_index) + [item] + (self.slice used_index self.length)
+                    self.insert_builtin used_index [item]
 
     ## Removes the item at the given index from the vector.
 
@@ -729,7 +730,10 @@ type Vector a
         self_len = self.length
         used_index = if at < 0 then self_len + at else at
         if used_index >= self_len || used_index < 0 then Error.throw (Index_Out_Of_Bounds.Error at self_len) else
-            (self.slice 0 used_index) + (self.slice used_index+1 self.length)
+            self.remove_builtin used_index
+
+    ## PRIVATE
+    remove_builtin self at = @Builtin_Method("Vector.remove_builtin")
 
     ## When `self` is a vector of text values, concatenates all the values by
        interspersing them with `separator`.

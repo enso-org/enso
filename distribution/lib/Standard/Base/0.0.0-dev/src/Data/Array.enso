@@ -14,6 +14,7 @@ import project.Errors.Common.Incomparable_Values
 import project.Errors.Common.Not_Found
 import project.Errors.Common.Index_Out_Of_Bounds
 import project.Errors.Problem_Behavior.Problem_Behavior
+import project.Errors.Unimplemented.Unimplemented
 import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
@@ -226,6 +227,9 @@ type Array
     insert : Integer -> Any -> Vector ! Index_Out_Of_Bounds
     insert self at=self.length item=Nothing = Vector.insert self at item
 
+    ## PRIVATE
+    insert_builtin self at values = Error.throw (Unimplemented.Error "Array.insert_builtin.")
+
     ## Removes the item at the given index from the array.
 
        Arguments:
@@ -234,6 +238,9 @@ type Array
          end.
     remove : Integer -> Vector
     remove self at=-1 = Vector.remove self at
+
+    ## PRIVATE
+    remove_builtin self at = Error.throw (Unimplemented.Error "Array.remove_builtin.")
 
     ## Get the first element from the array, or an `Index_Out_Of_Bounds` if the array
        is empty.
