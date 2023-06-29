@@ -294,19 +294,7 @@ impl Registry {
             mouse_up <- mouse.up.map(f!([registry](e)
                 (default(), registry.on_release(e.simple_name()))));
             event <- any(kb_down, kb_up, mouse_down, mouse_up);
-            // Delay command execution. Because pointer-based shortcut events are delivered
-            // regardless of pointer location, a pattern used e.g. by `ensogl_text` is to:
-            // A. Update the focus state as appropriate.
-            // B. Use the focus state as a condition for shortcuts.
-            //
-            // Note that the other handler (A), and the shortcut (B) may be triggered in response to
-            // the same event. Thus relative timing of the event handlers is important, and in
-            // particular users of the `shortcut` API may need to run other events *before*
-            // shortcuts are run and their conditions are checked. We achieve this by using
-            // `batch()` to schedule the events. Any handlers connected directly to pointer events
-            // (not delayed through a `microtask`) will be run first.
-            delayed_event <- event.batch().iter();
-            eval delayed_event (((event, rules)) model.process_rules(event, rules));
+            eval event (((event, rules)) model.process_rules(event, rules));
         }
     }
 }
@@ -360,6 +348,7 @@ impl RegistryModel {
             }
         }
         if !targets.is_empty() {
+            warn!("- stop_propagation");
             stop_propagation();
         }
         for (target, name) in targets {
