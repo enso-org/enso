@@ -14,7 +14,7 @@ run_common_spec spec =
     empty_table = table.take 0
     materialize = x->x
 
-    setup = Common_Table_Operations.Main.Test_Setup.Config "[In-Memory] " table empty_table Table.new materialize is_database=False test_selection=selection aggregate_test_selection=aggregate_selection
+    setup = Common_Table_Operations.Main.Test_Setup.Config "[In-Memory] " table empty_table Table.new materialize is_database=False test_selection=selection aggregate_test_selection=aggregate_selection connection=Nothing
     spec setup
 
 spec =
