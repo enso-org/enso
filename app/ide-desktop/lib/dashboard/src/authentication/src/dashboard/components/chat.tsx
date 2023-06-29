@@ -864,7 +864,7 @@ function Chat(props: ChatProps) {
                                 rows={1}
                                 autoFocus
                                 required
-                                placeholder="Type your message... (Shift+Enter to add a newline)"
+                                placeholder="Type your message ..."
                                 className="w-full rounded-lg resize-none p-1"
                                 onKeyDown={event => {
                                     switch (event.key) {
@@ -883,8 +883,8 @@ function Chat(props: ChatProps) {
                                     const element = event.currentTarget
                                     element.style.height = '0px'
                                     element.style.height =
-                                        `min(${MAX_MESSAGE_INPUT_LINES}lh,` +
-                                        `${element.scrollHeight}px)`
+                                        `max(1lh, min(${MAX_MESSAGE_INPUT_LINES}lh,` +
+                                        `${element.scrollHeight}px))`
                                     const newIsReplyEnabled = element.value !== ''
                                     if (newIsReplyEnabled !== isReplyEnabled) {
                                         setIsReplyEnabled(newIsReplyEnabled)
