@@ -83,8 +83,10 @@ export enum ChatMessageDataType {
     // Messages from the client to the server.
     /** The authentication token. */
     authenticate = 'authenticate',
+    /** Sent when the user is requesting scrollback history. */
+    historyBefore = 'history-before',
     /** Create a new thread with an initial message. */
-    newThread = 'newThread',
+    newThread = 'new-thread',
     /** Rename an existing thread. */
     renameThread = 'rename-thread',
     /** Change the currently active thread. */
@@ -120,13 +122,23 @@ export interface ChatServerThreadsMessageData
     threads: ThreadData[]
 }
 
+/** All possible message types that may trigger a {@link ChatServerThreadMessageData} response. */
+export type ChatServerThreadRequestType =
+    | ChatMessageDataType.authenticate
+    | ChatMessageDataType.historyBefore
+    | ChatMessageDataType.newThread
+    | ChatMessageDataType.switchThread
+
 /** Thread details and recent messages.
  * This message is sent every time the user switches threads. */
 export interface ChatServerThreadMessageData
     extends ChatBaseMessageData<ChatMessageDataType.serverThread> {
+    /** The type of the message that triggered this response. */
+    requestType: ChatServerThreadRequestType
     title: MessageId
     id: ThreadId
-    // FIXME: decide on the format for serialized messages.
+    /** `true` if there is no more message history before these messages. */
+    isAtBeginning: boolean
     messages: (ChatServerMessageMessageData | ChatServerReplayedMessageMessageData)[]
 }
 
@@ -136,24 +148,29 @@ export interface ChatServerMessageMessageData
     id: MessageId
     authorAvatar: string | null
     authorName: string
-    timestamp: number
     content: string
+    /** Milliseconds since the Unix epoch. */
+    timestamp: number
+    /** Milliseconds since the Unix epoch. */
+    editedTimestamp: number | null
 }
 
 /** A regular edited chat message from the server to the client. */
 export interface ChatServerEditedMessageMessageData
     extends ChatBaseMessageData<ChatMessageDataType.serverEditedMessage> {
     id: MessageId
-    timestamp: number
     content: string
+    /** Milliseconds since the Unix epoch. */
+    timestamp: number
 }
 
 /** A replayed message from the client to the server. Includes the timestamp of the message. */
 export interface ChatServerReplayedMessageMessageData
     extends ChatBaseMessageData<ChatMessageDataType.serverReplayedMessage> {
     id: MessageId
-    timestamp: number
     content: string
+    /** Milliseconds since the Unix epoch. */
+    timestamp: number
 }
 
 /** A message from the server to the client. */
@@ -172,6 +189,12 @@ export type ChatServerMessageData =
 export interface ChatAuthenticateMessageData
     extends ChatBaseMessageData<ChatMessageDataType.authenticate> {
     accessToken: string
+}
+
+/** Sent when the user is requesting scrollback history. */
+export interface ChatHistoryBeforeMessageData
+    extends ChatBaseMessageData<ChatMessageDataType.historyBefore> {
+    messageId: MessageId
 }
 
 /** Sent when the user sends a message in a new thread. */
@@ -203,7 +226,6 @@ export interface ChatMessageMessageData extends ChatBaseMessageData<ChatMessageD
 
 /** A reaction to a message sent by staff. */
 export interface ChatReactionMessageData extends ChatBaseMessageData<ChatMessageDataType.reaction> {
-    threadId: ThreadId
     messageId: MessageId
     reaction: string
 }
@@ -218,6 +240,7 @@ export interface ChatMarkAsReadMessageData
 /** A message from the client to the server. */
 export type ChatClientMessageData =
     | ChatAuthenticateMessageData
+    | ChatHistoryBeforeMessageData
     | ChatMarkAsReadMessageData
     | ChatMessageMessageData
     | ChatNewThreadMessageData
@@ -251,7 +274,6 @@ interface ChatDisplayMessage {
 
 /** Props for a {@link ReactionBar}. */
 export interface ReactionBarProps {
-    threadId: ThreadId
     messageId: MessageId
     sendMessage: (message: ChatClientMessageData) => void
     selectedReactions: Set<Reaction>
@@ -259,7 +281,7 @@ export interface ReactionBarProps {
 
 /** A list of emoji reactions to choose from. */
 function ReactionBar(props: ReactionBarProps) {
-    const { threadId, messageId, sendMessage, selectedReactions } = props
+    const { messageId, sendMessage, selectedReactions } = props
 
     return (
         <div className="inline-block bg-white rounded-full m-1">
@@ -269,7 +291,6 @@ function ReactionBar(props: ReactionBarProps) {
                     onClick={() => {
                         sendMessage({
                             type: ChatMessageDataType.reaction,
-                            threadId,
                             messageId,
                             reaction: emoji,
                         })
@@ -318,7 +339,6 @@ function Reactions(props: ReactionsProps) {
 
 /** Props for a {@link ChatMessage}. */
 export interface ChatMessageProps {
-    threadId: ThreadId
     message: ChatDisplayMessage
     reactions: Reaction[]
     shouldShowReactionBar: boolean
@@ -327,11 +347,10 @@ export interface ChatMessageProps {
 
 /** A chat message, including user info, sent date, and reactions (if any). */
 function ChatMessage(props: ChatMessageProps) {
-    const { threadId, message, reactions, shouldShowReactionBar, sendMessage } = props
+    const { message, reactions, shouldShowReactionBar, sendMessage } = props
     return (
         <div className="m-2">
             <div className="flex">
-                {/* FIXME: This should default to the default user image. */}
                 <img
                     crossOrigin="anonymous"
                     src={message.avatar ?? DefaultUserIcon}
@@ -350,7 +369,6 @@ function ChatMessage(props: ChatMessageProps) {
             </div>
             {shouldShowReactionBar && (
                 <ReactionBar
-                    threadId={threadId}
                     messageId={message.id}
                     sendMessage={sendMessage}
                     // FIXME:
@@ -385,13 +403,19 @@ function Chat(props: ChatProps) {
 
     const [isPaidUser, setIsPaidUser] = react.useState(true)
     const [isReplyEnabled, setIsReplyEnabled] = react.useState(false)
+    // `true` if and only if scrollback was triggered for the current thread.
+    const [shouldIgnoreMessageLimit, setShouldIgnoreMessageLimit] = react.useState(false)
+    const [isAtBeginning, setIsAtBeginning] = react.useState(false)
     const [threads, setThreads] = react.useState<ThreadData[]>([])
     const [messages, setMessages] = react.useState<ChatDisplayMessage[]>([])
     const [threadId, setThreadId] = react.useState<ThreadId | null>(null)
     const [isThreadListVisible, setIsThreadListVisible] = react.useState(false)
     const [threadTitle, setThreadTitle] = react.useState(DEFAULT_THREAD_TITLE)
     const [isThreadTitleEditable, setIsThreadTitleEditable] = react.useState(false)
-    const [isThreadTitleEditingCanceled, setIsThreadTitleEditingCanceled] = react.useState(false)
+    const [isAtTop, setIsAtTop] = react.useState(false)
+    const [isAtBottom, setIsAtBottom] = react.useState(true)
+    const [messagesHeightBeforeMessageHistory, setMessagesHeightBeforeMessageHistory] =
+        react.useState<number | null>(null)
     // TODO: proper URL
     const [websocket] = react.useState(() => new WebSocket('ws://localhost:8082'))
     const [right, setTargetRight] = animations.useInterpolateOverTime(
@@ -404,6 +428,8 @@ function Chat(props: ChatProps) {
     const titleInputRef = react.useRef<HTMLInputElement>(null!)
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const messageInputRef = react.useRef<HTMLTextAreaElement>(null!)
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const messagesRef = react.useRef<HTMLDivElement>(null!)
 
     react.useEffect(() => {
         setIsPaidUser(false)
@@ -411,6 +437,16 @@ function Chat(props: ChatProps) {
             websocket.close()
         }
     }, [])
+
+    react.useLayoutEffect(() => {
+        const element = messagesRef.current
+        if (isAtTop && messagesHeightBeforeMessageHistory != null) {
+            element.scrollTop = element.scrollHeight - messagesHeightBeforeMessageHistory
+            setMessagesHeightBeforeMessageHistory(null)
+        } else if (isAtBottom) {
+            element.scrollTop = element.scrollHeight - element.clientHeight
+        }
+    }, [messages])
 
     react.useEffect(() => {
         const onMessage = (data: MessageEvent) => {
@@ -428,37 +464,46 @@ function Chat(props: ChatProps) {
                     case ChatMessageDataType.serverThread: {
                         setThreadId(message.id)
                         setThreadTitle(message.title)
+                        setIsAtBeginning(message.isAtBeginning)
                         titleInputRef.current.value = message.title
-                        setMessages(
-                            message.messages.flatMap(innerMessage => {
-                                switch (innerMessage.type) {
-                                    case ChatMessageDataType.serverMessage: {
-                                        const displayMessage: ChatDisplayMessage = {
-                                            id: innerMessage.id,
-                                            isStaffMessage: true,
-                                            content: innerMessage.content,
-                                            avatar: innerMessage.authorAvatar,
-                                            name: innerMessage.authorName,
-                                            timestamp: innerMessage.timestamp,
-                                            editedTimestamp: null, // FIXME:
-                                        }
-                                        return displayMessage
+                        const newMessages = message.messages.flatMap(innerMessage => {
+                            switch (innerMessage.type) {
+                                case ChatMessageDataType.serverMessage: {
+                                    const displayMessage: ChatDisplayMessage = {
+                                        id: innerMessage.id,
+                                        isStaffMessage: true,
+                                        content: innerMessage.content,
+                                        avatar: innerMessage.authorAvatar,
+                                        name: innerMessage.authorName,
+                                        timestamp: innerMessage.timestamp,
+                                        editedTimestamp: null, // FIXME:
                                     }
-                                    case ChatMessageDataType.serverReplayedMessage: {
-                                        const displayMessage: ChatDisplayMessage = {
-                                            id: innerMessage.id,
-                                            isStaffMessage: false,
-                                            content: innerMessage.content,
-                                            avatar: null,
-                                            name: 'Me',
-                                            timestamp: innerMessage.timestamp,
-                                            editedTimestamp: null,
-                                        }
-                                        return displayMessage
-                                    }
+                                    return displayMessage
                                 }
-                            })
-                        )
+                                case ChatMessageDataType.serverReplayedMessage: {
+                                    const displayMessage: ChatDisplayMessage = {
+                                        id: innerMessage.id,
+                                        isStaffMessage: false,
+                                        content: innerMessage.content,
+                                        avatar: null,
+                                        name: 'Me',
+                                        timestamp: innerMessage.timestamp,
+                                        editedTimestamp: null,
+                                    }
+                                    return displayMessage
+                                }
+                            }
+                        })
+                        switch (message.requestType) {
+                            case ChatMessageDataType.historyBefore: {
+                                setMessages(oldMessages => [...newMessages, ...oldMessages])
+                                break
+                            }
+                            default: {
+                                setMessages(newMessages)
+                                break
+                            }
+                        }
                         break
                     }
                     case ChatMessageDataType.serverMessage: {
@@ -471,9 +516,12 @@ function Chat(props: ChatProps) {
                             timestamp: message.timestamp,
                             editedTimestamp: null,
                         }
-                        setMessages(oldMessages =>
-                            [...oldMessages, newMessage].slice(-MAX_MESSAGE_HISTORY)
-                        )
+                        setMessages(oldMessages => {
+                            const newMessages = [...oldMessages, newMessage]
+                            return shouldIgnoreMessageLimit
+                                ? newMessages
+                                : newMessages.slice(-MAX_MESSAGE_HISTORY)
+                        })
                         break
                     }
                     case ChatMessageDataType.serverEditedMessage: {
@@ -512,7 +560,7 @@ function Chat(props: ChatProps) {
             websocket.removeEventListener('message', onMessage)
             websocket.removeEventListener('open', onOpen)
         }
-    }, [websocket])
+    }, [websocket, shouldIgnoreMessageLimit])
 
     const container = document.getElementById(HELP_CHAT_ID)
 
@@ -594,20 +642,22 @@ function Chat(props: ChatProps) {
                         threadId,
                         content,
                     })
-                    setMessages(oldMessages =>
-                        [...oldMessages, newMessage].slice(-MAX_MESSAGE_HISTORY)
-                    )
+                    setMessages(oldMessages => {
+                        const newMessages = [...oldMessages, newMessage]
+                        return shouldIgnoreMessageLimit
+                            ? newMessages
+                            : newMessages.slice(-MAX_MESSAGE_HISTORY)
+                    })
                 }
             }
         },
-        [sendMessage, threadId]
+        [sendMessage, threadId, shouldIgnoreMessageLimit]
     )
 
     const maybeMakeThreadTitleEditable = react.useCallback((event: react.MouseEvent) => {
         if (event.ctrlKey && !event.altKey && !event.metaKey && !event.shiftKey) {
             event.stopPropagation()
             setIsThreadTitleEditable(true)
-            setIsThreadTitleEditingCanceled(false)
             setIsThreadListVisible(false)
             setTimeout(() => {
                 titleInputRef.current.focus()
@@ -634,21 +684,22 @@ function Chat(props: ChatProps) {
                 <div className="flex text-sm font-semibold mx-1">
                     <button className="flex grow items-center" onClick={toggleThreadListVisibility}>
                         <img src={TriangleDownIcon} />{' '}
-                        {/* TODO: reset to current value when editing canceled */}
-                        <div onClick={maybeMakeThreadTitleEditable}>
+                        <div className="grow" onClick={maybeMakeThreadTitleEditable}>
                             <input
                                 type="text"
                                 ref={titleInputRef}
                                 disabled={!isThreadTitleEditable}
                                 defaultValue={threadTitle}
-                                className={`cursor-pointer bg-transparent ${
-                                    isThreadTitleEditable ? '' : 'pointer-events-none'
+                                className={`bg-transparent w-full ${
+                                    isThreadTitleEditable
+                                        ? ''
+                                        : 'cursor-pointer pointer-events-none'
                                 }`}
                                 onKeyDown={event => {
                                     switch (event.key) {
                                         case 'Escape': {
                                             setIsThreadTitleEditable(false)
-                                            setIsThreadTitleEditingCanceled(true)
+                                            event.currentTarget.value = threadTitle
                                             break
                                         }
                                         case 'Enter': {
@@ -659,25 +710,21 @@ function Chat(props: ChatProps) {
                                 }}
                                 onBlur={event => {
                                     setIsThreadTitleEditable(false)
-                                    if (isThreadTitleEditingCanceled) {
-                                        event.currentTarget.value = threadTitle
-                                    } else {
-                                        const newTitle = event.currentTarget.value
-                                        setThreadTitle(newTitle)
-                                        if (threadId != null) {
-                                            setThreads(oldThreads =>
-                                                oldThreads.map(thread =>
-                                                    thread.id !== threadId
-                                                        ? thread
-                                                        : { ...thread, title: newTitle }
-                                                )
+                                    const newTitle = event.currentTarget.value
+                                    setThreadTitle(newTitle)
+                                    if (threadId != null) {
+                                        setThreads(oldThreads =>
+                                            oldThreads.map(thread =>
+                                                thread.id !== threadId
+                                                    ? thread
+                                                    : { ...thread, title: newTitle }
                                             )
-                                            sendMessage({
-                                                type: ChatMessageDataType.renameThread,
-                                                title: newTitle,
-                                                threadId: threadId,
-                                            })
-                                        }
+                                        )
+                                        sendMessage({
+                                            type: ChatMessageDataType.renameThread,
+                                            title: newTitle,
+                                            threadId: threadId,
+                                        })
                                     }
                                 }}
                             />
@@ -718,12 +765,35 @@ function Chat(props: ChatProps) {
                         </div>
                     </div>
                 </div>
-                <div className="grow">
+                <div
+                    ref={messagesRef}
+                    className="flex-1 overflow-scroll"
+                    onScroll={event => {
+                        const element = event.currentTarget
+                        const isNowAtTop = element.scrollTop === 0
+                        const isNowAtBottom =
+                            element.scrollTop + element.clientHeight === element.scrollHeight
+                        const firstMessage = messages[0]
+                        if (isNowAtTop && !isAtBeginning && firstMessage != null) {
+                            setShouldIgnoreMessageLimit(true)
+                            sendMessage({
+                                type: ChatMessageDataType.historyBefore,
+                                messageId: firstMessage.id,
+                            })
+                            setMessagesHeightBeforeMessageHistory(element.scrollHeight)
+                        }
+                        if (isNowAtTop !== isAtTop) {
+                            setIsAtTop(isNowAtTop)
+                        }
+                        if (isNowAtBottom !== isAtBottom) {
+                            setIsAtBottom(isNowAtBottom)
+                        }
+                    }}
+                >
                     {threadId != null &&
                         messages.map(message => (
                             <ChatMessage
                                 key={message.id}
-                                threadId={threadId}
                                 message={message}
                                 reactions={[]}
                                 sendMessage={sendMessage}
@@ -758,7 +828,9 @@ function Chat(props: ChatProps) {
                                 onInput={event => {
                                     const element = event.currentTarget
                                     element.style.height = '0px'
-                                    element.style.height = `min(${MAX_MESSAGE_INPUT_LINES}lh, ${element.scrollHeight}px)`
+                                    element.style.height =
+                                        `min(${MAX_MESSAGE_INPUT_LINES}lh,` +
+                                        `${element.scrollHeight}px)`
                                     const newIsReplyEnabled = element.value !== ''
                                     if (newIsReplyEnabled !== isReplyEnabled) {
                                         setIsReplyEnabled(newIsReplyEnabled)

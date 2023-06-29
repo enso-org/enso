@@ -32,10 +32,11 @@ export function useInterpolateOverTime(
         let isRunning = true
         const onTick = () => {
             const fraction = Math.min((Number(new Date()) - startTime) / durationMs, 1)
-            setValue(startValue + (endValue - startValue) * interpolationFunction(fraction))
             if (isRunning && fraction < 1) {
+                setValue(startValue + (endValue - startValue) * interpolationFunction(fraction))
                 requestAnimationFrame(onTick)
             } else {
+                setValue(endValue)
                 setStartValue(endValue)
             }
         }
