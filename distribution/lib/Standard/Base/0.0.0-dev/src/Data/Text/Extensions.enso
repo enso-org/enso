@@ -13,6 +13,7 @@ import project.Data.Text.Location.Location
 import project.Data.Text.Matching_Mode.Matching_Mode
 import project.Data.Text.Regex
 import project.Data.Text.Regex.Match.Match
+import project.Data.Text.Regex.Pattern.Pattern
 import project.Data.Text.Regex.Regex_Syntax_Error
 import project.Data.Text.Span.Span
 import project.Data.Text.Span.Utf_16_Span
@@ -302,6 +303,23 @@ Text.match self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
     case_insensitive = case_sensitivity.is_case_insensitive_in_memory
     compiled_pattern = Regex.compile pattern case_insensitive=case_insensitive
     compiled_pattern.matches self
+
+## Compile the text into a regex pattern that can be used for matching.
+
+   Arguments
+   - case_insensitive: Enables or disables case-insensitive matching. Case
+     insensitive matching behaves as if it normalises the case of all input
+     text before matching on it.
+
+   If an empty regex is used, `compile` throws an Illegal_Argument error.
+
+   ? Why Compile?
+     While many regex engines are able to cache ad-hoc patterns, it is often
+     useful to be able to manually retain a pattern that you have computed. This
+     function exists so you can hold onto the resultant `Pattern` object,
+     instead of immediately proceeding to match using it.
+Text.to_regex : Boolean | Nothing -> Pattern ! Regex_Syntax_Error | Illegal_Argument
+Text.to_regex self case_insensitive=Nothing = Regex.compile self case_insensitive
 
 ## ALIAS Split Text
 
