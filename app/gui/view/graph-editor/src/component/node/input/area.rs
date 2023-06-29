@@ -222,7 +222,6 @@ impl Model {
             self.hide_edit_mode_label();
             self.display_object.add_child(&self.widget_tree);
             self.edit_mode_label.set_content("");
-            self.edit_mode_label.blur();
         }
     }
 
@@ -522,7 +521,8 @@ impl Area {
 
             // === Edit Mode Focus ===
 
-            eval_ frp.input.mouse_down (model.edit_mode_label.focus());
+            // Focus our display object to defocus the CB.
+            eval_ frp.input.mouse_down (model.focus());
 
             // === Port Hover ===
 
