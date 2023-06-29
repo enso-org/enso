@@ -197,20 +197,14 @@ export class App {
      * (like wasm compilation) should be aborted. Currently, we initialize application fully
      * before using stop, but in future we need to support interruption feature. */
     stopped = false
-    accessToken: string | null = null
-    remoteLoggerUrl: URL | null = null
 
     constructor(opts?: {
         configOptions?: config.Options
         packageInfo?: Record<string, string>
         config?: config.StringConfig
-        remoteLoggerUrl?: string
-        accessToken?: string | undefined
     }) {
         this.packageInfo = new debug.PackageInfo(opts?.packageInfo ?? {})
         this.config = config.options
-        this.remoteLoggerUrl = opts?.remoteLoggerUrl ? new URL(opts.remoteLoggerUrl) : null
-        this.accessToken = opts?.accessToken ?? null
         const parseOk = log.Task.runCollapsed('Resolving application configuration.', () => {
             const inputConfig = opts?.configOptions
             if (inputConfig != null) {
@@ -244,40 +238,11 @@ export class App {
     }
 
     /** Log the message on the remote server. */
+    // This method is assumed to be overriden by the App's owner. Eventually it should be removed from the runner
+    // altogether, as it is not its responsibility.
+    // eslint-disable-next-line @typescript-eslint/require-await, @typescript-eslint/no-unused-vars
     async remoteLog(message: string, data: any) {
-        try {
-            if (
-                this.config.options.dataCollection.value &&
-                this.remoteLoggerUrl &&
-                this.accessToken
-            ) {
-                const headers: HeadersInit = new Headers()
-                headers.set('Content-Type', 'application/json')
-                headers.set('Authorization', `Bearer ${this.accessToken}`)
-                const response = await fetch(this.remoteLoggerUrl, {
-                    method: 'POST',
-                    headers: headers,
-                    body: JSON.stringify({
-                        message: message,
-                        metadata: data,
-                    }),
-                })
-                if (!response.ok) {
-                    const errorMessage = `Error while logging message: Status ${response.status}.`
-                    try {
-                        const text = await response.text()
-                        throw new Error(`${errorMessage} Response: ${text}.`)
-                    } catch (error) {
-                        throw new Error(
-                            `${errorMessage} Failed to read response: ${String(error)}.`
-                        )
-                    }
-                }
-            }
-        } catch (error) {
-            logger.error(error)
-            throw error
-        }
+        console.warn('Remote logging is not set up.')
     }
 
     /** Initialize the browser. Set the background color, print user-facing warnings, etc. */

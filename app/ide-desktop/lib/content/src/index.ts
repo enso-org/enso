@@ -10,7 +10,7 @@ import * as contentConfig from 'enso-content-config'
 import * as detect from 'enso-common/src/detect'
 
 import * as app from '../../../../../target/ensogl-pack/linked-dist'
-import * as authConfig from '../../dashboard/src/authentication/src/config'
+import * as remoteLog from './remoteLog'
 import GLOBAL_CONFIG from '../../../../gui/config.yaml' assert { type: 'yaml' }
 
 const logger = app.log.logger
@@ -34,8 +34,6 @@ const SERVICE_WORKER_PATH = '/serviceWorker.js'
 const SECOND = 1000
 /** Time in seconds after which a `fetchTimeout` ends. */
 const FETCH_TIMEOUT = 300
-/** URL address where remote logs should be sent. */
-const REMOTE_LOG_URL = `${authConfig.ACTIVE_CONFIG.apiUrl}/logs`
 
 // ===================
 // === Live reload ===
@@ -168,16 +166,27 @@ class Main implements AppRunner {
             inputConfig
         )
 
-        this.app = new app.App({
+        const newApp = new app.App({
             config,
             configOptions: contentConfig.OPTIONS,
             packageInfo: {
                 version: BUILD_INFO.version,
                 engineVersion: BUILD_INFO.engineVersion,
             },
-            remoteLoggerUrl: REMOTE_LOG_URL,
-            accessToken: accessToken,
         })
+
+        const remoteLogger = accessToken ? new remoteLog.RemoteLogger(accessToken) : null
+        newApp.remoteLog = async (message: string, metadata: unknown) => {
+            if (newApp.config.options.dataCollection.value && remoteLogger) {
+                await remoteLogger.remoteLog(message, metadata)
+            } else {
+                logger.log(
+                    'Not sending log to server. Data collection is disabled.' +
+                        `Message: "${message}" Metadata: ${String(metadata)}.`
+                )
+            }
+        }
+        this.app = newApp
 
         if (!this.app.initialized) {
             console.error('Failed to initialize the application.')
