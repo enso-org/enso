@@ -305,14 +305,12 @@ spec =
             actual = t.parse_to_columns "bar" "(?<quux>)(\d)(?<foo>\d)(\d)"
             actual.should_equal expected
 
-    Test.group "asdfasdf"
         Test.specify "input with no matches" <|
             t = Table.from_rows ["foo", "bar", "baz"] [["x", "a", "y"], ["xx", "q12", "yy"], ["xxx", "34r", "yyyy"]]
             expected = Table.from_rows ["foo", "bar", "baz"] [["x", Nothing, "y"], ["xx", 12, "yy"], ["xxx", 34, "yyyy"]]
             actual = t.parse_to_columns "bar" "\d+"
             actual.should_equal expected
 
-        Test.specify "input with no matches" <|
             t2 = Table.new [["amount", ["$1.23B", "$1.3M", "$2.32M $3.43B", "None"]]]
             expected2 = Table.from_rows ["Raised", "Scale"] [[1.23, "B"], [1.3, "M"], [2.32, "M"], [3.43, "B"], [Nothing, Nothing]]
             actual2 = t2.parse_to_columns "amount" "\$(?<Raised>\d+(?:.\d+)?)(?<Scale>B|M)"
