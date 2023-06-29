@@ -26,8 +26,7 @@ export class RemoteLogger {
     }
 }
 
-/**
- * Sends a log message to a remote server using the provided access token.
+/** Sends a log message to a remote server using the provided access token.
  *
  * @param accessToken - The access token for authentication.
  * @param message - The message to be logged on the server.
