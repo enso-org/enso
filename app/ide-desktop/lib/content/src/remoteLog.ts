@@ -33,7 +33,11 @@ export class RemoteLogger {
  * @param metadata - Additional metadata to include in the log.
  * @throws Will throw an error if the response from the server is not okay (response status is not 200).
  * @returns Returns a promise that resolves when the log message is successfully sent. */
-export async function remoteLog(accessToken: string, message: string, metadata: unknown): Promise<void> {
+export async function remoteLog(
+    accessToken: string,
+    message: string,
+    metadata: unknown
+): Promise<void> {
     try {
         const headers: HeadersInit = new Headers()
         headers.set('Content-Type', 'application/json')
