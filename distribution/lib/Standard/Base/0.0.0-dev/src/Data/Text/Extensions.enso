@@ -9,7 +9,7 @@ import project.Data.Text.Case_Sensitivity.Case_Sensitivity
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Location.Location
 import project.Data.Text.Matching_Mode.Matching_Mode
-import project.Data.Text.Regex
+import project.Data.Text.Regex.Regex
 import project.Data.Text.Regex.Match.Match
 import project.Data.Text.Regex.Regex_Syntax_Error
 import project.Data.Text.Span.Span
