@@ -12,30 +12,29 @@ const REMOTE_LOG_URL = new URL(`${authConfig.ACTIVE_CONFIG.apiUrl}/logs`)
 /** Helper class facilitating sending logs to a remote. */
 export class RemoteLogger {
     /** Initialize a new instance.
-     * @param accessToken JWT token used to authenticate within the cloud. */
+     * @param accessToken - JWT token used to authenticate within the cloud. */
     constructor(public accessToken: string) {
         this.accessToken = accessToken
     }
 
     /** Sends a log message to a remote.
-     * @param message The log message to send.
-     * @param metadata Additional metadata to send along with the log.
+     * @param message - The log message to send.
+     * @param metadata - Additional metadata to send along with the log.
      * @returns Promise which resolves when the log message has been sent. */
-    async remoteLog(message: string, metadata: any): Promise<void> {
+    async remoteLog(message: string, metadata: unknown): Promise<void> {
         await remoteLog(this.accessToken, message, metadata)
     }
 }
 
-/** Sends a log message to a remote server using the provided access token.
+/**
+ * Sends a log message to a remote server using the provided access token.
  *
- * @param {String} accessToken - The access token for authentication.
- * @param {string} message - The message to be logged on the server.
- * @param {unknown} metadata - Additional metadata to include in the log.
- *
+ * @param accessToken - The access token for authentication.
+ * @param message - The message to be logged on the server.
+ * @param metadata - Additional metadata to include in the log.
  * @throws Will throw an error if the response from the server is not okay (response status is not 200).
- *
- * @returns {Promise<void>} Returns a promise that resolves when the log message is successfully sent. */
-export async function remoteLog(accessToken: String, message: string, metadata: unknown) {
+ * @returns Returns a promise that resolves when the log message is successfully sent. */
+export async function remoteLog(accessToken: string, message: string, metadata: unknown): Promise<void> {
     try {
         const headers: HeadersInit = new Headers()
         headers.set('Content-Type', 'application/json')
