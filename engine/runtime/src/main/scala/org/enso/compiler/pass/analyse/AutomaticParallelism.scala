@@ -41,9 +41,6 @@ object AutomaticParallelism extends IRPass {
     DataflowAnalysis
   )
 
-  override def updateMetadataInDuplicate[T <: IR](sourceIr: T, copyOfIr: T): T =
-    copyOfIr
-
   /** An assignment of a line to a given thread.
     */
   sealed private trait BlockAssignment

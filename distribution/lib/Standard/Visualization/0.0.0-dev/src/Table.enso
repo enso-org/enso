@@ -98,7 +98,7 @@ compute_vertical_indices table start_row end_row start_line lines_to_get =
         initial_offset = agg.get 1
         result_indices = agg.get 2
         lines_in_row = (get_row_height table row_ix) - initial_offset
-        lines_to_process = Math.min lines_in_row lines_left_to_process
+        lines_to_process = lines_in_row.min lines_left_to_process
         start_line = initial_offset
         end_line = start_line + lines_to_process
         line_indices = start_line.up_to end_line . to_vector
@@ -125,7 +125,7 @@ get_chunks_for_row table row_ix line_ix initial_chunk_offset column_range chunk_
         column = table.get column_ix
         chunks_in_this_column = (((get_column_width column) / chunk_size).ceil) - chunk_offset
         chunks_left = chunks_to_get - processed_chunks_previously
-        chunks_to_process = Math.min chunks_in_this_column chunks_left
+        chunks_to_process = chunks_in_this_column.min chunks_left
         cell_text = column.at row_ix . to_text
         text_line = cell_text.lines.get line_ix
         get_chunk_by_index = get_chunk_from_line text_line chunk_size
@@ -142,7 +142,7 @@ get_chunks_for_row table row_ix line_ix initial_chunk_offset column_range chunk_
    Return the max value in the given vector.
 max : Vector Integer -> Integer
 max vector =
-    vector.fold 0 (l -> r -> Math.max l r)
+    vector.fold 0 (l -> r -> l.max r)
 
 ## PRIVATE
    Return the longest line in the given text.

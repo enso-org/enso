@@ -54,7 +54,8 @@ type Panic
     primitive_get_attached_stack_trace : Throwable -> Array
     primitive_get_attached_stack_trace throwable = @Builtin_Method "Panic.primitive_get_attached_stack_trace"
 
-    ## ADVANCED
+    ## PRIVATE
+       ADVANCED
 
        Returns the attached stack trace of the given throwable. Can be used to get
        an Enso friendly stack trace from native Java exceptions.
@@ -87,7 +88,8 @@ type Panic
     rethrow : (Any ! Any) -> Any
     rethrow value = value.catch Any Panic.throw
 
-    ## Executes the provided action and if a panic matching the provided type was
+    ## ADVANCED
+       Executes the provided action and if a panic matching the provided type was
        thrown, calls the provided callback.
 
        If action executes successfully, the result of `Panic.catch` is the result of
@@ -152,7 +154,8 @@ type Panic
         finalizer
         result
 
-    ## Executes the provided action and converts a possible panic matching any of
+    ## ADVANCED
+       Executes the provided action and converts a possible panic matching any of
        the provided types into a dataflow Error.
 
        If action executes successfully, the result of `Panic.recover` is the result

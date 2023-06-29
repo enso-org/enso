@@ -1,5 +1,4 @@
 import project.Data.Pair.Pair
-from project.Data.Range.Extensions import all
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error
@@ -13,6 +12,8 @@ import project.Warning.Warning
 
 from project.Data.Boolean import Boolean, True, False
 from project.Data.Ordering import all
+from project.Data.Range.Extensions import all
+from project.Function import const
 
 ## Any is the universal top-type, with all other types being subsumed by it.
 
@@ -264,7 +265,8 @@ type Any
 
              "Hello".if_nothing ""
     if_nothing : Any -> Any
-    if_nothing self ~_ = self
+    if_nothing self ~other =
+        const self other
 
     ## Executes the provided handler on an error, or returns the value unchanged.
 
@@ -317,7 +319,8 @@ type Any
                 error = my_map.at "x"
                 error.map_error (_ -> Example_Error_Type "x is missing")
     map_error : (Error -> Error) -> Any
-    map_error self _ = self
+    map_error self ~f =
+        const self f
 
     ## Checks if `self` is an error.
 

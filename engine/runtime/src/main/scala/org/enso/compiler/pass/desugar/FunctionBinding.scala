@@ -78,12 +78,6 @@ case object FunctionBinding extends IRPass {
     inlineContext: InlineContext
   ): IR.Expression = desugarExpression(ir)
 
-  /** @inheritdoc */
-  override def updateMetadataInDuplicate[T <: IR](
-    sourceIr: T,
-    copyOfIr: T
-  ): T = copyOfIr
-
   // === Pass Internals =======================================================
 
   /** Performs desugaring on an arbitrary Enso expression.

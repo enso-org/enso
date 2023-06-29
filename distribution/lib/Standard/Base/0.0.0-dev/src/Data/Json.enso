@@ -48,12 +48,15 @@ type Json
             parsed = json_parse json
             make_enso parsed
 
-    ## Serialize an Object to JSON
+    ## PRIVATE
+       ADVANCED
+       Serialize an Object to JSON.
     stringify : (JS_Object | Boolean | Number | Nothing | Text | Vector) -> Text
     stringify object =
         json_stringify (make_javascript object.to_js_object)
 
-    ## Convert a Vector of Keys and Values to JSON.
+    ## PRIVATE
+       Convert a Vector of Keys and Values to JSON.
        Keys must be `Text` values.
     from_pairs : Vector -> Text
     from_pairs pairs =

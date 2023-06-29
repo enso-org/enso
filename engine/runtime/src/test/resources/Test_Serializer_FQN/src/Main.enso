@@ -1,4 +1,4 @@
 import Standard.Base
 main =
-    Standard.Base.Data.Time.Date.Date.now
+    Standard.Base.Data.Time.Date.Date.today
     1
