@@ -110,7 +110,7 @@ public final class EnsoHashMap implements TruffleObject {
   }
 
   @ExportMessage
-  public int getHashSize() {
+  int getHashSize() {
     return snapshotSize;
   }
 
