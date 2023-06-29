@@ -73,7 +73,6 @@ class ClientController[F[+_, +_]: Exec: CovariantFlatMap: ErrorChannel](
         ),
       ProjectList -> ProjectListHandler
         .props[F](
-          clientId,
           projectService,
           timeoutConfig.requestTimeout,
           RequestHandler.defaultNumOfTimeoutRetries
