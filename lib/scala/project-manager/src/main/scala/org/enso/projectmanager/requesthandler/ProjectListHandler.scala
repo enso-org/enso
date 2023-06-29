@@ -25,11 +25,13 @@ import scala.concurrent.duration.FiniteDuration
   * @param clientId the requester id
   * @param service a project service
   * @param requestTimeout a request timeout
+  * @param timeoutRetries a number of timeouts to wait until a failure is reported
   */
 class ProjectListHandler[F[+_, +_]: Exec](
   @unused clientId: UUID,
   service: ProjectServiceApi[F],
-  requestTimeout: FiniteDuration
+  requestTimeout: FiniteDuration,
+  timeoutRetries: Int
 ) extends Actor
     with LazyLogging
     with UnhandledLogging {
@@ -46,13 +48,14 @@ class ProjectListHandler[F[+_, +_]: Exec](
       val cancellable =
         context.system.scheduler
           .scheduleOnce(requestTimeout, self, RequestTimeout)
-      context.become(responseStage(id, sender(), cancellable))
+      context.become(responseStage(id, sender(), cancellable, timeoutRetries))
   }
 
   private def responseStage(
     id: Id,
     replyTo: ActorRef,
-    cancellable: Cancellable
+    cancellable: Cancellable,
+    retry: Int
   ): Receive = {
     case Status.Failure(ex) =>
       logger.error("Failure during ProjectList operation.", ex)
@@ -61,9 +64,21 @@ class ProjectListHandler[F[+_, +_]: Exec](
       context.stop(self)
 
     case RequestTimeout =>
-      logger.error("Request {} with {} timed out.", ProjectList, id)
-      replyTo ! ResponseError(Some(id), ServiceError)
-      context.stop(self)
+      if (retry == 0) {
+        logger.error("Request {} with {} timed out.", ProjectList, id)
+        replyTo ! ResponseError(Some(id), ServiceError)
+        context.stop(self)
+      } else {
+        val cancellable =
+          context.system.scheduler
+            .scheduleOnce(requestTimeout, self, RequestTimeout)
+        val retriesLeft = retry - 1
+        logger.warn(
+          "Pending ProjectList response. Timeout retries left: {}.",
+          retriesLeft
+        )
+        responseStage(id, replyTo, cancellable, retriesLeft - 1)
+      }
 
     case Left(failure: ProjectServiceFailure) =>
       logger.error("Request {} failed due to {}.", id, failure)
@@ -94,13 +109,17 @@ object ProjectListHandler {
     * @param clientId the requester id
     * @param service a project service
     * @param requestTimeout a request timeout
+    * @param timeoutRetries a number of timeouts to wait until a failure is reported
     * @return a configuration object
     */
   def props[F[+_, +_]: Exec](
     clientId: UUID,
     service: ProjectServiceApi[F],
-    requestTimeout: FiniteDuration
+    requestTimeout: FiniteDuration,
+    timeoutRetries: Int
   ): Props =
-    Props(new ProjectListHandler(clientId, service, requestTimeout))
+    Props(
+      new ProjectListHandler(clientId, service, requestTimeout, timeoutRetries)
+    )
 
 }
