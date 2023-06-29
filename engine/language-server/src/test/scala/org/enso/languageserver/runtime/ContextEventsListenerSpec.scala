@@ -66,7 +66,11 @@ class ContextEventsListenerSpec
               Vector(),
               false,
               true,
-              Api.ExpressionUpdate.Payload.Value()
+              Api.ExpressionUpdate.Payload.Value(
+                functionSchema = Some(
+                  Api.FunctionSchema(methodPointer, Vector(1))
+                )
+              )
             )
           )
         )
@@ -83,7 +87,17 @@ class ContextEventsListenerSpec
                   Some(toProtocolMethodCall(methodCall)),
                   Vector(),
                   false,
-                  ContextRegistryProtocol.ExpressionUpdate.Payload.Value(None)
+                  ContextRegistryProtocol.ExpressionUpdate.Payload
+                    .Value(
+                      None,
+                      Some(
+                        ContextRegistryProtocol.ExpressionUpdate.Payload.Value
+                          .FunctionSchema(
+                            toProtocolMethodPointer(methodPointer),
+                            Vector(1)
+                          )
+                      )
+                    )
                 )
               )
             )
@@ -216,7 +230,8 @@ class ContextEventsListenerSpec
                 None,
                 Vector(),
                 false,
-                ContextRegistryProtocol.ExpressionUpdate.Payload.Value(None)
+                ContextRegistryProtocol.ExpressionUpdate.Payload
+                  .Value(None, None)
               ),
               ContextRegistryProtocol.ExpressionUpdate(
                 Suggestions.local.externalId.get,
@@ -224,7 +239,8 @@ class ContextEventsListenerSpec
                 None,
                 Vector(),
                 false,
-                ContextRegistryProtocol.ExpressionUpdate.Payload.Value(None)
+                ContextRegistryProtocol.ExpressionUpdate.Payload
+                  .Value(None, None)
               )
             )
           )
