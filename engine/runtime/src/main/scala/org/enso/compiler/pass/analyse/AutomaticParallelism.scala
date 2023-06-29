@@ -4,7 +4,7 @@ import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.data.BindingsMap.{Resolution, ResolvedMethod}
-import org.enso.compiler.exception.CompilerError
+import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.desugar.ComplexType
 import org.enso.compiler.pass.resolve.{
@@ -40,9 +40,6 @@ object AutomaticParallelism extends IRPass {
     AliasAnalysis,
     DataflowAnalysis
   )
-
-  override def updateMetadataInDuplicate[T <: IR](sourceIr: T, copyOfIr: T): T =
-    copyOfIr
 
   /** An assignment of a line to a given thread.
     */

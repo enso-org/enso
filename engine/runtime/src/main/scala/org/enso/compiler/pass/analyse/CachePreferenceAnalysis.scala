@@ -1,16 +1,14 @@
 package org.enso.compiler.pass.analyse
 
-import org.enso.compiler.Compiler
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.Definition.Method
 import org.enso.compiler.core.ir.MetadataStorage._
-import org.enso.compiler.exception.CompilerError
+import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.desugar._
 
 import java.util
-import scala.annotation.unused
 import scala.collection.mutable
 import scala.jdk.CollectionConverters._
 
@@ -67,12 +65,6 @@ case object CachePreferenceAnalysis extends IRPass {
     inlineContext: InlineContext
   ): IR.Expression =
     analyseExpression(ir, WeightInfo())
-
-  /** @inheritdoc */
-  override def updateMetadataInDuplicate[T <: IR](
-    @unused sourceIr: T,
-    copyOfIr: T
-  ): T = copyOfIr
 
   // === Pass Internals =======================================================
 
@@ -185,7 +177,7 @@ case object CachePreferenceAnalysis extends IRPass {
     */
   sealed case class WeightInfo(
     weights: mutable.HashMap[IR.ExternalId, Double] = mutable.HashMap()
-  ) extends IRPass.Metadata {
+  ) extends IRPass.IRMetadata {
 
     /** The name of the metadata as a string. */
     override val metadataName: String = "CachePreferenceAnalysis.Weights"
@@ -218,7 +210,7 @@ case object CachePreferenceAnalysis extends IRPass {
     def asJavaWeights: util.Map[IR.ExternalId, java.lang.Double] =
       weights.asJava.asInstanceOf[util.Map[IR.ExternalId, java.lang.Double]]
 
-    override def duplicate(): Option[IRPass.Metadata] =
+    override def duplicate(): Option[IRPass.IRMetadata] =
       Some(copy(weights = this.weights))
   }
 

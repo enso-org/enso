@@ -27,7 +27,9 @@ type OS
 os : OS
 os = from_text System.os
 
-## Check if the operating system is UNIX.
+## PRIVATE
+   ADVANCED
+   Check if the operating system is UNIX.
 is_unix : Boolean
 is_unix = @Builtin_Method "System.is_unix"
 

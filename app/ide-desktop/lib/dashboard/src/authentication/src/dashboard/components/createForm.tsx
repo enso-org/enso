@@ -4,8 +4,9 @@
 
 import * as react from 'react'
 
+import CloseIcon from 'enso-assets/close.svg'
+
 import * as modalProvider from '../../providers/modal'
-import * as svg from '../../components/svg'
 
 import Modal from './modal'
 
@@ -46,7 +47,7 @@ function CreateForm(props: CreateFormProps) {
                 }}
             >
                 <button type="button" className="absolute right-0 m-2" onClick={unsetModal}>
-                    {svg.CLOSE_ICON}
+                    <img src={CloseIcon} />
                 </button>
                 <h2 className="inline-block font-semibold m-2">{title}</h2>
                 {children}

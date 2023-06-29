@@ -17,6 +17,8 @@ import * as newtype from '../newtype'
 const STATUS_SUCCESS_FIRST = 200
 /** HTTP status indicating that the request was successful. */
 const STATUS_SUCCESS_LAST = 299
+/** HTTP status indicating that the server encountered a fatal exception. */
+const STATUS_SERVER_ERROR = 500
 
 /** Default HTTP body for an "open project" request. */
 const DEFAULT_OPEN_PROJECT_BODY: backend.OpenProjectRequestBody = {
@@ -199,7 +201,10 @@ export class RemoteBackend implements backend.Backend {
                 }).toString()
         )
         if (!responseIsSuccessful(response)) {
-            if (query.parentId) {
+            if (response.status === STATUS_SERVER_ERROR) {
+                // The directory is probably empty.
+                return []
+            } else if (query.parentId) {
                 return this.throw(`Unable to list directory with ID '${query.parentId}'.`)
             } else {
                 return this.throw('Unable to list root directory.')

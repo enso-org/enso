@@ -303,7 +303,13 @@ impl Searcher {
                 model.input_changed(expr, cursor_position);
             });
 
-            action_list_changed <- source::<()>();
+            action_list_changed <- any_mut::<()>();
+            // When the searcher input is changed, we need to update immediately the list of
+            // entries in the component browser (as opposed to waiting for a `NewActionList` event
+            // which is delivered asynchronously). This is because the input may be accepted
+            // before the asynchronous event is delivered and to accept the correct entry the list
+            // must be up-to-date.
+            action_list_changed <+ model.view.searcher_input_changed.constant(());
 
             eval_ model.view.toggle_component_browser_private_entries_visibility (
                 model.controller.reload_list());

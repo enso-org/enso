@@ -127,7 +127,7 @@ spec =
             Meta.is_a err Error . should_be_true
             Meta.is_a err Text . should_be_false
 
-            Meta.is_a Date.now Date . should_be_true
+            Meta.is_a Date.today Date . should_be_true
             Meta.is_a Date_Time.now Date_Time . should_be_true
             Meta.is_a Date_Time.now Date . should_be_false
             Meta.is_a Time_Of_Day.now Time_Of_Day . should_be_true
@@ -182,8 +182,8 @@ spec =
             Meta.type_of True . should_equal_type Boolean
             Meta.type_of False . should_not_equal_type Any
 
-            (Meta.type_of Date.now) . should_equal_type Date
-            (Meta.type_of Date.now) . should_not_equal_type Date_Time
+            (Meta.type_of Date.today) . should_equal_type Date
+            (Meta.type_of Date.today) . should_not_equal_type Date_Time
             (Meta.type_of Date_Time.now) . should_equal_type Date_Time
             (Meta.type_of Date_Time.now) . should_not_equal_type Date
             (Meta.type_of Time_Of_Day.now) . should_equal_type Time_Of_Day
@@ -260,6 +260,9 @@ spec =
         Test.specify "static methods of Integer" <|
             Meta.meta (Meta.type_of Integer) . methods . sort . should_equal ['parse', 'parse_builtin', 'round', 'truncate']
 
+        Test.specify "methods of Any" <|
+            Meta.meta Any . methods . should_contain "to_text"
+
         Test.specify "should correctly handle Java values" <|
             java_meta = Meta.meta Java_Random.new
             java_meta . should_be_a Meta.Polyglot
@@ -279,32 +282,32 @@ spec =
             (Test_Type.Value a)==(Test_Type.Value c) . should_be_false
 
         Test.specify "get annotations" <|
-            Meta.get_annotation Meta_Spec "test_method" "a" . should_equal 7
-            Meta.get_annotation Meta_Spec "test_method" "b" . should_equal (Test_Type.Value 49)
-            Meta.get_annotation Meta_Spec "test_method" "c" . should_fail_with Text
-            Meta.get_annotation Meta_Spec "test_method" "c" . catch . should_equal "Error Value"
-            Meta.get_annotation Meta_Spec "test_method" "x" . should_equal Nothing
+            Meta.get_annotation Meta_Spec .test_method "a" . should_equal 7
+            Meta.get_annotation Meta_Spec .test_method "b" . should_equal (Test_Type.Value 49)
+            Meta.get_annotation Meta_Spec .test_method "c" . should_fail_with Text
+            Meta.get_annotation Meta_Spec .test_method "c" . catch . should_equal "Error Value"
+            Meta.get_annotation Meta_Spec .test_method "x" . should_equal Nothing
 
             value = My_Type.Value 99 "bar" True
-            Meta.get_annotation value "first_method" "param" . should_equal 11
-            Meta.get_annotation value "second_method" "param" . should_equal Nothing
-            Meta.get_annotation value "third_method" "param" . should_equal Nothing
-            Meta.get_annotation value "other_method" "a" 7 . should_equal 12
-            Meta.get_annotation value "other_method" "b" value . should_equal 99
-            Meta.get_annotation value "other_method" "c" . should_equal Nothing
+            Meta.get_annotation value .first_method "param" . should_equal 11
+            Meta.get_annotation value .second_method "param" . should_equal Nothing
+            Meta.get_annotation value .third_method "param" . should_equal Nothing
+            Meta.get_annotation value .other_method "a" 7 . should_equal 12
+            Meta.get_annotation value .other_method "b" value . should_equal 99
+            Meta.get_annotation value .other_method "c" . should_equal Nothing
 
-            Meta.get_annotation value "my_method" "self" . should_equal "self"
+            Meta.get_annotation value .my_method "self" . should_equal "self"
 
         Test.specify "no constructor annotations on value" <|
             value = My_Type.Value 99 "bar" True
-            Meta.get_annotation value "Value" "foo" . should_equal Nothing
-            Meta.get_annotation value "Value" "bar" . should_equal Nothing
-            Meta.get_annotation value "Value" "baz" . should_equal Nothing
+            Meta.get_annotation value .Value "foo" . should_equal Nothing
+            Meta.get_annotation value .Value "bar" . should_equal Nothing
+            Meta.get_annotation value .Value "baz" . should_equal Nothing
 
         Test.specify "get annotations on constructor" <|
-            Meta.get_annotation My_Type "Value" "foo" 7 8 . should_equal 15
-            Meta.get_annotation My_Type "Value" "bar" . should_equal Nothing
-            Meta.get_annotation My_Type "Value" "baz" . should_equal (My_Type.Value 1 2 3)
+            Meta.get_annotation My_Type .Value "foo" 7 8 . should_equal 15
+            Meta.get_annotation My_Type .Value "bar" . should_equal Nothing
+            Meta.get_annotation My_Type .Value "baz" . should_equal (My_Type.Value 1 2 3)
 
     Test.group "Check Nothing and NaN" <|
         Test.specify "Nothing.is_a Nothing" <|

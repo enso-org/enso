@@ -77,6 +77,7 @@ import project.Data.Filter_Condition.Filter_Condition
 import project.Data.Index_Sub_Range.Index_Sub_Range
 import project.Data.Interval.Bound
 import project.Data.Interval.Interval
+import project.Data.Interval.Interval_Type
 import project.Data.Json.Json
 import project.Data.Json.JS_Object
 import project.Data.Locale.Locale
@@ -130,6 +131,7 @@ export project.Data.Filter_Condition.Filter_Condition
 export project.Data.Index_Sub_Range.Index_Sub_Range
 export project.Data.Interval.Bound
 export project.Data.Interval.Interval
+export project.Data.Interval.Interval_Type
 export project.Data.Json.Json
 export project.Data.Json.JS_Object
 export project.Data.Locale.Locale

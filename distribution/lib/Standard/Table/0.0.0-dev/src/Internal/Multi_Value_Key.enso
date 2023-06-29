@@ -87,6 +87,8 @@ type Ordered_Multi_Value_Key_Comparator
             go 0
 
     ## PRIVATE
-    hash _ = Error.throw (Illegal_State.new "Ordered_Multi_Value_Key is not intended for usage in unordered collections.")
+    hash x =
+        _ = [x]
+        Error.throw (Illegal_State.new "Ordered_Multi_Value_Key is not intended for usage in unordered collections.")
 
 Comparable.from (_:Ordered_Multi_Value_Key) = Ordered_Multi_Value_Key_Comparator

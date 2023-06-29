@@ -10,7 +10,7 @@ import org.enso.compiler.data.BindingsMap.{
   ResolvedMethod,
   ResolvedModule
 }
-import org.enso.compiler.exception.CompilerError
+import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{AliasAnalysis, BindingAnalysis}
 import org.enso.interpreter.Constants
@@ -93,10 +93,6 @@ case object GlobalNames extends IRPass {
   }
 
   /** @inheritdoc */
-  override def updateMetadataInDuplicate[T <: IR](
-    sourceIr: T,
-    copyOfIr: T
-  ): T = copyOfIr
 
   private def processModuleDefinition(
     definition: IR.Module.Scope.Definition,
