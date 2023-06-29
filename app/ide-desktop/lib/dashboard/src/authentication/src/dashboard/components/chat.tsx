@@ -31,10 +31,8 @@ const WIDTH_PX = 352
 const REACTION_BUTTON_SIZE = 20
 /** The size (both width and height) of each reaction on a message. */
 const REACTION_SIZE = 16
-// These must be `as const` for type-safety when using the `Twemoji` component.
 /** The list of reaction emojis, in order. */
-// eslint-disable-next-line no-restricted-syntax
-const REACTION_EMOJIS = ['❤️', '👍', '👎', '😀', '🙁', '👀', '🎉'] as const
+const REACTION_EMOJIS: ReactionSymbol[] = ['❤️', '👍', '👎', '😀', '🙁', '👀', '🎉']
 /** The initial title of the thread. */
 const DEFAULT_THREAD_TITLE = 'New chat thread'
 /** The maximum number of lines to show in the message input, past which a scrollbar is shown. */
@@ -49,7 +47,7 @@ const MAX_MESSAGE_HISTORY = 25
 // =============
 
 /** All possible reaction emojis. */
-type Reaction = (typeof REACTION_EMOJIS)[number]
+type ReactionSymbol = '❤️' | '🎉' | '👀' | '👍' | '👎' | '😀' | '🙁'
 
 // =====================
 // === Message Types ===
@@ -95,6 +93,8 @@ export enum ChatMessageDataType {
     message = 'message',
     /** A reaction from the client. */
     reaction = 'reaction',
+    /** Removal of a reaction from the client. */
+    removeReaction = 'remove-reaction',
     /** Mark a message as read. Used to determine whether to show the notification dot
      * next to a thread. */
     markAsRead = 'mark-as-read',
@@ -149,6 +149,7 @@ export interface ChatServerMessageMessageData
     authorAvatar: string | null
     authorName: string
     content: string
+    reactions: ReactionSymbol[]
     /** Milliseconds since the Unix epoch. */
     timestamp: number
     /** Milliseconds since the Unix epoch. */
@@ -227,7 +228,14 @@ export interface ChatMessageMessageData extends ChatBaseMessageData<ChatMessageD
 /** A reaction to a message sent by staff. */
 export interface ChatReactionMessageData extends ChatBaseMessageData<ChatMessageDataType.reaction> {
     messageId: MessageId
-    reaction: string
+    reaction: ReactionSymbol
+}
+
+/** Removal of a reaction from the client. */
+export interface ChatRemoveReactionMessageData
+    extends ChatBaseMessageData<ChatMessageDataType.removeReaction> {
+    messageId: MessageId
+    reaction: ReactionSymbol
 }
 
 /** Sent when the user scrolls to the bottom of a chat thread. */
@@ -245,6 +253,7 @@ export type ChatClientMessageData =
     | ChatMessageMessageData
     | ChatNewThreadMessageData
     | ChatReactionMessageData
+    | ChatRemoveReactionMessageData
     | ChatRenameThreadMessageData
     | ChatSwitchThreadMessageData
 
@@ -262,6 +271,7 @@ interface ChatDisplayMessage {
     /** Name of the author of the message. */
     name: string
     content: string
+    reactions: ReactionSymbol[]
     /** Given in milliseconds since the unix epoch. */
     timestamp: number
     /** Given in milliseconds since the unix epoch. */
@@ -274,14 +284,14 @@ interface ChatDisplayMessage {
 
 /** Props for a {@link ReactionBar}. */
 export interface ReactionBarProps {
-    messageId: MessageId
-    sendMessage: (message: ChatClientMessageData) => void
-    selectedReactions: Set<Reaction>
+    selectedReactions: Set<ReactionSymbol>
+    doReact: (reaction: ReactionSymbol) => void
+    doRemoveReaction: (reaction: ReactionSymbol) => void
 }
 
 /** A list of emoji reactions to choose from. */
 function ReactionBar(props: ReactionBarProps) {
-    const { messageId, sendMessage, selectedReactions } = props
+    const { selectedReactions, doReact, doRemoveReaction } = props
 
     return (
         <div className="inline-block bg-white rounded-full m-1">
@@ -289,11 +299,11 @@ function ReactionBar(props: ReactionBarProps) {
                 <button
                     key={emoji}
                     onClick={() => {
-                        sendMessage({
-                            type: ChatMessageDataType.reaction,
-                            messageId,
-                            reaction: emoji,
-                        })
+                        if (selectedReactions.has(emoji)) {
+                            doRemoveReaction(emoji)
+                        } else {
+                            doReact(emoji)
+                        }
                     }}
                     // FIXME: Grayscale has the wrong lightness
                     className={`rounded-full hover:bg-gray-200 m-1 p-1 ${
@@ -313,7 +323,7 @@ function ReactionBar(props: ReactionBarProps) {
 
 /** Props for a {@link Reactions}. */
 export interface ReactionsProps {
-    reactions: Reaction[]
+    reactions: ReactionSymbol[]
 }
 
 /** A list of emoji reactions that have been on a message. */
@@ -340,14 +350,15 @@ function Reactions(props: ReactionsProps) {
 /** Props for a {@link ChatMessage}. */
 export interface ChatMessageProps {
     message: ChatDisplayMessage
-    reactions: Reaction[]
+    reactions: ReactionSymbol[]
     shouldShowReactionBar: boolean
-    sendMessage: (message: ChatClientMessageData) => void
+    doReact: (reaction: ReactionSymbol) => void
+    doRemoveReaction: (reaction: ReactionSymbol) => void
 }
 
 /** A chat message, including user info, sent date, and reactions (if any). */
 function ChatMessage(props: ChatMessageProps) {
-    const { message, reactions, shouldShowReactionBar, sendMessage } = props
+    const { message, reactions, shouldShowReactionBar, doReact, doRemoveReaction } = props
     return (
         <div className="m-2">
             <div className="flex">
@@ -369,10 +380,9 @@ function ChatMessage(props: ChatMessageProps) {
             </div>
             {shouldShowReactionBar && (
                 <ReactionBar
-                    messageId={message.id}
-                    sendMessage={sendMessage}
-                    // FIXME:
-                    selectedReactions={new Set()}
+                    doReact={doReact}
+                    doRemoveReaction={doRemoveReaction}
+                    selectedReactions={new Set(message.reactions)}
                 />
             )}
         </div>
@@ -473,10 +483,11 @@ function Chat(props: ChatProps) {
                                         id: innerMessage.id,
                                         isStaffMessage: true,
                                         content: innerMessage.content,
+                                        reactions: innerMessage.reactions,
                                         avatar: innerMessage.authorAvatar,
                                         name: innerMessage.authorName,
                                         timestamp: innerMessage.timestamp,
-                                        editedTimestamp: null, // FIXME:
+                                        editedTimestamp: innerMessage.editedTimestamp,
                                     }
                                     return displayMessage
                                 }
@@ -485,6 +496,7 @@ function Chat(props: ChatProps) {
                                         id: innerMessage.id,
                                         isStaffMessage: false,
                                         content: innerMessage.content,
+                                        reactions: [],
                                         avatar: null,
                                         name: 'Me',
                                         timestamp: innerMessage.timestamp,
@@ -513,6 +525,7 @@ function Chat(props: ChatProps) {
                             avatar: message.authorAvatar,
                             name: message.authorName,
                             content: message.content,
+                            reactions: [],
                             timestamp: message.timestamp,
                             editedTimestamp: null,
                         }
@@ -626,6 +639,7 @@ function Chat(props: ChatProps) {
                     avatar: null,
                     name: 'Me',
                     content,
+                    reactions: [],
                     timestamp: Number(new Date()),
                     editedTimestamp: null,
                 }
@@ -796,9 +810,49 @@ function Chat(props: ChatProps) {
                                 key={message.id}
                                 message={message}
                                 reactions={[]}
-                                sendMessage={sendMessage}
+                                doReact={reaction => {
+                                    sendMessage({
+                                        type: ChatMessageDataType.reaction,
+                                        messageId: message.id,
+                                        reaction,
+                                    })
+                                    setMessages(oldMessages =>
+                                        oldMessages.map(oldMessage =>
+                                            oldMessage.id === message.id
+                                                ? {
+                                                      ...message,
+                                                      reactions: [
+                                                          ...oldMessage.reactions,
+                                                          reaction,
+                                                      ],
+                                                  }
+                                                : oldMessage
+                                        )
+                                    )
+                                }}
+                                doRemoveReaction={reaction => {
+                                    sendMessage({
+                                        type: ChatMessageDataType.removeReaction,
+                                        messageId: message.id,
+                                        reaction,
+                                    })
+                                    setMessages(oldMessages =>
+                                        oldMessages.map(oldMessage =>
+                                            oldMessage.id === message.id
+                                                ? {
+                                                      ...message,
+                                                      reactions: oldMessage.reactions.filter(
+                                                          oldReaction => oldReaction !== reaction
+                                                      ),
+                                                  }
+                                                : oldMessage
+                                        )
+                                    )
+                                }}
                                 // FIXME: Consider adding reaction bars to other messages, on hover.
-                                shouldShowReactionBar={message === lastStaffMessage}
+                                shouldShowReactionBar={
+                                    message === lastStaffMessage || message.reactions.length !== 0
+                                }
                             />
                         ))}
                 </div>
