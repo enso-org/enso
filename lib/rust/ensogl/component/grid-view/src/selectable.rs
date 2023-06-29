@@ -197,7 +197,7 @@ where
             );
             grid_frp.select_entry <+ selection_after_movement.filter_map(|s| s.location()).some();
             grid_frp.private.output.selection_movement_out_of_grid_prevented <+
-                selection_after_movement.map(|s| s.out_of_bounds());
+                selection_after_movement.filter_map(|s| s.out_of_bounds());
         }
 
         Self { grid, highlights, header_highlights, selection_handler, hover_handler }

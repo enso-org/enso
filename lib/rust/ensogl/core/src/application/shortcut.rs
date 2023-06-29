@@ -348,7 +348,6 @@ impl RegistryModel {
             }
         }
         if !targets.is_empty() {
-            warn!("- stop_propagation");
             stop_propagation();
         }
         for (target, name) in targets {

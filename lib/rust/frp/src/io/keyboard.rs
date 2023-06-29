@@ -62,9 +62,10 @@ macro_rules! define_keys {
         // === ArrowDirection ===
 
         /// The directions of the arrow keys on a keyboard.
-        #[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
+        #[derive(Copy, Clone, Debug, Eq, Hash, PartialEq, Default)]
         #[allow(missing_docs)]
         pub enum ArrowDirection {
+            #[default]
             $($arrow,)*
         }
 
