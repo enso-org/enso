@@ -3,6 +3,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Base.Runtime.Managed_Resource.Managed_Resource
+import Standard.Base.Runtime.Context
 
 import Standard.Table.Data.Table.Table as Materialized_Table
 import Standard.Table.Data.Type.Value_Type.Value_Type
@@ -25,10 +26,34 @@ polyglot java import java.sql.SQLException
 polyglot java import java.sql.SQLTimeoutException
 
 polyglot java import org.enso.database.JDBCProxy
+polyglot java import org.enso.database.dryrun.OperationSynchronizer
 
 type JDBC_Connection
     ## PRIVATE
-    Value connection_resource
+       Arguments:
+       - connection_resource: a `Managed_Resource` containing the Java
+         Connection instance.
+       - operation_synchronizer: a helper for synchronizing access to the underlying Connection.
+    Value connection_resource operation_synchronizer
+
+    ## PRIVATE
+       Runs the provided action ensuring that no other thread is working with
+       this Connection concurrently.
+    synchronized self ~action =
+        # We save and restore context information. This is a workaround for bug #7117.
+        restore_context context =
+            saved_setting = context.is_enabled
+            ~action ->
+                case saved_setting of
+                    True -> context.with_enabled action
+                    False -> context.with_disabled action
+        restore_output = restore_context Context.Output
+        restore_input = restore_context Context.Input
+        callback _ =
+            restore_input <|
+                restore_output <|
+                    action
+        self.operation_synchronizer.runSynchronizedAction callback
 
     ## PRIVATE
        Closes the connection releasing the underlying database resources
@@ -36,7 +61,7 @@ type JDBC_Connection
 
        The connection is not usable afterwards.
     close : Nothing
-    close self =
+    close self = self.synchronized <|
         self.connection_resource . finalize
 
     ## PRIVATE
@@ -44,28 +69,32 @@ type JDBC_Connection
        Open the connection to the database, then run the action wrapping any
        SQL errors.
     with_connection : (Connection -> Any) -> Any
-    with_connection self ~action =
-        handle_sql_errors <|
-            self.connection_resource.with action
+    with_connection self action = self.synchronized <|
+        self.connection_resource.with action
+
+    ## PRIVATE
+       Runs the provided callback only if no thread is currently inside a
+       `synchronized` critical section (including the current thread).
+    run_maintenance_action_if_possible : (Nothing -> Any) -> Nothing
+    run_maintenance_action_if_possible self callback =
+        self.operation_synchronizer.runMaintenanceActionIfPossible callback
 
     ## PRIVATE
 
        Open the connection to the database, then run the action passing the
        database's metadata wrapping any SQL errors.
     with_metadata : (DatabaseMetaData -> Any) -> Any
-    with_metadata self ~action =
-        handle_sql_errors <|
-            self.connection_resource.with connection->
-                metadata = connection.getMetaData
-                action metadata
+    with_metadata self ~action = handle_sql_errors <| self.with_connection connection->
+        metadata = connection.getMetaData
+        action metadata
 
     ## PRIVATE
 
        Runs the provided action with a prepared statement, adding contextual
        information to any thrown SQL errors.
     with_prepared_statement : Text  | SQL_Statement -> Statement_Setter -> (PreparedStatement -> Any) -> Any
-    with_prepared_statement self query statement_setter action =
-        prepare template values = self.connection_resource.with java_connection->
+    with_prepared_statement self query statement_setter action = self.synchronized <|
+        prepare template values = self.with_connection java_connection->
             stmt = java_connection.prepareStatement template
             handle_illegal_state caught_panic =
                 Error.throw (Illegal_Argument.Error caught_panic.payload.message)
@@ -126,7 +155,8 @@ type JDBC_Connection
        running this function (so if it was off before, this method may not
        change anything).
     run_without_autocommit : Any -> Any
-    run_without_autocommit self ~action =
+    run_without_autocommit self ~action = handle_sql_errors <|
+        # The whole block is already `synchronized` by `with_connection`.
         self.with_connection java_connection->
             default_autocommit = java_connection.getAutoCommit
             Managed_Resource.bracket (java_connection.setAutoCommit False) (_ -> java_connection.setAutoCommit default_autocommit) _->
@@ -161,11 +191,14 @@ type JDBC_Connection
 
        It is the caller's responsibility to call this method from within a
        transaction to ensure consistency.
-    batch_insert : Text -> Statement_Setter -> Materialized_Table -> Integer -> Nothing
-    batch_insert self insert_template statement_setter table batch_size =
-        self.with_connection java_connection->
+    batch_insert : Text -> Statement_Setter -> Materialized_Table -> Integer -> Integer | Nothing -> Nothing
+    batch_insert self insert_template statement_setter table batch_size row_limit=Nothing =
+        In_Transaction.ensure_in_transaction <| self.with_connection java_connection-> handle_sql_errors related_query=insert_template <|
             Managed_Resource.bracket (java_connection.prepareStatement insert_template) .close stmt->
-                num_rows = table.row_count
+                table_row_count = table.row_count
+                num_rows = case row_limit of
+                    Nothing -> table_row_count
+                    limit : Integer -> Math.min table_row_count limit
                 columns = table.columns
                 check_rows updates_array expected_size =
                     updates = Vector.from_polyglot_array updates_array
@@ -179,7 +212,6 @@ type JDBC_Connection
                     stmt.addBatch
                     if (row_id+1 % batch_size) == 0 then check_rows stmt.executeBatch batch_size
                 if (num_rows % batch_size) != 0 then check_rows stmt.executeBatch (num_rows % batch_size)
-            java_connection.commit
 
 ## PRIVATE
 
@@ -199,7 +231,8 @@ create url properties = handle_sql_errors <|
     java_connection = JDBCProxy.getConnection url java_props
 
     resource = Managed_Resource.register java_connection close_connection
-    JDBC_Connection.Value resource
+    synchronizer = OperationSynchronizer.new
+    JDBC_Connection.Value resource synchronizer
 
 ## PRIVATE
 

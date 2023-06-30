@@ -1,4 +1,4 @@
-//! UI entity that allows for the selection of a visualisation. Uses the
+//! UI entity that allows for the selection of a visualization. Uses the
 //! `drop_down_menu::DropDownMenu` but provides convenience functionality to extract map the
 //! indices of the `DropDownMenu` to `Path` values.
 //!
@@ -83,10 +83,10 @@ impl display::Object for Model {
 
 
 // ============================
-// === VisualisationChooser ===
+// === VisualizationChooser ===
 // ============================
 
-/// UI entity that shows a button that opens a list of visualisations that can be selected from.
+/// UI entity that shows a button that opens a list of visualizations that can be selected from.
 #[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug)]
 pub struct VisualizationChooser {
@@ -122,7 +122,7 @@ impl VisualizationChooser {
                     entries.iter().position(|item| item == s)
                 );
                 if selected.is_some() && selected_ix.is_none() {
-                    warn!("Invalid visualisation selected {selected:?} from available {entries:?}");
+                    warn!("Invalid visualization selected {selected:?} from available {entries:?}");
                 };
                 selected_ix
             });
@@ -146,7 +146,7 @@ impl VisualizationChooser {
                 if let Some(entry) = entry{
                     let event     = "graph_editor::visualization_chooser::vis_selected";
                     let name:&str = entry.name.as_ref();
-                    let field     = "visualisation_name";
+                    let field     = "visualization_name";
                     let data      = analytics::AnonymousData(|| name.to_string());
                     analytics::remote_log_value(event,field,data);
                 }

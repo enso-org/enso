@@ -331,7 +331,7 @@ type File
     ## PRIVATE
        Internal method to join two path segments together.
     resolve : File
-    resolve self = @Builtin_Method "File.resolve"
+    resolve self subpath = @Builtin_Method "File.resolve"
 
     ## PRIVATE
        Convert the file descriptor to a JS_Object.

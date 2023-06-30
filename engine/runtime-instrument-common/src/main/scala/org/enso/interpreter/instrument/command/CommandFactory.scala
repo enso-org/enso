@@ -34,14 +34,14 @@ object CommandFactory {
       case _: Api.GetComponentGroupsRequest =>
         new GetComponentGroupsCmd(request.requestId)
 
-      case payload: Api.AttachVisualisation =>
-        new AttachVisualisationCmd(request.requestId, payload)
+      case payload: Api.AttachVisualization =>
+        new AttachVisualizationCmd(request.requestId, payload)
 
-      case payload: Api.DetachVisualisation =>
-        new DetachVisualisationCmd(request.requestId, payload)
+      case payload: Api.DetachVisualization =>
+        new DetachVisualizationCmd(request.requestId, payload)
 
-      case payload: Api.ModifyVisualisation =>
-        new ModifyVisualisationCmd(request.requestId, payload)
+      case payload: Api.ModifyVisualization =>
+        new ModifyVisualizationCmd(request.requestId, payload)
 
       case payload: Api.RenameProject =>
         new RenameProjectCmd(request.requestId, payload)

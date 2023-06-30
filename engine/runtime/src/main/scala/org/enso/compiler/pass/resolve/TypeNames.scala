@@ -8,8 +8,6 @@ import org.enso.compiler.data.BindingsMap.{Resolution, ResolvedModule}
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.BindingAnalysis
 
-import scala.annotation.unused
-
 /** Resolves and desugars referent name occurrences in type positions.
   */
 case object TypeNames extends IRPass {
@@ -152,9 +150,4 @@ case object TypeNames extends IRPass {
     ir
   }
 
-  /** @inheritdoc */
-  override def updateMetadataInDuplicate[T <: IR](
-    @unused sourceIr: T,
-    copyOfIr: T
-  ): T = copyOfIr
 }

@@ -25,13 +25,12 @@ import org.enso.interpreter.runtime.error.{
 import org.enso.interpreter.service.error._
 import org.enso.polyglot.LanguageInfo
 import org.enso.polyglot.runtime.Runtime.Api
-import org.enso.polyglot.runtime.Runtime.Api.ContextId
+import org.enso.polyglot.runtime.Runtime.Api.{ContextId, ExecutionResult}
 
 import java.io.File
 import java.util.UUID
 import java.util.function.Consumer
 import java.util.logging.Level
-
 import scala.jdk.OptionConverters._
 
 /** Provides support for executing Enso code. Adds convenient methods to
@@ -64,7 +63,7 @@ object ProgramExecutionSupport {
       if (callStack.isEmpty) {
         logger.log(Level.FINEST, s"ON_CACHED_VALUE ${value.getExpressionId}")
         sendExpressionUpdate(contextId, executionFrame.syncState, value)
-        sendVisualisationUpdates(contextId, executionFrame.syncState, value)
+        sendVisualizationUpdates(contextId, executionFrame.syncState, value)
       }
     }
 
@@ -72,7 +71,7 @@ object ProgramExecutionSupport {
       if (callStack.isEmpty) {
         logger.log(Level.FINEST, s"ON_COMPUTED ${value.getExpressionId}")
         sendExpressionUpdate(contextId, executionFrame.syncState, value)
-        sendVisualisationUpdates(contextId, executionFrame.syncState, value)
+        sendVisualizationUpdates(contextId, executionFrame.syncState, value)
       }
     }
 
@@ -235,17 +234,17 @@ object ProgramExecutionSupport {
     }
     val executionUpdate = getExecutionOutcome(error)
     val reason          = VisualizationResult.findExceptionMessage(error)
-    val message = error match {
+    def onFailure() = error match {
       case _: ThreadInterruptedException =>
         val message = s"Execution of function $itemName interrupted."
         ctx.executionService.getLogger.log(Level.FINE, message)
-        message
+        ExecutionResult.Diagnostic.warning(message, None)
       case _ =>
         val message = s"Execution of function $itemName failed ($reason)."
         ctx.executionService.getLogger.log(Level.WARNING, message, error)
-        message
+        ExecutionResult.Failure(message, None)
     }
-    executionUpdate.getOrElse(Api.ExecutionResult.Failure(message, None))
+    executionUpdate.getOrElse(onFailure())
   }
 
   /** Convert the runtime exception to the corresponding API error messages.
@@ -406,7 +405,7 @@ object ProgramExecutionSupport {
     }
   }
 
-  /** Find visualisations for the provided expression value, compute and send
+  /** Find visualizations for the provided expression value, compute and send
     * the updates.
     *
     * @param contextId the identifier of an execution context
@@ -414,22 +413,22 @@ object ProgramExecutionSupport {
     * @param ctx the runtime context
     */
   @com.oracle.truffle.api.CompilerDirectives.TruffleBoundary
-  private def sendVisualisationUpdates(
+  private def sendVisualizationUpdates(
     contextId: ContextId,
     syncState: UpdatesSynchronizationState,
     value: ExpressionValue
   )(implicit ctx: RuntimeContext): Unit = {
-    if (!syncState.isVisualisationSync(value.getExpressionId)) {
-      val visualisations =
-        ctx.contextManager.findVisualisationForExpression(
+    if (!syncState.isVisualizationSync(value.getExpressionId)) {
+      val visualizations =
+        ctx.contextManager.findVisualizationForExpression(
           contextId,
           value.getExpressionId
         )
-      visualisations.foreach { visualisation =>
-        sendVisualisationUpdate(
+      visualizations.foreach { visualization =>
+        sendVisualizationUpdate(
           contextId,
           syncState,
-          visualisation,
+          visualization,
           value.getExpressionId,
           value.getValue
         )
@@ -437,41 +436,41 @@ object ProgramExecutionSupport {
     }
   }
 
-  /** Compute the visualisation of the expression value and send an update.
+  /** Compute the visualization of the expression value and send an update.
     *
     * @param contextId an identifier of an execution context
-    * @param visualisation the visualisation data
+    * @param visualization the visualization data
     * @param expressionId the id of expression to visualise
     * @param expressionValue the value of expression to visualise
     * @param ctx the runtime context
     */
-  def sendVisualisationUpdate(
+  def sendVisualizationUpdate(
     contextId: ContextId,
     syncState: UpdatesSynchronizationState,
-    visualisation: Visualisation,
+    visualization: Visualization,
     expressionId: UUID,
     expressionValue: AnyRef
   )(implicit ctx: RuntimeContext): Unit = {
-    val errorOrVisualisationData =
+    val errorOrVisualizationData =
       Either
         .catchNonFatal {
           ctx.executionService.getLogger.log(
             Level.FINE,
-            s"Executing visualisation ${visualisation.expressionId}"
+            s"Executing visualization ${visualization.expressionId}"
           )
           ctx.executionService.callFunctionWithInstrument(
-            visualisation.cache,
-            visualisation.module,
-            visualisation.callback,
-            expressionValue +: visualisation.arguments: _*
+            visualization.cache,
+            visualization.module,
+            visualization.callback,
+            expressionValue +: visualization.arguments: _*
           )
         }
         .flatMap(visualizationResultToBytes)
-    val result = errorOrVisualisationData match {
+    val result = errorOrVisualizationData match {
       case Left(_: ThreadInterruptedException) =>
         ctx.executionService.getLogger.log(
           Level.FINE,
-          s"Visualisation thread interrupted ${visualisation.expressionId}."
+          s"Visualization thread interrupted ${visualization.expressionId}."
         )
         Completion.Interrupted
 
@@ -480,13 +479,13 @@ object ProgramExecutionSupport {
           Option(error.getMessage).getOrElse(error.getClass.getSimpleName)
         ctx.executionService.getLogger.log(
           Level.WARNING,
-          s"Visualisation evaluation failed: $message."
+          s"Visualization evaluation failed: $message."
         )
         ctx.endpoint.sendToClient(
           Api.Response(
-            Api.VisualisationEvaluationFailed(
+            Api.VisualizationEvaluationFailed(
               contextId,
-              visualisation.id,
+              visualization.id,
               expressionId,
               message,
               getDiagnosticOutcome.lift(error)
@@ -498,13 +497,13 @@ object ProgramExecutionSupport {
       case Right(data) =>
         ctx.executionService.getLogger.log(
           Level.FINEST,
-          s"Visualisation computed ${visualisation.expressionId}."
+          s"Visualization computed ${visualization.expressionId}."
         )
         ctx.endpoint.sendToClient(
           Api.Response(
-            Api.VisualisationUpdate(
-              Api.VisualisationContext(
-                visualisation.id,
+            Api.VisualizationUpdate(
+              Api.VisualizationContext(
+                visualization.id,
                 contextId,
                 expressionId
               ),
@@ -515,7 +514,7 @@ object ProgramExecutionSupport {
         Completion.Done
     }
     if (result != Completion.Interrupted) {
-      syncState.setVisualisationSync(expressionId)
+      syncState.setVisualizationSync(expressionId)
     }
   }
 
@@ -527,9 +526,9 @@ object ProgramExecutionSupport {
     */
   private def visualizationResultToBytes(
     value: AnyRef
-  ): Either[VisualisationException, Array[Byte]] = {
+  ): Either[VisualizationException, Array[Byte]] = {
     Option(VisualizationResult.visualizationResultToBytes(value)).toRight(
-      new VisualisationException(
+      new VisualizationException(
         s"Cannot encode ${value.getClass} to byte array."
       )
     )

@@ -108,16 +108,11 @@ public class LongBuilder extends NumericBuilder {
    * @param data the integer to append
    */
   public void appendLong(long data) {
-    int wasSize = currentSize;
-    int wasLength = this.data.length;
-
     if (currentSize >= this.data.length) {
       grow();
     }
 
-    if (currentSize >= this.data.length) {
-      throw new IllegalStateException("currentSize=" + currentSize + "; wasSize=" + wasSize + "; wasLength=" + wasLength + "; data.length=" + this.data.length);
-    }
+    assert currentSize < this.data.length;
     appendRawNoGrow(data);
   }
 

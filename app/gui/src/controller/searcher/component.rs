@@ -12,6 +12,7 @@ use convert_case::Case;
 use convert_case::Casing;
 use double_representation::name::QualifiedName;
 use enso_doc_parser::DocSection;
+use enso_doc_parser::Tag;
 use ordered_float::OrderedFloat;
 
 
@@ -237,11 +238,10 @@ impl Component {
     /// Check whether the component contains the "PRIVATE" tag.
     pub fn is_private(&self) -> bool {
         match &self.data {
-            Data::FromDatabase { entry, .. } => entry.documentation.iter().any(|doc| match doc {
-                DocSection::Tag { name, .. } =>
-                    name == &ast::constants::PRIVATE_DOC_SECTION_TAG_NAME,
-                _ => false,
-            }),
+            Data::FromDatabase { entry, .. } => entry
+                .documentation
+                .iter()
+                .any(|doc| matches!(doc, DocSection::Tag { tag: Tag::Private, .. })),
             _ => false,
         }
     }
@@ -252,8 +252,7 @@ impl Component {
         let aliases = match &self.data {
             Data::FromDatabase { entry, .. } => {
                 let aliases = entry.documentation.iter().filter_map(|doc| match doc {
-                    DocSection::Tag { name, body }
-                        if name == &ast::constants::ALIAS_DOC_SECTION_TAG_NAME =>
+                    DocSection::Tag { tag: Tag::Alias, body } =>
                         Some(body.as_str().split(',').map(|s| s.trim())),
                     _ => None,
                 });

@@ -92,9 +92,12 @@ sqlite_specific_spec prefix connection =
     connection.execute_update 'CREATE TABLE "'+tinfo+'" ("strs" VARCHAR, "ints" INTEGER, "bools" BOOLEAN, "reals" REAL)'
     Test.group prefix+"Metadata" <|
         t = connection.query (SQL_Query.Table_Name tinfo)
-        t.insert ["a", Nothing, False, 1.2]
-        t.insert ["abc", Nothing, Nothing, 1.3]
-        t.insert ["def", 42, True, 1.4]
+        row1 = ["a", Nothing, False, 1.2]
+        row2 = ["abc", Nothing, Nothing, 1.3]
+        row3 = ["def", 42, True, 1.4]
+        Panic.rethrow <|
+            (Table.from_rows ["strs", "ints", "bools", "reals"] [row1, row2, row3]).update_database_table t update_action=Update_Action.Insert
+
         Test.specify "should return Table information" <|
             i = t.info
             i.at "Column" . to_vector . should_equal ["strs", "ints", "bools", "reals"]

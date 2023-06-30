@@ -366,7 +366,7 @@ type Match_Iterator
                 filler_span = (Utf_16_Span.Value filler_range self.input)
                 match = Match.Value self.pattern regex_result self.input
                 ## Handle edge case where match is 0 length
-                next_cursor = Math.max (self.cursor + 1) (match.utf_16_end 0)
+                next_cursor = (self.cursor + 1).max (match.utf_16_end 0)
                 next_iterator = Match_Iterator.Value self.pattern self.input next_cursor
                 Match_Iterator_Value.Next filler_span match next_iterator
 

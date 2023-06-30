@@ -105,7 +105,7 @@ function TemplatesRender(props: TemplatesRenderProps) {
             onClick={() => {
                 onTemplateClick(null)
             }}
-            className="h-40 w-60 cursor-pointer"
+            className="h-40 cursor-pointer"
         >
             <div className="flex h-full w-full border-dashed-custom rounded-2xl text-primary">
                 <div className="flex flex-col text-center items-center m-auto">
@@ -122,7 +122,7 @@ function TemplatesRender(props: TemplatesRenderProps) {
             {templates.map(template => (
                 <button
                     key={template.title}
-                    className="h-40 w-60 cursor-pointer"
+                    className="h-40 cursor-pointer"
                     onClick={() => {
                         onTemplateClick(template.id)
                     }}

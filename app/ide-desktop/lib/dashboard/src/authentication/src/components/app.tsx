@@ -40,8 +40,9 @@ import * as toast from 'react-hot-toast'
 
 import * as detect from 'enso-common/src/detect'
 
-import * as authService from '../authentication/service'
+import * as authServiceModule from '../authentication/service'
 import * as hooks from '../hooks'
+import * as localBackend from '../dashboard/localBackend'
 
 import * as authProvider from '../authentication/providers/auth'
 import * as backendProvider from '../providers/backend'
@@ -85,11 +86,13 @@ export interface AppProps {
     logger: loggerProvider.Logger
     /** Whether the application may have the local backend running. */
     supportsLocalBackend: boolean
+    /** If true, the app can only be used in offline mode. */
+    isAuthenticationDisabled: boolean
     /** Whether the application supports deep links. This is only true when using
      * the installed app on macOS and Windows. */
     supportsDeepLinks: boolean
     /** Whether the dashboard should be rendered. */
-    showDashboard: boolean
+    shouldShowDashboard: boolean
     /** The name of the project to open on startup, if any. */
     initialProjectName: string | null
     onAuthenticated: () => void
@@ -109,7 +112,11 @@ function App(props: AppProps) {
      * will redirect the user between the login/register pages and the dashboard. */
     return (
         <>
-            <toast.Toaster position="top-center" reverseOrder={false} />
+            <toast.Toaster
+                toastOptions={{ style: { maxWidth: '100%' } }}
+                position="top-center"
+                reverseOrder={false}
+            />
             <Router>
                 <AppRouter {...props} />
             </Router>
@@ -127,7 +134,7 @@ function App(props: AppProps) {
  * because the {@link AppRouter} relies on React hooks, which can't be used in the same React
  * component as the component that defines the provider. */
 function AppRouter(props: AppProps) {
-    const { logger, showDashboard, onAuthenticated } = props
+    const { logger, isAuthenticationDisabled, shouldShowDashboard, onAuthenticated } = props
     const navigate = hooks.useNavigate()
     // FIXME[sb]: After platform detection for Electron is merged in, `IS_DEV_MODE` should be
     // set to true on `ide watch`.
@@ -136,12 +143,17 @@ function AppRouter(props: AppProps) {
         window.navigate = navigate
     }
     const mainPageUrl = new URL(window.location.href)
-    const memoizedAuthService = react.useMemo(() => {
+    const authService = react.useMemo(() => {
         const authConfig = { navigate, ...props }
-        return authService.initAuthService(authConfig)
+        return authServiceModule.initAuthService(authConfig)
     }, [navigate, props])
-    const userSession = memoizedAuthService.cognito.userSession.bind(memoizedAuthService.cognito)
-    const registerAuthEventListener = memoizedAuthService.registerAuthEventListener
+    const userSession = authService.cognito.userSession.bind(authService.cognito)
+    const registerAuthEventListener = authService.registerAuthEventListener
+    const initialBackend: backendProvider.AnyBackendAPI = isAuthenticationDisabled
+        ? new localBackend.LocalBackend()
+        : // This is safe, because the backend is always set by the authentication flow.
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          null!
     const routes = (
         <router.Routes>
             <react.Fragment>
@@ -154,7 +166,7 @@ function AppRouter(props: AppProps) {
                 <router.Route element={<authProvider.ProtectedLayout />}>
                     <router.Route
                         path={DASHBOARD_PATH}
-                        element={showDashboard && <Dashboard {...props} />}
+                        element={shouldShowDashboard && <Dashboard {...props} />}
                     />
                 </router.Route>
                 {/* Semi-protected pages are visible to users currently registering. */}
@@ -175,11 +187,10 @@ function AppRouter(props: AppProps) {
                 userSession={userSession}
                 registerAuthEventListener={registerAuthEventListener}
             >
-                {/* This is safe, because the backend is always set by the authentication flow. */}
-                {/* eslint-disable-next-line @typescript-eslint/no-non-null-assertion */}
-                <backendProvider.BackendProvider initialBackend={null!}>
+                <backendProvider.BackendProvider initialBackend={initialBackend}>
                     <authProvider.AuthProvider
-                        authService={memoizedAuthService}
+                        shouldStartInOfflineMode={isAuthenticationDisabled}
+                        authService={authService}
                         onAuthenticated={onAuthenticated}
                     >
                         <modalProvider.ModalProvider>{routes}</modalProvider.ModalProvider>

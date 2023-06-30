@@ -32,11 +32,15 @@ from project.Data.Boolean import Boolean, True, False
    treated as a Map.
 @Builtin_Type
 type Map key value
-    ## Returns an empty map.
+    ## PRIVATE
+       ADVANCED
+       Returns an empty map.
     empty : Map
     empty = @Builtin_Method "Map.empty"
 
-    ## Returns a single-element map with the given key and value.
+    ## PRIVATE
+       ADVANCED
+       Returns a single-element map with the given key and value.
        A Call to `Map.singleton key value` is the same as a call to
        `Map.empty.insert key value`.
 
@@ -284,7 +288,7 @@ type Map key value
              import Standard.Base.Data.Map.Map
              import Standard.Examples
 
-             example_fold = Examples.map.fold 0 (l -> r -> Math.max l r.length)
+             example_fold = Examples.map.fold 0 (l -> r -> l.max r.length)
     fold : Any -> (Any -> Any -> Any) -> Any
     fold self init function = self.values.fold init function
 

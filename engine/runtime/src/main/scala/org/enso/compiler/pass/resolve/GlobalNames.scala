@@ -93,10 +93,6 @@ case object GlobalNames extends IRPass {
   }
 
   /** @inheritdoc */
-  override def updateMetadataInDuplicate[T <: IR](
-    sourceIr: T,
-    copyOfIr: T
-  ): T = copyOfIr
 
   private def processModuleDefinition(
     definition: IR.Module.Scope.Definition,

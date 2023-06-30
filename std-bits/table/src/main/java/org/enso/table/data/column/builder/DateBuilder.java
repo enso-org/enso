@@ -37,7 +37,7 @@ public class DateBuilder extends TypedBuilderImpl<LocalDate> {
   }
 
   @Override
-  public Storage<LocalDate> seal() {
+  protected Storage<LocalDate> doSeal() {
     return new DateStorage(data, currentSize);
   }
 }

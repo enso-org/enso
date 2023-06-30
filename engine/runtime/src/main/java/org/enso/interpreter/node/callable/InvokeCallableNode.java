@@ -21,6 +21,7 @@ import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.control.TailCallException;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
@@ -264,6 +265,15 @@ public abstract class InvokeCallableNode extends BaseNode {
       State state,
       Object[] arguments,
       @CachedLibrary(limit = "3") WarningsLibrary warnings) {
+
+    Warning[] extracted;
+    Object callable;
+    try {
+      extracted = warnings.getWarnings(warning, null);
+      callable = warnings.removeWarnings(warning);
+    } catch (UnsupportedMessageException e) {
+      throw CompilerDirectives.shouldNotReachHere(e);
+    }
     try {
       if (childDispatch == null) {
         CompilerDirectives.transferToInterpreterAndInvalidate();
@@ -277,7 +287,7 @@ public abstract class InvokeCallableNode extends BaseNode {
                                     invokeFunctionNode.getSchema(),
                                     invokeFunctionNode.getDefaultsExecutionMode(),
                                     invokeFunctionNode.getArgumentsExecutionMode()));
-            childDispatch.setTailStatus(TailStatus.NOT_TAIL);
+            childDispatch.setTailStatus(getTailStatus());
             childDispatch.setId(invokeFunctionNode.getId());
             notifyInserted(childDispatch);
           }
@@ -287,12 +297,12 @@ public abstract class InvokeCallableNode extends BaseNode {
       }
 
       var result = childDispatch.execute(
-                  warnings.removeWarnings(warning),
+                  callable,
                   callerFrame,
                   state,
                   arguments);
 
-      Warning[] extracted = warnings.getWarnings(warning, null);
+
       if (result instanceof DataflowError) {
         return result;
       } else if (result instanceof WithWarnings withWarnings) {
@@ -300,8 +310,8 @@ public abstract class InvokeCallableNode extends BaseNode {
       } else {
         return WithWarnings.wrap(EnsoContext.get(this), result, extracted);
       }
-    } catch (UnsupportedMessageException e) {
-      throw CompilerDirectives.shouldNotReachHere(e);
+    } catch (TailCallException e) {
+      throw new TailCallException(e, extracted);
     }
   }
 
