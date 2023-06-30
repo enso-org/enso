@@ -42,14 +42,12 @@ public final class Array implements TruffleObject {
 
   /**
    * Creates an uninitialized array of the given size.
+   * The values must be filled before the array is returned to Enso.
    *
    * @param size the size of the created array.
    */
   public static Array allocate(long size) {
     var arr = new Object[(int) size];
-    var ctx = EnsoContext.get(null);
-    var nothing = ctx.getBuiltins().nothing();
-    Arrays.fill(arr, nothing);
     return new Array(arr);
   }
 

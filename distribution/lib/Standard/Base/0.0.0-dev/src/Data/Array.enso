@@ -185,6 +185,7 @@ type Array
 
     ## PRIVATE
        This method is unimplemented - exists to align the Array API with Vector API.
+       TODO: Allow the VectorArraySignatureTest to ignore PRIVATE methods.
     insert_builtin self at values =
         _ = [at, values]
         Error.throw (Unimplemented.Error "Array.insert_builtin.")
@@ -200,6 +201,7 @@ type Array
 
     ## PRIVATE
        This method is unimplemented - exists to align the Array API with Vector API.
+       TODO: Allow the VectorArraySignatureTest to ignore PRIVATE methods.
     remove_builtin self at =
         _ = [at]
         Error.throw (Unimplemented.Error "Array.remove_builtin.")
