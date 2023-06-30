@@ -27,13 +27,16 @@ class ProjectSettingsManager(
 
   private def loadSettings(): Try[SettingsResponse] = for {
     pkg <- PackageManager.Default.loadPackage(projectRoot)
-    edition = pkg.config.edition.getOrElse(DefaultEdition.getDefaultEdition)
-  } yield SettingsResponse(edition.parent, pkg.config.preferLocalLibraries)
+    edition = pkg
+      .getConfig()
+      .edition
+      .getOrElse(DefaultEdition.getDefaultEdition)
+  } yield SettingsResponse(edition.parent, pkg.getConfig().preferLocalLibraries)
 
   private def setParentEdition(editionName: String): Try[SettingsUpdated] =
     for {
       pkg <- PackageManager.Default.loadPackage(projectRoot)
-      newEdition = pkg.config.edition match {
+      newEdition = pkg.getConfig().edition match {
         case Some(edition) => edition.copy(parent = Some(editionName))
         case None          => Editions.Raw.Edition(parent = Some(editionName))
       }

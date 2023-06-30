@@ -66,6 +66,7 @@ case class LibraryResolver(
         case Some(parentEdition) =>
           resolveLibraryFromEdition(libraryName, parentEdition)
         case None =>
+          new Exception("library not found").printStackTrace()
           Left(
             LibraryResolutionError(
               s"The library `$libraryName` is not defined within " +

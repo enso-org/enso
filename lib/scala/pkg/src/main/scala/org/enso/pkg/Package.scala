@@ -25,9 +25,9 @@ case class SourceFile[F](qualifiedName: QualifiedName, file: F)
   * @param config the metadata contained in the package configuration
   * @param fileSystem the file system access module
   */
-case class Package[F](
-  root: F,
-  config: Config,
+class Package[F](
+  val root: F,
+  initialConfig: Config,
   implicit val fileSystem: FileSystem[F]
 ) {
   import FileSystem.Syntax
@@ -47,13 +47,25 @@ case class Package[F](
     .getChild(Package.cacheDirName)
     .getChild(Package.suggestionsCacheDirName)
 
+  private[this] var config: Config = initialConfig
+  def getConfig(): Config          = config
+
+  /** Reloads the config from file system */
+  def reloadConfig(): Try[Config] = {
+    val configFile = root.getChild(Package.configFileName)
+    val newConfig  = Using(configFile.newBufferedReader)(Config.fromYaml).flatten
+    newConfig.foreach(config = _)
+    newConfig
+  }
+
   /** Sets the package name.
     *
     * @param newName the new package name
     * @return a package with the updated name
     */
-  def setPackageName(newName: String): Package[F] =
-    this.copy(config = config.copy(name = newName))
+  def setPackageName(newName: String): Package[F] = {
+    new Package(root, config.copy(name = newName), fileSystem)
+  }
 
   /** Stores the package metadata on the hard drive. If the package does not exist,
     * creates the required directory structure.
@@ -126,7 +138,7 @@ case class Package[F](
     *         valid anymore.
     */
   def updateConfig(update: Config => Config): Package[F] = {
-    val newPkg = copy(config = update(config))
+    val newPkg = new Package(root, update(config), fileSystem)
     newPkg.saveConfig()
     newPkg
   }
@@ -234,7 +246,7 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
     config: Config,
     template: Template
   ): Package[F] = {
-    val pkg = Package(root, config, fileSystem)
+    val pkg = new Package(root, config, fileSystem)
     pkg.save()
     copyResources(pkg, template)
     pkg
@@ -300,18 +312,15 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
     val result =
       if (!root.exists) Failure(PackageManager.PackageNotFound())
       else {
-        def readConfig(file: F): Try[String] =
+        def readConfig(file: F): Try[Config] =
           if (file.exists)
-            Using(file.newBufferedReader) { reader =>
-              reader.lines().iterator().asScala.mkString("\n")
-            }
+            Using(file.newBufferedReader)(Config.fromYaml).flatten
           else Failure(PackageManager.PackageNotFound())
 
         val configFile = root.getChild(Package.configFileName)
         for {
-          resultStr <- readConfig(configFile)
-          result    <- Config.fromYaml(resultStr)
-        } yield Package(root, result, fileSystem)
+          result <- readConfig(configFile)
+        } yield new Package(root, result, fileSystem)
       }
     result.recoverWith {
       case packageLoadingException: PackageManager.PackageLoadingException =>

@@ -43,6 +43,7 @@ class RenameProjectCmd(
       val projectModules = getProjectModules
       projectModules.foreach { module =>
         module.setIndexed(false)
+        module.getPackage.reloadConfig()
         ctx.endpoint.sendToClient(
           Api.Response(
             Api.SuggestionsDatabaseModuleUpdateNotification(
