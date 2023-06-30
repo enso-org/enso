@@ -31,6 +31,7 @@ from project.Data.Range.Extensions import all
 from project.Data.Ordering import all
 from project.Data.Boolean import Boolean, True, False
 from project.Data.Index_Sub_Range import Index_Sub_Range, take_helper, drop_helper
+from project.Data.Filter_Condition import unify_condition_or_predicate, unify_condition_predicate_or_element
 
 polyglot java import java.lang.IndexOutOfBoundsException
 polyglot java import org.enso.base.Array_Builder
@@ -289,13 +290,12 @@ type Vector a
                         @Tail_Call fold_function (function current (self.at idx)) (idx + 1)
                 fold_function (self.at 0) 1
 
-    ## Returns the first element of the vector that satisfies the predicate or
+    ## Returns the first element of the vector that satisfies the condition or
        `if_missing` if no elements of the vector satisfy it.
 
        Arguments:
-       - predicate: A function that takes a list element and returns a boolean
-         value that says whether that value satisfies the conditions of the
-         function.
+       - condition: A `Filter_Condition` or a function that takes an element and
+         returns a boolean value specifying if it satisfies the condition.
        - start: The index to start searching from. If the index is negative, it
          is counted from the end of the vector.
        - if_missing: Value returned if no element satisfies the predicate.
@@ -304,8 +304,9 @@ type Vector a
          Finding a first element of the vector that is larger than 3.
 
              [1, 2, 3, 4, 5].find (> 3)
-    find : (Any -> Boolean) -> Integer -> Any -> Any
-    find self predicate start=0 ~if_missing=(Error.throw Not_Found) =
+    find : (Filter_Condition | (Any -> Boolean)) -> Integer -> Any -> Any
+    find self condition start=0 ~if_missing=(Error.throw Not_Found) =
+        predicate = unify_condition_or_predicate condition
         self_len = self.length
         check_start_valid start self_len used_start->
             found = used_start.up_to self_len . find (idx -> (predicate (self.at idx)))
@@ -315,8 +316,8 @@ type Vector a
        Returns Nothing if the element is not found.
 
        Arguments:
-       - element: The element to search for or a predicate function to test for
-         each element.
+       - condition: Either the element to search for, a `Filter_Condition` or a
+         predicate function to test each element.
        - start: The index to start searching from. If the index is negative, it
          is counted from the end of the vector.
 
@@ -324,21 +325,24 @@ type Vector a
          Find the index of an element in a vector.
 
              [1, 2, 3].index_of 2 == 1
-    index_of : (Any | (Any -> Boolean)) -> Integer -> Integer | Nothing
-    index_of self element start=0 =
+
+       > Example
+         Find the index of the first palindrome.
+
+             ["ab", "abab", "aba", "bbb"].index_of (s-> s == s.reverse) == 2
+    index_of : (Any | Filter_Condition | (Any -> Boolean)) -> Integer -> Integer | Nothing
+    index_of self condition start=0 =
         self_len = self.length
         check_start_valid start self_len used_start->
-            predicate = case element of
-                _ : Function -> (i -> element (self.at i))
-                _ -> (i -> self.at i == element)
-            used_start.up_to self.length . find if_missing=Nothing predicate
+            predicate = unify_condition_predicate_or_element condition
+            used_start.up_to self.length . find if_missing=Nothing (i-> predicate (self.at i))
 
     ## Returns the last index of an element in the vector.
        Returns `Nothing` if the element is not found.
 
        Arguments:
-       - element: The element to search for or a predicate function to test for
-         each element.
+       - condition: Either the element to search for, a `Filter_Condition` or a
+         predicate function to test each element.
        - start: The index to start searching backwards from. If the index is
          negative, it is counted from the end of the vector.
 
@@ -346,44 +350,58 @@ type Vector a
          Find the last index of an element in a vector.
 
              [1, 2, 3, 1, 2, 3].last_index_of 2 == 4
-    last_index_of : (Any | (Any -> Boolean)) -> Integer -> Integer | Nothing
-    last_index_of self element start=-1 =
+
+       > Example
+         Find the index of the last palindrome.
+
+             ["ab", "abab", "aba", "bbb"].last_index_of (s-> s == s.reverse) == 3
+    last_index_of : (Any | Filter_Condition | (Any -> Boolean)) -> Integer -> Integer | Nothing
+    last_index_of self condition start=-1 =
         self_len = self.length
         if self_len == 0 && (start==0 || start==-1) then Nothing else
             check_start_valid start self_len used_start->
-                predicate = case element of
-                    _ : Function -> (i -> element (self.at i))
-                    _ -> (i -> self.at i == element)
-                used_start.down_to -1 . find if_missing=Nothing predicate
+                predicate = unify_condition_predicate_or_element condition
+                used_start.down_to -1 . find if_missing=Nothing (i-> predicate (self.at i))
 
     ## Checks whether a predicate holds for at least one element of self vector.
 
        Arguments:
-       - predicate: A function that takes a list element and returns a boolean
-         value that says whether that value satisfies the conditions of the
-         function.
+       - condition: A `Filter_Condition` or a predicate function to test each
+         element.
 
        > Example
-         Checking if any element of the list is larger than 3.
+         Checking if any element of the vector is larger than 3.
 
-             [1, 2, 3, 4, 5].any (> 3)
-    any : (Any -> Boolean) -> Boolean
-    any self predicate =
+             [1, 2, 3, 4, 5].any (Filter_Condition.Greater than=3)
+
+       > Example
+         Checking if any element of the vector is even.
+
+             [1, 2, 3, 4, 5].any (x-> x%2 == 0)
+    any : (Filter_Condition | (Any -> Boolean)) -> Boolean
+    any self condition =
+        predicate = unify_condition_or_predicate condition
         0.up_to self.length . any (idx -> (predicate (self.at idx)))
 
-    ## Checks whether a predicate holds for all elements in this vector.
+    ## Checks whether a condition holds for all elements in this vector.
 
        Arguments:
-       - predicate: A function that takes a list element and returns a boolean
-         value that says whether that value satisfies the conditions of the
-         function.
+       - condition: A `Filter_Condition` or a predicate function to test each
+         element.
 
        > Example
          Check if all elements in the vector are less than zero.
 
-             [-1, 1, 5, 8].all (< 0)
-    all : (Any -> Boolean) -> Boolean
-    all self predicate = self . any (predicate >> .not) . not
+             [-1, 1, 5, 8].all (Filter_Condition.Less than=0)
+
+       > Example
+         Check if all elements in the vector are even.
+
+             [-1, 1, 5, 8].all (x-> x%2 == 0)
+    all : (Filter_Condition | (Any -> Boolean)) -> Boolean
+    all self condition =
+        predicate = unify_condition_or_predicate condition
+        self.any (predicate >> .not) . not
 
     ## Checks whether this vector contains a given value as an element.
 
@@ -395,7 +413,7 @@ type Vector a
 
              [1, 383, 72, 301].contains 72
     contains : Any -> Boolean
-    contains self elem = self.any ix-> ix == elem
+    contains self elem = self.any (== elem)
 
     ## Checks if this vector is empty.
 
@@ -429,12 +447,11 @@ type Vector a
              [1, 2, 3, 4, 5].filter (> 3)
              [1, 2, 3, 4, 5].filter (Filter_Condition.Greater than=3)
     filter : (Filter_Condition | (Any -> Boolean)) -> Vector Any
-    filter self filter = case filter of
-        _ : Filter_Condition -> self.filter filter.to_predicate
-        predicate : Function ->
-            builder = self.fold Vector.new_builder builder-> elem->
-                if predicate elem then builder.append elem else builder
-            builder.to_vector
+    filter self filter =
+        predicate = unify_condition_or_predicate filter
+        builder = self.fold Vector.new_builder builder-> elem->
+            if predicate elem then builder.append elem else builder
+        builder.to_vector
 
     ## Selects all elements of this vector which satisfy a predicate.
 
@@ -454,7 +471,7 @@ type Vector a
         builder.to_vector
 
     ## Partitions the vector into `Vector`s of elements which satisfy a given
-       predicate and ones that do not.
+       condition and ones that do not.
 
        Returns a `Pair` whose `first` element is the `Vector` of elements
        satisfying the predicate and the `second` element is a `Vector` of elements
@@ -464,15 +481,21 @@ type Vector a
        in the input vector.
 
        Arguments:
-       - predicate: A function that takes an element and returns a boolean
-         value.
+       - condition: A `Filter_Condition` or a predicate function to test each
+         element.
+
+       > Example
+         Splitting a vector into elements that start with a prefix.
+
+             ["a", "b", "ax", "bx"].partition (Filter_Condition.Starts_With "a") == (Pair ["a", "ax"] ["b", "bx"])
 
        > Example
          Splitting a vector into even and odd elements.
 
              [1, 2, 3, 4, 5].partition (x -> x % 2 == 0) == (Pair [2, 4] [1, 3, 5])
-    partition : (Any -> Boolean) -> Pair (Vector Any) (Vector Any)
-    partition self predicate =
+    partition : (Filter_Condition | (Any -> Boolean)) -> Pair (Vector Any) (Vector Any)
+    partition self condition =
+        predicate = unify_condition_or_predicate condition
         pair = self.fold (Pair.new Vector.new_builder Vector.new_builder) acc-> elem->
             case predicate elem of
                 True ->
@@ -1149,11 +1172,12 @@ type Builder
     ## Checks whether a predicate holds for at least one element of this builder.
 
        Arguments:
-       - predicate: A function that takes a list element and returns a boolean
-         that says whether that value satisfies the conditions of the function.
-
-    any : (Any -> Boolean) -> Boolean
-    any self predicate =
+       - condition: A `Filter_Condition` or a function that takes a vector
+         element and returns a boolean value that says whether that value
+         satisfies a condition.
+    any : (Filter_Condition | (Any -> Boolean)) -> Boolean
+    any self condition =
+        predicate = unify_condition_or_predicate condition
         0.up_to self.length . any (idx -> (predicate (self.java_builder.get idx)))
 
     ## Converts this builder to a vector containing all the appended elements.

@@ -657,6 +657,24 @@ type Column
                 rs = s.iif true_val false_val storage_type
                 Column.Value (Java_Column.new new_name rs)
 
+    ## PRIVATE
+
+       Creates a column from a single constant value.
+
+       This method is not static; it must be called on an existing column. That
+       existing column is only used for its internal state; the contents of the
+       column are not used.
+
+       Arguments:
+       - value: the constant value to use for the entire column.
+
+       > Example
+         Create a column of the value 42
+
+         column.const 42
+    const : Any -> Column
+    const self value = self.to_table.make_constant_column value
+
     ## Round the values in a numeric column to a specified number of decimal
        places.
 
@@ -689,6 +707,16 @@ type Column
          If `decimal_places` is outside the range -15..15 (inclusive), an
          `Illegal_Argument` error is thrown.
 
+       ! Precision
+         As floating-point numbers are inexact, rounding can have unexpected
+         results near the precision limit (about 15 decimal places), especially
+         when rounding mid-point values. For example:
+
+         Postgres: rounding 1.2222222222222235 to 15 decimal places returns:
+             1.222222222222224
+         SQLite: rounding 1.2222222222222235 to 15 decimal places returns:
+             1.222222222222223
+
        ? Negative decimal place counts
          Rounding to `n` digits can be thought of as "rounding to the nearest
          multiple of 10^(-n)". For negative decimal counts, this results in
@@ -698,14 +726,40 @@ type Column
          Round a column of `Decimal` values`.
 
              Column.from_vector "foo" [1.2, 2.3, 3.6] . round == (Column.from_vector "foo" [1, 2, 4])
-    round : Integer -> Boolean -> Problem_Behavior -> Column | Illegal_Argument | Invalid_Value_Type
-    round self decimal_places=0 use_bankers=False on_problems=Report_Warning = Value_Type.expect_numeric self <|
-        # If it's an integer column and decimal_places >=0 then it's a no-op.
-        if self.value_type.is_integer && decimal_places >= 0 then self else
-            returns_double = decimal_places > 0
-            builder = if returns_double then make_double_builder else make_long_builder
-            fun = _.round decimal_places use_bankers
-            Column_Ops.map_over_storage self fun builder skip_nothing=True on_problems=on_problems
+    round : Integer -> Boolean -> Column | Illegal_Argument | Invalid_Value_Type
+    round self decimal_places=0 use_bankers=False =
+        Rounding_Helpers.check_decimal_places decimal_places <| Value_Type.expect_numeric self <|
+            # If it's an integer column and decimal_places >=0 then it's a no-op.
+            new_name = Naming_Helpers.function_name "round" [self]
+            if self.value_type.is_integer && decimal_places >= 0 then self.rename new_name else
+                should_cast_to_integer = decimal_places <= 0 || self.value_type.is_integer
+                target_value_type = if should_cast_to_integer then Value_Type.Integer else self.value_type
+                result = self.check_round_input target_value_type <|
+                    scale = 10 ^ decimal_places
+                    scaled = self * scale
+                    round_base = scaled.floor
+                    round_midpoint = (round_base + 0.5) / scale
+                    even_is_up = (self >= 0).iif ((scaled.truncate % 2) != 0) ((scaled.truncate % 2) == 0)
+                    half_goes_up = if use_bankers then even_is_up else self >= 0
+                    do_round_up = half_goes_up.iif (self >= round_midpoint) (self > round_midpoint)
+                    result_float = do_round_up.iif ((round_base + 1.0) / scale) (round_base / scale)
+                    cast_if_needed result_float target_value_type
+                result.rename new_name
+
+    ## PRIVATE
+       Restrict allowed range of input to rounding methods.
+    check_round_input : Column -> Value_Type -> Any ! Illegal_Argument
+    check_round_input self target_value_type column =
+        min = Rounding_Helpers.round_min_long
+        max = Rounding_Helpers.round_max_long
+        within_range = self >= self.const min && self <= self.const max
+        warning = Illegal_Argument.Error <| "Error: `round` can only accept values between " + min.to_text + " and " + max.to_text + " (inclusive)"
+        nothing_with_problem = Warning.attach warning Nothing
+        ## TODO: This should be cast to NULL when that type is available,
+           see https://github.com/enso-org/enso/issues/6281.
+        nothings = self.const nothing_with_problem . cast target_value_type
+        result = within_range.iif column nothings
+        result.rename column.name
 
     ## ALIAS int
 
@@ -728,7 +782,12 @@ type Column
     truncate self =
         case self.value_type.is_numeric of
             True ->
-                simple_unary_op self "truncate"
+                case self.value_type.is_integer of
+                    True ->
+                        new_name = Naming_Helpers.function_name "truncate" [self]
+                        self.rename new_name
+                    False ->
+                        simple_unary_op self "truncate"
             False -> case self.value_type == Value_Type.Date_Time of
                 True ->
                     fun = _.date
@@ -746,7 +805,12 @@ type Column
              Column.from_vector "foo" [1.25, 2.33, 3.57] . ceil == (Column.from_vector "foo" [2, 3, 4])
     ceil : Column ! Invalid_Value_Type
     ceil self = Value_Type.expect_numeric self <|
-        simple_unary_op self "ceil"
+        case self.value_type.is_integer of
+            True ->
+                new_name = Naming_Helpers.function_name "ceil" [self]
+                self.rename new_name
+            False ->
+                simple_unary_op self "ceil"
 
     ## Computes the nearest integer below this number for values in a numeric
        column.
@@ -759,7 +823,12 @@ type Column
              Column.from_vector "foo" [1.25, 2.33, 3.57] . floor == (Column.from_vector "foo" [1, 2, 3])
     floor : Column ! Invalid_Value_Type
     floor self = Value_Type.expect_numeric self <|
-        simple_unary_op self "floor"
+        case self.value_type.is_integer of
+            True ->
+                new_name = Naming_Helpers.function_name "floor" [self]
+                self.rename new_name
+            False ->
+                simple_unary_op self "floor"
 
     ## Returns a column of first non-`Nothing` value on each row of `self` and
        `values` list.
@@ -2030,3 +2099,8 @@ wrap_text_argument_as_value_provider val =
         col : Column ->
             storage = col.java_column.getStorage
             i-> storage.getItemBoxed i
+
+## PRIVATE
+   Cast a column to a `Value_Type`, unless it already has that type.
+cast_if_needed : Column -> Value_Type -> Column
+cast_if_needed column value_type = if column.value_type == value_type then column else column.cast value_type

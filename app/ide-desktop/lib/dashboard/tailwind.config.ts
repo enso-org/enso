@@ -48,6 +48,21 @@ export const theme = {
             soft: `0 0.5px 2.2px 0px #00000008, 0 1.2px 5.3px 0px #0000000b, \
 0 2.3px 10px 0 #0000000e, 0 4px 18px 0 #00000011, 0 7.5px 33.4px 0 #00000014, \
 0 18px 80px 0 #0000001c`,
+            'inset-t-lg': `inset 0 1px 1.4px -1.4px #00000002, \
+inset 0 2.4px 3.4px -3.4px #00000003, inset 0 4.5px 6.4px -6.4px #00000004, \
+inset 0 8px 11.4px -11.4px #00000005, inset 0 15px 21.3px -21.3px #00000006, \
+inset 0 36px 51px -51px #00000014`,
+            'inset-b-lg': `inset 0 -1px 1.4px -1.4px #00000002, \
+inset 0 -2.4px 3.4px -3.4px #00000003, inset 0 -4.5px 6.4px -6.4px #00000004, \
+inset 0 -8px 11.4px -11.4px #00000005, inset 0 -15px 21.3px -21.3px #00000006, \
+inset 0 -36px 51px -51px #00000014`,
+            'inset-v-lg': `inset 0 1px 1.4px -1.4px #00000002, \
+inset 0 2.4px 3.4px -3.4px #00000003, inset 0 4.5px 6.4px -6.4px #00000004, \
+inset 0 8px 11.4px -11.4px #00000005, inset 0 15px 21.3px -21.3px #00000006, \
+inset 0 36px 51px -51px #00000014, inset 0 -1px 1.4px -1.4px #00000002, \
+inset 0 -2.4px 3.4px -3.4px #00000003, inset 0 -4.5px 6.4px -6.4px #00000004, \
+inset 0 -8px 11.4px -11.4px #00000005, inset 0 -15px 21.3px -21.3px #00000006, \
+inset 0 -36px 51px -51px #00000014`,
         },
         animation: {
             'spin-ease': 'spin cubic-bezier(0.67, 0.33, 0.33, 0.67) 1.5s infinite',
@@ -58,6 +73,9 @@ export const theme = {
         },
         transitionDuration: {
             '90000': '90000ms',
+        },
+        gridTemplateColumns: {
+            'fill-60': 'repeat(auto-fill, minmax(15rem, 1fr))',
         },
     },
 }

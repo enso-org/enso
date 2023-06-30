@@ -1,5 +1,35 @@
 /** @file Renders the list of templates from which a project can be created. */
+import * as react from 'react'
+
 import PlusCircledIcon from 'enso-assets/plus_circled.svg'
+import RotatingArrowIcon from 'enso-assets/rotating_arrow.svg'
+
+import * as common from 'enso-common'
+
+// =================
+// === Constants ===
+// =================
+
+/** The `localStorage` key used to store whether the {@link Templates} element should be
+ * expanded by default. */
+const IS_TEMPLATES_OPEN_KEY = `${common.PRODUCT_NAME.toLowerCase()}-is-templates-expanded`
+/** The max width at which the bottom shadow should be visible. */
+const MAX_WIDTH_NEEDING_SCROLL = 1031
+/** The height of the bottom padding - 8px for the grid gap, and another 8px for the height
+ * of the padding div. */
+const PADDING_HEIGHT = 16
+
+// =============
+// === Types ===
+// =============
+
+/** The CSS class to apply inset shadows on the specified side(s). */
+enum ShadowClass {
+    none = '',
+    top = 'shadow-inset-t-lg',
+    bottom = 'shadow-inset-b-lg',
+    both = 'shadow-inset-v-lg',
+}
 
 // =================
 // === Templates ===
@@ -77,10 +107,8 @@ function TemplatesRender(props: TemplatesRenderProps) {
             className="h-40 cursor-pointer"
         >
             <div className="flex h-full w-full border-dashed-custom rounded-2xl text-primary">
-                <div className="m-auto text-center">
-                    <button>
-                        <img src={PlusCircledIcon} />
-                    </button>
+                <div className="flex flex-col text-center items-center m-auto">
+                    <img src={PlusCircledIcon} />
                     <p className="font-semibold text-sm">New empty project</p>
                 </div>
             </div>
@@ -130,10 +158,94 @@ export interface TemplatesProps {
 function Templates(props: TemplatesProps) {
     const { onTemplateClick } = props
 
+    const [shadowClass, setShadowClass] = react.useState(
+        window.innerWidth <= MAX_WIDTH_NEEDING_SCROLL ? ShadowClass.bottom : ShadowClass.none
+    )
+    const [isOpen, setIsOpen] = react.useState(() => {
+        /** This must not be in a `useEffect` as it would flash open for one frame.
+         * It can be in a `useLayoutEffect` but as that needs to be checked every re-render,
+         * this is slightly more performant. */
+        const savedIsOpen = localStorage.getItem(IS_TEMPLATES_OPEN_KEY)
+        let result = true
+        if (savedIsOpen != null) {
+            try {
+                result = JSON.parse(savedIsOpen) !== false
+            } catch {
+                // Ignored. This should only happen when a user manually sets invalid JSON into
+                // the `localStorage` key used by this component.
+            }
+        }
+        return result
+    })
+
+    // This is incorrect, but SAFE, as its value will always be assigned before any hooks are run.
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const containerRef = react.useRef<HTMLDivElement>(null!)
+
+    const toggleIsOpen = react.useCallback(() => {
+        setIsOpen(oldIsOpen => !oldIsOpen)
+    }, [])
+
+    const updateShadowClass = () => {
+        const element = containerRef.current
+        const boundingBox = element.getBoundingClientRect()
+        let newShadowClass: ShadowClass
+        const shouldShowTopShadow = element.scrollTop !== 0
+        // `window.innerWidth <= MAX_WIDTH_NEEDING_SCROLL` is repeated. This is intentional,
+        // to avoid adding it as a dependency.
+        const paddingHeight = window.innerWidth <= MAX_WIDTH_NEEDING_SCROLL ? 0 : PADDING_HEIGHT
+        // Chrome has decimal places in its bounding box, which can overshoot the target size
+        // slightly.
+        const shouldShowBottomShadow =
+            element.scrollTop + boundingBox.height + paddingHeight + 1 < element.scrollHeight
+        if (shouldShowTopShadow && shouldShowBottomShadow) {
+            newShadowClass = ShadowClass.both
+        } else if (shouldShowTopShadow) {
+            newShadowClass = ShadowClass.top
+        } else if (shouldShowBottomShadow) {
+            newShadowClass = ShadowClass.bottom
+        } else {
+            newShadowClass = ShadowClass.none
+        }
+        setShadowClass(newShadowClass)
+    }
+
+    react.useEffect(() => {
+        window.addEventListener('resize', updateShadowClass)
+        return () => {
+            window.removeEventListener('resize', updateShadowClass)
+        }
+    })
+
+    react.useEffect(() => {
+        localStorage.setItem(IS_TEMPLATES_OPEN_KEY, JSON.stringify(isOpen))
+    }, [isOpen])
+
     return (
-        <div className="my-2 p-2">
-            <div className="grid gap-2 grid-cols-fill-60-minmax-scrollbar-aware justify-center">
+        <div className="mx-2">
+            <div className="flex items-center my-2">
+                <div className="w-4">
+                    <div
+                        className={`cursor-pointer transition-all ease-in-out ${
+                            isOpen ? 'rotate-90' : ''
+                        }`}
+                        onClick={toggleIsOpen}
+                    >
+                        <img src={RotatingArrowIcon} />
+                    </div>
+                </div>
+                <h1 className="text-xl font-bold self-center">Templates</h1>
+            </div>
+            <div
+                ref={containerRef}
+                className={`grid gap-2 grid-cols-fill-60 justify-center overflow-y-scroll scroll-hidden transition-all duration-300 ease-in-out px-4 ${
+                    isOpen ? `h-templates-custom ${shadowClass}` : 'h-0'
+                }`}
+                onScroll={updateShadowClass}
+            >
                 <TemplatesRender templates={TEMPLATES} onTemplateClick={onTemplateClick} />
+                {/* Spacing. */}
+                <div className="col-span-full h-2" />
             </div>
         </div>
     )

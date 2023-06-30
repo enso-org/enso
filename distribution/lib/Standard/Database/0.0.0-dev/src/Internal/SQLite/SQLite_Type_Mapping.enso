@@ -156,6 +156,10 @@ operations_map =
         result = if unified == Value_Type.Mixed then default_text else unified
         SQLite_Type_Mapping.value_type_to_sql result Problem_Behavior.Ignore
 
+    same_as_first_argument arguments =
+        typ = find_type (arguments.at 0)
+        SQLite_Type_Mapping.value_type_to_sql typ Problem_Behavior.Ignore
+
     handle_iif arguments =
         if arguments.length != 3 then
             Panic.throw (Illegal_State.Error "Impossible: IIF must have 3 arguments. This is a bug in the Database library.")
@@ -175,10 +179,11 @@ operations_map =
     handle_cast _ =
         Panic.throw (Illegal_State.Error "Cast relies on its own type inference logic, so this code should never be reached. This is a bug in the Database library.")
 
-    always_boolean_ops = ["==", "!=", "equals_ignore_case", ">=", "<=", "<", ">", "BETWEEN", "AND", "OR", "NOT", "IS_NULL", "IS_EMPTY", "LIKE", "IS_IN", "IS_IN_COLUMN", "starts_with", "ends_with", "contains", "BOOL_OR"]
-    always_floating_ops = ["/", "mod", "AVG", "STDDEV_POP", "STDDEV_SAMP"]
+    always_boolean_ops = ["==", "!=", "equals_ignore_case", ">=", "<=", "<", ">", "BETWEEN", "AND", "OR", "NOT", "IS_NULL", "IS_EMPTY", "LIKE", "IS_IN", "IS_IN_COLUMN", "starts_with", "ends_with", "contains", "BOOL_OR", "IS_INF"]
+    always_floating_ops = ["/", "mod", "AVG", "STDDEV_POP", "STDDEV_SAMP", "ROUND"]
     always_text_ops = ["ADD_TEXT", "CONCAT", "CONCAT_QUOTE_IF_NEEDED", "MAKE_CASE_SENSITIVE", "FOLD_CASE", "TRIM", "LTRIM", "RTRIM"]
     always_integer_ops = ["COUNT", "COUNT_IS_NULL", "COUNT_DISTINCT", "COUNT_DISTINCT_INCLUDE_NULL", "COUNT_EMPTY", "COUNT_NOT_EMPTY", "COUNT_ROWS"]
+    same_as_first = ["TRUNCATE", "CEIL", "FLOOR"]
     arithmetic_ops = ["ADD_NUMBER", "-", "*", "^", "%", "SUM"]
     merge_input_types_ops = ["ROW_MAX", "ROW_MIN", "MAX", "MIN", "FILL_NULL", "COALESCE"]
     others = [["IIF", handle_iif], ["CAST", handle_cast], ["CASE", handle_case]]
@@ -189,7 +194,8 @@ operations_map =
         v4 = always_text_ops.map [_, const SQLite_Types.text]
         v5 = arithmetic_ops.map [_, find_a_common_type]
         v6 = merge_input_types_ops.map [_, find_a_common_type]
-        v1 + v2 + v3 + v4 + v5 + v6 + others
+        v7 = same_as_first.map [_, same_as_first_argument]
+        v1 + v2 + v3 + v4 + v5 + v6 + v7 + others
 
 ## PRIVATE
 type SQLite_Types

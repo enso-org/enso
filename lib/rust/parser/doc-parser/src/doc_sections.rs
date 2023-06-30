@@ -69,7 +69,7 @@ pub enum DocSection {
     /// The documentation tag.
     Tag {
         /// The tag name.
-        name: &'static str,
+        tag:  Tag,
         /// The tag text.
         body: HtmlString,
     },
@@ -141,9 +141,8 @@ impl DocSectionCollector {
 
 impl<L> TokenConsumer<L> for DocSectionCollector {
     fn tag(&mut self, tag: Tag, description: Option<Span<'_, L>>) {
-        let name = tag.to_str();
         let body = description.map(|description| description.to_string()).unwrap_or_default();
-        self.sections.push(DocSection::Tag { name, body });
+        self.sections.push(DocSection::Tag { tag, body });
     }
 
     fn enter_marked_section(&mut self, mark: Mark, header: Option<Span<'_, L>>) {
