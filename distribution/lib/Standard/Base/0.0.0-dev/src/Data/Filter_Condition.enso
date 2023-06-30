@@ -302,8 +302,8 @@ handle_constructor_missing_arguments function =
            For example, `Meta.meta (Filter_Condition.Between 10)` will return a `Meta.Primitive`.
            We rely on its text representation being of the form `Filter_Condition.Between[Filter_Condition.enso:41-343]`.
         _ : Meta.Primitive ->
-            regex = "Filter_Condition\.\w+\[Filter_Condition.enso:\d+-\d+\]"
-            function.to_text.match regex
+            text = function.to_text
+            text.starts_with "Filter_Condition." && text.contains "[Filter_Condition.enso:"
         _ -> False
     if is_filter_condition_constructor.not then function else
         message = "Got a Filter_Condition constructor without all required arguments provided. Please provide the missing arguments."
