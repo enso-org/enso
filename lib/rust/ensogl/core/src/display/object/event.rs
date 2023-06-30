@@ -97,11 +97,6 @@ impl SomeEvent {
         matches!(self.state(), State::RunningCancelled(_) | State::StoppedCancelled(_))
     }
 
-    /// Enables or disables capturing for this event.
-    pub fn set_capturing(&self, value: bool) {
-        self.bubbles.set(value);
-    }
-
     /// Enables or disables bubbling for this event.
     pub fn set_bubbling(&self, value: bool) {
         self.bubbles.set(value);
