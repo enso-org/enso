@@ -1,16 +1,13 @@
 package org.enso.compiler.pass.analyse
 
-import org.enso.compiler.Compiler
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Pattern
 import org.enso.compiler.core.ir.MetadataStorage._
-import org.enso.compiler.exception.CompilerError
+import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.resolve.{ExpressionAnnotations, GlobalNames}
-
-import scala.annotation.unused
 
 /** This pass performs tail call analysis on the Enso IR.
   *
@@ -76,12 +73,6 @@ case object TailCall extends IRPass {
         )
       )
     )
-
-  /** @inheritdoc */
-  override def updateMetadataInDuplicate[T <: IR](
-    @unused sourceIr: T,
-    copyOfIr: T
-  ): T = copyOfIr
 
   /** Performs tail call analysis on a top-level definition in a module.
     *
@@ -466,7 +457,7 @@ case object TailCall extends IRPass {
   }
 
   /** Expresses the tail call state of an IR Node. */
-  sealed trait TailPosition extends IRPass.Metadata {
+  sealed trait TailPosition extends IRPass.IRMetadata {
 
     /** A boolean representation of the expression's tail state. */
     def isTail: Boolean
@@ -478,7 +469,7 @@ case object TailCall extends IRPass {
       override val metadataName: String = "TailCall.TailPosition.Tail"
       override def isTail: Boolean      = true
 
-      override def duplicate(): Option[IRPass.Metadata] = Some(Tail)
+      override def duplicate(): Option[IRPass.IRMetadata] = Some(Tail)
 
       /** @inheritdoc */
       override def prepareForSerialization(compiler: Compiler): Tail.type = this
@@ -496,7 +487,7 @@ case object TailCall extends IRPass {
       override val metadataName: String = "TailCall.TailPosition.NotTail"
       override def isTail: Boolean      = false
 
-      override def duplicate(): Option[IRPass.Metadata] = Some(NotTail)
+      override def duplicate(): Option[IRPass.IRMetadata] = Some(NotTail)
 
       /** @inheritdoc */
       override def prepareForSerialization(compiler: Compiler): NotTail.type =

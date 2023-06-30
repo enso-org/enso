@@ -35,13 +35,13 @@ import java.util.UUID;
  *       method pointers are tracked separately from the expressions state because they have
  *       different invalidation rules. E.g., they should always be re-sent when the execution item
  *       is popped from the stack.
- *   <li>Visualisations state. Tracks the state of visualisation updates.
+ *   <li>Visualizations state. Tracks the state of visualization updates.
  * </ul>
  */
 public class UpdatesSynchronizationState {
 
   private final Set<UUID> expressionsState = new HashSet<>();
-  private final Set<UUID> visualisationsState = new HashSet<>();
+  private final Set<UUID> visualizationsState = new HashSet<>();
   private final Set<UUID> methodPointersState = new HashSet<>();
 
   @Override
@@ -49,8 +49,8 @@ public class UpdatesSynchronizationState {
     return "UpdatesSynchronizationState{"
         + "expressionsState="
         + expressionsState
-        + ", visualisationsState="
-        + visualisationsState
+        + ", visualizationsState="
+        + visualizationsState
         + ", methodPointersState="
         + methodPointersState
         + '}';
@@ -64,7 +64,7 @@ public class UpdatesSynchronizationState {
   public void invalidate(UUID key) {
     synchronized (this) {
       expressionsState.remove(key);
-      visualisationsState.remove(key);
+      visualizationsState.remove(key);
       methodPointersState.remove(key);
     }
   }
@@ -106,40 +106,40 @@ public class UpdatesSynchronizationState {
     }
   }
 
-  /* Visualisations */
+  /* Visualizations */
 
   /**
-   * Checks if the given visualisation update is synchronized.
+   * Checks if the given visualization update is synchronized.
    *
    * @param key the expression id.
-   * @return {@code true} if the visualisation update is synchronized.
+   * @return {@code true} if the visualization update is synchronized.
    */
-  public boolean isVisualisationSync(UUID key) {
-    synchronized (visualisationsState) {
-      return visualisationsState.contains(key);
+  public boolean isVisualizationSync(UUID key) {
+    synchronized (visualizationsState) {
+      return visualizationsState.contains(key);
     }
   }
 
   /**
-   * Marks the given visualisation update as unsynchronized.
+   * Marks the given visualization update as unsynchronized.
    *
    * @param key the expression id.
    */
   @CompilerDirectives.TruffleBoundary
-  public void setVisualisationUnsync(UUID key) {
-    synchronized (visualisationsState) {
-      visualisationsState.remove(key);
+  public void setVisualizationUnsync(UUID key) {
+    synchronized (visualizationsState) {
+      visualizationsState.remove(key);
     }
   }
 
   /**
-   * Marks the given visualisation update as synchronized.
+   * Marks the given visualization update as synchronized.
    *
    * @param key the expression id.
    */
-  public void setVisualisationSync(UUID key) {
-    synchronized (visualisationsState) {
-      visualisationsState.add(key);
+  public void setVisualizationSync(UUID key) {
+    synchronized (visualizationsState) {
+      visualizationsState.add(key);
     }
   }
 

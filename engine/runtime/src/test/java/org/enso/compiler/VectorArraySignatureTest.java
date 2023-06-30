@@ -8,6 +8,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.HashMap;
+import org.enso.compiler.core.EnsoParser;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.IR$Comment$Documentation;
 import org.enso.compiler.core.IR$Function$Binding;
@@ -20,19 +21,18 @@ import org.junit.Test;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 import scala.Function1;
 
 public class VectorArraySignatureTest {
-  private static EnsoCompiler ensoCompiler;
+  private static EnsoParser ensoCompiler;
 
   @BeforeClass
-  public static void initEnsoCompiler() {
-    ensoCompiler = new EnsoCompiler();
+  public static void initEnsoParser() {
+    ensoCompiler = new EnsoParser();
   }
 
   @AfterClass
-  public static void closeEnsoCompiler() throws Exception {
+  public static void closeEnsoParser() throws Exception {
     ensoCompiler.close();
   }
 

@@ -132,24 +132,24 @@ trait API {
     #[MethodInput=PopFromExecutionContextInput, rpc_name="executionContext/pop"]
     fn pop_from_execution_context(&self, context_id: ContextId) -> ();
 
-    /// Attach a visualisation, potentially preprocessed by some arbitrary Enso code, to a given
+    /// Attach a visualization, potentially preprocessed by some arbitrary Enso code, to a given
     /// node in the program.
-    #[MethodInput=AttachVisualisationInput, rpc_name="executionContext/attachVisualisation"]
-    fn attach_visualisation
+    #[MethodInput=AttachVisualizationInput, rpc_name="executionContext/attachVisualization"]
+    fn attach_visualization
     ( &self
-    , visualisation_id     : Uuid
+    , visualization_id     : Uuid
     , expression_id        : Uuid
-    , visualisation_config : VisualisationConfiguration) -> ();
+    , visualization_config : VisualizationConfiguration) -> ();
 
-    /// Detach a visualisation from the executing code.
-    #[MethodInput=DetachVisualisationInput, rpc_name="executionContext/detachVisualisation"]
-    fn detach_visualisation
-    (&self, context_id: Uuid, visualisation_id: Uuid, expression_id: Uuid) -> ();
+    /// Detach a visualization from the executing code.
+    #[MethodInput=DetachVisualizationInput, rpc_name="executionContext/detachVisualization"]
+    fn detach_visualization
+    (&self, context_id: Uuid, visualization_id: Uuid, expression_id: Uuid) -> ();
 
-    /// Modify the configuration for an existing visualisation.
-    #[MethodInput=ModifyVisualisationInput, rpc_name="executionContext/modifyVisualisation"]
-    fn modify_visualisation
-    (&self, visualisation_id: Uuid, visualisation_config: VisualisationConfiguration) -> ();
+    /// Modify the configuration for an existing visualization.
+    #[MethodInput=ModifyVisualizationInput, rpc_name="executionContext/modifyVisualization"]
+    fn modify_visualization
+    (&self, visualization_id: Uuid, visualization_config: VisualizationConfiguration) -> ();
 
     /// Interrupt the program execution.
     #[MethodInput=InterruptInput, rpc_name="executionContext/interrupt"]
@@ -256,7 +256,7 @@ mod test {
         let error = RpcError::RemoteError(msg).into();
         assert!(is_timeout_error(&error));
 
-        let text = r#"{"code":2007,"message":"Evaluation of the visualisation expression failed"}"#;
+        let text = r#"{"code":2007,"message":"Evaluation of the visualization expression failed"}"#;
         let msg = serde_json::from_str::<json_rpc::messages::Error>(text).unwrap();
         let error = RpcError::RemoteError(msg).into();
         assert!(!is_timeout_error(&error));

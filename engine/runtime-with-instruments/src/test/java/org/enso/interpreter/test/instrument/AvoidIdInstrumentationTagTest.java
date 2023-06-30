@@ -106,6 +106,32 @@ public class AvoidIdInstrumentationTagTest {
     assertAvoidIdInstrumentationTag(isLambda);
   }
 
+  @Test
+  public void avoidIdInstrumentationInMap() throws Exception {
+    var code = """
+    from Standard.Base import all
+
+    run =
+        operator1 = [ "FooBar", "whateveR" ]
+        fun1 = _.to_case Case.Lower
+        operator2 = operator1.map fun1
+        operator2
+    """;
+    var src = Source.newBuilder("enso", code, "CaseLambda.enso").build();
+    var module = context.eval(src);
+    var res = module.invokeMember("eval_expression", "run");
+    assertEquals("Array of the requested size computed", 2, res.getArraySize());
+
+    Predicate<SourceSection> isLambda = (ss) -> {
+      var sameSrc = ss.getSource().getCharacters().toString().equals(src.getCharacters().toString());
+      var st = ss.getCharacters().toString();
+      return sameSrc && st.contains("Case.Lower") && !st.contains("to_case");
+    };
+
+    assertAvoidIdInstrumentationTag(isLambda);
+  }
+
+
   private void assertAvoidIdInstrumentationTag(Predicate<SourceSection> isLambda) {
     var found = nodes.assertNewNodes("Give me nodes", 0, 10000);
     var err = new StringBuilder();

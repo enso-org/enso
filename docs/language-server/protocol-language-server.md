@@ -27,8 +27,8 @@ transport formats, please look [here](./protocol-architecture).
   - [`ProfilingInfo`](#profilinginfo)
   - [`ExpressionUpdate`](#expressionupdate)
   - [`ExpressionUpdatePayload`](#expressionupdatepayload)
-  - [`VisualisationConfiguration`](#visualisationconfiguration)
-  - [`VisualisationExpression`](#visualisationexpression)
+  - [`VisualizationConfiguration`](#visualizationconfiguration)
+  - [`VisualizationExpression`](#visualizationexpression)
   - [`SuggestionEntryArgument`](#suggestionentryargument)
   - [`SuggestionEntry`](#suggestionentry)
   - [`SuggestionEntryType`](#suggestionentrytype)
@@ -51,6 +51,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`TextEdit`](#textedit)
   - [`DiagnosticType`](#diagnostictype)
   - [`StackTraceElement`](#stacktraceelement)
+  - [`ExecutionResult`](#executionresult)
   - [`Diagnostic`](#diagnostic)
   - [`SHA3-224`](#sha3-224)
   - [`FileEdit`](#fileedit)
@@ -142,11 +143,11 @@ transport formats, please look [here](./protocol-architecture).
   - [`executionContext/executionComplete`](#executioncontextexecutioncomplete)
   - [`executionContext/executionStatus`](#executioncontextexecutionstatus)
   - [`executionContext/executeExpression`](#executioncontextexecuteexpression)
-  - [`executionContext/attachVisualisation`](#executioncontextattachvisualisation)
-  - [`executionContext/detachVisualisation`](#executioncontextdetachvisualisation)
-  - [`executionContext/modifyVisualisation`](#executioncontextmodifyvisualisation)
-  - [`executionContext/visualisationUpdate`](#executioncontextvisualisationupdate)
-  - [`executionContext/visualisationEvaluationFailed`](#executioncontextvisualisationevaluationfailed)
+  - [`executionContext/attachVisualization`](#executioncontextattachvisualization)
+  - [`executionContext/detachVisualization`](#executioncontextdetachvisualization)
+  - [`executionContext/modifyVisualization`](#executioncontextmodifyvisualization)
+  - [`executionContext/visualizationUpdate`](#executioncontextvisualizationupdate)
+  - [`executionContext/visualizationEvaluationFailed`](#executioncontextvisualizationevaluationfailed)
 - [Search Operations](#search-operations)
   - [Suggestions Database Example](#suggestions-database-example)
   - [`search/getSuggestionsDatabase`](#searchgetsuggestionsdatabase)
@@ -197,8 +198,8 @@ transport formats, please look [here](./protocol-architecture).
   - [`EmptyStackError`](#emptystackerror)
   - [`InvalidStackItemError`](#invalidstackitemerror)
   - [`ModuleNotFoundError`](#modulenotfounderror)
-  - [`VisualisationNotFoundError`](#visualisationnotfounderror)
-  - [`VisualisationExpressionError`](#visualisationexpressionerror)
+  - [`VisualizationNotFoundError`](#visualizationnotfounderror)
+  - [`VisualizationExpressionError`](#visualizationexpressionerror)
   - [`FileNotOpenedError`](#filenotopenederror)
   - [`TextEditValidationError`](#texteditvalidationerror)
   - [`InvalidVersionError`](#invalidversionerror)
@@ -443,22 +444,21 @@ interface Warnings {
 }
 ```
 
-### `VisualisationConfiguration`
+### `VisualizationConfiguration`
 
-A configuration object for properties of the visualisation.
+A configuration object for properties of the visualization.
 
 ```typescript
-interface VisualisationConfiguration {
-  /** An execution context of the visualisation. */
+interface VisualizationConfiguration {
+  /** An execution context of the visualization. */
   executionContextId: UUID;
 
   /**
-   * A qualified name of the module containing the expression which creates
-   * visualisation.
+   * A qualified name of the module to be used to evaluate the arguments for the visualization expression.
    */
-  visualisationModule?: String;
+  visualizationModule: String;
 
-  /** An expression that creates a visualisation. */
+  /** An expression that creates a visualization. */
   expression: String | MethodPointer;
 
   /** A list of arguments to pass to the visualization expression. */
@@ -1159,6 +1159,12 @@ interface StackTraceElement {
 }
 ```
 
+### `ExecutionResult`
+
+An execution result object is produced as a result of an execution attempt.
+Compared to `Diagnostic` object it can also represent a critical failure
+information.
+
 ### `Diagnostic`
 
 A diagnostic object is produced as a result of an execution attempt, like
@@ -1815,11 +1821,11 @@ destroying the context.
 - [`executionContext/push`](#executioncontextpush)
 - [`executionContext/pop`](#executioncontextpop)
 - [`executionContext/executeExpression`](#executioncontextexecuteexpression)
-- [`executionContext/attachVisualisation`](#executioncontextattachvisualisation)
-- [`executionContext/modifyVisualisation`](#executioncontextmodifyvisualisation)
-- [`executionContext/detachVisualisation`](#executioncontextdetachvisualisation)
-- [`executionContext/visualisationUpdate`](#executioncontextvisualisationupdate)
-- [`executionContext/visualisationEvaluationFailed`](#executioncontextvisualisationevaluationfailed)
+- [`executionContext/attachVisualization`](#executioncontextattachvisualization)
+- [`executionContext/modifyVisualization`](#executioncontextmodifyvisualization)
+- [`executionContext/detachVisualization`](#executioncontextdetachvisualization)
+- [`executionContext/visualizationUpdate`](#executioncontextvisualizationupdate)
+- [`executionContext/visualizationEvaluationFailed`](#executioncontextvisualizationevaluationfailed)
 
 #### Disables
 
@@ -3797,15 +3803,21 @@ None
 
 ### `executionContext/executionFailed`
 
-Sent from the server to the client to inform about a critical failure when
-attempting to execute a context.
+Sent from the server to the client to inform about a failure when attempting to
+execute a context.
 
-When the [`executionContext/executionStatus`](#executioncontextexecutionstatus)
-notifies about potential problems in the code found by compiler, or the errors
-during runtime, this message signals about the errors in the logic or the
-implementation. It can be a compiler crash, an attempt to execute an empty
-stack, an error location a method or a module when issuing a
+The [`executionContext/executionStatus`](#executioncontextexecutionstatus)
+notifies about potential problems in the code found by compiler which did not
+prevent the execution from completing successfully. This message signals about
+the non-critical errors during runtime, or critical failures in the logic or the
+implementation. A critical failure can be a compiler crash, an attempt to
+execute an empty stack, an error location a method or a module when issuing a
 [`executionContext/push`](#executioncontextpush) command.
+
+`executionContext/executionFailed` and
+[`executionContext/executionComplete`](#executioncontextexecutioncomplete)
+messages are mutually exclusive, indicating a failed or a successful execution,
+respectively.
 
 - **Type:** Notification
 - **Direction:** Server -> Client
@@ -3822,14 +3834,9 @@ stack, an error location a method or a module when issuing a
   contextId: ContextId;
 
   /**
-   * The error message.
+   * The details of the failed execution.
    */
-  message: String;
-
-  /**
-   * The location of a file producing the error.
-   */
-  path?: Path;
+  result: ExecutionResult;
 }
 ```
 
@@ -3841,6 +3848,11 @@ None
 
 Sent from the server to the client to inform about the successful execution of a
 context.
+
+`executionContext/executionFailed` and
+[`executionContext/executionComplete`](#executioncontextexecutioncomplete)
+messages are mutually exclusive, indicating a failed or a successful execution,
+respectively.
 
 - **Type:** Notification
 - **Direction:** Server -> Client
@@ -3893,8 +3905,8 @@ None
 
 This message allows the client to execute an arbitrary expression on a given
 node. It behaves like oneshot
-[`executionContext/attachVisualisation`](#executioncontextattachvisualisation)
-visualisation request, meaning that the visualisation expression will be
+[`executionContext/attachVisualization`](#executioncontextattachvisualization)
+visualization request, meaning that the visualization expression will be
 executed only once.
 
 - **Type:** Request
@@ -3906,9 +3918,9 @@ executed only once.
 
 ```typescript
 interface ExecuteExpressionRequest {
-  visualisationId: UUID;
+  visualizationId: UUID;
   expressionId: UUID;
-  visualisationConfig: VisualisationConfiguration;
+  visualizationConfig: VisualizationConfiguration;
 }
 ```
 
@@ -3925,14 +3937,14 @@ null;
 - [`ContextNotFoundError`](#contextnotfounderror) when context can not be found
   by provided id.
 - [`ModuleNotFoundError`](#modulenotfounderror) to signal that the module with
-  the visualisation cannot be found.
-- [`VisualisationExpressionError`](#visualisationexpressionerror) to signal that
-  the expression specified in the `VisualisationConfiguration` cannot be
+  the visualization cannot be found.
+- [`VisualizationExpressionError`](#visualizationexpressionerror) to signal that
+  the expression specified in the `VisualizationConfiguration` cannot be
   evaluated.
 
-### `executionContext/attachVisualisation`
+### `executionContext/attachVisualization`
 
-This message allows the client to attach a visualisation, potentially
+This message allows the client to attach a visualization, potentially
 preprocessed by some arbitrary Enso code, to a given node in the program.
 
 - **Type:** Request
@@ -3943,10 +3955,10 @@ preprocessed by some arbitrary Enso code, to a given node in the program.
 #### Parameters
 
 ```typescript
-interface AttachVisualisationRequest {
-  visualisationId: UUID;
+interface AttachVisualizationRequest {
+  visualizationId: UUID;
   expressionId: UUID;
-  visualisationConfig: VisualisationConfiguration;
+  visualizationConfig: VisualizationConfiguration;
 }
 ```
 
@@ -3963,14 +3975,14 @@ null;
 - [`ContextNotFoundError`](#contextnotfounderror) when context can not be found
   by provided id.
 - [`ModuleNotFoundError`](#modulenotfounderror) to signal that the module with
-  the visualisation cannot be found.
-- [`VisualisationExpressionError`](#visualisationexpressionerror) to signal that
-  the expression specified in the `VisualisationConfiguration` cannot be
+  the visualization cannot be found.
+- [`VisualizationExpressionError`](#visualizationexpressionerror) to signal that
+  the expression specified in the `VisualizationConfiguration` cannot be
   evaluated.
 
-### `executionContext/detachVisualisation`
+### `executionContext/detachVisualization`
 
-This message allows a client to detach a visualisation from the executing code.
+This message allows a client to detach a visualization from the executing code.
 
 - **Type:** Request
 - **Direction:** Client -> Server
@@ -3980,9 +3992,9 @@ This message allows a client to detach a visualisation from the executing code.
 #### Parameters
 
 ```typescript
-interface DetachVisualisationRequest {
+interface DetachVisualizationRequest {
   executionContextId: UUID;
-  visualisationId: UUID;
+  visualizationId: UUID;
   expressionId: UUID;
 }
 ```
@@ -3999,13 +4011,13 @@ null;
   `executionContext/canModify` capability for this context.
 - [`ContextNotFoundError`](#contextnotfounderror) when context can not be found
   by provided id.
-- [`VisualisationNotFoundError`](#visualisationnotfounderror) when a
-  visualisation can not be found.
+- [`VisualizationNotFoundError`](#visualizationnotfounderror) when a
+  visualization can not be found.
 
-### `executionContext/modifyVisualisation`
+### `executionContext/modifyVisualization`
 
 This message allows a client to modify the configuration for an existing
-visualisation.
+visualization.
 
 A successful response means that the new visualization configuration has been
 applied. In case of an error response, the visualization state does not change.
@@ -4018,9 +4030,9 @@ applied. In case of an error response, the visualization state does not change.
 #### Parameters
 
 ```typescript
-interface ModifyVisualisationRequest {
-  visualisationId: UUID;
-  visualisationConfig: VisualisationConfiguration;
+interface ModifyVisualizationRequest {
+  visualizationId: UUID;
+  visualizationConfig: VisualizationConfiguration;
 }
 ```
 
@@ -4037,16 +4049,16 @@ null;
 - [`ContextNotFoundError`](#contextnotfounderror) when context can not be found
   by provided id.
 - [`ModuleNotFoundError`](#modulenotfounderror) to signal that the module with
-  the visualisation cannot be found.
-- [`VisualisationExpressionError`](#visualisationexpressionerror) to signal that
-  the expression specified in the `VisualisationConfiguration` cannot be
+  the visualization cannot be found.
+- [`VisualizationExpressionError`](#visualizationexpressionerror) to signal that
+  the expression specified in the `VisualizationConfiguration` cannot be
   evaluated.
-- [`VisualisationNotFoundError`](#visualisationnotfounderror) when a
-  visualisation can not be found.
+- [`VisualizationNotFoundError`](#visualizationnotfounderror) when a
+  visualization can not be found.
 
-### `executionContext/visualisationUpdate`
+### `executionContext/visualizationUpdate`
 
-This message is responsible for providing a visualisation data update to the
+This message is responsible for providing a visualization data update to the
 client.
 
 - **Type:** Notification
@@ -4054,7 +4066,7 @@ client.
 - **Connection:** Data
 - **Visibility:** Public
 
-The `visualisationData` component of the table definition _must_ be
+The `visualizationData` component of the table definition _must_ be
 pre-serialized before being inserted into this message. As far as this level of
 transport is concerned, it is just a binary blob.
 
@@ -4063,11 +4075,11 @@ transport is concerned, it is just a binary blob.
 ```idl
 namespace org.enso.languageserver.protocol.binary;
 
-//A visualisation context identifying a concrete visualisation.
-table VisualisationContext {
+//A visualization context identifying a concrete visualization.
+table VisualizationContext {
 
-  //A visualisation identifier.
-  visualisationId: EnsoUUID (required);
+  //A visualization identifier.
+  visualizationId: EnsoUUID (required);
 
   //A context identifier.
   contextId: EnsoUUID (required);
@@ -4077,27 +4089,27 @@ table VisualisationContext {
 
 }
 
-//An event signaling visualisation update.
-table VisualisationUpdate {
+//An event signaling visualization update.
+table VisualizationUpdate {
 
-  //A visualisation context identifying a concrete visualisation.
-  visualisationContext: VisualisationContext (required);
+  //A visualization context identifying a concrete visualization.
+  visualizationContext: VisualizationContext (required);
 
-  //A visualisation data.
+  //A visualization data.
   data: [ubyte] (required);
 
 }
 
-root_type VisualisationUpdate;
+root_type VisualizationUpdate;
 ```
 
 #### Errors
 
 N/A
 
-### `executionContext/visualisationEvaluationFailed`
+### `executionContext/visualizationEvaluationFailed`
 
-Signals that an evaluation of a visualisation expression on the computed value
+Signals that an evaluation of a visualization expression on the computed value
 has failed.
 
 - **Type:** Notification
@@ -4108,16 +4120,16 @@ has failed.
 #### Parameters
 
 ```typescript
-interface VisualisationEvaluationFailed {
+interface VisualizationEvaluationFailed {
   /**
    * An execution context identifier.
    */
   contextId: ContextId;
 
   /**
-   * A visualisation identifier.
+   * A visualization identifier.
    */
-  visualisationId: UUID;
+  visualizationId: UUID;
 
   /**
    * An identifier of a visualised expression.
@@ -5404,27 +5416,27 @@ It signals that the given module cannot be found.
 }
 ```
 
-### `VisualisationNotFoundError`
+### `VisualizationNotFoundError`
 
-It signals that the visualisation cannot be found.
+It signals that the visualization cannot be found.
 
 ```typescript
 "error" : {
   "code" : 2006,
-  "message" : "Visualisation not found"
+  "message" : "Visualization not found"
 }
 ```
 
-### `VisualisationExpressionError`
+### `VisualizationExpressionError`
 
-It signals that the expression specified in the `VisualisationConfiguration`
+It signals that the expression specified in the `VisualizationConfiguration`
 cannot be evaluated. The error contains an optional `data` field of type
 [`Diagnostic`](#diagnostic) providing error details.
 
 ```typescript
 "error" : {
   "code" : 2007,
-  "message" : "Evaluation of the visualisation expression failed [i is not defined]"
+  "message" : "Evaluation of the visualization expression failed [i is not defined]"
   "payload" : {
     "kind" : "Error",
     "message" : "i is not defined",
