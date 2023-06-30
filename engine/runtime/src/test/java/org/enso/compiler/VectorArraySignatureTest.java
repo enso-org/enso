@@ -7,7 +7,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.HashMap;
 import org.enso.compiler.core.EnsoParser;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.IR$Comment$Documentation;

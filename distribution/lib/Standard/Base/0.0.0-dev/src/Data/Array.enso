@@ -184,6 +184,7 @@ type Array
     insert self at=self.length item=Nothing = (Vector.from_polyglot_array self).insert at item
 
     ## PRIVATE
+       This method is unimplemented - exists to align the Array API with Vector API.
     insert_builtin self at values =
         _ = [at, values]
         Error.throw (Unimplemented.Error "Array.insert_builtin.")
@@ -198,6 +199,7 @@ type Array
     remove self at=-1 = (Vector.from_polyglot_array self).remove at
 
     ## PRIVATE
+       This method is unimplemented - exists to align the Array API with Vector API.
     remove_builtin self at =
         _ = [at]
         Error.throw (Unimplemented.Error "Array.remove_builtin.")

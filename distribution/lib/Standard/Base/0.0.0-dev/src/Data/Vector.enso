@@ -727,7 +727,7 @@ type Vector a
             self.remove_builtin used_index
 
     ## PRIVATE
-    remove_builtin self at = @Builtin_Method("Vector.remove_builtin")
+    remove_builtin self at = @Builtin_Method "Vector.remove_builtin"
 
     ## When `self` is a vector of text values, concatenates all the values by
        interspersing them with `separator`.
