@@ -2,7 +2,6 @@
 import * as react from 'react'
 
 import PlusCircledIcon from 'enso-assets/plus_circled.svg'
-import PlusIcon from 'enso-assets/plus.svg'
 import RotatingArrowIcon from 'enso-assets/rotating_arrow.svg'
 
 import * as common from 'enso-common'
@@ -236,16 +235,6 @@ function Templates(props: TemplatesProps) {
                     </div>
                 </div>
                 <h1 className="text-xl font-bold self-center">Templates</h1>
-                {!isOpen && (
-                    <button
-                        className="bg-gray-100 rounded-full p-1 mx-2"
-                        onClick={() => {
-                            onTemplateClick()
-                        }}
-                    >
-                        <img src={PlusIcon} className="inline" /> New blank project&nbsp;
-                    </button>
-                )}
             </div>
             <div
                 ref={containerRef}
