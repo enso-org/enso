@@ -487,7 +487,7 @@ spec =
             -3.00001 . round . should_equal -3
             -3.3 . round . should_equal -3
             -3.49999 . round . should_equal -3
-            -3.5 . round . should_equal -3
+            -3.5 . round . should_equal -4
             -3.50001 . round . should_equal -4
             -3.99999 . round . should_equal -4
 
@@ -540,7 +540,7 @@ spec =
             -1499.0 . round -2 . should_equal -1500
             -1499.0 . round -3 . should_equal -1000
 
-            -1495.0 . round -1 . should_equal -1490
+            -1495.0 . round -1 . should_equal -1500
             -1494.0 . round -1 . should_equal -1490
             -1495.0 . round -2 . should_equal -1500
             -1494.0 . round -2 . should_equal -1500
@@ -594,12 +594,12 @@ spec =
             1.222222222222225 . round 14 . should_equal 1.22222222222223
             1.2222222222222225 . round 15 . should_equal 1.222222222222223
 
-            -1.22222222225 . round 10 . should_equal -1.2222222222
-            -1.222222222225 . round 11 . should_equal -1.22222222222
-            -1.2222222222225 . round 12 . should_equal -1.222222222222
-            -1.22222222222225 . round 13 . should_equal -1.2222222222222
-            -1.222222222222225 . round 14 . should_equal -1.22222222222222
-            -1.2222222222222225 . round 15 . should_equal -1.222222222222222
+            -1.22222222225 . round 10 . should_equal -1.2222222223
+            -1.222222222225 . round 11 . should_equal -1.22222222223
+            -1.2222222222225 . round 12 . should_equal -1.222222222223
+            -1.22222222222225 . round 13 . should_equal -1.2222222222223
+            -1.222222222222225 . round 14 . should_equal -1.22222222222223
+            -1.2222222222222225 . round 15 . should_equal -1.222222222222223
 
             1.22222222235 . round 10 . should_equal 1.2222222224
             1.222222222235 . round 11 . should_equal 1.22222222224
@@ -608,12 +608,12 @@ spec =
             1.222222222222235 . round 14 . should_equal 1.22222222222224
             1.2222222222222235 . round 15 . should_equal 1.222222222222224
 
-            -1.22222222235 . round 10 . should_equal -1.2222222223
-            -1.222222222235 . round 11 . should_equal -1.22222222223
-            -1.2222222222235 . round 12 . should_equal -1.222222222223
-            -1.22222222222235 . round 13 . should_equal -1.2222222222223
-            -1.222222222222235 . round 14 . should_equal -1.22222222222223
-            -1.2222222222222235 . round 15 . should_equal -1.222222222222223
+            -1.22222222235 . round 10 . should_equal -1.2222222224
+            -1.222222222235 . round 11 . should_equal -1.22222222224
+            -1.2222222222235 . round 12 . should_equal -1.222222222224
+            -1.22222222222235 . round 13 . should_equal -1.2222222222224
+            -1.222222222222235 . round 14 . should_equal -1.22222222222224
+            -1.2222222222222235 . round 15 . should_equal -1.222222222222224
 
         Test.specify "Can round correctly near the precision limit, using banker's rounding" <|
             1.22222222225 . round 10 use_bankers=True . should_equal 1.2222222222
@@ -706,13 +706,13 @@ spec =
 
         Test.specify "Can round negative integers to a specified number of negative places correctly"
             -4 . round -1 . should_equal 0
-            -5 . round -1 . should_equal 0
+            -5 . round -1 . should_equal -10
             -6 . round -1 . should_equal -10
             -9 . round -1 . should_equal -10
             -10 . round -1 . should_equal -10
             -11 . round -1 . should_equal -10
             -24 . round -1 . should_equal -20
-            -25 . round -1 . should_equal -20
+            -25 . round -1 . should_equal -30
             -29 . round -1 . should_equal -30
             -30 . round -1 . should_equal -30
             -31 . round -1 . should_equal -30
@@ -721,7 +721,7 @@ spec =
             -2001 . round -3 . should_equal -2000
             -2412 . round -3 . should_equal -2000
             -2499 . round -3 . should_equal -2000
-            -2500 . round -3 . should_equal -2000
+            -2500 . round -3 . should_equal -3000
             -2501 . round -3 . should_equal -3000
             -2511 . round -3 . should_equal -3000
             -2907 . round -3 . should_equal -3000
