@@ -153,10 +153,21 @@ type_spec name alter = Test.group name <|
         vec.any (ix -> ix > 3) . should_be_true
         vec.any (ix -> ix < 0) . should_be_false
 
+        vec.any (Filter_Condition.Greater 0) . should_be_true
+        vec.any (Filter_Condition.Less 3) . should_be_true
+        vec.any (Filter_Condition.Less 0) . should_be_false
+
+        Test.expect_panic_with matcher=Type_Error (vec.any "invalid argument")
+
     Test.specify "should check all" <|
         vec = alter [1, 2, 3, 4, 5]
         vec.all (ix -> ix > 0) . should_be_true
         vec.all (ix -> ix < 5) . should_be_false
+
+        vec.all (Filter_Condition.Greater 0) . should_be_true
+        vec.all (Filter_Condition.Less 3) . should_be_false
+
+        Test.expect_panic_with matcher=Type_Error (vec.all "invalid argument")
 
     Test.specify "should check contains" <|
         vec = alter [1, 2, 3, 4, 5]
@@ -268,14 +279,28 @@ type_spec name alter = Test.group name <|
         boolvec.filter Filter_Condition.Is_True . should_equal [True, True]
         boolvec.filter Filter_Condition.Is_False . should_equal [False]
 
+    Test.specify "should have a friendly error when missing Filter_Condition arguments" <|
+        v = alter [0, 1, 2]
+
+        r1 = v.filter Filter_Condition.Less
+        r1 . should_fail_with Illegal_Argument
+        r1.catch.to_display_text . should_contain "missing arguments"
+
+        v.filter (Filter_Condition.Between 10) . should_fail_with Illegal_Argument
+
     Test.specify "should filter elements with indices" <|
         (alter [0, 10, 2, 2] . filter_with_index (==)) . should_equal [0, 2]
         (alter [1, 2, 3, 4] . filter_with_index ix-> _-> ix < 2) . should_equal [1, 2]
         (alter [1, 2, 3, 4] . filter_with_index ix-> _-> if ix == 1 then Error.throw <| My_Error.Value "foo" else True) . should_fail_with My_Error
 
     Test.specify "should partition elements" <|
-        alter [1, 2, 3, 4, 5] . partition (x -> x % 2 == 0) . should_equal <| Pair.new [2, 4] [1, 3, 5]
-        (alter [1, 2, 3, 4] . partition x-> if x == 1 then Error.throw <| My_Error.Value "foo" else True) . should_fail_with My_Error
+        vec = alter [1, 2, 3, 4, 5]
+        vec.partition (x -> x % 2 == 0) . should_equal <| Pair.new [2, 4] [1, 3, 5]
+        (vec . partition x-> if x == 1 then Error.throw <| My_Error.Value "foo" else True) . should_fail_with My_Error
+
+        vec.partition (Filter_Condition.Between 2 4) . should_equal <| Pair.new [2, 3, 4] [1, 5]
+
+        Test.expect_panic_with matcher=Type_Error (vec.partition "invalid arg")
 
     Test.specify "should partition elements with indices" <|
         alter ["a", "b", "c", "d"] . partition_with_index (ix -> _ -> ix % 2 == 0) == (Pair.new ["a", "c"] ["b", "d"])
@@ -378,6 +403,9 @@ type_spec name alter = Test.group name <|
         input.find (x -> x%3 == 2) start=-100 . should_fail_with Index_Out_Of_Bounds
         input.find (x -> x%3 == 3) if_missing=Nothing . should_equal Nothing
 
+        input.find (Filter_Condition.Greater 5) . should_equal 6
+        Test.expect_panic_with matcher=Type_Error (input.find "invalid arg")
+
     Test.specify "should allow finding the index of a value" <|
         input = alter [1, 2, 3, 4, 1, 2, 3, 1, 2, 1]
         input.index_of 4 . should_equal 3
@@ -391,6 +419,9 @@ type_spec name alter = Test.group name <|
         input.index_of 2 start=11 . catch . should_equal (Index_Out_Of_Bounds.Error 11 11)
         input.index_of 2 start=-11 . should_fail_with Index_Out_Of_Bounds
 
+        input.index_of (Filter_Condition.Equal_Or_Greater 2) . should_equal 1
+        input.index_of "text" . should_equal Nothing
+
     Test.specify "should allow finding the last index of a value" <|
         input = alter [1, 2, 3, 4, 1, 2, 3, 1, 2, 1]
         input.last_index_of 2 . should_equal 8
@@ -401,6 +432,9 @@ type_spec name alter = Test.group name <|
         input.last_index_of 2 start=10 . should_fail_with Index_Out_Of_Bounds
         input.last_index_of 2 start=10 . catch . should_equal (Index_Out_Of_Bounds.Error 10 10)
         input.last_index_of 2 start=-11 . should_fail_with Index_Out_Of_Bounds
+
+        input.last_index_of (Filter_Condition.Equal_Or_Greater 2) . should_equal input.length-2
+        input.last_index_of "text" . should_equal Nothing
 
     Test.specify "should be convertible to a list" <|
         alter [] . to_list . should_equal List.Nil
