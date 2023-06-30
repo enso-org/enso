@@ -46,7 +46,7 @@ public abstract class EqualsAtomNode extends Node {
       },
       limit = "10")
   @ExplodeLoop
-  boolean equalsAtoms(
+  boolean equalsAtomsWithDefaultComparator(
       Atom self,
       Atom other,
       @Cached("self.getConstructor()") AtomConstructor selfCtorCached,
@@ -81,7 +81,7 @@ public abstract class EqualsAtomNode extends Node {
         "cachedComparator != null",
       },
       limit = "10")
-  boolean equalsAtoms(
+  boolean equalsAtomsWithCustomComparator(
       Atom self,
       Atom other,
       @Cached("self.getConstructor()") AtomConstructor selfCtorCached,
@@ -101,10 +101,24 @@ public abstract class EqualsAtomNode extends Node {
   }
 
   @CompilerDirectives.TruffleBoundary
-  @Specialization(replaces = "equalsAtoms")
+  @Specialization(
+      replaces = {"equalsAtomsWithDefaultComparator", "equalsAtomsWithCustomComparator"})
   boolean equalsAtomsUncached(Atom self, Atom other) {
     if (self.getConstructor() != other.getConstructor()) {
       return false;
+    }
+    Type customComparator = CustomComparatorNode.getUncached().execute(self);
+    if (customComparator != null) {
+      Function compareFunc = findCompareMethod(customComparator);
+      var invokeFuncNode = invokeCompareNode(compareFunc);
+      return equalsAtomsWithCustomComparator(
+          self,
+          other,
+          self.getConstructor(),
+          CustomComparatorNode.getUncached(),
+          customComparator,
+          compareFunc,
+          invokeFuncNode);
     }
     Object[] selfFields = StructsLibrary.getUncached().getFields(self);
     Object[] otherFields = StructsLibrary.getUncached().getFields(other);
