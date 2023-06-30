@@ -23,7 +23,7 @@ polyglot java import org.enso.base.Regex_Utils
      insensitive matching behaves as if it normalises the case of all input
      text before matching on it.
 
-   If an empty regex is used, `compile` throws an Illegal_Argument error.
+   If an empty regex is used, `compile` throws an `Illegal_Argument` error.
 
    ? Why Compile?
      While many regex engines are able to cache ad-hoc patterns, it is often

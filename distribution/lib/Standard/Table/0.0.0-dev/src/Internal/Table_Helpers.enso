@@ -496,7 +496,7 @@ replace_columns_with_columns table old_columns new_columns =
     reducer = table-> old_new_pair->
         old_column = old_new_pair.at 0
         new_column = old_new_pair.at 1
-        table.set new_column old_column.name
+        table.set new_column old_column.name set_mode=Set_Mode.Update
     old_columns.zip new_columns . fold table reducer
 
 ## PRIVATE

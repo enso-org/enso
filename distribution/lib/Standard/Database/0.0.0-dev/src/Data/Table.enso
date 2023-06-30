@@ -1913,6 +1913,8 @@ type Table
        been replaced with the provided default(s).
 
        Arguments:
+       - selectors: Single instance or a Vector of names, indexes or
+         `Column_Selector`s.
        - default: The value to replace missing values with. If this argument
          is a column, the value from `default` at the corresponding position
          will be used.
