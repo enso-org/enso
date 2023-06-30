@@ -160,7 +160,7 @@ sqlite_specific_spec prefix connection setup =
         Test.specify "Can round correctly near the precision limit" <|
             # This value varies depending on the version of SQLite.
             do_round 1.2222222222222225 15 . should_equal 1.222222222222223 0.000000000000002
-            do_round -1.2222222222222225 15 . should_equal -1.222222222222223
+            do_round -1.2222222222222225 15 . should_equal -1.222222222222223 0.000000000000002
             do_round 1.2222222222222235 15 . should_equal 1.222222222222223
             do_round -1.2222222222222235 15 . should_equal -1.222222222222223
 
