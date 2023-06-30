@@ -557,15 +557,6 @@ impl View {
 
             last_searcher <- frp.searcher.filter_map(|&s| s);
 
-
-            // === Handling Inputs to the AI Searcher and Committing Edit ===
-
-            ai_searcher_active <- frp.searcher_type.map(|t| *t == SearcherType::AiCompletion);
-            committed_in_ai_searcher <- frp.accept_searcher_input.gate(&ai_searcher_active);
-            committed_in_ai_searcher <- committed_in_ai_searcher.map2(&last_searcher, |_, &s| (s.input, None));
-            frp.source.editing_committed <+ committed_in_ai_searcher;
-
-
             // === Handling Inputs to the Searcher and Committing Edit ===
 
             // The searcher will be closed due to accepting the input (e.g., pressing enter).
@@ -824,7 +815,6 @@ impl application::View for View {
             (Press, "", "cmd alt r", "execution_context_restart"),
             (Press, "!is_searcher_opened", "cmd tab", "start_node_creation_with_ai_searcher"),
             (Press, "!is_searcher_opened", "tab", "start_node_creation_with_component_browser"),
-            (Press, "is_searcher_opened", "tab", "accept_searcher_input"),
         ]
         .iter()
         .map(|(a, b, c, d)| Self::self_shortcut_when(*a, *c, *d, *b))
