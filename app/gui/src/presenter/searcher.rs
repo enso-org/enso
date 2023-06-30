@@ -31,7 +31,7 @@ pub trait SearcherPresenter: Debug {
     /// Returns the [`Mode`] that should be used for the searcher.
     fn init_input_node(
         parameters: SearcherParams,
-        graph: &presenter::Graph,
+        graph_presenter: &presenter::Graph,
         graph_editor: &GraphEditor,
         graph_controller: &controller::Graph,
     ) -> FallibleResult<Mode>
@@ -39,20 +39,20 @@ pub trait SearcherPresenter: Debug {
         Self: Sized,
     {
         let SearcherParams { input, .. } = parameters;
-        let ast_node = graph.ast_node_of_view(input);
+        let ast_node = graph_presenter.ast_node_of_view(input);
 
         let mode: FallibleResult<_> = match ast_node {
             Some(node_id) => Ok(Mode::EditNode { node_id }),
             None => {
                 let (new_node, source_node) =
-                    create_input_node(parameters, graph, graph_editor, graph_controller)?;
+                    create_input_node(parameters, graph_presenter, graph_editor, graph_controller)?;
                 Ok(Mode::NewNode { node_id: new_node, source_node })
             }
         };
         let mode = mode?;
         let target_node = mode.node_id();
 
-        if let Some(target_node_view) = graph.view_id_of_ast_node(target_node) {
+        if let Some(target_node_view) = graph_presenter.view_id_of_ast_node(target_node) {
             // We only want to show the preview of the node if it is a component browser searcher.
             if matches!(parameters.searcher_type, SearcherType::ComponentBrowser) {
                 graph_editor.model.with_node(target_node_view, |node| node.show_preview());
@@ -64,7 +64,7 @@ pub trait SearcherPresenter: Debug {
         // of the input node without triggering an update of the graph. This is used, for example,
         // to show a preview of the item selected in the component browser without changing the
         // text the user has typed on the searcher input node.
-        graph.allow_expression_auto_updates(target_node, false);
+        graph_presenter.allow_expression_auto_updates(target_node, false);
 
         Ok(mode)
     }
@@ -78,7 +78,7 @@ pub trait SearcherPresenter: Debug {
         graph_presenter: &presenter::Graph,
         view: view::project::View,
         parameters: SearcherParams,
-    ) -> FallibleResult<Box<dyn SearcherPresenter>>
+    ) -> FallibleResult<Box<dyn Self>>
     where
         Self: Sized;
 
