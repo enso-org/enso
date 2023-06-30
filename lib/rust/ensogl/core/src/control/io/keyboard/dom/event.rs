@@ -10,7 +10,7 @@ use crate::system::web;
 // === Event ===
 // =============
 
-/// Mouse event wrapper.
+/// Keyboard event wrapper.
 #[derive(Clone, Derivative)]
 #[derivative(Default(bound = ""))]
 pub struct Event<EventType, JsEvent> {

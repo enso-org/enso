@@ -521,7 +521,8 @@ impl Area {
 
             // === Edit Mode Focus ===
 
-            // Focus our display object to defocus the CB.
+            // Focus our display object to defocus anything else; this is important if the CB panel
+            // is visible.
             eval_ frp.input.mouse_down (model.focus());
 
             // === Port Hover ===
