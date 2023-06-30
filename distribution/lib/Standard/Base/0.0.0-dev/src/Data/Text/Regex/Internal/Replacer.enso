@@ -3,7 +3,7 @@ from project.Data.Text.Extensions import all
 import project.Data.Text.Regex.Regex
 import project.Data.Text.Regex.Match.Match
 import project.Data.Text.Regex.No_Such_Group
-import project.Data.Text.Regex.Match_Iterator_Value
+import project.Data.Text.Regex.Internal.Match_Iterator.Match_Iterator_Value
 import project.Data.Text.Span.Utf_16_Span
 import project.Data.Text.Text
 import project.Data.Vector.Vector

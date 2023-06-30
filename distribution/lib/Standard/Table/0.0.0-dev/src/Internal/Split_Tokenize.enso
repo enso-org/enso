@@ -1,7 +1,5 @@
 from Standard.Base import all
 
-import Standard.Base.Data.Text.Regex.Regex
-
 import project.Data.Column.Column
 import project.Data.Table.Table
 import project.Data.Type.Value_Type.Value_Type

@@ -1,7 +1,6 @@
 from Standard.Base import all
 
 import Standard.Base.Data.Text.Regex.Match.Match
-import Standard.Base.Data.Text.Regex.Regex
 import Standard.Base.Errors.Common.No_Such_Method
 import Standard.Base.Network.HTTP.Response.Response
 import Standard.Base.Network.HTTP.Response_Body.Response_Body
