@@ -6,17 +6,17 @@ import java.util.UUID
 import org.enso.languageserver.protocol.binary.{
   OutboundMessage,
   OutboundPayload,
-  VisualisationUpdate => BinaryVisualisationUpdate
+  VisualizationUpdate => BinaryVisualizationUpdate
 }
 import org.enso.languageserver.runtime.ContextRegistryProtocol.{
-  VisualisationContext,
-  VisualisationUpdate
+  VisualizationContext,
+  VisualizationUpdate
 }
 import org.enso.languageserver.util.binary.BinaryDecoder
 import org.enso.testkit.FlakySpec
 import org.scalatest.concurrent.Eventually
 
-class VisualisationProtocolTest
+class VisualizationProtocolTest
     extends BaseBinaryServerTest
     with Eventually
     with FlakySpec {
@@ -24,13 +24,13 @@ class VisualisationProtocolTest
   implicit private val decoder: BinaryDecoder[OutboundMessage] =
     OutboundMessageDecoder
 
-  "A visualisation binary protocol" must {
+  "A visualization binary protocol" must {
 
-    "push visualisation updates when controller receives notification" taggedAs Flaky in {
+    "push visualization updates when controller receives notification" taggedAs Flaky in {
       //given
       val client = newWsClient()
       val data   = Array[Byte](1, 2, 3)
-      val ctx = VisualisationContext(
+      val ctx = VisualizationContext(
         UUID.randomUUID(),
         UUID.randomUUID(),
         UUID.randomUUID()
@@ -38,38 +38,38 @@ class VisualisationProtocolTest
       client.send(createSessionInitCmd())
       client.expectFrame()
       //when
-      lastConnectionController ! VisualisationUpdate(ctx, data)
+      lastConnectionController ! VisualizationUpdate(ctx, data)
       val Right(msg) = client.receiveMessage[OutboundMessage]()
       //then
-      msg.payloadType() shouldBe OutboundPayload.VISUALISATION_UPDATE
+      msg.payloadType() shouldBe OutboundPayload.VISUALIZATION_UPDATE
       val payload = msg
-        .payload(new BinaryVisualisationUpdate)
-        .asInstanceOf[BinaryVisualisationUpdate]
+        .payload(new BinaryVisualizationUpdate)
+        .asInstanceOf[BinaryVisualizationUpdate]
       payload.dataAsByteBuffer().compareTo(ByteBuffer.wrap(data)) shouldBe 0
       payload
-        .visualisationContext()
+        .visualizationContext()
         .contextId()
         .leastSigBits() shouldBe ctx.contextId.getLeastSignificantBits
       payload
-        .visualisationContext()
+        .visualizationContext()
         .contextId()
         .mostSigBits() shouldBe ctx.contextId.getMostSignificantBits
       payload
-        .visualisationContext()
+        .visualizationContext()
         .expressionId()
         .leastSigBits() shouldBe ctx.expressionId.getLeastSignificantBits
       payload
-        .visualisationContext()
+        .visualizationContext()
         .expressionId()
         .mostSigBits() shouldBe ctx.expressionId.getMostSignificantBits
       payload
-        .visualisationContext()
-        .visualisationId()
-        .leastSigBits() shouldBe ctx.visualisationId.getLeastSignificantBits
+        .visualizationContext()
+        .visualizationId()
+        .leastSigBits() shouldBe ctx.visualizationId.getLeastSignificantBits
       payload
-        .visualisationContext()
-        .visualisationId()
-        .mostSigBits() shouldBe ctx.visualisationId.getMostSignificantBits
+        .visualizationContext()
+        .visualizationId()
+        .mostSigBits() shouldBe ctx.visualizationId.getMostSignificantBits
     }
 
   }

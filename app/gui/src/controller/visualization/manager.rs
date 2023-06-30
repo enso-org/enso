@@ -10,6 +10,7 @@ use crate::model::execution_context::VisualizationId;
 use crate::model::execution_context::VisualizationUpdateData;
 use crate::sync::Synchronized;
 
+use double_representation::name::QualifiedName;
 use futures::channel::mpsc::UnboundedReceiver;
 use futures::future::ready;
 use ide_view::graph_editor::component::visualization::Metadata;
@@ -158,6 +159,7 @@ impl Default for Status {
 #[allow(missing_docs)]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Desired {
+    pub module:           QualifiedName,
     pub visualization_id: VisualizationId,
     pub expression_id:    ast::Id,
     pub metadata:         Metadata,
@@ -285,11 +287,15 @@ impl Manager {
             // Early return: requested to remove visualization that was already removed.
             return;
         };
+        let prj = self.executed_graph.module_qualified_name();
+        let graph = self.executed_graph.graph();
+        let module = prj.new_child(graph.module.name());
         let current_id = current.as_ref().and_then(|current| current.latest_id());
         let new_desired = new_desired.map(|new_desired| Desired {
-            expression_id:    target,
+            module,
+            expression_id: target,
             visualization_id: current_id.unwrap_or_else(VisualizationId::new_v4),
-            metadata:         new_desired,
+            metadata: new_desired,
         });
         self.write_new_desired(target, new_desired)
     }
@@ -332,6 +338,7 @@ impl Manager {
         Ok(Visualization {
             id: desired.visualization_id,
             expression_id: desired.expression_id,
+            module: desired.module,
             method_pointer,
             arguments,
         })
@@ -556,13 +563,14 @@ mod tests {
             let qualified_module = inner.project.qualified_module_name(inner.module.path());
             let method_pointer = QualifiedMethodPointer {
                 module:          qualified_module.clone(),
-                defined_on_type: qualified_module,
+                defined_on_type: qualified_module.clone(),
                 name:            Identifier::from_text("faux").unwrap(),
             };
             let arguments = vec!["foo".to_owned()];
             let faux_vis = Visualization {
                 id: default(),
                 expression_id: default(),
+                module: qualified_module,
                 method_pointer,
                 arguments,
             };
@@ -666,6 +674,7 @@ mod tests {
         // We don't attach it separately, as Manager identifies visualizations by their
         // expression ID rather than visualization ID.
         let desired_vis_3 = Desired {
+            module:           QualifiedName::from_text("local.Widgets.Main").unwrap(),
             visualization_id: VisualizationId::from_u128(900),
             expression_id:    node_id,
             metadata:         desired_vis_1,

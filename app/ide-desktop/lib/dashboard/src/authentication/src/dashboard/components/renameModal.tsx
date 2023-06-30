@@ -59,23 +59,26 @@ function RenameModal(props: RenameModalProps) {
                 onSubmit={onSubmit}
                 className="relative bg-white shadow-soft rounded-lg w-96 p-2"
             >
-                <button type="button" className="absolute right-0 top-0 m-2" onClick={unsetModal}>
-                    <img src={CloseIcon} />
-                </button>
-                What do you want to rename the {assetType} &apos;{name}&apos; to?
+                <div className="flex">
+                    {/* Padding. */}
+                    <div className="grow" />
+                    <button type="button" onClick={unsetModal}>
+                        <img src={CloseIcon} />
+                    </button>
+                </div>
                 <div className="m-2">
-                    <label className="w-1/3" htmlFor="renamed_file_name">
-                        File name
-                    </label>
+                    What do you want to rename the {assetType} &lsquo;{name}&rsquo; to?
+                </div>
+                <div className="m-2">
                     <Input
                         autoFocus
                         required
                         // Never disabled, as disabling unfocuses the input.
-                        id="renamed_file_name"
+                        id="renamed_asset_name"
                         type="text"
                         pattern={namePattern}
                         title={title}
-                        className="border-primary bg-gray-200 rounded-full w-2/3 px-2 mx-2"
+                        className="border-primary bg-gray-200 rounded-full w-full px-2"
                         defaultValue={newName ?? name}
                         setValue={setNewName}
                     />

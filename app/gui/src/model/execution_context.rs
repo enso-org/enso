@@ -1,6 +1,7 @@
 //! This module consists of all structures describing Execution Context.
 
 use crate::prelude::*;
+use std::collections::hash_map::Entry;
 
 use double_representation::identifier::Identifier;
 use double_representation::name::project;
@@ -10,7 +11,7 @@ use engine_protocol::language_server::ExecutionEnvironment;
 use engine_protocol::language_server::ExpressionUpdate;
 use engine_protocol::language_server::ExpressionUpdatePayload;
 use engine_protocol::language_server::MethodPointer;
-use engine_protocol::language_server::VisualisationConfiguration;
+use engine_protocol::language_server::VisualizationConfiguration;
 use ensogl::data::color;
 use flo_stream::Subscriber;
 use mockall::automock;
@@ -60,6 +61,20 @@ pub struct ComputedValueInfo {
     pub method_call: Option<MethodPointer>,
 }
 
+impl ComputedValueInfo {
+    fn apply_update(&mut self, update: ExpressionUpdate) {
+        // We do not erase method_call information to avoid ports "flickering" on every computation.
+        // the method_call should be updated soon anyway.
+        // The type of the expression could also be kept, but so far we use the "lack of type"
+        // information to inform user the results are recomputed.
+        if !matches!(update.payload, ExpressionUpdatePayload::Pending { .. }) {
+            self.method_call = update.method_call.map(|mc| mc.method_pointer);
+        }
+        self.typename = update.typename.map(ImString::new);
+        self.payload = update.payload
+    }
+}
+
 impl From<ExpressionUpdate> for ComputedValueInfo {
     fn from(update: ExpressionUpdate) -> Self {
         ComputedValueInfo {
@@ -104,8 +119,13 @@ impl ComputedValueInfoRegistry {
         let updated_expressions = updates.iter().map(|update| update.expression_id).collect();
         for update in updates {
             let id = update.expression_id;
-            let info = Rc::new(ComputedValueInfo::from(update));
-            self.map.borrow_mut().insert(id, info);
+            match self.map.borrow_mut().entry(id) {
+                Entry::Occupied(mut entry) => {
+                    let info = Rc::make_mut(entry.get_mut());
+                    info.apply_update(update);
+                }
+                Entry::Vacant(entry) => entry.insert(Rc::new(update.into())).void(),
+            }
         }
         self.emit(updated_expressions);
     }
@@ -303,6 +323,8 @@ pub struct Visualization {
     pub id:             VisualizationId,
     /// Expression that is to be visualized.
     pub expression_id:  ExpressionId,
+    /// Module to evaluate visualization in context of.
+    pub module:         QualifiedName,
     /// A pointer to the enso method that will transform the data into expected format.
     pub method_pointer: QualifiedMethodPointer,
     /// Enso expressions for positional arguments
@@ -313,19 +335,21 @@ impl Visualization {
     /// Creates a new visualization description. The visualization will get a randomly assigned
     /// identifier.
     pub fn new(
+        module: QualifiedName,
         expression_id: ExpressionId,
         method_pointer: QualifiedMethodPointer,
         arguments: Vec<String>,
     ) -> Visualization {
         let id = VisualizationId::new_v4();
-        Visualization { id, expression_id, method_pointer, arguments }
+        Visualization { id, expression_id, module, method_pointer, arguments }
     }
 
-    /// Creates a `VisualisationConfiguration` that is used in communication with language server.
-    pub fn config(&self, execution_context_id: Uuid) -> VisualisationConfiguration {
+    /// Creates a `VisualizationConfiguration` that is used in communication with language server.
+    pub fn config(&self, execution_context_id: Uuid) -> VisualizationConfiguration {
         let expression = self.method_pointer.clone().into();
         let positional_arguments_expressions = self.arguments.clone();
-        VisualisationConfiguration {
+        VisualizationConfiguration {
+            visualization_module: self.module.to_string_with_main_segment(),
             execution_context_id,
             expression,
             positional_arguments_expressions,
@@ -556,9 +580,11 @@ pub type Synchronized = synchronized::ExecutionContext;
 
 #[cfg(test)]
 mod tests {
+    use engine_protocol::language_server::types::test::value_pending_update;
     use engine_protocol::language_server::types::test::value_update_with_dataflow_error;
     use engine_protocol::language_server::types::test::value_update_with_dataflow_panic;
     use engine_protocol::language_server::types::test::value_update_with_type;
+    use engine_protocol::language_server::types::test::value_update_with_type_and_method_ptr;
 
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
 
@@ -602,10 +628,15 @@ mod tests {
 
         let typename1 = "Test.Typename1".to_owned();
         let typename2 = "Test.Typename2".to_owned();
+        let method_ptr = MethodPointer {
+            module:          "Main".to_owned(),
+            defined_on_type: "test.Test.Main".to_owned(),
+            name:            "test".to_owned(),
+        };
         let error_msg = "Test Message".to_owned();
 
         // Set two values.
-        let update1 = value_update_with_type(expr1, &typename1);
+        let update1 = value_update_with_type_and_method_ptr(expr1, &typename1, method_ptr.clone());
         let update2 = value_update_with_type(expr2, &typename2);
         registry.apply_updates(vec![update1, update2]);
         assert_eq!(registry.get(&expr1).unwrap().typename, Some(typename1.clone().into()));
@@ -639,5 +670,17 @@ mod tests {
         ));
         let notification = test.expect_completion(subscriber.next()).unwrap();
         assert_eq!(notification, vec![expr2, expr3]);
+
+        // Set pending value
+        let update1 = value_pending_update(expr1);
+        registry.apply_updates(vec![update1]);
+        // Method pointer should not be cleared to avoid port's flickering.
+        assert_eq!(registry.get(&expr1).unwrap().method_call, Some(method_ptr));
+        // The type is erased to show invalidated path.
+        assert_eq!(registry.get(&expr1).unwrap().typename, None);
+        assert!(matches!(
+            registry.get(&expr1).unwrap().payload,
+            ExpressionUpdatePayload::Pending { message: None, progress: None }
+        ));
     }
 }

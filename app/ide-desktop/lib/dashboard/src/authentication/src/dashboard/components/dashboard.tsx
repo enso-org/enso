@@ -37,6 +37,7 @@ const IDE_ELEMENT_ID = 'root'
 
 /** Props for {@link Dashboard}s that are common to all platforms. */
 export interface DashboardProps {
+    /** Whether the application may have the local backend running. */
     supportsLocalBackend: boolean
     appRunner: AppRunner
     initialProjectName: string | null

@@ -138,7 +138,9 @@ function TableRow<T, Key extends string = string, State = never, RowState = neve
                 return (
                     <td
                         key={column.id}
-                        className={`px-4 border-0 border-r ${column.className ?? ''}`}
+                        className={`px-4 border-0 border-r vertical-align-middle ${
+                            column.className ?? ''
+                        }`}
                     >
                         <Render
                             item={item}

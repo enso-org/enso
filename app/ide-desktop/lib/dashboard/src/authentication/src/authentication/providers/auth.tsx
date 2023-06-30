@@ -161,6 +161,7 @@ const AuthContext = React.createContext<AuthContextType>({} as AuthContextType)
 
 /** Props for an {@link AuthProvider}. */
 export interface AuthProviderProps {
+    shouldStartInOfflineMode: boolean
     authService: authServiceModule.AuthService
     /** Callback to execute once the user has authenticated successfully. */
     onAuthenticated: () => void
@@ -169,7 +170,7 @@ export interface AuthProviderProps {
 
 /** A React provider for the Cognito API. */
 export function AuthProvider(props: AuthProviderProps) {
-    const { authService, onAuthenticated, children } = props
+    const { shouldStartInOfflineMode, authService, onAuthenticated, children } = props
     const { cognito } = authService
     const { session, deinitializeSession } = sessionProvider.useSession()
     const { setBackendWithoutSavingType } = backendProvider.useSetBackend()
@@ -178,6 +179,7 @@ export function AuthProvider(props: AuthProviderProps) {
     // and the function call would error.
     // eslint-disable-next-line no-restricted-properties
     const navigate = router.useNavigate()
+    const [forceOfflineMode, setForceOfflineMode] = React.useState(shouldStartInOfflineMode)
     const [initialized, setInitialized] = React.useState(false)
     const [userSession, setUserSession] = React.useState<UserSession | null>(null)
 
@@ -212,8 +214,9 @@ export function AuthProvider(props: AuthProviderProps) {
      * If the token has expired, automatically refreshes the token and returns the new token. */
     React.useEffect(() => {
         const fetchSession = async () => {
-            if (!navigator.onLine) {
+            if (!navigator.onLine || forceOfflineMode) {
                 goOfflineInternal()
+                setForceOfflineMode(false)
             } else if (session == null) {
                 setInitialized(true)
                 setUserSession(null)
@@ -224,7 +227,11 @@ export function AuthProvider(props: AuthProviderProps) {
                 const backend = new remoteBackend.RemoteBackend(client, logger)
                 // The backend MUST be the remote backend before login is finished.
                 // This is because the "set username" flow requires the remote backend.
-                if (!initialized && userSession == null) {
+                if (
+                    !initialized ||
+                    userSession == null ||
+                    userSession.type === UserSessionType.offline
+                ) {
                     setBackendWithoutSavingType(backend)
                 }
                 let organization: backendModule.UserOrOrganization | null
@@ -313,6 +320,7 @@ export function AuthProvider(props: AuthProviderProps) {
         const result = await cognito.signUp(username, password)
         if (result.ok) {
             toast.success(MESSAGES.signUpSuccess)
+            navigate(app.LOGIN_PATH)
         } else {
             toast.error(result.val.message)
         }

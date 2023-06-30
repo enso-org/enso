@@ -5,7 +5,7 @@ import org.enso.interpreter.instrument.job.{
   EnsureCompiledJob,
   ExecuteJob,
   Job,
-  UpsertVisualisationJob
+  UpsertVisualizationJob
 }
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.ExpressionId
@@ -13,14 +13,14 @@ import org.enso.polyglot.runtime.Runtime.Api.ExpressionId
 import java.util.logging.Level
 import scala.concurrent.{ExecutionContext, Future}
 
-/** A command that modifies a visualisation.
+/** A command that modifies a visualization.
   *
   * @param maybeRequestId an option with request id
   * @param request a request for a service
   */
-class ModifyVisualisationCmd(
+class ModifyVisualizationCmd(
   maybeRequestId: Option[Api.RequestId],
-  request: Api.ModifyVisualisation
+  request: Api.ModifyVisualization
 ) extends AsynchronousCommand(maybeRequestId) {
 
   /** @inheritdoc */
@@ -29,11 +29,11 @@ class ModifyVisualisationCmd(
     ec: ExecutionContext
   ): Future[Unit] = {
     val logger        = ctx.executionService.getLogger
-    val contextId     = request.visualisationConfig.executionContextId
+    val contextId     = request.visualizationConfig.executionContextId
     val lockTimestamp = ctx.locking.acquireContextLock(contextId)
     try {
       if (doesContextExist) {
-        modifyVisualisation()
+        modifyVisualization()
       } else {
         replyWithContextNotExistError()
       }
@@ -41,47 +41,47 @@ class ModifyVisualisationCmd(
       ctx.locking.releaseContextLock(contextId)
       logger.log(
         Level.FINEST,
-        s"Kept context lock [UpsertVisualisationJob] for ${System.currentTimeMillis() - lockTimestamp} milliseconds"
+        s"Kept context lock [UpsertVisualizationJob] for ${System.currentTimeMillis() - lockTimestamp} milliseconds"
       )
     }
   }
 
-  private def modifyVisualisation()(implicit
+  private def modifyVisualization()(implicit
     ctx: RuntimeContext,
     ec: ExecutionContext
   ): Future[Unit] = {
-    val existingVisualisation = ctx.contextManager.getVisualisationById(
-      request.visualisationConfig.executionContextId,
-      request.visualisationId
+    val existingVisualization = ctx.contextManager.getVisualizationById(
+      request.visualizationConfig.executionContextId,
+      request.visualizationId
     )
-    val visualisationPresent: Option[ExpressionId] =
-      existingVisualisation.map(_.expressionId).orElse {
+    val visualizationPresent: Option[ExpressionId] =
+      existingVisualization.map(_.expressionId).orElse {
         val jobFilter: PartialFunction[Job[_], Option[ExpressionId]] = {
-          case upsert: UpsertVisualisationJob
-              if upsert.getVisualizationId() == request.visualisationId =>
+          case upsert: UpsertVisualizationJob
+              if upsert.getVisualizationId() == request.visualizationId =>
             Some(upsert.key)
         }
         ctx.jobControlPlane.jobInProgress(jobFilter)
       }
-    visualisationPresent match {
+    visualizationPresent match {
       case None =>
         Future {
           ctx.endpoint.sendToClient(
-            Api.Response(maybeRequestId, Api.VisualisationNotFound())
+            Api.Response(maybeRequestId, Api.VisualizationNotFound())
           )
         }
 
       case Some(expressionId) =>
         ctx.endpoint.sendToClient(
-          Api.Response(maybeRequestId, Api.VisualisationModified())
+          Api.Response(maybeRequestId, Api.VisualizationModified())
         )
         val maybeFutureExecutable =
           ctx.jobProcessor.run(
-            new UpsertVisualisationJob(
+            new UpsertVisualizationJob(
               maybeRequestId,
-              request.visualisationId,
+              request.visualizationId,
               expressionId,
-              request.visualisationConfig
+              request.visualizationConfig
             )
           )
         maybeFutureExecutable flatMap {
@@ -101,7 +101,7 @@ class ModifyVisualisationCmd(
 
   private def doesContextExist(implicit ctx: RuntimeContext): Boolean = {
     ctx.contextManager.contains(
-      request.visualisationConfig.executionContextId
+      request.visualizationConfig.executionContextId
     )
   }
 
@@ -111,13 +111,13 @@ class ModifyVisualisationCmd(
   ): Future[Unit] = {
     Future {
       reply(
-        Api.ContextNotExistError(request.visualisationConfig.executionContextId)
+        Api.ContextNotExistError(request.visualizationConfig.executionContextId)
       )
     }
   }
 
   override def toString: String = {
-    "ModifyVisualisationCmd(visualizationId: " + request.visualisationId + ")"
+    "ModifyVisualizationCmd(visualizationId: " + request.visualizationId + ")"
   }
 
 }

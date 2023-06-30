@@ -9,10 +9,10 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Consumer;
 import org.enso.interpreter.instrument.profiling.ProfilingInfo;
-import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.MethodRootNode;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.node.expression.atom.QualifiedAccessorNode;
+import org.enso.interpreter.node.expression.builtin.BuiltinRootNode;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.Type;
@@ -212,6 +212,7 @@ public interface IdExecutionService {
      */
     public FunctionCallInfo(FunctionCallInstrumentationNode.FunctionCall call) {
       RootNode rootNode = call.getFunction().getCallTarget().getRootNode();
+
       switch (rootNode) {
         case MethodRootNode methodNode -> {
           moduleName = methodNode.getModuleScope().getModule().getName();
@@ -224,12 +225,12 @@ public interface IdExecutionService {
           typeName = atomConstructor.getType().getQualifiedName();
           functionName = atomConstructor.getName();
         }
-        case EnsoRootNode ensoRootNode -> {
-          moduleName = ensoRootNode.getModuleScope().getModule().getName();
-          typeName = null;
-          functionName = rootNode.getName();
+        case BuiltinRootNode builtinRootNode -> {
+          moduleName = builtinRootNode.getModuleName();
+          typeName = builtinRootNode.getTypeName();
+          functionName = QualifiedName.fromString(builtinRootNode.getName()).item();
         }
-        case default -> {
+        default -> {
           moduleName = null;
           typeName = null;
           functionName = rootNode.getName();

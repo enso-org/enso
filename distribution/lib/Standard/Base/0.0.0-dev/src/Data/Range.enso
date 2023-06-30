@@ -14,7 +14,9 @@ from project.Data.Boolean import Boolean, True, False
 
 ## Represents a right-exclusive range of integer values.
 type Range
-    ## Create a representation of a right-exclusive range of integer values.
+    ## PRIVATE
+       ADVANCED
+       Create a representation of a right-exclusive range of integer values.
 
        Arguments:
        - start: The left boundary of the range. Its value is included.

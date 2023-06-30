@@ -18,7 +18,9 @@ type Set
     ## PRIVATE
     Value (underlying_map : Map Any Nothing)
 
-    ## Constructs a new set from a vector.
+    ## PRIVATE
+       ADVANCED
+       Constructs a new set from a vector.
 
        Arguments:
        - vector: the vector of elements to add to the set.
@@ -34,7 +36,9 @@ type Set
         map = Map.from_vector pairs error_on_duplicates=error_on_duplicates
         Set.Value map
 
-    ## Constructs an empty set.
+    ## PRIVATE
+       ADVANCED
+       Constructs an empty set.
     empty : Set
     empty = Set.Value Map.empty
 

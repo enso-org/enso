@@ -4,9 +4,9 @@
 
 import * as semver from 'semver'
 
-import * as authentication from 'enso-authentication'
 import * as common from 'enso-common'
 import * as contentConfig from 'enso-content-config'
+import * as dashboard from 'enso-authentication'
 import * as detect from 'enso-common/src/detect'
 
 import * as app from '../../../../../target/ensogl-pack/linked-dist'
@@ -139,6 +139,15 @@ interface StringConfig {
     [key: string]: StringConfig | string
 }
 
+/** Configuration options for the authentication flow and dashboard. */
+interface AuthenticationConfig {
+    isInAuthenticationFlow: boolean
+    shouldUseAuthentication: boolean
+    shouldUseNewDashboard: boolean
+    initialProjectName: string | null
+    inputConfig: StringConfig | null
+}
+
 /** Contains the entrypoint into the IDE. */
 class Main implements AppRunner {
     app: app.App | null = null
@@ -150,7 +159,7 @@ class Main implements AppRunner {
 
     /** Run an app instance with the specified configuration.
      * This includes the scene to run and the WebSocket endpoints to the backend. */
-    async runApp(inputConfig?: StringConfig) {
+    async runApp(inputConfig?: StringConfig | null) {
         this.stopApp()
 
         /** FIXME: https://github.com/enso-org/enso/issues/6475
@@ -214,20 +223,28 @@ class Main implements AppRunner {
             localStorage.setItem(INITIAL_URL_KEY, location.href)
         }
         if (parseOk) {
-            const isUsingAuthentication = contentConfig.OPTIONS.options.authentication.value
-            const isUsingNewDashboard =
+            const shouldUseAuthentication = contentConfig.OPTIONS.options.authentication.value
+            const shouldUseNewDashboard =
                 contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value
             const isOpeningMainEntryPoint =
                 contentConfig.OPTIONS.groups.startup.options.entry.value ===
                 contentConfig.OPTIONS.groups.startup.options.entry.default
+            const initialProjectName =
+                contentConfig.OPTIONS.groups.startup.options.project.value || null
             // This MUST be removed as it would otherwise override the `startup.project` passed
             // explicitly in `ide.tsx`.
             if (isOpeningMainEntryPoint && url.searchParams.has('startup.project')) {
                 url.searchParams.delete('startup.project')
                 history.replaceState(null, '', url.toString())
             }
-            if ((isUsingAuthentication || isUsingNewDashboard) && isOpeningMainEntryPoint) {
-                this.runAuthentication(isInAuthenticationFlow, inputConfig)
+            if ((shouldUseAuthentication || shouldUseNewDashboard) && isOpeningMainEntryPoint) {
+                this.runAuthentication({
+                    isInAuthenticationFlow,
+                    shouldUseAuthentication,
+                    shouldUseNewDashboard,
+                    initialProjectName,
+                    inputConfig: inputConfig ?? null,
+                })
             } else {
                 void this.runApp(inputConfig)
             }
@@ -235,9 +252,7 @@ class Main implements AppRunner {
     }
 
     /** Begins the authentication UI flow. */
-    runAuthentication(isInAuthenticationFlow: boolean, inputConfig?: StringConfig) {
-        const initialProjectName =
-            contentConfig.OPTIONS.groups.startup.options.project.value || null
+    runAuthentication(config: AuthenticationConfig) {
         /** TODO [NP]: https://github.com/enso-org/cloud-v2/issues/345
          * `content` and `dashboard` packages **MUST BE MERGED INTO ONE**. The IDE
          * should only have one entry point. Right now, we have two. One for the cloud
@@ -247,15 +262,16 @@ class Main implements AppRunner {
          * Enso main scene being initialized. As a temporary workaround we check whether
          * appInstance was already ran. Target solution should move running appInstance
          * where it will be called only once. */
-        authentication.run({
+        dashboard.run({
             appRunner: this,
             logger,
             supportsLocalBackend: SUPPORTS_LOCAL_BACKEND,
             supportsDeepLinks: SUPPORTS_DEEP_LINKS,
-            showDashboard: contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value,
-            initialProjectName,
+            isAuthenticationDisabled: !config.shouldUseAuthentication,
+            shouldShowDashboard: config.shouldUseNewDashboard,
+            initialProjectName: config.initialProjectName,
             onAuthenticated: () => {
-                if (isInAuthenticationFlow) {
+                if (config.isInAuthenticationFlow) {
                     const initialUrl = localStorage.getItem(INITIAL_URL_KEY)
                     if (initialUrl != null) {
                         // This is not used past this point, however it is set to the initial URL
@@ -263,14 +279,15 @@ class Main implements AppRunner {
                         history.replaceState(null, '', initialUrl)
                     }
                 }
-                if (!contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value) {
+                if (!config.shouldUseNewDashboard) {
                     document.getElementById('enso-dashboard')?.remove()
-                    const ide = document.getElementById('root')
-                    if (ide) {
-                        ide.hidden = false
+                    const ideElement = document.getElementById('root')
+                    if (ideElement) {
+                        ideElement.style.top = ''
+                        ideElement.style.display = ''
                     }
                     if (this.app == null) {
-                        void this.runApp(inputConfig)
+                        void this.runApp(config.inputConfig)
                     }
                 }
             },

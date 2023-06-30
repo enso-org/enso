@@ -169,9 +169,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
             setState(backendModule.ProjectState.openInProgress)
             setCheckState(CheckState.checkingResources)
         }
-        // This is only supposed to run when the project state changes.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [project.projectState.type])
+    }, [shouldCheckIfActuallyOpen])
 
     hooks.useEventHandler(event, theEvent => {
         switch (theEvent.type) {

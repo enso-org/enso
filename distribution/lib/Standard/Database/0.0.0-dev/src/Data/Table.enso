@@ -33,6 +33,7 @@ from Standard.Table.Internal.Filter_Condition_Helpers import make_filter_column
 from Standard.Table.Errors import all
 
 import project.Data.Column.Column
+import project.Data.SQL_Query.SQL_Query
 import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
 import project.Internal.Helpers
@@ -46,7 +47,7 @@ import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import project.Internal.IR.Query.Query
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 
-from project.Errors import Unsupported_Database_Operation, Integrity_Error, Unsupported_Name
+from project.Errors import Unsupported_Database_Operation, Integrity_Error, Unsupported_Name, Table_Not_Found
 
 import project.Connection.Connection.Connection
 polyglot java import java.sql.JDBCType
@@ -1821,28 +1822,24 @@ type Table
             Table.Value self.name self.connection internal_columns ctx
 
     ## PRIVATE
+       Checks if this table is a 'trivial query'.
 
-       Inserts a new row to the table.
+       A trivial query is a result of `connection.query` that has not been
+       further processed. If there are any columns that are added or removed, or
+       any other operations like join or aggregate are performed, the resulting
+       table is no longer trivial.
 
-       Arguments:
-       - values: The values making up the row of the table.
-
-       It actually modifies the underlying table in the database.  It can only
-       be called on the Table if no operations modifying it have been performed
-       like modifying, removing or adding columns, filtering, grouping etc.
-    insert : Vector Any -> Nothing
-    insert self values =
-        table_name = case self.context.from_spec of
-            From_Spec.Table name _ -> name
-            _ -> Error.throw <| Illegal_State.Error "Inserting can only be performed on tables as returned by `query`, any further processing is not allowed."
-        # TODO [RW] before removing the PRIVATE tag, add a check that no bad stuff was done to the table as described above
-        pairs = self.internal_columns.zip values col-> value->
-            [col.name, SQL_Expression.Constant value]
-        query = self.connection.dialect.generate_sql <| Query.Insert table_name pairs
-        affected_rows = self.connection.execute_update query
-        case affected_rows == 1 of
-            False -> Error.throw <| Illegal_State.Error "The update unexpectedly affected "+affected_rows.to_text+" rows."
-            True -> Nothing
+       Some operations, like writing to tables, require their target to be a
+       trivial query.
+    is_trivial_query : Boolean ! Table_Not_Found
+    is_trivial_query self =
+         trivial_counterpart = self.connection.query (SQL_Query.Table_Name self.name)
+         trivial_counterpart.if_not_error <|
+             if self.context != trivial_counterpart.context then False else
+                column_descriptor internal_column = [internal_column.name, internal_column.expression]
+                my_columns = self.internal_columns.map column_descriptor
+                trivial_columns = trivial_counterpart.internal_columns.map column_descriptor
+                my_columns == trivial_columns
 
     ## PRIVATE
        Provides a simplified text representation for display in the REPL and errors.

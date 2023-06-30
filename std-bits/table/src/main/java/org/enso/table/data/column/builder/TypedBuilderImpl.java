@@ -101,10 +101,22 @@ public abstract class TypedBuilderImpl<T> extends TypedBuilder {
       desiredCapacity = currentSize + 1;
     }
 
-    grow(desiredCapacity);
+    resize(desiredCapacity);
   }
 
-  private void grow(int desiredCapacity) {
+  private void resize(int desiredCapacity) {
     this.data = Arrays.copyOf(data, desiredCapacity);
+  }
+
+  protected abstract Storage<T> doSeal();
+
+  @Override
+  public Storage<T> seal() {
+    // We grow the array to the exact size, because we want to avoid index out of bounds errors.
+    // Most of the time, the builder was initialized with the right size anyway - the only
+    // exceptions are e.g. reading results from a database, where the count is unknown.
+    // In the future we may rely on smarter storage for sparse columns.
+    resize(currentSize);
+    return doSeal();
   }
 }

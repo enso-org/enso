@@ -16,7 +16,7 @@ import project.Helpers
    Prepares a table or column for visualization.
 
    Arguments:
-   - x: The table to prepare for visualisation.
+   - x: The table to prepare for visualization.
    - max_rows: The maximum number of rows to display.
 
    In case of Database backed data, it materializes a fragment of the data.
@@ -54,7 +54,8 @@ prepare_visualization y max_rows=1000 =
 
     result.to_text
 
-## Column Limit
+## PRIVATE
+   Column Limit
 max_columns = 250
 
 ## PRIVATE

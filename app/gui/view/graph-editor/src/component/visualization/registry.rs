@@ -82,7 +82,7 @@ impl Registry {
         &self,
         tp: &enso::Type,
     ) -> Option<visualization::Definition> {
-        // TODO[MM]: Visualisations are order by "matching the type" first, followed by and then
+        // TODO[MM]: Visualizations are order by "matching the type" first, followed by and then
         // "matching any type". So we just take the first one, which should be the most appropriate
         // one. This should be replaced with the proper solution described in
         // https://github.com/enso-org/enso/issues/5195
@@ -106,10 +106,10 @@ impl Registry {
 
     /// Add default visualizations to the registry.
     pub fn add_default_visualizations(&self) {
-        // Note that the order is important. Visualisations that are added first will be
+        // Note that the order is important. Visualizations that are added first will be
         // prioritised as default (as long as they have a matching type to the value they will
         // represent.
-        self.add(builtin::visualization::native::text_visualization::text_visualisation());
+        self.add(builtin::visualization::native::text_visualization::text_visualization());
         self.try_add_java_script(builtin::visualization::java_script::table_visualization());
         self.try_add_java_script(builtin::visualization::java_script::scatter_plot_visualization());
         self.try_add_java_script(builtin::visualization::java_script::histogram_visualization());
@@ -120,9 +120,9 @@ impl Registry {
         self.try_add_java_script(builtin::visualization::java_script::warnings_visualization());
     }
 
-    /// Return a default visualisation definition.
-    pub fn default_visualisation() -> visualization::Definition {
-        builtin::visualization::native::text_visualization::text_visualisation()
+    /// Return a default visualization definition.
+    pub fn default_visualization() -> visualization::Definition {
+        builtin::visualization::native::text_visualization::text_visualization()
     }
 }
 
@@ -145,7 +145,7 @@ mod tests {
     }
 
     #[wasm_bindgen_test]
-    fn assert_no_duplicate_default_visualisations() {
+    fn assert_no_duplicate_default_visualizations() {
         let registry = Registry::new();
         registry.add_default_visualizations();
 

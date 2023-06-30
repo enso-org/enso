@@ -17,6 +17,7 @@ import Modal from './modal'
 /** Props for a {@link ConfirmDeleteModal}. */
 export interface ConfirmDeleteModalProps {
     assetType: string
+    name: string
     /** Must fit in the sentence "Are you sure you want to delete <description>"? */
     description: string
     doDelete: () => void
@@ -55,9 +56,17 @@ function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
                 }}
                 className="relative bg-white shadow-soft rounded-lg w-96 p-2"
             >
-                <button type="button" className="absolute right-0 top-0 m-2" onClick={unsetModal}>
-                    <img src={CloseIcon} />
-                </button>
+                <div className="flex">
+                    {/* Padding. */}
+                    <div className="grow" />
+                    <button
+                        type="button"
+                        className="absolute right-0 top-0 m-2"
+                        onClick={unsetModal}
+                    >
+                        <img src={CloseIcon} />
+                    </button>
+                </div>
                 Are you sure you want to delete {description}?
                 <div className="m-1">
                     <button

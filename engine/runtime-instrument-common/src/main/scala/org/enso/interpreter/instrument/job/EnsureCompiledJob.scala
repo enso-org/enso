@@ -17,7 +17,7 @@ import org.enso.interpreter.instrument.execution.{
 import org.enso.interpreter.instrument.{
   CacheInvalidation,
   InstrumentFrame,
-  Visualisation
+  Visualization
 }
 import org.enso.interpreter.runtime.Module
 import org.enso.interpreter.service.error.ModuleNotFoundForFileException
@@ -359,23 +359,23 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
           CacheInvalidation.runAll(stack, invalidationCommands)
         }
       }
-    CacheInvalidation.runAllVisualisations(
-      ctx.contextManager.getVisualisations(module.getName),
+    CacheInvalidation.runAllVisualizations(
+      ctx.contextManager.getVisualizations(module.getName),
       invalidationCommands
     )
 
-    val invalidatedVisualisations =
-      ctx.contextManager.getInvalidatedVisualisations(
+    val invalidatedVisualizations =
+      ctx.contextManager.getInvalidatedVisualizations(
         module.getName,
         changeset.invalidated
       )
-    invalidatedVisualisations.foreach { visualisation =>
-      UpsertVisualisationJob.upsertVisualisation(visualisation)
+    invalidatedVisualizations.foreach { visualization =>
+      UpsertVisualizationJob.upsertVisualization(visualization)
     }
-    if (invalidatedVisualisations.nonEmpty) {
+    if (invalidatedVisualizations.nonEmpty) {
       ctx.executionService.getLogger.log(
         Level.FINEST,
-        s"Invalidated visualisations [${invalidatedVisualisations.map(_.id)}]"
+        s"Invalidated visualizations [${invalidatedVisualizations.map(_.id)}]"
       )
     }
 
@@ -450,10 +450,10 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
         )
       }
     }
-    val visualisations = ctx.contextManager.getAllVisualisations
-    visualisations.flatMap(getCacheMetadata).foreach { metadata =>
-      CacheInvalidation.runVisualisations(
-        visualisations,
+    val visualizations = ctx.contextManager.getAllVisualizations
+    visualizations.flatMap(getCacheMetadata).foreach { metadata =>
+      CacheInvalidation.runVisualizations(
+        visualizations,
         CacheInvalidation.Command.SetMetadata(metadata)
       )
     }
@@ -476,9 +476,9 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
     }
 
   private def getCacheMetadata(
-    visualisation: Visualisation
+    visualization: Visualization
   ): Option[CachePreferenceAnalysis.Metadata] = {
-    val module = visualisation.module
+    val module = visualization.module
     module.getIr.getMetadata(CachePreferenceAnalysis)
   }
 

@@ -1,21 +1,21 @@
 package org.enso.interpreter.instrument.command
 
 import org.enso.interpreter.instrument.execution.RuntimeContext
-import org.enso.interpreter.instrument.job.DetachVisualisationJob
+import org.enso.interpreter.instrument.job.DetachVisualizationJob
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.RequestId
 
 import java.util.logging.Level
 import scala.concurrent.{ExecutionContext, Future}
 
-/** A command that detaches a visualisation from the expression.
+/** A command that detaches a visualization from the expression.
   *
   * @param maybeRequestId an option with request id
   * @param request a request for a service
   */
-class DetachVisualisationCmd(
+class DetachVisualizationCmd(
   maybeRequestId: Option[RequestId],
-  request: Api.DetachVisualisation
+  request: Api.DetachVisualization
 ) extends AsynchronousCommand(maybeRequestId) {
 
   /** @inheritdoc */
@@ -35,7 +35,7 @@ class DetachVisualisationCmd(
       ctx.locking.releaseContextLock(request.contextId)
       logger.log(
         Level.FINEST,
-        s"Kept context lock [DetachVisualisationCmd] for ${System.currentTimeMillis() - lockTimestamp} milliseconds"
+        s"Kept context lock [DetachVisualizationCmd] for ${System.currentTimeMillis() - lockTimestamp} milliseconds"
       )
     }
   }
@@ -48,11 +48,11 @@ class DetachVisualisationCmd(
     ctx: RuntimeContext
   ): Future[Unit] = {
     ctx.endpoint.sendToClient(
-      Api.Response(maybeRequestId, Api.VisualisationDetached())
+      Api.Response(maybeRequestId, Api.VisualizationDetached())
     )
     ctx.jobProcessor.run(
-      new DetachVisualisationJob(
-        request.visualisationId,
+      new DetachVisualizationJob(
+        request.visualizationId,
         request.expressionId,
         request.contextId
       )

@@ -139,7 +139,8 @@ type Statistic
         Statistic.Kurtosis -> 4
         _ -> Nothing
 
-    ## Compute a single statistic on a vector like object.
+    ## PRIVATE
+       Compute a single statistic on a vector like object.
 
        Arguments:
        - data: Vector like object which has a `to_array` method.
@@ -148,7 +149,8 @@ type Statistic
     compute data statistic=Statistic.Count =
         Statistic.compute_bulk data [statistic] . first
 
-    ## Compute a set of statistics on a vector like object.
+    ## PRIVATE
+       Compute a set of statistics on a vector like object.
 
        Arguments:
        - data: Vector like object which has a `to_array` method.
@@ -180,7 +182,8 @@ type Statistic
                     Statistic.R_Squared series -> calculate_correlation_statistics data series . rSquared
                     _ -> moments.compute (to_moment_statistic statistic)
 
-    ## Compute a running statistics on a vector like object.
+    ## PRIVATE
+       Compute a running statistics on a vector like object.
 
        Arguments:
        - data: Vector like object which has a `to_array` method.
@@ -189,7 +192,8 @@ type Statistic
     running data statistic=Statistic.Sum =
         Statistic.running_bulk data [statistic] . map .first
 
-    ## Compute a set running statistics on a vector like object.
+    ## PRIVATE
+       Compute a set running statistics on a vector like object.
 
        Arguments:
        - data: Vector like object which has a `to_array` method.
@@ -264,7 +268,8 @@ type Statistic
 
             output.to_vector
 
-    ## Assigns a rank to each value of data, dealing with equal values according to the method.
+    ## PRIVATE
+       Assigns a rank to each value of data, dealing with equal values according to the method.
 
        Arguments:
        - data: Input data to rank.
@@ -336,6 +341,22 @@ Vector.compute_bulk self statistics=[Statistic.Count, Statistic.Sum] =
 Vector.running : Statistic -> Vector Any
 Vector.running self statistic=Statistic.Count =
     Statistic.running self statistic
+
+## Compute a set running statistics on the vector.
+
+   Arguments:
+   - statistics: Set of statistics to calculate.
+Vector.running_bulk : Vector Statistic -> Vector Any
+Vector.running_bulk self statistics=[Statistic.Count, Statistic.Sum] =
+    Statistic.running_bulk self statistics
+
+## Assigns a rank to each value of data, dealing with equal values according to the method.
+
+   Arguments:
+   - method: Method used to deal with equal values.
+Vector.rank_data : Rank_Method -> Vector
+Vector.rank_data self method=Rank_Method.Average =
+    Statistic.rank_data self method
 
 ## PRIVATE
 compute_fold counter current value =

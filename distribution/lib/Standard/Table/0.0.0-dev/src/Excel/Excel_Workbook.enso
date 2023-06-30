@@ -15,7 +15,9 @@ polyglot java import org.enso.table.read.ExcelReader
 polyglot java import org.apache.poi.ss.usermodel.Workbook
 
 type Excel_Workbook
-    ## Load a File as a connection to an Excel workbook.
+    ## PRIVATE
+       ADVANCED
+       Load a File as a connection to an Excel workbook.
 
        Arguments:
        - file: The file to load.

@@ -13,7 +13,7 @@ polyglot java import org.enso.base_test_helpers.IntHolder
 spec = Test.group "Polyglot" <|
     Test.specify "should be able to invoke a polyglot method by name and pass arguments" <|
         poly_date = LocalDate.now
-        date = Date.now.to_date_time
+        date = Date.today.to_date_time
 
         Polyglot.invoke poly_date "atStartOfDay" [] . should_equal date
         Polyglot.invoke poly_date "atStartOfDay" [].to_array . should_equal date

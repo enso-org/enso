@@ -401,137 +401,137 @@ object ContextRegistryProtocol {
   )
 
   /** Requests the language server to execute an expression provided in the
-    * `visualisationConfig` on an expression specified by `expressionId`.
+    * `visualizationConfig` on an expression specified by `expressionId`.
     *
     * @param clientId the requester id
-    * @param visualisationId an identifier of a visualisation
+    * @param visualizationId an identifier of a visualization
     * @param expressionId an identifier of an expression which is visualised
-    * @param visualisationConfig a configuration object for properties of the
-    * visualisation
+    * @param visualizationConfig a configuration object for properties of the
+    * visualization
     */
   case class ExecuteExpression(
     clientId: ClientId,
-    visualisationId: UUID,
+    visualizationId: UUID,
     expressionId: UUID,
-    visualisationConfig: VisualisationConfiguration
+    visualizationConfig: VisualizationConfiguration
   ) extends ToLogString {
 
     /** @inheritdoc */
     override def toLogString(shouldMask: Boolean): String =
       "ExecuteExpression(" +
       s"clientId=$clientId," +
-      s"visualisationId=$visualisationId," +
-      s"expressionId=$expressionId,visualisationConfig=" +
-      visualisationConfig.toLogString(shouldMask) +
+      s"visualizationId=$visualizationId," +
+      s"expressionId=$expressionId,visualizationConfig=" +
+      visualizationConfig.toLogString(shouldMask) +
       ")"
   }
 
-  /** Registers a oneshot visualisation that will be detached after the first
+  /** Registers a oneshot visualization that will be detached after the first
     * execution.
     *
     * @param contextId execution context identifier
-    * @param visualisationId an identifier of a visualisation
+    * @param visualizationId an identifier of a visualization
     * @param expressionId an identifier of an expression which is visualised
     */
-  case class RegisterOneshotVisualisation(
+  case class RegisterOneshotVisualization(
     contextId: ContextId,
-    visualisationId: UUID,
+    visualizationId: UUID,
     expressionId: UUID
   )
 
-  /** Requests the language server to attach a visualisation to the expression
+  /** Requests the language server to attach a visualization to the expression
     * specified by `expressionId`.
     *
     * @param clientId the requester id
-    * @param visualisationId an identifier of a visualisation
+    * @param visualizationId an identifier of a visualization
     * @param expressionId an identifier of an expression which is visualised
-    * @param visualisationConfig a configuration object for properties of the
-    * visualisation
+    * @param visualizationConfig a configuration object for properties of the
+    * visualization
     */
-  case class AttachVisualisation(
+  case class AttachVisualization(
     clientId: ClientId,
-    visualisationId: UUID,
+    visualizationId: UUID,
     expressionId: UUID,
-    visualisationConfig: VisualisationConfiguration
+    visualizationConfig: VisualizationConfiguration
   ) extends ToLogString {
 
     /** @inheritdoc */
     override def toLogString(shouldMask: Boolean): String =
-      "AttachVisualisation(" +
+      "AttachVisualization(" +
       s"clientId=$clientId," +
-      s"visualisationId=$visualisationId," +
-      s"expressionId=$expressionId,visualisationConfig=" +
-      visualisationConfig.toLogString(shouldMask) +
+      s"visualizationId=$visualizationId," +
+      s"expressionId=$expressionId,visualizationConfig=" +
+      visualizationConfig.toLogString(shouldMask) +
       ")"
   }
 
-  /** Signals that attaching a visualisation has succeeded. */
-  case object VisualisationAttached
+  /** Signals that attaching a visualization has succeeded. */
+  case object VisualizationAttached
 
-  /** Requests the language server to detach a visualisation from the expression
+  /** Requests the language server to detach a visualization from the expression
     * specified by `expressionId`.
     *
     * @param clientId the requester id
     * @param contextId an execution context identifier
-    * @param visualisationId an identifier of a visualisation
+    * @param visualizationId an identifier of a visualization
     * @param expressionId an identifier of an expression which is visualised
     */
-  case class DetachVisualisation(
+  case class DetachVisualization(
     clientId: ClientId,
     contextId: UUID,
-    visualisationId: UUID,
+    visualizationId: UUID,
     expressionId: UUID
   )
 
-  /** Signals that detaching a visualisation has succeeded.
+  /** Signals that detaching a visualization has succeeded.
     */
-  case object VisualisationDetached
+  case object VisualizationDetached
 
-  /** Requests the language server to modify a visualisation.
+  /** Requests the language server to modify a visualization.
     *
     * @param clientId  the requester id
-    * @param visualisationId     an identifier of a visualisation
-    * @param visualisationConfig a configuration object for properties of the
-    *                            visualisation
+    * @param visualizationId     an identifier of a visualization
+    * @param visualizationConfig a configuration object for properties of the
+    *                            visualization
     */
-  case class ModifyVisualisation(
+  case class ModifyVisualization(
     clientId: ClientId,
-    visualisationId: UUID,
-    visualisationConfig: VisualisationConfiguration
+    visualizationId: UUID,
+    visualizationConfig: VisualizationConfiguration
   ) extends ToLogString {
 
     /** @inheritdoc */
     override def toLogString(shouldMask: Boolean): String =
-      "ModifyVisualisation(" +
+      "ModifyVisualization(" +
       s"clientId=$clientId," +
-      s"visualisationId=$visualisationId,visualisationConfig=" +
-      visualisationConfig.toLogString(shouldMask) +
+      s"visualizationId=$visualizationId,visualizationConfig=" +
+      visualizationConfig.toLogString(shouldMask) +
       ")"
   }
 
-  /** Signals that a visualisation modification has succeeded.
+  /** Signals that a visualization modification has succeeded.
     */
-  case object VisualisationModified
+  case object VisualizationModified
 
-  /** Represents a visualisation context.
+  /** Represents a visualization context.
     *
-    * @param visualisationId a visualisation identifier
+    * @param visualizationId a visualization identifier
     * @param contextId a context identifier
     * @param expressionId an expression identifier
     */
-  case class VisualisationContext(
-    visualisationId: UUID,
+  case class VisualizationContext(
+    visualizationId: UUID,
     contextId: UUID,
     expressionId: UUID
   )
 
-  /** An event signaling a visualisation update.
+  /** An event signaling a visualization update.
     *
-    * @param visualisationContext a visualisation context
-    * @param data a visualisation data
+    * @param visualizationContext a visualization context
+    * @param data a visualization data
     */
-  case class VisualisationUpdate(
-    visualisationContext: VisualisationContext,
+  case class VisualizationUpdate(
+    visualizationContext: VisualizationContext,
     data: Array[Byte]
   )
 
@@ -541,33 +541,33 @@ object ContextRegistryProtocol {
     */
   case class ModuleNotFound(moduleName: String) extends Failure
 
-  /** Signals that visualisation cannot be found.
+  /** Signals that visualization cannot be found.
     */
-  case object VisualisationNotFound extends Failure
+  case object VisualizationNotFound extends Failure
 
-  /** Signals that an expression specified in a [[AttachVisualisation]] or
-    * a [[ModifyVisualisation]] cannot be evaluated.
+  /** Signals that an expression specified in a [[AttachVisualization]] or
+    * a [[ModifyVisualization]] cannot be evaluated.
     *
     * @param message the reason of the failure
     * @param diagnostic the detailed information about the failure
     */
-  case class VisualisationExpressionFailed(
+  case class VisualizationExpressionFailed(
     message: String,
     diagnostic: Option[ExecutionDiagnostic]
   ) extends Failure
 
   /** Signals that an evaluation of a code responsible for generating
-    * visualisation data failed.
+    * visualization data failed.
     *
     * @param contextId a context identifier
-    * @param visualisationId a visualisation identifier
+    * @param visualizationId a visualization identifier
     * @param expressionId an identifier of a visualised expression
     * @param message the reason of the failure
     * @param diagnostic the detailed information about the error
     */
-  case class VisualisationEvaluationFailed(
+  case class VisualizationEvaluationFailed(
     contextId: UUID,
-    visualisationId: UUID,
+    visualizationId: UUID,
     expressionId: UUID,
     message: String,
     diagnostic: Option[ExecutionDiagnostic]
