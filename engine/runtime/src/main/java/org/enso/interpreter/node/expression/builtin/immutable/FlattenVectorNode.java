@@ -27,7 +27,7 @@ public abstract class FlattenVectorNode extends Node {
     return FlattenVectorNodeGen.create();
   }
 
-  abstract Vector execute(Object self, long index);
+  abstract Vector execute(Object self);
 
   @Specialization
   Vector fromVector(
