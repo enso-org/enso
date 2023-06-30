@@ -117,18 +117,6 @@ pub struct Node {
     pub metadata: Option<NodeMetadata>,
 }
 
-/// Description of the nodes variable name.
-#[derive(Clone, Debug)]
-pub enum VariableName {
-    /// The node has a variable name.
-    Some(String),
-    /// The node has no variable name.
-    None,
-    /// The node has a variable name, that is not currently supported. For example, it is a
-    /// pattern subpart. See notes on [Node::variable_name].
-    NotSupported,
-}
-
 impl Node {
     /// Get the node's id.
     pub fn id(&self) -> double_representation::node::Id {
