@@ -81,8 +81,8 @@ impl Model {
 
     fn setup_searcher_presenter(&self, params: SearcherParams) {
         let searcher_constructor = match params.searcher_type {
-            SearcherType::AiCompletion => AISearcher::setup_searcher,
-            SearcherType::ComponentBrowser => ComponentBrowserSearcher::setup_searcher,
+            SearcherType::AiCompletion => AISearcher::setup_searcher_boxed,
+            SearcherType::ComponentBrowser => ComponentBrowserSearcher::setup_searcher_boxed,
         };
 
         let new_presenter = searcher_constructor(

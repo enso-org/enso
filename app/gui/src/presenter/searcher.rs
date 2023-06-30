@@ -78,9 +78,34 @@ pub trait SearcherPresenter: Debug {
         graph_presenter: &presenter::Graph,
         view: view::project::View,
         parameters: SearcherParams,
-    ) -> FallibleResult<Box<dyn SearcherPresenter>>
+    ) -> FallibleResult<Self>
     where
         Self: Sized;
+
+    /// As [`setup_searcher`], but returns a boxed presenter.
+    fn setup_searcher_boxed(
+        ide_controller: controller::Ide,
+        project_controller: controller::Project,
+        graph_controller: controller::ExecutedGraph,
+        graph_presenter: &presenter::Graph,
+        view: view::project::View,
+        parameters: SearcherParams,
+    ) -> FallibleResult<Box<dyn SearcherPresenter>>
+    where
+        Self: Sized + 'static,
+    {
+        // Avoiding the cast would require a local variable, which would not be more readable.
+        #![allow(trivial_casts)]
+        Self::setup_searcher(
+            ide_controller,
+            project_controller,
+            graph_controller,
+            graph_presenter,
+            view,
+            parameters,
+        )
+        .map(|searcher| Box::new(searcher) as Box<dyn SearcherPresenter>)
+    }
 
     /// Expression accepted in Component Browser.
     ///

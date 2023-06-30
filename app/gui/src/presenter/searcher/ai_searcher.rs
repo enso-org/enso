@@ -73,7 +73,7 @@ impl SearcherPresenter for AISearcher {
         graph_presenter: &Graph,
         view: project::View,
         parameters: SearcherParams,
-    ) -> FallibleResult<Box<dyn SearcherPresenter>>
+    ) -> FallibleResult<Self>
     where
         Self: Sized,
     {
@@ -106,7 +106,7 @@ impl SearcherPresenter for AISearcher {
                 model.input_changed(expr);
             });
         }
-        Ok(Box::new(Self { model, _network: network }))
+        Ok(Self { model, _network: network })
     }
 
     fn expression_accepted(

@@ -295,7 +295,7 @@ impl SearcherPresenter for ComponentBrowserSearcher {
         graph_presenter: &presenter::Graph,
         view: view::project::View,
         parameters: SearcherParams,
-    ) -> FallibleResult<Box<dyn SearcherPresenter>> {
+    ) -> FallibleResult<Self> {
         // We get the position for searcher before initializing the input node, because the
         // added node will affect the AST, and the position will become incorrect.
         let position_in_code = graph_controller.graph().definition_end_location()?;
@@ -327,7 +327,7 @@ impl SearcherPresenter for ComponentBrowserSearcher {
         }
 
         let input = parameters.input;
-        Ok(Box::new(Self::new(searcher_controller, view, input)))
+        Ok(Self::new(searcher_controller, view, input))
     }
 
     fn expression_accepted(
