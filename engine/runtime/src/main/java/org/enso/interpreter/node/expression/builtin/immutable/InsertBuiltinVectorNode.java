@@ -13,6 +13,7 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.data.Vector;
 import org.enso.interpreter.runtime.error.PanicException;
+import sourcecode.Macros;
 
 @BuiltinMethod(
     type = "Vector",
@@ -24,7 +25,7 @@ public abstract class InsertBuiltinVectorNode extends Node {
     return InsertBuiltinVectorNodeGen.create();
   }
 
-  abstract Vector execute(Vector self, long index, Object values);
+  abstract Vector execute(Object self, long index, Object values);
 
   @Specialization
   Vector fromVector(
@@ -36,8 +37,18 @@ public abstract class InsertBuiltinVectorNode extends Node {
     return insertBuiltin(self.toArray(), index, values.toArray(), copyNode, interop);
   }
 
+  @Specialization
+  Vector fromArray(
+      Array self,
+      long index,
+      Vector values,
+      @Cached CopyNode copyNode,
+      @CachedLibrary(limit = "3") InteropLibrary interop) {
+    return insertBuiltin(self, index, values.toArray(), copyNode, interop);
+  }
+
   @Specialization(guards = "interop.hasArrayElements(values)")
-  Vector fromArrayLikeObject(
+  Vector fromVectorWithArrayLikeObject(
       Vector self,
       long index,
       Object values,
@@ -46,14 +57,25 @@ public abstract class InsertBuiltinVectorNode extends Node {
     return insertBuiltin(self.toArray(), index, values, copyNode, interop);
   }
 
+  @Specialization(guards = "interop.hasArrayElements(values)")
+  Vector fromArrayWithArrayLikeObject(
+      Array self,
+      long index,
+      Object values,
+      @Cached CopyNode copyNode,
+      @CachedLibrary(limit = "3") InteropLibrary interop) {
+    return insertBuiltin(self, index, values, copyNode, interop);
+  }
+
+
   @Fallback
-  Vector fromUnknown(Vector self, long index, Object values) {
+  Vector fromUnknown(Object self, long index, Object values) {
     throw unsupportedException(values);
   }
 
   private PanicException unsupportedException(Object values) {
     var ctx = EnsoContext.get(this);
-    var err = ctx.getBuiltins().error().makeTypeError("polyglot array", values, "array");
+    var err = ctx.getBuiltins().error().makeTypeError("polyglot array", values, "values");
     throw new PanicException(err, this);
   }
 

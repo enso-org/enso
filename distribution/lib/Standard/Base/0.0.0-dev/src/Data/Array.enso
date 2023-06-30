@@ -181,14 +181,12 @@ type Array
             ['a', 'b', 'c'].to_array.insert -1 'X' == ['a', 'b', 'X', 'c'].to_array
             ['a', 'b', 'c'].to_array.insert item='X' == ['a', 'b', 'c', 'X'].to_array
     insert : Integer -> Any -> Vector ! Index_Out_Of_Bounds
-    insert self at=self.length item=Nothing = (Vector.from_polyglot_array self).insert at item
+    insert self at=self.length item=Nothing = Vector.insert self at item
 
     ## PRIVATE
        This method is unimplemented - exists to align the Array API with Vector API.
        TODO: Allow the VectorArraySignatureTest to ignore PRIVATE methods.
-    insert_builtin self at values =
-        _ = [at, values]
-        Error.throw (Unimplemented.Error "Array.insert_builtin.")
+    insert_builtin self at values = @Builtin_Method "Vector.insert_builtin"
 
     ## Removes the item at the given index from the array.
 
@@ -204,7 +202,7 @@ type Array
        TODO: Allow the VectorArraySignatureTest to ignore PRIVATE methods.
     remove_builtin self at =
         _ = [at]
-        Error.throw (Unimplemented.Error "Array.remove_builtin.")
+        Error.throw (Unimplemented.Error "Array.remove_builtin")
 
     ## Get the first element from the array, or an `Index_Out_Of_Bounds` if the array
        is empty.
@@ -749,4 +747,4 @@ type Array
 
              [1].to_array + [2].to_array
     + : Vector Any -> Vector Any
-    + self that = (Vector.from_polyglot_array self) + that
+    + self that = Vector.+ self that
