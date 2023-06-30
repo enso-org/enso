@@ -5,6 +5,7 @@ import org.enso.interpreter.instrument.InstrumentFrame
 import org.enso.interpreter.instrument.execution.{Executable, RuntimeContext}
 import org.enso.interpreter.runtime.state.ExecutionEnvironment
 import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.polyglot.runtime.Runtime.Api.ExecutionResult
 
 import java.util.logging.Level
 
@@ -39,16 +40,39 @@ class ExecuteJob(
         context.setExecutionEnvironment(ExecutionEnvironment.forName(env.name))
       )
       val outcome = ProgramExecutionSupport.runProgram(contextId, stack)
-      outcome.foreach {
-        case diagnostic: Api.ExecutionResult.Diagnostic =>
-          ctx.endpoint.sendToClient(
-            Api.Response(Api.ExecutionUpdate(contextId, Seq(diagnostic)))
-          )
-        case failure: Api.ExecutionResult.Failure =>
+      outcome match {
+        case Some(diagnostic: Api.ExecutionResult.Diagnostic) =>
+          if (diagnostic.isError) {
+            ctx.endpoint.sendToClient(
+              Api.Response(Api.ExecutionFailed(contextId, diagnostic))
+            )
+          } else {
+            ctx.endpoint.sendToClient(
+              Api.Response(Api.ExecutionUpdate(contextId, Seq(diagnostic)))
+            )
+            ctx.endpoint.sendToClient(
+              Api.Response(Api.ExecutionComplete(contextId))
+            )
+          }
+        case Some(failure: Api.ExecutionResult.Failure) =>
           ctx.endpoint.sendToClient(
             Api.Response(Api.ExecutionFailed(contextId, failure))
           )
+        case None =>
+          ctx.endpoint.sendToClient(
+            Api.Response(Api.ExecutionComplete(contextId))
+          )
       }
+    } catch {
+      case t: Throwable =>
+        ctx.endpoint.sendToClient(
+          Api.Response(
+            Api.ExecutionFailed(
+              contextId,
+              ExecutionResult.Failure(t.getMessage, None)
+            )
+          )
+        )
     } finally {
       originalExecutionEnvironment.foreach(context.setExecutionEnvironment)
       ctx.locking.releaseReadCompilationLock()
@@ -63,7 +87,6 @@ class ExecuteJob(
       )
 
     }
-    ctx.endpoint.sendToClient(Api.Response(Api.ExecutionComplete(contextId)))
     StartBackgroundProcessingJob.startBackgroundJobs()
   }
 

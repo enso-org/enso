@@ -404,7 +404,13 @@ withDebug benchOnly --showCompilations -- RecursionBenchmark
 Step by step debugging can be triggered as
 
 ```
-withDebug testOnly --debugger -- *FavoriteTest*
+sbt:runtime> withDebug testOnly --debugger -- *FavoriteTest*
+```
+
+One can debug `project-manager` code by executing
+
+```
+sbt:project-manager> withDebug run --debugger
 ```
 
 read more about [debugging Java & Enso code](debugger/README.md).
