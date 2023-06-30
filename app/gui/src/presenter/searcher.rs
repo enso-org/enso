@@ -78,7 +78,7 @@ pub trait SearcherPresenter: Debug {
         graph_presenter: &presenter::Graph,
         view: view::project::View,
         parameters: SearcherParams,
-    ) -> FallibleResult<Box<dyn Self>>
+    ) -> FallibleResult<Box<dyn SearcherPresenter>>
     where
         Self: Sized;
 

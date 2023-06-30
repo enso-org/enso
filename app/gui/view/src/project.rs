@@ -504,7 +504,8 @@ impl View {
             eval position ((pos) model.searcher.set_xy(*pos));
 
             // Showing searcher.
-            searcher.show <+ frp.searcher.unwrap().map(|params| matches!(params.searcher_type, SearcherType::ComponentBrowser)).on_true();
+            searcher.show <+ frp.searcher.unwrap().map(|params|
+                matches!(params.searcher_type, SearcherType::ComponentBrowser)).on_true();
             searcher.hide <+ frp.searcher.is_none().on_true().constant(());
             eval searcher.is_visible ([model](is_visible) {
                 let is_attached = model.searcher.has_parent();
