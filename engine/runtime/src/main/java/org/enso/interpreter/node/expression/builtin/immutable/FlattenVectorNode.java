@@ -41,7 +41,8 @@ public class FlattenVectorNode extends Node {
       var item = interop.readArrayElement(storage, i);
       if (!interop.hasArrayElements(item)) {
         Builtins builtins = EnsoContext.get(this).getBuiltins();
-        throw new PanicException(builtins.error().makeTypeError(builtins.array(), item, "["+i+"]"), this);
+        throw new PanicException(
+            builtins.error().makeTypeError(builtins.array(), item, "[" + i + "]"), this);
       }
 
       flattened_length += interop.getArraySize(item);
