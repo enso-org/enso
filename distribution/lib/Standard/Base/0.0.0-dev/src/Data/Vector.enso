@@ -565,13 +565,7 @@ type Vector a
 
             [[1, 2, 3], [4, 10], [], [0], [0]] . flatten == [1, 2, 3, 4, 10, 0, 0]
     flatten : Vector Any
-    flatten self =
-        length = self.fold 0 acc-> elem-> acc + elem.length
-        arr = Array.allocate length
-        self.fold 0 i-> vec->
-            Array.copy vec.to_array 0 arr i vec.length
-            i + vec.length
-        Vector.from_polyglot_array arr
+    flatten self = @Builtin_Method "Vector.flatten"
 
     ## Applies a function to each element of the vector, returning the `Vector`
        of results.

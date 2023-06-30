@@ -22,11 +22,12 @@ import org.enso.interpreter.runtime.error.PanicException;
     autoRegister = false)
 public abstract class CopyNode extends Node {
 
-  static CopyNode build() {
+  public static CopyNode build() {
     return CopyNodeGen.create();
   }
 
-  abstract Object execute(Object src, long source_index, Array dest, long dest_index, long count);
+  public abstract Object execute(
+      Object src, long source_index, Array dest, long dest_index, long count);
 
   @Specialization
   Object doArray(Array src, long source_index, Array dest, long dest_index, long count) {

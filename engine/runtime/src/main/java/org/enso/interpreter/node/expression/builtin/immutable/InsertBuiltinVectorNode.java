@@ -4,10 +4,11 @@ import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.node.expression.builtin.mutable.CoerceArrayNode;
+import org.enso.interpreter.node.expression.builtin.mutable.CopyNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.data.Vector;
@@ -26,8 +27,13 @@ public abstract class InsertBuiltinVectorNode extends Node {
   abstract Vector execute(Vector self, long index, Object values);
 
   @Specialization
-  Vector fromVector(Vector self, long index, Vector values, @Cached CoerceArrayNode coerce) {
-    return insertBuiltin(coerce.execute(self), index, coerce.execute(values));
+  Vector fromVector(
+      Vector self,
+      long index,
+      Vector values,
+      @Cached CopyNode copyNode,
+      @CachedLibrary(limit = "3") InteropLibrary interop) {
+    return insertBuiltin(self.toArray(), index, values.toArray(), copyNode, interop);
   }
 
   @Specialization(guards = "interop.hasArrayElements(values)")
@@ -35,9 +41,9 @@ public abstract class InsertBuiltinVectorNode extends Node {
       Vector self,
       long index,
       Object values,
-      @Cached CoerceArrayNode coerce,
+      @Cached CopyNode copyNode,
       @CachedLibrary(limit = "3") InteropLibrary interop) {
-    return insertBuiltin(coerce.execute(self), index, coerce.execute(values));
+    return insertBuiltin(self.toArray(), index, values, copyNode, interop);
   }
 
   @Fallback
@@ -51,11 +57,18 @@ public abstract class InsertBuiltinVectorNode extends Node {
     throw new PanicException(err, this);
   }
 
-  private Vector insertBuiltin(Object[] current, long index, Object[] values) {
-    Object[] result = new Object[current.length + values.length];
-    System.arraycopy(current, 0, result, 0, (int) index);
-    System.arraycopy(values, 0, result, (int) index, values.length);
-    System.arraycopy(current, (int) index, result, (int) index + values.length, current.length - (int) index);
-    return Vector.fromArray(new Array(result));
+  private Vector insertBuiltin(
+      Object current, long index, Object values, CopyNode copyNode, InteropLibrary interop) {
+    try {
+      long current_length = interop.getArraySize(current);
+      long values_length = interop.getArraySize(values);
+      Array result = Array.allocate(current_length + values_length);
+      copyNode.execute(current, 0, result, 0, index);
+      copyNode.execute(values, 0, result, index, values_length);
+      copyNode.execute(current, index, result, index + values_length, current_length - index);
+      return Vector.fromArray(result);
+    } catch (UnsupportedMessageException e) {
+      throw unsupportedException(values);
+    }
   }
 }

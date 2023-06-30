@@ -228,7 +228,9 @@ type Array
     insert self at=self.length item=Nothing = Vector.insert self at item
 
     ## PRIVATE
-    insert_builtin self at values = Error.throw (Unimplemented.Error "Array.insert_builtin.")
+    insert_builtin self at values =
+        _ = [at, values]
+        Error.throw (Unimplemented.Error "Array.insert_builtin.")
 
     ## Removes the item at the given index from the array.
 
@@ -240,7 +242,9 @@ type Array
     remove self at=-1 = Vector.remove self at
 
     ## PRIVATE
-    remove_builtin self at = Error.throw (Unimplemented.Error "Array.remove_builtin.")
+    remove_builtin self at =
+        _ = [at]
+        Error.throw (Unimplemented.Error "Array.remove_builtin.")
 
     ## Get the first element from the array, or an `Index_Out_Of_Bounds` if the array
        is empty.
