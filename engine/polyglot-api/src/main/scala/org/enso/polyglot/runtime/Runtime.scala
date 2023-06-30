@@ -446,7 +446,7 @@ object Runtime {
         /** Indicates that the expression was computed to a value.
           *
           * @param warnings information about attached warnings.
-          * @param functionSchema the function schema
+          * @param functionSchema if the value represents a function, the function schema of that function, empty option otherwise 
           */
         case class Value(
           warnings: Option[Value.Warnings]       = None,
