@@ -318,8 +318,8 @@ Text.match self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
      useful to be able to manually retain a pattern that you have computed. This
      function exists so you can hold onto the resultant `Pattern` object,
      instead of immediately proceeding to match using it.
-Text.to_regex : Boolean | Nothing -> Pattern ! Regex_Syntax_Error | Illegal_Argument
-Text.to_regex self case_insensitive=Nothing = Regex.compile self case_insensitive
+Text.to_regex : Boolean -> Pattern ! Regex_Syntax_Error | Illegal_Argument
+Text.to_regex self case_insensitive=False = Regex.compile self case_insensitive
 
 ## ALIAS Split Text
 

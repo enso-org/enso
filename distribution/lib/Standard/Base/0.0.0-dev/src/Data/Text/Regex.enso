@@ -30,8 +30,8 @@ polyglot java import org.enso.base.Regex_Utils
      useful to be able to manually retain a pattern that you have computed. This
      function exists so you can hold onto the resultant `Pattern` object,
      instead of immediately proceeding to match using it.
-compile : Text -> Boolean | Nothing -> Pattern ! Regex_Syntax_Error | Illegal_Argument
-compile expression case_insensitive=Nothing =
+compile : Text -> Boolean -> Pattern ! Regex_Syntax_Error | Illegal_Argument
+compile expression case_insensitive=False =
     if expression == '' then Error.throw (Illegal_Argument.Error "Regex cannot be the empty string") else
         options_string = if case_insensitive == True then "usgi" else "usg"
 
