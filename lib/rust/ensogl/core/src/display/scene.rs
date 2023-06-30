@@ -297,35 +297,31 @@ impl Mouse {
                     .pointer_target_registry
                     .with_mouse_target(new_target, |_, d| d.rev_parent_chain())
                     .unwrap_or_default();
-                let currently_hovered = self
-                    .hovered_objects
-                    .take()
-                    .into_iter()
-                    .filter_map(|w| w.upgrade())
-                    .collect_vec();
+                let currently_hovered_weak = self.hovered_objects.take().into_iter();
+                let currently_hovered =
+                    currently_hovered_weak.filter_map(|w| w.upgrade()).collect_vec();
                 let left = currently_hovered.iter().filter(|t| !new_hovered.contains(t));
                 for d in left {
                     let out_event = event.clone().unchecked_convert_to::<mouse::Out>();
-                    d.emit_event_target_only(out_event);
+                    let leave_event = event.clone().unchecked_convert_to::<mouse::Leave>();
+                    d.emit_event(out_event);
+                    d.emit_event_without_bubbling(leave_event);
                 }
                 let entered = new_hovered.iter().filter(|t| !currently_hovered.contains(t));
                 for d in entered {
                     let over_event = event.clone().unchecked_convert_to::<mouse::Over>();
-                    d.emit_event_target_only(over_event);
+                    let enter_event = event.clone().unchecked_convert_to::<mouse::Enter>();
+                    d.emit_event(over_event);
+                    d.emit_event_without_bubbling(enter_event);
                 }
                 self.hovered_objects
                     .replace(new_hovered.into_iter().map(|t| t.downgrade()).collect_vec());
-                self.pointer_target_registry.with_mouse_target(current_target, |t, d| {
+
+                self.pointer_target_registry.with_mouse_target(current_target, |t, _| {
                     t.mouse_out.emit(());
-                    let leave_event = event.clone().unchecked_convert_to::<mouse::Leave>();
-                    // d.emit_event(out_event);
-                    d.emit_event_without_bubbling(leave_event);
                 });
-                self.pointer_target_registry.with_mouse_target(new_target, |t, d| {
+                self.pointer_target_registry.with_mouse_target(new_target, |t, _| {
                     t.mouse_over.emit(());
-                    let enter_event = event.clone().unchecked_convert_to::<mouse::Enter>();
-                    // d.emit_event(over_event);
-                    d.emit_event_without_bubbling(enter_event);
                 });
 
                 // Re-emitting position event. See the docs of [`re_emit_position_event`] to learn
