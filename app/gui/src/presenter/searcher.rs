@@ -346,11 +346,6 @@ impl crate::searcher::SearcherPresenter for ComponentBrowserSearcher {
     fn input_view(&self) -> ViewNodeId {
         self.model.input_view
     }
-
-    // fn view(app: &Application) -> Option<Instance>
-    // where Self: Sized {
-    //     Some(component_browser::View::new(app).display_object().clone_ref())
-    // }
 }
 
 impl ComponentBrowserSearcher {
