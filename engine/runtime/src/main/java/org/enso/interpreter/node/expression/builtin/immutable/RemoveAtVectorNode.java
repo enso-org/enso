@@ -65,7 +65,8 @@ public abstract class RemoveAtVectorNode extends Node {
     throw new PanicException(err, this);
   }
 
-  private Vector removeAtIndex(Object storage, long index, CopyNode copyArrayNode, InteropLibrary interop) {
+  private Vector removeAtIndex(
+      Object storage, long index, CopyNode copyArrayNode, InteropLibrary interop) {
     try {
       long length = interop.getArraySize(storage);
       long actualIndex = index < 0 ? index + length : index;

@@ -361,7 +361,7 @@ type Array
 
             [[1, 2, 3].to_array, [4, 10].to_array, [].to_array, [0].to_array, [0].to_array].to_array . flatten == [1, 2, 3, 4, 10, 0, 0].to_array
     flatten : Vector Any
-    flatten self = (Vector.from_polyglot_array self).flatten
+    flatten self = Vector.flatten self
 
     ## PRIVATE
        ADVANCED
