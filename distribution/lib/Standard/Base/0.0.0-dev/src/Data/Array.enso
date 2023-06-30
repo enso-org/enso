@@ -745,4 +745,4 @@ type Array
 
              [1].to_array + [2].to_array
     + : Vector Any -> Vector Any
-    + self that = Vector.+ self that
+    + self that = (Vector.from_polyglot_array self) + that

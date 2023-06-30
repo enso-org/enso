@@ -61,7 +61,7 @@ type Vector_Builder
            Append l r _ ->
                go l
                go r
-       go 0 self
+       go self
        vec_builder.to_vector
 
     ## PRIVATE
