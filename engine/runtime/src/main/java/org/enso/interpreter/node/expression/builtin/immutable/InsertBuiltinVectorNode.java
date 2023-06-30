@@ -13,7 +13,6 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.data.Vector;
 import org.enso.interpreter.runtime.error.PanicException;
-import sourcecode.Macros;
 
 @BuiltinMethod(
     type = "Vector",
@@ -47,6 +46,16 @@ public abstract class InsertBuiltinVectorNode extends Node {
     return insertBuiltin(self, index, values.toArray(), copyNode, interop);
   }
 
+  @Specialization(guards = "interop.hasArrayElements(self)")
+  Vector fromArrayLike(
+      Object self,
+      long index,
+      Vector values,
+      @Cached CopyNode copyNode,
+      @CachedLibrary(limit = "3") InteropLibrary interop) {
+    return insertBuiltin(self, index, values.toArray(), copyNode, interop);
+  }
+
   @Specialization(guards = "interop.hasArrayElements(values)")
   Vector fromVectorWithArrayLikeObject(
       Vector self,
@@ -67,6 +76,15 @@ public abstract class InsertBuiltinVectorNode extends Node {
     return insertBuiltin(self, index, values, copyNode, interop);
   }
 
+  @Specialization(guards = {"interop.hasArrayElements(self)", "interop.hasArrayElements(values)"})
+  Vector fromArrayLikeWithArrayLikeObject(
+      Object self,
+      long index,
+      Object values,
+      @Cached CopyNode copyNode,
+      @CachedLibrary(limit = "3") InteropLibrary interop) {
+    return insertBuiltin(self, index, values, copyNode, interop);
+  }
 
   @Fallback
   Vector fromUnknown(Object self, long index, Object values) {
