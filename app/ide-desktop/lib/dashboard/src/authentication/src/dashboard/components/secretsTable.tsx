@@ -61,12 +61,12 @@ const PLACEHOLDER_WITHOUT_QUERY = (
 
 /** Props for a {@link SecretCreateForm}. */
 interface InternalSecretCreateFormProps extends createForm.CreateFormPassthroughProps {
-    directoryId: backendModule.DirectoryId | null
+    dispatchSecretListEvent: (event: secretListEventModule.SecretListEvent) => void
 }
 
 /** A form to create a new secret asset. */
 function SecretCreateForm(props: InternalSecretCreateFormProps) {
-    const { directoryId, ...passThrough } = props
+    const { dispatchSecretListEvent, ...passThrough } = props
     const { backend } = backendProvider.useBackend()
     const { unsetModal } = modalProvider.useSetModal()
 
@@ -76,7 +76,7 @@ function SecretCreateForm(props: InternalSecretCreateFormProps) {
     if (backend.type === backendModule.BackendType.local) {
         return <></>
     } else {
-        const onSubmit = async (event: React.FormEvent) => {
+        const onSubmit = (event: React.FormEvent) => {
             event.preventDefault()
             if (name == null) {
                 toast.error('Please provide a secret name.')
@@ -85,18 +85,11 @@ function SecretCreateForm(props: InternalSecretCreateFormProps) {
                 toast.error('Please provide a secret value.')
             } else {
                 unsetModal()
-                await toast.promise(
-                    backend.createSecret({
-                        parentDirectoryId: directoryId,
-                        secretName: name,
-                        secretValue: value,
-                    }),
-                    {
-                        loading: 'Creating secret...',
-                        success: 'Sucessfully created secret.',
-                        error: errorModule.tryGetMessage,
-                    }
-                )
+                dispatchSecretListEvent({
+                    type: secretListEventModule.SecretListEventType.create,
+                    name: name,
+                    value: value,
+                })
             }
         }
 
@@ -141,12 +134,12 @@ function SecretCreateForm(props: InternalSecretCreateFormProps) {
 
 /** Props for a {@link SecretNameHeading}. */
 interface InternalSecretNameHeadingProps {
-    directoryId: backendModule.DirectoryId | null
+    dispatchSecretListEvent: (event: secretListEventModule.SecretListEvent) => void
 }
 
 /** The column header for the "name" column for the table of secret assets. */
 function SecretNameHeading(props: InternalSecretNameHeadingProps) {
-    const { directoryId } = props
+    const { dispatchSecretListEvent } = props
     const { setModal } = modalProvider.useSetModal()
 
     return (
@@ -161,7 +154,7 @@ function SecretNameHeading(props: InternalSecretNameHeadingProps) {
                         <SecretCreateForm
                             left={buttonPosition.left + window.scrollX}
                             top={buttonPosition.top + window.scrollY}
-                            directoryId={directoryId}
+                            dispatchSecretListEvent={dispatchSecretListEvent}
                         />
                     )
                 }}
@@ -459,7 +452,11 @@ function SecretsTable(props: SecretsTableProps) {
                         ? {
                               id: column,
                               className: columnModule.COLUMN_CSS_CLASS[column],
-                              heading: <SecretNameHeading directoryId={directoryId} />,
+                              heading: (
+                                  <SecretNameHeading
+                                      dispatchSecretListEvent={dispatchSecretListEvent}
+                                  />
+                              ),
                               render: SecretName,
                           }
                         : {

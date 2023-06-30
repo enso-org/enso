@@ -9,7 +9,7 @@ import MagnifyingGlassIcon from 'enso-assets/magnifying_glass.svg'
 import SpeechBubbleIcon from 'enso-assets/speech_bubble.svg'
 
 import * as backendModule from '../backend'
-import * as dashboard from './dashboard'
+import * as tabModule from '../tab'
 
 import * as backendProvider from '../../providers/backend'
 import * as modalProvider from '../../providers/modal'
@@ -24,7 +24,7 @@ import UserMenu from './userMenu'
 export interface TopBarProps {
     supportsLocalBackend: boolean
     projectName: string | null
-    tab: dashboard.Tab
+    tab: tabModule.Tab
     toggleTab: () => void
     setBackendType: (backendType: backendModule.BackendType) => void
     query: string
@@ -77,7 +77,7 @@ function TopBar(props: TopBarProps) {
             >
                 <span
                     className={`opacity-50 overflow-hidden transition-width nowrap ${
-                        tab === dashboard.Tab.dashboard ? 'm-2 w-16' : 'w-0'
+                        tab === tabModule.Tab.dashboard ? 'm-2 w-16' : 'w-0'
                     }`}
                 >
                     {projectName ?? 'Dashboard'}
@@ -87,7 +87,7 @@ function TopBar(props: TopBarProps) {
                 </div>
                 <span
                     className={`opacity-50 overflow-hidden transition-width nowrap ${
-                        tab === dashboard.Tab.ide ? 'm-2 w-16' : 'w-0'
+                        tab === tabModule.Tab.ide ? 'm-2 w-16' : 'w-0'
                     }`}
                 >
                     {projectName ?? 'No project open'}

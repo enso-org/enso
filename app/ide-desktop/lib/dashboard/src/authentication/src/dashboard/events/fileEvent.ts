@@ -16,7 +16,7 @@ declare module '../../hooks' {
 
 /** Possible types of file state change. */
 export enum FileEventType {
-    create = 'create',
+    createMultiple = 'create-multiple',
     deleteMultiple = 'delete-multiple',
 }
 
@@ -25,10 +25,9 @@ interface FileBaseEvent<Type extends FileEventType> {
     type: Type
 }
 
-/** A signal to create a file. */
-export interface FileCreateEvent extends FileBaseEvent<FileEventType.create> {
-    placeholderId: backendModule.FileId
-    file: File
+/** A signal to create multiple files. */
+export interface FileCreateMultipleEvent extends FileBaseEvent<FileEventType.createMultiple> {
+    files: Map<backendModule.FileId, File>
 }
 
 /** A signal to delete multiple files. */
@@ -37,4 +36,4 @@ export interface FileDeleteMultipleEvent extends FileBaseEvent<FileEventType.del
 }
 
 /** Every possible type of file event. */
-export type FileEvent = FileCreateEvent | FileDeleteMultipleEvent
+export type FileEvent = FileCreateMultipleEvent | FileDeleteMultipleEvent

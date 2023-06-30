@@ -10,6 +10,7 @@ import * as backendProvider from '../../providers/backend'
 import * as columnModule from '../column'
 import * as hooks from '../../hooks'
 import * as loggerProvider from '../../providers/logger'
+import * as tabModule from '../tab'
 
 import * as fileListEventModule from '../events/fileListEvent'
 import * as projectEventModule from '../events/projectEvent'
@@ -43,6 +44,7 @@ function regexEscape(string: string) {
 
 /** Props for a {@link DirectoryView}. */
 export interface DirectoryViewProps {
+    tab: tabModule.Tab
     initialProjectName: string | null
     nameOfProjectToImmediatelyOpen: string | null
     setNameOfProjectToImmediatelyOpen: (nameOfProjectToImmediatelyOpen: string | null) => void
@@ -51,7 +53,6 @@ export interface DirectoryViewProps {
     projectListEvent: projectListEventModule.ProjectListEvent | null
     dispatchProjectListEvent: (directoryEvent: projectListEventModule.ProjectListEvent) => void
     query: string
-    refresh: hooks.RefreshState
     onOpenIde: (project: backendModule.ProjectAsset) => void
     onCloseIde: () => void
     appRunner: AppRunner | null
@@ -64,13 +65,13 @@ export interface DirectoryViewProps {
 /** Contains directory path and directory contents (projects, folders, secrets and files). */
 function DirectoryView(props: DirectoryViewProps) {
     const {
+        tab,
         initialProjectName,
         nameOfProjectToImmediatelyOpen,
         setNameOfProjectToImmediatelyOpen,
         directoryId,
         setDirectoryId,
         query,
-        refresh,
         projectListEvent,
         dispatchProjectListEvent,
         onOpenIde,
@@ -93,6 +94,7 @@ function DirectoryView(props: DirectoryViewProps) {
     const [columnDisplayMode, setColumnDisplayMode] = React.useState(
         columnModule.ColumnDisplayMode.release
     )
+    const [isFileBeingDragged, setIsFileBeingDragged] = React.useState(false)
 
     const [projectAssets, setProjectAssets] = React.useState<backendModule.ProjectAsset[]>([])
     const [directoryAssets, setDirectoryAssets] = React.useState<backendModule.DirectoryAsset[]>([])
@@ -114,6 +116,16 @@ function DirectoryView(props: DirectoryViewProps) {
 
     const directory = directoryStack[directoryStack.length - 1] ?? null
     const parentDirectory = directoryStack[directoryStack.length - 2] ?? null
+
+    React.useEffect(() => {
+        const onBlur = () => {
+            setIsFileBeingDragged(false)
+        }
+        window.addEventListener('blur', onBlur)
+        return () => {
+            window.removeEventListener('blur', onBlur)
+        }
+    }, [])
 
     React.useEffect(() => {
         setIsLoadingAssets(true)
@@ -191,7 +203,7 @@ function DirectoryView(props: DirectoryViewProps) {
                 }
             }
         },
-        [accessToken, directoryId, refresh, backend]
+        [accessToken, directoryId, backend]
     )
 
     React.useEffect(() => {
@@ -246,7 +258,7 @@ function DirectoryView(props: DirectoryViewProps) {
         [directoryStack, setDirectoryId]
     )
 
-    const exitDirectory = () => {
+    const exitDirectory = React.useCallback(() => {
         setDirectoryId(
             parentDirectory?.id ??
                 (organization != null ? backendModule.rootDirectoryId(organization.id) : null)
@@ -255,7 +267,22 @@ function DirectoryView(props: DirectoryViewProps) {
             // eslint-disable-next-line @typescript-eslint/no-magic-numbers
             directoryStack.slice(0, -1)
         )
-    }
+    }, [directoryStack, organization, parentDirectory?.id, setDirectoryId])
+
+    React.useEffect(() => {
+        const onDragEnter = (event: DragEvent) => {
+            if (
+                tab === tabModule.Tab.dashboard &&
+                event.dataTransfer?.types.includes('Files') === true
+            ) {
+                setIsFileBeingDragged(true)
+            }
+        }
+        document.body.addEventListener('dragenter', onDragEnter)
+        return () => {
+            document.body.removeEventListener('dragenter', onDragEnter)
+        }
+    }, [tab])
 
     return (
         <>
@@ -311,6 +338,29 @@ function DirectoryView(props: DirectoryViewProps) {
                 fileListEvent={fileListEvent}
                 dispatchFileListEvent={dispatchFileListEvent}
             />
+            {isFileBeingDragged &&
+            directoryId != null &&
+            backend.type === backendModule.BackendType.remote ? (
+                <div
+                    className="text-white text-lg fixed w-screen h-screen inset-0 bg-primary grid place-items-center"
+                    onDragLeave={() => {
+                        setIsFileBeingDragged(false)
+                    }}
+                    onDragOver={event => {
+                        event.preventDefault()
+                    }}
+                    onDrop={event => {
+                        event.preventDefault()
+                        setIsFileBeingDragged(false)
+                        dispatchFileListEvent({
+                            type: fileListEventModule.FileListEventType.uploadMultiple,
+                            files: event.dataTransfer.files,
+                        })
+                    }}
+                >
+                    Drop to upload files.
+                </div>
+            ) : null}
         </>
     )
 }

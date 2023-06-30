@@ -207,8 +207,9 @@ function FileRow(
 
     hooks.useEventHandler(fileEvent, async event => {
         switch (event.type) {
-            case fileEventModule.FileEventType.create: {
-                if (key === event.placeholderId) {
+            case fileEventModule.FileEventType.createMultiple: {
+                const file = event.files.get(key)
+                if (file != null) {
                     if (backend.type !== backendModule.BackendType.remote) {
                         const message = 'Folders cannot be created on the local backend.'
                         toast.error(message)
@@ -222,7 +223,7 @@ function FileRow(
                                     fileName: item.title,
                                     parentDirectoryId: item.parentId,
                                 },
-                                event.file
+                                file
                             )
                             setStatus(presence.Presence.present)
                             const newItem: backendModule.FileAsset = {
@@ -368,7 +369,18 @@ function FilesTable(props: FilesTableProps) {
                         projectState: null,
                     }))
                 setItems(oldItems => [...placeholderItems, ...oldItems])
-                // FIXME: dispatchFileEvent
+                dispatchFileEvent({
+                    type: fileEventModule.FileEventType.createMultiple,
+                    files: new Map(
+                        placeholderItems.map((placeholderItem, i) => [
+                            placeholderItem.id,
+                            // This is SAFE, as `placeholderItems` is created using a map on
+                            // `event.files`.
+                            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                            event.files[i]!,
+                        ])
+                    ),
+                })
                 break
             }
             case fileListEventModule.FileListEventType.delete: {

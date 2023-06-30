@@ -35,7 +35,7 @@ function EditableSpan(props: EditableSpanProps) {
         ...passthroughProps
     } = props
 
-    // This is safe, as the value is always set by the time it is used.
+    // This is incorrect, but SAFE, as the value is always set by the time it is used.
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const inputRef = React.useRef<HTMLInputElement>(null!)
 

@@ -112,7 +112,9 @@ function DriveBar(props: DriveBarProps) {
                     <label
                         htmlFor="upload_files_input"
                         className={`mx-1 ${
-                            backend.type === backendModule.BackendType.local ? 'opacity-50' : ''
+                            backend.type === backendModule.BackendType.local
+                                ? 'opacity-50'
+                                : 'cursor-pointer'
                         }`}
                     >
                         <img src={UploadIcon} />
