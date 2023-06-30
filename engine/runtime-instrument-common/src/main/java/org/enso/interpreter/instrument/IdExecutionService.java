@@ -273,8 +273,7 @@ public interface IdExecutionService {
     @Override
     public int hashCode() {
       int result = Objects.hash(functionPointer);
-      result = 31 * result + Arrays.hashCode(notAppliedArguments);
-      return result;
+      return 31 * result + Arrays.hashCode(notAppliedArguments);
     }
 
     /**
