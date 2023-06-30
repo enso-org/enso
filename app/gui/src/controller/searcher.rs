@@ -10,8 +10,8 @@ use crate::controller::searcher::component::group;
 use crate::model::module::NodeEditStatus;
 use crate::model::module::NodeMetadata;
 use crate::model::suggestion_database;
-use crate::searcher;
 
+use crate::presenter::searcher;
 use breadcrumbs::Breadcrumbs;
 use double_representation::graph::GraphInfo;
 use double_representation::graph::LocationHint;
@@ -1214,7 +1214,7 @@ pub mod test {
     use crate::controller::graph::RequiredImport;
     use crate::controller::ide::plain::ProjectOperationsNotSupported;
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
-    use crate::searcher::apply_this_argument;
+    use crate::presenter::searcher::apply_this_argument;
     use crate::test::mock::data::project_qualified_name;
     use crate::test::mock::data::MAIN_FINISH;
     use crate::test::mock::data::MODULE_NAME;

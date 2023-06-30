@@ -13,8 +13,9 @@ use crate::model::execution_context::QualifiedMethodPointer;
 use crate::model::execution_context::Visualization;
 use crate::presenter::graph::AstNodeId;
 use crate::presenter::graph::ViewNodeId;
+use crate::presenter::searcher::apply_this_argument;
+use crate::presenter::searcher::SearcherPresenter;
 use crate::presenter::Graph;
-use crate::searcher::apply_this_argument;
 
 use enso_frp as frp;
 use enso_prelude::FallibleResult;
@@ -64,7 +65,7 @@ pub struct AISearcher {
     model:    Rc<Model>,
 }
 
-impl crate::searcher::SearcherPresenter for AISearcher {
+impl SearcherPresenter for AISearcher {
     fn setup_searcher(
         ide_controller: controller::Ide,
         _project_controller: Project,
@@ -72,7 +73,7 @@ impl crate::searcher::SearcherPresenter for AISearcher {
         graph_presenter: &Graph,
         view: project::View,
         parameters: SearcherParams,
-    ) -> FallibleResult<Box<dyn crate::searcher::SearcherPresenter>>
+    ) -> FallibleResult<Box<dyn SearcherPresenter>>
     where
         Self: Sized,
     {

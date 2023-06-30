@@ -6,9 +6,9 @@ use crate::prelude::*;
 use crate::executor::global::spawn_stream_handler;
 use crate::model::project::synchronized::ProjectNameInvalid;
 use crate::presenter;
-use crate::presenter::ai_searcher::AISearcher;
+use crate::presenter::searcher::ai_searcher::AISearcher;
+use crate::presenter::searcher::SearcherPresenter;
 use crate::presenter::ComponentBrowserSearcher;
-use crate::searcher::SearcherPresenter;
 
 use engine_protocol::language_server::ExecutionEnvironment;
 use engine_protocol::project_manager::ProjectMetadata;
