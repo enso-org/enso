@@ -55,12 +55,13 @@ pub mod visualization_chooser;
 // === Constants ===
 // =================
 
-/// Default width and height of the visualisation container.
+/// Default width and height of the visualization container.
 pub const DEFAULT_SIZE: (f32, f32) = (200.0, 200.0);
+/// Minimal allowed size of the visualization container.
+const MIN_SIZE: Vector2 = Vector2(200.0, 200.0);
 const PADDING: f32 = 20.0;
 const CORNER_RADIUS: f32 = super::super::node::CORNER_RADIUS;
 const ACTION_BAR_HEIGHT: f32 = 2.0 * CORNER_RADIUS;
-const MIN_SIZE: Vector2 = Vector2(200.0, 200.0);
 
 
 
@@ -157,6 +158,7 @@ ensogl::define_endpoints_2! {
         deselect            (),
         set_size            (Vector2),
         set_vis_input_type  (Option<enso::Type>),
+        // Set width of the container, preserving the current height.
         set_width           (f32),
     }
     Output {
@@ -204,7 +206,6 @@ impl View {
         let resize_grip = Rectangle::default().build(|r| {
             r.set_color(INVISIBLE_HOVER_COLOR);
         });
-        resize_grip.set_xy(Vector2(10.0, -10.0));
         display_object.add_child(&background);
         display_object.add_child(&overlay);
         overlay.add_child(&resize_grip);
@@ -243,11 +244,14 @@ impl View {
         self.loading_spinner.unset_parent();
     }
 
-    fn init_background(&self) {
+    fn init_resize_grip(&self, styles: &StyleWatch) {
+        let offset_x = styles.get_number(theme::resize_grip::offset_x);
+        let offset_y = styles.get_number(theme::resize_grip::offset_y);
+        self.resize_grip.set_xy(Vector2(offset_x, offset_y));
+    }
+
+    fn init_background(&self, styles: &StyleWatch) {
         let background = &self.background_dom;
-        // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
-        // system (#795)
-        let styles = StyleWatch::new(&self.scene.style_sheet);
         let bg_color =
             styles.get_color(ensogl_hardcoded_theme::graph_editor::visualization::background);
         let bg_hex = format!(
@@ -278,7 +282,9 @@ impl View {
     }
 
     fn init(self) -> Self {
-        self.init_background();
+        let styles = StyleWatch::new(&self.scene.style_sheet);
+        self.init_background(&styles);
+        self.init_resize_grip(&styles);
         self.init_spinner();
         self.show_waiting_screen();
         self.set_layer(visualization::Layer::Default);
@@ -594,43 +600,6 @@ impl Container {
             output.fullscreen <+ output.view_state.map(|state| state.is_fullscreen()).on_change();
             output.visible <+ output.view_state.map(|state| state.is_visible()).on_change();
 
-
-            // Drag-resize.
-
-            on_down <- on_down.gate(&output.visible);
-            on_up <- on_up_source.gate(&output.visible);
-
-            is_down <- bool(&on_up, &on_down);
-            on_move_down <- on_move.gate(&is_down);
-            glob_pos_on_down <- on_down.map(|event| event.client_centered());
-            glob_pos_on_move_down <- on_move_down.map(|event| event.client_centered());
-            pos_on_down <- glob_pos_on_down.map(f!((p) model.screen_to_object_space(*p)));
-            pos_on_move_down <- glob_pos_on_move_down.map(f!((p) model.screen_to_object_space(*p)));
-            pos_diff <- pos_on_move_down.map2(&pos_on_down, |a, b| a - b);
-            size_on_drag_start <- output.size.sample(&on_down);
-
-            output.size <+ pos_diff.map3(&size_on_drag_start, &output.view_state, f!([model](diff, size, view_state) {
-                let diff = Vector2(diff.x, -diff.y);
-                let new_size = size + diff;
-                model.resize(new_size, *view_state)
-            }));
-
-            // Size changes.
-            size_was_not_changed_manually <- any(...);
-            size_was_not_changed_manually <+ init.constant(true);
-            size_was_not_changed_manually <+ pos_diff.filter(|d| *d != Vector2::default()).constant(false);
-            size_was_not_changed_manually <+ output.visible.on_change().constant(true);
-
-            width_target <- input.set_width.identity();
-            on_visible <- output.visible.on_true();
-            width_change_after_open <- width_target.sample(&on_visible);
-            width_anim.target <+ width_target.gate(&size_was_not_changed_manually);
-            new_size <- width_anim.value.map2(&output.size, |w, s| Vector2(*w, s.y));
-            size_reset <- width_change_after_open.map(|w| Vector2(*w, DEFAULT_SIZE.1));
-            size_change <- any3(&new_size, &input.set_size, &size_reset);
-
-            output.size <+ size_change.map2(&output.view_state, f!((new_size, view_state) model.resize(*new_size, *view_state)));
-
             visualisation_not_selected <- input.set_visualization.map(|t| t.is_none());
             input_type_not_set <- input.set_vis_input_type.is_some().not();
             uninitialised <- visualisation_not_selected && input_type_not_set;
@@ -646,6 +615,40 @@ impl Container {
             set_default_visualisation <- any(
                 &set_default_visualisation, &set_default_visualisation_for_type);
 
+
+            // === Drag-resize ===
+
+            on_down <- on_down.gate(&output.visible);
+            on_up <- on_up_source.gate(&output.visible);
+            is_down <- bool(&on_up, &on_down);
+            on_move_down <- on_move.gate(&is_down);
+            glob_pos_on_down <- on_down.map(|event| event.client_centered());
+            glob_pos_on_move_down <- on_move_down.map(|event| event.client_centered());
+            pos_on_down <- glob_pos_on_down.map(f!((p) model.screen_to_object_space(*p)));
+            pos_on_move_down <- glob_pos_on_move_down.map(f!((p) model.screen_to_object_space(*p)));
+            pos_diff <- pos_on_move_down.map2(&pos_on_down, |a, b| a - b);
+            size_on_drag_start <- output.size.sample(&on_down);
+            output.size <+ pos_diff.map3(&size_on_drag_start, &output.view_state, f!([model](diff, size, view_state) {
+                let diff = Vector2(diff.x, -diff.y);
+                let new_size = size + diff;
+                model.resize(new_size, *view_state)
+            }));
+
+
+            // === Adjust width to the width of the node ===
+
+            size_was_not_changed_manually <- any(...);
+            size_was_not_changed_manually <+ init.constant(true);
+            size_was_not_changed_manually <+ pos_diff.filter(|d| *d != Vector2::default()).constant(false);
+            size_was_not_changed_manually <+ output.visible.on_change().constant(true);
+            width_target <- input.set_width.identity();
+            on_visible <- output.visible.on_true();
+            width_change_after_open <- width_target.sample(&on_visible);
+            width_anim.target <+ width_target.gate(&size_was_not_changed_manually);
+            new_size <- width_anim.value.map2(&output.size, |w, s| Vector2(*w, s.y));
+            size_reset <- width_change_after_open.map(|w| Vector2(*w, DEFAULT_SIZE.1));
+            size_change <- any3(&new_size, &input.set_size, &size_reset);
+            output.size <+ size_change.map2(&output.view_state, f!((new_size, view_state) model.resize(*new_size, *view_state)));
         }
 
 

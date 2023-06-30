@@ -651,7 +651,6 @@ fn partition_layer<S: display::shape::primitive::system::Shape>(
 /// ```plaintext
 /// - root
 ///   ├── viz
-///   │   ├── viz_background
 ///   │   ├── viz_resize_grip
 ///   │   ├── viz_overlay
 ///   ├── below_main
@@ -690,7 +689,6 @@ pub struct HardcodedLayers {
     pub DETACHED: Layer,
     pub root: Layer,
     pub viz: Layer,
-    pub viz_background: RectLayerPartition,
     pub viz_resize_grip: RectLayerPartition,
     pub viz_overlay: RectLayerPartition,
     pub below_main: Layer,
@@ -744,7 +742,6 @@ impl HardcodedLayers {
         let root = Layer::new_with_camera("root", &main_cam);
 
         let viz = root.create_sublayer("viz");
-        let viz_background = partition_layer(&viz, "viz_bg");
         let viz_resize_grip = partition_layer(&viz, "viz_resize_grip");
         let viz_overlay = partition_layer(&viz, "viz_overlay");
         let below_main = root.create_sublayer("below_main");
@@ -783,7 +780,6 @@ impl HardcodedLayers {
             DETACHED,
             root,
             viz,
-            viz_background,
             viz_resize_grip,
             viz_overlay,
             below_main,

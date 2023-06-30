@@ -572,6 +572,10 @@ define_themes! { [light:0, dark:1]
                 size = 8.0 , 8.0;
                 offset = 0.0 , 0.0;
             }
+            resize_grip {
+                offset_x = 10.0, 10.0;
+                offset_y = 10.0, 10.0;
+            }
             text_grid {
                 font = "DejaVu Sans Mono" , "DejaVu Sans Mono";
                 font_size = 12.0 , 12.0;

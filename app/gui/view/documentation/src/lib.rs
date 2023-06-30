@@ -19,7 +19,7 @@
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
-use ensogl::display::shape::Rectangle;
+use ensogl::display::shape::*;
 use ensogl::prelude::*;
 use ensogl::system::web::traits::*;
 
@@ -32,7 +32,6 @@ use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::scene::Scene;
 use ensogl::display::shape::primitive::StyleWatch;
-use ensogl::display::shape::StyleWatchFrp;
 use ensogl::display::DomSymbol;
 use ensogl::system::web;
 use ensogl::Animation;
@@ -104,7 +103,7 @@ impl Model {
         let inner_div = web::document.create_div_or_panic();
         let inner_dom = DomSymbol::new(&inner_div);
         let overlay = Rectangle::new().build(|r| {
-            r.set_color(color::Rgba::red());
+            r.set_color(INVISIBLE_HOVER_COLOR);
         });
         let caption_div = web::document.create_div_or_panic();
         let caption_dom = DomSymbol::new(&caption_div);
