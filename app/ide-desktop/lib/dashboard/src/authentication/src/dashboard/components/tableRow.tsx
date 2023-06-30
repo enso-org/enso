@@ -30,54 +30,63 @@ interface InitialRowStateProp<RowState> {
 // ================
 
 /** Common properties for state and setters passed to event handlers on a {@link TableRow}. */
-interface InternalTableRowInnerProps<T> {
+interface InternalTableRowInnerProps<T, Key extends string = string> {
+    key: Key
     item: T
     setItem: (newItem: T) => void
-    setNewKey: (newKey: string) => void
 }
 
 /** State and setters passed to event handlers on a {@link TableRow}. */
-export type TableRowInnerProps<T, TableRowState = never> = InternalTableRowInnerProps<T> &
+export type TableRowInnerProps<
+    T,
+    Key extends string = string,
+    TableRowState = never
+> = InternalTableRowInnerProps<T, Key> &
     ([TableRowState] extends never ? unknown : InternalTableRowStateProps<TableRowState>)
 
 /** Props for a {@link TableRow}. */
-interface InternalBaseTableRowProps<T, State = never, TableRowState = never>
-    extends Omit<JSX.IntrinsicElements['tr'], 'onClick' | 'onContextMenu'> {
+interface InternalBaseTableRowProps<
+    T,
+    Key extends string = string,
+    State = never,
+    TableRowState = never
+> extends Omit<JSX.IntrinsicElements['tr'], 'onClick' | 'onContextMenu'> {
+    keyProp: Key
     item: T
     state?: State
     initialRowState?: TableRowState
     columns: tableColumn.TableColumn<T, State, TableRowState>[]
     selected: boolean
     allowContextMenu: boolean
-    setNewKey: (newKey: string) => void
-    onClick: (props: TableRowInnerProps<T, TableRowState>, event: React.MouseEvent) => void
+    onClick: (props: TableRowInnerProps<T, Key, TableRowState>, event: React.MouseEvent) => void
     onContextMenu: (
-        props: TableRowInnerProps<T, TableRowState>,
+        props: TableRowInnerProps<T, Key, TableRowState>,
         event: React.MouseEvent<HTMLTableRowElement>
     ) => void
 }
 
 /** Props for a {@link TableRow}. */
-export type TableRowProps<T, State = never, TableRowState = never> = InternalBaseTableRowProps<
+export type TableRowProps<
     T,
-    State,
-    TableRowState
-> &
+    Key extends string = string,
+    State = never,
+    TableRowState = never
+> = InternalBaseTableRowProps<T, Key, State, TableRowState> &
     ([State] extends [never] ? unknown : StateProp<State>) &
     ([TableRowState] extends [never] ? unknown : InitialRowStateProp<TableRowState>)
 
 /** A row of a table. This is required because each row may store its own state. */
-function TableRow<T, State = never, TableRowState = never>(
-    props: TableRowProps<T, State, TableRowState>
+function TableRow<T, Key extends string = string, State = never, RowState = never>(
+    props: TableRowProps<T, Key, State, RowState>
 ) {
     const {
+        keyProp: key,
         item: rawItem,
         state,
         initialRowState,
         columns,
         selected,
         allowContextMenu,
-        setNewKey,
         onClick,
         onContextMenu,
         className,
@@ -87,20 +96,20 @@ function TableRow<T, State = never, TableRowState = never>(
 
     /** The internal state for this row. This may change as backend requests are sent. */
     const [item, setItem] = React.useState(rawItem)
-    /** This is SAFE, as the type is defined such that they MUST be
-     * present if it is specified as a generic parameter.
+    /** This is SAFE, as the type is defined such that they MUST be present when `RowState` is not
+     * `never`.
      * See the type definitions of {@link TableRowProps} and `TableProps`. */
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const [rowState, setRowState] = React.useState<TableRowState>(initialRowState!)
+    const [rowState, setRowState] = React.useState<RowState>(initialRowState!)
 
     React.useEffect(() => {
         setItem(rawItem)
     }, [rawItem])
 
-    const innerProps = {
+    const innerProps: TableRowInnerProps<T, Key, RowState> = {
+        key,
         item,
         setItem,
-        setNewKey,
         rowState,
         setRowState,
     }

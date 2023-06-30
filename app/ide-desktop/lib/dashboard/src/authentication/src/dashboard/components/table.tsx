@@ -37,81 +37,59 @@ interface InitialRowStateProp<RowState> {
 // =============
 
 /** Props for a {@link Table}. */
-interface InternalTableProps<T, State = never, RowState = never> {
-    rowComponent?: (props: tableRow.TableRowProps<T, State, RowState>) => JSX.Element
+interface InternalTableProps<T, Key extends string = string, State = never, RowState = never> {
+    rowComponent?: (props: tableRow.TableRowProps<T, Key, State, RowState>) => JSX.Element
     items: T[]
     state?: State
     initialRowState?: RowState
-    getKey: (item: T) => string
+    getKey: (item: T) => Key
     columns: tableColumn.TableColumn<T, State, RowState>[]
     isLoading: boolean
     placeholder: JSX.Element
+    forceShowPlaceholder?: boolean
     onContextMenu: (
-        selectedItems: Set<T>,
+        selectedKeys: Set<Key>,
         event: React.MouseEvent<HTMLTableElement>,
-        setSelectedItems: (items: Set<T>) => void
+        setSelectedKeys: (items: Set<Key>) => void
     ) => void
     onRowContextMenu: (
-        props: tableRow.TableRowInnerProps<T, RowState>,
+        props: tableRow.TableRowInnerProps<T, Key, RowState>,
         event: React.MouseEvent<HTMLTableRowElement>
     ) => void
 }
 
 /** Props for a {@link Table}. */
-export type TableProps<T, State = never, RowState = never> = InternalTableProps<
+export type TableProps<
     T,
-    State,
-    RowState
-> &
+    Key extends string = string,
+    State = never,
+    RowState = never
+> = InternalTableProps<T, Key, State, RowState> &
     ([RowState] extends [never] ? unknown : InitialRowStateProp<RowState>) &
     ([State] extends [never] ? unknown : StateProp<State>)
 
 /** Table that projects an object into each column. */
-function Table<T, State = never, RowState = never>(props: TableProps<T, State, RowState>) {
+function Table<T, Key extends string = string, State = never, RowState = never>(
+    props: TableProps<T, Key, State, RowState>
+) {
     const {
         rowComponent: RowComponent = TableRow,
         items,
-        getKey: rawGetKey,
+        getKey,
         columns,
         isLoading,
         placeholder,
+        forceShowPlaceholder = false,
         onContextMenu,
         onRowContextMenu,
         ...rowProps
     } = props
 
     const [spinnerClasses, setSpinnerClasses] = React.useState(SPINNER_INITIAL_CLASSES)
-    // This should not be made mutable as an optimization, otherwise its value may change after
-    // `await`ing an I/O operation.
-    const [selectedItems, setSelectedItems] = React.useState(() => new Set<T>())
-    const [previouslySelectedItem, setPreviouslySelectedItem] = React.useState<T | null>(null)
-    /** A mapping from the initial optimistic key (if any) to the corresponing key obtained from
-     * the backend. */
-    const [keyRemapping, setKeyRemapping] = React.useState<Record<string, string>>({})
-    // FIXME: set key for each row (pass `setKeyRemapping`)
-
-    const getKey = React.useCallback(
-        (item: T) => {
-            const key = rawGetKey(item)
-            return keyRemapping[key] ?? key
-        },
-        [keyRemapping, rawGetKey]
-    )
-
-    React.useEffect(() => {
-        setKeyRemapping(oldKeyRemapping =>
-            items.reduce<Record<string, string>>((newKeyRemapping, item) => {
-                const actualKey = rawGetKey(item)
-                const remappedKey = oldKeyRemapping[actualKey]
-                if (remappedKey != null) {
-                    newKeyRemapping[actualKey] = remappedKey
-                }
-                return newKeyRemapping
-            }, {})
-        )
-        // `rawGetKey` is not a dependency of this effect.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [items])
+    // This should not be made mutable for the sake of optimization, otherwise its value may
+    // be different after `await`ing an I/O operation.
+    const [selectedKeys, setSelectedKeys] = React.useState(() => new Set<Key>())
+    const [previouslySelectedKey, setPreviouslySelectedKey] = React.useState<Key | null>(null)
 
     React.useEffect(() => {
         const onDocumentClick = (event: MouseEvent) => {
@@ -124,20 +102,21 @@ function Table<T, State = never, RowState = never>(props: TableProps<T, State, R
                     shortcuts.MouseAction.selectAdditionalRange,
                     event
                 ) &&
-                selectedItems.size !== 0
+                selectedKeys.size !== 0
             ) {
-                setSelectedItems(new Set())
+                setSelectedKeys(new Set())
             }
         }
         document.addEventListener('click', onDocumentClick)
         return () => {
             document.removeEventListener('click', onDocumentClick)
         }
-    }, [selectedItems])
+    }, [selectedKeys])
 
     React.useEffect(() => {
         if (isLoading) {
-            // Ensure the spinner stays in the "initial" state for at least one frame.
+            // Ensure the spinner stays in the "initial" state for at least one frame,
+            // to ensure the CSS animation begins at the initial state.
             requestAnimationFrame(() => {
                 setSpinnerClasses(SPINNER_LOADING_CLASSES)
             })
@@ -147,18 +126,22 @@ function Table<T, State = never, RowState = never>(props: TableProps<T, State, R
     }, [isLoading])
 
     const onRowClick = React.useCallback(
-        (innerRowProps: tableRow.TableRowInnerProps<T, RowState>, event: React.MouseEvent) => {
-            const { item } = innerRowProps
+        (innerRowProps: tableRow.TableRowInnerProps<T, Key, RowState>, event: React.MouseEvent) => {
+            const { key } = innerRowProps
             event.stopPropagation()
-            const getNewlySelectedItems = () => {
-                if (previouslySelectedItem == null) {
-                    return [item]
+            const getNewlySelectedKeys = () => {
+                if (previouslySelectedKey == null) {
+                    return [key]
                 } else {
-                    const index1 = items.indexOf(previouslySelectedItem)
-                    const index2 = items.indexOf(item)
-                    return index1 <= index2
-                        ? items.slice(index1, index2 + 1)
-                        : items.slice(index2, index1 + 1)
+                    const index1 = items.findIndex(
+                        innerItem => getKey(innerItem) === previouslySelectedKey
+                    )
+                    const index2 = items.findIndex(innerItem => getKey(innerItem) === key)
+                    const selectedItems =
+                        index1 <= index2
+                            ? items.slice(index1, index2 + 1)
+                            : items.slice(index2, index1 + 1)
+                    return selectedItems.map(getKey)
                 }
             }
             if (
@@ -167,33 +150,37 @@ function Table<T, State = never, RowState = never>(props: TableProps<T, State, R
                     event
                 )
             ) {
-                setSelectedItems(new Set(getNewlySelectedItems()))
+                setSelectedKeys(new Set(getNewlySelectedKeys()))
             } else if (
                 shortcuts.SHORTCUT_REGISTRY.matchesMouseAction(
                     shortcuts.MouseAction.selectAdditionalRange,
                     event
                 )
             ) {
-                setSelectedItems(new Set([...selectedItems, ...getNewlySelectedItems()]))
+                setSelectedKeys(
+                    oldSelectedItems => new Set([...oldSelectedItems, ...getNewlySelectedKeys()])
+                )
             } else if (
                 shortcuts.SHORTCUT_REGISTRY.matchesMouseAction(
                     shortcuts.MouseAction.selectAdditional,
                     event
                 )
             ) {
-                const newItems = new Set(selectedItems)
-                if (selectedItems.has(item)) {
-                    newItems.delete(item)
-                } else {
-                    newItems.add(item)
-                }
-                setSelectedItems(newItems)
+                setSelectedKeys(oldSelectedItems => {
+                    const newItems = new Set(oldSelectedItems)
+                    if (oldSelectedItems.has(key)) {
+                        newItems.delete(key)
+                    } else {
+                        newItems.add(key)
+                    }
+                    return newItems
+                })
             } else {
-                setSelectedItems(new Set([item]))
+                setSelectedKeys(new Set([key]))
             }
-            setPreviouslySelectedItem(item)
+            setPreviouslySelectedKey(key)
         },
-        [items, previouslySelectedItem, selectedItems]
+        [items, previouslySelectedKey, /* should never change */ getKey]
     )
 
     const headerRow = (
@@ -219,7 +206,7 @@ function Table<T, State = never, RowState = never>(props: TableProps<T, State, R
                 </div>
             </td>
         </tr>
-    ) : items.length === 0 ? (
+    ) : items.length === 0 || forceShowPlaceholder ? (
         <tr className="h-10">
             <td colSpan={columns.length}>{placeholder}</td>
         </tr>
@@ -237,24 +224,23 @@ function Table<T, State = never, RowState = never>(props: TableProps<T, State, R
                     // eslint-disable-next-line no-restricted-syntax
                     initialRowState={rowProps.initialRowState as never}
                     key={key}
+                    keyProp={key}
                     item={item}
-                    selected={selectedItems.has(item)}
-                    allowContextMenu={selectedItems.size === 0}
-                    setNewKey={newKey => {
-                        setKeyRemapping({ ...keyRemapping, [newKey]: key })
-                    }}
+                    selected={selectedKeys.has(key)}
+                    allowContextMenu={selectedKeys.size === 0}
                     onClick={onRowClick}
                     onContextMenu={onRowContextMenu}
                 />
             )
         })
     )
+
     return (
         <table
             className="table-fixed items-center border-collapse w-0 mt-2"
             onContextMenu={event => {
-                onContextMenu(selectedItems, event, () => {
-                    setSelectedItems(new Set())
+                onContextMenu(selectedKeys, event, () => {
+                    setSelectedKeys(new Set())
                 })
             }}
         >

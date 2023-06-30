@@ -173,7 +173,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [project.projectState.type])
 
-    hooks.useEvent(event, theEvent => {
+    hooks.useEventHandler(event, theEvent => {
         switch (theEvent.type) {
             case projectEvent.ProjectEventType.open: {
                 if (theEvent.projectId !== project.id) {

@@ -1,5 +1,6 @@
 /** @file Module containing common custom React hooks used throughout out Dashboard. */
 import * as React from 'react'
+import * as reactDom from 'react-dom'
 import * as router from 'react-router'
 
 import * as app from './components/app'
@@ -100,9 +101,9 @@ export function useNavigate() {
     return navigate
 }
 
-// ================
-// === useEvent ===
-// ================
+// =======================
+// === Reactive Events ===
+// =======================
 
 /** A map containing all known event types. Names MUST be chosen carefully to avoid conflicts.
  * The simplest way to achieve this is by namespacing names using a prefix. */
@@ -111,17 +112,49 @@ export interface KnownEventsMap {}
 /** A union of all known events. */
 type KnownEvent = KnownEventsMap[keyof KnownEventsMap]
 
+/** A wrapper around `useState` that calls `flushSync` after every `setState`.
+ * This is required so that no events are dropped. */
+export function useEvent<T extends KnownEvent>(): [
+    event: T | null,
+    dispatchEvent: (event: T) => void
+] {
+    const [event, rawDispatchEvent] = React.useState<T | null>(null)
+    const dispatchEvent = React.useCallback(
+        (innerEvent: T) => {
+            setTimeout(() => {
+                reactDom.flushSync(() => {
+                    rawDispatchEvent(innerEvent)
+                })
+            }, 0)
+        },
+
+        [rawDispatchEvent]
+    )
+    return [event, dispatchEvent]
+}
+
 /** A wrapper around `useEffect` that has `event` as its sole dependency. */
-export function useEvent<T extends KnownEvent>(
+export function useEventHandler<T extends KnownEvent>(
     event: T | null,
     effect: (event: T) => Promise<void> | void
 ) {
-    React.useEffect(() => {
+    let hasEffectRun = false
+    React.useLayoutEffect(() => {
+        if (IS_DEV_MODE) {
+            if (hasEffectRun) {
+                // This is the second time this event is being run in React Strict Mode.
+                // Event handlers are not supposed to be idempotent, so it is a mistake to execute it
+                // a second time.
+                // eslint-disable-next-line no-restricted-syntax
+                return
+            } else {
+                // eslint-disable-next-line react-hooks/exhaustive-deps
+                hasEffectRun = true
+            }
+        }
         if (event != null) {
             void effect(event)
         }
-        // This effect MUST only run when the event changes.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [event])
 }
 

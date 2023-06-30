@@ -43,19 +43,19 @@ export const TEMPLATES: [Template, ...Template[]] = [
         title: 'Combine spreadsheets',
         id: 'Orders',
         description: 'Glue multiple spreadsheets together to analyse all your data at once.',
-        background: 'url("/spreadsheets.png") 50% 20% / 80% no-repeat, #479366',
+        background: 'url("./spreadsheets.png") 50% 20% / 80% no-repeat, #479366',
     },
     {
         title: 'Geospatial analysis',
         id: 'Restaurants',
         description: 'Learn where to open a coffee shop to maximize your income.',
-        background: 'url("/geo.png") center / cover, #6b7280',
+        background: 'url("./geo.png") center / cover, #6b7280',
     },
     {
         title: 'Analyze GitHub stars',
         id: 'Stargazers',
         description: "Find out which of Enso's repositories are most popular over time.",
-        background: 'url("/visualize.png") center / cover, #6b7280',
+        background: 'url("./visualize.png") center / cover, #6b7280',
     },
 ]
 

@@ -23,6 +23,6 @@ export enum OptimisticStatus {
 
 export const CLASS_NAME: Record<OptimisticStatus, string> = {
     [OptimisticStatus.present]: '',
-    [OptimisticStatus.deleting]: 'h-0',
+    [OptimisticStatus.deleting]: 'hidden',
     [OptimisticStatus.inserting]: 'opacity-50',
 } as const

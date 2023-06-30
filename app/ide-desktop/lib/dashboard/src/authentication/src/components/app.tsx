@@ -75,6 +75,22 @@ export const FORGOT_PASSWORD_PATH = '/forgot-password'
 export const RESET_PASSWORD_PATH = '/password-reset'
 /** Path to the set username page. */
 export const SET_USERNAME_PATH = '/set-username'
+/** A {@link RegExp} matching all paths. */
+export const ALL_PATHS_REGEX = new RegExp(
+    `(?:${DASHBOARD_PATH}|${LOGIN_PATH}|${REGISTRATION_PATH}|${CONFIRM_REGISTRATION_PATH}|` +
+        `${FORGOT_PASSWORD_PATH}|${RESET_PASSWORD_PATH}|${SET_USERNAME_PATH})$`
+)
+
+// ======================
+// === getMainPageUrl ===
+// ======================
+
+/** Returns the URL to the main page. This is the current URL, with the current route removed. */
+function getMainPageUrl() {
+    const mainPageUrl = new URL(window.location.href)
+    mainPageUrl.pathname = mainPageUrl.pathname.replace(ALL_PATHS_REGEX, '')
+    return mainPageUrl
+}
 
 // ===========
 // === App ===
@@ -110,7 +126,7 @@ function App(props: AppProps) {
     return (
         <>
             <toast.Toaster position="top-center" reverseOrder={false} />
-            <Router>
+            <Router basename={getMainPageUrl().pathname}>
                 <AppRouter {...props} />
             </Router>
         </>
@@ -133,7 +149,7 @@ function AppRouter(props: AppProps) {
         // @ts-expect-error This is used exclusively for debugging.
         window.navigate = navigate
     }
-    const mainPageUrl = new URL(window.location.href)
+    const mainPageUrl = getMainPageUrl()
     const memoizedAuthService = React.useMemo(() => {
         const authConfig = { navigate, ...props }
         return authService.initAuthService(authConfig)

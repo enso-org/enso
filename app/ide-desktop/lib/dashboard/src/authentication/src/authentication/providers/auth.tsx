@@ -224,16 +224,8 @@ export function AuthProvider(props: AuthProviderProps) {
                 const backend = new remoteBackend.RemoteBackend(client, logger)
                 // The backend MUST be the remote backend before login is finished.
                 // This is because the "set username" flow requires the remote backend.
-                if (!initialized) {
-                    // `userSession` MUST NOT be a dependency of this `useEffect` (so this effect
-                    // is not called when `userSession` changes) as this effect always calls
-                    // `setUserSession`, which would cause an infinite loop.
-                    setUserSession(oldUserSession => {
-                        if (oldUserSession == null) {
-                            setBackendWithoutSavingType(backend)
-                        }
-                        return oldUserSession
-                    })
+                if (!initialized && userSession == null) {
+                    setBackendWithoutSavingType(backend)
                 }
                 let organization: backendModule.UserOrOrganization | null
                 for (;;) {
@@ -288,6 +280,10 @@ export function AuthProvider(props: AuthProviderProps) {
                 logger.error(error)
             }
         })
+        // `userSession` MUST NOT be a dependency as `setUserSession` is called every time
+        // by this effect. Because it is an object literal, it will never be equal to the previous
+        // value.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
         cognito,
         initialized,

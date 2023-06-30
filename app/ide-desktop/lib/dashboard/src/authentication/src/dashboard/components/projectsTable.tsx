@@ -215,6 +215,7 @@ function ProjectName(props: InternalProjectNameProps) {
 interface InternalProjectRowContextMenuProps {
     innerProps: tableRow.TableRowInnerProps<
         backendModule.ProjectAsset,
+        backendModule.ProjectId,
         projectRowState.ProjectRowState
     >
     event: React.MouseEvent
@@ -362,7 +363,7 @@ function ProjectsTable(props: ProjectsTableProps) {
         [items]
     )
 
-    hooks.useEvent(projectListEvent, async event => {
+    hooks.useEventHandler(projectListEvent, async event => {
         switch (event.type) {
             case projectListEventModule.ProjectListEventType.create: {
                 const projectName = getNewProjectName(event.templateId)
@@ -370,13 +371,13 @@ function ProjectsTable(props: ProjectsTableProps) {
                 // as the React key for lists.
                 const dummyId = backendModule.ProjectId(uniqueString.uniqueString())
                 const placeholderItem: backendModule.ProjectAsset = {
-                    type: backendModule.AssetType.project,
-                    title: projectName,
                     id: dummyId,
+                    title: projectName,
                     modifiedAt: dateTime.toRfc3339(new Date()),
                     parentId: directoryId ?? backendModule.DirectoryId(''),
                     permissions: [],
                     projectState: { type: backendModule.ProjectState.new },
+                    type: backendModule.AssetType.project,
                 }
                 setItems(oldProjectAssets => [placeholderItem, ...oldProjectAssets])
                 dispatchProjectEvent({
@@ -460,7 +461,12 @@ function ProjectsTable(props: ProjectsTableProps) {
     )
 
     return (
-        <Table<backendModule.ProjectAsset, ProjectNamePropsState, projectRowState.ProjectRowState>
+        <Table<
+            backendModule.ProjectAsset,
+            backendModule.ProjectId,
+            ProjectNamePropsState,
+            projectRowState.ProjectRowState
+        >
             items={visibleItems}
             isLoading={isLoading}
             state={state}
@@ -482,7 +488,7 @@ function ProjectsTable(props: ProjectsTableProps) {
                           render: columnModule.COLUMN_RENDERER[column],
                       }
             )}
-            onContextMenu={(projects, event, setSelectedItems) => {
+            onContextMenu={(selectedKeys, event, setSelectedKeys) => {
                 event.preventDefault()
                 event.stopPropagation()
                 // This is not a React component even though it contains JSX.
@@ -490,25 +496,25 @@ function ProjectsTable(props: ProjectsTableProps) {
                 const doDeleteAll = () => {
                     setModal(
                         <ConfirmDeleteModal
-                            description={`${projects.size} selected projects`}
+                            description={`${selectedKeys.size} selected projects`}
                             assetType="projects"
                             doDelete={() => {
-                                setSelectedItems(new Set())
+                                setSelectedKeys(new Set())
                                 dispatchProjectEvent({
                                     type: projectEventModule.ProjectEventType.deleteMultiple,
-                                    projectIds: new Set([...projects].map(project => project.id)),
+                                    projectIds: selectedKeys,
                                 })
                                 return Promise.resolve()
                             }}
                         />
                     )
                 }
-                const pluralized = pluralize(projects.size)
+                const pluralized = pluralize(selectedKeys.size)
                 setModal(
                     <ContextMenu key={uniqueString.uniqueString()} event={event}>
                         <ContextMenuEntry onClick={doDeleteAll}>
                             <span className="text-red-700">
-                                Delete {projects.size} {pluralized}
+                                Delete {selectedKeys.size} {pluralized}
                             </span>
                         </ContextMenuEntry>
                     </ContextMenu>

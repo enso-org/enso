@@ -5,6 +5,7 @@ import toast from 'react-hot-toast'
 import DirectoryIcon from 'enso-assets/directory.svg'
 import PlusIcon from 'enso-assets/plus.svg'
 
+import * as authProvider from '../../authentication/providers/auth'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as columnModule from '../column'
@@ -171,13 +172,17 @@ function DirectoryName(props: InternalDirectoryNameProps) {
 
 /** A row in a {@link DirectoriesTable}. */
 function DirectoryRow(
-    props: tableRow.TableRowProps<backendModule.DirectoryAsset, DirectoriesTableState>
+    props: tableRow.TableRowProps<
+        backendModule.DirectoryAsset,
+        backendModule.DirectoryId,
+        DirectoriesTableState
+    >
 ) {
     const {
+        keyProp: key,
         item: rawItem,
-        state: { directoryEvent, dispatchDirectoryListEvent },
+        state: { directoryEvent, dispatchDirectoryListEvent, markItemAsHidden, markItemAsVisible },
     } = props
-    const { current: key } = React.useRef(rawItem.id)
     const logger = loggerProvider.useLogger()
     const { backend } = backendProvider.useBackend()
     const [item, setItem] = React.useState(rawItem)
@@ -187,7 +192,7 @@ function DirectoryRow(
         setItem(rawItem)
     }, [rawItem])
 
-    hooks.useEvent(directoryEvent, async event => {
+    hooks.useEventHandler(directoryEvent, async event => {
         switch (event.type) {
             case directoryEventModule.DirectoryEventType.create: {
                 if (key === event.placeholderId) {
@@ -196,17 +201,23 @@ function DirectoryRow(
                         toast.error(message)
                         logger.error(message)
                     } else {
+                        setStatus(optimistic.OptimisticStatus.inserting)
                         try {
                             const createdDirectory = await backend.createDirectory({
                                 parentId: item.parentId,
                                 title: item.title,
                             })
+                            setStatus(optimistic.OptimisticStatus.present)
                             const newItem: backendModule.DirectoryAsset = {
                                 ...item,
                                 ...createdDirectory,
                             }
                             setItem(newItem)
                         } catch (error) {
+                            dispatchDirectoryListEvent({
+                                type: directoryListEventModule.DirectoryListEventType.delete,
+                                directoryId: key,
+                            })
                             const message = `Error creating new folder: ${
                                 errorModule.tryGetMessage(error) ?? 'unknown error.'
                             }`
@@ -223,6 +234,7 @@ function DirectoryRow(
                     backend.type !== backendModule.BackendType.local
                 ) {
                     setStatus(optimistic.OptimisticStatus.deleting)
+                    markItemAsHidden(key)
                     try {
                         await backend.deleteDirectory(item.id, item.title)
                         dispatchDirectoryListEvent({
@@ -231,6 +243,7 @@ function DirectoryRow(
                         })
                     } catch {
                         setStatus(optimistic.OptimisticStatus.present)
+                        markItemAsVisible(key)
                     }
                 }
                 break
@@ -238,7 +251,7 @@ function DirectoryRow(
         }
     })
 
-    return <TableRow className={optimistic.CLASS_NAME[status]} {...props} />
+    return <TableRow className={optimistic.CLASS_NAME[status]} {...props} item={item} />
 }
 
 // ========================
@@ -250,6 +263,8 @@ interface DirectoriesTableState {
     directoryEvent: directoryEventModule.DirectoryEvent | null
     enterDirectory: (directory: backendModule.DirectoryAsset) => void
     dispatchDirectoryListEvent: (event: directoryListEventModule.DirectoryListEvent) => void
+    markItemAsHidden: (key: string) => void
+    markItemAsVisible: (key: string) => void
 }
 
 /** Props for a {@link DirectoriesTable}. */
@@ -273,14 +288,18 @@ function DirectoriesTable(props: DirectoriesTableProps) {
         enterDirectory,
     } = props
     const logger = loggerProvider.useLogger()
+    const { organization } = authProvider.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
     const { setModal } = modalProvider.useSetModal()
 
     const [items, setItems] = React.useState(rawItems)
+    const [shouldForceShowPlaceholder, setShouldForceShowPlaceholder] = React.useState(false)
     const [directoryEvent, dispatchDirectoryEvent] =
-        React.useState<directoryEventModule.DirectoryEvent | null>(null)
+        hooks.useEvent<directoryEventModule.DirectoryEvent>()
     const [directoryListEvent, dispatchDirectoryListEvent] =
-        React.useState<directoryListEventModule.DirectoryListEvent | null>(null)
+        hooks.useEvent<directoryListEventModule.DirectoryListEvent>()
+
+    const keysOfHiddenItemsRef = React.useRef(new Set<string>())
 
     React.useEffect(() => {
         setItems(rawItems)
@@ -291,23 +310,62 @@ function DirectoriesTable(props: DirectoriesTableProps) {
         [items, filter]
     )
 
+    React.useEffect(() => {
+        const oldKeys = keysOfHiddenItemsRef.current
+        keysOfHiddenItemsRef.current = new Set(
+            visibleItems.map(backendModule.getAssetId).filter(key => oldKeys.has(key))
+        )
+    }, [visibleItems])
+
+    const getKey = backendModule.getAssetId
+
+    const updateShouldForceShowPlaceholder = React.useCallback(() => {
+        setShouldForceShowPlaceholder(keysOfHiddenItemsRef.current.size === visibleItems.length)
+    }, [visibleItems.length])
+
+    React.useEffect(updateShouldForceShowPlaceholder, [updateShouldForceShowPlaceholder])
+
+    const markItemAsHidden = React.useCallback(
+        (key: string) => {
+            keysOfHiddenItemsRef.current.add(key)
+            updateShouldForceShowPlaceholder()
+        },
+        [updateShouldForceShowPlaceholder]
+    )
+
+    const markItemAsVisible = React.useCallback(
+        (key: string) => {
+            keysOfHiddenItemsRef.current.delete(key)
+            updateShouldForceShowPlaceholder()
+        },
+        [updateShouldForceShowPlaceholder]
+    )
+
     const state = React.useMemo(
         // The type MUST be here to trigger excess property errors at typecheck time.
         (): DirectoriesTableState => ({
             directoryEvent,
             enterDirectory,
             dispatchDirectoryListEvent,
+            markItemAsHidden,
+            markItemAsVisible,
         }),
-        [directoryEvent, enterDirectory, dispatchDirectoryListEvent]
+        [
+            directoryEvent,
+            enterDirectory,
+            dispatchDirectoryListEvent,
+            markItemAsHidden,
+            markItemAsVisible,
+        ]
     )
 
     const createNewDirectory = React.useCallback(() => {
         dispatchDirectoryListEvent({
             type: directoryListEventModule.DirectoryListEventType.create,
         })
-    }, [])
+    }, [/* should never change */ dispatchDirectoryListEvent])
 
-    hooks.useEvent(directoryListEvent, event => {
+    hooks.useEventHandler(directoryListEvent, event => {
         switch (event.type) {
             case directoryListEventModule.DirectoryListEventType.create: {
                 if (backend.type !== backendModule.BackendType.remote) {
@@ -324,13 +382,29 @@ function DirectoriesTable(props: DirectoriesTableProps) {
                     }`
                     const placeholderId = backendModule.DirectoryId(uniqueString.uniqueString())
                     const placeholderItem: backendModule.DirectoryAsset = {
-                        title,
-                        type: backendModule.AssetType.directory,
                         id: placeholderId,
+                        title,
                         modifiedAt: dateTime.toRfc3339(new Date()),
                         parentId: directoryId ?? backendModule.DirectoryId(''),
-                        permissions: [],
+                        permissions:
+                            organization != null
+                                ? [
+                                      {
+                                          user: {
+                                              // The names are defined by the backend and cannot be changed.
+                                              /* eslint-disable @typescript-eslint/naming-convention */
+                                              pk: backendModule.Subject(''),
+                                              organization_id: organization.id,
+                                              user_email: organization.email,
+                                              user_name: organization.name,
+                                              /* eslint-enable @typescript-eslint/naming-convention */
+                                          },
+                                          permission: backendModule.PermissionAction.own,
+                                      },
+                                  ]
+                                : [],
                         projectState: null,
+                        type: backendModule.AssetType.directory,
                     }
                     setItems(oldItems => [placeholderItem, ...oldItems])
                     dispatchDirectoryEvent({
@@ -351,13 +425,14 @@ function DirectoriesTable(props: DirectoriesTableProps) {
         return <></>
     } else {
         return (
-            <Table<backendModule.DirectoryAsset, DirectoriesTableState>
+            <Table<backendModule.DirectoryAsset, backendModule.DirectoryId, DirectoriesTableState>
                 rowComponent={DirectoryRow}
                 items={visibleItems}
                 isLoading={isLoading}
                 state={state}
-                getKey={backendModule.getAssetId}
+                getKey={getKey}
                 placeholder={filter != null ? PLACEHOLDER_WITH_FILTER : PLACEHOLDER_WITHOUT_FILTER}
+                forceShowPlaceholder={shouldForceShowPlaceholder}
                 columns={columnModule.columnsFor(columnDisplayMode, backend.type).map(column =>
                     column === columnModule.Column.name
                         ? {
@@ -375,34 +450,32 @@ function DirectoriesTable(props: DirectoriesTableProps) {
                               render: columnModule.COLUMN_RENDERER[column],
                           }
                 )}
-                onContextMenu={(directories, event, setSelectedItems) => {
+                onContextMenu={(selectedKeys, event, setSelectedKeys) => {
                     event.preventDefault()
                     event.stopPropagation()
                     const doDeleteAll = () => {
                         setModal(
                             <ConfirmDeleteModal
-                                description={`${directories.size} selected folders`}
+                                description={`${selectedKeys.size} selected folders`}
                                 assetType="folders"
                                 doDelete={async () => {
                                     dispatchDirectoryEvent({
                                         type: directoryEventModule.DirectoryEventType
                                             .deleteMultiple,
-                                        directoryIds: new Set(
-                                            [...directories].map(item => item.id)
-                                        ),
+                                        directoryIds: selectedKeys,
                                     })
-                                    setSelectedItems(new Set())
+                                    setSelectedKeys(new Set())
                                     return Promise.resolve()
                                 }}
                             />
                         )
                     }
-                    const pluralized = pluralize(directories.size)
+                    const pluralized = pluralize(selectedKeys.size)
                     setModal(
                         <ContextMenu key={uniqueString.uniqueString()} event={event}>
                             <ContextMenuEntry onClick={doDeleteAll}>
                                 <span className="text-red-700">
-                                    Delete {directories.size} {pluralized}
+                                    Delete {selectedKeys.size} {pluralized}
                                 </span>
                             </ContextMenuEntry>
                         </ContextMenu>

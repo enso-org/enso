@@ -224,7 +224,7 @@ function FilesTable(props: FilesTableProps) {
         [items, filter]
     )
 
-    hooks.useEvent(fileListEvent, event => {
+    hooks.useEventHandler(fileListEvent, event => {
         switch (event.type) {
             case fileListEventModule.FileListEventType.uploadMultiple: {
                 const placeholderItems: backendModule.FileAsset[] = Array.from(event.files)

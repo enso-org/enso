@@ -119,10 +119,7 @@ export function SharedWithColumn(props: AnyAssetColumnProps) {
     return (
         <>
             {(props.item.permissions ?? []).map(user => (
-                <PermissionDisplay
-                    key={user.user.organization_id}
-                    permissions={PERMISSION[user.permission]}
-                >
+                <PermissionDisplay key={user.user.pk} permissions={PERMISSION[user.permission]}>
                     <img src={DefaultUserSmallIcon} />
                 </PermissionDisplay>
             ))}
