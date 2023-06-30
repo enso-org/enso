@@ -272,7 +272,7 @@ impl View {
         background.dom().set_style_or_warn("overflow-x", "auto");
         background.dom().set_style_or_warn("background", bg_hex);
         background.dom().set_style_or_warn("border-radius", "14px");
-        shadow::add_to_dom_element(background, &styles);
+        shadow::add_to_dom_element(background, styles);
     }
 
     fn init_spinner(&self) {
