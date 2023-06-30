@@ -191,7 +191,7 @@ class Main implements AppRunner {
             if (newApp.config.options.dataCollection.value && remoteLogger) {
                 await remoteLogger.remoteLog(message, metadata)
             } else {
-                let logMessage = [
+                const logMessage = [
                     'Not sending log to remote server. Data collection is disabled.',
                     `Message: "${message}"`,
                     `Metadata: ${JSON.stringify(metadata)}`,
