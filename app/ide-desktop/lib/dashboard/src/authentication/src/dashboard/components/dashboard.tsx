@@ -1061,7 +1061,7 @@ function Dashboard(props: DashboardProps) {
 
     return (
         <div
-            className={`flex flex-col relative select-none text-primary text-xs min-h-screen p-2 ${
+            className={`flex flex-col gap-2 relative select-none text-primary text-xs h-screen py-2 ${
                 tab === Tab.dashboard ? '' : 'hidden'
             }`}
             onClick={event => {
@@ -1091,21 +1091,21 @@ function Dashboard(props: DashboardProps) {
                 setQuery={setQuery}
             />
             {isListingRemoteDirectoryWhileOffline ? (
-                <div className="grow grid place-items-center">
+                <div className="grow grid place-items-center mx-2">
                     <div className="text-base text-center">
                         You are offline. Please connect to the internet and refresh to access the
                         cloud backend.
                     </div>
                 </div>
             ) : isListingLocalDirectoryAndWillFail ? (
-                <div className="grow grid place-items-center">
+                <div className="grow grid place-items-center mx-2">
                     <div className="text-base text-center">
                         Could not connect to the Project Manager. Please try restarting{' '}
                         {common.PRODUCT_NAME}, or manually launching the Project Manager.
                     </div>
                 </div>
             ) : isListingRemoteDirectoryAndWillFail ? (
-                <div className="grow grid place-items-center">
+                <div className="grow grid place-items-center mx-2">
                     <div className="text-base text-center">
                         We will review your user details and enable the cloud experience for you
                         shortly.
@@ -1114,7 +1114,7 @@ function Dashboard(props: DashboardProps) {
             ) : (
                 <>
                     <Templates onTemplateClick={handleCreateProject} />
-                    <div className="flex flex-row flex-nowrap my-2">
+                    <div className="flex flex-row flex-nowrap mx-2">
                         <h1 className="text-xl font-bold mx-4 self-center">Drive</h1>
                         <div className="flex flex-row flex-nowrap mx-4">
                             {backend.type === backendModule.BackendType.remote && (
@@ -1224,361 +1224,385 @@ function Dashboard(props: DashboardProps) {
                             )}
                         </div>
                     </div>
-                    <table className="table-fixed items-center border-collapse mt-2 w-0">
-                        <tbody>
-                            <tr className="h-10">
-                                {columnsFor(columnDisplayMode, backend.type).map(column => (
-                                    <td key={column} className={COLUMN_CSS_CLASS[column]} />
-                                ))}
-                            </tr>
-                            <Rows<backendModule.Asset<backendModule.AssetType.project>>
-                                items={visibleProjectAssets}
-                                getKey={projectAsset => projectAsset.id}
-                                isLoading={isLoadingAssets}
-                                placeholder={
-                                    <span className="opacity-75">
-                                        You have no project yet. Go ahead and create one using the
-                                        form above.
-                                    </span>
-                                }
-                                columns={columnsFor(columnDisplayMode, backend.type).map(
-                                    column => ({
-                                        id: column,
-                                        heading: ColumnHeading(
-                                            column,
-                                            backendModule.AssetType.project
-                                        ),
-                                        render: renderer(column, backendModule.AssetType.project),
-                                    })
-                                )}
-                                onClick={(projectAsset, event) => {
-                                    event.stopPropagation()
-                                    unsetModal()
-                                    setSelectedAssets(
-                                        event.shiftKey
-                                            ? [...selectedAssets, projectAsset]
-                                            : [projectAsset]
-                                    )
-                                }}
-                                onContextMenu={(projectAsset, event) => {
-                                    event.preventDefault()
-                                    event.stopPropagation()
-                                    const doOpenForEditing = () => {
-                                        unsetModal()
-                                        setProjectEvent({
-                                            type: projectActionButton.ProjectEventType.open,
-                                            projectId: projectAsset.id,
+                    {/* Padding. */}
+                    <div className="h-6 mx-2" />
+                    <div className="flex-1 overflow-auto mx-2">
+                        <table className="table-fixed items-center border-collapse mt-2">
+                            <tbody>
+                                <tr className="h-0">
+                                    {columnsFor(columnDisplayMode, backend.type).map(column => (
+                                        <td key={column} className={COLUMN_CSS_CLASS[column]} />
+                                    ))}
+                                </tr>
+                                <Rows<backendModule.Asset<backendModule.AssetType.project>>
+                                    items={visibleProjectAssets}
+                                    getKey={projectAsset => projectAsset.id}
+                                    isLoading={isLoadingAssets}
+                                    placeholder={
+                                        <span className="opacity-75">
+                                            You have no projects yet. Go ahead and create one using
+                                            the form above.
+                                        </span>
+                                    }
+                                    columns={columnsFor(columnDisplayMode, backend.type).map(
+                                        column => ({
+                                            id: column,
+                                            heading: ColumnHeading(
+                                                column,
+                                                backendModule.AssetType.project
+                                            ),
+                                            render: renderer(
+                                                column,
+                                                backendModule.AssetType.project
+                                            ),
                                         })
-                                    }
-                                    const doOpenAsFolder = () => {
-                                        // FIXME[sb]: Uncomment once backend support
-                                        // is in place.
-                                        // The following code does not typecheck
-                                        // since `ProjectId`s are not `DirectoryId`s.
-                                        // enterDirectory(projectAsset)
-                                    }
-                                    // This is not a React component even though it contains JSX.
-                                    // eslint-disable-next-line no-restricted-syntax
-                                    const doRename = () => {
-                                        setModal(() => (
-                                            <RenameModal
-                                                name={projectAsset.title}
-                                                assetType={projectAsset.type}
-                                                {...(backend.type ===
-                                                backendModule.BackendType.local
-                                                    ? {
-                                                          namePattern:
-                                                              '[A-Z][a-z]*(?:_\\d+|_[A-Z][a-z]*)*',
-                                                          title:
-                                                              'Names must be in Upper_Snake_Case. ' +
-                                                              '(Numbers (_0, _1) are also allowed.)',
-                                                      }
-                                                    : {})}
-                                                doRename={async newName => {
-                                                    setProjectAssets(
-                                                        arrayWithAssetTitleChanged(
-                                                            projectAssets,
-                                                            projectAsset,
-                                                            newName
+                                    )}
+                                    onClick={(projectAsset, event) => {
+                                        event.stopPropagation()
+                                        unsetModal()
+                                        setSelectedAssets(
+                                            event.shiftKey
+                                                ? [...selectedAssets, projectAsset]
+                                                : [projectAsset]
+                                        )
+                                    }}
+                                    onContextMenu={(projectAsset, event) => {
+                                        event.preventDefault()
+                                        event.stopPropagation()
+                                        const doOpenForEditing = () => {
+                                            unsetModal()
+                                            setProjectEvent({
+                                                type: projectActionButton.ProjectEventType.open,
+                                                projectId: projectAsset.id,
+                                            })
+                                        }
+                                        const doOpenAsFolder = () => {
+                                            // TODO[sb]: Implement once backend support is in place.
+                                            // https://github.com/enso-org/cloud-v2/issues/506
+                                            // The following code does not typecheck
+                                            // since `ProjectId`s are not `DirectoryId`s.
+                                            // enterDirectory(projectAsset)
+                                        }
+                                        // This is not a React component even though it contains JSX.
+                                        // eslint-disable-next-line no-restricted-syntax
+                                        const doRename = () => {
+                                            setModal(() => (
+                                                <RenameModal
+                                                    name={projectAsset.title}
+                                                    assetType={projectAsset.type}
+                                                    {...(backend.type ===
+                                                    backendModule.BackendType.local
+                                                        ? {
+                                                              namePattern:
+                                                                  '[A-Z][a-z]*(?:_\\d+|_[A-Z][a-z]*)*',
+                                                              title:
+                                                                  'Names must be in Upper_Snake_Case. ' +
+                                                                  '(Numbers (_0, _1) are also allowed.)',
+                                                          }
+                                                        : {})}
+                                                    doRename={async newName => {
+                                                        setProjectAssets(
+                                                            arrayWithAssetTitleChanged(
+                                                                projectAssets,
+                                                                projectAsset,
+                                                                newName
+                                                            )
                                                         )
-                                                    )
-                                                    await backend.projectUpdate(projectAsset.id, {
-                                                        ami: null,
-                                                        ideVersion: null,
-                                                        projectName: newName,
-                                                    })
-                                                }}
-                                                onComplete={doRefresh}
-                                            />
-                                        ))
-                                    }
-                                    // This is not a React component even though it contains JSX.
-                                    // eslint-disable-next-line no-restricted-syntax
-                                    const doDelete = () => {
-                                        setModal(() => (
-                                            <ConfirmDeleteModal
-                                                name={projectAsset.title}
-                                                assetType={projectAsset.type}
-                                                doDelete={() => {
-                                                    setProjectAssets(
-                                                        arrayWithAssetOmitted(
-                                                            projectAssets,
-                                                            projectAsset
+                                                        await backend.projectUpdate(
+                                                            projectAsset.id,
+                                                            {
+                                                                ami: null,
+                                                                ideVersion: null,
+                                                                projectName: newName,
+                                                            }
                                                         )
-                                                    )
-                                                    return backend.deleteProject(projectAsset.id)
-                                                }}
-                                                onComplete={doRefresh}
-                                            />
-                                        ))
-                                    }
-                                    const isDisabled =
-                                        backend.type === backendModule.BackendType.local &&
-                                        (projectDatas[projectAsset.id]?.isRunning ?? false)
-                                    setModal(() => (
-                                        <ContextMenu key={projectAsset.id} event={event}>
-                                            <ContextMenuEntry onClick={doOpenForEditing}>
-                                                Open for editing
-                                            </ContextMenuEntry>
-                                            {backend.type !== backendModule.BackendType.local && (
-                                                <ContextMenuEntry disabled onClick={doOpenAsFolder}>
-                                                    Open as folder
+                                                    }}
+                                                    onComplete={doRefresh}
+                                                />
+                                            ))
+                                        }
+                                        // This is not a React component even though it contains JSX.
+                                        // eslint-disable-next-line no-restricted-syntax
+                                        const doDelete = () => {
+                                            setModal(() => (
+                                                <ConfirmDeleteModal
+                                                    name={projectAsset.title}
+                                                    assetType={projectAsset.type}
+                                                    doDelete={() => {
+                                                        setProjectAssets(
+                                                            arrayWithAssetOmitted(
+                                                                projectAssets,
+                                                                projectAsset
+                                                            )
+                                                        )
+                                                        return backend.deleteProject(
+                                                            projectAsset.id
+                                                        )
+                                                    }}
+                                                    onComplete={doRefresh}
+                                                />
+                                            ))
+                                        }
+                                        const isDeleteDisabled =
+                                            backend.type === backendModule.BackendType.local &&
+                                            (projectDatas[projectAsset.id]?.isRunning ?? false)
+                                        setModal(() => (
+                                            <ContextMenu key={projectAsset.id} event={event}>
+                                                <ContextMenuEntry onClick={doOpenForEditing}>
+                                                    Open for editing
                                                 </ContextMenuEntry>
-                                            )}
-                                            <ContextMenuEntry onClick={doRename}>
-                                                Rename
-                                            </ContextMenuEntry>
-                                            <ContextMenuEntry
-                                                disabled={isDisabled}
-                                                {...(isDisabled
-                                                    ? {
-                                                          title: 'A running local project cannot be removed.',
-                                                      }
-                                                    : {})}
-                                                onClick={doDelete}
+                                                {backend.type !==
+                                                    backendModule.BackendType.local && (
+                                                    <ContextMenuEntry
+                                                        disabled
+                                                        onClick={doOpenAsFolder}
+                                                    >
+                                                        Open as folder
+                                                    </ContextMenuEntry>
+                                                )}
+                                                <ContextMenuEntry onClick={doRename}>
+                                                    Rename
+                                                </ContextMenuEntry>
+                                                <ContextMenuEntry
+                                                    disabled={isDeleteDisabled}
+                                                    {...(isDeleteDisabled
+                                                        ? {
+                                                              title: 'A running local project cannot be removed.',
+                                                          }
+                                                        : {})}
+                                                    onClick={doDelete}
+                                                >
+                                                    <span className="text-red-700">Delete</span>
+                                                </ContextMenuEntry>
+                                            </ContextMenu>
+                                        ))
+                                    }}
+                                />
+                                {backend.type === backendModule.BackendType.remote &&
+                                    (remoteBackend => (
+                                        <>
+                                            <tr className="h-10" />
+                                            <Rows<
+                                                backendModule.Asset<backendModule.AssetType.directory>
                                             >
-                                                <span className="text-red-700">Delete</span>
-                                            </ContextMenuEntry>
-                                        </ContextMenu>
-                                    ))
-                                }}
-                            />
-                            {backend.type === backendModule.BackendType.remote &&
-                                (remoteBackend => (
-                                    <>
-                                        <tr className="h-10" />
-                                        <Rows<
-                                            backendModule.Asset<backendModule.AssetType.directory>
-                                        >
-                                            items={visibleDirectoryAssets}
-                                            getKey={directoryAsset => directoryAsset.id}
-                                            isLoading={isLoadingAssets}
-                                            placeholder={
-                                                <span className="opacity-75">
-                                                    This directory does not contain any
-                                                    subdirectories
-                                                    {query ? ' matching your query' : ''}.
-                                                </span>
-                                            }
-                                            columns={columnsFor(
-                                                columnDisplayMode,
-                                                backend.type
-                                            ).map(column => ({
-                                                id: column,
-                                                heading: ColumnHeading(
-                                                    column,
-                                                    backendModule.AssetType.directory
-                                                ),
-                                                render: renderer(
-                                                    column,
-                                                    backendModule.AssetType.directory
-                                                ),
-                                            }))}
-                                            onClick={(directoryAsset, event) => {
-                                                event.stopPropagation()
-                                                unsetModal()
-                                                setSelectedAssets(
-                                                    event.shiftKey
-                                                        ? [...selectedAssets, directoryAsset]
-                                                        : [directoryAsset]
-                                                )
-                                            }}
-                                            onContextMenu={(directoryAsset, event) => {
-                                                event.preventDefault()
-                                                event.stopPropagation()
-                                                setModal(() => (
-                                                    <ContextMenu
-                                                        key={directoryAsset.id}
-                                                        event={event}
-                                                    ></ContextMenu>
-                                                ))
-                                            }}
-                                        />
-                                        <tr className="h-10" />
-                                        <Rows<backendModule.Asset<backendModule.AssetType.secret>>
-                                            items={visibleSecretAssets}
-                                            getKey={secret => secret.id}
-                                            isLoading={isLoadingAssets}
-                                            placeholder={
-                                                <span className="opacity-75">
-                                                    This directory does not contain any secrets
-                                                    {query ? ' matching your query' : ''}.
-                                                </span>
-                                            }
-                                            columns={columnsFor(
-                                                columnDisplayMode,
-                                                backend.type
-                                            ).map(column => ({
-                                                id: column,
-                                                heading: ColumnHeading(
-                                                    column,
-                                                    backendModule.AssetType.secret
-                                                ),
-                                                render: renderer(
-                                                    column,
-                                                    backendModule.AssetType.secret
-                                                ),
-                                            }))}
-                                            onClick={(secret, event) => {
-                                                event.stopPropagation()
-                                                unsetModal()
-                                                setSelectedAssets(
-                                                    event.shiftKey
-                                                        ? [...selectedAssets, secret]
-                                                        : [secret]
-                                                )
-                                            }}
-                                            onContextMenu={(secret, event) => {
-                                                event.preventDefault()
-                                                event.stopPropagation()
-                                                // This is not a React component even though it contains JSX.
-                                                // eslint-disable-next-line no-restricted-syntax
-                                                const doDelete = () => {
+                                                items={visibleDirectoryAssets}
+                                                getKey={directoryAsset => directoryAsset.id}
+                                                isLoading={isLoadingAssets}
+                                                placeholder={
+                                                    <span className="opacity-75">
+                                                        This directory does not contain any
+                                                        subdirectories
+                                                        {query ? ' matching your query' : ''}.
+                                                    </span>
+                                                }
+                                                columns={columnsFor(
+                                                    columnDisplayMode,
+                                                    backend.type
+                                                ).map(column => ({
+                                                    id: column,
+                                                    heading: ColumnHeading(
+                                                        column,
+                                                        backendModule.AssetType.directory
+                                                    ),
+                                                    render: renderer(
+                                                        column,
+                                                        backendModule.AssetType.directory
+                                                    ),
+                                                }))}
+                                                onClick={(directoryAsset, event) => {
+                                                    event.stopPropagation()
+                                                    unsetModal()
+                                                    setSelectedAssets(
+                                                        event.shiftKey
+                                                            ? [...selectedAssets, directoryAsset]
+                                                            : [directoryAsset]
+                                                    )
+                                                }}
+                                                onContextMenu={(directoryAsset, event) => {
+                                                    event.preventDefault()
+                                                    event.stopPropagation()
                                                     setModal(() => (
-                                                        <ConfirmDeleteModal
-                                                            name={secret.title}
-                                                            assetType={secret.type}
-                                                            doDelete={() => {
-                                                                setSecretAssets(
-                                                                    arrayWithAssetOmitted(
-                                                                        secretAssets,
-                                                                        secret
-                                                                    )
-                                                                )
-                                                                return remoteBackend.deleteSecret(
-                                                                    secret.id
-                                                                )
-                                                            }}
-                                                            onComplete={doRefresh}
-                                                        />
+                                                        <ContextMenu
+                                                            key={directoryAsset.id}
+                                                            event={event}
+                                                        ></ContextMenu>
                                                     ))
+                                                }}
+                                            />
+                                            <tr className="h-10" />
+                                            <Rows<
+                                                backendModule.Asset<backendModule.AssetType.secret>
+                                            >
+                                                items={visibleSecretAssets}
+                                                getKey={secret => secret.id}
+                                                isLoading={isLoadingAssets}
+                                                placeholder={
+                                                    <span className="opacity-75">
+                                                        This directory does not contain any secrets
+                                                        {query ? ' matching your query' : ''}.
+                                                    </span>
                                                 }
-                                                setModal(() => (
-                                                    <ContextMenu key={secret.id} event={event}>
-                                                        <ContextMenuEntry onClick={doDelete}>
-                                                            <span className="text-red-700">
-                                                                Delete
-                                                            </span>
-                                                        </ContextMenuEntry>
-                                                    </ContextMenu>
-                                                ))
-                                            }}
-                                        />
-                                        <tr className="h-10" />
-                                        <Rows<backendModule.Asset<backendModule.AssetType.file>>
-                                            items={visibleFileAssets}
-                                            getKey={file => file.id}
-                                            isLoading={isLoadingAssets}
-                                            placeholder={
-                                                <span className="opacity-75">
-                                                    This directory does not contain any files
-                                                    {query ? ' matching your query' : ''}.
-                                                </span>
-                                            }
-                                            columns={columnsFor(
-                                                columnDisplayMode,
-                                                backend.type
-                                            ).map(column => ({
-                                                id: column,
-                                                heading: ColumnHeading(
-                                                    column,
-                                                    backendModule.AssetType.file
-                                                ),
-                                                render: renderer(
-                                                    column,
-                                                    backendModule.AssetType.file
-                                                ),
-                                            }))}
-                                            onClick={(file, event) => {
-                                                event.stopPropagation()
-                                                unsetModal()
-                                                setSelectedAssets(
-                                                    event.shiftKey
-                                                        ? [...selectedAssets, file]
-                                                        : [file]
-                                                )
-                                            }}
-                                            onContextMenu={(file, event) => {
-                                                event.preventDefault()
-                                                event.stopPropagation()
-                                                const doCopy = () => {
-                                                    // TODO: Wait for backend endpoint.
-                                                }
-                                                const doCut = () => {
-                                                    // TODO: Wait for backend endpoint.
-                                                }
-                                                // This is not a React component even though it contains JSX.
-                                                // eslint-disable-next-line no-restricted-syntax
-                                                const doDelete = () => {
+                                                columns={columnsFor(
+                                                    columnDisplayMode,
+                                                    backend.type
+                                                ).map(column => ({
+                                                    id: column,
+                                                    heading: ColumnHeading(
+                                                        column,
+                                                        backendModule.AssetType.secret
+                                                    ),
+                                                    render: renderer(
+                                                        column,
+                                                        backendModule.AssetType.secret
+                                                    ),
+                                                }))}
+                                                onClick={(secret, event) => {
+                                                    event.stopPropagation()
+                                                    unsetModal()
+                                                    setSelectedAssets(
+                                                        event.shiftKey
+                                                            ? [...selectedAssets, secret]
+                                                            : [secret]
+                                                    )
+                                                }}
+                                                onContextMenu={(secret, event) => {
+                                                    event.preventDefault()
+                                                    event.stopPropagation()
+                                                    // This is not a React component even though it contains JSX.
+                                                    // eslint-disable-next-line no-restricted-syntax
+                                                    const doDelete = () => {
+                                                        setModal(() => (
+                                                            <ConfirmDeleteModal
+                                                                name={secret.title}
+                                                                assetType={secret.type}
+                                                                doDelete={() => {
+                                                                    setSecretAssets(
+                                                                        arrayWithAssetOmitted(
+                                                                            secretAssets,
+                                                                            secret
+                                                                        )
+                                                                    )
+                                                                    return remoteBackend.deleteSecret(
+                                                                        secret.id
+                                                                    )
+                                                                }}
+                                                                onComplete={doRefresh}
+                                                            />
+                                                        ))
+                                                    }
                                                     setModal(() => (
-                                                        <ConfirmDeleteModal
-                                                            name={file.title}
-                                                            assetType={file.type}
-                                                            doDelete={() => {
-                                                                setFileAssets(
-                                                                    arrayWithAssetOmitted(
-                                                                        fileAssets,
-                                                                        file
-                                                                    )
-                                                                )
-                                                                return remoteBackend.deleteFile(
-                                                                    file.id
-                                                                )
-                                                            }}
-                                                            onComplete={doRefresh}
-                                                        />
+                                                        <ContextMenu key={secret.id} event={event}>
+                                                            <ContextMenuEntry onClick={doDelete}>
+                                                                <span className="text-red-700">
+                                                                    Delete
+                                                                </span>
+                                                            </ContextMenuEntry>
+                                                        </ContextMenu>
                                                     ))
+                                                }}
+                                            />
+                                            <tr className="h-10" />
+                                            <Rows<backendModule.Asset<backendModule.AssetType.file>>
+                                                items={visibleFileAssets}
+                                                getKey={file => file.id}
+                                                isLoading={isLoadingAssets}
+                                                placeholder={
+                                                    <span className="opacity-75">
+                                                        This directory does not contain any files
+                                                        {query ? ' matching your query' : ''}.
+                                                    </span>
                                                 }
-                                                const doDownload = () => {
-                                                    /** TODO: Wait for backend endpoint. */
-                                                }
-                                                setModal(() => (
-                                                    <ContextMenu key={file.id} event={event}>
-                                                        <ContextMenuEntry disabled onClick={doCopy}>
-                                                            Copy
-                                                        </ContextMenuEntry>
-                                                        <ContextMenuEntry disabled onClick={doCut}>
-                                                            Cut
-                                                        </ContextMenuEntry>
-                                                        <ContextMenuEntry onClick={doDelete}>
-                                                            <span className="text-red-700">
-                                                                Delete
-                                                            </span>
-                                                        </ContextMenuEntry>
-                                                        <ContextMenuEntry
-                                                            disabled
-                                                            onClick={doDownload}
-                                                        >
-                                                            Download
-                                                        </ContextMenuEntry>
-                                                    </ContextMenu>
-                                                ))
-                                            }}
-                                        />
-                                    </>
-                                ))(backend)}
-                        </tbody>
-                    </table>
+                                                columns={columnsFor(
+                                                    columnDisplayMode,
+                                                    backend.type
+                                                ).map(column => ({
+                                                    id: column,
+                                                    heading: ColumnHeading(
+                                                        column,
+                                                        backendModule.AssetType.file
+                                                    ),
+                                                    render: renderer(
+                                                        column,
+                                                        backendModule.AssetType.file
+                                                    ),
+                                                }))}
+                                                onClick={(file, event) => {
+                                                    event.stopPropagation()
+                                                    unsetModal()
+                                                    setSelectedAssets(
+                                                        event.shiftKey
+                                                            ? [...selectedAssets, file]
+                                                            : [file]
+                                                    )
+                                                }}
+                                                onContextMenu={(file, event) => {
+                                                    event.preventDefault()
+                                                    event.stopPropagation()
+                                                    const doCopy = () => {
+                                                        // TODO: Wait for backend endpoint.
+                                                    }
+                                                    const doCut = () => {
+                                                        // TODO: Wait for backend endpoint.
+                                                    }
+                                                    // This is not a React component even though it contains JSX.
+                                                    // eslint-disable-next-line no-restricted-syntax
+                                                    const doDelete = () => {
+                                                        setModal(() => (
+                                                            <ConfirmDeleteModal
+                                                                name={file.title}
+                                                                assetType={file.type}
+                                                                doDelete={() => {
+                                                                    setFileAssets(
+                                                                        arrayWithAssetOmitted(
+                                                                            fileAssets,
+                                                                            file
+                                                                        )
+                                                                    )
+                                                                    return remoteBackend.deleteFile(
+                                                                        file.id
+                                                                    )
+                                                                }}
+                                                                onComplete={doRefresh}
+                                                            />
+                                                        ))
+                                                    }
+                                                    const doDownload = () => {
+                                                        /** TODO: Wait for backend endpoint. */
+                                                    }
+                                                    setModal(() => (
+                                                        <ContextMenu key={file.id} event={event}>
+                                                            <ContextMenuEntry
+                                                                disabled
+                                                                onClick={doCopy}
+                                                            >
+                                                                Copy
+                                                            </ContextMenuEntry>
+                                                            <ContextMenuEntry
+                                                                disabled
+                                                                onClick={doCut}
+                                                            >
+                                                                Cut
+                                                            </ContextMenuEntry>
+                                                            <ContextMenuEntry onClick={doDelete}>
+                                                                <span className="text-red-700">
+                                                                    Delete
+                                                                </span>
+                                                            </ContextMenuEntry>
+                                                            <ContextMenuEntry
+                                                                disabled
+                                                                onClick={doDownload}
+                                                            >
+                                                                Download
+                                                            </ContextMenuEntry>
+                                                        </ContextMenu>
+                                                    ))
+                                                }}
+                                            />
+                                        </>
+                                    ))(backend)}
+                            </tbody>
+                        </table>
+                    </div>
                     {isFileBeingDragged &&
                     directoryId != null &&
                     backend.type === backendModule.BackendType.remote ? (
