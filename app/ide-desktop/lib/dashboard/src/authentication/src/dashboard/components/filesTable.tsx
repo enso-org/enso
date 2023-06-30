@@ -5,21 +5,27 @@ import toast from 'react-hot-toast'
 import PlusIcon from 'enso-assets/plus.svg'
 
 import * as backendModule from '../backend'
-import * as backendProvider from '../../providers/backend'
 import * as columnModule from '../column'
 import * as dateTime from '../dateTime'
+import * as errorModule from '../../error'
 import * as eventModule from '../event'
+import * as fileEventModule from '../events/fileEvent'
 import * as fileInfo from '../../fileInfo'
 import * as fileListEventModule from '../events/fileListEvent'
 import * as hooks from '../../hooks'
-import * as loggerProvider from '../../providers/logger'
-import * as modalProvider from '../../providers/modal'
+import * as permissions from '../permissions'
+import * as presence from '../presence'
 import * as shortcuts from '../shortcuts'
 import * as string from '../../string'
-import * as toastPromiseMultiple from '../../toastPromiseMultiple'
 import * as uniqueString from '../../uniqueString'
 
+import * as authProvider from '../../authentication/providers/auth'
+import * as backendProvider from '../../providers/backend'
+import * as loggerProvider from '../../providers/logger'
+import * as modalProvider from '../../providers/modal'
+
 import * as tableColumn from './tableColumn'
+import TableRow, * as tableRow from './tableRow'
 import ConfirmDeleteModal from './confirmDeleteModal'
 import ContextMenu from './contextMenu'
 import ContextMenuEntry from './contextMenuEntry'
@@ -47,14 +53,6 @@ const PLACEHOLDER_WITH_QUERY = (
 const PLACEHOLDER_WITHOUT_QUERY = (
     <span className="opacity-75">This folder does not contain any {ASSET_TYPE_NAME_PLURAL}.</span>
 )
-/** Messages to be passed to {@link toastPromiseMultiple.toastPromiseMultiple}. */
-const TOAST_PROMISE_MULTIPLE_MESSAGES: toastPromiseMultiple.ToastPromiseMultipleMessages<backendModule.FileAsset> =
-    {
-        begin: total => `Deleting ${total} ${pluralize(total)}...`,
-        inProgress: (successful, total) => `Deleted ${successful}/${total} ${pluralize(total)}.`,
-        end: (successful, total) => `Deleted ${successful}/${total} ${pluralize(total)}.`,
-        error: asset => `Could not delete ${ASSET_TYPE_NAME} '${asset.title}'.`,
-    }
 
 // =======================
 // === FileNameHeading ===
@@ -108,7 +106,7 @@ function FileNameHeading(props: InternalFileNameHeadingProps) {
 
     return (
         <div className="inline-flex">
-            File
+            {string.capitalizeFirst(ASSET_TYPE_NAME_PLURAL)}
             <input
                 type="file"
                 id="files_table_upload_files_input"
@@ -129,7 +127,8 @@ function FileNameHeading(props: InternalFileNameHeadingProps) {
 // ================
 
 /** Props for a {@link FileName}. */
-interface InternalFileNameProps extends tableColumn.TableColumnProps<backendModule.FileAsset> {}
+interface InternalFileNameProps
+    extends tableColumn.TableColumnProps<backendModule.FileAsset, FilesTableState> {}
 
 /** The icon and name of a specific file asset. */
 function FileName(props: InternalFileNameProps) {
@@ -158,7 +157,7 @@ function FileName(props: InternalFileNameProps) {
                 }
             }}
         >
-            {fileInfo.fileIcon()}
+            <img src={fileInfo.fileIcon()} />
             <EditableSpan
                 editable={isNameEditable}
                 onSubmit={async newTitle => {
@@ -184,9 +183,102 @@ function FileName(props: InternalFileNameProps) {
     )
 }
 
+// ===============
+// === FileRow ===
+// ===============
+
+/** A row in a {@link DirectoriesTable}. */
+function FileRow(
+    props: tableRow.TableRowProps<backendModule.FileAsset, backendModule.FileId, FilesTableState>
+) {
+    const {
+        keyProp: key,
+        item: rawItem,
+        state: { fileEvent, dispatchFileListEvent, markItemAsHidden, markItemAsVisible },
+    } = props
+    const logger = loggerProvider.useLogger()
+    const { backend } = backendProvider.useBackend()
+    const [item, setItem] = React.useState(rawItem)
+    const [status, setStatus] = React.useState(presence.Presence.present)
+
+    React.useEffect(() => {
+        setItem(rawItem)
+    }, [rawItem])
+
+    hooks.useEventHandler(fileEvent, async event => {
+        switch (event.type) {
+            case fileEventModule.FileEventType.create: {
+                if (key === event.placeholderId) {
+                    if (backend.type !== backendModule.BackendType.remote) {
+                        const message = 'Folders cannot be created on the local backend.'
+                        toast.error(message)
+                        logger.error(message)
+                    } else {
+                        setStatus(presence.Presence.inserting)
+                        try {
+                            const createdFile = await backend.uploadFile(
+                                {
+                                    fileId: null,
+                                    fileName: item.title,
+                                    parentDirectoryId: item.parentId,
+                                },
+                                event.file
+                            )
+                            setStatus(presence.Presence.present)
+                            const newItem: backendModule.FileAsset = {
+                                ...item,
+                                ...createdFile,
+                            }
+                            setItem(newItem)
+                        } catch (error) {
+                            dispatchFileListEvent({
+                                type: fileListEventModule.FileListEventType.delete,
+                                fileId: key,
+                            })
+                            const message = `Error creating new folder: ${
+                                errorModule.tryGetMessage(error) ?? 'unknown error.'
+                            }`
+                            toast.error(message)
+                            logger.error(message)
+                        }
+                    }
+                }
+                break
+            }
+            case fileEventModule.FileEventType.deleteMultiple: {
+                if (event.fileIds.has(key) && backend.type !== backendModule.BackendType.local) {
+                    setStatus(presence.Presence.deleting)
+                    markItemAsHidden(key)
+                    try {
+                        await backend.deleteFile(item.id, item.title)
+                        dispatchFileListEvent({
+                            type: fileListEventModule.FileListEventType.delete,
+                            fileId: key,
+                        })
+                    } catch {
+                        setStatus(presence.Presence.present)
+                        markItemAsVisible(key)
+                    }
+                }
+                break
+            }
+        }
+    })
+
+    return <TableRow className={presence.CLASS_NAME[status]} {...props} item={item} />
+}
+
 // ==================
 // === FilesTable ===
 // ==================
+
+/** State passed through from a {@link FilesTable} to every cell. */
+interface FilesTableState {
+    fileEvent: fileEventModule.FileEvent | null
+    dispatchFileListEvent: (event: fileListEventModule.FileListEvent) => void
+    markItemAsHidden: (key: string) => void
+    markItemAsVisible: (key: string) => void
+}
 
 /** Props for a {@link FilesTable}. */
 export interface FilesTableProps {
@@ -210,10 +302,11 @@ function FilesTable(props: FilesTableProps) {
         fileListEvent,
         dispatchFileListEvent,
     } = props
-    const logger = loggerProvider.useLogger()
+    const { organization } = authProvider.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
     const { setModal } = modalProvider.useSetModal()
     const [items, setItems] = React.useState(rawItems)
+    const [fileEvent, dispatchFileEvent] = hooks.useEvent<fileEventModule.FileEvent>()
 
     React.useEffect(() => {
         setItems(rawItems)
@@ -223,6 +316,42 @@ function FilesTable(props: FilesTableProps) {
         () => (filter != null ? items.filter(filter) : items),
         [items, filter]
     )
+
+    // === Tracking number of visually hidden items ===
+
+    const [shouldForceShowPlaceholder, setShouldForceShowPlaceholder] = React.useState(false)
+    const keysOfHiddenItemsRef = React.useRef(new Set<string>())
+
+    const updateShouldForceShowPlaceholder = React.useCallback(() => {
+        setShouldForceShowPlaceholder(keysOfHiddenItemsRef.current.size === visibleItems.length)
+    }, [visibleItems.length])
+
+    React.useEffect(updateShouldForceShowPlaceholder, [updateShouldForceShowPlaceholder])
+
+    React.useEffect(() => {
+        const oldKeys = keysOfHiddenItemsRef.current
+        keysOfHiddenItemsRef.current = new Set(
+            visibleItems.map(backendModule.getAssetId).filter(key => oldKeys.has(key))
+        )
+    }, [visibleItems])
+
+    const markItemAsHidden = React.useCallback(
+        (key: string) => {
+            keysOfHiddenItemsRef.current.add(key)
+            updateShouldForceShowPlaceholder()
+        },
+        [updateShouldForceShowPlaceholder]
+    )
+
+    const markItemAsVisible = React.useCallback(
+        (key: string) => {
+            keysOfHiddenItemsRef.current.delete(key)
+            updateShouldForceShowPlaceholder()
+        },
+        [updateShouldForceShowPlaceholder]
+    )
+
+    // === End tracking number of visually hidden items ===
 
     hooks.useEventHandler(fileListEvent, event => {
         switch (event.type) {
@@ -234,7 +363,7 @@ function FilesTable(props: FilesTableProps) {
                         id: backendModule.FileId(uniqueString.uniqueString()),
                         title: file.name,
                         parentId: directoryId ?? backendModule.DirectoryId(''),
-                        permissions: [],
+                        permissions: permissions.tryGetSingletonOwnerPermission(organization),
                         modifiedAt: dateTime.toRfc3339(new Date()),
                         projectState: null,
                     }))
@@ -249,15 +378,29 @@ function FilesTable(props: FilesTableProps) {
         }
     })
 
+    const state = React.useMemo(
+        // The type MUST be here to trigger excess property errors at typecheck time.
+        (): FilesTableState => ({
+            fileEvent,
+            dispatchFileListEvent,
+            markItemAsHidden,
+            markItemAsVisible,
+        }),
+        [fileEvent, dispatchFileListEvent, markItemAsHidden, markItemAsVisible]
+    )
+
     if (backend.type === backendModule.BackendType.local) {
         return <></>
     } else {
         return (
-            <Table<backendModule.FileAsset>
+            <Table<backendModule.FileAsset, backendModule.FileId, FilesTableState>
+                rowComponent={FileRow}
                 items={visibleItems}
                 isLoading={isLoading}
+                state={state}
                 getKey={backendModule.getAssetId}
                 placeholder={filter != null ? PLACEHOLDER_WITH_QUERY : PLACEHOLDER_WITHOUT_QUERY}
+                forceShowPlaceholder={shouldForceShowPlaceholder}
                 columns={columnModule.columnsFor(columnDisplayMode, backend.type).map(column =>
                     column === columnModule.Column.name
                         ? {
@@ -278,27 +421,27 @@ function FilesTable(props: FilesTableProps) {
                               render: columnModule.COLUMN_RENDERER[column],
                           }
                 )}
-                onContextMenu={(files, event, setSelectedItems) => {
+                onContextMenu={(selectedKeys, event, setSelectedKeys) => {
                     event.preventDefault()
                     event.stopPropagation()
                     const doDeleteAll = () => {
                         setModal(
                             <ConfirmDeleteModal
-                                description={`${files.size} selected files`}
-                                assetType="files"
-                                doDelete={async () => {
-                                    setSelectedItems(new Set())
-                                    await toastPromiseMultiple.toastPromiseMultiple(
-                                        logger,
-                                        [...files],
-                                        file => backend.deleteFile(file.id, file.title),
-                                        TOAST_PROMISE_MULTIPLE_MESSAGES
-                                    )
+                                description={
+                                    `${selectedKeys.size} selected ` + ASSET_TYPE_NAME_PLURAL
+                                }
+                                assetType={ASSET_TYPE_NAME_PLURAL}
+                                doDelete={() => {
+                                    dispatchFileEvent({
+                                        type: fileEventModule.FileEventType.deleteMultiple,
+                                        fileIds: selectedKeys,
+                                    })
+                                    setSelectedKeys(new Set())
                                 }}
                             />
                         )
                     }
-                    const pluralized = pluralize(files.size)
+                    const pluralized = pluralize(selectedKeys.size)
                     setModal(
                         <ContextMenu key={uniqueString.uniqueString()} event={event}>
                             {/*<ContextMenuEntry disabled onClick={doCopyAll}>
@@ -309,7 +452,7 @@ function FilesTable(props: FilesTableProps) {
                             </ContextMenuEntry>*/}
                             <ContextMenuEntry onClick={doDeleteAll}>
                                 <span className="text-red-700">
-                                    Delete {files.size} {pluralized}
+                                    Delete {selectedKeys.size} {pluralized}
                                 </span>
                             </ContextMenuEntry>
                         </ContextMenu>

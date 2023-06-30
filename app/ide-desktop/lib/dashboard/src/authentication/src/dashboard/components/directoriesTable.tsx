@@ -5,9 +5,7 @@ import toast from 'react-hot-toast'
 import DirectoryIcon from 'enso-assets/directory.svg'
 import PlusIcon from 'enso-assets/plus.svg'
 
-import * as authProvider from '../../authentication/providers/auth'
 import * as backendModule from '../backend'
-import * as backendProvider from '../../providers/backend'
 import * as columnModule from '../column'
 import * as dateTime from '../dateTime'
 import * as directoryEventModule from '../events/directoryEvent'
@@ -15,12 +13,16 @@ import * as directoryListEventModule from '../events/directoryListEvent'
 import * as errorModule from '../../error'
 import * as eventModule from '../event'
 import * as hooks from '../../hooks'
-import * as loggerProvider from '../../providers/logger'
-import * as modalProvider from '../../providers/modal'
-import * as optimistic from '../optimistic'
+import * as permissions from '../permissions'
+import * as presence from '../presence'
 import * as shortcuts from '../shortcuts'
 import * as string from '../../string'
 import * as uniqueString from '../../uniqueString'
+
+import * as authProvider from '../../authentication/providers/auth'
+import * as backendProvider from '../../providers/backend'
+import * as loggerProvider from '../../providers/logger'
+import * as modalProvider from '../../providers/modal'
 
 import * as tableColumn from './tableColumn'
 import TableRow, * as tableRow from './tableRow'
@@ -74,7 +76,7 @@ function DirectoryNameHeading(props: InternalDirectoryNameHeadingProps) {
 
     return (
         <div className="inline-flex">
-            Folder
+            {string.capitalizeFirst(ASSET_TYPE_NAME_PLURAL)}
             <button
                 className="mx-1"
                 onClick={event => {
@@ -186,7 +188,7 @@ function DirectoryRow(
     const logger = loggerProvider.useLogger()
     const { backend } = backendProvider.useBackend()
     const [item, setItem] = React.useState(rawItem)
-    const [status, setStatus] = React.useState(optimistic.OptimisticStatus.present)
+    const [status, setStatus] = React.useState(presence.Presence.present)
 
     React.useEffect(() => {
         setItem(rawItem)
@@ -201,13 +203,13 @@ function DirectoryRow(
                         toast.error(message)
                         logger.error(message)
                     } else {
-                        setStatus(optimistic.OptimisticStatus.inserting)
+                        setStatus(presence.Presence.inserting)
                         try {
                             const createdDirectory = await backend.createDirectory({
                                 parentId: item.parentId,
                                 title: item.title,
                             })
-                            setStatus(optimistic.OptimisticStatus.present)
+                            setStatus(presence.Presence.present)
                             const newItem: backendModule.DirectoryAsset = {
                                 ...item,
                                 ...createdDirectory,
@@ -233,7 +235,7 @@ function DirectoryRow(
                     event.directoryIds.has(key) &&
                     backend.type !== backendModule.BackendType.local
                 ) {
-                    setStatus(optimistic.OptimisticStatus.deleting)
+                    setStatus(presence.Presence.deleting)
                     markItemAsHidden(key)
                     try {
                         await backend.deleteDirectory(item.id, item.title)
@@ -242,7 +244,7 @@ function DirectoryRow(
                             directoryId: key,
                         })
                     } catch {
-                        setStatus(optimistic.OptimisticStatus.present)
+                        setStatus(presence.Presence.present)
                         markItemAsVisible(key)
                     }
                 }
@@ -251,7 +253,7 @@ function DirectoryRow(
         }
     })
 
-    return <TableRow className={optimistic.CLASS_NAME[status]} {...props} item={item} />
+    return <TableRow className={presence.CLASS_NAME[status]} {...props} item={item} />
 }
 
 // ========================
@@ -291,15 +293,11 @@ function DirectoriesTable(props: DirectoriesTableProps) {
     const { organization } = authProvider.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
     const { setModal } = modalProvider.useSetModal()
-
     const [items, setItems] = React.useState(rawItems)
-    const [shouldForceShowPlaceholder, setShouldForceShowPlaceholder] = React.useState(false)
     const [directoryEvent, dispatchDirectoryEvent] =
         hooks.useEvent<directoryEventModule.DirectoryEvent>()
     const [directoryListEvent, dispatchDirectoryListEvent] =
         hooks.useEvent<directoryListEventModule.DirectoryListEvent>()
-
-    const keysOfHiddenItemsRef = React.useRef(new Set<string>())
 
     React.useEffect(() => {
         setItems(rawItems)
@@ -310,20 +308,23 @@ function DirectoriesTable(props: DirectoriesTableProps) {
         [items, filter]
     )
 
-    React.useEffect(() => {
-        const oldKeys = keysOfHiddenItemsRef.current
-        keysOfHiddenItemsRef.current = new Set(
-            visibleItems.map(backendModule.getAssetId).filter(key => oldKeys.has(key))
-        )
-    }, [visibleItems])
+    // === Tracking number of visually hidden items ===
 
-    const getKey = backendModule.getAssetId
+    const [shouldForceShowPlaceholder, setShouldForceShowPlaceholder] = React.useState(false)
+    const keysOfHiddenItemsRef = React.useRef(new Set<string>())
 
     const updateShouldForceShowPlaceholder = React.useCallback(() => {
         setShouldForceShowPlaceholder(keysOfHiddenItemsRef.current.size === visibleItems.length)
     }, [visibleItems.length])
 
     React.useEffect(updateShouldForceShowPlaceholder, [updateShouldForceShowPlaceholder])
+
+    React.useEffect(() => {
+        const oldKeys = keysOfHiddenItemsRef.current
+        keysOfHiddenItemsRef.current = new Set(
+            visibleItems.map(backendModule.getAssetId).filter(key => oldKeys.has(key))
+        )
+    }, [visibleItems])
 
     const markItemAsHidden = React.useCallback(
         (key: string) => {
@@ -341,23 +342,7 @@ function DirectoriesTable(props: DirectoriesTableProps) {
         [updateShouldForceShowPlaceholder]
     )
 
-    const state = React.useMemo(
-        // The type MUST be here to trigger excess property errors at typecheck time.
-        (): DirectoriesTableState => ({
-            directoryEvent,
-            enterDirectory,
-            dispatchDirectoryListEvent,
-            markItemAsHidden,
-            markItemAsVisible,
-        }),
-        [
-            directoryEvent,
-            enterDirectory,
-            dispatchDirectoryListEvent,
-            markItemAsHidden,
-            markItemAsVisible,
-        ]
-    )
+    // === End tracking number of visually hidden items ===
 
     const createNewDirectory = React.useCallback(() => {
         dispatchDirectoryListEvent({
@@ -386,23 +371,7 @@ function DirectoriesTable(props: DirectoriesTableProps) {
                         title,
                         modifiedAt: dateTime.toRfc3339(new Date()),
                         parentId: directoryId ?? backendModule.DirectoryId(''),
-                        permissions:
-                            organization != null
-                                ? [
-                                      {
-                                          user: {
-                                              // The names are defined by the backend and cannot be changed.
-                                              /* eslint-disable @typescript-eslint/naming-convention */
-                                              pk: backendModule.Subject(''),
-                                              organization_id: organization.id,
-                                              user_email: organization.email,
-                                              user_name: organization.name,
-                                              /* eslint-enable @typescript-eslint/naming-convention */
-                                          },
-                                          permission: backendModule.PermissionAction.own,
-                                      },
-                                  ]
-                                : [],
+                        permissions: permissions.tryGetSingletonOwnerPermission(organization),
                         projectState: null,
                         type: backendModule.AssetType.directory,
                     }
@@ -421,6 +390,24 @@ function DirectoriesTable(props: DirectoriesTableProps) {
         }
     })
 
+    const state = React.useMemo(
+        // The type MUST be here to trigger excess property errors at typecheck time.
+        (): DirectoriesTableState => ({
+            directoryEvent,
+            enterDirectory,
+            dispatchDirectoryListEvent,
+            markItemAsHidden,
+            markItemAsVisible,
+        }),
+        [
+            directoryEvent,
+            enterDirectory,
+            dispatchDirectoryListEvent,
+            markItemAsHidden,
+            markItemAsVisible,
+        ]
+    )
+
     if (backend.type === backendModule.BackendType.local) {
         return <></>
     } else {
@@ -430,7 +417,7 @@ function DirectoriesTable(props: DirectoriesTableProps) {
                 items={visibleItems}
                 isLoading={isLoading}
                 state={state}
-                getKey={getKey}
+                getKey={backendModule.getAssetId}
                 placeholder={filter != null ? PLACEHOLDER_WITH_FILTER : PLACEHOLDER_WITHOUT_FILTER}
                 forceShowPlaceholder={shouldForceShowPlaceholder}
                 columns={columnModule.columnsFor(columnDisplayMode, backend.type).map(column =>
@@ -456,16 +443,17 @@ function DirectoriesTable(props: DirectoriesTableProps) {
                     const doDeleteAll = () => {
                         setModal(
                             <ConfirmDeleteModal
-                                description={`${selectedKeys.size} selected folders`}
+                                description={
+                                    `${selectedKeys.size} selected ` + ASSET_TYPE_NAME_PLURAL
+                                }
                                 assetType="folders"
-                                doDelete={async () => {
+                                doDelete={() => {
                                     dispatchDirectoryEvent({
                                         type: directoryEventModule.DirectoryEventType
                                             .deleteMultiple,
                                         directoryIds: selectedKeys,
                                     })
                                     setSelectedKeys(new Set())
-                                    return Promise.resolve()
                                 }}
                             />
                         )

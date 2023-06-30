@@ -13,6 +13,7 @@ import * as eventModule from '../event'
 import * as hooks from '../../hooks'
 import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
+import * as presence from '../presence'
 import * as projectEventModule from '../events/projectEvent'
 import * as projectListEventModule from '../events/projectListEvent'
 import * as projectRowState from '../projectRowState'
@@ -22,7 +23,7 @@ import * as uniqueString from '../../uniqueString'
 import * as validation from '../validation'
 
 import * as tableColumn from './tableColumn'
-import * as tableRow from './tableRow'
+import TableRow, * as tableRow from './tableRow'
 import ConfirmDeleteModal from './confirmDeleteModal'
 import ContextMenu from './contextMenu'
 import ContextMenuEntry from './contextMenuEntry'
@@ -69,7 +70,7 @@ function ProjectNameHeading(props: InternalProjectNameHeadingProps) {
 
     return (
         <div className="inline-flex">
-            Project
+            {string.capitalizeFirst(ASSET_TYPE_NAME_PLURAL)}
             <button className="mx-1" onClick={onClick}>
                 <img src={PlusIcon} />
             </button>
@@ -81,23 +82,11 @@ function ProjectNameHeading(props: InternalProjectNameHeadingProps) {
 // === ProjectName ===
 // ===================
 
-/** State passed through from a {@link ProjectsTable} to every cell. */
-interface ProjectNamePropsState {
-    appRunner: AppRunner | null
-    projectEvent: projectEventModule.ProjectEvent | null
-    dispatchProjectEvent: (projectEvent: projectEventModule.ProjectEvent) => void
-    dispatchProjectListEvent: (projectListEvent: projectListEventModule.ProjectListEvent) => void
-    /** Called when the project is opened via the {@link ProjectActionButton}. */
-    doOpenManually: (projectId: backendModule.ProjectId) => void
-    doOpenIde: (project: backendModule.ProjectAsset) => void
-    doCloseIde: () => void
-}
-
 /** Props for a {@link ProjectName}. */
 interface InternalProjectNameProps
     extends tableColumn.TableColumnProps<
         backendModule.ProjectAsset,
-        ProjectNamePropsState,
+        ProjectsTableState,
         projectRowState.ProjectRowState
     > {}
 
@@ -299,9 +288,114 @@ function ProjectRowContextMenu(props: InternalProjectRowContextMenuProps) {
     )
 }
 
+// =================
+// === ProjectRow ===
+// =================
+
+/** A row in a {@link ProjectsTable}. */
+function ProjectRow(
+    props: tableRow.TableRowProps<
+        backendModule.ProjectAsset,
+        backendModule.ProjectId,
+        ProjectsTableState,
+        projectRowState.ProjectRowState
+    >
+) {
+    const {
+        keyProp: key,
+        item: rawItem,
+        state: { projectEvent, dispatchProjectListEvent, markItemAsHidden, markItemAsVisible },
+    } = props
+    const logger = loggerProvider.useLogger()
+    const { backend } = backendProvider.useBackend()
+    const [item, setItem] = React.useState(rawItem)
+    const [status, setStatus] = React.useState(presence.Presence.present)
+
+    React.useEffect(() => {
+        setItem(rawItem)
+    }, [rawItem])
+
+    hooks.useEventHandler(projectEvent, async event => {
+        switch (event.type) {
+            default: {
+                // Ignore; all other events are handled by `ProjectActionButton`.
+                break
+            }
+            case projectEventModule.ProjectEventType.create: {
+                if (key === event.placeholderId) {
+                    if (backend.type !== backendModule.BackendType.remote) {
+                        const message = 'Folders cannot be created on the local backend.'
+                        toast.error(message)
+                        logger.error(message)
+                    } else {
+                        setStatus(presence.Presence.inserting)
+                        try {
+                            const createdProject = await backend.createProject({
+                                parentDirectoryId: item.parentId,
+                                projectName: item.title,
+                                projectTemplateName: event.templateId,
+                            })
+                            setStatus(presence.Presence.present)
+                            const newItem: backendModule.ProjectAsset = {
+                                ...item,
+                                ...createdProject,
+                            }
+                            setItem(newItem)
+                        } catch (error) {
+                            dispatchProjectListEvent({
+                                type: projectListEventModule.ProjectListEventType.delete,
+                                projectId: key,
+                            })
+                            const message = `Error creating new folder: ${
+                                errorModule.tryGetMessage(error) ?? 'unknown error.'
+                            }`
+                            toast.error(message)
+                            logger.error(message)
+                        }
+                    }
+                }
+                break
+            }
+            case projectEventModule.ProjectEventType.deleteMultiple: {
+                if (event.projectIds.has(key) && backend.type !== backendModule.BackendType.local) {
+                    setStatus(presence.Presence.deleting)
+                    markItemAsHidden(key)
+                    try {
+                        await backend.deleteProject(item.id, item.title)
+                        dispatchProjectListEvent({
+                            type: projectListEventModule.ProjectListEventType.delete,
+                            projectId: key,
+                        })
+                    } catch {
+                        setStatus(presence.Presence.present)
+                        markItemAsVisible(key)
+                    }
+                }
+                break
+            }
+        }
+    })
+
+    return <TableRow className={presence.CLASS_NAME[status]} {...props} item={item} />
+}
+
 // =====================
 // === ProjectsTable ===
 // =====================
+
+/** State passed through from a {@link ProjectsTable} to every cell. */
+interface ProjectsTableState {
+    appRunner: AppRunner | null
+    projectEvent: projectEventModule.ProjectEvent | null
+    dispatchProjectEvent: (event: projectEventModule.ProjectEvent) => void
+    dispatchProjectListEvent: (event: projectListEventModule.ProjectListEvent) => void
+    markItemAsHidden: (key: string) => void
+    markItemAsVisible: (key: string) => void
+    /** Called when the project is opened via the {@link ProjectActionButton}. */
+    doOpenManually: (projectId: backendModule.ProjectId) => void
+    doOpenIde: (project: backendModule.ProjectAsset) => void
+    doCloseIde: () => void
+}
 
 /** Props for a {@link ProjectsTable}. */
 export interface ProjectsTableProps {
@@ -350,6 +444,42 @@ function ProjectsTable(props: ProjectsTableProps) {
         () => (filter != null ? items.filter(filter) : items),
         [items, filter]
     )
+
+    // === Tracking number of visually hidden items ===
+
+    const [shouldForceShowPlaceholder, setShouldForceShowPlaceholder] = React.useState(false)
+    const keysOfHiddenItemsRef = React.useRef(new Set<string>())
+
+    const updateShouldForceShowPlaceholder = React.useCallback(() => {
+        setShouldForceShowPlaceholder(keysOfHiddenItemsRef.current.size === visibleItems.length)
+    }, [visibleItems.length])
+
+    React.useEffect(updateShouldForceShowPlaceholder, [updateShouldForceShowPlaceholder])
+
+    React.useEffect(() => {
+        const oldKeys = keysOfHiddenItemsRef.current
+        keysOfHiddenItemsRef.current = new Set(
+            visibleItems.map(backendModule.getAssetId).filter(key => oldKeys.has(key))
+        )
+    }, [visibleItems])
+
+    const markItemAsHidden = React.useCallback(
+        (key: string) => {
+            keysOfHiddenItemsRef.current.add(key)
+            updateShouldForceShowPlaceholder()
+        },
+        [updateShouldForceShowPlaceholder]
+    )
+
+    const markItemAsVisible = React.useCallback(
+        (key: string) => {
+            keysOfHiddenItemsRef.current.delete(key)
+            updateShouldForceShowPlaceholder()
+        },
+        [updateShouldForceShowPlaceholder]
+    )
+
+    // === End tracking number of visually hidden items ===
 
     const getNewProjectName = React.useCallback(
         (templateId?: string | null) => {
@@ -440,11 +570,13 @@ function ProjectsTable(props: ProjectsTableProps) {
 
     const state = React.useMemo(
         // The type MUST be here to trigger excess property errors at typecheck time.
-        (): ProjectNamePropsState => ({
+        (): ProjectsTableState => ({
             appRunner,
             projectEvent,
             dispatchProjectEvent,
             dispatchProjectListEvent,
+            markItemAsHidden,
+            markItemAsVisible,
             doOpenManually,
             doOpenIde,
             doCloseIde,
@@ -455,6 +587,8 @@ function ProjectsTable(props: ProjectsTableProps) {
             doOpenManually,
             doOpenIde,
             doCloseIde,
+            markItemAsHidden,
+            markItemAsVisible,
             /* should never change */ dispatchProjectEvent,
             /* should never change */ dispatchProjectListEvent,
         ]
@@ -464,15 +598,17 @@ function ProjectsTable(props: ProjectsTableProps) {
         <Table<
             backendModule.ProjectAsset,
             backendModule.ProjectId,
-            ProjectNamePropsState,
+            ProjectsTableState,
             projectRowState.ProjectRowState
         >
+            rowComponent={ProjectRow}
             items={visibleItems}
             isLoading={isLoading}
             state={state}
             initialRowState={projectRowState.INITIAL_ROW_STATE}
             getKey={backendModule.getAssetId}
             placeholder={PLACEHOLDER}
+            forceShowPlaceholder={shouldForceShowPlaceholder}
             columns={columnModule.columnsFor(columnDisplayMode, backend.type).map(column =>
                 column === columnModule.Column.name
                     ? {

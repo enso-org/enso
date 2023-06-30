@@ -6,19 +6,27 @@ import PlusIcon from 'enso-assets/plus.svg'
 import SecretIcon from 'enso-assets/secret.svg'
 
 import * as backendModule from '../backend'
-import * as backendProvider from '../../providers/backend'
 import * as columnModule from '../column'
+import * as dateTime from '../dateTime'
 import * as errorModule from '../../error'
 import * as eventModule from '../event'
-import * as loggerProvider from '../../providers/logger'
-import * as modalProvider from '../../providers/modal'
+import * as hooks from '../../hooks'
+import * as permissions from '../permissions'
+import * as presence from '../presence'
+import * as secretEventModule from '../events/secretEvent'
+import * as secretListEventModule from '../events/secretListEvent'
 import * as shortcuts from '../shortcuts'
 import * as string from '../../string'
-import * as toastPromiseMultiple from '../../toastPromiseMultiple'
 import * as uniqueString from '../../uniqueString'
+
+import * as authProvider from '../../authentication/providers/auth'
+import * as backendProvider from '../../providers/backend'
+import * as loggerProvider from '../../providers/logger'
+import * as modalProvider from '../../providers/modal'
 
 import * as tableColumn from './tableColumn'
 import CreateForm, * as createForm from './createForm'
+import TableRow, * as tableRow from './tableRow'
 import ConfirmDeleteModal from './confirmDeleteModal'
 import ContextMenu from './contextMenu'
 import ContextMenuEntry from './contextMenuEntry'
@@ -46,14 +54,6 @@ const PLACEHOLDER_WITH_QUERY = (
 const PLACEHOLDER_WITHOUT_QUERY = (
     <span className="opacity-75">This folder does not contain any secrets.</span>
 )
-/** Messages to be passed to {@link toastPromiseMultiple.toastPromiseMultiple}. */
-const TOAST_PROMISE_MULTIPLE_MESSAGES: toastPromiseMultiple.ToastPromiseMultipleMessages<backendModule.SecretAsset> =
-    {
-        begin: total => `Deleting ${total} ${pluralize(total)}...`,
-        inProgress: (successful, total) => `Deleted ${successful}/${total} ${pluralize(total)}.`,
-        end: (successful, total) => `Deleted ${successful}/${total} ${pluralize(total)}.`,
-        error: asset => `Could not delete ${ASSET_TYPE_NAME} '${asset.title}'.`,
-    }
 
 // ========================
 // === SecretCreateForm ===
@@ -151,7 +151,7 @@ function SecretNameHeading(props: InternalSecretNameHeadingProps) {
 
     return (
         <div className="inline-flex">
-            Secret
+            {string.capitalizeFirst(ASSET_TYPE_NAME_PLURAL)}
             <button
                 className="mx-1"
                 onClick={event => {
@@ -177,7 +177,8 @@ function SecretNameHeading(props: InternalSecretNameHeadingProps) {
 // ==================
 
 /** Props for a {@link SecretName}. */
-interface InternalSecretNameProps extends tableColumn.TableColumnProps<backendModule.SecretAsset> {}
+interface InternalSecretNameProps
+    extends tableColumn.TableColumnProps<backendModule.SecretAsset, SecretsTableState> {}
 
 /** The icon and name of a specific secret asset. */
 function SecretName(props: InternalSecretNameProps) {
@@ -232,9 +233,103 @@ function SecretName(props: InternalSecretNameProps) {
     )
 }
 
+// =================
+// === SecretRow ===
+// =================
+
+/** A row in a {@link SecretsTable}. */
+function SecretRow(
+    props: tableRow.TableRowProps<
+        backendModule.SecretAsset,
+        backendModule.SecretId,
+        SecretsTableState
+    >
+) {
+    const {
+        keyProp: key,
+        item: rawItem,
+        state: { secretEvent, dispatchSecretListEvent, markItemAsHidden, markItemAsVisible },
+    } = props
+    const logger = loggerProvider.useLogger()
+    const { backend } = backendProvider.useBackend()
+    const [item, setItem] = React.useState(rawItem)
+    const [status, setStatus] = React.useState(presence.Presence.present)
+
+    React.useEffect(() => {
+        setItem(rawItem)
+    }, [rawItem])
+
+    hooks.useEventHandler(secretEvent, async event => {
+        switch (event.type) {
+            case secretEventModule.SecretEventType.create: {
+                if (key === event.placeholderId) {
+                    if (backend.type !== backendModule.BackendType.remote) {
+                        const message = 'Folders cannot be created on the local backend.'
+                        toast.error(message)
+                        logger.error(message)
+                    } else {
+                        setStatus(presence.Presence.inserting)
+                        try {
+                            const createdSecret = await backend.createSecret({
+                                parentDirectoryId: item.parentId,
+                                secretName: item.title,
+                                secretValue: event.value,
+                            })
+                            setStatus(presence.Presence.present)
+                            const newItem: backendModule.SecretAsset = {
+                                ...item,
+                                ...createdSecret,
+                            }
+                            setItem(newItem)
+                        } catch (error) {
+                            dispatchSecretListEvent({
+                                type: secretListEventModule.SecretListEventType.delete,
+                                secretId: key,
+                            })
+                            const message = `Error creating new folder: ${
+                                errorModule.tryGetMessage(error) ?? 'unknown error.'
+                            }`
+                            toast.error(message)
+                            logger.error(message)
+                        }
+                    }
+                }
+                break
+            }
+            case secretEventModule.SecretEventType.deleteMultiple: {
+                if (event.secretIds.has(key) && backend.type !== backendModule.BackendType.local) {
+                    setStatus(presence.Presence.deleting)
+                    markItemAsHidden(key)
+                    try {
+                        await backend.deleteSecret(item.id, item.title)
+                        dispatchSecretListEvent({
+                            type: secretListEventModule.SecretListEventType.delete,
+                            secretId: key,
+                        })
+                    } catch {
+                        setStatus(presence.Presence.present)
+                        markItemAsVisible(key)
+                    }
+                }
+                break
+            }
+        }
+    })
+
+    return <TableRow className={presence.CLASS_NAME[status]} {...props} item={item} />
+}
+
 // ====================
 // === SecretsTable ===
 // ====================
+
+/** State passed through from a {@link SecretsTable} to every cell. */
+interface SecretsTableState {
+    secretEvent: secretEventModule.SecretEvent | null
+    dispatchSecretListEvent: (event: secretListEventModule.SecretListEvent) => void
+    markItemAsHidden: (key: string) => void
+    markItemAsVisible: (key: string) => void
+}
 
 /** Props for a {@link SecretsTable}. */
 export interface SecretsTableProps {
@@ -249,10 +344,13 @@ export interface SecretsTableProps {
 function SecretsTable(props: SecretsTableProps) {
     const { directoryId, items: rawItems, filter, isLoading, columnDisplayMode } = props
     const logger = loggerProvider.useLogger()
+    const { organization } = authProvider.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
     const { setModal } = modalProvider.useSetModal()
-
     const [items, setItems] = React.useState(rawItems)
+    const [secretEvent, dispatchSecretEvent] = hooks.useEvent<secretEventModule.SecretEvent>()
+    const [secretListEvent, dispatchSecretListEvent] =
+        hooks.useEvent<secretListEventModule.SecretListEvent>()
 
     React.useEffect(() => {
         setItems(rawItems)
@@ -263,15 +361,99 @@ function SecretsTable(props: SecretsTableProps) {
         [items, filter]
     )
 
+    // === Tracking number of visually hidden items ===
+
+    const [shouldForceShowPlaceholder, setShouldForceShowPlaceholder] = React.useState(false)
+    const keysOfHiddenItemsRef = React.useRef(new Set<string>())
+
+    const updateShouldForceShowPlaceholder = React.useCallback(() => {
+        setShouldForceShowPlaceholder(keysOfHiddenItemsRef.current.size === visibleItems.length)
+    }, [visibleItems.length])
+
+    React.useEffect(updateShouldForceShowPlaceholder, [updateShouldForceShowPlaceholder])
+
+    React.useEffect(() => {
+        const oldKeys = keysOfHiddenItemsRef.current
+        keysOfHiddenItemsRef.current = new Set(
+            visibleItems.map(backendModule.getAssetId).filter(key => oldKeys.has(key))
+        )
+    }, [visibleItems])
+
+    const markItemAsHidden = React.useCallback(
+        (key: string) => {
+            keysOfHiddenItemsRef.current.add(key)
+            updateShouldForceShowPlaceholder()
+        },
+        [updateShouldForceShowPlaceholder]
+    )
+
+    const markItemAsVisible = React.useCallback(
+        (key: string) => {
+            keysOfHiddenItemsRef.current.delete(key)
+            updateShouldForceShowPlaceholder()
+        },
+        [updateShouldForceShowPlaceholder]
+    )
+
+    // === End tracking number of visually hidden items ===
+
+    hooks.useEventHandler(secretListEvent, event => {
+        switch (event.type) {
+            case secretListEventModule.SecretListEventType.create: {
+                if (backend.type !== backendModule.BackendType.remote) {
+                    const message = 'Secrets cannot be created on the local backend.'
+                    toast.error(message)
+                    logger.error(message)
+                } else {
+                    const placeholderId = backendModule.SecretId(uniqueString.uniqueString())
+                    const placeholderItem: backendModule.SecretAsset = {
+                        id: placeholderId,
+                        title: event.name,
+                        modifiedAt: dateTime.toRfc3339(new Date()),
+                        parentId: directoryId ?? backendModule.DirectoryId(''),
+                        permissions: permissions.tryGetSingletonOwnerPermission(organization),
+                        projectState: null,
+                        type: backendModule.AssetType.secret,
+                    }
+                    setItems(oldItems => [placeholderItem, ...oldItems])
+                    dispatchSecretEvent({
+                        type: secretEventModule.SecretEventType.create,
+                        placeholderId: placeholderId,
+                        value: event.value,
+                    })
+                }
+                break
+            }
+            case secretListEventModule.SecretListEventType.delete: {
+                setItems(oldItems => oldItems.filter(item => item.id !== event.secretId))
+                break
+            }
+        }
+    })
+
+    const state = React.useMemo(
+        // The type MUST be here to trigger excess property errors at typecheck time.
+        (): SecretsTableState => ({
+            secretEvent,
+            dispatchSecretListEvent,
+            markItemAsHidden,
+            markItemAsVisible,
+        }),
+        [secretEvent, dispatchSecretListEvent, markItemAsHidden, markItemAsVisible]
+    )
+
     if (backend.type === backendModule.BackendType.local) {
         return <></>
     } else {
         return (
-            <Table<backendModule.SecretAsset>
+            <Table<backendModule.SecretAsset, backendModule.SecretId, SecretsTableState>
+                rowComponent={SecretRow}
                 items={visibleItems}
                 isLoading={isLoading}
+                state={state}
                 getKey={backendModule.getAssetId}
                 placeholder={filter != null ? PLACEHOLDER_WITH_QUERY : PLACEHOLDER_WITHOUT_QUERY}
+                forceShowPlaceholder={shouldForceShowPlaceholder}
                 columns={columnModule.columnsFor(columnDisplayMode, backend.type).map(column =>
                     column === columnModule.Column.name
                         ? {
@@ -287,32 +469,32 @@ function SecretsTable(props: SecretsTableProps) {
                               render: columnModule.COLUMN_RENDERER[column],
                           }
                 )}
-                onContextMenu={(secrets, event, setSelectedItems) => {
+                onContextMenu={(selectedKeys, event, setSelectedKeys) => {
                     event.preventDefault()
                     event.stopPropagation()
                     const doDeleteAll = () => {
                         setModal(
                             <ConfirmDeleteModal
-                                description={`${secrets.size} selected secrets`}
-                                assetType="secrets"
-                                doDelete={async () => {
-                                    setSelectedItems(new Set())
-                                    await toastPromiseMultiple.toastPromiseMultiple(
-                                        logger,
-                                        [...secrets],
-                                        secret => backend.deleteSecret(secret.id, secret.title),
-                                        TOAST_PROMISE_MULTIPLE_MESSAGES
-                                    )
+                                description={
+                                    `${selectedKeys.size} selected ` + ASSET_TYPE_NAME_PLURAL
+                                }
+                                assetType={ASSET_TYPE_NAME_PLURAL}
+                                doDelete={() => {
+                                    dispatchSecretEvent({
+                                        type: secretEventModule.SecretEventType.deleteMultiple,
+                                        secretIds: selectedKeys,
+                                    })
+                                    setSelectedKeys(new Set())
                                 }}
                             />
                         )
                     }
-                    const secretsText = secrets.size === 1 ? 'secret' : 'secrets'
+                    const pluralized = pluralize(selectedKeys.size)
                     setModal(
                         <ContextMenu key={uniqueString.uniqueString()} event={event}>
                             <ContextMenuEntry onClick={doDeleteAll}>
                                 <span className="text-red-700">
-                                    Delete {secrets.size} {secretsText}
+                                    Delete {selectedKeys.size} {pluralized}
                                 </span>
                             </ContextMenuEntry>
                         </ContextMenu>

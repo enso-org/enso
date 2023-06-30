@@ -16,6 +16,7 @@ declare module '../../hooks' {
 
 /** Possible types of project state change. */
 export enum ProjectEventType {
+    create = 'create',
     open = 'open',
     showAsOpening = 'show-as-opening',
     cancelOpeningAll = 'cancel-opening-all',
@@ -25,6 +26,12 @@ export enum ProjectEventType {
 /** Properties common to all project state change events. */
 interface ProjectBaseEvent<Type extends ProjectEventType> {
     type: Type
+}
+
+/** A signal to create a project. */
+export interface ProjectCreateEvent extends ProjectBaseEvent<ProjectEventType.create> {
+    placeholderId: backendModule.ProjectId
+    templateId: string | null
 }
 
 /** A signal to open the specified project. */
@@ -52,6 +59,7 @@ export interface ProjectDeleteMultipleEvent
 /** Every possible type of project event. */
 export type ProjectEvent =
     | ProjectCancelOpeningAllEvent
+    | ProjectCreateEvent
     | ProjectDeleteMultipleEvent
     | ProjectOpenEvent
     | ProjectShowAsOpeningEvent

@@ -25,7 +25,10 @@ interface SecretListBaseEvent<Type extends SecretListEventType> {
 }
 
 /** A signal to create a new secret. */
-interface SecretListCreateEvent extends SecretListBaseEvent<SecretListEventType.create> {}
+interface SecretListCreateEvent extends SecretListBaseEvent<SecretListEventType.create> {
+    name: string
+    value: string
+}
 
 /** A signal to delete a secret. */
 interface SecretListDeleteEvent extends SecretListBaseEvent<SecretListEventType.delete> {

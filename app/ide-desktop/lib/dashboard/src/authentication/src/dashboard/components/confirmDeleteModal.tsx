@@ -19,7 +19,7 @@ export interface ConfirmDeleteModalProps {
     assetType: string
     /** Must fit in the sentence "Are you sure you want to delete <description>"? */
     description: string
-    doDelete: () => Promise<void>
+    doDelete: () => void
 }
 
 /** A modal for confirming the deletion of an asset. */
@@ -28,10 +28,10 @@ function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
     const logger = loggerProvider.useLogger()
     const { unsetModal } = modalProvider.useSetModal()
 
-    const onSubmit = async () => {
+    const onSubmit = () => {
         unsetModal()
         try {
-            await doDelete()
+            doDelete()
         } catch (error) {
             const message = `Could not delete ${assetType}: ${
                 errorModule.tryGetMessage(error) ?? 'unknown error.'
@@ -47,11 +47,11 @@ function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
                 onClick={event => {
                     event.stopPropagation()
                 }}
-                onSubmit={async event => {
+                onSubmit={event => {
                     event.preventDefault()
                     // Consider not calling `onSubmit()` here to make it harder to accidentally
                     // delete an important asset.
-                    await onSubmit()
+                    onSubmit()
                 }}
                 className="relative bg-white shadow-soft rounded-lg w-96 p-2"
             >

@@ -5,3 +5,8 @@
 export function makePluralize(singular: string, plural: string) {
     return (count: number) => (count === 1 ? singular : plural)
 }
+
+/** Return the given string, but with the first letter uppercased. */
+export function capitalizeFirst(string: string) {
+    return string.replace(/^./, match => match.toUpperCase())
+}

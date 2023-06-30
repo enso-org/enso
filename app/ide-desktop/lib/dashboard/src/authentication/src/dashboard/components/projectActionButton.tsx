@@ -10,7 +10,7 @@ import * as backendProvider from '../../providers/backend'
 import * as errorModule from '../../error'
 import * as hooks from '../../hooks'
 import * as modalProvider from '../../providers/modal'
-import * as optimistic from '../optimistic'
+import * as optimistic from '../presence'
 import * as projectEvent from '../events/projectEvent'
 import * as projectRowState from '../projectRowState'
 import * as svg from '../../components/svg'
@@ -175,6 +175,10 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
 
     hooks.useEventHandler(event, theEvent => {
         switch (theEvent.type) {
+            default: {
+                // Ignore; all other events are handled by `ProjectRow`.
+                break
+            }
             case projectEvent.ProjectEventType.open: {
                 if (theEvent.projectId !== project.id) {
                     if (backend.type === backendModule.BackendType.local) {
@@ -201,31 +205,8 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
                     setState(backendModule.ProjectState.openInProgress)
                     setRowState(oldState => ({
                         ...oldState,
-                        status: optimistic.OptimisticStatus.inserting,
+                        status: optimistic.Presence.inserting,
                     }))
-                }
-                break
-            }
-            case projectEvent.ProjectEventType.deleteMultiple: {
-                if (theEvent.projectIds.has(project.id)) {
-                    setRowState(oldState => ({
-                        ...oldState,
-                        status: optimistic.OptimisticStatus.deleting,
-                    }))
-                    void backend.deleteProject(project.id, project.title).then(
-                        () => {
-                            setRowState(oldState => ({
-                                ...oldState,
-                                status: optimistic.OptimisticStatus.deleting,
-                            }))
-                        },
-                        () => {
-                            setRowState(oldState => ({
-                                ...oldState,
-                                status: optimistic.OptimisticStatus.present,
-                            }))
-                        }
-                    )
                 }
                 break
             }

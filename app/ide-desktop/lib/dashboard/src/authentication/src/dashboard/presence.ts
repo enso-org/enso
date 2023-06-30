@@ -3,12 +3,12 @@
  * waiting for a server response, based on the assumption that virtually all requests succeed.
  * In our case it is MANDATORY because immediate user feedback is important. */
 
-// ========================
-// === OptimisticStatus ===
-// ========================
+// ================
+// === Presence ===
+// ================
 
 /** The state of an item being synced to a remote server. */
-export enum OptimisticStatus {
+export enum Presence {
     /** The item is present. */
     present = 'present',
     /** The item will be inserted, but the backend request has not yet finished. */
@@ -21,8 +21,9 @@ export enum OptimisticStatus {
 // === Constants ===
 // =================
 
-export const CLASS_NAME: Record<OptimisticStatus, string> = {
-    [OptimisticStatus.present]: '',
-    [OptimisticStatus.deleting]: 'hidden',
-    [OptimisticStatus.inserting]: 'opacity-50',
+/** The corresponding CSS classes for table rows, for each {@link Presence}. */
+export const CLASS_NAME: Record<Presence, string> = {
+    [Presence.present]: '',
+    [Presence.deleting]: 'hidden',
+    [Presence.inserting]: 'opacity-50',
 } as const
