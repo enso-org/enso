@@ -39,12 +39,7 @@ export interface ShareWithModalProps {
 
 /** A modal with inputs for user email and permission level. */
 export function ShareWithModal(props: ShareWithModalProps) {
-    const {
-        asset: { type: assetType, id: assetId },
-        user,
-        onSuccess,
-        eventTarget,
-    } = props
+    const { asset, user, onSuccess, eventTarget } = props
     const { organization } = auth.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
     const { unsetModal } = modalProvider.useSetModal()
@@ -57,6 +52,12 @@ export function ShareWithModal(props: ShareWithModalProps) {
     const [permission, setPermission] = react.useState<backendModule.PermissionAction | null>(null)
     const [userEmailClassName, setUserEmailClassName] = react.useState<string | null>(null)
     const [permissionClassName, setPermissionClassName] = react.useState<string | null>(null)
+
+    const emailsOfUsersWithPermission = react.useMemo(
+        () =>
+            new Set(asset.permissions?.map(userPermission => userPermission.user.user_email) ?? []),
+        [asset.permissions]
+    )
 
     // This is INCORRECT, but SAFE to use in hooks as its value will be set by the time any hook
     // runs.
@@ -75,7 +76,7 @@ export function ShareWithModal(props: ShareWithModalProps) {
             void (async () => {
                 const listedUsers = await backend.listUsers()
                 const newUsers = listedUsers.filter(
-                    listedUser => listedUser.email !== organization.email
+                    listedUser => !emailsOfUsersWithPermission.has(listedUser.email)
                 )
                 setUsers(newUsers)
                 const lowercaseEmail = email.toLowerCase()
@@ -152,7 +153,7 @@ export function ShareWithModal(props: ShareWithModalProps) {
                     try {
                         await backend.createPermission({
                             userSubject: finalUser.id,
-                            resourceId: assetId,
+                            resourceId: asset.id,
                             action: permission,
                         })
                         onSuccess()
@@ -169,7 +170,7 @@ export function ShareWithModal(props: ShareWithModalProps) {
         )
 
         return (
-            <Modal className="absolute overflow-hidden bg-opacity-25 w-full h-full top-0 left-0">
+            <Modal className="absolute overflow-hidden bg-opacity-25 w-full h-full top-0 left-0 z-10">
                 <form
                     style={{
                         left: position.left + window.scrollX,
@@ -185,7 +186,7 @@ export function ShareWithModal(props: ShareWithModalProps) {
                         <img src={CloseIcon} />
                     </button>
                     <h2 className="inline-block font-semibold m-2">
-                        Share {backendModule.ASSET_TYPE_NAME[assetType]}
+                        Share {backendModule.ASSET_TYPE_NAME[asset.type]}
                     </h2>
                     <div className="mx-2">
                         <label htmlFor="share_with_user_email">Email</label>
