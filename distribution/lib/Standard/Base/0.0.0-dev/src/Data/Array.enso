@@ -184,8 +184,6 @@ type Array
     insert self at=self.length item=Nothing = Vector.insert self at item
 
     ## PRIVATE
-       This method is unimplemented - exists to align the Array API with Vector API.
-       TODO: Allow the VectorArraySignatureTest to ignore PRIVATE methods.
     insert_builtin self at values = @Builtin_Method "Vector.insert_builtin"
 
     ## Removes the item at the given index from the array.
@@ -195,14 +193,10 @@ type Array
          If the index is less than 0, the index will be counted back from the
          end.
     remove : Integer -> Vector
-    remove self at=-1 = (Vector.from_polyglot_array self).remove at
+    remove self at=-1 = Vector.remove self at
 
     ## PRIVATE
-       This method is unimplemented - exists to align the Array API with Vector API.
-       TODO: Allow the VectorArraySignatureTest to ignore PRIVATE methods.
-    remove_builtin self at =
-        _ = [at]
-        Error.throw (Unimplemented.Error "Array.remove_builtin")
+    remove_builtin self at = @Builtin_Method "Vector.remove_builtin"
 
     ## Get the first element from the array, or an `Index_Out_Of_Bounds` if the array
        is empty.
