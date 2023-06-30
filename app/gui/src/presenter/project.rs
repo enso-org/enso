@@ -90,7 +90,7 @@ impl Model {
             self.controller.clone_ref(),
             self.graph_controller.clone_ref(),
             &self.graph,
-            self.view.clone(),
+            self.view.clone_ref(),
             params,
         );
 
