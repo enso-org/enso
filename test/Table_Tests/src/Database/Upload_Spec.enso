@@ -813,8 +813,20 @@ spec make_new_connection prefix persistent_connector=True =
             res = src.update_database_table dest update_action=Update_Action.Insert key_columns=[]
             res.should_fail_with SQL_Error
 
-            tables_after = connection.base_connection.get_tables_advanced types=Nothing include_hidden=True . at "Name" . to_vector
-            tables_after . should_contain_the_same_elements_as existing_tables
+            tables_immediately_after = connection.base_connection.get_tables_advanced types=Nothing include_hidden=True . at "Name" . to_vector
+
+            # If no new tables are left out - we just finish.
+            if tables_immediately_after.sort == existing_tables.sort then Nothing else
+                ## If there are some additional tables, we add some timeout to
+                   allow the database to do the cleaning up.
+                additional_tables = Set.from_vector tables_immediately_after - Set.from_vector existing_tables
+                if additional_tables.is_empty then
+                    Test.fail "The Database contains less tables after the test than before! That is unexpected, please inspect manually."
+                additional_table = additional_tables.to_vector.first
+
+                wait_until_temporary_table_is_deleted_after_closing_connection connection additional_table
+                tables_after_wait = connection.base_connection.get_tables_advanced types=Nothing include_hidden=True . at "Name" . to_vector
+                tables_after_wait . should_contain_the_same_elements_as existing_tables
 
     database_table_builder name_prefix args primary_key=[] connection=connection =
         in_memory_table = Table.new args
