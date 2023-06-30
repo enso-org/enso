@@ -1209,15 +1209,7 @@ fn component_list_for_literal(
 
 #[cfg(test)]
 pub mod test {
-    use std::assert_matches::assert_matches;
-
-    use engine_protocol::language_server::types::test::value_update_with_type;
-    use engine_protocol::language_server::SuggestionId;
-    use enso_suggestion_database::entry::Argument;
-    use enso_suggestion_database::mock_suggestion_database;
-    use enso_suggestion_database::SuggestionDatabase;
-    use json_rpc::expect_call;
-    use parser::Parser;
+    use super::*;
 
     use crate::controller::graph::RequiredImport;
     use crate::controller::ide::plain::ProjectOperationsNotSupported;
@@ -1227,7 +1219,15 @@ pub mod test {
     use crate::test::mock::data::MAIN_FINISH;
     use crate::test::mock::data::MODULE_NAME;
 
-    use super::*;
+    use engine_protocol::language_server::types::test::value_update_with_type;
+    use engine_protocol::language_server::SuggestionId;
+    use enso_suggestion_database::entry::Argument;
+    use enso_suggestion_database::mock_suggestion_database;
+    use enso_suggestion_database::SuggestionDatabase;
+    use json_rpc::expect_call;
+    use parser::Parser;
+    use std::assert_matches::assert_matches;
+
 
     pub fn completion_response(results: &[SuggestionId]) -> language_server::response::Completion {
         language_server::response::Completion {
