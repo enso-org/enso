@@ -496,8 +496,10 @@
 - [Speed improvements to `Column` `.truncate`, `.ceil`, and `.floor`.][6941]
 - [Implemented addition and subtraction for `Date_Period` and
   `Time_Period`.][6956]
-- [Implemented `Table.update_database_table`.][7035]
 - [Added AWS credential support and initial S3 list buckets API.][6973]
+- [Added `round`, `ceil`, `floor`, `truncate` to the In-Database Column type]
+  [6988]
+- [Implemented `Table.update_database_table`.][7035]
 - [Removed `module` argument from `enso_project` and other minor tweaks.][7052]
 - [Integrated Database write operations with Execution Contexts.][7072]
 
@@ -720,6 +722,7 @@
 [6941]: https://github.com/enso-org/enso/pull/6941
 [6956]: https://github.com/enso-org/enso/pull/6956
 [6973]: https://github.com/enso-org/enso/pull/6973
+[6988]: https://github.com/enso-org/enso/pull/6988
 [7035]: https://github.com/enso-org/enso/pull/7035
 [7052]: https://github.com/enso-org/enso/pull/7052
 [7072]: https://github.com/enso-org/enso/pull/7072

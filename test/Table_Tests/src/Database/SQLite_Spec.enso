@@ -18,7 +18,9 @@ import project.Database.Types.SQLite_Type_Mapping_Spec
 import project.Database.Helpers.Name_Generator
 import project.Common_Table_Operations
 
-sqlite_specific_spec prefix connection =
+sqlite_specific_spec prefix connection setup =
+    table_builder = setup.table_builder
+
     Test.group prefix+"Schemas and Databases" <|
         Test.specify "should be able to get current database and list databases" <|
             connection.database . should_equal Nothing
@@ -121,6 +123,73 @@ sqlite_specific_spec prefix connection =
             expected_code = code_template.replace "{Tinfo}" tinfo
             t.distinct ["strs"] . to_sql . prepare . should_equal [expected_code, []]
 
+    Test.group prefix+"math functions" <|
+        Test.specify "round, trunc, ceil, floor" <|
+            col = table_builder [["x", [0.1, 0.9, 3.1, 3.9, -0.1, -0.9, -3.1, -3.9]]] . at "x"
+
+            col . cast Value_Type.Float . round . value_type . should_equal Value_Type.Float
+            col . cast Value_Type.Integer . round . value_type . should_equal Value_Type.Float
+            col . cast Value_Type.Decimal . round . value_type . should_equal Value_Type.Float
+
+            col . cast Value_Type.Float . round 1 . value_type . should_equal Value_Type.Float
+            col . cast Value_Type.Integer . round 1 . value_type . should_equal Value_Type.Float
+            col . cast Value_Type.Decimal . round 1 . value_type . should_equal Value_Type.Float
+
+            col . cast Value_Type.Float . round use_bankers=True . value_type . should_equal Value_Type.Float
+            col . cast Value_Type.Integer . round use_bankers=True . value_type . should_equal Value_Type.Float
+            col . cast Value_Type.Decimal . round use_bankers=True . value_type . should_equal Value_Type.Float
+
+            col . cast Value_Type.Float . ceil . value_type . should_equal Value_Type.Float
+            col . cast Value_Type.Integer . ceil . value_type . should_equal Value_Type.Integer
+            col . cast Value_Type.Decimal . ceil . value_type . should_equal Value_Type.Float
+
+            col . cast Value_Type.Float . floor . value_type . should_equal Value_Type.Float
+            col . cast Value_Type.Integer . floor . value_type . should_equal Value_Type.Integer
+            col . cast Value_Type.Decimal . floor . value_type . should_equal Value_Type.Float
+
+            col . cast Value_Type.Float . truncate . value_type . should_equal Value_Type.Float
+            col . cast Value_Type.Integer . truncate . value_type . should_equal Value_Type.Integer
+            col . cast Value_Type.Decimal . truncate . value_type . should_equal Value_Type.Float
+
+        do_op n op =
+            table = table_builder [["x", [n]]]
+            result = table.at "x" |> op
+            result.to_vector.at 0
+        do_round n dp=0 use_bankers=False = do_op n (_.round dp use_bankers)
+
+        Test.specify "Can round correctly near the precision limit" <|
+            # This value varies depending on the version of SQLite.
+            do_round 1.2222222222222225 15 . should_equal 1.222222222222223 0.000000000000002
+            do_round -1.2222222222222225 15 . should_equal -1.222222222222223 0.000000000000002
+            do_round 1.2222222222222235 15 . should_equal 1.222222222222223
+            do_round -1.2222222222222235 15 . should_equal -1.222222222222223
+
+        Test.specify "Can round correctly near the precision limit, using banker's rounding" <|
+            do_round 1.2222222222222225 15 use_bankers=True . should_equal 1.222222222222222
+            do_round -1.2222222222222225 15 use_bankers=True . should_equal -1.222222222222222
+            do_round 1.2222222222222235 15 use_bankers=True . should_equal 1.222222222222224
+            do_round -1.2222222222222235 15 use_bankers=True . should_equal -1.222222222222224
+
+        Test.specify "Can handle NaN/Infinity" <|
+            nan_result = if setup.test_selection.is_nan_and_nothing_distinct then Number.nan else Nothing
+            ops = [.round, .truncate, .ceil, .floor]
+            ops.each op->
+                do_op Number.nan op . should_equal nan_result
+                do_op Number.positive_infinity op . should_equal Number.positive_infinity
+                do_op Number.negative_infinity op . should_equal Number.negative_infinity
+
+        Test.specify "round returns the correct type" <|
+            do_round 231.2 1 . should_be_a Decimal
+            do_round 231.2 0 . should_be_a Decimal
+            do_round 231.2 . should_be_a Decimal
+            do_round 231.2 -1 . should_be_a Decimal
+
+        Test.specify "round returns the correct type" <|
+            do_round 231 1 . should_be_a Decimal
+            do_round 231 0 . should_be_a Decimal
+            do_round 231 . should_be_a Decimal
+            do_round 231 -1 . should_be_a Decimal
+
 sqlite_spec connection prefix =
     name_counter = Ref.new 0
     table_builder columns =
@@ -133,7 +202,6 @@ sqlite_spec connection prefix =
     materialize = .read
 
     Common_Spec.spec prefix connection
-    sqlite_specific_spec prefix connection
 
     common_selection = Common_Table_Operations.Main.Test_Selection.Config supports_case_sensitive_columns=False order_by=True natural_ordering=False case_insensitive_ordering=True case_insensitive_ascii_only=True take_drop=False is_nan_and_nothing_distinct=False date_time=False
 
@@ -151,6 +219,7 @@ sqlite_spec connection prefix =
     empty_agg_table = (agg_in_memory_table.take (First 0)).select_into_database_table connection (Name_Generator.random_name "Agg_Empty") primary_key=Nothing temporary=True
 
     setup = Common_Table_Operations.Main.Test_Setup.Config prefix agg_table empty_agg_table table_builder materialize is_database=True test_selection=common_selection aggregate_test_selection=aggregate_selection
+    sqlite_specific_spec prefix connection setup
     Common_Table_Operations.Main.spec setup
 
     connection.close

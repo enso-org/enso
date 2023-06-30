@@ -694,8 +694,19 @@ type Table
     evaluate_expression : Text -> Problem_Behavior -> Column ! No_Such_Column | Invalid_Value_Type | Expression_Error
     evaluate_expression self expression on_problems=Report_Warning =
         get_column name = self.at name
-        type_mapping = self.connection.dialect.get_type_mapping
-        make_constant value =
+        new_column = Expression.evaluate expression get_column self.make_constant_column "Standard.Database.Data.Column" "Column" Column.var_args_functions
+        problems = Warning.get_all new_column . map .value
+        result = new_column.rename (self.connection.dialect.get_naming_helpers.sanitize_name expression)
+        on_problems.attach_problems_before problems <|
+            Warning.set result []
+
+    ## PRIVATE
+
+       Create a constant column from a value.
+    make_constant_column : Any -> Column ! Illegal_Argument
+    make_constant_column self value =
+        if Table_Helpers.is_column value then Error.throw (Illegal_Argument.Error "A constant value may only be created from a scalar, not a Column") else
+            type_mapping = self.connection.dialect.get_type_mapping
             argument_value_type = Value_Type_Helpers.find_argument_type value
             sql_type = case argument_value_type of
                 Nothing -> SQL_Type.null
@@ -703,11 +714,6 @@ type Table
             expr = SQL_Expression.Constant value
             new_type_ref = SQL_Type_Reference.from_constant sql_type
             Column.Value ("Constant_" + UUID.randomUUID.to_text) self.connection new_type_ref expr self.context
-        new_column = Expression.evaluate expression get_column make_constant "Standard.Database.Data.Column" "Column" Column.var_args_functions
-        problems = Warning.get_all new_column . map .value
-        result = new_column.rename (self.connection.dialect.get_naming_helpers.sanitize_name expression)
-        on_problems.attach_problems_before problems <|
-            Warning.set result []
 
     ## Returns the vector of columns contained in this table.
     columns : Vector Column

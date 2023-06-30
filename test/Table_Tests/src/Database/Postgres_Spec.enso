@@ -194,6 +194,72 @@ postgres_specific_spec connection db_name setup =
             Test.with_clue "d.value_type="+d.value_type.to_display_text+": " <|
                 d.value_type.variable_length.should_be_true
 
+    Test.group "[PostgreSQL] math functions" <|
+        Test.specify "round, trunc, ceil, floor" <|
+            col = table_builder [["x", [0.1, 0.9, 3.1, 3.9, -0.1, -0.9, -3.1, -3.9]]] . at "x"
+            col . cast Value_Type.Integer . ceil . value_type . should_equal Value_Type.Float
+
+            col . cast Value_Type.Float . round . value_type . should_equal Value_Type.Float
+            col . cast Value_Type.Integer . round . value_type . should_equal Value_Type.Float
+            col . cast Value_Type.Decimal . round . value_type . should_equal Value_Type.Decimal
+
+            col . cast Value_Type.Float . round 1 . value_type . should_equal Value_Type.Float
+            col . cast Value_Type.Integer . round 1 . value_type . should_equal Value_Type.Decimal
+            col . cast Value_Type.Decimal . round 1 . value_type . should_equal Value_Type.Decimal
+
+            col . cast Value_Type.Float . round use_bankers=True . value_type . should_equal Value_Type.Float
+            col . cast Value_Type.Integer . round use_bankers=True . value_type . should_equal Value_Type.Float
+            col . cast Value_Type.Decimal . round use_bankers=True . value_type . should_equal Value_Type.Decimal
+
+            col . cast Value_Type.Float . ceil . value_type . should_equal Value_Type.Float
+            col . cast Value_Type.Integer . ceil . value_type . should_equal Value_Type.Float
+            col . cast Value_Type.Decimal . ceil . value_type . should_equal Value_Type.Decimal
+
+            col . cast Value_Type.Float . floor . value_type . should_equal Value_Type.Float
+            col . cast Value_Type.Integer . floor . value_type . should_equal Value_Type.Float
+            col . cast Value_Type.Decimal . floor . value_type . should_equal Value_Type.Decimal
+
+            col . cast Value_Type.Float . truncate . value_type . should_equal Value_Type.Float
+            col . cast Value_Type.Integer . truncate . value_type . should_equal Value_Type.Float
+            col . cast Value_Type.Decimal . truncate . value_type . should_equal Value_Type.Decimal
+
+        do_op n op =
+            table = table_builder [["x", [n]]]
+            result = table.at "x" |> op
+            result.to_vector.at 0
+        do_round n dp=0 use_bankers=False = do_op n (_.round dp use_bankers)
+
+        Test.specify "Can round correctly near the precision limit" <|
+            do_round 1.2222222222222225 15 . should_equal 1.222222222222223
+            do_round -1.2222222222222225 15 . should_equal -1.222222222222223
+            do_round 1.2222222222222235 15 . should_equal 1.222222222222224
+            do_round -1.2222222222222235 15 . should_equal -1.222222222222224
+
+        Test.specify "Can round correctly near the precision limit, using banker's rounding" <|
+            do_round 1.2222222222222225 15 use_bankers=True . should_equal 1.222222222222222
+            do_round -1.2222222222222225 15 use_bankers=True . should_equal -1.222222222222222
+            do_round 1.2222222222222235 15 use_bankers=True . should_equal 1.222222222222224
+            do_round -1.2222222222222235 15 use_bankers=True . should_equal -1.222222222222224
+
+        Test.specify "Can handle NaN/Infinity" <|
+            nan_result = if setup.test_selection.is_nan_and_nothing_distinct then Number.nan else Nothing
+            ops = [.round, .truncate, .ceil, .floor]
+            ops.each op->
+                do_op Number.nan op . should_equal nan_result
+                do_op Number.positive_infinity op . should_equal Number.positive_infinity
+                do_op Number.negative_infinity op . should_equal Number.negative_infinity
+
+        Test.specify "round returns the correct type" <|
+            do_round 231.2 1 . should_be_a Decimal
+            do_round 231.2 0 . should_be_a Decimal
+            do_round 231.2 . should_be_a Decimal
+            do_round 231.2 -1 . should_be_a Decimal
+
+        Test.specify "round returns the correct type" <|
+            do_round 231 1 . should_be_a Decimal
+            do_round 231 0 . should_be_a Decimal
+            do_round 231 . should_be_a Decimal
+            do_round 231 -1 . should_be_a Decimal
 
 run_tests connection db_name =
     prefix = "[PostgreSQL] "
@@ -210,7 +276,7 @@ run_tests connection db_name =
 
     Common_Spec.spec prefix connection
 
-    common_selection = Common_Table_Operations.Main.Test_Selection.Config supports_case_sensitive_columns=True order_by_unicode_normalization_by_default=True take_drop=False allows_mixed_type_comparisons=False fixed_length_text_columns=True
+    common_selection = Common_Table_Operations.Main.Test_Selection.Config supports_case_sensitive_columns=True order_by_unicode_normalization_by_default=True take_drop=False allows_mixed_type_comparisons=False fixed_length_text_columns=True supports_decimal_type=True
     aggregate_selection = Common_Table_Operations.Aggregate_Spec.Test_Selection.Config first_last_row_order=False aggregation_problems=False
     agg_in_memory_table = (enso_project.data / "data.csv") . read
     agg_table = agg_in_memory_table.select_into_database_table connection (Name_Generator.random_name "Agg1") primary_key=Nothing temporary=True
