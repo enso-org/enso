@@ -330,7 +330,7 @@ type File
 
     ## PRIVATE
        Internal method to join two path segments together.
-    resolve : File
+    resolve : Text -> File
     resolve self subpath = @Builtin_Method "File.resolve"
 
     ## PRIVATE

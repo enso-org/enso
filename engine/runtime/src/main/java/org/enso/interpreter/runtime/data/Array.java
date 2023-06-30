@@ -41,8 +41,8 @@ public final class Array implements TruffleObject {
   }
 
   /**
-   * Creates an uninitialized array of the given size.
-   * The values must be filled before the array is returned to Enso.
+   * Creates an uninitialized array of the given size. The values must be filled before the array is
+   * returned to Enso.
    *
    * @param size the size of the created array.
    */
