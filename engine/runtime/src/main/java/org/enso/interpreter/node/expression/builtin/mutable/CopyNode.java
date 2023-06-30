@@ -15,13 +15,7 @@ import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.error.PanicException;
 
-@BuiltinMethod(
-    type = "Array",
-    name = "copy",
-    description = "Copies one array to another.",
-    autoRegister = false)
 public abstract class CopyNode extends Node {
-
   public static CopyNode build() {
     return CopyNodeGen.create();
   }

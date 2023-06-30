@@ -45,10 +45,6 @@ public final class Array implements TruffleObject {
    *
    * @param size the size of the created array.
    */
-  @Builtin.Method(
-      description = "Creates an uninitialized array of a given size.",
-      autoRegister = false,
-      name = "allocate")
   public static Array allocate(long size) {
     var arr = new Object[(int) size];
     var ctx = EnsoContext.get(null);

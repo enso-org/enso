@@ -181,7 +181,7 @@ type Array
             ['a', 'b', 'c'].to_array.insert -1 'X' == ['a', 'b', 'X', 'c'].to_array
             ['a', 'b', 'c'].to_array.insert item='X' == ['a', 'b', 'c', 'X'].to_array
     insert : Integer -> Any -> Vector ! Index_Out_Of_Bounds
-    insert self at=self.length item=Nothing = Vector.insert self at item
+    insert self at=self.length item=Nothing = (Vector.from_polyglot_array self).insert at item
 
     ## PRIVATE
     insert_builtin self at values =
@@ -195,7 +195,7 @@ type Array
          If the index is less than 0, the index will be counted back from the
          end.
     remove : Integer -> Vector
-    remove self at=-1 = Vector.remove self at
+    remove self at=-1 = (Vector.from_polyglot_array self).remove at
 
     ## PRIVATE
     remove_builtin self at =
@@ -365,7 +365,7 @@ type Array
 
             [[1, 2, 3].to_array, [4, 10].to_array, [].to_array, [0].to_array, [0].to_array].to_array . flatten == [1, 2, 3, 4, 10, 0, 0].to_array
     flatten : Vector Any
-    flatten self = Vector.flatten self
+    flatten self = (Vector.from_polyglot_array self).flatten
 
     ## PRIVATE
        ADVANCED

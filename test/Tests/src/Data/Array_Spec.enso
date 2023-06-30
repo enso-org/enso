@@ -36,11 +36,6 @@ spec =
             (make_enso_array [1,2,3]).should_equal (make_enso_array [1,2,3])
             (make_enso_array [1]).should_not_equal (make_enso_array [2])
 
-        Test.specify "should propagate dataflow errors" <|
-            err = Error.throw (Illegal_State.Error "Foo")
-            res = Array.allocate err
-            res . should_fail_with Illegal_State
-
         Test.specify "should not sort in place" <|
             arr = make_enso_array [3, 1, 2]
             new_arr = arr.sort
