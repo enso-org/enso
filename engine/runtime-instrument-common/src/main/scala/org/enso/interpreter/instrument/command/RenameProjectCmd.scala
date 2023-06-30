@@ -43,7 +43,13 @@ class RenameProjectCmd(
       val projectModules = getProjectModules
       projectModules.foreach { module =>
         module.setIndexed(false)
-        module.getPackage.reloadConfig()
+        val newConfig = module.getPackage.reloadConfig()
+        if (newConfig.isFailure) {
+          logger.log(
+            Level.WARNING,
+            s"Failed to reload package's config: ${newConfig.failed.get.getMessage}"
+          )
+        }
         ctx.endpoint.sendToClient(
           Api.Response(
             Api.SuggestionsDatabaseModuleUpdateNotification(
