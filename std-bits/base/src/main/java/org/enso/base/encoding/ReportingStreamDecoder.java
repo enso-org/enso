@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.enso.base.Encoding_Utils;
+import org.graalvm.polyglot.Context;
 
 /**
  * A {@code Reader} which takes an {@code InputStream} and decodes it using a provided {@code
@@ -198,6 +199,7 @@ public class ReportingStreamDecoder extends Reader {
    * <p>After this call, the output buffer is in reading mode.
    */
   private void runDecoderOnInputBuffer() {
+    Context context = Context.getCurrent();
     while (inputBuffer.hasRemaining() || (eof && !hadEofDecodeCall)) {
       CoderResult cr = decoder.decode(inputBuffer, outputBuffer, eof);
       if (eof) {
@@ -217,6 +219,8 @@ public class ReportingStreamDecoder extends Reader {
       } else if (cr.isOverflow()) {
         growOutputBuffer();
       }
+
+      context.safepoint();
     }
 
     if (eof) {
