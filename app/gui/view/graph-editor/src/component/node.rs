@@ -71,7 +71,7 @@ pub const RADIUS: f32 = 14.0;
 pub const COMMENT_MARGIN: f32 = 10.0;
 
 const INFINITE: f32 = 99999.0;
-const ERROR_VISUALIZATION_SIZE: (f32, f32) = visualization::container::DEFAULT_SIZE;
+const ERROR_VISUALIZATION_SIZE: Vector2 = visualization::container::DEFAULT_SIZE;
 
 const VISUALIZATION_OFFSET_Y: f32 = -20.0;
 
@@ -410,8 +410,7 @@ impl NodeModel {
         display_object.add_child(&input);
 
         let error_visualization = error::Container::new(app);
-        let (x, y) = ERROR_VISUALIZATION_SIZE;
-        error_visualization.frp.set_size.emit(Vector2(x, y));
+        error_visualization.frp.set_size.emit(ERROR_VISUALIZATION_SIZE);
 
         let action_bar = action_bar::ActionBar::new(app);
         display_object.add_child(&action_bar);

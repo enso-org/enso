@@ -33,11 +33,13 @@ use ensogl::data::color::Rgba;
 use ensogl::display;
 use ensogl::display::scene;
 use ensogl::display::scene::Scene;
+use ensogl::display::shape::StyleWatchFrp;
 use ensogl::display::DomScene;
 use ensogl::display::DomSymbol;
 use ensogl::system::web;
 use ensogl::Animation;
 use ensogl_component::shadow;
+use ensogl_derive_theme::FromTheme;
 use ensogl_hardcoded_theme::graph_editor::visualization as theme;
 
 
@@ -56,58 +58,28 @@ pub mod visualization_chooser;
 // =================
 
 /// Default width and height of the visualization container.
-pub const DEFAULT_SIZE: (f32, f32) = (200.0, 200.0);
+pub const DEFAULT_SIZE: Vector2 = Vector2(200.0, 200.0);
 /// Minimal allowed size of the visualization container.
 const MIN_SIZE: Vector2 = Vector2(200.0, 200.0);
-const PADDING: f32 = 20.0;
 const CORNER_RADIUS: f32 = super::super::node::CORNER_RADIUS;
 const ACTION_BAR_HEIGHT: f32 = 2.0 * CORNER_RADIUS;
 
 
 
-// =============
-// === Shape ===
-// =============
+// ======================
+// === SelectionStyle ===
+// ======================
 
-/// Container's background, including selection.
-// TODO[ao] : Currently it does not contain the real background, which is rendered in HTML instead.
-//        This should be fixed in https://github.com/enso-org/ide/issues/526
-pub mod background {
-    use super::*;
-
-    ensogl::shape! {
-        alignment = center;
-        (style:Style, radius:f32, roundness:f32, selection:f32) {
-            let width         = Var::<Pixels>::from("input_size.x");
-            let height        = Var::<Pixels>::from("input_size.y");
-            let width         = width  - PADDING.px() * 2.0;
-            let height        = height - PADDING.px() * 2.0;
-            let radius        = 1.px() * &radius;
-            let corner_radius = &radius * &roundness;
-
-
-            // === Selection ===
-
-            let sel_color  = style.get_color(theme::selection);
-            let sel_size   = style.get_number(theme::selection::size);
-            let sel_offset = style.get_number(theme::selection::offset);
-
-            let sel_width   = &width  - 1.px() + &sel_offset.px() * 2.0 * &selection;
-            let sel_height  = &height - 1.px() + &sel_offset.px() * 2.0 * &selection;
-            let sel_radius  = &corner_radius + &sel_offset.px();
-            let select      = Rect((&sel_width,&sel_height)).corners_radius(sel_radius);
-
-            let sel2_width  = &width  - 2.px() + &(sel_size + sel_offset).px() * 2.0 * &selection;
-            let sel2_height = &height - 2.px() + &(sel_size + sel_offset).px() * 2.0 * &selection;
-            let sel2_radius = &corner_radius + &sel_offset.px() + &sel_size.px() * &selection;
-            let select2     = Rect((&sel2_width,&sel2_height)).corners_radius(sel2_radius);
-
-            let select = select2 - select;
-            let select = select.fill(sel_color);
-
-            select.into()
-        }
-    }
+/// The style parameters of the selected node highlight.
+///
+/// The highlight looks like a narrow border around the node.
+#[derive(Debug, Clone, Copy, Default, FromTheme)]
+#[base_path = "theme::selection"]
+pub struct SelectionStyle {
+    /// Width of the border.
+    width: f32,
+    /// Color of the border.
+    color: Rgba,
 }
 
 
@@ -187,9 +159,16 @@ ensogl::define_endpoints_2! {
 #[allow(missing_docs)]
 pub struct View {
     display_object:  display::object::Instance,
-    background:      background::View,
+    selection:       Rectangle,
     overlay:         Rectangle,
+    /// Resize grip is a rectangle with the size of the container but with a slight offset from the
+    /// overlay shape so that it extends beyond the container at the bottom and right sides.
+    /// The ordering of `overlay`, `selection`, and `resize_grip` is controlled by partition layers
+    /// (see [`View::init`]).
     resize_grip:     Rectangle,
+    // TODO : We added a HTML background to the `View`, because "shape" background was
+    // overlapping the JS visualization. This should be further investigated
+    // while fixing rust visualization displaying. (#796)
     background_dom:  DomSymbol,
     scene:           Scene,
     loading_spinner: ensogl_component::spinner::View,
@@ -199,30 +178,26 @@ impl View {
     /// Constructor.
     pub fn new(scene: Scene) -> Self {
         let display_object = display::object::Instance::new();
-        let background = background::View::new();
+        let selection = Rectangle::default().build(|r| {
+            r.set_color(Rgba::transparent());
+        });
         let overlay = Rectangle::default().build(|r| {
             r.set_color(INVISIBLE_HOVER_COLOR).set_border_color(INVISIBLE_HOVER_COLOR);
         });
         let resize_grip = Rectangle::default().build(|r| {
             r.set_color(INVISIBLE_HOVER_COLOR).set_border_color(INVISIBLE_HOVER_COLOR);
         });
-        display_object.add_child(&background);
-        display_object.add_child(&overlay);
+        display_object.add_child(&selection);
+        selection.add_child(&overlay);
         overlay.add_child(&resize_grip);
         let div = web::document.create_div_or_panic();
         let background_dom = DomSymbol::new(&div);
         display_object.add_child(&background_dom);
         let loading_spinner = ensogl_component::spinner::View::new();
 
-        ensogl::shapes_order_dependencies! {
-            scene => {
-                background -> ensogl_component::spinner;
-            }
-        };
-
         Self {
             display_object,
-            background,
+            selection,
             overlay,
             resize_grip,
             background_dom,
@@ -244,35 +219,39 @@ impl View {
         self.loading_spinner.unset_parent();
     }
 
-    fn init_resize_grip(&self, styles: &StyleWatch) {
-        let offset_x = styles.get_number(theme::resize_grip::offset_x);
-        let offset_y = styles.get_number(theme::resize_grip::offset_y);
-        self.resize_grip.set_xy(Vector2(offset_x, offset_y));
+    fn set_resize_grip_offset(&self, offset: Vector2) {
+        self.resize_grip.set_xy(offset);
     }
 
-    fn init_background(&self, styles: &StyleWatch) {
-        let background = &self.background_dom;
-        let bg_color =
-            styles.get_color(ensogl_hardcoded_theme::graph_editor::visualization::background);
-        let bg_hex = format!(
-            "rgba({},{},{},{})",
-            bg_color.red * 255.0,
-            bg_color.green * 255.0,
-            bg_color.blue * 255.0,
-            bg_color.alpha
-        );
+    fn set_corner_radius(&self, radius: f32) {
+        self.overlay.set_corner_radius(radius);
+        self.selection.set_corner_radius(radius);
+        let radius = format!("{radius}px");
+        self.background_dom.dom().set_style_or_warn("border-radius", radius);
+    }
 
-        // TODO : We added a HTML background to the `View`, because "shape" background was
-        // overlapping the JS visualization. This should be further investigated
-        // while fixing rust visualization displaying. (#796)
+    fn set_background_color(&self, color: Rgba) {
+        let bg_color = format!(
+            "rgba({},{},{},{})",
+            color.red * 255.0,
+            color.green * 255.0,
+            color.blue * 255.0,
+            color.alpha
+        );
+        self.background_dom.dom().set_style_or_warn("background", bg_color);
+    }
+
+    fn init_background(&self) {
+        // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
+        // system (#795)
+        let styles = StyleWatch::new(&self.scene.style_sheet);
+        let background = &self.background_dom;
         background.dom().set_style_or_warn("width", "0");
         background.dom().set_style_or_warn("height", "0");
         background.dom().set_style_or_warn("z-index", "1");
         background.dom().set_style_or_warn("overflow-y", "auto");
         background.dom().set_style_or_warn("overflow-x", "auto");
-        background.dom().set_style_or_warn("background", bg_hex);
-        background.dom().set_style_or_warn("border-radius", "14px");
-        shadow::add_to_dom_element(background, styles);
+        shadow::add_to_dom_element(background, &styles);
     }
 
     fn init_spinner(&self) {
@@ -282,13 +261,12 @@ impl View {
     }
 
     fn init(self) -> Self {
-        let styles = StyleWatch::new(&self.scene.style_sheet);
-        self.init_background(&styles);
-        self.init_resize_grip(&styles);
+        self.init_background();
         self.init_spinner();
         self.show_waiting_screen();
         self.set_layer(visualization::Layer::Default);
         self.scene.layers.viz.add(&self);
+        self.scene.layers.viz_selection.add(&self.selection);
         self.scene.layers.viz_resize_grip.add(&self.resize_grip);
         self.scene.layers.viz_overlay.add(&self.overlay);
         self
@@ -363,7 +341,6 @@ impl ContainerModel {
         self.scene.layers.above_nodes.add(&self.action_bar);
         self.scene.layers.panel.add(&self.fullscreen_view);
         self.update_shape_sizes(ViewState::default());
-        self.init_corner_roundness();
         self.view.show_waiting_screen();
         self
     }
@@ -392,6 +369,20 @@ impl ContainerModel {
         let object = &self.display_object;
         let pos = scene().screen_to_object_space(object, screen_pos);
         pos
+    }
+
+    /// Update the selection shape. `value` is a selection width percentage in range `[0, 1]`.
+    fn set_selection(&self, container_size: Vector2, value: f32, style: &SelectionStyle) {
+        let border_width = style.width * value;
+        let overall_size = container_size + Vector2(border_width * 2.0, border_width * 2.0);
+        if value > 0.0 {
+            self.view.selection.set_border_color(style.color);
+        } else {
+            self.view.selection.set_border_color(Rgba::transparent());
+        }
+        self.view.selection.set_inset_border(border_width);
+        self.view.selection.set_size(overall_size);
+        self.view.selection.set_xy(-overall_size / 2.0);
     }
 
     fn apply_view_state(&self, view_state: ViewState) {
@@ -487,12 +478,10 @@ impl ContainerModel {
             bg_dom.set_style_or_warn("height", format!("{}px", size[1]));
             self.action_bar.frp.set_size.emit(Vector2::zero());
         } else {
-            self.view.overlay.set_corner_radius(CORNER_RADIUS);
-            self.view.background.radius.set(CORNER_RADIUS);
             self.view.overlay.set_size(size);
             self.view.resize_grip.set_size(size);
-            self.view.background.set_size(size + 2.0 * Vector2(PADDING, PADDING));
-            self.view.loading_spinner.set_size(size + 2.0 * Vector2(PADDING, PADDING));
+            self.view.selection.set_size(size);
+            self.view.loading_spinner.set_size(size);
             dom.set_style_or_warn("width", format!("{}px", size[0]));
             dom.set_style_or_warn("height", format!("{}px", size[1]));
             bg_dom.set_style_or_warn("width", "0");
@@ -501,9 +490,6 @@ impl ContainerModel {
             let action_bar_size = Vector2::new(size.x, ACTION_BAR_HEIGHT);
             self.action_bar.frp.set_size.emit(action_bar_size);
             self.drag_root.set_xy(Vector2(size.x / 2.0, -size.y / 2.0));
-            // Though the drag root is already offset, we need to offset the overlay as well because
-            // it has the origin in the bottom left corner.
-            self.view.overlay.set_xy(Vector2(-size.x / 2.0, -size.y / 2.0));
         }
 
         self.action_bar.set_y((size.y - ACTION_BAR_HEIGHT) / 2.0);
@@ -511,14 +497,6 @@ impl ContainerModel {
         if let Some(viz) = &*self.visualization.borrow() {
             viz.frp.set_size.emit(size);
         }
-    }
-
-    fn init_corner_roundness(&self) {
-        self.set_corner_roundness(1.0)
-    }
-
-    fn set_corner_roundness(&self, value: f32) {
-        self.view.background.roundness.set(value);
     }
 
     /// Check if given mouse-event-target means this visualization.
@@ -588,10 +566,8 @@ impl Container {
         let registry = &model.registry;
         let selection = Animation::new(network);
         let width_anim = Animation::new(network);
-
-        let on_down = model.view.resize_grip.on_event_capturing::<mouse::Down>();
-        let on_up_source = scene.on_event::<mouse::Up>();
-        let on_move = scene.on_event::<mouse::Move>();
+        let style = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
+        let selection_style = SelectionStyle::from_theme(network, &style);
 
         frp::extend! { network
             init <- source_();
@@ -616,10 +592,25 @@ impl Container {
                 &set_default_visualization, &set_default_visualization_for_type);
 
 
+            // === Styles ===
+
+            let corner_radius = style.get_number(theme::corner_radius);
+            let background_color = style.get_color(theme::background);
+            let grip_offset_x = style.get_number(theme::resize_grip::offset_x);
+            let grip_offset_y = style.get_number(theme::resize_grip::offset_y);
+            _eval <- corner_radius.all_with(&init, f!((radius, _) model.view.set_corner_radius(*radius)));
+            _eval <- background_color.all_with(&init, f!((color, _) model.view.set_background_color(*color)));
+            grip_offset <- all_with3(&init, &grip_offset_x, &grip_offset_y, |_, x, y| Vector2(*x, *y));
+            eval grip_offset((offset) model.view.set_resize_grip_offset(*offset));
+
+
             // === Drag-resize ===
 
+            let on_down = model.view.resize_grip.on_event::<mouse::Down>();
+            let on_up = scene.on_event::<mouse::Up>();
+            let on_move = scene.on_event::<mouse::Move>();
             on_down <- on_down.gate(&output.visible);
-            on_up <- on_up_source.gate(&output.visible);
+            on_up <- on_up.gate(&output.visible);
             is_down <- bool(&on_up, &on_down);
             on_move_down <- on_move.gate(&is_down);
             glob_pos_on_down <- on_down.map(|event| event.client_centered());
@@ -646,7 +637,7 @@ impl Container {
             width_change_after_open <- width_target.sample(&on_visible);
             width_anim.target <+ width_target.gate(&size_was_not_changed_manually);
             new_size <- width_anim.value.map2(&output.size, |w, s| Vector2(*w, s.y));
-            size_reset <- width_change_after_open.map(|w| Vector2(*w, DEFAULT_SIZE.1));
+            size_reset <- width_change_after_open.map(|w| Vector2(*w, DEFAULT_SIZE.x));
             size_change <- any3(&new_size, &input.set_size, &size_reset);
             output.size <+ size_change.map2(&output.view_state, f!((new_size, view_state) model.resize(*new_size, *view_state)));
         }
@@ -738,7 +729,11 @@ impl Container {
             }));
             selection_after_click <- selected_by_click.map(|sel| if *sel {1.0} else {0.0});
             selection.target <+ selection_after_click;
-            eval selection.value ((selection) model.view.background.selection.set(*selection));
+            _eval <- selection.value.all_with3(&output.size, &selection_style.update,
+                f!((value, size, style) {
+                    model.set_selection(*size, *value, style);
+                }
+            ));
             is_selected <- selected_by_click || output.fullscreen;
             output.is_selected <+ is_selected.on_change();
         }
@@ -759,7 +754,6 @@ impl Container {
                     let weight_inv           = 1.0 - weight;
                     let scene_size : Vector2 = scene_size.into();
                     let current_size         = viz_size * weight_inv + scene_size * *weight;
-                    model.set_corner_roundness(weight_inv);
                     model.update_layout(current_size,*view_state);
 
                     let m1  = model.scene.layers.panel.camera().inversed_view_matrix();
@@ -807,9 +801,10 @@ impl Container {
         //
         // This is not optimal the optimal solution to this problem, as it also means that we have
         // an animation on an invisible component running.
-        self.frp.public.set_size(Vector2(DEFAULT_SIZE.0, DEFAULT_SIZE.1));
+        self.frp.public.set_size(DEFAULT_SIZE);
         self.frp.public.set_visualization(None);
         init.emit(());
+        selection_style.init.emit(());
         self
     }
 
