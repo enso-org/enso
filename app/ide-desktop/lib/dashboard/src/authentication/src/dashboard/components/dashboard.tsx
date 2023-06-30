@@ -209,7 +209,7 @@ function Dashboard(props: DashboardProps) {
 
     return (
         <div
-            className={`flex flex-col relative select-none text-primary text-xs min-h-screen p-2 ${
+            className={`flex flex-col gap-2 relative select-none text-primary text-xs h-screen py-2 ${
                 tab === tabModule.Tab.dashboard ? '' : 'hidden'
             }`}
             onClick={closeModalIfExists}
@@ -224,21 +224,21 @@ function Dashboard(props: DashboardProps) {
                 setQuery={setQuery}
             />
             {isListingRemoteDirectoryWhileOffline ? (
-                <div className="grow grid place-items-center">
+                <div className="grow grid place-items-center mx-2">
                     <div className="text-base text-center">
                         You are offline. Please connect to the internet and refresh to access the
                         cloud backend.
                     </div>
                 </div>
             ) : isListingLocalDirectoryAndWillFail ? (
-                <div className="grow grid place-items-center">
+                <div className="grow grid place-items-center mx-2">
                     <div className="text-base text-center">
                         Could not connect to the Project Manager. Please try restarting{' '}
                         {common.PRODUCT_NAME}, or manually launching the Project Manager.
                     </div>
                 </div>
             ) : isListingRemoteDirectoryAndWillFail ? (
-                <div className="grow grid place-items-center">
+                <div className="grow grid place-items-center mx-2">
                     <div className="text-base text-center">
                         We will review your user details and enable the cloud experience for you
                         shortly.

@@ -106,10 +106,6 @@ case object ModuleAnnotations extends IRPass {
   ): IR.Expression = ir
 
   /** @inheritdoc */
-  override def updateMetadataInDuplicate[T <: IR](
-    sourceIr: T,
-    copyOfIr: T
-  ): T = copyOfIr
 
   /** A container for annotations on an IR construct.
     *

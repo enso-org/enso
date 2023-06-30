@@ -15,7 +15,7 @@ import com.oracle.truffle.api.nodes.Node;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-import org.enso.interpreter.instrument.Timer;
+
 import org.enso.interpreter.instrument.profiling.ExecutionTime;
 import org.enso.interpreter.instrument.profiling.ProfilingInfo;
 import org.enso.interpreter.node.ExpressionNode;
@@ -242,8 +242,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
     public void onReturnExceptional(VirtualFrame frame, Throwable exception) {
       if (exception instanceof TailCallException) {
         onTailCallReturn(exception, Function.ArgumentsHelper.getState(frame.getArguments()));
-      } else if (exception instanceof PanicException) {
-        PanicException panicException = (PanicException) exception;
+      } else if (exception instanceof PanicException panicException) {
         onReturnValue(frame, new PanicSentinel(panicException, context.getInstrumentedNode()));
       } else if (exception instanceof AbstractTruffleException) {
         onReturnValue(frame, exception);
@@ -261,8 +260,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
       ProfilingInfo[] profilingInfo = new ProfilingInfo[] {new ExecutionTime(nanoTimeElapsed)};
 
       ExpressionValue expressionValue =
-      new ExpressionValue(
-      nodeId, result, resultType, cachedType, call, cachedCall, profilingInfo, false);
+      new ExpressionValue(nodeId, result, resultType, cachedType, call, cachedCall, profilingInfo, false);
       syncState.setExpressionUnsync(nodeId);
       syncState.setVisualizationUnsync(nodeId);
 
@@ -308,7 +306,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
 
     @CompilerDirectives.TruffleBoundary
     private void onFunctionReturn(UUID nodeId, FunctionCallInstrumentationNode.FunctionCall result, EventContext context) throws ThreadDeath {
-        calls.put(nodeId, new FunctionCallInfo(result));
+        calls.put(nodeId, FunctionCallInfo.fromFunctionCall(result));
         functionCallCallback.accept(new ExpressionCall(nodeId, result));
         // Return cached value after capturing the enterable function call in `functionCallCallback`
         Object cachedResult = cache.get(nodeId);

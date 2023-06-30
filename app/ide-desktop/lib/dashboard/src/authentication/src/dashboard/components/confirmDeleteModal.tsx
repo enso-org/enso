@@ -17,7 +17,6 @@ import Modal from './modal'
 /** Props for a {@link ConfirmDeleteModal}. */
 export interface ConfirmDeleteModalProps {
     assetType: string
-    name: string
     /** Must fit in the sentence "Are you sure you want to delete <description>"? */
     description: string
     doDelete: () => void

@@ -46,7 +46,7 @@ const pluralize = string.makePluralize(ASSET_TYPE_NAME, ASSET_TYPE_NAME_PLURAL)
 /** Placeholder row. */
 const PLACEHOLDER = (
     <span className="opacity-75">
-        You have no project yet. Go ahead and create one using the form above.
+        You have no projects yet. Go ahead and create one using the form above.
     </span>
 )
 
@@ -267,7 +267,9 @@ function ProjectRowContextMenu(props: InternalProjectRowContextMenuProps) {
     return (
         <ContextMenu key={item.id} event={event}>
             <ContextMenuEntry onClick={doOpenForEditing}>Open for editing</ContextMenuEntry>
-            {/*backend.type !== backendModule.BackendType.local && (
+            {/* TODO[sb]: Implement once backend support is in place.
+              * https://github.com/enso-org/cloud-v2/issues/506
+            backend.type !== backendModule.BackendType.local && (
                 <ContextMenuEntry disabled onClick={doOpenAsFolder}>
                     Open as folder
                 </ContextMenuEntry>

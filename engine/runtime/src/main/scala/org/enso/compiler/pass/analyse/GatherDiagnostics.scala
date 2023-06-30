@@ -6,8 +6,6 @@ import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.resolve.TypeSignatures
 
-import scala.annotation.unused
-
 /** A pass that traverses the given root IR and accumulates all the encountered
   * diagnostic nodes in the root.
   *
@@ -49,12 +47,6 @@ case object GatherDiagnostics extends IRPass {
     ir: IR.Expression,
     inlineContext: InlineContext
   ): IR.Expression = ir.updateMetadata(this -->> gatherMetadata(ir))
-
-  /** @inheritdoc */
-  override def updateMetadataInDuplicate[T <: IR](
-    @unused sourceIr: T,
-    copyOfIr: T
-  ): T = copyOfIr
 
   /** Gathers diagnostics from all children of an IR node.
     *

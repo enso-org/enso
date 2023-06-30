@@ -230,7 +230,7 @@ public final class Builtins {
   /**
    * Returns a list of supported builtins.
    *
-   * <p>Builtin types are marked via @BuiltinType annotation. THe metdata file represents a single
+   * <p>Builtin types are marked via @BuiltinType annotation. The metadata file represents a single
    * builtin type per row. The format of the row is as follows: <Enso name of the builtin
    * type>:<Name of the class representing it>:[<field1>,<field2>,...] where the last column gives a
    * list of optional type's fields.

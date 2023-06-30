@@ -295,49 +295,55 @@ function DirectoryView(props: DirectoryViewProps) {
                 exitDirectory={exitDirectory}
                 dispatchFileListEvent={dispatchFileListEvent}
             />
-            <div className="h-10" />
-            <ProjectsTable
-                appRunner={appRunner}
-                directoryId={directoryId}
-                items={projectAssets}
-                filter={assetFilter}
-                isLoading={isLoadingAssets}
-                columnDisplayMode={columnDisplayMode}
-                projectEvent={projectEvent}
-                dispatchProjectEvent={dispatchProjectEvent}
-                projectListEvent={projectListEvent}
-                dispatchProjectListEvent={dispatchProjectListEvent}
-                doCreateProject={doCreateProject}
-                doOpenIde={onOpenIde}
-                doCloseIde={onCloseIde}
-            />
-            <div className="h-10" />
-            <DirectoriesTable
-                directoryId={directoryId}
-                items={directoryAssets}
-                filter={assetFilter}
-                isLoading={isLoadingAssets}
-                columnDisplayMode={columnDisplayMode}
-                enterDirectory={enterDirectory}
-            />
-            <div className="h-10" />
-            <SecretsTable
-                directoryId={directoryId}
-                items={secretAssets}
-                filter={assetFilter}
-                isLoading={isLoadingAssets}
-                columnDisplayMode={columnDisplayMode}
-            />
-            <div className="h-10" />
-            <FilesTable
-                directoryId={directoryId}
-                items={fileAssets}
-                filter={assetFilter}
-                isLoading={isLoadingAssets}
-                columnDisplayMode={columnDisplayMode}
-                fileListEvent={fileListEvent}
-                dispatchFileListEvent={dispatchFileListEvent}
-            />
+            {/* Padding. */}
+            <div className="h-6 mx-2" />
+            <div className="flex-1 overflow-auto mx-2">
+                <ProjectsTable
+                    appRunner={appRunner}
+                    directoryId={directoryId}
+                    items={projectAssets}
+                    filter={assetFilter}
+                    isLoading={isLoadingAssets}
+                    columnDisplayMode={columnDisplayMode}
+                    projectEvent={projectEvent}
+                    dispatchProjectEvent={dispatchProjectEvent}
+                    projectListEvent={projectListEvent}
+                    dispatchProjectListEvent={dispatchProjectListEvent}
+                    doCreateProject={doCreateProject}
+                    doOpenIde={onOpenIde}
+                    doCloseIde={onCloseIde}
+                />
+                {/* Padding. */}
+                <div className="h-10" />
+                <DirectoriesTable
+                    directoryId={directoryId}
+                    items={directoryAssets}
+                    filter={assetFilter}
+                    isLoading={isLoadingAssets}
+                    columnDisplayMode={columnDisplayMode}
+                    enterDirectory={enterDirectory}
+                />
+                {/* Padding. */}
+                <div className="h-10" />
+                <SecretsTable
+                    directoryId={directoryId}
+                    items={secretAssets}
+                    filter={assetFilter}
+                    isLoading={isLoadingAssets}
+                    columnDisplayMode={columnDisplayMode}
+                />
+                {/* Padding. */}
+                <div className="h-10" />
+                <FilesTable
+                    directoryId={directoryId}
+                    items={fileAssets}
+                    filter={assetFilter}
+                    isLoading={isLoadingAssets}
+                    columnDisplayMode={columnDisplayMode}
+                    fileListEvent={fileListEvent}
+                    dispatchFileListEvent={dispatchFileListEvent}
+                />
+            </div>
             {isFileBeingDragged &&
             directoryId != null &&
             backend.type === backendModule.BackendType.remote ? (

@@ -52,11 +52,6 @@ case object AmbiguousImportsAnalysis extends IRPass {
 
   /** @inheritdoc
     */
-  override def updateMetadataInDuplicate[T <: IR](sourceIr: T, copyOfIr: T): T =
-    copyOfIr
-
-  /** @inheritdoc
-    */
   override def runModule(
     ir: IR.Module,
     moduleContext: ModuleContext
