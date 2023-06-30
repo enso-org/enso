@@ -846,6 +846,7 @@
 - [Added retries when executing GraalVM updater][7079]
 - [Add method call info for infix operators][7090]
 - [`executionComplete` response is sent on successful execution only][7143]
+- [Send info about function values][7168]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -969,6 +970,7 @@
 [7079]: https://github.com/enso-org/enso/pull/7079
 [7090]: https://github.com/enso-org/enso/pull/7090
 [7143]: https://github.com/enso-org/enso/pull/7143
+[7168]: https://github.com/enso-org/enso/pull/7168
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 
