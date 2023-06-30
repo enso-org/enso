@@ -19,8 +19,6 @@ import org.enso.compiler.pass.desugar.{
   NestedPatternMatch
 }
 
-import scala.annotation.unused
-
 /** This pass translates ignored bindings (of the form `_`) into fresh names
   * internally, as well as marks all bindings as whether or not they were
   * ignored.
@@ -94,12 +92,6 @@ case object IgnoredBindings extends IRPass {
       resolveExpression(ir, freshNameSupply)
     } else ir
   }
-
-  /** @inheritdoc */
-  override def updateMetadataInDuplicate[T <: IR](
-    @unused sourceIr: T,
-    copyOfIr: T
-  ): T = copyOfIr
 
   private def setNotIgnored[T <: IR](ir: T): T = {
     if (ir.getMetadata(this).isEmpty) {

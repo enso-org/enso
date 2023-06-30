@@ -1,6 +1,11 @@
 package org.enso.polyglot.runtime
 
-import com.fasterxml.jackson.annotation.{JsonSubTypes, JsonTypeInfo}
+import com.fasterxml.jackson.annotation.{
+  JsonIgnoreProperties,
+  JsonSubTypes,
+  JsonTypeInfo
+}
+import com.fasterxml.jackson.module.scala.deser.ScalaObjectDeserializerModule
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.cbor.CBORFactory
 import com.fasterxml.jackson.module.scala.{
@@ -18,7 +23,6 @@ import org.enso.text.editing.model.{Range, TextEdit}
 import java.io.File
 import java.nio.ByteBuffer
 import java.util.UUID
-
 import scala.util.Try
 
 object Runtime {
@@ -335,6 +339,18 @@ object Runtime {
         MethodCall(methodPointer, Vector())
     }
 
+    /** Contains a method pointer with information on the partially applied
+      * arguments positions.
+      *
+      * @param methodPointer the method pointer
+      * @param notAppliedArguments indexes of arguments that have not been applied
+      * to this method
+      */
+    case class FunctionSchema(
+      methodPointer: MethodPointer,
+      notAppliedArguments: Vector[Int]
+    )
+
     /** A representation of an executable position in code.
       */
     @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
@@ -430,9 +446,12 @@ object Runtime {
         /** Indicates that the expression was computed to a value.
           *
           * @param warnings information about attached warnings.
+          * @param functionSchema if the value represents a function, the function schema of that function, empty option otherwise
           */
-        case class Value(warnings: Option[Value.Warnings] = None)
-            extends Payload
+        case class Value(
+          warnings: Option[Value.Warnings]       = None,
+          functionSchema: Option[FunctionSchema] = None
+        ) extends Payload
 
         object Value {
 
@@ -846,19 +865,20 @@ object Runtime {
     @JsonSubTypes(
       Array(
         new JsonSubTypes.Type(
-          value = classOf[DiagnosticType.Error],
+          value = classOf[DiagnosticType.Error.type],
           name  = "diagnosticTypeError"
         ),
         new JsonSubTypes.Type(
-          value = classOf[DiagnosticType.Warning],
+          value = classOf[DiagnosticType.Warning.type],
           name  = "diagnosticTypeWarning"
         )
       )
     )
     sealed trait DiagnosticType
+
     object DiagnosticType {
-      case class Error()   extends DiagnosticType
-      case class Warning() extends DiagnosticType
+      case object Error   extends DiagnosticType
+      case object Warning extends DiagnosticType
     }
 
     /** The element in the stack trace.
@@ -898,7 +918,15 @@ object Runtime {
         )
       )
     )
-    sealed trait ExecutionResult extends ToLogString
+    @JsonIgnoreProperties(Array("error", "failure"))
+    sealed trait ExecutionResult extends ToLogString {
+
+      /** Checks if this result represents a critical failure. * */
+      def isFailure: Boolean
+
+      /** Checks if this result represents a non-critical error. * */
+      def isError: Boolean
+    }
     object ExecutionResult {
 
       /** A diagnostic object produced as a compilation outcome, like error or
@@ -930,9 +958,13 @@ object Runtime {
           s"expressionId=$expressionId," +
           s"stack=${stack.map(_.toLogString(shouldMask))}" +
           ")"
+
+        override def isFailure: Boolean = false
+
+        override def isError: Boolean = kind == DiagnosticType.Error
       }
 
-      case object Diagnostic {
+      object Diagnostic {
 
         /** Create an error diagnostic message.
           *
@@ -950,8 +982,8 @@ object Runtime {
           expressionId: Option[ExpressionId] = None,
           stack: Vector[StackTraceElement]   = Vector()
         ): Diagnostic =
-          new Diagnostic(
-            DiagnosticType.Error(),
+          Diagnostic(
+            DiagnosticType.Error,
             Option(message),
             file,
             location,
@@ -975,8 +1007,8 @@ object Runtime {
           expressionId: Option[ExpressionId] = None,
           stack: Vector[StackTraceElement]   = Vector()
         ): Diagnostic =
-          new Diagnostic(
-            DiagnosticType.Warning(),
+          Diagnostic(
+            DiagnosticType.Warning,
             Option(message),
             file,
             location,
@@ -998,6 +1030,10 @@ object Runtime {
           s"Failure(message=$message,file=" +
           file.map(f => MaskedPath(f.toPath).toLogString(shouldMask)) +
           ")"
+
+        override def isFailure: Boolean = true
+
+        override def isError: Boolean = true
       }
 
     }
@@ -1088,22 +1124,22 @@ object Runtime {
         ")"
     }
 
-    /** Signals about the critical failure during the context execution.
+    /** Signals about the failure during the context execution.
       *
       * @param contextId the context's id
-      * @param failure the error description
+      * @param result the result of the execution
       */
     final case class ExecutionFailed(
       contextId: ContextId,
-      failure: ExecutionResult.Failure
+      result: ExecutionResult
     ) extends ApiNotification
         with ToLogString {
 
       /** @inheritdoc */
       override def toLogString(shouldMask: Boolean): String =
         "ExecutionFailed(" +
-        s"contextId=$contextId,failure=" +
-        failure.toLogString(shouldMask) +
+        s"contextId=$contextId,result=" +
+        result.toLogString(shouldMask) +
         ")"
     }
 
@@ -1769,7 +1805,9 @@ object Runtime {
     private lazy val mapper = {
       val factory = new CBORFactory()
       val mapper  = new ObjectMapper(factory) with ClassTagExtensions
-      mapper.registerModule(DefaultScalaModule)
+      mapper
+        .registerModule(DefaultScalaModule)
+        .registerModule(ScalaObjectDeserializerModule)
     }
 
     /** Serializes an ApiEnvelope into a byte buffer.

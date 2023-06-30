@@ -18,6 +18,20 @@ type My_Nan_Comparator
 
 Comparable.from (_:My_Nan) = My_Nan_Comparator
 
+type My_Key
+    Value hash_code:Integer value:Text idx:Integer
+
+type My_Key_Comparator
+    # Comparison ignores idx field
+    compare x y =
+        if x.hash_code != y.hash_code then Nothing else
+            if x.value == y.value then Ordering.Equal else Nothing
+
+    hash x = x.hash_code
+
+Comparable.from (_:My_Key) = My_Key_Comparator
+
+
 foreign js js_str str = """
     return new String(str)
 
@@ -192,6 +206,20 @@ spec =
             m3 = m2.insert k 30
             m3.size . should_equal 2
             m3.get k . should_equal 30
+
+        Test.specify "should support atom with custom comparators with complicated hash method" <|
+            keys = 0.up_to 500 . map ix->
+                value = ["A", "B", "C", "D", "E"].at (ix % 5)
+                hash_code = Comparable.from value . hash value
+                My_Key.Value hash_code value ix
+            distinct_keys = keys.fold Map.empty acc_map->
+                item->
+                    acc_map.insert item True
+            distinct_keys.size . should_equal 5
+            distinct_key_values = keys.map (_.value) . fold Map.empty acc_map->
+                item->
+                    acc_map.insert item True
+            distinct_key_values.size . should_equal 5
 
         Test.specify "should handle keys with standard equality semantics" <|
             map = Map.singleton 2 "Hello"

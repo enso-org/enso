@@ -18,9 +18,6 @@ object FullyAppliedFunctionUses extends IRPass {
     Seq(GlobalNames)
   override val invalidatedPasses: Seq[IRPass] = Seq()
 
-  override def updateMetadataInDuplicate[T <: IR](sourceIr: T, copyOfIr: T): T =
-    copyOfIr
-
   /** Executes the pass on the provided `ir`, and returns a possibly transformed
     * or annotated version of `ir`.
     *

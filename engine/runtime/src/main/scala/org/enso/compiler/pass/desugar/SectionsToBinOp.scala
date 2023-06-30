@@ -8,8 +8,6 @@ import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse._
 import org.enso.compiler.pass.lint.UnusedBindings
 
-import scala.annotation.unused
-
 /** This pass converts operator sections to applications of binary operators.
   *
   * This pass has no configuration.
@@ -79,12 +77,6 @@ case object SectionsToBinOp extends IRPass {
       desugarSections(sec, freshNameSupply)
     }
   }
-
-  /** @inheritdoc */
-  override def updateMetadataInDuplicate[T <: IR](
-    @unused sourceIr: T,
-    copyOfIr: T
-  ): T = copyOfIr
 
   /** Desugars operator sections to fully-saturated applications of operators.
     *

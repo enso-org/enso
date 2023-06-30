@@ -77,7 +77,8 @@ trait IRPass extends ProcessingPass {
     * @return the result of updating metadata in `copyOfIr` globally using
     *         information from `sourceIr`
     */
-  def updateMetadataInDuplicate[T <: IR](sourceIr: T, copyOfIr: T): T
+  def updateMetadataInDuplicate[T <: IR](@unused sourceIr: T, copyOfIr: T): T =
+    copyOfIr
 }
 object IRPass {
 

@@ -89,12 +89,6 @@ case object UnreachableMatchBranches extends IRPass {
     }
   }
 
-  /** @inheritdoc */
-  override def updateMetadataInDuplicate[T <: IR](
-    @unused sourceIr: T,
-    copyOfIr: T
-  ): T = copyOfIr
-
   // === Pass Internals =======================================================
 
   /** Optimizes an expression by removing unreachable branches in case
