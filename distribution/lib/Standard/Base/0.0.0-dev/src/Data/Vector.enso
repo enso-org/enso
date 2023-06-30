@@ -317,7 +317,7 @@ type Vector a
 
        Arguments:
        - condition: Either the element to search for, a `Filter_Condition` or a
-         predicate function to test for each element.
+         predicate function to test each element.
        - start: The index to start searching from. If the index is negative, it
          is counted from the end of the vector.
 
@@ -342,7 +342,7 @@ type Vector a
 
        Arguments:
        - condition: Either the element to search for, a `Filter_Condition` or a
-         predicate function to test for each element.
+         predicate function to test each element.
        - start: The index to start searching backwards from. If the index is
          negative, it is counted from the end of the vector.
 
@@ -366,9 +366,8 @@ type Vector a
     ## Checks whether a predicate holds for at least one element of self vector.
 
        Arguments:
-       - condition: A `Filter_Condition` or a function that takes an element and
-         returns a boolean value that says whether that value satisfies a
-         condition.
+       - condition: A `Filter_Condition` or a predicate function to test each
+         element.
 
        > Example
          Checking if any element of the vector is larger than 3.
@@ -387,9 +386,8 @@ type Vector a
     ## Checks whether a condition holds for all elements in this vector.
 
        Arguments:
-       - condition: A `Filter_Condition` or a function that takes an element and
-         returns a boolean value that says whether that value satisfies a
-         condition.
+       - condition: A `Filter_Condition` or a predicate function to test each
+         element.
 
        > Example
          Check if all elements in the vector are less than zero.
@@ -483,8 +481,8 @@ type Vector a
        in the input vector.
 
        Arguments:
-       - condition: A `Filter_Condition` or a function that takes an element and
-         returns a boolean value.
+       - condition: A `Filter_Condition` or a predicate function to test each
+         element.
 
        > Example
          Splitting a vector into elements that start with a prefix.

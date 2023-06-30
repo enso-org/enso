@@ -244,8 +244,8 @@ type Date_Range
        in the input.
 
        Arguments:
-       - condition: A `Filter_Condition` or a function that takes an element and
-         returns a boolean value.
+       - condition: A `Filter_Condition` or a predicate function to test each
+         element.
 
        > Example
          Splitting a range into weekends and weekdays.
@@ -334,9 +334,8 @@ type Date_Range
     ## Checks whether a condition is satisfied for all dates in this range.
 
        Arguments:
-       - condition: A `Filter_Condition` or a function that takes an element and
-         returns a boolean value that says whether that value satisfies a
-         condition.
+       - condition: A `Filter_Condition` or a predicate function to test each
+         element.
 
        > Example
          Checking that all dates in the range are after 2020-10-01.
@@ -351,9 +350,8 @@ type Date_Range
     ## Checks whether a condition is satisfied for any date in this range.
 
        Arguments:
-       - condition: A `Filter_Condition` or a function that takes an element and
-         returns a boolean value that says whether that value satisfies a
-         condition.
+       - condition: A `Filter_Condition` or a predicate function to test each
+         element.
 
        > Example
          Checking that at least one date in the range is after 2020-10-01.
@@ -367,9 +365,8 @@ type Date_Range
        If no index satisfies the predicate, returns `if_missing`.
 
        Arguments:
-       - condition: A `Filter_Condition` or a function that takes an element and
-         returns a boolean value that says whether that value satisfies a
-         condition.
+       - condition: A `Filter_Condition` or a predicate function to test each
+         element.
        - start: The index to start searching from. If the index is negative, it
          is counted from the end of the range.
        - if_missing: Value returned if no element satisfies the predicate.
@@ -401,7 +398,7 @@ type Date_Range
 
        Arguments:
        - condition: Either the element to search for, a `Filter_Condition` or a
-         predicate function to test for each element.
+         predicate function to test each element.
        - start: The index to start searching from. If the index is negative, it
          is counted from the end of the range.
 
@@ -420,7 +417,7 @@ type Date_Range
 
        Arguments:
        - condition: Either the element to search for, a `Filter_Condition` or a
-         predicate function to test for each element.
+         predicate function to test each element.
        - start: The index to start searching backwards from. If the index is
          negative, it is counted from the end of the range.
 

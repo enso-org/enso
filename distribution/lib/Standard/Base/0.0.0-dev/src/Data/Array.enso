@@ -325,7 +325,7 @@ type Array
 
        Arguments:
        - condition: Either the element to search for, a `Filter_Condition` or a
-         predicate function to test for each element.
+         predicate function to test each element.
        - start: The index to start searching from. If the index is negative, it
          is counted from the end of the array.
 
@@ -346,7 +346,7 @@ type Array
 
        Arguments:
        - condition: Either the element to search for, a `Filter_Condition` or a
-         predicate function to test for each element.
+         predicate function to test each element.
        - start: The index to start searching backwards from. If the index is
          negative, it is counted from the end of the array.
 
@@ -540,8 +540,8 @@ type Array
        in the input array.
 
        Arguments:
-       - condition: A `Filter_Condition` or a function that takes an element and
-         returns a boolean value.
+       - condition: A `Filter_Condition` or a predicate function to test each
+         element.
 
        > Example
          Splitting an array into elements that start with a prefix.
@@ -688,9 +688,8 @@ type Array
     ## Checks whether a predicate holds for at least one element of self array.
 
        Arguments:
-       - condition: A `Filter_Condition` or a function that takes an element and
-         returns a boolean value that says whether that value satisfies a
-         condition.
+       - condition: A `Filter_Condition` or a predicate function to test each
+         element.
 
        > Example
          Checking if any element of the array is larger than 3.
@@ -707,9 +706,8 @@ type Array
     ## Checks whether a condition holds for all elements in this array.
 
        Arguments:
-       - condition: A `Filter_Condition` or a function that takes an element and
-         returns a boolean value that says whether that value satisfies a
-         condition.
+       - condition: A `Filter_Condition` or a predicate function to test each
+         element.
 
        > Example
          Check if all elements in the array are less than zero.
