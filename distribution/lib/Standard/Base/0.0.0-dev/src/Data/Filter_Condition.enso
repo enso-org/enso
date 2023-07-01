@@ -4,14 +4,15 @@ from project.Data.Text.Extensions import all
 import project.Data.Text.Regex
 import project.Data.Text.Text
 import project.Data.Vector.Vector
+import project.Error.Error
+import project.Errors.Illegal_Argument.Illegal_Argument
+import project.Function.Function
+import project.Meta
 import project.Nothing.Nothing
 
 from project.Data.Boolean import all
 
-import project.Metadata.Widget
-from project.Metadata.Widget import Single_Choice
-from project.Metadata.Choice import Option
-import project.Metadata.Display
+from project.Metadata import Widget, make_single_choice
 
 polyglot java import org.enso.base.Regex_Utils
 
@@ -230,7 +231,80 @@ type Filter_Condition
             Not_In values -> "is not in " + values.to_display_text
         "Filter Condition: " + condition
 
+    ## PRIVATE
+       Creates a Single_Choice Widget for delimiters.
+    default_widget : Boolean -> Boolean -> Boolean -> Widget
+    default_widget include_comparable=True include_text=True include_boolean=True include_nullable=True =
+        options_builder = Vector.new_builder
+        if include_comparable then
+            options_builder.append "Less"
+            options_builder.append "Equal_Or_Less"
+            options_builder.append "Equal"
+            options_builder.append "Equal_Or_Greater"
+            options_builder.append "Greater"
+            options_builder.append "Not_Equal"
+            options_builder.append "Between"
+        if include_boolean then
+            options_builder.append "Is_True"
+            options_builder.append "Is_False"
+        if include_nullable then
+            options_builder.append "Is_Nothing"
+            options_builder.append "Not_Nothing"
+        if include_text then
+            options_builder.append "Is_Empty"
+            options_builder.append "Not_Empty"
+            options_builder.append "Starts_With"
+            options_builder.append "Ends_With"
+            options_builder.append "Contains"
+            options_builder.append "Not_Contains"
+            options_builder.append "Like"
+            options_builder.append "Not_Like"
+        options_builder.append "Is_In"
+        options_builder.append "Not_In"
+
+        options = options_builder.to_vector.map constructor_name->
+            name = constructor_name.replace "_" " "
+            code = "(Filter_Condition." + constructor_name + ")"
+            [name, code]
+        make_single_choice options
+
+
 ## PRIVATE
 sql_like_to_regex sql_pattern =
     regex_pattern = Regex_Utils.sql_like_pattern_to_regex sql_pattern
     Regex.compile regex_pattern
+
+## PRIVATE
+unify_condition_or_predicate : Filter_Condition | (Any -> Boolean) -> (Any -> Boolean)
+unify_condition_or_predicate (condition_or_predicate : Filter_Condition | Function) =
+    case condition_or_predicate of
+        condition : Filter_Condition -> condition.to_predicate
+        predicate -> handle_constructor_missing_arguments predicate
+
+## PRIVATE
+unify_condition_predicate_or_element condition =
+    case condition of
+        condition : Filter_Condition -> condition.to_predicate
+        predicate : Function -> handle_constructor_missing_arguments predicate
+        element -> (== element)
+
+## PRIVATE
+   Checks if the given `function` is actually a `Filter_Condition` constructor
+   that is just missing arguments. If so, it will report a more friendly error.
+   Otherwise it will just return the `function` as is.
+handle_constructor_missing_arguments function =
+    is_filter_condition_constructor = case Meta.meta function of
+        constructor : Meta.Constructor ->
+            constructor.declaring_type == Meta.meta Filter_Condition
+        ## Special case for multi-argument constructors with some but not all
+           arguments applied.
+
+           For example, `Meta.meta (Filter_Condition.Between 10)` will return a `Meta.Primitive`.
+           We rely on its text representation being of the form `Filter_Condition.Between[Filter_Condition.enso:41-343]`.
+        _ : Meta.Primitive ->
+            text = function.to_text
+            text.starts_with "Filter_Condition." && text.contains "[Filter_Condition.enso:"
+        _ -> False
+    if is_filter_condition_constructor.not then function else
+        message = "Got a Filter_Condition constructor without all required arguments provided. Please provide the missing arguments."
+        Error.throw (Illegal_Argument.Error message)

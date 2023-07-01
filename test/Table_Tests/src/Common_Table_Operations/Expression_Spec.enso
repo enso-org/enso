@@ -190,6 +190,10 @@ spec detailed setup =
             expression_test "1_000.456/2" 500.228
             expression_test "2^4" 16
             expression_test "11%3" 2
+            expression_test "truncate(3.3)" 3
+            expression_test "ceil(5.3)" 6
+            expression_test "floor(5.3)" 5
+            expression_test "round(5.5)" 6
 
         specify_test "should be able to do basic arithmetic with order" expression_test->
             expression_test "1+1*2+2" 5

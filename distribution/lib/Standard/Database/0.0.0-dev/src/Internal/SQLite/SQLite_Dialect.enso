@@ -169,6 +169,14 @@ type SQLite_Dialect
     supports_separate_nan self = False
 
     ## PRIVATE
+    supports_negative_round_decimal_places : Boolean
+    supports_negative_round_decimal_places self = False
+
+    ## PRIVATE
+    rounding_decimal_places_not_allowed_for_floats : Boolean
+    rounding_decimal_places_not_allowed_for_floats self = False
+
+    ## PRIVATE
        SQLite allows mixed type columns, but we want our columns to be uniform.
        So after unifying columns with mixed types, we add a cast to ensure that.
     adapt_unified_column : Internal_Column -> Value_Type -> (SQL_Expression -> SQL_Type_Reference) -> Internal_Column
@@ -236,7 +244,7 @@ make_internal_generator_dialect =
     text = [starts_with, contains, ends_with, make_case_sensitive]+concat_ops+trim_ops
     counts = [agg_count_is_null, agg_count_empty, agg_count_not_empty, ["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null]]
     stats = [agg_stddev_pop, agg_stddev_samp]
-    arith_extensions = [decimal_div, mod_op]
+    arith_extensions = [is_inf, floating_point_div, mod_op]
 
     bool = [bool_or]
     my_mappings = text + counts + stats + arith_extensions + bool
@@ -319,6 +327,11 @@ trim_ops =
                         Builder.code "CASE WHEN " ++ chars ++ " IS NULL OR " ++ chars ++ " == '' THEN " ++ fn_name ++ "(" ++ input ++ ") ELSE " ++ fn_name ++ "(" ++ input ++ ", " ++ chars ++ ") END"
     [make_fn "TRIM", make_fn "LTRIM", make_fn "RTRIM"]
 
+
+## PRIVATE
+is_inf = Base_Generator.lift_unary_op "IS_INF" arg->
+    (arg ++ " in (9e999, -9e999)").paren
+
 ## PRIVATE
 agg_count_distinct args = case args.length == 1 of
     True -> Builder.code "COUNT(DISTINCT (" ++ args.first ++ "))"
@@ -359,7 +372,7 @@ bool_or = Base_Generator.lift_unary_op "BOOL_OR" arg->
     Builder.code "max(" ++ arg ++ ")"
 
 ## PRIVATE
-decimal_div = Base_Generator.lift_binary_op "/" x-> y->
+floating_point_div = Base_Generator.lift_binary_op "/" x-> y->
     Builder.code "CAST(" ++ x ++ " AS REAL) / CAST(" ++ y ++ " AS REAL)"
 
 ## PRIVATE

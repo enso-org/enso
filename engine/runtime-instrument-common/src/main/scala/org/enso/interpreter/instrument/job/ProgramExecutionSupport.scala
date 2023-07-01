@@ -4,7 +4,8 @@ import cats.implicits._
 import com.oracle.truffle.api.exception.AbstractTruffleException
 import org.enso.interpreter.instrument.IdExecutionService.{
   ExpressionCall,
-  ExpressionValue
+  ExpressionValue,
+  FunctionPointer
 }
 import org.enso.interpreter.instrument.execution.{
   Completion,
@@ -16,6 +17,7 @@ import org.enso.interpreter.instrument.profiling.ExecutionTime
 import org.enso.interpreter.instrument._
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode.FunctionCall
 import org.enso.interpreter.runtime.`type`.Types
+import org.enso.interpreter.runtime.callable.function.Function
 import org.enso.interpreter.runtime.control.ThreadInterruptedException
 import org.enso.interpreter.runtime.error.{
   DataflowError,
@@ -351,31 +353,45 @@ object ProgramExecutionSupport {
               ErrorResolver.getStackTrace(panic).flatMap(_.expressionId)
             )
         case _ =>
-          if (WarningsLibrary.getUncached.hasWarnings(value.getValue)) {
-            val warnings =
-              WarningsLibrary.getUncached.getWarnings(value.getValue, null)
-            val warningsCount = warnings.length
-            val warning =
-              if (warningsCount == 1) {
-                Option(
-                  ctx.executionService.toDisplayString(warnings(0).getValue)
-                )
-              } else {
-                None
-              }
-            Api.ExpressionUpdate.Payload.Value(
-              Some(
-                Api.ExpressionUpdate.Payload.Value
-                  .Warnings(
-                    warningsCount,
-                    warning,
-                    WarningsLibrary.getUncached.isLimitReached(value.getValue)
+          val warnings =
+            Option.when(
+              WarningsLibrary.getUncached.hasWarnings(value.getValue)
+            ) {
+              val warnings =
+                WarningsLibrary.getUncached.getWarnings(value.getValue, null)
+              val warningsCount = warnings.length
+              val warning =
+                if (warningsCount == 1) {
+                  Option(
+                    ctx.executionService.toDisplayString(warnings(0).getValue)
                   )
-              )
-            )
-          } else {
-            Api.ExpressionUpdate.Payload.Value()
+                } else {
+                  None
+                }
+
+              Api.ExpressionUpdate.Payload.Value
+                .Warnings(
+                  warningsCount,
+                  warning,
+                  WarningsLibrary.getUncached.isLimitReached(value.getValue)
+                )
+            }
+
+          val schema = value.getValue match {
+            case function: Function =>
+              val functionInfo = FunctionPointer.fromFunction(function)
+              toMethodPointer(functionInfo).map { methodPointer =>
+                Api.FunctionSchema(
+                  methodPointer,
+                  FunctionPointer.collectNotAppliedArguments(function).toVector
+                )
+              }
+
+            case _ =>
+              None
           }
+
+          Api.ExpressionUpdate.Payload.Value(warnings, schema)
       }
       ctx.endpoint.sendToClient(
         Api.Response(
@@ -541,19 +557,30 @@ object ProgramExecutionSupport {
     */
   private def toMethodCall(value: ExpressionValue): Option[Api.MethodCall] =
     for {
-      call       <- Option(value.getCallInfo).orElse(Option(value.getCachedCallInfo))
-      moduleName <- Option(call.getModuleName)
-      typeName   <- Option(call.getTypeName)
+      call          <- Option(value.getCallInfo).orElse(Option(value.getCachedCallInfo))
+      methodPointer <- toMethodPointer(call.functionPointer)
     } yield {
-      Api.MethodCall(
-        methodPointer = Api.MethodPointer(
-          moduleName.toString,
-          typeName.toString.stripSuffix(TypeSuffix),
-          call.getFunctionName
-        ),
-        notAppliedArguments = call.getNotAppliedArguments.toVector
-      )
+      Api.MethodCall(methodPointer, call.notAppliedArguments.toVector)
     }
+
+  /** Extract the method pointer information form the provided runtime function
+    * pointer.
+    *
+    * @param functionPointer the runtime function pointer
+    * @return the extracted method pointer
+    */
+  private def toMethodPointer(
+    functionPointer: FunctionPointer
+  ): Option[Api.MethodPointer] =
+    for {
+      moduleName   <- Option(functionPointer.moduleName)
+      typeName     <- Option(functionPointer.typeName)
+      functionName <- Option(functionPointer.functionName)
+    } yield Api.MethodPointer(
+      moduleName.toString,
+      typeName.toString.stripSuffix(TypeSuffix),
+      functionName
+    )
 
   /** Find source file path by the module name.
     *
