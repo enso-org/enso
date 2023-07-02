@@ -208,6 +208,7 @@ impl Model {
 
     #[profile(Debug)]
     fn set_label_layer(&self, layer: &display::scene::Layer) {
+        layer.add(&self.ports);
         self.label.add_to_scene_layer(layer);
     }
 

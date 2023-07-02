@@ -499,10 +499,11 @@ define_themes! { [light:0, dark:1]
         }
         node {
             background         = Rgba(0.992,0.996,1.0,1.0), Rgba(0.182,0.188,0.196,1.0);
-            text               = Rgba(0.078,0.067,0.137,0.85) , Lcha(1.0,0.0,0.0,0.7);
+            text               = code::syntax::base, code::syntax::base;
             selection {
                 size = 20.0 , 20.0;
                 opacity = 0.2 , 0.2;
+                hover_opacity = 0.1 , 0.1;
             }
             actions {
                 context_switch {

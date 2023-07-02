@@ -33,80 +33,40 @@ fn build_frp(
     struct_name: &Ident,
     fields: &syn::punctuated::Punctuated<syn::Field, syn::token::Comma>,
 ) -> TokenStream {
+    let mut struct_init = TokenStream::new();
     let mut frp_content = TokenStream::new();
-    let mut prev_value: Ident = format_ident!("init");
-
     for field in fields.iter() {
         let field_name =
             field.ident.as_ref().expect("Encountered unnamed struct field. This cannot happen.");
-        let field_update = format_ident!("{}_update", field_name);
-        let update = quote! {
-            #field_update <- all(&#prev_value, &#field_name);
-        };
-        frp_content.extend(update);
-        prev_value = field_update;
+        frp_content.extend(quote! {
+            layout_update_needed <+ #field_name;
+        });
+        struct_init.extend(quote! {
+            #field_name : #field_name.value(),
+        });
     }
 
-    let destruct_pattern = make_destruct_pattern(fields);
-    let struct_init = make_struct_inits(fields);
-    let struct_generation = quote! {
-            layout_update <- #prev_value.debounce().map(|#destruct_pattern|{
-            #struct_name {
+    quote! {
+        frp::extend! { network
+            layout_update_init <- source_();
+            layout_update_init_debounced <- source_();
+            layout_update_needed <- any_(...);
+            layout_update_needed <+ layout_update_init;
+            layout_update_needed <+ layout_update_init_debounced.debounce();
+            #frp_content
+            layout_update <- layout_update_needed.map(move |()| {
+                #struct_name {
                     #struct_init
                 }
             });
-    };
-    frp_content.extend(struct_generation);
-    quote! {
-        frp::extend! { network
-            init <- source_();
-            #frp_content;
         }
-        // The layout update is debounced, so emitting the init value here will guarantee it to
-        // happen in the next microtask.
-        init.emit(());
+        // In order to make sure that the style value is initialized on first access, we need to
+        // force an update immediately.
+        layout_update_init.emit(());
+        // Then, in order to fire the update after FRP network initialization, we need to emit the
+        // init value in the next microtask.
+        layout_update_init_debounced.emit(());
     }
-}
-
-/// Create the field initializers for the struct holding the theme values.
-fn make_struct_inits(
-    fields: &syn::punctuated::Punctuated<syn::Field, syn::token::Comma>,
-) -> TokenStream {
-    let mut combined = TokenStream::new();
-
-    for field in fields.iter() {
-        let field_name = field
-            .ident
-            .as_ref()
-            .expect("Encountered unnamed struct field. This cannot not happen.");
-        // Keep in mind that all [`Copy`] types also implement [`Clone`].
-        let init = quote! {
-            #field_name : #field_name.clone(),
-        };
-        combined.extend(init);
-    }
-    combined
-}
-
-
-/// Return a token stream that allows the destructuring of the tuple type that is created by the
-/// FRP created in `build_frp`.
-fn make_destruct_pattern(
-    fields: &syn::punctuated::Punctuated<syn::Field, syn::token::Comma>,
-) -> TokenStream {
-    let mut combined = quote! { _ }; // Discard init argument, which is the innermost one.
-
-    for field in fields.iter() {
-        let field_name = field
-            .ident
-            .as_ref()
-            .expect("Encountered unnamed struct field. This cannot not happen.");
-
-        combined = quote! {
-            ( #combined, #field_name)
-        }
-    }
-    combined
 }
 
 /// Iterate the metadata in the list of attributes and return the first path that was supplied with
@@ -208,7 +168,7 @@ pub fn expand(input: DeriveInput) -> TokenStream {
             ) -> #update_struct_name {
                 #theme_getters
                 #frp_network_description
-                #update_struct_name {update:layout_update, init}
+                #update_struct_name {update:layout_update, init:layout_update_init}
             }
         }
     };

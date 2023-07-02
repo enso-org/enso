@@ -3099,10 +3099,8 @@ impl<Out: Data> stream::EventConsumer<Out> for OwnedAny<Out> {
 // === Any_ ===
 // ============
 
-#[derive(Debug)]
-pub struct AnyData_ {
-    srcs: Rc<RefCell<Vec<Box<dyn std::any::Any>>>>,
-}
+#[derive(Debug, Clone, Copy)]
+pub struct AnyData_;
 pub type OwnedAny_ = stream::Node<AnyData_>;
 pub type Any_ = stream::WeakNode<AnyData_>;
 
@@ -3113,16 +3111,13 @@ impl HasOutput for AnyData_ {
 impl OwnedAny_ {
     /// Constructor.
     pub fn new(label: Label) -> Self {
-        let srcs = default();
-        let def = AnyData_ { srcs };
-        Self::construct(label, def)
+        Self::construct(label, AnyData_)
     }
 
     /// Takes ownership of self and returns it with a new stream attached.
     pub fn with<T>(self, src: &T) -> Self
     where T: EventOutput {
         src.register_target(self.downgrade().into());
-        self.srcs.borrow_mut().push(Box::new(src.clone_ref()));
         self
     }
 
@@ -3184,7 +3179,6 @@ impl Any_ {
     pub fn with<T1>(self, src: &T1) -> Self
     where T1: EventOutput {
         src.register_target(self.clone_ref().into());
-        self.upgrade().for_each(|t| t.srcs.borrow_mut().push(Box::new(src.clone_ref())));
         self
     }
 
@@ -3192,7 +3186,6 @@ impl Any_ {
     pub fn attach<T1>(&self, src: &T1)
     where T1: EventOutput {
         src.register_target(self.into());
-        self.upgrade().for_each(|t| t.srcs.borrow_mut().push(Box::new(src.clone_ref())));
     }
 }
 

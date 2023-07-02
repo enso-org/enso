@@ -85,7 +85,7 @@ mod from_theme;
 
 /// Implements the `FromTheme` derive macro. See thr crate docs for more information.
 #[proc_macro_derive(FromTheme, attributes(base_path, theme_path, accessor))]
-pub fn derive_from_thee(input: TokenStream) -> TokenStream {
+pub fn derive_from_theme(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     from_theme::expand(input).into()
 }

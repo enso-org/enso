@@ -250,6 +250,7 @@ impl Model {
     #[profile(Debug)]
     fn init(self, app: &Application) -> Self {
         let text_color = self.styles.get_color(theme::graph_editor::node::text);
+        let text_cursor_color: color::Lch = text_color.into();
 
         self.edit_mode_label.set_single_line_mode(true);
 
@@ -261,6 +262,7 @@ impl Model {
             false,
         );
         self.edit_mode_label.set_property_default(text_color);
+        self.edit_mode_label.set_selection_color(text_cursor_color);
         self.edit_mode_label.set_property_default(text::Size(TEXT_SIZE));
         self.edit_mode_label.remove_all_cursors();
 

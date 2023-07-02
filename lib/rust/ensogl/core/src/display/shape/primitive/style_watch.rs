@@ -108,6 +108,11 @@ impl StyleWatchFrp {
         self.access(path)
     }
 
+    /// Queries style sheet color, if not found fallbacks to [`FALLBACK_COLOR`] and emits a warning.
+    pub fn get_color_lcha(&self, path: impl Into<Path>) -> frp::Sampler<color::Lcha> {
+        self.access(path)
+    }
+
     /// Queries the style sheet for a text. Emits a warning and returns empty string if not found.
     pub fn get_text(&self, path: impl Into<Path>) -> frp::Sampler<ImString> {
         self.access(path)

@@ -287,7 +287,6 @@ pub(super) trait ShapeParent: display::Object {
     /// Create a shape object to render one of the [`Corner`]s making up the edge.
     fn new_section(&self) -> Rectangle {
         let new = Rectangle::new();
-        new.set_corner_radius_max();
         new.set_inset_border(LINE_WIDTH);
         new.set_color(color::Rgba::transparent());
         new.set_pointer_events(false);
@@ -299,7 +298,6 @@ pub(super) trait ShapeParent: display::Object {
     /// [`Corner`]s making up the edge.
     fn new_hover_section(&self) -> Rectangle {
         let new = Rectangle::new();
-        new.set_corner_radius_max();
         new.set_inset_border(HOVER_WIDTH);
         new.set_color(color::Rgba::transparent());
         new.set_border_color(INVISIBLE_HOVER_COLOR);

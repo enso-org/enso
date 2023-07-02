@@ -17,7 +17,7 @@ use ensogl::display;
 use ensogl::display::shape::primitive::def::class::ShapeOps;
 use ensogl::display::shape::AnyShape;
 use ensogl::display::shape::BottomHalfPlane;
-use ensogl::display::shape::Circle;
+use ensogl::display::shape::CapsuleArc;
 use ensogl::display::shape::PixelDistance;
 use ensogl::display::shape::Pixels;
 use ensogl::display::shape::Rect;
@@ -91,32 +91,25 @@ impl AllPortsShape {
         let inner_width = canvas_width - HOVER_AREA_PADDING.px() * 2.0;
         let inner_height = canvas_height - HOVER_AREA_PADDING.px() * 2.0;
         let inner_radius = node::CORNER_RADIUS.px();
-        let top_mask = BottomHalfPlane();
-
+        let y_offset = Var::max(&inner_height - &inner_radius * 2.0, 0.0.px());
 
         // === Main Shape ===
 
-        let shrink = 1.px() - 1.px() * size_multiplier;
-        let port_area_size = PORT_SIZE.px() * size_multiplier;
-        let port_area_width = &inner_width + (&port_area_size - &shrink) * 2.0;
-        let port_area_height = &inner_height + (&port_area_size - &shrink) * 2.0;
-        let outer_radius = &inner_radius + &port_area_size;
-        let shape = Rect((&port_area_width, &port_area_height));
-        let shape = shape.corners_radius(outer_radius);
-        let shape = shape - &top_mask;
-        let corner_radius = &port_area_size / 2.0;
-        let corner_offset = &port_area_width / 2.0 - &corner_radius;
-        let corner = Circle(&corner_radius);
-        let left_corner = corner.translate_x(-&corner_offset);
-        let right_corner = corner.translate_x(&corner_offset);
-        let shape = (shape + left_corner + right_corner).into();
-
+        let shrink = 0.01.px();
+        let line_width = PORT_SIZE.px() * size_multiplier;
+        let mid_radius = &inner_radius + &line_width * 0.5 - shrink;
+        let arc_distance = &inner_width * 0.5 - &inner_radius;
+        let arc_angle = size_multiplier * std::f32::consts::FRAC_PI_2;
+        let shape = CapsuleArc(mid_radius, arc_angle, line_width, arc_distance).flip_y();
+        let shape = shape.translate_y(&y_offset).into();
 
         // === Hover Area ===
 
-        let hover_radius = &inner_radius + &HOVER_AREA_PADDING.px();
-        let hover = Rect((canvas_width, canvas_height)).corners_radius(hover_radius);
-        let hover = (hover - &top_mask).into();
+        let top_mask = BottomHalfPlane().translate_y(y_offset);
+        let hover_radius = node::CORNER_RADIUS + HOVER_AREA_PADDING;
+        let hover_cutout = Rect((&inner_width, &inner_height)).corners_radius(&inner_radius);
+        let hover = Rect((canvas_width, canvas_height)).corners_radius(hover_radius.px());
+        let hover = (hover - &top_mask - hover_cutout).into();
 
         AllPortsShape { inner_radius, inner_width, shape, hover }
     }
@@ -175,11 +168,11 @@ pub mod single_port {
     ensogl::shape! {
         below = [compound::rectangle::shape];
         alignment = center;
-        (style:Style, size_multiplier:f32, opacity:f32, color_rgb:Vector3<f32>) {
+        (style:Style, size_multiplier:f32, color:Vector4<f32>) {
             let overall_width  = Var::<Pixels>::from("input_size.x");
             let overall_height = Var::<Pixels>::from("input_size.y");
             let ports          = AllPortsShape::new(&overall_width,&overall_height,&size_multiplier);
-            let color          = Var::<color::Rgba>::from("srgba(input_color_rgb,input_opacity)");
+            let color          = Var::<color::Rgba>::from(color);
             let shape          = ports.shape.fill(color);
             let hover          = ports.hover.fill(INVISIBLE_HOVER_COLOR);
             (shape + hover).into()
@@ -306,11 +299,10 @@ pub mod multi_port {
         ( style           : Style
         , size_multiplier : f32
         , index           : f32
-        , opacity         : f32
         , port_count      : f32
         , padding_left    : f32
         , padding_right   : f32
-        , color_rgb       : Vector3<f32>
+        , color           : Vector4<f32>
         ) {
             let overall_width  = Var::<Pixels>::from("input_size.x");
             let overall_height = Var::<Pixels>::from("input_size.y");
@@ -338,7 +330,7 @@ pub mod multi_port {
             let port_area = ports.shape.difference(&left_shape_crop);
             let port_area = port_area.intersection(&right_shape_crop);
 
-            let color     = Var::<color::Rgba>::from("srgba(input_color_rgb,input_opacity)");
+            let color     = Var::<color::Rgba>::from(color);
             let port_area = port_area.fill(color);
 
             (port_area + hover_area).into()
@@ -398,8 +390,7 @@ impl PortShapeView {
     fn_both! {
         set_size            (this,t:Vector2)     {this.set_size(t);}
         set_size_multiplier (this,t:f32)         {this.size_multiplier.set(t)}
-        set_color           (this,t:color::Rgba) {this.color_rgb.set(t.opaque.into())}
-        set_opacity         (this,t:f32)         {this.opacity.set(t)}
+        set_color           (this,t:color::Rgba) {this.color.set(t.into())}
     }
 
     fn_multi_only! {
@@ -506,7 +497,6 @@ impl Model {
     ) {
         let frp = Frp::new();
         let network = &frp.network;
-        let opacity = Animation::<f32>::new(network);
         let color = color::Animation::new(network);
         let type_label_opacity = Animation::<f32>::new(network);
         let port_count = self.port_count;
@@ -516,6 +506,7 @@ impl Model {
         full_type_timer.set_duration(0.0);
 
         frp::extend! { network
+            init <- source_();
 
             // === Mouse Event Handling ===
 
@@ -524,15 +515,9 @@ impl Model {
             let mouse_over = shape.on_event::<mouse::Over>();
             mouse_down_primary <- mouse_down.filter(mouse::is_primary);
 
-            frp.source.on_hover <+ bool(&mouse_out,&mouse_over);
+            is_hovered <- bool(&mouse_out,&mouse_over);
+            frp.source.on_hover <+ is_hovered;
             frp.source.on_press <+ mouse_down_primary.constant(());
-
-
-            // === Opacity ===
-
-            opacity.target <+ mouse_over.constant(PORT_OPACITY_HOVERED);
-            opacity.target <+ mouse_out.constant(PORT_OPACITY_NOT_HOVERED);
-            eval opacity.value ((t) shape.set_opacity(*t));
 
 
             // === Size ===
@@ -560,14 +545,14 @@ impl Model {
                 |usage_tp,def_tp| usage_tp.clone().or_else(|| def_tp.clone())
             );
 
-            normal_color        <- frp.tp.map(f!([styles](t)
+            normal_color <- frp.tp.map(f!([styles](t)
                 type_coloring::compute_for_selection(t.as_ref(),&styles)));
-            init_color          <- source::<()>();
-            let profiling_color  = styles_frp.get_color(ensogl_hardcoded_theme::code::types::any::selection);
-            profiling_color     <- all_with(&profiling_color,&init_color,|c,_|color::Lcha::from(c));
-            in_profiling_mode   <- frp.set_view_mode.map(|mode| mode.is_profiling());
-            color_tgt           <- in_profiling_mode.switch(&normal_color,&profiling_color);
-            color.target        <+ color_tgt;
+            let profiling_color = styles_frp.get_color_lcha(ensogl_hardcoded_theme::code::types::any::selection);
+            in_profiling_mode <- frp.set_view_mode.map(|mode| mode.is_profiling());
+            color_base <- in_profiling_mode.switch(&normal_color,&profiling_color);
+            is_hovered <- all(is_hovered, init)._0();
+            color_opacity <- is_hovered.switch_constant(PORT_OPACITY_NOT_HOVERED, PORT_OPACITY_HOVERED);
+            color.target <+ color_base.all_with(&color_opacity, |c, a| c.multiply_alpha(*a));
             eval color.value ((t) shape.set_color(t.into()));
 
             full_type_timer.start <+ frp.on_hover.on_true();
@@ -579,7 +564,7 @@ impl Model {
                 })
             });
         }
-        init_color.emit(());
+        init.emit(());
 
         if SHOW_TYPE_AS_LABEL {
             frp::extend! { network
@@ -618,7 +603,6 @@ impl Model {
             }
         }
 
-        opacity.target.emit(PORT_OPACITY_NOT_HOVERED);
         color.target.emit(type_coloring::compute_for_code(None, styles));
 
         self.frp = Some(frp);

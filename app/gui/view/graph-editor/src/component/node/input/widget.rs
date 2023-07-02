@@ -330,6 +330,8 @@ macro_rules! define_widget_modules(
 define_widget_modules! {
     /// A widget for top-level Enso method calls. Displays an icon.
     Method method,
+    /// Separating line between top-level argument widgets.
+    Separator separator,
     /// A widget for selecting a single value from a list of available options.
     SingleChoice single_choice,
     /// A widget for managing a list of values - adding, removing or reordering them.

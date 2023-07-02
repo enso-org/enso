@@ -655,6 +655,7 @@ pub struct HardcodedLayers {
     pub viz: Layer,
     pub below_main: Layer,
     pub main: Layer,
+    pub main_node_backdrop_level: RectLayerPartition,
     pub main_edges_level: RectLayerPartition,
     pub main_nodes_level: RectLayerPartition,
     pub main_above_inactive_nodes_level: RectLayerPartition,
@@ -677,6 +678,8 @@ pub struct HardcodedLayers {
     pub node_searcher: Layer,
     pub node_searcher_text: Layer,
     pub edited_node: Layer,
+    pub edited_node_backdrop_level: RectLayerPartition,
+    pub edited_node_background_level: RectLayerPartition,
     pub edited_node_text: Layer,
     pub tooltip: Layer,
     pub tooltip_text: Layer,
@@ -706,6 +709,7 @@ impl HardcodedLayers {
         let viz = root.create_sublayer("viz");
         let below_main = root.create_sublayer("below_main");
         let main = root.create_sublayer("main");
+        let main_node_backdrop_level = partition_layer(&main, "node_backdrop");
         let main_edges_level = partition_layer(&main, "edges");
         let main_nodes_level = partition_layer(&main, "nodes");
         let main_above_inactive_nodes_level = partition_layer(&main, "above_inactive_nodes");
@@ -730,6 +734,8 @@ impl HardcodedLayers {
         let node_searcher_text =
             root.create_sublayer_with_camera("node_searcher_text", &node_searcher_cam);
         let edited_node = root.create_sublayer_with_camera("edited_node", &edited_node_cam);
+        let edited_node_backdrop_level = partition_layer(&edited_node, "edited_node_backdrop");
+        let edited_node_background_level = partition_layer(&edited_node, "edited_node_background");
         let edited_node_text =
             root.create_sublayer_with_camera("edited_node_text", &edited_node_cam);
         let tooltip = root.create_sublayer("tooltip");
@@ -742,6 +748,7 @@ impl HardcodedLayers {
             viz,
             below_main,
             main,
+            main_node_backdrop_level,
             main_edges_level,
             main_nodes_level,
             main_above_inactive_nodes_level,
@@ -760,6 +767,8 @@ impl HardcodedLayers {
             node_searcher,
             node_searcher_text,
             edited_node,
+            edited_node_backdrop_level,
+            edited_node_background_level,
             edited_node_text,
             tooltip,
             tooltip_text,

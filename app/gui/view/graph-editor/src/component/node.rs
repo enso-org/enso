@@ -20,6 +20,7 @@ use ensogl::application::Application;
 use ensogl::control::io::mouse;
 use ensogl::data::color;
 use ensogl::display;
+use ensogl::display::scene::layer::LayerSymbolPartition;
 use ensogl::display::shape::compound::rectangle;
 use ensogl::gui;
 use ensogl::Animation;
@@ -100,17 +101,21 @@ pub type Comment = ImString;
 pub struct Background {
     _network:            frp::Network,
     shape:               Rectangle,
+    selection_shape:     Rectangle,
     selection_animation: Animation<f32>,
     color_animation:     color::Animation,
+    node_is_hovered:     frp::Any<bool>,
     size_and_center:     frp::Source<(Vector2, Vector2)>,
 }
 
 #[derive(Debug, Clone, Default, FromTheme)]
 struct BackgroundStyle {
     #[theme_path = "theme::graph_editor::node::selection::opacity"]
-    selection_opacity: f32,
+    selection_opacity:       f32,
+    #[theme_path = "theme::graph_editor::node::selection::hover_opacity"]
+    selection_hover_opacity: f32,
     #[theme_path = "theme::graph_editor::node::selection::size"]
-    selection_size:    f32,
+    selection_size:          f32,
 }
 
 impl Background {
@@ -118,35 +123,74 @@ impl Background {
         let network = frp::Network::new("Background");
         let style = BackgroundStyle::from_theme(&network, style);
         let shape = Rectangle();
+        let selection_shape = Rectangle();
         let color_animation = color::Animation::new(&network);
         let selection_animation = Animation::new(&network);
+        let hover_animation = Animation::new(&network);
+        shape.add_child(&selection_shape);
+
+        let selection_enter = selection_shape.on_event::<mouse::Enter>();
+        let selection_leave = selection_shape.on_event::<mouse::Leave>();
 
         frp::extend! { network
-            border_color <- color_animation.value.all_with(&style.update,
-                |color, style| color.multiply_alpha(style.selection_opacity)
+            selection_is_hovered <- bool(&selection_leave, &selection_enter);
+            node_is_hovered <- any(...);
+            is_hovered <- selection_is_hovered || node_is_hovered;
+            hover_animation.target <+ is_hovered.switch_constant(INVISIBLE_HOVER_COLOR.alpha, 1.0);
+            trace hover_animation.value;
+            selection_colors <- color_animation.value.all_with3(
+                &hover_animation.value, &style.update,
+                |color, hover, style| (
+                    color.multiply_alpha(style.selection_opacity),
+                    color.multiply_alpha(style.selection_hover_opacity * hover),
+                )
             );
-            border_size <- selection_animation.value.all_with(&style.update,
-                |selection, style| style.selection_size * selection
+            selection_border <- selection_animation.value.all_with(&style.update,
+                |selection, style| style.selection_size * (1.0 - selection)
             );
 
             size_and_center <- source();
-            _eval <- size_and_center.all_with(&border_size, f!([shape] (size_and_center, border) {
+            eval size_and_center([shape] (size_and_center) {
                 let (size, center) = *size_and_center;
-                let size_with_border = size + Vector2(*border, *border) * 2.0;
-                let origin = center - size_with_border / 2.0;
-                shape.set_size(size_with_border);
-                shape.set_xy(origin);
-                shape.set_corner_radius(CORNER_RADIUS + border);
-                shape.set_inset_border(*border);
-            }));
+                shape.set_xy(center - size / 2.0);
+                shape.set_size(size);
+                shape.set_corner_radius(CORNER_RADIUS);
+            });
+
+            size_and_selection <- size_and_center.all_with(&style.update,
+                |(size, _), style| (*size, style.selection_size)
+            ).on_change();
+
+            eval size_and_selection([selection_shape] (size_and_selection) {
+                let (size, total_selection_size) = *size_and_selection;
+                let total_selection_vec = Vector2::from_element(total_selection_size);
+                // selection shape is positioned relative to the background shape.
+                selection_shape.set_xy(-total_selection_vec);
+                selection_shape.set_size(size + total_selection_vec * 2.0);
+                selection_shape.set_corner_radius(CORNER_RADIUS + total_selection_size);
+            });
 
             eval color_animation.value((color) shape.set_color(color.into()););
-            eval border_color((color) shape.set_border_color(color.into()););
+            eval selection_border((border) selection_shape.set_inset_border(*border););
+            eval selection_colors([selection_shape] ((selected_color, unselected_color)) {
+                selection_shape.set_color(selected_color.into());
+                selection_shape.set_border_color(unselected_color.into());
+            });
         }
 
         selection_animation.target.emit(0.0);
+        hover_animation.precision.emit(0.01);
+        hover_animation.target.emit(INVISIBLE_HOVER_COLOR.alpha);
 
-        Self { _network: network, shape, selection_animation, color_animation, size_and_center }
+        Self {
+            _network: network,
+            shape,
+            selection_shape,
+            selection_animation,
+            node_is_hovered,
+            color_animation,
+            size_and_center,
+        }
     }
 
     fn set_selected(&self, selected: bool) {
@@ -159,6 +203,15 @@ impl Background {
 
     fn set_size_and_center_xy(&self, size: Vector2<f32>, center: Vector2<f32>) {
         self.size_and_center.emit((size, center));
+    }
+
+    fn set_layers(
+        &self,
+        backdrop: LayerSymbolPartition<rectangle::Shape>,
+        background: LayerSymbolPartition<rectangle::Shape>,
+    ) {
+        background.add(&self.shape);
+        backdrop.add(&self.selection_shape);
     }
 }
 
@@ -494,6 +547,7 @@ impl NodeModel {
     fn set_layers_for_state(&self, new_state: InteractionState) {
         let scene = &self.app.display.default_scene;
         let main_layer;
+        let backdrop_layer;
         let background_layer;
         let text_layer;
         let action_bar_layer;
@@ -504,25 +558,28 @@ impl NodeModel {
                 // `action_bar` is moved to the `edited_node` layer as well, though normally it
                 // lives on a separate `above_nodes` layer, unlike every other node component.
                 main_layer = scene.layers.edited_node.default_partition();
+                backdrop_layer = scene.layers.edited_node_backdrop_level.clone();
                 background_layer = main_layer.clone();
                 text_layer = &scene.layers.edited_node_text;
                 action_bar_layer = &scene.layers.edited_node;
             }
             InteractionState::EditingEdge => {
                 main_layer = scene.layers.main_nodes_level.clone();
+                backdrop_layer = scene.layers.main_node_backdrop_level.clone();
                 background_layer = scene.layers.main_active_nodes_level.clone();
                 text_layer = &scene.layers.label;
                 action_bar_layer = &scene.layers.above_nodes;
             }
             InteractionState::Normal => {
                 main_layer = scene.layers.main_nodes_level.clone();
+                backdrop_layer = scene.layers.main_node_backdrop_level.clone();
                 background_layer = main_layer.clone();
                 text_layer = &scene.layers.label;
                 action_bar_layer = &scene.layers.above_nodes;
             }
         }
         main_layer.add(&self.display_object);
-        background_layer.add(&self.background);
+        self.background.set_layers(backdrop_layer, background_layer);
         action_bar_layer.add(&self.action_bar);
         // For the text layer, [`Layer::add`] can't be used because text rendering currently uses a
         // separate layer management API.
@@ -652,7 +709,7 @@ impl Node {
             model.input.set_hover <+ node_hover;
             model.output.set_hover <+ model.input.body_hover;
             out.hover <+ model.output.body_hover;
-
+            model.background.node_is_hovered <+ out.hover;
 
             // === Background Press ===
 

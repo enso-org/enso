@@ -75,7 +75,7 @@ impl SpanWidget for Widget {
         let root = object::Instance::new_named("widget::Label");
         let label = text::Text::new(app);
         label.set_property_default(text::Size(TEXT_SIZE));
-        layers.label.add(&label);
+        label.add_to_scene_layer(&layers.label);
         root.add_child(&label);
         let frp = Frp::new();
         let network = &frp.network;
@@ -134,15 +134,16 @@ impl SpanWidget for Widget {
         };
 
         let ext = ctx.get_extension_or_default::<Extension>();
-        // let text_weight = if ext.bold { text::Weight::Bold } else { text::Weight::Normal };
-        let text_weight = text::Weight::Normal;
-        let sdf_weight = if ext.bold || is_placeholder { 0.03 } else { 0.0 };
+        let bold = ext.bold || is_placeholder;
+        let text_weight = if bold { text::Weight::Bold } else { text::Weight::Normal };
+        // let text_weight = text::Weight::Normal;
+        // let sdf_weight = if ext.bold || is_placeholder { 0.03 } else { 0.0 };
 
         let input = &self.frp.public.input;
         input.content.emit(content);
         input.text_color.emit(color_state);
         input.text_weight(text_weight);
-        input.text_sdf_weight(sdf_weight);
+        // input.text_sdf_weight(sdf_weight);
     }
 }
 
