@@ -514,6 +514,13 @@ class RuntimeErrorsTest
       TestMessages.error(
         contextId,
         xId,
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Error",
+            "Standard.Base.Error.Error",
+            "throw"
+          )
+        ),
         Api.ExpressionUpdate.Payload.DataflowError(Seq(xId))
       ),
       TestMessages.error(
@@ -682,6 +689,13 @@ class RuntimeErrorsTest
       TestMessages.error(
         contextId,
         xId,
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Error",
+            "Standard.Base.Error.Error",
+            "throw"
+          )
+        ),
         Api.ExpressionUpdate.Payload.DataflowError(Seq(xId))
       ),
       TestMessages.update(contextId, yId, ConstantsGen.INTEGER),
@@ -747,6 +761,13 @@ class RuntimeErrorsTest
       TestMessages.error(
         contextId,
         xId,
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Error",
+            "Standard.Base.Error.Error",
+            "throw"
+          )
+        ),
         Api.ExpressionUpdate.Payload.DataflowError(Seq(xId))
       ),
       TestMessages.error(
@@ -902,6 +923,13 @@ class RuntimeErrorsTest
       TestMessages.error(
         contextId,
         xId,
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Error",
+            "Standard.Base.Error.Error",
+            "throw"
+          )
+        ),
         Api.ExpressionUpdate.Payload.DataflowError(Seq(xId))
       ),
       TestMessages.error(
@@ -1039,7 +1067,7 @@ class RuntimeErrorsTest
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
-    val xId        = metadata.addItem(60, 19)
+    val xId        = metadata.addItem(60, 19, "aa")
     val yId        = metadata.addItem(88, 5)
     val mainResId  = metadata.addItem(98, 12)
 
@@ -1090,10 +1118,18 @@ class RuntimeErrorsTest
       TestMessages.panic(
         contextId,
         xId,
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Panic",
+            "Standard.Base.Panic.Panic",
+            "throw"
+          )
+        ),
         Api.ExpressionUpdate.Payload.Panic(
           "MyError",
           Seq(xId)
-        )
+        ),
+        Some("Standard.Base.Panic.Panic")
       ),
       TestMessages.panic(
         contextId,
@@ -1318,10 +1354,18 @@ class RuntimeErrorsTest
       TestMessages.panic(
         contextId,
         xId,
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Panic",
+            "Standard.Base.Panic.Panic",
+            "throw"
+          )
+        ),
         Api.ExpressionUpdate.Payload.Panic(
           "MyError1",
           Seq(xId)
-        )
+        ),
+        Some("Standard.Base.Panic.Panic")
       ),
       TestMessages.panic(
         contextId,
@@ -1364,12 +1408,18 @@ class RuntimeErrorsTest
       TestMessages.panic(
         contextId,
         xId,
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Panic",
+            "Standard.Base.Panic.Panic",
+            "throw"
+          )
+        ),
         Api.ExpressionUpdate.Payload.Panic(
           "MyError2",
           Seq(xId)
         ),
-        builtin     = false,
-        typeChanged = false
+        Some("Standard.Base.Panic.Panic")
       ),
       TestMessages.panic(
         contextId,
@@ -1388,8 +1438,7 @@ class RuntimeErrorsTest
           "MyError2",
           Seq(xId)
         ),
-        builtin     = false,
-        typeChanged = false
+        builtin = false
       ),
       context.executionComplete(contextId)
     )

@@ -32,7 +32,7 @@ public class StringBuilder extends TypedBuilderImpl<String> {
   }
 
   @Override
-  public Storage<String> seal() {
+  protected Storage<String> doSeal() {
     return new StringStorage(data, currentSize);
   }
 }

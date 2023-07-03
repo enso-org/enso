@@ -518,7 +518,8 @@ js_array_date year month=1 day=1 =
 java_parse date_text pattern=Nothing =
     Panic.catch Any handler=(err -> Error.throw (Time_Error.Error err.payload.getMessage)) <|
         if pattern.is_nothing then LocalDate.parse date_text else
-            formatter = DateTimeFormatter.ofPattern pattern
+            java_locale = Locale.us.java_locale
+            formatter = DateTimeFormatter.ofPattern pattern java_locale
             LocalDate.parse date_text formatter
 
 java_date year month=1 day=1 =

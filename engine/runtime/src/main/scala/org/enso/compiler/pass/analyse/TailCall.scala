@@ -9,8 +9,6 @@ import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.resolve.{ExpressionAnnotations, GlobalNames}
 
-import scala.annotation.unused
-
 /** This pass performs tail call analysis on the Enso IR.
   *
   * It is responsible for marking every single expression with whether it is in
@@ -75,12 +73,6 @@ case object TailCall extends IRPass {
         )
       )
     )
-
-  /** @inheritdoc */
-  override def updateMetadataInDuplicate[T <: IR](
-    @unused sourceIr: T,
-    copyOfIr: T
-  ): T = copyOfIr
 
   /** Performs tail call analysis on a top-level definition in a module.
     *

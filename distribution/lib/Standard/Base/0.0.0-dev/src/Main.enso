@@ -10,6 +10,7 @@ import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors
 import project.Function
+import project.Internal.Rounding_Helpers
 import project.IO
 import project.Math
 import project.Meta
@@ -44,6 +45,7 @@ export project.Data.Text.Text
 export project.Data.Vector.Vector
 export project.Error.Error
 export project.Errors
+export project.Internal.Rounding_Helpers
 export project.IO
 export project.Math
 export project.Meta
@@ -77,6 +79,7 @@ import project.Data.Filter_Condition.Filter_Condition
 import project.Data.Index_Sub_Range.Index_Sub_Range
 import project.Data.Interval.Bound
 import project.Data.Interval.Interval
+import project.Data.Interval.Interval_Type
 import project.Data.Json.Json
 import project.Data.Json.JS_Object
 import project.Data.Locale.Locale
@@ -130,6 +133,7 @@ export project.Data.Filter_Condition.Filter_Condition
 export project.Data.Index_Sub_Range.Index_Sub_Range
 export project.Data.Interval.Bound
 export project.Data.Interval.Interval
+export project.Data.Interval.Interval_Type
 export project.Data.Json.Json
 export project.Data.Json.JS_Object
 export project.Data.Locale.Locale

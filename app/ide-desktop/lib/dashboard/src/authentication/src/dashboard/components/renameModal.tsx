@@ -20,35 +20,32 @@ export interface RenameModalProps {
     namePattern?: string
     title?: string
     doRename: (newName: string) => Promise<void>
-    onSuccess: () => void
+    onComplete: () => void
 }
 
 /** A modal for renaming an asset. */
 function RenameModal(props: RenameModalProps) {
-    const { assetType, name, namePattern, title, doRename, onSuccess } = props
+    const { assetType, name, namePattern, title, doRename, onComplete } = props
     const { unsetModal } = modalProvider.useSetModal()
 
-    const [isSubmitting, setIsSubmitting] = react.useState(false)
     const [newName, setNewName] = react.useState<string | null>(null)
 
     const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault()
         if (newName == null) {
             toast.error('Please provide a new name.')
-        } else if (!isSubmitting) {
+        } else {
+            unsetModal()
             try {
-                setIsSubmitting(true)
                 await toast.promise(doRename(newName), {
-                    loading: `Renaming ${assetType}...`,
-                    success: `Renamed ${assetType}.`,
+                    loading: `Renaming ${assetType} '${name}' to '${newName}'...`,
+                    success: `Renamed ${assetType} '${name}' to '${newName}'.`,
                     // This is UNSAFE, as the original function's parameter is of type `any`.
                     error: (promiseError: Error) =>
-                        `Error renaming ${assetType}: ${promiseError.message}`,
+                        `Error renaming ${assetType} '${name}' to '${newName}': ${promiseError.message}`,
                 })
-                unsetModal()
-                onSuccess()
             } finally {
-                setIsSubmitting(false)
+                onComplete()
             }
         }
     }
@@ -62,23 +59,26 @@ function RenameModal(props: RenameModalProps) {
                 onSubmit={onSubmit}
                 className="relative bg-white shadow-soft rounded-lg w-96 p-2"
             >
-                <button type="button" className="absolute right-0 top-0 m-2" onClick={unsetModal}>
-                    <img src={CloseIcon} />
-                </button>
-                What do you want to rename the {assetType} '{name}' to?
+                <div className="flex">
+                    {/* Padding. */}
+                    <div className="grow" />
+                    <button type="button" onClick={unsetModal}>
+                        <img src={CloseIcon} />
+                    </button>
+                </div>
                 <div className="m-2">
-                    <label className="w-1/3" htmlFor="renamed_file_name">
-                        File name
-                    </label>
+                    What do you want to rename the {assetType} '{name}' to?
+                </div>
+                <div className="m-2">
                     <Input
                         autoFocus
                         required
                         // Never disabled, as disabling unfocuses the input.
-                        id="renamed_file_name"
+                        id="renamed_asset_name"
                         type="text"
                         pattern={namePattern}
                         title={title}
-                        className="border-primary bg-gray-200 rounded-full w-2/3 px-2 mx-2"
+                        className="border-primary bg-gray-200 rounded-full w-full px-2"
                         defaultValue={newName ?? name}
                         setValue={setNewName}
                     />
@@ -86,19 +86,13 @@ function RenameModal(props: RenameModalProps) {
                 <div className="m-1">
                     <button
                         type="submit"
-                        disabled={isSubmitting}
-                        className={`hover:cursor-pointer inline-block text-white bg-blue-600 rounded-full px-4 py-1 m-1 ${
-                            isSubmitting ? 'opacity-50' : ''
-                        }`}
+                        className="hover:cursor-pointer inline-block text-white bg-blue-600 rounded-full px-4 py-1 m-1"
                     >
                         Rename
                     </button>
                     <button
                         type="button"
-                        disabled={isSubmitting}
-                        className={`hover:cursor-pointer inline-block bg-gray-200 rounded-full px-4 py-1 m-1 ${
-                            isSubmitting ? 'opacity-50' : ''
-                        }`}
+                        className="hover:cursor-pointer inline-block bg-gray-200 rounded-full px-4 py-1 m-1"
                         onClick={unsetModal}
                     >
                         Cancel

@@ -811,8 +811,8 @@ public abstract class SortVectorNode extends Node {
       Object yConverted;
       if (hasCustomOnFunc) {
         // onFunc cannot have `self` argument, we assume it has just one argument.
-        xConverted = callNode.executeDispatch(null, onFunc.get(x), null, state, new Object[]{x});
-        yConverted = callNode.executeDispatch(null, onFunc.get(y), null, state, new Object[]{y});
+        xConverted = callNode.executeDispatch(null, onFunc.get(x), null, state, new Object[]{x}, null);
+        yConverted = callNode.executeDispatch(null, onFunc.get(y), null, state, new Object[]{y}, null);
       } else {
         xConverted = x;
         yConverted = y;
@@ -823,7 +823,7 @@ public abstract class SortVectorNode extends Node {
       } else {
         args = new Object[] {xConverted, yConverted};
       }
-      Object res = callNode.executeDispatch(null, compareFunc.get(xConverted), null, state, args);
+      Object res = callNode.executeDispatch(null, compareFunc.get(xConverted), null, state, args, null);
       if (res == less) {
         return ascending ? -1 : 1;
       } else if (res == equal) {

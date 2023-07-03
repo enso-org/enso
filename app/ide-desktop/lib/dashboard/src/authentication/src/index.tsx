@@ -40,7 +40,7 @@ export // This export declaration must be broken up to satisfy the `require-jsdo
 function run(props: app.AppProps) {
     const { logger, supportsDeepLinks } = props
     logger.log('Starting authentication/dashboard UI.')
-    /** The root element that the authentication/dashboard app will be rendered into. */
+    /** The root element into which the authentication/dashboard app will be rendered. */
     const root = document.getElementById(ROOT_ELEMENT_ID)
     const ideElement = document.getElementById(IDE_ELEMENT_ID)
     if (root == null) {

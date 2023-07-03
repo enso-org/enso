@@ -13,7 +13,7 @@ use crate::model::execution_context::VisualizationUpdateData;
 
 use engine_protocol::language_server::ExecutionEnvironment;
 use engine_protocol::language_server::MethodPointer;
-use engine_protocol::language_server::VisualisationConfiguration;
+use engine_protocol::language_server::VisualizationConfiguration;
 use futures::future::LocalBoxFuture;
 use std::cmp::Ordering;
 
@@ -99,13 +99,13 @@ impl ExecutionContext {
         }
     }
 
-    /// Creates a `VisualisationConfiguration` for the visualization with given id. It may be used
+    /// Creates a `VisualizationConfiguration` for the visualization with given id. It may be used
     /// in communication with language server.
     pub fn visualization_config(
         &self,
         id: VisualizationId,
         execution_context_id: Uuid,
-    ) -> FallibleResult<VisualisationConfiguration> {
+    ) -> FallibleResult<VisualizationConfiguration> {
         let err = || InvalidVisualizationId(id);
         let visualizations = self.visualizations.borrow();
         Ok(visualizations.get(&id).ok_or_else(err)?.visualization.config(execution_context_id))

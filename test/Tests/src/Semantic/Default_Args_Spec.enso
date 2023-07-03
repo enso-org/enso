@@ -6,7 +6,7 @@ import Standard.Test.Extensions
 from project.Semantic.Default_Args_Spec.Box import all
 
 type Box
-    Foo (v : Bool = True)
+    Foo (v : Boolean = True)
 
 type Bar (a : Integer = 1) (b : Box = (Foo False)) (c : Boolean = b.v)
 

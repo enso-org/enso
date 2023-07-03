@@ -204,7 +204,7 @@ object LauncherApplication {
           .optionalParameter[Int](
             "data-port",
             "PORT",
-            "Data port for visualisation protocol. Defaults to 8081."
+            "Data port for visualization protocol. Defaults to 8081."
           )
           .withDefault(8081)
       val additionalArgs = Opts.additionalArguments()
