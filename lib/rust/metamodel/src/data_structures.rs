@@ -14,7 +14,6 @@ use enso_zst::ZST;
 /// A globally unique identifier, with a type-tag.
 #[derive(Derivative)]
 #[derivative(Copy(bound = ""))]
-#[derivative(Clone(bound = ""))]
 #[derivative(Debug(bound = ""))]
 #[derivative(Eq(bound = ""))]
 #[derivative(PartialEq(bound = ""))]
@@ -24,6 +23,13 @@ use enso_zst::ZST;
 pub struct Id<T> {
     value:  u32,
     marker: ZST<T>,
+}
+
+// See https://github.com/mcarton/rust-derivative/issues/112.
+impl<T> Clone for Id<T> {
+    fn clone(&self) -> Self {
+        *self
+    }
 }
 
 impl<T> Id<T> {

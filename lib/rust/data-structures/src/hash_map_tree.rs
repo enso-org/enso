@@ -124,11 +124,9 @@ where
     where
         P: IntoIterator<Item = I>,
         I: Into<K>, {
-        segments.into_iter().fold(Some(self), |map, t| {
-            map.and_then(|m| {
-                let key = t.into();
-                m.branches.get(&key)
-            })
+        segments.into_iter().try_fold(self, |map, t| {
+            let key = t.into();
+            map.branches.get(&key)
         })
     }
 
@@ -138,11 +136,9 @@ where
     where
         P: IntoIterator<Item = I>,
         I: Into<K>, {
-        segments.into_iter().fold(Some(self), |map, t| {
-            map.and_then(|m| {
-                let key = t.into();
-                m.branches.get_mut(&key)
-            })
+        segments.into_iter().try_fold(self, |map, t| {
+            let key = t.into();
+            map.branches.get_mut(&key)
         })
     }
 

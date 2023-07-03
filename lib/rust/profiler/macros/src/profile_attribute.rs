@@ -48,7 +48,7 @@ fn make_label<L: fmt::Display>(name: L) -> String {
     let span = proc_macro::Span::call_site();
     let file = span.source_file().path();
     let path = file.as_path().to_string_lossy();
-    let line = span.start().line;
+    let line = span.start().line();
     format!("{name} ({path}:{line})")
 }
 

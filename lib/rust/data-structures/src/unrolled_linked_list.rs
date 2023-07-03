@@ -285,7 +285,7 @@ where
     /// Convert the list into a vector.
     pub fn into_vec(self) -> Vec<T> {
         let mut vec = Vec::with_capacity(self.len.get());
-        vec.extend(self.into_iter());
+        vec.extend(self);
         vec
     }
 }

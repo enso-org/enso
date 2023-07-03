@@ -57,7 +57,7 @@ pub fn rewrite_stream<F: Fn(TokenTree) -> TokenStream + Copy>(
                 let mut new_group = proc_macro2::Group::new(delim, rewritten);
                 new_group.set_span(span);
                 let new_group = vec![TokenTree::from(new_group)];
-                ret.extend(new_group.into_iter())
+                ret.extend(new_group)
             }
             _ => ret.extend(f(token)),
         }

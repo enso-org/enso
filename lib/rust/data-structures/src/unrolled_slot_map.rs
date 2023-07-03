@@ -58,7 +58,6 @@ impl Version {
 #[derive(Derivative)]
 #[derivative(
     Copy(bound = ""),
-    Clone(bound = ""),
     Default(bound = ""),
     Debug(bound = ""),
     PartialEq(bound = ""),
@@ -68,6 +67,13 @@ pub struct VersionedIndex<Kind = ()> {
     index:   usize,
     version: Version,
     _kind:   ZST<Kind>,
+}
+
+// See https://github.com/mcarton/rust-derivative/issues/112.
+impl<T> Clone for VersionedIndex<T> {
+    fn clone(&self) -> Self {
+        *self
+    }
 }
 
 #[allow(unsafe_code)]

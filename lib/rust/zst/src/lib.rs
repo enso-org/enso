@@ -93,7 +93,7 @@ macro_rules! define_zst {
             impl<$($bounds)*> Clone for $name<$($params)*> {
                 #[inline(always)]
                 fn clone(&self) -> Self {
-                    $name()
+                    *self
                 }
             }
 

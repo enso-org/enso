@@ -65,7 +65,7 @@ impl std::str::FromStr for Version {
 
 impl IsVersion for Version {
     fn find_in_text_internal(text: &str) -> Result<Self> {
-        let number_regex = regex::Regex::new(r#"\d+"#)?;
+        let number_regex = regex::Regex::new(r"\d+")?;
         let number_match = number_regex.find(text).context("No number in the given text.")?;
         let number_text = number_match.as_str();
         number_text.parse2()

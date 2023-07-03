@@ -25,7 +25,7 @@ pub fn graph(root: LazyType) -> Graph {
             continue;
         }
         let type_ = type_.evaluate();
-        to_visit.extend(type_.referenced_types().into_iter());
+        to_visit.extend(type_.referenced_types());
         types.insert(id, type_);
     }
     let mut graph = Graph::default();

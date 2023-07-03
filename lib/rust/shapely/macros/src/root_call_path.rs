@@ -18,7 +18,7 @@ pub fn root_call_path() -> String {
     let source = span.source_file();
     let start = span.start();
     let path = source.path().to_str().unwrap_or_default().to_string();
-    format!("{path}:{}:{}", start.line, start.column)
+    format!("{path}:{}:{}", start.line(), start.column())
 }
 
 /// Macro reporting the root call path of itself. If it was used inside another macro "A", the
