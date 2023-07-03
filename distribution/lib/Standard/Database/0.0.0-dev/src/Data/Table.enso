@@ -21,11 +21,11 @@ import Standard.Table.Data.Report_Unmatched.Report_Unmatched
 import Standard.Table.Data.Row.Row
 import Standard.Table.Data.Table.Table as Materialized_Table
 import Standard.Table.Data.Type.Value_Type_Helpers
-import Standard.Table.Internal.Aggregate_Column_Helper
-import Standard.Table.Internal.Table_Helpers
 import Standard.Table.Internal.Add_Row_Number
-import Standard.Table.Internal.Table_Helpers.Table_Column_Helper
+import Standard.Table.Internal.Aggregate_Column_Helper
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
+import Standard.Table.Internal.Table_Helpers
+import Standard.Table.Internal.Table_Helpers.Table_Column_Helper
 import Standard.Table.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 import Standard.Table.Internal.Widget_Helpers
 from Standard.Table.Data.Column import get_item_string, normalize_string_for_display
