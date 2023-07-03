@@ -30,7 +30,6 @@ import ConfirmDeleteModal from './confirmDeleteModal'
 import ContextMenu from './contextMenu'
 import ContextMenuEntry from './contextMenuEntry'
 import EditableSpan from './editableSpan'
-import RenameModal from './renameModal'
 import Table from './table'
 
 // =================
@@ -96,7 +95,11 @@ function DirectoryNameHeading(props: InternalDirectoryNameHeadingProps) {
 
 /** Props for a {@link DirectoryName}. */
 interface InternalDirectoryNameProps
-    extends tableColumn.TableColumnProps<backendModule.DirectoryAsset, DirectoriesTableState> {}
+    extends tableColumn.TableColumnProps<
+        backendModule.DirectoryAsset,
+        DirectoriesTableState,
+        DirectoryRowState
+    > {}
 
 /** The icon and name of a specific directory asset. */
 function DirectoryName(props: InternalDirectoryNameProps) {
@@ -105,10 +108,11 @@ function DirectoryName(props: InternalDirectoryNameProps) {
         setItem,
         selected,
         state: { enterDirectory },
+        rowState,
+        setRowState,
     } = props
     const logger = loggerProvider.useLogger()
     const { backend } = backendProvider.useBackend()
-    const [isNameEditable, setIsNameEditable] = React.useState(false)
 
     const doRename = async (newName: string) => {
         if (backend.type !== backendModule.BackendType.local) {
@@ -136,7 +140,10 @@ function DirectoryName(props: InternalDirectoryNameProps) {
                             event
                         ))
                 ) {
-                    setIsNameEditable(true)
+                    setRowState(oldRowState => ({
+                        ...oldRowState,
+                        isEditingName: true,
+                    }))
                 } else if (eventModule.isDoubleClick(event)) {
                     enterDirectory(item)
                 }
@@ -144,9 +151,12 @@ function DirectoryName(props: InternalDirectoryNameProps) {
         >
             <img src={DirectoryIcon} />
             <EditableSpan
-                editable={isNameEditable}
+                editable={rowState.isEditingName}
                 onSubmit={async newTitle => {
-                    setIsNameEditable(false)
+                    setRowState(oldRowState => ({
+                        ...oldRowState,
+                        isEditingName: false,
+                    }))
                     if (newTitle !== item.title) {
                         const oldTitle = item.title
                         setItem(oldItem => ({ ...oldItem, title: newTitle }))
@@ -158,7 +168,10 @@ function DirectoryName(props: InternalDirectoryNameProps) {
                     }
                 }}
                 onCancel={() => {
-                    setIsNameEditable(false)
+                    setRowState(oldRowState => ({
+                        ...oldRowState,
+                        isEditingName: false,
+                    }))
                 }}
                 className="cursor-pointer bg-transparent grow px-2"
             >
@@ -177,7 +190,8 @@ function DirectoryRow(
     props: tableRow.TableRowProps<
         backendModule.DirectoryAsset,
         backendModule.DirectoryId,
-        DirectoriesTableState
+        DirectoriesTableState,
+        DirectoryRowState
     >
 ) {
     const {
@@ -269,6 +283,16 @@ interface DirectoriesTableState {
     markItemAsVisible: (key: string) => void
 }
 
+/** Data associated with a {@link DirectoryRow}, used for rendering. */
+export interface DirectoryRowState {
+    isEditingName: boolean
+}
+
+/** The default {@link DirectoryRowState} associated with a {@link ProjectRow}. */
+export const INITIAL_ROW_STATE: DirectoryRowState = Object.freeze({
+    isEditingName: false,
+})
+
 /** Props for a {@link DirectoriesTable}. */
 export interface DirectoriesTableProps {
     directoryId: backendModule.DirectoryId | null
@@ -292,7 +316,7 @@ function DirectoriesTable(props: DirectoriesTableProps) {
     const logger = loggerProvider.useLogger()
     const { organization } = authProvider.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
-    const { setModal } = modalProvider.useSetModal()
+    const { setModal, unsetModal } = modalProvider.useSetModal()
     const [items, setItems] = React.useState(rawItems)
     const [directoryEvent, dispatchDirectoryEvent] =
         hooks.useEvent<directoryEventModule.DirectoryEvent>()
@@ -412,11 +436,17 @@ function DirectoriesTable(props: DirectoriesTableProps) {
         return <></>
     } else {
         return (
-            <Table<backendModule.DirectoryAsset, backendModule.DirectoryId, DirectoriesTableState>
+            <Table<
+                backendModule.DirectoryAsset,
+                backendModule.DirectoryId,
+                DirectoriesTableState,
+                DirectoryRowState
+            >
                 rowComponent={DirectoryRow}
                 items={visibleItems}
                 isLoading={isLoading}
                 state={state}
+                initialRowState={INITIAL_ROW_STATE}
                 getKey={backendModule.getAssetId}
                 placeholder={filter != null ? PLACEHOLDER_WITH_FILTER : PLACEHOLDER_WITHOUT_FILTER}
                 forceShowPlaceholder={shouldForceShowPlaceholder}
@@ -470,20 +500,15 @@ function DirectoriesTable(props: DirectoriesTableProps) {
                     )
                 }}
                 onRowContextMenu={(innerProps, event) => {
-                    const { item } = innerProps
+                    const { item, setRowState } = innerProps
                     event.preventDefault()
                     event.stopPropagation()
                     const doRename = () => {
-                        const innerDoRename = async (newName: string) => {
-                            await backend.updateDirectory(item.id, { title: newName }, item.title)
-                        }
-                        setModal(
-                            <RenameModal
-                                name={item.title}
-                                assetType={item.type}
-                                doRename={innerDoRename}
-                            />
-                        )
+                        setRowState(oldRowState => ({
+                            ...oldRowState,
+                            isEditingName: true,
+                        }))
+                        unsetModal()
                     }
                     const doDelete = () => {
                         setModal(

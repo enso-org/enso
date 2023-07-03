@@ -171,14 +171,18 @@ function SecretNameHeading(props: InternalSecretNameHeadingProps) {
 
 /** Props for a {@link SecretName}. */
 interface InternalSecretNameProps
-    extends tableColumn.TableColumnProps<backendModule.SecretAsset, SecretsTableState> {}
+    extends tableColumn.TableColumnProps<
+        backendModule.SecretAsset,
+        SecretsTableState,
+        SecretRowState
+    > {}
 
 /** The icon and name of a specific secret asset. */
 function SecretName(props: InternalSecretNameProps) {
-    const { item, setItem, selected } = props
-    const [isNameEditable, setIsNameEditable] = React.useState(false)
+    const { item, setItem, selected, setRowState } = props
 
-    // TODO[sb]: Wait for backend implementation.
+    // TODO[sb]: Wait for backend implementation. `editable` should also be re-enabled, and the
+    // context menu entry should be re-added.
     // Backend implementation is tracked here: https://github.com/enso-org/cloud-v2/issues/505.
     const doRename = async (/* _newName: string */) => {
         await Promise.resolve(null)
@@ -196,15 +200,21 @@ function SecretName(props: InternalSecretNameProps) {
                             event
                         ))
                 ) {
-                    setIsNameEditable(true)
+                    setRowState(oldRowState => ({
+                        ...oldRowState,
+                        isEditingName: true,
+                    }))
                 }
             }}
         >
             <img src={SecretIcon} />{' '}
             <EditableSpan
-                editable={isNameEditable}
+                editable={false}
                 onSubmit={async newTitle => {
-                    setIsNameEditable(false)
+                    setRowState(oldRowState => ({
+                        ...oldRowState,
+                        isEditingName: false,
+                    }))
                     if (newTitle !== item.title) {
                         const oldTitle = item.title
                         setItem(oldItem => ({ ...oldItem, title: newTitle }))
@@ -216,7 +226,10 @@ function SecretName(props: InternalSecretNameProps) {
                     }
                 }}
                 onCancel={() => {
-                    setIsNameEditable(false)
+                    setRowState(oldRowState => ({
+                        ...oldRowState,
+                        isEditingName: false,
+                    }))
                 }}
                 className="bg-transparent grow px-2"
             >
@@ -235,7 +248,8 @@ function SecretRow(
     props: tableRow.TableRowProps<
         backendModule.SecretAsset,
         backendModule.SecretId,
-        SecretsTableState
+        SecretsTableState,
+        SecretRowState
     >
 ) {
     const {
@@ -323,6 +337,16 @@ interface SecretsTableState {
     markItemAsHidden: (key: string) => void
     markItemAsVisible: (key: string) => void
 }
+
+/** Data associated with a {@link SecretRow}, used for rendering. */
+export interface SecretRowState {
+    isEditingName: boolean
+}
+
+/** The default {@link SecretRowState} associated with a {@link SecretRow}. */
+export const INITIAL_ROW_STATE: SecretRowState = Object.freeze({
+    isEditingName: false,
+})
 
 /** Props for a {@link SecretsTable}. */
 export interface SecretsTableProps {
@@ -439,11 +463,17 @@ function SecretsTable(props: SecretsTableProps) {
         return <></>
     } else {
         return (
-            <Table<backendModule.SecretAsset, backendModule.SecretId, SecretsTableState>
+            <Table<
+                backendModule.SecretAsset,
+                backendModule.SecretId,
+                SecretsTableState,
+                SecretRowState
+            >
                 rowComponent={SecretRow}
                 items={visibleItems}
                 isLoading={isLoading}
                 state={state}
+                initialRowState={INITIAL_ROW_STATE}
                 getKey={backendModule.getAssetId}
                 placeholder={filter != null ? PLACEHOLDER_WITH_QUERY : PLACEHOLDER_WITHOUT_QUERY}
                 forceShowPlaceholder={shouldForceShowPlaceholder}

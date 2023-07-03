@@ -1,4 +1,6 @@
-/** @file A table that projects an object into each column. */
+/** @file A table that projects an object into each column.
+ * This is intended to be specialized into components for specific item types, rather than
+ * being used directly. */
 import * as React from 'react'
 
 import * as shortcuts from '../shortcuts'
@@ -227,7 +229,7 @@ function Table<T, Key extends string = string, State = never, RowState = never>(
                     keyProp={key}
                     item={item}
                     selected={selectedKeys.has(key)}
-                    allowContextMenu={selectedKeys.size === 0}
+                    allowContextMenu={selectedKeys.size === 0 || selectedKeys.has(key)}
                     onClick={onRowClick}
                     onContextMenu={onRowContextMenu}
                 />
@@ -239,9 +241,7 @@ function Table<T, Key extends string = string, State = never, RowState = never>(
         <table
             className="table-fixed items-center border-collapse w-0 mt-2"
             onContextMenu={event => {
-                onContextMenu(selectedKeys, event, () => {
-                    setSelectedKeys(new Set())
-                })
+                onContextMenu(selectedKeys, event, setSelectedKeys)
             }}
         >
             <thead>{headerRow}</thead>

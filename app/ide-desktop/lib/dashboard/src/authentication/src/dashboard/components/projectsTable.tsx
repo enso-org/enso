@@ -30,7 +30,6 @@ import ConfirmDeleteModal from './confirmDeleteModal'
 import ContextMenu from './contextMenu'
 import ContextMenuEntry from './contextMenuEntry'
 import EditableSpan from './editableSpan'
-import RenameModal from './renameModal'
 import Table from './table'
 
 // =============
@@ -471,7 +470,6 @@ function ProjectName(props: InternalProjectNameProps) {
     } = props
     const logger = loggerProvider.useLogger()
     const { backend } = backendProvider.useBackend()
-    const [isNameEditable, setIsNameEditable] = React.useState(false)
 
     const doRename = async (newName: string) => {
         try {
@@ -511,7 +509,10 @@ function ProjectName(props: InternalProjectNameProps) {
                             event
                         ))
                 ) {
-                    setIsNameEditable(true)
+                    setRowState(oldRowState => ({
+                        ...oldRowState,
+                        isEditingName: true,
+                    }))
                 }
             }}
         >
@@ -528,9 +529,12 @@ function ProjectName(props: InternalProjectNameProps) {
                 onClose={doCloseIde}
             />
             <EditableSpan
-                editable={isNameEditable}
+                editable={rowState.isEditingName}
                 onSubmit={async newTitle => {
-                    setIsNameEditable(false)
+                    setRowState(oldRowState => ({
+                        ...oldRowState,
+                        isEditingName: false,
+                    }))
                     if (newTitle !== item.title) {
                         const oldTitle = item.title
                         setItem(oldItem => ({ ...oldItem, title: newTitle }))
@@ -542,7 +546,10 @@ function ProjectName(props: InternalProjectNameProps) {
                     }
                 }}
                 onCancel={() => {
-                    setIsNameEditable(false)
+                    setRowState(oldRowState => ({
+                        ...oldRowState,
+                        isEditingName: false,
+                    }))
                 }}
                 {...(backend.type === backendModule.BackendType.local
                     ? {
@@ -576,7 +583,7 @@ interface InternalProjectRowContextMenuProps {
 /** The context menu for a row of a {@link ProjectsTable}. */
 function ProjectRowContextMenu(props: InternalProjectRowContextMenuProps) {
     const {
-        innerProps: { item, rowState },
+        innerProps: { item, rowState, setRowState },
         event,
         dispatchProjectEvent,
     } = props
@@ -592,30 +599,11 @@ function ProjectRowContextMenu(props: InternalProjectRowContextMenuProps) {
         })
     }
     const doRename = () => {
-        const innerDoRename = async (newName: string) => {
-            await backend.projectUpdate(
-                item.id,
-                {
-                    ami: null,
-                    ideVersion: null,
-                    projectName: newName,
-                },
-                item.title
-            )
-        }
-        setModal(
-            <RenameModal
-                name={item.title}
-                assetType={item.type}
-                doRename={innerDoRename}
-                {...(backend.type === backendModule.BackendType.local
-                    ? {
-                          namePattern: validation.LOCAL_PROJECT_NAME_PATTERN,
-                          title: validation.LOCAL_PROJECT_NAME_TITLE,
-                      }
-                    : {})}
-            />
-        )
+        setRowState(oldRowState => ({
+            ...oldRowState,
+            isEditingName: true,
+        }))
+        unsetModal()
     }
     const doDelete = () => {
         setModal(
@@ -761,14 +749,16 @@ interface ProjectsTableState {
     doCloseIde: () => void
 }
 
-/** Data associated with a project, used for rendering. */
+/** Data associated with a {@link ProjectRow}, used for rendering. */
 export interface ProjectRowState {
     isRunning: boolean
+    isEditingName: boolean
 }
 
 /** The default {@link ProjectRowState} associated with a {@link ProjectRow}. */
 export const INITIAL_ROW_STATE: ProjectRowState = Object.freeze({
     isRunning: false,
+    isEditingName: false,
 })
 
 /** Props for a {@link ProjectsTable}. */

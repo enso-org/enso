@@ -128,14 +128,14 @@ function FileNameHeading(props: InternalFileNameHeadingProps) {
 
 /** Props for a {@link FileName}. */
 interface InternalFileNameProps
-    extends tableColumn.TableColumnProps<backendModule.FileAsset, FilesTableState> {}
+    extends tableColumn.TableColumnProps<backendModule.FileAsset, FilesTableState, FileRowState> {}
 
 /** The icon and name of a specific file asset. */
 function FileName(props: InternalFileNameProps) {
-    const { item, setItem, selected } = props
-    const [isNameEditable, setIsNameEditable] = React.useState(false)
+    const { item, setItem, selected, setRowState } = props
 
-    // TODO[sb]: Wait for backend implementation.
+    // TODO[sb]: Wait for backend implementation. `editable` should also be re-enabled, and the
+    // context menu entry should be re-added.
     // Backend implementation is tracked here: https://github.com/enso-org/cloud-v2/issues/505.
     const doRename = async () => {
         return await Promise.resolve(null)
@@ -153,15 +153,21 @@ function FileName(props: InternalFileNameProps) {
                             event
                         ))
                 ) {
-                    setIsNameEditable(true)
+                    setRowState(oldRowState => ({
+                        ...oldRowState,
+                        isEditingName: true,
+                    }))
                 }
             }}
         >
             <img src={fileInfo.fileIcon()} />
             <EditableSpan
-                editable={isNameEditable}
+                editable={false}
                 onSubmit={async newTitle => {
-                    setIsNameEditable(false)
+                    setRowState(oldRowState => ({
+                        ...oldRowState,
+                        isEditingName: false,
+                    }))
                     if (newTitle !== item.title) {
                         const oldTitle = item.title
                         setItem(oldItem => ({ ...oldItem, title: newTitle }))
@@ -173,7 +179,10 @@ function FileName(props: InternalFileNameProps) {
                     }
                 }}
                 onCancel={() => {
-                    setIsNameEditable(false)
+                    setRowState(oldRowState => ({
+                        ...oldRowState,
+                        isEditingName: false,
+                    }))
                 }}
                 className="bg-transparent grow px-2"
             >
@@ -189,7 +198,12 @@ function FileName(props: InternalFileNameProps) {
 
 /** A row in a {@link DirectoriesTable}. */
 function FileRow(
-    props: tableRow.TableRowProps<backendModule.FileAsset, backendModule.FileId, FilesTableState>
+    props: tableRow.TableRowProps<
+        backendModule.FileAsset,
+        backendModule.FileId,
+        FilesTableState,
+        FileRowState
+    >
 ) {
     const {
         keyProp: key,
@@ -280,6 +294,16 @@ interface FilesTableState {
     markItemAsHidden: (key: string) => void
     markItemAsVisible: (key: string) => void
 }
+
+/** Data associated with a {@link FileRow}, used for rendering. */
+interface FileRowState {
+    isEditingName: boolean
+}
+
+/** The default {@link SecretRowState} associated with a {@link FileRow}. */
+const INITIAL_ROW_STATE: FileRowState = Object.freeze({
+    isEditingName: false,
+})
 
 /** Props for a {@link FilesTable}. */
 export interface FilesTableProps {
@@ -405,11 +429,12 @@ function FilesTable(props: FilesTableProps) {
         return <></>
     } else {
         return (
-            <Table<backendModule.FileAsset, backendModule.FileId, FilesTableState>
+            <Table<backendModule.FileAsset, backendModule.FileId, FilesTableState, FileRowState>
                 rowComponent={FileRow}
                 items={visibleItems}
                 isLoading={isLoading}
                 state={state}
+                initialRowState={INITIAL_ROW_STATE}
                 getKey={backendModule.getAssetId}
                 placeholder={filter != null ? PLACEHOLDER_WITH_QUERY : PLACEHOLDER_WITHOUT_QUERY}
                 forceShowPlaceholder={shouldForceShowPlaceholder}
