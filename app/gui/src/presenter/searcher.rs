@@ -18,7 +18,7 @@ use ide_view::graph_editor::NodeId;
 use ide_view::project::SearcherParams;
 use ide_view::project::SearcherType;
 
-pub mod ai_searcher;
+pub mod ai;
 pub mod component_browser_searcher;
 
 

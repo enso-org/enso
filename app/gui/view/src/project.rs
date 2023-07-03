@@ -133,8 +133,6 @@ ensogl::define_endpoints! {
         start_node_creation_with_ai_searcher(),
         /// Started creation of a new node using the Component Browser.
         start_node_creation_with_component_browser(),
-        /// Accept the current input of the searcher.
-        accept_searcher_input(),
     }
 
     Output {
