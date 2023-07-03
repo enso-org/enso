@@ -75,6 +75,46 @@ pub fn main() {
         SimpleTriangle::from_base_and_altitude(100.0, 25.0).into(),
         SimpleTriangle::from_base_and_altitude(100.0, 50.0).into(),
         SimpleTriangle::from_base_and_altitude(100.0, 100.0).into(),
+        RoundedRectangle(20.0).build(|t| {
+            t.set_size(Vector2::new(100.0, 100.0))
+                .set_color(color::Rgba::new(0.5, 0.5, 0.0, 0.5))
+                .set_inset(10.0)
+                .set_border(3.0)
+                .set_border_color(color::Rgba::new(0.0, 0.5, 0.5, 1.0));
+        }),
+        RoundedRectangle(20.0).build(|t| {
+            t.set_size(Vector2::new(100.0, 100.0))
+                .set_color(color::Rgba::new(0.5, 0.5, 0.0, 0.5))
+                .set_inset(10.0)
+                .set_border(-3.0)
+                .set_border_color(color::Rgba::new(0.0, 0.5, 0.5, 1.0));
+        }),
+        RoundedRectangle(20.0).build(|t| {
+            t.set_size(Vector2::new(100.0, 100.0))
+                .set_color(color::Rgba::new(0.5, 0.5, 0.0, 0.5))
+                .set_inset(10.0)
+                .set_border_color(color::Rgba::new(0.0, 0.5, 0.5, 1.0));
+        }),
+        RoundedRectangle(20.0).build(|t| {
+            t.set_size(Vector2::new(100.0, 100.0))
+                .set_color(color::Rgba::new(0.5, 0.3, 0.2, 0.5))
+                .set_inset(10.0)
+                .set_border(-5.0)
+                .set_border_color(color::Rgba::new(0.2, 0.2, 0.5, 1.0));
+        }),
+        RoundedRectangle(20.0).build(|t| {
+            t.set_size(Vector2::new(100.0, 100.0))
+                .set_color(color::Rgba::new(0.5, 0.3, 0.2, 0.5))
+                .set_border(-5.0)
+                .set_border_color(color::Rgba::new(0.2, 0.2, 0.5, 1.0));
+        }),
+        RoundedRectangle(20.0).build(|t| {
+            t.set_size(Vector2::new(100.0, 100.0))
+                .set_color(color::Rgba::new(0.5, 0.3, 0.2, 0.5))
+                .set_inset(-10.0)
+                .set_border(-5.0)
+                .set_border_color(color::Rgba::new(0.2, 0.2, 0.5, 1.0));
+        }),
     ];
 
     let root = display::object::Instance::new();
