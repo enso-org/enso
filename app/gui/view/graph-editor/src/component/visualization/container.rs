@@ -201,10 +201,10 @@ impl View {
         let display_object = display::object::Instance::new();
         let background = background::View::new();
         let overlay = Rectangle::default().build(|r| {
-            r.set_color(INVISIBLE_HOVER_COLOR);
+            r.set_color(INVISIBLE_HOVER_COLOR).set_border_color(INVISIBLE_HOVER_COLOR);
         });
         let resize_grip = Rectangle::default().build(|r| {
-            r.set_color(INVISIBLE_HOVER_COLOR);
+            r.set_color(INVISIBLE_HOVER_COLOR).set_border_color(INVISIBLE_HOVER_COLOR);
         });
         display_object.add_child(&background);
         display_object.add_child(&overlay);
