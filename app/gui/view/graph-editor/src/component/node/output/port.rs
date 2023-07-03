@@ -524,7 +524,7 @@ impl Model {
             let mouse_leave = shape.on_event::<mouse::Leave>();
             mouse_down_primary <- mouse_down.filter(mouse::is_primary);
 
-            frp.source.on_hover <+ bool(&mouse_leave,&mouse_enter);
+            frp.source.on_hover <+ bool(&mouse_leave, &mouse_enter);
             frp.source.on_press <+ mouse_down_primary.constant(());
 
 
