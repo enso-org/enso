@@ -24,70 +24,70 @@ public abstract class InsertBuiltinVectorNode extends Node {
     return InsertBuiltinVectorNodeGen.create();
   }
 
-  abstract Vector execute(Object self, long index, Object values);
+  abstract Vector execute(Object vec, long index, Object values);
 
   @Specialization
   Vector fromVector(
-      Vector self,
+      Vector vec,
       long index,
       Vector values,
       @Cached CopyNode copyNode,
       @CachedLibrary(limit = "3") InteropLibrary interop) {
-    return insertBuiltin(self.toArray(), index, values.toArray(), copyNode, interop);
+    return insertBuiltin(vec.toArray(), index, values.toArray(), copyNode, interop);
   }
 
   @Specialization
   Vector fromArray(
-      Array self,
+      Array vec,
       long index,
       Vector values,
       @Cached CopyNode copyNode,
       @CachedLibrary(limit = "3") InteropLibrary interop) {
-    return insertBuiltin(self, index, values.toArray(), copyNode, interop);
+    return insertBuiltin(vec, index, values.toArray(), copyNode, interop);
   }
 
-  @Specialization(guards = "interop.hasArrayElements(self)")
+  @Specialization(guards = "interop.hasArrayElements(vec)")
   Vector fromArrayLike(
-      Object self,
+      Object vec,
       long index,
       Vector values,
       @Cached CopyNode copyNode,
       @CachedLibrary(limit = "3") InteropLibrary interop) {
-    return insertBuiltin(self, index, values.toArray(), copyNode, interop);
+    return insertBuiltin(vec, index, values.toArray(), copyNode, interop);
   }
 
   @Specialization(guards = "interop.hasArrayElements(values)")
   Vector fromVectorWithArrayLikeObject(
-      Vector self,
+      Vector vec,
       long index,
       Object values,
       @Cached CopyNode copyNode,
       @CachedLibrary(limit = "3") InteropLibrary interop) {
-    return insertBuiltin(self.toArray(), index, values, copyNode, interop);
+    return insertBuiltin(vec.toArray(), index, values, copyNode, interop);
   }
 
   @Specialization(guards = "interop.hasArrayElements(values)")
   Vector fromArrayWithArrayLikeObject(
-      Array self,
+      Array vec,
       long index,
       Object values,
       @Cached CopyNode copyNode,
       @CachedLibrary(limit = "3") InteropLibrary interop) {
-    return insertBuiltin(self, index, values, copyNode, interop);
+    return insertBuiltin(vec, index, values, copyNode, interop);
   }
 
-  @Specialization(guards = {"interop.hasArrayElements(self)", "interop.hasArrayElements(values)"})
+  @Specialization(guards = {"interop.hasArrayElements(vec)", "interop.hasArrayElements(values)"})
   Vector fromArrayLikeWithArrayLikeObject(
-      Object self,
+      Object vec,
       long index,
       Object values,
       @Cached CopyNode copyNode,
       @CachedLibrary(limit = "3") InteropLibrary interop) {
-    return insertBuiltin(self, index, values, copyNode, interop);
+    return insertBuiltin(vec, index, values, copyNode, interop);
   }
 
   @Fallback
-  Vector fromUnknown(Object self, long index, Object values) {
+  Vector fromUnknown(Object vec, long index, Object values) {
     throw unsupportedException(values);
   }
 

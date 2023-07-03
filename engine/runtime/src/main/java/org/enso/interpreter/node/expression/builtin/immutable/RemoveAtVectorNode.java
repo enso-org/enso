@@ -26,59 +26,59 @@ public abstract class RemoveAtVectorNode extends Node {
     return RemoveAtVectorNodeGen.create();
   }
 
-  abstract Vector execute(Object self, long index);
+  abstract Vector execute(Object vec, long index);
 
   @Specialization
   Vector fromVector(
-      Vector self,
+      Vector vec,
       long index,
       @Cached CopyNode copyNode,
       @CachedLibrary(limit = "3") InteropLibrary interop) {
     try {
-      return removeAtIndex(self.toArray(), index, copyNode, interop);
+      return removeAtIndex(vec.toArray(), index, copyNode, interop);
     } catch (UnsupportedMessageException e) {
       CompilerDirectives.transferToInterpreter();
       Builtins builtins = EnsoContext.get(this).getBuiltins();
       throw new PanicException(
-          builtins.error().makeTypeError(builtins.vector(), self, "self"), this);
+          builtins.error().makeTypeError(builtins.vector(), vec, "vec"), this);
     }
   }
 
   @Specialization
   Vector fromArray(
-      Array self,
+      Array vec,
       long index,
       @Cached CopyNode copyNode,
       @CachedLibrary(limit = "3") InteropLibrary interop) {
     try {
-      return removeAtIndex(self, index, copyNode, interop);
+      return removeAtIndex(vec, index, copyNode, interop);
     } catch (UnsupportedMessageException e) {
-      throw unsupportedException(self);
+      throw unsupportedException(vec);
     }
   }
 
-  @Specialization(guards = "interop.hasArrayElements(self)")
+  @Specialization(guards = "interop.hasArrayElements(vec)")
   Vector fromArrayLike(
-      Object self,
+      Object vec,
       long index,
       @Cached CopyNode copyNode,
       @CachedLibrary(limit = "3") InteropLibrary interop) {
     try {
-      return removeAtIndex(self, index, copyNode, interop);
+      return removeAtIndex(vec, index, copyNode, interop);
     } catch (UnsupportedMessageException e) {
-      throw unsupportedException(self);
+      throw unsupportedException(vec);
     }
   }
 
   @Fallback
-  Vector fromUnknown(Object self, long index) {
-    throw unsupportedException(self);
+  Vector fromUnknown(Object vec, long index) {
+    throw unsupportedException(vec);
   }
 
-  private PanicException unsupportedException(Object self) {
+  private PanicException unsupportedException(Object vec) {
     CompilerDirectives.transferToInterpreter();
     var ctx = EnsoContext.get(this);
-    var err = ctx.getBuiltins().error().makeTypeError("polyglot array", self, "self");
+    var err = ctx.getBuiltins().error().makeTypeError("polyglot array", vec, "vec");
     throw new PanicException(err, this);
   }
 
