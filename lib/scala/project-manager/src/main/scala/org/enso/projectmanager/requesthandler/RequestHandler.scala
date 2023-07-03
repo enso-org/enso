@@ -176,7 +176,3 @@ abstract class RequestHandler[
     context.become(responseStage(id, replyTo, None))
   }
 }
-
-object RequestHandler {
-  val defaultNumOfTimeoutRetries: Int = 3
-}

@@ -54,7 +54,7 @@ class ClientController[F[+_, +_]: Exec: CovariantFlatMap: ErrorChannel](
           globalConfigService,
           projectService,
           timeoutConfig.requestTimeout,
-          RequestHandler.defaultNumOfTimeoutRetries
+          timeoutConfig.retries
         ),
       ProjectDelete -> ProjectDeleteHandler
         .props[F](projectService, timeoutConfig.requestTimeout),
@@ -63,7 +63,7 @@ class ClientController[F[+_, +_]: Exec: CovariantFlatMap: ErrorChannel](
           clientId,
           projectService,
           timeoutConfig.bootTimeout,
-          RequestHandler.defaultNumOfTimeoutRetries
+          timeoutConfig.retries
         ),
       ProjectClose -> ProjectCloseHandler
         .props[F](
@@ -75,7 +75,7 @@ class ClientController[F[+_, +_]: Exec: CovariantFlatMap: ErrorChannel](
         .props[F](
           projectService,
           timeoutConfig.requestTimeout,
-          RequestHandler.defaultNumOfTimeoutRetries
+          timeoutConfig.retries
         ),
       ProjectRename -> ProjectRenameHandler
         .props[F](projectService, timeoutConfig.requestTimeout),
