@@ -33,6 +33,7 @@ use ensogl::data::color::Rgba;
 use ensogl::display;
 use ensogl::display::scene;
 use ensogl::display::scene::Scene;
+use ensogl::display::scene::Shape;
 use ensogl::display::shape::StyleWatchFrp;
 use ensogl::display::DomScene;
 use ensogl::display::DomSymbol;
@@ -61,8 +62,12 @@ pub mod visualization_chooser;
 pub const DEFAULT_SIZE: Vector2 = Vector2(200.0, 200.0);
 /// Minimal allowed size of the visualization container.
 const MIN_SIZE: Vector2 = Vector2(200.0, 200.0);
+/// Maximal allowed size of the visualization container, as percentage of the screen size.
+const MAX_PORTION_OF_SCREEN: Vector2 = Vector2(0.8, 0.8);
 const CORNER_RADIUS: f32 = super::super::node::CORNER_RADIUS;
 const ACTION_BAR_HEIGHT: f32 = 2.0 * CORNER_RADIUS;
+/// Whether to reset the manually-resized visualization on opening or not.
+const RESET_RESIZING_ON_OPEN: bool = false;
 
 
 
@@ -356,10 +361,12 @@ impl ContainerModel {
 // === Private API ===
 
 impl ContainerModel {
-    /// Resize the container to the given size. The size is clamped to [`MIN_SIZE`].
-    fn resize(&self, mut new_size: Vector2, view_state: ViewState) -> Vector2 {
-        new_size.x = new_size.x.max(MIN_SIZE.x);
-        new_size.y = new_size.y.max(MIN_SIZE.y);
+    /// Resize the container to the given size. The size is clamped between [`MIN_SIZE`] and
+    /// screen_shape * [`MAX_PORTION_OF_SCREEN`].
+    fn resize(&self, mut new_size: Vector2, view_state: ViewState, screen_shape: &Shape) -> Vector2 {
+        let max_size = Vector2::from(screen_shape).component_mul(&MAX_PORTION_OF_SCREEN);
+        new_size.x = new_size.x.max(MIN_SIZE.x).min(max_size.x);
+        new_size.y = new_size.y.max(MIN_SIZE.y).min(max_size.y);
         self.update_layout(new_size, view_state);
         new_size
     }
@@ -620,11 +627,13 @@ impl Container {
             pos_on_move_down <- glob_pos_on_move_down.map(f!((p) model.screen_to_object_space(*p)));
             pos_diff <- pos_on_move_down.map2(&pos_on_down, |a, b| a - b);
             size_on_drag_start <- output.size.sample(&on_down);
-            output.size <+ pos_diff.map3(&size_on_drag_start, &output.view_state, f!([model](diff, size, view_state) {
-                let diff = Vector2(diff.x, -diff.y);
-                let new_size = size + diff;
-                model.resize(new_size, *view_state)
-            }));
+            output.size <+ pos_diff.map4(&size_on_drag_start, &output.view_state, scene_shape,
+                f!([model](diff, size, view_state, scene_shape) {
+                    let diff = Vector2(diff.x, -diff.y);
+                    let new_size = size + diff;
+                    model.resize(new_size, *view_state, scene_shape)
+                }
+            ));
 
 
             // === Adjust width to the width of the node ===
@@ -638,9 +647,13 @@ impl Container {
             width_change_after_open <- width_target.sample(&on_visible);
             width_anim.target <+ width_target.gate(&size_was_not_changed_manually);
             new_size <- width_anim.value.map2(&output.size, |w, s| Vector2(*w, s.y));
-            size_reset <- width_change_after_open.map(|w| Vector2(*w, DEFAULT_SIZE.x));
+            reset_resizing_on_open <- init.constant(RESET_RESIZING_ON_OPEN);
+            size_reset <- width_change_after_open.gate(&reset_resizing_on_open).map(|w| Vector2(*w, DEFAULT_SIZE.x));
             size_change <- any3(&new_size, &input.set_size, &size_reset);
-            output.size <+ size_change.map2(&output.view_state, f!((new_size, view_state) model.resize(*new_size, *view_state)));
+            size_change_and_scene_shape <- all(&size_change, scene_shape);
+            output.size <+ size_change_and_scene_shape.map2(&output.view_state,
+                f!(((new_size, scene_shape), view_state) model.resize(*new_size, *view_state, scene_shape))
+            );
         }
 
 
