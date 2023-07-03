@@ -799,7 +799,14 @@ class RuntimeErrorsTest
       3,
       updatesOnlyFor = Set(xId, yId)
     ) should contain theSameElementsAs Seq(
-      TestMessages.update(contextId, xId, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, xId, ConstantsGen.INTEGER,
+        methodCall = Some(Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Error",
+            "Standard.Base.Error.Error",
+            "throw"
+          )
+        ))),
       TestMessages.update(contextId, yId, ConstantsGen.INTEGER),
       context.executionComplete(contextId)
     )
