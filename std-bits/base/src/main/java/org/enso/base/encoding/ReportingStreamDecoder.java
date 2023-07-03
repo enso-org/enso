@@ -199,7 +199,6 @@ public class ReportingStreamDecoder extends Reader {
    * <p>After this call, the output buffer is in reading mode.
    */
   private void runDecoderOnInputBuffer() {
-    Context context = Context.getCurrent();
     while (inputBuffer.hasRemaining() || (eof && !hadEofDecodeCall)) {
       CoderResult cr = decoder.decode(inputBuffer, outputBuffer, eof);
       if (eof) {
@@ -220,7 +219,12 @@ public class ReportingStreamDecoder extends Reader {
         growOutputBuffer();
       }
 
-      context.safepoint();
+      /*
+       We cannot have a safepoint here, because `read` is sometimes called from a separate Thread by the
+       `CsvParser` where there is no context to get. On this separate thread there is no reason to have a safepoint
+       anyway.
+      */
+      // context.safepoint();
     }
 
     if (eof) {

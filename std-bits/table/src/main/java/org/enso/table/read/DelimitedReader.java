@@ -460,23 +460,28 @@ public class DelimitedReader {
 
   /** Reads the input stream and returns a Table. */
   public WithProblems<Table> read() {
-    ensureHeadersDetected();
-    int columnCount = getColumnCount();
-    if  (columnCount == 0) {
-      throw new EmptyFileException();
-    }
-
     Context context = Context.getCurrent();
-    initBuilders(columnCount);
-    while (canFitMoreRows()) {
-      var currentRow = readNextRow();
-      if (currentRow == null) break;
-      appendRow(currentRow);
+    try {
+      ensureHeadersDetected();
+      int columnCount = getColumnCount();
+      if  (columnCount == 0) {
+        throw new EmptyFileException();
+      }
 
-      context.safepoint();
+      // TODO initialize parser only here
+      initBuilders(columnCount);
+      while (canFitMoreRows()) {
+        var currentRow = readNextRow();
+        if (currentRow == null) break;
+        appendRow(currentRow);
+
+        context.safepoint();
+      }
+    } finally {
+      // We ensure that parsing is stopped, even if the parsing has been interrupted.
+      // That is to ensure that the other thread that is used for reading is also stopped quickly.
+      parser.stopParsing();
     }
-
-    parser.stopParsing();
 
     Column[] columns = new Column[builders.length];
     for (int i = 0; i < builders.length; i++) {
