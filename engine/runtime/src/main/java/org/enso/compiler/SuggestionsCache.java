@@ -95,7 +95,7 @@ public final class SuggestionsCache
       var pathSegments = new String[]{
               pkg.namespace(),
               pkg.name(),
-              pkg.config().version(),
+              pkg.getConfig().version(),
               Info.ensoVersion(),
               libraryName.namespace()
       };
