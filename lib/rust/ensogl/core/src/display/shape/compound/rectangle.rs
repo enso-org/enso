@@ -67,7 +67,7 @@ pub mod shape {
             // Additional constant to overlap of body and border. That way, the border that is
             // supposed to touch the body will not leave any visible gap between shapes.
             let fwidth = Var::<f32>::from("fwidth(position.x)");
-            let touch_offset = Max::max(Min::min(border, fwidth.clone()), Var::from(0.0));
+            let touch_offset = Max::max(Min::min(border, fwidth), Var::from(0.0));
             let body = body.grow(touch_offset);
 
 
