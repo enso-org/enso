@@ -50,7 +50,10 @@ export function BackendProvider(props: BackendProviderProps) {
     const { children } = props
     const [backend, setBackendWithoutSavingType] = react.useState<
         localBackend.LocalBackend | remoteBackend.RemoteBackend
-    >(() => new localBackend.LocalBackend())
+        // This default value is UNSAFE, but required. Care must be taken to initialize the backend
+        // before it is used.
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    >(null!)
     const setBackend = react.useCallback((newBackend: AnyBackendAPI) => {
         setBackendWithoutSavingType(newBackend)
         localStorage.setItem(BACKEND_TYPE_KEY, newBackend.type)

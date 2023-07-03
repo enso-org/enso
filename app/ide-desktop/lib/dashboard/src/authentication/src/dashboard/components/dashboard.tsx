@@ -143,8 +143,8 @@ const COLUMN_NAME: Record<Exclude<Column, Column.name>, string> = {
 
 /** CSS classes for every column. Currently only used to set the widths. */
 const COLUMN_CSS_CLASS: Record<Column, string> = {
-    [Column.name]: 'w-60',
-    [Column.lastModified]: 'w-40',
+    [Column.name]: 'w-58',
+    [Column.lastModified]: 'w-36',
     [Column.sharedWith]: 'w-36',
     [Column.docs]: 'w-96',
     [Column.labels]: 'w-80',
@@ -1114,8 +1114,11 @@ function Dashboard(props: DashboardProps) {
             ) : (
                 <>
                     <Templates onTemplateClick={handleCreateProject} />
+                    {/* Spacing. */}
+                    <div className="h-2.5" />
                     <div className="flex flex-row flex-nowrap mx-2">
-                        <h1 className="text-xl font-bold mx-4 self-center">Drive</h1>
+                        <h1 className="text-xl font-bold mx-2.25 self-center">Drive</h1>
+                        <div className="w-1.75" />
                         <div className="flex flex-row flex-nowrap mx-4">
                             {backend.type === backendModule.BackendType.remote && (
                                 <>
@@ -1226,7 +1229,7 @@ function Dashboard(props: DashboardProps) {
                     </div>
                     {/* Padding. */}
                     <div className="h-6 mx-2" />
-                    <div className="flex-1 overflow-auto mx-2">
+                    <div className="flex-1 overflow-auto">
                         <table className="table-fixed items-center border-collapse mt-2">
                             <tbody>
                                 <tr className="h-0">

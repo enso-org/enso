@@ -58,6 +58,8 @@ function TopBar(props: TopBarProps) {
 
     return (
         <div className="flex mx-2 h-8">
+            {/* FIGMA MODE ONLY */}
+            <div style={{ width: '60px' }} />
             {supportsLocalBackend && (
                 <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap p-1.5">
                     <button
@@ -87,13 +89,14 @@ function TopBar(props: TopBarProps) {
                 </div>
             )}
             <div
-                className={`flex items-center bg-label rounded-full pl-1
-                                pr-2.5 mx-2 ${projectName ? 'cursor-pointer' : 'opacity-50'}`}
+                className={`flex items-center bg-label rounded-full pl-1 pr-2.5 mx-2 w-39 ${
+                    projectName != null ? 'cursor-pointer' : 'opacity-50'
+                }`}
                 onClick={toggleTab}
             >
                 <span
-                    className={`opacity-50 overflow-hidden transition-width nowrap ${
-                        tab === dashboard.Tab.dashboard ? 'm-2 w-16' : 'w-0'
+                    className={`flex-1 opacity-50 overflow-hidden transition-width nowrap ${
+                        tab === dashboard.Tab.dashboard ? 'm-2' : 'grow-0 w-0'
                     }`}
                 >
                     {projectName ?? 'Dashboard'}
@@ -102,8 +105,8 @@ function TopBar(props: TopBarProps) {
                     <img src={BarsIcon} />
                 </div>
                 <span
-                    className={`opacity-50 overflow-hidden transition-width nowrap ${
-                        tab === dashboard.Tab.ide ? 'm-2 w-16' : 'w-0'
+                    className={`flex-1 opacity-50 overflow-hidden transition-width nowrap ${
+                        tab === dashboard.Tab.ide ? 'm-2' : 'grow-0 w-0'
                     }`}
                 >
                     {projectName ?? 'No project open'}
@@ -127,7 +130,8 @@ function TopBar(props: TopBarProps) {
             <a
                 href="https://discord.gg/enso"
                 target="_blank"
-                className="flex items-center bg-help rounded-full px-2.5 text-white mx-2"
+                rel="noreferrer"
+                className="flex items-center bg-help rounded-full px-2.25 text-white mx-1.25"
             >
                 <span className="whitespace-nowrap">help chat</span>
                 <div className="ml-2">
@@ -135,7 +139,7 @@ function TopBar(props: TopBarProps) {
                 </div>
             </a>
             {/* User profile and menu. */}
-            <div className="transform w-8">
+            <div className="transform w-8 mx-2.75">
                 <div
                     onClick={event => {
                         event.stopPropagation()

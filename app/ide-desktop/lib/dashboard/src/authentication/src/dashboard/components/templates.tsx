@@ -238,9 +238,11 @@ function Templates(props: TemplatesProps) {
             </div>
             <div
                 ref={containerRef}
-                className={`grid gap-2 grid-cols-fill-60 justify-center overflow-y-scroll scroll-hidden transition-all duration-300 ease-in-out px-4 ${
+                className={`grid gap-2 grid-cols-fill-60 justify-center overflow-y-scroll scroll-hidden transition-all duration-300 ease-in-out px-3.5 ${
                     isOpen ? `h-templates-custom ${shadowClass}` : 'h-0'
                 }`}
+                // FIGMA MODE ONLY
+                style={{ height: '210px' }}
                 onScroll={updateShadowClass}
             >
                 <TemplatesRender templates={TEMPLATES} onTemplateClick={onTemplateClick} />
