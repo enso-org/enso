@@ -127,7 +127,7 @@ function App(props: AppProps) {
  * because the {@link AppRouter} relies on React hooks, which can't be used in the same React
  * component as the component that defines the provider. */
 function AppRouter(props: AppProps) {
-    const { logger, showDashboard, onAuthenticated } = props
+    const { supportsLocalBackend, logger, showDashboard, onAuthenticated } = props
     const navigate = hooks.useNavigate()
     // FIXME[sb]: After platform detection for Electron is merged in, `IS_DEV_MODE` should be
     // set to true on `ide watch`.
@@ -179,6 +179,7 @@ function AppRouter(props: AppProps) {
                 {/* eslint-disable-next-line @typescript-eslint/no-non-null-assertion */}
                 <backendProvider.BackendProvider initialBackend={null!}>
                     <authProvider.AuthProvider
+                        supportsLocalBackend={supportsLocalBackend}
                         authService={memoizedAuthService}
                         onAuthenticated={onAuthenticated}
                     >
