@@ -58,18 +58,17 @@ pub mod shape {
             let body = Rect((&width, &height)).corners_radius(corner_radius.px());
 
             // === Border ===
-
-            let absolute_border = border.abs();
             let border_center = &inset * border.negative() + &border * 0.5;
-            let border_thickness = &absolute_border - f32::EPSILON;
+            let border_thickness = border.abs() - f32::EPSILON;
             let border_body = body.grow(border_center.px()).annulus(border_thickness.px());
 
-            // Additional constant to overlap of body and border. That way, the border that is
-            // supposed to touch the body will not leave any visible gap between shapes.
+            // When the border is touching the edge of the body, extend the body by up to a pixel.
+            // That way there is no visual gap between the shapes caused by anti-aliasing. In those
+            // scenarios, the extended body will be occluded by the border, therefore it will not
+            // have any visible effect, other than removing the unwanted artifact.
             let fwidth = Var::<f32>::from("fwidth(position.x)");
             let touch_offset = Max::max(Min::min(border, fwidth), Var::from(0.0));
             let body = body.grow(touch_offset);
-
 
             // === Shape ===
             let color = Var::<color::Rgba>::from(color);
