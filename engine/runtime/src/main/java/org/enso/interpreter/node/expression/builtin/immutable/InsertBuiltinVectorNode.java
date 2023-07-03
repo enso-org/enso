@@ -100,12 +100,12 @@ public abstract class InsertBuiltinVectorNode extends Node {
   private Vector insertBuiltin(
       Object current, long index, Object values, CopyNode copyNode, InteropLibrary interop) {
     try {
-      long current_length = interop.getArraySize(current);
-      long values_length = interop.getArraySize(values);
-      Array result = Array.allocate(current_length + values_length);
+      long currentLength = interop.getArraySize(current);
+      long valuesLength = interop.getArraySize(values);
+      Array result = Array.allocate(currentLength + valuesLength);
       copyNode.execute(current, 0, result, 0, index);
-      copyNode.execute(values, 0, result, index, values_length);
-      copyNode.execute(current, index, result, index + values_length, current_length - index);
+      copyNode.execute(values, 0, result, index, valuesLength);
+      copyNode.execute(current, index, result, index + valuesLength, currentLength - index);
       return Vector.fromArray(result);
     } catch (UnsupportedMessageException e) {
       throw unsupportedException(values);

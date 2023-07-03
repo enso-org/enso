@@ -11,6 +11,7 @@ import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.mutable.CopyNode;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.data.Vector;
 import org.enso.interpreter.runtime.error.PanicException;
@@ -33,7 +34,14 @@ public abstract class RemoveAtVectorNode extends Node {
       long index,
       @Cached CopyNode copyNode,
       @CachedLibrary(limit = "3") InteropLibrary interop) {
-    return removeAtIndex(self.toArray(), index, copyNode, interop);
+    try {
+      return removeAtIndex(self.toArray(), index, copyNode, interop);
+    } catch (UnsupportedMessageException e) {
+      CompilerDirectives.transferToInterpreter();
+      Builtins builtins = EnsoContext.get(this).getBuiltins();
+      throw new PanicException(
+          builtins.error().makeTypeError(builtins.vector(), self, "self"), this);
+    }
   }
 
   @Specialization
@@ -42,7 +50,11 @@ public abstract class RemoveAtVectorNode extends Node {
       long index,
       @Cached CopyNode copyNode,
       @CachedLibrary(limit = "3") InteropLibrary interop) {
-    return removeAtIndex(self, index, copyNode, interop);
+    try {
+      return removeAtIndex(self, index, copyNode, interop);
+    } catch (UnsupportedMessageException e) {
+      throw unsupportedException(self);
+    }
   }
 
   @Specialization(guards = "interop.hasArrayElements(self)")
@@ -51,7 +63,11 @@ public abstract class RemoveAtVectorNode extends Node {
       long index,
       @Cached CopyNode copyNode,
       @CachedLibrary(limit = "3") InteropLibrary interop) {
-    return removeAtIndex(self, index, copyNode, interop);
+    try {
+      return removeAtIndex(self, index, copyNode, interop);
+    } catch (UnsupportedMessageException e) {
+      throw unsupportedException(self);
+    }
   }
 
   @Fallback
@@ -60,23 +76,19 @@ public abstract class RemoveAtVectorNode extends Node {
   }
 
   private PanicException unsupportedException(Object self) {
+    CompilerDirectives.transferToInterpreter();
     var ctx = EnsoContext.get(this);
     var err = ctx.getBuiltins().error().makeTypeError("polyglot array", self, "self");
     throw new PanicException(err, this);
   }
 
   private Vector removeAtIndex(
-      Object storage, long index, CopyNode copyArrayNode, InteropLibrary interop) {
-    try {
-      long length = interop.getArraySize(storage);
-      long actualIndex = index < 0 ? index + length : index;
-      Array array = Array.allocate(length - 1);
-      copyArrayNode.execute(storage, 0, array, 0, actualIndex);
-      copyArrayNode.execute(storage, actualIndex + 1, array, actualIndex, length - actualIndex - 1);
-      return Vector.fromArray(array);
-    } catch (UnsupportedMessageException e) {
-      CompilerDirectives.transferToInterpreter();
-      throw new IllegalStateException(e);
-    }
+      Object storage, long index, CopyNode copyArrayNode, InteropLibrary interop) throws UnsupportedMessageException {
+    long length = interop.getArraySize(storage);
+    long actualIndex = index < 0 ? index + length : index;
+    Array array = Array.allocate(length - 1);
+    copyArrayNode.execute(storage, 0, array, 0, actualIndex);
+    copyArrayNode.execute(storage, actualIndex + 1, array, actualIndex, length - actualIndex - 1);
+    return Vector.fromArray(array);
   }
 }

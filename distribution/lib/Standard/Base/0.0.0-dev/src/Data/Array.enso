@@ -183,9 +183,6 @@ type Array
     insert : Integer -> Any -> Vector ! Index_Out_Of_Bounds
     insert self at=self.length item=Nothing = Vector.insert self at item
 
-    ## PRIVATE
-    insert_builtin self at values = @Builtin_Method "Vector.insert_builtin"
-
     ## Removes the item at the given index from the array.
 
        Arguments:
@@ -194,9 +191,6 @@ type Array
          end.
     remove : Integer -> Vector
     remove self at=-1 = Vector.remove self at
-
-    ## PRIVATE
-    remove_builtin self at = @Builtin_Method "Vector.remove_builtin"
 
     ## Get the first element from the array, or an `Index_Out_Of_Bounds` if the array
        is empty.

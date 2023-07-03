@@ -686,9 +686,6 @@ type Vector a
         _ : Array -> self + Vector.from_polyglot_array that
         _ -> Error.throw (Type_Error.Error Vector that "that")
 
-    ## PRIVATE
-    insert_builtin self at values = @Builtin_Method("Vector.insert_builtin")
-
     ## Inserts the given item into the vector at the given index.
 
        Arguments:
@@ -711,7 +708,10 @@ type Vector a
         if used_index < 0 || used_index > self_len then Error.throw (Index_Out_Of_Bounds.Error at self_len+1) else
             if used_index == self_len then self + [item] else
                 if used_index == 0 then [item] + self else
-                    self.insert_builtin used_index [item]
+                    Vector.insert_builtin self used_index [item]
+
+    ## PRIVATE
+    insert_builtin vec at values = @Builtin_Method("Vector.insert_builtin")
 
     ## Removes the item at the given index from the vector.
 
@@ -724,10 +724,10 @@ type Vector a
         self_len = self.length
         used_index = if at < 0 then self_len + at else at
         if used_index >= self_len || used_index < 0 then Error.throw (Index_Out_Of_Bounds.Error at self_len) else
-            self.remove_builtin used_index
+            Vector.remove_builtin self used_index
 
     ## PRIVATE
-    remove_builtin self at = @Builtin_Method "Vector.remove_builtin"
+    remove_builtin vec at = @Builtin_Method "Vector.remove_builtin"
 
     ## When `self` is a vector of text values, concatenates all the values by
        interspersing them with `separator`.

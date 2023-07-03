@@ -32,19 +32,34 @@ public abstract class FlattenVectorNode extends Node {
   @Specialization
   Vector fromVector(
       Vector self, @Cached CopyNode copyNode, @CachedLibrary(limit = "3") InteropLibrary interop) {
-    return flatten(self.toArray(), copyNode, interop);
+    try {
+      return flatten(self.toArray(), copyNode, interop);
+    } catch (UnsupportedMessageException e) {
+      CompilerDirectives.transferToInterpreter();
+      Builtins builtins = EnsoContext.get(this).getBuiltins();
+      throw new PanicException(
+          builtins.error().makeTypeError(builtins.vector(), self, "self"), this);
+    }
   }
 
   @Specialization
   Vector fromArray(
       Array self, @Cached CopyNode copyNode, @CachedLibrary(limit = "3") InteropLibrary interop) {
-    return flatten(self, copyNode, interop);
+    try {
+      return flatten(self, copyNode, interop);
+    } catch (UnsupportedMessageException e) {
+      throw unsupportedException(self);
+    }
   }
 
   @Specialization(guards = "interop.hasArrayElements(self)")
   Vector fromArrayLike(
       Object self, @Cached CopyNode copyNode, @CachedLibrary(limit = "3") InteropLibrary interop) {
-    return flatten(self, copyNode, interop);
+    try {
+      return flatten(self, copyNode, interop);
+    } catch (UnsupportedMessageException e) {
+      throw unsupportedException(self);
+    }
   }
 
   @Fallback
@@ -53,12 +68,13 @@ public abstract class FlattenVectorNode extends Node {
   }
 
   private PanicException unsupportedException(Object self) {
+    CompilerDirectives.transferToInterpreter();
     var ctx = EnsoContext.get(this);
     var err = ctx.getBuiltins().error().makeTypeError("polyglot array", self, "self");
     throw new PanicException(err, this);
   }
 
-  private Vector flatten(Object storage, CopyNode copyNode, InteropLibrary interop) {
+  private Vector flatten(Object storage, CopyNode copyNode, InteropLibrary interop) throws UnsupportedMessageException{
     try {
       long length = interop.getArraySize(storage);
 
@@ -66,9 +82,10 @@ public abstract class FlattenVectorNode extends Node {
       for (long i = 0; i < length; i++) {
         var item = interop.readArrayElement(storage, i);
         if (!interop.hasArrayElements(item)) {
+          CompilerDirectives.transferToInterpreter();
           Builtins builtins = EnsoContext.get(this).getBuiltins();
           throw new PanicException(
-              builtins.error().makeTypeError(builtins.array(), item, "[" + i + "]"), this);
+              builtins.error().makeTypeError(builtins.vector(), item, "[" + i + "]"), this);
         }
 
         flattened_length += interop.getArraySize(item);
@@ -84,9 +101,11 @@ public abstract class FlattenVectorNode extends Node {
       }
 
       return Vector.fromArray(result);
-    } catch (UnsupportedMessageException | InvalidArrayIndexException e) {
+    } catch (InvalidArrayIndexException e) {
       CompilerDirectives.transferToInterpreter();
-      throw new IllegalStateException(e);
+      Builtins builtins = EnsoContext.get(this).getBuiltins();
+      throw new PanicException(
+          builtins.error().makeInvalidArrayIndex(storage, e.getInvalidIndex()), this);
     }
   }
 }
