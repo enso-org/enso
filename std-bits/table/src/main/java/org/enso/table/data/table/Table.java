@@ -62,12 +62,15 @@ public class Table {
   }
 
   private static boolean checkUniqueColumns(Column[] columns) {
+    Context context = Context.getCurrent();
     HashSet<String> names = new HashSet<>();
     for (Column column : columns) {
       boolean wasNew = names.add(column.getName());
       if (!wasNew) {
         return false;
       }
+
+      context.safepoint();
     }
 
     return true;
@@ -95,10 +98,13 @@ public class Table {
    * @return a column with the given name
    */
   public Column getColumnByName(String name) {
+    Context context = Context.getCurrent();
     for (Column column : columns) {
       if (Text_Utils.equals(column.getName(), name)) {
         return column;
       }
+
+      context.safepoint();
     }
     return null;
   }
@@ -134,12 +140,15 @@ public class Table {
    * @return a new table containing the specified column.
    */
   public Table addOrReplaceColumn(Column newColumn) {
+    Context context = Context.getCurrent();
     int existingIx = -1;
     for (int i = 0; i < columns.length; i++) {
       if (Text_Utils.equals(columns[i].getName(), newColumn.getName())) {
         existingIx = i;
         break;
       }
+
+      context.safepoint();
     }
     if (existingIx == -1) {
       return addColumn(newColumn);
