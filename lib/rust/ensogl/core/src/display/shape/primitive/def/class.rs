@@ -206,6 +206,11 @@ where for<'t> &'t Self: IntoOwned<Owned = Self> {
         Shrink(self, value.into())
     }
 
+    /// Create an annulus of given thickness around shape's boundary.
+    fn annulus<T: Into<Var<Pixels>>>(&self, thickness: T) -> Annulus<Self> {
+        Annulus(self, thickness.into())
+    }
+
     /// Repeats the shape with the given tile size.
     fn repeat<T: Into<Var<Vector2<Pixels>>>>(&self, value: T) -> Repeat<Self> {
         Repeat(self, value)

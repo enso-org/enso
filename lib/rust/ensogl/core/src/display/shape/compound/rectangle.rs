@@ -52,21 +52,31 @@ pub mod shape {
             let canvas_width = canvas_width + &canvas_clip_width_diff.abs();
 
             // === Body ===
-            let inset2 = (&inset * 2.0).px();
+            let inset2 = (Max::max(inset.clone(), Var::from(0.0)) * 2.0).px();
             let width = &canvas_width - &inset2;
             let height = &canvas_height - &inset2;
             let color = Var::<color::Rgba>::from(color);
             let body = Rect((&width, &height)).corners_radius(corner_radius.px());
-            let body = body.fill(color);
+            let colored_body = body.fill(color);
 
             // === Border ===
-            let padded_body = body.grow((inset - &border).px());
-            let border = padded_body.grow(border.px()) - padded_body;
+
+            let absolute_border = border.abs();
+            let border_center = &inset * border.negative() + &border * 0.5;
+
+            // Additional constant to overlap the border with the body. That way, the border that
+            // is supposed to touch the body will not leave any visible gap between shapes.
+            let max_offset = Var::<f32>::from("fwidth(position.x)");
+            let touch_offset = Min::min(absolute_border.clone(), max_offset);
+            let border_center = border_center - &touch_offset * 0.5;
+
+            let border_thickness = absolute_border + touch_offset;
+            let border = body.grow(border_center.px()).annulus(border_thickness.px());
             let border_color = Var::<color::Rgba>::from(border_color);
-            let border = border.fill(border_color);
+            let colored_border = border.fill(border_color);
 
             // === Shape ===
-            let shape = border.union_exclusive(&body);
+            let shape = colored_body.union_exclusive(&colored_border);
 
             // === Rotation ===
             // Rotate about one corner.
@@ -158,16 +168,23 @@ impl Rectangle {
     /// This value should not be less than the width of the border. To set it to the same width as
     /// the border, you can use [`Self::set_inset_border`].
     ///
-    /// If this value is greater than the border width, the extra padding will be between the body
-    /// and the border.
+    /// If this value is greater than the absolute value of border width, the shape will have
+    /// additional transparent padding. If the border value is positive, the extra padding will
+    /// be between the border and the outside frame (size) of the rectangle. If the border value is
+    /// negative, the extra padding will be between the body and the border.
     pub fn set_inset(&self, inset: f32) -> &Self {
         self.modify_view(|view| view.inset.set(inset))
     }
 
     /// Set the border size of the shape. If you want to use border, you should always set the inset
-    /// at least of the size of the border. If you do not want the border to be animated, you can
-    /// use [`Self::set_inset_border`] instead. To make the border visible, you also need to set the
-    /// border color using [`Self::set_border_color`].
+    /// at least of the size of the absolute value of the border. If you do not want the border to
+    /// be animated, you can use [`Self::set_inset_border`] instead. To make the border visible,
+    /// you also need to set the border color using [`Self::set_border_color`].
+    ///
+    /// If this value is greater than the absolute value of border width, the shape will have
+    /// additional transparent padding. If the border value is positive, the extra padding will
+    /// be between the border and the outside frame (size) of the rectangle. If the border value is
+    /// negative, the extra padding will be between the body and the border.
     pub fn set_border(&self, border: f32) -> &Self {
         self.modify_view(|view| view.border.set(border))
     }
