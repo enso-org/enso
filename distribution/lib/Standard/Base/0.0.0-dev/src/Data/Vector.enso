@@ -682,7 +682,7 @@ type Vector a
              [1] + [2]
     + : Vector Any -> Vector Any
     + self that = case that of
-        _ : Vector -> self.insert_builtin self.length that
+        _ : Vector -> Vector.insert_builtin self self.length that
         _ : Array -> self + Vector.from_polyglot_array that
         _ -> Error.throw (Type_Error.Error Vector that "that")
 
