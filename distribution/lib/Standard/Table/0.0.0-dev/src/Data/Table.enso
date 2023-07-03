@@ -91,7 +91,7 @@ type Table
         if cols.is_empty then Error.throw (Illegal_Argument.Error "Cannot create a table with no columns.") else
             if (cols.all c-> c.getSize == cols.first.getSize).not then Error.throw (Illegal_Argument.Error "All columns must have the same row count.") else
                 if cols.distinct .getName . length != cols.length then Error.throw (Illegal_Argument.Error "Column names must be distinct.") else
-                    Table.Value (Java_Table.new cols.to_array)
+                    Table.Value (Java_Table.new cols)
 
     ## Creates a new table from a vector of column names and a vector of vectors
        specifying row contents.
@@ -595,11 +595,11 @@ type Table
 
         on_problems.attach_problems_before validated.problems <| Illegal_Argument.handle_java_exception <|
             java_key_columns = validated.key_columns.map .java_column
-            index = self.java_table.indexFromColumns java_key_columns.to_array
+            index = self.java_table.indexFromColumns java_key_columns
 
             new_columns = validated.valid_columns.map c->(Aggregate_Column_Helper.java_aggregator c.first c.second)
 
-            java_table = index.makeTable new_columns.to_array
+            java_table = index.makeTable new_columns
             new_table = Table.Value java_table
 
             on_problems.attach_problems_after new_table <|
@@ -689,7 +689,7 @@ type Table
                     Case_Sensitivity.Insensitive locale -> ObjectComparator.new False locale.java_locale
 
             java_table = Illegal_Argument.handle_java_exception <| Incomparable_Values.handle_errors <|
-                self.java_table.orderBy java_columns.to_array directions.to_array comparator
+                self.java_table.orderBy java_columns directions comparator
             Table.Value java_table
 
     ## Returns the distinct set of rows within the specified columns from the
@@ -735,7 +735,7 @@ type Table
         java_columns = key_columns.map .java_column
         text_folding_strategy = Case_Sensitivity.folding_strategy case_sensitivity
         java_table = Illegal_Argument.handle_java_exception <|
-            self.java_table.distinct java_columns.to_array text_folding_strategy
+            self.java_table.distinct java_columns text_folding_strategy
         on_problems.attach_problems_after (Table.Value java_table) <|
             problems = java_table.getProblems
             Java_Problems.parse_aggregated_problems problems
@@ -1796,7 +1796,7 @@ type Table
         java_id = id_columns.map .java_column
 
         unique.mark_used (id_columns.map .name)
-        result = Table.Value (Java_Table.transpose java_id.to_array java_data.to_array (unique.make_unique attribute_column_name) (unique.make_unique value_column_name))
+        result = Table.Value (Java_Table.transpose java_id java_data (unique.make_unique attribute_column_name) (unique.make_unique value_column_name))
         problem_builder.report_unique_name_strategy unique
 
         problem_builder.attach_problems_after on_problems result
@@ -1884,7 +1884,7 @@ type Table
 
         problem_builder.attach_problems_before on_problems <| Illegal_Argument.handle_java_exception <|
             java_key_columns = grouping.map .java_column
-            index = self.java_table.indexFromColumns java_key_columns.to_array
+            index = self.java_table.indexFromColumns java_key_columns
 
             name_mapper = if matched_name.is_empty then Aggregate_Column_Helper.default_aggregate_column_name else
                 if validated_values.length == 1 then (_ -> "") else
@@ -1900,7 +1900,7 @@ type Table
             result = case matched_name.is_empty of
                 True ->
                     group_by = grouping.map g->(Aggregate_Column_Helper.java_aggregator g.name (Aggregate_Column.Group_By g))
-                    index.makeTable (group_by + data_columns).to_array
+                    index.makeTable (group_by + data_columns)
                 False ->
                     aggregate_names = validated_values.map c->
                         c.new_name.if_nothing (name_mapper c)
@@ -2080,7 +2080,7 @@ print_table header rows indices_count format_term =
    A helper to create a new table consisting of slices of the original table.
 slice_ranges table ranges =
     normalized = Index_Sub_Range_Module.normalize_ranges ranges
-    Table.Value (table.java_table.slice normalized.to_array)
+    Table.Value (table.java_table.slice normalized)
 
 ## PRIVATE
 make_join_helpers left_table right_table =

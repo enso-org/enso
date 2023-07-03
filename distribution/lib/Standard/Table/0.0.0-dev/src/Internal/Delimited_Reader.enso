@@ -118,10 +118,10 @@ prepare_reader java_reader format max_columns on_problems newline_override=Nothi
             QuoteStrippingParser.new quote
     value_parser = if format.value_formatter.is_nothing then base_parser else
         wrapped = format.value_formatter.wrap_base_parser base_parser
-        TypeInferringParser.new format.value_formatter.get_specific_type_parsers.to_array wrapped
+        TypeInferringParser.new format.value_formatter.get_specific_type_parsers wrapped
     cell_type_guesser = if format.headers != Infer then Nothing else
         formatter = format.value_formatter.if_nothing Data_Formatter.Value
-        TypeInferringParser.new formatter.get_specific_type_parsers.to_array IdentityParser.new
+        TypeInferringParser.new formatter.get_specific_type_parsers IdentityParser.new
     newline = newline_override.if_nothing <| case format.line_endings of
         Infer -> Nothing
         endings -> endings.to_text

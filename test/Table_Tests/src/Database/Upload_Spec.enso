@@ -1029,7 +1029,7 @@ spec make_new_connection prefix persistent_connector=True =
 
    If `exploding_index` is accessed, an exception will be thrown.
 make_mock_column name values exploding_index =
-    storage = ExplodingStorage.new values.to_array exploding_index
+    storage = ExplodingStorage.new values exploding_index
     Column.from_storage name storage
 
 ## PRIVATE

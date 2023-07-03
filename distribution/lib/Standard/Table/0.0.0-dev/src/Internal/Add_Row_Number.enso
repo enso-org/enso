@@ -103,5 +103,5 @@ make_grouped_ordered_enumeration name grouping_columns ordering from step =
             enum_value = nth_index from step enum_ix
             long_array.set row_ix enum_value
 
-    storage = LongStorage.fromArray long_array.to_array
+    storage = LongStorage.fromArray long_array
     Column.from_storage name storage

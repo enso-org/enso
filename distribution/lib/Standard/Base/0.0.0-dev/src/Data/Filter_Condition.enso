@@ -233,7 +233,7 @@ type Filter_Condition
 
     ## PRIVATE
        Creates a Single_Choice Widget for delimiters.
-    default_widget : Boolean -> Boolean -> Boolean -> Widget
+    default_widget : Boolean -> Boolean -> Boolean -> Boolean -> Widget
     default_widget include_comparable=True include_text=True include_boolean=True include_nullable=True =
         options_builder = Vector.new_builder
         if include_comparable then
