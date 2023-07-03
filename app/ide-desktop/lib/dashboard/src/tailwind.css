@@ -106,5 +106,21 @@ body {
     .border-dashed-custom {
       background-image: url("enso-assets/dashed_border.svg");
     }
+
+    .scroll-hidden {
+      -ms-overflow-style: none; /* Internet Explorer 10+ */
+      scrollbar-width: none; /* Firefox */
+    }
+    .scroll-hidden::-webkit-scrollbar {
+      display: none; /* Safari and Chrome */
+    }
+
+    .h-templates-custom {
+      height: 21.5rem;
+
+      @media screen and (min-width: 1771px) {
+        height: 11rem;
+      }
+    }
   }
 }

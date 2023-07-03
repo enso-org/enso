@@ -80,12 +80,6 @@ pub mod constants {
         /// The "void" atom returned by function meant to not return any argument.
         pub const NOTHING: &str = "Nothing";
     }
-
-    /// The tag name of documentation sections marked as "PRIVATE"
-    pub const PRIVATE_DOC_SECTION_TAG_NAME: &str = "PRIVATE";
-
-    /// The tag name of a documentation section with a method alias.
-    pub const ALIAS_DOC_SECTION_TAG_NAME: &str = "ALIAS";
 }
 
 pub use crumbs::Crumb;

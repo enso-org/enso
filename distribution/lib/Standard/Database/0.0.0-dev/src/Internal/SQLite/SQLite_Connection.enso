@@ -19,8 +19,9 @@ import project.Internal.IR.Query.Query
 import project.Internal.JDBC_Connection
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 
-from project.Connection.Connection import make_table_types_selector, make_schema_selector, make_table_name_selector, first_column_in_structure, make_structure_creator
+from project.Connection.Connection import make_table_types_selector, make_schema_selector, make_table_name_selector, make_structure_creator
 from project.Errors import SQL_Error, Table_Not_Found, Table_Already_Exists
+from project.Internal.Upload_Table import first_column_name_in_structure
 
 type SQLite_Connection
     ## PRIVATE
@@ -127,6 +128,14 @@ type SQLite_Connection
        - query: name of the table or sql statement to query.
          If supplied as `Text`, the name is checked against the `tables` list to determine if it is a table or a query.
        - limit: the maximum number of rows to return.
+
+       ? Side Effects
+
+         Note that the `read` method is running without restrictions when the
+         output context is disabled, but it can technically cause side effects,
+         if it is provided with a DML query. Usually it is preferred to use
+         `execute_update` for DML queries, or if they are supposed to return
+         results, the `read` should be wrapped in an execution context check.
     @query make_table_name_selector
     read : Text | SQL_Query -> Integer | Nothing -> Materialized_Table ! Table_Not_Found
     read self query limit=Nothing = self.connection.read query limit
@@ -135,9 +144,7 @@ type SQLite_Connection
        the new table.
 
        Arguments:
-       - table_name: the name of the table to create. If not provided, a random
-         name will be generated for temporary tables. If `temporary=False`, then
-         a name must be provided.
+       - table_name: the name of the table to create.
        - structure: the structure of the table, provided as either an existing
          `Table` (no data will be copied) or a `Vector` of `Column_Description`.
        - primary_key: the names of the columns to use as the primary key. The
@@ -166,9 +173,16 @@ type SQLite_Connection
            structure provided, `Missing_Input_Columns` error is raised.
          - An `SQL_Error` may be reported if there is a failure on the database
            side.
+
+       ? Dry Run if Output disabled
+
+         If performing output actions is disabled, only a dry run is performed
+         and no permanent changes occur. The operation will test for errors
+         (like missing columns) and if successful, return a temporary table with
+         a `Dry_Run_Operation` warning attached.
     @structure make_structure_creator
-    create_table : Text | Nothing -> Vector Column_Description | Database_Table | Materialized_Table -> Vector Text | Nothing -> Boolean -> Boolean -> Problem_Behavior -> Database_Table ! Table_Already_Exists
-    create_table self (table_name : Text | Nothing = Nothing) (structure : Vector Column_Description | Database_Table | Materialized_Table) (primary_key : (Vector Text | Nothing) = [first_column_in_structure structure]) (temporary : Boolean = False) (allow_existing : Boolean = False) (on_problems:Problem_Behavior = Problem_Behavior.Report_Warning) =
+    create_table : Text  -> Vector Column_Description | Database_Table | Materialized_Table -> Vector Text | Nothing -> Boolean -> Boolean -> Problem_Behavior -> Database_Table ! Table_Already_Exists
+    create_table self (table_name : Text) (structure : Vector Column_Description | Database_Table | Materialized_Table) (primary_key : (Vector Text | Nothing) = [first_column_name_in_structure structure]) (temporary : Boolean = False) (allow_existing : Boolean = False) (on_problems:Problem_Behavior = Problem_Behavior.Report_Warning) =
         self.connection.create_table table_name structure primary_key temporary allow_existing on_problems
 
     ## ADVANCED
@@ -193,9 +207,23 @@ type SQLite_Connection
     jdbc_connection self = self.connection.jdbc_connection
 
     ## PRIVATE
-    drop_table : Text -> Nothing
-    drop_table self table_name =
-        self.connection.drop_table table_name
+       Drops a table.
+
+       Arguments:
+       - table_name: the name of the table to drop.
+       - if_exists: if set to `True`, the operation will not fail if the table
+         does not exist. Defaults to `False`.
+    drop_table : Text -> Boolean -> Nothing
+    drop_table self table_name if_exists=False =
+        self.connection.drop_table table_name if_exists
+
+    ## PRIVATE
+       Returns the base `Connection` instance.
+
+       Used, so that all internal helper functions do not need to be replicated
+       on the 'subclasses'.
+    base_connection : Connection
+    base_connection self = self.connection
 
 ## PRIVATE
 
@@ -207,4 +235,4 @@ type SQLite_Connection
 create : Text -> Vector -> SQLite_Connection
 create url properties =
     jdbc_connection = JDBC_Connection.create url properties
-    SQLite_Connection.Value (Connection.Value jdbc_connection Dialect.sqlite)
+    SQLite_Connection.Value (Connection.new jdbc_connection Dialect.sqlite)

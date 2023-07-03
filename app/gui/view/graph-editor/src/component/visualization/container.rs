@@ -1,12 +1,12 @@
 //! This module defines the `Container` struct and related functionality. This represent the view
-//! a visualisation in the graph editor and includes a visual box that contains the visualisation,
-//! and action bar that allows setting the visualisation type.
+//! a visualization in the graph editor and includes a visual box that contains the visualization,
+//! and action bar that allows setting the visualization type.
 //!
-//! The `[Container]` struct is responsible for managing the visualisation and action bar and
-//! providing a unified interface to the graph editor. This includes ensuring that the visualisation
+//! The `[Container]` struct is responsible for managing the visualization and action bar and
+//! providing a unified interface to the graph editor. This includes ensuring that the visualization
 //! is correctly positioned, sized and layouted in its different [ViewState]s (which include the
 //! `Enabled`, `Fullscreen` and `Preview` states). Importantly, this also includes EnsoGL layer
-//! management to ensure correct occlusion of the visualisation with respect to other scene objects.
+//! management to ensure correct occlusion of the visualization with respect to other scene objects.
 
 // FIXME There is a serious performance problem in this implementation. It assumes that the
 // FIXME visualization is a child of the container. However, this is very inefficient. Consider a
@@ -53,7 +53,7 @@ pub mod visualization_chooser;
 // === Constants ===
 // =================
 
-/// Default width and height of the visualisation container.
+/// Default width and height of the visualization container.
 pub const DEFAULT_SIZE: (f32, f32) = (200.0, 200.0);
 const PADDING: f32 = 20.0;
 const CORNER_RADIUS: f32 = super::super::node::CORNER_RADIUS;
@@ -65,7 +65,7 @@ const ACTION_BAR_HEIGHT: f32 = 2.0 * CORNER_RADIUS;
 // === Shape ===
 // =============
 
-/// Container overlay shape definition. Used to capture events over the visualisation within the
+/// Container overlay shape definition. Used to capture events over the visualization within the
 /// container.
 pub mod overlay {
     use super::*;
@@ -134,32 +134,32 @@ pub mod background {
 // === Frp ===
 // ===========
 
-/// Indicates the visibility state of the visualisation.
+/// Indicates the visibility state of the visualization.
 #[derive(Clone, Copy, Debug, PartialEq, Derivative)]
 #[derivative(Default)]
 pub enum ViewState {
-    /// Visualisation is permanently enabled and visible in the graph editor. It is attached to a
+    /// Visualization is permanently enabled and visible in the graph editor. It is attached to a
     /// single node and can be moved and interacted with when selected.
     Enabled,
-    /// Visualisation is disabled and hidden in the graph editor.
+    /// Visualization is disabled and hidden in the graph editor.
     #[derivative(Default)]
     Disabled,
-    /// Visualisation is temporarily enabled and visible in the graph editor. It should be placed
+    /// Visualization is temporarily enabled and visible in the graph editor. It should be placed
     /// above other scene elements to allow quick inspection.
     Preview,
-    /// Visualisation is enabled and visible in the graph editor in fullscreen mode. It occludes
+    /// Visualization is enabled and visible in the graph editor in fullscreen mode. It occludes
     /// the whole graph and can be interacted with.
     Fullscreen,
 }
 
 impl ViewState {
-    /// Indicates whether the visualisation is visible in the graph editor. It is always visible
+    /// Indicates whether the visualization is visible in the graph editor. It is always visible
     /// when not disabled.
     pub fn is_visible(&self) -> bool {
         !matches!(self, ViewState::Disabled)
     }
 
-    /// Indicates whether the visualisation is fullscreen mode.
+    /// Indicates whether the visualization is fullscreen mode.
     pub fn is_fullscreen(&self) -> bool {
         matches!(self, ViewState::Fullscreen)
     }
@@ -179,7 +179,7 @@ ensogl::define_endpoints_2! {
     }
     Output {
         preprocessor   (PreprocessorConfiguration),
-        visualisation  (Option<visualization::Definition>),
+        visualization  (Option<visualization::Definition>),
         visualization_path (Option<visualization::Path>),
         size           (Vector2),
         is_selected    (bool),
@@ -304,7 +304,7 @@ impl display::Object for View {
 #[allow(missing_docs)]
 pub struct ContainerModel {
     display_object:     display::object::Instance,
-    /// Internal root for all sub-objects. Will be moved when the visualisation
+    /// Internal root for all sub-objects. Will be moved when the visualization
     /// container position is changed by dragging.
     drag_root:          display::object::Instance,
     visualization:      RefCell<Option<visualization::Instance>>,
@@ -569,28 +569,28 @@ impl Container {
             output.visible <+ output.view_state.map(|state| state.is_visible()).on_change();
             output.size <+ input.set_size.on_change();
 
-            visualisation_not_selected <- input.set_visualization.map(|t| t.is_none());
+            visualization_not_selected <- input.set_visualization.map(|t| t.is_none());
             input_type_not_set <- input.set_vis_input_type.is_some().not();
-            uninitialised <- visualisation_not_selected && input_type_not_set;
-            set_default_visualisation <- uninitialised.on_change().on_true().map(|_| {
-                Some(visualization::Registry::default_visualisation())
+            uninitialised <- visualization_not_selected && input_type_not_set;
+            set_default_visualization <- uninitialised.on_change().on_true().map(|_| {
+                Some(visualization::Registry::default_visualization())
             });
             vis_input_type_changed <- input.set_vis_input_type.on_change();
             vis_input_type_changed_without_selection <-
-                vis_input_type_changed.gate(&visualisation_not_selected).unwrap();
-            set_default_visualisation_for_type <- vis_input_type_changed_without_selection.map(f!((tp) {
+                vis_input_type_changed.gate(&visualization_not_selected).unwrap();
+            set_default_visualization_for_type <- vis_input_type_changed_without_selection.map(f!((tp) {
                registry.default_visualization_for_type(tp)
             }));
-            set_default_visualisation <- any(
-                &set_default_visualisation, &set_default_visualisation_for_type);
+            set_default_visualization <- any(
+                &set_default_visualization, &set_default_visualization_for_type);
 
         }
 
 
-        // ===  Visualisation Chooser Bindings ===
+        // ===  Visualization Chooser Bindings ===
 
         frp::extend! { network
-            selected_definition <- action_bar.visualisation_selection.map(f!([registry](path)
+            selected_definition <- action_bar.visualization_selection.map(f!([registry](path)
                 path.as_ref().and_then(|path| registry.definition_from_path(path))
             ));
             action_bar.hide_icons <+ selected_definition.constant(());
@@ -603,7 +603,7 @@ impl Container {
         // === Cycling Visualizations ===
 
         frp::extend! { network
-            vis_after_cycling <- input.cycle_visualization.map3(&output.visualisation, &output.vis_input_type,
+            vis_after_cycling <- input.cycle_visualization.map3(&output.visualization, &output.vis_input_type,
                 f!(((),vis,input_type) model.next_visualization(vis,input_type))
             );
         }
@@ -616,10 +616,10 @@ impl Container {
                 input.set_visualization,
                 selected_definition,
                 vis_after_cycling,
-                set_default_visualisation);
+                set_default_visualization);
             new_vis_definition <- vis_definition_set.on_change();
             let preprocessor = &output.preprocessor;
-            output.visualisation <+ new_vis_definition.map2(&output.view_state, f!(
+            output.visualization <+ new_vis_definition.map2(&output.view_state, f!(
                 [model,action_bar,app,preprocessor](vis_definition, view_state) {
 
                 if let Some(definition) = vis_definition {
@@ -637,15 +637,15 @@ impl Container {
                 vis_definition.clone()
             }));
 
-            output.visualization_path <+ output.visualisation.map(|definition| {
+            output.visualization_path <+ output.visualization.map(|definition| {
                 definition.as_ref().map(|def| def.signature.path.clone_ref())
             });
         }
 
-        // === Visualisation Loading Spinner ===
+        // === Visualization Loading Spinner ===
 
         frp::extend! { network
-            eval_ output.visualisation ( model.view.show_waiting_screen() );
+            eval_ output.visualization ( model.view.show_waiting_screen() );
             eval_ input.set_data ( model.view.disable_waiting_screen() );
         }
 

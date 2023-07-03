@@ -14,13 +14,13 @@ import org.enso.polyglot.runtime.Runtime.Api
 import java.util.UUID
 import scala.concurrent.duration.FiniteDuration
 
-/** A request handler for detach visualisation commands.
+/** A request handler for detach visualization commands.
   *
   * @param runtimeFailureMapper mapper for runtime failures
   * @param timeout request timeout
   * @param runtime reference to the runtime connector
   */
-class DetachVisualisationHandler(
+class DetachVisualizationHandler(
   runtimeFailureMapper: RuntimeFailureMapper,
   timeout: FiniteDuration,
   runtime: ActorRef
@@ -32,7 +32,7 @@ class DetachVisualisationHandler(
 
   override def receive: Receive = requestStage
 
-  private def requestStage: Receive = { case msg: Api.DetachVisualisation =>
+  private def requestStage: Receive = { case msg: Api.DetachVisualization =>
     runtime ! Api.Request(UUID.randomUUID(), msg)
     val cancellable =
       context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
@@ -47,8 +47,8 @@ class DetachVisualisationHandler(
       replyTo ! RequestTimeout
       context.stop(self)
 
-    case Api.Response(_, Api.VisualisationDetached()) =>
-      replyTo ! ContextRegistryProtocol.VisualisationDetached
+    case Api.Response(_, Api.VisualizationDetached()) =>
+      replyTo ! ContextRegistryProtocol.VisualizationDetached
       cancellable.cancel()
       context.stop(self)
 
@@ -60,9 +60,9 @@ class DetachVisualisationHandler(
 
 }
 
-object DetachVisualisationHandler {
+object DetachVisualizationHandler {
 
-  /** Creates configuration object used to create a [[DetachVisualisationHandler]].
+  /** Creates configuration object used to create a [[DetachVisualizationHandler]].
     *
     * @param runtimeFailureMapper mapper for runtime failures
     * @param timeout request timeout
@@ -74,7 +74,7 @@ object DetachVisualisationHandler {
     runtime: ActorRef
   ): Props =
     Props(
-      new DetachVisualisationHandler(runtimeFailureMapper, timeout, runtime)
+      new DetachVisualizationHandler(runtimeFailureMapper, timeout, runtime)
     )
 
 }

@@ -366,25 +366,6 @@ case object FullyQualifiedNames extends IRPass {
       .getOrElse(Right(None))
   }
 
-  /** Updates the metadata in a copy of the IR when updating that metadata
-    * requires global state.
-    *
-    * This is usually the case in the presence of structures that are shared
-    * throughout the IR, and need to maintain that sharing for correctness. This
-    * must be called with `copyOfIr` as the result of an `ir.duplicate` call.
-    *
-    * Additionally this method _must not_ alter the structure of the IR. It
-    * should only update its metadata.
-    *
-    * @param sourceIr the IR being copied
-    * @param copyOfIr a duplicate of `sourceIr`
-    * @tparam T the concrete [[IR]] type
-    * @return the result of updating metadata in `copyOfIr` globally using
-    *         information from `sourceIr`
-    */
-  override def updateMetadataInDuplicate[T <: IR](sourceIr: T, copyOfIr: T): T =
-    copyOfIr
-
   private def isLocalVar(name: IR.Name.Literal): Boolean = {
     val aliasInfo = name
       .unsafeGetMetadata(

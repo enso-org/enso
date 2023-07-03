@@ -47,7 +47,11 @@ type Query
 
     ## PRIVATE
        An SQL query that drops a table.
-    Drop_Table (table_name:Text)
+
+       Arguments:
+       - table_name: the name of the table to drop.
+       - if_exists: if `True`, an `IF EXISTS` clause will be added.
+    Drop_Table (table_name:Text) (if_exists:Boolean)
 
     ## PRIVATE
        An INSERT INTO ... SELECT query that allows to insert results of a query

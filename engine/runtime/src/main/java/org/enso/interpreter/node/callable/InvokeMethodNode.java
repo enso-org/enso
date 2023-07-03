@@ -40,6 +40,7 @@ import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
+import org.enso.interpreter.runtime.control.TailCallException;
 import org.enso.interpreter.runtime.data.ArrayRope;
 import org.enso.interpreter.runtime.data.EnsoDate;
 import org.enso.interpreter.runtime.data.EnsoDateTime;
@@ -407,7 +408,7 @@ public abstract class InvokeMethodNode extends BaseNode {
                       invokeFunctionNode.getDefaultsExecutionMode(),
                       invokeFunctionNode.getArgumentsExecutionMode(),
                       thisArgumentPosition));
-          childDispatch.setTailStatus(TailStatus.NOT_TAIL);
+          childDispatch.setTailStatus(getTailStatus());
           childDispatch.setId(invokeFunctionNode.getId());
           notifyInserted(childDispatch);
         }
@@ -418,8 +419,12 @@ public abstract class InvokeMethodNode extends BaseNode {
 
     arguments[thisArgumentPosition] = selfWithoutWarnings;
 
-    Object result = childDispatch.execute(frame, state, symbol, selfWithoutWarnings, arguments);
-    return WithWarnings.appendTo(EnsoContext.get(this), result, arrOfWarnings);
+    try {
+      Object result = childDispatch.execute(frame, state, symbol, selfWithoutWarnings, arguments);
+      return WithWarnings.appendTo(EnsoContext.get(this), result, arrOfWarnings);
+    } catch (TailCallException e) {
+      throw new TailCallException(e, arrOfWarnings);
+    }
   }
 
   @ExplodeLoop

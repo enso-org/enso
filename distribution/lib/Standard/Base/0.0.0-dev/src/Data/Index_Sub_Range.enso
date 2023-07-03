@@ -1,7 +1,6 @@
 import project.Any.Any
 import project.Data.Numbers.Integer
 import project.Data.Range.Range
-from project.Data.Range.Extensions import all
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Errors.Common.Index_Out_Of_Bounds
@@ -16,6 +15,7 @@ import project.Random
 import project.Runtime.Ref.Ref
 
 from project.Data.Boolean import Boolean, True, False
+from project.Data.Range.Extensions import all
 
 import project.Metadata.Widget
 from project.Metadata.Widget import Single_Choice
@@ -111,7 +111,7 @@ resolve_ranges ranges length =
             if step <= 0 then Panic.throw (Illegal_Argument.Error "Range step must be positive.") else
                 if (start < 0) || (end < 0) then Panic.throw (Illegal_Argument.Error "Range start and end must not be negative.") else
                     if start >= length then Panic.throw (Index_Out_Of_Bounds.Error start length) else
-                        actual_end = Math.min end length
+                        actual_end =  end.min length
                         if actual_end < start then start.up_to start . with_step step else
                             start.up_to actual_end . with_step step
     ranges.map trim
@@ -164,7 +164,7 @@ sort_and_merge_ranges ranges =
         sorted.drop 1 . each range->
             current = current_ref.get
             case range.start <= current.end of
-                True -> current_ref.put (current.start.up_to (Math.max current.end range.end))
+                True -> current_ref.put (current.start.up_to (current.end.max range.end))
                 False ->
                     builder.append current
                     current_ref.put range
@@ -200,7 +200,7 @@ take_helper : Integer -> (Integer -> Any) -> (Integer -> Integer -> Any) -> (Vec
 take_helper length at single_slice slice_ranges range = case range of
     count : Integer -> take_helper length at single_slice slice_ranges (Index_Sub_Range.First count)
     _ : Range -> take_helper length at single_slice slice_ranges (Index_Sub_Range.By_Index range)
-    Index_Sub_Range.First count -> single_slice 0 (Math.min length count)
+    Index_Sub_Range.First count -> single_slice 0 (length.min count)
     Index_Sub_Range.Last count -> single_slice length-count length
     Index_Sub_Range.While predicate ->
         end = 0.up_to length . find i-> (predicate (at i)).not

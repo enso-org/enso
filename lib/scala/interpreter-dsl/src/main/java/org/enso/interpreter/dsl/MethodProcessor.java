@@ -478,9 +478,14 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
                       + arg.getPosition()
                       + "Idx] }, \"Unsupported argument for "
                       + varName
-                      + " expected a "
+                      + " expected a '"
                       + builtinName
-                      + "\");");
+                      + "' but got a '\""
+                      + " + arguments[arg" + arg.getPosition() + "Idx]"
+                      + " + \"' [\""
+                      + " + arguments[arg" + arg.getPosition() + "Idx].getClass()"
+                      + " + \"]\""
+                      + ");");
     out.println("      throw new PanicException(error, bodyNode);");
     out.println("    }");
   }

@@ -73,7 +73,9 @@ type Auto_Detect
         get_format f-> f.for_web content_type uri
 
 type File_Format
-    ## Gets all the currently available file formats.
+    ## PRIVATE
+       ADVANCED
+       Gets all the currently available file formats.
 
        The available file formats are ones provided by libraries which are
        imported within the current project. Importing an new library may cause
@@ -84,7 +86,9 @@ type File_Format
     ## PRIVATE
        Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
-    read _ _ = Unimplemented.throw "This is an interface only."
+    read self file on_problems =
+        _ = [file, on_problems]
+        Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
        Create the constructor code for a File_Format type.
@@ -129,7 +133,8 @@ type Plain_Text_Format
     ## PRIVATE
        If the File_Format supports reading from the web response, return a configured instance.
     for_web : Text -> URI -> Plain_Text_Format | Nothing
-    for_web content_type _ =
+    for_web content_type uri =
+        _ = [uri]
         parts = content_type.split ";" . map .trim
         case parts.first of
             "text/plain" ->
@@ -170,12 +175,15 @@ type Bytes
        If the File_Format supports reading from the web response, return a configured instance.
        As `Bytes`, does not support reading from the web returns `Nothing`.
     for_web : Text -> URI -> Bytes | Nothing
-    for_web _ _ = Nothing
+    for_web content_type uri =
+        _ = [content_type, uri]
+        Nothing
 
     ## PRIVATE
        Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
-    read self file _ =
+    read self file on_problems =
+        _ = [on_problems]
         file.read_bytes
 
 type JSON_Format
@@ -196,7 +204,8 @@ type JSON_Format
     ## PRIVATE
        If the File_Format supports reading from the web response, return a configured instance.
     for_web : Text -> URI -> JSON_Format | Nothing
-    for_web content_type _ =
+    for_web content_type uri =
+        _ = [uri]
         first = content_type.split ';' . first . trim
         case first of
             "application/json" -> JSON_Format
@@ -205,7 +214,8 @@ type JSON_Format
     ## PRIVATE
        Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
-    read self file _ =
+    read self file on_problems =
+        _ = [on_problems]
         text = file.read_text
         Json.parse text . catch Invalid_JSON error->
             Error.throw (File_Error.Corrupted_Format file error.to_display_text error)

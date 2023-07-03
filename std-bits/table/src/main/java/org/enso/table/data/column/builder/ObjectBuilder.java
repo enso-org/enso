@@ -67,7 +67,7 @@ public class ObjectBuilder extends TypedBuilder {
   @Override
   public void appendBulkStorage(Storage<?> storage) {
     if (currentSize + storage.size() > data.length) {
-      grow(currentSize + storage.size());
+      resize(currentSize + storage.size());
     }
 
     if (storage instanceof SpecializedStorage<?> specializedStorage) {
@@ -88,6 +88,7 @@ public class ObjectBuilder extends TypedBuilder {
 
   @Override
   public Storage<Object> seal() {
+    resize(currentSize);
     return new ObjectStorage(data, currentSize);
   }
 
@@ -96,7 +97,7 @@ public class ObjectBuilder extends TypedBuilder {
   }
 
   public void setCurrentSize(int currentSize) {
-    if (currentSize > data.length) grow(currentSize);
+    if (currentSize > data.length) resize(currentSize);
     this.currentSize = currentSize;
   }
 
@@ -120,10 +121,10 @@ public class ObjectBuilder extends TypedBuilder {
       desiredCapacity = currentSize + 1;
     }
 
-    grow(desiredCapacity);
+    resize(desiredCapacity);
   }
 
-  private void grow(int desiredCapacity) {
+  private void resize(int desiredCapacity) {
     this.data = Arrays.copyOf(data, desiredCapacity);
   }
 }

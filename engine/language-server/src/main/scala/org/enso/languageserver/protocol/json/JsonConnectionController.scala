@@ -42,20 +42,20 @@ import org.enso.languageserver.requesthandler.monitoring.{
 }
 import org.enso.languageserver.requesthandler.refactoring.RenameProjectHandler
 import org.enso.languageserver.requesthandler.text._
-import org.enso.languageserver.requesthandler.visualisation.{
-  AttachVisualisationHandler,
-  DetachVisualisationHandler,
+import org.enso.languageserver.requesthandler.visualization.{
+  AttachVisualizationHandler,
+  DetachVisualizationHandler,
   ExecuteExpressionHandler,
-  ModifyVisualisationHandler
+  ModifyVisualizationHandler
 }
 import org.enso.languageserver.requesthandler.workspace.ProjectInfoHandler
 import org.enso.languageserver.runtime.ContextRegistryProtocol
 import org.enso.languageserver.runtime.ExecutionApi._
-import org.enso.languageserver.runtime.VisualisationApi.{
-  AttachVisualisation,
-  DetachVisualisation,
+import org.enso.languageserver.runtime.VisualizationApi.{
+  AttachVisualization,
+  DetachVisualization,
   ExecuteExpression,
-  ModifyVisualisation
+  ModifyVisualization
 }
 import org.enso.languageserver.search.SearchApi._
 import org.enso.languageserver.search.{SearchApi, SearchProtocol}
@@ -348,18 +348,18 @@ class JsonConnectionController(
         ExecutionContextExecutionStatus.Params(contextId, diagnostics)
       )
 
-    case ContextRegistryProtocol.VisualisationEvaluationFailed(
+    case ContextRegistryProtocol.VisualizationEvaluationFailed(
           contextId,
-          visualisationId,
+          visualizationId,
           expressionId,
           message,
           diagnostic
         ) =>
       webActor ! Notification(
-        VisualisationEvaluationFailed,
-        VisualisationEvaluationFailed.Params(
+        VisualizationEvaluationFailed,
+        VisualizationEvaluationFailed.Params(
           contextId,
-          visualisationId,
+          visualizationId,
           expressionId,
           message,
           diagnostic
@@ -508,11 +508,11 @@ class JsonConnectionController(
         .props(requestTimeout, suggestionsHandler),
       ExecuteExpression -> ExecuteExpressionHandler
         .props(rpcSession.clientId, requestTimeout, contextRegistry),
-      AttachVisualisation -> AttachVisualisationHandler
+      AttachVisualization -> AttachVisualizationHandler
         .props(rpcSession.clientId, requestTimeout, contextRegistry),
-      DetachVisualisation -> DetachVisualisationHandler
+      DetachVisualization -> DetachVisualizationHandler
         .props(rpcSession.clientId, requestTimeout, contextRegistry),
-      ModifyVisualisation -> ModifyVisualisationHandler
+      ModifyVisualization -> ModifyVisualizationHandler
         .props(rpcSession.clientId, requestTimeout, contextRegistry),
       RedirectStandardOutput -> RedirectStdOutHandler
         .props(stdOutController, rpcSession.clientId),
