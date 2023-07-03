@@ -116,32 +116,26 @@ export function useDebugState<T>(
     const setState = react.useCallback(
         (valueOrUpdater: react.SetStateAction<T>, source?: string) => {
             const fullDescription = `${description}${source != null ? ` from '${source}'` : ''}`
-            if (typeof valueOrUpdater === 'function') {
-                // This is UNSAFE, however React makes the same assumption.
-                // eslint-disable-next-line no-restricted-syntax
-                const updater = valueOrUpdater as (prevState: T) => T
-                // `console.*` is allowed because this is for debugging purposes only.
-                /* eslint-disable no-restricted-properties */
-                rawSetState(oldState => {
+            rawSetState(oldState => {
+                const newState =
+                    typeof valueOrUpdater === 'function'
+                        ? // This is UNSAFE when `T` is itself a function type,
+                          // however React makes the same assumption.
+                          // eslint-disable-next-line no-restricted-syntax
+                          (valueOrUpdater as (prevState: T) => T)(oldState)
+                        : valueOrUpdater
+                if (!Object.is(oldState, newState)) {
+                    // `console.*` is allowed because this is for debugging purposes only.
+                    /* eslint-disable no-restricted-properties */
                     console.group(description)
+                    console.trace(description)
                     console.log(`Old ${fullDescription}:`, oldState)
-                    const newState = updater(oldState)
                     console.log(`New ${fullDescription}:`, newState)
                     console.groupEnd()
-                    return newState
-                })
-            } else {
-                rawSetState(oldState => {
-                    if (!Object.is(oldState, valueOrUpdater)) {
-                        console.group(description)
-                        console.log(`Old ${fullDescription}:`, oldState)
-                        console.log(`New ${fullDescription}:`, valueOrUpdater)
-                        console.groupEnd()
-                    }
-                    return valueOrUpdater
-                })
-                /* eslint-enable no-restricted-properties */
-            }
+                    /* eslint-enable no-restricted-properties */
+                }
+                return newState
+            })
         },
         []
     )

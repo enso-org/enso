@@ -448,6 +448,10 @@ function Chat(props: ChatProps) {
         }
     }, [])
 
+    react.useEffect(() => {
+        titleInputRef.current.value = threadTitle
+    }, [threadTitle])
+
     react.useLayoutEffect(() => {
         const element = messagesRef.current
         if (isAtTop && messagesHeightBeforeMessageHistory != null) {
@@ -475,7 +479,6 @@ function Chat(props: ChatProps) {
                         setThreadId(message.id)
                         setThreadTitle(message.title)
                         setIsAtBeginning(message.isAtBeginning)
-                        titleInputRef.current.value = message.title
                         const newMessages = message.messages.flatMap(innerMessage => {
                             switch (innerMessage.type) {
                                 case ChatMessageDataType.serverMessage: {
@@ -628,10 +631,12 @@ function Chat(props: ChatProps) {
     const sendCurrentMessage = react.useCallback(
         (event: react.SyntheticEvent, createNewThread?: boolean) => {
             event.preventDefault()
-            const content = messageInputRef.current.value
+            const element = messageInputRef.current
+            const content = element.value
             if (content !== '') {
-                messageInputRef.current.style.height = '1lh'
-                messageInputRef.current.value = ''
+                element.value = ''
+                element.style.height = '0px'
+                element.style.height = `${element.scrollHeight}px`
                 const newMessage: ChatDisplayMessage = {
                     // This MUST be unique.
                     id: newtype.asNewtype<MessageId>(String(Number(new Date()))),
@@ -644,11 +649,14 @@ function Chat(props: ChatProps) {
                     editedTimestamp: null,
                 }
                 if (threadId == null || createNewThread) {
+                    const newThreadTitle = threadId == null ? threadTitle : DEFAULT_THREAD_TITLE
                     sendMessage({
                         type: ChatMessageDataType.newThread,
-                        title: threadTitle,
+                        title: newThreadTitle,
                         content,
                     })
+                    setThreadId(null)
+                    setThreadTitle(newThreadTitle)
                     setMessages([newMessage])
                 } else {
                     sendMessage({
@@ -754,7 +762,7 @@ function Chat(props: ChatProps) {
                             isThreadListVisible ? 'grid-rows-1fr' : 'grid-rows-0fr'
                         }`}
                     >
-                        <div className="min-h-0">
+                        <div className="min-h-0 max-h-70 overflow-y-auto">
                             {threads.map(thread => (
                                 <div
                                     key={thread.id}
@@ -804,57 +812,53 @@ function Chat(props: ChatProps) {
                         }
                     }}
                 >
-                    {threadId != null &&
-                        messages.map(message => (
-                            <ChatMessage
-                                key={message.id}
-                                message={message}
-                                reactions={[]}
-                                doReact={reaction => {
-                                    sendMessage({
-                                        type: ChatMessageDataType.reaction,
-                                        messageId: message.id,
-                                        reaction,
-                                    })
-                                    setMessages(oldMessages =>
-                                        oldMessages.map(oldMessage =>
-                                            oldMessage.id === message.id
-                                                ? {
-                                                      ...message,
-                                                      reactions: [
-                                                          ...oldMessage.reactions,
-                                                          reaction,
-                                                      ],
-                                                  }
-                                                : oldMessage
-                                        )
+                    {messages.map(message => (
+                        <ChatMessage
+                            key={message.id}
+                            message={message}
+                            reactions={[]}
+                            doReact={reaction => {
+                                sendMessage({
+                                    type: ChatMessageDataType.reaction,
+                                    messageId: message.id,
+                                    reaction,
+                                })
+                                setMessages(oldMessages =>
+                                    oldMessages.map(oldMessage =>
+                                        oldMessage.id === message.id
+                                            ? {
+                                                  ...message,
+                                                  reactions: [...oldMessage.reactions, reaction],
+                                              }
+                                            : oldMessage
                                     )
-                                }}
-                                doRemoveReaction={reaction => {
-                                    sendMessage({
-                                        type: ChatMessageDataType.removeReaction,
-                                        messageId: message.id,
-                                        reaction,
-                                    })
-                                    setMessages(oldMessages =>
-                                        oldMessages.map(oldMessage =>
-                                            oldMessage.id === message.id
-                                                ? {
-                                                      ...message,
-                                                      reactions: oldMessage.reactions.filter(
-                                                          oldReaction => oldReaction !== reaction
-                                                      ),
-                                                  }
-                                                : oldMessage
-                                        )
+                                )
+                            }}
+                            doRemoveReaction={reaction => {
+                                sendMessage({
+                                    type: ChatMessageDataType.removeReaction,
+                                    messageId: message.id,
+                                    reaction,
+                                })
+                                setMessages(oldMessages =>
+                                    oldMessages.map(oldMessage =>
+                                        oldMessage.id === message.id
+                                            ? {
+                                                  ...message,
+                                                  reactions: oldMessage.reactions.filter(
+                                                      oldReaction => oldReaction !== reaction
+                                                  ),
+                                              }
+                                            : oldMessage
                                     )
-                                }}
-                                // FIXME: Consider adding reaction bars to other messages, on hover.
-                                shouldShowReactionBar={
-                                    message === lastStaffMessage || message.reactions.length !== 0
-                                }
-                            />
-                        ))}
+                                )
+                            }}
+                            // FIXME: Consider adding reaction bars to other messages, on hover.
+                            shouldShowReactionBar={
+                                message === lastStaffMessage || message.reactions.length !== 0
+                            }
+                        />
+                    ))}
                 </div>
                 <div className="rounded-xl bg-white p-2 mx-2 my-1">
                     <form onSubmit={sendCurrentMessage}>
@@ -883,8 +887,8 @@ function Chat(props: ChatProps) {
                                     const element = event.currentTarget
                                     element.style.height = '0px'
                                     element.style.height =
-                                        `max(1lh, min(${MAX_MESSAGE_INPUT_LINES}lh,` +
-                                        `${element.scrollHeight}px))`
+                                        `min(${MAX_MESSAGE_INPUT_LINES}lh,` +
+                                        `${element.scrollHeight}px)`
                                     const newIsReplyEnabled = element.value !== ''
                                     if (newIsReplyEnabled !== isReplyEnabled) {
                                         setIsReplyEnabled(newIsReplyEnabled)

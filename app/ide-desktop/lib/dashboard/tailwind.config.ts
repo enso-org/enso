@@ -46,6 +46,7 @@ export const theme = {
         },
         spacing: {
             '88': '22rem',
+            '70': '17.5rem',
             '140': '35rem',
         },
         boxShadow: {
