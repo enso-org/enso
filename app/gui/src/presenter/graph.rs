@@ -288,10 +288,22 @@ impl Model {
 
     /// Node was removed in view.
     fn node_removed(&self, id: ViewNodeId) {
+        console_log!("Node removed: {:?}", id);
         self.log_action(
             || {
                 let ast_id = self.state.update_from_view().remove_node(id)?;
                 self.widget.remove_all_node_widgets(ast_id);
+
+                let connections = self.controller.connections();
+                let node_connections = connections.map(|c| c.with_node(ast_id));
+                let disconnect_result = node_connections.map(|c| self.controller.disconnect_all(c));
+                if let Err(e) = disconnect_result {
+                    warn!(
+                        "Failed to disconnect all connections from node {:?} because of {:?}",
+                        ast_id, e
+                    );
+                }
+
                 Some(self.controller.graph().remove_node(ast_id))
             },
             "remove node",
