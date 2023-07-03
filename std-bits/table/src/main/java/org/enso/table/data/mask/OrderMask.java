@@ -1,9 +1,8 @@
 package org.enso.table.data.mask;
 
-import org.graalvm.polyglot.Context;
-
 import java.util.Arrays;
 import java.util.List;
+import org.graalvm.polyglot.Context;
 
 /** Describes a storage reordering operator. */
 public class OrderMask {

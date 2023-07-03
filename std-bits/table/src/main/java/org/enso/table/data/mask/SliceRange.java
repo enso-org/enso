@@ -1,8 +1,7 @@
 package org.enso.table.data.mask;
 
-import org.graalvm.polyglot.Context;
-
 import java.util.List;
+import org.graalvm.polyglot.Context;
 
 public interface SliceRange {
   int start();

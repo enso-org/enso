@@ -1,8 +1,7 @@
 package org.enso.table.util;
 
-import org.graalvm.polyglot.Context;
-
 import java.util.BitSet;
+import org.graalvm.polyglot.Context;
 
 public class BitSets {
   /**

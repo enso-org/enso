@@ -2,7 +2,6 @@ package org.enso.image.data;
 
 import java.util.ArrayList;
 import java.util.List;
-
 import org.graalvm.polyglot.Context;
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
