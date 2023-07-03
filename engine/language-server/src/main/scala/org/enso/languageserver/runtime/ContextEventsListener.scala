@@ -209,9 +209,10 @@ final class ContextEventsListener(
     payload: Api.ExpressionUpdate.Payload
   ): ContextRegistryProtocol.ExpressionUpdate.Payload =
     payload match {
-      case Api.ExpressionUpdate.Payload.Value(warnings) =>
+      case Api.ExpressionUpdate.Payload.Value(warnings, functionSchema) =>
         ContextRegistryProtocol.ExpressionUpdate.Payload.Value(
-          warnings.map(toProtocolWarnings)
+          warnings.map(toProtocolWarnings),
+          functionSchema.map(toProtocolFunctionSchema)
         )
 
       case Api.ExpressionUpdate.Payload.Pending(m, p) =>
@@ -235,6 +236,19 @@ final class ContextEventsListener(
   ): ContextRegistryProtocol.ExpressionUpdate.Payload.Value.Warnings =
     ContextRegistryProtocol.ExpressionUpdate.Payload.Value
       .Warnings(payload.count, payload.warning, payload.reachedMaxCount)
+
+  /** Convert the runtime function schema to the context registry protocol
+    * representation.
+    *
+    * @param functionSchema the function schema
+    */
+  private def toProtocolFunctionSchema(
+    functionSchema: Api.FunctionSchema
+  ): ContextRegistryProtocol.ExpressionUpdate.Payload.Value.FunctionSchema =
+    ContextRegistryProtocol.ExpressionUpdate.Payload.Value.FunctionSchema(
+      toProtocolMethodPointer(functionSchema.methodPointer),
+      functionSchema.notAppliedArguments
+    )
 
   /** Convert the runtime profiling info to the context registry protocol
     * representation.

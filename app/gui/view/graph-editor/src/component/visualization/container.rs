@@ -476,7 +476,6 @@ impl ContainerModel {
             dom.set_style_or_warn("height", "0");
             bg_dom.set_style_or_warn("width", format!("{}px", size[0]));
             bg_dom.set_style_or_warn("height", format!("{}px", size[1]));
-            self.action_bar.frp.set_size.emit(Vector2::zero());
         } else {
             self.view.overlay.set_size(size);
             self.view.resize_grip.set_size(size);
@@ -486,12 +485,14 @@ impl ContainerModel {
             dom.set_style_or_warn("height", format!("{}px", size[1]));
             bg_dom.set_style_or_warn("width", "0");
             bg_dom.set_style_or_warn("height", "0");
-
-            let action_bar_size = Vector2::new(size.x, ACTION_BAR_HEIGHT);
-            self.action_bar.frp.set_size.emit(action_bar_size);
             self.drag_root.set_xy(Vector2(size.x / 2.0, -size.y / 2.0));
         }
-
+        let action_bar_size = if matches!(view_state, ViewState::Enabled) {
+            Vector2::new(size.x, ACTION_BAR_HEIGHT)
+        } else {
+            Vector2::zero()
+        };
+        self.action_bar.frp.set_size.emit(action_bar_size);
         self.action_bar.set_y((size.y - ACTION_BAR_HEIGHT) / 2.0);
 
         if let Some(viz) = &*self.visualization.borrow() {

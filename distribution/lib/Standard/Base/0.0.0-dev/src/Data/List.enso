@@ -2,6 +2,7 @@ import project.Any.Any
 import project.Data.Filter_Condition.Filter_Condition
 import project.Data.Numbers.Integer
 import project.Data.Numbers.Number
+import project.Data.Pair.Pair
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Errors.Common.Index_Out_Of_Bounds
@@ -12,6 +13,7 @@ import project.Nothing.Nothing
 import project.Meta
 
 from project.Data.Boolean import Boolean, True, False
+from project.Data.Filter_Condition import unify_condition_or_predicate, unify_condition_predicate_or_element
 
 from project.Data.List.List import Nil, Cons
 
@@ -146,24 +148,28 @@ type List
         Nil -> if_empty
         Cons x xs -> xs.fold x function
 
-    ## Checks whether any element of the list matches the given predicate.
+    ## Checks whether any element of the list matches the given condition.
 
        Arguments:
-       - predicate: A function that takes a list element and returns a boolean
-         value that says whether that value satisfies the conditions of the
-         function.
-
-       A predicate is a function that takes a list element and returns
-       a Boolean value.
+       - condition: A `Filter_Condition` or a predicate function to test each
+         element.
 
        > Example
          Check if any element of the list is larger than 5.
 
              import Standard.Examples
 
-             example_any = Examples.list.any (> 5)
-    any : (Any -> Boolean) -> Boolean
-    any self predicate =
+             example_any = Examples.list.any (Filter_Condition.Greater than=5)
+
+       > Example
+         Check if any element of the list is even.
+
+             import Standard.Examples
+
+             example_any = Examples.list.any (x-> x%2 == 0)
+    any : (Filter_Condition | (Any -> Boolean)) -> Boolean
+    any self condition =
+        predicate = unify_condition_or_predicate condition
         go list = case list of
             Nil -> False
             Cons h t -> if predicate h then True else
@@ -171,21 +177,29 @@ type List
         res = go self
         res
 
-    ## Checks whether a predicate holds for all elements in this list.
+    ## Checks whether a condition holds for all elements in this list.
 
        Arguments:
-       - predicate: A function that takes a list element and returns a boolean
-         value that says whether that value satisfies the conditions of the
-         function.
+       - condition: A `Filter_Condition` or a predicate function to test each
+         element.
 
        > Example
          Check if all elements in the list are greater than zero.
 
              import Standard.Examples
 
-             example_all = Examples.list.all (> 0)
-    all : (Any -> Boolean) -> Boolean
-    all self predicate = self . any (predicate >> .not) . not
+             example_all = Examples.list.all (Filter_Condition.Greater than=0)
+
+       > Example
+         Check if all elements in the list are even.
+
+             import Standard.Examples
+
+             example_all = Examples.list.all (x-> x%2 == 0)
+    all : (Filter_Condition | (Any -> Boolean)) -> Boolean
+    all self condition =
+        predicate = unify_condition_or_predicate condition
+        self . any (predicate >> .not) . not
 
     ## Checks whether this list contains a given value as an element.
 
@@ -199,7 +213,7 @@ type List
 
              example_contains = Examples.list.contains 3
     contains : Any -> Boolean
-    contains self elem = self.any ix-> ix == elem
+    contains self elem = self.any (== elem)
 
     ## Checks if this list is empty.
 
@@ -240,10 +254,10 @@ type List
 
              example_filter = Examples.list.filter (< 3)
              example_filter = Examples.list.filter (Filter_Condition.Less than=3)
-    filter : (Filter_Condition | (Any -> Boolean)) -> Vector Any
-    filter self filter = case filter of
-        _ : Filter_Condition -> self.filter filter.to_predicate
-        predicate : Function -> case self of
+    filter : (Filter_Condition | (Any -> Boolean)) -> List Any
+    filter self filter =
+        predicate = unify_condition_or_predicate filter
+        case self of
             Nil -> Nil
             Cons x xs -> if predicate x . not then @Tail_Call xs.filter filter else
                 go list fill = case list of
@@ -256,6 +270,32 @@ type List
                 res = Meta.atom_with_hole (Cons x _)
                 go xs res.fill
                 res.value
+
+    ## Partitions the list into lists of elements which satisfy a given
+       condition and ones that do not.
+
+       Returns a `Pair` whose `first` element is the list of elements satisfying
+       the predicate and the `second` element is a list of elements which did
+       not satisfy it.
+
+       The relative order of elements kept in each returned list is the same as
+       in the input.
+
+       Arguments:
+       - condition: A `Filter_Condition` or a predicate function to test each
+         element.
+
+       > Example
+         Splitting a list into even and odd elements.
+
+             (Cons 1 (Cons 2 (Cons 3 Nil))).partition (x -> x % 2 == 0) == (Pair (Cons 2 Nil) (Cons 1 (Cons 3 Nil)))
+    partition : (Filter_Condition | (Any -> Boolean)) -> Pair (List Any) (List Any)
+    partition self condition =
+        predicate = unify_condition_or_predicate condition
+        self.reverse.fold (Pair.new Nil Nil) acc-> elem->
+            case predicate elem of
+                True  -> Pair.new (Cons elem acc.first) acc.second
+                False -> Pair.new acc.first (Cons elem acc.second)
 
     ## Applies a function to each element of the list, returning the list of
        results.
@@ -474,13 +514,12 @@ type List
             Cons x xs -> @Tail_Call go xs (t + "(Cons " + x.to_text + " ") (")" + e)
         go self "" ""
 
-    ## Returns the first element of the list that satisfies the predicate or
+    ## Returns the first element of the list that satisfies the condition or
        if no elements of the list satisfy the predicate, returns `if_missing`.
 
        Arguments:
-       - predicate: A function that takes a list element and returns a boolean
-         value that says whether that value satisfies the conditions of the
-         function.
+       - condition: A `Filter_Condition` or a predicate function to test each
+         element.
        - start: The index to start searching from. If the index is negative, it
          is counted from the end of the vector.
        - if_missing: Value returned if no element satisfies the predicate.
@@ -491,24 +530,26 @@ type List
              import Standard.Examples
 
              example_first = Examples.list.find (> 2)
-    find : (Any -> Boolean) -> Integer -> Any -> Any
-    find self predicate start=0 ~if_missing=(Error.throw Not_Found) = case start.signum of
-        -1 ->
-            node_and_index = find_node_from_end self start
-            node_and_index.first.find predicate 0 if_missing
-        _ ->
-            start_node = find_node_from_start self start
-            loop current = case current of
-                Nil -> if_missing
-                Cons x xs -> if predicate x then x else @Tail_Call loop xs
-            loop start_node
+    find : (Filter_Condition | (Any -> Boolean)) -> Integer -> Any -> Any
+    find self condition start=0 ~if_missing=(Error.throw Not_Found) =
+        predicate = unify_condition_or_predicate condition
+        case start.signum of
+            -1 ->
+                node_and_index = find_node_from_end self start
+                node_and_index.first.find predicate 0 if_missing
+            _ ->
+                start_node = find_node_from_start self start
+                loop current = case current of
+                    Nil -> if_missing
+                    Cons x xs -> if predicate x then x else @Tail_Call loop xs
+                loop start_node
 
     ## Returns the index of the element in the list.
        Returns Nothing if the element is not found.
 
        Arguments:
-       - element: The element to search for or a predicate function to test for
-         each element.
+       - condition: Either the element to search for, a `Filter_Condition` or a
+         predicate function to test each element.
        - start: The index to start searching from. If the index is negative, it
          is counted from the end of the list.
 
@@ -516,15 +557,15 @@ type List
          Finding a first element of the vector that is larger than 3.
 
              [1, 2, 3, 4, 5].find (> 3)
-    index_of : (Any | (Any -> Boolean)) -> Integer -> Integer | Nothing
-    index_of self element start=0 = case start.signum of
+    index_of : (Any | Filter_Condition | (Any -> Boolean)) -> Integer -> Integer | Nothing
+    index_of self condition start=0 = case start.signum of
         -1 ->
             node_and_index = find_node_from_end self start
-            found = node_and_index.first.index_of element 0
+            found = node_and_index.first.index_of condition 0
             if found.is_nothing then Nothing else found+node_and_index.second
         _ ->
             start_node = find_node_from_start self start
-            predicate = if element.is_a Function then element else (==element)
+            predicate = unify_condition_predicate_or_element condition
             loop current idx = case current of
                 Nil -> Nothing
                 Cons x xs -> if predicate x then idx else @Tail_Call loop xs idx+1
@@ -534,8 +575,8 @@ type List
        Returns Nothing if the element is not found.
 
        Arguments:
-       - element: The element to search for or a predicate function to test for
-         each element.
+       - condition: Either the element to search for, a `Filter_Condition` or a
+         predicate function to test each element.
        - start: The index to start searching backwards from. If the index is
          negative, it is counted from the end of the list.
 
@@ -543,14 +584,14 @@ type List
          Finding a first element of the vector that is larger than 3.
 
              [1, 2, 3, 4, 5].find (> 3)
-    last_index_of : (Any | (Any -> Boolean)) -> Integer -> Integer | Nothing
-    last_index_of self element start=-1 = case self of
+    last_index_of : (Any | Filter_Condition | (Any -> Boolean)) -> Integer -> Integer | Nothing
+    last_index_of self condition start=-1 = case self of
         Nil -> if start == -1 || start == 0 then Nothing else Error.throw (Index_Out_Of_Bounds.Error start 0)
         Cons _ _ ->
             length = self.length
             used_start = if start < 0 then length+start else start
             if used_start < 0 || used_start >= length then Error.throw (Index_Out_Of_Bounds.Error start length) else
-                predicate = if element.is_a Function then element else (==element)
+                predicate = unify_condition_predicate_or_element condition
                 loop current idx last_match = if idx>used_start then last_match else case current of
                     Nil -> last_match
                     Cons x xs ->

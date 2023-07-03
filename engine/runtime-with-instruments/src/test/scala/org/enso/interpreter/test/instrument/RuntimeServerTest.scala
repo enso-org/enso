@@ -807,21 +807,22 @@ class RuntimeServerTest
   }
 
   it should "send method pointer updates of partially applied constructors" in {
-    pending
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
 
     val metadata = new Metadata
-    val id_x_1   = metadata.addItem(35, 5, "aa")
-    val id_x_2   = metadata.addItem(51, 5, "ab")
+    val id_x_0   = metadata.addItem(35, 3, "aa")
+    val id_x_1   = metadata.addItem(49, 5, "ab")
+    val id_x_2   = metadata.addItem(65, 5, "ac")
 
     val code =
       """type T
         |    A x y
         |
         |main =
-        |    x_1 = T.A 1
+        |    x_0 = T.A
+        |    x_1 = x_0 1
         |    x_2 = x_1 2
         |    x_2
         |""".stripMargin.linesIterator.mkString("\n")
@@ -854,32 +855,33 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(5) should contain theSameElementsAs Seq(
+    context.receiveN(6) should contain theSameElementsAs Seq(
       Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(
         contextId,
-        id_x_1,
+        id_x_0,
         ConstantsGen.FUNCTION_BUILTIN,
         Api.MethodCall(
           Api
-            .MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main.T", "A"),
-          Vector(1)
+            .MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main.T", "A")
         )
       ),
       TestMessages.update(
         contextId,
+        id_x_1,
+        ConstantsGen.FUNCTION_BUILTIN
+      ),
+      TestMessages.update(
+        contextId,
         id_x_2,
-        "Enso_Test.Test.Main.T",
-        Api.MethodCall(
-          Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main.T", "A")
-        )
+        "Enso_Test.Test.Main.T"
       ),
       context.executionComplete(contextId)
     )
   }
 
-  it should "send method pointer updates of partially applied method returning a method" in {
+  it should "send method pointer updates of partially applied static method returning a method" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
@@ -933,10 +935,18 @@ class RuntimeServerTest
         contextId,
         id_x_1,
         ConstantsGen.FUNCTION_BUILTIN,
-        Api.MethodCall(
-          Api
-            .MethodPointer(moduleName, moduleName, "func1"),
-          Vector()
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(moduleName, moduleName, "func1")
+          )
+        ),
+        payload = Api.ExpressionUpdate.Payload.Value(
+          functionSchema = Some(
+            Api.FunctionSchema(
+              Api.MethodPointer(moduleName, moduleName, "func2"),
+              Vector(2)
+            )
+          )
         )
       ),
       TestMessages.update(
@@ -947,6 +957,109 @@ class RuntimeServerTest
           Api
             .MethodPointer(moduleName, moduleName, "func2"),
           Vector()
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+  }
+
+  it should "send method pointer updates of partially applied type method returning a method" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+
+    val metadata = new Metadata
+    val id_x_1   = metadata.addItem(17, 9, "aa")
+    val id_x_2   = metadata.addItem(37, 5, "ab")
+    val id_x_3   = metadata.addItem(53, 7, "ac")
+
+    val code =
+      """main =
+        |    x_1 = T.A.func1
+        |    x_2 = x_1 1
+        |    x_3 = x_2 2 3
+        |    x_3
+        |
+        |type T
+        |    A
+        |    func1 self x = self.func2 x
+        |    func2 self x y z = x + y + z
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, moduleName, "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveN(6) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(
+        contextId,
+        id_x_1,
+        ConstantsGen.FUNCTION_BUILTIN,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(moduleName, s"$moduleName.T", "func1"),
+            Vector(1)
+          )
+        ),
+        payload = Api.ExpressionUpdate.Payload.Value(
+          functionSchema = Some(
+            Api.FunctionSchema(
+              Api.MethodPointer(moduleName, s"$moduleName.T", "func1"),
+              Vector(1)
+            )
+          )
+        )
+      ),
+      TestMessages.update(
+        contextId,
+        id_x_2,
+        ConstantsGen.FUNCTION_BUILTIN,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(moduleName, s"$moduleName.T", "func1")
+          )
+        ),
+        payload = Api.ExpressionUpdate.Payload.Value(
+          functionSchema = Some(
+            Api.FunctionSchema(
+              Api.MethodPointer(moduleName, s"$moduleName.T", "func2"),
+              Vector(2, 3)
+            )
+          )
+        )
+      ),
+      TestMessages.update(
+        contextId,
+        id_x_3,
+        ConstantsGen.INTEGER_BUILTIN,
+        Api.MethodCall(
+          Api.MethodPointer(moduleName, s"$moduleName.T", "func2")
         )
       ),
       context.executionComplete(contextId)
@@ -1011,26 +1124,46 @@ class RuntimeServerTest
         contextId,
         id_x1_1,
         ConstantsGen.FUNCTION_BUILTIN,
-        Api.MethodCall(
-          Api.MethodPointer(
-            "Enso_Test.Test.Main",
-            "Enso_Test.Test.Main.T",
-            "func1"
-          ),
-          Vector(0, 1)
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Enso_Test.Test.Main",
+              "Enso_Test.Test.Main.T",
+              "func1"
+            ),
+            Vector(0, 1)
+          )
+        ),
+        payload = Api.ExpressionUpdate.Payload.Value(
+          functionSchema = Some(
+            Api.FunctionSchema(
+              Api.MethodPointer(moduleName, s"$moduleName.T", "func1"),
+              Vector(0, 1)
+            )
+          )
         )
       ),
       TestMessages.update(
         contextId,
         id_x1_2,
         ConstantsGen.FUNCTION_BUILTIN,
-        Api.MethodCall(
-          Api.MethodPointer(
-            "Enso_Test.Test.Main",
-            "Enso_Test.Test.Main.T",
-            "func1"
-          ),
-          Vector(1)
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Enso_Test.Test.Main",
+              "Enso_Test.Test.Main.T",
+              "func1"
+            ),
+            Vector(1)
+          )
+        ),
+        payload = Api.ExpressionUpdate.Payload.Value(
+          functionSchema = Some(
+            Api.FunctionSchema(
+              Api.MethodPointer(moduleName, s"$moduleName.T", "func1"),
+              Vector(1)
+            )
+          )
         )
       ),
       TestMessages.update(
@@ -1205,26 +1338,46 @@ class RuntimeServerTest
         contextId,
         id_x1_1,
         ConstantsGen.FUNCTION_BUILTIN,
-        Api.MethodCall(
-          Api.MethodPointer(
-            "Enso_Test.Test.Main",
-            "Enso_Test.Test.Main.T",
-            "func1"
-          ),
-          Vector(0, 1)
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Enso_Test.Test.Main",
+              "Enso_Test.Test.Main.T",
+              "func1"
+            ),
+            Vector(0, 1)
+          )
+        ),
+        payload = Api.ExpressionUpdate.Payload.Value(
+          functionSchema = Some(
+            Api.FunctionSchema(
+              Api.MethodPointer(moduleName, s"$moduleName.T", "func1"),
+              Vector(0, 1)
+            )
+          )
         )
       ),
       TestMessages.update(
         contextId,
         id_x1_2,
         ConstantsGen.FUNCTION_BUILTIN,
-        Api.MethodCall(
-          Api.MethodPointer(
-            "Enso_Test.Test.Main",
-            "Enso_Test.Test.Main.T",
-            "func1"
-          ),
-          Vector(1)
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Enso_Test.Test.Main",
+              "Enso_Test.Test.Main.T",
+              "func1"
+            ),
+            Vector(1)
+          )
+        ),
+        payload = Api.ExpressionUpdate.Payload.Value(
+          functionSchema = Some(
+            Api.FunctionSchema(
+              Api.MethodPointer(moduleName, s"$moduleName.T", "func1"),
+              Vector(1)
+            )
+          )
         )
       ),
       TestMessages.update(
@@ -1302,26 +1455,46 @@ class RuntimeServerTest
         contextId,
         id_x1_1,
         ConstantsGen.FUNCTION_BUILTIN,
-        Api.MethodCall(
-          Api.MethodPointer(
-            "Enso_Test.Test.Main",
-            "Enso_Test.Test.Main.T",
-            "func1"
-          ),
-          Vector(1, 2)
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Enso_Test.Test.Main",
+              "Enso_Test.Test.Main.T",
+              "func1"
+            ),
+            Vector(1, 2)
+          )
+        ),
+        payload = Api.ExpressionUpdate.Payload.Value(
+          functionSchema = Some(
+            Api.FunctionSchema(
+              Api.MethodPointer(moduleName, s"$moduleName.T", "func1"),
+              Vector(1, 2)
+            )
+          )
         )
       ),
       TestMessages.update(
         contextId,
         id_x1_2,
         ConstantsGen.FUNCTION_BUILTIN,
-        Api.MethodCall(
-          Api.MethodPointer(
-            "Enso_Test.Test.Main",
-            "Enso_Test.Test.Main.T",
-            "func1"
-          ),
-          Vector(2)
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Enso_Test.Test.Main",
+              "Enso_Test.Test.Main.T",
+              "func1"
+            ),
+            Vector(2)
+          )
+        ),
+        payload = Api.ExpressionUpdate.Payload.Value(
+          functionSchema = Some(
+            Api.FunctionSchema(
+              Api.MethodPointer(moduleName, s"$moduleName.T", "func1"),
+              Vector(2)
+            )
+          )
         )
       ),
       TestMessages.update(
@@ -1399,26 +1572,46 @@ class RuntimeServerTest
         contextId,
         id_x1_1,
         ConstantsGen.FUNCTION_BUILTIN,
-        Api.MethodCall(
-          Api.MethodPointer(
-            "Enso_Test.Test.Main",
-            "Enso_Test.Test.Main.T",
-            "func1"
-          ),
-          Vector(1, 2)
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Enso_Test.Test.Main",
+              "Enso_Test.Test.Main.T",
+              "func1"
+            ),
+            Vector(1, 2)
+          )
+        ),
+        payload = Api.ExpressionUpdate.Payload.Value(
+          functionSchema = Some(
+            Api.FunctionSchema(
+              Api.MethodPointer(moduleName, s"$moduleName.T", "func1"),
+              Vector(1, 2)
+            )
+          )
         )
       ),
       TestMessages.update(
         contextId,
         id_x1_2,
         ConstantsGen.FUNCTION_BUILTIN,
-        Api.MethodCall(
-          Api.MethodPointer(
-            "Enso_Test.Test.Main",
-            "Enso_Test.Test.Main.T",
-            "func1"
-          ),
-          Vector(2)
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Enso_Test.Test.Main",
+              "Enso_Test.Test.Main.T",
+              "func1"
+            ),
+            Vector(2)
+          )
+        ),
+        payload = Api.ExpressionUpdate.Payload.Value(
+          functionSchema = Some(
+            Api.FunctionSchema(
+              Api.MethodPointer(moduleName, s"$moduleName.T", "func1"),
+              Vector(2)
+            )
+          )
         )
       ),
       TestMessages.update(
@@ -1496,26 +1689,46 @@ class RuntimeServerTest
         contextId,
         id_x1_1,
         ConstantsGen.FUNCTION_BUILTIN,
-        Api.MethodCall(
-          Api.MethodPointer(
-            "Enso_Test.Test.Main",
-            "Enso_Test.Test.Main.T",
-            "func1"
-          ),
-          Vector(0, 1, 2)
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Enso_Test.Test.Main",
+              "Enso_Test.Test.Main.T",
+              "func1"
+            ),
+            Vector(0, 1, 2)
+          )
+        ),
+        payload = Api.ExpressionUpdate.Payload.Value(
+          functionSchema = Some(
+            Api.FunctionSchema(
+              Api.MethodPointer(moduleName, s"$moduleName.T", "func1"),
+              Vector(0, 1, 2)
+            )
+          )
         )
       ),
       TestMessages.update(
         contextId,
         id_x1_2,
         ConstantsGen.FUNCTION_BUILTIN,
-        Api.MethodCall(
-          Api.MethodPointer(
-            "Enso_Test.Test.Main",
-            "Enso_Test.Test.Main.T",
-            "func1"
-          ),
-          Vector(1)
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Enso_Test.Test.Main",
+              "Enso_Test.Test.Main.T",
+              "func1"
+            ),
+            Vector(1)
+          )
+        ),
+        payload = Api.ExpressionUpdate.Payload.Value(
+          functionSchema = Some(
+            Api.FunctionSchema(
+              Api.MethodPointer(moduleName, s"$moduleName.T", "func1"),
+              Vector(1)
+            )
+          )
         )
       ),
       TestMessages.update(
@@ -1589,18 +1802,38 @@ class RuntimeServerTest
         contextId,
         id_x1_1,
         ConstantsGen.FUNCTION_BUILTIN,
-        Api.MethodCall(
-          Api.MethodPointer(moduleName, moduleName, "func1"),
-          Vector(0, 1, 2)
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(moduleName, moduleName, "func1"),
+            Vector(0, 1, 2)
+          )
+        ),
+        payload = Api.ExpressionUpdate.Payload.Value(
+          functionSchema = Some(
+            Api.FunctionSchema(
+              Api.MethodPointer(moduleName, moduleName, "func1"),
+              Vector(0, 1, 2)
+            )
+          )
         )
       ),
       TestMessages.update(
         contextId,
         id_x1_2,
         ConstantsGen.FUNCTION_BUILTIN,
-        Api.MethodCall(
-          Api.MethodPointer(moduleName, moduleName, "func1"),
-          Vector(0, 2)
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(moduleName, moduleName, "func1"),
+            Vector(0, 2)
+          )
+        ),
+        payload = Api.ExpressionUpdate.Payload.Value(
+          functionSchema = Some(
+            Api.FunctionSchema(
+              Api.MethodPointer(moduleName, moduleName, "func1"),
+              Vector(0, 2)
+            )
+          )
         )
       ),
       TestMessages.update(
@@ -1668,18 +1901,38 @@ class RuntimeServerTest
         contextId,
         id_x1_1,
         ConstantsGen.FUNCTION_BUILTIN,
-        Api.MethodCall(
-          Api.MethodPointer(moduleName, moduleName, "func1"),
-          Vector(0, 1, 2)
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(moduleName, moduleName, "func1"),
+            Vector(0, 1, 2)
+          )
+        ),
+        payload = Api.ExpressionUpdate.Payload.Value(
+          functionSchema = Some(
+            Api.FunctionSchema(
+              Api.MethodPointer(moduleName, moduleName, "func1"),
+              Vector(0, 1, 2)
+            )
+          )
         )
       ),
       TestMessages.update(
         contextId,
         id_x1_2,
         ConstantsGen.FUNCTION_BUILTIN,
-        Api.MethodCall(
-          Api.MethodPointer(moduleName, moduleName, "func1"),
-          Vector(0, 2)
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(moduleName, moduleName, "func1"),
+            Vector(0, 2)
+          )
+        ),
+        payload = Api.ExpressionUpdate.Payload.Value(
+          functionSchema = Some(
+            Api.FunctionSchema(
+              Api.MethodPointer(moduleName, moduleName, "func1"),
+              Vector(0, 2)
+            )
+          )
         )
       ),
       TestMessages.update(

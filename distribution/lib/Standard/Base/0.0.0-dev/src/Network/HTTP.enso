@@ -451,7 +451,7 @@ type HTTP
                         add_urlencoded form
                 Request_Body.Bytes bytes ->
                     builder.header Header.application_octet_stream.name Header.application_octet_stream.value
-                    Pair.new req (body_publishers.ofByteArray bytes.to_array)
+                    Pair.new req (body_publishers.ofByteArray bytes)
             # method
             req_http_method = req.method.to_http_method_name
             case req_with_body of

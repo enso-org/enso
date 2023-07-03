@@ -383,6 +383,11 @@ interface Value {
    * Information about attached warnings.
    */
   warnings?: Warnings;
+
+  /**
+   * The schema of returned function value.
+   */
+  functionSchema?: FunctionSchema;
 }
 
 /**
@@ -441,6 +446,22 @@ interface Warnings {
    * be obtained by attaching an appropriate visualization to a value.
    */
   value?: string;
+}
+
+/**
+ * Contains a method pointer with information on the partially applied argument
+ * positions.
+ */
+interface FunctionSchema {
+  /**
+   * The method pointer of this function.
+   */
+  methodPointer: MethodPointer;
+
+  /**
+   * Indexes of arguments that have not been applied to this function.
+   */
+  notAppliedArguments: number[];
 }
 ```
 

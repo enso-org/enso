@@ -2,6 +2,7 @@ from Standard.Base import all
 
 import project.Util
 
+import Standard.Base.Errors.Common.Arithmetic_Error
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Examples
@@ -98,38 +99,40 @@ spec =
 
     Test.group "Rounding" <|
         Test.specify "should be able to round a column of decimals" <|
-            Column.from_vector "foo" [1.2, 2.3, 3.6] . round . should_equal (Column.from_vector "foo" [1, 2, 4])
-            Column.from_vector "foo" [1.25, 2.33, 3.57] . round 1 . should_equal <| Column.from_vector "foo" [1.3, 2.3, 3.6]
-            Column.from_vector "foo" [12.0, 24.0, 25.0, 29.0] . round -1 . should_equal <| Column.from_vector "foo" [10, 20, 30, 30]
-            Column.from_vector "foo" [1.5, 2.5, 3.5] . round use_bankers=True . should_equal <| Column.from_vector "foo" [2, 2, 4]
+            Column.from_vector "foo" [1.2, 2.3, 2.5, 3.6] . round . should_equal (Column.from_vector "round([foo])" [1, 2, 3, 4])
+            Column.from_vector "foo" [1.25, 2.33, 3.57] . round 1 . should_equal <| Column.from_vector "round([foo])" [1.3, 2.3, 3.6]
+            Column.from_vector "foo" [12.0, 24.0, 25.0, 29.0] . round -1 . should_equal <| Column.from_vector "round([foo])" [10, 20, 30, 30]
+            Column.from_vector "foo" [1.5, 2.5, 3.5] . round use_bankers=True . should_equal <| Column.from_vector "round([foo])" [2, 2, 4]
+
+            Column.from_vector "foo" [-1.2, -2.3, -2.5, -3.6] . round . should_equal (Column.from_vector "round([foo])" [-1, -2, -3, -4])
+            Column.from_vector "foo" [-1.25, -2.33, -2.45, -3.57] . round 1 . should_equal <| Column.from_vector "round([foo])" [-1.3, -2.3, -2.5, -3.6]
+            Column.from_vector "foo" [-12.0, -24.0, -25.0, -29.0] . round -1 . should_equal <| Column.from_vector "round([foo])" [-10, -20, -30, -30]
 
         Test.specify "decimal rounding should return the correct column type" <|
-            Column.from_vector "foo" [1.2, 2.3, 3.6] . round . value_type . should_equal Value_Type.Integer
-            Column.from_vector "foo" [1.2, 2.3, 3.6] . round 1 . value_type . should_equal Value_Type.Float
+            Column.from_vector "foo" [1.21, 2.34, 3.68] . round -1 . value_type . should_equal Value_Type.Integer
+            Column.from_vector "foo" [1.21, 2.34, 3.68] . round . value_type . should_equal Value_Type.Integer
+            Column.from_vector "foo" [1.21, 2.34, 3.68] . round 1 . value_type . should_equal Value_Type.Float
 
         Test.specify "should be able to round a column of integers" <|
-            Column.from_vector "foo" [12, 24, 25, 29] . round . should_equal <| Column.from_vector "foo" [12, 24, 25, 29]
-            Column.from_vector "foo" [12, 24, 25, 29] . round -1 . should_equal <| Column.from_vector "foo" [10, 20, 30, 30]
-            Column.from_vector "foo" [15, 25, 35] . round -1 use_bankers=True . should_equal <| Column.from_vector "foo" [20, 20, 40]
+            Column.from_vector "foo" [12, 24, 25, 29] . round . should_equal <| Column.from_vector "round([foo])" [12, 24, 25, 29]
+            Column.from_vector "foo" [12, 24, 25, 29] . round -1 . should_equal <| Column.from_vector "round([foo])" [10, 20, 30, 30]
+            Column.from_vector "foo" [15, 25, 35] . round -1 use_bankers=True . should_equal <| Column.from_vector "round([foo])" [20, 20, 40]
 
         Test.specify "integer rounding should return the correct column type" <|
+            Column.from_vector "foo" [12, 24, 25, 29] . round 1 . value_type . should_equal Value_Type.Integer
+            Column.from_vector "foo" [12, 24, 25, 29] . round 0 . value_type . should_equal Value_Type.Integer
             Column.from_vector "foo" [12, 24, 25, 29] . round -1 . value_type . should_equal Value_Type.Integer
 
-        Test.specify "should report out-of-range values as problems" <|
+        Test.specify "should report out-of-range values as warnings" <|
             col = Column.from_vector "foo" [12, 23, 99999999999999999]
-            expected = Column.from_vector "foo" [10, 20, Nothing]
-            action = col.round -1 on_problems=_
-            problems = [Illegal_Argument.Error "Error: `round` can only accept values between -99999999999999 and 99999999999999 (inclusive), but was 99999999999999999"]
-            tester = _.should_equal expected
-            Problems.test_problem_handling action problems tester
+            expected = Column.from_vector "round([foo])" [10, 20, Nothing]
+            actual = col.round -1
+            actual . should_equal expected
+            Warning.get_all actual . map .value . should_equal [Illegal_Argument.Error "Error: `round` can only accept values between -99999999999999 and 99999999999999 (inclusive)"]
 
         Test.specify "should throw an error on decimal places out of range" <|
             col = Column.from_vector "foo" [12, 23, 99999999999999999]
-            expected = Column.from_vector "foo" [Nothing, Nothing, Nothing]
-            action = col.round decimal_places=-1200 on_problems=_
-            problems = [Illegal_Argument.Error "round: decimal_places must be between -15 and 15 (inclusive), but was -1200"]
-            tester = _.should_equal expected
-            Problems.test_problem_handling action problems tester
+            col.round decimal_places=-1200 . should_fail_with Illegal_Argument
 
     Test.group "truncate" <|
         Test.specify "should be able to truncate a column of floats" <|
@@ -166,6 +169,36 @@ spec =
 
         Test.specify "Should error on input of the wrong type" <|
             Column.from_vector "foo" ["asdf", "zxcv", "qwer"] . floor . should_fail_with Invalid_Value_Type
+
+    Test.group "round/truncate/ceil/floor" <|
+        do_op n op =
+            col = Column.from_vector "x" [n]
+            result = op col
+            result.to_vector.at 0
+        do_round n dp=0 use_bankers=False = do_op n (_.round dp use_bankers)
+
+        Test.specify "round returns the correct type" <|
+            do_round 231.2 1 . should_be_a Decimal
+            do_round 231.2 0 . should_be_a Integer
+            do_round 231.2 . should_be_a Integer
+            do_round 231.2 -1 . should_be_a Integer
+
+        Test.specify "round returns the correct type" <|
+            do_round 231 1 . should_be_a Integer
+            do_round 231 0 . should_be_a Integer
+            do_round 231 . should_be_a Integer
+            do_round 231 -1 . should_be_a Integer
+
+        Test.specify "nan/inf" <|
+            ops = [.truncate, .ceil, .floor, .round]
+            ops.map op->
+                col = Column.from_vector "x" [2.1, 0.0, Number.nan, Number.positive_infinity, Number.negative_infinity, Nothing, 12.1]
+                result = op col
+                result.to_vector . drop 2 . take 4 . should_equal [Nothing, Nothing, Nothing, Nothing]
+                warnings = Warning.get_all result . map .value
+                warnings . should_contain <| Arithmetic_Error.Error 'Value is -Infinity (at rows [4]).'
+                warnings . should_contain <| Arithmetic_Error.Error 'Value is Infinity (at rows [3]).'
+                warnings . should_contain <| Arithmetic_Error.Error 'Value is NaN (at rows [2]).'
 
     Test.group "Date_Time truncate" <|
         Test.specify "should be able to truncate a column of Date_Times" <|

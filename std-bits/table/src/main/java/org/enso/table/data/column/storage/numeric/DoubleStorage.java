@@ -4,9 +4,9 @@ import java.util.BitSet;
 import java.util.List;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.NumericBuilder;
+import org.enso.table.data.column.operation.map.DoubleLongMapOpWithSpecialNumericHandling;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
-import org.enso.table.data.column.operation.map.UnaryDoubleToLongOp;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.operation.map.numeric.DoubleBooleanOp;
 import org.enso.table.data.column.operation.map.numeric.DoubleIsInOp;
@@ -245,21 +245,21 @@ public final class DoubleStorage extends NumericStorage<Double> {
               }
             })
         .add(
-            new UnaryDoubleToLongOp(Maps.TRUNCATE) {
+            new DoubleLongMapOpWithSpecialNumericHandling(Maps.TRUNCATE) {
               @Override
               protected long doOperation(double a) {
                 return (long) a;
               }
             })
         .add(
-            new UnaryDoubleToLongOp(Maps.CEIL) {
+            new DoubleLongMapOpWithSpecialNumericHandling(Maps.CEIL) {
               @Override
               protected long doOperation(double a) {
                 return (long) Math.ceil(a);
               }
             })
         .add(
-            new UnaryDoubleToLongOp(Maps.FLOOR) {
+            new DoubleLongMapOpWithSpecialNumericHandling(Maps.FLOOR) {
               @Override
               protected long doOperation(double a) {
                 return (long) Math.floor(a);
