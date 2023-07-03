@@ -17,6 +17,7 @@ import org.enso.table.parsing.problems.NoOpProblemAggregator;
 import org.enso.table.problems.Problem;
 import org.enso.table.problems.WithProblems;
 import org.enso.table.util.NameDeduplicator;
+import org.graalvm.polyglot.Context;
 
 import java.io.Reader;
 import java.util.*;
@@ -465,11 +466,14 @@ public class DelimitedReader {
       throw new EmptyFileException();
     }
 
+    Context context = Context.getCurrent();
     initBuilders(columnCount);
     while (canFitMoreRows()) {
       var currentRow = readNextRow();
       if (currentRow == null) break;
       appendRow(currentRow);
+
+      context.safepoint();
     }
 
     parser.stopParsing();
@@ -486,6 +490,7 @@ public class DelimitedReader {
       Storage<?> storage = parseResult.value();
 
       columns[i] = new Column(columnName, storage);
+      context.safepoint();
     }
     return new WithProblems<>(new Table(columns), getReportedProblems(headerProblems));
   }
