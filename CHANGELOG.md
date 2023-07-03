@@ -191,6 +191,10 @@
 - [Fixed cursor position when ctrl-clicking the node][7014]. Sometimes
   ctrl-clicking to edit the node placed the mouse cursor in the wrong position
   in the text. This is fixed now.
+- [Allow visualization resizing][7164]. Now the user can adjust the
+  visualization size by dragging its right and bottom borders. Visualization
+  width also follows the node's width, and visualizations are aligned to the
+  left side of the node.
 
 [5910]: https://github.com/enso-org/enso/pull/5910
 [6279]: https://github.com/enso-org/enso/pull/6279
@@ -208,6 +212,7 @@
 [6893]: https://github.com/enso-org/enso/pull/6893
 [7028]: https://github.com/enso-org/enso/pull/7028
 [7014]: https://github.com/enso-org/enso/pull/7014
+[7164]: https://github.com/enso-org/enso/pull/7164
 
 #### EnsoGL (rendering engine)
 
