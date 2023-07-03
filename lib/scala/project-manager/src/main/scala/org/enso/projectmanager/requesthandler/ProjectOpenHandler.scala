@@ -21,11 +21,13 @@ import scala.concurrent.duration.FiniteDuration
   * @param clientId the requester id
   * @param projectService a project service
   * @param requestTimeout a request timeout
+  * @param timeoutRetries a number of timeouts to wait until a failure is reported
   */
 class ProjectOpenHandler[F[+_, +_]: Exec: CovariantFlatMap](
   clientId: UUID,
   projectService: ProjectServiceApi[F],
-  requestTimeout: FiniteDuration
+  requestTimeout: FiniteDuration,
+  timeoutRetries: Int
 ) extends RequestHandler[
       F,
       ProjectServiceFailure,
@@ -37,7 +39,8 @@ class ProjectOpenHandler[F[+_, +_]: Exec: CovariantFlatMap](
       // TODO [RW] maybe we can get rid of this timeout since boot timeout is
       //  handled by the LanguageServerProcess; still the ? message of
       //  LanguageServerGateway will result in timeouts (#1315)
-      Some(requestTimeout)
+      Some(requestTimeout),
+      timeoutRetries
     ) {
 
   override def handleRequest = { params =>
@@ -69,18 +72,21 @@ object ProjectOpenHandler {
     * @param clientId the requester id
     * @param projectService a project service
     * @param requestTimeout a request timeout
+    * @param timeoutRetries a number of timeouts to wait until a failure is reported
     * @return a configuration object
     */
   def props[F[+_, +_]: Exec: CovariantFlatMap](
     clientId: UUID,
     projectService: ProjectServiceApi[F],
-    requestTimeout: FiniteDuration
+    requestTimeout: FiniteDuration,
+    timeoutRetries: Int
   ): Props =
     Props(
       new ProjectOpenHandler(
         clientId,
         projectService,
-        requestTimeout
+        requestTimeout,
+        timeoutRetries
       )
     )
 

@@ -170,9 +170,9 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
       .diagnostics
     val diagnostics = pass.collect {
       case warn: IR.Warning =>
-        createDiagnostic(Api.DiagnosticType.Warning(), module, warn)
+        createDiagnostic(Api.DiagnosticType.Warning, module, warn)
       case error: IR.Error =>
-        createDiagnostic(Api.DiagnosticType.Error(), module, error)
+        createDiagnostic(Api.DiagnosticType.Error, module, error)
     }
     sendDiagnosticUpdates(diagnostics)
     getCompilationStatus(diagnostics)
@@ -433,7 +433,7 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
   private def getCompilationStatus(
     diagnostics: Iterable[Api.ExecutionResult.Diagnostic]
   ): CompilationStatus =
-    if (diagnostics.exists(_.kind == Api.DiagnosticType.Error()))
+    if (diagnostics.exists(_.isError))
       CompilationStatus.Error
     else
       CompilationStatus.Success

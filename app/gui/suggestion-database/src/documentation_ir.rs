@@ -723,7 +723,7 @@ impl FilteredDocSections {
         let mut examples = Vec::new();
         for section in doc_sections {
             match section {
-                DocSection::Tag { name, body } => tags.push(Tag::new(name, body)),
+                DocSection::Tag { tag, body } => tags.push(Tag::new(tag.to_str(), body)),
                 DocSection::Marked { mark: Mark::Example, .. } => examples.push(section.clone()),
                 section => synopsis.push(section.clone()),
             }
@@ -838,21 +838,21 @@ mod tests {
                     Bar (b);
 
                     #[with_doc_section(doc_section!("Documentation of method A.baz."))]
-                    #[with_doc_section(doc_section!(@ "Tag", "Tag body."))]
+                    #[with_doc_section(doc_section!(@ Deprecated, "Tag body."))]
                     fn baz() -> Standard.Base.B;
                 }
 
                 #[with_doc_section(doc_section!("Documentation of type B."))]
                 type B {
                     #[with_doc_section(doc_section!("Documentation of constructor B.New."))]
-                    #[with_doc_section(doc_section!(@ "AnotherTag", "Tag body."))]
+                    #[with_doc_section(doc_section!(@ Alias, "Tag body."))]
                     #[with_doc_section(doc_section!(! "Important", "Important note."))]
                     #[with_doc_section(doc_section!(> "Example", "Example of constructor B.New usage."))]
                     New;
                 }
 
                 #[with_doc_section(doc_section!("Documentation of module method."))]
-                #[with_doc_section(doc_section!(@ "Deprecated", ""))]
+                #[with_doc_section(doc_section!(@ Deprecated, ""))]
                 #[with_doc_section(doc_section!(> "Example", "Example of module method usage."))]
                 fn module_method() -> Standard.Base.A;
             }
@@ -875,7 +875,7 @@ mod tests {
             name:      QualifiedName::from_text("Standard.Base.module_method").unwrap().into(),
             tags:      Tags {
                 list: SortedVec::new([Tag {
-                    name: "Deprecated".to_im_string(),
+                    name: "DEPRECATED".to_im_string(),
                     body: "".to_im_string(),
                 }]),
             },
@@ -936,7 +936,7 @@ mod tests {
     fn a_baz_method() -> Function {
         Function {
             name:      QualifiedName::from_text("Standard.Base.A.baz").unwrap().into(),
-            tags:      Tags { list: vec![Tag::new("Tag", "Tag body.")].into() },
+            tags:      Tags { list: vec![Tag::new("DEPRECATED", "Tag body.")].into() },
             arguments: default(),
             synopsis:  Synopsis::from_doc_sections([doc_section!(
                 "Documentation of method A.baz."
@@ -960,7 +960,7 @@ mod tests {
     fn b_new_constructor() -> Function {
         Function {
             name:      QualifiedName::from_text("Standard.Base.B.New").unwrap().into(),
-            tags:      Tags { list: vec![Tag::new("AnotherTag", "Tag body.")].into() },
+            tags:      Tags { list: vec![Tag::new("ALIAS", "Tag body.")].into() },
             arguments: default(),
             synopsis:  Synopsis::from_doc_sections([
                 doc_section!("Documentation of constructor B.New."),

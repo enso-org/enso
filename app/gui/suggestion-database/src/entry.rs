@@ -16,6 +16,7 @@ use engine_protocol::language_server;
 use engine_protocol::language_server::FieldUpdate;
 use engine_protocol::language_server::SuggestionsDatabaseModification;
 use enso_doc_parser::DocSection;
+use enso_doc_parser::Tag;
 use enso_text::Location;
 use language_server::types::FieldAction;
 
@@ -27,16 +28,6 @@ use language_server::types::FieldAction;
 pub use language_server::types::SuggestionEntryArgument as Argument;
 pub use language_server::types::SuggestionId as Id;
 pub use language_server::types::SuggestionsDatabaseUpdate as Update;
-
-
-
-// =================
-// === Constants ===
-// =================
-
-/// Key of the keyed [`language_server::types::DocSection`] containing a name of an icon in its
-/// body.
-const ICON_DOC_SECTION_KEY: &str = "Icon";
 
 
 
@@ -91,23 +82,21 @@ pub struct ModuleSpan {
 // ================
 
 /// Name of an icon. The name is composed of words with unspecified casing.
+///
+/// In order to make icon definitions more readable for non-programmer users, the builtin icon name
+/// is allowed to be formatted in arbitrary casing. Either `SNAKE_case`,`camelCase`, `Pascal_Case`
+/// etc. is allowed.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct IconName {
-    /// Internally the name is kept in PascalCase to optimize converting into
-    /// [`component_group_view::icon::Id`].
+    /// The name is kept in `PascalCase` to allow easy conversion into builtin icon ID.
     pascal_cased: ImString,
 }
 
 impl IconName {
-    /// Construct from a name formatted in snake_case.
-    pub fn from_snake_case(s: impl AsRef<str>) -> Self {
-        let pascal_cased = s.as_ref().from_case(Case::Snake).to_case(Case::Pascal).into();
+    /// Parse arbitrary tag body with any casing into an `PascalCase` icon name.
+    pub fn from_tag_body(s: &str) -> Self {
+        let pascal_cased = s.to_case(Case::Pascal).into();
         Self { pascal_cased }
-    }
-
-    /// Convert to a name formatted in snake_case.
-    pub fn to_snake_case(&self) -> ImString {
-        self.pascal_cased.from_case(Case::Pascal).to_case(Case::Snake).into()
     }
 
     /// Convert to a name formatted in PascalCase.
@@ -977,19 +966,7 @@ where
 fn find_icon_name_in_doc_sections<'a, I>(doc_sections: I) -> Option<IconName>
 where I: IntoIterator<Item = &'a DocSection> {
     doc_sections.into_iter().find_map(|section| match section {
-        DocSection::Keyed { key, body } if key == ICON_DOC_SECTION_KEY => {
-            let icon_name = IconName::from_snake_case(body);
-            let as_snake_case = icon_name.to_snake_case();
-            if as_snake_case.as_str() != body.as_str() || !body.is_case(Case::Snake) {
-                let msg = format!(
-                    "The icon name {body} used in the {ICON_DOC_SECTION_KEY} section of the \
-                    documentation of a component is not a valid, losslessly-convertible snake_case \
-                    identifier. The component may be displayed with a different icon than expected."
-                );
-                warn!("{msg}");
-            }
-            Some(icon_name)
-        }
+        DocSection::Tag { tag: Tag::Icon, body } => Some(IconName::from_tag_body(body)),
         _ => None,
     })
 }
@@ -1274,8 +1251,8 @@ mod test {
         use enso_doc_parser::DocSection;
         let doc_sections = [
             DocSection::Paragraph { body: "Some paragraph.".into() },
-            DocSection::Keyed { key: "NotIcon".into(), body: "example_not_icon_body".into() },
-            DocSection::Keyed { key: "Icon".into(), body: "example_icon_name".into() },
+            DocSection::Tag { tag: Tag::Advanced, body: "example_not_icon_body".into() },
+            DocSection::Tag { tag: Tag::Icon, body: "ExampleIconName".into() },
             DocSection::Paragraph { body: "Another paragraph.".into() },
         ];
         let icon_name = find_icon_name_in_doc_sections(&doc_sections).unwrap();
@@ -1286,8 +1263,8 @@ mod test {
     /// converting [`IconName`] values to PascalCase.
     #[test]
     fn icon_name_case_insensitiveness() {
-        let name_from_small_snake_case = IconName::from_snake_case("an_example_name");
-        let name_from_mixed_snake_case = IconName::from_snake_case("aN_EXAMPLE_name");
+        let name_from_small_snake_case = IconName::from_tag_body("an_example_name");
+        let name_from_mixed_snake_case = IconName::from_tag_body("An_EXAMPLE_name");
         const PASCAL_CASE_NAME: &str = "AnExampleName";
         assert_eq!(name_from_small_snake_case, name_from_mixed_snake_case);
         assert_eq!(name_from_small_snake_case.to_pascal_case(), PASCAL_CASE_NAME);

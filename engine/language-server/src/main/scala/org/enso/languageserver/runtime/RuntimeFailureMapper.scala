@@ -11,6 +11,8 @@ import org.enso.languageserver.protocol.json.ErrorApi._
 import org.enso.languageserver.runtime.ExecutionApi._
 import org.enso.polyglot.runtime.Runtime.Api
 import cats.implicits._
+import org.enso.polyglot.runtime.Runtime.Api.{DiagnosticType, ExecutionResult}
+
 import java.io.File
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -55,12 +57,34 @@ final class RuntimeFailureMapper(contentRootManager: ContentRootManager) {
     * @return the registry protocol representation fo the diagnostic message
     */
   def toProtocolFailure(
-    error: Api.ExecutionResult.Failure
+    result: Api.ExecutionResult
   )(implicit
     ec: ExecutionContext
-  ): Future[ContextRegistryProtocol.ExecutionFailure] =
-    for (path <- findRelativePath(error.file))
-      yield ContextRegistryProtocol.ExecutionFailure(error.message, path)
+  ): Future[ContextRegistryProtocol.ExecutionFailure] = {
+    val (file, msg) = fromExecutionResultToError(result)
+    for (path <- findRelativePath(file))
+      yield ContextRegistryProtocol.ExecutionFailure(msg, path)
+  }
+
+  private def fromExecutionResultToError(
+    result: Api.ExecutionResult
+  ): (Option[File], String) = {
+    result match {
+      case ExecutionResult.Diagnostic(
+            DiagnosticType.Error,
+            message,
+            file,
+            _,
+            _,
+            _
+          ) =>
+        (file, message.getOrElse("unknown error"))
+      case ExecutionResult.Failure(msg, path) =>
+        (path, msg)
+      case _ =>
+        (None, s"internal error, got $result instead of an error")
+    }
+  }
 
   /** Convert the runtime diagnostic message to the context registry protocol
     * representation.
@@ -93,9 +117,9 @@ final class RuntimeFailureMapper(contentRootManager: ContentRootManager) {
     kind: Api.DiagnosticType
   ): ContextRegistryProtocol.ExecutionDiagnosticKind =
     kind match {
-      case Api.DiagnosticType.Error() =>
+      case Api.DiagnosticType.Error =>
         ContextRegistryProtocol.ExecutionDiagnosticKind.Error
-      case Api.DiagnosticType.Warning() =>
+      case Api.DiagnosticType.Warning =>
         ContextRegistryProtocol.ExecutionDiagnosticKind.Warning
     }
 

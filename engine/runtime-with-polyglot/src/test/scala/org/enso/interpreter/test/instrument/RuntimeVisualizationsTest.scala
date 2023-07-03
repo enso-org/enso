@@ -1206,7 +1206,7 @@ class RuntimeVisualizationsTest
         )
       )
     )
-    context.receiveN(4) should contain theSameElementsAs Seq(
+    context.receiveN(3) should contain theSameElementsAs Seq(
       Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.VisualizationAttached()),
       Api.Response(
@@ -1214,8 +1214,7 @@ class RuntimeVisualizationsTest
           contextId,
           Api.ExecutionResult.Failure("Execution stack is empty.", None)
         )
-      ),
-      context.executionComplete(contextId)
+      )
     )
 
     // push main
