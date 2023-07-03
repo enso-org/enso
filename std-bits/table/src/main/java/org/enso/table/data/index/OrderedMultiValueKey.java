@@ -4,6 +4,7 @@ import java.util.Comparator;
 
 import org.enso.base.ObjectComparator;
 import org.enso.table.data.column.storage.Storage;
+import org.graalvm.polyglot.Context;
 
 /**
  * A multi-value key for ordered operations like sorting.
@@ -35,6 +36,7 @@ public class OrderedMultiValueKey extends MultiValueKeyBase
 
   @Override
   public boolean equals(Object o) {
+    Context context = Context.getCurrent();
     if (this == o) return true;
     if (!(o instanceof MultiValueKeyBase that)) return false;
     if (storages.length != that.storages.length) return false;
@@ -42,6 +44,8 @@ public class OrderedMultiValueKey extends MultiValueKeyBase
       if (objectComparator.compare(get(i), that.get(i)) != 0) {
         return false;
       }
+
+      context.safepoint();
     }
 
     return true;
@@ -57,11 +61,14 @@ public class OrderedMultiValueKey extends MultiValueKeyBase
       throw new ClassCastException("Incomparable keys.");
     }
 
+    Context context = Context.getCurrent();
     for (int i = 0; i < storages.length; i++) {
       int comparison = objectComparator.compare(get(i), that.get(i));
       if (comparison != 0) {
         return comparison * directions[i];
       }
+
+      context.safepoint();
     }
 
     return 0;
