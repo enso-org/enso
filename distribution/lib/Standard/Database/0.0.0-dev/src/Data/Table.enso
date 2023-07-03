@@ -38,6 +38,7 @@ import project.Data.SQL_Query.SQL_Query
 import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
 import project.Internal.Aggregate_Helper
+import project.Internal.Base_Generator
 import project.Internal.Common.Database_Join_Helper
 import project.Internal.Helpers
 import project.Internal.IR.Context.Context
@@ -579,15 +580,8 @@ type Table
                     Nothing -> Error.throw (Illegal_Argument.Error "No `order_by` is specified and the table has no existing ordering (e.g. from an `order_by` operation or a primary key). Some ordering is required for `add_row_number` in Database tables.")
                     descriptors -> descriptors
             grouping_expressions = grouping_columns.map .expression
-            ## This is a terrible hack, but I could not figure a decent way to
-               have an operation take a variable number of arguments of multiple
-               kinds (here both groups and orders are varying).
-               Currently, the IR just allows to put a list of parameters for the
-               operation and they are all converted into SQL code before being
-               passed to the particular operation builder. So at this stage
-               there is no way to distinguish the arguments.
-               This is yet another argument for the IR redesign.
-            separator = SQL_Expression.Literal "<!EXPRESSION_SEPARATOR!>"
+
+            separator = SQL_Expression.Literal Base_Generator.row_number_parameter_separator
             # The SQL row_number() counts from 1, so we adjust the offset.
             offset = from - step
             params = [SQL_Expression.Constant offset, SQL_Expression.Constant step] + order_descriptors + [separator] + grouping_expressions

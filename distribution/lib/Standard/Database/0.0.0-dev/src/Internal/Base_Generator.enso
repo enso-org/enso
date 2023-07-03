@@ -273,13 +273,31 @@ make_row_number arguments = if arguments.length < 4 then Error.throw (Illegal_St
     step = arguments.at 1
 
     separator_ix = arguments.index_of code->
-        code.build.prepare.first == "<!EXPRESSION_SEPARATOR!>"
+        code.build.prepare.first == row_number_parameter_separator
     ordering = arguments.take (Range.new 2 separator_ix)
     grouping = arguments.drop (separator_ix+1)
 
     group_part = if grouping.length == 0 then "" else
         Builder.code "PARTITION BY " ++ Builder.join ", " grouping
     Builder.code "(row_number() OVER (" ++ group_part ++ " ORDER BY " ++ Builder.join ", " ordering ++ ") * " ++ step.paren ++ " + " ++ offset.paren ++ ")"
+
+## PRIVATE
+   This is a terrible hack, but I could not figure a decent way to have an
+   operation take a variable number of arguments of multiple kinds (here both
+   groups and orders are varying).
+
+   Currently, the IR just allows to put a list of parameters for the operation
+   and they are all converted into SQL code before being passed to the
+   particular operation builder. So at this stage there is no way to distinguish
+   the arguments.
+
+   So to distinguish different groups of arguments, we use this 'fake' parameter
+   to act as a separator. This parameter is not supposed to end up in the
+   generated SQL code.
+
+   This is yet another argument for the IR redesign.
+row_number_parameter_separator =
+    "--<!PARAMETER_SEPARATOR!>--"
 
 ## PRIVATE
 
