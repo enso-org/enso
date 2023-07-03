@@ -39,8 +39,7 @@ public abstract class RemoveAtVectorNode extends Node {
     } catch (UnsupportedMessageException e) {
       CompilerDirectives.transferToInterpreter();
       Builtins builtins = EnsoContext.get(this).getBuiltins();
-      throw new PanicException(
-          builtins.error().makeTypeError(builtins.vector(), vec, "vec"), this);
+      throw new PanicException(builtins.error().makeTypeError(builtins.vector(), vec, "vec"), this);
     }
   }
 
