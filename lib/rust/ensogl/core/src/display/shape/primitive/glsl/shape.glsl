@@ -245,7 +245,7 @@ BoundSdf grow (BoundSdf a, float size) {
 
 BoundSdf annulus (BoundSdf a, float thickness2) {
     a.distance = abs(a.distance) - thickness2;
-    a.bounds = grow(a.bounds,thickness2);
+    a.bounds = grow(a.bounds, thickness2);
     return a;
 }
 
