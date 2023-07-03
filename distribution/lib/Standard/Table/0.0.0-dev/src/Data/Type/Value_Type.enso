@@ -173,6 +173,12 @@ type Value_Type
         Value_Type.Integer _ -> True
         _ -> False
 
+    ## Checks if the `Value_Type` represents a decimal type.
+    is_decimal : Boolean
+    is_decimal self = case self of
+        Value_Type.Decimal _ _ -> True
+        _ -> False
+
     ## Checks if the `Value_Type` represents a type that holds a date.
 
        It will return true for both `Date` and `Date_Time` types.

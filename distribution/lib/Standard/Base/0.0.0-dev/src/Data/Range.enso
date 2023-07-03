@@ -1,6 +1,7 @@
 import project.Any.Any
 import project.Data.Filter_Condition.Filter_Condition
 import project.Data.Numbers.Integer
+import project.Data.Pair.Pair
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Errors.Common.Index_Out_Of_Bounds
@@ -11,6 +12,7 @@ import project.Nothing.Nothing
 import project.Errors.Illegal_State.Illegal_State
 
 from project.Data.Boolean import Boolean, True, False
+from project.Data.Filter_Condition import unify_condition_or_predicate
 
 ## Represents a right-exclusive range of integer values.
 type Range
@@ -174,6 +176,7 @@ type Range
 
              (0.up_to 7).filter (> 3)
              (0.up_to 7).filter (Filter_Condition.Greater than=3)
+    @filter range_default_filter_condition_widget
     filter : (Filter_Condition | (Integer -> Boolean)) -> Vector Integer
     filter self filter = case filter of
         _ : Filter_Condition -> self.filter filter.to_predicate
@@ -181,6 +184,36 @@ type Range
             builder = self.fold Vector.new_builder builder-> elem->
                 if predicate elem then builder.append elem else builder
             builder.to_vector
+
+    ## Partitions the range into `Vector`s of elements which satisfy a given
+       condition and ones that do not.
+
+       Returns a `Pair` whose `first` element is the `Vector` of elements
+       satisfying the predicate and the `second` element is a `Vector` of
+       elements which did not satisfy it.
+
+       The relative order of elements kept in each returned list is the same as
+       in the input.
+
+       Arguments:
+       - condition: A `Filter_Condition` or a predicate function to test each
+         element.
+
+       > Example
+         Splitting a range into even and odd elements.
+
+             (0.up_to 4).partition (x-> x%2 == 0) == (Pair [0, 2] [1, 3])
+    @condition range_default_filter_condition_widget
+    partition : (Filter_Condition | (Integer -> Boolean)) -> Pair (Vector Integer) (Vector Integer)
+    partition self condition =
+        predicate = unify_condition_or_predicate condition
+        pair = self.fold (Pair.new Vector.new_builder Vector.new_builder) acc-> elem->
+            case predicate elem of
+                True ->
+                    Pair.new (acc.first.append elem) acc.second
+                False ->
+                    Pair.new acc.first (acc.second.append elem)
+        pair.map .to_vector
 
     ## PRIVATE
        ADVANCED
@@ -291,41 +324,52 @@ type Range
         built = self.fold (Vector.new_builder self.length) wrapped
         built.to_vector
 
-    ## Checks whether `predicate` is satisfied for all numbers in this range.
+    ## Checks whether a condition is satisfied for all numbers in this range.
 
        Arguments:
-       - predicate: A function that takes a list element and returns a boolean
-         value that says whether that value satisfies the conditions of the
-         function.
+       - condition: A `Filter_Condition` or a predicate function to test each
+         element.
 
        > Example
          Checking that all numbers in the range are greater than 5.
 
-             10.up_to 100 . all (> 5)
-    all : (Integer -> Boolean) -> Boolean
-    all self predicate = self . any (predicate >> .not) . not
+             10.up_to 100 . all (Filter_Condition.Greater than=5)
 
-    ## Checks whether `predicate` is satisfied for any number in this range.
+       > Example
+         Checking that all numbers in the range are even.
+
+             10.up_to 100 . with_step 2 . all (x-> x%2 == 0)
+    @condition range_default_filter_condition_widget
+    all : (Filter_Condition | (Integer -> Boolean)) -> Boolean
+    all self condition =
+        predicate = unify_condition_or_predicate condition
+        self.any (predicate >> .not) . not
+
+    ## Checks whether a condition is satisfied for any number in this range.
 
        Arguments:
-       - predicate: A function that takes a list element and returns a boolean
-         value that says whether that value satisfies the conditions of the
-         function.
+       - condition: A `Filter_Condition` or a predicate function to test each
+         element.
 
        > Example
          Checking that at least one number in the range is greater than 10.
 
-             1.up_to 100 . any (> 10)
-    any : (Integer -> Boolean) -> Boolean
-    any self predicate = self.find predicate . is_nothing . not
+             1.up_to 100 . any (Filter_Condition.Greater than=10)
 
-    ## Gets the first index when `predicate` is satisfied this range.
-       If no index satisfies the predicate, returns `if_missing`.
+       > Example
+         Checking that at least one number in the range is even.
+
+             1.up_to 100 . any (x-> x%2 == 0)
+    @condition range_default_filter_condition_widget
+    any : (Filter_Condition | (Integer -> Boolean)) -> Boolean
+    any self condition = self.find condition . is_nothing . not
+
+    ## Gets the first element of this range that satisfies a condition.
+       If no element satisfies the condition, returns `if_missing`.
 
        Arguments:
-       - predicate: A function that takes a list element and returns a boolean
-         value that says whether that value satisfies the conditions of the
-         function.
+       - condition: A `Filter_Condition` or a predicate function to test each
+         element.
        - start: The index to start searching from. If the index is negative, it
          is counted from the end of the range.
        - if_missing: Value returned if no element satisfies the predicate.
@@ -334,8 +378,15 @@ type Range
          Get the first number in the range divisible by 2, 3 and 5.
 
              1.up_to 100 . find i->(i%2==0 && i%3==0 && i%5==0)
-    find : (Integer -> Boolean) -> Integer -> Any -> Any
-    find self predicate start=0 ~if_missing=Nothing =
+
+       > Example
+         Get the first number in the range that is greater than 10.
+
+             1.up_to 100 . find (Filter_Condition.Greater than=10)
+    @condition range_default_filter_condition_widget
+    find : (Filter_Condition | (Integer -> Boolean)) -> Integer -> Any -> Any
+    find self condition start=0 ~if_missing=Nothing =
+        predicate = unify_condition_or_predicate condition
         check_start_valid start self used_start->
             result = find_internal self used_start predicate
             if result.is_nothing then if_missing else result.first
@@ -363,8 +414,8 @@ type Range
        Returns Nothing if the element is not found.
 
        Arguments:
-       - element: The integer to search for or a predicate function to test for
-         each element.
+       - condition: Either the element to search for, a `Filter_Condition` or a
+         predicate function to test each element.
        - start: The index to start searching from. If the index is negative, it
          is counted from the end of the range.
 
@@ -374,22 +425,25 @@ type Range
              0.up_to 100 . index_of 20 == 20
              0.up_to 100 . with_step 5 . index_of 20 == 4
              0.up_to 100 . with_step 5 . index_of (>10) == 3
-    index_of : (Integer | (Integer -> Boolean)) -> Integer -> Integer | Nothing
-    index_of self element start=0 =
+    @condition range_default_filter_condition_widget
+    index_of : (Integer | Filter_Condition | (Integer -> Boolean)) -> Integer -> Integer | Nothing
+    index_of self condition start=0 =
         check_start_valid start self used_start->
-            case element of
-                _ : Integer -> get_index self used_start self.length-1 element
-                _ : Function ->
-                    result = find_internal self used_start element
+            case condition of
+                element : Integer -> get_index self used_start self.length-1 element
+                f : Function ->
+                    result = find_internal self used_start f
                     if result.is_nothing then Nothing else result.second
-                _ -> Error.throw (Illegal_Argument.Error "`Range.index_of` only accepts Integers or a predicate.")
+                fc : Filter_Condition ->
+                    self.index_of fc.to_predicate start
+                _ -> Error.throw (Illegal_Argument.Error "`Range.index_of` only accepts Integer, Filter_Condition or a predicate.")
 
     ## Returns the last index of an element in the range.
        Returns Nothing if the element is not found.
 
        Arguments:
-       - element: The integer to search for or a predicate function to test for
-         each element.
+       - condition: Either the element to search for, a `Filter_Condition` or a
+         predicate function to test each element.
        - start: The index to start searching backwards from. If the index is
          negative, it is counted from the end of the range.
 
@@ -397,20 +451,23 @@ type Range
          Find the last index of an element in a pair.
 
              Pair.new 2 2 . last_index_of 2 == 1
-    last_index_of : (Integer | (Integer -> Boolean)) -> Integer -> Integer | Nothing
-    last_index_of self element start=-1 =
+    @condition range_default_filter_condition_widget
+    last_index_of : (Integer | Filter_Condition | (Integer -> Boolean)) -> Integer -> Integer | Nothing
+    last_index_of self condition start=-1 =
         if self.is_empty && (start==-1 || start==0) then Nothing else
             check_start_valid start self include_end=False used_start->
-                case element of
-                    _ : Integer -> get_index self 0 used_start element
-                    _ : Function ->
+                case condition of
+                    element : Integer -> get_index self 0 used_start element
+                    f : Function ->
                         start_value = self.start + used_start*self.step
                         go current idx =
-                            if element current then idx else
+                            if f current then idx else
                                 if current == self.start then Nothing else
                                     @Tail_Call go current-self.step idx-1
                         go start_value used_start
-                    _ -> Error.throw (Illegal_Argument.Error "`Range.last_index_of` only accepts Integers or a predicate.")
+                    fc : Filter_Condition ->
+                        self.last_index_of fc.to_predicate start
+                    _ -> Error.throw (Illegal_Argument.Error "`Range.last_index_of` only accepts Integer, Filter_Condition or a predicate.")
 
     ## Reverses the range, returning a range with the same elements, but in
        the opposite order.
@@ -505,3 +562,7 @@ type Empty_Error
        Pretty prints the empty error.
     to_display_text : Text
     to_display_text self = "The Range is empty."
+
+## PRIVATE
+range_default_filter_condition_widget =
+    Filter_Condition.default_widget include_text=False include_boolean=False include_nullable=False

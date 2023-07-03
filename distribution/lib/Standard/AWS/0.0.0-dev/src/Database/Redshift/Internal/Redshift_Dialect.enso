@@ -128,6 +128,14 @@ type Redshift_Dialect
     supports_separate_nan self = True
 
     ## PRIVATE
+    supports_negative_round_decimal_places : Boolean
+    supports_negative_round_decimal_places self = True
+
+    ## PRIVATE
+    rounding_decimal_places_not_allowed_for_floats : Boolean
+    rounding_decimal_places_not_allowed_for_floats self = True
+
+    ## PRIVATE
     adapt_unified_column : Internal_Column -> Value_Type -> (SQL_Expression -> SQL_Type_Reference) -> Internal_Column
     adapt_unified_column self column approximate_result_type infer_result_type_from_database_callback =
         _ = [approximate_result_type, infer_result_type_from_database_callback]

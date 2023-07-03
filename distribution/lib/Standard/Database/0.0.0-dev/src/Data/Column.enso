@@ -133,6 +133,7 @@ type Column
        - operands: A vector of additional operation arguments (the column itself
          is always passed as the first argument).
        - new_name: The name of the resulting column.
+    make_op : Text -> Vector Text -> (Text | Nothing) -> Column
     make_op self op_kind operands new_name =
         checked_support = if self.connection.dialect.is_supported op_kind then True else
             Error.throw (Unsupported_Database_Operation.Error "The operation "+op_kind+" is not supported by this backend.")
@@ -142,6 +143,8 @@ type Column
                 other_column : Column ->
                     if Helpers.check_integrity self other_column then other_column.expression else
                         Error.throw <| Unsupported_Database_Operation.Error "Cannot use columns coming from different contexts in one expression without a join."
+                sql_expression : SQL_Expression ->
+                    sql_expression
                 constant ->
                     SQL_Expression.Constant constant
 
@@ -553,26 +556,230 @@ type Column
                 op_result = self.make_op "IIF" [when_true, when_false] new_name
                 adapt_unified_column op_result common_type
 
-    ## Rounding values is not supported in database columns.
-    round : Integer -> Boolean -> Problem_Behavior -> Column | Illegal_Argument | Invalid_Value_Type
-    round self decimal_places=0 use_bankers=False on_problems=Report_Warning =
-        _ = [decimal_places, use_bankers, on_problems]
-        Error.throw <| Unsupported_Database_Operation.Error "`Column.round` is not implemented yet for the Database backends."
+    ## PRIVATE
 
-    ## Truncating values is not supported in database columns.
+       Creates a column from a single constant value. The value must be of a
+       type supported by the database back-end.
+
+       This method is not static; it must be called on an existing column. That
+       existing column is only used for its internal state; the contents of the
+       column are not used.
+
+       Arguments:
+       - value: the constant value to use for the entire column. The value must
+         be of a type supported by the database back-end.
+
+       > Example
+         Create a column of the value 42
+
+         column.const 42
+    const : Any -> Column
+    const self value = self.to_table.make_constant_column value
+
+    ## Round to a specified number of decimal places.
+
+       `round` is only valid for `Value_Type.Decimal`, `Value_Type.Float`, and
+       `Value_Type.Integer` columns.
+
+       By default, rounding uses "symmetric round-half-up", also known as
+       "round towards 0." If use_bankers=True, then it uses "round-half-even",
+       also known as "banker's rounding".
+
+       The return type depends on the backend.
+
+       Arguments:
+       - decimal_places: The number of decimal places to round to. Can be
+         negative, which results in rounding to positive integer powers of 10.
+         Must be between -15 and 15 (inclusive).
+       - use_bankers: Rounds mid-point to nearest even number.
+
+       ! NaN/Inf
+         If a `NaN` or `Inf` value is passed to `round`, it immediately returns
+         the same value.
+
+       ! Error Conditions
+
+         If `decimal_places` is outside the range -15..15 (inclusive), an
+         `Illegal_Argument` error is thrown.
+
+       ? Negative decimal place counts
+         Rounding to `n` digits can be thought of as "rounding to the nearest
+         multiple of 10^(-n)". For negative decimal counts, this results in
+         rounding to the nearest positive integer power of 10.
+
+       > Example
+         Round a column to two decimal places.
+
+             import Standard.Examples
+
+             example_round = Examples.decimal_column.round 2
+    round : Integer -> Boolean -> Column | Illegal_Argument | Invalid_Value_Type
+    round self decimal_places=0 use_bankers=False =
+        Rounding_Helpers.check_decimal_places decimal_places <| Value_Type.expect_numeric self <|
+            if self.should_use_builtin_round decimal_places use_bankers then self.round_builtin decimal_places else
+                self.short_circuit_special_floating_point <|
+                    case self.value_type of
+                        Value_Type.Integer _ -> self.round_integer decimal_places use_bankers
+                        Value_Type.Float _ -> self.round_float decimal_places use_bankers
+                        Value_Type.Decimal _ _ -> self.round_decimal decimal_places use_bankers
+                        _ ->
+                            expected = "Decimal, Float, or Integer"
+                            Error.throw (Invalid_Value_Type.Column expected self.value_type self.name)
+
+    ## PRIVATE
+       Determine whether to use built-in rounding. We use built-in rounding if:
+       - It's not banker's rounding, and
+       - If decimal_places is negative, the builtin `ROUND` supports that, and
+       - We are not passing a floating point value to round with a non-zero decimal_places param (prohibited by postgres)
+         (Note that Postgres is fine with a `numeric` value here, just not `double precision`.)
+    should_use_builtin_round : Integer -> Boolean -> Boolean
+    should_use_builtin_round self decimal_places use_bankers =
+        # Don't use for banker's rounding
+        not_bankers = use_bankers.not
+        # Don't use for negative decimal places, if the backend doesn't support it
+        negative_dp_ok = decimal_places >= 0 || self.connection.dialect.supports_negative_round_decimal_places
+        # Don't use for floating-point inputs if deciaml_places != 0, for Postgres
+        dp_param_ok = (self.connection.dialect.rounding_decimal_places_not_allowed_for_floats && self.value_type.is_floating_point && decimal_places != 0).not
+        not_bankers && negative_dp_ok && dp_param_ok
+
+    ## PRIVATE
+       Round a float-like column using the backend's builtin ROUND function.
+    round_builtin : Integer -> Boolean -> Column
+    round_builtin self decimal_places =
+        new_name = self.naming_helpers.function_name "round" [self]
+        case decimal_places == 0 of
+            True ->
+                self.make_unary_op "ROUND" new_name
+            False ->
+                self.make_binary_op "ROUND" (SQL_Expression.Literal decimal_places.to_text) new_name
+
+    ## PRIVATE
+       Round a float-like column.
+    round_float : Integer -> Boolean -> Column
+    round_float self decimal_places use_bankers =
+        new_name = self.naming_helpers.function_name "round" [self]
+        scale = 10 ^ decimal_places
+        scaled = self * scale
+        round_base = scaled.floor . rename "rb"
+        round_midpoint = (round_base + 0.5) / scale
+        even_is_up = (self >= 0).iif ((scaled.truncate % 2) != 0) ((scaled.truncate % 2) == 0)
+        half_goes_up = if use_bankers then even_is_up else self >= 0
+        do_round_up = half_goes_up.iif (self >= round_midpoint) (self > round_midpoint)
+        result = do_round_up.iif ((round_base + 1.0) / scale) (round_base / scale)
+        result.rename new_name
+
+    ## PRIVATE
+       Round a float-like column.
+    round_decimal : Integer -> Boolean -> Column
+    round_decimal self decimal_places use_bankers =
+        # Construct a constant Decimal column.
+        k x = self.const x . cast Value_Type.Decimal
+        new_name = self.naming_helpers.function_name "round" [self]
+        scale = k 10 ^ decimal_places
+        scaled = self * scale
+        round_base = scaled.floor . rename "rb"
+        round_midpoint = (round_base + k 0.5).decimal_div scale
+        even_is_up = (self >= k 0).iif ((scaled.truncate.decimal_mod (k 2)) != k 0) ((scaled.truncate.decimal_mod (k 2)) == k 0)
+        half_goes_up = if use_bankers then even_is_up else self >= k 0
+        do_round_up = half_goes_up.iif (self >= round_midpoint) (self > round_midpoint)
+        result = do_round_up.iif ((round_base + k 1).decimal_div scale) (round_base.decimal_div scale)
+        result.rename new_name
+
+    ## PRIVATE
+       Round an integer column.
+    round_integer : Integer -> Boolean -> Column
+    round_integer self decimal_places use_bankers =
+        new_name = self.naming_helpers.function_name "round" [self]
+        scale = 10 ^ -decimal_places
+        halfway = scale.div 2
+        remainder = self % scale
+        scaled_down = (self / scale).truncate . cast Value_Type.Integer
+        result_unnudged = scaled_down * scale
+
+        if_non_neg =
+            half_goes_up = if use_bankers then (scaled_down % 2) != 0 else self >= 0
+            round_up = half_goes_up.iif (remainder >= halfway) (remainder > halfway)
+            round_up.iif (result_unnudged + scale) result_unnudged
+        if_neg =
+            half_goes_up = if use_bankers then (scaled_down % 2) == 0 else self >= 0
+            round_up = half_goes_up.iif (remainder < -halfway) (remainder <= -halfway)
+            round_up.iif (result_unnudged - scale) result_unnudged
+
+        result = (self >= 0).iif if_non_neg if_neg
+        result.cast Value_Type.Float . rename new_name
+
+    ## ALIAS int
+
+       Truncate the floating-point values to an integer by dropping the
+       fractional part. This is equivalent to "round-toward-zero".
+
+       ! NaN/Inf
+         If a `NaN` or `Inf` value is passed to `truncate`, it immediately returns
+         the same value.
+
+       > Example
+         Truncate a column of floating-point values.
+
+             import Standard.Examples
+
+             example_truncate = Examples.decimal_column.truncate
     truncate : Column ! Invalid_Value_Type
     truncate self =
-        Error.throw <| Unsupported_Database_Operation.Error "`Column.truncate` is not implemented yet for the Database backends."
+        Value_Type.expect_numeric self <| self.short_circuit_special_floating_point <|
+            new_name = self.naming_helpers.function_name "truncate" [self]
+            self.make_unary_op "TRUNCATE" new_name
 
-    ## Taking the ceiling of values is not supported in database columns.
+    ## Takes the ceiling of floating-point values, returning integer values.
+
+       ! NaN/Inf
+         If a `NaN` or `Inf` value is passed to `ceil`, it immediately returns
+         the same value.
+
+       > Example
+         Take the ceiling of a column of floating-point values.
+
+             import Standard.Examples
+
+             example_truncate = Examples.decimal_column.ceil
     ceil : Column ! Invalid_Value_Type
     ceil self =
-        Error.throw <| Unsupported_Database_Operation.Error "`Column.ceil` is not implemented yet for the Database backends."
+        Value_Type.expect_numeric self <| self.short_circuit_special_floating_point <|
+            new_name = self.naming_helpers.function_name "ceil" [self]
+            self.make_unary_op "CEIL" new_name
 
-    ## Taking the floor of values is not supported in database columns.
+    ## Takes the floor of floating-point values, returning integer values.
+
+       ! NaN/Inf
+         If a `NaN` or `Inf` value is passed to `floor`, it immediately returns
+         the same value.
+
+       > Example
+         Take the floor of a column of floating-point values.
+
+             import Standard.Examples
+
+             example_truncate = Examples.decimal_column.floor
     floor : Column ! Invalid_Value_Type
     floor self =
-        Error.throw <| Unsupported_Database_Operation.Error "`Column.floor` is not implemented yet for the Database backends."
+        Value_Type.expect_numeric self <| self.short_circuit_special_floating_point <|
+            new_name = self.naming_helpers.function_name "floor" [self]
+            self.make_unary_op "FLOOR" new_name
+
+    ## PRVIATE
+       `/` for decimals.
+    decimal_div : Column -> Column ! Invalid_Value_Type
+    decimal_div self other =
+        Value_Type.expect_numeric self <| Value_Type.expect_numeric other <|
+            new_name = self.naming_helpers.function_name "decimal_div" [self, other]
+            self.make_binary_op "DECIMAL_DIV" other new_name
+
+    ## PRVIATE
+       `mod` for decimals.
+    decimal_mod : Column -> Column ! Invalid_Value_Type
+    decimal_mod self other =
+        Value_Type.expect_numeric self <| Value_Type.expect_numeric other <|
+            new_name = self.naming_helpers.function_name "decimal_mod" [self, other]
+            self.make_binary_op "DECIMAL_MOD" other new_name
 
     ## Returns a column of first non-`Nothing` value on each row of `self` and
        `values` list.
@@ -647,6 +854,15 @@ type Column
     is_nan self = Value_Type.expect_floating_point self <|
         new_name = self.naming_helpers.function_name "is_nan" [self]
         self.make_unary_op "IS_NAN" new_name
+
+    ## UNSTABLE
+       Returns a column of booleans, with `True` items at the positions where
+       this column contains a +Inf/-Inf. This is only applicable to double
+       columns.
+    is_infinite : Column
+    is_infinite self = Value_Type.expect_floating_point self <|
+        new_name = self.naming_helpers.function_name "is_infinite" [self]
+        self.make_unary_op "IS_INF" new_name
 
     ## PRIVATE
        Returns a column of booleans, with `True` items at the positions where
@@ -1183,6 +1399,15 @@ type Column
     var_args_functions : Array
     var_args_functions = ['is_in', 'coalesce', 'min', 'max']
 
+    ## PRVIATE
+       If the column is NaN/Inf, return it immediately as the value; otherwise
+       return the expression. If returning immediately, rename to the expression's
+       name. If the column is not floating point, just return the expression.
+    short_circuit_special_floating_point : Column -> Column
+    short_circuit_special_floating_point self exp =
+        self_is_nan = if self.connection.dialect.supports_separate_nan then self.is_nan else self.is_nothing
+        if self.value_type.is_floating_point.not then exp else
+            ((self_is_nan || self.is_infinite).iif self exp).rename exp.name
 ## PRIVATE
    Helper for case case_sensitivity based text operations
 make_text_case_op left op other case_sensitivity new_name =
