@@ -27,12 +27,12 @@ pub trait View: FrpNetworkProvider + DerefToCommandApi + crate::display::Object 
     /// Constructor.
     fn new(app: &Application) -> Self;
 
-    /// Set of default global shortcuts.
-    fn default_shortcuts() -> Vec<Shortcut> {
+    /// Set of shortcuts that are active regardless of the currently-focused component.
+    fn global_shortcuts() -> Vec<Shortcut> {
         default()
     }
 
-    /// Set of default shortcuts enabled only when the component is focused.
+    /// Set of shortcuts enabled only when the component is focused.
     fn focused_shortcuts() -> Vec<Shortcut> {
         default()
     }

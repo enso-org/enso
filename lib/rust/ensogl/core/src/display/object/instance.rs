@@ -1,10 +1,28 @@
 //! # Display Objects
 //! Display objects are essential structures used to build elements visible on the screen. They are
 //! used to build objects hierarchy, computing elements transformations within this hierarchy
-//! (position, rotation, and scale), passing events trough that hierarchy, and layouting the
+//! (position, rotation, and scale), passing events through that hierarchy, and layouting the
 //! elements on the screen (e.g. with horizontal or vertical layout). The implementation is very
 //! performance-oriented, it tracks the transformation changes and updates only the needed
 //! subset of the display object tree on demand.
+//!
+//! ## Associating a component with a display object
+//! The [`Object`] trait is used to associate a display object with a component, and endow the
+//! component with a set of display-object mediated behaviors (see [`ObjectOps`]).
+//!
+//! There are generally two different ways for a type to implement this association:
+//! - *Represented* types: Some types need their instances to be represented in the display object
+//!   hierarchy; such a type owns an [`object::Instance`].
+//! - *Delegating* types: Some types add application logic to another component present in a field,
+//!   but don't need to participate in the display object hierarchy themselves; in this case, it is
+//!   simpler and more efficient to pass all display object operations through to the field.
+//!
+//! A macro, used as `#[derive(display::Object)]`, supports both behaviors:
+//! - Represented types: If a type has its own [`object::Instance`], by convention this value is
+//!   called `display_object`. If the derive macro finds a field with this name, the field will be
+//!   used as the type's display object.
+//! - Delegating types: Annotating a field with `#[display_object]` will cause all object operations
+//!   to pass to it. (If the type has only one field, the annotation can be omitted.)
 //!
 //! ## Lazy updates of display objects
 //! Some operations on display objects are very expensive. For example, after moving the root object
@@ -23,6 +41,8 @@
 //! to a layer will also move all of its children there, until they are assigned with a different
 //! layer explicitly.
 //!
+//!
+//! # Display object layout computation
 //!
 //! ## Terminology and Concepts
 //! Before diving into the concepts of Grid it’s important to understand the terminology. Since the
@@ -1098,6 +1118,34 @@
 //! function and you set the size to fixed pixel value, the computed size will be updated
 //! immediately. This is done only for convenience, as reading the size is a common operation.
 //! Please note that this still can provide incorrect value if the object can grow.
+//!
+//!
+//! # Focus
+//! At any time, there may be a single *focus* path from the root of the display object to some
+//! descendant. Nodes in this path are considered *focused*. Each child node in the path is more
+//! focused than its parent; during [`event::Event`] delivery, the most focused object has the
+//! first chance to handle an event.
+//!
+//! ## Focus receivers
+//! Many components have descendants with their own event handlers. In some cases, it does not make
+//! sense to focus a component without focusing some descendant.
+//!
+//! For example, the Component Browser owns a Component List Panel, which owns a Grid View; the Grid
+//! View provides some of the Component Browser's key bindings. When focus is given to the Component
+//! Browser, it should also be given to its descendant Grid View so that it can handle events such
+//! as arrow keys.
+//!
+//! The *focus receiver* concept addresses this case. When focus is given to a component by
+//! [`ObjectOps::focus()`], the object's focus receiver will be focused; this object should be a
+//! descendant of the object receiving `focus()`, so the target of `focus()` will also be focused.
+//!
+//! It is possible for a type to be focused without its focus receiver being focused: A type can
+//! also be focused by some other descendant receiving focus. A focus receiver is the *default*
+//! descendant to receive focus, if a type is focused directly.
+//!
+//! When using `#[derive(display::Object)]` to implement [`Object`], a focus receiver can be
+//! specified by annotating a field with `#[focus_receiver]`. If no field is annotated, the same
+//! field that provides the display object will provide be delegated to to provide a focus receiver.
 
 use crate::data::dirty::traits::*;
 use crate::display::object::layout::*;

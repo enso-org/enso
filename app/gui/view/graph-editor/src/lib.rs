@@ -2847,7 +2847,7 @@ impl application::View for GraphEditor {
         GraphEditor::new(app)
     }
 
-    fn default_shortcuts() -> Vec<application::shortcut::Shortcut> {
+    fn global_shortcuts() -> Vec<application::shortcut::Shortcut> {
         use crate::shortcuts::SHORTCUTS;
         SHORTCUTS.iter().map(|(a, b, c, d)| Self::self_shortcut_when(*a, *c, *d, *b)).collect()
     }

@@ -835,7 +835,7 @@ impl application::View for Slider {
         Self::new(app)
     }
 
-    fn default_shortcuts() -> Vec<shortcut::Shortcut> {
+    fn global_shortcuts() -> Vec<shortcut::Shortcut> {
         use shortcut::ActionType::DoublePress;
         use shortcut::ActionType::Press;
         vec![

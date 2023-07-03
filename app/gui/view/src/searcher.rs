@@ -279,7 +279,7 @@ impl application::View for View {
         Self::new(app)
     }
 
-    fn default_shortcuts() -> Vec<shortcut::Shortcut> {
+    fn global_shortcuts() -> Vec<shortcut::Shortcut> {
         use shortcut::ActionType::*;
         [(Press, "tab", "use_as_suggestion")]
             .iter()

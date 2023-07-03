@@ -49,7 +49,7 @@ impl Registry {
     /// the outset.
     pub fn register<V: View>(&self) {
         let label = V::label().into();
-        for shortcut in V::default_shortcuts() {
+        for shortcut in V::global_shortcuts() {
             self.shortcut_registry.add(shortcut)
         }
         self.definitions.borrow_mut().insert(label);

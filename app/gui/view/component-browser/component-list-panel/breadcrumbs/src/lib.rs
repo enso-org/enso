@@ -490,7 +490,7 @@ impl ensogl_core::application::View for Breadcrumbs {
         Self::new(app)
     }
 
-    fn default_shortcuts() -> Vec<Shortcut> {
+    fn global_shortcuts() -> Vec<Shortcut> {
         use ensogl_core::application::shortcut::ActionType::*;
         [(Press, "shift enter", "move_up"), (Press, "ctrl shift enter", "move_down")]
             .iter()

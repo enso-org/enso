@@ -622,7 +622,7 @@ impl<E: Entry> application::View for ListView<E> {
         ListView::new(app)
     }
 
-    fn default_shortcuts() -> Vec<shortcut::Shortcut> {
+    fn global_shortcuts() -> Vec<shortcut::Shortcut> {
         use shortcut::ActionType::*;
         [
             (PressAndRepeat, "up", "move_selection_up"),

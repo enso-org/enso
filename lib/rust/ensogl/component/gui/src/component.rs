@@ -149,7 +149,7 @@ where
         ComponentView::new(app)
     }
 
-    fn default_shortcuts() -> Vec<shortcut::Shortcut> {
+    fn global_shortcuts() -> Vec<shortcut::Shortcut> {
         F::default_shortcuts()
     }
 }

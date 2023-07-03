@@ -737,7 +737,7 @@ impl application::View for View {
         View::new(app)
     }
 
-    fn default_shortcuts() -> Vec<application::shortcut::Shortcut> {
+    fn global_shortcuts() -> Vec<application::shortcut::Shortcut> {
         use shortcut::ActionType::*;
         [
             (Press, "!is_searcher_opened", "cmd o", "show_project_list"),

@@ -409,7 +409,7 @@ impl View for ProjectName {
         ProjectName::new(app)
     }
 
-    fn default_shortcuts() -> Vec<shortcut::Shortcut> {
+    fn global_shortcuts() -> Vec<shortcut::Shortcut> {
         use shortcut::ActionType::*;
         [
             (Press, "!read_only", "enter", "try_commit"),
