@@ -442,35 +442,7 @@ check_update_arguments_structure_match source_table target_table key_columns upd
 ## PRIVATE
 default_key_columns (table : Database_Table | In_Memory_Table) =
     check_target_table_for_update table <|
-        keys = get_primary_key table
-        keys.catch Any _->
-            Error.throw (Illegal_Argument.Error "Could not determine the primary key for table "+table.name+". Please provide it explicitly.")
-
-## PRIVATE
-
-   This method may not work correctly with temporary tables, possibly resulting
-   in `SQL_Error` as such tables may not be found.
-
-   ! Temporary Tables in SQLite
-
-     The temporary tables in SQLite live in a `temp` database. There is a bug in
-     how JDBC retrieves primary keys - it only queries the `sqlite_schema` table
-     which contains schemas of only permanent tables.
-
-     Ideally, we should provide a custom implementation for SQLite that will
-     UNION both `sqlite_schema` and `temp.sqlite_schema` tables to get results
-     for both temporary and permanent tables.
-
-     TODO [RW] fix keys for SQLite temporary tables #7037
-get_primary_key table =
-    connection = table.connection
-    connection.jdbc_connection.with_metadata metadata->
-        rs = metadata.getPrimaryKeys Nothing Nothing table.name
-        keys_table = result_set_to_table rs connection.dialect.make_column_fetcher_for_type
-        # The names of the columns are sometimes lowercase and sometimes uppercase, so we do a case insensitive select first.
-        selected = keys_table.select_columns [Column_Selector.By_Name "COLUMN_NAME", Column_Selector.By_Name "KEY_SEQ"] reorder=True
-        key_column_names = selected.order_by 1 . at 0 . to_vector
-        if key_column_names.is_empty then Nothing else key_column_names
+        table.get_primary_key
 
 ## PRIVATE
 dry_run_row_limit = 1000

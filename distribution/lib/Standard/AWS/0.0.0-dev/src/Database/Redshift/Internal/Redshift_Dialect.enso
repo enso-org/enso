@@ -27,7 +27,7 @@ import Standard.Database.Internal.Postgres.Postgres_Type_Mapping.Postgres_Type_M
 import Standard.Database.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import Standard.Database.Internal.SQL_Type_Reference.SQL_Type_Reference
 import Standard.Database.Internal.Statement_Setter.Statement_Setter
-from Standard.Database.Errors import Unsupported_Database_Operation
+from Standard.Database.Errors import SQL_Error, Unsupported_Database_Operation
 
 import project.Database.Redshift.Internal.Redshift_Error_Mapper.Redshift_Error_Mapper
 
@@ -167,3 +167,11 @@ type Redshift_Dialect
     ## PRIVATE
     get_error_mapper : Error_Mapper
     get_error_mapper self = Redshift_Error_Mapper
+
+    ## PRIVATE
+       The dialect-dependent strategy to get the Primary Key for a given table.
+
+       Returns `Nothing` if the key is not defined.
+    fetch_primary_key : Connection -> Text -> Vector Text ! Nothing
+    fetch_primary_key self connection table_name =
+        Dialect.default_fetch_primary_key connection table_name

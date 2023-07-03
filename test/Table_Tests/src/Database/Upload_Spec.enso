@@ -12,7 +12,7 @@ from Standard.Table.Errors import all
 
 from Standard.Database import all
 from Standard.Database.Errors import all
-from Standard.Database.Internal.Upload_Table import get_primary_key, default_key_columns
+from Standard.Database.Internal.Upload_Table import default_key_columns
 import Standard.Database.Data.Column_Constraint.Column_Constraint
 
 from Standard.Test import Test, Test_Suite, Problems
@@ -154,7 +154,7 @@ spec make_new_connection prefix persistent_connector=True =
             name = Name_Generator.random_name "primary_key 1"
             db_table = connection.create_table table_name=name structure=[Column_Description.Value "X" Value_Type.Integer, Column_Description.Value "Y" Value_Type.Char, Column_Description.Value "Z" Value_Type.Integer, Column_Description.Value "W" Value_Type.Float] primary_key=["Y", "Z"] temporary=False
             Panic.with_finalizer (connection.drop_table db_table.name) <|
-                get_primary_key db_table . should_equal ["Y", "Z"]
+                db_table.get_primary_key . should_equal ["Y", "Z"]
 
         Test.specify "should ensure that primary key columns specified are valid" <|
             run_with_and_without_output <|
@@ -232,17 +232,17 @@ spec make_new_connection prefix persistent_connector=True =
             db_table_1 = t1.select_into_database_table connection (Name_Generator.random_name "primary-key-1") primary_key=["Y", "X"]
             Panic.with_finalizer (connection.drop_table db_table_1.name) <|
                 db_table_1.at "X" . to_vector . should_equal [1, 2, 3]
-                get_primary_key db_table_1 . should_equal ["Y", "X"]
+                db_table_1.get_primary_key . should_equal ["Y", "X"]
 
             db_table_2 = t1.select_into_database_table connection (Name_Generator.random_name "primary-key-2")
             Panic.with_finalizer (connection.drop_table db_table_2.name) <|
                 db_table_2.at "X" . to_vector . should_equal [1, 2, 3]
-                get_primary_key db_table_2 . should_equal ["X"]
+                db_table_2.get_primary_key . should_equal ["X"]
 
             db_table_3 = t1.select_into_database_table connection (Name_Generator.random_name "primary-key-3") primary_key=Nothing
             Panic.with_finalizer (connection.drop_table db_table_3.name) <|
                 db_table_3.at "X" . to_vector . should_equal [1, 2, 3]
-                get_primary_key db_table_3 . should_equal Nothing
+                db_table_3.get_primary_key . should_equal Nothing
 
         Test.specify "should ensure that primary key columns are valid" <|
             run_with_and_without_output <|
@@ -365,7 +365,7 @@ spec make_new_connection prefix persistent_connector=True =
             db_table = t.select_into_database_table connection (Name_Generator.random_name "source-table") temporary=True
             db_table_2 = db_table.select_into_database_table connection (Name_Generator.random_name "copied-table") primary_key=["X"]
             Panic.with_finalizer (connection.drop_table db_table_2.name) <|
-                get_primary_key db_table_2 . should_equal ["X"]
+                db_table_2.get_primary_key . should_equal ["X"]
 
         Test.specify "should ensure that primary key columns are valid" <|
             t = Table.new [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]]
@@ -438,8 +438,6 @@ spec make_new_connection prefix persistent_connector=True =
             db_table.column_names . should_equal ["X"]
             db_table.at "X" . to_vector . should_equal []
 
-    # TODO this pending status should be removed as part of #7037
-    sqlite_temporary_primary_key_pending = if prefix.contains "SQLite" then "Fix get_primary_key on SQLite temporary tables. See #7037"
     test_table_append source_table_builder target_table_builder =
         Test.specify "should be able to append new rows to a table" <|
             dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]] primary_key=["X"]
@@ -464,7 +462,7 @@ spec make_new_connection prefix persistent_connector=True =
                 r1 = src.update_database_table dest update_action=Update_Action.Insert key_columns=["X"]
                 r1.should_fail_with Rows_Already_Present
 
-        Test.specify "should use the target table primary key for the key by default" pending=sqlite_temporary_primary_key_pending <|
+        Test.specify "should use the target table primary key for the key by default" <|
             dest1 = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']], ["Z", [4, 5, 6]]] primary_key=["Y", "Z"]
             default_key_columns dest1 . should_equal ["Y", "Z"]
 
@@ -474,11 +472,6 @@ spec make_new_connection prefix persistent_connector=True =
             r1 = src.update_database_table dest2
             rows = r1.rows.to_vector.map .to_vector
             rows.should_contain_the_same_elements_as [[1, 'a'], [4, 'b'], [3, 'c'], [5, 'e']]
-
-        if sqlite_temporary_primary_key_pending.is_nothing.not then
-            Test.specify "should report a meaningful error when the primary key could not be determined" <|
-                dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]] primary_key=["Y"]
-                default_key_columns dest . should_fail_with Illegal_Argument
 
         Test.specify "should be able to Update existing rows in a table" <|
             dest = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]]
@@ -597,6 +590,11 @@ spec make_new_connection prefix persistent_connector=True =
             r2.column_names . should_equal ["X"]
             r2.at "X" . to_vector . should_contain_the_same_elements_as expected
 
+            default_key_columns dest . should_equal Nothing
+            r3 = src.update_database_table dest update_action=Update_Action.Insert
+            r3.column_names . should_equal ["X"]
+            r3.at "X" . to_vector . should_contain_the_same_elements_as expected
+
         Test.specify "should fail if no key is specified in other modes" <|
             dest = target_table_builder [["X", [1, 10, 100]]]
             src = source_table_builder [["X", [1, 2, 3]]]
@@ -604,12 +602,12 @@ spec make_new_connection prefix persistent_connector=True =
             run_with_and_without_output <|
                 r1 = src.update_database_table dest update_action=Update_Action.Update key_columns=[]
                 r1.should_fail_with Illegal_Argument
+                r1.catch.to_display_text.should_contain "`key_columns` must be specified"
 
-                if sqlite_temporary_primary_key_pending.is_nothing then
-                    # The default will also fail because no primary key is detected in the DB.
-                    default_key_columns dest . should_equal Nothing
-                    r2 = src.update_database_table dest update_action=Update_Action.Update
-                    r2.should_fail_with Illegal_Argument
+                # The default will also fail because no primary key is detected in the DB.
+                default_key_columns dest . should_equal Nothing
+                r2 = src.update_database_table dest update_action=Update_Action.Update
+                r2.should_fail_with Illegal_Argument
 
                 r3 = src.update_database_table dest update_action=Update_Action.Update_Or_Insert key_columns=[]
                 r3.should_fail_with Illegal_Argument
@@ -627,10 +625,9 @@ spec make_new_connection prefix persistent_connector=True =
 
             # Only checks 1000 rows in dry run mode.
             run_with_and_without_output <|
-                if sqlite_temporary_primary_key_pending.is_nothing then
-                    # Relying on the default key based on primary key.
-                    r1 = src.update_database_table d1 update_action=Update_Action.Insert
-                    r1.should_fail_with Non_Unique_Primary_Key
+                # Relying on the default key based on primary key.
+                r1 = src.update_database_table d1 update_action=Update_Action.Insert
+                r1.should_fail_with Non_Unique_Primary_Key
 
                 r2 = src.update_database_table d2 key_columns=["X"] update_action=Update_Action.Insert
                 r2.should_fail_with Non_Unique_Primary_Key
@@ -816,8 +813,20 @@ spec make_new_connection prefix persistent_connector=True =
             res = src.update_database_table dest update_action=Update_Action.Insert key_columns=[]
             res.should_fail_with SQL_Error
 
-            tables_after = connection.base_connection.get_tables_advanced types=Nothing include_hidden=True . at "Name" . to_vector
-            tables_after . should_contain_the_same_elements_as existing_tables
+            tables_immediately_after = connection.base_connection.get_tables_advanced types=Nothing include_hidden=True . at "Name" . to_vector
+
+            # If no new tables are left out - we just finish.
+            if tables_immediately_after.sort == existing_tables.sort then Nothing else
+                ## If there are some additional tables, we add some timeout to
+                   allow the database to do the cleaning up.
+                additional_tables = Set.from_vector tables_immediately_after - Set.from_vector existing_tables
+                if additional_tables.is_empty then
+                    Test.fail "The Database contains less tables after the test than before! That is unexpected, please inspect manually."
+                additional_table = additional_tables.to_vector.first
+
+                wait_until_temporary_table_is_deleted_after_closing_connection connection additional_table
+                tables_after_wait = connection.base_connection.get_tables_advanced types=Nothing include_hidden=True . at "Name" . to_vector
+                tables_after_wait . should_contain_the_same_elements_as existing_tables
 
     database_table_builder name_prefix args primary_key=[] connection=connection =
         in_memory_table = Table.new args

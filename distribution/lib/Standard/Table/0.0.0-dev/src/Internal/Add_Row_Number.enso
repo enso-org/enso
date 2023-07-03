@@ -33,17 +33,23 @@ add_row_number table name from step group_by order_by on_problems =
                     False -> make_grouped_enumeration name grouping_columns from step
             False -> make_grouped_ordered_enumeration name grouping_columns ordering from step
 
-        column_names = table.column_names
-        renamed_table = if column_names.contains name . not then table else
-            problems = [Duplicate_Output_Column_Names.Error [name]]
-            on_problems.attach_problems_before problems <|
-                unique_name_strategy = Unique_Name_Strategy.new
-                unique_name_strategy.mark_used column_names
-                new_name = unique_name_strategy.make_unique name
-                new_columns = table.columns.map column->
-                    if column.name == name then column.rename new_name else column
-                Table.new new_columns
+        renamed_table = rename_columns_if_needed table name on_problems Table.new
         renamed_table.set new_column name set_mode=Set_Mode.Add
+
+## PRIVATE
+   If the table already contains a column called `name` it will be renamed to a
+   unique name, so that a new column with this name can be added.
+rename_columns_if_needed table name on_problems build_table_from_columns =
+    column_names = table.column_names
+    if column_names.contains name . not then table else
+        problems = [Duplicate_Output_Column_Names.Error [name]]
+        on_problems.attach_problems_before problems <|
+            unique_name_strategy = Unique_Name_Strategy.new
+            unique_name_strategy.mark_used column_names
+            new_name = unique_name_strategy.make_unique name
+            new_columns = table.columns.map column->
+                if column.name == name then column.rename new_name else column
+            build_table_from_columns new_columns
 
 ## PRIVATE
 nth_index start step n =

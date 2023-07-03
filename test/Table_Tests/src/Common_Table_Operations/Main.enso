@@ -1,5 +1,6 @@
 from Standard.Base import all
 
+import project.Common_Table_Operations.Add_Row_Number_Spec
 import project.Common_Table_Operations.Aggregate_Spec
 import project.Common_Table_Operations.Column_Operations_Spec
 import project.Common_Table_Operations.Core_Spec
@@ -45,7 +46,9 @@ type Test_Setup
        - aggregate_test_selection: A selection of which aggregate test suites
          should be run. Can be used to skip checks for backends which do not
          support particular features.
-    Config prefix table empty_table table_builder materialize is_database test_selection aggregate_test_selection
+       - connection: A related database connection or Nothing for in-memory
+         tests.
+    Config prefix table empty_table table_builder materialize is_database test_selection aggregate_test_selection connection
 
     ## Specifies if the given Table backend supports custom Enso types.
 
@@ -111,6 +114,7 @@ spec setup =
     Distinct_Spec.spec setup
     Cross_Tab_Spec.spec setup
     Transpose_Spec.spec setup
+    Add_Row_Number_Spec.spec setup
     Integration_Tests.spec setup
 
 main = run_default_backend spec
