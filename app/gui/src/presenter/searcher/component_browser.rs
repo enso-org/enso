@@ -12,7 +12,7 @@ use crate::model::suggestion_database::entry::Kind;
 use crate::presenter;
 use crate::presenter::graph::AstNodeId;
 use crate::presenter::graph::ViewNodeId;
-use crate::presenter::searcher::component_browser_searcher::provider::ControllerComponentsProviderExt;
+use crate::presenter::searcher::component_browser::provider::ControllerComponentsProviderExt;
 
 use crate::presenter::searcher::SearcherPresenter;
 use enso_frp as frp;

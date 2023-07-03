@@ -19,7 +19,7 @@ use ide_view::project::SearcherParams;
 use ide_view::project::SearcherType;
 
 pub mod ai;
-pub mod component_browser_searcher;
+pub mod component_browser;
 
 
 /// Trait for the searcher.
