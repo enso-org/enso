@@ -1603,8 +1603,11 @@ dependencies = [
 name = "debug-scene-icons"
 version = "0.1.0"
 dependencies = [
+ "convert_case 0.6.0",
  "ensogl",
  "ensogl-hardcoded-theme",
+ "ensogl-text-msdf",
+ "ensogl-tooltip",
  "ide-view-component-list-panel-grid",
  "ide-view-component-list-panel-icons",
  "ide-view-graph-editor",

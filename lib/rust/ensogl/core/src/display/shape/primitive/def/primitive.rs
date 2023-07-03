@@ -488,7 +488,8 @@ impl Rect {
     pub fn corners_radius<T>(&self, radius: T) -> Grow<Rect>
     where T: Into<Var<Pixels>> {
         let size = self.size();
-        let radius = Min::min(Min::min(size.x(), size.y()) * 0.5, radius.into());
+        let min_size = Min::min(size.x(), size.y());
+        let radius = Min::min(min_size * 0.5, radius.into());
         let offset = Var::<Vector2<Pixels>>::from(format!("vec2({} * 2.0)", radius.glsl()));
         Grow(Rect(size - offset), radius)
     }

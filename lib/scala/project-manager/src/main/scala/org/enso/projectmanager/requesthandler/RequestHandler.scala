@@ -23,7 +23,10 @@ import scala.concurrent.duration.FiniteDuration
   * @param requestTimeout timeout for the request; if set, the request will be
   *                       marked as failed after the specified time; the request
   *                       logic is however NOT cancelled as this is not possible
-  *                       to do in a general way
+  *                       to do in a general way.
+  *                       If number of retry attempts is bigger than 0,
+  *                       action will timeout and handler will stop only when the number
+  *                       of retries reaches 0.
   */
 abstract class RequestHandler[
   F[+_, +_]: Exec,
@@ -33,7 +36,8 @@ abstract class RequestHandler[
   +Result
 ](
   method: M,
-  requestTimeout: Option[FiniteDuration]
+  requestTimeout: Option[FiniteDuration],
+  numberOfTimeoutRetries: Int
 )(implicit
   @unused evParams: HasParams.Aux[M, Params],
   @unused evResult: HasResult.Aux[M, Result]
@@ -44,6 +48,16 @@ abstract class RequestHandler[
   override def receive: Receive = requestStage
 
   import context.dispatcher
+
+  def this(
+    method: M,
+    requestTimeout: Option[FiniteDuration]
+  )(implicit
+    @unused evParams: HasParams.Aux[M, Params],
+    @unused evResult: HasResult.Aux[M, Result]
+  ) = {
+    this(method, requestTimeout, 0)
+  }
 
   /** Waits for the request, tries to pass it into the [[handleRequest]]
     * function, sets up the timeout and routing of the result.
@@ -56,13 +70,16 @@ abstract class RequestHandler[
         .map(_.map(ResponseResult(method, request.id, _)))
         .pipeTo(self)
       val timeoutCancellable = {
-        requestTimeout.map { timeout =>
-          context.system.scheduler.scheduleOnce(
-            timeout,
-            self,
-            RequestTimeout
+        requestTimeout.map(timeout =>
+          (
+            context.system.scheduler.scheduleOnce(
+              timeout,
+              self,
+              RequestTimeout
+            ),
+            numberOfTimeoutRetries
           )
-        }
+        )
       }
       context.become(responseStage(request.id, sender(), timeoutCancellable))
   }
@@ -80,29 +97,51 @@ abstract class RequestHandler[
   private def responseStage(
     id: Id,
     replyTo: ActorRef,
-    timeoutCancellable: Option[Cancellable]
+    timeoutCancellable: Option[(Cancellable, Int)]
   ): Receive = {
     case Status.Failure(ex) =>
       logger.error(s"Failure during $method operation.", ex)
       replyTo ! ResponseError(Some(id), ServiceError)
-      timeoutCancellable.foreach(_.cancel())
+      timeoutCancellable.foreach(_._1.cancel())
       context.stop(self)
 
     case RequestTimeout =>
-      logger.error("Request {} with {} timed out.", method, id)
-      replyTo ! ResponseError(Some(id), ServiceError)
-      context.stop(self)
+      val retry = timeoutCancellable.map(_._2).getOrElse(0)
+      if (retry == 0) {
+        logger.error("Request {} with {} timed out.", method, id)
+        replyTo ! ResponseError(Some(id), ServiceError)
+        context.stop(self)
+      } else {
+        val retriesLeft = retry - 1
+        val cancellable =
+          requestTimeout.map(timeout =>
+            (
+              context.system.scheduler.scheduleOnce(
+                timeout,
+                self,
+                RequestTimeout
+              ),
+              retriesLeft
+            )
+          )
+
+        logger.warn(
+          s"Pending $method response. Timeout retries left: {}.",
+          retriesLeft
+        )
+        responseStage(id, replyTo, cancellable)
+      }
 
     case Left(failure: FailureType) =>
       logger.error("Request {} with {} failed due to {}.", method, id, failure)
       val error = implicitly[FailureMapper[FailureType]].mapFailure(failure)
       replyTo ! ResponseError(Some(id), error)
-      timeoutCancellable.foreach(_.cancel())
+      timeoutCancellable.foreach(_._1.cancel())
       context.stop(self)
 
     case Right(response) =>
       replyTo ! response
-      timeoutCancellable.foreach(_.cancel())
+      timeoutCancellable.foreach(_._1.cancel())
       context.stop(self)
 
     case notification: ProgressNotification =>
@@ -123,9 +162,9 @@ abstract class RequestHandler[
   private def abandonTimeout(
     id: Id,
     replyTo: ActorRef,
-    timeoutCancellable: Option[Cancellable]
+    timeoutCancellable: Option[(Cancellable, Int)]
   ): Unit = {
-    timeoutCancellable.foreach { cancellable =>
+    timeoutCancellable.foreach { case (cancellable, _) =>
       cancellable.cancel()
       Logger[this.type].trace(
         "The operation {} ({}) reported starting a long-running task, " +

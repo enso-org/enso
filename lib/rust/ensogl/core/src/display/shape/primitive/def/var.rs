@@ -536,19 +536,6 @@ impl Var<f32> {
             Var::Dynamic(t) => Var::Dynamic(format!("float({t} < 0.0)").into()),
         }
     }
-
-    /// Return value signum scaled by its distance to zero. Approaches signum as value approaches
-    /// zero, and approaches zero as value approaches given spread value.
-    pub fn sign_around_zero(&self, spread: f32) -> Self {
-        let scale = 1.0 / spread;
-        match self {
-            Var::Static(t) => Var::Static(t.signum() * (1.0 - t.abs() * scale).max(0.0)),
-            Var::Dynamic(t) => Var::Dynamic(
-                format!("sign({t}) * max(0.0, 1.0 - abs({t}) * {scale})", scale = scale.glsl())
-                    .into(),
-            ),
-        }
-    }
 }
 
 

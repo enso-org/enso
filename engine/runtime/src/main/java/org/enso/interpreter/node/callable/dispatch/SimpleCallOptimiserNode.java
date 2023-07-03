@@ -9,6 +9,7 @@ import org.enso.interpreter.node.callable.ExecuteCallNodeGen;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.control.TailCallException;
+import org.enso.interpreter.runtime.error.Warning;
 import org.enso.interpreter.runtime.state.State;
 
 /**
@@ -40,6 +41,7 @@ public class SimpleCallOptimiserNode extends CallOptimiserNode {
    * @param callerInfo the caller info to pass to the function
    * @param state the state to pass to the function
    * @param arguments the arguments to {@code function}
+   * @param warnings warnings associated with the callable, null if empty
    * @return the result of executing {@code function} using {@code arguments}
    */
   @Override
@@ -48,7 +50,8 @@ public class SimpleCallOptimiserNode extends CallOptimiserNode {
       Function function,
       CallerInfo callerInfo,
       State state,
-      Object[] arguments) {
+      Object[] arguments,
+      Warning[] warnings) {
     try {
       return executeCallNode.executeCall(frame, function, callerInfo, state, arguments);
     } catch (TailCallException e) {
@@ -65,7 +68,7 @@ public class SimpleCallOptimiserNode extends CallOptimiserNode {
         }
       }
       return next.executeDispatch(
-          frame, e.getFunction(), e.getCallerInfo(), state, e.getArguments());
+          frame, e.getFunction(), e.getCallerInfo(), state, e.getArguments(), e.getWarnings());
     }
   }
 }

@@ -70,7 +70,7 @@ append_to_file table format file match_columns on_problems =
             Nothing -> table.java_table
             Detected_Headers.Existing column_names -> case match_columns of
                 Match_Columns.By_Name ->
-                    ColumnMapper.mapColumnsByName table.java_table column_names.to_array
+                    ColumnMapper.mapColumnsByName table.java_table column_names
                 Match_Columns.By_Position ->
                     column_count = column_names.length
                     ColumnMapper.mapColumnsByPosition table.java_table column_count
@@ -156,7 +156,7 @@ write_to_writer table format java_writer separator_override=Nothing needs_leadin
             endings -> endings.to_text
     if needs_leading_newline then
         java_writer.write newline
-    writer = DelimitedWriter.new java_writer column_formatters.to_array format.delimiter newline quote_characters.first quote_characters.second format.comment_character quote_behavior write_headers
+    writer = DelimitedWriter.new java_writer column_formatters format.delimiter newline quote_characters.first quote_characters.second format.comment_character quote_behavior write_headers
     writer.write table.java_table
     warnings = Java_Problems.parse_aggregated_problems writer.getReportedWarnings
     Problem_Behavior.Report_Warning.attach_problems_after Nothing warnings

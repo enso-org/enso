@@ -13,7 +13,7 @@ import project.Polyglot.Polyglot
 import project.Runtime.Source_Location.Source_Location
 
 from project.Data.Index_Sub_Range.Index_Sub_Range import First, Last
-from project.Runtime.Context import Input,Output
+from project.Runtime.Context import Input, Output
 
 ## Utilities for interacting with the runtime.
 

@@ -9,12 +9,14 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Consumer;
 import org.enso.interpreter.instrument.profiling.ProfilingInfo;
-import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.MethodRootNode;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.node.expression.atom.QualifiedAccessorNode;
+import org.enso.interpreter.node.expression.builtin.BuiltinRootNode;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.logger.masking.MaskedString;
 import org.enso.pkg.QualifiedName;
@@ -196,22 +198,16 @@ public interface IdExecutionService {
     }
   }
 
-  /** Information about the function call. */
-  class FunctionCallInfo {
+  /** Points to the definition of a runtime function. */
+  record FunctionPointer(QualifiedName moduleName, QualifiedName typeName, String functionName) {
 
-    private final QualifiedName moduleName;
-    private final QualifiedName typeName;
-    private final String functionName;
+    public static FunctionPointer fromFunction(Function function) {
+      RootNode rootNode = function.getCallTarget().getRootNode();
 
-    private final int[] notAppliedArguments;
+      QualifiedName moduleName;
+      QualifiedName typeName;
+      String functionName;
 
-    /**
-     * Creates a new instance of this class.
-     *
-     * @param call the function call.
-     */
-    public FunctionCallInfo(FunctionCallInstrumentationNode.FunctionCall call) {
-      RootNode rootNode = call.getFunction().getCallTarget().getRootNode();
       switch (rootNode) {
         case MethodRootNode methodNode -> {
           moduleName = methodNode.getModuleScope().getModule().getName();
@@ -224,20 +220,42 @@ public interface IdExecutionService {
           typeName = atomConstructor.getType().getQualifiedName();
           functionName = atomConstructor.getName();
         }
-        case EnsoRootNode ensoRootNode -> {
-          moduleName = ensoRootNode.getModuleScope().getModule().getName();
-          typeName = null;
-          functionName = rootNode.getName();
+        case BuiltinRootNode builtinRootNode -> {
+          moduleName = builtinRootNode.getModuleName();
+          typeName = builtinRootNode.getTypeName();
+          functionName = QualifiedName.fromString(builtinRootNode.getName()).item();
         }
-        case default -> {
+        default -> {
           moduleName = null;
           typeName = null;
           functionName = rootNode.getName();
         }
       }
 
-      notAppliedArguments = collectNotAppliedArguments(call);
+      return new FunctionPointer(moduleName, typeName, functionName);
     }
+
+    public static int[] collectNotAppliedArguments(Function function) {
+      FunctionSchema functionSchema = function.getSchema();
+      Object[] preAppliedArguments = function.getPreAppliedArguments();
+      boolean isStatic = preAppliedArguments[0] instanceof Type;
+      int selfArgumentPosition = isStatic ? -1 : 0;
+      int[] notAppliedArguments = new int[functionSchema.getArgumentsCount()];
+      int notAppliedArgumentsLength = 0;
+
+      for (int i = 0; i < functionSchema.getArgumentsCount(); i++) {
+        if (!functionSchema.hasPreAppliedAt(i)) {
+          notAppliedArguments[notAppliedArgumentsLength] = i + selfArgumentPosition;
+          notAppliedArgumentsLength += 1;
+        }
+      }
+
+      return Arrays.copyOf(notAppliedArguments, notAppliedArgumentsLength);
+    }
+  }
+
+  /** Information about the function call. */
+  record FunctionCallInfo(FunctionPointer functionPointer, int[] notAppliedArguments) {
 
     @Override
     public boolean equals(Object o) {
@@ -248,39 +266,26 @@ public interface IdExecutionService {
         return false;
       }
       FunctionCallInfo that = (FunctionCallInfo) o;
-      return Objects.equals(moduleName, that.moduleName)
-          && Objects.equals(typeName, that.typeName)
-          && Objects.equals(functionName, that.functionName);
+      return Objects.equals(functionPointer, that.functionPointer) && Arrays.equals(
+          notAppliedArguments, that.notAppliedArguments);
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(moduleName, typeName, functionName);
+      int result = Objects.hash(functionPointer);
+      return 31 * result + Arrays.hashCode(notAppliedArguments);
     }
 
-    @Override
-    public String toString() {
-      return moduleName + "::" + typeName + "::" + functionName;
-    }
+    /**
+     * Creates a new instance of this record from a function call.
+     *
+     * @param call the function call.
+     */
+    public static FunctionCallInfo fromFunctionCall(FunctionCallInstrumentationNode.FunctionCall call) {
+      FunctionPointer functionPointer = FunctionPointer.fromFunction(call.getFunction());
+      int[] notAppliedArguments = collectNotAppliedArguments(call);
 
-    /** @return the name of the module this function was defined in, or null if not available. */
-    public QualifiedName getModuleName() {
-      return moduleName;
-    }
-
-    /** @return the name of the type this method was defined for, or null if not a method. */
-    public QualifiedName getTypeName() {
-      return typeName;
-    }
-
-    /** @return the name of this function. */
-    public String getFunctionName() {
-      return functionName;
-    }
-
-    /** @return the arguments of this function that have not yet been applied. */
-    public int[] getNotAppliedArguments() {
-      return notAppliedArguments;
+      return new FunctionCallInfo(functionPointer, notAppliedArguments);
     }
 
     private static int[] collectNotAppliedArguments(FunctionCallInstrumentationNode.FunctionCall call) {

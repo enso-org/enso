@@ -55,27 +55,26 @@ pub mod shape {
             let inset2 = (Max::max(inset.clone(), Var::from(0.0)) * 2.0).px();
             let width = &canvas_width - &inset2;
             let height = &canvas_height - &inset2;
-            let color = Var::<color::Rgba>::from(color);
             let body = Rect((&width, &height)).corners_radius(corner_radius.px());
-            let colored_body = body.fill(color);
 
             // === Border ===
-
-            let absolute_border = border.abs();
             let border_center = &inset * border.negative() + &border * 0.5;
+            let border_thickness = border.abs() - f32::EPSILON;
+            let border_body = body.grow(border_center.px()).annulus(border_thickness.px());
 
-            // Additional constant to overlap the border with the body. That way, the border that
-            // is supposed to touch the body will not leave any visible gap between shapes.
-            let max_offset = Var::<f32>::from("fwidth(position.x) * 0.5");
-            let touch_offset = Min::min(absolute_border.clone(), max_offset);
-            let border_center = border_center - &touch_offset;
-
-            let border_thickness = absolute_border + touch_offset;
-            let border = body.grow(border_center.px()).annulus(border_thickness.px());
-            let border_color = Var::<color::Rgba>::from(border_color);
-            let colored_border = border.fill(border_color);
+            // When the border is touching the edge of the body, extend the body by up to a pixel.
+            // That way there is no visual gap between the shapes caused by anti-aliasing. In those
+            // scenarios, the extended body will be occluded by the border, therefore it will not
+            // have any visible effect, other than removing the unwanted artifact.
+            let fwidth = Var::<f32>::from("fwidth(position.x)");
+            let touch_offset = Max::max(Min::min(border, fwidth), Var::from(0.0));
+            let body = body.grow(touch_offset);
 
             // === Shape ===
+            let color = Var::<color::Rgba>::from(color);
+            let border_color = Var::<color::Rgba>::from(border_color);
+            let colored_body = body.fill(color);
+            let colored_border = border_body.fill(border_color);
             let shape = colored_body.union_exclusive(&colored_border);
 
             // === Rotation ===
@@ -111,10 +110,16 @@ pub mod shape {
 /// such as circles, rings, or ring segments. The advantage of having a singular shape for these
 /// cases is that a single draw call can be used to render multiple GUI elements, which ultimately
 /// enhances performance.
-#[derive(Clone, CloneRef, Deref, Default)]
+#[derive(Clone, CloneRef, Deref)]
 #[allow(missing_docs)]
 pub struct Rectangle {
     pub view: shape::View,
+}
+
+impl Default for Rectangle {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Debug for Rectangle {
@@ -131,7 +136,7 @@ impl Rectangle {
 
     /// Constructor.
     pub fn new() -> Self {
-        Self::default().build(|r| {
+        Self { view: default() }.build(|r| {
             r.set_border_color(display::shape::INVISIBLE_HOVER_COLOR);
         })
     }

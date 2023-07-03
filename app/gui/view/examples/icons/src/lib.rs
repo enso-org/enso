@@ -8,13 +8,19 @@ use ensogl::system::web::traits::*;
 use ide_view_component_list_panel_grid::prelude::*;
 use wasm_bindgen::prelude::*;
 
+use convert_case::Case;
+use convert_case::Casing;
 use ensogl::application::Application;
+use ensogl::control::io::mouse;
 use ensogl::data::color;
 use ensogl::display::navigation::navigator::Navigator;
 use ensogl::display::object::Object;
+use ensogl::display::shape::Rectangle;
 use ensogl::display::world::World;
 use ensogl::display::DomSymbol;
 use ensogl::system::web;
+use ensogl_text_msdf::run_once_initialized;
+use ensogl_tooltip::Tooltip;
 use ide_view_component_list_panel_grid::entry::icon;
 use ide_view_component_list_panel_icons::SHRINK_AMOUNT;
 use ide_view_component_list_panel_icons::SIZE;
@@ -52,9 +58,15 @@ mod frame {
 #[wasm_bindgen]
 #[allow(dead_code)]
 pub fn entry_point_icons() {
+    run_once_initialized(init);
+}
+
+fn init() {
     let app = Application::new("root");
+    let tooltip = Tooltip::new(&app);
+    let network = app.frp.network();
+
     let world = app.display.clone();
-    mem::forget(app);
     let scene = &world.default_scene;
     mem::forget(Navigator::new(scene, &scene.camera()));
 
@@ -68,9 +80,24 @@ pub fn entry_point_icons() {
         let shape = ide_view_component_list_panel_icons::any::View::new();
         shape.icon.set(id.any_cached_shape_location());
         shape.r_component.set(dark_green.into());
-        place_icon(&world, shape, x, 0.0);
+        let hover_target = place_icon(&world, shape, x, 0.0);
         x += 20.0;
+
+        let enter = hover_target.on_event::<mouse::Enter>();
+        let leave = hover_target.on_event::<mouse::Leave>();
+        let snake_case_name = id.as_str().to_case(Case::Snake);
+        let style = ensogl::application::tooltip::Style::set_label(snake_case_name);
+        frp::extend! { network
+            trace enter;
+            trace leave;
+            tooltip.frp.set_style <+ enter.constant(style);
+            tooltip.frp.set_style <+ leave.constant(default());
+        }
+        mem::forget(hover_target);
     });
+
+    scene.add_child(&tooltip);
+    mem::forget(tooltip);
 
 
     // === Action Bar Icons ===
@@ -101,6 +128,8 @@ pub fn entry_point_icons() {
     let enable_output_context_icon = action_bar::icon::enable_output_context::View::new();
     enable_output_context_icon.color_rgba.set(dark_green.into());
     place_icon(&world, enable_output_context_icon, 60.0, y);
+
+    mem::forget(app);
 }
 
 /// Create a grid with pixel squares to help development of icons.
@@ -124,9 +153,15 @@ fn create_grid(world: &World, x: f32, y: f32) {
 }
 
 /// Place the given icon in the world at the right coordinates, in a dark green shade.
-fn place_icon(world: &World, icon: impl Object, x: f32, y: f32) {
+fn place_icon(world: &World, icon: impl Object, x: f32, y: f32) -> Rectangle {
+    let hover_target = Rectangle();
+    hover_target.set_color(ensogl::display::shape::INVISIBLE_HOVER_COLOR);
+    hover_target.set_xy((x - SIZE / 2.0, y - SIZE / 2.0));
+    hover_target.set_size((SIZE, SIZE));
     icon.set_xy((x, y));
     icon.set_size((SIZE, SIZE));
+    world.add_child(&hover_target);
     world.add_child(&icon);
     mem::forget(icon);
+    hover_target
 }

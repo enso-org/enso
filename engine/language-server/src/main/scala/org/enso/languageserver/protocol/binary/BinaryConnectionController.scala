@@ -19,10 +19,10 @@ import org.enso.languageserver.protocol.binary.factory.{
   ErrorFactory,
   OutboundMessageFactory,
   SuccessReplyFactory,
-  VisualisationUpdateFactory
+  VisualizationUpdateFactory
 }
 import org.enso.languageserver.requesthandler.file._
-import org.enso.languageserver.runtime.ContextRegistryProtocol.VisualisationUpdate
+import org.enso.languageserver.runtime.ContextRegistryProtocol.VisualizationUpdate
 import org.enso.languageserver.session.BinarySession
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.languageserver.util.binary.DecodingFailure
@@ -113,8 +113,8 @@ class BinaryConnectionController(
         )
       }
 
-    case update: VisualisationUpdate =>
-      val updatePacket = convertVisualisationUpdateToOutPacket(update)
+    case update: VisualizationUpdate =>
+      val updatePacket = convertVisualizationUpdateToOutPacket(update)
       outboundChannel ! updatePacket
   }
 
@@ -157,15 +157,15 @@ class BinaryConnectionController(
         ErrorFactory.createServiceError()
     }
 
-  private def convertVisualisationUpdateToOutPacket(
-    update: VisualisationUpdate
+  private def convertVisualizationUpdateToOutPacket(
+    update: VisualizationUpdate
   ): ByteBuffer = {
     implicit val builder: FlatBufferBuilder = new FlatBufferBuilder(1024)
-    val event                               = VisualisationUpdateFactory.create(update)
+    val event                               = VisualizationUpdateFactory.create(update)
     val msg = OutboundMessageFactory.create(
       UUID.randomUUID(),
       None,
-      OutboundPayload.VISUALISATION_UPDATE,
+      OutboundPayload.VISUALIZATION_UPDATE,
       event
     )
 

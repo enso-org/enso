@@ -520,7 +520,7 @@ type Date_Time
 
              example_plus = Date_Time.new 2020 + Date_Period.Quarter
     + : (Duration | Period | Time_Period | Date_Period) -> Date_Time ! Time_Error
-    + self amount:(Duration|Period|Time_Period|Date_Period) =
+    + self (amount : Duration | Period | Time_Period | Date_Period) =
         case amount of
             duration : Duration ->
                 Panic.catch ArithmeticException (self.plus_builtin duration) (err -> Error.throw (Time_Error.Error err.getMessage))
@@ -597,7 +597,7 @@ type Date_Time
 
              example_plus = Date_Time.new 2020 - Date_Period.Quarter
     - : (Duration | Period | Time_Period | Date_Period) -> Date_Time ! Time_Error
-    - self amount:(Duration|Period|Time_Period|Date_Period) =
+    - self amount:(Duration | Period | Time_Period | Date_Period) =
         result = case amount of
             duration : Duration ->
                 Panic.catch ArithmeticException (self.minus_builtin duration) (err -> Error.throw (Time_Error.Error err.getMessage))

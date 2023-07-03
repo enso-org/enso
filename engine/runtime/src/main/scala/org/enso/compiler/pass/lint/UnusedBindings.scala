@@ -3,14 +3,12 @@ package org.enso.compiler.pass.lint
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.{Case, Pattern}
-import org.enso.compiler.exception.CompilerError
+import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.AliasAnalysis
 import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.optimise.LambdaConsolidate
 import org.enso.compiler.pass.resolve.{ExpressionAnnotations, IgnoredBindings}
-
-import scala.annotation.unused
 
 /** This pass performs linting for unused names, generating warnings if it finds
   * any.
@@ -76,12 +74,6 @@ case object UnusedBindings extends IRPass {
       case cse: IR.Case                   => lintCase(cse, inlineContext)
     }
   } else ir
-
-  /** @inheritdoc */
-  override def updateMetadataInDuplicate[T <: IR](
-    @unused sourceIr: T,
-    copyOfIr: T
-  ): T = copyOfIr
 
   // === Pass Internals =======================================================
 

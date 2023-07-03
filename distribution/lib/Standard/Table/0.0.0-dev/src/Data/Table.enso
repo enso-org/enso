@@ -51,7 +51,7 @@ from project.Data.Column import get_item_string, normalize_string_for_display
 from project.Internal.Filter_Condition_Helpers import make_filter_column
 
 polyglot java import org.enso.base.ObjectComparator
-polyglot java import org.enso.table.data.column.builder.object.StorageTypeMismatch
+polyglot java import org.enso.table.data.column.builder.StorageTypeMismatch
 polyglot java import org.enso.table.data.table.Table as Java_Table
 polyglot java import org.enso.table.data.table.Column as Java_Column
 polyglot java import org.enso.table.data.table.join.Equals as Java_Join_Equals
@@ -91,7 +91,7 @@ type Table
         if cols.is_empty then Error.throw (Illegal_Argument.Error "Cannot create a table with no columns.") else
             if (cols.all c-> c.getSize == cols.first.getSize).not then Error.throw (Illegal_Argument.Error "All columns must have the same row count.") else
                 if cols.distinct .getName . length != cols.length then Error.throw (Illegal_Argument.Error "Column names must be distinct.") else
-                    Table.Value (Java_Table.new cols.to_array)
+                    Table.Value (Java_Table.new cols)
 
     ## Creates a new table from a vector of column names and a vector of vectors
        specifying row contents.
@@ -147,7 +147,7 @@ type Table
         col_names = ([index.getName] + cols.map .getName) . map normalize_string_for_display
         col_vals = cols.map .getStorage
         num_rows = self.row_count
-        display_rows = Math.min num_rows show_rows
+        display_rows = num_rows.min show_rows
         rows = Vector.new display_rows row_num->
             cols = col_vals.map col->
                 if col.isNa row_num then "Nothing" else get_item_string col row_num
@@ -262,7 +262,8 @@ type Table
     column_count : Integer
     column_count self = self.java_table.getColumns.length
 
-    ## Returns a new table with a chosen subset of columns, as specified by the
+    ## ICON select_column
+       Returns a new table with a chosen subset of columns, as specified by the
        `columns`, from the input table. Any unmatched input columns will be
        dropped from the output.
 
@@ -309,8 +310,6 @@ type Table
          Select the first two columns and the last column, moving the last one to front.
 
              table.select_columns [-1, 0, 1] reorder=True
-
-       Icon: select_column
     @columns Widget_Helpers.make_column_name_vector_selector
     select_columns :  Vector (Integer | Text | Column_Selector) | Text | Integer -> Boolean -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns
     select_columns self columns=[self.columns.first.name] (reorder = False) (error_on_missing_columns = True) (on_problems = Report_Warning) =
@@ -596,11 +595,11 @@ type Table
 
         on_problems.attach_problems_before validated.problems <| Illegal_Argument.handle_java_exception <|
             java_key_columns = validated.key_columns.map .java_column
-            index = self.java_table.indexFromColumns java_key_columns.to_array
+            index = self.java_table.indexFromColumns java_key_columns
 
             new_columns = validated.valid_columns.map c->(Aggregate_Column_Helper.java_aggregator c.first c.second)
 
-            java_table = index.makeTable new_columns.to_array
+            java_table = index.makeTable new_columns
             new_table = Table.Value java_table
 
             on_problems.attach_problems_after new_table <|
@@ -690,7 +689,7 @@ type Table
                     Case_Sensitivity.Insensitive locale -> ObjectComparator.new False locale.java_locale
 
             java_table = Illegal_Argument.handle_java_exception <| Incomparable_Values.handle_errors <|
-                self.java_table.orderBy java_columns.to_array directions.to_array comparator
+                self.java_table.orderBy java_columns directions comparator
             Table.Value java_table
 
     ## Returns the distinct set of rows within the specified columns from the
@@ -736,7 +735,7 @@ type Table
         java_columns = key_columns.map .java_column
         text_folding_strategy = Case_Sensitivity.folding_strategy case_sensitivity
         java_table = Illegal_Argument.handle_java_exception <|
-            self.java_table.distinct java_columns.to_array text_folding_strategy
+            self.java_table.distinct java_columns text_folding_strategy
         on_problems.attach_problems_after (Table.Value java_table) <|
             problems = java_table.getProblems
             Java_Problems.parse_aggregated_problems problems
@@ -1203,7 +1202,7 @@ type Table
     @group_by Widget_Helpers.make_column_name_vector_selector
     @order_by Widget_Helpers.make_order_by_selector
     add_row_number : Text -> Integer -> Integer -> Vector (Text | Integer | Column_Selector) | Text | Integer -> Vector (Text | Sort_Column) | Text -> Problem_Behavior -> Table
-    add_row_number self name="Row" from=1 step=1 group_by=[] order_by=[] on_problems=Problem_Behavior.Report_Warning =
+    add_row_number self (name:Text = "Row") (from:Integer = 1) (step:Integer = 1) group_by=[] order_by=[] on_problems=Problem_Behavior.Report_Warning =
         Add_Row_Number.add_row_number self name from step group_by order_by on_problems
 
     ## ALIAS Add Column, Update Column, New Column
@@ -1300,12 +1299,19 @@ type Table
     evaluate_expression : Text -> Problem_Behavior -> Column ! No_Such_Column | Invalid_Value_Type | Expression_Error
     evaluate_expression self expression on_problems=Report_Warning =
         get_column name = self.at name
-        make_constant value = Column.from_vector_repeated (UUID.randomUUID.to_text) [value] self.row_count
-        new_column = Expression.evaluate expression get_column make_constant "Standard.Table.Data.Column" "Column" Column.var_args_functions
+        new_column = Expression.evaluate expression get_column self.make_constant_column "Standard.Table.Data.Column" "Column" Column.var_args_functions
         problems = Warning.get_all new_column . map .value
         result = new_column.rename (Naming_Helpers.sanitize_name expression)
         on_problems.attach_problems_before problems <|
             Warning.set result []
+
+    ## PRIVATE
+
+       Create a constant column from a value.
+    make_constant_column : Any -> Column
+    make_constant_column self value =
+        if Table_Helpers.is_column value then Error.throw (Illegal_Argument.Error "A constant value may only be created from a scalar, not a Column") else
+            Column.from_vector_repeated ("Constant_" + UUID.randomUUID.to_text) [value] self.row_count
 
     ## Returns the vector of columns contained in this table.
 
@@ -1320,9 +1326,7 @@ type Table
         Array_Proxy.new self.java_table.getColumns.length i->
             Column.Value (self.java_table.getColumns.at i)
 
-    ## UNSTABLE
-
-       Returns the vector of column names contained in this table.
+    ## Returns the vector of column names contained in this table.
     column_names : Vector Text
     column_names self = Vector.from_polyglot_array <|
         Array_Proxy.new self.java_table.getColumns.length i->
@@ -1792,7 +1796,7 @@ type Table
         java_id = id_columns.map .java_column
 
         unique.mark_used (id_columns.map .name)
-        result = Table.Value (Java_Table.transpose java_id.to_array java_data.to_array (unique.make_unique attribute_column_name) (unique.make_unique value_column_name))
+        result = Table.Value (Java_Table.transpose java_id java_data (unique.make_unique attribute_column_name) (unique.make_unique value_column_name))
         problem_builder.report_unique_name_strategy unique
 
         problem_builder.attach_problems_after on_problems result
@@ -1880,7 +1884,7 @@ type Table
 
         problem_builder.attach_problems_before on_problems <| Illegal_Argument.handle_java_exception <|
             java_key_columns = grouping.map .java_column
-            index = self.java_table.indexFromColumns java_key_columns.to_array
+            index = self.java_table.indexFromColumns java_key_columns
 
             name_mapper = if matched_name.is_empty then Aggregate_Column_Helper.default_aggregate_column_name else
                 if validated_values.length == 1 then (_ -> "") else
@@ -1896,7 +1900,7 @@ type Table
             result = case matched_name.is_empty of
                 True ->
                     group_by = grouping.map g->(Aggregate_Column_Helper.java_aggregator g.name (Aggregate_Column.Group_By g))
-                    index.makeTable (group_by + data_columns).to_array
+                    index.makeTable (group_by + data_columns)
                 False ->
                     aggregate_names = validated_values.map c->
                         c.new_name.if_nothing (name_mapper c)
@@ -1911,8 +1915,8 @@ type Table
     slice : Integer -> Integer -> Table
     slice self start end =
         length = self.row_count
-        offset = Math.max (Math.min start length) 0
-        limit = Math.max (Math.min (end - offset) (length - offset)) 0
+        offset = (start.min length).max 0
+        limit = ((end - offset).min (length - offset)).max 0
         Table.Value (self.java_table.slice offset limit)
 
     ## Returns a table containing the rows of `self` table with their order
@@ -2060,8 +2064,8 @@ ansi_bold enabled txt =
 print_table : Vector Text -> (Vector (Vector Text)) -> Integer -> Boolean -> Text
 print_table header rows indices_count format_term =
     content_lengths = Vector.new header.length i->
-        max_row = 0.up_to rows.length . fold 0 a-> j-> Math.max a (rows.at j . at i . characters . length)
-        Math.max max_row (header.at i . characters . length)
+        max_row = 0.up_to rows.length . fold 0 a-> j-> a.max (rows.at j . at i . characters . length)
+        max_row.max (header.at i . characters . length)
     header_line = header.zip content_lengths pad . map (ansi_bold format_term) . join ' | '
     divider = content_lengths . map (l -> "-".repeat l+2) . join '+'
     row_lines = rows.map r->
@@ -2076,7 +2080,7 @@ print_table header rows indices_count format_term =
    A helper to create a new table consisting of slices of the original table.
 slice_ranges table ranges =
     normalized = Index_Sub_Range_Module.normalize_ranges ranges
-    Table.Value (table.java_table.slice normalized.to_array)
+    Table.Value (table.java_table.slice normalized)
 
 ## PRIVATE
 make_join_helpers left_table right_table =

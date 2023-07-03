@@ -112,7 +112,7 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
                 pathSegmentsJava.addAll(Arrays.asList(
                         pkg.namespace(),
                         pkg.name(),
-                        pkg.config().version(),
+                        pkg.getConfig().version(),
                         Info.ensoVersion()
                 ));
                 pathSegmentsJava.addAll(qualName.pathAsJava());

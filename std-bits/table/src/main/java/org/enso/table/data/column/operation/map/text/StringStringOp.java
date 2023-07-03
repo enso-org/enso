@@ -1,6 +1,6 @@
 package org.enso.table.data.column.operation.map.text;
 
-import org.enso.table.data.column.builder.object.StringBuilder;
+import org.enso.table.data.column.builder.StringBuilder;
 import org.enso.table.data.column.operation.map.MapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.storage.SpecializedStorage;

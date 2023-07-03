@@ -239,7 +239,7 @@ ensogl::define_endpoints! {
     }
 
     Output {
-        visualisation_selection     (Option<visualization::Path>),
+        visualization_selection     (Option<visualization::Path>),
         mouse_over                  (),
         mouse_out                   (),
         on_container_reset_position (),
@@ -333,7 +333,7 @@ impl display::Object for Model {
 // ==================
 
 /// UI for executing actions on a node. Consists of label indicating the active visualization
-/// and a drop-down menu for selecting a new visualisation.
+/// and a drop-down menu for selecting a new visualization.
 ///
 /// Layout
 /// ------
@@ -391,10 +391,10 @@ impl ActionBar {
             hide              <- any(mouse_out_no_menu,remote_click);
             eval_ hide (model.hide());
 
-            // The action bar does not allow to deselect the visualisation, so we prohibit these
+            // The action bar does not allow to deselect the visualization, so we prohibit these
             // events, which can occur on re-initialization.
             has_selection <- visualization_chooser.chosen_entry.is_some();
-            frp.source.visualisation_selection
+            frp.source.visualization_selection
                 <+ visualization_chooser.chosen_entry.gate(&has_selection);
 
             let reset_position_icon = &model.icons.reset_position_icon.events_deprecated;
@@ -411,7 +411,7 @@ impl ActionBar {
             eval show_reset_icon((visibility) model.icons.set_reset_icon_visibility(*visibility));
 
 
-           // === Visualisation Chooser ===
+           // === Visualization Chooser ===
 
             // Note: we only want to update the chooser if it is visible, or when it becomes
             // visible. During startup we get the type information for every node, and propagate

@@ -161,7 +161,7 @@ type Utf_16_Span
                     grapheme_ix = Text_Utils.utf16_index_to_grapheme_index self.parent self.start
                     Span.Value (grapheme_ix.up_to grapheme_ix) self.parent
                 False ->
-                    grapheme_ixes = Text_Utils.utf16_indices_to_grapheme_indices self.parent [self.start, self.end - 1].to_array
+                    grapheme_ixes = Text_Utils.utf16_indices_to_grapheme_indices self.parent [self.start, self.end - 1]
                     grapheme_first = grapheme_ixes.at 0
                     grapheme_last = grapheme_ixes.at 1
                     ## We find the grapheme index of the last code unit actually contained within our span and set the

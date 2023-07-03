@@ -10,7 +10,7 @@ import org.enso.compiler.data.BindingsMap.{
   ResolvedType,
   Type
 }
-import org.enso.compiler.exception.CompilerError
+import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.editions.LibraryName
 import org.enso.interpreter.runtime.Module

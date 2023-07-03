@@ -3,7 +3,7 @@ package org.enso.compiler.pass.optimise
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.DefinitionArgument
-import org.enso.compiler.exception.CompilerError
+import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{
   AliasAnalysis,
@@ -14,8 +14,6 @@ import org.enso.compiler.pass.analyse.{
 import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.resolve.IgnoredBindings
 import org.enso.syntax.text.Location
-
-import scala.annotation.unused
 
 /** This pass consolidates chains of lambdas into multi-argument lambdas
   * internally.
@@ -110,12 +108,6 @@ case object LambdaConsolidate extends IRPass {
       collapseFunction(fn, inlineContext, freshNameSupply)
     }
   }
-
-  /** @inheritdoc */
-  override def updateMetadataInDuplicate[T <: IR](
-    @unused sourceIr: T,
-    copyOfIr: T
-  ): T = copyOfIr
 
   /** Collapses chained lambdas for a function definition where possible.
     *

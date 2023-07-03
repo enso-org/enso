@@ -1,7 +1,7 @@
 package org.enso.compiler.test
 
-import org.enso.compiler.EnsoCompiler
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
+import org.enso.compiler.core.EnsoParser
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.data.BindingsMap.ModuleReference
@@ -30,7 +30,7 @@ trait CompilerRunner {
       * @return the [[IR]] representing [[source]]
       */
     def toIrModule: IR.Module = {
-      val compiler = new EnsoCompiler()
+      val compiler = new EnsoParser()
       try compiler.compile(source)
       finally compiler.close()
     }
@@ -48,7 +48,7 @@ trait CompilerRunner {
       * @return the [[IR]] representing [[source]], if it is a valid expression
       */
     def toIrExpression: Option[IR.Expression] = {
-      val compiler = new EnsoCompiler()
+      val compiler = new EnsoParser()
       try compiler.generateIRInline(compiler.parse(source))
       finally compiler.close()
     }
