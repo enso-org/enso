@@ -191,6 +191,9 @@
 - [Fixed cursor position when ctrl-clicking the node][7014]. Sometimes
   ctrl-clicking to edit the node placed the mouse cursor in the wrong position
   in the text. This is fixed now.
+- [Help chat][7151]. The link to the Discord server is replaced with a chat
+  bridge to the Discord server. This is intended to have the chat visible at the
+  same time as the IDE, so that help can be much more interactive.
 
 [5910]: https://github.com/enso-org/enso/pull/5910
 [6279]: https://github.com/enso-org/enso/pull/6279
@@ -208,6 +211,7 @@
 [6893]: https://github.com/enso-org/enso/pull/6893
 [7028]: https://github.com/enso-org/enso/pull/7028
 [7014]: https://github.com/enso-org/enso/pull/7014
+[7151]: https://github.com/enso-org/enso/pull/7151
 
 #### EnsoGL (rendering engine)
 
