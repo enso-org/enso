@@ -1983,9 +1983,9 @@ class RuntimeErrorsTest
     val moduleName = "Enso_Test.Test.Main"
     val newline    = "\n" // was: System.lineSeparator()
 
-    val metadata  = new Metadata
-    val xId       = metadata.addItem(111, 79)
-    val mainResId = metadata.addItem(195, 1)
+    val metadata   = new Metadata
+    val xId        = metadata.addItem(111, 79)
+    val mainResId  = metadata.addItem(195, 1)
     val mainRes1Id = metadata.addItem(209, 1)
 
     val code =
