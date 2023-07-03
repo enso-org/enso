@@ -11,6 +11,7 @@ import org.enso.table.data.table.problems.UnquotedCharactersInOutput;
 import org.enso.table.formatting.DataFormatter;
 import org.enso.table.problems.AggregatedProblems;
 import org.enso.table.read.DelimitedReader;
+import org.graalvm.polyglot.Context;
 
 public class DelimitedWriter {
   private final String newline;
@@ -120,6 +121,7 @@ public class DelimitedWriter {
   }
 
   public void write(Table table) throws IOException {
+    Context context = Context.getCurrent();
     int numberOfColumns = table.getColumns().length;
     assert numberOfColumns == columnFormatters.length;
 
@@ -129,6 +131,7 @@ public class DelimitedWriter {
         boolean isLast = col == numberOfColumns - 1;
         String columnName = table.getColumns()[col].getName();
         writeCell(columnName, isLast, quoteAllHeaders, columnName, -1);
+        context.safepoint();
       }
     }
 
@@ -142,6 +145,7 @@ public class DelimitedWriter {
         boolean wantsQuoting =
             writeQuoteBehavior == WriteQuoteBehavior.ALWAYS && wantsQuotesInAlwaysMode(cellValue);
         writeCell(formatted, isLast, wantsQuoting, columnName, row);
+        context.safepoint();
       }
     }
 
