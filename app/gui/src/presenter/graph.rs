@@ -288,7 +288,6 @@ impl Model {
 
     /// Node was removed in view.
     fn node_removed(&self, id: ViewNodeId) {
-        console_log!("Node removed: {:?}", id);
         self.log_action(
             || {
                 let ast_id = self.state.update_from_view().remove_node(id)?;
