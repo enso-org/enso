@@ -293,21 +293,24 @@ impl Mouse {
         if new_target != current_target {
             self.target.set(new_target);
             if let Some(event) = (*self.last_move_event.borrow()).clone() {
-                let new_hovered = self
+                let mut new_hovered = self
                     .pointer_target_registry
                     .with_mouse_target(new_target, |_, d| d.rev_parent_chain())
                     .unwrap_or_default();
+                new_hovered.sort();
                 let currently_hovered_weak = self.hovered_objects.take().into_iter();
                 let currently_hovered =
-                    currently_hovered_weak.filter_map(|w| w.upgrade()).collect_vec();
-                let left = currently_hovered.iter().filter(|t| !new_hovered.contains(t));
+                    currently_hovered_weak.filter_map(|w| w.upgrade()).sorted().collect_vec();
+                let left =
+                    currently_hovered.iter().filter(|t| new_hovered.binary_search(t).is_err());
                 for d in left {
                     let out_event = event.clone().unchecked_convert_to::<mouse::Out>();
                     let leave_event = event.clone().unchecked_convert_to::<mouse::Leave>();
                     d.emit_event(out_event);
                     d.emit_event_without_bubbling(leave_event);
                 }
-                let entered = new_hovered.iter().filter(|t| !currently_hovered.contains(t));
+                let entered =
+                    new_hovered.iter().filter(|t| currently_hovered.binary_search(t).is_err());
                 for d in entered {
                     let over_event = event.clone().unchecked_convert_to::<mouse::Over>();
                     let enter_event = event.clone().unchecked_convert_to::<mouse::Enter>();
