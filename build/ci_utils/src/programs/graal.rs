@@ -4,7 +4,6 @@ use serde::Deserializer;
 use serde::Serializer;
 
 
-
 /// GraalVM Updater, `gu`, is a command-line tool for installing and managing optional GraalVM
 /// language runtimes and utilities.
 #[derive(Clone, Copy, Debug, Default)]

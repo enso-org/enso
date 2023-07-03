@@ -10,7 +10,8 @@ use crate::programs::Java;
 
 
 
-const PACKAGE_PREFIX: &str = "graalvm-community";
+const PACKAGE_PREFIX_URL: &str = "graalvm-community";
+const PACKAGE_PREFIX_UNZIPPED: &str = "graalvm-community-openjdk";
 
 pub const CE_BUILDS_REPOSITORY: RepoRef = RepoRef { owner: "graalvm", name: "graalvm-ce-builds" };
 
@@ -23,7 +24,7 @@ crate::define_env_var! {
 }
 
 pub fn graal_version_from_version_string(version_string: &str) -> Result<Version> {
-    let line = version_string.lines().find(|line| line.contains("GraalVM")).context(
+    let line = version_string.lines().find(|line| line.contains("GraalVM CE")).context(
         "There is a Java environment available but it is not recognizable as GraalVM one.",
     )?;
     Version::find_in_text(line)
@@ -78,10 +79,11 @@ impl GraalVM {
     pub fn url(&self) -> BoxFuture<'static, Result<Url>> {
         let platform_string = self.platform_string();
         let graal_version = self.graal_version.clone();
+        let graal_version_tag = format!("{}.{}.{}", graal_version.major, graal_version.minor, graal_version.patch);
         let client = self.client.clone();
         async move {
             let repo = CE_BUILDS_REPOSITORY.handle(&client);
-            let release = repo.find_release_by_text(&graal_version.to_string()).await?;
+            let release = repo.find_release_by_text(&graal_version_tag).await?;
             crate::github::find_asset_url_by_text(&release, &platform_string).cloned()
         }
         .boxed()
@@ -100,12 +102,13 @@ impl GraalVM {
             Arch::AArch64 => "aarch64",
             other_arch => unimplemented!("Architecture `{}` is not supported!", other_arch),
         };
-        let java_version = format!("jdk-{}", _graal_version);
-        format!("{PACKAGE_PREFIX}-{java_version}_{os_name}-{arch_name}")
+        let java_version = format!("jdk-{}.{}.{}", _graal_version.major, _graal_version.minor, _graal_version.patch);
+        format!("{PACKAGE_PREFIX_URL}-{java_version}_{os_name}-{arch_name}")
     }
 
     pub fn root_directory_name(&self) -> PathBuf {
-        PathBuf::from(format!("{}-{}", PACKAGE_PREFIX, self.graal_version))
+        let jdk_version = format!("{}.{}.{}+{}", self.graal_version.major, self.graal_version.minor, self.graal_version.patch, self.graal_version.build);
+        PathBuf::from(format!("{}-{}", PACKAGE_PREFIX_UNZIPPED, jdk_version))
     }
 }
 
@@ -136,7 +139,7 @@ mod tests {
     #[ignore]
     async fn test_is_enabled() -> Result {
         setup_logging()?;
-        let graal_version = Version::parse("17.0.7").unwrap();
+        let graal_version = Version::parse("17.0.7+7.1").unwrap();
         let os = TARGET_OS;
         let arch = Arch::X86_64;
         let client = Octocrab::default();
@@ -154,9 +157,9 @@ mod tests {
     /// Check that we correctly recognize both the GraalVM version and the Java version.
     #[test]
     fn version_recognize() {
-        let version_string = "java version \"17.0.7\" 2023-04-18 LTS
-Java(TM) SE Runtime Environment Oracle GraalVM 17.0.7+8.1 (build 17.0.7+8-LTS-jvmci-23.0-b12)
-Java HotSpot(TM) 64-Bit Server VM Oracle GraalVM 17.0.7+8.1 (build 17.0.7+8-LTS-jvmci-23.0-b12, mixed mode, sharing)";
+        let version_string = "openjdk version \"17.0.7\" 2023-04-18
+OpenJDK Runtime Environment GraalVM CE 17.0.7+7.1 (build 17.0.7+7-jvmci-23.0-b12)
+OpenJDK 64-Bit Server VM GraalVM CE 17.0.7+7.1 (build 17.0.7+7-jvmci-23.0-b12, mixed mode, sharing)";
 
         let found_graal = graal_version_from_version_string(version_string).unwrap();
         let expected_graal_version = Version {
@@ -164,7 +167,7 @@ Java HotSpot(TM) 64-Bit Server VM Oracle GraalVM 17.0.7+8.1 (build 17.0.7+8-LTS-
             minor: 0,
             patch: 7,
             pre: Prerelease::EMPTY,
-            build: BuildMetadata::new("8.1").unwrap()
+            build: BuildMetadata::new("7.1").unwrap()
         };
         assert_eq!(found_graal, expected_graal_version);
 
@@ -174,14 +177,14 @@ Java HotSpot(TM) 64-Bit Server VM Oracle GraalVM 17.0.7+8.1 (build 17.0.7+8-LTS-
 
     #[test]
     fn recognize_oneline_version() {
-        let version_line = "Java(TM) SE Runtime Environment Oracle GraalVM 17.0.7+8.1 (build 17.0.7+8-LTS-jvmci-23.0-b12)";
+        let version_line = "OpenJDK Runtime Environment GraalVM CE 17.0.7+7.1 (build 17.0.7+7-jvmci-23.0-b12)";
         let graal_version = Version::find_in_text(version_line).unwrap();
         let expected_graal_version = Version {
             major: 17,
             minor: 0,
             patch: 7,
             pre: Prerelease::EMPTY,
-            build: BuildMetadata::new("8.1").unwrap()
+            build: BuildMetadata::new("7.1").unwrap()
         };
         assert_eq!(graal_version, expected_graal_version);
     }
