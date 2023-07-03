@@ -74,7 +74,8 @@ public abstract class FlattenVectorNode extends Node {
     throw new PanicException(err, this);
   }
 
-  private Vector flatten(Object storage, CopyNode copyNode, InteropLibrary interop) throws UnsupportedMessageException{
+  private Vector flatten(Object storage, CopyNode copyNode, InteropLibrary interop)
+      throws UnsupportedMessageException {
     try {
       long length = interop.getArraySize(storage);
 

@@ -83,7 +83,8 @@ public abstract class RemoveAtVectorNode extends Node {
   }
 
   private Vector removeAtIndex(
-      Object storage, long index, CopyNode copyArrayNode, InteropLibrary interop) throws UnsupportedMessageException {
+      Object storage, long index, CopyNode copyArrayNode, InteropLibrary interop)
+      throws UnsupportedMessageException {
     long length = interop.getArraySize(storage);
     long actualIndex = index < 0 ? index + length : index;
     Array array = Array.allocate(length - 1);
