@@ -198,9 +198,10 @@ impl Rectangle {
     /// the border, you can use [`Self::set_border_and_inset`].
     ///
     /// If the inset value is greater than the absolute value of border width, the shape will have
-    /// additional transparent padding. If the border value is positive, the extra padding will
-    /// be between the border and the outside frame (size) of the rectangle. If the border value is
-    /// negative, the extra padding will be between the body and the border.
+    /// additional transparent padding. If the inset value is positive, the extra padding will
+    /// be between the body and the outside frame (size) of the rectangle. When it is negative,
+    /// it can be used to inset the border into the body. To avoid confusion, it is recommended
+    /// to use [`Self::set_inner_border`] instead.
     pub fn set_inset(&self, inset: f32) -> &Self {
         self.modify_view(|view| view.inset.set(inset))
     }
@@ -219,12 +220,12 @@ impl Rectangle {
     /// border can be offset away from the body's edge by using a non-zero `distance` value.
     ///
     /// When the `distance` is set to 0, the effect is similar to an outer border set using
-    /// [`Self::set_inner_border`], but the interpretation of corner radius is different. In this
-    /// case, the effective corner radius of the border's outside edge will be equal to the body's,
-    /// corner radius, while the inside edge corners will be appropriately sharper.
+    /// [`Self::set_border_and_inset`], but the interpretation of corner radius is different. In
+    /// this case, the effective corner radius of the border's outside edge will be equal to the
+    /// body's, corner radius, while the inside edge corners will be appropriately sharper.
     ///
-    /// NOTE: This setting will override the inset value set with [`Self::set_inset`]. Mixing it
-    /// with other border types is discouraged.
+    /// NOTE: This setting will override the inset value set with [`Self::set_inset`], setting it to
+    /// a negative value. Therefore mixing it with other border settings is not recommended.
     pub fn set_inner_border(&self, border_width: f32, distance: f32) -> &Self {
         self.modify_view(|view| {
             let clamped_width = border_width.max(0.0);
