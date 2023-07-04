@@ -1,7 +1,7 @@
 from Standard.Base import all
 
 from Standard.Table import Column
-import Standard.Table.Internal.Java_Exports
+from Standard.Table.Internal.Java_Exports import make_inferred_builder
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
@@ -20,7 +20,7 @@ spec = Test.group "[In-Memory] Storage Builders" <|
            other ones, selecting the types automatically.
         elem = ['X', 42, 1.5, My.Data 1 2, Date.new 2022 8 27, Time_Of_Day.new 18 00, Date_Time.new 2022 8 27 11 22 25, "a", Nothing]
         elem.each e-> Test.with_clue "{"+e.to_text+"}: " <|
-            builder = Java_Exports.make_inferred_builder 1
+            builder = make_inferred_builder 1
             vector = Vector.fill 10 e + Vector.fill 1000 Nothing + Vector.fill 5 e
             0.up_to 10 . each _->
                 builder.append e

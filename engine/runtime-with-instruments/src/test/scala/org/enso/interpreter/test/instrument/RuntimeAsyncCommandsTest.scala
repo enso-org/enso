@@ -228,14 +228,24 @@ class RuntimeAsyncCommandsTest
     ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.InterruptContextResponse(contextId)),
       Api.Response(
-        Api.ExecutionFailed(
+        Api.ExecutionUpdate(
           contextId,
-          Api.ExecutionResult
-            .Failure("Execution of function main interrupted.", None)
+          Seq(
+            Api.ExecutionResult.Diagnostic(
+              Api.DiagnosticType.Warning,
+              Some("Execution of function main interrupted."),
+              None,
+              None,
+              None,
+              Vector()
+            )
+          )
         )
       ),
-      Api.Response(Api.BackgroundJobsStartedNotification()),
-      context.executionComplete(contextId)
+      Api.Response(
+        Api.ExecutionComplete(contextId)
+      ),
+      Api.Response(Api.BackgroundJobsStartedNotification())
     )
   }
 }

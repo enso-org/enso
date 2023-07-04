@@ -4,9 +4,12 @@ import com.oracle.truffle.api.TruffleLogger
 import com.oracle.truffle.api.source.{Source, SourceSection}
 import org.enso.compiler.codegen.{IrToTruffle, RuntimeStubsGenerator}
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
+import org.enso.compiler.core.CompilerError
+import org.enso.compiler.core.CompilerStub
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.EnsoParser
 import org.enso.compiler.data.{BindingsMap, CompilerConfig}
-import org.enso.compiler.exception.{CompilationAbortedException, CompilerError}
+import org.enso.compiler.exception.CompilationAbortedException
 import org.enso.compiler.pass.PassManager
 import org.enso.compiler.pass.analyse._
 import org.enso.compiler.phase.{
@@ -21,8 +24,8 @@ import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
 import org.enso.interpreter.runtime.{EnsoContext, Module}
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.{LanguageInfo, RuntimeOptions}
-import org.enso.syntax.text.Parser
-import org.enso.syntax.text.Parser.IDMap
+//import org.enso.syntax.text.Parser
+//import org.enso.syntax.text.Parser.IDMap
 import org.enso.syntax2.Tree
 
 import java.io.{PrintStream, StringReader}
@@ -48,7 +51,7 @@ class Compiler(
   val builtins: Builtins,
   val packageRepository: PackageRepository,
   config: CompilerConfig
-) {
+) extends CompilerStub {
   private val freshNameSupply: FreshNameSupply = new FreshNameSupply
   private val passes: Passes                   = new Passes(config)
   private val passManager: PassManager         = passes.passManager
@@ -68,7 +71,7 @@ class Compiler(
     if (config.outputRedirect.isDefined)
       new PrintStream(config.outputRedirect.get)
     else context.getOut
-  private lazy val ensoCompiler: EnsoCompiler = new EnsoCompiler()
+  private lazy val ensoCompiler: EnsoParser = new EnsoParser()
 
   /** The thread pool that handles parsing of modules. */
   private val pool: ExecutorService = if (config.parallelParsing) {
@@ -268,22 +271,31 @@ class Compiler(
     modules.foreach(m => parseModule(m))
 
     var requiredModules = modules.flatMap { module =>
-      val modules = runImportsAndExportsResolution(module, generateCode)
+      val importedModules = runImportsAndExportsResolution(module, generateCode)
+      val isLoadedFromSource =
+        (m: Module) => !m.wasLoadedFromCache() && !m.isSynthetic
       if (
-        module
-          .wasLoadedFromCache() && modules
-          .exists(m => !m.wasLoadedFromCache() && !m.isSynthetic)
+        shouldCompileDependencies &&
+        module.wasLoadedFromCache() &&
+        importedModules.exists(isLoadedFromSource)
       ) {
+        val importedModulesLoadedFromSource = importedModules
+          .filter(isLoadedFromSource)
+          .map(_.getName)
         logger.log(
           Compiler.defaultLogLevel,
-          "Some imported modules' caches were invalided, forcing invalidation of {0}",
-          module.getName.toString
+          "{0} imported module caches were invalided, forcing invalidation of {1}. [{2}]",
+          Array(
+            importedModulesLoadedFromSource.length,
+            module.getName.toString,
+            importedModulesLoadedFromSource.take(10).mkString("", ",", "...")
+          )
         )
         module.getCache.invalidate(context)
         parseModule(module)
         runImportsAndExportsResolution(module, generateCode)
       } else {
-        modules
+        importedModules
       }
     }.distinct
 
@@ -582,7 +594,7 @@ class Compiler(
     )
 
     val src  = module.getSource
-    val tree = ensoCompiler.parse(src)
+    val tree = ensoCompiler.parse(src.getCharacters)
     val expr = ensoCompiler.generateIR(tree)
 
     val exprWithModuleExports =
@@ -654,7 +666,7 @@ class Compiler(
         "<interactive_source>"
       )
       .build()
-    val tree = ensoCompiler.parse(source)
+    val tree = ensoCompiler.parse(source.getCharacters)
 
     ensoCompiler.generateIRInline(tree).flatMap { ir =>
       val compilerOutput = runCompilerPhasesInline(ir, newContext)
@@ -704,15 +716,16 @@ class Compiler(
     * @param source The inline code to parse
     * @return A Tree representation of `source`
     */
-  def parseInline(source: Source): Tree = ensoCompiler.parse(source)
+  def parseInline(source: Source): Tree =
+    ensoCompiler.parse(source.getCharacters())
 
   /** Parses the metadata of the provided language sources.
     *
     * @param source the code to parse
     * @return the source metadata
     */
-  def parseMeta(source: CharSequence): IDMap =
-    Parser().splitMeta(source.toString)._2
+//  def parseMeta(source: CharSequence): IDMap =
+//    Parser().splitMeta(source.toString)._2
 
   /** Enhances the provided IR with import/export statements for the provided list
     * of fully qualified names of modules. The statements are considered to be "synthetic" i.e. compiler-generated.
@@ -1085,10 +1098,14 @@ class Compiler(
             }
           }
         case None =>
-          // We dont have location information, so we just print the message
+          // There is no source section associated with the diagnostics
           var str = fansi.Str()
+          val fileLocation = diagnostic.location match {
+            case Some(_) => fileLocationFromSection(diagnostic.location, source)
+            case None    => source.getPath
+          }
           str ++= fansi
-            .Str(fileLocationFromSection(diagnostic.location, source))
+            .Str(fileLocation)
             .overlay(fansi.Bold.On)
           str ++= ": "
           str ++= fansi.Str(subject).overlay(textAttrs)

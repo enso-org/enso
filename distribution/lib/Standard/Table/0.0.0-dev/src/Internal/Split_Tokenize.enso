@@ -3,7 +3,6 @@ from Standard.Base import all
 import project.Data.Column.Column
 import project.Data.Table.Table
 import project.Data.Type.Value_Type.Value_Type
-import project.Internal.Java_Exports
 import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 import Standard.Base.Data.Text.Regex.Pattern.Pattern
@@ -66,7 +65,7 @@ parse_to_columns table input_column_id pattern="." case_sensitivity=Case_Sensiti
     column = table.at input_column_id
 
     new_table = Value_Type.expect_text column <|
-        fan_out_to_rows_and_columns table input_column_id fun column_names on_problems=on_problems
+        fan_out_to_rows_and_columns table input_column_id fun column_names at_least_one_row=True on_problems=on_problems
     if parse_values then new_table.parse on_problems=on_problems else new_table
 
 ## PRIVATE
@@ -382,5 +381,5 @@ uniform_length target_length v problem_builder = if v.length == target_length th
     case v.length < target_length of
         # Pad.
         True -> v.pad target_length Nothing
-		# Truncate.
+        # Truncate.
         False -> v.take target_length

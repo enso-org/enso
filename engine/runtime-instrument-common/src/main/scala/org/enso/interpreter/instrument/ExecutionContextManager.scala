@@ -5,7 +5,7 @@ import org.enso.polyglot.runtime.Runtime.Api.{
   ContextId,
   ExpressionId,
   StackItem,
-  VisualisationId
+  VisualizationId
 }
 
 import scala.collection.mutable
@@ -102,104 +102,104 @@ class ExecutionContextManager {
       contexts.contains(contextId)
     }
 
-  /** Upserts a visualisation for the specified context.
+  /** Upserts a visualization for the specified context.
     *
     * @param contextId the identifier of the execution context
-    * @param visualisation the visualisation to upsert
+    * @param visualization the visualization to upsert
     */
-  def upsertVisualisation(
+  def upsertVisualization(
     contextId: ContextId,
-    visualisation: Visualisation
+    visualization: Visualization
   ): Unit =
     synchronized {
       val state = contexts(contextId)
-      state.visualisations.upsert(visualisation)
+      state.visualizations.upsert(visualization)
     }
 
   /** Get visualizations of all execution contexts. */
-  def getAllVisualisations: Iterable[Visualisation] =
+  def getAllVisualizations: Iterable[Visualization] =
     synchronized {
-      contexts.values.flatMap(_.visualisations.getAll)
+      contexts.values.flatMap(_.visualizations.getAll)
     }
 
-  /** Get visualisations defined in the module.
+  /** Get visualizations defined in the module.
     *
     * @param module the qualified module name
-    * @return the list of matching visualisations
+    * @return the list of matching visualizations
     */
-  def getVisualisations(module: QualifiedName): Iterable[Visualisation] =
+  def getVisualizations(module: QualifiedName): Iterable[Visualization] =
     synchronized {
-      contexts.values.flatMap(_.visualisations.findByModule(module))
+      contexts.values.flatMap(_.visualizations.findByModule(module))
     }
 
-  /** Returns a visualisation with the provided id.
+  /** Returns a visualization with the provided id.
     *
     * @param contextId the identifier of the execution context
-    * @param visualisationId the identifier of visualisation
-    * @return an option with visualisation
+    * @param visualizationId the identifier of visualization
+    * @return an option with visualization
     */
-  def getVisualisationById(
+  def getVisualizationById(
     contextId: ContextId,
-    visualisationId: VisualisationId
-  ): Option[Visualisation] =
+    visualizationId: VisualizationId
+  ): Option[Visualization] =
     synchronized {
       for {
         state         <- contexts.get(contextId)
-        visualisation <- state.visualisations.getById(visualisationId)
-      } yield visualisation
+        visualization <- state.visualizations.getById(visualizationId)
+      } yield visualization
     }
 
-  /** Finds all visualisations attached to an expression.
+  /** Finds all visualizations attached to an expression.
     *
     * @param contextId the identifier of the execution context
     * @param expressionId the unique identifier of the expression
-    * @return a list of matching visualisation
+    * @return a list of matching visualization
     */
-  def findVisualisationForExpression(
+  def findVisualizationForExpression(
     contextId: ContextId,
     expressionId: ExpressionId
-  ): List[Visualisation] =
+  ): List[Visualization] =
     synchronized {
       for {
         state         <- contexts.get(contextId).toList
-        visualisation <- state.visualisations.find(expressionId)
-      } yield visualisation
+        visualization <- state.visualizations.find(expressionId)
+      } yield visualization
     }
 
-  /** Get all visualisations invalidated by the provided list of expressions.
+  /** Get all visualizations invalidated by the provided list of expressions.
     *
-    * @param module the module containing the visualisations
+    * @param module the module containing the visualizations
     * @param invalidatedExpressions the list of invalidated expressions
-    * @return a list of matching visualisation
+    * @return a list of matching visualization
     */
-  def getInvalidatedVisualisations(
+  def getInvalidatedVisualizations(
     module: QualifiedName,
     invalidatedExpressions: Set[ExpressionId]
-  ): Iterable[Visualisation] = {
+  ): Iterable[Visualization] = {
     for {
       state         <- contexts.values
-      visualisation <- state.visualisations.findByModule(module)
-      if visualisation.visualisationExpressionId.exists(
+      visualization <- state.visualizations.findByModule(module)
+      if visualization.visualizationExpressionId.exists(
         invalidatedExpressions.contains
       )
-    } yield visualisation
+    } yield visualization
   }
 
-  /** Removes a visualisation from the holder.
+  /** Removes a visualization from the holder.
     *
     * @param contextId the identifier of the execution context
-    * @param visualisationId the visualisation identifier
-    * @param expressionId the id of expression that the visualisation is
+    * @param visualizationId the visualization identifier
+    * @param expressionId the id of expression that the visualization is
     *                     attached to
     */
-  def removeVisualisation(
+  def removeVisualization(
     contextId: ContextId,
     expressionId: ExpressionId,
-    visualisationId: VisualisationId
+    visualizationId: VisualizationId
   ): Unit =
     synchronized {
       val state = contexts(contextId)
-      state.visualisations.remove(visualisationId, expressionId)
+      state.visualizations.remove(visualizationId, expressionId)
     }
 
 }

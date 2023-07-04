@@ -28,7 +28,7 @@ type Expression
         handle_arguments = handle_java_error IllegalArgumentException Expression_Error.Argument_Mismatch
 
         handle_parse_error <| handle_unsupported <| handle_arguments <|
-            ExpressionVisitorImpl.evaluate expression get_column make_constant module_name type_name var_args_functions.to_array
+            ExpressionVisitorImpl.evaluate expression get_column make_constant module_name type_name var_args_functions
 
 type Expression_Error
     ## PRIVATE

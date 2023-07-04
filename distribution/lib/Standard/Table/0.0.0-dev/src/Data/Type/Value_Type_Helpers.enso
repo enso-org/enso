@@ -13,14 +13,14 @@ reconcile_types current new = case current of
     Value_Type.Mixed -> Value_Type.Mixed
     Value_Type.Integer size -> case new of
         Value_Type.Integer new_size ->
-            Value_Type.Integer (Math.max size new_size)
+            Value_Type.Integer (max_size size new_size)
         Value_Type.Byte    -> Value_Type.Integer size
         # If we unify integers with floats, we select the default Float 64 regardless of the input sizes.
         Value_Type.Float _ -> Value_Type.Float
         _                  -> Value_Type.Mixed
     Value_Type.Float size -> case new of
         Value_Type.Float new_size ->
-            Value_Type.Float (Math.max size new_size)
+            Value_Type.Float (max_size size new_size)
         # If we unify integers with floats, we select the default Float 64 regardless of the input sizes.
         Value_Type.Integer _ -> Value_Type.Float
         Value_Type.Byte      -> Value_Type.Float
@@ -55,7 +55,7 @@ reconcile_types current new = case current of
    returned.
 max_size a b =
     if a.is_nothing || b.is_nothing then Nothing else
-        Math.max a b
+        if a < b then b else a
 
 ## PRIVATE
    Finds the most specific value type that will fit all the provided types.

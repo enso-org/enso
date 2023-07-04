@@ -222,7 +222,7 @@ ensogl::define_endpoints_2! {
         /// visualization state is explicitly changed by the user. The preview looks the same as
         /// normal visualization, but its state is not persisted in the node's metadata.
         show_preview                      (),
-        /// Indicate whether preview visualisations should be delayed or immediate.
+        /// Indicate whether preview visualizations should be delayed or immediate.
         quick_preview_vis                 (bool),
         set_view_mode                     (view::Mode),
         set_profiling_min_global_duration (f32),
@@ -769,7 +769,7 @@ impl Node {
 
             visualization.set_view_state <+ action_bar.user_action_visibility.on_false().constant(visualization::ViewState::Disabled);
 
-            // Show preview visualisation after some delay, depending on whether we show an error
+            // Show preview visualization after some delay, depending on whether we show an error
             // or are in quick preview mode. Also, omit the preview if we don't have an
             // expression.
             has_tooltip    <- model.output.frp.tooltip.map(|tt| tt.has_content());
@@ -786,9 +786,16 @@ impl Node {
             hover_onset_delay.set_delay <+ preview_show_delay;
             hide_tooltip                <- preview_show_delay.map(|&delay| delay <= f32::EPSILON);
 
-            output_hover            <- model.output.on_port_hover.map(|s| s.is_on());
-            hover_onset_delay.start <+ output_hover.on_true();
-            hover_onset_delay.reset <+ output_hover.on_false();
+            output_hover <- model.output.on_port_hover.map(|s| s.is_on());
+            visualization_hover <- bool(&model.visualization.on_event::<mouse::Out>(), &model.visualization.on_event::<mouse::Over>());
+            hovered_for_preview <- output_hover || visualization_hover;
+            // The debounce is needed for a case where user moves mouse cursor from output port to
+            // visualization preview. Moving out of the port make `output_hover` emit `false`,
+            // making `hovered_for_preview` false for a brief moment - and that moment would cause
+            // preview to be hidden, if not debounced.
+            hovered_for_preview <- hovered_for_preview.debounce();
+            hover_onset_delay.start <+ hovered_for_preview.on_true();
+            hover_onset_delay.reset <+ hovered_for_preview.on_false();
             hover_onset_active <- bool(&hover_onset_delay.on_reset, &hover_onset_delay.on_end);
             hover_preview_visible <- has_expression && hover_onset_active;
             hover_preview_visible <- hover_preview_visible.on_change();

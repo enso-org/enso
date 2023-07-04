@@ -2,7 +2,7 @@ package org.enso.interpreter.runtime.data;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.interop.ArityException;
+import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.TruffleObject;
@@ -13,6 +13,7 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.Builtin;
+import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.function.Function;
@@ -21,6 +22,7 @@ import org.enso.interpreter.runtime.error.Warning;
 import org.enso.interpreter.runtime.error.WarningsLibrary;
 import org.enso.interpreter.runtime.error.WithWarnings;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
+import org.enso.interpreter.runtime.state.State;
 
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
@@ -42,19 +44,20 @@ public final class Vector implements TruffleObject {
       name = "new",
       description = "Creates new Vector with given length and provided elements.",
       autoRegister = false)
-  @Builtin.Specialize
-  public static Object newFromFunction(long length, Function fun, InteropLibrary interop) {
+  @Builtin.Specialize()
+  public static Object newFromFunction(
+      VirtualFrame frame,
+      long length,
+      Function fun,
+      State state,
+      @Cached("buildWithArity(1)") InvokeFunctionNode invokeFunctionNode) {
     Object[] target = new Object[Math.toIntExact(length)];
     for (int i = 0; i < target.length; i++) {
-      try {
-        final Object value = interop.execute(fun, (long) i);
-        if (value instanceof DataflowError) {
-          return value;
-        }
-        target[i] = value;
-      } catch (ArityException | UnsupportedTypeException | UnsupportedMessageException e) {
-        throw raise(RuntimeException.class, e);
+      var value = invokeFunctionNode.execute(fun, frame, state, new Long[] {(long) i});
+      if (value instanceof DataflowError) {
+        return value;
       }
+      target[i] = value;
     }
     return new Vector(new Array(target));
   }

@@ -5,7 +5,7 @@ import project.Errors.Common.Forbidden_Operation
 import project.Function.Function
 import project.Panic.Panic
 
-from project.Runtime.Context import Input,Output
+from project.Runtime.Context import Input, Output
 
 @Builtin_Type
 type Context

@@ -3,7 +3,7 @@ package org.enso.compiler.pass.desugar
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.Definition.Method
-import org.enso.compiler.exception.CompilerError
+import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{
   AliasAnalysis,
@@ -15,7 +15,7 @@ import org.enso.compiler.pass.optimise.LambdaConsolidate
 import org.enso.interpreter.epb.EpbParser
 import org.enso.interpreter.epb.EpbParser.ForeignLanguage
 
-import scala.annotation.{tailrec, unused}
+import scala.annotation.{tailrec}
 
 /** This pass is responsible for ensuring that method bodies are in the correct
   * format.
@@ -273,12 +273,6 @@ case object GenerateMethodBodies extends IRPass {
     ir: IR.Expression,
     inlineContext: InlineContext
   ): IR.Expression = ir
-
-  /** @inheritdoc */
-  override def updateMetadataInDuplicate[T <: IR](
-    @unused sourceIr: T,
-    copyOfIr: T
-  ): T = copyOfIr
 
   /** Collects the argument list of a chain of function definitions.
     *

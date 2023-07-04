@@ -219,10 +219,10 @@ impl display::Object for Model {
 
 
 // ============================
-// === VisualisationChooser ===
+// === VisualizationChooser ===
 // ============================
 
-/// UI entity that shows a button that opens a list of visualisations that can be selected from.
+/// UI entity that shows a button that opens a list of visualizations that can be selected from.
 #[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug)]
 pub struct DropDownMenu {

@@ -33,7 +33,7 @@ public final class Function implements TruffleObject {
   private final RootCallTarget callTarget;
   private final MaterializedFrame scope;
   private final FunctionSchema schema;
-  private final @CompilerDirectives.CompilationFinal(dimensions = 1) Object[] preAppliedArguments;
+  private final @CompilationFinal(dimensions = 1) Object[] preAppliedArguments;
   private final @CompilationFinal(dimensions = 1) Object[] oversaturatedArguments;
 
   /**

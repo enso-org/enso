@@ -5,7 +5,9 @@ import project.Data.Vector.Vector
 
 ## The HTTP form containing a vector of parts.
 type Form
-    ## Create a text field of a Form.
+    ## PRIVATE
+       ADVANCED
+       Create a text field of a Form.
 
        Arguments:
        - key: The key for the field in the form.
@@ -20,7 +22,9 @@ type Form
     text_field : Text -> Text -> Part
     text_field key val = Part.Value key (Part_Value.Text val)
 
-    ## Create a file field of a Form.
+    ## PRIVATE
+       ADVANCED
+       Create a file field of a Form.
 
        Arguments:
        - key: The key for the field in the form.
@@ -35,7 +39,9 @@ type Form
     file_field : Text -> Text -> Part
     file_field key file = Part.Value key (Part_Value.File file)
 
-    ## Create Form data from Parts.
+    ## PRIVATE
+       ADVANCED
+       Create Form data from Parts.
 
        Arguments:
        - parts: A vector of parts to make up the form.

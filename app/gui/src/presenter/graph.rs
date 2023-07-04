@@ -132,6 +132,7 @@ impl Model {
     }
 
     fn node_visualization_changed(&self, id: ViewNodeId, path: Option<visualization_view::Path>) {
+        let action = format!("update node {id} visualization to {path:?}");
         self.log_action(
             || {
                 let ast_id =
@@ -144,7 +145,7 @@ impl Model {
                 };
                 Some(result)
             },
-            "update node visualization",
+            &action,
         );
     }
 
@@ -802,19 +803,20 @@ impl Graph {
         let graph_notifications = self.model.controller.subscribe();
         let weak = Rc::downgrade(&self.model);
         spawn_stream_handler(weak, graph_notifications, move |notification, _model| {
-            debug!("Received controller notification {notification:?}");
-            match notification {
-                executed::Notification::Graph(graph) => match graph {
-                    Notification::Invalidate => update_view.emit(()),
-                    Notification::PortsUpdate => update_view.emit(()),
-                },
-                executed::Notification::ComputedValueInfo(expressions) =>
-                    update_expressions.emit(expressions),
-                executed::Notification::EnteredStack(_)
-                | executed::Notification::ExitedStack(_) => update_view.emit(()),
-            }
-            std::future::ready(())
-        })
+            debug_span!("Received controller notification {notification:?}").in_scope(|| {
+                match notification {
+                    executed::Notification::Graph(graph) => match graph {
+                        Notification::Invalidate => update_view.emit(()),
+                        Notification::PortsUpdate => update_view.emit(()),
+                    },
+                    executed::Notification::ComputedValueInfo(expressions) =>
+                        update_expressions.emit(expressions),
+                    executed::Notification::EnteredStack(_)
+                    | executed::Notification::ExitedStack(_) => update_view.emit(()),
+                }
+                std::future::ready(())
+            })
+        });
     }
 }
 

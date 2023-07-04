@@ -495,7 +495,16 @@ impl Project {
         // Following the project initialization, the Undo/Redo stack should be empty.
         // This makes sure that any initial modifications resulting from the GUI initialization
         // won't clutter the undo stack.
-        controller.model.urm().repository.clear_all();
+        // However, some portions of the GUI initialization are performed asynchronously, using
+        // the FRP debounce mechanism. This is a case, for example, for creating node views.
+        // Thus, we use late microtask to clear the undo stack after any scheduled operations
+        // are complete.
+        let urm = controller.model.urm();
+        enso_frp::microtasks::next_microtask_late(move || {
+            debug!("Clearing undo/redo stack.");
+            urm.repository.clear_all();
+        })
+        .forget();
         Ok(presenter)
     }
 }
