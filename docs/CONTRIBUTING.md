@@ -714,7 +714,7 @@ sbt:enso> runProjectManagerDistribution
 ```
 
 The above command invokes `buildProjectManagerDistribution`,
-`buildEngineDistribution` and then uses `ENSO_ENGINE_PATH` to connect them
+`buildEngineDistribution` and then defines `ENSO_ENGINE_PATH` to connect them
 together and also specifies the `ENSO_JVM_PATH` to the JVM `sbt` process runs
 on.
 
