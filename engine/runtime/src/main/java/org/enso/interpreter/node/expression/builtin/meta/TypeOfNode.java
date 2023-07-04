@@ -2,6 +2,7 @@ package org.enso.interpreter.node.expression.builtin.meta;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -126,7 +127,9 @@ public abstract class TypeOfNode extends Node {
 
     @Specialization(guards = {"type.isNumber()"})
     Type doPolyglotNumber(
-        Interop type, Object value, @CachedLibrary(limit = "3") InteropLibrary interop) {
+        Interop type,
+        Object value,
+        @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary interop) {
       Builtins builtins = EnsoContext.get(this).getBuiltins();
       if (interop.fitsInInt(value)) {
         return builtins.number().getInteger();
@@ -170,7 +173,9 @@ public abstract class TypeOfNode extends Node {
 
     @Specialization(guards = {"type.isMetaObject()"})
     Object doMetaObject(
-        Interop type, Object value, @CachedLibrary(limit = "3") InteropLibrary interop) {
+        Interop type,
+        Object value,
+        @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary interop) {
       try {
         return interop.getMetaObject(value);
       } catch (UnsupportedMessageException e) {

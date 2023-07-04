@@ -1,6 +1,7 @@
 package org.enso.interpreter.node.expression.builtin.meta;
 
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -30,7 +31,7 @@ public abstract class IsValueOfTypeNode extends Node {
   boolean doTyped(
       Object expectedType,
       Object payload,
-      @CachedLibrary(limit = "3") TypesLibrary types,
+      @Shared("types") @CachedLibrary(limit = "3") TypesLibrary types,
       @Cached Typed typed) {
     return typed.execute(expectedType, payload);
   }
@@ -39,7 +40,7 @@ public abstract class IsValueOfTypeNode extends Node {
   boolean doPolyglot(
       Object expectedType,
       Object payload,
-      @CachedLibrary(limit = "3") TypesLibrary types,
+      @Shared("types") @CachedLibrary(limit = "3") TypesLibrary types,
       @Cached Untyped untyped) {
     return untyped.execute(expectedType, payload);
   }
@@ -120,7 +121,9 @@ public abstract class IsValueOfTypeNode extends Node {
 
     @Specialization(guards = {"!isArrayType(expectedType)", "!isAnyType(expectedType)"})
     boolean doType(
-        Type expectedType, Object payload, @CachedLibrary(limit = "3") TypesLibrary types) {
+        Type expectedType,
+        Object payload,
+        @Shared("types") @CachedLibrary(limit = "3") TypesLibrary types) {
       return typeAndCheck(payload, expectedType, typeOfNode, isSameObject, profile);
     }
 
@@ -133,7 +136,7 @@ public abstract class IsValueOfTypeNode extends Node {
         Object expectedType,
         Object payload,
         @CachedLibrary(limit = "3") InteropLibrary interop,
-        @CachedLibrary(limit = "3") TypesLibrary types) {
+        @Shared("types") @CachedLibrary(limit = "3") TypesLibrary types) {
       return EnsoContext.get(this).getBuiltins().array() == types.getType(payload);
     }
 

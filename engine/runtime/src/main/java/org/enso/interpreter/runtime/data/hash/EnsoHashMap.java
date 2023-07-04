@@ -165,8 +165,7 @@ public final class EnsoHashMap implements TruffleObject {
 
   @ExportMessage
   @TruffleBoundary
-  Object toDisplayString(
-      boolean allowSideEffects) {
+  Object toDisplayString(boolean allowSideEffects) {
     return toString(true);
   }
 
