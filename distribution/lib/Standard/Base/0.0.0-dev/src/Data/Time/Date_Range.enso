@@ -4,6 +4,7 @@ import project.Data.Json.JS_Object
 import project.Data.Numbers.Integer
 import project.Data.Range.Empty_Error
 from project.Data.Range.Extensions import all
+import project.Data.Pair.Pair
 import project.Data.Text.Text
 import project.Data.Time.Date.Date
 import project.Data.Time.Date_Period.Date_Period
@@ -16,6 +17,7 @@ import project.Function.Function
 import project.Nothing.Nothing
 
 from project.Data.Boolean import Boolean, True, False
+from project.Data.Filter_Condition import unify_condition_or_predicate, unify_condition_predicate_or_element
 
 polyglot java import org.enso.base.Time_Utils
 
@@ -223,13 +225,45 @@ type Date_Range
 
              (Date.new 2020 10 01).up_to (Date.new 2020 10 15) . filter (> (Date.new 2020 10 12))
              (Date.new 2020 10 01).up_to (Date.new 2020 10 15) . filter (Filter_Condition.Greater than=(Date.new 2020 10 12))
+    @filter date_range_default_filter_condition_widget
     filter : (Filter_Condition | (Date -> Boolean)) -> Vector Date
-    filter self filter = case filter of
-        _ : Filter_Condition -> self.filter filter.to_predicate
-        predicate : Function ->
-            builder = self.fold Vector.new_builder builder-> elem->
-                if predicate elem then builder.append elem else builder
-            builder.to_vector
+    filter self filter =
+        predicate = unify_condition_or_predicate filter
+        builder = self.fold Vector.new_builder builder-> elem->
+            if predicate elem then builder.append elem else builder
+        builder.to_vector
+
+    ## Partitions the range into `Vector`s of elements which satisfy a given
+       condition and ones that do not.
+
+       Returns a `Pair` whose `first` element is the `Vector` of elements
+       satisfying the predicate and the `second` element is a `Vector` of
+       elements which did not satisfy it.
+
+       The relative order of elements kept in each returned list is the same as
+       in the input.
+
+       Arguments:
+       - condition: A `Filter_Condition` or a predicate function to test each
+         element.
+
+       > Example
+         Splitting a range into weekends and weekdays.
+
+             is_weekend day =
+                [Day_Of_Week.Saturday, Day_Of_Week.Sunday].contains day.day_of_week
+             (Date.new 2020 10 01).up_to (Date.new 2020 10 15).partition is_weekend
+    @condition date_range_default_filter_condition_widget
+    partition : (Filter_Condition | (Date -> Boolean)) -> Pair (Vector Date) (Vector Date)
+    partition self condition =
+        predicate = unify_condition_or_predicate condition
+        pair = self.fold (Pair.new Vector.new_builder Vector.new_builder) acc-> elem->
+            case predicate elem of
+                True ->
+                    Pair.new (acc.first.append elem) acc.second
+                False ->
+                    Pair.new acc.first (acc.second.append elem)
+        pair.map .to_vector
 
     ## PRIVATE
        ADVANCED
@@ -297,41 +331,42 @@ type Date_Range
         (0.up_to self.length).running_fold init acc-> ix->
             function acc (self.internal_at ix)
 
-    ## Checks whether `predicate` is satisfied for all dates in this range.
+    ## Checks whether a condition is satisfied for all dates in this range.
 
        Arguments:
-       - predicate: A function that takes a list element and returns a boolean
-         value that says whether that value satisfies the conditions of the
-         function.
+       - condition: A `Filter_Condition` or a predicate function to test each
+         element.
 
        > Example
          Checking that all dates in the range are after 2020-10-01.
 
              (Date.new 2020 10 01).up_to (Date.new 2020 10 31) . all (> (Date.new 2020 10 01))
-    all : (Date -> Boolean) -> Boolean
-    all self predicate = self . any (predicate >> .not) . not
+    @condition date_range_default_filter_condition_widget
+    all : (Filter_Condition | (Date -> Boolean)) -> Boolean
+    all self condition =
+        predicate = unify_condition_or_predicate condition
+        self . any (predicate >> .not) . not
 
-    ## Checks whether `predicate` is satisfied for any date in this range.
+    ## Checks whether a condition is satisfied for any date in this range.
 
        Arguments:
-       - predicate: A function that takes a list element and returns a boolean
-         value that says whether that value satisfies the conditions of the
-         function.
+       - condition: A `Filter_Condition` or a predicate function to test each
+         element.
 
        > Example
          Checking that at least one date in the range is after 2020-10-01.
 
              (Date.new 2020 10 01).up_to (Date.new 2020 10 31) . any (> (Date.new 2020 10 01))
-    any : (Date -> Boolean) -> Boolean
-    any self predicate = self.find predicate . is_nothing . not
+    @condition date_range_default_filter_condition_widget
+    any : (Filter_Condition | (Date -> Boolean)) -> Boolean
+    any self condition = self.find condition . is_nothing . not
 
-    ## Gets the first index when `predicate` is satisfied this range.
+    ## Gets the first index when a condition is satisfied this range.
        If no index satisfies the predicate, returns `if_missing`.
 
        Arguments:
-       - predicate: A function that takes a list element and returns a boolean
-         value that says whether that value satisfies the conditions of the
-         function.
+       - condition: A `Filter_Condition` or a predicate function to test each
+         element.
        - start: The index to start searching from. If the index is negative, it
          is counted from the end of the range.
        - if_missing: Value returned if no element satisfies the predicate.
@@ -340,8 +375,10 @@ type Date_Range
          Get the first date in the range that is a Monday.
 
                 (Date.new 2020 10 01).up_to (Date.new 2020 10 31) . find (d-> d.day_of_week == Day_Of_Week.Monday)
-    find : (Date -> Boolean) -> Integer -> Any -> Any
-    find self predicate start=0 ~if_missing=Nothing =
+    @condition date_range_default_filter_condition_widget
+    find : (Filter_Condition | (Date -> Boolean)) -> Integer -> Any -> Any
+    find self condition start=0 ~if_missing=Nothing =
+        predicate = unify_condition_or_predicate condition
         index = self.index_of predicate start
         case index of
             Nothing -> if_missing
@@ -360,8 +397,8 @@ type Date_Range
        Returns Nothing if the element is not found.
 
        Arguments:
-       - element: The date to search for or a predicate function to test for
-         each element.
+       - condition: Either the element to search for, a `Filter_Condition` or a
+         predicate function to test each element.
        - start: The index to start searching from. If the index is negative, it
          is counted from the end of the range.
 
@@ -369,21 +406,18 @@ type Date_Range
          Find the index of a first day that is a Monday.
 
              (Date.new 2020 10 01).up_to (Date.new 2020 10 31) . index_of (d-> d.day_of_week == Day_Of_Week.Monday)
-    index_of : (Date | (Date -> Boolean)) -> Integer -> Integer | Nothing
-    index_of self element start=0 =
-        predicate = case element of
-            d : Date ->
-                ix-> self.internal_at ix == d
-            f : Function ->
-                ix-> f (self.internal_at ix)
-        (0.up_to self.length).index_of predicate start
+    @condition date_range_default_filter_condition_widget
+    index_of : (Date | Filter_Condition | (Date -> Boolean)) -> Integer -> Integer | Nothing
+    index_of self condition start=0 =
+        predicate = unify_condition_for_index_of condition
+        (0.up_to self.length).index_of (ix-> predicate (self.internal_at ix)) start
 
     ## Returns the last index of an element in the range.
        Returns Nothing if the element is not found.
 
        Arguments:
-       - element: The date to search for or a predicate function to test for
-         each element.
+       - condition: Either the element to search for, a `Filter_Condition` or a
+         predicate function to test each element.
        - start: The index to start searching backwards from. If the index is
          negative, it is counted from the end of the range.
 
@@ -391,14 +425,11 @@ type Date_Range
          Find the index of a first day that is a Monday.
 
              (Date.new 2020 10 01).up_to (Date.new 2020 10 31) . last_index_of (d-> d.day_of_week == Day_Of_Week.Monday)
-    last_index_of : (Date | (Date -> Boolean)) -> Integer -> Integer | Nothing
-    last_index_of self element start=-1 =
-        predicate = case element of
-            d : Date ->
-                ix-> self.internal_at ix == d
-            f : Function ->
-                ix-> f (self.internal_at ix)
-        (0.up_to self.length).last_index_of predicate start
+    @condition date_range_default_filter_condition_widget
+    last_index_of : (Date | Filter_Condition | (Date -> Boolean)) -> Integer -> Integer | Nothing
+    last_index_of self condition start=-1 =
+        predicate = unify_condition_for_index_of condition
+        (0.up_to self.length).last_index_of (ix-> predicate (self.internal_at ix)) start
 
     ## Reverses the range, returning a vector with the same elements as the
        original range, but in the opposite order.
@@ -502,3 +533,12 @@ compute_length_step_brute_force start end step increasing =
             next_date = nth_element_of_range start step increasing (acc_length + 1)
             @Tail_Call go next_date (acc_length + 1)
     go start 0
+
+## PRIVATE
+   This adds an additional type check.
+unify_condition_for_index_of (condition : Date | Filter_Condition | Function) =
+    unify_condition_predicate_or_element condition
+
+## PRIVATE
+date_range_default_filter_condition_widget =
+    Filter_Condition.default_widget include_text=False include_boolean=False include_nullable=False
