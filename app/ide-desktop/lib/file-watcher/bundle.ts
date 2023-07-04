@@ -27,7 +27,7 @@ async function bundle() {
         }
         const opts = bundler.bundlerOptions({
             outputPath: './build',
-            devMode: false
+            devMode: false,
         })
         await esbuild.build(opts)
         return

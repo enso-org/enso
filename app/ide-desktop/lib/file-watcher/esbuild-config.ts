@@ -12,7 +12,6 @@ import * as url from 'node:url'
 import * as esbuild from 'esbuild'
 import esbuildPluginTime from 'esbuild-plugin-time'
 
-
 // =================
 // === Constants ===
 // =================
@@ -47,9 +46,7 @@ export function bundlerOptions(args: Arguments) {
         entryPoints: [path.resolve(THIS_PATH, 'src', 'index.ts')],
         outfile: path.join(outputPath, 'index.cjs'),
         outbase: 'src',
-        plugins: [
-            esbuildPluginTime()
-        ],
+        plugins: [esbuildPluginTime()],
         pure: ['assert'],
         sourcemap: trueBoolean,
         minify: !devMode,
