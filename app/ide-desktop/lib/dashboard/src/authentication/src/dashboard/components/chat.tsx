@@ -106,7 +106,7 @@ function ReactionBar(props: ReactionBarProps) {
 
 // =================
 // === Reactions ===
-// =================lib/dashboard/src/authentication/src/dashboard/events/directoryListEvent.ts
+// =================
 
 /** Props for a {@link Reactions}. */
 export interface ReactionsProps {
