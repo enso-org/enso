@@ -109,7 +109,7 @@ export type UserSession = FullUserSession | OfflineUserSession | PartialUserSess
  * See {@link Cognito} for details on each of the authentication functions. */
 interface AuthContextType {
     goOffline: () => Promise<boolean>
-    signUp: (email: string, password: string) => Promise<boolean>
+    signUp: (email: string, password: string, organizationId: string | null) => Promise<boolean>
     confirmSignUp: (email: string, code: string) => Promise<boolean>
     setUsername: (
         backend: backendProvider.AnyBackendAPI,
@@ -163,6 +163,7 @@ const AuthContext = react.createContext<AuthContextType>({} as AuthContextType)
 /** Props for an {@link AuthProvider}. */
 export interface AuthProviderProps {
     shouldStartInOfflineMode: boolean
+    supportsLocalBackend: boolean
     authService: authServiceModule.AuthService
     /** Callback to execute once the user has authenticated successfully. */
     onAuthenticated: (accessToken?: string) => void
@@ -171,7 +172,13 @@ export interface AuthProviderProps {
 
 /** A React provider for the Cognito API. */
 export function AuthProvider(props: AuthProviderProps) {
-    const { shouldStartInOfflineMode, authService, onAuthenticated, children } = props
+    const {
+        shouldStartInOfflineMode,
+        supportsLocalBackend,
+        authService,
+        onAuthenticated,
+        children,
+    } = props
     const { cognito } = authService
     const { session, deinitializeSession } = sessionProvider.useSession()
     const { setBackendWithoutSavingType } = backendProvider.useSetBackend()
@@ -208,8 +215,7 @@ export function AuthProvider(props: AuthProviderProps) {
                 setUserSession(null)
             } else {
                 const { accessToken, email } = session.val
-                const headers = new Headers()
-                headers.append('Authorization', `Bearer ${accessToken}`)
+                const headers = new Headers([['Authorization', `Bearer ${accessToken}`]])
                 const client = new http.Client(headers)
                 const backend = new remoteBackend.RemoteBackend(client, logger)
                 // The backend MUST be the remote backend before login is finished.
@@ -294,7 +300,14 @@ export function AuthProvider(props: AuthProviderProps) {
     const goOfflineInternal = () => {
         setInitialized(true)
         setUserSession(OFFLINE_USER_SESSION)
-        setBackendWithoutSavingType(new localBackend.LocalBackend())
+        if (supportsLocalBackend) {
+            setBackendWithoutSavingType(new localBackend.LocalBackend())
+        } else {
+            // Provide dummy headers to avoid errors. This `Backend` will never be called as
+            // the entire UI will be disabled.
+            const client = new http.Client(new Headers([['Authorization', '']]))
+            setBackendWithoutSavingType(new remoteBackend.RemoteBackend(client, logger))
+        }
     }
 
     const goOffline = () => {
@@ -304,8 +317,8 @@ export function AuthProvider(props: AuthProviderProps) {
         return Promise.resolve(true)
     }
 
-    const signUp = async (username: string, password: string) => {
-        const result = await cognito.signUp(username, password)
+    const signUp = async (username: string, password: string, organizationId: string | null) => {
+        const result = await cognito.signUp(username, password, organizationId)
         if (result.ok) {
             toast.success(MESSAGES.signUpSuccess)
             navigate(app.LOGIN_PATH)
@@ -355,10 +368,17 @@ export function AuthProvider(props: AuthProviderProps) {
             return false
         } else {
             try {
+                const organizationId = await authService.cognito.organizationId()
                 await toast.promise(
                     backend.createUser({
                         userName: username,
                         userEmail: newtype.asNewtype<backendModule.EmailAddress>(email),
+                        organizationId:
+                            organizationId != null
+                                ? newtype.asNewtype<backendModule.UserOrOrganizationId>(
+                                      organizationId
+                                  )
+                                : null,
                     }),
                     {
                         success: MESSAGES.setUsernameSuccess,

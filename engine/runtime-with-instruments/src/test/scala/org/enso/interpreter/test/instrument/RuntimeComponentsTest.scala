@@ -271,7 +271,9 @@ class RuntimeComponentsTest
     // check the registered component groups
     val components = context.languageContext.getPackageRepository.getComponents
     components.get(LibraryName("Enso_Test", "Test")).value shouldEqual
-    context.pkg.config.componentGroups
+    context.pkg
+      .getConfig()
+      .componentGroups
       .getOrElse(fail("Unexpected config value."))
 
     components
@@ -348,7 +350,9 @@ class RuntimeComponentsTest
     val components = context.languageContext.getPackageRepository.getComponents
 
     components.get(LibraryName("Enso_Test", "Test")).value shouldEqual
-    context.pkg.config.componentGroups
+    context.pkg
+      .getConfig()
+      .componentGroups
       .getOrElse(fail("Unexpected config value."))
 
     components
