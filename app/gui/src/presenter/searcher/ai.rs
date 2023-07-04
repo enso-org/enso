@@ -95,7 +95,7 @@ impl SearcherPresenter for AISearcher {
             graph_controller,
             graph_presenter: graph_presenter.clone_ref(),
             this_arg,
-            input_expression: RefCell::new("".to_string()),
+            input_expression: default(),
             mode,
             ide_controller,
         });

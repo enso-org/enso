@@ -276,7 +276,7 @@ impl Model {
 
 /// The Searcher presenter, synchronizing state between searcher view and searcher controller.
 ///
-/// The presenter should be created for one instantiated searcher controller (when node starts to
+/// The presenter should be created for one instantiated searcher controller (when a node starts
 /// being edited). Alternatively, the [`setup_controller`] method covers constructing the controller
 /// and the presenter.
 #[derive(Debug)]

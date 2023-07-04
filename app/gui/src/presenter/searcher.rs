@@ -41,20 +41,19 @@ pub trait SearcherPresenter: Debug {
         let SearcherParams { input, .. } = parameters;
         let ast_node = graph_presenter.ast_node_of_view(input);
 
-        let mode: FallibleResult<_> = match ast_node {
-            Some(node_id) => Ok(Mode::EditNode { node_id }),
+        let mode = match ast_node {
+            Some(node_id) => Mode::EditNode { node_id },
             None => {
                 let (new_node, source_node) =
                     create_input_node(parameters, graph_presenter, graph_editor, graph_controller)?;
-                Ok(Mode::NewNode { node_id: new_node, source_node })
+                Mode::NewNode { node_id: new_node, source_node }
             }
         };
-        let mode = mode?;
         let target_node = mode.node_id();
 
-        if let Some(target_node_view) = graph_presenter.view_id_of_ast_node(target_node) {
-            // We only want to show the preview of the node if it is a component browser searcher.
-            if matches!(parameters.searcher_type, SearcherType::ComponentBrowser) {
+        // We only want to show the preview of the node if it is a component browser searcher.
+        if matches!(parameters.searcher_type, SearcherType::ComponentBrowser) {
+            if let Some(target_node_view) = graph_presenter.view_id_of_ast_node(target_node) {
                 graph_editor.model.with_node(target_node_view, |node| node.show_preview());
             }
         } else {
@@ -132,8 +131,8 @@ pub trait SearcherPresenter: Debug {
 
 // === Helpers ===
 
-/// Create a new AST that combines a `this` argument with the given AS. For example, to add a
-/// method call `sort` a this argument `table`. That would result in an AST that represents
+/// Create a new AST that combines a `this` argument with the given AST. For example, to add a
+/// method call `sort` to this argument `table`. That would result in an AST that represents
 /// `table.sort`.  
 pub fn apply_this_argument(this_var: &str, ast: &Ast) -> Ast {
     if let Ok(opr) = ast::known::Opr::try_from(ast) {
@@ -161,7 +160,7 @@ pub fn apply_this_argument(this_var: &str, ast: &Ast) -> Ast {
     }
 }
 
-/// Initialise the expression in case there is a source node for the new node. This allows us to to
+/// Initialise the expression in case there is a source node for the new node. This allows us to
 /// correctly render an edge from the source node to the new node.
 fn initialise_with_this_argument(
     created_node: ast::Id,

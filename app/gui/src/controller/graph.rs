@@ -133,7 +133,7 @@ impl Node {
         self.metadata.as_ref().map_or(false, |m| m.position.is_some())
     }
 
-    /// Get the nodes variable name, if it has one.
+    /// Get the node's variable name, if it has one.
     pub fn variable_name(&self) -> Result<Option<&str>, UnsupportedPatternOnNode> {
         // TODO [mwu]
         //   Here we just require that the whole node's pattern is a single var, like
