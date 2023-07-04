@@ -33,7 +33,7 @@ class GraalVMComponentUpdater(runtime: GraalRuntime)
 
     logger.trace("{} {}", gu, Properties(gu))
     logger.debug(
-      "Executing: JAVA_HOME={} GRRAALVM_HOME={} {} {}",
+      "Executing: JAVA_HOME={} GRAALVM_HOME={} {} {}",
       runtime.javaHome,
       runtime.javaHome,
       gu,

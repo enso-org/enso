@@ -33,7 +33,7 @@ import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.Internal.SQLite.SQLite_Type_Mapping.SQLite_Type_Mapping
 import project.Internal.SQLite.SQLite_Error_Mapper.SQLite_Error_Mapper
 import project.Internal.Statement_Setter.Statement_Setter
-from project.Errors import Unsupported_Database_Operation
+from project.Errors import SQL_Error, Unsupported_Database_Operation
 
 ## PRIVATE
 
@@ -238,6 +238,24 @@ type SQLite_Dialect
     ## PRIVATE
     get_error_mapper : Error_Mapper
     get_error_mapper self = SQLite_Error_Mapper
+
+    ## PRIVATE
+       The dialect-dependent strategy to get the Primary Key for a given table.
+
+       Returns `Nothing` if the key is not defined.
+
+       Custom handling is required, because the default DatabaseMetaData
+       implementation does not correctly handle temporary tables.
+    fetch_primary_key : Connection -> Text -> Vector Text ! Nothing
+    fetch_primary_key self connection table_name =
+        wrapped_name = self.internal_generator_dialect.wrap_identifier table_name
+        query = Builder.code "pragma table_info(" ++ wrapped_name ++ ")"
+        info_table = connection.read_statement query.build
+        ## The `pk` field is non-zero if the columns is part of the primary key.
+           The column value indicates the position in the key.
+           See: https://www.sqlite.org/pragma.html#pragma_table_info
+        v = info_table.filter "pk" (>0) . order_by "pk" . at "name" . to_vector
+        if v.is_empty then Nothing else v
 
 ## PRIVATE
 make_internal_generator_dialect =

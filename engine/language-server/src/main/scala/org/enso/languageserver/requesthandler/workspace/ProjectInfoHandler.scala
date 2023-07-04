@@ -10,8 +10,8 @@ import org.enso.languageserver.util.UnhandledLogging
 import org.enso.languageserver.workspace.WorkspaceApi.ProjectInfo
 import org.enso.logger.masking.MaskedPath
 import org.enso.pkg.{Config => PkgConfig}
-import java.io.{File, FileInputStream}
-import java.nio.charset.StandardCharsets
+
+import java.io.{File, FileReader}
 
 /** A request handler for `workspace/openFile` commands.
   */
@@ -26,10 +26,7 @@ class ProjectInfoHandler(languageServerConfig: Config)
 
     if (configFile.exists()) {
       val projectConfig = PkgConfig.fromYaml(
-        new String(
-          new FileInputStream(configFile).readAllBytes(),
-          StandardCharsets.UTF_8
-        )
+        new FileReader(configFile)
       )
       if (projectConfig.isSuccess) {
         val projectInfo = ProjectInfo.Result(

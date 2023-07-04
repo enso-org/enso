@@ -463,10 +463,10 @@ class LibrariesTest extends BaseServerTest {
         val mainPackage = libraryRoot.resolve("main.tgz")
         assert(Files.exists(mainPackage))
         val pkg = PackageManager.Default.loadPackage(libraryRoot.toFile).get
-        pkg.config.authors should contain theSameElementsAs Seq(
+        pkg.getConfig().authors should contain theSameElementsAs Seq(
           Contact(name = Some("user"), email = Some("example@example.com"))
         )
-        pkg.config.maintainers should contain theSameElementsAs Seq(
+        pkg.getConfig().maintainers should contain theSameElementsAs Seq(
           Contact(name = Some("only-name"), email = None),
           Contact(name = None, email              = Some("foo@example.com"))
         )

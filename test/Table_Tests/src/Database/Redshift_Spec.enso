@@ -11,7 +11,7 @@ from Standard.AWS import Redshift_Details, AWS_Credential
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 
-import project.Database.Common_Spec
+import project.Database.Common.Common_Spec
 import project.Database.Helpers.Name_Generator
 import project.Common_Table_Operations
 
@@ -62,7 +62,7 @@ run_tests connection =
     empty_agg_table = (agg_in_memory_table.take (First 0)).select_into_database_table connection (Name_Generator.random_name "Agg_Empty") primary_key=Nothing temporary=True
     tables.append empty_agg_table.name
 
-    setup = Common_Table_Operations.Main.Test_Setup.Config prefix agg_table empty_agg_table table_builder materialize is_database=True test_selection=common_selection aggregate_test_selection=aggregate_selection
+    setup = Common_Table_Operations.Main.Test_Setup.Config prefix agg_table empty_agg_table table_builder materialize is_database=True test_selection=common_selection aggregate_test_selection=aggregate_selection connection=connection
     Common_Table_Operations.Main.spec setup
 
 connect_via_json_config =

@@ -65,7 +65,7 @@ type Rank_Method
             Error.throw (Incomparable_Values.Error exc.payload.getLeftOperand exc.payload.getRightOperand)
 
         handle_cmp_exc <| handle_nullpointer <|
-            java_ranks = Rank.rank input.to_array java_method
+            java_ranks = Rank.rank input java_method
             Vector.from_polyglot_array java_ranks
 
 type Statistic
@@ -302,19 +302,19 @@ wrap_java_call ~function =
    Given two series, get a computed CorrelationStatistics object
 calculate_correlation_statistics : Vector -> Vector -> CorrelationStatistics
 calculate_correlation_statistics x_data y_data =
-    wrap_java_call <| CorrelationStatistics.compute x_data.to_array y_data.to_array
+    wrap_java_call <| CorrelationStatistics.compute x_data y_data
 
 ## PRIVATE
    Given two series, get a compute the Spearman Rank correlation
 calculate_spearman_rank : Vector -> Vector -> Decimal
 calculate_spearman_rank x_data y_data =
-    wrap_java_call <| CorrelationStatistics.spearmanRankCorrelation x_data.to_array y_data.to_array
+    wrap_java_call <| CorrelationStatistics.spearmanRankCorrelation x_data y_data
 
 ## PRIVATE
    Given a set of series get CorrelationStatistics objects
 calculate_correlation_statistics_matrix : Vector Vector -> Vector CorrelationStatistics
 calculate_correlation_statistics_matrix data =
-    data_array = Vector.new data.length i->(data.at i).to_array . to_array
+    data_array = Vector.new data.length i->(data.at i).to_array
     stats_array = wrap_java_call <| CorrelationStatistics.computeMatrix data_array
     Vector.new stats_array.length i->(Vector.from_polyglot_array (stats_array.at i))
 

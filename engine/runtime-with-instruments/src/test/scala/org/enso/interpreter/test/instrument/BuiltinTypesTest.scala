@@ -333,13 +333,13 @@ class BuiltinTypesTest
     val requestId = UUID.randomUUID()
 
     val metadata = new Metadata
-    val idMain   = metadata.addItem(45, 19)
+    val idMain   = metadata.addItem(40, 18)
 
     val code =
-      """import Standard.Base.Data.Array.Array
+      """from Standard.Base import Vector
         |
         |main =
-        |    Array.new_1 42
+        |    [42].to_array
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
 
@@ -359,13 +359,13 @@ class BuiltinTypesTest
     val requestId = UUID.randomUUID()
 
     val metadata = new Metadata
-    val idMain   = metadata.addItem(47, 34)
+    val idMain   = metadata.addItem(40, 7)
 
     val code =
-      """from Standard.Base import Vector, Array
+      """from Standard.Base import Vector
         |
         |main =
-        |    Vector.from_array Array.empty
+        |    []
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
 

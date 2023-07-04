@@ -47,7 +47,7 @@ type Column
     from_vector : Text -> Vector -> Column
     from_vector name items =
         Illegal_Argument.handle_java_exception <|
-            Column.Value (Java_Column.fromItems name items.to_array)
+            Column.Value (Java_Column.fromItems name items)
 
     ## PRIVATE
        Creates a new column given a name and an internal Java storage.
@@ -67,7 +67,7 @@ type Column
     from_vector_repeated : Text -> Vector -> Integer -> Column
     from_vector_repeated name items repeats =
         Illegal_Argument.handle_java_exception <|
-            Column.Value (Java_Column.fromRepeatedItems name items.to_array repeats)
+            Column.Value (Java_Column.fromRepeatedItems name items repeats)
 
     ## PRIVATE
 
@@ -1783,7 +1783,7 @@ type Column
                 Sort_Direction.Ascending -> True
                 Sort_Direction.Descending -> False
             rule = OrderBuilder.OrderRule.new self.java_column order_bool missing_last
-            mask = OrderBuilder.buildOrderMask [rule].to_array
+            mask = OrderBuilder.buildOrderMask [rule]
             new_col = self.java_column.applyMask mask
             Column.Value new_col
         _ ->
@@ -2046,7 +2046,7 @@ normalize_string_for_display string =
    A helper to create a new table consisting of slices of the original table.
 slice_ranges column ranges =
     normalized = Index_Sub_Range_Module.normalize_ranges ranges
-    Column.Value (column.java_column.slice normalized.to_array)
+    Column.Value (column.java_column.slice normalized)
 
 ## PRIVATE
    Creates a storage builder suitable for building a column for the provided

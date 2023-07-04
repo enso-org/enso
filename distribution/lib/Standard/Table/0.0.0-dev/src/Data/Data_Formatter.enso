@@ -186,22 +186,22 @@ type Data_Formatter
 
     ## PRIVATE
     make_boolean_parser self = self.wrap_base_parser <|
-        BooleanParser.new self.true_values.to_array self.false_values.to_array
+        BooleanParser.new self.true_values self.false_values
 
     ## PRIVATE
     make_date_parser self = self.wrap_base_parser <|
         Panic.catch Any handler=(caught_panic-> Error.throw (Illegal_Argument.Error caught_panic.payload.getMessage)) <|
-            DateParser.new self.date_formats.to_array self.datetime_locale.java_locale
+            DateParser.new self.date_formats self.datetime_locale.java_locale
 
     ## PRIVATE
     make_date_time_parser self = self.wrap_base_parser <|
         Panic.catch Any handler=(caught_panic-> Error.throw (Illegal_Argument.Error caught_panic.payload.getMessage)) <|
-            DateTimeParser.new self.datetime_formats.to_array self.datetime_locale.java_locale
+            DateTimeParser.new self.datetime_formats self.datetime_locale.java_locale
 
     ## PRIVATE
     make_time_of_day_parser self = self.wrap_base_parser <|
         Panic.catch Any handler=(caught_panic-> Error.throw (Illegal_Argument.Error caught_panic.payload.getMessage)) <|
-            TimeOfDayParser.new self.time_formats.to_array self.datetime_locale.java_locale
+            TimeOfDayParser.new self.time_formats self.datetime_locale.java_locale
 
     ## PRIVATE
     make_identity_parser self = self.wrap_base_parser IdentityParser.new
@@ -242,7 +242,7 @@ type Data_Formatter
     ## PRIVATE
     make_auto_parser self =
         fallback_parser = self.make_identity_parser
-        TypeInferringParser.new self.get_specific_type_parsers.to_array fallback_parser
+        TypeInferringParser.new self.get_specific_type_parsers fallback_parser
 
     ## PRIVATE
     make_integer_formatter self =
@@ -289,7 +289,7 @@ type Data_Formatter
     make_auto_formatter self =
         # TODO The panic rethrow+recover is a workaround for the vector error propagation bug.
         formatters = Panic.recover Illegal_Argument (self.get_specific_type_formatters.map Panic.rethrow)
-        AnyObjectFormatter.new formatters.to_array
+        AnyObjectFormatter.new formatters
 
     ## PRIVATE
     make_formatter_for_column_type self (column_type : Value_Type) = case column_type of
