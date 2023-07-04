@@ -58,6 +58,9 @@ export function ShareWithModal(props: ShareWithModalProps) {
             new Set(asset.permissions?.map(userPermission => userPermission.user.user_email) ?? []),
         [asset.permissions]
     )
+    const alreadyHasPermission = emailsOfUsersWithPermission.has(
+        newtype.asNewtype<backendModule.EmailAddress>(email)
+    )
 
     // This is INCORRECT, but SAFE to use in hooks as its value will be set by the time any hook
     // runs.
@@ -212,11 +215,17 @@ export function ShareWithModal(props: ShareWithModalProps) {
                     {willInviteNewUser ? (
                         <input
                             type="submit"
-                            disabled={!canSubmit}
+                            disabled={!canSubmit || alreadyHasPermission}
                             className={`inline-block text-white bg-blue-600 rounded-full px-4 py-1 m-2 ${
-                                canSubmit ? 'hover:cursor-pointer' : 'opacity-50'
+                                canSubmit && !alreadyHasPermission
+                                    ? 'hover:cursor-pointer'
+                                    : 'opacity-50'
                             }`}
-                            value="Invite user to organization"
+                            value={
+                                alreadyHasPermission
+                                    ? 'Already has access'
+                                    : 'Invite user to organization'
+                            }
                         />
                     ) : (
                         <>
