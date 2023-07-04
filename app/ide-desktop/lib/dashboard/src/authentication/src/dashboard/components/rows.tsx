@@ -37,7 +37,7 @@ export interface RowsProps<T> {
     placeholder: JSX.Element
     columns: Column<T>[]
     onClick: (item: T, event: react.MouseEvent<HTMLTableRowElement>) => void
-    onContextMenu: (item: T, event: react.MouseEvent<HTMLTableRowElement>) => void
+    onContextMenu?: (item: T, event: react.MouseEvent<HTMLTableRowElement>) => void
 }
 
 /** Table that projects an object into each column. */
@@ -90,7 +90,7 @@ function Rows<T>(props: RowsProps<T>) {
                     onClick(item, event)
                 }}
                 onContextMenu={event => {
-                    onContextMenu(item, event)
+                    onContextMenu?.(item, event)
                 }}
                 className="h-10 transition duration-300 ease-in-out hover:bg-gray-100 focus:bg-gray-200"
             >
