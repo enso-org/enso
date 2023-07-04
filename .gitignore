@@ -22,7 +22,7 @@ target/
 **/*.rs.bk
 wasm-pack.log
 generated/
-/target
+/target*
 /build/rust/target/
 /rust-analyzer-target
 

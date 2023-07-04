@@ -21,12 +21,12 @@ export const THIS_PATH = path.resolve(path.dirname(url.fileURLToPath(import.meta
 async function bundle() {
     try {
         try {
-            await fs.rm('./build', { recursive: true })
+            await fs.rm('./dist', { recursive: true })
         } catch {
             // Ignored.
         }
         const opts = bundler.bundlerOptions({
-            outputPath: './build',
+            outputPath: './dist',
             devMode: false,
         })
         await esbuild.build(opts)

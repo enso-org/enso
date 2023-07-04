@@ -7,7 +7,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "npx --yes eslint src",
     "build": "tsx bundle.ts",
-    "start": "tsx bundle.ts && node build/index.cjs"
+    "start": "tsx bundle.ts && node dist/index.cjs"
   },
   "dependencies": {
     "chokidar": "^3.5.3",
