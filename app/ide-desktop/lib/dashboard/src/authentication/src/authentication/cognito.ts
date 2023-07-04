@@ -409,9 +409,9 @@ function intoSignUpParams(
              * It is necessary to disable the naming convention rule here, because the key is
              * expected to appear exactly as-is in Cognito, so we must match it. */
             // eslint-disable-next-line @typescript-eslint/naming-convention
-            'custom:fromDesktop': supportsDeepLinks ? JSON.stringify(true) : null,
+            ...(supportsDeepLinks ? { 'custom:fromDesktop': JSON.stringify(true) } : {}),
             // eslint-disable-next-line @typescript-eslint/naming-convention
-            'custom:organizationId': organizationId,
+            ...(organizationId != null ? { 'custom:organizationId': organizationId } : {}),
         },
     }
 }
