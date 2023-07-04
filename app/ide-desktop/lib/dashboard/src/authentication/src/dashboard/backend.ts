@@ -319,12 +319,6 @@ export interface InviteUserRequestBody {
     userEmail: EmailAddress
 }
 
-/** HTTP request body for the "invite user" endpoint. */
-export interface InviteUserRequestBody {
-    organizationId: UserOrOrganizationId
-    userEmail: EmailAddress
-}
-
 /** HTTP request body for the "create permission" endpoint. */
 export interface CreatePermissionRequestBody {
     userSubject: Subject
@@ -421,8 +415,6 @@ export interface Backend {
     inviteUser: (body: InviteUserRequestBody) => Promise<void>
     /** Adds a permission for a specific user on a specific asset. */
     createPermission: (body: CreatePermissionRequestBody) => Promise<void>
-    /** Return user details for the current user. */
-    inviteUser: (body: InviteUserRequestBody) => Promise<void>
     /** Return user details for the current user. */
     usersMe: () => Promise<UserOrOrganization | null>
     /** Return a list of assets in a directory. */
