@@ -1,8 +1,11 @@
 #![feature(generators)]
 #![feature(iter_from_generator)]
 #![feature(iter_advance_by)]
+#![feature(let_chains)]
+#![feature(drain_filter)]
 
 
+/*
 #[derive(Clone)]
 struct ScoreBuilder {}
 
@@ -17,6 +20,7 @@ impl ScoreBuilder {
         Score(0)
     }
 }
+ */
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 struct Score(usize);
@@ -52,39 +56,19 @@ fn normalize_needle(needle: impl Iterator<Item = char>) -> impl Iterator<Item = 
     })
 }
 
-fn normalize_haystack(haystack: impl Iterator<Item = char>) -> impl Iterator<Item = char> {
-    // Insert [`INVISISPACE`] before any sequence of digits.
-    core::iter::from_generator(|| {
-        let mut subsequent_digit_breaks_word = false;
-        for c in haystack {
-            if subsequent_digit_breaks_word && matches!(c, '0'..='9') {
-                yield INVISISPACE;
-            }
-            subsequent_digit_breaks_word = !matches!(c, '0'..='9' | '_' | '.');
-            yield c;
-        }
-    })
-}
-
-fn step(c: char, c1: char) -> bool {
-    todo!()
-}
-
-#[derive(Clone)]
-struct HaystackIter<'s> {
+#[derive(Debug, Clone)]
+struct WordIndexedChars<'s> {
     chars:           core::str::Chars<'s>,
     word_boundaries: u64,
 }
 
-const INVISISPACE: char = '\u{200B}';
-
-impl<'s> HaystackIter<'s> {
+impl<'s> WordIndexedChars<'s> {
     fn new(pattern: &'s str) -> Self {
         assert!(pattern.len() <= 64); // FIXME
         let mut word_boundaries = 0;
         for c in pattern.chars().rev() {
             word_boundaries <<= 1;
-            word_boundaries |= matches!(c, '\u{200B}' | '_' | '.') as u64;
+            word_boundaries |= matches!(c, '_' | '.') as u64;
         }
         let chars = pattern.chars();
         Self { word_boundaries, chars }
@@ -100,6 +84,17 @@ impl<'s> HaystackIter<'s> {
     }
 
     #[must_use]
+    fn advance_to_next_word_start(&mut self) -> bool {
+        self.advance_until_at_word_boundary() && self.next().is_some()
+    }
+
+    #[must_use]
+    fn next_word_start(&self) -> Option<Self> {
+        let mut this = self.clone();
+        this.advance_to_next_word_start().then_some(this)
+    }
+
+    #[must_use]
     fn advance_while_at_word_boundary(&mut self) -> bool {
         let n = self.word_boundaries.trailing_ones();
         match n {
@@ -109,7 +104,7 @@ impl<'s> HaystackIter<'s> {
     }
 }
 
-impl<'s> Iterator for HaystackIter<'s> {
+impl<'s> Iterator for WordIndexedChars<'s> {
     type Item = char;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -123,59 +118,66 @@ impl<'s> Iterator for HaystackIter<'s> {
     }
 }
 
-fn search(needle: &str, haystack: &str) -> Option<Score> {
-    let haystack: String = normalize_haystack(haystack.chars()).collect();
-    let haystack = HaystackIter::new(&haystack);
-    let mut best_match = None;
-    let mut partial_matches = vec![(needle.chars(), haystack)];
-    while let Some((mut needle, mut haystack)) = partial_matches.pop() {
-        match needle.next() {
-            // Advance to each character following a word boundary.
-            Some(' ') =>
-                while haystack.advance_until_at_word_boundary() {
-                    haystack.next().unwrap();
-                    partial_matches.push((needle.clone(), haystack.clone()));
-                },
-            // Advance to the position after each following `_` without an intervening `.`.
-            Some('_') => {
-                while haystack.advance_until_at_word_boundary() {
-                    match haystack.next().unwrap() {
-                        // Stronger delimiter: End search.
-                        '.' => break,
-                        '_' => {
-                            partial_matches.push((needle.clone(), haystack.clone()));
+fn match_initials(needle: &str, haystack: &str) -> bool {
+    let mut exploded = String::with_capacity(haystack.len() * 2 - 1);
+    let mut needle = needle.chars();
+    if let Some(c) = needle.next() {
+        exploded.push(c);
+    }
+    for c in needle {
+        exploded.push(' ');
+        exploded.push(c);
+    }
+    match_prefixes(&exploded, haystack)
+}
+
+// a_a_a ~ a_a_b_a_a_a
+// (a_a_a) ~ a_a_b_a_a_a
+// (a_a_a,_a_a) ~ a_a_b_a_a_a
+
+fn match_prefixes(needle: &str, haystack: &str) -> bool {
+    let needle = format!(" {needle}");
+    let haystack = format!("_{haystack}");
+    let mut states = vec![WordIndexedChars::new(&haystack)];
+    let mut next_states = vec![];
+    for c in needle.chars() {
+        let states_dbg: Vec<_> = states.iter().map(|state| format!("{state:?}")).collect();
+        match c {
+            '_' | ' ' | '.' => {
+                for mut state in states.drain(..) {
+                    while state.advance_until_at_word_boundary() {
+                        let Some(d) = state.next() else { break };
+                        if c == '_' && d == '.' {
+                            break
                         }
-                        // Weaker delimiter: Not a match, but doesn't end search.
-                        '\u{200B}' => (),
-                        c1 => unreachable!("should be a word boundary: {c1}"),
+                        if c == ' ' || c == d {
+                            next_states.push(state.clone());
+                        }
                     }
                 }
+                core::mem::swap(&mut states, &mut next_states);
             }
-            // Advance to position after `.` at current position.
-            Some('.') => if haystack.next() == Some('.') {
-                partial_matches.push((needle.clone(), haystack.clone()));
-            },
-            // Match c at current position; Also advance to each c following a word boundary.
-            Some(c) =>
-                while haystack.advance_while_at_word_boundary() {
-                    match haystack.next() {
-                        Some(c1) =>
-                            if c1 == c {
-                                partial_matches.push((needle.clone(), haystack.clone()));
-                            },
-                        None => break,
-                    }
-                    if !haystack.advance_until_at_word_boundary() {
-                        break;
-                    }
-                },
-            None => {
-                // Every character in the needle was located in the haystack!
-                best_match = Some(Score(0));
+            c => {
+                states.drain_filter(|state| state.next() != Some(c));
             }
         }
     }
-    best_match
+    !states.is_empty()
+}
+
+fn search(needle: &str, haystack: &str) -> Option<Score> {
+    if let Some((r#type, name)) = needle.rsplit_once('.') {
+        if let Some((r#type2, name2)) = haystack.rsplit_once('.') {
+            (search(r#type, r#type2).is_some() && search(name, name2).is_some()).then_some(Score(0))
+        } else {
+            None
+        }
+    } else {
+        let matched_prefix = match_prefixes(needle, haystack);
+        let matched_initials =
+            !needle.contains('_') && !needle.contains(' ') && match_initials(needle, haystack);
+        (matched_prefix || matched_initials).then_some(Score(0))
+    }
 }
 
 #[cfg(test)]
@@ -204,18 +206,22 @@ mod test {
     }
 
     #[test]
-    fn test_matches_undelimited() {
+    fn test_matches_initials() {
         check_matches([
-            // === Sequences of prefixes of words, concatenated ===
-            ("darefi", "data.read_file21", true),
-            ("datare", "data.read_file21", true),
-            ("dare", "data.read_file21", true),
-            ("refi", "data.read_file21", true),
-            ("dafi", "data.read_file21", true),
+            // === Sequences of initials of words ===
+            ("drf", "data.read_file21", true),
+            ("dr", "data.read_file21", true),
+            ("df", "data.read_file21", true),
+            ("rf", "data.read_file21", true),
+            ("d", "data.read_file21", true),
+            ("r", "data.read_file21", true),
+            ("f", "data.read_file21", true),
             // === Character not present ===
-            ("daxfi", "data.read_file21", false),
+            ("dxf", "data.read_file21", false),
             // === Characters not present in this order ===
-            ("lrd", "data.read_file21", false),
+            ("fr", "data.read_file21", false),
+            // === Not all initials ===
+            ("darf", "data.read_file21", false),
         ]);
     }
 
@@ -223,13 +229,10 @@ mod test {
     fn test_matches_with_spaces() {
         check_matches([
             // === Sequences of prefixes of words, separated by spaces ===
-            ("data re", "data.read_file21", true),
+            ("data r f", "data.read_file21", true),
             ("da re", "data.read_file21", true),
             ("re fi", "data.read_file21", true),
             ("da fi", "data.read_file21", true),
-            ("da fi ", "data.read_file21", true),
-            // === Sequences of prefixes of words: some concatenated, some spaced ===
-            ("da refi", "data.read_file21", true),
             // === Not prefixes ===
             ("ead file", "data.read_file21", false),
             ("da ile", "data.read_file21", false),
@@ -258,9 +261,12 @@ mod test {
             // === Dot occurs at end of word and matches exactly ===
             ("data.read", "data.read_file21", true),
             ("data.re", "data.read_file21", true),
-            // === Dot must not follow prefix ===
-            ("da.re", "data.read_file21", false),
-            ("da.fi", "data.read_file21", false),
+            // === Dot follows prefix ===
+            ("da.re", "data.read_file21", true),
+            ("da.fi", "data.read_file21", true),
+            // === Dot follows initials ===
+            ("fb.re", "foo_bar.read_file21", true),
+            ("fb.fi", "foo_bar.read_file21", true),
             // === Dot does not match underscore ===
             ("read.file", "data.read_file21", false),
             ("re.fi", "data.read_file21", false),
@@ -272,13 +278,15 @@ mod test {
         check_matches([
             // === Test combining rules of `.`/`_`/` `/concatenation ===
             ("data.read_file", "data.read_file21", true),
+            ("d r_f", "data.read_file21", true),
             ("da re_fi", "data.read_file21", true),
-            ("da refi", "data.read_file21", true),
-            ("data.re fi", "data.read_file21", true),
-            ("data.refi", "data.read_file21", true),
+            ("data.r f", "data.read_file21", true),
+            ("data.rf", "data.read_file21", true),
             ("data.file", "data.read_file21", true),
-            ("da.read_file", "data.read_file21", false),
+            ("da.read_file", "data.read_file21", true),
+            ("da rf", "data.read_file21", false),
             ("data.ead_ile", "data.read_file21", false),
+            ("data.refi", "data.read_file21", false),
         ]);
     }
 
@@ -287,22 +295,9 @@ mod test {
         check_matches([
             // === Numbers match when exactly present ===
             ("data.read_file21", "data.read_file21", true),
-            // === The first digit in a number is a word boundary ===
-            ("darefi21", "data.read_file21", true),
-            ("fi 21", "data.read_file21", true),
             // === Number prefixes match ===
             ("data.read_file2", "data.read_file21", true),
-            ("darefi2", "data.read_file21", true),
-            // === Digits in input may be prefixes of different numbers ===
-            ("a12", "a19.b29", true),
-            // === Digits that aren't first in a number aren't word boundaries ===
-            ("data.read_file1", "data.read_file21", false),
-            // === Non-matches with following digits are non-matches ===
-            ("darexfi21", "data.read_file21", false),
-            ("daredfi21", "data.read_file21", false),
-            // === Explicit word boundary characters don't match implicit word boundary ===
-            ("fi.21", "data.read_file21", false),
-            ("fi_21", "data.read_file21", false),
+            ("data file2", "data.read_file21", true),
         ]);
     }
 
@@ -315,6 +310,11 @@ mod test {
             ("da     refi", "da refi"),
             ("data. re fi", "data.re fi"),
             ("data .refi", "data.refi"),
+            // === Leading and trailing underscores and dots are preserved ===
+            //("_data.read_file_", "_data.read_file_"),
+            //(".data.read_file.", ".data.read_file."),
+            // === Leading and trailing spaces are stripped ===
+            //(" data.read_file ", "data.read_file"),
         ]);
     }
 }
