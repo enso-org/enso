@@ -173,6 +173,11 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
     context.shutdown();
   }
 
+  @Override
+  public void disposeContext(EnsoContext context) {
+    super.disposeContext(context);
+  }
+
   /**
    * Checks if this Enso execution environment is accessible in a multithreaded context.
    *
