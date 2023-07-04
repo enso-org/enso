@@ -109,7 +109,7 @@ export type UserSession = FullUserSession | OfflineUserSession | PartialUserSess
  * See {@link Cognito} for details on each of the authentication functions. */
 interface AuthContextType {
     goOffline: () => Promise<boolean>
-    signUp: (email: string, password: string) => Promise<boolean>
+    signUp: (email: string, password: string, organizationId: string | null) => Promise<boolean>
     confirmSignUp: (email: string, code: string) => Promise<boolean>
     setUsername: (
         backend: backendProvider.AnyBackendAPI,
@@ -317,8 +317,8 @@ export function AuthProvider(props: AuthProviderProps) {
         return Promise.resolve(true)
     }
 
-    const signUp = async (username: string, password: string) => {
-        const result = await cognito.signUp(username, password)
+    const signUp = async (username: string, password: string, organizationId: string | null) => {
+        const result = await cognito.signUp(username, password, organizationId)
         if (result.ok) {
             toast.success(MESSAGES.signUpSuccess)
             navigate(app.LOGIN_PATH)
@@ -368,10 +368,17 @@ export function AuthProvider(props: AuthProviderProps) {
             return false
         } else {
             try {
+                const organizationId = await authService.cognito.organizationId()
                 await toast.promise(
                     backend.createUser({
                         userName: username,
                         userEmail: newtype.asNewtype<backendModule.EmailAddress>(email),
+                        organizationId:
+                            organizationId != null
+                                ? newtype.asNewtype<backendModule.UserOrOrganizationId>(
+                                      organizationId
+                                  )
+                                : null,
                     }),
                     {
                         success: MESSAGES.setUsernameSuccess,
