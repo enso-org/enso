@@ -74,7 +74,7 @@ pub mod shape {
             // avoid rendering it completely. Necessary due to anti-aliasing.
             let border_below_threshold = (&abs_border - Var::from(MINIMUM_BORDER_WIDTH)).negative();
             let border_thickness = abs_border - border_below_threshold * 1000.0;
-            let border_body = body.grow(border_center.px()).annulus(border_thickness.px());
+            let border_body = body.grow(border_center.px()).stroke(border_thickness.px());
 
             // When the border is touching the edge of the body, extend the body by up to a pixel.
             // That way there is no visual gap between the shapes caused by anti-aliasing. In those

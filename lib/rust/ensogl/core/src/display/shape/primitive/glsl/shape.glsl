@@ -180,7 +180,7 @@ Sdf grow (Sdf a, float size) {
     return Sdf(a.distance - size);
 }
 
-Sdf annulus (Sdf a, float thickness2) {
+Sdf stroke (Sdf a, float thickness2) {
     return Sdf(abs(a.distance) - thickness2);
 }
 
@@ -243,7 +243,7 @@ BoundSdf grow (BoundSdf a, float size) {
     return a;
 }
 
-BoundSdf annulus (BoundSdf a, float thickness2) {
+BoundSdf stroke (BoundSdf a, float thickness2) {
     a.distance = abs(a.distance) - thickness2;
     a.bounds = grow(a.bounds, thickness2);
     return a;
@@ -379,8 +379,8 @@ Shape grow (Shape s, float value) {
     return shape(id, sdf, s.color);
 }
 
-Shape annulus (Shape s1, float thickness2) {
-    return shape(s1.id, annulus(s1.sdf, thickness2), s1.color);
+Shape stroke (Shape s1, float thickness2) {
+    return shape(s1.id, stroke(s1.sdf, thickness2), s1.color);
 }
 
 Shape inverse (Shape s1) {

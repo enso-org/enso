@@ -84,7 +84,7 @@ use super::def;
 
 /// Attempt to use the precompiled shaders. If the precompiled shader are not available, a warning
 /// mentioning affected shape will be logged.
-const ENABLE_PRECOMPILED_SHADERS: bool = false;
+const ENABLE_PRECOMPILED_SHADERS: bool = true;
 
 
 
