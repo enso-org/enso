@@ -150,7 +150,7 @@ where for<'t> &'t Self: IntoOwned<Owned = Self> {
     /// Subtracts the argument from this shape.
     ///
     /// Warning: This operator is an approximation - given correct exact input signed distance, it
-    /// will overestimate the distance outside the resulting shape. For more details, see
+    /// will overestimate the distance to the resulting shape. For more details, see
     /// https://iquilezles.org/articles/interiordistance/
     fn difference<S: IntoOwned>(&self, that: S) -> Difference<Self, Owned<S>> {
         Difference(self, that)
@@ -159,7 +159,7 @@ where for<'t> &'t Self: IntoOwned<Owned = Self> {
     /// Computes the intersection of the shapes.
     ///    
     /// Warning: This operator is an approximation - given correct exact input signed distance, it
-    /// will underestimate the distance outside the resulting shape. For more details, see
+    /// will underestimate the distance to the resulting shape. For more details, see
     /// https://iquilezles.org/articles/interiordistance/
     fn intersection<S: IntoOwned>(&self, that: S) -> Intersection<Self, Owned<S>> {
         Intersection(self, that)
