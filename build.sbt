@@ -1609,7 +1609,7 @@ lazy val `engine-runner` = project
           //          "-g",
           //          "-H:+DashboardAll",
           //          "-H:DashboardDump=runner.bgv"
-          "-Dnic=nic"
+          "-Dnic=nic",
         ),
         mainClass = Option("org.enso.runner.Main"),
         cp        = Option("runtime.jar"),
@@ -1619,7 +1619,14 @@ lazy val `engine-runner` = project
           "org.jline.nativ.JLineLibrary",
           "io.methvin.watchservice.jna.CarbonAPI",
           "org.enso.syntax2.Parser",
-          "zio.internal.ZScheduler$$anon$4"
+          "org.enso.loggingservice",
+          "zio.internal.ZScheduler$$anon$4",
+          "sun.awt",
+          "sun.java2d",
+          "sun.font",
+          "java.awt",
+          "com.sun.imageio",
+          "akka.http"
         )
       )
       .dependsOn(installNativeImage)
