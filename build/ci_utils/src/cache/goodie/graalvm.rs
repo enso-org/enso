@@ -107,6 +107,7 @@ impl GraalVM {
     }
 
     pub fn root_directory_name(&self) -> PathBuf {
+        assert!(!self.graal_version.build.is_empty());
         let jdk_version = format!("{}.{}.{}+{}", self.graal_version.major, self.graal_version.minor, self.graal_version.patch, self.graal_version.build);
         PathBuf::from(format!("{}-{}", PACKAGE_PREFIX_UNZIPPED, jdk_version))
     }
@@ -187,5 +188,19 @@ OpenJDK 64-Bit Server VM GraalVM CE 17.0.7+7.1 (build 17.0.7+7-jvmci-23.0-b12, m
             build: BuildMetadata::new("7.1").unwrap()
         };
         assert_eq!(graal_version, expected_graal_version);
+    }
+
+    #[test]
+    fn version_to_string() {
+        let version_with_build_metadata = Version {
+            major: 17,
+            minor: 0,
+            patch: 7,
+            pre: Prerelease::EMPTY,
+            build: BuildMetadata::new("7.1").unwrap()
+        };
+        let version_str = format!("{}.{}.{}+{}", version_with_build_metadata.major, version_with_build_metadata.minor,
+            version_with_build_metadata.patch, version_with_build_metadata.build);
+        assert_eq!(version_str, "17.0.7+7.1");
     }
 }

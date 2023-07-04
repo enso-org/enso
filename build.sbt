@@ -20,11 +20,12 @@ import java.io.File
 // ============================================================================
 
 val scalacVersion         = "2.13.11"
-// Since the release of GraalVM 23.0.0, the versioning is the same for Graal and Java
-val graalVersion          = "17.0.7"
-// Verwsion used for the Graal/Truffle related Maven packages
+// Since the release of GraalVM 23.0.0, the versioning is the same for Graal and OpenJDK.
+// Note that it is important to keep the build metadata (the part after +) in this version.
+val graalVersion          = "17.0.7+7.1"
+// Version used for the Graal/Truffle related Maven packages
 val graalMavenVersion     = "23.0.0"
-val javaLangVersion       = "17"
+val javaLangVersion       = graalVersion.split("\\.")(0)
 val defaultDevEnsoVersion = "0.0.0-dev"
 val ensoVersion = sys.env.getOrElse(
   "ENSO_VERSION",
