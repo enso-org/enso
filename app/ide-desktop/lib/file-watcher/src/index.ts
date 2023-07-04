@@ -15,13 +15,9 @@ const args = yargs(hideBin(process.argv))
         default: false,
         description: 'If false, only reports add, change, and unlink events.If true, reports all events.'
     })
-    .parseSync()
-
-
-// console.log(`Starting to watch "${args.path}" for changes...`);
+    .parseSync();
 
 if (args.verbose) {
-    ``
     chokidar.watch(args.path).on('all', (event, path) => {
         console.log({ event, path });
     });
