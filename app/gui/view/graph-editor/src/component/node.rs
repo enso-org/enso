@@ -171,7 +171,7 @@ impl Background {
             });
 
             eval color_animation.value((color) shape.set_color(color.into()););
-            eval selection_border((border) selection_shape.set_inset_border(*border););
+            eval selection_border((border) selection_shape.set_border_and_inset(*border););
             eval selection_colors([selection_shape] ((selected_color, unselected_color)) {
                 selection_shape.set_color(selected_color.into());
                 selection_shape.set_border_color(unselected_color.into());
