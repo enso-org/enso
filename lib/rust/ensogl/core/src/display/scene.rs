@@ -138,7 +138,12 @@ pub struct Mouse {
     /// sampled and the most recent sample is stored here. Please note, that this sample may be
     /// from a few frames back, as it is not guaranteed when we will receive the data from GPU.
     pub pointer_target_encoded:  Uniform<Vector4<u32>>,
-    /// The display objects which believe they are currently hovered by mouse.
+    /// The display objects which are currently hovered by mouse, where "hovered" means
+    /// that it's a shape directly hovered, or one of the descendant is hovered. It's updated in
+    /// [`switch_target`] method.
+    ///
+    /// This field may be updated with a few frames delay, as we need to read mouse target from
+    /// the texture.
     pub hovered_objects:         Rc<RefCell<Vec<display::object::WeakInstance>>>,
     pub target:                  Rc<Cell<PointerTargetId>>,
     pub handles:                 Rc<[callback::Handle; 6]>,
