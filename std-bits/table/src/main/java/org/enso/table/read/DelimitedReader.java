@@ -66,7 +66,6 @@ public class DelimitedReader {
   /**
    * Creates a new reader.
    *
-   * @param input a reader providing decoded input characters
    * @param delimiter the delimiter, should be a single character, but is a String for proper
    *     interoperability with Enso; if a string that does not fit in a single character is
    *     provided, an exception is raised
@@ -92,7 +91,6 @@ public class DelimitedReader {
    *     to be discarded anyway)
    */
   public DelimitedReader(
-      Reader input,
       String delimiter,
       String quote,
       String quoteEscape,
@@ -159,11 +157,11 @@ public class DelimitedReader {
     this.valueParser = valueParser;
     this.cellTypeGuesser = cellTypeGuesser;
     this.newlineSetting = newline;
-    parser = setupCsvParser(input, commentCharacter);
+    this.parser = setupCsvParser(commentCharacter);
   }
 
   /** Creates a {@code CsvParser} according to the settings specified at construction. */
-  private CsvParser setupCsvParser(Reader input, String commentCharacter) {
+  private CsvParser setupCsvParser(String commentCharacter) {
     CsvParserSettings settings = new CsvParserSettings();
     settings.setHeaderExtractionEnabled(false);
     CsvFormat format = new CsvFormat();
@@ -197,9 +195,8 @@ public class DelimitedReader {
 
     settings.setFormat(format);
     settings.setNumberOfRowsToSkip(skipRows);
-    CsvParser parser = new CsvParser(settings);
-    parser.beginParsing(input);
-    return parser;
+
+    return new CsvParser(settings);
   }
 
   /** Parses a header cell, removing surrounding quotes (if applicable). */
@@ -361,41 +358,44 @@ public class DelimitedReader {
 
   private List<Problem> headerProblems;
 
-  /** Returns the column names that are defined in the input.
-   *
-   * Will return {@code null} if {@code GENERATE_HEADERS} is used or if {@code INFER} is used and no headers were found inside of the file. */
-  public String[] getDefinedColumnNames() {
-    ensureHeadersDetected();
-    return definedColumnNames;
-  }
-
-  public int getColumnCount() {
-    ensureHeadersDetected();
+  private int getColumnCount() {
     return effectiveColumnNames.length;
   }
 
+  /**
+   * Tries to infer some metadata about the input.
+   * <p>
+   * The input is used after this call, but not necessarily read until the end.
+   */
+  public DelimitedFileMetadata readMetadata(Reader input) {
+    markUsed();
+    try {
+      parser.beginParsing(input);
+      detectHeaders();
+      boolean hasAnyContent = getVisitedCharactersCount() > 0;
+      return new DelimitedFileMetadata(
+          getColumnCount(),
+          definedColumnNames,
+          hasAnyContent,
+          getEffectiveLineSeparator()
+      );
+    } finally {
+      parser.stopParsing();
+    }
+  }
+
   /** Returns the line separator.
-   *
+   * <p>
    * If it was provided explicitly at construction, the selected separator is used.
    * If the initial separator was set to {@code null}, the reader tries to detect
    * the separator from file contents.
    */
-  public String getEffectiveLineSeparator() {
-    if (newlineSetting == null) {
-      ensureHeadersDetected();
-    }
+  private String getEffectiveLineSeparator() {
     return newlineSetting;
   }
 
-  public long getVisitedCharactersCount() {
-    ensureHeadersDetected();
+  private long getVisitedCharactersCount() {
     return parser.getContext().currentChar();
-  }
-
-  private void ensureHeadersDetected() {
-    if (effectiveColumnNames == null) {
-      detectHeaders();
-    }
   }
 
   private void detectHeaders() {
@@ -458,11 +458,17 @@ public class DelimitedReader {
     }
   }
 
-  /** Reads the input stream and returns a Table. */
-  public WithProblems<Table> read() {
+  /**
+   * Reads the input stream and returns a Table.
+   * <p>
+   * It should only be called once.
+   */
+  public WithProblems<Table> read(Reader input) {
+    markUsed();
     Context context = Context.getCurrent();
     try {
-      ensureHeadersDetected();
+      parser.beginParsing(input);
+      detectHeaders();
       int columnCount = getColumnCount();
       if  (columnCount == 0) {
         throw new EmptyFileException();
@@ -498,6 +504,14 @@ public class DelimitedReader {
       context.safepoint();
     }
     return new WithProblems<>(new Table(columns), getReportedProblems(headerProblems));
+  }
+
+  private boolean wasAlreadyUsed = false;
+  private void markUsed() {
+    if (wasAlreadyUsed) {
+      throw new IllegalStateException("The `read` on the DelimitedReader may be called only once. Please create a new instance of the reader.");
+    }
+    wasAlreadyUsed = true;
   }
 
   private static final int INITIAL_ROW_CAPACITY = 100;
