@@ -86,6 +86,7 @@ pub fn upload_single_file(
 ) -> impl Future<Output = Result> {
     let file = file.into();
     let files = single_file_provider(file);
+    #[allow(clippy::redundant_closure_call)]
     (async move || -> Result { upload(files?, artifact_name, default()).await })()
 }
 
@@ -96,6 +97,7 @@ pub fn upload_directory(
     let dir = dir.into();
     info!("Uploading directory {}.", dir.display());
     let files = single_dir_provider(&dir);
+    #[allow(clippy::redundant_closure_call)]
     (async move || -> Result { upload(files?, artifact_name, default()).await })()
 }
 

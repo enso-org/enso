@@ -537,16 +537,10 @@ mod tests {
     // pub fn spawn_log_processor(
     //     prefix: String,
     //     out: impl AsyncRead + Send + Unpin + 'static,
-    // ) -> JoinHandle<Result> {
-    //     tokio::task::spawn(async move {
-    //         let bufread = BufReader::new(out);
-    //         let mut lines = bufread.lines();
-    //         while let Some(line) = lines.next_line().await? {
-    //             println(format!("{} {}", prefix, line))
-    //         }
-    //         println(format!("{} {}", prefix, "<ENDUT>"));
-    //         Result::Ok(())
-    //     })
+    // ) -> JoinHandle<Result> { tokio::task::spawn(async move { let bufread = BufReader::new(out);
+    //   let mut lines = bufread.lines(); while let Some(line) = lines.next_line().await? {
+    //   println(format!("{} {}", prefix, line)) } println(format!("{} {}", prefix, "<ENDUT>"));
+    //   Result::Ok(()) })
     // }U
     //
     // pub fn spawn_logged(cmd: &mut Command) {

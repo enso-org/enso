@@ -21,7 +21,7 @@
 #![recursion_limit = "1024"]
 // === Features ===
 #![feature(trait_alias)]
-#![feature(hash_drain_filter)]
+#![feature(hash_extract_if)]
 #![feature(type_alias_impl_trait)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
@@ -240,9 +240,8 @@ impl<Entry: entry::Entry, EntryParams> Model<Entry, EntryParams> {
         let mut free_entries = self.free_entries.borrow_mut();
         let visible_rows = visible_rows(viewport, entries_size, rows);
         let visible_cols = visible_columns(viewport, entries_size, cols, widths);
-        let no_longer_visible = visible_entries.drain_filter(|(row, col), _| {
-            !visible_rows.contains(row) || !visible_cols.contains(col)
-        });
+        let no_longer_visible = visible_entries
+            .extract_if(|(row, col), _| !visible_rows.contains(row) || !visible_cols.contains(col));
         let detached = no_longer_visible.map(|(_, entry)| {
             entry.unset_parent();
             entry

@@ -270,13 +270,8 @@ pub trait IsTarget: Clone + Debug + Sized + Send + Sync + 'static {
     //     &self,
     //     release_handle: ReleaseHandle,
     //     output: impl Future<Output = Result<Self::Artifact>> + Send + 'static,
-    // ) -> BoxFuture<'static, Result> {
-    //     async move {
-    //         let artifact = output.await?;
-    //         release_handle.upload_compressed_dir(&artifact).await?;
-    //         Ok(())
-    //     }
-    //     .boxed()
+    // ) -> BoxFuture<'static, Result> { async move { let artifact = output.await?;
+    //   release_handle.upload_compressed_dir(&artifact).await?; Ok(()) } .boxed()
     // }
 
     fn download_asset(

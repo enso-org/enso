@@ -251,7 +251,7 @@ mod tests {
     fn texture_size() {
         fn run_case(shape_sizes: impl IntoIterator<Item = (f32, f32)>, expected_size: (i32, i32)) {
             let shape_entries = shape_entries_from_sizes(shape_sizes);
-            let result = arrange_shapes_on_texture(shape_entries.into_iter(), INITIAL_TEXTURE_SIZE);
+            let result = arrange_shapes_on_texture(shape_entries, INITIAL_TEXTURE_SIZE);
             assert_eq!(result.texture_size, IntoVector2::into_vector(expected_size));
         }
 

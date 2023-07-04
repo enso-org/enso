@@ -2,8 +2,8 @@
 
 // === Features ===
 #![feature(associated_type_bounds)]
-#![feature(drain_filter)]
 #![feature(iter_order_by)]
+#![feature(extract_if)]
 #![feature(impl_trait_in_assoc_type)]
 #![feature(type_alias_impl_trait)]
 #![feature(iter_next_chunk)]
@@ -190,10 +190,10 @@ impl LineKind {
 // ========================
 // When we are in definition scope (as opposed to global scope) certain patterns should not be
 // considered to be function definitions. These are:
-// 1. Expressions like "Int.x = …". In module, they'd be treated as extension methods. In
-//    definition scope they are treated as invalid constructs (setter syntax in the old design).
-// 2. Expression like "foo = 5". In module, this is treated as method definition (with implicit
-//    this parameter). In definition, this is just a node (evaluated expression).
+// 1. Expressions like "Int.x = …". In module, they'd be treated as extension methods. In definition
+//    scope they are treated as invalid constructs (setter syntax in the old design).
+// 2. Expression like "foo = 5". In module, this is treated as method definition (with implicit this
+//    parameter). In definition, this is just a node (evaluated expression).
 
 #[cfg(test)]
 mod tests {

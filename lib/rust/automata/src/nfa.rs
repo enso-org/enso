@@ -117,8 +117,8 @@ impl Nfa {
     // 1. We are always adding epsilon connection on the beginning. This should not be needed, but
     //    if we did it this way, it means there is a corner case probably. To be checked.
     // 2. In other places we have similar things. For example, in `Or` pattern we use epsilon
-    //    connections to merge results, but we could theoretically first create the output, and
-    //    then expand sub-patterns with the provided output.
+    //    connections to merge results, but we could theoretically first create the output, and then
+    //    expand sub-patterns with the provided output.
     /// Transforms a pattern to connected NFA states by using the algorithm described
     /// [here](https://www.youtube.com/watch?v=RYNN-tb9WxI).
     /// The asymptotic complexity is linear in number of symbols.

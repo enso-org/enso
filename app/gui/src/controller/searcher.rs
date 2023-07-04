@@ -557,10 +557,9 @@ impl Searcher {
 
     /// Accepts the current AI query and exchanges it for actual expression.
     /// To accomplish this, it performs the following steps:
-    /// 1. Attaches a visualization to `this`, calling `AI.build_ai_prompt`, to
-    ///    get a data-specific prompt for Open AI;
-    /// 2. Sends the prompt to the Open AI backend proxy, along with the user
-    ///    query.
+    /// 1. Attaches a visualization to `this`, calling `AI.build_ai_prompt`, to get a data-specific
+    ///    prompt for Open AI;
+    /// 2. Sends the prompt to the Open AI backend proxy, along with the user query.
     /// 3. Replaces the query with the result of the Open AI call.
     async fn accept_ai_query(
         query: String,
@@ -919,7 +918,7 @@ impl Searcher {
         let mut data = self.data.borrow_mut();
         let data = &mut *data;
         let input = &data.input;
-        data.picked_suggestions.drain_filter(|frag| !frag.is_still_unmodified(input));
+        data.picked_suggestions.retain(|frag| frag.is_still_unmodified(input));
     }
 
     fn clear_temporary_imports(&self) {

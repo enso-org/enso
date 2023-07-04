@@ -222,7 +222,7 @@ impl Model {
     #[profile(Debug)]
     fn set_expression_usage_type(&self, id: ast::Id, tp: &Option<Type>) {
         let id_ports_map = self.id_ports_map.borrow();
-        let Some(index)  = id_ports_map.get(&id).copied() else { return };
+        let Some(index) = id_ports_map.get(&id).copied() else { return };
 
         // When this port is the only port, only accept type of the whole expression.
         if index == 0

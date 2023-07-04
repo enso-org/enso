@@ -23,7 +23,7 @@ pub fn binaries_to_package() -> [&'static str; 2] {
 pub fn url_regex() -> regex::Regex {
     // As per https://uibakery.io/regex-library/url
     regex::Regex::new(
-        r#"https?://(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_\+.~#?&/=]*)"#,
+        r"https?://(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_\+.~#?&/=]*)",
     ).unwrap()
 }
 

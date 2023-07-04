@@ -1141,11 +1141,17 @@ where
 
 /// Mapper which maps every field with [`Into`].
 #[derive(Derivative)]
-#[derivative(Clone(bound = ""))]
 #[derivative(Copy(bound = ""))]
 #[derivative(Debug(bound = ""))]
 #[derivative(Default(bound = ""))]
 pub struct MapperInto<S>(ZST<S>);
+
+// See https://github.com/mcarton/rust-derivative/issues/112.
+impl<T> Clone for MapperInto<T> {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
 
 impl<T: Into<S>, S> MapFieldWith<MapperInto<S>> for T {
     type MappedFieldWith = S;

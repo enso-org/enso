@@ -146,8 +146,8 @@ impl Nodes {
 
     /// Update the state retaining given set of nodes. Returns the list of removed nodes' views.
     pub fn retain_nodes(&mut self, nodes: &HashSet<AstNodeId>) -> Vec<ViewNodeId> {
-        self.nodes_without_view.drain_filter(|id| !nodes.contains(id));
-        let removed = self.nodes.drain_filter(|id, _| !nodes.contains(id));
+        self.nodes_without_view.retain(|id| nodes.contains(id));
+        let removed = self.nodes.extract_if(|id, _| !nodes.contains(id));
         let removed_views = removed.filter_map(|(_, data)| data.view_id).collect();
         for view_id in &removed_views {
             self.ast_node_by_view_id.remove(view_id);
@@ -194,7 +194,7 @@ impl Expressions {
     /// Remove all expressions not belonging to the any of the `nodes`.
     pub fn retain_expression_of_nodes(&mut self, nodes: &HashSet<AstNodeId>) {
         let nodes_to_remove =
-            self.expressions_of_node.drain_filter(|node_id, _| !nodes.contains(node_id));
+            self.expressions_of_node.extract_if(|node_id, _| !nodes.contains(node_id));
         let expr_to_remove = nodes_to_remove.flat_map(|(_, exprs)| exprs);
         for expression_id in expr_to_remove {
             self.expressions.remove(&expression_id);

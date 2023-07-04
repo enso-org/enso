@@ -721,7 +721,7 @@ mod tests {
     fn list_definition_test() {
         let parser = parser::Parser::new();
 
-        let definition_lines = vec![
+        let definition_lines = [
             "main = _",
             "Foo.Bar.foo = _",
             "Foo.Bar.baz a b = _",

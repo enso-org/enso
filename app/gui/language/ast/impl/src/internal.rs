@@ -9,7 +9,7 @@ where T: IntoIterator<Item = T> + Copy {
     let generator = move || {
         let mut nodes: Vec<T> = vec![ast];
         while let Some(ast) = nodes.pop() {
-            nodes.extend(ast.into_iter());
+            nodes.extend(ast);
             yield ast;
         }
     };

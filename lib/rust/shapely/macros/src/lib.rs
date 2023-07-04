@@ -280,8 +280,7 @@ pub fn tagged_enum(
 /// fn update_gap<Out: IntoVectorTrans2<Unit>>(
 ///     &self,
 ///     f: impl FnOnce(Vector2<Unit>) -> Out,
-/// ) -> &Self {
-///     self.modify_gap(|t| *t = f(*t).into_vector_trans())
+/// ) -> &Self { self.modify_gap(|t| *t = f(*t).into_vector_trans())
 /// }
 /// fn set_gap(&self, v: impl IntoVectorTrans2<Unit>) -> &Self {
 ///     self.modify_gap(|t| *t = v.into_vector_trans())

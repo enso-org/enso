@@ -10,12 +10,10 @@
 //!
 //! The run configurations have to be generated for each operating system separately, as it is
 //! impossible to do it in a more generic way:
-//! 1. Cargo does not support `--target native` (or similar) flag,
-//!    see: https://github.com/rust-lang/cargo/issues/11306.
+//! 1. Cargo does not support `--target native` (or similar) flag, see: https://github.com/rust-lang/cargo/issues/11306.
 //! 2. IntelliJ does not support environment variable expansion in the run configuration command,
 //!    see: https://github.com/intellij-rust/intellij-rust/issues/9621.
-//! 3. IntelliJ does not support custom cargo commands,
-//!    see: https://youtrack.jetbrains.com/issue/CPP-30882
+//! 3. IntelliJ does not support custom cargo commands, see: https://youtrack.jetbrains.com/issue/CPP-30882
 
 // === Features ===
 #![feature(exit_status_error)]

@@ -105,7 +105,7 @@ impls! {              From<&String>     for Path { |t| t.as_str().into() }}
 impls! {              From<&Path>       for Path { |t| t.clone() }}
 impls! {              From<StaticPath>  for Path { |t| t.str.into() }}
 impls! {              From<&StaticPath> for Path { |t| t.str.into() }}
-impls! { [T:ToString] From<Vec<T>>      for Path { |t| Self::from_segments(t.into_iter()) }}
+impls! { [T:ToString] From<Vec<T>>      for Path { |t| Self::from_segments(t) }}
 
 impl<T> From<&Vec<T>> for Path
 where for<'t> &'t T: ToString

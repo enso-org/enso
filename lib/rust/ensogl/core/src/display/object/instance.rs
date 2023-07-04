@@ -1554,13 +1554,18 @@ pub mod dirty {
     pub use super::*;
 
     // === Types ===
-
-    type NewParent = crate::data::dirty::RefCellBool<()>;
-    type ModifiedChildren = crate::data::dirty::RefCellSet<ChildIndex, OnDirtyCallback>;
-    type RemovedChildren = crate::data::dirty::RefCellSet<WeakInstance, OnDirtyCallback>;
-    type Transformation = crate::data::dirty::RefCellBool<OnDirtyCallback>;
-    type ComputedSize = crate::data::dirty::RefCellBool<OnDirtyCallback>;
-    type SceneLayer = crate::data::dirty::RefCellBool<OnDirtyCallback>;
+    #[allow(missing_docs)]
+    pub type NewParent = crate::data::dirty::RefCellBool<()>;
+    #[allow(missing_docs)]
+    pub type ModifiedChildren = crate::data::dirty::RefCellSet<ChildIndex, OnDirtyCallback>;
+    #[allow(missing_docs)]
+    pub type RemovedChildren = crate::data::dirty::RefCellSet<WeakInstance, OnDirtyCallback>;
+    #[allow(missing_docs)]
+    pub type Transformation = crate::data::dirty::RefCellBool<OnDirtyCallback>;
+    #[allow(missing_docs)]
+    pub type ComputedSize = crate::data::dirty::RefCellBool<OnDirtyCallback>;
+    #[allow(missing_docs)]
+    pub type SceneLayer = crate::data::dirty::RefCellBool<OnDirtyCallback>;
 
 
     // === Definition ===
@@ -1619,7 +1624,8 @@ pub mod dirty {
         }
     }
 
-    type OnDirtyCallback = impl Fn();
+    #[allow(missing_docs)]
+    pub type OnDirtyCallback = impl Fn();
     fn on_dirty_callback(parent_bind: &SharedParentBind) -> OnDirtyCallback {
         let parent_bind = parent_bind.clone_ref();
         move || {
@@ -2554,7 +2560,9 @@ impl InstanceDef {
     /// - Execute bubbling phase - propagate event from the target to the root.
     /// - If event has been cancelled, store the phase and target to resume the propagation.
     fn emit_event_impl(&self, event: &event::SomeEvent) {
-        let Some((resume_phase, mut resume_target)) = event.begin_propagation() else { return; };
+        let Some((resume_phase, mut resume_target)) = event.begin_propagation() else {
+            return;
+        };
 
         let rev_parent_chain = self.rev_parent_chain();
         let only_target = &rev_parent_chain[rev_parent_chain.len().saturating_sub(1)..];

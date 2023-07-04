@@ -432,7 +432,7 @@ fn test_execution_context() {
         defined_on_type: visualization_module.to_string(),
         name:            visualization_function.to_string(),
     };
-    let positional_arguments_expressions = vec![1, 2, 3].iter().map(|x| x.to_string()).collect();
+    let positional_arguments_expressions = [1, 2, 3].iter().map(|x| x.to_string()).collect();
     let visualisation_config = VisualisationConfiguration {
         execution_context_id: context_id,
         expression,
@@ -477,7 +477,7 @@ fn test_execution_context() {
         defined_on_type: visualization_module.to_string(),
         name:            visualization_function.to_string(),
     };
-    let positional_arguments_expressions = vec!["foo"].iter().map(|x| x.to_string()).collect();
+    let positional_arguments_expressions = ["foo"].iter().map(|x| x.to_string()).collect();
     let visualisation_config = VisualisationConfiguration {
         execution_context_id: context_id,
         expression,

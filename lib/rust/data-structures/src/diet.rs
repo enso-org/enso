@@ -964,8 +964,8 @@ impl Ord for Interval {
 ///
 /// 1. It seems that (at least for now) the best performing implementation is the `Tree16`.
 ///
-/// 2. When performing insertions of ascending, non-overlapping intervals, the `Tree16` performs
-///    60% SLOWER than `std::collections::BTreeSet`.
+/// 2. When performing insertions of ascending, non-overlapping intervals, the `Tree16` performs 60%
+///    SLOWER than `std::collections::BTreeSet`.
 ///
 /// 3. When performing insertions of descending, non-overlapping intervals, the `Tree16` performs
 ///    40% SLOWER than `std::collections::BTreeSet`.

@@ -107,7 +107,7 @@ impl EntryDocumentation {
 
     /// Create documentation for a hard-coded builtin entry.
     pub fn builtin(sections: impl IntoIterator<Item = &DocSection>) -> Self {
-        let sections = BuiltinDocumentation::from_doc_sections(sections.into_iter());
+        let sections = BuiltinDocumentation::from_doc_sections(sections);
         Self::Docs(Documentation::Builtin(sections))
     }
 

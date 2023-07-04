@@ -171,15 +171,11 @@ impl IsWatchable for Gui {
     //     build_input: Self::BuildInput,
     //     watch_input: Self::WatchInput,
     //     output_path: impl AsRef<Path> + Send + Sync + 'static,
-    // ) -> BoxFuture<'static, Result<Self::Watcher>> {
-    //     async move {
-    //         let BuildInput { build_info, repo_root, wasm } = build_input;
-    //         let ide = IdeDesktop::new(&repo_root.app.ide_desktop);
-    //         let watch_process = ide.watch_content(wasm, &build_info.await?).await?;
-    //         let artifact = Self::Artifact::from_existing(output_path).await?;
-    //         Ok(Self::Watcher { watch_process, artifact })
-    //     }
-    //     .boxed()
+    // ) -> BoxFuture<'static, Result<Self::Watcher>> { async move { let BuildInput { build_info,
+    //   repo_root, wasm } = build_input; let ide = IdeDesktop::new(&repo_root.app.ide_desktop); let
+    //   watch_process = ide.watch_content(wasm, &build_info.await?).await?; let artifact =
+    //   Self::Artifact::from_existing(output_path).await?; Ok(Self::Watcher { watch_process,
+    //   artifact }) } .boxed()
     // }
 
     fn watch(

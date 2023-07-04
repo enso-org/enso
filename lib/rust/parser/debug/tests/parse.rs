@@ -3,6 +3,7 @@
 // === Non-Standard Linter Configuration ===
 #![allow(clippy::option_map_unit_fn)]
 #![allow(clippy::precedence)]
+#![allow(clippy::needless_raw_string_hashes)]
 #![allow(dead_code)]
 #![deny(non_ascii_idents)]
 #![deny(unconditional_recursion)]
@@ -115,7 +116,7 @@ fn plain_comments() {
 #[test]
 fn doc_comments() {
     #[rustfmt::skip]
-    let lines = vec![
+    let lines = [
         "## The Identity Function",
         "",
         "   Arguments:",
@@ -132,14 +133,14 @@ fn doc_comments() {
          #(()))
          (Function (Ident id) #((() (Ident x) () ())) "=" (Ident x)))]);
     #[rustfmt::skip]
-    let lines = vec![
+    let lines = [
         " ## Test indent handling",
         " foo",
     ];
     #[rustfmt::skip]
     test!(&lines.join("\n"), (Documented (#((Section " Test indent handling")) #(())) (Ident foo)));
     #[rustfmt::skip]
-    let lines = vec![
+    let lines = [
         " ## Test indent handling",
         "  ",
         " foo",

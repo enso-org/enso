@@ -480,7 +480,7 @@ mod tests {
     #[test]
     fn multi_insert_get() {
         let mut tree = HashMapTree::<i32, i32>::new();
-        let values = vec![1, 2, 3, 4, 5];
+        let values = [1, 2, 3, 4, 5];
         let paths = vec![vec![1, 2], vec![2, 2, 1, 3], vec![1, 3], vec![1, 2, 4, 1], vec![1, 3, 1]];
         for (val, path) in values.iter().zip(&paths) {
             tree.set(path.clone(), *val)
@@ -506,7 +506,7 @@ mod tests {
     #[test]
     fn map() {
         let mut tree = HashMapTree::<i32, i32>::new();
-        let values = vec![1, 2, 3, 4, 5];
+        let values = [1, 2, 3, 4, 5];
         let paths: Vec<Vec<i32>> =
             vec![vec![], vec![1, 2], vec![2, 2, 1, 3], vec![1, 3], vec![1, 2, 4, 1], vec![1, 3, 1]];
         for (val, path) in values.iter().zip(&paths) {
@@ -524,7 +524,7 @@ mod tests {
     #[test]
     fn map_mutable() {
         let mut tree = HashMapTree::<i32, i32>::new();
-        let values = vec![10, 1, 2, 3, 4, 5];
+        let values = [10, 1, 2, 3, 4, 5];
         let paths =
             vec![vec![], vec![1, 2], vec![2, 2, 1, 3], vec![1, 3], vec![1, 2, 4, 1], vec![1, 3, 1]];
         for (val, path) in values.iter().zip(&paths) {

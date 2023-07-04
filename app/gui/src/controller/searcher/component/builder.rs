@@ -540,7 +540,7 @@ mod tests {
             },
         ];
         builder.set_grouping_and_order_of_favorites(&db, &groups);
-        builder.extend_list_and_allow_favorites_with_ids(&db, [0, 1, 2].into_iter());
+        builder.extend_list_and_allow_favorites_with_ids(&db, [0, 1, 2]);
         let list = builder.build();
         let favorites: Vec<ComparableGroupData> = list.favorites.iter().map(Into::into).collect();
         let expected = vec![

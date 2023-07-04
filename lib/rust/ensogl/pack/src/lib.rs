@@ -101,8 +101,8 @@
 //! # Runtime process.
 //! When `target/dist/index.js` is run:
 //!
-//! 1. The following files are downloaded from a server:
-//!    `target/dist/{pkg.js, pkg.wasm, dynamic-assets}`.
+//! 1. The following files are downloaded from a server: `target/dist/{pkg.js, pkg.wasm,
+//!    dynamic-assets}`.
 //! 2. The code from `pkg.js` is run to compile the WASM file.
 //! 3. All before-main entry points are run.
 //! 4. Optimized shaders are uploaded to the EnsoGL application.

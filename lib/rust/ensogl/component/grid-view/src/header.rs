@@ -146,7 +146,7 @@ impl<InnerGrid, HeaderEntry: display::Object, HeaderParams>
         let cols_range = visible_area::visible_columns(viewport, entries_size, col_count, widths);
         let highest_visible_row =
             visible_area::visible_rows(viewport, entries_size, row_count).start;
-        let freed = visible_headers.drain_filter(|col, header| {
+        let freed = visible_headers.extract_if(|col, header| {
             !cols_range.contains(col) || !header.section_rows.contains(&highest_visible_row)
         });
         let detached = freed.map(|(col, header)| {
@@ -612,7 +612,7 @@ mod tests {
     ) {
         let visible_headers = get_sorted_headers(grid_view);
         assert_eq!(visible_headers.len(), COL_COUNT);
-        for ((_, header), expected_pos) in visible_headers.into_iter().zip(expected.into_iter()) {
+        for ((_, header), expected_pos) in visible_headers.into_iter().zip(expected) {
             assert_eq!(header.entry.position().xy(), expected_pos);
         }
     }
@@ -623,7 +623,7 @@ mod tests {
     ) {
         let visible_headers = get_sorted_headers(grid_view);
         assert_eq!(visible_headers.len(), COL_COUNT);
-        for ((_, header), expected_model) in visible_headers.into_iter().zip(expected.into_iter()) {
+        for ((_, header), expected_model) in visible_headers.into_iter().zip(expected) {
             assert_eq!(header.entry.entry.parent.model_set.get(), expected_model);
         }
     }
@@ -635,7 +635,7 @@ mod tests {
         let visible_headers = get_sorted_headers(grid_view);
         assert_eq!(visible_headers.len(), COL_COUNT);
         for ((col, header), (expected_rows, expected_col)) in
-            visible_headers.into_iter().zip(expected.into_iter())
+            visible_headers.into_iter().zip(expected)
         {
             assert_eq!(col, expected_col);
             assert_eq!(header.section_rows, expected_rows);

@@ -11,7 +11,7 @@
 #![feature(associated_type_bounds)]
 #![feature(cell_update)]
 #![feature(const_type_id)]
-#![feature(drain_filter)]
+#![feature(extract_if)]
 #![feature(entry_insert)]
 #![feature(fn_traits)]
 #![feature(marker_trait_attr)]

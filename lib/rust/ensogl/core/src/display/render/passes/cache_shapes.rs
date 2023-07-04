@@ -122,7 +122,7 @@ impl pass::Definition for CacheShapesPass {
                 shape.sprite().symbol.shader().program().is_some()
             };
             let mut ready_to_render =
-                self.shapes_to_render.drain_filter(is_shader_compiled).peekable();
+                self.shapes_to_render.extract_if(is_shader_compiled).peekable();
             if ready_to_render.peek().is_some() {
                 if let Some(framebuffer) = self.framebuffer.as_ref() {
                     framebuffer.with_bound(|| {

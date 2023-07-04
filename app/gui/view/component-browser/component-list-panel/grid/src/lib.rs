@@ -11,9 +11,7 @@
 #![recursion_limit = "1024"]
 // === Features ===
 #![feature(array_methods)]
-#![feature(drain_filter)]
 #![feature(trait_alias)]
-#![feature(hash_drain_filter)]
 #![feature(int_roundings)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]

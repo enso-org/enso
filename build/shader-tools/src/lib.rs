@@ -8,7 +8,7 @@
 // === Features ===
 #![feature(default_free_fn)]
 #![feature(trait_alias)]
-#![feature(hash_drain_filter)]
+#![feature(hash_extract_if)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]

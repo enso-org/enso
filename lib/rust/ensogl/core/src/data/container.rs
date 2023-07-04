@@ -78,7 +78,7 @@ mod tests {
 
     #[test]
     fn caching_iterator() {
-        let data = vec![2, 3, 5];
+        let data = [2, 3, 5];
         let mut caching_iterator = data.iter().cloned().cache_last_value();
         assert_eq!(Some((None, 2)), caching_iterator.next());
         assert_eq!(Some((Some(2), 3)), caching_iterator.next());

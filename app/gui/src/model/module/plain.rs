@@ -328,7 +328,7 @@ impl model::undo_redo::Aware for Module {
 fn remove_temporary_imports(content: &mut Content) {
     let mut info = double_representation::module::Info::from(content.ast.clone_ref());
     let imports_md = &mut content.metadata.ide.import;
-    let temp_imports = imports_md.drain_filter(|_, import| import.is_temporary);
+    let temp_imports = imports_md.extract_if(|_, import| import.is_temporary);
     for (id, _) in temp_imports {
         debug!("Removing temporary import {id}.");
         info.remove_import_by_id(id).log_err("Error while removing temporary import.");

@@ -1304,7 +1304,7 @@ impl<'s> Lexer<'s> {
                 // If the file starts at indent > 0, we treat that as the root indent level
                 // instead of creating a sub-block. If indent then decreases below that level,
                 // there's no block to exit.
-                break
+                break;
             };
             if block_indent > previous_indent {
                 // The new line indent is smaller than current block but bigger than the

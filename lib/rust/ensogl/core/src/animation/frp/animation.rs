@@ -143,8 +143,8 @@ where mix::Repr<T>: inertia::Value
 /// attention. The functionalities should be the same and should be accessible by similar API with
 /// two differences:
 ///
-/// 1. The API bases on FRP now, which means that the usage can probably be refactored to look
-///    much nicer.
+/// 1. The API bases on FRP now, which means that the usage can probably be refactored to look much
+///    nicer.
 ///
 /// 2. After setting the value for the first time, the value is provided as the output value without
 ///    any animation. This is different behavior from the previous implementation, where even

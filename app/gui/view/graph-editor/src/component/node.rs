@@ -1023,8 +1023,8 @@ pub mod test_utils {
         ///
         /// Returns `None`:
         /// 1. If there are no output ports.
-        /// 2. If the port does not have a `PortShapeView`. Some port models does not initialize
-        ///    the `PortShapeView`, see [`output::port::Model::init_shape`].
+        /// 2. If the port does not have a `PortShapeView`. Some port models does not initialize the
+        ///    `PortShapeView`, see [`output::port::Model::init_shape`].
         /// 3. If the output port is [`MultiPortView`].
         fn output_port_shape(&self) -> Option<output::port::SinglePortView>;
 

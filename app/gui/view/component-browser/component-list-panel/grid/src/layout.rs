@@ -135,7 +135,7 @@ impl Layout {
     ) -> Self {
         let local_scope_rows = local_scope_entry_count.div_ceil(COLUMN_COUNT);
         let filtered_groups = groups.map(|mut g| {
-            g.drain_filter(|g| g.height == 0);
+            g.retain(|g| g.height != 0);
             g
         });
         let col_heights: [usize; COLUMN_COUNT] = filtered_groups
@@ -304,7 +304,7 @@ mod tests {
         let group_ids =
             (0..6).map(|index| GroupId { section: SectionId::Popular, index }).collect_vec();
         let group_sizes = vec![2, 1, 3, 3, 2, 1];
-        let group_data = group_ids.iter().zip(group_sizes.into_iter());
+        let group_data = group_ids.iter().zip(group_sizes);
         let mk_group = |(id, size): (&GroupId, usize)| Group {
             id:               *id,
             height:           size,

@@ -6,7 +6,6 @@
 // === Features ===
 #![feature(associated_type_bounds)]
 #![feature(associated_type_defaults)]
-#![feature(drain_filter)]
 #![feature(fn_traits)]
 #![feature(specialization)]
 #![feature(trait_alias)]

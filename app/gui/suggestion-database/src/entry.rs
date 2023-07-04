@@ -480,11 +480,7 @@ impl Entry {
                         }
                     })
                 });
-                extension_method_import
-                    .into_iter()
-                    .chain(self_type_import.into_iter())
-                    .flatten()
-                    .collect()
+                extension_method_import.into_iter().chain(self_type_import).flatten().collect()
             }
             Kind::Constructor => self
                 .self_type_entry(db)

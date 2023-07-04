@@ -327,8 +327,7 @@ impl Processor {
     // pub fn handle_project_manager(
     //     &self,
     //     project_manager: arg::project_manager::Target,
-    // ) -> BoxFuture<'static, Result> {
-    //     self.get(project_manager.source).void_ok().boxed()
+    // ) -> BoxFuture<'static, Result> { self.get(project_manager.source).void_ok().boxed()
     // }
 
     pub fn handle_gui(&self, gui: arg::gui::Target) -> BoxFuture<'static, Result> {
@@ -702,10 +701,8 @@ impl Resolvable for Backend {
 //         ctx: &Processor,
 //         _from: <Self as IsTargetSource>::BuildInput,
 //     ) -> BoxFuture<'static, Result<<Self as IsTarget>::BuildInput>> {
-//         ok_ready_boxed(project_manager::BuildInput {
-//             repo_root: ctx.repo_root().path,
-//             versions:  ctx.triple.versions.clone(),
-//         })
+//       ok_ready_boxed(project_manager::BuildInput { repo_root: ctx.repo_root().path, versions:
+//       ctx.triple.versions.clone(), })
 //     }
 // }
 //
@@ -718,10 +715,8 @@ impl Resolvable for Backend {
 //         ctx: &Processor,
 //         _from: <Self as IsTargetSource>::BuildInput,
 //     ) -> BoxFuture<'static, Result<<Self as IsTarget>::BuildInput>> {
-//         ok_ready_boxed(engine::BuildInput {
-//             repo_root: ctx.repo_root().path,
-//             versions:  ctx.triple.versions.clone(),
-//         })
+//       ok_ready_boxed(engine::BuildInput { repo_root: ctx.repo_root().path, versions:
+//       ctx.triple.versions.clone(), })
 //     }
 // }
 

@@ -249,11 +249,11 @@ impl DerivingIterator<'_> {
         let target_param = &self.target_param;
         let iterator_params = vec![self.target_param];
         let iterator_tydefs = quote!(
-            // type FooIterator<'t, U> =
+            // pub type FooIterator<'t, U> =
             //     Box<dyn Iterator<Item=&'t U> + 't>;
-            // type FooIteratorMut<'t, U> =
+            // pub type FooIteratorMut<'t, U> =
             //     Box<dyn Iterator<Item=&'t mut U> + 't>;
-            type #t_iterator<'t, #(#iterator_params),*>  =
+            pub type #t_iterator<'t, #(#iterator_params),*>  =
                 Box<dyn Iterator<Item=&'t #opt_mut #target_param> + 't>;
         );
         // For types that use target type parameter, refer to their
@@ -283,9 +283,9 @@ impl DerivingIterator<'_> {
         let target_param = &self.target_param;
         let iterator_params = self.params.clone();
         let iterator_tydefs = quote!(
-            // type FooIterator<'t, T>    = impl Iterator<Item = &'t T>;
-            // type FooIteratorMut<'t, T> = impl Iterator<Item = &'t mut T>;
-            type #t_iterator<'t, #(#iterator_params: 't),*> =
+            // pub type FooIterator<'t, T>    = impl Iterator<Item = &'t T>;
+            // pub type FooIteratorMut<'t, T> = impl Iterator<Item = &'t mut T>;
+            pub type #t_iterator<'t, #(#iterator_params: 't),*> =
                 impl Iterator<Item = &'t #opt_mut #target_param>;
         );
         let matched_fields = DependentValue::collect_struct(data, target_param);

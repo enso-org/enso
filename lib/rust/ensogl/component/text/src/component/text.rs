@@ -1156,7 +1156,7 @@ impl TextModel {
                         let redraw_end_line = *change_with_selection.change_range.end();
                         if line_diff != LineDiff(0) {
                             let mut shaped_lines = self.shaped_lines.borrow_mut();
-                            let to_update = shaped_lines.drain_filter(|l, _| *l > redraw_end_line);
+                            let to_update = shaped_lines.extract_if(|l, _| *l > redraw_end_line);
                             let updated = to_update.map(|(l, s)| (l + line_diff, s)).collect_vec();
                             shaped_lines.extend(updated);
                         }

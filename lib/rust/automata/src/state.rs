@@ -17,7 +17,6 @@ use crate::nfa::Nfa; // FIXME
 
 /// A state identifier for an arbitrary finite automaton.
 #[derive(Derivative)]
-#[derivative(Clone(bound = ""))]
 #[derivative(Copy(bound = ""))]
 #[derivative(Eq(bound = ""))]
 #[derivative(Hash(bound = ""))]
@@ -28,6 +27,13 @@ use crate::nfa::Nfa; // FIXME
 pub struct State<T> {
     tp: ZST<T>,
     id: usize,
+}
+
+// See https://github.com/mcarton/rust-derivative/issues/112.
+impl<T> Clone for State<T> {
+    fn clone(&self) -> Self {
+        *self
+    }
 }
 
 impl<T> State<T> {

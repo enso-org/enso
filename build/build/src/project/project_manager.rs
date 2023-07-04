@@ -44,29 +44,15 @@
 //         &self,
 //         context: Context,
 //         job: BuildTargetJob<Self>,
-//     ) -> BoxFuture<'static, Result<Self::Artifact>> {
-//         let WithDestination { inner, destination } = job;
-//         let this = self.clone();
-//         async move {
-//             let paths = crate::paths::Paths::new_versions(&inner.repo_root, inner.versions)?;
-//             let context = crate::engine::context::RunContext {
-//                 operation: crate::engine::Operation::Build,
-//                 goodies: GoodieDatabase::new()?,
-//                 config: BuildConfigurationFlags {
-//                     clean_repo: false,
-//                     build_project_manager_package: true,
-//                     ..crate::engine::NIGHTLY
-//                 }
-//                 .into(),
-//                 inner: context,
-//                 paths,
-//             };
-//             let artifacts = context.build().await?;
-//             let engine_distribution =
-//                 artifacts.packages.project_manager.context("Missing Project Manager package!")?;
-//             ide_ci::fs::mirror_directory(&engine_distribution.dir, &destination).await?;
-//             this.adapt_artifact(destination).await
-//         }
-//         .boxed()
+//     ) -> BoxFuture<'static, Result<Self::Artifact>> { let WithDestination { inner, destination }
+//       = job; let this = self.clone(); async move { let paths =
+//       crate::paths::Paths::new_versions(&inner.repo_root, inner.versions)?; let context =
+//       crate::engine::context::RunContext { operation: crate::engine::Operation::Build, goodies:
+//       GoodieDatabase::new()?, config: BuildConfigurationFlags { clean_repo: false,
+//       build_project_manager_package: true, ..crate::engine::NIGHTLY } .into(), inner: context,
+//       paths, }; let artifacts = context.build().await?; let engine_distribution =
+//       artifacts.packages.project_manager.context("Missing Project Manager package!")?;
+//       ide_ci::fs::mirror_directory(&engine_distribution.dir, &destination).await?;
+//       this.adapt_artifact(destination).await } .boxed()
 //     }
 // }

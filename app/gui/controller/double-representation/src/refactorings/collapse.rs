@@ -334,9 +334,9 @@ impl Collapser {
     /// 1) Lines that are kept intact -- not belonging to selected nodes;
     /// 2) Lines that are extracted and removed -- all selected nodes, except:
     /// 3) Line that introduces output of the extracted function (if present at all) -> its
-    ///    expression shall be replaced with a call to the extracted function.
-    ///    If there is no usage of the extracted function output, its invocation should be placed
-    ///    in place of the last extracted line.
+    ///    expression shall be replaced with a call to the extracted function. If there is no usage
+    ///    of the extracted function output, its invocation should be placed in place of the last
+    ///    extracted line.
     pub fn rewrite_line(
         &self,
         line: &BlockLine<Option<Ast>>,

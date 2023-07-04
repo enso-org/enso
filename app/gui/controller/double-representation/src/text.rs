@@ -38,7 +38,7 @@ pub fn apply_code_change_to_id_map(
     info!("Updating the ID map with the following text edit: {change:?}.");
 
     // Remove all entries fully covered by the removed span.
-    vector.drain_filter(|(range, _)| removed.contains_range(range));
+    vector.extract_if(|(range, _)| removed.contains_range(range)).for_each(drop);
 
     // If the edited section ends up being the trailing part of AST node, how many bytes should be
     // trimmed from the id. Precalculated, as is constant in the loop below.
@@ -150,9 +150,11 @@ pub fn apply_code_change_to_id_map(
     }
 
     // If non-preferred entry collides with the preferred one, remove the former.
-    vector.drain_filter(|(range, id)| {
-        preferred.get(range).map(|preferred_id| id != preferred_id).unwrap_or(false)
-    });
+    vector
+        .extract_if(|(range, id)| {
+            preferred.get(range).map(|preferred_id| id != preferred_id).unwrap_or(false)
+        })
+        .for_each(drop);
 }
 
 

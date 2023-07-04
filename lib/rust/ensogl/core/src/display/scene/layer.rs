@@ -740,7 +740,7 @@ impl LayerModel {
     ) -> DependencyGraph<LayerOrderItem> {
         let mut graph = if let Some(global_element_depth_order) = global_element_depth_order {
             let mut graph = global_element_depth_order.clone();
-            graph.extend(self.depth_order.borrow().clone().into_iter());
+            graph.extend(self.depth_order.borrow().clone());
             graph
         } else {
             self.depth_order.borrow().clone()

@@ -33,12 +33,18 @@ pub trait NodeWithDefaultOutput = Node where <Self as Node>::Output: Default;
 /// nodes use this struct under the hood.
 #[derive(Derivative)]
 #[derivative(Copy(bound = ""))]
-#[derivative(Clone(bound = ""))]
 #[derivative(Debug(bound = ""))]
 #[repr(transparent)]
 pub struct TypedNode<Type, Output> {
     pub(crate) _marker: ZST<(Type, Output)>,
     pub(crate) id:      NodeId,
+}
+
+// See https://github.com/mcarton/rust-derivative/issues/112.
+impl<T, U> Clone for TypedNode<T, U> {
+    fn clone(&self) -> Self {
+        *self
+    }
 }
 
 impl<Type, Output: Data> Node for TypedNode<Type, Output> {
@@ -105,7 +111,7 @@ impl<'a, Model, N: Node> Node for NodeInNetwork<'a, Model, N> {
 impl<'t, Model, N: Node> Copy for NodeInNetwork<'t, Model, N> {}
 impl<'t, Model, N: Node> Clone for NodeInNetwork<'t, Model, N> {
     fn clone(&self) -> Self {
-        Self { node: self.node, network: self.network }
+        *self
     }
 }
 

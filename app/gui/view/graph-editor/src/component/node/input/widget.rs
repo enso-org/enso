@@ -1293,7 +1293,9 @@ impl PointerUsage {
         port_id: Option<PortId>,
         wants_port: bool,
     ) -> bool {
-        let Some(port_id) = port_id else { return false; };
+        let Some(port_id) = port_id else {
+            return false;
+        };
         let will_receive_port = wants_port && self.assigned_port.is_none();
         will_receive_port.then(|| self.assigned_port = Some((port_id, identity.index)));
         will_receive_port

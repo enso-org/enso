@@ -34,17 +34,17 @@ const FONTS: &str =
     r#""SF Pro Text","SF Pro Icons","Helvetica Neue","Helvetica","Arial",sans-serif"#;
 
 /// The pause icon, a circle with two vertical bars inside.
-const PAUSE_ICON: &str = r###"<svg width="16" height="16">
+const PAUSE_ICON: &str = r##"<svg width="16" height="16">
        <circle cx="8" cy="8" r="8" fill="#00000020" />
        <rect x="5" y="4" width="2" height="8" style="fill:#00000080;" />
        <rect x="9" y="4" width="2" height="8" style="fill:#00000080;" />
-    </svg>"###;
+    </svg>"##;
 
 /// The play icon, a circle with a triangle pointing right inside.
-const PLAY_ICON: &str = r###"<svg width="16" height="16">
+const PLAY_ICON: &str = r##"<svg width="16" height="16">
        <circle cx="8" cy="8" r="8" fill="#00000020" />
        <polygon points="6,4 12,8 6,12" style="fill:#00000080;" />
-    </svg>"###;
+    </svg>"##;
 
 
 // ==============

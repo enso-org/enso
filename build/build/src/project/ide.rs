@@ -174,13 +174,10 @@ impl Ide {
 //         &self,
 //         input: Self::BuildInput,
 //         output_path: impl AsRef<Path> + Send + Sync + 'static,
-//     ) -> BoxFuture<'static, Result<Self::Output>> {
-//         let ide_desktop = crate::ide::web::IdeDesktop::new(&input.repo_root.app.ide_desktop);
-//         async move {
-//             let (gui, project_manager) = try_join(input.gui, input.project_manager).await?;
-//             ide_desktop.dist(&gui, &project_manager, &output_path).await?;
-//             Ok(Artifact::new(&input.version, output_path.as_ref()))
-//         }
-//         .boxed()
+//     ) -> BoxFuture<'static, Result<Self::Output>> { let ide_desktop =
+//       crate::ide::web::IdeDesktop::new(&input.repo_root.app.ide_desktop); async move { let (gui,
+//       project_manager) = try_join(input.gui, input.project_manager).await?;
+//       ide_desktop.dist(&gui, &project_manager, &output_path).await?;
+//       Ok(Artifact::new(&input.version, output_path.as_ref())) } .boxed()
 //     }
 // }

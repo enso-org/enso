@@ -414,7 +414,7 @@ impl CompilerData {
 
     #[profile(Debug)]
     fn poll_programs_ready(&mut self) {
-        let ready_jobs = self.jobs.link_poll.drain_filter(|job| {
+        let ready_jobs = self.jobs.link_poll.extract_if(|job| {
             job.khr.is_program_ready(&self.context, &job.program).unwrap_or(true)
         });
         self.jobs.link_check.extend(ready_jobs.map(|job| job.map_input(|t| t.program)));
@@ -422,9 +422,10 @@ impl CompilerData {
 
     #[profile(Debug)]
     fn poll_shaders_ready(&mut self) {
-        let ready_jobs = self.jobs.compile_poll.drain_filter(|job| {
-            job.khr.is_shader_ready(&self.context, &job.program).unwrap_or(true)
-        });
+        let ready_jobs = self
+            .jobs
+            .compile_poll
+            .extract_if(|job| job.khr.is_shader_ready(&self.context, &job.program).unwrap_or(true));
         self.jobs.compile_check.extend(ready_jobs.map(|job| job.map_input(|t| t.program)));
     }
 

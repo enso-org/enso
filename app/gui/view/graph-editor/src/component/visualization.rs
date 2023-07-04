@@ -13,9 +13,9 @@
 //! 3. The `Class` is a struct that can instantiate multiple `Visualization` structs and provides
 //!    data about the visualization even before they are instantiated like input datatype and name.
 //!
-//! 4. The `Container` wraps the `Visualization` and provides the UI elements that facilitate
-//!    user interactions. For example, selecting a visualization or connecting it to nodes in the
-//!    graph editor scene.
+//! 4. The `Container` wraps the `Visualization` and provides the UI elements that facilitate user
+//!    interactions. For example, selecting a visualization or connecting it to nodes in the graph
+//!    editor scene.
 //!
 //! In addition this module also contains a `Data` struct that provides a dynamically typed way to
 //! handle data for visualizations. This allows the `Visualization` struct to be without type

@@ -86,7 +86,7 @@ macro_rules! _define_sdf_shape_immutable_part {
 
         impl canvas::Draw for $name {
             fn draw(&self, canvas:&mut Canvas) -> canvas::Shape {
-                let args = vec!["position".to_string(), $(self.$field.glsl().into()),* ].join(",");
+                let args = ["position".to_string(), $(self.$field.glsl().into()),* ].join(",");
                 let code = format!("{}({})",self.glsl_name,args);
                 canvas.define_shape(self.id(),&code)
             }
@@ -96,7 +96,7 @@ macro_rules! _define_sdf_shape_immutable_part {
             fn glsl_shape_definition() -> String {
                 let name = stringify!($name).to_snake_case();
                 let body = stringify!($body);
-                let args = vec!["vec2 position".to_string(), $(
+                let args = ["vec2 position".to_string(), $(
                     format!("{} {}", <$field_type>::glsl_prim_type(), stringify!($field))
                 ),*].join(", ");
                 format!("BoundSdf {name} ({args}) {body}")

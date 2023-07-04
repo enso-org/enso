@@ -659,7 +659,6 @@ pub mod test {
                 if result.is_ok() {
                     this.current_ls_content.set(new_content);
                     this.current_ls_version.set(actual_new);
-                } else {
                 }
                 result
             });

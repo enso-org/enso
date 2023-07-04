@@ -50,8 +50,7 @@
 //         &self,
 //         cache: PathBuf,
 //         _metadata: Self::Metadata,
-//     ) -> BoxFuture<'static, Result<Self::Output>> {
-//         ready(Result::Ok(cache)).boxed()
+//     ) -> BoxFuture<'static, Result<Self::Output>> { ready(Result::Ok(cache)).boxed()
 //     }
 //
 //     fn key(&self) -> Self::Key {

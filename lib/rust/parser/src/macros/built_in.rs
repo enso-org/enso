@@ -686,9 +686,13 @@ fn try_foreign_body<'s>(
     let function =
         operator::resolve_operator_precedence_if_non_empty(tokens).ok_or(expected_name)?;
     let expected_function = "Expected a function definition after foreign declaration.";
-    let box syntax::tree::Variant::OprApp(
-            syntax::tree::OprApp { lhs: Some(lhs), opr: Ok(equals), rhs: Some(body) }) = function.variant else {
-        return Err(expected_function)
+    let box syntax::tree::Variant::OprApp(syntax::tree::OprApp {
+        lhs: Some(lhs),
+        opr: Ok(equals),
+        rhs: Some(body),
+    }) = function.variant
+    else {
+        return Err(expected_function);
     };
     if !equals.properties.is_assignment() {
         return Err(expected_function);
