@@ -74,6 +74,7 @@ const INFINITE: f32 = 99999.0;
 const ERROR_VISUALIZATION_SIZE: Vector2 = visualization::container::DEFAULT_SIZE;
 
 const VISUALIZATION_OFFSET_Y: f32 = -20.0;
+const VISUALIZATION_OFFSET: Vector2 = Vector2(0.0, VISUALIZATION_OFFSET_Y);
 
 const ENABLE_VIS_PREVIEW: bool = false;
 const VIS_PREVIEW_ONSET_MS: f32 = 4000.0;
@@ -544,9 +545,8 @@ impl NodeModel {
             .set_x(x_offset_to_node_center + width / 2.0 + CORNER_RADIUS + action_bar_width / 2.0);
         self.action_bar.frp.set_size(Vector2::new(action_bar_width, ACTION_BAR_HEIGHT));
 
-        let visualization_offset = visualization_offset();
-        self.error_visualization.set_xy(visualization_offset);
-        self.visualization.set_xy(visualization_offset);
+        self.error_visualization.set_xy(VISUALIZATION_OFFSET);
+        self.visualization.set_xy(VISUALIZATION_OFFSET);
         self.visualization.frp.set_width(width);
 
         size
@@ -955,12 +955,6 @@ fn x_offset_to_node_center(node_width: f32) -> f32 {
     node_width / 2.0
 }
 
-/// Calculate a position where to render the [`visualization::Container`] of a node, relative to
-/// the node's origin.
-fn visualization_offset() -> Vector2 {
-    Vector2(0.0, VISUALIZATION_OFFSET_Y)
-}
-
 #[profile(Debug)]
 fn bounding_box(
     node_position: Vector2,
@@ -971,8 +965,7 @@ fn bounding_box(
     let node_bbox_pos = node_position + Vector2(x_offset_to_node_center, 0.0) - node_size / 2.0;
     let node_bbox = BoundingBox::from_position_and_size(node_bbox_pos, node_size);
     if let Some(visualization_size) = visualization_size {
-        let visualization_offset = visualization_offset();
-        let visualization_pos = node_position + visualization_offset;
+        let visualization_pos = node_position + VISUALIZATION_OFFSET;
         let visualization_bbox_pos = visualization_pos - visualization_size / 2.0;
         let visualization_bbox =
             BoundingBox::from_position_and_size(visualization_bbox_pos, visualization_size);

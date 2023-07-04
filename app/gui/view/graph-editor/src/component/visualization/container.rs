@@ -365,8 +365,8 @@ impl ContainerModel {
     /// screen_shape * [`MAX_PORTION_OF_SCREEN`].
     fn resize(&self, mut new_size: Vector2, view_state: ViewState, screen_shape: &Shape) -> Vector2 {
         let max_size = Vector2::from(screen_shape).component_mul(&MAX_PORTION_OF_SCREEN);
-        new_size.x = new_size.x.max(MIN_SIZE.x).min(max_size.x);
-        new_size.y = new_size.y.max(MIN_SIZE.y).min(max_size.y);
+        new_size.x = new_size.x.clamp(MIN_SIZE.x, max_size.x);
+        new_size.y = new_size.y.clamp(MIN_SIZE.y, max_size.y);
         self.update_layout(new_size, view_state);
         new_size
     }
@@ -378,7 +378,7 @@ impl ContainerModel {
         pos
     }
 
-    /// Update the selection shape. `value` is a selection width percentage in range `[0, 1]`.
+    /// Update the selection shape. `value` is a selection width factor in range `[0, 1]`.
     fn set_selection(&self, container_size: Vector2, value: f32, style: &SelectionStyle) {
         let border_width = style.width * value;
         let overall_size = container_size + Vector2(border_width * 2.0, border_width * 2.0);
