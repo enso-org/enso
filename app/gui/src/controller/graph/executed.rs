@@ -457,16 +457,12 @@ impl Handle {
     pub fn disconnect_all(&self, connections: impl Iterator<Item = Connection>) -> FallibleResult {
         let errors =
             connections.map(|c| self.disconnect(&c)).filter_map(|r| r.err()).collect::<Vec<_>>();
-        if errors.is_empty() {
-            Ok(())
+        // Failure has no good way to propagate multiple errors with `Failure`. So we propagate
+        // only the first one.
+        if let Some(error) = errors.into_iter().next() {
+            Err(error)
         } else {
-            // Failure has no good way to propagate multiple errors with `Failure`. So we propagate
-            // only the first one.
-            let first_error = errors
-                .into_iter()
-                .next()
-                .expect("Errors are not empty, so there must be a first element.");
-            Err(first_error)
+            Ok(())
         }
     }
 
