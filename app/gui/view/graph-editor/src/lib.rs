@@ -1811,7 +1811,7 @@ impl GraphEditorModel {
                 &visualization.visible, &visualization.visualization_path,
                 move |_init, is_enabled, path| (node_id, is_enabled.and_option(path.clone()))
             );
-            out.enabled_visualization_path <+ enabled_visualization_path;
+            out.enabled_visualization_path <+ enabled_visualization_path.on_change();
 
 
             // === Read-only mode ===
