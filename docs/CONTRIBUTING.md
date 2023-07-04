@@ -704,7 +704,8 @@ orchestration. One can pass following environment variables to
 - `ENSO_JVM_PATH` to force a fixed GraalVM to execute the engine/language server
   process on
 - `ENSO_ENGINE_PATH` the path to engine/language server as created by
-  `buildEngineDistribution`
+  `buildEngineDistribution`, usually
+  `<repository-root>/built-distribution/enso-engine-0.0.0-dev-<os>-<arch>/enso-0.0.0-dev/`
 
 One doesn't need to deal with these options directly, there is an _sbt command_
 to orchestrate them all:
