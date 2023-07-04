@@ -191,15 +191,19 @@ export class RemoteBackend implements backend.Backend {
         }
     }
 
-    /** Set the username of the current user. */
+    /** Set the username and parent organization of the current user. */
     async createUser(body: backend.CreateUserRequestBody): Promise<backend.UserOrOrganization> {
         const response = await this.post<backend.UserOrOrganization>(CREATE_USER_PATH, body)
-        return await response.json()
+        if (!responseIsSuccessful(response)) {
+            return this.throw('Unable to create user.')
+        } else {
+            return await response.json()
+        }
     }
 
     /** Invite a new user to the organization by email. */
     async inviteUser(body: backend.InviteUserRequestBody): Promise<void> {
-        const response = await this.post<backend.UserOrOrganization>(INVITE_USER_PATH, body)
+        const response = await this.post(INVITE_USER_PATH, body)
         if (!responseIsSuccessful(response)) {
             return this.throw(`Unable to invite user with email '${body.userEmail}'.`)
         } else {

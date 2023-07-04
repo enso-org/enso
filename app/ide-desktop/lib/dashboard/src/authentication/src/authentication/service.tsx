@@ -36,6 +36,8 @@ const CONFIRM_REGISTRATION_PATHNAME = '//auth/confirmation'
 /** Pathname of the {@link URL} for deep links to the login page, after a redirect from a reset
  * password email. */
 const LOGIN_PATHNAME = '//auth/login'
+/** Pathname of the {@link URL} for deep links to the registration page. */
+const REGISTRATION_PATHNAME = '//auth/registration'
 
 /** URI used as the OAuth redirect when deep links are supported. */
 const DEEP_LINK_REDIRECT = newtype.asNewtype<auth.OAuthRedirect>(
@@ -228,6 +230,9 @@ function setDeepLinkHandler(logger: loggerProvider.Logger, navigate: (url: strin
              * be for the login page. */
             case LOGIN_PATHNAME:
                 navigate(app.LOGIN_PATH)
+                break
+            case REGISTRATION_PATHNAME:
+                navigate(app.REGISTRATION_PATH + parsedUrl.search)
                 break
             /** If the user is being redirected from a password reset email, then we need to navigate to
              * the password reset page, with the verification code and email passed in the URL s-o they can

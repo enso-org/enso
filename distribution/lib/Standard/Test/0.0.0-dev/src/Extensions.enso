@@ -549,5 +549,6 @@ Any.should_not_contain self element frames_to_skip=0 =
    rules of the particular type - be it a `Vector`, `Text` or any custom type
    implementing a method `contains : a -> Boolean`.
 Error.should_not_contain : Any -> Integer -> Test_Result
-Error.should_not_contain self _ frames_to_skip=0 =
+Error.should_not_contain self element frames_to_skip=0 =
+    _ = [element]
     Test.fail_match_on_unexpected_error self 1+frames_to_skip

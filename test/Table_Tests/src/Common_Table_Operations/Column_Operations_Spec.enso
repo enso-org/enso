@@ -3,6 +3,7 @@ import Standard.Base.Errors.Common.Arithmetic_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Table import Value_Type
+from Standard.Table.Data.Type.Value_Type import Bits
 from Standard.Table.Errors import all
 
 from Standard.Database.Errors import all
@@ -17,6 +18,13 @@ main = run_default_backend spec
 spec setup =
     prefix = setup.prefix
     table_builder = setup.table_builder
+
+    do_op n op =
+        table = table_builder [["x", [n]]]
+        result = table.at "x" |> op
+        result.to_vector.at 0
+    do_round n dp=0 use_bankers=False = do_op n (_.round dp use_bankers)
+
     Test.group prefix+"Boolean Column Operations" <|
         Test.specify "iif" <|
             t = table_builder [["X", [True, False, Nothing, True]]]
@@ -440,6 +448,348 @@ spec setup =
             (x * Nothing).to_vector . should_equal nulls
             (x / Nothing).to_vector . should_equal nulls
 
+    Test.group prefix+"Rounding-like operations" <|
+        Test.specify "should name a rounding column correctly" <|
+            table = table_builder [["x", [0.1, 0.9, 3.1, 3.9, -0.1, -0.9, -3.1, -3.9]]]
+            table.at "x" . round . name . should_equal "round([x])"
+
+        test_floatlike type =
+            Test.specify "should allow round on a "+type.to_text+" column" <|
+                table = table_builder [["x", [0.1, 0.9, 3.1, 3.9, -0.1, -0.9, -3.1, -3.9]]]
+                result = table.at "x" . cast type . round
+                result.to_vector.should_equal [0, 1, 3, 4, 0, -1, -3, -4]
+
+            Test.specify "should allow round on a float column (to >0 decimal places)" <|
+                table = table_builder [["x", [0.51, 0.59, 3.51, 3.59, -0.51, -0.59, -3.51, -3.59]]]
+                result = table.at "x" . cast type . round 1
+                result.to_vector.should_equal [0.5, 0.6, 3.5, 3.6, -0.5, -0.6, -3.5, -3.6]
+
+            Test.specify "should allow round on a float column (to <0 decimal places)" <|
+                table = table_builder [["x", [51.2, 59.3, 351.45, 359.11, -51.2, -59.3, -351.23, -359.69]]]
+                result = table.at "x" . cast type . round -1
+                result.to_vector.should_equal [50.0, 60.0, 350.0, 360.0, -50.0, -60.0, -350.0, -360.0]
+
+            Test.specify "should allow truncate on a "+type.to_text+" column" <|
+                table = table_builder [["x", [0.1, 0.9, 3.1, 3.9, -0.1, -0.9, -3.1, -3.9]]]
+                result = table.at "x" . cast type . truncate
+                result.to_vector.should_equal [0, 0, 3, 3, 0, 0, -3, -3]
+
+            Test.specify "should allow ceil on a "+type.to_text+" column" <|
+                table = table_builder [["x", [0.1, 0.9, 3.1, 3.9, -0.1, -0.9, -3.1, -3.9]]]
+                result = table.at "x" . cast type . ceil
+                result.to_vector.should_equal [1, 1, 4, 4, 0, 0, -3, -3]
+
+            Test.specify "should allow floor on a "+type.to_text+" column" <|
+                table = table_builder [["x", [0.1, 0.9, 3.1, 3.9, -0.1, -0.9, -3.1, -3.9]]]
+                result = table.at "x" . cast type . floor
+                result.to_vector.should_equal [0, 0, 3, 3, -1, -1, -4, -4]
+
+        test_floatlike Value_Type.Float
+        if setup.test_selection.supports_decimal_type then
+            test_floatlike Value_Type.Decimal
+
+        Test.specify "should allow round on an int column" <|
+            table = table_builder [["x", [1, 9, 31, 39, -1, -9, -31, -39]]]
+            result = table.at "x" . round -1
+            result.to_vector.should_equal [0, 10, 30, 40, 0, -10, -30, -40]
+
+        Test.specify "should allow truncate on an int column" <|
+            table = table_builder [["x", [0, 3, -3, 1, -2]]]
+            result = table.at "x" . truncate
+            result.to_vector.should_equal [0, 3, -3, 1, -2]
+
+        Test.specify "should allow ceil on an int column" <|
+            table = table_builder [["x", [0, 3, -3, 1, -2]]]
+            result = table.at "x" . ceil
+            result.to_vector.should_equal [0, 3, -3, 1, -2]
+
+        Test.specify "should allow floor on an int column" <|
+            table = table_builder [["x", [0, 3, -3, 1, -2]]]
+            result = table.at "x" . floor
+            result.to_vector.should_equal [0, 3, -3, 1, -2]
+
+        Test.specify "should fail on decimal_places out of range" <|
+            table = table_builder [["x", [0, 3, -3, 1, -2]]]
+            table.at "x" . round 16 . should_fail_with Illegal_Argument
+
+        if setup.test_selection.supports_decimal_type then
+            Test.specify "should return decimals when rounding decimals" <|
+                i1 = 9223372036854775807 - 1
+                c = table_builder [["X", [i1]]] . at "X"
+                decimal_col = c.cast Value_Type.Decimal
+                decimal_col.value_type.is_decimal . should_be_true
+                decimal_col2 = decimal_col + decimal_col*decimal_col
+                [(.floor), (.ceil), (.truncate), (x-> x.round 0), (x-> x.round 2)].each op->
+                    op decimal_col2 . to_vector . should_equal [i1 + i1*i1]
+
+        Test.specify "should allow Nothing/NULL" <|
+            table = table_builder [["x", [Nothing, 0.51, 0.59, 3.51, Nothing, 3.59, -0.51, -0.59, -3.51, -3.59]]]
+            result = table.at "x" . round 1
+            result.to_vector.should_equal [Nothing, 0.5, 0.6, 3.5, Nothing, 3.6, -0.5, -0.6, -3.5, -3.6]
+
+        Test.specify "should fail on bad column type" <|
+            table = table_builder [["x", ["a", "b"]]]
+            table.at "x" . round . should_fail_with Invalid_Value_Type
+
+    Test.group prefix+"Rounding numeric tests" <|
+        Test.specify "Can round positive decimals correctly" <|
+            do_round 3.0 . should_equal 3
+            do_round 3.00001 . should_equal 3
+            do_round 3.3 . should_equal 3
+            do_round 3.49999 . should_equal 3
+            do_round 3.5 . should_equal 4
+            do_round 3.50001 . should_equal 4
+            do_round 3.99999 . should_equal 4
+
+        Test.specify "Can round negative decimals correctly" <|
+            do_round -3.0 . should_equal -3
+            do_round -3.00001 . should_equal -3
+            do_round -3.3 . should_equal -3
+            do_round -3.49999 . should_equal -3
+            do_round -3.5 . should_equal -4
+            do_round -3.50001 . should_equal -4
+            do_round -3.99999 . should_equal -4
+
+        Test.specify "Explicit and implicit 0 decimal places work the same" <|
+            do_round 3.00001 0 . should_equal 3
+            do_round 3.3 0 . should_equal 3
+            do_round 3.00001 . should_equal 3
+            do_round 3.3 . should_equal 3
+
+        Test.specify "Can round zero and small decimals correctly" <|
+            do_round 0.0 . should_equal 0
+            do_round 0.00001 . should_equal 0
+            do_round -0.00001 . should_equal 0
+
+        Test.specify "Can round decimals to a specified number of decimal places" <|
+            do_round 3.0001 2 . should_equal 3.0
+            do_round 3.1414 2 . should_equal 3.14
+            do_round 3.1415 2 . should_equal 3.14
+            do_round 3.1416 2 . should_equal 3.14
+            do_round 3.9999 2 . should_equal 4.0
+
+            do_round 3.0001 3 . should_equal 3.0
+            do_round 3.1414 3 . should_equal 3.141
+            do_round 3.1415 3 . should_equal 3.142
+            do_round 3.1416 3 . should_equal 3.142
+            do_round 3.9999 3 . should_equal 4.0
+
+        Test.specify "Can round positive decimals to a specified negative number of decimal places" <|
+            do_round 1234.0 -1 . should_equal 1230
+            do_round 1234.0 -2 . should_equal 1200
+            do_round 1234.0 -3 . should_equal 1000
+            do_round 1234.0 -4 . should_equal 0
+
+            do_round 1499.0 -1 . should_equal 1500
+            do_round 1499.0 -2 . should_equal 1500
+            do_round 1499.0 -3 . should_equal 1000
+
+            do_round 1495.0 -1 . should_equal 1500
+            do_round 1494.0 -1 . should_equal 1490
+            do_round 1495.0 -2 . should_equal 1500
+            do_round 1494.0 -2 . should_equal 1500
+
+        Test.specify "Can round negative decimals to a specified negative number of decimal places" <|
+            do_round -1234.0 -1 . should_equal -1230
+            do_round -1234.0 -2 . should_equal -1200
+            do_round -1234.0 -3 . should_equal -1000
+            do_round -1234.0 -4 . should_equal 0
+
+            do_round -1499.0 -1 . should_equal -1500
+            do_round -1499.0 -2 . should_equal -1500
+            do_round -1499.0 -3 . should_equal -1000
+
+            do_round -1495.0 -1 . should_equal -1500
+            do_round -1494.0 -1 . should_equal -1490
+            do_round -1495.0 -2 . should_equal -1500
+            do_round -1494.0 -2 . should_equal -1500
+
+        Test.specify "Banker's rounding handles half-way values correctly" <|
+            do_round -3.5 use_bankers=True . should_equal -4
+            do_round -2.5 use_bankers=True . should_equal -2
+            do_round -1.5 use_bankers=True . should_equal -2
+            do_round -0.5 use_bankers=True . should_equal 0
+            do_round 0.5 use_bankers=True . should_equal 0
+            do_round 1.5 use_bankers=True . should_equal 2
+            do_round 2.5 use_bankers=True . should_equal 2
+            do_round 3.5 use_bankers=True . should_equal 4
+
+            do_round 0.235 2 use_bankers=True . should_equal 0.24
+            do_round 0.225 2 use_bankers=True . should_equal 0.22
+            do_round -0.235 2 use_bankers=True . should_equal -0.24
+            do_round -0.225 2 use_bankers=True . should_equal -0.22
+
+            do_round 12350.0 -2 use_bankers=True . should_equal 12400
+            do_round 12250.0 -2 use_bankers=True . should_equal 12200
+            do_round -12350.0 -2 use_bankers=True . should_equal -12400
+            do_round -12250.0 -2 use_bankers=True . should_equal -12200
+
+        Test.specify "Banker's rounding handles non-half-way values just like normal rounding" <|
+            do_round 3.0 use_bankers=True . should_equal 3
+            do_round 3.00001 use_bankers=True . should_equal 3
+            do_round 3.3 use_bankers=True . should_equal 3
+            do_round 3.49999 use_bankers=True . should_equal 3
+            do_round 3.50001 use_bankers=True . should_equal 4
+            do_round 3.99999 use_bankers=True . should_equal 4
+
+            do_round -3.0 . should_equal -3
+            do_round -3.00001 . should_equal -3
+            do_round -3.3 . should_equal -3
+            do_round -3.49999 . should_equal -3
+            do_round -3.50001 . should_equal -4
+            do_round -3.99999 . should_equal -4
+
+        Test.specify "Can round correctly near the precision limit" <|
+            do_round 1.22222222225 10 . should_equal 1.2222222223
+            do_round 1.222222222225 11 . should_equal 1.22222222223
+            do_round 1.2222222222225 12 . should_equal 1.222222222223
+            do_round 1.22222222222225 13 . should_equal 1.2222222222223
+            do_round 1.222222222222225 14 . should_equal 1.22222222222223
+
+            do_round -1.22222222225 10 . should_equal -1.2222222223
+            do_round -1.222222222225 11 . should_equal -1.22222222223
+            do_round -1.2222222222225 12 . should_equal -1.222222222223
+            do_round -1.22222222222225 13 . should_equal -1.2222222222223
+            do_round -1.222222222222225 14 . should_equal -1.22222222222223
+
+            do_round 1.22222222235 10 . should_equal 1.2222222224
+            do_round 1.222222222235 11 . should_equal 1.22222222224
+            do_round 1.2222222222235 12 . should_equal 1.222222222224
+            do_round 1.22222222222235 13 . should_equal 1.2222222222224
+            do_round 1.222222222222235 14 . should_equal 1.22222222222224
+
+            do_round -1.22222222235 10 . should_equal -1.2222222224
+            do_round -1.222222222235 11 . should_equal -1.22222222224
+            do_round -1.2222222222235 12 . should_equal -1.222222222224
+            do_round -1.22222222222235 13 . should_equal -1.2222222222224
+            do_round -1.222222222222235 14 . should_equal -1.22222222222224
+
+        Test.specify "Can round correctly near the precision limit, using banker's rounding" <|
+            do_round 1.22222222225 10 use_bankers=True . should_equal 1.2222222222
+            do_round 1.222222222225 11 use_bankers=True . should_equal 1.22222222222
+            do_round 1.2222222222225 12 use_bankers=True . should_equal 1.222222222222
+            do_round 1.22222222222225 13 use_bankers=True . should_equal 1.2222222222222
+            do_round 1.222222222222225 14 use_bankers=True . should_equal 1.22222222222222
+
+            do_round -1.22222222225 10 use_bankers=True . should_equal -1.2222222222
+            do_round -1.222222222225 11 use_bankers=True . should_equal -1.22222222222
+            do_round -1.2222222222225 12 use_bankers=True . should_equal -1.222222222222
+            do_round -1.22222222222225 13 use_bankers=True . should_equal -1.2222222222222
+            do_round -1.222222222222225 14 use_bankers=True . should_equal -1.22222222222222
+
+            do_round 1.22222222235 10 use_bankers=True . should_equal 1.2222222224
+            do_round 1.222222222235 11 use_bankers=True . should_equal 1.22222222224
+            do_round 1.2222222222235 12 use_bankers=True . should_equal 1.222222222224
+            do_round 1.22222222222235 13 use_bankers=True . should_equal 1.2222222222224
+            do_round 1.222222222222235 14 use_bankers=True . should_equal 1.22222222222224
+
+            do_round -1.22222222235 10 use_bankers=True . should_equal -1.2222222224
+            do_round -1.222222222235 11 use_bankers=True . should_equal -1.22222222224
+            do_round -1.2222222222235 12 use_bankers=True . should_equal -1.222222222224
+            do_round -1.22222222222235 13 use_bankers=True . should_equal -1.2222222222224
+            do_round -1.222222222222235 14 use_bankers=True . should_equal -1.22222222222224
+
+        Test.specify "Decimal places out of range" <|
+            do_round 3.1 16 . should_fail_with Illegal_Argument
+            do_round 3.1 -16 . should_fail_with Illegal_Argument
+
+        Test.specify "Floating point imperfect representation counter-examples" <|
+            do_round 1.225 2 use_bankers=True . should_equal 1.22 # Actual result 1.23
+            do_round 37.785 2 . should_equal 37.79
+
+        Test.specify "Can round small integers to a specified number of decimal places correctly (value is unchanged)"
+            do_round 0 . should_equal 0
+            do_round 3 . should_equal 3
+            do_round -3 . should_equal -3
+            do_round 3 0 . should_equal 3
+            do_round -3 0 . should_equal -3
+            do_round 3 1 . should_equal 3
+            do_round -3 1 . should_equal -3
+
+        Test.specify "Can round integers to a specified number of negative places correctly"
+            do_round 0 -1 . should_equal 0
+            do_round 4 -1 . should_equal 0
+            do_round 5 -1 . should_equal 10
+            do_round 6 -1 . should_equal 10
+            do_round 9 -1 . should_equal 10
+            do_round 10 -1 . should_equal 10
+            do_round 11 -1 . should_equal 10
+            do_round 24 -1 . should_equal 20
+            do_round 25 -1 . should_equal 30
+            do_round 29 -1 . should_equal 30
+            do_round 30 -1 . should_equal 30
+            do_round 31 -1 . should_equal 30
+
+            do_round 2000 -3 . should_equal 2000
+            do_round 2001 -3 . should_equal 2000
+            do_round 2412 -3 . should_equal 2000
+            do_round 2499 -3 . should_equal 2000
+            do_round 2500 -3 . should_equal 3000
+            do_round 2501 -3 . should_equal 3000
+            do_round 2511 -3 . should_equal 3000
+            do_round 2907 -3 . should_equal 3000
+            do_round 2999 -3 . should_equal 3000
+            do_round 3000 -3 . should_equal 3000
+            do_round 3001 -3 . should_equal 3000
+            do_round 3098 -3 . should_equal 3000
+            do_round 3101 -3 . should_equal 3000
+
+        Test.specify "Can round negative integers to a specified number of negative places correctly"
+            do_round -4 -1 . should_equal 0
+            do_round -5 -1 . should_equal -10
+            do_round -6 -1 . should_equal -10
+            do_round -9 -1 . should_equal -10
+            do_round -10 -1 . should_equal -10
+            do_round -11 -1 . should_equal -10
+            do_round -24 -1 . should_equal -20
+            do_round -25 -1 . should_equal -30
+            do_round -29 -1 . should_equal -30
+            do_round -30 -1 . should_equal -30
+            do_round -31 -1 . should_equal -30
+
+            do_round -2000 -3 . should_equal -2000
+            do_round -2001 -3 . should_equal -2000
+            do_round -2412 -3 . should_equal -2000
+            do_round -2499 -3 . should_equal -2000
+            do_round -2500 -3 . should_equal -3000
+            do_round -2501 -3 . should_equal -3000
+            do_round -2511 -3 . should_equal -3000
+            do_round -2907 -3 . should_equal -3000
+            do_round -2999 -3 . should_equal -3000
+            do_round -3000 -3 . should_equal -3000
+            do_round -3001 -3 . should_equal -3000
+            do_round -3098 -3 . should_equal -3000
+            do_round -3101 -3 . should_equal -3000
+
+        Test.specify "Can round negative integers to a specified number of negative places with banker's rounding correctly" <|
+            do_round 12300 -2 use_bankers=True . should_equal 12300
+            do_round 12301 -2 use_bankers=True . should_equal 12300
+            do_round 12330 -2 use_bankers=True . should_equal 12300
+            do_round 12349 -2 use_bankers=True . should_equal 12300
+            do_round 12350 -2 use_bankers=True . should_equal 12400
+            do_round 12351 -2 use_bankers=True . should_equal 12400
+            do_round 12370 -2 use_bankers=True . should_equal 12400
+            do_round 12430 -2 use_bankers=True . should_equal 12400
+            do_round 12470 -2 use_bankers=True . should_equal 12500
+
+            do_round 12249 -2 use_bankers=True . should_equal 12200
+            do_round 12250 -2 use_bankers=True . should_equal 12200
+            do_round 12251 -2 use_bankers=True . should_equal 12300
+
+            do_round -12300 -2 use_bankers=True . should_equal -12300
+            do_round -12301 -2 use_bankers=True . should_equal -12300
+            do_round -12330 -2 use_bankers=True . should_equal -12300
+            do_round -12349 -2 use_bankers=True . should_equal -12300
+            do_round -12350 -2 use_bankers=True . should_equal -12400
+            do_round -12351 -2 use_bankers=True . should_equal -12400
+            do_round -12370 -2 use_bankers=True . should_equal -12400
+            do_round -12430 -2 use_bankers=True . should_equal -12400
+            do_round -12470 -2 use_bankers=True . should_equal -12500
+
+            do_round -12249 -2 use_bankers=True . should_equal -12200
+            do_round -12250 -2 use_bankers=True . should_equal -12200
+            do_round -12251 -2 use_bankers=True . should_equal -12300
+
     Test.group prefix+"Text Column Operations" <|
         t3 = table_builder [["s1", ["foobar", "bar", "baz", "BAB", Nothing]], ["s2", ["foo", "ar", "a", "b", Nothing]]]
         s1 = t3.at "s1"
@@ -757,3 +1107,19 @@ spec setup =
             c.rename '' . should_fail_with Illegal_Argument
             c.rename 'a\0b' . should_fail_with Illegal_Argument
             c.rename '\0' . should_fail_with Illegal_Argument
+
+    Test.group prefix+"Column.const" <|
+        Test.specify "Should allow the creation of constant columns" <|
+            t = table_builder [["x", ["1", "2", "3"]]]
+            t.at "x" . const True . to_vector . should_equal [True, True, True]
+            t.at "x" . const 12 . to_vector . should_equal [12, 12, 12]
+            t.at "x" . const 12.3 . to_vector . should_equal [12.3, 12.3, 12.3]
+            t.at "x" . const "asdf" . to_vector . should_equal ["asdf", "asdf", "asdf"]
+
+        Test.specify "Should create the correct column name" <|
+            t = table_builder [["x", ["1", "2", "3"]]]
+            t.at "x" . const 12 . name . take 9 . should_equal "Constant_"
+
+        Test.specify "Should not allow the creation of a constant column of columns" <|
+            t = table_builder [["x", ["1", "2", "3"]]]
+            t.at "x" . const (t.at "x") . should_fail_with Illegal_Argument

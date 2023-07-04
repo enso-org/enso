@@ -195,6 +195,7 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
             // https://github.com/electron-userland/electron-builder/issues/2851
             // https://github.com/electron-userland/electron-builder/issues/2900
             differentialPackage: false,
+            runAfterFinish: false,
         },
         dmg: {
             // Disables "block map" generation during electron building. Block maps
