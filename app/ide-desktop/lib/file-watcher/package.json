@@ -6,8 +6,8 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "lint": "npx --yes eslint src",
-    "build": "tsx bundle.ts",
-    "start": "tsx bundle.ts && node dist/index.cjs"
+    "build": "npx esbuild --bundle --platform=node --format=cjs --outfile=dist/index.cjs src/index.ts",
+    "start": "npm run build && node dist/index.cjs"
   },
   "dependencies": {
     "chokidar": "^3.5.3",
