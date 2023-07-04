@@ -6,8 +6,18 @@ import * as authConfig from '../../dashboard/src/authentication/src/config'
 
 const logger = app.log.logger
 
+// =================
+// === Constants ===
+// =================
+
 /** URL address where remote logs should be sent. */
 const REMOTE_LOG_URL = new URL(`${authConfig.ACTIVE_CONFIG.apiUrl}/logs`)
+
+// ====================
+// === RemoteLogger ===
+// ====================
+
+// === Class ===
 
 /** Helper class facilitating sending logs to a remote. */
 export class RemoteLogger {
@@ -25,6 +35,8 @@ export class RemoteLogger {
         await remoteLog(this.accessToken, message, metadata)
     }
 }
+
+// === Underlying logic ===
 
 /** Sends a log message to a remote server using the provided access token.
  *
