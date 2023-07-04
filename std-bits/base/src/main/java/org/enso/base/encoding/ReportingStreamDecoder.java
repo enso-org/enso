@@ -14,7 +14,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.enso.base.Encoding_Utils;
-import org.graalvm.polyglot.Context;
 
 /**
  * A {@code Reader} which takes an {@code InputStream} and decodes it using a provided {@code
@@ -220,11 +219,13 @@ public class ReportingStreamDecoder extends Reader {
       }
 
       /*
-       We cannot have a safepoint here, because `read` is sometimes called from a separate Thread by the
-       `CsvParser` where there is no context to get. On this separate thread there is no reason to have a safepoint
-       anyway.
+       We cannot have a safepoint here, because `read` is called from a separate Thread by the `CsvParser` where
+       there is no context to get. On this separate thread there is no reason to have a safepoint anyway.
+       Ideally, we should be able to check if a context is available and poll safepoints only if it is. The issue
+       tracking this feature can be found at: https://github.com/oracle/graal/issues/6931
+       For now, we just disable safepoints in this method - it is not run directly from Enso code anyway. But we may
+       need to revisit this in the future.
       */
-      // context.safepoint();
     }
 
     if (eof) {
