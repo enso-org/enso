@@ -446,8 +446,7 @@ Text.tokenize self pattern="." case_sensitivity=Case_Sensitivity.Sensitive =
    > Example
      Replace all occurrences of letters 'l' and 'o' with '#'.
 
-         regex = Regex.compile "[lo]"
-         "Hello World!".replace regex "#" == "He### W#r#d!"
+         "Hello World!".replace "[lo]".to_regex "#" == "He### W#r#d!"
 
    > Example
      Replace the first occurrence of letter 'l' with '#'.
@@ -457,8 +456,7 @@ Text.tokenize self pattern="." case_sensitivity=Case_Sensitivity.Sensitive =
    > Example
      Replace texts in quotes with parentheses.
 
-          regex = Regex.compile '"(.*?)"'
-          '"abc" foo "bar" baz'.replace regex '($1)' == '(abc) foo (bar) baz'
+          '"abc" foo "bar" baz'.replace '"(.*?)"'.to_regex '($1)' == '(abc) foo (bar) baz'
 
    ! Matching Grapheme Clusters
      In case-insensitive mode, a single character can match multiple characters,

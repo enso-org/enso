@@ -273,7 +273,7 @@ spec setup =
             actual.at "col1" . to_vector . should_equal [1000, 200, 1000, 400, 500, 1000]
             actual.column_names . should_equal ["col0", "col_between", "col1", "def"]
 
-    Test.group prefix+"Table.replaceasdfasdf" <|
+    Test.group prefix+"Table.replace" <|
         Test.specify "should allow to replace values in a table" <|
             t = table_builder [["col0", ["abc", "def", "ghi"]], ["col1", ["nabc", "ndef", "asdf"]]]
             actual = t.replace ["col0", "col1"] "ab" "xy"

@@ -2028,6 +2028,8 @@ type Table
        been replaced with the provided default(s).
 
        Arguments:
+       - selectors: Single instance or a Vector of names, indexes or
+         `Column_Selector`s.
        - default: The value to replace missing values with. If this argument
          is a column, the value from `default` at the corresponding position
          will be used.
@@ -2047,6 +2049,8 @@ type Table
        provided default(s).
 
        Arguments:
+       - selectors: Single instance or a Vector of names, indexes or
+         `Column_Selector`s.
        - default: The value to replace empty values with. If this argument
          is a column, the value from `default` at the corresponding position
          will be used.
@@ -2068,6 +2072,8 @@ type Table
        `Text.replace` method.
 
        Arguments:
+       - selectors: Single instance or a Vector of names, indexes or
+         `Column_Selector`s.
        - term: The term to find. Can be `Text`, `Regex`, or a `Column` of
          strings.
        - replacement: The text to replace matches with.
@@ -2083,14 +2089,12 @@ type Table
        > Example
          Remove leading and trailing spaces from cells.
 
-             regex = Regex.compile "^\s*(.*?)\s*$"
-             table.replace regex "$1"
+             column.replace "^\s*(.*?)\s*$".to_regex "$1"
 
        > Example
          Replace texts in quotes with parentheses.
 
-             regex = Regex.compile '"(.*?)"'
-             table.replace regex '($1)'
+             column.replace '"(.*?)"'.to_regex '($1)'
     replace : Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector) -> Text | Column | Regex -> Text | Column -> Case_Sensitivity -> Boolean -> Column
     replace self selectors term="" new_text="" case_sensitivity=Case_Sensitivity.Sensitive only_first=False =
         transformer col = col.replace term new_text case_sensitivity only_first

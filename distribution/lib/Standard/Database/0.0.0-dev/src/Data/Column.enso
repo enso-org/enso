@@ -1128,14 +1128,12 @@ type Column
        > Example
          Remove leading and trailing spaces from cells.
 
-             regex = Regex.compile "^\s*(.*?)\s*$"
-             column.replace regex "$1"
+             column.replace "^\s*(.*?)\s*$".to_regex "$1"
 
        > Example
          Replace texts in quotes with parentheses.
 
-             regex = Regex.compile '"(.*?)"'
-             column.replace regex '($1)'
+             column.replace '"(.*?)"'.to_regex '($1)'
     replace : Text | Column -> Text | Column -> Case_Sensitivity -> Boolean -> Boolean -> Column
     replace self term="" new_text="" case_sensitivity=Case_Sensitivity.Sensitive only_first=False =
         _ = [term, new_text, case_sensitivity, only_first]
