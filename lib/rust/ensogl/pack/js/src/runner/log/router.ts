@@ -18,6 +18,10 @@ const consoleLogNames = [
     'groupEnd',
 ] satisfies (keyof Console)[]
 
+// If `showLogs` exists, then another `Router` instance has already been applied to `console`,
+// and a new `Router` SHOULD NOT be created to wrap around the other `Router`.
+const shouldExecute = !('showLogs' in host.global)
+
 // FIXME: fix Rust `autoFlush` handling
 /** Router for logs. It is used to hide the incoming logs and show them on demand. It is used to
  * unclutter the logs view when the app is run by end-user. */
@@ -30,10 +34,12 @@ class Router {
         this.buffer = []
         this.console = {}
         this.autoFlush = true
-        for (const name of consoleLogNames) {
-            this.console[name] = console[name]
-            console[name] = (...args: unknown[]) => {
-                this.consume(name, args)
+        if (shouldExecute) {
+            for (const name of consoleLogNames) {
+                this.console[name] = console[name]
+                console[name] = (...args: unknown[]) => {
+                    this.consume(name, args)
+                }
             }
         }
     }
@@ -86,7 +92,9 @@ class Router {
 
 export const router = new Router()
 
-host.exportGlobal({
-    hideLogs: router.hideLogs.bind(router),
-    showLogs: router.showLogs.bind(router),
-})
+if (shouldExecute) {
+    host.exportGlobal({
+        hideLogs: router.hideLogs.bind(router),
+        showLogs: router.showLogs.bind(router),
+    })
+}
