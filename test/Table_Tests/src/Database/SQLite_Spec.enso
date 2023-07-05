@@ -11,7 +11,7 @@ from Standard.Database.Errors import SQL_Error
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 
-import project.Database.Common_Spec
+import project.Database.Common.Common_Spec
 import project.Database.Transaction_Spec
 import project.Database.Upload_Spec
 import project.Database.Types.SQLite_Type_Mapping_Spec
@@ -218,7 +218,7 @@ sqlite_spec connection prefix =
     agg_table = agg_in_memory_table.select_into_database_table connection (Name_Generator.random_name "Agg1") primary_key=Nothing temporary=True
     empty_agg_table = (agg_in_memory_table.take (First 0)).select_into_database_table connection (Name_Generator.random_name "Agg_Empty") primary_key=Nothing temporary=True
 
-    setup = Common_Table_Operations.Main.Test_Setup.Config prefix agg_table empty_agg_table table_builder materialize is_database=True test_selection=common_selection aggregate_test_selection=aggregate_selection
+    setup = Common_Table_Operations.Main.Test_Setup.Config prefix agg_table empty_agg_table table_builder materialize is_database=True test_selection=common_selection aggregate_test_selection=aggregate_selection connection=connection
     sqlite_specific_spec prefix connection setup
     Common_Table_Operations.Main.spec setup
 

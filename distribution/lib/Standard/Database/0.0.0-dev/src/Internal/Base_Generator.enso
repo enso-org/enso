@@ -187,7 +187,8 @@ base_dialect =
     nulls = [["IS_NULL", make_right_unary_op "IS NULL"], ["FILL_NULL", make_function "COALESCE"]]
     contains = [["IS_IN", make_is_in], ["IS_IN_COLUMN", make_is_in_column]]
     types = [simple_cast]
-    base_map = Map.from_vector (arith + logic + compare + functions + agg + counts + text + nulls + contains + types)
+    windows = [["ROW_NUMBER", make_row_number]]
+    base_map = Map.from_vector (arith + logic + compare + functions + agg + counts + text + nulls + contains + types + windows)
     Internal_Dialect.Value base_map wrap_in_quotes
 
 ## PRIVATE
@@ -264,6 +265,39 @@ make_is_in_column arguments = case arguments.length of
         has_nulls = has_nulls_query.paren ++ " = TRUE"
         Builder.code "CASE WHEN " ++ expr ++ " IS NULL THEN " ++ has_nulls ++ " ELSE " ++ is_in ++ " END"
     _ -> Error.throw <| Illegal_State.Error ("The operation IS_IN_COLUMN requires at exactly 3 arguments: the expression, the IN subquery, the subquery checking for nulls.")
+
+## PRIVATE
+make_row_number : Vector Builder -> Builder
+make_row_number arguments = if arguments.length < 4 then Error.throw (Illegal_State.Error "Wrong amount of parameters in ROW_NUMBER IR. This is a bug in the Database library.") else
+    offset = arguments.at 0
+    step = arguments.at 1
+
+    separator_ix = arguments.index_of code->
+        code.build.prepare.first == row_number_parameter_separator
+    ordering = arguments.take (Range.new 2 separator_ix)
+    grouping = arguments.drop (separator_ix+1)
+
+    group_part = if grouping.length == 0 then "" else
+        Builder.code "PARTITION BY " ++ Builder.join ", " grouping
+    Builder.code "(row_number() OVER (" ++ group_part ++ " ORDER BY " ++ Builder.join ", " ordering ++ ") * " ++ step.paren ++ " + " ++ offset.paren ++ ")"
+
+## PRIVATE
+   This is a terrible hack, but I could not figure a decent way to have an
+   operation take a variable number of arguments of multiple kinds (here both
+   groups and orders are varying).
+
+   Currently, the IR just allows to put a list of parameters for the operation
+   and they are all converted into SQL code before being passed to the
+   particular operation builder. So at this stage there is no way to distinguish
+   the arguments.
+
+   So to distinguish different groups of arguments, we use this 'fake' parameter
+   to act as a separator. This parameter is not supposed to end up in the
+   generated SQL code.
+
+   This is yet another argument for the IR redesign.
+row_number_parameter_separator =
+    "--<!PARAMETER_SEPARATOR!>--"
 
 ## PRIVATE
 

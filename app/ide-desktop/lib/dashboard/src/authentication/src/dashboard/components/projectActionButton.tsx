@@ -319,7 +319,9 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
                     setProjectData(oldProjectData => ({ ...oldProjectData, isRunning: true }))
                     setState(oldState => {
                         if (oldState === backendModule.ProjectState.openInProgress) {
-                            doRefresh()
+                            setTimeout(() => {
+                                doRefresh()
+                            }, 0)
                             return backendModule.ProjectState.opened
                         } else {
                             return oldState

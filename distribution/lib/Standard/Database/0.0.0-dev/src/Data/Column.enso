@@ -644,7 +644,7 @@ type Column
 
     ## PRIVATE
        Round a float-like column using the backend's builtin ROUND function.
-    round_builtin : Integer -> Boolean -> Column
+    round_builtin : Integer -> Column
     round_builtin self decimal_places =
         new_name = self.naming_helpers.function_name "round" [self]
         case decimal_places == 0 of
