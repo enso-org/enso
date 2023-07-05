@@ -128,7 +128,7 @@ class RuntimeErrorsTest
         |    x = undefined
         |    y = foo x 42
         |    foo y 1
-        |""".stripMargin.linesIterator.mkString("\n")
+        |""".stripMargin
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
 
@@ -225,7 +225,7 @@ class RuntimeErrorsTest
         |    x = undefined
         |    y = foo x 42
         |    foo y 1
-        |""".stripMargin.linesIterator.mkString("\n")
+        |""".stripMargin
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
 
@@ -315,7 +315,7 @@ class RuntimeErrorsTest
       """foo a b = a + b + x
         |
         |main = foo 1 2
-        |""".stripMargin.linesIterator.mkString("\n")
+        |""".stripMargin
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
 
@@ -391,7 +391,7 @@ class RuntimeErrorsTest
         |foo a b = a + b + x
         |
         |main = foo 1 2
-        |""".stripMargin.linesIterator.mkString("\n")
+        |""".stripMargin
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
 
@@ -476,7 +476,7 @@ class RuntimeErrorsTest
         |    x = Error.throw MyError
         |    y = foo x 42
         |    foo y 1
-        |""".stripMargin.linesIterator.mkString("\n")
+        |""".stripMargin
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
 
@@ -553,7 +553,7 @@ class RuntimeErrorsTest
         |    x = undefined
         |    y = 42
         |    IO.println y
-        |""".stripMargin.linesIterator.mkString("\n")
+        |""".stripMargin
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
 
@@ -639,7 +639,7 @@ class RuntimeErrorsTest
         |    x = Error.throw MyError
         |    y = 42
         |    IO.println y
-        |""".stripMargin.linesIterator.mkString("\n")
+        |""".stripMargin
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
 
@@ -723,7 +723,7 @@ class RuntimeErrorsTest
         |    x = Error.throw MyError
         |    y = x - 1
         |    IO.println y
-        |""".stripMargin.linesIterator.mkString("\n")
+        |""".stripMargin
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
 
@@ -898,7 +898,7 @@ class RuntimeErrorsTest
         |    x = Error.throw MyError1
         |    y = x - 1
         |    IO.println y
-        |""".stripMargin.linesIterator.mkString("\n")
+        |""".stripMargin
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
 
@@ -1001,7 +1001,7 @@ class RuntimeErrorsTest
         |    x = foo
         |    y = x - 1
         |    IO.println y
-        |""".stripMargin.linesIterator.mkString("\n")
+        |""".stripMargin
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
 
@@ -1093,7 +1093,7 @@ class RuntimeErrorsTest
         |    x = Panic.throw MyError
         |    y = x - 1
         |    IO.println y
-        |""".stripMargin.linesIterator.mkString("\n")
+        |""".stripMargin
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
 
@@ -1207,7 +1207,7 @@ class RuntimeErrorsTest
         |    x = 1 + foo
         |    y = x - 1
         |    IO.println y
-        |""".stripMargin.linesIterator.mkString("\n")
+        |""".stripMargin
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
 
@@ -1329,7 +1329,7 @@ class RuntimeErrorsTest
         |    x = Panic.throw MyError1
         |    y = x - 1
         |    IO.println y
-        |""".stripMargin.linesIterator.mkString("\n")
+        |""".stripMargin
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
 
@@ -1477,7 +1477,7 @@ class RuntimeErrorsTest
         |    x = foo
         |    y = x + 1
         |    IO.println y
-        |""".stripMargin.linesIterator.mkString("\n")
+        |""".stripMargin
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
 
@@ -1594,7 +1594,7 @@ class RuntimeErrorsTest
         |main =
         |    x = foo
         |    x
-        |""".stripMargin.linesIterator.mkString("\n")
+        |""".stripMargin
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
 
@@ -1665,7 +1665,7 @@ class RuntimeErrorsTest
         |    x = foo
         |    y = x + 1
         |    IO.println y
-        |""".stripMargin.linesIterator.mkString("\n")
+        |""".stripMargin
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
 
@@ -1770,7 +1770,7 @@ class RuntimeErrorsTest
       """main =
         |    x = IO.println "MyError"
         |    x
-        |""".stripMargin.linesIterator.mkString("\n")
+        |""".stripMargin
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
 
@@ -1882,7 +1882,7 @@ class RuntimeErrorsTest
         |main =
         |    x = IO.println "MyError"
         |    x
-        |""".stripMargin.linesIterator.mkString("\n")
+        |""".stripMargin
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
 
@@ -1995,7 +1995,7 @@ class RuntimeErrorsTest
         |main =
         |    x = Error.throw (Illegal_Argument.Error "The operation failed due to some reason.")
         |    x
-        |""".stripMargin.linesIterator.mkString("\n")
+        |""".stripMargin
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
 
