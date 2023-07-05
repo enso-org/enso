@@ -3,8 +3,13 @@
 use crate::model::traits::*;
 use crate::prelude::*;
 
+use crate::controller::graph::executed::Handle;
 use crate::controller::graph::FailedToCreateNode;
+use crate::controller::graph::ImportType;
+use crate::controller::graph::RequiredImport;
 use crate::controller::searcher::component::group;
+use crate::model::execution_context::QualifiedMethodPointer;
+use crate::model::execution_context::Visualization;
 use crate::model::module::NodeEditStatus;
 use crate::model::module::NodeMetadata;
 use crate::model::suggestion_database;
@@ -12,7 +17,6 @@ use crate::model::suggestion_database;
 use breadcrumbs::Breadcrumbs;
 use double_representation::graph::GraphInfo;
 use double_representation::graph::LocationHint;
-use double_representation::import;
 use double_representation::name::project;
 use double_representation::name::QualifiedName;
 use double_representation::name::QualifiedNameRef;
@@ -84,6 +88,16 @@ pub struct CannotExecuteWhenEditingNode;
 
 #[allow(missing_docs)]
 #[derive(Copy, Clone, Debug, Fail)]
+#[fail(display = "An action cannot be executed when searcher is run without `this` argument.")]
+pub struct CannotRunWithoutThisArgument;
+
+#[allow(missing_docs)]
+#[derive(Copy, Clone, Debug, Fail)]
+#[fail(display = "No visualization data received for an AI suggestion.")]
+pub struct NoAIVisualizationDataReceived;
+
+#[allow(missing_docs)]
+#[derive(Copy, Clone, Debug, Fail)]
 #[fail(display = "Cannot commit expression in current mode ({:?}).", mode)]
 pub struct CannotCommitExpression {
     mode: Mode,
@@ -96,12 +110,13 @@ pub struct CannotCommitExpression {
 // =====================
 
 /// The notification emitted by Searcher Controller
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Notification {
     /// A new Suggestion list is available.
     NewActionList,
+    /// Code should be inserted by means of using an AI autocompletion.
+    AISuggestionUpdated(String, text::Range<Byte>),
 }
-
 
 
 // ===================
@@ -144,21 +159,6 @@ impl Default for Actions {
     fn default() -> Self {
         Self::Loading
     }
-}
-
-
-
-// ======================
-// === RequiredImport ===
-// ======================
-
-/// An import that is needed for the picked suggestion.
-#[derive(Debug, Clone)]
-pub enum RequiredImport {
-    /// A specific entry needs to be imported.
-    Entry(Rc<enso_suggestion_database::Entry>),
-    /// An entry with a specific name needs to be imported.
-    Name(QualifiedName),
 }
 
 
@@ -550,12 +550,78 @@ impl Searcher {
         self.notifier.notify(Notification::NewActionList);
     }
 
+    const AI_QUERY_PREFIX: &'static str = "AI:";
+    const AI_QUERY_ACCEPT_TOKEN: &'static str = "#";
+    const AI_STOP_SEQUENCE: &'static str = "`";
+    const AI_GOAL_PLACEHOLDER: &'static str = "__$$GOAL$$__";
+
+    /// Accepts the current AI query and exchanges it for actual expression.
+    /// To accomplish this, it performs the following steps:
+    /// 1. Attaches a visualization to `this`, calling `AI.build_ai_prompt`, to
+    ///    get a data-specific prompt for Open AI;
+    /// 2. Sends the prompt to the Open AI backend proxy, along with the user
+    ///    query.
+    /// 3. Replaces the query with the result of the Open AI call.
+    async fn accept_ai_query(
+        query: String,
+        query_range: text::Range<Byte>,
+        this: ThisNode,
+        graph: Handle,
+        notifier: notification::Publisher<Notification>,
+    ) -> FallibleResult {
+        let vis_ptr = QualifiedMethodPointer::from_qualified_text(
+            "Standard.Visualization.AI",
+            "Standard.Visualization.AI",
+            "build_ai_prompt",
+        )?;
+        let vis = Visualization::new(vis_ptr.module.to_owned(), this.id, vis_ptr, vec![]);
+        let mut result = graph.attach_visualization(vis.clone()).await?;
+        let next = result.next().await.ok_or(NoAIVisualizationDataReceived)?;
+        let prompt = std::str::from_utf8(&next)?;
+        let prompt_with_goal = prompt.replace(Self::AI_GOAL_PLACEHOLDER, &query);
+        graph.detach_visualization(vis.id).await?;
+        let completion = graph.get_ai_completion(&prompt_with_goal, Self::AI_STOP_SEQUENCE).await?;
+        notifier.publish(Notification::AISuggestionUpdated(completion, query_range)).await;
+        Ok(())
+    }
+
+    /// Handles AI queries (i.e. searcher input starting with `"AI:"`). Doesn't
+    /// do anything if the query doesn't end with a specified "accept"
+    /// sequence. Otherwise, calls `Self::accept_ai_query` to perform the final
+    /// replacement.
+    fn handle_ai_query(&self, query: String) -> FallibleResult {
+        let len = query.as_bytes().len();
+        let range = text::Range::new(Byte::from(0), Byte::from(len));
+        let query = query.trim_start_matches(Self::AI_QUERY_PREFIX);
+        if !query.ends_with(Self::AI_QUERY_ACCEPT_TOKEN) {
+            return Ok(());
+        }
+        let query = query.trim_end_matches(Self::AI_QUERY_ACCEPT_TOKEN).trim().to_string();
+        let this = self.this_arg.clone();
+        if this.is_none() {
+            return Err(CannotRunWithoutThisArgument.into());
+        }
+        let this = this.as_ref().as_ref().unwrap().clone();
+        let graph = self.graph.clone_ref();
+        let notifier = self.notifier.clone_ref();
+        executor::global::spawn(async move {
+            if let Err(e) = Self::accept_ai_query(query, range, this, graph, notifier).await {
+                error!("error when handling AI query: {e}");
+            }
+        });
+
+        Ok(())
+    }
+
     /// Set the Searcher Input.
     ///
     /// This function should be called each time user modifies Searcher input in view. It may result
     /// in a new action list (the appropriate notification will be emitted).
     #[profile(Debug)]
     pub fn set_input(&self, new_input: String, cursor_position: Byte) -> FallibleResult {
+        if new_input.starts_with(Self::AI_QUERY_PREFIX) {
+            return self.handle_ai_query(new_input);
+        }
         debug!("Manually setting input to {new_input} with cursor position {cursor_position}");
         let parsed_input = input::Input::parse(self.ide.parser(), new_input, cursor_position);
         let new_context = parsed_input.context().map(|ctx| ctx.into_ast().repr());
@@ -668,7 +734,10 @@ impl Searcher {
     /// Otherwise it will be just the current searcher input.
     pub fn preview(&self, suggestion: Option<action::Suggestion>) -> FallibleResult {
         let transaction_name = "Previewing Component Browser suggestion.";
-        let _skip = self.graph.undo_redo_repository().open_ignored_transaction(transaction_name);
+        let _skip = self
+            .graph
+            .undo_redo_repository()
+            .open_ignored_transaction_or_ignore_current(transaction_name);
 
         debug!("Updating node preview. Previewed suggestion: \"{suggestion:?}\".");
         self.clear_temporary_imports();
@@ -699,7 +768,7 @@ impl Searcher {
             let picked_suggestion_requirement = suggestion_change.and_then(|change| change.import);
             let all_requirements =
                 current_input_requirements.chain(picked_suggestion_requirement.iter().cloned());
-            self.add_required_imports(all_requirements, false)?;
+            self.graph.graph().add_required_imports(all_requirements, ImportType::Temporary)?;
         }
         self.graph.graph().set_expression_ast(self.mode.node_id(), expression)?;
 
@@ -769,7 +838,7 @@ impl Searcher {
         {
             let data = self.data.borrow();
             let requirements = data.picked_suggestions.iter().filter_map(|ps| ps.import.clone());
-            self.add_required_imports(requirements, true)?;
+            self.graph.graph().add_required_imports(requirements, ImportType::Permanent)?;
         }
 
         let node_id = self.mode.node_id();
@@ -853,75 +922,14 @@ impl Searcher {
         data.picked_suggestions.drain_filter(|frag| !frag.is_still_unmodified(input));
     }
 
-    #[profile(Debug)]
-    fn add_required_imports<'a>(
-        &self,
-        import_requirements: impl Iterator<Item = RequiredImport>,
-        permanent: bool,
-    ) -> FallibleResult {
-        let imports = import_requirements
-            .filter_map(|requirement| match requirement {
-                RequiredImport::Entry(entry) => Some(
-                    entry.required_imports(&self.database, self.module_qualified_name().as_ref()),
-                ),
-                RequiredImport::Name(name) => {
-                    let (_id, entry) = self.database.lookup_by_qualified_name(&name)?;
-                    let defined_in = self.module_qualified_name();
-                    Some(entry.required_imports(&self.database, defined_in.as_ref()))
-                }
-            })
-            .flatten();
-        let mut module = self.module();
-        for entry_import in imports {
-            let already_imported =
-                module.iter_imports().any(|existing| entry_import.covered_by(&existing));
-            let import: import::Info = entry_import.into();
-            let import_id = import.id();
-            let already_inserted = module.contains_import(import_id);
-            let need_to_insert = !already_imported;
-            let old_import_became_permanent = permanent && already_inserted;
-            let need_to_update_md = need_to_insert || old_import_became_permanent;
-            if need_to_insert {
-                module.add_import(self.ide.parser(), import);
-            }
-            if need_to_update_md {
-                self.graph.graph().module.with_import_metadata(
-                    import_id,
-                    Box::new(|import_metadata| {
-                        import_metadata.is_temporary = !permanent;
-                    }),
-                )?;
-            }
-        }
-        self.graph.graph().module.update_ast(module.ast)
-    }
-
     fn clear_temporary_imports(&self) {
         let transaction_name = "Clearing temporary imports after closing searcher.";
-        let _skip = self.graph.undo_redo_repository().open_ignored_transaction(transaction_name);
-        let mut module = self.module();
-        let import_metadata = self.graph.graph().module.all_import_metadata();
-        let metadata_to_remove = import_metadata
-            .into_iter()
-            .filter_map(|(id, import_metadata)| {
-                import_metadata.is_temporary.then(|| {
-                    if let Err(e) = module.remove_import_by_id(id) {
-                        warn!("Failed to remove import because of: {e:?}");
-                    }
-                    id
-                })
-            })
-            .collect_vec();
-        if let Err(e) = self.graph.graph().module.update_ast(module.ast) {
-            warn!("Failed to update module ast when removing imports because of: {e:?}");
-        }
-        for id in metadata_to_remove {
-            if let Err(e) = self.graph.graph().module.remove_import_metadata(id) {
-                warn!("Failed to remove import metadata for import id {id} because of: {e:?}");
-            }
-        }
+        let _skip = self
+            .graph
+            .undo_redo_repository()
+            .open_ignored_transaction_or_ignore_current(transaction_name);
+        self.graph.graph().clear_temporary_imports();
     }
-
 
     /// Reload Action List.
     ///
@@ -1082,12 +1090,8 @@ impl Searcher {
         self.location_to_utf16(location)
     }
 
-    fn module(&self) -> double_representation::module::Info {
-        double_representation::module::Info { ast: self.graph.graph().module.ast() }
-    }
-
     fn module_qualified_name(&self) -> QualifiedName {
-        self.graph.module_qualified_name(&*self.project)
+        self.graph.module_qualified_name_with_project(&*self.project)
     }
 
     fn filter(&self) -> Filter {
@@ -1109,7 +1113,7 @@ fn component_list_builder_with_favorites<'a>(
     } else {
         component::builder::List::new()
     };
-    if let Some((id, _)) = suggestion_db.lookup_by_qualified_name(local_scope_module) {
+    if let Ok((id, _)) = suggestion_db.lookup_by_qualified_name(local_scope_module) {
         builder = builder.with_local_scope_module_id(id);
     }
     builder.set_grouping_and_order_of_favorites(suggestion_db, groups);
@@ -1163,7 +1167,10 @@ impl EditGuard {
     /// be restored.
     fn save_node_expression_to_metadata(&self, mode: &Mode) -> FallibleResult {
         let transaction_name = "Storing edited node original expression.";
-        let _skip = self.graph.undo_redo_repository().open_ignored_transaction(transaction_name);
+        let _skip = self
+            .graph
+            .undo_redo_repository()
+            .open_ignored_transaction_or_ignore_current(transaction_name);
         let module = &self.graph.graph().module;
         match mode {
             Mode::NewNode { .. } => module.with_node_metadata(
@@ -1188,7 +1195,10 @@ impl EditGuard {
     /// Mark the node as no longer edited and discard the edit metadata.
     fn clear_node_edit_metadata(&self) -> FallibleResult {
         let transaction_name = "Storing edited node original expression.";
-        let _skip = self.graph.undo_redo_repository().open_ignored_transaction(transaction_name);
+        let _skip = self
+            .graph
+            .undo_redo_repository()
+            .open_ignored_transaction_or_ignore_current(transaction_name);
         let module = &self.graph.graph().module;
         module.with_node_metadata(
             self.node_id,
@@ -1205,7 +1215,10 @@ impl EditGuard {
 
     fn revert_node_expression_edit(&self) -> FallibleResult {
         let transaction_name = "Reverting node expression to original.";
-        let _skip = self.graph.undo_redo_repository().open_ignored_transaction(transaction_name);
+        let _skip = self
+            .graph
+            .undo_redo_repository()
+            .open_ignored_transaction_or_ignore_current(transaction_name);
         let edit_status = self.get_saved_expression()?;
         match edit_status {
             None => {
@@ -1294,7 +1307,6 @@ fn component_list_for_literal(
 }
 
 
-
 // =============
 // === Tests ===
 // =============
@@ -1309,6 +1321,7 @@ pub mod test {
     use crate::test::mock::data::MAIN_FINISH;
     use crate::test::mock::data::MODULE_NAME;
 
+    use crate::controller::graph::RequiredImport;
     use engine_protocol::language_server::types::test::value_update_with_type;
     use engine_protocol::language_server::SuggestionId;
     use enso_suggestion_database::entry::Argument;
@@ -1391,12 +1404,12 @@ pub mod test {
             let start_of_code = enso_text::Location::default();
             let end_of_code = code.location_of_text_end_utf16_code_unit();
             let code_range = start_of_code..=end_of_code;
-            let graph = data.graph.controller();
+            let database = database_setup(code_range);
+            let graph = data.graph.controller_with_db(database.clone_ref());
             let node = &graph.graph().nodes().unwrap()[0];
             let searcher_target = graph.graph().nodes().unwrap().last().unwrap().id();
             let this = ThisNode::new(node.info.id(), &graph.graph());
             let this = data.selected_node.and_option(this);
-            let database = database_setup(code_range);
             let mut ide = controller::ide::MockAPI::new();
             let mut project = model::project::MockAPI::new();
             let project_qname = project_qualified_name();

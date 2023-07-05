@@ -5,7 +5,7 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.data.BindingsMap.{Resolution, ResolvedType, Type}
-import org.enso.compiler.exception.CompilerError
+import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.compiler.pass.desugar.{
@@ -13,8 +13,6 @@ import org.enso.compiler.pass.desugar.{
   FunctionBinding,
   GenerateMethodBodies
 }
-
-import scala.annotation.unused
 
 /** Resolves the correct `self` argument type for method definitions and stores
   * the resolution in the method's metadata.
@@ -198,9 +196,4 @@ case object MethodDefinitions extends IRPass {
     inlineContext: InlineContext
   ): IR.Expression = ir
 
-  /** @inheritdoc */
-  override def updateMetadataInDuplicate[T <: IR](
-    @unused sourceIr: T,
-    copyOfIr: T
-  ): T = copyOfIr
 }

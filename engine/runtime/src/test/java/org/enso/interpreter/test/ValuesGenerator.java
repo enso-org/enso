@@ -400,7 +400,7 @@ class ValuesGenerator {
   public List<Value> timesAndDates() {
     var collect = new ArrayList<Value>();
     if (languages.contains(Language.ENSO)) {
-      collect.add(v(null, "import Standard.Base.Data.Time.Date.Date", "Date.now").type());
+      collect.add(v(null, "import Standard.Base.Data.Time.Date.Date", "Date.today").type());
       collect.add(v(null, "import Standard.Base.Data.Time.Date.Date", "Date.new 1999 3 23").type());
       collect.add(v(null, "import Standard.Base.Data.Time.Date_Time.Date_Time", "Date_Time.now").type());
       collect.add(v(null, "import Standard.Base.Data.Time.Date_Time.Date_Time", "Date_Time.parse '2021-01-01T00:30:12.7102[UTC]'").type());

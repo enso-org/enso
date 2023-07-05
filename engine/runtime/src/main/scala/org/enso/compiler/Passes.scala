@@ -6,6 +6,7 @@ import org.enso.compiler.pass.analyse._
 import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.lint.{
   ModuleNameConflicts,
+  NoSelfInStatic,
   ShadowedPatternFields,
   UnusedBindings
 }
@@ -47,6 +48,7 @@ class Passes(
       OperatorToFunction,
       LambdaShorthandToLambda,
       ImportSymbolAnalysis,
+      AmbiguousImportsAnalysis,
       ShadowedPatternFields,
       UnreachableMatchBranches,
       NestedPatternMatch,
@@ -86,6 +88,7 @@ class Passes(
       DataflowAnalysis,
       CachePreferenceAnalysis,
       UnusedBindings,
+      NoSelfInStatic,
       GenericAnnotations
     )
   )

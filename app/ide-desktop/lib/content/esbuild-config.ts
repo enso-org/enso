@@ -97,7 +97,7 @@ export function bundlerOptions(args: Arguments) {
         supportsDeepLinks,
     } = args
     const buildOptions = {
-        // Disabling naming convention because these are third-party options.
+        // The names come from a third-party API and cannot be changed.
         /* eslint-disable @typescript-eslint/naming-convention */
         absWorkingDir: THIS_PATH,
         bundle: true,
@@ -106,7 +106,8 @@ export function bundlerOptions(args: Arguments) {
             '.css': 'copy',
             '.map': 'copy',
             '.wasm': 'copy',
-            '.svg': 'copy',
+            // The `file` loader copies the file, and replaces the import with the path to the file.
+            '.svg': 'file',
             '.png': 'copy',
             '.ttf': 'copy',
         },
@@ -160,8 +161,9 @@ export function bundlerOptions(args: Arguments) {
             SUPPORTS_LOCAL_BACKEND: JSON.stringify(supportsLocalBackend),
             SUPPORTS_DEEP_LINKS: JSON.stringify(supportsDeepLinks),
         },
+        pure: ['assert'],
         sourcemap: true,
-        minify: true,
+        minify: !devMode,
         metafile: true,
         format: 'esm',
         platform: 'browser',

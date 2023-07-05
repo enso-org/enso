@@ -1,21 +1,5 @@
 //! Documentation view visualization generating and presenting Enso Documentation under
 //! the documented node.
-//!
-//! # Tailwind CSS
-//!
-//! This crate uses the [`Tailwind CSS`] framework to style the HTML code displayed inside the
-//! documentation panel. [`Tailwind CSS`] is a utility-first CSS framework packed with classes like
-//! `flex`, `w-1/2`, `h-32`, or `bg-gray-200`. It allows for defining any visual style by combining
-//! these classes. The `build.rs` script runs the [`Tailwind CSS`] utility to generate a
-//! CSS stylesheet by scanning the source code for class names and including needed CSS rules in the
-//! output file. It means one can set `Tailwind` classes for any DOM element, and the stylesheet
-//! will automatically update with needed CSS rules.
-//!
-//! The build script runs `npx tailwindcss`, so one should have [Node.js] installed. Installing the
-//! `Tailwind` utility is not strictly required because the `npx` would download it
-//! automatically if needed.
-//!
-//! [`Tailwind CSS`]: https://tailwindcss.com/
 
 #![recursion_limit = "1024"]
 // === Features ===
@@ -168,7 +152,7 @@ impl Model {
 
     /// Add `<style>` tag with the stylesheet to the `outer_dom`.
     fn load_css_stylesheet(&self) {
-        let stylesheet = include_str!(concat!(env!("OUT_DIR"), "/stylesheet.css"));
+        let stylesheet = include_str!("../assets/styles.css");
         let element = web::document.create_element_or_panic("style");
         element.set_inner_html(stylesheet);
         self.outer_dom.append_or_warn(&element);

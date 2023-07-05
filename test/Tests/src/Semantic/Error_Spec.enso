@@ -9,7 +9,7 @@ polyglot java import java.lang.Long
 polyglot java import java.lang.NumberFormatException
 polyglot java import java.lang.Exception as JException
 polyglot java import java.util.ArrayList
-polyglot java import java.util.Random
+polyglot java import java.util.Random as Java_Random
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
@@ -87,7 +87,7 @@ spec =
 
         Test.specify "should short-circuit polyglot evaluation" <|
             error = Error.throw 42
-            Random.new error . should_fail_with Integer
+            Java_Random.new error . should_fail_with Integer
 
         Test.specify "should allow to inspect their stacktrace" <|
             error = throw_a_bar
@@ -106,6 +106,11 @@ spec =
             r1.should_fail_with Illegal_State
 
             42.if_not_error (Error.throw (Illegal_State.Error "foo")) . should_fail_with Illegal_State
+
+        Test.specify "should allow calling catch on types" <|
+            Vector.catch . should_equal Vector
+            Any.catch . should_equal Any
+            Boolean.catch . should_equal Boolean
 
     Test.group "Panics" <|
         Test.specify "should be able to be caught" <|

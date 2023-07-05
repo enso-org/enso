@@ -26,7 +26,6 @@ ensogl::define_endpoints_2! {
         content(ImString),
         text_color(ColorState),
         text_weight(text::Weight),
-        crumbs(span_tree::Crumbs),
     }
 }
 
@@ -72,9 +71,8 @@ impl SpanWidget for Widget {
 
         let styles = ctx.styles();
         frp::extend! { network
-            parent_port_hovered <- widgets_frp.on_port_hover.map2(&frp.crumbs, |h, crumbs| {
-                h.on().map_or(false, |h| crumbs.starts_with(h))
-            });
+            let id = ctx.info.identity;
+            parent_port_hovered <- widgets_frp.hovered_port_children.map(move |h| h.contains(&id));
             label_color <- frp.text_color.all_with4(
                 &parent_port_hovered, &widgets_frp.set_view_mode, &widgets_frp.set_profiling_status,
                 f!([styles](state, hovered, mode, status) {
@@ -130,7 +128,6 @@ impl SpanWidget for Widget {
         input.content.emit(content);
         input.text_color.emit(color_state);
         input.text_weight(text_weight);
-        input.crumbs.emit(ctx.span_node.crumbs.clone());
     }
 }
 

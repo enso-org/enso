@@ -63,7 +63,8 @@ type Excel_Format
        ADVANCED
        If the File_Format supports reading from the web response, return a configured instance.
     for_web : Text -> URI -> Excel_Format | Nothing
-    for_web _ _ =
+    for_web content_type uri =
+        _ = [content_type, uri]
         ## Currently not loading Excel files automatically as these need to be loaded as a connection.
         Nothing
 

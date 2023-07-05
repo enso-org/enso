@@ -134,7 +134,8 @@ final class SuggestionBuilder[A: IndexedSource](
                 args,
                 doc,
                 typeSignature,
-                annotations
+                annotations,
+                MethodType.Defined
               )
             }
             val subforest = go(
@@ -233,24 +234,39 @@ final class SuggestionBuilder[A: IndexedSource](
     args: Seq[IR.DefinitionArgument],
     doc: Option[String],
     typeSignature: Option[TypeSignatures.Metadata],
-    genericAnnotations: Option[GenericAnnotations.Metadata]
+    genericAnnotations: Option[GenericAnnotations.Metadata],
+    methodType: MethodType
   ): Suggestion.Method = {
     val typeSig = buildTypeSignatureFromMetadata(typeSignature)
     val (methodArgs, returnTypeDef) =
-      buildMethodArguments(args, typeSig, selfType)
+      buildMethodArguments(args, typeSig, selfType, isStatic)
     val annotations =
       genericAnnotations.map(buildAnnotationsFromMetadata).getOrElse(Seq())
-    Suggestion.Method(
-      externalId    = externalId,
-      module        = module.toString,
-      name          = name,
-      arguments     = methodArgs,
-      selfType      = selfType.toString,
-      returnType    = buildReturnType(returnTypeDef),
-      isStatic      = isStatic,
-      documentation = doc,
-      annotations   = annotations
-    )
+    methodType match {
+      case MethodType.Getter =>
+        Suggestion.Getter(
+          externalId    = externalId,
+          module        = module.toString,
+          name          = name,
+          arguments     = methodArgs,
+          selfType      = selfType.toString,
+          returnType    = buildReturnType(returnTypeDef),
+          documentation = doc,
+          annotations   = annotations
+        )
+      case MethodType.Defined =>
+        Suggestion.DefinedMethod(
+          externalId    = externalId,
+          module        = module.toString,
+          name          = name,
+          arguments     = methodArgs,
+          selfType      = selfType.toString,
+          returnType    = buildReturnType(returnTypeDef),
+          isStatic      = isStatic,
+          documentation = doc,
+          annotations   = annotations
+        )
+    }
   }
 
   /** Build a conversion suggestion. */
@@ -269,7 +285,7 @@ final class SuggestionBuilder[A: IndexedSource](
       externalId    = externalId,
       module        = module.toString,
       arguments     = methodArgs,
-      sourceType    = sourceTypeName,
+      selfType      = sourceTypeName,
       returnType    = buildReturnType(returnTypeDef),
       documentation = doc
     )
@@ -393,7 +409,8 @@ final class SuggestionBuilder[A: IndexedSource](
       args               = Seq(thisArg),
       doc                = None,
       typeSignature      = argument.name.getMetadata(TypeSignatures),
-      genericAnnotations = None
+      genericAnnotations = None,
+      methodType         = MethodType.Getter
     )
   }
 
@@ -501,12 +518,14 @@ final class SuggestionBuilder[A: IndexedSource](
     * @param vargs the list of value arguments
     * @param targs the list of type arguments
     * @param selfType the self type of a method
+    * @param isStatic is the method static
     * @return the list of arguments with a method return type
     */
   private def buildMethodArguments(
     vargs: Seq[IR.DefinitionArgument],
     targs: Seq[TypeArg],
-    selfType: QualifiedName
+    selfType: QualifiedName,
+    isStatic: Boolean
   ): (Seq[Suggestion.Argument], Option[TypeArg]) = {
     @scala.annotation.tailrec
     def go(
@@ -527,14 +546,18 @@ final class SuggestionBuilder[A: IndexedSource](
                 _,
                 _
               ) +: vtail =>
-            val thisArg = Suggestion.Argument(
-              name         = name.name,
-              reprType     = selfType.toString,
-              isSuspended  = suspended,
-              hasDefault   = defaultValue.isDefined,
-              defaultValue = defaultValue.flatMap(buildDefaultValue)
-            )
-            go(vtail, targs, acc :+ thisArg)
+            if (isStatic) {
+              go(vtail, targs, acc)
+            } else {
+              val thisArg = Suggestion.Argument(
+                name         = name.name,
+                reprType     = selfType.toString,
+                isSuspended  = suspended,
+                hasDefault   = defaultValue.isDefined,
+                defaultValue = defaultValue.flatMap(buildDefaultValue)
+              )
+              go(vtail, targs, acc :+ thisArg)
+            }
           case varg +: vtail =>
             targs match {
               case targ +: ttail =>
@@ -812,7 +835,13 @@ object SuggestionBuilder {
       function: TypeArg,
       arguments: Vector[TypeArg]
     ) extends TypeArg
+  }
 
+  /** Base trait for method types. */
+  sealed private trait MethodType
+  private object MethodType {
+    case object Getter  extends MethodType
+    case object Defined extends MethodType
   }
 
   val Any: String = "Standard.Base.Any.Any"

@@ -1,9 +1,8 @@
 package org.enso.table.problems;
 
-import org.enso.table.data.table.problems.ColumnAggregatedProblems;
-
 import java.util.ArrayList;
 import java.util.List;
+import org.enso.table.data.table.problems.ColumnAggregatedProblems;
 
 public class AggregatedProblems {
   private final List<Problem> problems;

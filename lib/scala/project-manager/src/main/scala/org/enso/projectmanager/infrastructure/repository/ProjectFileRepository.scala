@@ -109,7 +109,7 @@ class ProjectFileRepository[
         namespace             = pkg.namespace,
         kind                  = meta.kind,
         created               = meta.created,
-        edition               = pkg.config.edition,
+        edition               = pkg.getConfig().edition,
         lastOpened            = meta.lastOpened,
         path                  = Some(directory.toString),
         directoryCreationTime = directoryCreationTime
@@ -156,7 +156,7 @@ class ProjectFileRepository[
     for {
       project        <- getProject(projectId)
       projectPackage <- getPackage(new File(project.path.get))
-    } yield projectPackage.config.name
+    } yield projectPackage.getConfig().name
   }
 
   /** @inheritdoc */
@@ -166,7 +166,7 @@ class ProjectFileRepository[
     for {
       project        <- getProject(projectId)
       projectPackage <- getPackage(new File(project.path.get))
-    } yield projectPackage.config.namespace
+    } yield projectPackage.getConfig().namespace
   }
 
   private def loadPackage(

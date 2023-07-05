@@ -100,11 +100,11 @@ macro_rules! make_rpc_methods {
 
                 json_rpc::log::rpc_request(stringify!($method));
 
-                let phantom    = std::marker::PhantomData;
-                let input      = $method_input { phantom, $($param_name:&$param_name),* };
-                let input_json = serde_json::to_value(input).unwrap();
-                let name       = $method_input::NAME;
-                let result_fut = self.handler.borrow().open_request_with_json(name,&input_json);
+                let phantom = ZST();
+                let input = $method_input { phantom, $($param_name:&$param_name),* };
+                let input_json = serde_json::value::to_raw_value(&input).unwrap();
+                let name = $method_input::NAME;
+                let result_fut = self.handler.borrow().open_request_with_json(name, &input_json);
 
                 profiler.pause();
 
@@ -127,7 +127,7 @@ macro_rules! make_rpc_methods {
             #[serde(rename_all="camelCase")]
             struct $method_input<'a> {
                 #[serde(skip)]
-                phantom : std::marker::PhantomData<&'a()>,
+                phantom : ZST<&'a()>,
                 $($param_name : &'a $param_ty),*
             }
 

@@ -463,7 +463,7 @@ object PackageRepository {
     ): Either[Error, Unit] =
       if (loadedComponents.contains(pkg.libraryName)) Right(())
       else {
-        pkg.config.componentGroups match {
+        pkg.getConfig().componentGroups match {
           case Left(err) =>
             Left(Error.PackageLoadingError(err.getMessage()))
           case Right(componentGroups) =>
@@ -531,7 +531,21 @@ object PackageRepository {
       if (loadedPackages.contains(libraryName)) Right(())
       else {
         logger.trace(s"Resolving library $libraryName.")
-        val resolvedLibrary = libraryProvider.findLibrary(libraryName)
+        val resolvedLibrary =
+          libraryProvider
+            .findLibrary(libraryName)
+            .left
+            .map {
+              case ResolvingLibraryProvider.Error.NotResolved(details) =>
+                Error.PackageCouldNotBeResolved(details)
+              case ResolvingLibraryProvider.Error.DownloadFailed(_, reason) =>
+                Error.PackageDownloadFailed(reason)
+              case ResolvingLibraryProvider.Error.RequestedLocalLibraryDoesNotExist =>
+                Error.PackageLoadingError(
+                  "The local library has not been found on the local " +
+                  "libraries search paths."
+                )
+            }
         resolvedLibrary match {
           case Left(error) =>
             logger.warn(s"Resolution failed with [$error].", error)
@@ -552,18 +566,6 @@ object PackageRepository {
                 loadPackage(library.name, library.version, library.root)
               }
               .flatMap(resolveComponentGroups)
-              .left
-              .map {
-                case ResolvingLibraryProvider.Error.NotResolved(details) =>
-                  Error.PackageCouldNotBeResolved(details)
-                case ResolvingLibraryProvider.Error.DownloadFailed(_, reason) =>
-                  Error.PackageDownloadFailed(reason)
-                case ResolvingLibraryProvider.Error.RequestedLocalLibraryDoesNotExist =>
-                  Error.PackageLoadingError(
-                    "The local library has not been found on the local " +
-                    "libraries search paths."
-                  )
-              }
         }
       }
 
@@ -758,7 +760,7 @@ object PackageRepository {
       .map(v => Editions.Raw.Edition(parent = Some(v)))
       .orElse(
         projectPackage
-          .flatMap(_.config.edition)
+          .flatMap(_.getConfig().edition)
       )
       .getOrElse(DefaultEdition.getDefaultEdition)
 
@@ -775,7 +777,7 @@ object PackageRepository {
         languageHome        = homeManager,
         edition             = edition,
         preferLocalLibraries =
-          projectPackage.exists(_.config.preferLocalLibraries)
+          projectPackage.exists(_.getConfig().preferLocalLibraries)
       )
     new Default(
       resolvingLibraryProvider,

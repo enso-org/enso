@@ -2,7 +2,6 @@ from Standard.Base import all
 import Standard.Base.Errors.Common.Incomparable_Values
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Time_Error.Time_Error
-import Standard.Base.Meta
 
 from Standard.Test import Problems, Test, Test_Suite
 import Standard.Test.Extensions
@@ -497,7 +496,7 @@ main = Test_Suite.run_main spec
 
 parseNormally x y = (Date.parse x y) . to_text
 
-js_parse text format=Nothing =
+js_parse text format="" =
     d = Date.parse text format
     js_date d.year d.month d.day
 
@@ -519,7 +518,8 @@ js_array_date year month=1 day=1 =
 java_parse date_text pattern=Nothing =
     Panic.catch Any handler=(err -> Error.throw (Time_Error.Error err.payload.getMessage)) <|
         if pattern.is_nothing then LocalDate.parse date_text else
-            formatter = DateTimeFormatter.ofPattern pattern
+            java_locale = Locale.us.java_locale
+            formatter = DateTimeFormatter.ofPattern pattern java_locale
             LocalDate.parse date_text formatter
 
 java_date year month=1 day=1 =

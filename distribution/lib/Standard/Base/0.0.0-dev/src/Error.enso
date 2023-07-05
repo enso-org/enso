@@ -6,6 +6,7 @@ import project.Panic.Panic
 import project.Runtime.Stack_Trace_Element
 
 from project.Data.Boolean import Boolean, True, False
+from project.Function import const
 
 ## A type representing dataflow errors.
 
@@ -136,7 +137,8 @@ type Error
     is_error : Boolean
     is_error self = True
 
-    ## UNSTABLE
+    ## PRIVATE
+       ADVANCED
        Returns the provided `other` value, unless `self` is an error.
 
        Arguments:
@@ -155,4 +157,5 @@ type Error
 
              file.write "foo" . if_not_error file
     if_not_error : Any -> Any
-    if_not_error self ~_ = self
+    if_not_error self ~other =
+        const self other

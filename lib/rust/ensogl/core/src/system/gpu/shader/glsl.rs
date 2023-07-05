@@ -148,7 +148,7 @@ impls! { From + &From <f32>  for Glsl { |t| {
 impls! { [T,R,C] From + &From <OMatrix<T,R,C>> for Glsl
     where [ T    : Into<Glsl>
           , Self : MatrixCtx<T,R,C>
-          , PhantomData<OMatrix<T,R,C>> : Into<PrimType> ] {
+          , ZST<OMatrix<T,R,C>> : Into<PrimType> ] {
     |t| {
         let type_name = PrimType::phantom_from::<OMatrix<T,R,C>>().to_code();
         let vals:Vec<String> = t.as_slice().iter().cloned().map(|t| {
@@ -183,20 +183,20 @@ impls! { From + &From <color::LinearRgba> for Glsl {
 
 impls! { From + &From <Pixels> for Glsl { |t| { t.value.into() } }}
 
-impls! { From<PhantomData<Pixels>> for PrimType {
-    |_|  { PhantomData::<f32>.into() }
+impls! { From<ZST<Pixels>> for PrimType {
+    |_|  { ZST::<f32>().into() }
 }}
 
-impls! { From<PhantomData<Vector2<Pixels>>> for PrimType {
-    |_|  { PhantomData::<Vector2<f32>>.into() }
+impls! { From<ZST<Vector2<Pixels>>> for PrimType {
+    |_|  { ZST::<Vector2<f32>>().into() }
 }}
 
-impls! { From<PhantomData<Vector3<Pixels>>> for PrimType {
-    |_|  { PhantomData::<Vector3<f32>>.into() }
+impls! { From<ZST<Vector3<Pixels>>> for PrimType {
+    |_|  { ZST::<Vector3<f32>>().into() }
 }}
 
-impls! { From<PhantomData<Vector4<Pixels>>> for PrimType {
-    |_|  { PhantomData::<Vector4<f32>>.into() }
+impls! { From<ZST<Vector4<Pixels>>> for PrimType {
+    |_|  { ZST::<Vector4<f32>>().into() }
 }}
 
 
@@ -204,7 +204,7 @@ impls! { From< Radians> for Glsl { |t| { f32_to_rad(&t.value.glsl()) } }}
 impls! { From<&Radians> for Glsl { |t| { f32_to_rad(&t.value.glsl()) } }}
 impls! { From< Degrees> for Glsl { |t| { deg_to_f32(&f32_to_deg(&t.value.glsl())) } }}
 impls! { From<&Degrees> for Glsl { |t| { deg_to_f32(&f32_to_deg(&t.value.glsl())) } }}
-impls! { From<PhantomData<Radians>> for PrimType {
+impls! { From<ZST<Radians>> for PrimType {
     |_|  { "Radians".into() }
 }}
 
@@ -937,14 +937,14 @@ impl HasCodeRepr for Module {
 
 macro_rules! define_glsl_prim_type_conversions {
     ($($ty:ty => $name:ident),* $(,)?) => {$(
-        impl From<PhantomData<$ty>> for PrimType {
-            fn from(_:PhantomData<$ty>) -> Self {
+        impl From<ZST<$ty>> for PrimType {
+            fn from(_:ZST<$ty>) -> Self {
                 Self::$name
             }
         }
 
-        impl From<PhantomData<$ty>> for Type {
-            fn from(_:PhantomData<$ty>) -> Self {
+        impl From<ZST<$ty>> for Type {
+            fn from(_:ZST<$ty>) -> Self {
                 PrimType::$name.into()
             }
         }

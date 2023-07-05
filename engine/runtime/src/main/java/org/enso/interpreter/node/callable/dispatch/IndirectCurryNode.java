@@ -92,7 +92,7 @@ public abstract class IndirectCurryNode extends Node {
           return value;
         }
       } else {
-        var evaluatedVal = loopingCall.executeDispatch(frame, function, callerInfo, state, arguments);
+        var evaluatedVal = loopingCall.executeDispatch(frame, function, callerInfo, state, arguments, null);
 
         return oversaturatedCallableNode.execute(
             evaluatedVal,
@@ -129,7 +129,7 @@ public abstract class IndirectCurryNode extends Node {
       case TAIL_LOOP:
         throw new TailCallException(function, callerInfo, arguments);
       default:
-        return loopingCall.executeDispatch(frame, function, callerInfo, state, arguments);
+        return loopingCall.executeDispatch(frame, function, callerInfo, state, arguments, null);
     }
   }
 }

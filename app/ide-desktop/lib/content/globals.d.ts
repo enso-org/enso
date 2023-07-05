@@ -1,5 +1,9 @@
 /** @file Globals defined only in this module. */
 
+// =====================================
+// === Global namespace augmentation ===
+// =====================================
+
 declare global {
     // These are top-level constants, and therefore should be `CONSTANT_CASE`.
     /* eslint-disable @typescript-eslint/naming-convention */

@@ -4,6 +4,7 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import java.util.concurrent.locks.Lock;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
@@ -11,8 +12,6 @@ import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo.ArgumentM
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.state.State;
-
-import java.util.concurrent.locks.Lock;
 
 /**
  * This class handles the case where a mapping for reordering arguments to a given callable has

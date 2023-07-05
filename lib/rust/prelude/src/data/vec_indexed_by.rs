@@ -1,6 +1,5 @@
 use crate::*;
 
-use core::marker::PhantomData;
 use std::alloc::Allocator;
 use std::ops::Bound;
 
@@ -50,7 +49,7 @@ pub struct VecIndexedBy<T, I = usize, A: Allocator = std::alloc::Global> {
     #[deref]
     #[deref_mut]
     vec: Vec<T, A>,
-    key: PhantomData<I>,
+    key: ZST<I>,
 }
 
 impl<T, I> VecIndexedBy<T, I> {

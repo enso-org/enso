@@ -21,7 +21,6 @@ use ensogl::display::shape::StyleWatch;
 use ensogl::display::shape::StyleWatchFrp;
 use ensogl_component::text;
 use ensogl_hardcoded_theme as theme;
-use span_tree;
 
 
 
@@ -39,7 +38,7 @@ const SHOW_DELAY_DURATION_MS: f32 = 150.0;
 // ================
 
 use span_tree::node::Ref as PortRef;
-use span_tree::Crumbs;
+use span_tree::PortId;
 use span_tree::SpanTree;
 
 
@@ -124,9 +123,8 @@ ensogl::define_endpoints! {
     }
 
     Output {
-        on_port_press               (Crumbs),
-        on_port_hover               (Switch<Crumbs>),
-        on_port_type_change         (Crumbs,Option<Type>),
+        on_port_press               (PortId),
+        on_port_hover               (Switch<PortId>),
         port_size_multiplier        (f32),
         body_hover                  (bool),
         type_label_visibility       (bool),
@@ -156,7 +154,6 @@ impl Model {
     /// Constructor.
     #[profile(Debug)]
     pub fn new(app: &Application, frp: &Frp) -> Self {
-        let app = app.clone_ref();
         let display_object = display::object::Instance::new_named("output");
         let ports = display::object::Instance::new();
         let port_models = default();
@@ -169,7 +166,7 @@ impl Model {
         display_object.add_child(&label);
         display_object.add_child(&ports);
         Self {
-            app,
+            app: app.clone_ref(),
             display_object,
             ports,
             port_models,
@@ -180,21 +177,21 @@ impl Model {
             styles_frp,
             frp,
         }
-        .init()
+        .init(app)
     }
 
     #[profile(Debug)]
-    fn init(self) -> Self {
+    fn init(self, app: &Application) -> Self {
         // FIXME[WD]: Depth sorting of labels to in front of the mouse pointer. Temporary solution.
         // It needs to be more flexible once we have proper depth management.
-        let scene = &self.app.display.default_scene;
+        let scene = &app.display.default_scene;
         scene.layers.main.remove(&self.label);
         self.label.add_to_scene_layer(&scene.layers.label);
 
         let text_color = self.styles.get_color(theme::graph_editor::node::text);
         self.label.set_single_line_mode(true);
-        self.label.disable_command("cursor_move_up");
-        self.label.disable_command("cursor_move_down");
+        app.commands.set_command_enabled(&self.label, "cursor_move_up", false);
+        app.commands.set_command_enabled(&self.label, "cursor_move_up", false);
         self.label.set_property_default(text_color);
         self.label.set_property_default(text::Size(input::area::TEXT_SIZE));
         self.label.remove_all_cursors();
@@ -298,27 +295,30 @@ impl Model {
                     node_tp.or_else(|| whole_expr_type.clone())
                 };
 
-                let crumbs = node.crumbs.clone_ref();
                 let mut model = port::Model::default();
                 let span = node.span();
                 model.index = span.start.into();
                 model.length = span.size();
 
-                let (port_shape,port_frp) = model
-                    .init_shape(&self.app,&self.styles,&self.styles_frp,port_index,port_count);
+                let (port_shape, port_frp) = model.init_shape(
+                    &self.app,
+                    &self.styles,
+                    &self.styles_frp,
+                    port_index,
+                    port_count,
+                );
+
                 let port_network = &port_frp.network;
-
+                let source = &self.frp.source;
+                let port_id = node.port_id.unwrap_or_default();
                 frp::extend! { port_network
-                    self.frp.source.on_port_hover <+ port_frp.on_hover.map
-                        (f!([crumbs](t) Switch::new(crumbs.clone(),*t)));
-                    self.frp.source.on_port_press <+ port_frp.on_press.constant(crumbs.clone());
-
-                    port_frp.set_size_multiplier        <+ self.frp.port_size_multiplier;
-                    self.frp.source.on_port_type_change <+ port_frp.tp.map(move |t|(crumbs.clone(),t.clone()));
-                    port_frp.set_type_label_visibility  <+ self.frp.type_label_visibility;
-                    self.frp.source.tooltip             <+ port_frp.tooltip;
-                    port_frp.set_view_mode              <+ self.frp.view_mode;
-                    port_frp.set_size                   <+ self.frp.size;
+                    port_frp.set_size_multiplier <+ self.frp.port_size_multiplier;
+                    port_frp.set_type_label_visibility <+ self.frp.type_label_visibility;
+                    source.tooltip <+ port_frp.tooltip;
+                    port_frp.set_view_mode <+ self.frp.view_mode;
+                    port_frp.set_size <+ self.frp.size;
+                    source.on_port_hover <+ port_frp.on_hover.map(move |&t| Switch::new(port_id,t));
+                    source.on_port_press <+ port_frp.on_press.constant(port_id);
                 }
 
                 port_frp.set_type_label_visibility.emit(self.frp.type_label_visibility.value());
@@ -442,14 +442,29 @@ impl Area {
     }
 
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
-    pub fn port_type(&self, crumbs: &Crumbs) -> Option<Type> {
-        let expression = self.model.expression.borrow();
-        let node = expression.span_tree.root_ref().get_descendant(crumbs).ok()?;
-        let id = node.ast_id?;
-        let index = *self.model.id_ports_map.borrow().get(&id)?;
-        self.model.port_models.borrow().get(index)?.frp.as_ref()?.tp.value()
+    pub fn port_type(&self, port: PortId) -> Option<Type> {
+        match port {
+            PortId::Ast(id) => {
+                let index = *self.model.id_ports_map.borrow().get(&id)?;
+                self.model.port_models.borrow().get(index)?.frp.as_ref()?.tp.value()
+            }
+            _ => None,
+        }
     }
 
+    /// Get the expression code for the specified port.
+    pub fn port_expression(&self, port: PortId) -> Option<String> {
+        match port {
+            PortId::Ast(id) => {
+                let index = *self.model.id_ports_map.borrow().get(&id)?;
+                let port_models = self.model.port_models.borrow();
+                let model = port_models.get(index)?;
+                let span = enso_text::Range::new(model.index, model.index + model.length);
+                Some(self.model.expression.borrow().code.as_ref()?[span].to_owned())
+            }
+            _ => None,
+        }
+    }
 
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn whole_expr_id(&self) -> Option<ast::Id> {

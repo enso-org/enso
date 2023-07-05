@@ -1,8 +1,8 @@
-//! Text visualisation that can show text based data from the backend. If the text is larger than
+//! Text visualization that can show text based data from the backend. If the text is larger than
 //! the available space, it will use lazy loading to request only a subset of the data to
-//! display. This is useful for large texts to avoid overwhelming the visualisation.
+//! display. This is useful for large texts to avoid overwhelming the visualization.
 //!
-//! The visualisation is made up of text `chunks` that are cached and will be requested form the
+//! The visualization is made up of text `chunks` that are cached and will be requested form the
 //! backend. The size of the chunks is determined by the `chunk_size` parameter and each hunk is
 //! shown as a cell in a grid.
 //!
@@ -42,7 +42,8 @@ use ensogl_component::grid_view::GridView;
 use ensogl_component::scrollbar;
 use ensogl_component::scrollbar::Scrollbar;
 use ensogl_hardcoded_theme as theme;
-
+use text_provider::BackendTextProvider;
+use text_provider::TextProvider;
 
 
 // =================
@@ -51,10 +52,10 @@ use ensogl_hardcoded_theme as theme;
 
 /// Number of characters that can be displayed in one grid cell and will be requested together from
 /// the engine. Also referred to as `chunk`. This value can be changed to tweak the size of the
-/// messages sent to the visualisation as well as the caching performance. A larger value will
-/// result in fewer, smaller messages, but the visualisation might have to load more data that is
+/// messages sent to the visualization as well as the caching performance. A larger value will
+/// result in fewer, smaller messages, but the visualization might have to load more data that is
 /// not needed, as it will be cropped. For example, a value of 100, would mean that the
-/// visualisation would request 100 characters per chunk, even if it can only show 10 characters at
+/// visualization would request 100 characters per chunk, even if it can only show 10 characters at
 /// once in the available viewport.
 const CHARS_PER_CHUNK: usize = 20;
 /// Extra chunks to load around the visible grid to ensure smooth scrolling. Extra chunks are
@@ -79,9 +80,6 @@ pub struct GridWindow {
     position: GridPosition,
     size:     GridSize,
 }
-
-use text_provider::BackendTextProvider;
-use text_provider::TextProvider;
 
 
 
@@ -164,19 +162,16 @@ impl<T: 'static> Model<T> {
         self.root.add_child(&self.scroll_bar_horizontal);
         self.root.add_child(&self.scroll_bar_vertical);
         self.scroll_bar_vertical.set_rotation_z(-90.0_f32.to_radians());
-
-        self.app.display.default_scene.layers.main.add(&self.scroll_bar_horizontal);
-        self.app.display.default_scene.layers.main.add(&self.scroll_bar_vertical);
     }
 
     fn set_size(&self, size: Vector2) {
-        self.scroll_bar_horizontal.set_y(-size.y / 2.0);
-        self.scroll_bar_horizontal.set_length(size.x);
         let scrollbar_width = scrollbar::WIDTH - scrollbar::PADDING;
-        self.scroll_bar_horizontal.modify_y(|y| *y += scrollbar_width / 2.0);
-        self.scroll_bar_vertical.set_x(size.x / 2.0);
+        let h_y = -size.y / 2.0 + scrollbar_width / 2.0;
+        self.scroll_bar_horizontal.set_y(h_y);
+        self.scroll_bar_horizontal.set_length(size.x);
+        let v_x = size.x / 2.0 - scrollbar_width / 2.0;
+        self.scroll_bar_vertical.set_x(v_x);
         self.scroll_bar_vertical.set_length(size.y);
-        self.scroll_bar_vertical.modify_x(|x| *x -= scrollbar_width / 2.0);
         let text_padding = Vector2::new(PADDING_TEXT, PADDING_TEXT);
         self.clipping_div.set_dom_size(size - 2.0 * text_padding);
         self.size.set(size);
@@ -485,22 +480,22 @@ impl FontLoadedNotifier {
 
 
 // ===========================
-// === Visualisation Types ===
+// === Visualization Types ===
 // ===========================
 
 /// A text grid backed by a `String`. Used for testing and backend agnostic development and demos.
 /// Should not be used in production as it is not optimized for performance.
-pub type DebugTextGridVisualisation = TextGrid<String>;
+pub type DebugTextGridVisualization = TextGrid<String>;
 /// A text grid backed by a the engine. Requests data from the engine on demand and renders it.
-pub type TextVisualisation = TextGrid<BackendTextProvider>;
+pub type TextVisualization = TextGrid<BackendTextProvider>;
 
-/// Return definition of a lazy text visualisation.
-pub fn text_visualisation() -> visualization::Definition {
+/// Return definition of a lazy text visualization.
+pub fn text_visualization() -> visualization::Definition {
     let path = visualization::Path::builtin("JSON");
     visualization::Definition::new(
         visualization::Signature::new_for_any_type(path, visualization::Format::Json),
         |app| {
-            let grid = TextVisualisation::new(app.clone_ref());
+            let grid = TextVisualization::new(app.clone_ref());
             grid.set_text_provider(BackendTextProvider::new(
                 grid.frp.inputs.send_data.clone_ref(),
                 grid.frp.preprocessor_change.clone_ref(),

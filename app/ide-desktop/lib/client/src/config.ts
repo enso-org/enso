@@ -38,9 +38,9 @@ export class WindowSize {
         const size = arg.split(WindowSize.separator)
         const widthStr = size[0]
         const heightStr = size[1]
-        const width = widthStr ? parseInt(widthStr) : NaN
-        const height = heightStr ? parseInt(heightStr) : NaN
-        if (isNaN(width) || isNaN(height)) {
+        const width = widthStr != null ? parseInt(widthStr) : null
+        const height = heightStr != null ? parseInt(heightStr) : null
+        if (width == null || height == null) {
             return new Error(`Incorrect window size provided '${arg}'.`)
         } else {
             return new WindowSize(width, height)

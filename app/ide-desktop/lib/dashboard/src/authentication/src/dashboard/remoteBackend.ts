@@ -17,6 +17,8 @@ import * as newtype from '../newtype'
 const STATUS_SUCCESS_FIRST = 200
 /** HTTP status indicating that the request was successful. */
 const STATUS_SUCCESS_LAST = 299
+/** HTTP status indicating that the server encountered a fatal exception. */
+const STATUS_SERVER_ERROR = 500
 
 /** Default HTTP body for an "open project" request. */
 const DEFAULT_OPEN_PROJECT_BODY: backend.OpenProjectRequestBody = {
@@ -38,6 +40,8 @@ function responseIsSuccessful(response: Response) {
 
 /** Relative HTTP path to the "set username" endpoint of the Cloud backend API. */
 const CREATE_USER_PATH = 'users'
+/** Relative HTTP path to the "set username" endpoint of the Cloud backend API. */
+const INVITE_USER_PATH = 'users/invite'
 /** Relative HTTP path to the "get user" endpoint of the Cloud backend API. */
 const USERS_ME_PATH = 'users/me'
 /** Relative HTTP path to the "list directory" endpoint of the Cloud backend API. */
@@ -168,10 +172,24 @@ export class RemoteBackend implements backend.Backend {
         throw new Error(message)
     }
 
-    /** Set the username of the current user. */
+    /** Set the username and parent organization of the current user. */
     async createUser(body: backend.CreateUserRequestBody): Promise<backend.UserOrOrganization> {
         const response = await this.post<backend.UserOrOrganization>(CREATE_USER_PATH, body)
-        return await response.json()
+        if (!responseIsSuccessful(response)) {
+            return this.throw('Unable to create user.')
+        } else {
+            return await response.json()
+        }
+    }
+
+    /** Set the username of the current user. */
+    async inviteUser(body: backend.InviteUserRequestBody): Promise<void> {
+        const response = await this.post(INVITE_USER_PATH, body)
+        if (!responseIsSuccessful(response)) {
+            return this.throw(`Unable to invite user with email '${body.userEmail}'.`)
+        } else {
+            return
+        }
     }
 
     /** Return organization info for the current user.
@@ -199,7 +217,10 @@ export class RemoteBackend implements backend.Backend {
                 }).toString()
         )
         if (!responseIsSuccessful(response)) {
-            if (query.parentId) {
+            if (response.status === STATUS_SERVER_ERROR) {
+                // The directory is probably empty.
+                return []
+            } else if (query.parentId) {
                 return this.throw(`Unable to list directory with ID '${query.parentId}'.`)
             } else {
                 return this.throw('Unable to list root directory.')

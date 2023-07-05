@@ -306,7 +306,7 @@ macro_rules! define_endpoints {
         #[allow(clippy::manual_non_exhaustive)]
         pub struct FrpInputs $(<$($param $(:$($constraints)*)?),*>)? {
             $( $(#[doc=$($in_doc)*])* pub $in_field : $crate::frp::Any<($($in_field_type)*)>,)*
-            _params : ($($(PhantomData<$param>),*)?),
+            _params : ($($(ZST<$param>),*)?),
         }
 
         #[allow(unused_parens)]
@@ -341,7 +341,7 @@ macro_rules! define_endpoints {
             $($(#[doc=$($out_doc)*])*
                 pub $out_field  : $crate::frp::Sampler<($($out_field_type)*)>,
             )*
-            _params : ($($(PhantomData<$param>),*)?),
+            _params : ($($(ZST<$param>),*)?),
         }
 
         impl $(<$($param $(:$($constraints)*)?),*>)? Deref for FrpEndpoints $(<$($param),*>)? {
@@ -384,7 +384,7 @@ macro_rules! define_endpoints {
         #[allow(clippy::manual_non_exhaustive)]
         pub(crate) struct FrpOutputsSource $(<$($param $(:$($constraints)*)?),*>)? {
             $(pub(crate) $out_field : $crate::frp::Any<($($out_field_type)*)>,)*
-            _params : ($($(PhantomData<$param>),*)?),
+            _params : ($($(ZST<$param>),*)?),
         }
 
         impl $(<$($param $(:$($constraints)*)?),*>)? FrpOutputsSource $(<$($param),*>)? {

@@ -320,7 +320,7 @@ pub struct GridViewTemplate<
 > {
     frp:        Frp<HeaderModel>,
     model:      Rc<Model<InnerGridView, HeaderEntry, HeaderParams>>,
-    entry_type: PhantomData<Entry>,
+    entry_type: ZST<Entry>,
 }
 
 impl<Entry, InnerGridView, HeaderEntry, HeaderModel: frp::node::Data, HeaderParams> Deref
@@ -451,7 +451,7 @@ where
             column_resize_params <- all(&grid_frp.column_resized, &grid_frp.properties);
             eval column_resize_params ((&((col, _), props)) model.update_header_size(col, props));
         }
-        let entry_type = PhantomData;
+        let entry_type = ZST();
         Self { frp, model, entry_type }
     }
 

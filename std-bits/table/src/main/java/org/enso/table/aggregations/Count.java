@@ -1,8 +1,7 @@
 package org.enso.table.aggregations;
 
-import org.enso.table.data.column.storage.type.IntegerType;
-
 import java.util.List;
+import org.enso.table.data.column.storage.type.IntegerType;
 
 /** Aggregate Column counting the number of entries in a group. */
 public class Count extends Aggregator {

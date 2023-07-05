@@ -1,10 +1,9 @@
 package org.enso.interpreter.node.expression.builtin;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import java.util.List;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
-
-import java.util.List;
 
 public abstract class UniquelyConstructibleBuiltin extends Builtin {
   private @CompilerDirectives.CompilationFinal AtomConstructor uniqueConstructor;

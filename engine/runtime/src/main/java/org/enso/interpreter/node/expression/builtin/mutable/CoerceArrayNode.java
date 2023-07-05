@@ -12,8 +12,8 @@ import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEn
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.callable.atom.Atom;
-import org.enso.interpreter.runtime.data.Vector;
 import org.enso.interpreter.runtime.data.Array;
+import org.enso.interpreter.runtime.data.Vector;
 import org.enso.interpreter.runtime.error.PanicException;
 
 public abstract class CoerceArrayNode extends Node {
@@ -31,18 +31,8 @@ public abstract class CoerceArrayNode extends Node {
   }
 
   @Specialization
-  Object[] doVector(Vector arr, @Cached HostValueToEnsoNode hostValueToEnsoNode) {
-    try {
-      return convertToArray(arr, hostValueToEnsoNode);
-    } catch (UnsupportedMessageException e) {
-      Builtins builtins = EnsoContext.get(this).getBuiltins();
-      Atom err = builtins.error().makeTypeError(builtins.array(), arr, "arr");
-      throw new PanicException(err, this);
-    } catch (InvalidArrayIndexException e) {
-      Builtins builtins = EnsoContext.get(this).getBuiltins();
-      throw new PanicException(
-          builtins.error().makeInvalidArrayIndex(arr, e.getInvalidIndex()), this);
-    }
+  Object[] doVector(Vector arr, @Cached CoerceArrayNode coerceArrayNode) {
+    return coerceArrayNode.execute(arr.toArray());
   }
 
   @Specialization(guards = "interop.hasArrayElements(arr)")

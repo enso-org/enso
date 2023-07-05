@@ -44,12 +44,12 @@ export type Permissions = AdminPermissions | OwnerPermissions | RegularPermissio
 // =================
 
 /** Props for a {@link PermissionDisplay}. */
-export interface PermissionDisplayProps {
+export interface PermissionDisplayProps extends react.PropsWithChildren {
     permissions: Permissions
 }
 
 /** Colored border around icons and text indicating permissions. */
-function PermissionDisplay(props: react.PropsWithChildren<PermissionDisplayProps>) {
+function PermissionDisplay(props: PermissionDisplayProps) {
     const { permissions, children } = props
     let permissionBorder
     switch (permissions.type) {
@@ -95,7 +95,7 @@ function PermissionDisplay(props: react.PropsWithChildren<PermissionDisplayProps
     }
 
     return (
-        <div className="m-1 relative inline-block">
+        <div className="mx-1 relative inline-block">
             {permissionBorder}
             <div className="bg-label rounded-full m-1">{children}</div>
         </div>

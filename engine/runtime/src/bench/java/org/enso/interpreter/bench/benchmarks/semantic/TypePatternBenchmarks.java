@@ -1,5 +1,6 @@
 package org.enso.interpreter.bench.benchmarks.semantic;
 
+import org.enso.polyglot.MethodNames.Module;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.openjdk.jmh.annotations.*;
@@ -22,7 +23,6 @@ public class TypePatternBenchmarks {
   private Value patternMatch;
   private Value avg;
   private Value vec;
-  private Value self;
 
   @Setup
   public void initializeBenchmark(BenchmarkParams params) throws Exception {
@@ -43,8 +43,8 @@ public class TypePatternBenchmarks {
                 @Tail_Call sum (acc + arr.at i) i+1
             (sum 0 0) / arr.length
 
-        avg_pattern self arr pattern =
-            avg (arr.map (pattern self))
+        avg_pattern arr pattern =
+            avg (arr.map (pattern _))
 
         gen_vec size value =
             b = Vector.new_builder size
@@ -65,20 +65,14 @@ public class TypePatternBenchmarks {
     var src = SrcUtil.source(benchmarkName, code);
     var module = ctx.eval(src);
 
-    this.self = module.invokeMember("get_associated_type");
-    Function<String,Value> getMethod = (name) -> module.invokeMember("get_method", self, name);
+    Function<String,Value> getMethod = (name) -> module.invokeMember(Module.EVAL_EXPRESSION, name);
 
     var length = 100;
-    this.vec = getMethod.apply("gen_vec").execute(self, length, 1.1);
+    this.vec = getMethod.apply("gen_vec").execute(length, 1.1);
     switch (SrcUtil.findName(params)) {
-      case "matchOverAny":
-        this.patternMatch = getMethod.apply("match_any");
-        break;
-      case "matchOverDecimal":
-        this.patternMatch = getMethod.apply("match_dec");
-        break;
-      default:
-        throw new IllegalStateException("Unexpected benchmark: " + params.getBenchmark());
+      case "matchOverAny" -> this.patternMatch = getMethod.apply("match_any");
+      case "matchOverDecimal" -> this.patternMatch = getMethod.apply("match_dec");
+      default -> throw new IllegalStateException("Unexpected benchmark: " + params.getBenchmark());
     }
     this.avg = getMethod.apply("avg_pattern");
   }
@@ -98,7 +92,7 @@ public class TypePatternBenchmarks {
   }
 
   private void performBenchmark(Blackhole matter) throws AssertionError {
-    var average = avg.execute(self, this.vec, this.patternMatch);
+    var average = avg.execute(this.vec, this.patternMatch);
     if (!average.fitsInDouble()) {
       throw new AssertionError("Shall be a double: " + average);
     }

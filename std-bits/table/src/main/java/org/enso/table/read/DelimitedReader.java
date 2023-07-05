@@ -3,7 +3,7 @@ package org.enso.table.read;
 import com.univocity.parsers.csv.CsvFormat;
 import com.univocity.parsers.csv.CsvParser;
 import com.univocity.parsers.csv.CsvParserSettings;
-import org.enso.table.data.column.builder.object.StringBuilder;
+import org.enso.table.data.column.builder.StringBuilder;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;

@@ -44,7 +44,6 @@ mod shape {
 /// An internal model of Status Bar component
 #[derive(Clone, CloneRef, Debug)]
 pub struct Model {
-    app:            Application,
     display_object: display::object::Instance,
     shape:          shape::View,
     close:          close::View,
@@ -54,7 +53,6 @@ pub struct Model {
 impl Model {
     /// Constructor.
     pub fn new(app: &Application) -> Self {
-        let app = app.clone_ref();
         let display_object = display::object::Instance::new_named("WindowControlButtons");
 
         ensogl::shapes_order_dependencies! {
@@ -63,10 +61,10 @@ impl Model {
                 shape -> fullscreen::shape;
             }
         };
-        let close = close::View::new(&app);
+        let close = close::View::new(app);
         display_object.add_child(&close);
 
-        let fullscreen = fullscreen::View::new(&app);
+        let fullscreen = fullscreen::View::new(app);
         display_object.add_child(&fullscreen);
 
         let shape = shape::View::new();
@@ -74,7 +72,7 @@ impl Model {
 
         app.display.default_scene.layers.panel.add(&display_object);
 
-        Self { app, display_object, shape, close, fullscreen }
+        Self { display_object, shape, close, fullscreen }
     }
 
     /// Updates positions of the buttons and sizes of the mouse area.
@@ -190,10 +188,8 @@ impl application::View for View {
     fn label() -> &'static str {
         "TopButtons"
     }
+
     fn new(app: &Application) -> Self {
         View::new(app)
-    }
-    fn app(&self) -> &Application {
-        &self.model.app
     }
 }

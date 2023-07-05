@@ -1,15 +1,7 @@
 package org.enso.interpreter.runtime.scope;
 
-import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.interop.TruffleObject;
-import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.Module;
-import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.data.Type;
-import org.enso.interpreter.runtime.error.RedefinedMethodException;
-import org.enso.interpreter.runtime.error.RedefinedConversionException;
-
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -18,6 +10,12 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.Module;
+import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.error.RedefinedConversionException;
+import org.enso.interpreter.runtime.error.RedefinedMethodException;
 
 /** A representation of Enso's per-file top-level scope. */
 public final class ModuleScope implements TruffleObject {
@@ -118,9 +116,9 @@ public final class ModuleScope implements TruffleObject {
   public void registerMethod(Type type, String method, Function function) {
     Map<String, Function> methodMap = ensureMethodMapFor(type);
 
-    if (methodMap.containsKey(method)) {
-      // Builtin types will have double definition because of
-      // BuiltinMethod and that's OK
+    // Builtin types will have double definition because of
+    // BuiltinMethod and that's OK
+    if (methodMap.containsKey(method) && !type.isBuiltin()) {
       throw new RedefinedMethodException(type.getName(), method);
     } else {
       methodMap.put(method, function);

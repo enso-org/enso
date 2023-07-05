@@ -33,8 +33,9 @@ import * as amplify from '@aws-amplify/auth'
 import * as cognito from 'amazon-cognito-identity-js'
 import * as results from 'ts-results'
 
+import * as detect from 'enso-common/src/detect'
+
 import * as config from './config'
-import * as detect from '../detect'
 import * as loggerProvider from '../providers/logger'
 
 // =================
@@ -58,6 +59,31 @@ const MESSAGES = {
         userNotConfirmed: `Cannot reset password for user with an unverified email. \
 Please verify your email first.`,
     },
+}
+
+// ================
+// === UserInfo ===
+// ================
+
+// The names come from a third-party API and cannot be changed.
+/* eslint-disable @typescript-eslint/naming-convention */
+/** Attributes returned from {@link amplify.Auth.currentUserInfo}. */
+interface UserAttributes {
+    email: string
+    email_verified: boolean
+    sub: string
+    'custom:fromDesktop'?: string
+    'custom:organizationId'?: string
+}
+/* eslint-enable @typescript-eslint/naming-convention */
+
+/** User information returned from {@link amplify.Auth.currentUserInfo}. */
+interface UserInfo {
+    username: string
+    // The type comes from a third-party API and cannot be changed.
+    // eslint-disable-next-line no-restricted-syntax
+    id: undefined
+    attributes: UserAttributes
 }
 
 // ====================
@@ -169,11 +195,20 @@ export class Cognito {
         return userSession()
     }
 
+    /** Returns the associated organization ID of the current user, which is passed during signup,
+     * or `null` if the user is not associated with an existing organization. */
+    async organizationId() {
+        // This `any` comes from a third-party API and cannot be avoided.
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const userInfo: UserInfo = await amplify.Auth.currentUserInfo()
+        return userInfo.attributes['custom:organizationId'] ?? null
+    }
+
     /** Sign up with username and password.
      *
      * Does not rely on federated identity providers (e.g., Google or GitHub). */
-    signUp(username: string, password: string) {
-        return signUp(this.supportsDeepLinks, username, password)
+    signUp(username: string, password: string, organizationId: string | null) {
+        return signUp(this.supportsDeepLinks, username, password, organizationId)
     }
 
     /** Send the email address verification code.
@@ -339,9 +374,14 @@ function intoCurrentSessionErrorKind(error: unknown): CurrentSessionErrorKind {
 
 /** A wrapper around the Amplify "sign up" endpoint that converts known errors
  * to {@link SignUpError}s. */
-async function signUp(supportsDeepLinks: boolean, username: string, password: string) {
+async function signUp(
+    supportsDeepLinks: boolean,
+    username: string,
+    password: string,
+    organizationId: string | null
+) {
     const result = await results.Result.wrapAsync(async () => {
-        const params = intoSignUpParams(supportsDeepLinks, username, password)
+        const params = intoSignUpParams(supportsDeepLinks, username, password, organizationId)
         await amplify.Auth.signUp(params)
     })
     return result.mapErr(intoAmplifyErrorOrThrow).mapErr(intoSignUpErrorOrThrow)
@@ -351,7 +391,8 @@ async function signUp(supportsDeepLinks: boolean, username: string, password: st
 function intoSignUpParams(
     supportsDeepLinks: boolean,
     username: string,
-    password: string
+    password: string,
+    organizationId: string | null
 ): amplify.SignUpParams {
     return {
         username,
@@ -368,7 +409,9 @@ function intoSignUpParams(
              * It is necessary to disable the naming convention rule here, because the key is
              * expected to appear exactly as-is in Cognito, so we must match it. */
             // eslint-disable-next-line @typescript-eslint/naming-convention
-            ...(supportsDeepLinks ? { 'custom:fromDesktop': JSON.stringify(true) } : {}),
+            'custom:fromDesktop': supportsDeepLinks ? JSON.stringify(true) : null,
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            'custom:organizationId': organizationId,
         },
     }
 }

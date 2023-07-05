@@ -1,7 +1,8 @@
 package org.enso.table.data.column.storage.datetime;
 
-import org.enso.table.data.column.builder.object.Builder;
-import org.enso.table.data.column.builder.object.DateBuilder;
+import java.time.LocalDate;
+import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.builder.DateBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.UnaryIntegerOp;
 import org.enso.table.data.column.operation.map.datetime.DateTimeIsInOp;
@@ -9,8 +10,6 @@ import org.enso.table.data.column.storage.ObjectStorage;
 import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.type.DateType;
 import org.enso.table.data.column.storage.type.StorageType;
-
-import java.time.LocalDate;
 
 public final class DateStorage extends SpecializedStorage<LocalDate> {
   /**

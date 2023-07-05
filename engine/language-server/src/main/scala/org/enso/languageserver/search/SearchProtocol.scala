@@ -85,17 +85,25 @@ object SearchProtocol {
           )
           .dropNullValues
 
-      case method: Suggestion.Method =>
-        Encoder[Suggestion.Method]
-          .apply(method)
+      case conversion: Suggestion.Conversion =>
+        Encoder[Suggestion.DefinedMethod]
+          .apply(conversionToMethod(conversion))
           .deepMerge(
             Json.obj(CodecField.Type -> SuggestionType.Method.asJson)
           )
           .dropNullValues
 
-      case conversion: Suggestion.Conversion =>
-        Encoder[Suggestion.Method]
-          .apply(conversionToMethod(conversion))
+      case getter: Suggestion.Getter =>
+        Encoder[Suggestion.DefinedMethod]
+          .apply(getterToMethod(getter))
+          .deepMerge(
+            Json.obj(CodecField.Type -> SuggestionType.Method.asJson)
+          )
+          .dropNullValues
+
+      case method: Suggestion.DefinedMethod =>
+        Encoder[Suggestion.DefinedMethod]
+          .apply(method)
           .deepMerge(
             Json.obj(CodecField.Type -> SuggestionType.Method.asJson)
           )
@@ -118,27 +126,43 @@ object SearchProtocol {
 
   private def conversionToMethod(
     conversion: Suggestion.Conversion
-  ): Suggestion.Method = {
+  ): Suggestion.DefinedMethod = {
     val arg = Suggestion.Argument(
       Suggestion.Kind.Conversion.From,
-      conversion.sourceType,
+      conversion.selfType,
       false,
       false,
       None
     )
-    Suggestion.Method(
+    Suggestion.DefinedMethod(
       conversion.externalId,
       conversion.module,
-      Suggestion.Kind.Conversion.From,
+      conversion.name,
       arg +: conversion.arguments,
       conversion.returnType,
       conversion.returnType,
-      isStatic = false,
+      conversion.isStatic,
       conversion.documentation,
-      Seq(),
+      conversion.annotations,
       conversion.reexport
     )
   }
+
+  private def getterToMethod(
+    getter: Suggestion.Getter
+  ): Suggestion.DefinedMethod =
+    Suggestion.DefinedMethod(
+      getter.externalId,
+      getter.module,
+      getter.name,
+      getter.arguments,
+      getter.returnType,
+      getter.returnType,
+      getter.isStatic,
+      getter.documentation,
+      getter.annotations,
+      getter.reexport
+    )
 
   private val suggestionTypeDecoder: Decoder[Suggestion.Type] =
     Decoder.instance { cursor =>
@@ -402,6 +426,7 @@ object SearchProtocol {
         case Suggestion.Kind.Module      => Module
         case Suggestion.Kind.Type        => Type
         case Suggestion.Kind.Constructor => Constructor
+        case Suggestion.Kind.Getter      => Method
         case Suggestion.Kind.Method      => Method
         case Suggestion.Kind.Conversion  => Conversion
         case Suggestion.Kind.Function    => Function

@@ -209,12 +209,12 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
    * will be returned.
    *
    * @param request request for inline parsing
-   * @throws Exception if the compiler failed to parse
+   * @throws InlineParsingException if the compiler failed to parse
    * @return An {@link ExecutableNode} representing an AST fragment if the request contains
    *   syntactically correct Enso source, {@code null} otherwise.
    */
   @Override
-  protected ExecutableNode parse(InlineParsingRequest request) throws Exception {
+  protected ExecutableNode parse(InlineParsingRequest request) throws InlineParsingException {
     if (request.getLocation().getRootNode() instanceof EnsoRootNode ensoRootNode) {
       var context = EnsoContext.get(request.getLocation());
       Tree inlineExpr = context.getCompiler().parseInline(request.getSource());

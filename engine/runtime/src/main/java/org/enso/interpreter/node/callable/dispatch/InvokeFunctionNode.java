@@ -1,11 +1,13 @@
 package org.enso.interpreter.node.callable.dispatch;
 
-import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
-import com.oracle.truffle.api.dsl.*;
+import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.ImportStatic;
+import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.source.SourceSection;
+import java.util.UUID;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.CaptureCallerInfoNode;
@@ -19,8 +21,6 @@ import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.state.State;
-
-import java.util.UUID;
 
 /**
  * This class represents the protocol for remapping the arguments provided at a call site into the
@@ -59,6 +59,23 @@ public abstract class InvokeFunctionNode extends BaseNode {
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode) {
     return InvokeFunctionNodeGen.create(schema, defaultsExecutionMode, argumentsExecutionMode);
+  }
+
+  /**
+   * Creates a simple node to invoke a function with provided arity.
+   *
+   * @param arity number of arguments to pass to the function
+   * @return instance of this node to handle a {@code arity}-arity function invocation
+   */
+  public static InvokeFunctionNode buildWithArity(int arity) {
+    var schema = new CallArgumentInfo[arity];
+    for (int idx = 0; idx < schema.length; idx++) {
+      schema[idx] = new CallArgumentInfo();
+    }
+    return build(
+        schema,
+        InvokeCallableNode.DefaultsExecutionMode.EXECUTE,
+        InvokeCallableNode.ArgumentsExecutionMode.EXECUTE);
   }
 
   EnsoContext getContext() {

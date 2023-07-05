@@ -285,7 +285,7 @@ impl List {
         db: &model::SuggestionDatabase,
         module: QualifiedNameRef,
     ) -> Option<&mut ModuleGroups> {
-        let (module_id, db_entry) = db.lookup_by_qualified_name(&module)?;
+        let (module_id, db_entry) = db.lookup_by_qualified_name(&module).ok()?;
 
         // Note: My heart is bleeding at this point, but because of lifetime checker limitations
         // we must do it in this suboptimal way.
@@ -511,7 +511,7 @@ mod tests {
         let qn_of_db_entry_1 = db.lookup(1).unwrap().qualified_name();
         let qn_of_db_entry_3 = db.lookup(3).unwrap().qualified_name();
         let qn_not_in_db = QualifiedName::from_text("test.Test.NameNotInSuggestionDb").unwrap();
-        assert_eq!(db.lookup_by_qualified_name(&qn_not_in_db), None);
+        assert!(db.lookup_by_qualified_name(&qn_not_in_db).is_err());
         let groups = [
             execution_context::ComponentGroup {
                 project:    project::QualifiedName::standard_base_library(),
@@ -627,8 +627,7 @@ mod tests {
     /// excluded from the list.
     #[test]
     fn building_component_list_with_private_component() {
-        use ast::constants::PRIVATE_DOC_SECTION_TAG_NAME as PRIVATE_TAG;
-        let private_doc_section = enso_suggestion_database::doc_section!(@ PRIVATE_TAG, "");
+        let private_doc_section = enso_suggestion_database::doc_section!(@ Private, "");
         let suggestion_db = enso_suggestion_database::mock_suggestion_database! {
             test.Test {
                 mod LocalModule {

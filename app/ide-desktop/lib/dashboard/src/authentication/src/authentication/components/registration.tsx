@@ -3,13 +3,26 @@ import * as react from 'react'
 import * as router from 'react-router-dom'
 import toast from 'react-hot-toast'
 
+import AtIcon from 'enso-assets/at.svg'
+import CreateAccountIcon from 'enso-assets/create_account.svg'
+import GoBackIcon from 'enso-assets/go_back.svg'
+import LockIcon from 'enso-assets/lock.svg'
+
 import * as app from '../../components/app'
-import * as auth from '../providers/auth'
+import * as authModule from '../providers/auth'
 import * as svg from '../../components/svg'
 import * as validation from '../../dashboard/validation'
 
 import Input from './input'
 import SvgIcon from './svgIcon'
+
+// =================
+// === Constants ===
+// =================
+
+const REGISTRATION_QUERY_PARAMS = {
+    organizationId: 'organization_id',
+} as const
 
 // ====================
 // === Registration ===
@@ -17,10 +30,13 @@ import SvgIcon from './svgIcon'
 
 /** A form for users to register an account. */
 function Registration() {
-    const { signUp } = auth.useAuth()
+    const auth = authModule.useAuth()
+    const location = router.useLocation()
     const [email, setEmail] = react.useState('')
     const [password, setPassword] = react.useState('')
     const [confirmPassword, setConfirmPassword] = react.useState('')
+
+    const { organizationId } = parseUrlSearchParams(location.search)
 
     const onSubmit = () => {
         /** The password & confirm password fields must match. */
@@ -28,7 +44,7 @@ function Registration() {
             toast.error('Passwords do not match.')
             return Promise.resolve()
         } else {
-            return signUp(email, password)
+            return auth.signUp(email, password, organizationId)
         }
     }
 
@@ -58,8 +74,9 @@ function Registration() {
                             E-Mail Address:
                         </label>
                         <div className="relative">
-                            <SvgIcon svg={svg.AT} />
-
+                            <SvgIcon>
+                                <svg.SvgMask src={AtIcon} />
+                            </SvgIcon>
                             <Input
                                 id="email"
                                 type="email"
@@ -78,8 +95,9 @@ function Registration() {
                             Password:
                         </label>
                         <div className="relative">
-                            <SvgIcon svg={svg.LOCK} />
-
+                            <SvgIcon>
+                                <svg.SvgMask src={LockIcon} />
+                            </SvgIcon>
                             <Input
                                 required
                                 id="password"
@@ -101,8 +119,9 @@ function Registration() {
                             Confirm Password:
                         </label>
                         <div className="relative">
-                            <SvgIcon svg={svg.LOCK} />
-
+                            <SvgIcon>
+                                <svg.SvgMask src={LockIcon} />
+                            </SvgIcon>
                             <Input
                                 required
                                 id="password_confirmation"
@@ -125,7 +144,9 @@ function Registration() {
                             }
                         >
                             <span className="mr-2 uppercase">Register</span>
-                            <span>{svg.CREATE_ACCOUNT}</span>
+                            <span>
+                                <svg.SvgMask src={CreateAccountIcon} />
+                            </span>
                         </button>
                     </div>
                 </form>
@@ -138,12 +159,21 @@ function Registration() {
                         'text-sm text-center'
                     }
                 >
-                    <span>{svg.GO_BACK}</span>
+                    <span>
+                        <svg.SvgMask src={GoBackIcon} />
+                    </span>
                     <span className="ml-2">Already have an account?</span>
                 </router.Link>
             </div>
         </div>
     )
+}
+
+/** Return an object containing the query parameters, with keys renamed to `camelCase`. */
+function parseUrlSearchParams(search: string) {
+    const query = new URLSearchParams(search)
+    const organizationId = query.get(REGISTRATION_QUERY_PARAMS.organizationId)
+    return { organizationId }
 }
 
 export default Registration

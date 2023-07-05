@@ -39,7 +39,8 @@ authentication.run({
     // This file is only included when building for the cloud.
     supportsLocalBackend: false,
     supportsDeepLinks: false,
-    showDashboard: true,
+    isAuthenticationDisabled: false,
+    shouldShowDashboard: true,
     initialProjectName: null,
     /** The `onAuthenticated` option is mandatory but is not needed here,
      * so this function is empty. */
@@ -50,8 +51,10 @@ authentication.run({
     // every time a new project is opened.
     appRunner: {
         stopApp: () => {
-            window.enso.stopApp()
+            window.enso?.stopApp()
         },
-        runApp: config => window.enso.runApp(config),
+        runApp: async config => {
+            await window.enso?.runApp(config)
+        },
     },
 })

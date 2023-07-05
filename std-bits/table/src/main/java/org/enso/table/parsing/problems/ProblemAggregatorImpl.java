@@ -1,9 +1,8 @@
 package org.enso.table.parsing.problems;
 
-import org.enso.table.problems.Problem;
-
 import java.util.ArrayList;
 import java.util.List;
+import org.enso.table.problems.Problem;
 
 public class ProblemAggregatorImpl implements ProblemAggregator {
   public final String relatedColumnName;

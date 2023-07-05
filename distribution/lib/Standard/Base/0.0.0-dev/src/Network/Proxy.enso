@@ -3,7 +3,13 @@ import project.Data.Text.Text
 
 ## Proxy settings.
 type Proxy
-    ## Create new proxy settings from a host and port.
+    ## The proxy is disabled.
+    None
+
+    ## Use the system proxy settings.
+    System
+
+    ## Use the provided proxy server.
 
        Arguments:
        - host: The host address for the proxy.
@@ -14,15 +20,5 @@ type Proxy
 
              import Standard.Base.Network.Proxy.Proxy
 
-             example_new = Proxy.new "localhost" 80800
-    new : Text -> Integer -> Proxy
-    new host port=80 = Proxy.Address host port
-
-    ## The proxy is disabled.
-    None
-
-    ## Use the system proxy settings.
-    System
-
-    ## Use the provided proxy server.
-    Address proxy_host proxy_port
+             example_new = Proxy.Address "localhost" 80800
+    Address proxy_host:Text proxy_port:Integer=80

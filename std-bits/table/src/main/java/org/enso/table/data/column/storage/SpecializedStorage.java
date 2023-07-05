@@ -1,14 +1,14 @@
 package org.enso.table.data.column.storage;
 
+import java.util.AbstractList;
+import java.util.BitSet;
+import java.util.List;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
-
-import java.util.BitSet;
-import java.util.List;
 
 public abstract class SpecializedStorage<T> extends Storage<T> {
 
@@ -149,5 +149,28 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
     }
 
     return newInstance(newData, newSize);
+  }
+
+  @Override
+  public List<Object> toList() {
+    return new ReadOnlyList<>(this);
+  }
+
+  private class ReadOnlyList<S> extends AbstractList<Object> {
+    private final SpecializedStorage<S> storage;
+
+    public ReadOnlyList(SpecializedStorage<S> storage) {
+      this.storage = storage;
+    }
+
+    @Override
+    public Object get(int index) {
+      return storage.getItemBoxed(index);
+    }
+
+    @Override
+    public int size() {
+      return storage.size();
+    }
   }
 }

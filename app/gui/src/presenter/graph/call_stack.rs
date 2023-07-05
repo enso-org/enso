@@ -119,6 +119,9 @@ impl Model {
         let main_module = self.controller.graph().module.clone_ref();
         let controller = self.controller.clone_ref();
         move || {
+            let _transaction = main_module
+                .undo_redo_repository()
+                .open_ignored_transaction_or_ignore_current("Updating call stack metadata");
             let new_call_stack = controller.call_stack();
             let result = main_module.update_project_metadata(|metadata| {
                 metadata.call_stack = new_call_stack;

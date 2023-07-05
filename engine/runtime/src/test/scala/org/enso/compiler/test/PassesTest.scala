@@ -6,6 +6,7 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{
   AliasAnalysis,
+  AmbiguousImportsAnalysis,
   BindingAnalysis,
   ImportSymbolAnalysis
 }
@@ -34,11 +35,6 @@ class PassesTest extends CompilerTest {
       ir: IR.Expression,
       inlineContext: InlineContext
     ): IR.Expression = ir
-
-    override def updateMetadataInDuplicate[T <: IR](
-      sourceIr: T,
-      copyOfIr: T
-    ): T = copyOfIr
   }
 
   // === The Tests ============================================================
@@ -62,6 +58,7 @@ class PassesTest extends CompilerTest {
           OperatorToFunction,
           LambdaShorthandToLambda,
           ImportSymbolAnalysis,
+          AmbiguousImportsAnalysis,
           ShadowedPatternFields,
           UnreachableMatchBranches,
           NestedPatternMatch,

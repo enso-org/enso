@@ -1,11 +1,10 @@
 package org.enso.table.aggregations;
 
+import java.util.Arrays;
+import java.util.List;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.index.OrderedMultiValueKey;
 import org.enso.table.data.table.Column;
-
-import java.util.Arrays;
-import java.util.List;
 
 public class Last extends Aggregator {
   private final Storage<?> storage;

@@ -1,15 +1,5 @@
 package org.enso.interpreter.runtime.data;
 
-import java.util.Arrays;
-
-import org.enso.interpreter.dsl.Builtin;
-import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.error.Warning;
-import org.enso.interpreter.runtime.error.WarningsLibrary;
-import org.enso.interpreter.runtime.error.WithWarnings;
-import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
-import org.graalvm.collections.EconomicSet;
-
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -21,15 +11,13 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.BranchProfile;
+import java.util.Arrays;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.error.Warning;
 import org.enso.interpreter.runtime.error.WarningsLibrary;
-import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
-
-import java.util.Arrays;
 import org.enso.interpreter.runtime.error.WithWarnings;
-import org.enso.polyglot.RuntimeOptions;
+import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.graalvm.collections.EconomicSet;
 
 /** A primitive boxed array type for use in the runtime. */
@@ -47,37 +35,25 @@ public final class Array implements TruffleObject {
    *
    * @param items the element values
    */
-  @Builtin.Method(
-      expandVarargs = 4,
-      description = "Creates an array with given elements.",
-      autoRegister = false)
   public Array(Object... items) {
     assert noNulls(items);
     this.items = items;
   }
 
   /**
-   * Creates an uninitialized array of the given size.
+   * Creates an uninitialized array of the given size. The values must be filled before the array is
+   * returned to Enso.
    *
    * @param size the size of the created array.
    */
-  @Builtin.Method(
-      description = "Creates an uninitialized array of a given size.",
-      autoRegister = false,
-      name = "new")
   public static Array allocate(long size) {
     var arr = new Object[(int) size];
-    var ctx = EnsoContext.get(null);
-    var nothing = ctx.getBuiltins().nothing();
-    for (int i = 0; i < arr.length; i++) {
-      arr[i] = nothing;
-    }
     return new Array(arr);
   }
 
-  private static final boolean noNulls(Object[] arr) {
-    for (int i = 0; i < arr.length; i++) {
-      if (arr[i] == null) {
+  private static boolean noNulls(Object[] arr) {
+    for (Object o : arr) {
+      if (o == null) {
         return false;
       }
     }
@@ -127,6 +103,7 @@ public final class Array implements TruffleObject {
       }
       return WithWarnings.wrap(EnsoContext.get(warnings), v, extracted);
     }
+
     return v;
   }
 
@@ -135,7 +112,6 @@ public final class Array implements TruffleObject {
   }
 
   /** @return an empty array */
-  @Builtin.Method(description = "Creates an empty Array", autoRegister = false)
   public static Array empty() {
     return allocate(0);
   }
@@ -202,8 +178,8 @@ public final class Array implements TruffleObject {
   }
 
   private boolean hasWarningElements(Object[] items, WarningsLibrary warnings) {
-    for (int i = 0; i < items.length; i++) {
-      if (warnings.hasWarnings(items[i])) {
+    for (Object item : items) {
+      if (warnings.hasWarnings(item)) {
         return true;
       }
     }
@@ -231,9 +207,9 @@ public final class Array implements TruffleObject {
   private EconomicSet<Warning> collectAllWarnings(WarningsLibrary warnings, Node location)
       throws UnsupportedMessageException {
     EconomicSet<Warning> setOfWarnings = EconomicSet.create(new WithWarnings.WarningEquivalence());
-    for (int i = 0; i < items.length; i++) {
-      if (warnings.hasWarnings(items[i])) {
-        setOfWarnings.addAll(Arrays.asList(warnings.getWarnings(items[i], location)));
+    for (Object item : items) {
+      if (warnings.hasWarnings(item)) {
+        setOfWarnings.addAll(Arrays.asList(warnings.getWarnings(item, location)));
       }
     }
     return setOfWarnings;

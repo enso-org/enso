@@ -29,7 +29,8 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
       ExecutionContextConfig(requestTimeout = 3.seconds),
       ProjectDirectoriesConfig.initialize(testContentRoot.file),
       ProfilingConfig(),
-      StartupConfig()
+      StartupConfig(),
+      None
     )
   }
 

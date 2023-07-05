@@ -17,8 +17,6 @@ import org.enso.compiler.pass.resolve.{
   Patterns
 }
 
-import scala.annotation.unused
-
 /** Recognizes all defined bindings in the current module and constructs
   * a mapping data structure that can later be used for symbol resolution.
   */
@@ -114,10 +112,4 @@ case object BindingAnalysis extends IRPass {
     ir: IR.Expression,
     inlineContext: InlineContext
   ): IR.Expression = ir
-
-  /** @inheritdoc */
-  override def updateMetadataInDuplicate[T <: IR](
-    @unused sourceIr: T,
-    copyOfIr: T
-  ): T = copyOfIr
 }

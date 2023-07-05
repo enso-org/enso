@@ -32,7 +32,8 @@ class VcsManagerTest extends BaseServerTest with RetrySpec with FlakySpec {
       ExecutionContextConfig(requestTimeout = 3.seconds),
       ProjectDirectoriesConfig.initialize(testContentRoot.file),
       ProfilingConfig(),
-      StartupConfig()
+      StartupConfig(),
+      None
     )
   }
 
