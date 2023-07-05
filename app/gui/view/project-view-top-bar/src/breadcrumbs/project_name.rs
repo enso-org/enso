@@ -3,10 +3,7 @@
 use ensogl::display::shape::*;
 use ensogl::prelude::*;
 
-use crate::breadcrumbs::breadcrumb;
-use crate::breadcrumbs::GLYPH_WIDTH;
 use crate::breadcrumbs::TEXT_SIZE;
-use crate::breadcrumbs::VERTICAL_MARGIN;
 
 use enso_frp as frp;
 use ensogl::application::shortcut;
@@ -15,6 +12,7 @@ use ensogl::application::View;
 use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::object::ObjectOps;
+use ensogl::display::shape::compound::rectangle::Rectangle;
 use ensogl::gui::cursor;
 use ensogl::DEPRECATED_Animation;
 use ensogl_component::text;
@@ -34,25 +32,6 @@ use parser::Parser;
 const UNINITIALIZED_PROJECT_NAME: &str = "Initializing project...";
 /// Default line height for project names.
 pub const LINE_HEIGHT: f32 = TEXT_SIZE * 1.5;
-
-
-
-// ==================
-// === Background ===
-// ==================
-
-/// A transparent "background" of project name, set for capturing mouse events.
-pub mod background {
-    use super::*;
-
-    ensogl::shape! {
-        alignment = center;
-        (style: Style) {
-            let bg_color = color::Rgba::new(0.0,0.0,0.0,0.000_001);
-            Plane().fill(bg_color).into()
-        }
-    }
-}
 
 
 
@@ -129,7 +108,7 @@ impl Animations {
 #[allow(missing_docs)]
 struct ProjectNameModel {
     display_object: display::object::Instance,
-    view:           background::View,
+    overlay:        Rectangle,
     style:          StyleWatch,
     text_field:     text::Text,
     project_name:   Rc<RefCell<String>>,
@@ -150,42 +129,19 @@ impl ProjectNameModel {
         text_field.set_property_default(text_size);
         text_field.set_single_line_mode(true);
 
-        scene.layers.main.remove(&text_field);
         text_field.add_to_scene_layer(&scene.layers.panel_text);
         text_field.hover();
 
-        let view = background::View::new();
-
-        scene.layers.panel.add(&view);
+        let overlay = Rectangle::new().set_color(INVISIBLE_HOVER_COLOR).clone();
+        scene.layers.panel.add(&overlay);
 
         let project_name = default();
-        Self { display_object, view, style, text_field, project_name }.init()
-    }
-
-    /// Compute the width of the ProjectName view.
-    fn width(&self, content: &str) -> f32 {
-        let glyphs = content.len();
-        let width = glyphs as f32 * GLYPH_WIDTH;
-        width + breadcrumb::LEFT_MARGIN + breadcrumb::RIGHT_MARGIN + breadcrumb::PADDING * 2.0
-    }
-
-    fn update_alignment(&self, content: &str) {
-        let width = self.width(content);
-        let x_left = breadcrumb::LEFT_MARGIN + breadcrumb::PADDING;
-        let x_center = x_left + width / 2.0;
-
-        let height = LINE_HEIGHT;
-        let y_top = -VERTICAL_MARGIN - breadcrumb::VERTICAL_MARGIN - breadcrumb::PADDING;
-        let y_center = y_top - height / 2.0;
-
-        self.text_field.set_position(Vector3(x_left, y_center + TEXT_SIZE / 2.0, 0.0));
-        self.view.set_size(Vector2(width, height));
-        self.view.set_position(Vector3(x_center, y_center, 0.0));
+        Self { display_object, overlay, style, text_field, project_name }.init()
     }
 
     fn init(self) -> Self {
         self.add_child(&self.text_field);
-        self.add_child(&self.view);
+        self.add_child(&self.overlay);
         self.update_text_field_content(self.project_name.borrow().as_str());
         self
     }
@@ -199,7 +155,12 @@ impl ProjectNameModel {
     /// Update the visible content of the text field.
     fn update_text_field_content(&self, content: &str) {
         self.text_field.set_content(content);
-        self.update_alignment(content);
+    }
+
+    fn update_size(&self, new_size: Vector2) {
+        self.overlay.set_size(new_size);
+        self.display_object.set_size(new_size);
+        self.text_field.set_y(new_size.y);
     }
 
     fn set_color(&self, value: color::Rgba) {
@@ -294,12 +255,12 @@ impl ProjectName {
 
             // === Mouse IO ===
 
-            let mouse_down = model.view.events_deprecated.mouse_down_primary.clone_ref();
+            let mouse_down = model.overlay.events_deprecated.mouse_down_primary.clone_ref();
             output.is_hovered <+ bool(
-                &model.view.events_deprecated.mouse_out,
-                &model.view.events_deprecated.mouse_over
+                &model.overlay.events_deprecated.mouse_out,
+                &model.overlay.events_deprecated.mouse_over
             );
-            output.mouse_down <+ model.view.events_deprecated.mouse_down_primary;
+            output.mouse_down <+ model.overlay.events_deprecated.mouse_down_primary;
 
             text_color <- all3(
                 &frp.output.selected,
@@ -328,9 +289,10 @@ impl ProjectName {
             // === Text Area ===
 
             text_content <- text.content.map(|txt| txt.to_string());
-            eval text_content((content) model.update_alignment(content));
-            text_width <- text_content.map(f!((content) model.width(content)));
-            output.width <+ text_width;
+            size <- all(text.width, text.height).map(|(w, h)| Vector2(*w, *h));
+            eval size([model](size) { model.update_size(*size); });
+            // TODO: can I remove this output?
+            output.width <+ text.width;
 
 
             // === Input Commands ===

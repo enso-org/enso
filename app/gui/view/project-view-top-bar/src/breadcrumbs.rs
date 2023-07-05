@@ -162,7 +162,6 @@ pub struct BreadcrumbsModel {
     /// The breadcrumbs panel display object.
     display_object:        display::object::Instance,
     background:            Rectangle,
-    project_name:          ProjectName,
     root:                  display::object::Instance,
     /// A container for all the breadcrumbs after project name. This contained and all its
     /// breadcrumbs are moved when project name component is resized.
@@ -184,10 +183,8 @@ impl BreadcrumbsModel {
     /// covered by the background and is intended to make room for windows control buttons.
     #[profile(Detail)]
     pub fn new(app: &Application, frp: &Frp) -> Self {
-        // TODO: Can we remove app?
         let app = app.clone_ref();
         let scene = &app.display.default_scene;
-        let project_name = app.new_view();
         let display_object = display::object::Instance::new_named("Breadcrumbs");
         let root = display::object::Instance::new();
         let breadcrumbs_container = display::object::Instance::new();
@@ -208,7 +205,6 @@ impl BreadcrumbsModel {
         Self {
             display_object,
             background,
-            project_name,
             root,
             breadcrumbs_container,
             app,
@@ -223,7 +219,6 @@ impl BreadcrumbsModel {
 
     fn init(self) -> Self {
         self.add_child(&self.root);
-        self.root.add_child(&self.project_name);
         self.root.add_child(&self.breadcrumbs_container);
         self.root.add_child(&self.background);
 
@@ -238,7 +233,7 @@ impl BreadcrumbsModel {
         let x_position = -screen.width / 2.0;
         // We add half a pixel to the y offset as a quick fix for misaligned text.
         let y_position = screen.height / 2.0 - 0.5;
-        self.root.set_position(Vector3(x_position.round(), y_position.round(), 0.0));
+        // self.root.set_position(Vector3(x_position.round(), y_position.round(), 0.0));
     }
 
     fn breadcrumbs_container_width(&self) -> f32 {
@@ -252,20 +247,17 @@ impl BreadcrumbsModel {
 
     fn update_layout(&self) {
         let gap_width = self.gap_width.get();
-        let project_name_width = self.project_name.width.value().round();
+        // self.breadcrumbs_container.set_x(gap_width);
+        // self.breadcrumbs_container.set_y(TEXT_Y_OFFSET);
 
-        self.project_name.set_x(gap_width);
-        self.breadcrumbs_container.set_x(gap_width + project_name_width);
-        self.project_name.set_y(TEXT_Y_OFFSET);
-        self.breadcrumbs_container.set_y(TEXT_Y_OFFSET);
-
-        let width = gap_width + project_name_width + self.breadcrumbs_container_width();
+        let width = gap_width + self.breadcrumbs_container_width();
         let background_width = width + 2.0 * BACKGROUND_PADDING;
         let background_height = crate::window_control_buttons::MACOS_TRAFFIC_LIGHTS_CONTENT_HEIGHT
             + BACKGROUND_PADDING * 2.0;
         self.background.set_size(Vector2(background_width, background_height));
-        self.background.set_x(-BACKGROUND_PADDING);
-        self.background.set_y(-HEIGHT / 2.0 - background_height / 2.0);
+        // self.background.set_x(-BACKGROUND_PADDING);
+        // self.background.set_y(-HEIGHT / 2.0 - background_height / 2.0);
+        self.display_object.set_size(Vector2(background_width, background_height));
     }
 
     fn get_breadcrumb(&self, index: usize) -> Option<Breadcrumb> {
@@ -427,16 +419,12 @@ impl BreadcrumbsModel {
         for index_to_deselect in indices_to_deselect {
             if let Some(breadcrumb) = self.get_breadcrumb(index_to_deselect) {
                 breadcrumb.frp.deselect.emit((index_to_deselect, new_index));
-            } else {
-                self.project_name.frp.deselect.emit(());
             }
         }
         // Select new breadcrumb
         if let Some(breadcrumb) = self.get_breadcrumb(new_index) {
             breadcrumb.frp.select.emit(());
             breadcrumb.frp.fade_in.emit(());
-        } else {
-            self.project_name.frp.select.emit(());
         }
     }
 }
@@ -492,25 +480,7 @@ impl Breadcrumbs {
             eval indices (((old_index, new_index)) model.update_selection(*old_index, *new_index));
 
 
-            // === Project Name ===
-
-            eval frp.input.project_name((name) model.project_name.set_name.emit(name));
-            frp.source.project_name <+ model.project_name.output.name;
-
-            eval frp.ide_text_edit_mode((value) model.project_name.ide_text_edit_mode.emit(value) );
-
-            frp.source.project_name_hovered <+ model.project_name.is_hovered;
-            frp.source.project_mouse_down   <+ model.project_name.mouse_down;
-
-            eval frp.input.set_project_changed((v) model.project_name.set_project_changed(v));
-
-            frp.source.project_name_error <+ model.project_name.error;
-
-
             // === User Interaction ===
-
-            frp.select_breadcrumb <+ model.project_name.frp.output.mouse_down.constant(0);
-            model.project_name.frp.outside_press <+ frp.outside_press;
 
             breadcrumbs_to_pop_count <- frp.output.breadcrumb_select.filter_map(|(pop_count, _)|
                 (*pop_count > 0).then_some(*pop_count)
@@ -536,18 +506,11 @@ impl Breadcrumbs {
             // === Relayout ===
             eval frp.input.gap_width((gap_width) model.set_gap_width(*gap_width));
             eval_ scene.frp.camera_changed(model.camera_changed());
-            eval_ model.project_name.frp.output.width (model.update_layout());
-
-
-            // === Pointer style ===
-
-            frp.source.pointer_style <+ model.project_name.frp.output.pointer_style;
 
 
             // === Read-only mode ===
 
             frp.source.read_only <+ frp.input.set_read_only;
-            model.project_name.set_read_only <+ frp.input.set_read_only;
         }
 
         Self { model, frp }

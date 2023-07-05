@@ -14,11 +14,13 @@
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
+use ensogl::display::navigation::navigator::Navigator;
 use ensogl::prelude::*;
 
 use ensogl::animation;
 use ensogl::application::Application;
 use ensogl_text_msdf::run_once_initialized;
+use ide_view_execution_environment_selector as execution_environment_selector;
 use ide_view_project_view_top_bar as project_view_top_bar;
 
 
@@ -32,19 +34,24 @@ fn init(app: &Application) {
     let app = app.clone_ref();
     let world = &app.display;
     let _scene = &world.default_scene;
+    let camera = _scene.layers.panel.camera().clone_ref();
+    let navigator = Navigator::new(&_scene, &camera);
+    navigator.enable();
 
     let top_bar = project_view_top_bar::ProjectViewTopBar::new(&app);
 
     world.add_child(&top_bar);
 
     top_bar.breadcrumbs.debug_push_breadcrumb(None);
-    // graph_editor.set_available_execution_environments(make_dummy_execution_environments());
+    top_bar.project_name_with_environment_selector.selector.set_available_execution_environments(
+        execution_environment_selector::make_dummy_execution_environments(),
+    );
 
     world
         .on
         .before_frame
         .add(move |_time_info: animation::TimeInfo| {
-            let _keep_alive = &top_bar;
+            let _keep_alive = (&top_bar, &navigator);
         })
         .forget();
 }

@@ -13,6 +13,7 @@ use ensogl::display;
 mod breadcrumbs;
 mod go_to_dashboard_button;
 pub mod window_control_buttons;
+use breadcrumbs::project_name::ProjectName;
 
 
 
@@ -28,6 +29,33 @@ const PADDING_LEFT: f32 = 19.0;
 // TODO: Read only setup for breadcrumbs.
 
 
+#[derive(Clone, CloneRef, Debug)]
+pub struct ProjectNameWithEnvironmentSelector {
+    root:             display::object::Instance,
+    pub project_name: ProjectName,
+    pub selector:     ide_view_execution_environment_selector::ExecutionEnvironmentSelector,
+}
+
+impl ProjectNameWithEnvironmentSelector {
+    pub fn new(app: &Application) -> Self {
+        let root = display::object::Instance::new();
+        let project_name = app.new_view();
+        let selector =
+            ide_view_execution_environment_selector::ExecutionEnvironmentSelector::new(app);
+
+        root.use_auto_layout().set_children_alignment_center();
+        root.add_child(&project_name);
+        root.add_child(&selector);
+        Self { root, project_name, selector }
+    }
+}
+
+impl display::Object for ProjectNameWithEnvironmentSelector {
+    fn display_object(&self) -> &display::object::Instance {
+        &self.root
+    }
+}
+
 // ============================
 // === Project View Top Bar ===
 // ============================
@@ -42,8 +70,7 @@ pub struct ProjectViewTopBar {
     pub window_control_buttons: window_control_buttons::View,
     pub go_to_dashboard_button: go_to_dashboard_button::View,
     pub breadcrumbs: breadcrumbs::Breadcrumbs,
-    execution_environment_selector:
-        ide_view_execution_environment_selector::ExecutionEnvironmentSelector,
+    pub project_name_with_environment_selector: ProjectNameWithEnvironmentSelector,
 }
 
 impl ProjectViewTopBar {
@@ -53,15 +80,14 @@ impl ProjectViewTopBar {
         let window_control_buttons = app.new_view::<window_control_buttons::View>();
         let go_to_dashboard_button = go_to_dashboard_button::View::new(app);
         let breadcrumbs = breadcrumbs::Breadcrumbs::new(app);
-        let execution_environment_selector =
-            ide_view_execution_environment_selector::ExecutionEnvironmentSelector::new(app);
+        let project_name_with_environment_selector = ProjectNameWithEnvironmentSelector::new(app);
 
         if ARGS.groups.startup.options.platform.value == "web" {
             root.add_child(&window_control_buttons);
         }
         root.add_child(&go_to_dashboard_button);
+        root.add_child(&project_name_with_environment_selector);
         root.add_child(&breadcrumbs);
-        root.add_child(&execution_environment_selector);
         root.use_auto_layout()
             .set_gap((GAP, 0.0))
             .set_padding_left(PADDING_LEFT)
@@ -77,7 +103,7 @@ impl ProjectViewTopBar {
             window_control_buttons,
             go_to_dashboard_button,
             breadcrumbs,
-            execution_environment_selector,
+            project_name_with_environment_selector,
         }
     }
 }

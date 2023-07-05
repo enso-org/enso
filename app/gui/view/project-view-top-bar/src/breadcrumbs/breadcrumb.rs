@@ -400,7 +400,8 @@ impl BreadcrumbModel {
         let width = self.width();
         let height = self.height();
         let x_position = width * value / 2.0;
-        let y_position = -height / 2.0 - VERTICAL_MARGIN - PADDING;
+        // let y_position = -height / 2.0 - VERTICAL_MARGIN - PADDING;
+        let y_position: f32 = height / 2.0;
         self.view.set_position(Vector3(x_position.round(), y_position.round(), 0.0));
     }
 
