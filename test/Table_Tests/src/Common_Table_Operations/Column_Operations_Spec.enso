@@ -956,9 +956,9 @@ spec setup =
                 a.replace b "#" Case_Sensitivity.Insensitive only_first=True . to_vector . should_equal ["#lpha", "Brav#", "Ch#rlie", "D#lta", "Ech#", "F#xtrot"]
 
             Test.specify "should allow regex based replacing" <|
-                a.replace "[aeiou]" "#" use_regex=True . to_vector . should_equal ["Alph#", "Br#v#", "Ch#rl##", "D#lt#", "Ech#", "F#xtr#t"]
-                a.replace "[aeiou]" "#" use_regex=True . to_vector . should_equal ["Alph#", "Br#v#", "Ch#rl##", "D#lt#", "Ech#", "F#xtr#t"]
-                a.replace "([aeiou])(.*?)[aeiou]" "$1$2$1" use_regex=True . to_vector . should_equal ["Alpha", "Brava", "Charlae", "Delte", "Echo", "Foxtrot"]
+                a.replace (Regex.compile "[aeiou]") "#" . to_vector . should_equal ["Alph#", "Br#v#", "Ch#rl##", "D#lt#", "Ech#", "F#xtr#t"]
+                a.replace (Regex.compile "[aeiou]") "#" . to_vector . should_equal ["Alph#", "Br#v#", "Ch#rl##", "D#lt#", "Ech#", "F#xtr#t"]
+                a.replace (Regex.compile "([aeiou])(.*?)[aeiou]") "$1$2$1" . to_vector . should_equal ["Alpha", "Brava", "Charlae", "Delte", "Echo", "Foxtrot"]
 
             Test.specify "should only allow replace on Text columns" <|
                 c.replace "a" "#" . should_fail_with Invalid_Value_Type
@@ -969,9 +969,7 @@ spec setup =
 
             Test.specify "should not replace if Empty term" <|
                 a.replace '' "#" . to_vector . should_equal ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot"]
-                a.replace '' "#" use_regex=True . to_vector . should_equal ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot"]
                 a.replace d "#" . to_vector . should_equal ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot"]
-                a.replace d "#" use_regex=True . to_vector . should_equal ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot"]
 
             Test.specify "should infer correct return type" <|
                 c = table_builder [["texts", ["foo", "bar"]]] . at "texts"

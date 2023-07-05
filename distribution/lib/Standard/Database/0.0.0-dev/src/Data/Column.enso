@@ -1,4 +1,5 @@
 from Standard.Base import all
+
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
@@ -1115,8 +1116,8 @@ type Column
 
              column.replace '"(.*?)"' '($1)' use_regex=True
     replace : Text | Column -> Text | Column -> Case_Sensitivity -> Boolean -> Boolean -> Column
-    replace self term="" new_text="" case_sensitivity=Case_Sensitivity.Sensitive only_first=False use_regex=False =
-        _ = [term, new_text, case_sensitivity, only_first, use_regex]
+    replace self term="" new_text="" case_sensitivity=Case_Sensitivity.Sensitive only_first=False =
+        _ = [term, new_text, case_sensitivity, only_first]
         msg = "`Column.replace` is not yet implemented."
         Error.throw (Unsupported_Database_Operation.Error msg)
 
