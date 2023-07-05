@@ -53,13 +53,13 @@ type Regex
             internal_regex_object = Panic.catch Syntax_Error (Prim_Text_Helper.compile_regex expression options_string) caught_panic->
                 Error.throw (Regex_Syntax_Error.Error (caught_panic.payload.message))
 
-            Regex.Value internal_regex_object
+            Regex.Value case_insensitive internal_regex_object
 
     ## PRIVATE
 
        internal_regex_object : RegexObject (Truffle)
        (See https://github.com/oracle/graal/blob/master/regex/docs/README.md)
-    Value (internal_regex_object : Any)
+    Value (case_insensitive : Boolean) (internal_regex_object : Any)
 
     ## Returns `True` if the input matches against the pattern described by
        `self`, otherwise `False`.
@@ -369,7 +369,10 @@ type Regex
 
     # Recompile the underlying regex string; used to change the case-sensitivity of a compiled Regex.
     recompile : Boolean | Nothing -> Regex ! Regex_Syntax_Error | Illegal_Argument
-    recompile self case_insensitive=False = Regex.compile self.internal_regex_object.pattern case_insensitive
+    recompile self case_insensitive=False =
+        should_recompile = self.case_insensitive != case_insensitive
+        if should_recompile.not then self else
+            Regex.compile self.internal_regex_object.pattern case_insensitive
 
 ## PRIVATE
    Convert the polyglot map to a Map.
