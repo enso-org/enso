@@ -9,7 +9,6 @@ import org.enso.base.polyglot.EnsoObjectWrapper;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.data.column.storage.Storage;
-import org.graalvm.polyglot.Context;
 
 /**
  * A multi-value key for unordered operations like group-by or distinct.
@@ -29,7 +28,6 @@ public class UnorderedMultiValueKey extends MultiValueKeyBase {
     super(storages, rowIndex);
     this.textFoldingStrategy = textFoldingStrategy;
 
-    Context context = Context.getCurrent();
     // Precompute HashCode - using Apache.Commons.Collections.Map.MultiKeyMap.hash algorithm
     int h = 1;
     for (int i = 0; i < storages.length; i++) {
@@ -40,7 +38,6 @@ public class UnorderedMultiValueKey extends MultiValueKeyBase {
         hasFloatValues = hasFloatValues || NumericConverter.isDecimalLike(value);
         Object folded = EnsoObjectWrapper.foldObject(value, textFoldingStrategy.get(i));
         h += folded.hashCode();
-        context.safepoint();
       }
     }
 
@@ -58,16 +55,12 @@ public class UnorderedMultiValueKey extends MultiValueKeyBase {
     if (!(o instanceof UnorderedMultiValueKey that)) return false;
     if (storages.length != that.storages.length) return false;
     if (hashCodeValue != that.hashCodeValue) return false;
-
-    Context context = Context.getCurrent();
     for (int i = 0; i < storages.length; i++) {
       Object thisFolded = this.getObjectFolded(i);
       Object thatFolded = that.getObjectFolded(i);
       if (!Objects.equals(thisFolded, thatFolded)) {
         return false;
       }
-
-      context.safepoint();
     }
 
     return true;

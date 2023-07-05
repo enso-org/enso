@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.Storage;
-import org.graalvm.polyglot.Context;
 
 /** The base class for keys used for sorting/grouping rows by a set of columns. */
 public abstract class MultiValueKeyBase {
@@ -32,13 +31,10 @@ public abstract class MultiValueKeyBase {
 
   /** Checks if all cells in the current row are missing. */
   public boolean areAllNull() {
-    Context context = Context.getCurrent();
     for (Storage<?> storage : storages) {
       if (!storage.isNa(rowIndex)) {
         return false;
       }
-
-      context.safepoint();
     }
     return true;
   }
@@ -57,14 +53,11 @@ public abstract class MultiValueKeyBase {
   }
 
   private boolean findFloats() {
-    Context context = Context.getCurrent();
     for (int i = 0; i < storages.length; i++) {
       Object value = this.get(i);
       if (NumericConverter.isDecimalLike(value)) {
         return true;
       }
-
-      context.safepoint();
     }
     return false;
   }
@@ -74,15 +67,12 @@ public abstract class MultiValueKeyBase {
    * this index.
    */
   public List<Integer> floatColumnPositions() {
-    Context context = Context.getCurrent();
     List<Integer> result = new ArrayList<>();
     for (int i = 0; i < storages.length; i++) {
       Object value = this.get(i);
       if (NumericConverter.isDecimalLike(value)) {
         result.add(i);
       }
-
-      context.safepoint();
     }
     return result;
   }
