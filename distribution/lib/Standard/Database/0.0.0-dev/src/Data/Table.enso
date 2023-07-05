@@ -21,10 +21,11 @@ import Standard.Table.Data.Report_Unmatched.Report_Unmatched
 import Standard.Table.Data.Row.Row
 import Standard.Table.Data.Table.Table as Materialized_Table
 import Standard.Table.Data.Type.Value_Type_Helpers
+import Standard.Table.Internal.Add_Row_Number
 import Standard.Table.Internal.Aggregate_Column_Helper
+import Standard.Table.Internal.Problem_Builder.Problem_Builder
 import Standard.Table.Internal.Table_Helpers
 import Standard.Table.Internal.Table_Helpers.Table_Column_Helper
-import Standard.Table.Internal.Problem_Builder.Problem_Builder
 import Standard.Table.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 import Standard.Table.Internal.Widget_Helpers
 from Standard.Table.Data.Column import get_item_string, normalize_string_for_display
@@ -36,15 +37,17 @@ import project.Data.Column.Column
 import project.Data.SQL_Query.SQL_Query
 import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
-import project.Internal.Helpers
 import project.Internal.Aggregate_Helper
+import project.Internal.Base_Generator
 import project.Internal.Common.Database_Join_Helper
+import project.Internal.Helpers
 import project.Internal.IR.Context.Context
-import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.From_Spec.From_Spec
 import project.Internal.IR.Internal_Column.Internal_Column
-import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
+import project.Internal.IR.Order_Descriptor.Order_Descriptor
 import project.Internal.IR.Query.Query
+import project.Internal.IR.SQL_Expression.SQL_Expression
+import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 
 from project.Errors import Unsupported_Database_Operation, Integrity_Error, Unsupported_Name, Table_Not_Found
@@ -559,10 +562,43 @@ type Table
     @group_by Widget_Helpers.make_column_name_vector_selector
     @order_by Widget_Helpers.make_order_by_selector
     add_row_number : Text -> Integer -> Integer -> Vector (Text | Integer | Column_Selector) | Text | Integer -> Vector (Text | Sort_Column) | Text -> Problem_Behavior -> Table
-    add_row_number self name="Row" from=1 step=1 group_by=[] order_by=[] on_problems=Problem_Behavior.Report_Warning =
-        _ = [name, from, step, group_by, order_by, on_problems]
-        msg = "`Table.add_row_number` is not yet implemented in the Database backend."
-        Error.throw (Unsupported_Database_Operation.Error msg)
+    add_row_number self (name:Text = "Row") (from:Integer = 1) (step:Integer = 1) group_by=[] order_by=[] on_problems=Problem_Behavior.Report_Warning =
+        problem_builder = Problem_Builder.new error_on_missing_columns=True
+        grouping_columns = self.columns_helper.select_columns_helper group_by True problem_builder
+        grouping_columns.each internal_column->
+            column = self.make_column internal_column
+            if column.value_type.is_floating_point then
+                problem_builder.report_other_warning (Floating_Point_Equality.Error column.name)
+        ordering = Table_Helpers.resolve_order_by self.columns order_by problem_builder
+        problem_builder.attach_problems_before on_problems <|
+            order_descriptors = case ordering.is_empty of
+                False -> ordering.map element->
+                    column = element.column
+                    associated_selector = element.associated_selector
+                    self.connection.dialect.prepare_order_descriptor column associated_selector.direction text_ordering=Nothing
+                True -> case self.default_ordering of
+                    Nothing -> Error.throw (Illegal_Argument.Error "No `order_by` is specified and the table has no existing ordering (e.g. from an `order_by` operation or a primary key). Some ordering is required for `add_row_number` in Database tables.")
+                    descriptors -> descriptors
+            grouping_expressions = grouping_columns.map .expression
+
+            separator = SQL_Expression.Literal Base_Generator.row_number_parameter_separator
+            # The SQL row_number() counts from 1, so we adjust the offset.
+            offset = from - step
+            params = [SQL_Expression.Constant offset, SQL_Expression.Constant step] + order_descriptors + [separator] + grouping_expressions
+            new_expr = SQL_Expression.Operation "ROW_NUMBER" params
+
+            type_mapping = self.connection.dialect.get_type_mapping
+            infer_from_database_callback expression =
+                SQL_Type_Reference.new self.connection self.context expression
+            new_type_ref = type_mapping.infer_return_type infer_from_database_callback "ROW_NUMBER" [] new_expr
+
+            new_column = Internal_Column.Value name new_type_ref new_expr
+
+            rebuild_table columns =
+                self.updated_columns (columns.map .as_internal)
+            renamed_table = Add_Row_Number.rename_columns_if_needed self name on_problems rebuild_table
+            renamed_table.updated_columns (renamed_table.internal_columns + [new_column])
+
 
     ## UNSTABLE
 
@@ -825,7 +861,7 @@ type Table
               table.order_by [(Sort_Column.Select_By_Name "a.*" use_regex=True case_sensitivity=Case_Sensitivity.Insensitive)]
     @columns Widget_Helpers.make_order_by_selector
     order_by : Vector (Text | Sort_Column) | Text -> Text_Ordering -> Boolean -> Problem_Behavior -> Table  ! Incomparable_Values | No_Input_Columns_Selected | Missing_Input_Columns
-    order_by self (columns = ([(Sort_Column.Name (self.columns.at 0 . name))])) text_ordering=Text_Ordering.Default error_on_missing_columns=True on_problems=Problem_Behavior.Report_Warning = Panic.handle_wrapped_dataflow_error <|
+    order_by self (columns = ([(Sort_Column.Name (self.columns.at 0 . name))])) text_ordering=Text_Ordering.Default error_on_missing_columns=True on_problems=Problem_Behavior.Report_Warning =
         problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns types_to_always_throw=[No_Input_Columns_Selected]
         columns_for_ordering = Table_Helpers.prepare_order_by self.columns columns problem_builder
         problem_builder.attach_problems_before on_problems <|
@@ -833,13 +869,42 @@ type Table
                 column = selected_column.column
                 associated_selector = selected_column.associated_selector
                 effective_text_ordering = if column.value_type.is_text then text_ordering else Nothing
-                ## FIXME [RW] this is only needed because `Vector.map` does not
-                   propagate dataflow errors correctly. See:
-                   https://www.pivotaltracker.com/story/show/181057718
-                Panic.throw_wrapped_if_error <|
-                    self.connection.dialect.prepare_order_descriptor column associated_selector.direction effective_text_ordering
+                self.connection.dialect.prepare_order_descriptor column associated_selector.direction effective_text_ordering
             new_ctx = self.context.add_orders new_order_descriptors
             self.updated_context new_ctx
+
+    ## PRIVATE
+       Returns the default ordering used for operations like `add_row_number` or
+       `take`.
+
+       If the table was recently ordered by operations like `order_by`, that
+       will determine the ordering. Otherwise, the primary key is used if
+       available.
+    default_ordering : Vector Order_Descriptor | Nothing
+    default_ordering self =
+        explicit_ordering = self.context.orders
+        if explicit_ordering.not_empty then explicit_ordering else
+            case self.get_primary_key of
+                Nothing -> Nothing
+                primary_key_column_names : Vector -> case self.context.from_spec of
+                    From_Spec.Table _ alias _ ->
+                        primary_key_column_names.map column_name->
+                            column_expression = SQL_Expression.Column alias column_name
+                            Order_Descriptor.Value column_expression Sort_Direction.Ascending
+                    _ -> Nothing
+
+    ## PRIVATE
+       Returns the primary key defined for the table, if applicable.
+    get_primary_key : Vector Text | Nothing
+    get_primary_key self = case self.context.from_spec of
+        From_Spec.Table table_name _ _ ->
+            # The primary key may not be valid anymore after grouping!
+            is_primary_key_still_valid = self.context.groups.is_empty
+            if is_primary_key_still_valid.not then Nothing else
+                result = self.connection.dialect.fetch_primary_key self.connection table_name
+                result.catch Any _->Nothing
+        # If the key is a result of a join, union or a subquery then it has no notion of primary key.
+        _ -> Nothing
 
     ## Returns the distinct set of rows within the specified columns from the
        input table.

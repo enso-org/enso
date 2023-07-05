@@ -3,13 +3,13 @@ import Standard.Base.Data.Text.Span.Span
 import Standard.Base.Data.Text.Span.Utf_16_Span
 import Standard.Base.Data.Text.Regex.Match.Match
 import Standard.Base.Data.Text.Regex.No_Such_Group
-import Standard.Base.Data.Text.Regex.Pattern.Pattern
+import Standard.Base.Data.Text.Regex.Regex
 import Standard.Base.Data.Text.Regex.Regex_Syntax_Error
-import Standard.Base.Data.Text.Regex.Replacer.Replacer
+import Standard.Base.Data.Text.Regex.Internal.Replacer.Replacer
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-from Standard.Base.Data.Text.Regex.Replacer import get_lru_size, replacer_cache_lookup
+from Standard.Base.Data.Text.Regex.Internal.Replacer import get_lru_size, replacer_cache_lookup
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
@@ -20,7 +20,7 @@ spec =
     Test.group "Compile" <|
         Test.specify "should be able to be compiled" <|
             pattern = Regex.compile "(?<dots>..)" case_insensitive=True
-            pattern . should_be_a Pattern
+            pattern . should_be_a Regex
 
         Test.specify "should throw Regex_Syntax_Error for a regex with incorrect syntax" <|
             Regex.compile "ab(c(((((((" . should_fail_with Regex_Syntax_Error

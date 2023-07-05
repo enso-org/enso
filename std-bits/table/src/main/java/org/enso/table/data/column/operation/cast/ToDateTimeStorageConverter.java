@@ -5,6 +5,7 @@ import org.enso.table.data.column.storage.datetime.DateStorage;
 import org.enso.table.data.column.storage.datetime.DateTimeStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
+import org.graalvm.polyglot.Context;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -24,6 +25,7 @@ public class ToDateTimeStorageConverter implements StorageConverter<ZonedDateTim
   }
 
   public Storage<ZonedDateTime> castFromMixed(Storage<?> mixedStorage, CastProblemBuilder problemBuilder) {
+    Context context = Context.getCurrent();
     DateTimeBuilder builder = new DateTimeBuilder(mixedStorage.size());
     for (int i = 0; i < mixedStorage.size(); i++) {
       Object o = mixedStorage.getItemBoxed(i);
@@ -36,6 +38,8 @@ public class ToDateTimeStorageConverter implements StorageConverter<ZonedDateTim
           builder.appendNulls(1);
         }
       }
+
+      context.safepoint();
     }
 
     return builder.seal();
@@ -46,10 +50,12 @@ public class ToDateTimeStorageConverter implements StorageConverter<ZonedDateTim
   }
 
   private Storage<ZonedDateTime> convertDateStorage(DateStorage dateStorage) {
+    Context context = Context.getCurrent();
     DateTimeBuilder builder = new DateTimeBuilder(dateStorage.size());
     for (int i = 0; i < dateStorage.size(); i++) {
       LocalDate date = dateStorage.getItem(i);
       builder.append(convertDate(date));
+      context.safepoint();
     }
     return builder.seal();
   }

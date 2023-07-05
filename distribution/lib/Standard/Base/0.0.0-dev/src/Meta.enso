@@ -136,7 +136,7 @@ type Constructor
     new : Vector -> Any
     new self fields =
         ctor = self.value ...
-        new_atom ctor fields.to_array
+        new_atom ctor fields
 
     ## ADVANCED
        Returns the type that this constructor is a part of.

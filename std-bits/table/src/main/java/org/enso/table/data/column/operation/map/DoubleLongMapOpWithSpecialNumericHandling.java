@@ -3,6 +3,7 @@ package org.enso.table.data.column.operation.map;
 import java.util.BitSet;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.column.storage.numeric.LongStorage;
+import org.graalvm.polyglot.Context;
 
 public abstract class DoubleLongMapOpWithSpecialNumericHandling
     extends UnaryMapOperationWithProblemBuilder<Double, DoubleStorage> {
@@ -15,6 +16,7 @@ public abstract class DoubleLongMapOpWithSpecialNumericHandling
   @Override
   public LongStorage run(
       DoubleStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
+    Context context = Context.getCurrent();
     long[] out = new long[storage.size()];
     BitSet isMissing = new BitSet();
 
@@ -32,6 +34,8 @@ public abstract class DoubleLongMapOpWithSpecialNumericHandling
       } else {
         isMissing.set(i);
       }
+
+      context.safepoint();
     }
     return new LongStorage(out, storage.size(), isMissing);
   }

@@ -71,7 +71,7 @@ type Process_Builder
                  with_args.create
     create : Process_Result
     create self =
-        result = System.create_process self.command self.arguments.to_array self.stdin redirect_in=(self.stdin == False) redirect_out=False redirect_err=False
+        result = System.create_process self.command self.arguments self.stdin redirect_in=(self.stdin == False) redirect_out=False redirect_err=False
         exit_code = Exit_Code.from_number result.exit_code
         Process_Result.Value exit_code result.stdout result.stderr
 
