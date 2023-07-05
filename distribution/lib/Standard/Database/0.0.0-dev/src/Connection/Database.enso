@@ -1,14 +1,12 @@
 from Standard.Base import all
-
-import Standard.Base.Metadata.Widget
-from Standard.Base.Metadata.Widget import Single_Choice
-from Standard.Base.Metadata.Choice import Option
 import Standard.Base.Metadata.Display
+import Standard.Base.Metadata.Widget
+from Standard.Base.Metadata.Choice import Option
+from Standard.Base.Metadata.Widget import Single_Choice
 
+import project.Connection.Connection.Connection
 import project.Connection.Connection_Details.Connection_Details
 import project.Connection.Connection_Options.Connection_Options
-import project.Connection.Connection.Connection
-
 from project.Errors import SQL_Error
 
 polyglot java import org.enso.database.DatabaseConnectionDetailsSPI

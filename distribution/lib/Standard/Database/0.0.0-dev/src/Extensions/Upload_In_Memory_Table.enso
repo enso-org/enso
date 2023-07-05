@@ -3,8 +3,8 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import Standard.Table.Data.Table.Table
 import Standard.Table.Internal.Widget_Helpers
-from Standard.Table.Errors import all
 from Standard.Table import Column_Selector
+from Standard.Table.Errors import all
 
 import project.Connection.Connection.Connection
 import project.Data.Table.Table as Database_Table

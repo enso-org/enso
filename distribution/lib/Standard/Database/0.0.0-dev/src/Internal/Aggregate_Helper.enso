@@ -8,10 +8,9 @@ from Standard.Table.Errors import Floating_Point_Equality
 
 import project.Data.Dialect.Dialect
 import project.Data.Table.Table
-import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.Internal_Column.Internal_Column
+import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
-
 from project.Errors import Unsupported_Database_Operation
 
 ## PRIVATE
