@@ -1131,6 +1131,12 @@ val distributionEnvironmentOverrides = {
 
 val frgaalSourceLevel = FrgaalJavaCompiler.sourceLevel
 
+lazy val truffleDslSuppressWarnsSetting = Seq(
+  Compile / javacOptions ++= Seq(
+    "-Atruffle.dsl.SuppressWarnings=truffle-inlining"
+  )
+)
+
 /** A setting to replace javac with Frgaal compiler, allowing to use latest Java features in the code
   * and still compile down to JDK 11
   */
@@ -1178,6 +1184,7 @@ lazy val `runtime-language-epb` =
   (project in file("engine/runtime-language-epb"))
     .settings(
       inConfig(Compile)(truffleRunOptionsSettings),
+      truffleDslSuppressWarnsSetting,
       instrumentationSettings
     )
 
@@ -1257,6 +1264,7 @@ lazy val runtime = (project in file("engine/runtime"))
   .configs(Benchmark)
   .settings(
     frgaalJavaCompilerSetting,
+    truffleDslSuppressWarnsSetting,
     Compile / logManager :=
       sbt.internal.util.CustomLogManager.excludeMsg(
         "Could not determine source for class ",
@@ -1386,6 +1394,7 @@ lazy val `runtime-instrument-common` =
     .configs(Benchmark)
     .settings(
       frgaalJavaCompilerSetting,
+      truffleDslSuppressWarnsSetting,
       inConfig(Compile)(truffleRunOptionsSettings),
       inConfig(Benchmark)(Defaults.testSettings),
       instrumentationSettings,
@@ -1408,6 +1417,7 @@ lazy val `runtime-instrument-id-execution` =
   (project in file("engine/runtime-instrument-id-execution"))
     .settings(
       inConfig(Compile)(truffleRunOptionsSettings),
+      truffleDslSuppressWarnsSetting,
       instrumentationSettings
     )
     .dependsOn(runtime)
@@ -1417,6 +1427,7 @@ lazy val `runtime-instrument-repl-debugger` =
   (project in file("engine/runtime-instrument-repl-debugger"))
     .settings(
       inConfig(Compile)(truffleRunOptionsSettings),
+      truffleDslSuppressWarnsSetting,
       instrumentationSettings
     )
     .dependsOn(runtime)
@@ -1426,6 +1437,7 @@ lazy val `runtime-instrument-runtime-server` =
   (project in file("engine/runtime-instrument-runtime-server"))
     .settings(
       inConfig(Compile)(truffleRunOptionsSettings),
+      truffleDslSuppressWarnsSetting,
       instrumentationSettings
     )
     .dependsOn(runtime)
@@ -1436,6 +1448,7 @@ lazy val `runtime-with-instruments` =
     .configs(Benchmark)
     .settings(
       frgaalJavaCompilerSetting,
+      truffleDslSuppressWarnsSetting,
       inConfig(Compile)(truffleRunOptionsSettings),
       inConfig(Benchmark)(Defaults.testSettings),
       commands += WithDebugCommand.withDebug,
@@ -1494,6 +1507,7 @@ lazy val `runtime-with-polyglot` =
     .configs(Benchmark)
     .settings(
       frgaalJavaCompilerSetting,
+      truffleDslSuppressWarnsSetting,
       inConfig(Compile)(truffleRunOptionsNoAssertSettings),
       inConfig(Benchmark)(Defaults.testSettings),
       commands += WithDebugCommand.withDebug,
@@ -1548,6 +1562,7 @@ lazy val `engine-runner` = project
   .in(file("engine/runner"))
   .settings(
     frgaalJavaCompilerSetting,
+    truffleDslSuppressWarnsSetting,
     javaOptions ++= {
       // Note [Classpath Separation]
       val runtimeClasspath =
