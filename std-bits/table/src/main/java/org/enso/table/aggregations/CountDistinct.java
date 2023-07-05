@@ -10,6 +10,7 @@ import org.enso.table.data.index.UnorderedMultiValueKey;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.FloatingPointGrouping;
 import org.enso.table.util.ConstantList;
+import org.graalvm.polyglot.Context;
 
 /**
  * Aggregate Column counting the number of distinct items in a group. If `ignoreAllNull` is true,
@@ -37,6 +38,7 @@ public class CountDistinct extends Aggregator {
 
   @Override
   public Object aggregate(List<Integer> indexes) {
+    Context context = Context.getCurrent();
     HashSet<UnorderedMultiValueKey> set = new HashSet<>();
     for (int row : indexes) {
       UnorderedMultiValueKey key = new UnorderedMultiValueKey(storage, row, textFoldingStrategy);
@@ -47,6 +49,8 @@ public class CountDistinct extends Aggregator {
       if (!ignoreAllNull || !key.areAllNull()) {
         set.add(key);
       }
+
+      context.safepoint();
     }
     return set.size();
   }

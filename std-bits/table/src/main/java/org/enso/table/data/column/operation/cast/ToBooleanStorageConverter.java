@@ -4,6 +4,7 @@ import org.enso.table.data.column.builder.BoolBuilder;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
+import org.graalvm.polyglot.Context;
 
 public class ToBooleanStorageConverter implements StorageConverter<Boolean> {
   public Storage<Boolean> cast(Storage<?> storage, CastProblemBuilder problemBuilder) {
@@ -17,6 +18,7 @@ public class ToBooleanStorageConverter implements StorageConverter<Boolean> {
   }
 
   public Storage<Boolean> castFromMixed(Storage<?> mixedStorage, CastProblemBuilder problemBuilder) {
+    Context context = Context.getCurrent();
     BoolBuilder builder = new BoolBuilder(mixedStorage.size());
     for (int i = 0; i < mixedStorage.size(); i++) {
       Object o = mixedStorage.getItemBoxed(i);
@@ -28,6 +30,8 @@ public class ToBooleanStorageConverter implements StorageConverter<Boolean> {
           builder.appendNulls(1);
         }
       }
+
+      context.safepoint();
     }
 
     return builder.seal();

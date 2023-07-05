@@ -451,6 +451,21 @@ impl Handle {
         }
     }
 
+    /// Remove all the connections from the graph. This is a convenience method that calls
+    /// [`disconnect`] for each connection. If any of the calls fails, the first error is
+    /// propagated, but all the connections are attempted to be disconnected.
+    pub fn disconnect_all(&self, connections: impl Iterator<Item = Connection>) -> FallibleResult {
+        let errors =
+            connections.map(|c| self.disconnect(&c)).filter_map(|r| r.err()).collect::<Vec<_>>();
+        // Failure has no good way to propagate multiple errors with `Failure`. So we propagate
+        // only the first one.
+        if let Some(error) = errors.into_iter().next() {
+            Err(error)
+        } else {
+            Ok(())
+        }
+    }
+
     /// Set the execution environment.
     pub async fn set_execution_environment(
         &self,

@@ -92,13 +92,13 @@ read_stream format stream on_problems max_columns=default_max_columns related_fi
 read_from_reader : Delimited_Format -> Reader -> Problem_Behavior -> Integer -> Any
 read_from_reader format java_reader on_problems max_columns=4096 =
     Illegal_Argument.handle_java_exception <| handle_parsing_failure <| handle_parsing_exception <| Empty_File_Error.handle_java_exception <|
-        reader = prepare_reader java_reader format max_columns on_problems
-        result_with_problems = reader.read
+        reader = prepare_reader format max_columns on_problems
+        result_with_problems = reader.read java_reader
         parsing_problems = Vector.from_polyglot_array (result_with_problems.problems) . map Java_Problems.translate_problem
         on_problems.attach_problems_after (Table.Value result_with_problems.value) parsing_problems
 
 ## PRIVATE
-prepare_reader java_reader format max_columns on_problems newline_override=Nothing =
+prepare_reader format max_columns on_problems newline_override=Nothing =
     java_headers = case format.headers of
         True -> DelimitedReader.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS
         Infer -> DelimitedReader.HeaderBehavior.INFER
@@ -125,7 +125,7 @@ prepare_reader java_reader format max_columns on_problems newline_override=Nothi
     newline = newline_override.if_nothing <| case format.line_endings of
         Infer -> Nothing
         endings -> endings.to_text
-    DelimitedReader.new java_reader format.delimiter quote_characters.first quote_characters.second java_headers format.skip_rows row_limit max_columns value_parser cell_type_guesser format.keep_invalid_rows newline format.comment_character warnings_as_errors
+    DelimitedReader.new format.delimiter quote_characters.first quote_characters.second java_headers format.skip_rows row_limit max_columns value_parser cell_type_guesser format.keep_invalid_rows newline format.comment_character warnings_as_errors
 
 ## PRIVATE
    An internal type representing columns deduced from an existing file.
@@ -168,15 +168,16 @@ detect_metadata file format =
                    read files with unlimited column limits (risking OutOfMemory
                    exceptions), we can catch the exception indicating the limit has been
                    reached and restart parsing with an increased limit.
-                reader = prepare_reader newline_detecting_reader format max_columns=default_max_columns on_problems newline_override=trailing_line_separator
-                defined_columns = reader.getDefinedColumnNames
+                reader = prepare_reader format max_columns=default_max_columns on_problems newline_override=trailing_line_separator
+                metadata = reader.readMetadata newline_detecting_reader
+                defined_columns = metadata.definedColumnNames
                 headers = case defined_columns of
                     Nothing ->
-                        column_count = reader.getColumnCount
+                        column_count = metadata.columnCount
                         if column_count == 0 then Nothing else
                             Detected_Headers.None column_count
                     _ -> Detected_Headers.Existing (Vector.from_polyglot_array defined_columns)
-                line_separator_from_parser = reader.getEffectiveLineSeparator
+                line_separator_from_parser = metadata.effectiveLineSeparator
                 has_seen_newline = newline_detecting_reader.newlineEncountered
                 ## If the parser has seen a newline, we can trust that it
                    detected the newline correctly. However if it has not, we
@@ -186,7 +187,7 @@ detect_metadata file format =
                 effective_line_separator = case has_seen_newline of
                     True -> line_separator_from_parser
                     False -> trailing_line_separator
-                has_any_content = reader.getVisitedCharactersCount > 0
+                has_any_content = metadata.hasAnyContent
                 Detected_File_Metadata.Value headers effective_line_separator has_trailing_line_separator has_any_content
     result.catch File_Error error-> case error of
         File_Error.Not_Found _ -> Detected_File_Metadata.Value Nothing Nothing False False

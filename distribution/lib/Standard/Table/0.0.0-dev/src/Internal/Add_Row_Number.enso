@@ -14,7 +14,7 @@ import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 from project.Errors import Duplicate_Output_Column_Names
 from project.Internal.Java_Exports import make_long_builder
 
-polyglot java import org.enso.base.arrays.LongArray
+polyglot java import org.enso.base.arrays.MutableLongArrayWrapper
 polyglot java import org.enso.table.data.column.storage.numeric.LongStorage
 polyglot java import org.enso.table.data.column.storage.numeric.LongRangeStorage
 
@@ -93,7 +93,7 @@ make_grouped_ordered_enumeration name grouping_columns ordering from step =
                 grouped_rows
         new_grouped_rows
 
-    long_array = LongArray.new n
+    long_array = MutableLongArrayWrapper.new n
 
     grouped_rows.each row_group_builder->
         row_group = row_group_builder.to_vector
@@ -103,5 +103,5 @@ make_grouped_ordered_enumeration name grouping_columns ordering from step =
             enum_value = nth_index from step enum_ix
             long_array.set row_ix enum_value
 
-    storage = LongStorage.fromArray long_array
+    storage = LongStorage.fromArray long_array.getUnderlyingArray
     Column.from_storage name storage

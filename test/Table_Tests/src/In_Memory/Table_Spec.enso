@@ -521,6 +521,67 @@ spec =
             t_2.at 'col2' . to_vector . should_equal (expected.at 'col2' . to_vector)
             t_2.at 'col3' . to_vector . should_equal (expected.at 'col3' . to_vector)
 
+    Test.group "fill"
+        Test.specify "should allow to fill_nothing from a value" <|
+            col0 = Column.from_vector "col0" [0, Nothing, 4, 5, Nothing, Nothing]
+            col1 = Column.from_vector "col1" [Nothing, 200, Nothing, 400, 500, Nothing]
+            default = 1000
+            t = Table.new [col0, col1]
+            actual = t.fill_nothing ["col0", "col1"] default
+            actual.at "col0" . to_vector . should_equal [0, 1000, 4, 5, 1000, 1000]
+            actual.at "col1" . to_vector . should_equal [1000, 200, 1000, 400, 500, 1000]
+
+        Test.specify "should allow to fill_nothing from other columns" <|
+            col0 = Column.from_vector "col0" [0, Nothing, 4, 5, Nothing, Nothing]
+            col1 = Column.from_vector "col1" [Nothing, 200, Nothing, 400, 500, Nothing]
+            defaults = Column.from_vector "def0" [1, 2, 10, 20, Nothing, 30]
+            t = Table.new [col0, col1]
+            actual = t.fill_nothing ["col0", "col1"] defaults
+            actual.at "col0" . to_vector . should_equal [0, 2, 4, 5, Nothing, 30]
+            actual.at "col1" . to_vector . should_equal [1, 200, 10, 400, 500, 30]
+
+        Test.specify "should allow to fill_empty from a value" <|
+            col0 = Column.from_vector "col0" ["0", Nothing, "4", "5", Nothing, Nothing]
+            col1 = Column.from_vector "col1" [Nothing, "200", Nothing, "400", "500", Nothing]
+            default = "1000"
+            t = Table.new [col0, col1]
+            actual = t.fill_empty ["col0", "col1"] default
+            actual.at "col0" . to_vector . should_equal ["0", "1000", "4", "5", "1000", "1000"]
+            actual.at "col1" . to_vector . should_equal ["1000", "200", "1000", "400", "500", "1000"]
+
+        Test.specify "should allow to fill_empty from other columns" <|
+            col0 = Column.from_vector "col0" ["0", Nothing, "4", "5", Nothing, Nothing]
+            col1 = Column.from_vector "col1" [Nothing, "200", Nothing, "400", "500", Nothing]
+            defaults = Column.from_vector "def0" ["1", "2", "10", "20", Nothing, "30"]
+            t = Table.new [col0, col1]
+            actual = t.fill_empty ["col0", "col1"] defaults
+            actual.at "col0" . to_vector . should_equal ["0", "2", "4", "5", Nothing, "30"]
+            actual.at "col1" . to_vector . should_equal ["1", "200", "10", "400", "500", "30"]
+
+        Test.specify "fill_nothing should leave other columns alone" <|
+            col0 = Column.from_vector "col0" [0, Nothing, 4, 5, Nothing, Nothing]
+            col_between = Column.from_vector "col_between" [3, 4, 5, 6, 7, 8]
+            col1 = Column.from_vector "col1" [Nothing, 200, Nothing, 400, 500, Nothing]
+            default = 1000
+            t = Table.new [col0, col_between, col1]
+            actual = t.fill_nothing ["col0", "col1"] default
+            actual.at "col0" . to_vector . should_equal [0, 1000, 4, 5, 1000, 1000]
+            actual.at "col_between" . to_vector . should_equal [3, 4, 5, 6, 7, 8]
+            actual.at "col1" . to_vector . should_equal [1000, 200, 1000, 400, 500, 1000]
+            actual.column_names . should_equal ["col0", "col_between", "col1"]
+
+        Test.specify "fill_nothing should work with integer column selectors" <|
+            col0 = Column.from_vector "col0" [0, Nothing, 4, 5, Nothing, Nothing]
+            col_between = Column.from_vector "col_between" [3, 4, 5, 6, 7, 8]
+            col1 = Column.from_vector "col1" [Nothing, 200, Nothing, 400, 500, Nothing]
+            default = 1000
+            t = Table.new [col0, col_between, col1]
+            actual = t.fill_nothing [0, 2] default
+            actual.at "col0" . to_vector . should_equal [0, 1000, 4, 5, 1000, 1000]
+            actual.at "col_between" . to_vector . should_equal [3, 4, 5, 6, 7, 8]
+            actual.at "col1" . to_vector . should_equal [1000, 200, 1000, 400, 500, 1000]
+            actual.column_names . should_equal ["col0", "col_between", "col1"]
+
     Test.group "Use First Row As Names" <|
         expect_column_names names table =
             table.columns . map .name . should_equal names frames_to_skip=2
