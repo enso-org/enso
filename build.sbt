@@ -1394,7 +1394,6 @@ lazy val `runtime-instrument-common` =
     .configs(Benchmark)
     .settings(
       frgaalJavaCompilerSetting,
-      truffleDslSuppressWarnsSetting,
       inConfig(Compile)(truffleRunOptionsSettings),
       inConfig(Benchmark)(Defaults.testSettings),
       instrumentationSettings,
@@ -1417,7 +1416,6 @@ lazy val `runtime-instrument-id-execution` =
   (project in file("engine/runtime-instrument-id-execution"))
     .settings(
       inConfig(Compile)(truffleRunOptionsSettings),
-      truffleDslSuppressWarnsSetting,
       instrumentationSettings
     )
     .dependsOn(runtime)
@@ -1427,7 +1425,6 @@ lazy val `runtime-instrument-repl-debugger` =
   (project in file("engine/runtime-instrument-repl-debugger"))
     .settings(
       inConfig(Compile)(truffleRunOptionsSettings),
-      truffleDslSuppressWarnsSetting,
       instrumentationSettings
     )
     .dependsOn(runtime)
@@ -1437,7 +1434,6 @@ lazy val `runtime-instrument-runtime-server` =
   (project in file("engine/runtime-instrument-runtime-server"))
     .settings(
       inConfig(Compile)(truffleRunOptionsSettings),
-      truffleDslSuppressWarnsSetting,
       instrumentationSettings
     )
     .dependsOn(runtime)
