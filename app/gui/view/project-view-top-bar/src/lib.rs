@@ -1,6 +1,7 @@
 //! Defines a UI container for the window control buttons and the "go to dashboard" button. This is
 //! merely here to make use of the auto-layout functionality.
 
+#![recursion_limit = "512"]
 use ensogl::prelude::*;
 
 use enso_config::ARGS;
@@ -9,6 +10,7 @@ use ensogl::display;
 
 
 
+mod breadcrumbs;
 mod go_to_dashboard_button;
 pub mod window_control_buttons;
 
@@ -38,6 +40,8 @@ pub struct ProjectViewTopBar {
     /// These buttons are only visible in a cloud environment.
     pub window_control_buttons: window_control_buttons::View,
     pub go_to_dashboard_button: go_to_dashboard_button::View,
+    // pub breadcrumbs: breadcrumbs::Breadcrumbs,
+    // execution_environment_selector: ExecutionEnvironmentSelector,
 }
 
 impl ProjectViewTopBar {

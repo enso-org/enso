@@ -19,8 +19,7 @@ use ensogl::prelude::*;
 use ensogl::animation;
 use ensogl::application::Application;
 use ensogl_text_msdf::run_once_initialized;
-use execution_environment_selector::make_dummy_execution_environments;
-use ide_view_execution_environment_selector as execution_environment_selector;
+use ide_view_project_view_top_bar as project_view_top_bar;
 
 
 
@@ -34,17 +33,15 @@ fn init(app: &Application) {
     let world = &app.display;
     let _scene = &world.default_scene;
 
-    let execution_environment_selector =
-        execution_environment_selector::ExecutionEnvironmentSelector::new(&app);
-    world.add_child(&execution_environment_selector);
-    execution_environment_selector
-        .set_available_execution_environments(make_dummy_execution_environments());
+    let top_bar = project_view_top_bar::ProjectViewTopBar::new(&app);
+
+    world.add_child(&top_bar);
 
     world
         .on
         .before_frame
         .add(move |_time_info: animation::TimeInfo| {
-            let _keep_alive = &execution_environment_selector;
+            let _keep_alive = &top_bar;
         })
         .forget();
 }

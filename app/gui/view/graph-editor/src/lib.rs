@@ -60,7 +60,6 @@ pub use crate::node::profiling::Status as NodeProfilingStatus;
 use engine_protocol::language_server::ExecutionEnvironment;
 
 use application::tooltip;
-use enso_config::ARGS;
 use enso_frp as frp;
 use ensogl::application;
 use ensogl::application::Application;
@@ -82,8 +81,6 @@ use ensogl_component::text;
 use ensogl_component::text::buffer::selection::Selection;
 use ensogl_component::tooltip::Tooltip;
 use ensogl_hardcoded_theme as theme;
-use ide_view_execution_environment_selector as execution_environment_selector;
-use ide_view_execution_environment_selector::ExecutionEnvironmentSelector;
 use span_tree::PortId;
 
 // ===============
@@ -110,27 +107,9 @@ const VIZ_PREVIEW_MODE_TOGGLE_TIME_MS: f32 = 300.0;
 /// Assumes 60fps. We use this value to check against dropped frames during the interval.
 const VIZ_PREVIEW_MODE_TOGGLE_FRAMES: i32 =
     (VIZ_PREVIEW_MODE_TOGGLE_TIME_MS / 1000.0 * 60.0) as i32;
-const MACOS_TRAFFIC_LIGHTS_CONTENT_WIDTH: f32 = 52.0;
-const MACOS_TRAFFIC_LIGHTS_CONTENT_HEIGHT: f32 = 12.0;
-/// Horizontal and vertical offset between traffic lights and window border
-const MACOS_TRAFFIC_LIGHTS_SIDE_OFFSET: f32 = 13.0;
-/// The vertical center of the traffic lights, relative to the window border.
-pub const MACOS_TRAFFIC_LIGHTS_VERTICAL_CENTER: f32 =
-    -MACOS_TRAFFIC_LIGHTS_SIDE_OFFSET - MACOS_TRAFFIC_LIGHTS_CONTENT_HEIGHT / 2.0;
 const MAX_ZOOM: f32 = 1.0;
 /// Space between items in the top bar.
 const TOP_BAR_ITEM_MARGIN: f32 = 10.0;
-
-fn traffic_lights_gap_width() -> f32 {
-    let platform_str = ARGS.groups.startup.options.platform.value.as_str();
-    let platform = web::platform::Platform::try_from(platform_str);
-    let is_macos = platform.map(|p| p.is_macos()).ok() == Some(true);
-    if is_macos && !ARGS.groups.window.options.frame.value {
-        MACOS_TRAFFIC_LIGHTS_CONTENT_WIDTH + MACOS_TRAFFIC_LIGHTS_SIDE_OFFSET
-    } else {
-        0.0
-    }
-}
 
 
 
@@ -1012,43 +991,6 @@ impl Display for Type {
 
 
 
-// =============================
-// === OptionalMethodPointer ===
-// =============================
-
-/// Information about target definition for node entering.
-// TODO [mwu]
-//  As currently there is no good place to wrap Rc into a newtype that can be easily depended on
-//  both by `ide-view` and `ide` crates, we put this as-is. Refactoring should be considered in the
-//  future, once code organization and emerging patterns are more clear.
-#[derive(Clone, Debug, Deref, PartialEq, Eq)]
-pub struct MethodPointer(pub Rc<engine_protocol::language_server::MethodPointer>);
-
-impl From<engine_protocol::language_server::MethodPointer> for MethodPointer {
-    fn from(method_pointer: engine_protocol::language_server::MethodPointer) -> Self {
-        Self(Rc::new(method_pointer))
-    }
-}
-
-
-
-// =================
-// === LocalCall ===
-// =================
-
-/// A specific function call occurring within another function's definition body.
-/// It's closely related to the `LocalCall` type defined in `Language Server` types, but uses the
-/// new type `MethodPointer` defined in `GraphEditor`.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct LocalCall {
-    /// An expression being a call to a method.
-    pub call:       engine_protocol::language_server::ExpressionId,
-    /// A pointer to the called method.
-    pub definition: MethodPointer,
-}
-
-
-
 // ====================
 // === EdgeEndpoint ===
 // ====================
@@ -1854,27 +1796,25 @@ impl GraphEditorModel {
 #[derive(Debug)]
 #[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub struct GraphEditorModel {
-    pub display_object: display::object::Instance,
+    pub display_object:   display::object::Instance,
     // Required for dynamically creating nodes and edges.
-    pub app: Application,
-    pub breadcrumbs: component::Breadcrumbs,
-    pub nodes: Nodes,
-    edges: RefCell<Edges>,
-    pub vis_registry: visualization::Registry,
-    pub drop_manager: ensogl_drop_manager::Manager,
-    pub navigator: Navigator,
-    pub add_node_button: Rc<component::add_node_button::AddNodeButton>,
-    tooltip: Tooltip,
-    touch_state: TouchState,
-    visualizations: Visualizations,
-    frp: api::Private,
-    frp_public: api::Public,
-    profiling_statuses: profiling::Statuses,
-    styles_frp: StyleWatchFrp,
+    pub app:              Application,
+    pub nodes:            Nodes,
+    edges:                RefCell<Edges>,
+    pub vis_registry:     visualization::Registry,
+    pub drop_manager:     ensogl_drop_manager::Manager,
+    pub navigator:        Navigator,
+    pub add_node_button:  Rc<component::add_node_button::AddNodeButton>,
+    tooltip:              Tooltip,
+    touch_state:          TouchState,
+    visualizations:       Visualizations,
+    frp:                  api::Private,
+    frp_public:           api::Public,
+    profiling_statuses:   profiling::Statuses,
+    styles_frp:           StyleWatchFrp,
     #[deprecated = "StyleWatch was designed as an internal tool for shape system (#795)"]
-    styles: StyleWatch,
+    styles:               StyleWatch,
     selection_controller: selection::Controller,
-    execution_environment_selector: ExecutionEnvironmentSelector,
 }
 
 

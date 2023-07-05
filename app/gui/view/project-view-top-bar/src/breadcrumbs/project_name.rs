@@ -1,16 +1,17 @@
 //! This module provides a view for project's name which can be used to edit it.
 
-use crate::prelude::*;
 use ensogl::display::shape::*;
+use ensogl::prelude::*;
 
-use crate::component::breadcrumbs::breadcrumb;
-use crate::component::breadcrumbs::GLYPH_WIDTH;
-use crate::component::breadcrumbs::TEXT_SIZE;
-use crate::component::breadcrumbs::VERTICAL_MARGIN;
+use crate::breadcrumbs::breadcrumb;
+use crate::breadcrumbs::GLYPH_WIDTH;
+use crate::breadcrumbs::TEXT_SIZE;
+use crate::breadcrumbs::VERTICAL_MARGIN;
 
 use enso_frp as frp;
 use ensogl::application::shortcut;
 use ensogl::application::Application;
+use ensogl::application::View;
 use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::object::ObjectOps;

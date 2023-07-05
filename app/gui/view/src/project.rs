@@ -36,8 +36,6 @@ use project_view_top_bar::ProjectViewTopBar;
 // === Export ===
 // ==============
 
-pub mod project_view_top_bar;
-
 
 
 // =================

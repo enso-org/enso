@@ -1,11 +1,11 @@
 //! This module provides a clickable view for a single breadcrumb.
 
-use crate::prelude::*;
 use ensogl::display::shape::*;
+use ensogl::prelude::*;
 
-use crate::component::breadcrumbs;
-use crate::component::breadcrumbs::project_name::LINE_HEIGHT;
-use crate::MethodPointer;
+use crate::breadcrumbs;
+use crate::breadcrumbs::project_name::LINE_HEIGHT;
+use crate::breadcrumbs::SharedMethodPointer;
 
 use super::GLYPH_WIDTH;
 use super::HORIZONTAL_MARGIN;
@@ -18,7 +18,6 @@ use ensogl::display::object::ObjectOps;
 use ensogl::DEPRECATED_Animation;
 use ensogl_component::text;
 use ensogl_hardcoded_theme as theme;
-use nalgebra::Vector2;
 use std::f32::consts::PI;
 
 
@@ -262,7 +261,7 @@ impl Frp {
 #[derive(Debug)]
 #[allow(missing_docs)]
 pub struct BreadcrumbInfo {
-    pub method_pointer: MethodPointer,
+    pub method_pointer: SharedMethodPointer,
     pub expression_id:  ast::Id,
 }
 
@@ -294,7 +293,7 @@ impl BreadcrumbModel {
     pub fn new(
         app: &Application,
         frp: &Frp,
-        method_pointer: &MethodPointer,
+        method_pointer: &SharedMethodPointer,
         expression_id: &ast::Id,
     ) -> Self {
         let scene = &app.display.default_scene;
@@ -483,7 +482,11 @@ pub struct Breadcrumb {
 
 impl Breadcrumb {
     /// Constructor.
-    pub fn new(app: &Application, method_pointer: &MethodPointer, expression_id: &ast::Id) -> Self {
+    pub fn new(
+        app: &Application,
+        method_pointer: &SharedMethodPointer,
+        expression_id: &ast::Id,
+    ) -> Self {
         let frp = Frp::new();
         let model = Rc::new(BreadcrumbModel::new(app, &frp, method_pointer, expression_id));
         let network = &frp.network;

@@ -26,6 +26,7 @@ ide-view-component-browser = { path = "component-browser" }
 ide-view-execution-environment-selector = { path = "execution-environment-selector" }
 ide-view-documentation = { path = "documentation" }
 ide-view-graph-editor = { path = "graph-editor" }
+ide-view-project-view-top-bar = { path = "project-view-top-bar" }
 span-tree = { path = "../language/span-tree" }
 js-sys = { workspace = true }
 multi-map = { workspace = true }

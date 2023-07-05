@@ -1,11 +1,10 @@
 //! This module provides a view for breadcrumbs, enabling us to know which node the graph being
 //! edited belongs to and navigating through them.
 
-use crate::prelude::*;
 use ensogl::display::shape::*;
+use ensogl::prelude::*;
 
-use crate::component::breadcrumbs::project_name::LINE_HEIGHT;
-use crate::LocalCall;
+use project_name::LINE_HEIGHT;
 
 use engine_protocol::language_server::MethodPointer;
 use enso_frp as frp;
@@ -27,6 +26,42 @@ pub mod project_name;
 pub use breadcrumb::Breadcrumb;
 pub use project_name::ProjectName;
 
+
+
+// =============================
+// === OptionalMethodPointer ===
+// =============================
+
+/// Information about target definition for node entering.
+// TODO [mwu]
+//  As currently there is no good place to wrap Rc into a newtype that can be easily depended on
+//  both by `ide-view` and `ide` crates, we put this as-is. Refactoring should be considered in the
+//  future, once code organization and emerging patterns are more clear.
+#[derive(Clone, Debug, Deref, PartialEq, Eq)]
+pub struct SharedMethodPointer(pub Rc<engine_protocol::language_server::MethodPointer>);
+
+impl From<engine_protocol::language_server::MethodPointer> for SharedMethodPointer {
+    fn from(method_pointer: engine_protocol::language_server::MethodPointer) -> Self {
+        Self(Rc::new(method_pointer))
+    }
+}
+
+
+
+// =================
+// === LocalCall ===
+// =================
+
+/// A specific function call occurring within another function's definition body.
+/// It's closely related to the `LocalCall` type defined in `Language Server` types, but uses the
+/// new type `MethodPointer` defined in `GraphEditor`.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LocalCall {
+    /// An expression being a call to a method.
+    pub call:       engine_protocol::language_server::ExpressionId,
+    /// A pointer to the called method.
+    pub definition: SharedMethodPointer,
+}
 
 
 // =================
@@ -224,8 +259,8 @@ impl BreadcrumbsModel {
 
         let width = gap_width + project_name_width + self.breadcrumbs_container_width();
         let background_width = width + 2.0 * BACKGROUND_PADDING;
-        let background_height =
-            crate::MACOS_TRAFFIC_LIGHTS_CONTENT_HEIGHT + BACKGROUND_PADDING * 2.0;
+        let background_height = crate::window_control_buttons::MACOS_TRAFFIC_LIGHTS_CONTENT_HEIGHT
+            + BACKGROUND_PADDING * 2.0;
         self.background.set_size(Vector2(background_width, background_height));
         self.background.set_x(-BACKGROUND_PADDING);
         self.background.set_y(-HEIGHT / 2.0 - background_height / 2.0);
