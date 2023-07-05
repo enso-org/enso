@@ -6,6 +6,7 @@ import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.InvalidAggregation;
+import org.graalvm.polyglot.Context;
 
 /** Aggregate Column computing the mean value in a group. */
 public class Mean extends Aggregator {
@@ -28,6 +29,7 @@ public class Mean extends Aggregator {
 
   @Override
   public Object aggregate(List<Integer> indexes) {
+    Context context = Context.getCurrent();
     Calculation current = null;
     for (int row : indexes) {
       Object value = storage.getItemBoxed(row);
@@ -46,6 +48,8 @@ public class Mean extends Aggregator {
           current.total += dValue;
         }
       }
+
+      context.safepoint();
     }
     return current == null ? null : current.total / current.count;
   }

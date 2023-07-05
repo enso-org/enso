@@ -468,7 +468,7 @@ spec make_new_connection prefix persistent_connector=True =
 
             dest2 = target_table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]] primary_key=["Y"]
             src = source_table_builder [["X", [4, 5]], ["Y", ['b', 'e']]]
-            # Not specifying `key_columns`, rely on `default_key_columns` inferring X as default based on the primary key.
+            # Not specifying `key_columns`, rely on `default_key_columns` inferring Y as default based on the primary key.
             r1 = src.update_database_table dest2
             rows = r1.rows.to_vector.map .to_vector
             rows.should_contain_the_same_elements_as [[1, 'a'], [4, 'b'], [3, 'c'], [5, 'e']]
