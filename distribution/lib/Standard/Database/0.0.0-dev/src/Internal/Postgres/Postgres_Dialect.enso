@@ -36,7 +36,7 @@ import project.Internal.Postgres.Postgres_Error_Mapper.Postgres_Error_Mapper
 import project.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.Internal.Statement_Setter.Statement_Setter
-from project.Errors import Unsupported_Database_Operation
+from project.Errors import SQL_Error, Unsupported_Database_Operation
 
 ## PRIVATE
 
@@ -218,6 +218,14 @@ type Postgres_Dialect
     ## PRIVATE
     get_error_mapper : Error_Mapper
     get_error_mapper self = Postgres_Error_Mapper
+
+    ## PRIVATE
+       The dialect-dependent strategy to get the Primary Key for a given table.
+
+       Returns `Nothing` if the key is not defined.
+    fetch_primary_key : Connection -> Text -> Vector Text ! Nothing
+    fetch_primary_key self connection table_name =
+        Dialect.default_fetch_primary_key connection table_name
 
 ## PRIVATE
 make_internal_generator_dialect =

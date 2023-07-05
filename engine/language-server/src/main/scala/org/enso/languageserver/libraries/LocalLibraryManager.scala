@@ -245,7 +245,7 @@ class LocalLibraryManager(
     */
   private def findCurrentProjectEdition(): Option[Editions.RawEdition] = {
     val pkg = PackageManager.Default.loadPackage(currentProjectRoot).get
-    pkg.config.edition
+    pkg.getConfig().edition
   }
 }
 

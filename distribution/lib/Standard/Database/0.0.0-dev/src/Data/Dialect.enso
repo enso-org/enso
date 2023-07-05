@@ -1,7 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.Unimplemented.Unimplemented
 
-from Standard.Table import Aggregate_Column, Join_Kind, Value_Type
+from Standard.Table import Aggregate_Column, Join_Kind, Value_Type, Column_Selector
 import Standard.Table.Internal.Naming_Helpers.Naming_Helpers
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 
@@ -23,7 +23,8 @@ import project.Internal.SQLite.SQLite_Dialect
 import project.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.Internal.Statement_Setter.Statement_Setter
-from project.Errors import Unsupported_Database_Operation
+from project.Errors import SQL_Error, Unsupported_Database_Operation
+from project.Internal.Result_Set import result_set_to_table
 
 ## PRIVATE
 
@@ -213,6 +214,15 @@ type Dialect
     default_table_types self =
         Unimplemented.throw "This is an interface only."
 
+    ## PRIVATE
+       The dialect-dependent strategy to get the Primary Key for a given table.
+
+       Returns `Nothing` if the key is not defined.
+    fetch_primary_key : Connection -> Text -> Vector Text ! Nothing
+    fetch_primary_key self connection table_name =
+        _ = [connection, table_name]
+        Unimplemented.throw "This is an interface only."
+
 ## PRIVATE
 
    The dialect of SQLite databases.
@@ -229,3 +239,14 @@ postgres = Postgres_Dialect.postgres
 default_fetch_types_query dialect expression context =
     empty_context = context.add_where_filters [SQL_Expression.Literal "FALSE"]
     dialect.generate_sql (Query.Select [["typed_column", expression]] empty_context)
+
+## PRIVATE
+   Default implementation relying on DatabaseMetaData.
+default_fetch_primary_key connection table_name =
+    connection.jdbc_connection.with_metadata metadata->
+        rs = metadata.getPrimaryKeys Nothing Nothing table_name
+        keys_table = result_set_to_table rs connection.dialect.make_column_fetcher_for_type
+        # The names of the columns are sometimes lowercase and sometimes uppercase, so we do a case insensitive select first.
+        selected = keys_table.select_columns [Column_Selector.By_Name "COLUMN_NAME", Column_Selector.By_Name "KEY_SEQ"] reorder=True
+        key_column_names = selected.order_by 1 . at 0 . to_vector
+        if key_column_names.is_empty then Nothing else key_column_names

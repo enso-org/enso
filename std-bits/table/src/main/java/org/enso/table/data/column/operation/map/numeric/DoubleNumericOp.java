@@ -6,6 +6,7 @@ import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.error.UnexpectedTypeException;
+import org.graalvm.polyglot.Context;
 
 import java.util.BitSet;
 
@@ -33,17 +34,21 @@ public abstract class DoubleNumericOp extends MapOperation<Double, DoubleStorage
       throw new UnexpectedTypeException("a Number.");
     }
 
+    Context context = Context.getCurrent();
     long[] out = new long[storage.size()];
     for (int i = 0; i < storage.size(); i++) {
       if (!storage.isNa(i)) {
         out[i] = Double.doubleToRawLongBits(doDouble(storage.getItem(i), x, i, problemBuilder));
       }
+
+      context.safepoint();
     }
     return new DoubleStorage(out, storage.size(), storage.getIsMissing());
   }
 
   @Override
   public Storage<Double> runZip(DoubleStorage storage, Storage<?> arg, MapOperationProblemBuilder problemBuilder) {
+    Context context = Context.getCurrent();
     if (arg instanceof LongStorage v) {
       long[] out = new long[storage.size()];
       BitSet newMissing = new BitSet();
@@ -53,6 +58,8 @@ public abstract class DoubleNumericOp extends MapOperation<Double, DoubleStorage
         } else {
           newMissing.set(i);
         }
+
+        context.safepoint();
       }
       return new DoubleStorage(out, storage.size(), newMissing);
     } else if (arg instanceof DoubleStorage v) {
@@ -64,6 +71,8 @@ public abstract class DoubleNumericOp extends MapOperation<Double, DoubleStorage
         } else {
           newMissing.set(i);
         }
+
+        context.safepoint();
       }
       return new DoubleStorage(out, storage.size(), newMissing);
     } else {

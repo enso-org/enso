@@ -6,6 +6,7 @@ import java.util.List;
 
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
+import org.graalvm.polyglot.Context;
 
 /**
  * A specialized implementation for the IS_IN operation for builtin types, relying on hashing. Since
@@ -51,6 +52,7 @@ public abstract class SpecializedIsInOp<T, S extends Storage<T>> extends MapOper
   }
 
   public Storage<?> runMap(S storage, List<?> arg) {
+    Context context = Context.getCurrent();
     CompactRepresentation<T> compactRepresentation = prepareList(arg);
     BitSet newVals = new BitSet();
     for (int i = 0; i < storage.size(); i++) {
@@ -59,6 +61,8 @@ public abstract class SpecializedIsInOp<T, S extends Storage<T>> extends MapOper
       } else if (compactRepresentation.coercedValues.contains(storage.getItemBoxed(i))) {
         newVals.set(i);
       }
+
+      context.safepoint();
     }
     return new BoolStorage(newVals, new BitSet(), storage.size(), false);
   }

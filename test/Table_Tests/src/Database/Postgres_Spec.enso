@@ -15,7 +15,7 @@ from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 import Standard.Test.Test_Environment
 
-import project.Database.Common_Spec
+import project.Database.Common.Common_Spec
 import project.Database.Transaction_Spec
 import project.Database.Upload_Spec
 import project.Database.Helpers.Name_Generator
@@ -284,7 +284,7 @@ run_tests connection db_name =
     empty_agg_table = (agg_in_memory_table.take (First 0)).select_into_database_table connection (Name_Generator.random_name "Agg_Empty") primary_key=Nothing temporary=True
     tables.append empty_agg_table.name
 
-    setup = Common_Table_Operations.Main.Test_Setup.Config prefix agg_table empty_agg_table table_builder materialize is_database=True test_selection=common_selection aggregate_test_selection=aggregate_selection
+    setup = Common_Table_Operations.Main.Test_Setup.Config prefix agg_table empty_agg_table table_builder materialize is_database=True test_selection=common_selection aggregate_test_selection=aggregate_selection connection=connection
     postgres_specific_spec connection db_name setup
     Common_Table_Operations.Main.spec setup
 

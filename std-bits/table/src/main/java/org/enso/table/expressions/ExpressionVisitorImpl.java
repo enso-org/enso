@@ -256,6 +256,7 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
   private static String unescapePython(String text) {
     var matcher = pythonRegex.matcher(text);
     var builder = new StringBuilder(text.length());
+    Context context = Context.getCurrent();
     while (matcher.find()) {
       if (matcher.group(1) != null) {
         builder.append(switch (matcher.group(1).charAt(1)) {
@@ -276,6 +277,8 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
       } else {
         builder.append(matcher.group(0));
       }
+
+      context.safepoint();
     }
     return builder.toString();
   }

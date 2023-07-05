@@ -11,6 +11,8 @@ from Standard.Database.Errors import all
 from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions
 
+import project.Database.Common.Default_Ordering_Spec
+
 import project.Util
 import project.Database.Helpers.Name_Generator
 
@@ -271,6 +273,8 @@ run_tests prefix connection upload =
     Test.group prefix+"Table.filter" <|
         Test.specify "report error when trying to filter by a custom predicate" <|
             t1.filter "a" (x -> x % 2 == 0) . should_fail_with Unsupported_Database_Operation
+
+    Default_Ordering_Spec.spec prefix connection
 
 main = Test_Suite.run_main <|
     spec "[SQLite] " (Database.connect (SQLite In_Memory))

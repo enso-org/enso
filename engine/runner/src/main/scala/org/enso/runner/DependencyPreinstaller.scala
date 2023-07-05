@@ -49,7 +49,7 @@ object DependencyPreinstaller {
     val editionResolver = EditionResolver(editionProvider)
     val edition = editionResolver
       .resolve(
-        pkg.config.edition.getOrElse(DefaultEdition.getDefaultEdition)
+        pkg.getConfig().edition.getOrElse(DefaultEdition.getDefaultEdition)
       ) match {
       case Left(error) =>
         throw new RuntimeException(
@@ -58,7 +58,7 @@ object DependencyPreinstaller {
       case Right(value) => value
     }
 
-    val preferLocalLibraries = pkg.config.preferLocalLibraries
+    val preferLocalLibraries = pkg.getConfig().preferLocalLibraries
 
     val (localLibraryProvider, publishedLibraryProvider) =
       DefaultLibraryProvider.makeProviders(

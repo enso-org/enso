@@ -504,6 +504,7 @@
 - [Integrated Database write operations with Execution Contexts.][7072]
 - [`Column.fill_nothing` and `.fill_empty` no longer rename the column. Added
   `Table.fill_nothing` and `.fill_empty`.][7166]
+- [Implemented `add_row_number` for Database tables.][7174]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -729,6 +730,7 @@
 [7052]: https://github.com/enso-org/enso/pull/7052
 [7072]: https://github.com/enso-org/enso/pull/7072
 [7166]: https://github.com/enso-org/enso/pull/7166
+[7174]: https://github.com/enso-org/enso/pull/7174
 
 #### Enso Compiler
 
