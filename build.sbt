@@ -2046,7 +2046,7 @@ lazy val `std-image` = project
     Compile / packageBin / artifactPath :=
       `image-polyglot-root` / "std-image.jar",
     libraryDependencies ++= Seq(
-      "org.graalvm.sdk"  % "graal-sdk"               % graalVersion       % "provided",
+      "org.graalvm.sdk"  % "graal-sdk"               % graalMavenVersion  % "provided",
       "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided",
       "org.openpnp"      % "opencv"                  % "4.7.0-0"
     ),
