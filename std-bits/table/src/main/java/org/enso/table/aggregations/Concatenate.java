@@ -6,6 +6,7 @@ import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.InvalidAggregation;
 import org.enso.table.data.table.problems.UnquotedDelimiter;
+import org.graalvm.polyglot.Context;
 
 public class Concatenate extends Aggregator {
   private final Storage<?> storage;
@@ -27,6 +28,7 @@ public class Concatenate extends Aggregator {
 
   @Override
   public Object aggregate(List<Integer> indexes) {
+    Context context = Context.getCurrent();
     StringBuilder current = null;
     for (int row : indexes) {
       Object value = storage.getItemBoxed(row);
@@ -48,6 +50,8 @@ public class Concatenate extends Aggregator {
         this.addProblem(new InvalidAggregation(this.getName(), row, "Not a text value."));
         return null;
       }
+
+      context.safepoint();
     }
 
     if (current == null) {

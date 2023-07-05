@@ -10,6 +10,7 @@ import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.Bits;
 import org.enso.table.data.column.storage.type.FloatType;
+import org.graalvm.polyglot.Context;
 
 public class ToFloatStorageConverter implements StorageConverter<Double> {
   public ToFloatStorageConverter(FloatType targetType) {
@@ -33,6 +34,7 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
   }
 
   public Storage<Double> castFromMixed(Storage<?> mixedStorage, CastProblemBuilder problemBuilder) {
+    Context context = Context.getCurrent();
     DoubleBuilder builder = NumericBuilder.createDoubleBuilder(mixedStorage.size());
     for (int i = 0; i < mixedStorage.size(); i++) {
       Object o = mixedStorage.getItemBoxed(i);
@@ -47,6 +49,8 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
         problemBuilder.reportConversionFailure(o);
         builder.appendNulls(1);
       }
+
+      context.safepoint();
     }
 
     return builder.seal();
