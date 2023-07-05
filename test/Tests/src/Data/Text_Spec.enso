@@ -1,6 +1,5 @@
 from Standard.Base import all hiding First, Last
 import Standard.Base.Data.Text.Regex.No_Such_Group
-import Standard.Base.Data.Text.Regex.Regex
 import Standard.Base.Data.Text.Regex.Regex_Syntax_Error
 import Standard.Base.Data.Text.Span.Span
 import Standard.Base.Data.Text.Span.Utf_16_Span
@@ -1585,6 +1584,10 @@ spec =
         Test.specify "in Regex mode should allow referring to capture groups in substitutions" <|
             '<a href="url">content</a>'.replace (Regex.compile '<a href="(.*?)">(.*?)</a>') '$2 is at $1' . should_equal 'content is at url'
             '<a href="url">content</a>'.replace (Regex.compile '<a href="(?<address>.*?)">(?<text>.*?)</a>') '$<text> is at $<address>' . should_equal 'content is at url'
+
+        Test.specify "should not allow non-default locale in regex replace" <|
+            locale = Locale.new "en" "GB" "UTF-8"
+            'a'.replace (Regex.compile 'a') 'b' case_sensitivity=(Case_Sensitivity.Insensitive locale) . should_fail_with Illegal_Argument
 
         Test.specify "should allow non-default locale in text replace" <|
             locale = Locale.new "en" "GB" "UTF-8"
