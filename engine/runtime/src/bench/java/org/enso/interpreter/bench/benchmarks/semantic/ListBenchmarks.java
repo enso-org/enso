@@ -50,6 +50,7 @@ public class ListBenchmarks {
     var benchmarkName = SrcUtil.findName(params);
     var code = """
       from Standard.Base.Data.List.List import Cons, Nil
+      from Standard.Base import Integer
       import Standard.Base.IO
 
       type V
@@ -64,8 +65,16 @@ public class ListBenchmarks {
                   Nil -> acc.a
                   Cons x xs -> @Tail_Call V.sum_int xs (acc.plus_v (V.Val x))
 
+          sum_conv list (acc:V) =
+              case list of
+                  Nil -> acc.a
+                  Cons x xs -> @Tail_Call V.sum_conv xs (acc.plus_v x)
+
       v_zero = V.zero
       v_sum_int = V.sum_int
+      v_sum_conv = V.sum_conv
+
+      V.from (that : Integer) = V.Val that
 
       type Lenivy
           Nic
@@ -165,6 +174,15 @@ public class ListBenchmarks {
           throw new AssertionError("Expecting a number " + this.oldSum);
         }
       }
+      case "mapConvOverList" ->  {
+        this.list = getMethod.apply("generator").execute(self, LENGTH_OF_EXPERIMENT);
+        this.zero = getMethod.apply("v_zero").execute(self);
+        this.sum = getMethod.apply("v_sum_conv");
+        this.oldSum = sum.execute(self, this.list, this.zero);
+        if (!this.oldSum.fitsInLong()) {
+          throw new AssertionError("Expecting a number " + this.oldSum);
+        }
+      }
       case "mapOverLazyList" ->  {
         this.list = getMethod.apply("lenivy_generator").execute(self, LENGTH_OF_EXPERIMENT);
         this.zero = 0;
@@ -200,6 +218,11 @@ public class ListBenchmarks {
 
   @Benchmark
   public void mapVOverList(Blackhole matter) {
+    performBenchmark(matter);
+  }
+
+  @Benchmark
+  public void mapConvOverList(Blackhole matter) {
     performBenchmark(matter);
   }
 
