@@ -1,37 +1,36 @@
 import project.Any.Any
-import project.Errors.Common.Syntax_Error
 import project.Data.Filter_Condition.Filter_Condition
 import project.Data.Map.Map
 import project.Data.Numbers.Integer
 import project.Data.Range.Range
 import project.Data.Text.Helpers
 import project.Data.Text.Prim_Text_Helper
-import project.Data.Text.Span.Span
-import project.Data.Text.Span.Utf_16_Span
-import project.Data.Text.Regex.Match.Match
-import project.Data.Text.Regex.No_Such_Group
 import project.Data.Text.Regex.Internal.Match_Iterator.Match_Iterator
 import project.Data.Text.Regex.Internal.Match_Iterator.Match_Iterator_Value
 import project.Data.Text.Regex.Internal.Replacer.Replacer
+import project.Data.Text.Regex.Match.Match
+import project.Data.Text.Regex.No_Such_Group
+import project.Data.Text.Span.Span
+import project.Data.Text.Span.Utf_16_Span
 import project.Data.Text.Text
 import project.Data.Vector.Vector
-import project.Errors.Common.Type_Error
 import project.Error.Error
+import project.Errors.Common.Syntax_Error
+import project.Errors.Common.Type_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Math
 import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Polyglot.Polyglot
-
-from project.Data.Boolean import Boolean, True, False
+from project.Data.Boolean import Boolean, False, True
 from project.Data.Index_Sub_Range import sort_and_merge_ranges
 from project.Data.Range.Extensions import all
 from project.Data.Text.Extensions import all
 
+polyglot java import org.enso.base.Regex_Utils
 polyglot java import org.enso.base.Replacer_Cache
 polyglot java import org.enso.base.Text_Utils
-polyglot java import org.enso.base.Regex_Utils
 
 type Regex
     ## Compile the provided `expression` into a `Regex` that can be used for

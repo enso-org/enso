@@ -8,8 +8,8 @@ import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Nothing.Nothing
 import project.Panic.Panic
 
-polyglot java import org.enso.base.statistics.Regression
 polyglot java import org.enso.base.statistics.FitError
+polyglot java import org.enso.base.statistics.Regression
 
 type Model
     ## Fit a line (y = A x + B) to the data with an optional fixed intercept.

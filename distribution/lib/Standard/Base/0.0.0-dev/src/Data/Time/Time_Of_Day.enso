@@ -4,28 +4,26 @@ import project.Data.Locale.Locale
 import project.Data.Numbers.Integer
 import project.Data.Ordering.Comparable
 import project.Data.Text.Text
-from project.Data.Text.Extensions import all
 import project.Data.Time.Date.Date
 import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Duration.Duration
 import project.Data.Time.Period.Period
 import project.Data.Time.Time_Period.Time_Period
 import project.Data.Time.Time_Zone.Time_Zone
-import project.Errors.Common.Type_Error
 import project.Error.Error
+import project.Errors.Common.Type_Error
 import project.Errors.Time_Error.Time_Error
 import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
-
-from project.Data.Boolean import Boolean, True, False
-
+from project.Data.Boolean import Boolean, False, True
+from project.Data.Text.Extensions import all
 from project.Widget_Helpers import make_time_format_selector
 
+polyglot java import java.lang.Exception as JException
 polyglot java import java.time.Instant
 polyglot java import java.time.LocalTime
 polyglot java import org.enso.base.Time_Utils
-polyglot java import java.lang.Exception as JException
 
 ## PRIVATE
 

@@ -4,14 +4,13 @@ import project.Data.Numbers.Integer
 import project.Data.Pair.Pair
 import project.Data.Text.Text
 import project.Data.Vector.Vector
-import project.Errors.Common.Index_Out_Of_Bounds
 import project.Error.Error
+import project.Errors.Common.Index_Out_Of_Bounds
 import project.Errors.Illegal_Argument.Illegal_Argument
+import project.Errors.Illegal_State.Illegal_State
 import project.Function.Function
 import project.Nothing.Nothing
-import project.Errors.Illegal_State.Illegal_State
-
-from project.Data.Boolean import Boolean, True, False
+from project.Data.Boolean import Boolean, False, True
 from project.Data.Filter_Condition import unify_condition_or_predicate
 
 ## Represents a right-exclusive range of integer values.

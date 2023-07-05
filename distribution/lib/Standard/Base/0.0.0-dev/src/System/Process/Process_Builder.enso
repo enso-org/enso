@@ -4,7 +4,7 @@ import project.System
 import project.System.Process.Exit_Code.Exit_Code
 import project.System.System_Process_Result
 
-from project.Data.Boolean import Boolean, True, False
+from project.Data.Boolean import Boolean, False, True
 
 ## PRIVATE
    ADVANCED
