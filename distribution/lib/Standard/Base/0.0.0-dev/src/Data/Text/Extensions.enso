@@ -1,10 +1,8 @@
 ## Methods for operating on `Text` in Enso.
 
 import project.Any.Any
-import project.Data.Array.Array
 import project.Data.Index_Sub_Range.Index_Sub_Range
 import project.Data.Locale.Locale
-from project.Data.Range.Extensions import all
 import project.Data.Range.Range
 import project.Data.Text.Case.Case
 import project.Data.Text.Case_Sensitivity.Case_Sensitivity
@@ -38,6 +36,7 @@ import project.Nothing.Nothing
 from project.Data.Boolean import Boolean, True, False
 from project.Data.Json import Json, Invalid_JSON, JS_Object
 from project.Data.Numbers import Decimal, Integer, Number, Number_Parse_Error
+from project.Data.Range.Extensions import all
 
 from project.Widget_Helpers import make_delimiter_selector, make_date_format_selector, make_date_time_format_selector, make_time_format_selector
 
@@ -473,8 +472,8 @@ Text.replace self term replacement case_sensitivity=Case_Sensitivity.Sensitive o
     case use_regex of
         False -> if term.is_empty then self else
             array_from_single_result result = case result of
-                Nothing -> Array.empty
-                _ -> Array.new_1 result
+                Nothing -> []
+                _ -> [result]
             spans_array = case case_sensitivity of
                 Case_Sensitivity.Sensitive -> case only_first of
                     False -> Text_Utils.span_of_all self term
@@ -673,7 +672,7 @@ Text.bytes self encoding on_problems=Problem_Behavior.Report_Warning =
 @encoding Encoding.default_widget
 Text.from_bytes : Vector Integer -> Encoding -> Problem_Behavior -> Text
 Text.from_bytes bytes encoding on_problems=Problem_Behavior.Report_Error =
-    result = Encoding_Utils.from_bytes bytes.to_array (encoding . to_java_charset)
+    result = Encoding_Utils.from_bytes bytes (encoding . to_java_charset)
     if result.warnings.is_nothing then result.result else
         on_problems.attach_problems_after result.result [Encoding_Error.Error result.warnings]
 
@@ -736,7 +735,7 @@ Text.char_vector self = Vector.from_polyglot_array (Text_Utils.get_chars self)
    This is useful for low-level operations, such as binary data encoding and
    decoding.
 Text.from_char_vector : Vector Integer -> Text
-Text.from_char_vector chars = Text_Utils.from_chars chars.to_array
+Text.from_char_vector chars = Text_Utils.from_chars chars
 
 ## Returns a vector containing integers representing the Unicode codepoints of
    the input text.
@@ -761,7 +760,7 @@ Text.codepoints self = Vector.from_polyglot_array (Text_Utils.get_codepoints sel
      Converting a vector of codepoints back into a text.
          Text.from_codepoints [129318, 127996, 8205, 9794, 65039]
 Text.from_codepoints : Vector Integer -> Text
-Text.from_codepoints codepoints = Text_Utils.from_codepoints codepoints.to_array
+Text.from_codepoints codepoints = Text_Utils.from_codepoints codepoints
 
 ## ALIAS Check Prefix
 
@@ -1301,7 +1300,7 @@ Text.locate_all self term="" case_sensitivity=Case_Sensitivity.Sensitive = if te
     Case_Sensitivity.Default -> self.locate term Case_Sensitivity.Sensitive
     Case_Sensitivity.Sensitive ->
         codepoint_spans = Vector.from_polyglot_array <| Text_Utils.span_of_all self term
-        grahpeme_ixes = Vector.from_polyglot_array <| Text_Utils.utf16_indices_to_grapheme_indices self (codepoint_spans.map .codeunit_start).to_array
+        grahpeme_ixes = Vector.from_polyglot_array <| Text_Utils.utf16_indices_to_grapheme_indices self (codepoint_spans.map .codeunit_start)
         ## While the codepoint_spans may have different code unit lengths
            from our term, the `length` counted in grapheme clusters is
            guaranteed to be the same.

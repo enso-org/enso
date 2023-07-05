@@ -472,10 +472,12 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
   private def copyResource(from: URI, to: F): Unit = {
     val fromStream = getClass.getResourceAsStream(from.toString)
     val toStream   = to.newOutputStream
-    try PackageManager.copyStream(fromStream, toStream)
-    finally {
-      fromStream.close()
-      toStream.close()
+    if (fromStream != null && toStream != null) {
+      try PackageManager.copyStream(fromStream, toStream)
+      finally {
+        fromStream.close()
+        toStream.close()
+      }
     }
   }
 }

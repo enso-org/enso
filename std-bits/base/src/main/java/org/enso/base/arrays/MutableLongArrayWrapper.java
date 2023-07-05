@@ -3,11 +3,14 @@ package org.enso.base.arrays;
 /**
  * A wrapper for a long array, used to expose a random-access mutable array to Enso, needed for some
  * efficient algorithms.
+ *
+ * <p>It is needed, because arrays in Enso are immutable, so we need to use a wrapper like this for
+ * algorithms that require efficient mutability.
  */
-public class LongArray {
+public class MutableLongArrayWrapper {
   private final long[] storage;
 
-  public LongArray(int size) {
+  public MutableLongArrayWrapper(int size) {
     this.storage = new long[size];
   }
 
@@ -15,7 +18,7 @@ public class LongArray {
     storage[ix] = value;
   }
 
-  public long[] to_array() {
+  public long[] getUnderlyingArray() {
     return storage;
   }
 }

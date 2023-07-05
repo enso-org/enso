@@ -76,7 +76,7 @@ type Warning
        - value: the value to which warnings should be set to.
        - warnings: vector of warnings to set to the value.
     set : Any -> Vector Warning -> Any
-    set value warnings = set_array value warnings.to_array
+    set value warnings = set_array value warnings
 
     ## PRIVATE
        ADVANCED
