@@ -75,6 +75,21 @@ public class ListBenchmarks {
               Nil -> acc
               Cons x xs -> @Tail_Call sum xs acc+x
 
+      sum_any list (acc:Any) =
+          case list of
+              Nil -> acc
+              Cons x xs -> @Tail_Call sum xs acc+x
+
+      sum_int list (acc:Integer) =
+          case list of
+              Nil -> acc
+              Cons x xs -> @Tail_Call sum xs acc+x
+
+      sum_multi list (acc:Text|Decimal|Integer|Any) =
+          case list of
+              Nil -> acc
+              Cons x xs -> @Tail_Call sum xs acc+x
+
       generator n =
           go x v l = if x > n then l else
               @Tail_Call go x+1 v+1 (Cons v l)
@@ -89,31 +104,67 @@ public class ListBenchmarks {
     this.plusOne = getMethod.apply("plus_one");
 
     switch (benchmarkName) {
-      case "mapOverList": {
+      case "mapOverList" ->  {
         this.list = getMethod.apply("generator").execute(self, LENGTH_OF_EXPERIMENT);
         this.sum = getMethod.apply("sum");
         this.oldSum = sum.execute(self, this.list, 0);
         if (!this.oldSum.fitsInLong()) {
           throw new AssertionError("Expecting a number " + this.oldSum);
         }
-        break;
       }
-      case "mapOverLazyList": {
+      case "mapAnyOverList" ->  {
+        this.list = getMethod.apply("generator").execute(self, LENGTH_OF_EXPERIMENT);
+        this.sum = getMethod.apply("sum_any");
+        this.oldSum = sum.execute(self, this.list, 0);
+        if (!this.oldSum.fitsInLong()) {
+          throw new AssertionError("Expecting a number " + this.oldSum);
+        }
+      }
+      case "mapMultiOverList" ->  {
+        this.list = getMethod.apply("generator").execute(self, LENGTH_OF_EXPERIMENT);
+        this.sum = getMethod.apply("sum_multi");
+        this.oldSum = sum.execute(self, this.list, 0);
+        if (!this.oldSum.fitsInLong()) {
+          throw new AssertionError("Expecting a number " + this.oldSum);
+        }
+      }
+      case "mapIntegerOverList" ->  {
+        this.list = getMethod.apply("generator").execute(self, LENGTH_OF_EXPERIMENT);
+        this.sum = getMethod.apply("sum_int");
+        this.oldSum = sum.execute(self, this.list, 0);
+        if (!this.oldSum.fitsInLong()) {
+          throw new AssertionError("Expecting a number " + this.oldSum);
+        }
+      }
+      case "mapOverLazyList" ->  {
         this.list = getMethod.apply("lenivy_generator").execute(self, LENGTH_OF_EXPERIMENT);
         this.sum = getMethod.apply("leniva_suma");
         this.oldSum = sum.execute(self, this.list, 0);
         if (!this.oldSum.fitsInLong()) {
           throw new AssertionError("Expecting a number " + this.oldSum);
         }
-        break;
       }
-      default:
-        throw new IllegalStateException("Unexpected benchmark: " + params.getBenchmark());
+      default -> throw new IllegalStateException("Unexpected benchmark: " + params.getBenchmark());
     }
   }
 
   @Benchmark
   public void mapOverList(Blackhole matter) {
+    performBenchmark(matter);
+  }
+
+  @Benchmark
+  public void mapAnyOverList(Blackhole matter) {
+    performBenchmark(matter);
+  }
+
+  @Benchmark
+  public void mapIntegerOverList(Blackhole matter) {
+    performBenchmark(matter);
+  }
+
+  @Benchmark
+  public void mapMultiOverList(Blackhole matter) {
     performBenchmark(matter);
   }
 
