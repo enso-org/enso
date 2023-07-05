@@ -34,7 +34,7 @@ public abstract class CoerceArrayNode extends Node {
   }
 
   @Specialization
-  Object[] doVector(Vector arr, @Shared @Cached CoerceArrayNode coerceArrayNode) {
+  Object[] doVector(Vector arr, @Cached CoerceArrayNode coerceArrayNode) {
     return coerceArrayNode.execute(arr.toArray());
   }
 
@@ -42,7 +42,7 @@ public abstract class CoerceArrayNode extends Node {
   Object[] doArrayLike(
       Object arr,
       @CachedLibrary(limit = "5") InteropLibrary interop,
-      @Shared @Cached HostValueToEnsoNode hostValueToEnsoNode) {
+      @Cached HostValueToEnsoNode hostValueToEnsoNode) {
     try {
       return convertToArray(arr, hostValueToEnsoNode);
     } catch (UnsupportedMessageException e) {
