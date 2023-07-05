@@ -5,25 +5,105 @@
 #![feature(drain_filter)]
 
 
-/*
-#[derive(Clone)]
-struct ScoreBuilder {}
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+struct Score(pub u32);
 
-impl ScoreBuilder {
-    fn new(haystack: &str) -> Self {
-        Self {}
+mod std_score {
+    use super::Score;
+
+    const MAX_CHARS_LN2: u32 = 8;
+    const MAX_SUBMATCHES_LN2: u32 = 4;
+
+    const SUBMATCH_BY_INITIALS_PENALTY: u32 =
+        1 << MAX_CHARS_LN2 << MAX_SUBMATCHES_LN2 << 1 << MAX_SUBMATCHES_LN2;
+    const SUBMATCH_NOT_FROM_START_PENALTY: u32 = 1 << MAX_CHARS_LN2 << MAX_SUBMATCHES_LN2 << 1;
+    const TARGET_IS_ALIAS_PENALTY: u32 = 1 << MAX_CHARS_LN2 << MAX_SUBMATCHES_LN2;
+    const SUBMATCH_INCLUDES_NAMESPACE_PENALTY: u32 = 1 << MAX_CHARS_LN2;
+    const CHAR_IN_MATCHED_WORD_SKIPPED_PENALTY: u32 = 1;
+
+    pub struct TargetInfo {
+        is_alias: bool,
     }
 
-    fn advance(&mut self, c: char, c1: char, consume: bool) {}
+    /// Observes how characters are matched within a submatch.
+    #[derive(Clone, Default)]
+    pub struct ScoreBuilder {
+        // State maintained to determine how further characters affect penalty.
+        word_chars_matched: bool,
+        word_chars_matched_since_last_delimiter: bool,
+        // The penalty accrued so far.
+        penalty: u32,
+    }
 
-    fn finish(self) -> Score {
-        Score(0)
+    impl ScoreBuilder {
+        pub fn skip_word_chars(&mut self, count: u32) {
+            if !self.word_chars_matched {
+                self.penalty += SUBMATCH_NOT_FROM_START_PENALTY;
+            }
+            if self.word_chars_matched_since_last_delimiter {
+                self.penalty += count * CHAR_IN_MATCHED_WORD_SKIPPED_PENALTY;
+            }
+        }
+
+        pub fn match_word_char(&mut self) {
+            self.word_chars_matched = true;
+            self.word_chars_matched_since_last_delimiter = true;
+        }
+
+        pub fn match_delimiter(&mut self, _pattern: char, value: char) {
+            self.word_chars_matched_since_last_delimiter = false;
+            if value == '.' {
+                self.penalty += SUBMATCH_INCLUDES_NAMESPACE_PENALTY;
+            }
+        }
+
+        pub fn skip_delimiter(&mut self, _pattern: char, _value: char) {
+            // It is not necessary to update `word_chars_matched_since_last_delimiter` here because
+            // when a delimiter is skipped, word chars will not be matched until a delimiter is
+            // matched.
+        }
+
+        pub fn finish(self) -> ScoreInfo {
+            let Self { penalty, .. } = self;
+            ScoreInfo { penalty }
+        }
+    }
+
+    #[derive(Copy, Clone, Default)]
+    pub struct ScoreInfo {
+        penalty: u32,
+    }
+
+    impl ScoreInfo {
+        pub fn with_submatch_by_initials_penalty(self) -> Self {
+            Self { penalty: self.penalty + SUBMATCH_BY_INITIALS_PENALTY }
+        }
+
+        pub fn any_prefix_match_beats_any_initials_match() -> bool {
+            true
+        }
+    }
+
+    impl core::ops::Add for ScoreInfo {
+        type Output = Self;
+        fn add(self, rhs: Self) -> Self::Output {
+            ScoreInfo { penalty: self.penalty + rhs.penalty }
+        }
+    }
+
+    impl From<ScoreInfo> for Score {
+        fn from(value: ScoreInfo) -> Self {
+            Score(u32::MAX - value.penalty)
+        }
+    }
+
+    impl From<&ScoreInfo> for Score {
+        fn from(value: &ScoreInfo) -> Self {
+            Score::from(*value)
+        }
     }
 }
- */
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-struct Score(usize);
+use std_score::*;
 
 fn normalize_needle(needle: impl Iterator<Item = char>) -> impl Iterator<Item = char> {
     // Collapse any sequence of delimiters to the strongest, in this ranking: `.` > `_` > ` `
@@ -74,32 +154,12 @@ impl<'s> WordIndexedChars<'s> {
         Self { word_boundaries, chars }
     }
 
-    #[must_use]
-    fn advance_until_at_word_boundary(&mut self) -> bool {
+    /// Succeeds if there is any word boundary; returns the number of characters positions advanced.
+    fn advance_until_at_word_boundary(&mut self) -> Result<u32, ()> {
         let n = self.word_boundaries.trailing_zeros();
         match n {
-            64 => false,
-            valid_shift => self.advance_by(valid_shift as usize).is_ok(),
-        }
-    }
-
-    #[must_use]
-    fn advance_to_next_word_start(&mut self) -> bool {
-        self.advance_until_at_word_boundary() && self.next().is_some()
-    }
-
-    #[must_use]
-    fn next_word_start(&self) -> Option<Self> {
-        let mut this = self.clone();
-        this.advance_to_next_word_start().then_some(this)
-    }
-
-    #[must_use]
-    fn advance_while_at_word_boundary(&mut self) -> bool {
-        let n = self.word_boundaries.trailing_ones();
-        match n {
-            64 => false,
-            valid_shift => self.advance_by(valid_shift as usize).is_ok(),
+            64 => Err(()),
+            valid_shift => self.advance_by(valid_shift as usize).map(|()| n).map_err(|_| ()),
         }
     }
 }
@@ -118,7 +178,7 @@ impl<'s> Iterator for WordIndexedChars<'s> {
     }
 }
 
-fn match_initials(needle: &str, haystack: &str) -> bool {
+fn match_initials(needle: &str, haystack: &str) -> Option<ScoreInfo> {
     let mut exploded = String::with_capacity(haystack.len() * 2 - 1);
     let mut needle = needle.chars();
     if let Some(c) = needle.next() {
@@ -128,60 +188,88 @@ fn match_initials(needle: &str, haystack: &str) -> bool {
         exploded.push(' ');
         exploded.push(c);
     }
-    match_prefixes(&exploded, haystack)
+    Some(match_prefixes(&exploded, haystack)?.with_submatch_by_initials_penalty())
 }
 
-// a_a_a ~ a_a_b_a_a_a
-// (a_a_a) ~ a_a_b_a_a_a
-// (a_a_a,_a_a) ~ a_a_b_a_a_a
+#[derive(Clone)]
+struct State<'s> {
+    chars: WordIndexedChars<'s>,
+    score: ScoreBuilder,
+}
 
-fn match_prefixes(needle: &str, haystack: &str) -> bool {
+fn match_prefixes(needle: &str, haystack: &str) -> Option<ScoreInfo> {
     let needle = format!(" {needle}");
     let haystack = format!("_{haystack}");
-    let mut states = vec![WordIndexedChars::new(&haystack)];
+    let initial_state =
+        State { chars: WordIndexedChars::new(&haystack), score: Default::default() };
+    let mut states = vec![initial_state];
     let mut next_states = vec![];
     for c in needle.chars() {
-        let states_dbg: Vec<_> = states.iter().map(|state| format!("{state:?}")).collect();
         match c {
             '_' | ' ' | '.' => {
                 for mut state in states.drain(..) {
-                    while state.advance_until_at_word_boundary() {
-                        let Some(d) = state.next() else { break };
+                    while let Ok(skipped) = state.chars.advance_until_at_word_boundary() {
+                        state.score.skip_word_chars(skipped);
+                        let Some(d) = state.chars.next() else { break };
                         if c == '_' && d == '.' {
-                            break
+                            break;
                         }
                         if c == ' ' || c == d {
-                            next_states.push(state.clone());
+                            let mut matched_state = state.clone();
+                            matched_state.score.match_delimiter(c, d);
+                            next_states.push(matched_state);
                         }
+                        state.score.skip_delimiter(c, d);
                     }
                 }
                 core::mem::swap(&mut states, &mut next_states);
             }
             c => {
-                states.drain_filter(|state| state.next() != Some(c));
+                states.drain_filter(|state| {
+                    state.score.match_word_char();
+                    state.chars.next() != Some(c)
+                });
             }
         }
     }
-    !states.is_empty()
+    states.into_iter().map(|state| state.score.finish()).max_by_key(|info| Score::from(info))
 }
 
 fn search(needle: &str, haystack: &str) -> Option<Score> {
+    search_(needle, haystack).map(|info| Score::from(info))
+}
+
+fn search_(needle: &str, haystack: &str) -> Option<ScoreInfo> {
     if let Some((r#type, name)) = needle.rsplit_once('.') {
-        if let Some((r#type2, name2)) = haystack.rsplit_once('.') {
-            (search(r#type, r#type2).is_some() && search(name, name2).is_some()).then_some(Score(0))
-        } else {
-            None
-        }
+        // Try to match both parts, then compute a composite score.
+        let (r#type2, name2) = haystack.rsplit_once('.')?;
+        let r#type = search_(r#type, r#type2)?;
+        let name = search_(name, name2)?;
+        let dot = {
+            let mut builder = ScoreBuilder::default();
+            builder.match_delimiter('.', '.');
+            builder.finish()
+        };
+        Some(r#type + dot + name)
     } else {
+        // Try to match either by prefix, or by initials; return the best score.
         let matched_prefix = match_prefixes(needle, haystack);
+        let try_initials_match = {
+            let no_delimiters_in_needle = !needle.contains('_') && !needle.contains(' ');
+            // Optimization: The scoring criteria may guarantee that an initials-match would never
+            // be preferred to a prefix match.
+            let best_match_could_be_initials =
+                !ScoreInfo::any_prefix_match_beats_any_initials_match() || matched_prefix.is_none();
+            no_delimiters_in_needle && best_match_could_be_initials
+        };
         let matched_initials =
-            !needle.contains('_') && !needle.contains(' ') && match_initials(needle, haystack);
-        (matched_prefix || matched_initials).then_some(Score(0))
+            try_initials_match.then_some(()).and_then(|()| match_initials(needle, haystack));
+        core::cmp::max_by_key(matched_prefix, matched_initials, |info| info.map(Score::from))
     }
 }
 
 #[cfg(test)]
-mod test {
+mod test_match {
     use super::*;
 
     fn check_matches<'a, 'b>(cases: impl IntoIterator<Item = (&'a str, &'b str, bool)>) {
@@ -316,5 +404,23 @@ mod test {
             // === Leading and trailing spaces are stripped ===
             //(" data.read_file ", "data.read_file"),
         ]);
+    }
+}
+
+#[cfg(test)]
+mod test_score {
+    use super::*;
+
+    fn check_order(needle: &str, haystacks: &[&str]) {
+        let expected = haystacks;
+        let mut computed: Vec<_> = haystacks.iter().cloned().collect();
+        computed.sort_by_key(|haystack| search(needle, haystack).unwrap());
+        computed.reverse();
+        assert_eq!(computed, expected);
+    }
+
+    #[test]
+    fn test_order() {
+        check_order("sc", &["scaolubracorucb", "select_columns"])
     }
 }
