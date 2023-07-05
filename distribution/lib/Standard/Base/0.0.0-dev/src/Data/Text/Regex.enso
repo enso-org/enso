@@ -367,6 +367,10 @@ type Regex
     escape : Text -> Text
     escape expression = Regex_Utils.regexQuote expression
 
+    # Recompile the underlying regex string; used to change the case-sensitivity of a compiled Regex.
+    recompile : Boolean | Nothing -> Regex ! Regex_Syntax_Error | Illegal_Argument
+    recompile self case_insensitive=Nothing = Regex.compile self.internal_regex_object.pattern case_insensitive
+
 ## PRIVATE
    Convert the polyglot map to a Map.
 polyglot_map_to_map : Any -> Map Any Any
