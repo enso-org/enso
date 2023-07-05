@@ -5,6 +5,7 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.profiles.ConditionProfile;
+import com.oracle.truffle.api.profiles.CountingConditionProfile;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -26,7 +27,7 @@ public class ReadArgumentNode extends ExpressionNode {
   private final int index;
   @Child ExpressionNode defaultValue;
   @Child IsValueOfTypeNode checkType;
-  private final ConditionProfile defaultingProfile = ConditionProfile.createCountingProfile();
+  private final CountingConditionProfile defaultingProfile = CountingConditionProfile.create();
   // XXX: Type in a Node is wrong!!!!!
   @CompilerDirectives.CompilationFinal(dimensions = 1)
   private final Type[] expectedTypes;

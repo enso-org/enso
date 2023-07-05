@@ -15,6 +15,7 @@ import org.enso.interpreter.runtime.error.WarningsLibrary;
 @ReportPolymorphism
 @GenerateUncached
 public abstract class HostValueToEnsoNode extends Node {
+  @NeverDefault
   public static HostValueToEnsoNode build() {
     return HostValueToEnsoNodeGen.create();
   }

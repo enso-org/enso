@@ -17,6 +17,7 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.profiles.BranchProfile;
+import java.math.BigInteger;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
@@ -82,7 +83,7 @@ public final class PolyglotProxy implements TruffleObject {
   public boolean isNull(
       @CachedLibrary("this.delegate") InteropLibrary nulls,
       @CachedLibrary("this") InteropLibrary node,
-      @CachedLibrary(limit = "5") InteropLibrary errors,
+      @Shared("interop") @CachedLibrary(limit = "5") InteropLibrary errors,
       @Exclusive @Cached ContextRewrapExceptionNode contextRewrapExceptionNode,
       @Exclusive @Cached BranchProfile profile) {
     Object p = enterOrigin(node);
@@ -694,6 +695,30 @@ public final class PolyglotProxy implements TruffleObject {
   }
 
   @ExportMessage
+  public boolean fitsInBigInteger(
+      @CachedLibrary("this.delegate") InteropLibrary numbers,
+      @CachedLibrary("this") InteropLibrary node,
+      @Shared("interop") @CachedLibrary(limit = "5") InteropLibrary errors,
+      @Exclusive @Cached ContextRewrapExceptionNode contextRewrapExceptionNode,
+      @Exclusive @Cached BranchProfile profile) {
+    Object p = enterOrigin(node);
+    try {
+      return numbers.fitsInBigInteger(this.delegate);
+    } catch (Throwable e) {
+      profile.enter();
+      if (errors.isException(e)) {
+        // `isException` means this must be AbstractTruffleException
+        //noinspection ConstantConditions
+        throw contextRewrapExceptionNode.execute((AbstractTruffleException) e, origin, target);
+      } else {
+        throw e;
+      }
+    } finally {
+      leaveOrigin(node, p);
+    }
+  }
+
+  @ExportMessage
   public boolean fitsInLong(
       @CachedLibrary("this.delegate") InteropLibrary numbers,
       @CachedLibrary("this") InteropLibrary node,
@@ -826,6 +851,31 @@ public final class PolyglotProxy implements TruffleObject {
     Object p = enterOrigin(node);
     try {
       return numbers.asInt(this.delegate);
+    } catch (Throwable e) {
+      profile.enter();
+      if (errors.isException(e)) {
+        // `isException` means this must be AbstractTruffleException
+        //noinspection ConstantConditions
+        throw contextRewrapExceptionNode.execute((AbstractTruffleException) e, origin, target);
+      } else {
+        throw e;
+      }
+    } finally {
+      leaveOrigin(node, p);
+    }
+  }
+
+  @ExportMessage
+  public BigInteger asBigInteger(
+      @CachedLibrary("this.delegate") InteropLibrary numbers,
+      @CachedLibrary("this") InteropLibrary node,
+      @Shared("interop") @CachedLibrary(limit = "5") InteropLibrary errors,
+      @Exclusive @Cached ContextRewrapExceptionNode contextRewrapExceptionNode,
+      @Exclusive @Cached BranchProfile profile)
+      throws UnsupportedMessageException {
+    Object p = enterOrigin(node);
+    try {
+      return numbers.asBigInteger(this.delegate);
     } catch (Throwable e) {
       profile.enter();
       if (errors.isException(e)) {

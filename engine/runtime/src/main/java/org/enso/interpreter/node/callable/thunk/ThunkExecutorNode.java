@@ -30,6 +30,7 @@ public abstract class ThunkExecutorNode extends Node {
    *
    * @return an instance of this node
    */
+  @NeverDefault
   public static ThunkExecutorNode build() {
     return ThunkExecutorNodeGen.create();
   }

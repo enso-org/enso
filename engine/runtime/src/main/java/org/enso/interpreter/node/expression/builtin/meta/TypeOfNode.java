@@ -80,8 +80,8 @@ public abstract class TypeOfNode extends Node {
   @Specialization(guards = {"!types.hasType(value)"})
   Object withoutType(
       Object value,
-      @CachedLibrary(limit = "3") InteropLibrary interop,
-      @CachedLibrary(limit = "3") TypesLibrary types,
+      @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary interop,
+      @Shared("types") @CachedLibrary(limit = "3") TypesLibrary types,
       @Cached WithoutType delegate) {
     var type = WithoutType.Interop.resolve(value, interop);
     return delegate.execute(type, value);
@@ -90,8 +90,8 @@ public abstract class TypeOfNode extends Node {
   @Specialization(guards = {"types.hasType(value)", "!interop.isNumber(value)"})
   Object doType(
       Object value,
-      @CachedLibrary(limit = "3") InteropLibrary interop,
-      @CachedLibrary(limit = "3") TypesLibrary types) {
+      @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary interop,
+      @Shared("types") @CachedLibrary(limit = "3") TypesLibrary types) {
     return types.getType(value);
   }
 

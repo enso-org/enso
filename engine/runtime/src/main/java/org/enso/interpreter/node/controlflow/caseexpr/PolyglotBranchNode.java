@@ -5,15 +5,15 @@ import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import com.oracle.truffle.api.profiles.ConditionProfile;
+import com.oracle.truffle.api.profiles.CountingConditionProfile;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.Type;
 
 @NodeInfo(shortName = "PolyglotMatch", description = "Allows matching on polyglot objects.")
 public abstract class PolyglotBranchNode extends BranchNode {
   private final Type polyglot;
-  private final ConditionProfile constructorProfile = ConditionProfile.createCountingProfile();
-  private final ConditionProfile polyglotProfile = ConditionProfile.createCountingProfile();
+  private final CountingConditionProfile constructorProfile = CountingConditionProfile.create();
+  private final CountingConditionProfile polyglotProfile = CountingConditionProfile.create();
 
   PolyglotBranchNode(Type polyglot, RootCallTarget branch, boolean terminalBranch) {
     super(branch, terminalBranch);

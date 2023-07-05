@@ -2,9 +2,10 @@ package org.enso.interpreter.node.expression.builtin.number.bigInteger;
 
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.ImportStatic;
+import com.oracle.truffle.api.dsl.NeverDefault;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
-import com.oracle.truffle.api.profiles.ConditionProfile;
+import com.oracle.truffle.api.profiles.CountingConditionProfile;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
 import org.enso.interpreter.node.expression.builtin.number.utils.ToEnsoNumberNode;
@@ -22,13 +23,14 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
     aliases = "bit_shift_l")
 public abstract class BitShiftNode extends Node {
   private @Child ToEnsoNumberNode toEnsoNumberNode = ToEnsoNumberNode.build();
-  private final ConditionProfile fitsInIntProfileLeftShift =
-      ConditionProfile.createCountingProfile();
-  private final ConditionProfile fitsInIntProfileRightShift =
-      ConditionProfile.createCountingProfile();
+  private final CountingConditionProfile fitsInIntProfileLeftShift =
+      CountingConditionProfile.create();
+  private final CountingConditionProfile fitsInIntProfileRightShift =
+      CountingConditionProfile.create();
 
   abstract Object execute(Object self, Object that);
 
+  @NeverDefault
   static BitShiftNode build() {
     return BitShiftNodeGen.create();
   }
