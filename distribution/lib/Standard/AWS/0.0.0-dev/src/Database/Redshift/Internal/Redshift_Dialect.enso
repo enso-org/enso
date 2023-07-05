@@ -6,9 +6,9 @@ from Standard.Table import Value_Type
 
 import Standard.Database.Connection.Connection.Connection
 import Standard.Database.Data.Dialect
+import Standard.Database.Data.SQL.Builder
 import Standard.Database.Data.SQL_Statement.SQL_Statement
 import Standard.Database.Data.SQL_Type.SQL_Type
-import Standard.Database.Data.SQL.Builder
 import Standard.Database.Data.Table.Table
 import Standard.Database.Internal.Base_Generator
 import Standard.Database.Internal.Column_Fetcher as Column_Fetcher_Module

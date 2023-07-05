@@ -1,8 +1,8 @@
 from Standard.Base import all
 
 import Standard.Database.Connection.Client_Certificate.Client_Certificate
-import Standard.Database.Connection.Connection_Options.Connection_Options
 import Standard.Database.Connection.Connection.Connection
+import Standard.Database.Connection.Connection_Options.Connection_Options
 import Standard.Database.Connection.Credentials.Credentials
 import Standard.Database.Connection.SSL_Mode.SSL_Mode
 import Standard.Database.Internal.JDBC_Connection
