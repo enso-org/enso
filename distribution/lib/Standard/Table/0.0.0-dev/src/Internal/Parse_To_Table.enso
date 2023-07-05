@@ -7,8 +7,8 @@ import project.Data.Column.Column
 import project.Data.Data_Formatter.Data_Formatter
 import project.Data.Table.Table
 import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
-from project.Errors import Duplicate_Output_Column_Names
 from project import Value_Type
+from project.Errors import Duplicate_Output_Column_Names
 
 ## PRIVATE
 
