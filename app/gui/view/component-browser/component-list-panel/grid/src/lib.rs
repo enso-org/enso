@@ -91,13 +91,13 @@ pub mod column {
 
     /// The priority telling which column will be selected first when switching to section having
     /// many lowest elements (with maximum row index).
-    pub const SECTION_SELECTION_PRIORITY: [Col; COUNT] = [CENTER, LEFT, RIGHT];
+    pub const SECTION_SELECTION_PRIORITY: [Col; COUNT] = [LEFT];
 
     // The constants below plays informative role, and should not be easily changed, as the
     // layouter algorithm rely strongly on assumption that there are 3 columns.
 
     /// Number of columns in Component List Panel Grid.
-    pub const COUNT: usize = 3;
+    pub const COUNT: usize = 1;
     /// The index of left column.
     pub const LEFT: Col = 0;
     /// The index of center column.
@@ -295,8 +295,20 @@ impl component::Model for Model {
 impl Model {
     /// The grid is resetting: remove all data regarding existing entries and return new grid size.
     fn reset(&self, content: &content::Info) -> (Row, Col) {
-        let layouter = layouting::Layouter::new(content.groups.iter().copied());
-        let layout = layouter.create_layout(content.local_scope_entry_count);
+        let row_count = content.groups.iter().map(|group| group.height).sum::<usize>()
+            + content.local_scope_entry_count;
+        let mut layout = Layout::<0>::new(row_count, 1, 0);
+        for group in &content.groups {
+            layout.push_group(0, *group);
+        }
+        layout.push_group(0, content::Group {
+            id:               GroupId::local_scope_group(),
+            height:           content.local_scope_entry_count,
+            original_height:  content.local_scope_entry_count,
+            color:            None,
+            best_match_score: 0.0,
+        });
+
         let rows_and_cols = (layout.row_count(), layout.column_count());
         *self.layout.borrow_mut() = layout;
         *self.colors.borrow_mut() = Self::collect_colors(content);
@@ -404,7 +416,9 @@ impl Model {
 impl Model {
     fn section_info_requested(&self, &(row, col): &(Row, Col)) -> Option<GroupId> {
         *self.requested_section_info.borrow_mut().get_mut(col)? = row;
-        Some(self.layout.borrow().group_at_location(row, col)?.group.id)
+        let layout = self.layout.borrow();
+        let group = layout.group_at_location(row, col)?;
+        group.has_header().as_some(group.group.id)
     }
 
     fn is_requested_section(&self, (rows, col, _): &(Range<Row>, Col, entry::Model)) -> bool {
