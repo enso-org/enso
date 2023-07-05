@@ -22,7 +22,6 @@ use enso_prelude::FallibleResult;
 use enso_text as text;
 use enso_text::Byte;
 use ide_view::component_browser::component_list_panel::grid::GroupEntryId;
-use ide_view::graph_editor::component::node;
 use ide_view::graph_editor::GraphEditor;
 use ide_view::graph_editor::NodeId;
 use ide_view::project;
@@ -118,14 +117,16 @@ impl SearcherPresenter for AISearcher {
         let expression = self.model.input_expression.borrow().clone();
         if let Err(e) = self.handle_ai_query(expression.repr()) {
             warn!("Failed to handle AI query: {:?}", e);
+            self.abort_editing();
         };
         Some(ast_id)
     }
 
     fn abort_editing(self: Box<Self>) {
-        let graph = self.model.view.graph().clone();
-        let expression = node::Expression::new_plain(self.model.input_expression.borrow().clone());
-        graph.set_node_expression((self.input_view(), expression));
+        let node = self.model.mode.node_id();
+        if let Err(e) = self.model.graph_controller.graph().remove_node(node) {
+            warn!("Failed to remove searcher input after aborting editing: {:?}", e);
+        }
     }
 
     fn input_view(&self) -> ViewNodeId {
@@ -223,10 +224,23 @@ impl AISearcher {
         let mode = self.model.mode;
         let ide = self.model.ide_controller.clone_ref();
         executor::global::spawn(async move {
-            if let Err(e) =
-                Self::accept_ai_query(mode, query, this, graph, graph_view, input_view, ide).await
-            {
+            let query_result = Self::accept_ai_query(
+                mode,
+                query,
+                this,
+                graph.clone_ref(),
+                graph_view,
+                input_view,
+                ide.clone_ref(),
+            )
+            .await;
+            if let Err(e) = query_result {
+                let error_message = format!("Error when handling AI query: {e}");
+                ide.status_notifications().publish_event(error_message);
                 error!("Error when handling AI query: {e}");
+                if let Err(e) = graph.graph().remove_node(mode.node_id()) {
+                    warn!("Failed to remove searcher view node after AI query error: {e}");
+                }
             }
         });
 
