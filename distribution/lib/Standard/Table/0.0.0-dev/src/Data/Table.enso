@@ -2060,6 +2060,42 @@ type Table
         transformer col = col.fill_empty default
         Table_Helpers.replace_columns_with_transformed_columns self selectors transformer
 
+    ## Replaces the first, or all occurrences of `term` with `new_text` in each
+       row of the specified column. If `term` is empty, the function returns the
+       table unchanged.
+
+       This method follows the exact replacement semantics of the
+       `Text.replace` method.
+
+       Arguments:
+       - term: The term to find. Can be `Text`, `Regex`, or a `Column` of
+         strings.
+       - replacement: The text to replace matches with.
+       - case_sensitivity: Specifies if the text values should be compared case
+         sensitively.
+       - only_first: If True, only replace the first match.
+
+       > Example
+         Replace dashes with underscores.
+
+             table.replace "-" "_"
+
+       > Example
+         Remove leading and trailing spaces from cells.
+
+             regex = Regex.compile "^\s*(.*?)\s*$"
+             table.replace regex "$1"
+
+       > Example
+         Replace texts in quotes with parentheses.
+
+             regex = Regex.compile '"(.*?)"'
+             table.replace regex '($1)'
+    replace : Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector) -> Text | Column | Regex -> Text | Column -> Case_Sensitivity -> Boolean -> Column
+    replace self selectors term="" new_text="" case_sensitivity=Case_Sensitivity.Sensitive only_first=False =
+        transformer col = col.replace term new_text case_sensitivity only_first
+        Table_Helpers.replace_columns_with_transformed_columns self selectors transformer
+
 ## PRIVATE
 
    Ensures that the `txt` has at least `len` characters by appending spaces at

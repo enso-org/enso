@@ -1158,7 +1158,7 @@ type Column
             Column.from_vector new_name mapped
 
     ## Replaces the first, or all occurrences of `term` with `new_text` in each
-       row. If `term` is empty, the function returns the table unchanged.
+       row. If `term` is empty, the function returns the column unchanged.
 
        This method follows the exact replacement semantics of the
        `Text.replace` method.
