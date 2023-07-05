@@ -94,14 +94,6 @@ spec setup =
                 c.value_type.is_integer.should_be_true
             c.to_vector . should_equal [(2020 + 0 + 31 * 10), (2024 + 2 + 29 * 4), (1990 + 1 + 1 * 10), Nothing]
 
-        Test.specify "should report a type error if year/month/day is invoked on a non-date column" <|
-            t = table_builder [["A", [1, 2, 3]], ["B", ["a", "b", "c"]], ["C", [True, False, True]]]
-            r1 = t.at "A" . year
-            r1.should_fail_with Invalid_Value_Type
-            r1.catch . to_display_text . should_start_with "Expected type Date or Date_Time, but got a column [A] of type Integer"
-            t.at "B" . month . should_fail_with Invalid_Value_Type
-            t.at "C" . day . should_fail_with Invalid_Value_Type
-
         Test.specify "should allow to compare dates" <|
             t = table_builder [["X", [Date.new 2021 12 3]], ["Y", [Date.new 2021 12 5]]]
 
@@ -178,9 +170,139 @@ spec setup =
             (t.at "Z") - (t.at "Y") . should_fail_with Invalid_Value_Type
             (t.at "Z") - (Date.new 2021 11 3) . should_fail_with Invalid_Value_Type
 
+        Test.specify "should allow computing a SQL-like difference" pending="TODO" <|
+            t1 = table_builder [["X", [Date.new 2021 11 3]], ["Y", [Date.new 2021 12 5]]]
+
+            (t1.at "X").date_diff  (t1.at "Y") . to_vector . should_equal [32]
+            (t1.at "Y").date_diff (t1.at "X") . to_vector . should_equal [-32]
+            (t1.at "X").date_diff (Date.new 2021 11 3) . to_vector . should_equal [0]
+
+            (t1.at "X").date_diff (t1.at "Y") Date_Period.Month . to_vector . should_equal [1]
+            (t1.at "X").date_diff (Date.new 2021 12 1) Date_Period.Month . to_vector . should_equal [0]
+            (t1.at "X").date_diff (Date.new 2020 12 1) Date_Period.Month . to_vector . should_equal [12]
+
+            (t1.at "X").date_diff (t1.at "Y") Date_Period.Year . to_vector . should_equal [0]
+            (t1.at "X").date_diff (Date.new 2021 12 1) Date_Period.Year . to_vector . should_equal [0]
+            (t1.at "X").date_diff (Date.new 2020 12 1) Date_Period.Year . to_vector . should_equal [-1]
+
+            (t1.at "X").date_diff (t1.at "Y") Time_Period.Day . should_fail_with Illegal_Argument
+            (t1.at "X").date_diff (t1.at "Y") Time_Period.Hour . should_fail_with Illegal_Argument
+
+            t2 = table_builder [["X", [Date_Time.new 2021 11 3 10 15 0]], ["Y", [Date_Time.new 2021 12 5 12 30 20]]]
+
+            (t2.at "X").date_diff (t2.at "Y") . to_vector . should_equal [32]
+            (t2.at "Y").date_diff (t2.at "X") . to_vector . should_equal [-32]
+            (t2.at "X").date_diff (Date_Time.new 2021 11 3 10 15 0) . to_vector . should_equal [0]
+
+            (t2.at "X").date_diff (t2.at "Y") Date_Period.Month . to_vector . should_equal [1]
+            (t2.at "X").date_diff (Date_Time.new 2021 12 1 10 15 0) Date_Period.Month . to_vector . should_equal [0]
+
+            (t2.at "X").date_diff (t2.at "Y") Date_Period.Year . to_vector . should_equal [0]
+            (t2.at "X").date_diff (Date_Time.new 2031 12 1 10 15 0) Date_Period.Year . to_vector . should_equal [10]
+
+            (t2.at "X").date_diff (t2.at "Y") Time_Period.Day . to_vector . should_equal [32]
+
+            (t2.at "X").date_diff (t2.at "Y") Time_Period.Hour . to_vector . should_equal [768]
+            (t2.at "X").date_diff (Date_Time.new 2021 11 3 12 15 0) Time_Period.Hour . to_vector . should_equal [2]
+
+            (t2.at "X").date_diff (t2.at "Y") Time_Period.Minute . to_vector . should_equal [46080]
+            (t2.at "X").date_diff (Date_Time.new 2021 11 3 10 45 0) Time_Period.Minute . to_vector . should_equal [30]
+
+            (t2.at "X").date_diff (t2.at "Y") Time_Period.Second . to_vector . should_equal [2764800]
+            (t2.at "X").date_diff (Date_Time.new 2021 11 3 10 15 30) Time_Period.Second . to_vector . should_equal [30]
+
+            t3 = table_builder [["X", [Time_Of_Day.new 10 15 0]], ["Y", [Time_Of_Day.new 12 30 20]]]
+
+            # TODO that does not seem good, should the default depend on the Value_Type?
+            (t3.at "X").date_diff (t3.at "Y") . should_fail_with Illegal_Argument
+            (t3.at "X").date_diff (t3.at "Y") Date_Period.Month . should_fail_with Illegal_Argument
+
+            # This will always be 0, should it be allowed?
+            (t3.at "X").date_diff (t3.at "Y") Time_Period.Day . to_vector . should_equal [0]
+
+            (t3.at "X").date_diff (t3.at "Y") Time_Period.Hour . to_vector . should_equal [2]
+            (t3.at "X").date_diff (Time_Of_Day.new 9 15 0) Time_Period.Hour . to_vector . should_equal [-1]
+
+            (t3.at "X").date_diff (t3.at "Y") Time_Period.Minute . to_vector . should_equal [135]
+            (t3.at "X").date_diff (Time_Of_Day.new 10 45 0) Time_Period.Minute . to_vector . should_equal [-30]
+
+        Test.specify "should not allow mixing types in date_diff" <|
+            t = table_builder [["X", [Date.new 2021 01 31]], ["Y", [Time_Of_Day.new 12 30 20]], ["Z", [Date_Time.new 2021 12 5 12 30 20]]]
+            (t.at "X").date_diff (t.at "Y") . should_fail_with Invalid_Value_Type
+            (t.at "Z").date_diff (t.at "X") . should_fail_with Invalid_Value_Type
+            (t.at "Y").date_diff (t.at "Z") . should_fail_with Invalid_Value_Type
+
+            r1 = (t.at "X").date_diff (Date_Time.new 2021 12 5 12 30 20)
+            r1.should_fail_with Invalid_Value_Type
+            r1.catch.expected.to_text . should_equal "Date"
+            (t.at "Y").date_diff (Date.new 2021 12 5) . should_fail_with Invalid_Value_Type
+            (t.at "Z").date_diff (Time_Of_Day.new 12 30 20) . should_fail_with Invalid_Value_Type
+
+        Test.specify "should allow an SQL-like shift" pending="TODO" <|
+            t1 = table_builder [["X", [Date.new 2021 01 31, Date.new 2021 01 01, Date.new 2021 12 31]], ["Y", [5, -1, 0]]]
+            (t1.at "X").date_add (t1.at "Y") . to_vector . should_equal [Date.new 2021 02 05, Date.new 2020 12 31, Date.new 2021 12 31]
+            (t1.at "X").date_add -1 . to_vector . should_equal [Date.new 2021 01 30, Date.new 2020 12 31, Date.new 2021 12 30]
+            (t1.at "X").date_add (t1.at "Y") Date_Period.Month . to_vector . should_equal [Date.new 2021 06 30, Date.new 2020 12 31, Date.new 2021 12 31]
+            (t1.at "X").date_add 1 Date_Period.Month . to_vector . should_equal [Date.new 2021 02 28, Date.new 2021 02 01, Date.new 2022 01 31]
+            (t1.at "X").date_add (t1.at "Y") Date_Period.Year . to_vector . should_equal [Date.new 2026 01 31, Date.new 2020 01 01, Date.new 2021 12 31]
+            (t1.at "X").date_add 1 Date_Period.Year . to_vector . should_equal [Date.new 2022 01 31, Date.new 2022 01 01, Date.new 2022 12 31]
+
+            (t1.at "X").date_add (t1.at "Y") Date_Period.Week . to_vector . should_equal [Date.new 2021 03 07, Date.new 2020 12 25, Date.new 2022 01 01]
+            (t1.at "X").date_add 1 Date_Period.Week . to_vector . should_equal [Date.new 2021 02 07, Date.new 2021 01 03, Date.new 2022 01 02]
+            (t1.at "X").date_add (t1.at "Y") Date_Period.Quarter . to_vector . should_equal [Date.new 2022 04 01, Date.new 2020 10 01, Date.new 2021 12 31]
+            (t1.at "X").date_add 1 Date_Period.Quarter . to_vector . should_equal [Date.new 2021 04 01, Date.new 2021 01 01, Date.new 2022 03 31]
+
+            (t1.at "X").date_add 1 Time_Period.Hour . should_fail_with Illegal_Argument
+            (t1.at "X").date_add 1 Time_Period.Day . should_fail_with Illegal_Argument
+
+            t2 = table_builder [["X", [Date_Time.new 2021 01 31 12 30 0, Date_Time.new 2021 01 01 12 30 0, Date_Time.new 2021 12 31 12 30 0]], ["Y", [5, -1, 0]]]
+            (t2.at "X").date_add (t2.at "Y") . to_vector . should_equal [Date_Time.new 2021 02 05 12 30 0, Date_Time.new 2020 12 30 12 30 0, Date_Time.new 2021 12 31 12 30 0]
+            (t2.at "X").date_add -1 . to_vector . should_equal [Date_Time.new 2021 01 30 12 30 0, Date_Time.new 2020 12 31 12 30 0, Date_Time.new 2021 12 30 12 30 0]
+            (t2.at "X").date_add (t2.at "Y") Date_Period.Month . to_vector . should_equal [Date_Time.new 2021 06 30 12 30 0, Date_Time.new 2020 12 31 12 30 0, Date_Time.new 2021 12 31 12 30 0]
+            (t2.at "X").date_add 1 Date_Period.Month . to_vector . should_equal [Date_Time.new 2021 02 28 12 30 0, Date_Time.new 2021 02 01 12 30 0, Date_Time.new 2022 01 31 12 30 0]
+            (t2.at "X").date_add (t2.at "Y") Date_Period.Year . to_vector . should_equal [Date_Time.new 2026 01 31 12 30 0, Date_Time.new 2020 01 01 12 30 0, Date_Time.new 2021 12 31 12 30 0]
+            (t2.at "X").date_add 1 Date_Period.Year . to_vector . should_equal [Date_Time.new 2022 01 31 12 30 0, Date_Time.new 2022 01 01 12 30 0, Date_Time.new 2022 12 31 12 30 0]
+
+            (t2.at "X").date_add (t2.at "Y") Time_Period.Hour . to_vector . should_equal [Date_Time.new 2021 01 31 17 30 0, Date_Time.new 2021 01 01 11 30 0, Date_Time.new 2021 12 31 12 30 0]
+            (t2.at "X").date_add 1 Time_Period.Hour . to_vector . should_equal [Date_Time.new 2021 01 31 13 30 0, Date_Time.new 2021 01 01 11 30 0, Date_Time.new 2021 12 31 13 30 0]
+            (t2.at "X").date_add (t2.at "Y") Time_Period.Minute . to_vector . should_equal [Date_Time.new 2021 01 31 12 35 0, Date_Time.new 2021 01 01 12 29 0, Date_Time.new 2021 12 31 12 30 0]
+            (t2.at "X").date_add 1 Time_Period.Minute . to_vector . should_equal [Date_Time.new 2021 01 31 12 31 0, Date_Time.new 2021 01 01 12 31 0, Date_Time.new 2021 12 31 12 31 0]
+            (t2.at "X").date_add (t2.at "Y") Time_Period.Second . to_vector . should_equal [Date_Time.new 2021 01 31 12 30 5, Date_Time.new 2021 01 01 12 29 59, Date_Time.new 2021 12 31 12 30 0]
+            (t2.at "X").date_add 1 Time_Period.Second . to_vector . should_equal [Date_Time.new 2021 01 31 12 30 1, Date_Time.new 2021 01 01 12 30 1, Date_Time.new 2021 12 31 12 30 1]
+
+            t3 = table_builder [["X", [Time_Of_Day.new 12 30 0, Time_Of_Day.new 12 30 0, Time_Of_Day.new 12 30 0]], ["Y", [5, -1, 0]]]
+            # TODO what with the default here?
+            (t3.at "X").date_add 1 . to_vector . should_fail_with Illegal_Argument
+            (t3.at "X").date_add 1 Date_Period.Month . to_vector . should_fail_with Illegal_Argument
+
+            (t3.at "X").date_add (t3.at "Y") Time_Period.Hour . to_vector . should_equal [Time_Of_Day.new 17 30 0, Time_Of_Day.new 11 30 0, Time_Of_Day.new 12 30 0]
+            (t3.at "X").date_add 1 Time_Period.Hour . to_vector . should_equal [Time_Of_Day.new 13 30 0, Time_Of_Day.new 11 30 0, Time_Of_Day.new 13 30 0]
+            (t3.at "X").date_add (t3.at "Y") Time_Period.Minute . to_vector . should_equal [Time_Of_Day.new 12 35 0, Time_Of_Day.new 12 29 0, Time_Of_Day.new 12 30 0]
+            (t3.at "X").date_add 1 Time_Period.Minute . to_vector . should_equal [Time_Of_Day.new 12 31 0, Time_Of_Day.new 12 31 0, Time_Of_Day.new 12 31 0]
+            (t3.at "X").date_add (t3.at "Y") Time_Period.Second . to_vector . should_equal [Time_Of_Day.new 12 30 5, Time_Of_Day.new 12 29 59, Time_Of_Day.new 12 30 0]
+            (t3.at "X").date_add 1 Time_Period.Second . to_vector . should_equal [Time_Of_Day.new 12 30 1, Time_Of_Day.new 12 30 1, Time_Of_Day.new 12 30 1]
+
+            # No sense to shift Time_Of_Day by days either...
+            (t3.at "X").date_add (t3.at "Y") Time_Period.Day . to_vector . should_fail_with Illegal_Argument
+
+        Test.specify "should check shift_amount type in date_add" <|
+            t = table_builder [["X", [Date.new 2021 01 31]]]
+            t.date_add "text" . should_fail_with Invalid_Value_Type
+
     if setup.test_selection.date_time.not then
         Test.group prefix+"partial Date-Time support" <|
             Test.specify "will fail when uploading a Table containing Dates" <|
                 d = Date.new 2020 10 24
                 table = table_builder [["A", [d]], ["X", [123]]]
                 table.should_fail_with Unsupported_Database_Operation
+
+        Test.specify "should report a type error when date operations are invoked on a non-date column" <|
+            t = table_builder [["A", [1, 2, 3]], ["B", ["a", "b", "c"]], ["C", [True, False, True]]]
+            r1 = t.at "A" . year
+            r1.should_fail_with Invalid_Value_Type
+            r1.catch . to_display_text . should_start_with "Expected type Date or Date_Time, but got a column [A] of type Integer"
+            t.at "B" . month . should_fail_with Invalid_Value_Type
+            t.at "C" . day . should_fail_with Invalid_Value_Type
+
+            t.at "A" . date_diff (t.at "B") . should_fail_with Invalid_Value_Type
+            t.at "A" . date_add 42 . should_fail_with Invalid_Value_Type
