@@ -816,10 +816,11 @@ spec make_new_connection prefix persistent_connector=True =
             tables_immediately_after = connection.base_connection.get_tables_advanced types=Nothing include_hidden=True . at "Name" . to_vector
 
             # If no new tables are left out - we just finish.
-            if tables_immediately_after.sort == existing_tables.sort then Nothing else
+            passing_immediately = tables_immediately_after.sort == existing_tables.sort
+            if passing_immediately then Nothing else
                 ## If there are some additional tables, we add some timeout to
                    allow the database to do the cleaning up.
-                additional_tables = Set.from_vector tables_immediately_after - Set.from_vector existing_tables
+                additional_tables = (Set.from_vector tables_immediately_after).difference (Set.from_vector existing_tables)
                 if additional_tables.is_empty then
                     Test.fail "The Database contains less tables after the test than before! That is unexpected, please inspect manually."
                 additional_table = additional_tables.to_vector.first
