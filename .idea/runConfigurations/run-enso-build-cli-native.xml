@@ -1,17 +1,22 @@
-<component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="run/enso-build-cli [native]" type="CargoCommandRunConfiguration" factoryName="Cargo Command" folderName="🚧 Build          cli">
-    <option name="command" value="run   --target-dir dist/intellij_native --package enso-build-cli --bin enso-build-cli -- backend sbt" />
+
+<component name="#ProjectRunConfigurationManager">
+  <configuration 
+    default="false" 
+    name="run/enso-build-cli [native]"
+    type="CargoCommandRunConfiguration" 
+    factoryName="Cargo Command"
+    folderName="🚧 Build          cli"
+  >
+    <option name="command" value="run   --target-dir dist/intellij_native --package enso-build-cli --bin enso-build-cli" />
     <option name="workingDirectory" value="file://$PROJECT_DIR$" />
-    <option name="emulateTerminal" value="false" />
     <option name="channel" value="DEFAULT" />
     <option name="requiredFeatures" value="true" />
     <option name="allFeatures" value="false" />
+    <option name="emulateTerminal" value="false" />
     <option name="withSudo" value="false" />
     <option name="buildTarget" value="REMOTE" />
     <option name="backtrace" value="SHORT" />
-    <envs>
-      <env name="PATH" value="$USER_HOME$/.nvm/versions/node/v18.14.1/bin:$USER_HOME$/bin:$PROJECT_DIR$/../mx:$USER_HOME$/.local/bin:$USER_HOME$/.local/share/JetBrains/Toolbox/scripts:$USER_HOME$/.cargo/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin" />
-    </envs>
+    <envs />
     <option name="isRedirectInput" value="false" />
     <option name="redirectInputPath" value="" />
     <method v="2">
@@ -19,3 +24,4 @@
     </method>
   </configuration>
 </component>
+    
