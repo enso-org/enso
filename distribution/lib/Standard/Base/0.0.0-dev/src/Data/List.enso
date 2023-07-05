@@ -12,7 +12,7 @@ import project.Function.Function
 import project.Meta
 import project.Nothing.Nothing
 from project.Data.Boolean import Boolean, False, True
-from project.Data.Filter_Condition import unify_condition_or_predicate_or_element, unify_condition_or_predicate
+from project.Data.Filter_Condition import unify_condition_or_predicate, unify_condition_predicate_or_element
 from project.Data.List.List import Cons, Nil
 
 ## The basic cons-list type.
