@@ -430,7 +430,7 @@ Text.tokenize self pattern="." case_sensitivity=Case_Sensitivity.Sensitive =
      Replace all occurrences of letters 'l' and 'o' with '#'.
 
          regex = Regex.compile "[lo]"
-         "Hello World!".replace regex "#" use_regex=True == "He### W#r#d!"
+         "Hello World!".replace regex "#" == "He### W#r#d!"
 
    > Example
      Replace the first occurrence of letter 'l' with '#'.
