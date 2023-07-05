@@ -375,6 +375,19 @@ impl Handle {
         if self.project.read_only() {
             Err(ReadOnly.into())
         } else {
+            self.execution_ctx.restart().await?;
+            Ok(())
+        }
+    }
+
+    /// Reload the main file and restart the program execution.
+    ///
+    /// ### Errors
+    /// - Fails if the project is in read-only mode.
+    pub async fn reload_and_restart(&self) -> FallibleResult {
+        if self.project.read_only() {
+            Err(ReadOnly.into())
+        } else {
             let model = self.project.main_module_model().await?;
             model.reopen_externally_changed_file().await?;
             self.execution_ctx.restart().await?;
