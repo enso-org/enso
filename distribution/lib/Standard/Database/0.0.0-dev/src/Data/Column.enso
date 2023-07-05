@@ -908,32 +908,51 @@ type Column
             False -> is_blank
         result.rename new_name
 
-    ## ALIAS if_nothing
-       Returns a new column where missing values have been replaced with the
-       provided default.
-    fill_nothing : Column | Any -> Column
-    fill_nothing self default =
-        common_type = Value_Type_Helpers.find_common_type_for_arguments [self, default]
-        common_type.if_not_error <|
-            new_name = self.naming_helpers.function_name "fill_nothing" [self, default]
-            op_result = self.make_binary_op "FILL_NULL" default new_name
-            adapt_unified_column op_result common_type
+    ## ALIAS Fill Missing, if_nothing
 
-    ## ALIAS if_empty
-       Returns a new column where empty Text values have been replaced with the
+       Returns a new column where missing values have been replaced with the
        provided default.
 
        Arguments:
        - default: The value to replace missing values with. If this argument
          is a column, the value from `default` at the corresponding position
          will be used.
+
+       > Example
+         Fill missing values in a column with the value 20.5.
+
+             import Standard.Examples
+
+             example_fill_nothing = Examples.decimal_column.fill_nothing 20.5
+    fill_nothing : Column | Any -> Column
+    fill_nothing self default =
+        common_type = Value_Type_Helpers.find_common_type_for_arguments [self, default]
+        common_type.if_not_error <|
+            op_result = self.make_binary_op "FILL_NULL" default self.name
+            adapt_unified_column op_result common_type
+
+    ## ALIAS Fill Empty, if_empty
+
+       Returns a new column where empty Text values have been replaced with the
+       provided default.
+
+       Arguments:
+       - default: The value to replace empty values with. If this argument
+         is a column, the value from `default` at the corresponding position
+         will be used.
+
+       > Example
+         Fill empty values in a column with the value "hello".
+
+             import Standard.Examples
+
+             example_fill_empty = Examples.text_column_1.fill_empty "hello"
     fill_empty : Column | Any -> Column
     fill_empty self default =
         Value_Type.expect_text self <|
             Value_Type.expect_text default <|
-                new_name = self.naming_helpers.function_name "fill_empty" [self, default]
                 result = self.is_empty.iif default self
-                result.rename new_name
+                result.rename self.name
 
     ## Returns a new column, containing the same elements as `self`, but with
        the given name.

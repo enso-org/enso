@@ -226,9 +226,9 @@ Text.characters self =
    - case_sensitivity: Specifies if the text values should be compared case
      sensitively.
 
-   If an empty regex is used, `find` throws an Illegal_Argument error.
+   If an empty regex is used, `find` throws an `Illegal_Argument` error.
 
-   If a non-default locale is used, `find` throws an Illegal_Argument error.
+   If a non-default locale is used, `find` throws an `Illegal_Argument` error.
 
    > Example
      Find the first substring matching the regex.
@@ -253,9 +253,9 @@ Text.find self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
    - case_sensitivity: Specifies if the text values should be compared case
      sensitively.
 
-   If an empty regex is used, `find_all` throws an Illegal_Argument error.
+   If an empty regex is used, `find_all` throws an `Illegal_Argument` error.
 
-   If a non-default locale is used, `find_all` throws an Illegal_Argument error.
+   If a non-default locale is used, `find_all` throws an `Illegal_Argument` error.
 
    > Example
      Find the substring matching the regex.
@@ -281,9 +281,9 @@ Text.find_all self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
    - case_sensitivity: Specifies if the text values should be compared case
      sensitively.
 
-   If an empty regex is used, `match` throws an Illegal_Argument error.
+   If an empty regex is used, `match` throws an `Illegal_Argument` error.
 
-   If a non-default locale is used, `match` throws an Illegal_Argument error.
+   If a non-default locale is used, `match` throws an `Illegal_Argument` error.
 
    > Example
      Checks if whole text matches a basic email regex.
@@ -301,6 +301,23 @@ Text.match self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
     case_insensitive = case_sensitivity.is_case_insensitive_in_memory
     compiled_pattern = Regex.compile pattern case_insensitive=case_insensitive
     compiled_pattern.matches self
+
+## Compile the text into a regex pattern that can be used for matching.
+
+   Arguments
+   - case_insensitive: Enables or disables case-insensitive matching. Case
+     insensitive matching behaves as if it normalises the case of all input
+     text before matching on it.
+
+   If an empty regex is used, `compile` throws an `Illegal_Argument` error.
+
+   ? Why Compile?
+     While many regex engines are able to cache ad-hoc patterns, it is often
+     useful to be able to manually retain a pattern that you have computed. This
+     function exists so you can hold onto the resultant `Pattern` object,
+     instead of immediately proceeding to match using it.
+Text.to_regex : Boolean -> Regex ! Regex_Syntax_Error | Illegal_Argument
+Text.to_regex self case_insensitive=False = Regex.compile self case_insensitive
 
 ## ALIAS Split Text
 
@@ -417,7 +434,7 @@ Text.tokenize self pattern="." case_sensitivity=Case_Sensitivity.Sensitive =
    - only_first: If True, only replace the first match.
    - use_regex: If true, the term is used as a regular expression.
 
-   If an empty regex is used, `replace` throws an Illegal_Argument error.
+   If an empty regex is used, `replace` throws an `Illegal_Argument` error.
 
    If a non-default locale is used with a regex, `replace` throws an
    Illegal_Argument error.
