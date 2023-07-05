@@ -375,6 +375,8 @@ impl Handle {
         if self.project.read_only() {
             Err(ReadOnly.into())
         } else {
+            let model = self.project.main_module_model().await?;
+            model.reopen_file_in_language_server().await?;
             self.execution_ctx.restart().await?;
             Ok(())
         }
