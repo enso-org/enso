@@ -126,16 +126,61 @@ spec setup =
                 op (t.at "X") (t.at "Y") . to_vector . should_succeed
                 op (t.at "X") (Time_Of_Day.new 12 30 0) . to_vector . should_succeed
 
-        Test.specify "should not allow to mix" <|
+        Test.specify "should not allow to mix types in ordering comparisons" <|
             t = table_builder [["X", [Date.new 2021 12 3]], ["Y", [Date_Time.new 2021 12 5 12 30 0]], ["Z", [Time_Of_Day.new 12 30 0]]]
 
             [(<), (<=), (>), (>=)].each op->
                 op (t.at "X") (t.at "Y") . should_fail_with Invalid_Value_Type
                 op (t.at "X") (t.at "Z") . should_fail_with Invalid_Value_Type
 
+        if setup.test_selection.supports_time_duration then
+            Test.specify "should allow to subtract two Dates" <|
+                t = table_builder [["X", [Date.new 2021 11 3]], ["Y", [Date.new 2021 12 5]]]
+
+                ((t.at "Y") - (t.at "X")) . to_vector . should_equal [Period.new months=1 days=2]
+                ((t.at "Y") - (Date.new 2020 12 5)) . to_vector . should_equal [Period.new years=1]
+
+            Test.specify "should allow to subtract two Date_Times" <|
+                dx = Date_Time.new 2021 11 30 10 15 0
+                t = table_builder [["X", [dx]], ["Y", [Date_Time.new 2021 12 5 12 30 20]]]
+
+                hours = 2 + 24 * 5
+                diff = Duration.new hours=hours minutes=15 seconds=20
+                ((t.at "Y") - (t.at "X")) . to_vector . should_equal [diff]
+                ((t.at "Y") - dx) . to_vector . should_equal [diff]
+
+            Test.specify "should allow to subtract two Time_Of_Days" <|
+                t = table_builder [["X", [Time_Of_Day.new 10 15 0, Time_Of_Day.new 1 0 0]], ["Y", [Time_Of_Day.new 12 30 20, Time_Of_Day.new 0 0 0]]]
+
+                ((t.at "Y") - (t.at "X")) . to_vector . should_equal [Duration.new hours=2 minutes=15 seconds=20, Duration.new hours=(-1) minutes=0 seconds=0]
+                ((t.at "Y") - (Time_Of_Day.new 0 0 0)) . to_vector . should_equal [Duration.new hours=12 minutes=30 seconds=20, Duration.zero]
+
+        if setup.test_selection.supports_time_duration.not then
+            Test.specify "should report unsupported operation for subtracting date/time" <|
+                t1 = table_builder [["X", [Date.new 2021 11 3]], ["Y", [Date.new 2021 12 5]]]
+                t2 = table_builder [["X", [Date_Time.new 2021 11 3 10 15 0]], ["Y", [Date_Time.new 2021 12 5 12 30 20]]]
+                t3 = table_builder [["X", [Time_Of_Day.new 10 15 0, Time_Of_Day.new 1 0 0]], ["Y", [Time_Of_Day.new 12 30 20, Time_Of_Day.new 0 0 0]]]
+
+                (t1.at "Y") - (t1.at "X") . should_fail_with Unsupported_Database_Operation
+                (t1.at "Y") - (Date.new 2020 12 5) . should_fail_with Unsupported_Database_Operation
+                (t2.at "Y") - (t2.at "X") . should_fail_with Unsupported_Database_Operation
+                (t2.at "Y") - (Date_Time.new 2020 12 5 10 15 0) . should_fail_with Unsupported_Database_Operation
+                (t3.at "Y") - (t3.at "X") . should_fail_with Unsupported_Database_Operation
+                (t3.at "Y") - (Time_Of_Day.new 0 0 0) . should_fail_with Unsupported_Database_Operation
+
+        Test.specify "should report an Invalid_Value_Type error when subtracting mixed date/time types" <|
+            t = table_builder [["X", [Date.new 2021 11 3]], ["Y", [Date_Time.new 2021 12 5 12 30 0]], ["Z", [Time_Of_Day.new 12 30 0]]]
+
+            (t.at "Y") - (t.at "X") . should_fail_with Invalid_Value_Type
+            (t.at "Y") - (Time_Of_Day.new 12 30 0) . should_fail_with Invalid_Value_Type
+            (t.at "X") - (t.at "Z") . should_fail_with Invalid_Value_Type
+            (t.at "X") - (Date_Time.new 2021 12 5 12 30 0) . should_fail_with Invalid_Value_Type
+            (t.at "Z") - (t.at "Y") . should_fail_with Invalid_Value_Type
+            (t.at "Z") - (Date.new 2021 11 3) . should_fail_with Invalid_Value_Type
+
     if setup.test_selection.date_time.not then
         Test.group prefix+"partial Date-Time support" <|
-            Test.specify "will warn when uploading a Table containing Dates" <|
+            Test.specify "will fail when uploading a Table containing Dates" <|
                 d = Date.new 2020 10 24
                 table = table_builder [["A", [d]], ["X", [123]]]
                 table.should_fail_with Unsupported_Database_Operation
