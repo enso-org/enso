@@ -24,6 +24,7 @@ import org.enso.table.excel.ExcelRange;
 import org.enso.table.excel.ExcelRow;
 import org.enso.table.excel.ExcelSheet;
 import org.enso.table.problems.WithProblems;
+import org.graalvm.polyglot.Context;
 
 /** A table reader for MS Excel files. */
 public class ExcelReader {
@@ -61,8 +62,10 @@ public class ExcelReader {
   public static String[] readSheetNames(Workbook workbook) {
     int sheetCount = workbook.getNumberOfSheets();
     var output = new String[sheetCount];
+    Context context = Context.getCurrent();
     for (int i = 0; i < sheetCount; i++) {
       output[i] = workbook.getSheetName(i);
+      context.safepoint();
     }
     return output;
   }

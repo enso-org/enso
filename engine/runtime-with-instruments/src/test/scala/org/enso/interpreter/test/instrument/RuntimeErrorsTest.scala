@@ -1062,6 +1062,85 @@ class RuntimeErrorsTest
     context.consumeOut shouldEqual List("(Error: MyError2)")
   }
 
+  it should "return dataflow errors over warnings" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+    val metadata   = new Metadata
+    val xId        = metadata.addItem(46, 9)
+    val yId        = metadata.addItem(64, 72)
+    val mainResId  = metadata.addItem(141, 7)
+
+    val code =
+      """from Standard.Base import all
+        |
+        |main =
+        |    x = [1, 2, 3]
+        |    y = Warning.attach_with_stacktrace x "foo" Runtime.primitive_get_stack_trace
+        |    y.at 10
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveNIgnorePendingExpressionUpdates(
+      6
+    ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(contextId, xId, ConstantsGen.VECTOR),
+      TestMessages.update(
+        contextId,
+        yId,
+        ConstantsGen.VECTOR,
+        payload = Api.ExpressionUpdate.Payload.Value(
+          Some(
+            Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("'foo'"), false)
+          )
+        )
+      ),
+      TestMessages.error(
+        contextId,
+        mainResId,
+        methodCall = Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Data.Vector",
+            "Standard.Base.Data.Vector.Vector",
+            "at"
+          )
+        ),
+        Api.ExpressionUpdate.Payload.DataflowError(Seq(mainResId))
+      ),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual Seq()
+  }
+
   it should "continue execution after thrown panics" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()

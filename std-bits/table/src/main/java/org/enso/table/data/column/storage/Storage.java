@@ -16,6 +16,7 @@ import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
+import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
 /** An abstract representation of a data column. */
@@ -130,6 +131,7 @@ public abstract class Storage<T> {
       return storageBuilder.seal();
     }
 
+    Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
       Object it = getItemBoxed(i);
       if (skipNulls && it == null) {
@@ -139,6 +141,8 @@ public abstract class Storage<T> {
         Object converted = Polyglot_Utils.convertPolyglotValue(result);
         storageBuilder.appendNoGrow(converted);
       }
+
+      context.safepoint();
     }
     return storageBuilder.seal();
   }
@@ -170,6 +174,7 @@ public abstract class Storage<T> {
     Object missingValue = Polyglot_Utils.convertPolyglotValue(onMissing);
 
     Builder storageBuilder = Builder.getForType(expectedResultType, size());
+    Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
       Object it = getItemBoxed(i);
       if (it == null) {
@@ -179,6 +184,8 @@ public abstract class Storage<T> {
         Object converted = Polyglot_Utils.convertPolyglotValue(result);
         storageBuilder.appendNoGrow(converted);
       }
+
+      context.safepoint();
     }
     return storageBuilder.seal();
   }
@@ -209,6 +216,7 @@ public abstract class Storage<T> {
     checkFallback(function, expectedResultType, name);
 
     Builder storageBuilder = Builder.getForType(expectedResultType, size());
+    Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
       Object it1 = getItemBoxed(i);
       Object it2 = i < arg.size() ? arg.getItemBoxed(i) : null;
@@ -219,6 +227,8 @@ public abstract class Storage<T> {
         Object converted = Polyglot_Utils.convertPolyglotValue(result);
         storageBuilder.appendNoGrow(converted);
       }
+
+      context.safepoint();
     }
     return storageBuilder.seal();
   }
@@ -262,18 +272,22 @@ public abstract class Storage<T> {
    */
   public Storage<?> fillMissingFrom(Storage<?> other, StorageType commonType) {
     var builder = Builder.getForType(commonType, size());
+    Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
       if (isNa(i)) {
         builder.appendNoGrow(other.getItemBoxed(i));
       } else {
         builder.appendNoGrow(getItemBoxed(i));
       }
+
+      context.safepoint();
     }
     return builder.seal();
   }
 
   protected final Storage<?> fillMissingHelper(Value arg, Builder builder) {
     Object convertedFallback = Polyglot_Utils.convertPolyglotValue(arg);
+    Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
       Object it = getItemBoxed(i);
       if (it == null) {
@@ -281,6 +295,8 @@ public abstract class Storage<T> {
       } else {
         builder.appendNoGrow(it);
       }
+
+      context.safepoint();
     }
     return builder.seal();
   }
@@ -350,11 +366,13 @@ public abstract class Storage<T> {
   public Storage<?> duplicateCount() {
     long[] data = new long[size()];
     HashMap<Object, Integer> occurenceCount = new HashMap<>();
+    Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
       var value = getItemBoxed(i);
       var count = occurenceCount.getOrDefault(value, 0);
       data[i] = count;
       occurenceCount.put(value, count + 1);
+      context.safepoint();
     }
     return new LongStorage(data);
   }

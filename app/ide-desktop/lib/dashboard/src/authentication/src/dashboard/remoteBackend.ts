@@ -40,6 +40,8 @@ function responseIsSuccessful(response: Response) {
 
 /** Relative HTTP path to the "set username" endpoint of the Cloud backend API. */
 const CREATE_USER_PATH = 'users'
+/** Relative HTTP path to the "set username" endpoint of the Cloud backend API. */
+const INVITE_USER_PATH = 'users/invite'
 /** Relative HTTP path to the "get user" endpoint of the Cloud backend API. */
 const USERS_ME_PATH = 'users/me'
 /** Relative HTTP path to the "list directory" endpoint of the Cloud backend API. */
@@ -170,10 +172,24 @@ export class RemoteBackend implements backend.Backend {
         throw new Error(message)
     }
 
-    /** Set the username of the current user. */
+    /** Set the username and parent organization of the current user. */
     async createUser(body: backend.CreateUserRequestBody): Promise<backend.UserOrOrganization> {
         const response = await this.post<backend.UserOrOrganization>(CREATE_USER_PATH, body)
-        return await response.json()
+        if (!responseIsSuccessful(response)) {
+            return this.throw('Unable to create user.')
+        } else {
+            return await response.json()
+        }
+    }
+
+    /** Set the username of the current user. */
+    async inviteUser(body: backend.InviteUserRequestBody): Promise<void> {
+        const response = await this.post(INVITE_USER_PATH, body)
+        if (!responseIsSuccessful(response)) {
+            return this.throw(`Unable to invite user with email '${body.userEmail}'.`)
+        } else {
+            return
+        }
     }
 
     /** Return organization info for the current user.

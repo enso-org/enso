@@ -56,22 +56,22 @@ fit_least_squares : Vector -> Vector -> Model -> Fitted_Model ! Illegal_Argument
 fit_least_squares known_xs known_ys model=Model.Linear =
     Illegal_Argument.handle_java_exception <| Fit_Error.handle_java_exception <| case model of
         Model.Linear intercept ->
-            fitted = if intercept.is_nothing then Regression.fit_linear known_xs.to_array known_ys.to_array else
-                Regression.fit_linear known_xs.to_array known_ys.to_array intercept
+            fitted = if intercept.is_nothing then Regression.fit_linear known_xs known_ys else
+                Regression.fit_linear known_xs known_ys intercept
             Fitted_Model.Linear fitted.slope fitted.intercept fitted.rSquared
         Model.Exponential intercept ->
             log_ys = Model.ln_series known_ys "Y-values"
-            fitted = if intercept.is_nothing then Regression.fit_linear known_xs.to_array log_ys.to_array else
-                Regression.fit_linear known_xs.to_array log_ys.to_array intercept.ln
+            fitted = if intercept.is_nothing then Regression.fit_linear known_xs log_ys else
+                Regression.fit_linear known_xs log_ys intercept.ln
             Model.fitted_model_with_r_squared Fitted_Model.Exponential fitted.intercept.exp fitted.slope known_xs known_ys
         Model.Logarithmic ->
             log_xs = Model.ln_series known_xs "X-values"
-            fitted = Regression.fit_linear log_xs.to_array known_ys.to_array
+            fitted = Regression.fit_linear log_xs known_ys
             Model.fitted_model_with_r_squared Fitted_Model.Logarithmic fitted.slope fitted.intercept known_xs known_ys
         Model.Power ->
             log_xs = Model.ln_series known_xs "X-values"
             log_ys = Model.ln_series known_ys "Y-values"
-            fitted = Regression.fit_linear log_xs.to_array log_ys.to_array
+            fitted = Regression.fit_linear log_xs log_ys
             Model.fitted_model_with_r_squared Fitted_Model.Power fitted.intercept.exp fitted.slope known_xs known_ys
         _ -> Error.throw (Illegal_Argument.Error "Unsupported model.")
 
