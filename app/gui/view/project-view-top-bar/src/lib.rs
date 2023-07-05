@@ -25,6 +25,7 @@ const GAP: f32 = 16.0;
 /// The padding left of the project view top bar.
 const PADDING_LEFT: f32 = 19.0;
 
+// TODO: Read only setup for breadcrumbs.
 
 
 // ============================
@@ -40,8 +41,9 @@ pub struct ProjectViewTopBar {
     /// These buttons are only visible in a cloud environment.
     pub window_control_buttons: window_control_buttons::View,
     pub go_to_dashboard_button: go_to_dashboard_button::View,
-    // pub breadcrumbs: breadcrumbs::Breadcrumbs,
-    // execution_environment_selector: ExecutionEnvironmentSelector,
+    pub breadcrumbs: breadcrumbs::Breadcrumbs,
+    execution_environment_selector:
+        ide_view_execution_environment_selector::ExecutionEnvironmentSelector,
 }
 
 impl ProjectViewTopBar {
@@ -50,11 +52,16 @@ impl ProjectViewTopBar {
         let root = display::object::Instance::new_named("ProjectViewTopBar");
         let window_control_buttons = app.new_view::<window_control_buttons::View>();
         let go_to_dashboard_button = go_to_dashboard_button::View::new(app);
+        let breadcrumbs = breadcrumbs::Breadcrumbs::new(app);
+        let execution_environment_selector =
+            ide_view_execution_environment_selector::ExecutionEnvironmentSelector::new(app);
 
         if ARGS.groups.startup.options.platform.value == "web" {
             root.add_child(&window_control_buttons);
         }
         root.add_child(&go_to_dashboard_button);
+        root.add_child(&breadcrumbs);
+        root.add_child(&execution_environment_selector);
         root.use_auto_layout()
             .set_gap((GAP, 0.0))
             .set_padding_left(PADDING_LEFT)
@@ -65,7 +72,13 @@ impl ProjectViewTopBar {
 
         app.display.default_scene.layers.panel.add(&root);
 
-        Self { root, window_control_buttons, go_to_dashboard_button }
+        Self {
+            root,
+            window_control_buttons,
+            go_to_dashboard_button,
+            breadcrumbs,
+            execution_environment_selector,
+        }
     }
 }
 

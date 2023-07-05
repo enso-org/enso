@@ -1831,9 +1831,6 @@ impl GraphEditorModel {
         let vis_registry = visualization::Registry::with_default_visualizations();
         let visualizations = default();
         let touch_state = TouchState::new(network, scene);
-        let breadcrumbs = component::Breadcrumbs::new(app.clone_ref());
-        let execution_environment_selector =
-            execution_environment_selector::ExecutionEnvironmentSelector::new(app);
         let app = app.clone_ref();
         let navigator = Navigator::new(scene, &scene.camera());
         let tooltip = Tooltip::new(&app);
@@ -1855,7 +1852,6 @@ impl GraphEditorModel {
         Self {
             display_object,
             app,
-            breadcrumbs,
             nodes,
             edges,
             vis_registry,
@@ -1871,19 +1867,11 @@ impl GraphEditorModel {
             styles_frp,
             styles,
             selection_controller,
-            execution_environment_selector,
         }
         .init()
     }
 
     fn init(self) -> Self {
-        let x_offset = MACOS_TRAFFIC_LIGHTS_SIDE_OFFSET;
-
-        self.add_child(&self.execution_environment_selector);
-
-        self.add_child(&self.breadcrumbs);
-        self.breadcrumbs.set_x(x_offset);
-
         self.scene().add_child(&self.tooltip);
         self.add_child(&*self.add_node_button);
         self
@@ -2843,7 +2831,6 @@ fn init_remaining_graph_editor_frp(
 
     frp::extend! { network
         out.read_only <+ inputs.set_read_only;
-        model.breadcrumbs.set_read_only <+ inputs.set_read_only;
     }
 
     // ========================
@@ -2854,20 +2841,6 @@ fn init_remaining_graph_editor_frp(
         navigator_disabled <- out.some_visualization_selected.or(&inputs.set_navigator_disabled);
         model.navigator.frp.set_enabled <+ navigator_disabled.not();
         out.navigator_active <+ model.navigator.frp.enabled;
-    }
-
-
-
-    // ===================
-    // === Breadcrumbs ===
-    // ===================
-
-    frp::extend! { network
-
-        // === Debugging ===
-
-        eval_ inputs.debug_push_breadcrumb(model.breadcrumbs.debug_push_breadcrumb.emit(None));
-        eval_ inputs.debug_pop_breadcrumb (model.breadcrumbs.debug_pop_breadcrumb.emit(()));
     }
 
 
@@ -2901,22 +2874,22 @@ fn init_remaining_graph_editor_frp(
 
 
     // === Start project name edit ===
-    frp::extend! { network
-        edit_mode <- bool(&inputs.edit_mode_off,&inputs.edit_mode_on);
-        eval edit_mode ((edit_mode_on) model.breadcrumbs.ide_text_edit_mode.emit(edit_mode_on));
-        // Deselect nodes when the project name is edited.
-        frp.deselect_all_nodes <+ model.breadcrumbs.project_mouse_down;
-    }
+    // frp::extend! { network
+    //     edit_mode <- bool(&inputs.edit_mode_off,&inputs.edit_mode_on);
+    //     eval edit_mode ((edit_mode_on) model.breadcrumbs.ide_text_edit_mode.emit(edit_mode_on));
+    //     // Deselect nodes when the project name is edited.
+    //     frp.deselect_all_nodes <+ model.breadcrumbs.project_mouse_down;
+    // }
 
 
     // === Commit project name edit ===
 
-    frp::extend! { network
-        deactivate_breadcrumbs <- any3_(&touch.background.down,
-                                        &out.node_editing_started,
-                                        &out.node_entered);
-        eval_ deactivate_breadcrumbs(model.breadcrumbs.outside_press());
-    }
+    // frp::extend! { network
+    //     deactivate_breadcrumbs <- any3_(&touch.background.down,
+    //                                     &out.node_editing_started,
+    //                                     &out.node_entered);
+    //     eval_ deactivate_breadcrumbs(model.breadcrumbs.outside_press());
+    // }
 
 
 
@@ -3393,16 +3366,15 @@ fn init_remaining_graph_editor_frp(
         })
     );
 
-    let breadcrumb_style = model.breadcrumbs.pointer_style.clone_ref();
     let selection_style  = selection_controller.cursor_style.clone_ref();
 
 
+        // TODO: breadcrumb pointer style
     cursor.set_style <+ all
         [ pointer_on_drag
         , selection_style
         , node_pointer_style
         , detached_edge_style
-        , breadcrumb_style
         ].fold();
     }
 

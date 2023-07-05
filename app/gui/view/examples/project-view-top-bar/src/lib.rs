@@ -37,6 +37,9 @@ fn init(app: &Application) {
 
     world.add_child(&top_bar);
 
+    top_bar.breadcrumbs.debug_push_breadcrumb(None);
+    // graph_editor.set_available_execution_environments(make_dummy_execution_environments());
+
     world
         .on
         .before_frame
