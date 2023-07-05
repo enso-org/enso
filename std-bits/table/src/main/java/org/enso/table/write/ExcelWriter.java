@@ -22,7 +22,6 @@ import org.enso.table.excel.ExcelRow;
 import org.enso.table.excel.ExcelSheet;
 import org.enso.table.util.ColumnMapper;
 import org.enso.table.util.NameDeduplicator;
-import org.graalvm.polyglot.Context;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -49,10 +48,8 @@ public class ExcelWriter {
       throws InvalidLocationException, RangeExceededException, ExistingDataException, IllegalStateException, ColumnNameMismatchException, ColumnCountMismatchException {
     if (sheetIndex == 0 || sheetIndex > workbook.getNumberOfSheets()) {
       int i = 1;
-      Context context = Context.getCurrent();
       while (workbook.getSheet("Sheet" + i) != null) {
         i++;
-        context.safepoint();
       }
 
       Sheet sheet = workbook.createSheet("Sheet" + i);
@@ -221,14 +218,12 @@ public class ExcelWriter {
    * @return True if range is empty and clear is False, otherwise returns False.
    */
   private static boolean rangeIsNotEmpty(Workbook workbook, ExcelRange range, ExcelSheet sheet) {
-    Context context = Context.getCurrent();
     ExcelRange fullRange = range.getAbsoluteRange(workbook);
     for (int row = fullRange.getTopRow(); row <= fullRange.getBottomRow(); row++) {
       ExcelRow excelRow = sheet.get(row);
       if (excelRow != null && !excelRow.isEmpty(fullRange.getLeftColumn(), fullRange.getRightColumn())) {
         return true;
       }
-      context.safepoint();
     }
     return false;
   }
@@ -240,7 +235,6 @@ public class ExcelWriter {
    * @param sheet Sheet containing the range.
    */
   private static void clearRange(Workbook workbook, ExcelRange range, ExcelSheet sheet) {
-    Context context = Context.getCurrent();
     ExcelRange fullRange = range.getAbsoluteRange(workbook);
     for (int row = fullRange.getTopRow(); row <= fullRange.getBottomRow(); row++) {
       ExcelRow excelRow = sheet.get(row);
@@ -250,19 +244,14 @@ public class ExcelWriter {
           if (cell != null) {
             cell.setBlank();
           }
-
-          context.safepoint();
         }
       }
-
-      context.safepoint();
     }
   }
 
 
   private static void writeTableToSheet(Workbook workbook, Sheet sheet, int firstRow, int firstColumn, Table table, Long rowLimit, boolean headers)
     throws IllegalStateException {
-    Context context = Context.getCurrent();
     int rowCount = Math.min(Math.min(workbook.getSpreadsheetVersion().getMaxRows() - firstRow, rowLimit == null ? Integer.MAX_VALUE : rowLimit.intValue()), table.rowCount());
     int currentRow = firstRow;
     Column[] columns = table.getColumns();
@@ -271,7 +260,6 @@ public class ExcelWriter {
       Row row = sheet.createRow(currentRow);
       for (int i = 0; i < columns.length; i++) {
         row.createCell(i + firstColumn - 1, CellType.STRING).setCellValue(columns[i].getName());
-        context.safepoint();
       }
       currentRow++;
     }
@@ -297,7 +285,6 @@ public class ExcelWriter {
         }
 
         writeValueToCell(cell, i, storage, workbook);
-        context.safepoint();
       }
       currentRow++;
     }
