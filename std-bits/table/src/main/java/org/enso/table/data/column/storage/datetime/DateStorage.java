@@ -1,18 +1,19 @@
 package org.enso.table.data.column.storage.datetime;
 
-import java.time.LocalDate;
-import java.time.Period;
-
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.DateBuilder;
+import org.enso.table.data.column.builder.ObjectBuilder;
 import org.enso.table.data.column.operation.map.GenericBinaryObjectMapOperation;
 import org.enso.table.data.column.operation.map.MapOpStorage;
-import org.enso.table.data.column.operation.map.numeric.UnaryIntegerOp;
 import org.enso.table.data.column.operation.map.datetime.DateTimeIsInOp;
+import org.enso.table.data.column.operation.map.numeric.UnaryIntegerOp;
 import org.enso.table.data.column.storage.ObjectStorage;
 import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.type.DateType;
 import org.enso.table.data.column.storage.type.StorageType;
+
+import java.time.LocalDate;
+import java.time.Period;
 
 public final class DateStorage extends SpecializedStorage<LocalDate> {
   /**
@@ -50,10 +51,11 @@ public final class DateStorage extends SpecializedStorage<LocalDate> {
           }
         });
     t.add(
-        new GenericBinaryObjectMapOperation<LocalDate, SpecializedStorage<LocalDate>, Period>(Maps.SUB, LocalDate.class, DateStorage.class) {
+        new GenericBinaryObjectMapOperation<LocalDate, SpecializedStorage<LocalDate>, Period>(Maps.SUB,
+            LocalDate.class, DateStorage.class) {
           @Override
           protected Builder createOutputBuilder(int size) {
-            return new DateBuilder(size);
+            return new ObjectBuilder(size);
           }
 
           @Override

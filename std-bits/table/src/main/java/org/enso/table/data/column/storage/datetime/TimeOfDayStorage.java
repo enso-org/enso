@@ -1,7 +1,7 @@
 package org.enso.table.data.column.storage.datetime;
 
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.builder.DateBuilder;
+import org.enso.table.data.column.builder.ObjectBuilder;
 import org.enso.table.data.column.builder.TimeOfDayBuilder;
 import org.enso.table.data.column.operation.map.GenericBinaryObjectMapOperation;
 import org.enso.table.data.column.operation.map.MapOpStorage;
@@ -33,7 +33,7 @@ public final class TimeOfDayStorage extends SpecializedStorage<LocalTime> {
             LocalTime.class, TimeOfDayStorage.class) {
           @Override
           protected Builder createOutputBuilder(int size) {
-            return new DateBuilder(size);
+            return new ObjectBuilder(size);
           }
 
           @Override
