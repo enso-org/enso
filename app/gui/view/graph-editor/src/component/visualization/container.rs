@@ -363,7 +363,12 @@ impl ContainerModel {
 impl ContainerModel {
     /// Resize the container to the given size. The size is clamped between [`MIN_SIZE`] and
     /// screen_shape * [`MAX_PORTION_OF_SCREEN`].
-    fn resize(&self, mut new_size: Vector2, view_state: ViewState, screen_shape: &Shape) -> Vector2 {
+    fn resize(
+        &self,
+        mut new_size: Vector2,
+        view_state: ViewState,
+        screen_shape: &Shape,
+    ) -> Vector2 {
         let max_size = Vector2::from(screen_shape).component_mul(&MAX_PORTION_OF_SCREEN);
         new_size.x = new_size.x.clamp(MIN_SIZE.x, max_size.x);
         new_size.y = new_size.y.clamp(MIN_SIZE.y, max_size.y);
