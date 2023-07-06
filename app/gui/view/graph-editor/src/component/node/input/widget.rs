@@ -43,16 +43,20 @@
 //!    widget is the best fit for the node.
 
 use crate::prelude::*;
+use crate::GraphLayers;
 
 use crate::component::node::input::area::NODE_HEIGHT;
 use crate::component::node::input::area::TEXT_OFFSET;
 use crate::component::node::input::port::Port;
+use crate::display::shape::compound::rectangle;
+use crate::display::shape::Rectangle;
 
 use enso_frp as frp;
 use enso_text as text;
 use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display;
+use ensogl::display::scene::layer::LayerSymbolPartition;
 use ensogl::display::shape::StyleWatchFrp;
 use ensogl::gui::cursor;
 use ensogl_component::drop_down::DropdownValue;
@@ -76,6 +80,7 @@ pub(super) mod prelude {
     pub use super::WidgetIdentity;
     pub use super::WidgetsFrp;
 
+    pub use crate::display::shape::Rectangle;
     pub use ensogl::display::shape::StyleWatchFrp;
     pub use ensogl_derive_theme::FromTheme;
     pub use ensogl_hardcoded_theme as theme;
@@ -634,10 +639,11 @@ impl Tree {
         &self,
         tree: &span_tree::SpanTree,
         node_expression: &str,
+        layers: &GraphLayers,
         styles: &StyleWatchFrp,
     ) {
         if self.model.tree_dirty.get() {
-            self.rebuild_tree(tree, node_expression, styles);
+            self.rebuild_tree(tree, node_expression, layers, styles);
         }
     }
 
@@ -649,9 +655,16 @@ impl Tree {
         &self,
         tree: &span_tree::SpanTree,
         node_expression: &str,
+        layers: &GraphLayers,
         styles: &StyleWatchFrp,
     ) {
-        self.model.rebuild_tree(self.widgets_frp.clone_ref(), tree, node_expression, styles);
+        self.model.rebuild_tree(
+            self.widgets_frp.clone_ref(),
+            tree,
+            node_expression,
+            layers,
+            styles,
+        );
         self.frp.private.output.on_rebuild_finished.emit(());
         console_log!("TREE:\n{}", self.debug_print());
     }
@@ -663,7 +676,7 @@ impl Tree {
     }
 
     /// Get hover shapes for all ports in the tree. Used in tests to manually dispatch mouse events.
-    pub fn port_hover_shapes(&self) -> Vec<super::port::HoverShape> {
+    pub fn port_hover_shapes(&self) -> Vec<Rectangle> {
         let nodes = self.model.nodes_map.borrow();
         self.model
             .hierarchy
@@ -957,6 +970,7 @@ impl TreeModel {
         frp: WidgetsFrp,
         tree: &span_tree::SpanTree,
         node_expression: &str,
+        layers: &GraphLayers,
         styles: &StyleWatchFrp,
     ) {
         self.tree_dirty.set(false);
@@ -976,6 +990,7 @@ impl TreeModel {
             frp,
             node_disabled,
             node_expression,
+            layers,
             styles,
             override_map: &override_map,
             connected_map: &connected_map,
@@ -1068,6 +1083,9 @@ pub struct ConfigContext<'a, 'b> {
     /// Additional state associated with configured widget tree node, such as its depth, connection
     /// status or parent node information.
     pub(super) info:       NodeInfo,
+    /// The layer partition that should be used for most of the node's hover areas. This partition
+    /// needs to be manually applied to suitable display objects within the widget implementation.
+    pub hover_layer:       LayerSymbolPartition<rectangle::Shape>,
     /// The length of tree extensions vector before the widget was configured. Used to determine
     /// which extensions were added by the widget parents, and which are new.
     parent_extensions_len: usize,
@@ -1354,6 +1372,7 @@ struct TreeBuilder<'a> {
     frp:             WidgetsFrp,
     node_disabled:   bool,
     node_expression: &'a str,
+    layers:          &'a GraphLayers,
     styles:          &'a StyleWatchFrp,
     /// A list of widget overrides configured on the widget tree. It is persistent between tree
     /// builds, and cannot be modified during the tree building process.
@@ -1466,6 +1485,9 @@ impl<'a> TreeBuilder<'a> {
         });
 
         let disabled = self.node_disabled;
+
+        // TODO: We always use `main_nodes` here right now, as widgets are never visible when the
+        // node in edit mode. Once this changes, we will need to use conditionally use `edit_nodes`.
         let info = NodeInfo {
             identity: widget_id,
             insertion_index,
@@ -1486,12 +1508,14 @@ impl<'a> TreeBuilder<'a> {
         // usage type and whether it has children.
         let disallowed_configs = ptr_usage.used_configs;
         let parent_extensions_len = self.extensions.len();
+        let layers = self.layers.main_nodes.layers_for_widgets_at_depth(depth);
 
         let ctx = ConfigContext {
             builder: &mut *self,
             span_node,
             info: info.clone(),
             parent_extensions_len,
+            hover_layer: layers.hover,
         };
 
         let config_override = || {
@@ -1539,12 +1563,10 @@ impl<'a> TreeBuilder<'a> {
         // `configure` call has been done, so that the next sibling node will receive correct parent
         // data.
         let child_node = if widget_has_port {
-            let app = ctx.app();
-            let frp = ctx.frp();
             let mut port = match old_node {
                 Some(TreeNode::Port(port)) => port,
-                Some(TreeNode::Widget(widget)) => Port::new(widget, app, frp),
-                None => Port::new(DynWidget::new(&configuration.kind, &ctx), app, frp),
+                Some(TreeNode::Widget(widget)) => Port::new(widget, &ctx),
+                None => Port::new(DynWidget::new(&configuration.kind, &ctx), &ctx),
             };
             port.configure(&configuration.kind, ctx, port_pad);
             TreeNode::Port(port)
@@ -1570,6 +1592,7 @@ impl<'a> TreeBuilder<'a> {
         self.node_settings = saved_node_settings;
 
         let child_root = child_node.display_object().clone();
+        layers.visual.add(&child_root);
 
         if !self.node_settings.manage_margins {
             // Apply left margin to the widget, based on its offset relative to the previous

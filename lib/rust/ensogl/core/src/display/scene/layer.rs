@@ -362,7 +362,7 @@ impl PartialEq for Layer {
 // =================
 
 /// A weak version of [`Layer`].
-#[derive(Clone, CloneRef)]
+#[derive(Clone, CloneRef, Default)]
 pub struct WeakLayer {
     model: Weak<LayerModel>,
 }
@@ -402,6 +402,12 @@ impl Eq for WeakLayer {}
 impl PartialEq for WeakLayer {
     fn eq(&self, other: &Self) -> bool {
         self.model.ptr_eq(&other.model)
+    }
+}
+
+impl PartialEq<Layer> for WeakLayer {
+    fn eq(&self, other: &Layer) -> bool {
+        self.model.strong_ptr_eq(&other.model)
     }
 }
 
@@ -921,6 +927,19 @@ impl LayerModel {
         layer
     }
 
+    /// Create a new sublayer to this layer, optionally providing a camera override. See
+    /// [`Self::create_sublayer_with_camera`] and [`Self::create_sublayer`] for more information.
+    pub fn create_sublayer_with_optional_camera(
+        &self,
+        name: impl Into<String>,
+        camera: Option<&Camera2d>,
+    ) -> Layer {
+        match camera {
+            Some(camera) => self.create_sublayer_with_camera(name, camera),
+            None => self.create_sublayer(name),
+        }
+    }
+
     /// Create a new sublayer to this layer. It will inherit this layer's camera, but will not be
     /// rendered as a part of standard layer stack. Instead, it will only be rendered as a mask for
     /// other layers. See [`Layer::set_mask`] for more information. Note that this will not set up
@@ -1073,7 +1092,7 @@ impl std::borrow::Borrow<LayerModel> for Layer {
 pub struct LayerSymbolPartition<S> {
     layer: WeakLayer,
     id:    Immutable<SymbolPartitionId>,
-    shape: ZST<*const S>,
+    shape: ZST<S>,
 }
 
 /// Identifies a symbol partition, for some [`Symbol`], relative to some [`Layer`].
@@ -1100,7 +1119,6 @@ impl<S: Shape> LayerSymbolPartition<S> {
         }
     }
 }
-
 
 // === Type-erased symbol partitions ===
 

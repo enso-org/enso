@@ -10,6 +10,7 @@ use crate::selection::BoundingBox;
 use crate::tooltip;
 use crate::view;
 use crate::CallWidgetsConfig;
+use crate::GraphLayers;
 use crate::Type;
 
 use engine_protocol::language_server::ExecutionEnvironment;
@@ -20,7 +21,6 @@ use ensogl::application::Application;
 use ensogl::control::io::mouse;
 use ensogl::data::color;
 use ensogl::display;
-use ensogl::display::scene::layer::LayerSymbolPartition;
 use ensogl::display::shape::compound::rectangle;
 use ensogl::gui;
 use ensogl::Animation;
@@ -80,18 +80,6 @@ const UNRESOLVED_SYMBOL_TYPE: &str = "Builtins.Main.Unresolved_Symbol";
 
 
 
-// ===============
-// === Comment ===
-// ===============
-
-/// String with documentation comment text for this node.
-///
-/// This is just a plain string, as this is what text area expects and node just redirects this
-/// value,
-pub type Comment = ImString;
-
-
-
 // ==============
 // === Shapes ===
 // ==============
@@ -137,7 +125,6 @@ impl Background {
             node_is_hovered <- any(...);
             is_hovered <- selection_is_hovered || node_is_hovered;
             hover_animation.target <+ is_hovered.switch_constant(INVISIBLE_HOVER_COLOR.alpha, 1.0);
-            trace hover_animation.value;
             selection_colors <- color_animation.value.all_with3(
                 &hover_animation.value, &style.update,
                 |color, hover, style| (
@@ -203,15 +190,6 @@ impl Background {
 
     fn set_size_and_center_xy(&self, size: Vector2<f32>, center: Vector2<f32>) {
         self.size_and_center.emit((size, center));
-    }
-
-    fn set_layers(
-        &self,
-        backdrop: LayerSymbolPartition<rectangle::Shape>,
-        background: LayerSymbolPartition<rectangle::Shape>,
-    ) {
-        background.add(&self.shape);
-        backdrop.add(&self.selection_shape);
     }
 }
 
@@ -279,7 +257,7 @@ ensogl::define_endpoints_2! {
         /// Set whether the output context is explicitly enabled: `Some(true/false)` for
         /// enabled/disabled; `None` for no context switch expression.
         set_context_switch    (Option<bool>),
-        set_comment           (Comment),
+        set_comment           (ImString),
         set_error             (Option<Error>),
         /// Set the expression USAGE type. This is not the definition type, which can be set with
         /// `set_expression` instead. In case the usage type is set to None, ports still may be
@@ -321,7 +299,7 @@ ensogl::define_endpoints_2! {
         /// execution context. It is the responsibility of the parent component to apply the changes
         /// and update the node with new expression tree using `set_expression`.
         on_expression_modified   (span_tree::Crumbs, ImString),
-        comment                  (Comment),
+        comment                  (ImString),
         context_switch           (bool),
         skip                     (bool),
         freeze                   (bool),
@@ -430,8 +408,7 @@ impl Deref for Node {
 #[derive(Clone, Debug)]
 #[allow(missing_docs)]
 pub struct NodeModel {
-    // Required for switching the node to a different layer
-    pub app:                 Application,
+    pub layers:              GraphLayers,
     pub display_object:      display::object::Instance,
     pub background:          Background,
     pub error_indicator:     error_shape::View,
@@ -451,18 +428,8 @@ pub struct NodeModel {
 impl NodeModel {
     /// Constructor.
     #[profile(Debug)]
-    pub fn new(app: &Application, registry: visualization::Registry) -> Self {
-        let scene = &app.display.default_scene;
-        ensogl::shapes_order_dependencies! {
-            scene => {
-                error_shape               -> output::port::single_port;
-                error_shape               -> output::port::multi_port;
-                output::port::single_port -> rectangle;
-                output::port::multi_port  -> rectangle;
-            }
-        }
-
-        let style = StyleWatchFrp::new(&scene.style_sheet);
+    pub fn new(app: &Application, layers: &GraphLayers, registry: visualization::Registry) -> Self {
+        let style = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
 
         let error_indicator = error_shape::View::new();
         let profiling_label = ProfilingLabel::new(app);
@@ -474,7 +441,7 @@ impl NodeModel {
         display_object.add_child(&background);
         display_object.add_child(&vcs_indicator);
 
-        let input = input::Area::new(app);
+        let input = input::Area::new(app, layers);
         let visualization = visualization::Container::new(app, registry);
 
         display_object.add_child(&visualization);
@@ -490,7 +457,6 @@ impl NodeModel {
         action_bar_wrapper.add_child(&action_bar);
         action_bar.set_alignment_right_center();
         display_object.add_child(&action_bar_wrapper);
-        scene.layers.above_nodes.add(&action_bar);
 
         let output = output::Area::new(app);
         display_object.add_child(&output);
@@ -500,9 +466,8 @@ impl NodeModel {
 
         let interaction_state = default();
 
-        let app = app.clone_ref();
         Self {
-            app,
+            layers: layers.clone(),
             display_object,
             background,
             error_indicator,
@@ -538,55 +503,19 @@ impl NodeModel {
         self.set_layers_for_state(new_state);
     }
 
-    /// Set whether the node is being interacted with by moving an edge with the mouse.
-    pub fn set_editing_edge(&self, editing: bool) {
-        let new_state = self.interaction_state.update(|state| state.editing_edge(editing));
-        self.set_layers_for_state(new_state);
-    }
-
     fn set_layers_for_state(&self, new_state: InteractionState) {
-        let scene = &self.app.display.default_scene;
-        let main_layer;
-        let backdrop_layer;
-        let background_layer;
-        let text_layer;
-        let action_bar_layer;
-        match new_state {
-            InteractionState::EditingExpression => {
-                // Move all sub-components to `edited_node` layer.
-                //
-                // `action_bar` is moved to the `edited_node` layer as well, though normally it
-                // lives on a separate `above_nodes` layer, unlike every other node component.
-                main_layer = scene.layers.edited_node.default_partition();
-                backdrop_layer = scene.layers.edited_node_backdrop_level.clone();
-                background_layer = main_layer.clone();
-                text_layer = &scene.layers.edited_node_text;
-                action_bar_layer = &scene.layers.edited_node;
-            }
-            InteractionState::EditingEdge => {
-                main_layer = scene.layers.main_nodes_level.clone();
-                backdrop_layer = scene.layers.main_node_backdrop_level.clone();
-                background_layer = scene.layers.main_active_nodes_level.clone();
-                text_layer = &scene.layers.label;
-                action_bar_layer = &scene.layers.above_nodes;
-            }
-            InteractionState::Normal => {
-                main_layer = scene.layers.main_nodes_level.clone();
-                backdrop_layer = scene.layers.main_node_backdrop_level.clone();
-                background_layer = main_layer.clone();
-                text_layer = &scene.layers.label;
-                action_bar_layer = &scene.layers.above_nodes;
-            }
-        }
-        main_layer.add(&self.display_object);
-        self.background.set_layers(backdrop_layer, background_layer);
-        action_bar_layer.add(&self.action_bar);
-        // For the text layer, [`Layer::add`] can't be used because text rendering currently uses a
-        // separate layer management API.
-        self.output.set_label_layer(text_layer);
-        self.input.set_label_layer(text_layer);
-        self.profiling_label.set_label_layer(text_layer);
-        self.comment.add_to_scene_layer(text_layer);
+        let (below, main) = match new_state {
+            InteractionState::Normal => (&self.layers.main_backdrop, &self.layers.main_nodes),
+            InteractionState::EditingExpression =>
+                (&self.layers.edited_backdrop, &self.layers.edited_nodes),
+        };
+
+        let body_layers = main.body_layers();
+        body_layers.visual.add(&self.display_object);
+        below.backdrop.add(&self.background.selection_shape);
+        below.backdrop.add(&self.error_indicator);
+        main.action_bar.add(&self.action_bar_wrapper);
+        body_layers.hover.add(self.output.hover_root());
     }
 
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
@@ -670,12 +599,12 @@ impl NodeModel {
 impl Node {
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     #[profile(Debug)]
-    pub fn new(app: &Application, registry: visualization::Registry) -> Self {
+    pub fn new(app: &Application, layers: &GraphLayers, registry: visualization::Registry) -> Self {
         let frp = Frp::new();
         let network = frp.network();
         let out = &frp.private.output;
         let input = &frp.private.input;
-        let model = Rc::new(NodeModel::new(app, registry));
+        let model = Rc::new(NodeModel::new(app, layers, registry));
         let display_object = &model.display_object;
 
         // TODO[ao] The comment color should be animated, but this is currently slow. Will be fixed
@@ -1034,8 +963,6 @@ fn bounding_box(
 pub enum InteractionState {
     /// The node is being edited (with the cursor / Component Browser).
     EditingExpression,
-    /// An edge of the node is being interacted with.
-    EditingEdge,
     /// The node is not being interacted with.
     #[default]
     Normal,
@@ -1046,14 +973,6 @@ impl InteractionState {
         match editing {
             true => Self::EditingExpression,
             false => Self::Normal,
-        }
-    }
-
-    fn editing_edge(self, active: bool) -> Self {
-        match (self, active) {
-            (Self::EditingExpression, _) => self,
-            (_, true) => Self::EditingEdge,
-            (_, false) => Self::Normal,
         }
     }
 }
@@ -1070,33 +989,22 @@ pub mod test_utils {
 
     /// Addional [`NodeModel`] API for tests.
     pub trait NodeModelExt {
-        /// Return the `SinglePortView` of the first output port of the node.
-        ///
-        /// Returns `None`:
-        /// 1. If there are no output ports.
-        /// 2. If the port does not have a `PortShapeView`. Some port models does not initialize
-        ///    the `PortShapeView`, see [`output::port::Model::init_shape`].
-        /// 3. If the output port is [`MultiPortView`].
-        fn output_port_shape(&self) -> Option<output::port::SinglePortView>;
+        /// Return the `Shape` used for mouse handling of the first output port of the node. Returns
+        /// `None` if there are no output ports.
+        fn output_port_hover_shape(&self) -> Option<Rectangle>;
 
-        /// Return the `Shape` of the first input port of the node. Returns `None` if there are no
-        /// input ports.
-        fn input_port_hover_shape(&self) -> Option<input::port::HoverShape>;
+        /// Return the `Shape` used for mouse handling of the first input port of the node. Returns
+        /// `None` if there are no input ports.
+        fn input_port_hover_shape(&self) -> Option<Rectangle>;
     }
 
     impl NodeModelExt for NodeModel {
-        fn output_port_shape(&self) -> Option<output::port::SinglePortView> {
-            let ports = self.output.model.ports();
-            let port = ports.first()?;
-            let shape = port.shape.as_ref()?;
-            use output::port::PortShapeView::Single;
-            match shape {
-                Single(shape) => Some(shape.clone_ref()),
-                _ => None,
-            }
+        fn output_port_hover_shape(&self) -> Option<Rectangle> {
+            let shapes = self.output.model.port_hover_shapes();
+            shapes.into_iter().next()
         }
 
-        fn input_port_hover_shape(&self) -> Option<input::port::HoverShape> {
+        fn input_port_hover_shape(&self) -> Option<Rectangle> {
             let shapes = self.input.model.port_hover_shapes();
             shapes.into_iter().next()
         }

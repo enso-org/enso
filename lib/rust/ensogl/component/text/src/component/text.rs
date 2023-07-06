@@ -681,25 +681,6 @@ impl Text {
 
 
 
-// ========================
-// === Layer Management ===
-// ========================
-
-impl Text {
-    /// Add the text area to a specific scene layer.
-    // TODO https://github.com/enso-org/ide/issues/1576
-    //     You should use this function to add text to a layer instead of just `layer.add` because
-    //     currently the text needs to store reference to the layer to perform screen to object
-    //     space position conversion (it needs to know the camera transformation). This should be
-    //     improved in the future and normal `layer.add` should be enough.
-    pub fn add_to_scene_layer(&self, layer: &display::scene::Layer) {
-        self.data.layer.set(layer.clone_ref());
-        layer.add(self);
-    }
-}
-
-
-
 // =================
 // === TextModel ===
 // =================
@@ -725,9 +706,6 @@ pub struct TextModelData {
     height_dirty:   Cell<bool>,
     /// Cache of shaped lines.
     shaped_lines:   RefCell<BTreeMap<Line, ShapedLine>>,
-    // FIXME[ao]: this is a temporary solution to handle properly areas in different views. Should
-    //            be replaced with proper object management.
-    layer:          CloneRefCell<display::scene::Layer>,
 }
 
 impl TextModel {
@@ -741,7 +719,6 @@ impl TextModel {
         frp.private.output.glyph_system.emit(Some(glyph_system.clone()));
         let glyph_system = RefCell::new(glyph_system);
         let buffer = buffer::Buffer::new(buffer::BufferModel::new());
-        let layer = CloneRefCell::new(scene.layers.main.clone_ref());
 
         let default_size = buffer.formatting.font_size().default.value;
         let first_line = Self::new_line_helper(
@@ -760,7 +737,6 @@ impl TextModel {
         let frp = frp.downgrade();
         let data = TextModelData {
             app,
-            layer,
             frp,
             buffer,
             display_object,
@@ -830,10 +806,12 @@ impl TextModel {
 impl TextModel {
     /// Transforms screen position to the object (display object) coordinate system.
     fn screen_to_object_space(&self, screen_pos: Vector2) -> Vector2 {
-        let camera = self.layer.get().camera();
+        let Some(display_layer) = self.display_layer() else { return Vector2::zero() };
+        let camera = display_layer.camera();
         let origin_world_space = Vector4(0.0, 0.0, 0.0, 1.0);
         let origin_clip_space = camera.view_projection_matrix() * origin_world_space;
-        let inv_object_matrix = self.transformation_matrix().try_inverse().unwrap();
+        let inv_object_matrix = self.transformation_matrix().try_inverse();
+        let Some(inv_object_matrix) = inv_object_matrix else { return Vector2::zero() };
 
         let shape = self.app.display.default_scene.frp.shape.value();
         let clip_space_z = origin_clip_space.z;

@@ -202,8 +202,6 @@ impl ProfilingLabel {
         let label = text::Text::new(app);
         root.add_child(&label);
         label.set_y(crate::component::node::input::area::TEXT_SIZE / 2.0);
-        scene.layers.main.remove(&label);
-        label.add_to_scene_layer(&scene.layers.label);
 
         let frp = Frp::new();
         let network = &frp.network;
@@ -245,11 +243,6 @@ impl ProfilingLabel {
         }
 
         ProfilingLabel { root, label, frp, styles }
-    }
-
-    /// Set a scene layer for text rendering.
-    pub fn set_label_layer(&self, layer: &display::scene::Layer) {
-        self.label.add_to_scene_layer(layer);
     }
 }
 

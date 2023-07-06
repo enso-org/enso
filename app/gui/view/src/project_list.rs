@@ -88,7 +88,7 @@ impl Data {
         display_object.add_child(&text);
 
         if let Some(text_layer) = text_layer {
-            text.add_to_scene_layer(text_layer);
+            text_layer.add(&text);
         }
         Self { display_object, text }
     }
@@ -243,7 +243,7 @@ impl ProjectList {
         display_object.add_child(&grid);
         app.display.default_scene.layers.panel.add(&display_object);
         caption.set_content("Open Project");
-        caption.add_to_scene_layer(&app.display.default_scene.layers.panel_text);
+        app.display.default_scene.layers.panel_text.add(&caption);
 
         let style_frp = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
         let style = Style::from_theme(network, &style_frp);

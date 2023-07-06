@@ -4,6 +4,7 @@ use crate::prelude::*;
 use ensogl::display::shape::*;
 use ensogl::display::traits::*;
 
+use crate::GraphLayers;
 use enso_frp as frp;
 use enso_frp;
 use ensogl::application::Application;
@@ -83,9 +84,9 @@ impl AsRef<Edge> for Edge {
 impl Edge {
     /// Constructor.
     #[profile(Detail)]
-    pub fn new(app: &Application) -> Self {
+    pub fn new(app: &Application, layers: &GraphLayers) -> Self {
         let frp = Frp::new();
-        let model = Rc::new(EdgeModel::new(&app.display.default_scene));
+        let model = Rc::new(EdgeModel::new(&app.display.default_scene, layers));
         let network = &frp.network;
         let display_object = &model.display_object;
         let output = &frp.private.output;
@@ -107,6 +108,9 @@ impl Edge {
             gated_mouse_move <- mouse_move.gate_not(&frp.set_hover_disabled);
             gated_mouse_down <- mouse_down.gate_not(&frp.set_hover_disabled);
             gated_mouse_out <- mouse_out.gate_not(&frp.set_hover_disabled);
+            trace gated_mouse_move;
+            trace gated_mouse_down;
+            trace gated_mouse_out;
             hover_disabled <- frp.set_hover_disabled.on_true();
             clear_focus <- any_(gated_mouse_out, hover_disabled);
 
@@ -170,8 +174,10 @@ impl display::Object for Edge {
 struct EdgeModel {
     /// The parent display object of all the edge's parts.
     display_object: display::object::Instance,
-    /// The [`Scene`], needed for coordinate conversions and special layer assignments.
+    /// The [`Scene`], needed for coordinate conversions.
     scene:          Scene,
+    /// The [`GraphLayers`], used for special layer assignments.
+    layers:         GraphLayers,
     /// The raw inputs the state is computed from.
     inputs:         Inputs,
     /// The state, as of the last redraw.
@@ -183,11 +189,15 @@ struct EdgeModel {
 impl EdgeModel {
     /// Constructor.
     #[profile(Debug)]
-    pub fn new(scene: &Scene) -> Self {
-        let display_object = display::object::Instance::new_named("Edge");
-        let scene = scene.clone_ref();
-        scene.layers.main_edges_level.add(&display_object);
-        Self { display_object, scene, inputs: default(), state: default(), shapes: default() }
+    pub fn new(scene: &Scene, layers: &GraphLayers) -> Self {
+        Self {
+            display_object: display::object::Instance::new_named("Edge"),
+            scene:          scene.clone_ref(),
+            layers:         layers.clone_ref(),
+            inputs:         default(),
+            state:          default(),
+            shapes:         default(),
+        }
     }
 
     /// Redraws the connection.
@@ -336,6 +346,10 @@ impl display::Object for EdgeModel {
 impl ShapeParent for EdgeModel {
     fn scene(&self) -> &Scene {
         &self.scene
+    }
+
+    fn layers(&self) -> &GraphLayers {
+        &self.layers
     }
 }
 

@@ -44,7 +44,7 @@ struct Element {
     display_object: object::Instance,
     content:        object::Instance,
     #[allow(dead_code)]
-    background:     display::shape::Rectangle,
+    background:     Rectangle,
     expr_range:     Range<usize>,
     item_crumb:     usize,
     alive:          Option<()>,
@@ -120,7 +120,7 @@ impl Element {
     fn new() -> Self {
         let display_object = object::Instance::new_named("Element");
         let content = object::Instance::new_named("Content");
-        let background = display::shape::Rectangle::new();
+        let background = Rectangle::new();
         background.set_color(display::shape::INVISIBLE_HOVER_COLOR);
         background.allow_grow().set_alignment_left_center();
         content.use_auto_layout().set_children_alignment_left_center();
@@ -238,7 +238,7 @@ struct Model {
     /// It is stored in the model to allow animating its margins within the FRP network.
     append_insertion_point: Option<object::Instance>,
     #[allow(dead_code)]
-    background:             display::shape::Rectangle,
+    background:             Rectangle,
     elements:               HashMap<ElementIdentity, Element>,
     default_value:          DefaultValue,
     expression:             String,
@@ -254,7 +254,7 @@ impl Model {
         list.gap(ITEMS_GAP);
         list.set_size_hug_y(TEXT_SIZE).allow_grow_y();
         display_object.use_auto_layout().set_children_alignment_left_center();
-        let background = display::shape::Rectangle::new();
+        let background = Rectangle::new();
         background.set_color(display::shape::INVISIBLE_HOVER_COLOR);
         background.allow_grow().set_alignment_left_center();
         background.set_margin_xy((-LIST_HOVER_MARGIN, 0.0));

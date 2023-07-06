@@ -322,7 +322,7 @@ impl BreadcrumbModel {
         scene.layers.panel.add(&separator);
 
         scene.layers.main.remove(&label);
-        label.add_to_scene_layer(&scene.layers.panel_text);
+        scene.layers.panel_text.add(&label);
 
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
         //         system (#795)

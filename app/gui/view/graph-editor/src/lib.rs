@@ -47,6 +47,7 @@ pub mod profiling;
 #[warn(missing_docs)]
 pub mod view;
 
+mod layers;
 #[warn(missing_docs)]
 mod selection;
 mod shortcuts;
@@ -85,6 +86,7 @@ use ensogl_component::tooltip::Tooltip;
 use ensogl_hardcoded_theme as theme;
 use ide_view_execution_environment_selector as execution_environment_selector;
 use ide_view_execution_environment_selector::ExecutionEnvironmentSelector;
+pub use layers::GraphLayers;
 use span_tree::PortId;
 
 // ===============
@@ -638,7 +640,7 @@ ensogl::define_endpoints_2! {
         /// Set whether the output context is explicitly enabled for a node: `Some(true/false)` for
         /// enabled/disabled; `None` for no context switch expression.
         set_node_context_switch      ((NodeId, Option<bool>)),
-        set_node_comment             ((NodeId,node::Comment)),
+        set_node_comment             ((NodeId,ImString)),
         set_node_position            ((NodeId,Vector2)),
         set_expression_usage_type    ((NodeId,ast::Id,Option<Type>)),
         update_node_widgets          ((NodeId,CallWidgetsConfig)),
@@ -1662,7 +1664,7 @@ impl GraphEditorModel {
     }
 
     fn create_edge(&self, pointer: &EdgePointerFrp) -> Edge {
-        let edge = Edge::new(component::Edge::new(&self.app));
+        let edge = Edge::new(component::Edge::new(&self.app, &self.layers));
         self.add_child(&edge);
         let edge_id = edge.id();
         let network = edge.view.network();
@@ -1705,7 +1707,7 @@ impl GraphEditorModel {
 
     #[profile(Debug)]
     fn new_node(&self, ctx: &NodeCreationContext) -> Node {
-        let view = component::Node::new(&self.app, self.vis_registry.clone_ref());
+        let view = component::Node::new(&self.app, &self.layers, self.vis_registry.clone_ref());
         let node = Node::new(view);
         let node_model = node.model();
         let network = node.frp().network();
@@ -1858,6 +1860,7 @@ pub struct GraphEditorModel {
     pub display_object: display::object::Instance,
     // Required for dynamically creating nodes and edges.
     pub app: Application,
+    layers: GraphLayers,
     pub breadcrumbs: component::Breadcrumbs,
     pub nodes: Nodes,
     edges: RefCell<Edges>,
@@ -1912,10 +1915,13 @@ impl GraphEditorModel {
             &nodes,
         );
 
+        let layers = GraphLayers::new(&scene.layers);
+
         #[allow(deprecated)] // `styles`
         Self {
             display_object,
             app,
+            layers,
             breadcrumbs,
             nodes,
             edges,
@@ -2055,45 +2061,27 @@ impl GraphEditorModel {
 
     fn edit_node_expression(
         &self,
-        node_id: impl Into<NodeId>,
-        range: impl Into<text::Range<text::Byte>>,
-        inserted_str: impl Into<ImString>,
+        node_id: NodeId,
+        range: &text::Range<text::Byte>,
+        inserted_str: &ImString,
     ) {
-        let node_id = node_id.into();
-        let range = range.into();
-        let inserted_str = inserted_str.into();
-        if let Some(node) = self.nodes.get_cloned_ref(&node_id) {
-            node.edit_expression(range, inserted_str);
-        }
+        self.with_node(node_id, |node| node.edit_expression(*range, inserted_str.clone()));
     }
 
-    fn set_node_skip(&self, node_id: impl Into<NodeId>, skip: &bool) {
-        let node_id = node_id.into();
-        if let Some(node) = self.nodes.get_cloned_ref(&node_id) {
-            node.set_skip_macro(*skip);
-        }
+    fn set_node_skip(&self, node_id: NodeId, skip: bool) {
+        self.with_node(node_id, |node| node.set_skip_macro(skip));
     }
 
-    fn set_node_freeze(&self, node_id: impl Into<NodeId>, freeze: &bool) {
-        let node_id = node_id.into();
-        if let Some(node) = self.nodes.get_cloned_ref(&node_id) {
-            node.set_freeze_macro(*freeze);
-        }
+    fn set_node_freeze(&self, node_id: NodeId, freeze: bool) {
+        self.with_node(node_id, |node| node.set_freeze_macro(freeze));
     }
 
-    fn set_node_context_switch(&self, node_id: impl Into<NodeId>, context_switch: &Option<bool>) {
-        let node_id = node_id.into();
-        if let Some(node) = self.nodes.get_cloned_ref(&node_id) {
-            node.set_context_switch(*context_switch);
-        }
+    fn set_node_context_switch(&self, node_id: NodeId, context_switch: &Option<bool>) {
+        self.with_node(node_id, |node| node.set_context_switch(*context_switch));
     }
 
-    fn set_node_comment(&self, node_id: impl Into<NodeId>, comment: impl Into<node::Comment>) {
-        let node_id = node_id.into();
-        let comment = comment.into();
-        if let Some(node) = self.nodes.get_cloned_ref(&node_id) {
-            node.set_comment.emit(comment);
-        }
+    fn set_node_comment(&self, node_id: NodeId, comment: &ImString) {
+        self.with_node(node_id, |node| node.set_comment(comment.clone()));
     }
 }
 
@@ -2158,8 +2146,7 @@ impl GraphEditorModel {
 
     /// Return the bounding box of the node identified by `node_id`, or a default bounding box if
     /// the node was not found.
-    pub fn node_bounding_box(&self, node_id: impl Into<NodeId>) -> selection::BoundingBox {
-        let node_id = node_id.into();
+    pub fn node_bounding_box(&self, node_id: NodeId) -> selection::BoundingBox {
         self.with_node(node_id, |node| node.bounding_box.value()).unwrap_or_default()
     }
 
@@ -2476,7 +2463,7 @@ impl GraphEditor {
             eval input.update_node_widgets(((id, widgets)) model.update_node_widgets(*id, widgets));
             eval input.set_node_expression(((id, expr)) model.set_node_expression(id, expr));
             eval input.edit_node_expression(
-                ((id, range, ins)) model.edit_node_expression(id, range, ins)
+                ((id, range, ins)) model.edit_node_expression(*id, range, ins)
             );
         }
         NodeExpressionFrp { node_with_new_expression_type }
@@ -2795,12 +2782,6 @@ impl GraphEditor {
             active_source_endpoint <- any(...);
             active_source_endpoint <+ detached_source_endpoint;
             active_source_endpoint <+ out.hover_node_output.gate(&has_detached_target);
-            active_source_node <- active_source_endpoint.map_some(|e| e.node_id).on_change();
-            active_node <- active_source_node.unwrap();
-            rest_node <- active_source_node.previous().unwrap();
-
-            eval active_node((id) model.with_node(*id, |n| n.model().set_editing_edge(true)));
-            eval rest_node((id) model.try_with_node(*id, |n| n.model().set_editing_edge(false)));
 
             // Whenever the detached edge is connected to a target, monitor for that target's port
             // existence. If it becomes invalid, the edge must be dropped.
@@ -3139,10 +3120,10 @@ fn init_remaining_graph_editor_frp(
     // === Set Node SKIP/FREEZE macros and context switch expression ===
 
     frp::extend! { network
-        eval inputs.set_node_skip(((id, skip)) model.set_node_skip(id, skip));
-        eval inputs.set_node_freeze(((id, freeze)) model.set_node_freeze(id, freeze));
+        eval inputs.set_node_skip(((id, skip)) model.set_node_skip(*id, *skip));
+        eval inputs.set_node_freeze(((id, freeze)) model.set_node_freeze(*id, *freeze));
         eval inputs.set_node_context_switch(((id, context_switch))
-            model.set_node_context_switch(id, context_switch)
+            model.set_node_context_switch(*id, context_switch)
         );
     }
 
@@ -3150,7 +3131,7 @@ fn init_remaining_graph_editor_frp(
     // === Set Node Comment ===
     frp::extend! { network
 
-    eval inputs.set_node_comment(((id,comment)) model.set_node_comment(id,comment));
+    eval inputs.set_node_comment(((id,comment)) model.set_node_comment(*id,comment));
     }
 
     // === Set Node Error ===
@@ -3663,7 +3644,7 @@ mod tests {
         graph_editor.stop_editing();
         next_frame();
         // Creating edge.
-        let port = node_1.model().output_port_shape().expect("No output port.");
+        let port = node_1.model().output_port_hover_shape().expect("No output port.");
         mouse.click_on(&port, Vector2::zero());
         assert_eq!(graph_editor.num_edges(), 1);
         // Dropping edge.
@@ -3688,7 +3669,7 @@ mod tests {
         graph_editor.stop_editing();
         next_frame();
         // Creating edge.
-        let port = node_1.model().output_port_shape().expect("No output port.");
+        let port = node_1.model().output_port_hover_shape().expect("No output port.");
         mouse.click_on(&*port, Vector2::zero());
         assert_eq!(graph_editor.num_edges(), 1);
         let edge_id = *graph_editor.model.edges.borrow().keys().next().expect("Edge was not added");

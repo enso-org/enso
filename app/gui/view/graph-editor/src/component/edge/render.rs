@@ -11,6 +11,7 @@ use super::layout::EdgeSplit;
 use super::layout::Oriented;
 use super::layout::SplitArc;
 use super::layout::TargetAttachment;
+use crate::GraphLayers;
 use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::scene::Scene;
@@ -202,11 +203,9 @@ impl Shapes {
 
     /// Add the given shape to the appropriate layer depending on whether it is attached.
     fn set_layer(parent: &impl ShapeParent, is_attached: bool, shape: &Rectangle) {
-        (match is_attached {
-            true => &parent.scene().layers.main_edges_level,
-            false => &parent.scene().layers.main_above_inactive_nodes_level,
-        })
-        .add(shape)
+        let layers = parent.layers();
+        let layer = if is_attached { &layers.edge_below_nodes } else { &layers.edge_above_nodes };
+        layer.add(shape);
     }
 }
 
@@ -283,6 +282,7 @@ mod arc {
 
 pub(super) trait ShapeParent: display::Object {
     fn scene(&self) -> &Scene;
+    fn layers(&self) -> &GraphLayers;
 
     /// Create a shape object to render one of the [`Corner`]s making up the edge.
     fn new_section(&self) -> Rectangle {
@@ -301,6 +301,7 @@ pub(super) trait ShapeParent: display::Object {
         new.set_border_and_inset(HOVER_WIDTH);
         new.set_color(color::Rgba::transparent());
         self.display_object().add_child(&new);
+        self.layers().edge_below_nodes.add(&new);
         new
     }
 
@@ -310,7 +311,7 @@ pub(super) trait ShapeParent: display::Object {
         let arc = arc::View::new();
         arc.stroke_width.set(LINE_WIDTH);
         self.display_object().add_child(&arc);
-        self.scene().layers.below_main.add(&arc);
+        self.layers().edge_below_nodes.add(&arc);
         arc
     }
 
@@ -322,7 +323,7 @@ pub(super) trait ShapeParent: display::Object {
         new.set_border_color(color::Rgba::transparent());
         new.set_pointer_events(false);
         self.display_object().add_child(&new);
-        self.scene().layers.main_above_all_nodes_level.add(&new);
+        self.layers().edge_above_nodes.add(&new);
         new
     }
 

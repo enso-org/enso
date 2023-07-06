@@ -1,3 +1,5 @@
+//! Separating line between top-level argument widgets.
+
 use super::prelude::*;
 use crate::prelude::*;
 

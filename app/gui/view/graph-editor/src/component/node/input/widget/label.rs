@@ -71,11 +71,9 @@ impl SpanWidget for Widget {
         // baseline is properly aligned to center and lines up with other labels in the line.
         let app = ctx.app();
         let widgets_frp = ctx.frp();
-        let layers = &ctx.app().display.default_scene.layers;
         let root = object::Instance::new_named("widget::Label");
         let label = text::Text::new(app);
         label.set_property_default(text::Size(TEXT_SIZE));
-        label.add_to_scene_layer(&layers.label);
         root.add_child(&label);
         let frp = Frp::new();
         let network = &frp.network;

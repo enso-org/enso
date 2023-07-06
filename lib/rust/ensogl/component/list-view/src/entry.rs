@@ -71,9 +71,7 @@ pub trait Entry: CloneRef + Debug + display::Object + 'static {
     /// Resize the entry's view to fit a new width.
     fn set_max_width(&self, max_width_px: f32);
 
-    /// Set the layer of all [`text::Text`] components inside. The [`text::Text`] component is
-    /// handled in a special way, and is often in different layer than shapes. See TODO comment
-    /// in [`text::Text::add_to_scene_layer`] method.
+    /// Set the layer of all [`text::Text`] components inside.
     fn set_label_layer(&self, label_layer: &display::scene::Layer);
 }
 
@@ -152,7 +150,7 @@ impl Entry for Label {
     }
 
     fn set_label_layer(&self, label_layer: &display::scene::Layer) {
-        self.label.add_to_scene_layer(label_layer);
+        label_layer.add(&self.label);
     }
 }
 

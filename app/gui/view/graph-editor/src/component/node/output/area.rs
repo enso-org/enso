@@ -17,6 +17,7 @@ use ensogl::animation::hysteretic::HystereticAnimation;
 use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display;
+use ensogl::display::shape::Rectangle;
 use ensogl::display::shape::StyleWatch;
 use ensogl::display::shape::StyleWatchFrp;
 use ensogl_component::text;
@@ -141,6 +142,7 @@ pub struct Model {
     app:            Application,
     display_object: display::object::Instance,
     ports:          display::object::Instance,
+    hover_root:     display::object::Instance,
     port_models:    RefCell<Vec<port::Model>>,
     label:          text::Text,
     expression:     RefCell<Expression>,
@@ -156,6 +158,7 @@ impl Model {
     pub fn new(app: &Application, frp: &Frp) -> Self {
         let display_object = display::object::Instance::new_named("output");
         let ports = display::object::Instance::new();
+        let hover_root = display::object::Instance::new();
         let port_models = default();
         let label = app.new_view::<text::Text>();
         let id_ports_map = default();
@@ -165,10 +168,12 @@ impl Model {
         let frp = frp.output.clone_ref();
         display_object.add_child(&label);
         display_object.add_child(&ports);
+        display_object.add_child(&hover_root);
         Self {
             app: app.clone_ref(),
             display_object,
             ports,
+            hover_root,
             port_models,
             label,
             expression,
@@ -182,12 +187,6 @@ impl Model {
 
     #[profile(Debug)]
     fn init(self, app: &Application) -> Self {
-        // FIXME[WD]: Depth sorting of labels to in front of the mouse pointer. Temporary solution.
-        // It needs to be more flexible once we have proper depth management.
-        let scene = &app.display.default_scene;
-        scene.layers.main.remove(&self.label);
-        self.label.add_to_scene_layer(&scene.layers.label);
-
         let text_color = self.styles.get_color(theme::graph_editor::node::text);
         self.label.set_single_line_mode(true);
         app.commands.set_command_enabled(&self.label, "cursor_move_up", false);
@@ -195,21 +194,13 @@ impl Model {
         self.label.set_property_default(text_color);
         self.label.set_property_default(text::Size(input::area::TEXT_SIZE));
         self.label.remove_all_cursors();
-
         self.label.set_y(input::area::TEXT_SIZE / 2.0);
-
         self
     }
 
-    /// Return a list of Node's output ports.
-    pub fn ports(&self) -> Vec<port::Model> {
-        self.port_models.borrow().clone()
-    }
-
-    #[profile(Debug)]
-    fn set_label_layer(&self, layer: &display::scene::Layer) {
-        layer.add(&self.ports);
-        self.label.add_to_scene_layer(layer);
+    /// Return a list of Node's output port hover shapes.
+    pub fn port_hover_shapes(&self) -> Vec<Rectangle> {
+        self.port_models.borrow().iter().map(|m| m.shape.hover.clone()).collect()
     }
 
     #[profile(Debug)]
@@ -236,8 +227,7 @@ impl Model {
 
         let port_models = self.port_models.borrow();
         let Some(port) = port_models.get(index) else { return };
-        let Some(frp) = &port.frp else { return };
-        frp.set_usage_type(tp);
+        port.frp.set_usage_type(tp);
     }
 
     /// Traverse all span tree nodes that are considered ports.
@@ -250,11 +240,6 @@ impl Model {
             let is_a_port = (is_this || is_argument) && is_leaf;
             f(is_a_port, node);
         });
-    }
-
-    #[profile(Debug)]
-    fn set_size(&self, size: Vector2) {
-        self.ports.set_x(size.x / 2.0);
     }
 
     #[profile(Debug)]
@@ -296,19 +281,20 @@ impl Model {
                     node_tp.or_else(|| whole_expr_type.clone())
                 };
 
-                let mut model = port::Model::default();
                 let span = node.span();
-                model.index = span.start.into();
-                model.length = span.size();
-
-                let (port_shape, port_frp) = model.init_shape(
+                let index = span.start.into();
+                let length = span.size();
+                let model = port::Model::new(
                     &self.app,
                     &self.styles,
                     &self.styles_frp,
                     port_index,
                     port_count,
+                    index,
+                    length,
                 );
 
+                let port_frp = &model.frp;
                 let port_network = &port_frp.network;
                 let source = &self.frp.source;
                 let port_id = node.port_id.unwrap_or_default();
@@ -326,7 +312,8 @@ impl Model {
                 port_frp.set_view_mode.emit(self.frp.view_mode.value());
                 port_frp.set_size.emit(self.frp.size.value());
                 port_frp.set_definition_type.emit(node_tp);
-                self.ports.add_child(&port_shape);
+                self.ports.add_child(&model.shape.root);
+                self.hover_root.add_child(&model.shape.hover);
                 models.push(model);
             }
         });
@@ -393,7 +380,6 @@ impl Area {
             hysteretic_transition.to_end   <+ on_hover_out;
 
             frp.source.port_size_multiplier <+ hysteretic_transition.value;
-            eval frp.set_size ((t) model.set_size(*t));
             frp.source.size <+ frp.set_size;
 
             expr_label_x <- frp.set_size.map(|size| size.x + input::area::TEXT_OFFSET);
@@ -437,9 +423,9 @@ impl Area {
         Self { frp, model }
     }
 
-    /// Set a scene layer for text rendering.
-    pub fn set_label_layer(&self, layer: &display::scene::Layer) {
-        self.model.set_label_layer(layer);
+    /// Get the display object that is a root of all interactive rectangles in output area.
+    pub fn hover_root(&self) -> &display::object::Instance {
+        &self.model.hover_root
     }
 
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
@@ -447,7 +433,7 @@ impl Area {
         match port {
             PortId::Ast(id) => {
                 let index = *self.model.id_ports_map.borrow().get(&id)?;
-                self.model.port_models.borrow().get(index)?.frp.as_ref()?.tp.value()
+                self.model.port_models.borrow().get(index)?.frp.tp.value()
             }
             _ => None,
         }

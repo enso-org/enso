@@ -1774,8 +1774,8 @@ impl Model {
         self.set_display_layer(layer, default())
     }
 
-    /// Add this object to the specified symbol partition of the provided scene layer. Do not use
-    /// this method explicitly. Use layers' methods instead.
+    /// Add this object to the specified set of symbol partitions of the provided scene layer. Do/
+    /// not use this method explicitly. Use layers' methods instead.
     pub(crate) fn add_to_display_layer_symbol_partition(
         &self,
         layer: &Layer,
@@ -1785,22 +1785,24 @@ impl Model {
     }
 
     fn set_display_layer(&self, layer: &Layer, symbol_partition: Option<AnySymbolPartition>) {
-        let layer = LayerAssignment { layer: layer.downgrade(), symbol_partition };
         let mut assigned_layer = self.assigned_layer.borrow_mut();
-        if assigned_layer.as_ref() != Some(&layer) {
+        let already_assigned = matches!(
+            &*assigned_layer,
+            Some(a) if &a.layer == layer && a.symbol_partition == symbol_partition
+        );
+        if !already_assigned {
+            *assigned_layer = Some(LayerAssignment { layer: layer.downgrade(), symbol_partition });
             self.dirty.new_layer.set();
-            *assigned_layer = Some(layer);
         }
     }
 
     /// Remove this object from the provided scene layer. Do not use this method explicitly. Use
     /// layers' methods instead.
     pub(crate) fn remove_from_display_layer(&self, layer: &Layer) {
-        let layer = layer.downgrade();
-        if self.assigned_layer.borrow().as_ref().map(|assignment| &assignment.layer) == Some(&layer)
-        {
+        let mut assigned_layer = self.assigned_layer.borrow_mut();
+        if matches!(&*assigned_layer, Some(a) if &a.layer == layer) {
+            *assigned_layer = None;
             self.dirty.new_layer.set();
-            *self.assigned_layer.borrow_mut() = None;
         }
     }
 }
@@ -2314,8 +2316,6 @@ pub struct LayerAssignment {
     /// The symbol partition, if any.
     pub symbol_partition: Option<AnySymbolPartition>,
 }
-
-
 
 // =======================
 // === Transformations ===

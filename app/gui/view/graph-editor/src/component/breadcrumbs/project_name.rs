@@ -149,8 +149,7 @@ impl ProjectNameModel {
         text_field.set_property_default(text_size);
         text_field.set_single_line_mode(true);
 
-        scene.layers.main.remove(&text_field);
-        text_field.add_to_scene_layer(&scene.layers.panel_text);
+        scene.layers.panel_text.add(&text_field);
         text_field.hover();
 
         let view = background::View::new();

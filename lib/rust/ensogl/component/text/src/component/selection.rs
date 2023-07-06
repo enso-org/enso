@@ -65,6 +65,7 @@ pub mod shape {
     use super::*;
 
     ensogl_core::shape! {
+        above = [ensogl_core::display::shape::compound::rectangle];
         pointer_events = false;
         alignment = center;
         (style:Style, selection:f32, start_time:f32, not_blinking:f32, color_rgb:Vector3<f32>) {

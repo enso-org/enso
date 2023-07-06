@@ -93,7 +93,8 @@ impl ShapeData {
     }
 }
 
-mod glyph_shape {
+/// The glyph shape used for rendering all text elements.
+pub mod glyph_shape {
     use super::*;
     // FIXME[WD]: We are using old shape generator here which does not use shader precompilation.
     //   To be fixed in the next PR: https://www.pivotaltracker.com/story/show/184304289
@@ -101,6 +102,7 @@ mod glyph_shape {
         type SystemData = SystemData;
         type ShapeData = ShapeData;
         flavor = ShapeData::flavor;
+        above = [ensogl_core::display::shape::compound::rectangle];
         (
             style: Style,
             font_size: f32,

@@ -106,7 +106,7 @@ impl EntryData {
         display_object.add_child(&label);
         display_object.add_child(&background);
         if let Some(layer) = text_layer {
-            label.add_to_scene_layer(layer);
+            layer.add(&label);
         }
         Self { display_object, label, background }
     }

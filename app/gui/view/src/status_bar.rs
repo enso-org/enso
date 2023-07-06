@@ -132,8 +132,7 @@ impl Model {
         let camera = scene.camera();
 
         scene.layers.panel.add(&background);
-        scene.layers.main.remove(&label);
-        label.add_to_scene_layer(&scene.layers.panel_text);
+        scene.layers.panel_text.add(&label);
 
         use theme::application::status_bar;
         let text_color_path = status_bar::text;
