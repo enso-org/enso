@@ -1,9 +1,8 @@
 import project.Data.Numbers.Integer
-from project.Data.Text.Extensions import all
-import project.Data.Text.Regex.Regex
+import project.Data.Text.Regex.Internal.Match_Iterator.Match_Iterator_Value
 import project.Data.Text.Regex.Match.Match
 import project.Data.Text.Regex.No_Such_Group
-import project.Data.Text.Regex.Internal.Match_Iterator.Match_Iterator_Value
+import project.Data.Text.Regex.Regex
 import project.Data.Text.Span.Utf_16_Span
 import project.Data.Text.Text
 import project.Data.Vector.Vector
@@ -11,8 +10,8 @@ import project.Error.Error
 import project.Errors.Illegal_State.Illegal_State
 import project.Nothing.Nothing
 import project.Panic.Panic
-
-from project.Data.Boolean import Boolean, True, False
+from project.Data.Boolean import Boolean, False, True
+from project.Data.Text.Extensions import all
 
 polyglot java import java.lang.StringBuilder
 polyglot java import org.enso.base.Replacer_Cache

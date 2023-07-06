@@ -1,9 +1,9 @@
 from Standard.Base import all
 
-import project.Read_Flag.Read_Flag
-import project.Write_Flag.Write_Flag
 import project.Data.Image.Image
 import project.Data.Matrix.Matrix
+import project.Read_Flag.Read_Flag
+import project.Write_Flag.Write_Flag
 
 export project.Read_Flag.Read_Flag
 export project.Write_Flag.Write_Flag

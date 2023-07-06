@@ -1,6 +1,5 @@
 import project.Any.Any
 import project.Data.Text.Case_Sensitivity.Case_Sensitivity
-from project.Data.Text.Extensions import all
 import project.Data.Text.Regex.Regex
 import project.Data.Text.Text
 import project.Data.Vector.Vector
@@ -9,14 +8,12 @@ import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Function.Function
 import project.Meta
 import project.Nothing.Nothing
-
-from project.Data.Boolean import all
-
-from project.Metadata import Widget, make_single_choice
+from project.Data.Boolean import Boolean, False, True
+from project.Data.Filter_Condition.Filter_Condition import all
+from project.Data.Text.Extensions import all
+from project.Metadata import make_single_choice, Widget
 
 polyglot java import org.enso.base.Regex_Utils
-
-from project.Data.Filter_Condition.Filter_Condition import all
 
 type Filter_Condition
     ## Is less than a value (or another column, in case of Table operations)?

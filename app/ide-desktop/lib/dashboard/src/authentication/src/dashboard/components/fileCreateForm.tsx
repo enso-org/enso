@@ -1,5 +1,5 @@
 /** @file Form to create a project. */
-import * as react from 'react'
+import * as React from 'react'
 import toast from 'react-hot-toast'
 
 import * as backendModule from '../backend'
@@ -23,13 +23,13 @@ function FileCreateForm(props: FileCreateFormProps) {
     const { directoryId, onSuccess, ...passThrough } = props
     const { backend } = backendProvider.useBackend()
     const { unsetModal } = modalProvider.useSetModal()
-    const [name, setName] = react.useState<string | null>(null)
-    const [file, setFile] = react.useState<File | null>(null)
+    const [name, setName] = React.useState<string | null>(null)
+    const [file, setFile] = React.useState<File | null>(null)
 
     if (backend.type === backendModule.BackendType.local) {
         return <></>
     } else {
-        const onSubmit = async (event: react.FormEvent) => {
+        const onSubmit = async (event: React.FormEvent) => {
             event.preventDefault()
             if (file == null) {
                 // TODO[sb]: Uploading a file may be a mistake when creating a new file.

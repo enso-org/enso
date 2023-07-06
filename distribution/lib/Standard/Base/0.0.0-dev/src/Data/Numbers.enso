@@ -1,20 +1,19 @@
 import project.Any.Any
-import project.Internal.Rounding_Helpers
-import project.Data.Text.Text
 import project.Data.Locale.Locale
+import project.Data.Text.Text
+import project.Error.Error
 import project.Errors.Common.Arithmetic_Error
 import project.Errors.Common.Incomparable_Values
 import project.Errors.Illegal_Argument.Illegal_Argument
-import project.Error.Error
 import project.Function.Function
+import project.Internal.Rounding_Helpers
 import project.Nothing.Nothing
 import project.Panic.Panic
-
-from project.Data.Boolean import Boolean, True, False
+from project.Data.Boolean import Boolean, False, True
 
 polyglot java import java.lang.Double
-polyglot java import java.lang.Math
 polyglot java import java.lang.Long
+polyglot java import java.lang.Math
 polyglot java import java.lang.NumberFormatException
 polyglot java import java.text.DecimalFormat
 polyglot java import java.text.DecimalFormatSymbols

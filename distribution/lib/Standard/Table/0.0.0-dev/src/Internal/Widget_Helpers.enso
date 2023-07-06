@@ -1,17 +1,16 @@
 from Standard.Base import all
-from Standard.Base.System.File_Format import format_types
-
-import Standard.Base.Metadata.Widget
-from Standard.Base.Metadata.Widget import Single_Choice, Vector_Editor
-from Standard.Base.Metadata.Choice import Option
 import Standard.Base.Metadata.Display
+import Standard.Base.Metadata.Widget
+from Standard.Base.Metadata.Choice import Option
+from Standard.Base.Metadata.Widget import Single_Choice, Vector_Editor
+from Standard.Base.System.File_Format import format_types
 
 import project.Data.Aggregate_Column.Aggregate_Column
 import project.Data.Join_Condition.Join_Condition
 import project.Data.Table.Table
+import project.Data.Table_Conversions
 import project.Data.Type.Value_Type.Auto
 import project.Data.Type.Value_Type.Value_Type
-import project.Data.Table_Conversions
 import project.Internal.Parse_Values_Helper
 
 ## PRIVATE

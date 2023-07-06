@@ -20,6 +20,16 @@ pub use shape::Shape;
 
 
 
+// =================
+// === Constants ===
+// =================
+
+/// The threshold of minimum border width, below which the border is considered to be not visible.
+/// This is necessary to be able to avoid rendering zero-width border completely, removing any
+/// artifacts caused by anti-aliasing near the zero value.
+const MINIMUM_BORDER_WIDTH: f32 = 0.1;
+
+
 // =============
 // === Shape ===
 // =============
@@ -32,11 +42,11 @@ pub mod shape {
         (
             style: Style,
             color: Vector4,
+            border_color: Vector4,
+            clip: Vector2,
             corner_radius: f32,
             inset: f32,
             border: f32,
-            border_color: Vector4,
-            clip: Vector2,
             rotate: f32,
         ) {
             // === Canvas ===
@@ -52,21 +62,34 @@ pub mod shape {
             let canvas_width = canvas_width + &canvas_clip_width_diff.abs();
 
             // === Body ===
-            let inset2 = (&inset * 2.0).px();
+            let inset2 = (Max::max(inset.clone(), Var::from(0.0)) * 2.0).px();
             let width = &canvas_width - &inset2;
             let height = &canvas_height - &inset2;
-            let color = Var::<color::Rgba>::from(color);
             let body = Rect((&width, &height)).corners_radius(corner_radius.px());
-            let body = body.fill(color);
 
             // === Border ===
-            let padded_body = body.grow((inset - &border).px());
-            let border = padded_body.grow(border.px()) - padded_body;
-            let border_color = Var::<color::Rgba>::from(border_color);
-            let border = border.fill(border_color);
+            let border_center = &inset * border.negative() + &border * 0.5;
+            let abs_border = border.abs();
+            // when border width is close enough to zero, offset it thickness into far negatives to
+            // avoid rendering it completely. Necessary due to anti-aliasing.
+            let border_below_threshold = (&abs_border - Var::from(MINIMUM_BORDER_WIDTH)).negative();
+            let border_thickness = abs_border - border_below_threshold * 1000.0;
+            let border_body = body.grow(border_center.px()).stroke(border_thickness.px());
+
+            // When the border is touching the edge of the body, extend the body by up to a pixel.
+            // That way there is no visual gap between the shapes caused by anti-aliasing. In those
+            // scenarios, the extended body will be occluded by the border, therefore it will not
+            // have any visible effect, other than removing the unwanted artifact.
+            let fwidth = Var::<f32>::from("fwidth(position.x)");
+            let touch_offset = border.clamp(0.0.into(), fwidth);
+            let body = body.grow(touch_offset);
 
             // === Shape ===
-            let shape = border.union_exclusive(&body);
+            let color = Var::<color::Rgba>::from(color);
+            let border_color = Var::<color::Rgba>::from(border_color);
+            let colored_body = body.fill(color);
+            let colored_border = border_body.fill(border_color);
+            let shape = colored_body.union_exclusive(&colored_border);
 
             // === Rotation ===
             // Rotate about one corner.
@@ -101,10 +124,16 @@ pub mod shape {
 /// such as circles, rings, or ring segments. The advantage of having a singular shape for these
 /// cases is that a single draw call can be used to render multiple GUI elements, which ultimately
 /// enhances performance.
-#[derive(Clone, CloneRef, Deref, Default)]
+#[derive(Clone, CloneRef, Deref)]
 #[allow(missing_docs)]
 pub struct Rectangle {
     pub view: shape::View,
+}
+
+impl Default for Rectangle {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Debug for Rectangle {
@@ -121,7 +150,7 @@ impl Rectangle {
 
     /// Constructor.
     pub fn new() -> Self {
-        Self::default().build(|r| {
+        Self { view: default() }.build(|r| {
             r.set_border_color(display::shape::INVISIBLE_HOVER_COLOR);
         })
     }
@@ -138,8 +167,18 @@ impl Rectangle {
         self.modify_view(|view| view.color.set(color.into()))
     }
 
-    /// Set the corner radius. If the corner radius will be larger than possible (e.g. larger than
-    /// the shape dimension), it will be clamped to the highest possible value.
+    /// Set the corner radius of the body.
+    ///
+    /// Note that the corner radius of the border will be different, depending on the chosen border
+    /// settings. The corner radius of border shape will always naturally flow around the rectangle
+    /// body, following its curvature and keeping corners concentric.
+    ///
+    /// For [outer border](Self::set_border), the outer border's radius will be equal to the body's
+    /// corner radius plus the border width. For [inner border](Self::set_border_inner), the inner
+    /// border's radius will be smaller, depending on used distance.
+    ///
+    /// If the corner radius will be larger than the body size, it will be clamped to at most half
+    /// of the smaller body dimension.
     pub fn set_corner_radius(&self, radius: f32) -> &Self {
         self.modify_view(|view| view.corner_radius.set(radius))
     }
@@ -156,26 +195,64 @@ impl Rectangle {
     /// Set the padding between edge of the frame and main shape.
     ///
     /// This value should not be less than the width of the border. To set it to the same width as
-    /// the border, you can use [`Self::set_inset_border`].
+    /// the border, you can use [`Self::set_border_and_inset`].
     ///
-    /// If this value is greater than the border width, the extra padding will be between the body
-    /// and the border.
+    /// If the inset value is greater than the absolute value of border width, the shape will have
+    /// additional transparent padding. If the inset value is positive, the extra padding will
+    /// be between the body and the outside frame (size) of the rectangle. When it is negative,
+    /// it can be used to inset the border into the body. To avoid confusion, it is recommended
+    /// to use [`Self::set_inner_border`] instead.
     pub fn set_inset(&self, inset: f32) -> &Self {
         self.modify_view(|view| view.inset.set(inset))
     }
 
-    /// Set the border size of the shape. If you want to use border, you should always set the inset
-    /// at least of the size of the border. If you do not want the border to be animated, you can
-    /// use [`Self::set_inset_border`] instead. To make the border visible, you also need to set the
-    /// border color using [`Self::set_border_color`].
-    pub fn set_border(&self, border: f32) -> &Self {
-        self.modify_view(|view| view.border.set(border))
+    /// Set the outer border size of the shape. The border will grow outwards from the rectangle
+    /// body, towards the frame. In order to accommodate its width, use [`Self::set_inset`] to set
+    /// the inset value to be greater or equal to the maximum planned border's width.
+    ///
+    /// If you don't plan to animate the border width, you can use [`Self::set_border_and_inset`] to
+    /// set both settings to the same value.
+    pub fn set_border(&self, border_width: f32) -> &Self {
+        self.modify_view(|view| view.border.set(border_width.max(0.0)))
     }
 
-    /// Set both the inset and border at once. See documentation of [`Self::set_border`] and
-    /// [`Self::set_inset`] to learn more. To make the border visible, you also need to set the
-    /// border color using [`Self::set_border_color`].
-    pub fn set_inset_border(&self, border: f32) -> &Self {
+    /// Set the inner border size of the shape, positioned within the rectangle body. The inner
+    /// border can be offset away from the body's edge by using a non-zero `distance` value.
+    ///
+    /// When the `distance` is set to 0, the effect is similar to an outer border set using
+    /// [`Self::set_border_and_inset`], but the interpretation of corner radius is different. In
+    /// this case, the effective corner radius of the border's outside edge will be equal to the
+    /// body's, corner radius, while the inside edge corners will be appropriately sharper.
+    ///
+    /// NOTE: This setting will override the inset value set with [`Self::set_inset`], setting it to
+    /// a negative value. Therefore mixing it with other border settings is not recommended.
+    pub fn set_inner_border(&self, border_width: f32, distance: f32) -> &Self {
+        self.modify_view(|view| {
+            let clamped_width = border_width.max(0.0);
+            view.border.set(-clamped_width);
+            view.inset.set(-distance.max(0.0));
+        })
+    }
+
+    /// Set the frame border size of the shape. The border will grow inwards from the frame's
+    /// outside edge, towards the rectangle body. In order to create space between the body and
+    /// frame's border, use [`Self::set_inset`] to set the inset value to be greater or equal to the
+    /// maximum planned border's width.
+    ///
+    /// If you don't plan to animate the border width, you can use [`Self::set_border_and_inset`] to
+    /// set both settings to the same value.
+    pub fn set_frame_border(&self, border_width: f32) -> &Self {
+        self.modify_view(|view| view.border.set(-border_width.max(0.0)))
+    }
+
+    /// Set both the inset and border at once. The effect is visually similar to an inner border set
+    /// using [`Self::set_inner_border`] with distance set to 0, but the interpretation of corner
+    /// radius is different. In this case, the effective corner radius of the border's outside edge
+    /// will be equal to the body's corner radius plus the border width.
+    ///
+    /// See documentation of [`Self::set_border`] and [`Self::set_inset`] to learn more. To make the
+    /// border visible, you also need to set the border color using [`Self::set_border_color`].
+    pub fn set_border_and_inset(&self, border: f32) -> &Self {
         self.set_inset(border).set_border(border)
     }
 

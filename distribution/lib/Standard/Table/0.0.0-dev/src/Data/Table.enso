@@ -8,21 +8,20 @@ import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Base.Runtime.Context
-
 from Standard.Base.Metadata import make_single_choice
 from Standard.Base.Widget_Helpers import make_delimiter_selector
 
 import project.Data.Aggregate_Column.Aggregate_Column
-import project.Data.Column.Column
 import project.Data.Column as Column_Module
+import project.Data.Column.Column
 import project.Data.Column_Selector.Column_Selector
 import project.Data.Data_Formatter.Data_Formatter
 import project.Data.Expression.Expression
 import project.Data.Expression.Expression_Error
 import project.Data.Join_Condition.Join_Condition
 import project.Data.Join_Kind.Join_Kind
-import project.Data.Match_Columns.Match_Columns
 import project.Data.Match_Columns as Match_Columns_Helpers
+import project.Data.Match_Columns.Match_Columns
 import project.Data.Position.Position
 import project.Data.Report_Unmatched.Report_Unmatched
 import project.Data.Row.Row
@@ -42,24 +41,22 @@ import project.Internal.Table_Helpers
 import project.Internal.Table_Helpers.Table_Column_Helper
 import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 import project.Internal.Widget_Helpers
-
-from project.Data.Type.Value_Type import Value_Type, Auto
-from project.Internal.Rows_View import Rows_View
-from project.Errors import all
-
 from project.Data.Column import get_item_string, normalize_string_for_display
+from project.Data.Type.Value_Type import Auto, Value_Type
+from project.Errors import all
 from project.Internal.Filter_Condition_Helpers import make_filter_column
+from project.Internal.Rows_View import Rows_View
 
+polyglot java import java.util.UUID
 polyglot java import org.enso.base.ObjectComparator
 polyglot java import org.enso.table.data.column.builder.StorageTypeMismatch
-polyglot java import org.enso.table.data.table.Table as Java_Table
+polyglot java import org.enso.table.data.mask.OrderMask
 polyglot java import org.enso.table.data.table.Column as Java_Column
+polyglot java import org.enso.table.data.table.join.Between as Java_Join_Between
 polyglot java import org.enso.table.data.table.join.Equals as Java_Join_Equals
 polyglot java import org.enso.table.data.table.join.EqualsIgnoreCase as Java_Join_Equals_Ignore_Case
-polyglot java import org.enso.table.data.table.join.Between as Java_Join_Between
+polyglot java import org.enso.table.data.table.Table as Java_Table
 polyglot java import org.enso.table.operations.OrderBuilder
-polyglot java import org.enso.table.data.mask.OrderMask
-polyglot java import java.util.UUID
 
 ## Represents a column-oriented table data structure.
 type Table
