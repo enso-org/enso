@@ -9,8 +9,7 @@ import project.Nothing.Nothing
 @Builtin_Type
 type Function
 
-    ## PRIVATE
-       ADVANCED
+    ## ADVANCED
        Applies the function `self` to the provided argument.
 
        Arguments:
@@ -30,8 +29,7 @@ type Function
     <| : Any -> Any
     <| self ~argument = @Builtin_Method "Function.<|"
 
-    ## PRIVATE
-       ADVANCED
+    ## ADVANCED
        Composes two functions together, for `f << g` creating the function
        composition `f ∘ g` (equivalent to `x -> f (g x)`).
 
@@ -45,8 +43,7 @@ type Function
     << : (Any -> Any) -> (Any -> Any)
     << self ~that = x -> self (that x)
 
-    ## PRIVATE
-       ADVANCED
+    ## ADVANCED
        Composes two functions together in the forward direction, for `f >> g`
        creating the function composition `g ∘ f` (equivalent to `x -> g (f (x))`).
 
