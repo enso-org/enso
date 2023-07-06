@@ -1,5 +1,5 @@
 /** @file Modal for confirming delete of any type of asset. */
-import * as react from 'react'
+import * as React from 'react'
 import toast from 'react-hot-toast'
 
 import CloseIcon from 'enso-assets/close.svg'
@@ -28,7 +28,7 @@ function RenameModal(props: RenameModalProps) {
     const { assetType, name, namePattern, title, doRename, onComplete } = props
     const { unsetModal } = modalProvider.useSetModal()
 
-    const [newName, setNewName] = react.useState<string | null>(null)
+    const [newName, setNewName] = React.useState<string | null>(null)
 
     const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault()
@@ -67,7 +67,7 @@ function RenameModal(props: RenameModalProps) {
                     </button>
                 </div>
                 <div className="m-2">
-                    What do you want to rename the {assetType} '{name}' to?
+                    What do you want to rename the {assetType} &lsquo;{name}&rsquo; to?
                 </div>
                 <div className="m-2">
                     <Input

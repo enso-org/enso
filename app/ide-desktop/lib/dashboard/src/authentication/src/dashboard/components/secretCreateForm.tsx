@@ -1,5 +1,5 @@
 /** @file Form to create a project. */
-import * as react from 'react'
+import * as React from 'react'
 import toast from 'react-hot-toast'
 
 import * as backendModule from '../backend'
@@ -24,15 +24,15 @@ function SecretCreateForm(props: SecretCreateFormProps) {
     const { backend } = backendProvider.useBackend()
     const { unsetModal } = modalProvider.useSetModal()
 
-    const [name, setName] = react.useState<string | null>(null)
-    const [value, setValue] = react.useState<string | null>(null)
+    const [name, setName] = React.useState<string | null>(null)
+    const [value, setValue] = React.useState<string | null>(null)
 
     if (backend.type === backendModule.BackendType.local) {
         return <></>
     } else {
-        const onSubmit = async (event: react.FormEvent) => {
+        const onSubmit = async (event: React.FormEvent) => {
             event.preventDefault()
-            if (!name) {
+            if (name == null || name === '') {
                 toast.error('Please provide a secret name.')
             } else if (value == null) {
                 // Secret value explicitly can be empty.
