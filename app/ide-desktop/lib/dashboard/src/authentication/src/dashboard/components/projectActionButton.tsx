@@ -11,6 +11,8 @@ import * as localBackend from '../localBackend'
 import * as modalProvider from '../../providers/modal'
 import * as svg from '../../components/svg'
 
+import * as spinner from './spinner'
+
 // =============
 // === Types ===
 // =============
@@ -35,11 +37,11 @@ interface ProjectBaseEvent<Type extends ProjectEventType> {
 
 /** Requests the specified project to be opened. */
 export interface ProjectOpenEvent extends ProjectBaseEvent<ProjectEventType.open> {
-    // FIXME: provide projectId instead
     /** This must be a name because it may be specified by name on the command line.
      * Note that this will not work properly with the cloud backend if there are multiple projects
      * with the same name. */
     projectId: backendModule.ProjectId
+    onSpinnerStateChange: ((state: spinner.SpinnerState) => void) | null
 }
 
 /** Requests the specified project to be opened. */
@@ -48,13 +50,6 @@ export interface ProjectCancelOpeningAllEvent
 
 /** Every possible type of project event. */
 export type ProjectEvent = ProjectCancelOpeningAllEvent | ProjectOpenEvent
-
-/** The state of the spinner. It should go from initial, to loading, to done. */
-enum SpinnerState {
-    initial = 'initial',
-    loading = 'loading',
-    done = 'done',
-}
 
 // =================
 // === Constants ===
@@ -70,20 +65,24 @@ const LOADING_MESSAGE =
 const CHECK_STATUS_INTERVAL_MS = 5000
 /** The interval between requests checking whether the VM is ready. */
 const CHECK_RESOURCES_INTERVAL_MS = 1000
-/** The corresponding {@link SpinnerState} for each {@link backendModule.ProjectState}. */
-const SPINNER_STATE: Record<backendModule.ProjectState, SpinnerState> = {
-    [backendModule.ProjectState.closed]: SpinnerState.initial,
-    [backendModule.ProjectState.created]: SpinnerState.initial,
-    [backendModule.ProjectState.new]: SpinnerState.initial,
-    [backendModule.ProjectState.openInProgress]: SpinnerState.loading,
-    [backendModule.ProjectState.opened]: SpinnerState.done,
+/** The corresponding {@link SpinnerState} for each {@link backendModule.ProjectState},
+ * when using the remote backend. */
+const REMOTE_SPINNER_STATE: Record<backendModule.ProjectState, spinner.SpinnerState> = {
+    [backendModule.ProjectState.closed]: spinner.SpinnerState.initial,
+    [backendModule.ProjectState.created]: spinner.SpinnerState.initial,
+    [backendModule.ProjectState.new]: spinner.SpinnerState.initial,
+    [backendModule.ProjectState.openInProgress]: spinner.SpinnerState.loadingSlow,
+    [backendModule.ProjectState.opened]: spinner.SpinnerState.done,
 }
-
-const SPINNER_CSS_CLASSES: Record<SpinnerState, string> = {
-    [SpinnerState.initial]: 'dasharray-5 ease-linear',
-    [SpinnerState.loading]: 'dasharray-75 duration-90000 ease-linear',
-    [SpinnerState.done]: 'dasharray-100 duration-1000 ease-in',
-} as const
+/** The corresponding {@link SpinnerState} for each {@link backendModule.ProjectState},
+ * when using the local backend. */
+const LOCAL_SPINNER_STATE: Record<backendModule.ProjectState, spinner.SpinnerState> = {
+    [backendModule.ProjectState.closed]: spinner.SpinnerState.initial,
+    [backendModule.ProjectState.created]: spinner.SpinnerState.initial,
+    [backendModule.ProjectState.new]: spinner.SpinnerState.initial,
+    [backendModule.ProjectState.openInProgress]: spinner.SpinnerState.loadingMedium,
+    [backendModule.ProjectState.opened]: spinner.SpinnerState.done,
+}
 
 // =================
 // === Component ===
@@ -132,7 +131,10 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
     })
     const [isCheckingStatus, setIsCheckingStatus] = react.useState(false)
     const [isCheckingResources, setIsCheckingResources] = react.useState(false)
-    const [spinnerState, setSpinnerState] = react.useState(SPINNER_STATE[state])
+    const [spinnerState, setSpinnerState] = react.useState(REMOTE_SPINNER_STATE[state])
+    const [onSpinnerStateChange, setOnSpinnerStateChange] = react.useState<
+        ((state: spinner.SpinnerState | null) => void) | null
+    >(null)
     const [shouldOpenWhenReady, setShouldOpenWhenReady] = react.useState(false)
     const [toastId, setToastId] = react.useState<string | null>(null)
 
@@ -149,9 +151,18 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
     react.useEffect(() => {
         // Ensure that the previous spinner state is visible for at least one frame.
         requestAnimationFrame(() => {
-            setSpinnerState(SPINNER_STATE[state])
+            const newSpinnerState =
+                backend.type === backendModule.BackendType.remote
+                    ? REMOTE_SPINNER_STATE[state]
+                    : LOCAL_SPINNER_STATE[state]
+            setSpinnerState(newSpinnerState)
+            onSpinnerStateChange?.(newSpinnerState)
         })
-    }, [state])
+    }, [state, onSpinnerStateChange])
+
+    react.useEffect(() => {
+        onSpinnerStateChange?.(spinner.SpinnerState.initial)
+    }, [onSpinnerStateChange])
 
     react.useEffect(() => {
         if (toastId != null && state !== backendModule.ProjectState.openInProgress) {
@@ -174,6 +185,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
                         setShouldOpenWhenReady(false)
                     } else {
                         setShouldOpenWhenReady(true)
+                        setOnSpinnerStateChange(() => event.onSpinnerStateChange)
                         void openProject()
                     }
                     break
@@ -291,6 +303,8 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         onClose()
         setShouldOpenWhenReady(false)
         setState(backendModule.ProjectState.closed)
+        onSpinnerStateChange?.(null)
+        setOnSpinnerStateChange(null)
         appRunner?.stopApp()
         setIsCheckingStatus(false)
         setIsCheckingResources(false)
@@ -362,7 +376,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
                         await closeProject()
                     }}
                 >
-                    <svg.StopIcon className={SPINNER_CSS_CLASSES[spinnerState]} />
+                    <svg.StopIcon className={spinner.SPINNER_CSS_CLASSES[spinnerState]} />
                 </button>
             )
         case backendModule.ProjectState.opened:
@@ -375,7 +389,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
                             await closeProject()
                         }}
                     >
-                        <svg.StopIcon className={SPINNER_CSS_CLASSES[spinnerState]} />
+                        <svg.StopIcon className={spinner.SPINNER_CSS_CLASSES[spinnerState]} />
                     </button>
                     <button
                         onClick={clickEvent => {
