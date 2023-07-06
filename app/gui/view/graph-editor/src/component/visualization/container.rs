@@ -392,7 +392,7 @@ impl ContainerModel {
         } else {
             self.view.selection.set_border_color(Rgba::transparent());
         }
-        self.view.selection.set_inset_border(border_width);
+        self.view.selection.set_border_and_inset(border_width);
         self.view.selection.set_size(overall_size);
         self.view.selection.set_xy(-overall_size / 2.0);
     }
