@@ -153,22 +153,22 @@ spec setup =
                 t2 = table_builder [["X", [Date_Time.new 2021 11 3 10 15 0]], ["Y", [Date_Time.new 2021 12 5 12 30 20]]]
                 t3 = table_builder [["X", [Time_Of_Day.new 10 15 0, Time_Of_Day.new 1 0 0]], ["Y", [Time_Of_Day.new 12 30 20, Time_Of_Day.new 0 0 0]]]
 
-                (t1.at "Y") - (t1.at "X") . should_fail_with Unsupported_Database_Operation
-                (t1.at "Y") - (Date.new 2020 12 5) . should_fail_with Unsupported_Database_Operation
-                (t2.at "Y") - (t2.at "X") . should_fail_with Unsupported_Database_Operation
-                (t2.at "Y") - (Date_Time.new 2020 12 5 10 15 0) . should_fail_with Unsupported_Database_Operation
-                (t3.at "Y") - (t3.at "X") . should_fail_with Unsupported_Database_Operation
-                (t3.at "Y") - (Time_Of_Day.new 0 0 0) . should_fail_with Unsupported_Database_Operation
+                ((t1.at "Y") - (t1.at "X")) . should_fail_with Unsupported_Database_Operation
+                ((t1.at "Y") - (Date.new 2020 12 5)) . should_fail_with Unsupported_Database_Operation
+                ((t2.at "Y") - (t2.at "X")) . should_fail_with Unsupported_Database_Operation
+                ((t2.at "Y") - (Date_Time.new 2020 12 5 10 15 0)) . should_fail_with Unsupported_Database_Operation
+                ((t3.at "Y") - (t3.at "X")) . should_fail_with Unsupported_Database_Operation
+                ((t3.at "Y") - (Time_Of_Day.new 0 0 0)) . should_fail_with Unsupported_Database_Operation
 
         Test.specify "should report an Invalid_Value_Type error when subtracting mixed date/time types" <|
             t = table_builder [["X", [Date.new 2021 11 3]], ["Y", [Date_Time.new 2021 12 5 12 30 0]], ["Z", [Time_Of_Day.new 12 30 0]]]
 
-            (t.at "Y") - (t.at "X") . should_fail_with Invalid_Value_Type
-            (t.at "Y") - (Time_Of_Day.new 12 30 0) . should_fail_with Invalid_Value_Type
-            (t.at "X") - (t.at "Z") . should_fail_with Invalid_Value_Type
-            (t.at "X") - (Date_Time.new 2021 12 5 12 30 0) . should_fail_with Invalid_Value_Type
-            (t.at "Z") - (t.at "Y") . should_fail_with Invalid_Value_Type
-            (t.at "Z") - (Date.new 2021 11 3) . should_fail_with Invalid_Value_Type
+            ((t.at "Y") - (t.at "X")) . should_fail_with Invalid_Value_Type
+            ((t.at "Y") - (Time_Of_Day.new 12 30 0)) . should_fail_with Invalid_Value_Type
+            ((t.at "X") - (t.at "Z")) . should_fail_with Invalid_Value_Type
+            ((t.at "X") - (Date_Time.new 2021 12 5 12 30 0)) . should_fail_with Invalid_Value_Type
+            ((t.at "Z") - (t.at "Y")) . should_fail_with Invalid_Value_Type
+            ((t.at "Z") - (Date.new 2021 11 3)) . should_fail_with Invalid_Value_Type
 
         Test.specify "should allow computing a SQL-like difference" pending="TODO" <|
             t1 = table_builder [["X", [Date.new 2021 11 3]], ["Y", [Date.new 2021 12 5]]]
