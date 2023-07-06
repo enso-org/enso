@@ -299,16 +299,19 @@ impl Model {
         let row_count = content.groups.iter().map(|group| group.height).sum::<usize>()
             + content.local_scope_entry_count;
         let mut layout = Layout::<0>::new(row_count, 1, 0);
-        for group in &content.groups {
+        for group in content.groups.iter().filter(|g| g.height > 0) {
             layout.push_group(0, *group);
         }
-        layout.push_group(0, content::Group {
-            id:               GroupId::local_scope_group(),
-            height:           content.local_scope_entry_count,
-            original_height:  content.local_scope_entry_count,
-            color:            None,
-            best_match_score: 0.0,
-        });
+        if content.local_scope_entry_count > 0 {
+            layout.push_group(0, content::Group {
+                id:               GroupId::local_scope_group(),
+                height:           content.local_scope_entry_count,
+                original_height:  content.local_scope_entry_count,
+                color:            None,
+                best_match_score: 0.0,
+            });
+        }
+        console_log!("{layout:?}");
 
         let rows_and_cols = (layout.row_count(), layout.column_count());
         *self.layout.borrow_mut() = layout;
