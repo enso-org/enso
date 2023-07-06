@@ -108,7 +108,7 @@ export type UserSession = FullUserSession | OfflineUserSession | PartialUserSess
  * See {@link Cognito} for details on each of the authentication functions. */
 interface AuthContextType {
     goOffline: () => Promise<boolean>
-    signUp: (email: string, password: string) => Promise<boolean>
+    signUp: (email: string, password: string, organizationId: string | null) => Promise<boolean>
     confirmSignUp: (email: string, code: string) => Promise<boolean>
     setUsername: (
         backend: backendProvider.AnyBackendAPI,
@@ -162,6 +162,7 @@ const AuthContext = React.createContext<AuthContextType>({} as AuthContextType)
 /** Props for an {@link AuthProvider}. */
 export interface AuthProviderProps {
     shouldStartInOfflineMode: boolean
+    supportsLocalBackend: boolean
     authService: authServiceModule.AuthService
     /** Callback to execute once the user has authenticated successfully. */
     onAuthenticated: () => void
@@ -170,7 +171,13 @@ export interface AuthProviderProps {
 
 /** A React provider for the Cognito API. */
 export function AuthProvider(props: AuthProviderProps) {
-    const { shouldStartInOfflineMode, authService, onAuthenticated, children } = props
+    const {
+        shouldStartInOfflineMode,
+        supportsLocalBackend,
+        authService,
+        onAuthenticated,
+        children,
+    } = props
     const { cognito } = authService
     const { session, deinitializeSession } = sessionProvider.useSession()
     const { setBackendWithoutSavingType } = backendProvider.useSetBackend()
@@ -187,7 +194,19 @@ export function AuthProvider(props: AuthProviderProps) {
         setInitialized(true)
         setUserSession(OFFLINE_USER_SESSION)
         setBackendWithoutSavingType(new localBackend.LocalBackend())
-    }, [/* should never change */ setBackendWithoutSavingType])
+        if (supportsLocalBackend) {
+            setBackendWithoutSavingType(new localBackend.LocalBackend())
+        } else {
+            // Provide dummy headers to avoid errors. This `Backend` will never be called as
+            // the entire UI will be disabled.
+            const client = new http.Client(new Headers([['Authorization', '']]))
+            setBackendWithoutSavingType(new remoteBackend.RemoteBackend(client, logger))
+        }
+    }, [
+        /* should never change */ supportsLocalBackend,
+        /* should never change */ logger,
+        /* should never change */ setBackendWithoutSavingType,
+    ])
 
     const goOffline = React.useCallback(() => {
         toast.error('You are offline, switching to offline mode.')
@@ -196,12 +215,12 @@ export function AuthProvider(props: AuthProviderProps) {
         return Promise.resolve(true)
     }, [/* should never change */ goOfflineInternal, /* should never change */ navigate])
 
-    // This is identical to `hooks.useOnlineCheck`, however it is inline here to avoid a circular
-    // import.
+    // This is identical to `hooks.useOnlineCheck`, however it is inline here to avoid any possible
+    // circular dependency.
     React.useEffect(() => {
         // `navigator.onLine` is not a dependency of this `useEffect` (so this effect is not called
-        // when `navigator.onLine` changes) - the internet being down for e.g. 5 seconds should not
-        // completely disable the remote backend.
+        // when `navigator.onLine` changes) - the internet being down should not immediately disable
+        // the remote backend.
         if (!navigator.onLine) {
             void goOffline()
         }
@@ -221,8 +240,7 @@ export function AuthProvider(props: AuthProviderProps) {
                 setInitialized(true)
                 setUserSession(null)
             } else {
-                const headers = new Headers()
-                headers.append('Authorization', `Bearer ${session.accessToken}`)
+                const headers = new Headers([['Authorization', `Bearer ${session.accessToken}`]])
                 const client = new http.Client(headers)
                 const backend = new remoteBackend.RemoteBackend(client, logger)
                 // The backend MUST be the remote backend before login is finished.
@@ -316,8 +334,8 @@ export function AuthProvider(props: AuthProviderProps) {
             return result
         }
 
-    const signUp = async (username: string, password: string) => {
-        const result = await cognito.signUp(username, password)
+    const signUp = async (username: string, password: string, organizationId: string | null) => {
+        const result = await cognito.signUp(username, password, organizationId)
         if (result.ok) {
             toast.success(MESSAGES.signUpSuccess)
             navigate(app.LOGIN_PATH)
@@ -367,12 +385,17 @@ export function AuthProvider(props: AuthProviderProps) {
             return false
         } else {
             try {
+                const organizationId = await authService.cognito.organizationId()
                 // This should not omit success and error toasts as it is not possible
                 // to render this optimistically.
                 await toast.promise(
                     backend.createUser({
                         userName: username,
                         userEmail: backendModule.EmailAddress(email),
+                        organizationId:
+                            organizationId != null
+                                ? backendModule.UserOrOrganizationId(organizationId)
+                                : null,
                     }),
                     {
                         success: MESSAGES.setUsernameSuccess,

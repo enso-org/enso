@@ -55,16 +55,14 @@ type Vector_Builder
        Materializes the actual vector from this builder.
     build : Vector Any
     build self =
-       array = Array.new self.length
-       go ix elem = case elem of
-           Leaf vec ->
-               Array.copy vec.to_array 0 array ix vec.length
-               ix + vec.length
+       vec_builder = Vector.new_builder self.length
+       go elem = case elem of
+           Leaf vec -> vec_builder.append_vector_range vec
            Append l r _ ->
-               ix2 = go ix l
-               go ix2 r
-       go 0 self
-       Vector.from_polyglot_array array
+               go l
+               go r
+       go self
+       vec_builder.to_vector
 
     ## PRIVATE
 

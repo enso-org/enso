@@ -12,6 +12,7 @@ use crate::display::shape::primitive::def::class::AnyShape;
 use crate::display::shape::primitive::def::class::ShapeRef;
 use crate::display::shape::primitive::shader::canvas;
 use crate::display::shape::primitive::shader::canvas::Canvas;
+use crate::display::shape::Grow;
 use crate::display::shape::Var;
 use crate::system::gpu::shader::glsl::Glsl;
 
@@ -449,14 +450,13 @@ impl Plane {
 
 impl Rect {
     /// Sets the radius of all the corners.
-    pub fn corners_radius<T>(&self, radius: T) -> RoundedRectByCorner
+    pub fn corners_radius<T>(&self, radius: T) -> Grow<Rect>
     where T: Into<Var<Pixels>> {
-        let radius = radius.into();
-        let top_left = radius.clone();
-        let top_right = radius.clone();
-        let bottom_left = radius.clone();
-        let bottom_right = radius;
-        RoundedRectByCorner(self.size(), top_left, top_right, bottom_left, bottom_right)
+        let size = self.size();
+        let min_size = Min::min(size.x(), size.y());
+        let radius = Min::min(min_size * 0.5, radius.into());
+        let offset = Var::<Vector2<Pixels>>::from(format!("vec2({} * 2.0)", radius.glsl()));
+        Grow(Rect(size - offset), radius)
     }
 
     /// Sets the radiuses of each of the corners.

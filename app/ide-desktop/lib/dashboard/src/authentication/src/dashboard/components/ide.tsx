@@ -34,7 +34,7 @@ function Ide(props: IdeProps) {
     let hasEffectRun = false
 
     React.useEffect(() => {
-        // This is a hack to work around the IDE WASM not playing nicely with React Strict mode.
+        // This is a hack to work around the IDE WASM not playing nicely with React Strict Mode.
         // This is unavoidable as the WASM must fully set up to be able to properly drop its assets,
         // but React re-executes this side-effect faster tha the WASM can do so.
         if (hasEffectRun) {

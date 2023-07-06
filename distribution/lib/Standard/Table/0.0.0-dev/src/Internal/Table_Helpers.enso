@@ -5,6 +5,7 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 import project.Data.Column.Column
 import project.Data.Column_Selector.Column_Selector
 import project.Data.Position.Position
+import project.Data.Set_Mode.Set_Mode
 import project.Data.Sort_Column.Sort_Column
 import project.Data.Table.Table
 import project.Data.Type.Value_Type.Value_Type
@@ -486,3 +487,26 @@ get_blank_columns when_any treat_nans_as_blank internal_columns make_column tabl
             0 -> False
             unexpected ->
                 Panic.throw (Illegal_State.Error "Unexpected result: "+unexpected.to_display_text+". Perhaps an implementation bug of Column_Selector.Blank_Columns.")
+
+## PRIVATE
+   Replace a set of columns in the table with a new set of columns. The old
+   columns must all exist in the table, and the list of new columns must be the
+   same length and have the same names.
+replace_columns_with_columns : Table -> Vector Column -> Table
+replace_columns_with_columns table old_columns new_columns =
+    reducer = table-> old_new_pair->
+        old_column = old_new_pair.at 0
+        new_column = old_new_pair.at 1
+        table.set new_column old_column.name set_mode=Set_Mode.Update
+    old_columns.zip new_columns . fold table reducer
+
+## PRIVATE
+   Replace a set of columns in the table with a new set of columns produced by
+   transforming the old columns. The old columns must all exist in the table,
+   and the new columns must all have the same name.
+replace_columns_with_transformed_columns : Table -> Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector) -> (Column -> Column) -> Boolean -> Problem_Behavior -> Table
+replace_columns_with_transformed_columns table selectors transformer error_on_missing_columns=True on_problems=Report_Warning =
+    internal_columns = table.columns_helper.select_columns selectors reorder=False error_on_missing_columns=error_on_missing_columns on_problems=on_problems
+    columns = internal_columns.map table.columns_helper.make_column
+    new_columns = columns.map transformer
+    replace_columns_with_columns table columns new_columns

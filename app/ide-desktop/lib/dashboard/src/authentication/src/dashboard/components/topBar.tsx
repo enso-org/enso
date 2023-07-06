@@ -37,7 +37,7 @@ export interface TopBarProps {
 function TopBar(props: TopBarProps) {
     const { supportsLocalBackend, projectName, tab, toggleTab, setBackendType, query, setQuery } =
         props
-    const { setModal } = modalProvider.useSetModal()
+    const { updateModal } = modalProvider.useSetModal()
     const { backend } = backendProvider.useBackend()
 
     return (
@@ -125,7 +125,7 @@ function TopBar(props: TopBarProps) {
                 <div
                     onClick={event => {
                         event.stopPropagation()
-                        setModal(oldModal => (oldModal?.type === UserMenu ? null : <UserMenu />))
+                        updateModal(oldModal => (oldModal?.type === UserMenu ? null : <UserMenu />))
                     }}
                     className="rounded-full w-8 h-8 bg-cover cursor-pointer"
                 >

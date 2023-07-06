@@ -10,6 +10,7 @@ import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.enso.table.error.UnexpectedColumnTypeException;
+import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
 import java.util.ArrayList;
@@ -123,6 +124,7 @@ public class Column {
    * @return a column with given name and items
    */
   public static Column fromItems(String name, List<Value> items) {
+    Context context = Context.getCurrent();
     InferredBuilder builder = new InferredBuilder(items.size());
     // ToDo: This a workaround for an issue with polyglot layer. #5590 is related.
     // to revert replace with: for (Value item : items) {
@@ -133,6 +135,8 @@ public class Column {
       } else {
         builder.appendNoGrow(item);
       }
+
+      context.safepoint();
     }
     var storage = builder.seal();
     return new Column(name, storage);
@@ -154,6 +158,7 @@ public class Column {
       return fromItems(name, items);
     }
 
+    Context context = Context.getCurrent();
     var totalSize = items.size() * repeat;
 
     var values = new ArrayList<Object>(items.size());
@@ -162,12 +167,14 @@ public class Column {
     for (Object item : items) {
       Object converted = item instanceof Value v ? Polyglot_Utils.convertPolyglotValue(v) : item;
       values.add(converted);
+      context.safepoint();
     }
 
     var builder = new InferredBuilder(totalSize);
     for (int i = 0; i < totalSize; i++) {
       var item = values.get(i % items.size());
       builder.appendNoGrow(item);
+      context.safepoint();
     }
     return new Column(name, builder.seal());
   }

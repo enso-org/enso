@@ -66,7 +66,7 @@ function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
                         <img src={CloseIcon} />
                     </button>
                 </div>
-                Are you sure you want to delete {description}?
+                <div className="m-2">Are you sure you want to delete {description}?</div>
                 <div className="m-1">
                     <button
                         type="submit"

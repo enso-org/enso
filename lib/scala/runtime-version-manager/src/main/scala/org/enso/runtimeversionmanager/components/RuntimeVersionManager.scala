@@ -620,14 +620,33 @@ class RuntimeVersionManager(
       _ <- runtime.ensureValid()
       _ <- installRequiredRuntimeComponents(runtime).recover {
         case NonFatal(error) =>
+          val msg = translateError(error)
           logger.warn(
             "Failed to install required components on the existing [{}]. " +
             "Some language features may be unavailable. {}",
             runtime,
-            error.getMessage
+            msg
           )
       }
     } yield runtime
+  }
+
+  /** Provide human-readable error messages for OS-specific failures
+    * @param cause exception thrown when executing the process
+    * @return human-readable error message
+    */
+  private def translateError(cause: Throwable): String = {
+    val msg = cause.getMessage
+    OS.operatingSystem match {
+      case OS.Linux => msg
+      case OS.MacOS => msg
+      case OS.Windows =>
+        if (msg.contains("-1073741515")) {
+          "Required Microsoft Visual C++ installation is missing."
+        } else {
+          msg
+        }
+    }
   }
 
   /** Gets the runtime version from its name.

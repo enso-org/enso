@@ -1,5 +1,6 @@
 from Standard.Base import all
 
+import project.Common_Table_Operations.Add_Row_Number_Spec
 import project.Common_Table_Operations.Aggregate_Spec
 import project.Common_Table_Operations.Column_Operations_Spec
 import project.Common_Table_Operations.Core_Spec
@@ -45,7 +46,9 @@ type Test_Setup
        - aggregate_test_selection: A selection of which aggregate test suites
          should be run. Can be used to skip checks for backends which do not
          support particular features.
-    Config prefix table empty_table table_builder materialize is_database test_selection aggregate_test_selection
+       - connection: A related database connection or Nothing for in-memory
+         tests.
+    Config prefix table empty_table table_builder materialize is_database test_selection aggregate_test_selection connection
 
     ## Specifies if the given Table backend supports custom Enso types.
 
@@ -88,7 +91,9 @@ type Test_Selection
        - date_time: Specifies if the backend supports date/time operations.
        - fixed_length_text_columns: Specifies if the backend supports fixed
          length text columns.
-    Config supports_case_sensitive_columns=True order_by=True natural_ordering=False case_insensitive_ordering=True order_by_unicode_normalization_by_default=False case_insensitive_ascii_only=False take_drop=True allows_mixed_type_comparisons=True supports_unicode_normalization=False is_nan_and_nothing_distinct=True distinct_returns_first_row_from_group_if_ordered=True date_time=True fixed_length_text_columns=False
+       - supports_decimal_type: Specifies if the backend supports the `Decimal`
+         high-precision type.
+    Config supports_case_sensitive_columns=True order_by=True natural_ordering=False case_insensitive_ordering=True order_by_unicode_normalization_by_default=False case_insensitive_ascii_only=False take_drop=True allows_mixed_type_comparisons=True supports_unicode_normalization=False is_nan_and_nothing_distinct=True distinct_returns_first_row_from_group_if_ordered=True date_time=True fixed_length_text_columns=False supports_decimal_type=False
 
 spec setup =
     Core_Spec.spec setup
@@ -109,6 +114,7 @@ spec setup =
     Distinct_Spec.spec setup
     Cross_Tab_Spec.spec setup
     Transpose_Spec.spec setup
+    Add_Row_Number_Spec.spec setup
     Integration_Tests.spec setup
 
 main = run_default_backend spec
