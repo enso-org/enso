@@ -1007,7 +1007,7 @@ type Table
              table.join other on=[Join_Condition.Equals "A" "A", Join_Condition.Equals "B" "B"]
     @on Widget_Helpers.make_join_condition_selector
     join : Table -> Join_Kind -> Vector (Join_Condition | Text) | Text -> Text -> Problem_Behavior -> Table
-    join self right join_kind=Join_Kind.Left_Outer on=[Join_Condition.Equals self.column_names.first] right_prefix="Right " on_problems=Report_Warning =
+    join self right join_kind=Join_Kind.Left_Outer on=(default_join_condition self join_kind) right_prefix="Right " on_problems=Report_Warning =
         can_proceed = if Table_Helpers.is_table right . not then Error.throw (Type_Error.Error Table right "right") else
             same_backend = case right of
                 _ : Table -> True
@@ -1051,6 +1051,7 @@ type Table
                 Join_Kind.Full            -> SQL_Join_Kind.Full
                 Join_Kind.Left_Exclusive  -> SQL_Join_Kind.Left
                 Join_Kind.Right_Exclusive -> SQL_Join_Kind.Right
+                Join_Kind.Cross           -> SQL_Join_Kind.Cross
 
             problem_builder.attach_problems_before on_problems <|
                 new_from = From_Spec.Join sql_join_kind left_setup.subquery right_setup.subquery on_expressions
@@ -1093,8 +1094,7 @@ type Table
          layout order while for database tables the order may be unspecified).
     cross_join : Table -> Integer | Nothing -> Text -> Problem_Behavior -> Table
     cross_join self right right_row_limit=100 right_prefix="Right " on_problems=Report_Warning =
-        _ = [right, right_row_limit, right_prefix, on_problems]
-        Error.throw (Unsupported_Database_Operation.Error "Table.cross_join is not implemented yet for the Database backends.")
+        self.join right join_kind=Join_Kind.Cross on=[] right_prefix on_problems
 
     ## ALIAS Join By Row Position
        Joins two tables by zipping rows from both tables table together - the
@@ -2114,3 +2114,7 @@ check_db_table arg_name table =
                 False ->
                     Error.throw (Illegal_Argument.Error "Currently cross-backend operations are not supported. Materialize the table using `.read` before mixing it with an in-memory Table.")
                 True -> True
+
+default_join_condition table join_kind = case join_kind of
+    Join_Kind.Cross -> []
+    _ -> [Join_Condition.Equals table.column_names.first]

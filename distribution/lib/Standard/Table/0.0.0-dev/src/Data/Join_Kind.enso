@@ -36,3 +36,4 @@ type Join_Kind
        In this mode, unlike in others, only columns of the right table are
        returned, since all columns of the left table would be all null anyway.
     Right_Exclusive
+    Cross
