@@ -137,7 +137,7 @@ resolve_subtraction_kind arg1 arg2 =
         Value_Type.Time -> True
         _ -> False
 
-    if type_1.is_numeric && (type_2.is_nothing || type_2.is_numeric) then Subtraction_Kind.Numeric_Sub else
+    if type_1.is_numeric && (type_2.is_nothing || type_2.is_numeric) then Subtraction_Kind.Numeric_Subtract else
         case is_date_or_time type_1 of
             True ->
                 if type_2.is_nothing || (type_2 == type_1) then Subtraction_Kind.Date_Time_Difference else
