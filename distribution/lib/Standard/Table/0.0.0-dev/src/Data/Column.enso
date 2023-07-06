@@ -1156,18 +1156,18 @@ type Column
             Column.from_vector new_name mapped
 
     ## Replaces the first, or all occurrences of `term` with `new_text` in each
-       row. If `term` is empty, the function returns the table unchanged.
+       row. If `term` is empty, the function returns the column unchanged.
 
        This method follows the exact replacement semantics of the
        `Text.replace` method.
 
        Arguments:
-       - term: The term to find.
+       - term: The term to find. Can be `Text`, `Regex`, or a `Column` of
+         strings.
        - replacement: The text to replace matches with.
        - case_sensitivity: Specifies if the text values should be compared case
          sensitively.
        - only_first: If True, only replace the first match.
-       - use_regex: If true, the term is used as a regular expression.
 
        > Example
          Replace dashes with underscores.
@@ -1177,26 +1177,26 @@ type Column
        > Example
          Remove leading and trailing spaces from cells.
 
-             column.replace "^\s*(.*?)\s*$" "$1" use_regex=True
+             column.replace "^\s*(.*?)\s*$".to_regex "$1"
 
        > Example
          Replace texts in quotes with parentheses.
 
-             column.replace '"(.*?)"' '($1)' use_regex=True
-    replace : Text | Column -> Text | Column -> Case_Sensitivity -> Boolean -> Boolean -> Column
-    replace self term="" new_text="" case_sensitivity=Case_Sensitivity.Sensitive only_first=False use_regex=False =
+             column.replace '"(.*?)"'.to_regex '($1)'
+    replace : Text | Column | Regex -> Text | Column -> Case_Sensitivity -> Boolean -> Column
+    replace self term="" new_text="" case_sensitivity=Case_Sensitivity.Sensitive only_first=False =
         Value_Type.expect_text self <|
-            term_fn = wrap_text_argument_as_value_provider term
+            term_fn = wrap_text_or_regex_argument_as_value_provider term
             new_text_fn = wrap_text_argument_as_value_provider new_text
 
             term_fn.if_not_error <| new_text_fn.if_not_error <|
-                new_name = Naming_Helpers.function_name "replace" [self, term, new_text]
+                new_name = Naming_Helpers.function_name "replace" [self, term.to_text, new_text]
 
                 do_replace index input =
                     term = term_fn index
-                    if term.is_nothing || term.is_empty then input else
+                    if term.is_nothing || (term.is_a Text && term.is_empty) then input else
                         replace = new_text_fn index
-                        input.replace term replace case_sensitivity only_first use_regex
+                        input.replace term replace case_sensitivity only_first
 
                 self_vec = self.to_vector
                 mapped = self_vec.map_with_index do_replace
@@ -2102,6 +2102,10 @@ wrap_text_argument_as_value_provider val =
         col : Column ->
             storage = col.java_column.getStorage
             i-> storage.getItemBoxed i
+
+## PRIVATE
+wrap_text_or_regex_argument_as_value_provider val =
+    if val.is_a Regex then (_-> val) else wrap_text_argument_as_value_provider val
 
 ## PRIVATE
    Cast a column to a `Value_Type`, unless it already has that type.

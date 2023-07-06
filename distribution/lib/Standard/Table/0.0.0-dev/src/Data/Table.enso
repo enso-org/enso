@@ -2025,6 +2025,8 @@ type Table
        been replaced with the provided default(s).
 
        Arguments:
+       - selectors: Single instance or a Vector of names, indexes or
+         `Column_Selector`s.
        - default: The value to replace missing values with. If this argument
          is a column, the value from `default` at the corresponding position
          will be used.
@@ -2044,6 +2046,8 @@ type Table
        provided default(s).
 
        Arguments:
+       - selectors: Single instance or a Vector of names, indexes or
+         `Column_Selector`s.
        - default: The value to replace empty values with. If this argument
          is a column, the value from `default` at the corresponding position
          will be used.
@@ -2055,6 +2059,42 @@ type Table
     fill_empty : Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector) -> Column | Any -> Table
     fill_empty self selectors default =
         transformer col = col.fill_empty default
+        Table_Helpers.replace_columns_with_transformed_columns self selectors transformer
+
+    ## Replaces the first, or all occurrences of `term` with `new_text` in each
+       row of the specified column. If `term` is empty, the function returns the
+       table unchanged.
+
+       This method follows the exact replacement semantics of the
+       `Text.replace` method.
+
+       Arguments:
+       - selectors: Single instance or a Vector of names, indexes or
+         `Column_Selector`s.
+       - term: The term to find. Can be `Text`, `Regex`, or a `Column` of
+         strings.
+       - replacement: The text to replace matches with.
+       - case_sensitivity: Specifies if the text values should be compared case
+         sensitively.
+       - only_first: If True, only replace the first match.
+
+       > Example
+         Replace dashes with underscores.
+
+             table.replace "-" "_"
+
+       > Example
+         Remove leading and trailing spaces from cells.
+
+             column.replace "^\s*(.*?)\s*$".to_regex "$1"
+
+       > Example
+         Replace texts in quotes with parentheses.
+
+             column.replace '"(.*?)"'.to_regex '($1)'
+    replace : Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector) -> Text | Column | Regex -> Text | Column -> Case_Sensitivity -> Boolean -> Column
+    replace self selectors term="" new_text="" case_sensitivity=Case_Sensitivity.Sensitive only_first=False =
+        transformer col = col.replace term new_text case_sensitivity only_first
         Table_Helpers.replace_columns_with_transformed_columns self selectors transformer
 
 ## PRIVATE

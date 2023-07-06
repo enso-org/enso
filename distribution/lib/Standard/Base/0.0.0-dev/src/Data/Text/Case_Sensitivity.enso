@@ -55,6 +55,13 @@ type Case_Sensitivity
                 Error.throw (Illegal_Argument.Error msg)
 
     ## PRIVATE
+       Convert to either Sensitive or Insensitive, for the in-memory case.
+    to_explicit_sensitivity_in_memory : Case_Sensitivity
+    to_explicit_sensitivity_in_memory self = case self of
+        Case_Sensitivity.Default -> Case_Sensitivity.Sensitive
+        _ -> self
+
+    ## PRIVATE
        Create matcher function
     create_match_function : Boolean -> (Text -> Text -> Boolean)
     create_match_function self use_regex=False = case use_regex of

@@ -1,4 +1,5 @@
 from Standard.Base import all
+
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Internal.Rounding_Helpers
@@ -1126,15 +1127,15 @@ type Column
        > Example
          Remove leading and trailing spaces from cells.
 
-             column.replace "^\s*(.*?)\s*$" "$1" use_regex=True
+             column.replace "^\s*(.*?)\s*$".to_regex "$1"
 
        > Example
          Replace texts in quotes with parentheses.
 
-             column.replace '"(.*?)"' '($1)' use_regex=True
-    replace : Text | Column -> Text | Column -> Case_Sensitivity -> Boolean -> Boolean -> Column
-    replace self term="" new_text="" case_sensitivity=Case_Sensitivity.Sensitive only_first=False use_regex=False =
-        _ = [term, new_text, case_sensitivity, only_first, use_regex]
+             column.replace '"(.*?)"'.to_regex '($1)'
+    replace : Text | Column | Regex -> Text | Column -> Case_Sensitivity -> Boolean -> Column
+    replace self term="" new_text="" case_sensitivity=Case_Sensitivity.Sensitive only_first=False =
+        _ = [term, new_text, case_sensitivity, only_first]
         msg = "`Column.replace` is not yet implemented."
         Error.throw (Unsupported_Database_Operation.Error msg)
 
