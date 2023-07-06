@@ -24,9 +24,9 @@ const BLINK_BACKGROUND_CLASS_NAME = 'blink-background'
  * `tailwind.css`. */
 const BLINK_ANIMATION_LENGTH_MS = 500
 
-// ======================
-// === ShareWithModal ===
-// ======================
+// ==============================
+// === ManagePermissionsModal ===
+// ==============================
 
 /** Possible actions that a {@link ManagePermissionsModal} can perform. */
 enum ManagePermissionsAction {

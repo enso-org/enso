@@ -34,7 +34,7 @@ import ProjectActionButton, * as projectActionButton from './projectActionButton
 import ContextMenu from './contextMenu'
 import ContextMenuEntry from './contextMenuEntry'
 import Ide from './ide'
-import ManagePermissionsModal from './shareWithModal'
+import ManagePermissionsModal from './managePermissionsModal'
 import Rows from './rows'
 import Templates from './templates'
 import TopBar from './topBar'
