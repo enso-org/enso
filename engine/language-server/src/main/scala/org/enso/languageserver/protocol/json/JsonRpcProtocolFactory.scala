@@ -5,7 +5,7 @@ import org.enso.jsonrpc.{Protocol, ProtocolFactory}
 /** Factory creating JSON-RPC protocol. */
 final class JsonRpcProtocolFactory extends ProtocolFactory {
 
-  private[this] var _protocol: Protocol = _
+  private var _protocol: Protocol = _
 
   /** @inheritdoc */
   def getProtocol(): Protocol = {
