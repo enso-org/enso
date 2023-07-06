@@ -51,7 +51,6 @@ import project.Error.Error
 import project.Errors
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Function
-import project.Internal.Rounding_Helpers
 import project.IO
 import project.Math
 import project.Meta
@@ -138,7 +137,6 @@ export project.Data.Vector.Vector
 export project.Error.Error
 export project.Errors
 export project.Errors.Problem_Behavior.Problem_Behavior
-export project.Internal.Rounding_Helpers
 export project.IO
 export project.Math
 export project.Meta

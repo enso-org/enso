@@ -4,6 +4,7 @@ import Standard.Base.Data.Index_Sub_Range as Index_Sub_Range_Module
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
+import Standard.Base.Internal.Rounding_Helpers
 
 import project.Data.Data_Formatter.Data_Formatter
 import project.Data.Table.Table

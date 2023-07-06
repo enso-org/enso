@@ -491,7 +491,7 @@ get_blank_columns when_any treat_nans_as_blank internal_columns make_column tabl
    Replace a set of columns in the table with a new set of columns. The old
    columns must all exist in the table, and the list of new columns must be the
    same length and have the same names.
-replace_columns_with_columns : Table -> Vector Column -> Table
+replace_columns_with_columns : Table -> Vector Column -> Vector Column -> Table
 replace_columns_with_columns table old_columns new_columns =
     reducer = table-> old_new_pair->
         old_column = old_new_pair.at 0
