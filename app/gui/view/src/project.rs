@@ -634,6 +634,7 @@ impl View {
             );
             graph.stop_editing <+ any(&committed_in_searcher_event, &aborted_in_searcher_event);
             frp.source.searcher <+ searcher_should_close.constant(None);
+            frp.source.searcher_type <+ searcher_should_close.constant(SearcherType::default());
             frp.source.adding_new_node <+ searcher_should_close.constant(false);
         }
         self
