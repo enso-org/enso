@@ -196,9 +196,13 @@ object ContextRegistryProtocol {
 
       /** An information about computed expression.
         *
-        * @param warnings information about attached warnings.
+        * @param warnings information about attached warnings
+        * @param functionSchema the schema of returned function value
         */
-      case class Value(warnings: Option[Value.Warnings]) extends Payload
+      case class Value(
+        warnings: Option[Value.Warnings],
+        functionSchema: Option[Value.FunctionSchema]
+      ) extends Payload
       object Value {
 
         /** Information about warnings associated with the value.
@@ -211,6 +215,18 @@ object ContextRegistryProtocol {
           count: Int,
           value: Option[String],
           reachedMaxCount: Boolean
+        )
+
+        /** Contains a method pointer with information on the partially applied
+          * arguments positions.
+          *
+          * @param methodPointer the method pointer
+          * @param notAppliedArguments indexes of arguments that have not been applied
+          * to this method
+          */
+        case class FunctionSchema(
+          methodPointer: MethodPointer,
+          notAppliedArguments: Vector[Int]
         )
       }
 

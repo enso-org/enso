@@ -128,6 +128,10 @@ where for<'t> &'t Self: IntoOwned<Owned = Self> {
     }
 
     /// Unify the shape with another one.
+    ///
+    /// Warning: This operator is an approximation - given correct exact input signed distance, it
+    /// will return exact distance outside the shape, but underestimate the distance inside the
+    /// shape. For more details, see https://iquilezles.org/articles/interiordistance/
     fn union<S: IntoOwned>(&self, that: S) -> Union<Self, Owned<S>> {
         Union(self, that)
     }
@@ -135,16 +139,28 @@ where for<'t> &'t Self: IntoOwned<Owned = Self> {
     /// Unify two shapes, blending their colors based on the foreground shape's SDF value. This
     /// means that even if these shapes overlap and the foreground is semi-transparent, it will
     /// blend with the background only in the anti-aliased areas.
+    ///
+    /// Warning: This operator is an approximation - given correct exact input signed distance, it
+    /// will return exact distance outside the shape, but underestimate the distance inside the
+    /// shape. For more details, see https://iquilezles.org/articles/interiordistance/
     fn union_exclusive<S: IntoOwned>(&self, that: S) -> UnionExclusive<Self, Owned<S>> {
         UnionExclusive(self, that)
     }
 
     /// Subtracts the argument from this shape.
+    ///
+    /// Warning: This operator is an approximation - given correct exact input signed distance, it
+    /// will overestimate the distance to the resulting shape. For more details, see
+    /// https://iquilezles.org/articles/interiordistance/
     fn difference<S: IntoOwned>(&self, that: S) -> Difference<Self, Owned<S>> {
         Difference(self, that)
     }
 
     /// Computes the intersection of the shapes.
+    ///    
+    /// Warning: This operator is an approximation - given correct exact input signed distance, it
+    /// will underestimate the distance to the resulting shape. For more details, see
+    /// https://iquilezles.org/articles/interiordistance/
     fn intersection<S: IntoOwned>(&self, that: S) -> Intersection<Self, Owned<S>> {
         Intersection(self, that)
     }
@@ -190,7 +206,7 @@ where for<'t> &'t Self: IntoOwned<Owned = Self> {
         Recolorize(self, r, g, b)
     }
 
-    /// Makes the borders of the shape crisp. Please note that it removes any form of antialiasing
+    /// Makes the borders of the shape crisp. Please note that it removes any form of anti-aliasing
     /// and can cause distortions especially with round surfaces.
     fn pixel_snap(&self) -> PixelSnap<Self> {
         PixelSnap(self)
@@ -204,6 +220,23 @@ where for<'t> &'t Self: IntoOwned<Owned = Self> {
     /// Shrinks the shape by the given amount.
     fn shrink<T: Into<Var<Pixels>>>(&self, value: T) -> Shrink<Self> {
         Shrink(self, value.into())
+    }
+
+    /// Create a stroke of given thickness around shape's boundary. The stroke is centered around
+    /// the shape's 0 distance isoline. If you want to offset it, use `grow` or `shrink` operators
+    /// before applying `stroke`.
+    ///
+    /// Also known as "annulus" or "onion" operator. See "Making shapes annular" section in
+    /// https://iquilezles.org/articles/distfunctions2d/ for more details.
+    ///
+    /// Note: This operator is exact - given correct exact input signed distance, it will produce an
+    /// exact signed distance field for the resulting shape. But it is particularly sensitive to
+    /// non-exactness of the input signed distance field, both outside and inside the shape. Be
+    /// careful when using it after applying `union`, `difference` or `intersection` operators. See
+    /// following shadertoy for demonstration of potential artifacts:
+    /// https://www.shadertoy.com/view/dslfzH
+    fn stroke<T: Into<Var<Pixels>>>(&self, thickness: T) -> Stroke<Self> {
+        Stroke(self, thickness.into())
     }
 
     /// Repeats the shape with the given tile size.

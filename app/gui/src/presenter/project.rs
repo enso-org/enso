@@ -259,6 +259,15 @@ impl Model {
         })
     }
 
+    fn execution_context_reload_and_restart(&self) {
+        let controller = self.graph_controller.clone_ref();
+        executor::global::spawn(async move {
+            if let Err(err) = controller.reload_and_restart().await {
+                error!("Error reloading and restarting execution context: {err}");
+            }
+        })
+    }
+
     /// Prepare a list of projects to display in the Open Project dialog.
     fn project_list_opened(&self, project_list_ready: frp::Source<()>) {
         let controller = self.ide_controller.clone_ref();
@@ -385,6 +394,7 @@ impl Project {
             eval_ view.execution_context_interrupt(model.execution_context_interrupt());
 
             eval_ view.execution_context_restart(model.execution_context_restart());
+            eval_ view.execution_context_reload_and_restart(model.execution_context_reload_and_restart());
 
             view.set_read_only <+ view.toggle_read_only.map(f_!(model.toggle_read_only()));
             eval graph_view.execution_environment((env) model.execution_environment_changed(*env));
@@ -506,7 +516,16 @@ impl Project {
         // Following the project initialization, the Undo/Redo stack should be empty.
         // This makes sure that any initial modifications resulting from the GUI initialization
         // won't clutter the undo stack.
-        controller.model.urm().repository.clear_all();
+        // However, some portions of the GUI initialization are performed asynchronously, using
+        // the FRP debounce mechanism. This is a case, for example, for creating node views.
+        // Thus, we use late microtask to clear the undo stack after any scheduled operations
+        // are complete.
+        let urm = controller.model.urm();
+        enso_frp::microtasks::next_microtask_late(move || {
+            debug!("Clearing undo/redo stack.");
+            urm.repository.clear_all();
+        })
+        .forget();
         Ok(presenter)
     }
 }

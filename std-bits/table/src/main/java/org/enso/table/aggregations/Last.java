@@ -5,6 +5,7 @@ import java.util.List;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.index.OrderedMultiValueKey;
 import org.enso.table.data.table.Column;
+import org.graalvm.polyglot.Context;
 
 public class Last extends Aggregator {
   private final Storage<?> storage;
@@ -48,6 +49,7 @@ public class Last extends Aggregator {
     OrderedMultiValueKey key = null;
     Object current = null;
 
+    Context context = Context.getCurrent();
     for (int i = indexes.size() - 1; i >= 0; i--) {
       int row = indexes.get(i);
       Object value = storage.getItemBoxed(row);
@@ -61,17 +63,22 @@ public class Last extends Aggregator {
         key = newKey;
         current = storage.getItemBoxed(row);
       }
+
+      context.safepoint();
     }
 
     return current;
   }
 
   private Object lastByRowOrder(List<Integer> indexes) {
+    Context context = Context.getCurrent();
     for (int i = indexes.size() - 1; i >= 0; i--) {
       Object value = storage.getItemBoxed(indexes.get(i));
       if (!ignoreNothing || value != null) {
         return value;
       }
+
+      context.safepoint();
     }
     return null;
   }

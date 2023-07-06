@@ -1,18 +1,15 @@
-## Methods for operating on `Text` in Enso.
-
 import project.Any.Any
-import project.Data.Array.Array
+import project.Data.Index_Sub_Range as Index_Sub_Range_Module
 import project.Data.Index_Sub_Range.Index_Sub_Range
 import project.Data.Locale.Locale
-from project.Data.Range.Extensions import all
 import project.Data.Range.Range
 import project.Data.Text.Case.Case
 import project.Data.Text.Case_Sensitivity.Case_Sensitivity
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Location.Location
 import project.Data.Text.Matching_Mode.Matching_Mode
-import project.Data.Text.Regex
 import project.Data.Text.Regex.Match.Match
+import project.Data.Text.Regex.Regex
 import project.Data.Text.Regex.Regex_Syntax_Error
 import project.Data.Text.Span.Span
 import project.Data.Text.Span.Utf_16_Span
@@ -24,9 +21,9 @@ import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Time_Of_Day.Time_Of_Day
 import project.Data.Time.Time_Zone.Time_Zone
 import project.Data.Vector.Vector
+import project.Error.Error
 import project.Errors.Common.Index_Out_Of_Bounds
 import project.Errors.Common.Syntax_Error
-import project.Error.Error
 import project.Errors.Encoding_Error.Encoding_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
@@ -34,21 +31,18 @@ import project.Errors.Time_Error.Time_Error
 import project.Meta
 import project.Network.URI.URI
 import project.Nothing.Nothing
-
-from project.Data.Boolean import Boolean, True, False
-from project.Data.Json import Json, Invalid_JSON, JS_Object
+from project.Data.Boolean import Boolean, False, True
+from project.Data.Json import Invalid_JSON, JS_Object, Json
 from project.Data.Numbers import Decimal, Integer, Number, Number_Parse_Error
-
-from project.Widget_Helpers import make_delimiter_selector, make_date_format_selector, make_date_time_format_selector, make_time_format_selector
-
-import project.Data.Index_Sub_Range as Index_Sub_Range_Module
+from project.Data.Range.Extensions import all
+from project.Widget_Helpers import make_date_format_selector, make_date_time_format_selector, make_delimiter_selector, make_time_format_selector
 
 polyglot java import com.ibm.icu.lang.UCharacter
 polyglot java import com.ibm.icu.text.BreakIterator
 polyglot java import java.lang.StringBuilder
-polyglot java import org.enso.base.Text_Utils
 polyglot java import org.enso.base.Encoding_Utils
 polyglot java import org.enso.base.Regex_Utils
+polyglot java import org.enso.base.Text_Utils
 
 ## Returns a new `Text` object with the characters in the reverse order of the input.
 
@@ -227,9 +221,9 @@ Text.characters self =
    - case_sensitivity: Specifies if the text values should be compared case
      sensitively.
 
-   If an empty regex is used, `find` throws an Illegal_Argument error.
+   If an empty regex is used, `find` throws an `Illegal_Argument` error.
 
-   If a non-default locale is used, `find` throws an Illegal_Argument error.
+   If a non-default locale is used, `find` throws an `Illegal_Argument` error.
 
    > Example
      Find the first substring matching the regex.
@@ -254,9 +248,9 @@ Text.find self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
    - case_sensitivity: Specifies if the text values should be compared case
      sensitively.
 
-   If an empty regex is used, `find_all` throws an Illegal_Argument error.
+   If an empty regex is used, `find_all` throws an `Illegal_Argument` error.
 
-   If a non-default locale is used, `find_all` throws an Illegal_Argument error.
+   If a non-default locale is used, `find_all` throws an `Illegal_Argument` error.
 
    > Example
      Find the substring matching the regex.
@@ -282,9 +276,9 @@ Text.find_all self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
    - case_sensitivity: Specifies if the text values should be compared case
      sensitively.
 
-   If an empty regex is used, `match` throws an Illegal_Argument error.
+   If an empty regex is used, `match` throws an `Illegal_Argument` error.
 
-   If a non-default locale is used, `match` throws an Illegal_Argument error.
+   If a non-default locale is used, `match` throws an `Illegal_Argument` error.
 
    > Example
      Checks if whole text matches a basic email regex.
@@ -302,6 +296,23 @@ Text.match self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
     case_insensitive = case_sensitivity.is_case_insensitive_in_memory
     compiled_pattern = Regex.compile pattern case_insensitive=case_insensitive
     compiled_pattern.matches self
+
+## Compile the text into a regex pattern that can be used for matching.
+
+   Arguments
+   - case_insensitive: Enables or disables case-insensitive matching. Case
+     insensitive matching behaves as if it normalises the case of all input
+     text before matching on it.
+
+   If an empty regex is used, `compile` throws an `Illegal_Argument` error.
+
+   ? Why Compile?
+     While many regex engines are able to cache ad-hoc patterns, it is often
+     useful to be able to manually retain a pattern that you have computed. This
+     function exists so you can hold onto the resultant `Pattern` object,
+     instead of immediately proceeding to match using it.
+Text.to_regex : Boolean -> Regex ! Regex_Syntax_Error | Illegal_Argument
+Text.to_regex self case_insensitive=False = Regex.compile self case_insensitive
 
 ## ALIAS Split Text
 
@@ -418,7 +429,7 @@ Text.tokenize self pattern="." case_sensitivity=Case_Sensitivity.Sensitive =
    - only_first: If True, only replace the first match.
    - use_regex: If true, the term is used as a regular expression.
 
-   If an empty regex is used, `replace` throws an Illegal_Argument error.
+   If an empty regex is used, `replace` throws an `Illegal_Argument` error.
 
    If a non-default locale is used with a regex, `replace` throws an
    Illegal_Argument error.
@@ -473,8 +484,8 @@ Text.replace self term replacement case_sensitivity=Case_Sensitivity.Sensitive o
     case use_regex of
         False -> if term.is_empty then self else
             array_from_single_result result = case result of
-                Nothing -> Array.empty
-                _ -> Array.new_1 result
+                Nothing -> []
+                _ -> [result]
             spans_array = case case_sensitivity of
                 Case_Sensitivity.Sensitive -> case only_first of
                     False -> Text_Utils.span_of_all self term
@@ -673,7 +684,7 @@ Text.bytes self encoding on_problems=Problem_Behavior.Report_Warning =
 @encoding Encoding.default_widget
 Text.from_bytes : Vector Integer -> Encoding -> Problem_Behavior -> Text
 Text.from_bytes bytes encoding on_problems=Problem_Behavior.Report_Error =
-    result = Encoding_Utils.from_bytes bytes.to_array (encoding . to_java_charset)
+    result = Encoding_Utils.from_bytes bytes (encoding . to_java_charset)
     if result.warnings.is_nothing then result.result else
         on_problems.attach_problems_after result.result [Encoding_Error.Error result.warnings]
 
@@ -736,7 +747,7 @@ Text.char_vector self = Vector.from_polyglot_array (Text_Utils.get_chars self)
    This is useful for low-level operations, such as binary data encoding and
    decoding.
 Text.from_char_vector : Vector Integer -> Text
-Text.from_char_vector chars = Text_Utils.from_chars chars.to_array
+Text.from_char_vector chars = Text_Utils.from_chars chars
 
 ## Returns a vector containing integers representing the Unicode codepoints of
    the input text.
@@ -761,7 +772,7 @@ Text.codepoints self = Vector.from_polyglot_array (Text_Utils.get_codepoints sel
      Converting a vector of codepoints back into a text.
          Text.from_codepoints [129318, 127996, 8205, 9794, 65039]
 Text.from_codepoints : Vector Integer -> Text
-Text.from_codepoints codepoints = Text_Utils.from_codepoints codepoints.to_array
+Text.from_codepoints codepoints = Text_Utils.from_codepoints codepoints
 
 ## ALIAS Check Prefix
 
@@ -1301,7 +1312,7 @@ Text.locate_all self term="" case_sensitivity=Case_Sensitivity.Sensitive = if te
     Case_Sensitivity.Default -> self.locate term Case_Sensitivity.Sensitive
     Case_Sensitivity.Sensitive ->
         codepoint_spans = Vector.from_polyglot_array <| Text_Utils.span_of_all self term
-        grahpeme_ixes = Vector.from_polyglot_array <| Text_Utils.utf16_indices_to_grapheme_indices self (codepoint_spans.map .codeunit_start).to_array
+        grahpeme_ixes = Vector.from_polyglot_array <| Text_Utils.utf16_indices_to_grapheme_indices self (codepoint_spans.map .codeunit_start)
         ## While the codepoint_spans may have different code unit lengths
            from our term, the `length` counted in grapheme clusters is
            guaranteed to be the same.

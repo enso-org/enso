@@ -3,6 +3,7 @@ package org.enso.table.data.column.operation.map;
 import java.util.BitSet;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.LongStorage;
+import org.graalvm.polyglot.Context;
 
 /** An operation that takes a single argument of some type and returns an integer. */
 public abstract class UnaryIntegerOp<T, I extends Storage<T>> extends UnaryMapOperation<T, I> {
@@ -15,6 +16,7 @@ public abstract class UnaryIntegerOp<T, I extends Storage<T>> extends UnaryMapOp
 
   @Override
   protected Storage<?> run(I storage) {
+    Context context = Context.getCurrent();
     BitSet newMissing = new BitSet();
     long[] newVals = new long[storage.size()];
     for (int i = 0; i < storage.size(); i++) {
@@ -23,6 +25,8 @@ public abstract class UnaryIntegerOp<T, I extends Storage<T>> extends UnaryMapOp
       } else {
         newMissing.set(i);
       }
+
+      context.safepoint();
     }
 
     return new LongStorage(newVals, newVals.length, newMissing);

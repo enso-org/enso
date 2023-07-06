@@ -10,7 +10,7 @@ import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Warning.Warning
 
-from project.Data.Boolean import Boolean, True, False
+from project.Data.Boolean import Boolean, False, True
 from project.Data.Ordering import all
 from project.Data.Range.Extensions import all
 from project.Function import const
@@ -368,7 +368,8 @@ type Any
         Nothing -> Nothing
         a -> f a
 
-    ## ADVANCED
+    ## PRIVATE
+       ADVANCED
        Applies the function on the right hand side to the argument on the left.
 
        Arguments

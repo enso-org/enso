@@ -775,6 +775,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
     (Compile / run / fork) := true,
     (Test / fork) := true,
     (Compile / run / connectInput) := true,
+    commands += WithDebugCommand.withDebug,
     libraryDependencies ++= akka ++ Seq(akkaTestkit % Test),
     libraryDependencies ++= circe,
     libraryDependencies ++= Seq(
@@ -2019,6 +2020,7 @@ lazy val `std-image` = project
     Compile / packageBin / artifactPath :=
       `image-polyglot-root` / "std-image.jar",
     libraryDependencies ++= Seq(
+      "org.graalvm.sdk"  % "graal-sdk"               % graalVersion       % "provided",
       "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided",
       "org.openpnp"      % "opencv"                  % "4.7.0-0"
     ),

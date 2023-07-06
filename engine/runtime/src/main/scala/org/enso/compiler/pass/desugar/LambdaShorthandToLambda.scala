@@ -21,8 +21,6 @@ import org.enso.compiler.pass.resolve.{
   OverloadsResolution
 }
 
-import scala.annotation.unused
-
 /** This pass translates `_` arguments at application sites to lambda functions.
   *
   * This pass has no configuration.
@@ -105,12 +103,6 @@ case object LambdaShorthandToLambda extends IRPass {
 
     desugarExpression(ir, freshNameSupply)
   }
-
-  /** @inheritdoc */
-  override def updateMetadataInDuplicate[T <: IR](
-    @unused sourceIr: T,
-    copyOfIr: T
-  ): T = copyOfIr
 
   // === Pass Internals =======================================================
 

@@ -84,7 +84,7 @@ spec =
     Test.group "[Codegen] Handling Missing Values" <|
         Test.specify "fill_nothing should allow to replace missing values in a column with a constant" <|
             c = t1.at "B" . fill_nothing "not-applicable"
-            c.to_sql.prepare . should_equal ['SELECT CAST(COALESCE("T1"."B", ?) AS TEXT) AS "fill_nothing([B], \'not-applicable\')" FROM "T1" AS "T1"', ["not-applicable"]]
+            c.to_sql.prepare . should_equal ['SELECT CAST(COALESCE("T1"."B", ?) AS TEXT) AS "B" FROM "T1" AS "T1"', ["not-applicable"]]
 
         Test.specify "filter_blank_rows should drop rows that contain at least one missing column in a Table" <|
             t2 = t1.filter_blank_rows when_any=True

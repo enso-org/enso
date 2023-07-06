@@ -12,6 +12,7 @@ use ensogl::prelude::*;
 
 use enso_doc_parser::DocSection;
 use enso_doc_parser::Mark;
+use enso_doc_parser::Tag;
 use enso_suggestion_database as suggestion_database;
 use enso_suggestion_database::doc_section;
 use enso_suggestion_database::documentation_ir::EntryDocumentation;
@@ -94,7 +95,7 @@ fn database() -> SuggestionDatabase {
         #[with_doc_section(doc_section!(? "Info", "Info sections provide some insights."))]
         Standard.Base {
             #[with_doc_section(doc_section!("Maybe type."))]
-            #[with_doc_section(doc_section!(@ "Annotated", ""))]
+            #[with_doc_section(doc_section!(@ Advanced, ""))]
             type Delimited_Format (a) {
                 #[with_doc_section(doc_section!("Some constructor."))]
                 #[with_doc_section(doc_section!(> "Example", "Some 1"))]
@@ -135,7 +136,7 @@ fn database() -> SuggestionDatabase {
     builder.add_function("bar", args, "Standard.Base.Boolean", scope.clone(), |e| {
         e.with_doc_sections(vec![
             DocSection::Paragraph { body: "Documentation for the bar function.".into() },
-            DocSection::Tag { name: "DEPRECATED", body: default() },
+            DocSection::Tag { tag: Tag::Deprecated, body: default() },
             DocSection::Marked {
                 mark:   Mark::Example,
                 header: None,
@@ -147,7 +148,7 @@ fn database() -> SuggestionDatabase {
     builder.add_local("local1", "Standard.Base.Boolean", scope, |e| {
         e.with_doc_sections(vec![
             DocSection::Paragraph { body: "Documentation for the local1 variable.".into() },
-            DocSection::Tag { name: "SOMETAG", body: default() },
+            DocSection::Tag { tag: Tag::Advanced, body: default() },
         ])
     });
 

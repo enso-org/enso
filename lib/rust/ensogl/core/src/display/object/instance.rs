@@ -1317,9 +1317,37 @@ impl PartialEq for InstanceDef {
     }
 }
 
+impl Eq for InstanceDef {}
+
+impl Ord for InstanceDef {
+    fn cmp(&self, rhs: &Self) -> std::cmp::Ordering {
+        Rc::as_ptr(self).cmp(&Rc::as_ptr(rhs))
+    }
+}
+
+impl PartialOrd<Self> for InstanceDef {
+    fn partial_cmp(&self, rhs: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(rhs))
+    }
+}
+
 impl PartialEq for Instance {
     fn eq(&self, other: &Self) -> bool {
         self.def.eq(&other.def)
+    }
+}
+
+impl Eq for Instance {}
+
+impl Ord for Instance {
+    fn cmp(&self, rhs: &Self) -> std::cmp::Ordering {
+        self.def.cmp(&rhs.def)
+    }
+}
+
+impl PartialOrd<Self> for Instance {
+    fn partial_cmp(&self, rhs: &Self) -> Option<std::cmp::Ordering> {
+        self.def.partial_cmp(&rhs.def)
     }
 }
 

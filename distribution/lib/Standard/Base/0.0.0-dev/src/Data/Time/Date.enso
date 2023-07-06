@@ -2,8 +2,8 @@ import project.Any.Any
 import project.Data.Json.JS_Object
 import project.Data.Locale.Locale
 import project.Data.Numbers.Integer
-import project.Data.Ordering.Ordering
 import project.Data.Ordering.Comparable
+import project.Data.Ordering.Ordering
 import project.Data.Text.Text
 import project.Data.Time.Date_Period.Date_Period
 import project.Data.Time.Date_Range.Date_Range
@@ -15,27 +15,24 @@ import project.Data.Time.Period.Period
 import project.Data.Time.Time_Of_Day.Time_Of_Day
 import project.Data.Time.Time_Zone.Time_Zone
 import project.Data.Vector.Vector
-import project.Errors.Common.Type_Error
 import project.Error.Error
+import project.Errors.Common.Type_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Time_Error.Time_Error
 import project.Math
 import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
-
-from project.Data.Boolean import Boolean, True, False
+from project.Data.Boolean import Boolean, False, True
 from project.Data.Text.Extensions import all
 from project.Data.Time.Date_Time import ensure_in_epoch
-
 from project.Widget_Helpers import make_date_format_selector
 
+polyglot java import java.lang.ArithmeticException
 polyglot java import java.lang.Exception as JException
+polyglot java import java.time.DateTimeException
 polyglot java import java.time.temporal.ChronoField
 polyglot java import java.time.temporal.IsoFields
-polyglot java import java.time.DateTimeException
-polyglot java import java.lang.ArithmeticException
-
 polyglot java import org.enso.base.Time_Utils
 
 ## PRIVATE
