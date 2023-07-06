@@ -1012,8 +1012,10 @@ type Table
             same_backend = case right of
                 _ : Table -> True
                 _ -> False
+            join_conditions_ok = join_kind != Join_Kind.Cross || on == []
             if same_backend . not then Error.throw (Illegal_Argument.Error "Currently cross-backend joins are not supported. You need to upload the in-memory table before joining it with a database one, or materialize this table.") else
-                True
+                if join_conditions_ok . not then Error.throw (Illegal_Argument.Error "Cross join does not allow join conditions") else
+                    True
         if can_proceed then
             left = self
             new_table_name = left.name + "_" + right.name
