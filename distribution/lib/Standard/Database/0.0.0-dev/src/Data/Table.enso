@@ -1094,7 +1094,13 @@ type Table
          layout order while for database tables the order may be unspecified).
     cross_join : Table -> Integer | Nothing -> Text -> Problem_Behavior -> Table
     cross_join self right right_row_limit=100 right_prefix="Right " on_problems=Report_Warning =
-        self.join right join_kind=Join_Kind.Cross on=[] right_prefix on_problems
+        if check_db_table "right" right then
+            limit_problems = case right_row_limit.is_nothing.not && (right.row_count > right_row_limit) of
+                True ->
+                    [Cross_Join_Row_Limit_Exceeded.Error right_row_limit right.row_count]
+                False -> []
+            on_problems.attach_problems_before limit_problems <|
+                self.join right join_kind=Join_Kind.Cross on=[] right_prefix on_problems
 
     ## ALIAS Join By Row Position
        Joins two tables by zipping rows from both tables table together - the
