@@ -135,6 +135,8 @@ ensogl::define_endpoints! {
         start_node_creation_with_ai_searcher(),
         /// Started creation of a new node using the Component Browser.
         start_node_creation_with_component_browser(),
+        /// Accepts the currently selected input of the searcher.
+        accept_searcher_input(),
     }
 
     Output {
@@ -559,10 +561,16 @@ impl View {
 
             // === Handling Inputs to the Searcher and Committing Edit ===
 
+            ai_searcher_active <- frp.searcher_type.map(|t| *t == SearcherType::AiCompletion);
+            // Note: the "enter" event for the CB searcher is handled in its own view.
+            committed_in_ai_searcher <- frp.accept_searcher_input.gate(&ai_searcher_active);
+            committed_in_ai_searcher <- committed_in_ai_searcher.map2(&last_searcher, |_, &s| (s.input, None));
+
             // The searcher will be closed due to accepting the input (e.g., pressing enter).
-            committed_in_searcher <-
+            committed_in_cb_searcher <-
                 grid.expression_accepted.map2(&last_searcher, |&entry, &s| (s.input, entry));
 
+            committed_in_searcher <- any(committed_in_ai_searcher, committed_in_cb_searcher);
             searcher_input_change_opt <- graph.node_expression_edited.map2(&frp.searcher,
                 |(node_id, expr, selections), searcher| {
                     let input_change = || (*node_id, expr.clone_ref(), selections.clone());
@@ -819,6 +827,7 @@ impl application::View for View {
             (Press, "", "cmd alt y", "execution_context_reload_and_restart"),
             (Press, "!is_searcher_opened", "cmd tab", "start_node_creation_with_ai_searcher"),
             (Press, "!is_searcher_opened", "tab", "start_node_creation_with_component_browser"),
+            (Press, "is_searcher_opened", "enter", "accept_searcher_input"),
         ]
         .iter()
         .map(|(a, b, c, d)| Self::self_shortcut_when(*a, *c, *d, *b))
