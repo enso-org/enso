@@ -358,7 +358,7 @@ type Column
                 result.rename new_name
 
     ## ALIAS Add, Plus, Concatenate
-       Element-wise addition.
+       Element-wise addition. Works on numeric types or text.
 
        Arguments:
        - other: The value to add to `self`. If `other` is a column, the addition
@@ -387,7 +387,8 @@ type Column
             run_vectorized_binary_op self '+' fallback_fn=Nothing other
 
     ## ALIAS Subtract, Minus
-       Element-wise subtraction.
+       Element-wise subtraction. Allows to subtract numeric types or compute a
+       difference between two date/time values.
 
        Arguments:
        - other: The value to subtract from `self`. If `other` is a column, the
@@ -412,7 +413,7 @@ type Column
              example_minus = Examples.integer_column - 10
     - : Column | Any -> Column
     - self other =
-        Value_Type_Helpers.check_binary_numeric_op self other <|
+        Value_Type_Helpers.resolve_subtraction_kind self other . if_not_error <|
             run_vectorized_binary_op self '-' fallback_fn=Nothing other
 
     ## ALIAS Multiply, Times, Product

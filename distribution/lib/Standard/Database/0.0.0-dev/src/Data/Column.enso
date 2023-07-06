@@ -356,7 +356,7 @@ type Column
                 self.make_op "BETWEEN" [lower, upper] new_name
 
     ## ALIAS Add, Plus, Concatenate
-       Element-wise addition.
+       Element-wise addition. Works on numeric types or text.
 
        Arguments:
        - other: The other column to add to this column.
@@ -366,13 +366,16 @@ type Column
        between corresponding elements of `self` and `other`.
     + : Column | Any -> Column
     + self other =
-        op = Value_Type_Helpers.resolve_addition_kind self other
+        op = case Value_Type_Helpers.resolve_addition_kind self other of
+            Value_Type_Helpers.Addition_Kind.Numeric_Add -> "ADD_NUMBER"
+            Value_Type_Helpers.Addition_Kind.Text_Concat -> "ADD_TEXT"
         op.if_not_error <|
             new_name = self.naming_helpers.binary_operation_name "+" self other
             self.make_binary_op op other new_name
 
-    ## ALIAS Subtract, Minus
-       Element-wise subtraction.
+    ## ALIAS Subtract, Minus, Time Difference
+       Element-wise subtraction. Allows to subtract numeric types or compute a
+       difference between two date/time values.
 
        Arguments:
        - other: The other column to subtract from this column.
@@ -382,8 +385,11 @@ type Column
        pairwise between corresponding elements of `self` and `other`.
     - : Column | Any -> Column
     - self other =
-        Value_Type_Helpers.check_binary_numeric_op self other <|
-            self.make_binary_op "-" other
+        case Value_Type_Helpers.resolve_subtraction_kind self other of
+            Value_Type_Helpers.Subtraction_Kind.Numeric_Subtract ->
+                self.make_binary_op "-" other
+            Value_Type_Helpers.Subtraction_Kind.Date_Time_Difference ->
+                Error.throw (Unsupported_Database_Operation.Error "Subtracting date/time values is not supported in this database.")
 
     ## ALIAS Multiply, Times, Product
        Element-wise multiplication.
