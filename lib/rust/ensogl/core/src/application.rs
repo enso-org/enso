@@ -84,9 +84,8 @@ impl Application {
         let scene = &display.default_scene;
         scene.display_in(dom);
         let commands = command::Registry::create();
-        let keyboard_target = scene.display_object();
         let shortcuts =
-            shortcut::Registry::new(&scene.mouse.frp_deprecated, keyboard_target, &commands);
+            shortcut::Registry::new(&scene.mouse.frp_deprecated, &scene, &scene, &commands);
         let views = view::Registry::create(&commands, &shortcuts);
         let cursor = Cursor::new(&display.default_scene);
         display.add_child(&cursor);

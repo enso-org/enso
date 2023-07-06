@@ -247,14 +247,15 @@ impl Registry {
     /// Constructor.
     pub fn new(
         mouse: &Mouse_DEPRECATED,
-        keyboard_target: &crate::display::object::Instance,
+        keyboard_target: &impl crate::display::Object,
+        global_keyboard_target: &impl crate::display::Object,
         cmd_registry: &command::Registry,
     ) -> Self {
         frp::new_network! { network
             def currently_handled = source();
         }
         let model = RegistryModel::new(mouse, cmd_registry, currently_handled.clone_ref(), None);
-        Self::extend_network(&network, &model, keyboard_target);
+        Self::extend_network(&network, &model, keyboard_target, global_keyboard_target);
         Self { model, network, currently_handled }
     }
 
@@ -263,14 +264,15 @@ impl Registry {
     pub fn instance_bound_child_in_network(
         &self,
         instance: frp::NetworkId,
-        keyboard_target: &crate::display::object::Instance,
+        keyboard_target: &impl crate::display::Object,
+        global_keyboard_target: &impl crate::display::Object,
         network: &frp::Network,
     ) -> RegistryModel {
         let mouse = &self.mouse;
         let cmd_registry = &self.command_registry;
         let currently_handled = self.currently_handled.clone_ref();
         let model = RegistryModel::new(mouse, cmd_registry, currently_handled, Some(instance));
-        Self::extend_network(network, &model, keyboard_target);
+        Self::extend_network(network, &model, keyboard_target, global_keyboard_target);
         model
     }
 
@@ -278,11 +280,13 @@ impl Registry {
     fn extend_network(
         network: &frp::Network,
         model: &RegistryModel,
-        keyboard_target: &crate::display::object::Instance,
+        keyboard_target: &impl crate::display::Object,
+        global_keyboard_target: &impl crate::display::Object,
     ) {
         let mouse = &model.mouse;
         let kb_down = keyboard_target.on_event::<crate::control::io::keyboard::KeyDown>();
-        let kb_up = keyboard_target.on_event::<crate::control::io::keyboard::KeyUp>();
+        let kb_up =
+            global_keyboard_target.on_event_capturing::<crate::control::io::keyboard::KeyUp>();
         let registry = &model.shortcuts_registry;
         frp::extend! { network
             kb_down <- kb_down.map(f!([registry](e)

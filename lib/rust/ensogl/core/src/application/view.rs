@@ -69,10 +69,13 @@ impl Registry {
         let id = self.command_registry.register_instance(&view);
         let focused_shortcuts = V::focused_shortcuts();
         if !focused_shortcuts.is_empty() {
-            let keyboard_target = view.display_object();
             let network = V::network(&view);
-            let registry =
-                app.shortcuts.instance_bound_child_in_network(id, keyboard_target, network);
+            let registry = app.shortcuts.instance_bound_child_in_network(
+                id,
+                &view,
+                &app.display.default_scene,
+                network,
+            );
             for shortcut in focused_shortcuts {
                 registry.add(shortcut)
             }
