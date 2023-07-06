@@ -5,12 +5,21 @@ import org.enso.jsonrpc.{Protocol, ProtocolFactory}
 /** Factory creating JSON-RPC protocol. */
 final class JsonRpcProtocolFactory extends ProtocolFactory {
 
+  private[this] var _protocol: Protocol = _
+
   /** @inheritdoc */
-  def getProtocol: Protocol =
-    JsonRpc.protocol
+  def getProtocol(): Protocol = {
+    if (_protocol == null) {
+      _protocol = JsonRpc.initProtocol
+    }
+    _protocol
+  }
 
   /** @inheritdoc */
   override def init(): Unit = {
-    val _ = JsonRpc.protocol
+    if (_protocol == null) {
+      _protocol = JsonRpc.initProtocol
+    }
+    _protocol = JsonRpc.fullProtocol(_protocol)
   }
 }

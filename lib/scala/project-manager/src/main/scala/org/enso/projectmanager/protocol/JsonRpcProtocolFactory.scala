@@ -6,7 +6,7 @@ import org.enso.jsonrpc.{Protocol, ProtocolFactory}
 final class JsonRpcProtocolFactory extends ProtocolFactory {
 
   /** @inheritdoc */
-  override def getProtocol: Protocol =
+  override def getProtocol(): Protocol =
     JsonRpc.protocol
 
   /** @inheritdoc */

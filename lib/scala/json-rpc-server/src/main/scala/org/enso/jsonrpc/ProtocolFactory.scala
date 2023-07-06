@@ -3,9 +3,15 @@ package org.enso.jsonrpc
 /** Factory that creates [[Protocol]]. */
 trait ProtocolFactory {
 
-  /** @return the [[Protocol]] instance. */
-  def getProtocol: Protocol
+  /** Returns the [[Protocol]] instance.
+    * If the factory has not been properly initialized yet, returns only a minimal set of messages
+    * supported during the initialization period. Returns a full set of supported messages in the
+    * post-initialization stage.
+    *
+    * @return the [[Protocol]] instance.
+    */
+  def getProtocol(): Protocol
 
-  /** Initialize the protocol. */
+  /** Initialize the protocol with the full set of supported messages. */
   def init(): Unit
 }
