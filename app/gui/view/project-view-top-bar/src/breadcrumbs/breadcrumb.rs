@@ -15,6 +15,8 @@ use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::object::ObjectOps;
+use ensogl::display::shape::compound::rectangle::Rectangle;
+use ensogl::Animation;
 use ensogl::DEPRECATED_Animation;
 use ensogl_component::text;
 use ensogl_hardcoded_theme as theme;
@@ -42,52 +44,6 @@ const SEPARATOR_SIZE: f32 = 6.0;
 /// Breadcrumb padding.
 pub const PADDING: f32 = 1.0;
 const SEPARATOR_MARGIN: f32 = 10.0;
-
-
-
-// ==================
-// === Background ===
-// ==================
-
-/// A transparent "background" of single breadcrumb, set for capturing mouse events.
-pub mod background {
-    use super::*;
-
-    ensogl::shape! {
-        alignment = center;
-        (style: Style) {
-            let bg_color = color::Rgba::new(0.0,0.0,0.0,0.000_001);
-            Plane().fill(bg_color).into()
-        }
-    }
-}
-
-
-
-// ============
-// === Icon ===
-// ============
-
-mod icon {
-    use super::*;
-
-    ensogl::shape! {
-        pointer_events = false;
-        alignment = center;
-        (style: Style, red: f32, green: f32, blue: f32, alpha: f32) {
-            let outer_circle  = Circle((ICON_RADIUS).px());
-            let inner_circle  = Circle((ICON_RADIUS - ICON_RING_WIDTH).px());
-            let ring          = outer_circle - inner_circle;
-            let size          = ICON_ARROW_SIZE;
-            let arrow         = Triangle(size.px(),size.px()).rotate((PI/2.0).radians());
-            let arrow         = arrow.translate_x(0.5.px());
-            let shape         = ring + arrow;
-            let color         = format!("vec4({red},{green},{blue},{alpha})");
-            let color : Var<color::Rgba> = color.into();
-            shape.fill(color).into()
-        }
-    }
-}
 
 
 
@@ -135,17 +91,17 @@ enum RelativePosition {
 /// ProjectName's animations handlers.
 #[derive(Debug, Clone, CloneRef)]
 pub struct Animations {
-    color:           DEPRECATED_Animation<Vector4<f32>>,
-    separator_color: DEPRECATED_Animation<Vector4<f32>>,
-    fade_in:         DEPRECATED_Animation<f32>,
+    color:           Animation<color::Rgba>,
+    separator_color: Animation<color::Rgba>,
+    fade_in:         Animation<f32>,
 }
 
 impl Animations {
     /// Constructor.
     pub fn new(network: &frp::Network) -> Self {
-        let color = DEPRECATED_Animation::new(network);
-        let fade_in = DEPRECATED_Animation::new(network);
-        let separator_color = DEPRECATED_Animation::new(network);
+        let color = Animation::new(network);
+        let fade_in = Animation::new(network);
+        let separator_color = Animation::new(network);
         Self { color, separator_color, fade_in }
     }
 }
@@ -275,16 +231,14 @@ pub struct BreadcrumbInfo {
 #[derive(Debug, Clone, CloneRef)]
 pub struct BreadcrumbModel {
     display_object:    display::object::Instance,
-    view:              background::View,
+    overlay:           Rectangle,
     separator:         separator::View,
-    icon:              icon::View,
     label:             text::Text,
-    animations:        Animations,
     style:             StyleWatch,
     /// Breadcrumb information such as name and expression ID.
     pub info:          Rc<BreadcrumbInfo>,
     relative_position: Rc<Cell<Option<RelativePosition>>>,
-    outputs:           FrpOutputs,
+    separator_visible: Rc<Cell<bool>>,
 }
 
 impl BreadcrumbModel {
@@ -292,35 +246,25 @@ impl BreadcrumbModel {
     #[profile(Detail)]
     pub fn new(
         app: &Application,
-        frp: &Frp,
         method_pointer: &SharedMethodPointer,
         expression_id: &ast::Id,
     ) -> Self {
         let scene = &app.display.default_scene;
         let display_object = display::object::Instance::new();
-        let view = background::View::new();
-        let icon = icon::View::new();
+        let overlay = Rectangle::new().build(|r| {
+            r.set_color(INVISIBLE_HOVER_COLOR);
+        });
         let separator = separator::View::new();
         let label = app.new_view::<text::Text>();
         let expression_id = *expression_id;
         let method_pointer = method_pointer.clone();
         let info = Rc::new(BreadcrumbInfo { method_pointer, expression_id });
-        let animations = Animations::new(&frp.network);
         let relative_position = default();
-        let outputs = frp.outputs.clone_ref();
+        let separator_visible = default();
 
-        ensogl::shapes_order_dependencies! {
-            scene => {
-                background -> icon;
-                background -> separator;
-            }
-        }
-
-        scene.layers.panel.add(&view);
-        scene.layers.panel.add(&icon);
+        scene.layers.panel_overlay.add(&overlay);
         scene.layers.panel.add(&separator);
 
-        scene.layers.main.remove(&label);
         label.add_to_scene_layer(&scene.layers.panel_text);
 
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
@@ -328,53 +272,68 @@ impl BreadcrumbModel {
         let style = StyleWatch::new(&scene.style_sheet);
         Self {
             display_object,
-            view,
+            overlay,
             separator,
-            icon,
             label,
-            animations,
             style,
             info,
             relative_position,
-            outputs,
+            separator_visible,
         }
         .init()
     }
 
     fn init(self) -> Self {
-        self.add_child(&self.view);
-        self.view.add_child(&self.separator);
-        self.separator.add_child(&self.icon);
-        self.icon.add_child(&self.label);
+        self.add_child(&self.overlay);
+        self.add_child(&self.separator);
+        self.add_child(&self.label);
 
         let styles = &self.style;
         let full_color = styles.get_color(theme::graph_editor::breadcrumbs::full);
         let transparent_color = styles.get_color(theme::graph_editor::breadcrumbs::transparent);
 
-        let color = if self.is_selected() { full_color } else { transparent_color };
-
-        self.label.set_property_default(color);
+        self.label.set_property_default(full_color);
         self.label.set_property_default(text::formatting::Size::from(TEXT_SIZE));
         self.label.set_single_line_mode(true);
-        self.label.set_x(ICON_RADIUS + ICON_RIGHT_MARGIN);
-        self.label.set_y(TEXT_SIZE / 2.0);
         self.label.set_content(&self.info.method_pointer.name);
+
+        self
+    }
+
+    fn update_layout(&self) {
+        if self.separator_visible.get() {
+            self.label.set_x(SEPARATOR_SIZE / 2.0 + SEPARATOR_MARGIN);
+        }
+        self.label.set_y(TEXT_SIZE / 2.0);
 
         let width = self.width();
         let height = self.height();
         let offset = SEPARATOR_MARGIN + SEPARATOR_SIZE / 2.0;
 
-        self.view.set_size(Vector2::new(width, height));
+        self.overlay.set_size(Vector2::new(width, height));
         self.fade_in(0.0);
         let separator_size = (SEPARATOR_SIZE + PADDING * 2.0).max(0.0);
-        let icon_size = (ICON_SIZE + PADDING * 2.0).max(0.0);
         self.separator.set_size(Vector2::new(separator_size, separator_size));
-        self.separator.set_x((offset - width / 2.0).round());
-        self.icon.set_size(Vector2::new(icon_size, icon_size));
-        let x_position = offset + PADDING + ICON_SIZE / 2.0 + LEFT_MARGIN + ICON_LEFT_MARGIN;
-        self.icon.set_x(x_position.round());
+        self.separator.set_x(offset.round());
+        self.separator.set_y(height / 2.0);
+    }
 
-        self
+    pub fn hide_separator(&self) {
+        self.remove_child(&self.separator);
+        self.separator_visible.set(false);
+        self.update_layout();
+    }
+
+    pub fn show_separator(&self) {
+        self.add_child(&self.separator);
+        self.separator_visible.set(true);
+        self.update_layout();
+    }
+
+    /// Set a displayed label.
+    pub fn set_label(&self, content: &str) {
+        self.label.set_content(content);
+        self.update_layout();
     }
 
     fn label_width(&self) -> f32 {
@@ -383,17 +342,20 @@ impl BreadcrumbModel {
 
     /// Get the width of the view.
     pub fn width(&self) -> f32 {
-        let separator_width = SEPARATOR_MARGIN * 2.0 + SEPARATOR_SIZE;
-        let icon_width = ICON_LEFT_MARGIN + ICON_SIZE + ICON_RIGHT_MARGIN;
         let label_width = self.label_width();
         let margin_and_padding = LEFT_MARGIN + RIGHT_MARGIN + PADDING * 2.0;
-        let width = separator_width + icon_width + label_width + margin_and_padding;
+        let separator_width = if self.separator_visible.get() {
+            SEPARATOR_MARGIN * 2.0 + SEPARATOR_SIZE
+        } else {
+            0.0
+        };
+        let width = separator_width + label_width + margin_and_padding;
         width.ceil()
     }
 
     /// Get the height of the view.
     pub fn height(&self) -> f32 {
-        LINE_HEIGHT + breadcrumbs::VERTICAL_MARGIN * 2.0
+        LINE_HEIGHT //+ breadcrumbs::VERTICAL_MARGIN * 2.0
     }
 
     fn fade_in(&self, value: f32) {
@@ -401,21 +363,15 @@ impl BreadcrumbModel {
         let height = self.height();
         let x_position = width * value / 2.0;
         // let y_position = -height / 2.0 - VERTICAL_MARGIN - PADDING;
-        let y_position: f32 = height / 2.0;
-        self.view.set_position(Vector3(x_position.round(), y_position.round(), 0.0));
+        let y_position: f32 = height / 4.0;
+        self.overlay.set_position(Vector3(x_position.round(), y_position.round(), 0.0));
     }
 
-    fn set_color(&self, value: Vector4<f32>) {
-        let color = color::Rgba::from(value);
+    fn set_color(&self, color: color::Rgba) {
         self.label.set_property(.., color);
-        self.icon.red.set(color.red);
-        self.icon.green.set(color.green);
-        self.icon.blue.set(color.blue);
-        self.icon.alpha.set(color.alpha);
     }
 
-    fn set_separator_color(&self, value: Vector4<f32>) {
-        let color = color::Rgba::from(value);
+    fn set_separator_color(&self, color: color::Rgba) {
         self.separator.red.set(color.red);
         self.separator.green.set(color.green);
         self.separator.blue.set(color.blue);
@@ -426,9 +382,6 @@ impl BreadcrumbModel {
         let styles = &self.style;
         let selected_color = styles.get_color(theme::graph_editor::breadcrumbs::selected);
         let left_deselected = styles.get_color(theme::graph_editor::breadcrumbs::deselected::left);
-
-        self.animations.color.set_target_value(selected_color.into());
-        self.animations.separator_color.set_target_value(left_deselected.into());
     }
 
     fn deselect(&self, old: usize, new: usize) {
@@ -436,9 +389,6 @@ impl BreadcrumbModel {
         let right = RelativePosition::Right;
         self.relative_position
             .set((new > old).as_option().map(|_| Some(left)).unwrap_or(Some(right)));
-        let color = self.deselected_color().into();
-        self.animations.color.set_target_value(color);
-        self.animations.separator_color.set_target_value(color);
     }
 
     fn deselected_color(&self) -> color::Rgba {
@@ -453,10 +403,6 @@ impl BreadcrumbModel {
             Some(RelativePosition::Left) => left_deselected,
             None => selected_color,
         }
-    }
-
-    fn is_selected(&self) -> bool {
-        self.outputs.is_selected.value()
     }
 }
 
@@ -489,44 +435,56 @@ impl Breadcrumb {
         expression_id: &ast::Id,
     ) -> Self {
         let frp = Frp::new();
-        let model = Rc::new(BreadcrumbModel::new(app, &frp, method_pointer, expression_id));
+        let model = Rc::new(BreadcrumbModel::new(app, method_pointer, expression_id));
         let network = &frp.network;
+        let out = &frp.outputs;
         let scene = &app.display.default_scene;
+        let animations = Animations::new(&frp.network);
+        let styles = StyleWatchFrp::new(&scene.style_sheet);
 
-        // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
-        //         system (#795)
-        let styles = StyleWatch::new(&scene.style_sheet);
         let hover_color = styles.get_color(theme::graph_editor::breadcrumbs::hover);
+        let selected_color = styles.get_color(theme::graph_editor::breadcrumbs::selected);
+        let selected_color = styles.get_color(theme::graph_editor::breadcrumbs::selected);
+        let left_deselected = styles.get_color(theme::graph_editor::breadcrumbs::deselected::left);
+        let right_deselected =
+            styles.get_color(theme::graph_editor::breadcrumbs::deselected::right);
 
         frp::extend! { network
-            eval_ frp.fade_in(model.animations.fade_in.set_target_value(1.0));
-            eval_ frp.select({
-                model.outputs.selected.emit(true);
-                model.select();
-            });
-            eval frp.deselect(((old,new)) {
-                model.outputs.selected.emit(false);
-                model.deselect(*old,*new);
-            });
-            not_selected <- frp.outputs.selected.map(|selected| !selected);
-            mouse_over_if_not_selected <- model.view.events_deprecated.mouse_over.gate(&not_selected);
-            mouse_out_if_not_selected  <- model.view.events_deprecated.mouse_out.gate(&not_selected);
-            eval_ mouse_over_if_not_selected(
-                model.animations.color.set_target_value(hover_color.into())
-            );
-            eval_ mouse_out_if_not_selected(
-                model.animations.color.set_target_value(model.deselected_color().into())
-            );
-            eval_ model.view.events_deprecated.mouse_down_primary(frp.outputs.clicked.emit(()));
+            deselected_color <- all_with3(&selected_color, &left_deselected, &right_deselected,
+                f!([model](selected, left, right) {
+                    match model.relative_position.get() {
+                        Some(RelativePosition::Right) => *right,
+                        Some(RelativePosition::Left) => *left,
+                        None => *selected,
+                    }
+                }
+            ));
+            animations.fade_in.target <+ frp.fade_in.constant(1.0);
+            eval_ frp.select(out.selected.emit(true));
+            eval_ frp.deselect(out.selected.emit(false));
+            eval_ frp.select(model.select());
+            animations.color.target <+ selected_color.sample(&frp.select);
+            animations.separator_color.target <+ left_deselected.sample(&frp.select);
+            eval frp.deselect(((old, new)) model.deselect(*old, *new));
+            animations.color.target <+ deselected_color.sample(&frp.deselect);
+            animations.separator_color.target <+ deselected_color.sample(&frp.deselect);
+
+            not_selected <- out.selected.map(|selected| !selected);
+            mouse_over_if_not_selected <- model.overlay.events_deprecated.mouse_over.gate(&not_selected);
+            mouse_out_if_not_selected  <- model.overlay.events_deprecated.mouse_out.gate(&not_selected);
+            animations.color.target <+ hover_color.sample(&mouse_over_if_not_selected);
+            animations.color.target <+ deselected_color.sample(&mouse_over_if_not_selected);
+
+            eval_ model.overlay.events_deprecated.mouse_down_primary(out.clicked.emit(()));
         }
 
 
         // === Animations ===
 
-        frp::extend! {network
-            eval model.animations.fade_in.value((value) model.fade_in(*value));
-            eval model.animations.color.value((value) model.set_color(*value));
-            eval model.animations.separator_color.value((value) model.set_separator_color(*value));
+        frp::extend! { network
+            eval animations.fade_in.value((value) model.fade_in(*value));
+            eval animations.color.value((value) model.set_color(*value));
+            eval animations.separator_color.value((value) model.set_separator_color(*value));
         }
 
         Self { model, frp }

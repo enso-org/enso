@@ -221,10 +221,32 @@ impl BreadcrumbsModel {
         self.add_child(&self.root);
         self.root.add_child(&self.breadcrumbs_container);
         self.root.add_child(&self.background);
+        self.add_root_breadcrumb();
 
         self.update_layout();
 
         self
+    }
+
+    fn add_root_breadcrumb(&self) {
+        let defined_on_type = default();
+        let module = default();
+        let name = "main".to_string();
+        let method_pointer = MethodPointer { module, defined_on_type, name }.into();
+        let breadcrumb = Breadcrumb::new(&self.app, &method_pointer, &uuid::Uuid::new_v4());
+        let network = &breadcrumb.frp.network;
+        let frp_inputs = &self.frp_inputs;
+
+        frp::extend! { network
+            eval_ breadcrumb.frp.outputs.clicked(
+                frp_inputs.select_breadcrumb.emit(0);
+            );
+        }
+
+        breadcrumb.set_x(self.breadcrumbs_container_width().round());
+        breadcrumb.set_label("main");
+        self.breadcrumbs_container.add_child(&breadcrumb);
+        self.breadcrumbs.borrow_mut().push(breadcrumb);
     }
 
     fn camera_changed(&self) {
@@ -324,6 +346,7 @@ impl BreadcrumbsModel {
                 self.remove_breadcrumbs_history_beginning_from(breadcrumb_index);
                 let new_index = breadcrumb_index + 1;
                 let breadcrumb = Breadcrumb::new(&self.app, method_pointer, expression_id);
+                breadcrumb.show_separator();
                 let network = &breadcrumb.frp.network;
                 let frp_inputs = &self.frp_inputs;
 
