@@ -37,6 +37,6 @@ type Join_Kind
        returned, since all columns of the left table would be all null anyway.
     Right_Exclusive
 
-    ## Cartesian product: each row of the left type is paired with each row of
+    ## Cartesian product: each row of the left table is paired with each row of
        the right table.
     Cross
