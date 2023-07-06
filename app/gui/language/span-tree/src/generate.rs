@@ -523,7 +523,7 @@ fn generate_node_for_opr_chain(
             gen.reverse_children();
         }
 
-        let kind = if is_last { kind.clone() } else { node::Kind::chained().into() };
+        let kind = if is_last { kind.clone() } else { node::Kind::Chained };
         Ok((gen.into_node(kind, elem.infix_id), elem.offset))
     })?;
     Ok(node)
@@ -640,7 +640,7 @@ fn generate_node_for_prefix_chain(
                         gen.generate_empty_node(InsertionPointType::Append);
                     }
 
-                    Ok(gen.into_node(node::Kind::chained(), arg.prefix_id))
+                    Ok(gen.into_node(node::Kind::Chained, arg.prefix_id))
                 }
                 ArgumentPosition::Placeholder { info, named } =>
                     Ok(generate_expected_argument(node, named, i, info)),
@@ -796,7 +796,7 @@ fn generate_expected_argument(
     let arg_node = gen.generate_empty_node(InsertionPointType::ExpectedArgument { index, named });
     arg_node.node.set_argument_info(argument_info);
     arg_node.node.set_port_id(port_id);
-    gen.into_node(node::Kind::chained(), None).with_extended_ast_id(extended_ast_id)
+    gen.into_node(node::Kind::Chained, None).with_extended_ast_id(extended_ast_id)
 }
 
 /// Build a prefix application-like span tree structure where no prefix argument has been provided
@@ -1064,8 +1064,8 @@ mod test {
         clear_parameter_infos(&mut tree.root);
 
         let expected = TreeBuilder::new(26)
-            .add_child(0, 22, node::Kind::chained(), InfixCrumb::LeftOperand)
-            .add_child(0, 5, node::Kind::chained(), InfixCrumb::LeftOperand)
+            .add_child(0, 22, node::Kind::Chained, InfixCrumb::LeftOperand)
+            .add_child(0, 5, node::Kind::Chained, InfixCrumb::LeftOperand)
             .add_empty_child(0, BeforeArgument(0))
             .add_leaf(0, 1, node::Kind::argument().removable(), InfixCrumb::LeftOperand)
             .add_leaf(2, 1, node::Kind::Operation, InfixCrumb::Operator)
@@ -1075,8 +1075,8 @@ mod test {
             .add_leaf(6, 1, node::Kind::Operation, InfixCrumb::Operator)
             .add_empty_child(8, BeforeArgument(2))
             .add_child(8, 14, node::Kind::argument().removable(), InfixCrumb::RightOperand)
-            .add_child(0, 11, node::Kind::chained(), PrefixCrumb::Func)
-            .add_child(0, 7, node::Kind::chained(), PrefixCrumb::Func)
+            .add_child(0, 11, node::Kind::Chained, PrefixCrumb::Func)
+            .add_child(0, 7, node::Kind::Chained, PrefixCrumb::Func)
             .add_leaf(0, 3, node::Kind::Operation, PrefixCrumb::Func)
             .add_empty_child(4, BeforeArgument(0))
             .add_leaf(4, 3, node::Kind::argument().removable(), PrefixCrumb::Arg)
@@ -1110,7 +1110,7 @@ mod test {
             .add_empty_child(0, Append)
             .add_leaf(0, 1, node::Kind::argument().removable(), InfixCrumb::LeftOperand)
             .add_leaf(1, 2, node::Kind::Operation, InfixCrumb::Operator)
-            .add_child(3, 3, node::Kind::chained(), InfixCrumb::RightOperand)
+            .add_child(3, 3, node::Kind::Chained, InfixCrumb::RightOperand)
             .add_empty_child(0, Append)
             .add_leaf(0, 1, node::Kind::argument().removable(), InfixCrumb::LeftOperand)
             .add_leaf(1, 2, node::Kind::Operation, InfixCrumb::Operator)
@@ -1132,7 +1132,7 @@ mod test {
         let expected = TreeBuilder::new(5)
             .add_empty_child(0, Append)
             .add_leaf(0, 2, node::Kind::Operation, SectionRightCrumb::Opr)
-            .add_child(2, 2, node::Kind::chained(), SectionRightCrumb::Arg)
+            .add_child(2, 2, node::Kind::Chained, SectionRightCrumb::Arg)
             .add_empty_child(0, Append)
             .add_leaf(0, 1, node::Kind::argument().removable(), SectionLeftCrumb::Arg)
             .add_leaf(1, 1, node::Kind::Operation, SectionLeftCrumb::Opr)
@@ -1245,8 +1245,8 @@ mod test {
             sth_else => panic!("There should be 4 leaves, found: {}", sth_else.len()),
         }
         let expected = TreeBuilder::new(8)
-            .add_child(0, 8, node::Kind::chained(), Crumbs::default())
-            .add_child(0, 8, node::Kind::chained(), Crumbs::default())
+            .add_child(0, 8, node::Kind::Chained, Crumbs::default())
+            .add_child(0, 8, node::Kind::Chained, Crumbs::default())
             .add_leaf(0, 3, node::Kind::Operation, PrefixCrumb::Func)
             .add_leaf(4, 4, node::Kind::argument().removable().indexed(0), PrefixCrumb::Arg)
             .done()
@@ -1277,7 +1277,7 @@ mod test {
             sth_else => panic!("There should be 8 leaves, found: {}", sth_else.len()),
         }
         let expected = TreeBuilder::new(8)
-            .add_child(0, 8, node::Kind::chained(), Crumbs::default())
+            .add_child(0, 8, node::Kind::Chained, Crumbs::default())
             .add_child(0, 8, node::Kind::Operation, Crumbs::default())
             .add_empty_child(0, BeforeArgument(0))
             .add_leaf(0, 4, node::Kind::argument(), InfixCrumb::LeftOperand)

@@ -89,7 +89,7 @@ impl GraphLayers {
             edge_below_nodes: base.create_sublayer("inactive_edges"),
             main_nodes:       MainNodeLayers::new(base, None),
             edge_above_nodes: base.create_sublayer("inactive_edges"),
-            edited_backdrop:  NodeBackdropLayers::new(searcher, Some(&edit_camera)),
+            edited_backdrop:  NodeBackdropLayers::new(base, Some(&edit_camera)),
             edited_nodes:     MainNodeLayers::new(searcher, Some(&edit_camera)),
         };
         Self { data: Rc::new(data) }

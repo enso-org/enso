@@ -546,6 +546,7 @@ impl NodeModel {
         let height = self.height();
         let size = Vector2(width, height);
         let padded_size = size + Vector2(BACKDROP_INSET, BACKDROP_INSET) * 2.0;
+        self.output.frp.set_size(size);
         self.error_indicator.set_size(padded_size);
         self.vcs_indicator.frp.set_size(padded_size);
         let x_offset_to_node_center = x_offset_to_node_center(width);
@@ -557,7 +558,6 @@ impl NodeModel {
         let visualization_offset = visualization_offset(width);
         self.error_visualization.set_xy(visualization_offset);
         self.visualization.set_xy(visualization_offset);
-
         size
     }
 
@@ -702,7 +702,6 @@ impl Node {
 
             input_width <- all(&model.input.frp.width, &init)._0();
             new_size <- input_width.map(f!((w) model.set_width(*w)));
-            model.output.frp.set_size <+ new_size;
 
 
             // === Action Bar ===
@@ -710,7 +709,7 @@ impl Node {
             out.context_switch <+ action_bar.action_context_switch;
             out.skip   <+ action_bar.action_skip;
             out.freeze <+ action_bar.action_freeze;
-            show_action_bar <- out.hover  && input.show_quick_action_bar_on_hover;
+            show_action_bar <- node_hover && input.show_quick_action_bar_on_hover;
             eval show_action_bar ((t) action_bar.set_visibility(t));
             eval input.show_quick_action_bar_on_hover((value) action_bar.show_on_hover(value));
             action_bar.set_action_freeze_state <+ input.set_freeze_macro;

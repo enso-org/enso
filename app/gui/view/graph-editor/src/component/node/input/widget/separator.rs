@@ -30,15 +30,10 @@ impl SpanWidget for Widget {
     type Config = Config;
 
     fn match_node(ctx: &ConfigContext) -> Score {
+        let kind = &ctx.span_node.kind;
         let matches = ctx.info.nesting_level.is_primary()
-            && (ctx.span_node.is_argument()
-                || ctx.span_node.is_named_argument()
-                || ctx.span_node.is_expected_argument());
-        if matches {
-            Score::Perfect
-        } else {
-            Score::Mismatch
-        }
+            && (kind.is_expected_argument() || kind.definition_index().is_some());
+        Score::only_if(matches)
     }
 
     fn default_config(_: &ConfigContext) -> Configuration<Self::Config> {
@@ -56,14 +51,13 @@ impl SpanWidget for Widget {
             .set_children_alignment_left_center()
             .justify_content_center_y();
         let separator = Rectangle();
-        separator.set_x(2.0);
-        separator.set_y(NODE_HEIGHT);
-        separator.allow_grow_y().set_margin_xy((7.0, 0.0));
+        separator.set_size((2.0, NODE_HEIGHT)).set_margin_xy((7.0, 0.0));
         separator.set_color(color::Rgba::new(0.0, 0.0, 0.0, 0.12));
         Self { root, separator }
     }
 
     fn configure(&mut self, _: &Config, ctx: ConfigContext) {
+        ctx.builder.manage_margin();
         let child = ctx.builder.child_widget(ctx.span_node, ctx.info.nesting_level);
         self.root.replace_children(&[self.separator.display_object(), &child.root_object]);
     }

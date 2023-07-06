@@ -19,7 +19,6 @@ use ensogl::display;
 use ensogl::display::shape::Rectangle;
 use ensogl::display::shape::StyleWatch;
 use ensogl::display::shape::StyleWatchFrp;
-use ensogl::display::shape::INVISIBLE_HOVER_COLOR;
 use ensogl::gui::text;
 use ensogl::Animation;
 
@@ -84,7 +83,7 @@ pub struct ShapeView {
 impl ShapeView {
     #[profile(Debug)]
     fn new(app: &Application, number_of_ports: usize, port_index: usize) -> Self {
-        let root = display::object::Instance::new();
+        let root = display::object::Instance::new_named("Output port shape");
         let main = Rectangle();
 
         let type_label = app.new_view::<text::Text>();
@@ -102,7 +101,9 @@ impl ShapeView {
             (false, true) => main.keep_bottom_right_quarter().set_corner_radius(main_radius),
             (false, false) => main.keep_bottom_half(),
         };
-        main.set_pointer_events(false);
+        main.set_color(color::Rgba::transparent())
+            .set_inset(PORT_LINE_WIDTH)
+            .set_pointer_events(false);
 
         let make_end_cap = || {
             let end_cap = Rectangle();
@@ -112,8 +113,7 @@ impl ShapeView {
                 .keep_top_half();
             end_cap.set_pointer_events(false);
             // End caps are positioned right above the main port line shape.
-            let port_total_height = node::HEIGHT * 0.5 + PORT_LINE_WIDTH;
-            end_cap.set_y(port_total_height);
+            end_cap.set_y(node::HEIGHT * 0.5);
             root.add_child(&end_cap);
             end_cap
         };
@@ -129,12 +129,8 @@ impl ShapeView {
             (false, true) => hover.keep_bottom_right_quarter().set_corner_radius(hover_radius),
             (false, false) => hover.keep_bottom_half(),
         };
-        hover.set_color(INVISIBLE_HOVER_COLOR);
         hover.set_pointer_events(true);
-
-        root.set_y(-PORT_LINE_WIDTH);
-        hover.set_y(-HOVER_AREA_PADDING);
-        hover.set_color(color::Rgba(0.3, 0.0, 0.0, 1.0));
+        hover.set_color(color::Rgba::transparent()).set_inner_border(HOVER_AREA_PADDING, 0.0);
         root.add_child(&main);
         Self {
             root,
@@ -152,10 +148,10 @@ impl ShapeView {
     /// Set the whole node size at which this port shape is rendered. This set size does not equal
     /// the size of the port shape itself.
     fn set_size(&self, size: Vector2) {
-        // The center of coordinate space is at the center of the node. Let's calculate everything
-        // relative to bottom left corner of the node, and then translate it at the end.
-        let node_bottom_left = -size / 2.0;
-        self.root.set_xy(node_bottom_left);
+        // The center of coordinate space is at the center of the node's left border, but it is more
+        // convenient to use bottom left corner of the node as reference during layout below.
+        let origin_offset = Vector2(0.0, -size.y / 2.0);
+        self.root.set_xy(origin_offset);
 
         // The straight line part of the shape is divided equally between all ports, taking gaps
         // into account.
@@ -163,7 +159,7 @@ impl ShapeView {
         let number_of_gaps = self.number_of_ports - 1;
         let total_gap_space =
             (number_of_gaps as f32 * SEGMENT_GAP_WIDTH).min(straight_line_width * 0.5);
-        let single_gap_width = total_gap_space / number_of_gaps as f32;
+        let single_gap_width = total_gap_space / max(1.0, number_of_gaps as f32);
         let space_to_divide = straight_line_width - total_gap_space;
         let single_port_width = space_to_divide / self.number_of_ports as f32;
 
@@ -193,11 +189,13 @@ impl ShapeView {
         let port_total_height = node::HEIGHT * 0.5 + PORT_LINE_WIDTH;
         let hover_total_height = node::HEIGHT * 0.5 + HOVER_AREA_PADDING;
 
-        self.main.set_x(port_left_position);
         // Note that `hover` is not parented to `root`, so we need to translate it manually.
-        self.hover.set_xy(node_bottom_left + Vector2(hover_left_position, 0.0));
-        self.main.set_size((port_total_width, port_total_height));
-        self.hover.set_size((hover_total_width, hover_total_height));
+        self.hover
+            .set_size((hover_total_width, hover_total_height))
+            .set_xy(origin_offset + Vector2(hover_left_position, -HOVER_AREA_PADDING));
+        self.main
+            .set_size((port_total_width, port_total_height))
+            .set_xy((port_left_position, -PORT_LINE_WIDTH));
 
         let label_width = self.type_label.width.value();
         let label_x = port_left_position + port_total_width * 0.5 - label_width * 0.5;
@@ -208,15 +206,14 @@ impl ShapeView {
     fn set_size_multiplier(&self, multiplier: f32) {
         self.size_multiplier.set(multiplier);
         let current_width = PORT_LINE_WIDTH * multiplier;
-        let current_inset = PORT_LINE_WIDTH - current_width;
-        self.main.set_inset(current_inset);
-        let cap_size = (current_width, current_width * 2.0);
+        self.main.set_border(current_width);
+        let cap_size = (current_width, current_width * 0.5);
         self.end_cap_left.as_ref().map(|cap| cap.set_size(cap_size).set_x(-current_width));
         self.end_cap_right.as_ref().map(|cap| cap.set_size(cap_size));
     }
 
     fn set_color(&self, color: color::Rgba) {
-        self.main.set_color(color);
+        self.main.set_border_color(color);
         self.end_cap_left.as_ref().map(|cap| cap.set_color(color));
         self.end_cap_right.as_ref().map(|cap| cap.set_color(color));
     }
@@ -339,6 +336,7 @@ impl Model {
             });
         }
         init.emit(());
+        shape.set_size_multiplier(0.0);
 
         if SHOW_TYPE_AS_LABEL {
             frp::extend! { network

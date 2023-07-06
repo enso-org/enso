@@ -108,9 +108,6 @@ impl Edge {
             gated_mouse_move <- mouse_move.gate_not(&frp.set_hover_disabled);
             gated_mouse_down <- mouse_down.gate_not(&frp.set_hover_disabled);
             gated_mouse_out <- mouse_out.gate_not(&frp.set_hover_disabled);
-            trace gated_mouse_move;
-            trace gated_mouse_down;
-            trace gated_mouse_out;
             hover_disabled <- frp.set_hover_disabled.on_true();
             clear_focus <- any_(gated_mouse_out, hover_disabled);
 

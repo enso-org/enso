@@ -481,9 +481,19 @@ impl LayerModel {
             if let Some(document) = enso_web::window.document() {
                 let root = document.get_html_element_by_id("debug-root").unwrap_or_else(|| {
                     let root = document.create_html_element_or_panic("div");
+                    let checkbox = document.create_html_element_or_panic("input");
+                    checkbox.set_attribute_or_warn("type", "checkbox");
+                    let label = document.create_html_element_or_panic("label");
+                    label.set_inner_text("DOM Debug");
+                    label.set_id("debug-enable-checkbox");
+                    label.append_child(&checkbox).unwrap();
+
                     root.set_id("debug-root");
-                    root.set_style_or_warn("z-index", "100");
-                    document.body().unwrap().append_child(&root).unwrap();
+                    // Dashboard uses z-index 9999 for toasts full-screen div already...
+                    root.set_style_or_warn("z-index", "10000");
+                    let body = document.body().unwrap();
+                    body.append_child(&label).unwrap();
+                    body.append_child(&root).unwrap();
                     root
                 });
 
@@ -709,7 +719,6 @@ impl LayerModel {
 
         use display::camera::camera2d::Projection;
         use enso_web::prelude::*;
-        use std::fmt::Write;
 
         let Some(dom) = &self.debug_dom else { return };
         let camera = self.camera.borrow();
@@ -727,13 +736,9 @@ impl LayerModel {
             Projection::Orthographic => {}
         }
         trans_cam.append_nonuniform_scaling_mut(&Vector3(1.0, -1.0, 1.0));
-
-        let mut transform = String::with_capacity(100);
-        let (first, rest) = trans_cam.as_slice().split_first().unwrap();
-        write!(transform, "perspective({near}px) matrix3d({first:.4}").unwrap();
-        rest.iter().for_each(|f| write!(transform, ",{f:.4}").unwrap());
-        transform.write_str(")").unwrap();
-        dom.set_style_or_warn("transform", transform);
+        let matrix_fmt = display::object::transformation::CssTransformFormatter(&trans_cam);
+        let style = format!("transform:perspective({near}px) {matrix_fmt};");
+        dom.set_attribute_or_warn("style", &style);
     }
 
     /// Compute a combined [`DependencyGraph`] for the layer taking into consideration the global

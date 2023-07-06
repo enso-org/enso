@@ -319,7 +319,7 @@ impl Model {
     #[profile(Debug)]
     fn set_expression(&self, new_expression: impl Into<node::Expression>, area_frp: &FrpEndpoints) {
         let new_expression = Expression::from(new_expression.into());
-        console_log!("Set expression: \n{:?}", new_expression.tree_pretty_printer());
+        debug!("Set expression: \n{:?}", new_expression.tree_pretty_printer());
 
         // Request widget configuration before rebuilding the widget tree, so that in case there are
         // any widget responses already cached, they can be immediately used during the first build.

@@ -2495,14 +2495,14 @@ impl InstanceDef {
                 let transform;
                 let new_parent;
 
-                let upgrade = |l: &LayerAssignment| l.layer.upgrade();
-                if let Some(layer) = object.assigned_layer.borrow().as_ref().and_then(upgrade) {
-                    transform = object.transformation.borrow().matrix();
-                    new_parent = layer.debug_dom.clone();
-                } else if let Some(parent) = object.parent().and_then(|p| p.debug_dom.clone()) {
+                let layer = object.display_layer();
+                let parent = object.parent();
+                let parent_layer = parent.as_ref().and_then(|p| p.display_layer());
+                let parent_dom = parent.as_ref().and_then(|p| p.debug_dom.as_ref());
+                if layer == parent_layer && let Some(dom) = parent_dom {
                     transform = object.transformation.borrow().local_matrix();
-                    new_parent = Some(parent);
-                } else if let Some(layer) = object.layer.borrow().as_ref().and_then(upgrade) {
+                    new_parent = Some(dom.clone());
+                } else if let Some(layer) = layer {
                     transform = object.transformation.borrow().matrix();
                     new_parent = layer.debug_dom.clone();
                 } else {
@@ -2521,20 +2521,17 @@ impl InstanceDef {
                 }
 
                 let size = object.computed_size();
-                let transform = transform.as_slice();
-                let mut style_string = style_string.borrow_mut();
                 let x = size.x();
                 let y = size.y();
                 let display = display.get();
-                let (first, rest) = transform.split_first().unwrap();
+                let transform = transformation::CssTransformFormatter(&transform);
+                let mut style_string = style_string.borrow_mut();
                 write!(style_string, "\
                     {display}\
                     width:{x}px;\
                     height:{y}px;\
-                    transform:matrix3d({first:.4}"
+                    transform:{transform};"
                 ).unwrap();
-                rest.iter().for_each(|f| write!(style_string, ",{f:.4}").unwrap());
-                style_string.write_str(");").unwrap();
                 dom.set_attribute_or_warn("style", &*style_string);
                 style_string.clear();
             });

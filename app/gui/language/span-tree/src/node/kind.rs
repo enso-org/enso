@@ -18,7 +18,7 @@ pub enum Kind {
     /// A root of the expression tree.
     Root,
     /// A node chained with parent node. See crate's docs for more info about chaining.
-    Chained(Chained),
+    Chained,
     /// A node representing operation (operator or function) of parent Infix, Section or Prefix.
     Operation,
     /// A node being a normal (not target) parameter of parent Infix, Section or Prefix.
@@ -41,12 +41,6 @@ pub enum Kind {
 
 #[allow(missing_docs)]
 impl Kind {
-    pub fn chained() -> Chained {
-        default()
-    }
-    pub fn chained_this() -> Chained {
-        Chained::this()
-    }
     pub fn this() -> Argument {
         Self::argument().with_name(Some(Argument::THIS.into()))
     }
@@ -67,7 +61,7 @@ impl Kind {
         matches!(self, Self::Root { .. })
     }
     pub fn is_chained(&self) -> bool {
-        matches!(self, Self::Chained { .. })
+        matches!(self, Self::Chained)
     }
     pub fn is_operation(&self) -> bool {
         matches!(self, Self::Operation { .. })
@@ -75,7 +69,7 @@ impl Kind {
     pub fn is_this(&self) -> bool {
         matches!(
             self,
-            Self::Argument(Argument { name, .. }) | Self::Chained(Chained { name, .. })
+            Self::Argument(Argument { name, .. })
             if name.as_deref() == Some(Argument::THIS)
         )
     }
@@ -101,12 +95,6 @@ impl Kind {
     /// Match the value with `Kind::InsertionPoint(ExpectedArgument(_))`.
     pub fn is_expected_argument(&self) -> bool {
         matches!(self, Self::InsertionPoint(t) if t.kind.is_expected_argument())
-    }
-
-    /// Match any kind that can be a function parameter. This includes `This`, `Argument` and
-    /// expected argument.
-    pub fn is_function_parameter(&self) -> bool {
-        self.is_this() || self.is_argument() || self.is_expected_argument()
     }
 
     /// If this kind is an expected argument, return its argument index.
@@ -167,7 +155,6 @@ impl Kind {
     /// `None` if the node could not be attached with the argument information.
     pub fn argument_name(&self) -> Option<&str> {
         match self {
-            Self::Chained(t) => t.name.as_deref(),
             Self::Argument(t) => t.name.as_deref(),
             Self::InsertionPoint(t) => t.name.as_deref(),
             _ => None,
@@ -196,7 +183,6 @@ impl Kind {
     /// Get the function call AST ID associated with this argument.
     pub fn call_id(&self) -> Option<ast::Id> {
         match self {
-            Self::Chained(t) => t.call_id,
             Self::Argument(t) => t.call_id,
             Self::InsertionPoint(t) => t.call_id,
             _ => None,
@@ -207,11 +193,6 @@ impl Kind {
     /// or was skipped.
     pub fn set_argument_info(&mut self, argument_info: ArgumentInfo) -> bool {
         match self {
-            Self::Chained(t) => {
-                t.name = argument_info.name;
-                t.call_id = argument_info.call_id;
-                true
-            }
             Self::Argument(t) => {
                 t.name = argument_info.name;
                 t.tp = argument_info.tp;
@@ -245,10 +226,6 @@ impl Kind {
     /// Call ID setter. Returns bool indicating whether the operation was possible.
     pub fn set_call_id(&mut self, call_id: Option<ast::Id>) -> bool {
         match self {
-            Self::Chained(t) => {
-                t.call_id = call_id;
-                true
-            }
             Self::Argument(t) => {
                 t.call_id = call_id;
                 true
@@ -265,7 +242,7 @@ impl Kind {
     pub fn variant_name(&self) -> &str {
         match self {
             Self::Root => "Root",
-            Self::Chained(_) => "Chained",
+            Self::Chained => "Chained",
             Self::Operation => "Operation",
             Self::Argument(_) => "Argument",
             Self::NamedArgument => "NamedArgument",
@@ -282,46 +259,6 @@ impl Kind {
 impl Default for Kind {
     fn default() -> Self {
         Self::insertion_point().into()
-    }
-}
-
-
-// ===============
-// === Chained ===
-// ===============
-
-/// A node chained with parent node, potentially being a first argument of a nested infix call
-/// expression.
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
-#[allow(missing_docs)]
-pub struct Chained {
-    pub name:    Option<String>,
-    /// The AST ID of function application that this Chained is a target of. If this is a part of
-    /// an infix operator chain (e.g. `1 + 2 + 3`) and this chained represents `1 + 2`
-    /// subexpression, it is effectively a target (`self`) argument of the second `+` operator.
-    /// In that case the `call_id` will point at its parent `1 + 2 + 3` expression.
-    pub call_id: Option<ast::Id>,
-}
-
-
-// === Setters ===
-
-impl Chained {
-    /// Create chained in `self` position of parent expression.
-    pub fn this() -> Self {
-        Self { name: Some(Argument::THIS.into()), ..default() }
-    }
-
-    /// Set Chained `call_id` field. See [`Chained::call_id`] for more information.
-    pub fn with_call_id(mut self, call_id: Option<ast::Id>) -> Self {
-        self.call_id = call_id;
-        self
-    }
-}
-
-impl From<Chained> for Kind {
-    fn from(t: Chained) -> Self {
-        Self::Chained(t)
     }
 }
 
@@ -460,7 +397,6 @@ impl From<InsertionPoint> for Kind {
 pub enum InsertionPointType {
     BeforeArgument(usize),
     Append,
-    // FIXME: When this insert type can be assigned to node without name?
     /// AST should be inserted as an argument at given index into the chain.
     /// Note that this is just argument index in the application, it may be not the same as the
     /// index of the function parameter, as `this` argument might be passed using the `this.func`

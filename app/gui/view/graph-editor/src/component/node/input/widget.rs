@@ -201,6 +201,19 @@ pub enum Score {
     Perfect,
 }
 
+impl Score {
+    /// A score from hard boolean condition. Either the widget matches perfectly, or it is a
+    /// complete mismatch. Useful for more "technical" widgets that are mostly implementation
+    /// details of the IDE.
+    pub fn only_if(condition: bool) -> Self {
+        if condition {
+            Score::Perfect
+        } else {
+            Score::Mismatch
+        }
+    }
+}
+
 /// Generate implementation for [`DynWidget`] enum and its associated [`Config`] enum. Those enums
 /// are used to represent any possible widget kind and its configuration.
 macro_rules! define_widget_modules(
@@ -392,10 +405,7 @@ impl Configuration {
         }
 
         let matched_kind = best_match.map_or(DynKindFlags::Label, |(kind, _)| kind);
-        let mut config = matched_kind.default_config(ctx);
-
-        config.has_port = config.has_port || ctx.info.connection.is_some();
-        config
+        matched_kind.default_config(ctx)
     }
 
     /// An insertion point that always has a port.
@@ -666,7 +676,7 @@ impl Tree {
             styles,
         );
         self.frp.private.output.on_rebuild_finished.emit(());
-        console_log!("TREE:\n{}", self.debug_print());
+        // debug!("Widget tree:\n{}", self.debug_print());
     }
 
     /// Get the root display object of the widget port for given span tree node. Not all nodes must
@@ -707,6 +717,9 @@ impl Tree {
         match self.model.nodes_map.borrow().get(&pointer) {
             Some(entry) => {
                 dst.push_str(entry.node.widget().name());
+                if entry.node.port().is_some() {
+                    dst.push_str("*");
+                }
             }
             None => {
                 dst.push_str("<MISSING>");
@@ -1067,6 +1080,8 @@ struct NodeSettings {
     /// Whether the widget is manipulating the child margins itself. Will prevent the builder from
     /// automatically adding margins calculated from span tree offsets.
     manage_margins:            bool,
+    /// Whether the widget wants to not have the automatic margin applied.
+    skip_self_margin:          bool,
     /// Override the padding of port hover area, which is used during edge dragging to determine
     /// which port is being hovered.
     custom_port_hover_padding: Option<f32>,
@@ -1402,6 +1417,13 @@ impl<'a> TreeBuilder<'a> {
         self.node_settings.manage_margins = true;
     }
 
+    /// Signal to the builder that this widget manages its own margin. This will prevent the
+    /// builder from automatically adding margins to the widget based on the offset from previous
+    /// span.
+    pub fn manage_margin(&mut self) {
+        self.node_settings.skip_self_margin = true;
+    }
+
     /// Set an additional config override for widgets that might be built in the future within the
     /// same tree build process. Takes precedence over overrides specified externally. This is
     /// useful for applying overrides conditionally, e.g. only when a specific dropdown choice is
@@ -1589,12 +1611,14 @@ impl<'a> TreeBuilder<'a> {
         self.parent_info = parent_info;
         self.last_ast_depth = parent_last_ast_depth;
         self.extensions.truncate(parent_extensions_len);
+
+        let skip_self_margin = self.node_settings.skip_self_margin;
         self.node_settings = saved_node_settings;
 
         let child_root = child_node.display_object().clone();
         layers.visual.add(&child_root);
 
-        if !self.node_settings.manage_margins {
+        if !(skip_self_margin || self.node_settings.manage_margins) {
             // Apply left margin to the widget, based on its offset relative to the previous
             // sibling.
             let offset = match () {

@@ -126,8 +126,8 @@ impl Shapes {
             source_color,
             target_color,
         );
-        for shape in &new_sections {
-            Self::set_layer(parent, is_attached, shape);
+        for (idx, shape) in new_sections.iter().enumerate() {
+            Self::set_layer(parent, is_attached || idx == 0, shape);
         }
         let arc_shapes = self.split_arc.take();
         if let Some(split_corner) = split_corner {

@@ -10,6 +10,7 @@ use crate::data::color;
 use crate::define_style;
 use crate::display;
 use crate::display::scene::Scene;
+use crate::display::shape::compound::rectangle;
 use crate::frp;
 use crate::Animation;
 use crate::Easing;
@@ -135,6 +136,7 @@ impl Style {
 pub mod shape {
     use super::*;
     crate::shape! {
+        above = [rectangle];
         pointer_events_instanced = true;
         alignment = center; (
             style: Style,
@@ -215,14 +217,14 @@ crate::define_endpoints_2! {
 #[derive(Clone, CloneRef, Debug)]
 #[allow(missing_docs)]
 pub struct CursorModel {
-    pub scene:             Scene,
-    pub display_object:    display::object::Instance,
-    pub dragged_elem:      display::object::Instance,
-    pub view:              shape::View,
-    pub custom_layer_view: shape::View,
-    pub style:             Rc<RefCell<Style>>,
-    pub dragged_item:      Rc<RefCell<Option<(Box<dyn Any>, display::object::Instance)>>>,
-    frp:                   WeakFrp,
+    pub scene:           Scene,
+    pub display_object:  display::object::Instance,
+    pub dragged_elem:    display::object::Instance,
+    pub view:            shape::View,
+    pub host_layer_view: shape::View,
+    pub style:           Rc<RefCell<Style>>,
+    pub dragged_item:    Rc<RefCell<Option<(Box<dyn Any>, display::object::Instance)>>>,
+    frp:                 WeakFrp,
 }
 
 impl CursorModel {
@@ -232,21 +234,31 @@ impl CursorModel {
         let display_object = display::object::Instance::new_no_debug();
         let dragged_elem = display::object::Instance::new_named("dragged_elem");
         let view = shape::View::new();
-        let custom_layer_view = shape::View::new();
+        let host_layer_view = shape::View::new();
         let style = default();
 
         display_object.add_child(&view);
         scene.add_child(&dragged_elem);
+        scene.add_child(&host_layer_view);
         scene.layers.cursor.add(&view);
-        // custom_layer_view is intentionally not assigned to any layer yet. Instead, it is assigned
+        // host_layer_view is intentionally not assigned to any layer yet. Instead, it is assigned
         // on demand once a cursor is in host-attached mode.
 
         let dragged_item = default();
-        Self { scene, display_object, dragged_elem, view, custom_layer_view, style, dragged_item, frp }
+        Self {
+            scene,
+            display_object,
+            dragged_elem,
+            view,
+            host_layer_view,
+            style,
+            dragged_item,
+            frp,
+        }
     }
 
     fn for_each_view(&self, f: impl Fn(&shape::View)) {
-        for view in &[&self.view, &self.custom_layer_view] {
+        for view in &[&self.view, &self.host_layer_view] {
             f(view)
         }
     }
@@ -447,25 +459,12 @@ impl Cursor {
                 if !use_layer { return None };
                 let host = new_style.host.as_ref()?.value.as_ref()?;
                 let host_layer = host.display_layer()?;
-                // To avoid holding a strong reference to the host layer within the FRP network,
-                // we need to downgrade it to a weak reference.
                 Some(host_layer.downgrade())
             });
-
-            // Only create a new sublayer if the host layer has actually changed. We want to avoid
-            // creating a new sublayer for every possibly unrelated style change.
-            let cursor_camera = model.scene.layers.cursor.camera();
-            last_used_custom_layer <- host_layer_to_use.unwrap().on_change();
-            created_host_sublayer <- last_used_custom_layer.map(move |host_layer_weak| {
-                let host_layer = host_layer_weak.upgrade()?;
-                // Here we emit a strong reference, as we actually want to keep that sublayer alive
-                // as long as the cursor is alive. Once the layer is no longer used by the cursor,
-                // a `None` signal will be emitted and the sublayer will be dropped.
-                Some(host_layer.create_sublayer_with_camera("cursor_at_host", &cursor_camera))
-            });
-            eval created_host_sublayer([model] (layer) {
-                if let Some(layer) = layer.as_ref() {
-                    layer.add(&model.custom_layer_view)
+            set_host_layer <- host_layer_to_use.unwrap().on_change();
+            eval set_host_layer([model] (layer) {
+                if let Some(layer) = layer.upgrade() {
+                    layer.add(&model.host_layer_view)
                 }
             });
 
@@ -494,8 +493,9 @@ impl Cursor {
                         }
                         Some(host) => {
                             host_follow_weight.target.emit(1.0);
+                            let host_layer = host.display_layer()?;
                             let m1 = model.scene.layers.cursor.camera().inversed_view_matrix();
-                            let m2 = model.scene.camera().view_matrix();
+                            let m2 = host_layer.camera().view_matrix();
                             let position = host.global_position();
                             let size = host.computed_size();
                             let position = Vector4::new(
@@ -568,14 +568,28 @@ impl Cursor {
                 }
             }));
 
+            position_in_host_camera <- position.filter_map(
+                f!([model] (position) {
+                    let style = model.style.borrow();
+                    let host = style.host.as_ref()?.value.as_ref()?;
+                    let host_layer = host.display_layer()?;
+                    let m1 = model.scene.layers.cursor.camera().view_matrix();
+                    let m2 = host_layer.camera().inversed_view_matrix();
+                    let position = m2 * (m1 * position.push(1.0));
+                    Some(position.xyz())
+                })
+            );
+
+
 
             // === Evals ===
 
-            eval mouse_pos_rt         ((t) host_position.target.emit(Vector3(t.x,t.y,0.0)));
-            eval position             ((t) model.display_object.set_position(*t));
-            eval front_color          ((t) model.view.color.set(color::Rgba::from(t).into()));
-            eval custom_layer_color   ((t) model.custom_layer_view.color.set(color::Rgba::from(t).into()));
-            eval_ screen_position     (model.update_drag_position());
+            eval mouse_pos_rt ((t) host_position.target.emit(Vector3(t.x,t.y,0.0)));
+            eval position ((t) model.display_object.set_position(*t));
+            eval position_in_host_camera ((t) model.host_layer_view.set_position(*t));
+            eval front_color ((t) model.view.color.set(color::Rgba::from(t).into()));
+            eval custom_layer_color ((t) model.host_layer_view.color.set(color::Rgba::from(t).into()));
+            eval_ screen_position (model.update_drag_position());
 
             // === Outputs ===
 

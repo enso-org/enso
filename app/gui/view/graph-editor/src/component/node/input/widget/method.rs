@@ -52,13 +52,9 @@ impl SpanWidget for Widget {
     }
 
     fn match_node(ctx: &ConfigContext) -> Score {
-        if ctx.span_node.application.is_some()
-            && ctx.get_extension::<MethodAlreadyInTree>().is_none()
-        {
-            Score::Perfect
-        } else {
-            Score::Mismatch
-        }
+        let matches = ctx.span_node.application.is_some()
+            && ctx.get_extension::<MethodAlreadyInTree>().is_none();
+        Score::only_if(matches)
     }
 
     fn root_object(&self) -> &display::object::Instance {

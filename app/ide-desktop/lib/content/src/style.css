@@ -209,7 +209,26 @@ body {
   margin: 0;
   overflow: hidden;
   pointer-events: none;
+  display: none;
 }
+
+#debug-enable-checkbox {
+  position: absolute;
+  bottom: 0px;
+  right: 0px;
+  color: white;
+  font-size: 12px;
+  font-family: "M PLUS 1";
+  padding: 3px 6px;
+  background: rgba(15, 0, 77, 0.7);
+  cursor: none;
+  user-select: none;
+}
+
+#debug-enable-checkbox:has(input:checked) + #debug-root {
+  display: initial;
+}
+
 #debug-root > .debug-layer {
   position: absolute;
   top: 50vh;

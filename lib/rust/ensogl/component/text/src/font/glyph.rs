@@ -102,7 +102,7 @@ pub mod glyph_shape {
         type SystemData = SystemData;
         type ShapeData = ShapeData;
         flavor = ShapeData::flavor;
-        above = [ensogl_core::display::shape::compound::rectangle];
+        above = [ensogl_core::display::shape::compound::rectangle, ensogl_core::gui::cursor::shape];
         (
             style: Style,
             font_size: f32,

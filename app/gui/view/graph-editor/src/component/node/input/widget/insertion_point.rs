@@ -31,7 +31,7 @@ impl SpanWidget for Widget {
     type Config = Config;
 
     fn match_node(ctx: &ConfigContext) -> Score {
-        ctx.span_node.is_positional_insertion_point().then_val_or_default(Score::Perfect)
+        Score::only_if(ctx.span_node.is_positional_insertion_point())
     }
 
     fn default_config(_: &ConfigContext) -> Configuration<Self::Config> {

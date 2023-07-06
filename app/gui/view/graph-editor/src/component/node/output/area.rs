@@ -158,7 +158,7 @@ impl Model {
     pub fn new(app: &Application, frp: &Frp) -> Self {
         let display_object = display::object::Instance::new_named("output");
         let ports = display::object::Instance::new();
-        let hover_root = display::object::Instance::new();
+        let hover_root = display::object::Instance::new_named("output hover");
         let port_models = default();
         let label = app.new_view::<text::Text>();
         let id_ports_map = default();
