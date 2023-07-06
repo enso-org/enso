@@ -1,5 +1,5 @@
 import project.Data.Locale.Locale
-import project.Data.Text.Regex
+import project.Data.Text.Regex.Regex
 import project.Data.Text.Text
 import project.Error.Error
 import project.Errors.Illegal_Argument.Illegal_Argument

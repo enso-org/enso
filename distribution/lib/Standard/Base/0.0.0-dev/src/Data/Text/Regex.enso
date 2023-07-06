@@ -1,59 +1,411 @@
 import project.Any.Any
+import project.Errors.Common.Syntax_Error
+import project.Data.Filter_Condition.Filter_Condition
+import project.Data.Map.Map
 import project.Data.Numbers.Integer
+import project.Data.Range.Range
+import project.Data.Text.Helpers
 import project.Data.Text.Prim_Text_Helper
-import project.Data.Text.Regex.Pattern.Pattern
+import project.Data.Text.Span.Span
+import project.Data.Text.Span.Utf_16_Span
+import project.Data.Text.Regex.Match.Match
+import project.Data.Text.Regex.No_Such_Group
+import project.Data.Text.Regex.Internal.Match_Iterator.Match_Iterator
+import project.Data.Text.Regex.Internal.Match_Iterator.Match_Iterator_Value
+import project.Data.Text.Regex.Internal.Replacer.Replacer
 import project.Data.Text.Text
+import project.Data.Vector.Vector
+import project.Errors.Common.Type_Error
 import project.Error.Error
 import project.Errors.Illegal_Argument.Illegal_Argument
+import project.Math
+import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
+import project.Polyglot.Polyglot
 
 from project.Data.Boolean import Boolean, True, False
-from project.Errors.Common import Syntax_Error
+from project.Data.Index_Sub_Range import sort_and_merge_ranges
+from project.Data.Range.Extensions import all
+from project.Data.Text.Extensions import all
 
+polyglot java import org.enso.base.Replacer_Cache
+polyglot java import org.enso.base.Text_Utils
 polyglot java import org.enso.base.Regex_Utils
 
-## Compile the provided `expression` into a regex pattern that can be used for
-   matching.
+type Regex
+    ## Compile the provided `expression` into a `Regex` that can be used for
+       matching.
 
-   Arguments
-   - expression: The text representing the regular expression that you want to
-     compile. Must be non-empty.
-   - case_insensitive: Enables or disables case-insensitive matching. Case
-     insensitive matching behaves as if it normalises the case of all input
-     text before matching on it.
+       Arguments
+       - expression: The text representing the regular expression that you want to
+         compile. Must be non-empty.
+       - case_insensitive: Enables or disables case-insensitive matching. Case
+         insensitive matching behaves as if it normalises the case of all input
+         text before matching on it.
 
-   If an empty regex is used, `compile` throws an Illegal_Argument error.
+       If an empty regex is used, `compile` throws an Illegal_Argument error.
+    compile : Text -> Boolean | Nothing -> Regex ! Regex_Syntax_Error | Illegal_Argument
+    compile expression case_insensitive=Nothing =
+        if expression == '' then Error.throw (Illegal_Argument.Error "Regex cannot be the empty string") else
+            options_string = if case_insensitive == True then "usgi" else "usg"
 
-   ? Why Compile?
-     While many regex engines are able to cache ad-hoc patterns, it is often
-     useful to be able to manually retain a pattern that you have computed. This
-     function exists so you can hold onto the resultant `Pattern` object,
-     instead of immediately proceeding to match using it.
-compile : Text -> Boolean | Nothing -> Pattern ! Regex_Syntax_Error | Illegal_Argument
-compile self expression case_insensitive=Nothing =
-    if expression == '' then Error.throw (Illegal_Argument.Error "Regex cannot be the empty string") else
-        options_string = if case_insensitive == True then "usgi" else "usg"
+            internal_regex_object = Panic.catch Syntax_Error (Prim_Text_Helper.compile_regex expression options_string) caught_panic->
+                Error.throw (Regex_Syntax_Error.Error (caught_panic.payload.message))
 
-        internal_regex_object = Panic.catch Syntax_Error (Prim_Text_Helper.compile_regex expression options_string) caught_panic->
-            Error.throw (Regex_Syntax_Error.Error (caught_panic.payload.message))
+            Regex.Value internal_regex_object
 
-        Pattern.Value internal_regex_object
+    ## PRIVATE
 
-## Escape the special characters in `expression` such that the result is a
-   valid literal pattern for the original string.
+       internal_regex_object : RegexObject (Truffle)
+       (See https://github.com/oracle/graal/blob/master/regex/docs/README.md)
+    Value (internal_regex_object : Any)
 
-   Arguments:
-   - expression: The expression to escape metacharacters in.
+    ## Returns `True` if the input matches against the pattern described by
+       `self`, otherwise `False`.
 
-   > Example
-     Turn a Text into a regex that matches that string exactly.
+       Arguments:
+       - input: The text to check for matching.
+    matches : Text -> Boolean | Type_Error
+    matches self input =
+        Helpers.expect_text input <|
+            m = self.internal_regex_object.exec input 0
+            m . isMatch && m.getStart 0 == 0 && m.getEnd 0 == input.length
 
-         example_escape =
-             literal_string = "\!\.|abcde"
-             Regex.escape literal_string
-escape : Text -> Text
-escape self expression = Regex_Utils.regexQuote expression
+    ## Tries to match the provided `input` against the pattern `self`.
+
+       Returns a `Match` containing the matched text and its match groups, or
+       `Nothing` if the match failed.
+
+       Arguments:
+       - input: The text to match the pattern described by `self` against.
+    match : Text -> Match | Nothing | Type_Error
+    match self input =
+        Helpers.expect_text input <|
+            it = Match_Iterator.new self input
+            case it.next of
+                Match_Iterator_Value.Next _ match _ -> match
+                Match_Iterator_Value.Last _ -> Nothing
+
+    ## Tries to match the provided `input` against the pattern `self`.
+
+       Returns a `Vector Match` object, each containing the matched text
+       and its match groups.
+
+       Arguments:
+       - input: The text to match the pattern described by `self` against.
+    match_all : Text -> Vector Match ! Type_Error | Illegal_Argument
+    match_all self input =
+        Helpers.expect_text input <|
+            pattern_is_empty = self.internal_regex_object.pattern == ''
+            if pattern_is_empty then Error.throw (Illegal_Argument.Error "Cannot run match_all with an empty pattern") else
+                builder = Vector.new_builder
+                it = Match_Iterator.new self input
+                go it = case it.next of
+                    Match_Iterator_Value.Next _ match next_it ->
+                        builder.append match
+                        @Tail_Call go next_it
+                    Match_Iterator_Value.Last _ -> Nothing
+                go it
+                builder.to_vector
+
+    ## Tries to match the provided `input` against the pattern `self`.
+
+       Returns a `Text` containing the matched text, or `Nothing` if the match
+       failed.
+
+       Arguments:
+       - input: The text to match the pattern described by `self` against.
+    find : Text -> Text | Nothing | Type_Error
+    find self input =
+        Helpers.expect_text input <|
+           match_to_group_maybe <| self.match input
+
+    ## Tries to match the provided `input` against the pattern `self`.
+
+       Returns a `Vector Text`, each containing the matched text.
+       If the pattern does not match, an empty `Vector` is returned.
+
+       Arguments:
+       - input: The text to match the pattern described by `self` against.
+    find_all : Text -> Vector Text ! Type_Error
+    find_all self input =
+        Helpers.expect_text input <|
+           self.match_all input . map match_to_group_maybe
+
+    ## Splits the `input` text based on the pattern described by `self`.
+
+       Arguments:
+       - input: The text to split based on the pattern described by `self`.
+       - only_first: If true, only split at the first occurrence.
+
+       This method will _always_ return a vector. If no splits take place, the
+       vector will contain a single element (equal to the original string).
+
+       > Example
+         Split on the first instance of the pattern.
+             pattern = Regex.compile "cd"
+             input = "abcdefcdghij"
+             texts = pattern.split input only_first=True
+             texts . should_equal ["ab", "efcdghij"]
+
+       > Example
+         Split on the all instances of the pattern in the input.
+            pattern = Regex.compile "a"
+            input = "bacadaeaf"
+            texts = pattern.split input
+            texts . should_equal ["b", "c", "d", "e", "f"]
+
+       > Example
+         Returns the original text if there are no matches.
+             pattern = Regex.compile "aa"
+             input = "abcdefghij"
+             texts = pattern.split input
+             texts . should_equal ["abcdefghij"]
+    split : Text -> Boolean -> Vector Text | Type_Error
+    split self input only_first=False =
+        Helpers.expect_text input <|
+            builder = Vector.new_builder
+            it = Match_Iterator.new self input
+            go next = case next of
+                Match_Iterator_Value.Next filler _ next_it ->
+                    builder.append filler.text
+                    next = if only_first then next_it.early_exit else next_it.next
+                    @Tail_Call go next
+                Match_Iterator_Value.Last filler ->
+                    builder.append filler.text
+            go it.next
+            builder.to_vector
+
+    ## Takes an input string and returns all the matches as a `Vector Text`.
+       If the pattern contains marked groups, the values are concatenated
+       together; otherwise the whole match is returned. Non-participating
+       groups are omitted.
+
+       Arguments:
+       - input: The text to tokenize.
+
+       > Example
+         Split to blocks of 3 characters.
+
+             Regex.compile '...' . tokenize 'ABCDEF' == ['ABC','DEF']
+
+       > Example
+         Split to blocks of 3 characters taking first and third letters.
+
+             Regex.compile '(.).(.)' . tokenize 'ABCDEF' == ['AC','DF']
+
+       > Example
+         Split a text on any white space.
+
+             Regex.compile '(\S+)(?:\s+|$)' . tokenize 'Hello Big\r\nWide\tWorld\nGoodbye!'
+                 == ['Hello','Big','Wide','World','Goodbye!']
+    tokenize : Text -> Vector Text
+    tokenize self input =
+        self.match_all input . map (build_tokenization_output_from_match self _)
+
+    ## Replace all occurrences of the pattern described by `self` in the `input`
+       with the specified `replacement`.
+
+       Arguments:
+       - input: The text in which to perform the replacement(s).
+       - replacement: The literal text with which to replace any matches.
+       - only_first: If True, only replace the first match.
+
+       If this method performs no replacements it will return the `input` text
+       unchanged.
+
+       The replacement string can contain references to groups matched by the
+       regex. The following syntaxes are supported:
+           $0: the entire match string
+           $&: the entire match string
+           $n: the nth group
+           $<foo>: Named group `foo`
+
+       > Example
+         Replace letters in the text "aa".
+
+             pattern = Regex.compile 'aa'
+             pattern.replace 'aaa' 'b' == 'ba'
+
+       > Example
+         Replace all occurrences of letters 'l' and 'o' with '#'.
+
+              pattern = Regex.compile '[lo]'
+              pattern.replace 'Hello World!' '#' == 'He### W#r#d!'
+
+       > Example
+         Replace the first occurrence of letter 'l' with '#'.
+
+             pattern = Regex.compile 'l'
+             pattern.replace 'Hello World!' '#' only_first=True == 'He#lo World!'
+
+       > Example
+         Replace texts in quotes with parentheses.
+
+              pattern = Regex.compile '"(.*?)"'
+              pattern.replace '"abc" foo "bar" baz' '($1)' == '(abc) foo (bar) baz'
+
+       > Example
+         Replace a literal string with a replacement value.
+
+             pattern = Regex.compile "aa"
+             input = "aa ab aa ac ad aa aa ax"
+             match = pattern.replace input "xyz"
+             match == "xyz ab xyz ac ad xyz xyz ax"
+
+       > Example
+         Replace each word with the same word surrounded by `[]`.
+
+             pattern = Regex.compile "([a-z]+)"
+             pattern.replace "foo bar, baz" "[$1]" == "[foo] [bar], [baz]"
+    replace : Text -> Text -> Boolean -> Text | Type_Error
+    replace self input replacement only_first=False =
+        Helpers.expect_text input <|
+            it = Match_Iterator.new self input
+            case it of
+                Match_Iterator_Value.Last filler -> filler.text
+                _ ->
+                    replacer = Replacer.new replacement self
+
+                    replacer.if_not_error <|
+                        go next current = case next of
+                            Match_Iterator_Value.Next filler match next_it ->
+                                new_value = current + filler.text + (replacer.replace match)
+                                next = if only_first then next_it.early_exit else next_it.next
+                                @Tail_Call go next new_value
+                            Match_Iterator_Value.Last filler ->
+                                current + filler.text
+                        go it.next ""
+
+    ## PRIVATE
+
+       Look up a match group name or number, and check that it is valid.
+
+       Arguments:
+       - id: The name or number of the group that was asked for.
+
+       Returns: a group number.
+
+       A group number is invalid if it is outside the range of groups
+       that were in the original pattern.
+
+       A group name is invalid if it was not defined in the original pattern.
+
+       A group name is an alias for a group number; if a name is passed to
+       this method, it returns the corresponding group number.
+
+       If a group number is passed to `lookup_group` and it is valid, it will
+       simply return the group number.
+
+       Note that it is possible for a group to "not participate in the match",
+       for example with a disjunction. In the example below, the "(d)" group
+       does not participate -- it neither matches nor fails.
+
+            "ab((c)|(d))".find "abc"
+
+       In this case, the group id for "(d)", which is 3, is a valid group id and
+       (Regex.lookup_group 3) will return 3. If the caller tries to get group 3,
+       Match.group will return Nothing.
+
+    lookup_group : Integer | Text -> Integer ! No_Such_Group
+    lookup_group self id =
+        case id of
+            n : Integer -> case (n >= 0 && n < self.internal_regex_object.groupCount) of
+                True -> n
+                False -> Error.throw (No_Such_Group.Error n)
+            name : Text ->
+                # Maps name to number
+                groups = self.internal_regex_object.groups
+
+                n = case groups of
+                    # If Nothing, there are no named groups
+                    Nothing -> Error.throw (No_Such_Group.Error name)
+                    _ -> read_group_map groups name
+                case n of
+                    _ : Integer -> n
+                    Nothing -> Error.throw (No_Such_Group.Error name)
+
+    ## PRIVATE
+
+       Return a lazy iterator over matches against a string.
+
+       Arguments
+       - text: the string to match against.
+    iterator : Text -> Match_Iterator
+    iterator self input = Match_Iterator.new self input
+
+    ## Return the number of groups in the underlying RegexObject.
+       Note, the count includes group 0 (the whole match) as well.
+    group_count : Integer
+    group_count self = self.internal_regex_object.groupCount
+
+    ## Return a vector of all named group names.
+    named_groups : Vector Text
+    named_groups self =
+        map = polyglot_map_to_map self.internal_regex_object.groups
+        map.keys
+
+    ## Return a map from group number to group name. Only includes named groups.
+    group_nums_to_names : Map Integer Text
+    group_nums_to_names self =
+        map = polyglot_map_to_map self.internal_regex_object.groups
+        map.transform k-> v-> [v, k]
+
+    ## Escape the special characters in `expression` such that the result is a
+       valid literal pattern for the original string.
+
+       Arguments:
+       - expression: The expression to escape metacharacters in.
+
+       > Example
+         Turn a Text into a regex that matches that string exactly.
+
+             example_escape =
+                 literal_string = "\!\.|abcde"
+                 Regex.escape literal_string
+    escape : Text -> Text
+    escape expression = Regex_Utils.regexQuote expression
+
+## PRIVATE
+   Convert the polyglot map to a Map.
+polyglot_map_to_map : Any -> Map Any Any
+polyglot_map_to_map map =
+    polyglot_keys = Polyglot.get_members map
+    keys = Vector.from_polyglot_array polyglot_keys
+    pairs = keys.map key-> [key, Polyglot.get_member map key]
+    Map.from_vector pairs
+
+## PRIVATE
+   Get the named group from the polyglot map.
+read_group_map : Any -> Text -> Integer | Nothing
+read_group_map polyglot_map name =
+    map = polyglot_map_to_map polyglot_map
+    map.get name
+
+## PRIVATE
+match_to_group_maybe : Match | Nothing -> Text | Nothing
+match_to_group_maybe match =
+    if match.is_nothing then Nothing else match.text 0
+
+## PRIVATE
+   Build an output string from a Match resulting from `tokenize`.
+   See `tokenize`.
+build_tokenization_output_from_match : Regex -> Match -> Text
+build_tokenization_output_from_match pattern match =
+    if pattern.group_count == 1 then match.text 0 else
+        # Extract the ranges of the spans of all capturing groups
+        group_numbers = 1.up_to pattern.group_count
+        spans = group_numbers.map (n-> match.span n) . filter Filter_Condition.Not_Nothing
+        ranges = spans.map span-> case span of Span.Value range _ -> range
+
+        # Eliminate nested capturing groups by sorting and merging the ranges.
+        top_level_ranges = sort_and_merge_ranges ranges
+
+        # Reconstruct `Spans` from the synthesized `Ranges`, and concatenate.
+        text_all = case spans.at 0 of Span.Value _ text -> text
+        top_level_spans = top_level_ranges.map range-> Span.Value range text_all
+        top_level_spans.map (.text) . join
 
 ## An error that is emitted when there is no such group in the match for the
    provided `id`.

@@ -22,7 +22,8 @@ import org.enso.interpreter.runtime.control.ThreadInterruptedException
 import org.enso.interpreter.runtime.error.{
   DataflowError,
   PanicSentinel,
-  WarningsLibrary
+  WarningsLibrary,
+  WithWarnings
 }
 import org.enso.interpreter.service.error._
 import org.enso.polyglot.LanguageInfo
@@ -352,6 +353,13 @@ object ProgramExecutionSupport {
               VisualizationResult.findExceptionMessage(panic),
               ErrorResolver.getStackTrace(panic).flatMap(_.expressionId)
             )
+        case warnings: WithWarnings
+            if warnings.getValue.isInstanceOf[DataflowError] =>
+          Api.ExpressionUpdate.Payload.DataflowError(
+            ErrorResolver
+              .getStackTrace(warnings.getValue.asInstanceOf[DataflowError])
+              .flatMap(_.expressionId)
+          )
         case _ =>
           val warnings =
             Option.when(

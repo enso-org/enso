@@ -119,7 +119,7 @@ impl Background {
         let inset = selection_size + selection_offset;
         let shape = Rectangle();
         shape.set_corner_radius(RADIUS);
-        shape.set_border(selection_size);
+        shape.set_frame_border(selection_size);
         shape.set_border_color(color::Rgba::transparent());
         shape.set_inset(inset);
         Self { shape, inset: Immutable(inset), selection_color: Immutable(selection_color) }

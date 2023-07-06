@@ -5,6 +5,7 @@ import org.apache.poi.ss.usermodel.DataFormatter;
 import org.apache.poi.ss.util.CellReference;
 import org.enso.table.problems.Problem;
 import org.enso.table.util.NameDeduplicator;
+import org.graalvm.polyglot.Context;
 
 import java.util.List;
 
@@ -46,6 +47,7 @@ public class ExcelHeaders {
   }
 
   private static String[] readRowAsHeaders(ExcelRow row, int startCol, int endCol, NameDeduplicator deduplicator) {
+    Context context = Context.getCurrent();
     if (row == null) {
       return null;
     }
@@ -61,12 +63,16 @@ public class ExcelHeaders {
       String name = cellText.isEmpty() ? "" : deduplicator.makeUnique(cellText);
 
       output[col - startCol] = name;
+
+      context.safepoint();
     }
 
     for (int i = 0; i < output.length; i++) {
       if (output[i] == null || output[i].isEmpty()) {
         output[i] = CellReference.convertNumToColString(i + startCol - 1);
       }
+
+      context.safepoint();
     }
 
     return output;
