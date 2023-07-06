@@ -33,6 +33,7 @@
 use crate::prelude::*;
 
 use crate::entry::icon;
+use crate::entry::DimmedGroups;
 use crate::layout::Layout;
 
 use enso_frp as frp;
@@ -62,11 +63,11 @@ pub mod entry;
 pub mod layout;
 pub mod layouting;
 
+use crate::prelude::web_sys::console::group;
 pub use content::ElementId;
 pub use content::GroupEntryId;
 pub use content::GroupId;
 pub use content::SectionId;
-
 
 
 /// A module containing common imports.
@@ -456,8 +457,10 @@ impl Model {
         let kind = if entry.group.section == SectionId::LocalScope {
             let first_line = row == self.layout.borrow().local_scope_rows().start;
             entry::Kind::LocalScopeEntry { first_line }
+        } else if let Some((group_rows, _)) = self.layout.borrow().location_of_group(entry.group) {
+            entry::Kind::Entry { first_line: row == group_rows.start }
         } else {
-            entry::Kind::Entry
+            default()
         };
         let entry_model = entry::Model {
             kind,
@@ -565,14 +568,13 @@ impl Model {
             entry::style::Colors,
             GroupColors,
         ),
-        dimmed_groups: entry::DimmedGroups,
     ) -> entry::Params {
         entry::Params {
-            style: entry_style.clone(),
-            grid_style: *style,
-            group_colors: *group_colors,
-            colors: *colors,
-            dimmed_groups,
+            style:         entry_style.clone(),
+            grid_style:    *style,
+            group_colors:  *group_colors,
+            colors:        *colors,
+            dimmed_groups: DimmedGroups::None,
         }
     }
 
@@ -681,14 +683,9 @@ impl component::Frp<Model> for Frp {
             // === Style and Entries Params ===
 
             style_and_content_size <- all(&style.update, &grid.content_size);
-            dimmed_groups <- out.active_section.map(|opt_section| match opt_section {
-                Some(section) => entry::DimmedGroups::AllExceptSection(*section),
-                None => entry::DimmedGroups::None,
-            });
             entries_style <-
                 all4(&style.update, &entry_style.update, &colors.update, &group_colors);
-            entries_params <-
-                all_with(&entries_style, &dimmed_groups, f!((s, d) model.entries_params(s, *d)));
+            entries_params <- entries_style.map(f!((s) model.entries_params(s)));
             selection_entries_style <- all(entries_params, selection_colors.update);
             selection_entries_params <-
                 selection_entries_style.map(f!((input) model.selection_entries_params(input)));

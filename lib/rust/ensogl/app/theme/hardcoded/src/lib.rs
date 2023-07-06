@@ -283,7 +283,7 @@ define_themes! { [light:0, dark:1]
                         // Pink
                         group_3 = Rgb::from_base_255(193.0, 71.0, 171.0), Rgb::from_base_255(193.0, 71.0, 171.0);
                         // Blue
-                        group_4 = Rgb::from_base_255(42.0, 103.0, 223.0), Rgb::from_base_255(42.0, 103.0, 223.0)    ;
+                        group_4 = Rgb::from_base_255(42.0, 103.0, 223.0), Rgb::from_base_255(42.0, 103.0, 223.0);
                         // Orange
                         group_5 = Rgb::from_base_255(181.0, 97.0, 35.0), Rgb::from_base_255(181.0, 97.0, 35.0);
                         local_scope_group = Rgba::new(0.0, 0.42, 0.64, 1.0),Rgba::new(0.0, 0.42, 0.64, 1.0);
