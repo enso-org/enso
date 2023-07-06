@@ -62,6 +62,7 @@ impl<'a> LaidGroup<'a> {
         element.map(|element| ElementId { group: self.group.id, element })
     }
 
+    /// Check if there are rows assigned to group's header.
     pub fn has_header(&self) -> bool {
         self.first_row < self.first_content_row
     }
@@ -451,7 +452,7 @@ mod tests {
         // 6 |     |     |     |
         // - +-----+-----+-----+
         // ```
-        let mut layout = Layout::new(7, 3, 0);
+        let mut layout = Layout::<1>::new(7, 3, 0);
         let group_ids = (0..7).map(|index| GroupId { section: SectionId::Popular, index });
         let group_sizes = [1, 2].into_iter().cycle();
         let group_columns = [CENTER, LEFT, RIGHT].into_iter().cycle();

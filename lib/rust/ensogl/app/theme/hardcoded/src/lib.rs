@@ -198,7 +198,7 @@ define_themes! { [light:0, dark:1]
                 corner_radius = 14.0, 14.0;
             }
             component_list_panel {
-                background_color = Rgb::from_base_255(234.0, 234.0, 234.0), Rgb::from_base_255(234.0, 234.0, 234.0);
+                background_color = Rgb::from_base_255(236.0, 240.0, 242.0),Rgb::from_base_255(236.0, 240.0, 242.0);
                 corners_radius = 16.0, 16.0;
                 grid {
                     width = 196.0, 196.0;

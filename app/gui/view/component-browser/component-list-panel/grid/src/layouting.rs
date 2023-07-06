@@ -1,8 +1,9 @@
-//TODO[ao] update docs.
 //! An algorithm for arranging component groups in the Favorites section in an order that optimizes
 //! the keyboard access to them.
 //!
 //! See [`Layouter`] struct documentation to learn more.
+
+//TODO[ao] update docs.
 
 use ensogl_core::prelude::*;
 

@@ -63,11 +63,11 @@ pub mod entry;
 pub mod layout;
 pub mod layouting;
 
-use crate::prelude::web_sys::console::group;
 pub use content::ElementId;
 pub use content::GroupEntryId;
 pub use content::GroupId;
 pub use content::SectionId;
+
 
 
 /// A module containing common imports.
