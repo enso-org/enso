@@ -10,6 +10,7 @@ import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.error.UnexpectedTypeException;
+import org.graalvm.polyglot.Context;
 
 public class LikeOp extends StringBooleanOp {
   public LikeOp() {
@@ -46,12 +47,15 @@ public class LikeOp extends StringBooleanOp {
       Pattern pattern = createRegexPatternFromSql(argString);
       BitSet newVals = new BitSet();
       BitSet newMissing = new BitSet();
+      Context context = Context.getCurrent();
       for (int i = 0; i < storage.size(); i++) {
         if (storage.isNa(i)) {
           newMissing.set(i);
         } else if (pattern.matcher(storage.getItem(i)).matches()) {
           newVals.set(i);
         }
+
+        context.safepoint();
       }
       return new BoolStorage(newVals, newMissing, storage.size(), false);
     } else {

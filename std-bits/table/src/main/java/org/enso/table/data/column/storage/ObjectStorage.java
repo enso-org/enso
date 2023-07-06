@@ -9,6 +9,7 @@ import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
+import org.graalvm.polyglot.Context;
 
 /** A column storing arbitrary objects. */
 public final class ObjectStorage extends SpecializedStorage<Object> {
@@ -43,6 +44,7 @@ public final class ObjectStorage extends SpecializedStorage<Object> {
     if (inferredType == null) {
       StorageType currentType = null;
 
+      Context context = Context.getCurrent();
       for (int i = 0; i < size(); i++) {
         var item = getItemBoxed(i);
         if (item == null) {
@@ -65,6 +67,8 @@ public final class ObjectStorage extends SpecializedStorage<Object> {
         if (currentType instanceof AnyObjectType) {
           break;
         }
+
+        context.safepoint();
       }
 
       inferredType = currentType == null ? AnyObjectType.INSTANCE : currentType;
@@ -86,11 +90,14 @@ public final class ObjectStorage extends SpecializedStorage<Object> {
         new UnaryMapOperation<>(Maps.IS_NOTHING) {
           @Override
           protected BoolStorage run(S storage) {
+            Context context = Context.getCurrent();
             BitSet r = new BitSet();
             for (int i = 0; i < storage.size; i++) {
               if (storage.data[i] == null) {
                 r.set(i);
               }
+
+              context.safepoint();
             }
             return new BoolStorage(r, new BitSet(), storage.size, false);
           }

@@ -120,7 +120,7 @@ impl Background {
         let inset = selection_size + selection_offset;
         let shape = Rectangle();
         shape.set_corner_radius(RADIUS);
-        shape.set_border(selection_size);
+        shape.set_frame_border(selection_size);
         shape.set_border_color(color::Rgba::transparent());
         shape.set_inset(inset);
         Self { shape, inset: Immutable(inset), selection_color: Immutable(selection_color) }
@@ -617,8 +617,8 @@ impl Node {
             let background_enter = model.background.on_event::<mouse::Enter>();
             let background_leave = model.background.on_event::<mouse::Leave>();
             background_hover <- bool(&background_leave, &background_enter);
-            let input_enter = model.input.on_event::<mouse::Over>();
-            let input_leave = model.input.on_event::<mouse::Out>();
+            let input_enter = model.input.on_event::<mouse::Enter>();
+            let input_leave = model.input.on_event::<mouse::Leave>();
             input_hover <- bool(&input_leave, &input_enter);
             node_hover <- background_hover || input_hover;
             node_hover <- node_hover.debounce().on_change();

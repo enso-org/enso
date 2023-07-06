@@ -14,6 +14,7 @@ import org.enso.table.data.table.problems.FloatingPointGrouping;
 import org.enso.table.problems.AggregatedProblems;
 import org.enso.table.util.ConstantList;
 import org.enso.table.util.NameDeduplicator;
+import org.graalvm.polyglot.Context;
 
 public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
   private final int keyColumnsLength;
@@ -59,6 +60,7 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
     if (keyColumns.length != 0) {
       int size = keyColumns[0].getSize();
 
+      Context context = Context.getCurrent();
       for (int i = 0; i < size; i++) {
         KeyType key = keyFactory.apply(i);
 
@@ -72,6 +74,8 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
 
         List<Integer> ids = this.locs.computeIfAbsent(key, x -> new ArrayList<>());
         ids.add(i);
+
+        context.safepoint();
       }
     } else {
       this.locs.put(
@@ -80,6 +84,7 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
   }
 
   public Table makeTable(Aggregator[] columns) {
+    Context context = Context.getCurrent();
     final int length = columns.length;
     final int size = locs.size();
 
@@ -94,12 +99,14 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
       List<Integer> empty = new ArrayList<>();
       for (int i = 0; i < length; i++) {
         storage[i].appendNoGrow(columns[i].aggregate(empty));
+        context.safepoint();
       }
     } else {
       for (List<Integer> group_locs : this.locs.values()) {
         for (int i = 0; i < length; i++) {
           Object value = columns[i].aggregate(group_locs);
           storage[i].appendNoGrow(value);
+          context.safepoint();
         }
       }
     }
@@ -122,6 +129,7 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
       Column nameColumn,
       Aggregator[] aggregates,
       String[] aggregateNames) {
+    Context context = Context.getCurrent();
     NameDeduplicator outputTableNameDeduplicator = new NameDeduplicator();
 
     final int size = locs.size();
@@ -137,12 +145,14 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
     Builder[] storage = new Builder[columnCount];
     for (int i = 0; i < groupingColumns.length; i++) {
       storage[i] = Builder.getForType(groupingColumns[i].getStorage().getType(), size);
+      context.safepoint();
     }
 
     for (int i = 0; i < nameIndex.locs.size(); i++) {
       int offset = groupingColumns.length + i * aggregates.length;
       for (int j = 0; j < aggregates.length; j++) {
         storage[offset + j] = Builder.getForType(aggregates[j].getType(), size);
+        context.safepoint();
       }
     }
 
@@ -168,6 +178,7 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
         }
 
         offset += aggregates.length;
+        context.safepoint();
       }
     }
 
@@ -176,6 +187,7 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
     for (int i = 0; i < groupingColumns.length; i++) {
       outputTableNameDeduplicator.markUsed(groupingColumns[i].getName());
       output[i] = new Column(groupingColumns[i].getName(), storage[i].seal());
+      context.safepoint();
     }
 
     int offset = groupingColumns.length;
@@ -208,6 +220,7 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
         effectiveName = outputTableNameDeduplicator.makeUnique(effectiveName);
 
         output[offset + i] = new Column(effectiveName, storage[offset + i].seal());
+        context.safepoint();
       }
 
       offset += aggregates.length;
@@ -220,6 +233,7 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
     problems[2] = nameIndex.getProblems();
     for (int i = 0; i < aggregates.length; i++) {
       problems[i + 3] = aggregates[i].getProblems();
+      context.safepoint();
     }
     AggregatedProblems merged = AggregatedProblems.merge(problems);
 
@@ -238,9 +252,11 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
     int[] output = new int[rowCount];
 
     int idx = 0;
+    Context context = Context.getCurrent();
     for (List<Integer> rowIndexes : this.locs.values()) {
       for (Integer rowIndex : rowIndexes) {
         output[idx++] = rowIndex;
+        context.safepoint();
       }
     }
 

@@ -1,5 +1,5 @@
 /** @file Table that projects an object into each column. */
-import * as react from 'react'
+import * as React from 'react'
 
 import * as svg from '../../components/svg'
 
@@ -22,7 +22,7 @@ const SPINNER_LOADING_CLASSES = 'grow dasharray-75 duration-1000 ease-linear'
 export interface Column<T> {
     id: string
     heading: JSX.Element
-    render: (item: T, index: number) => react.ReactNode
+    render: (item: T, index: number) => React.ReactNode
 }
 
 // =================
@@ -36,14 +36,14 @@ export interface RowsProps<T> {
     isLoading: boolean
     placeholder: JSX.Element
     columns: Column<T>[]
-    onClick: (item: T, event: react.MouseEvent<HTMLTableRowElement>) => void
-    onContextMenu: (item: T, event: react.MouseEvent<HTMLTableRowElement>) => void
+    onClick: (item: T, event: React.MouseEvent<HTMLTableRowElement>) => void
+    onContextMenu: (item: T, event: React.MouseEvent<HTMLTableRowElement>) => void
 }
 
 /** Table that projects an object into each column. */
 function Rows<T>(props: RowsProps<T>) {
     const { columns, items, isLoading, getKey, placeholder, onClick, onContextMenu } = props
-    const [spinnerClasses, setSpinnerClasses] = react.useState(SPINNER_INITIAL_CLASSES)
+    const [spinnerClasses, setSpinnerClasses] = React.useState(SPINNER_INITIAL_CLASSES)
 
     const headerRow = (
         <tr>
@@ -58,7 +58,7 @@ function Rows<T>(props: RowsProps<T>) {
         </tr>
     )
 
-    react.useEffect(() => {
+    React.useEffect(() => {
         if (isLoading) {
             // Ensure the spinner stays in the "initial" state for at least one frame.
             requestAnimationFrame(() => {

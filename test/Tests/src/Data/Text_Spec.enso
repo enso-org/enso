@@ -1557,6 +1557,10 @@ spec =
 
             "Korean: 건반".replace "건반" "keyboard" . should_equal "Korean: keyboard"
 
+        Test.specify "Text.to_regex" <|
+            "^\d{3}-\d{3}-\d{4}$".to_regex . matches "555-801-1923" . should_be_true
+            "aa".to_regex case_insensitive=True . matches "Aa" . should_be_true
+
         Test.specify "regex and non-regex `replace` handle accented grapheme splitting differently" <|
             'sśs\u{301}' . replace 's' 'O' . should_equal 'Ośs\u{301}'
             'sśs\u{301}' . replace 's' 'O' use_regex=True . should_equal 'OśO\u{301}'

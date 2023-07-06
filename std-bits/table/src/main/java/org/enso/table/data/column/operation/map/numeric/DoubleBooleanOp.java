@@ -7,6 +7,7 @@ import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.error.UnexpectedTypeException;
+import org.graalvm.polyglot.Context;
 
 import java.util.BitSet;
 
@@ -34,6 +35,7 @@ public abstract class DoubleBooleanOp extends MapOperation<Double, DoubleStorage
 
   @Override
   public BoolStorage runMap(DoubleStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
+    Context context = Context.getCurrent();
     Double v = tryCast(arg);
     if (v != null) {
       double x = v;
@@ -44,6 +46,8 @@ public abstract class DoubleBooleanOp extends MapOperation<Double, DoubleStorage
             newVals.set(i);
           }
         }
+
+        context.safepoint();
       }
       return new BoolStorage(newVals, storage.getIsMissing(), storage.size(), false);
     } else {
@@ -54,6 +58,8 @@ public abstract class DoubleBooleanOp extends MapOperation<Double, DoubleStorage
             newVals.set(i);
           }
         }
+
+        context.safepoint();
       }
       return new BoolStorage(newVals, storage.getIsMissing(), storage.size(), false);
     }
@@ -61,6 +67,7 @@ public abstract class DoubleBooleanOp extends MapOperation<Double, DoubleStorage
 
   @Override
   public BoolStorage runZip(DoubleStorage storage, Storage<?> arg, MapOperationProblemBuilder problemBuilder) {
+    Context context = Context.getCurrent();
     if (arg instanceof DoubleStorage v) {
       BitSet newVals = new BitSet();
       BitSet newMissing = new BitSet();
@@ -72,6 +79,8 @@ public abstract class DoubleBooleanOp extends MapOperation<Double, DoubleStorage
         } else {
           newMissing.set(i);
         }
+
+        context.safepoint();
       }
       return new BoolStorage(newVals, newMissing, storage.size(), false);
     } else if (arg instanceof LongStorage v) {
@@ -85,6 +94,8 @@ public abstract class DoubleBooleanOp extends MapOperation<Double, DoubleStorage
         } else {
           newMissing.set(i);
         }
+
+        context.safepoint();
       }
       return new BoolStorage(newVals, newMissing, storage.size(), false);
     } else {
@@ -105,6 +116,8 @@ public abstract class DoubleBooleanOp extends MapOperation<Double, DoubleStorage
         } else {
           newMissing.set(i);
         }
+
+        context.safepoint();
       }
       return new BoolStorage(newVals, newMissing, storage.size(), false);
     }

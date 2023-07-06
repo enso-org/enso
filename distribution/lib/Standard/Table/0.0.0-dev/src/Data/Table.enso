@@ -2022,6 +2022,44 @@ type Table
     columns_helper self =
         Table_Helpers.Table_Column_Helper.Value self.columns (x->x) self (x->x)
 
+    ## ALIAS Fill Missing, if_nothing
+
+       Returns a new table where missing values in the specified columns have
+       been replaced with the provided default(s).
+
+       Arguments:
+       - default: The value to replace missing values with. If this argument
+         is a column, the value from `default` at the corresponding position
+         will be used.
+
+       > Example
+         Fill missing values in two columns with the value 20.5.
+
+             fill_nothing = table.fill_nothing ["col0", "col1"] 20.5
+    fill_nothing : Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector) -> Column | Any -> Table
+    fill_nothing self selectors default =
+        transformer col = col.fill_nothing default
+        Table_Helpers.replace_columns_with_transformed_columns self selectors transformer
+
+    ## ALIAS Fill Empty, if_empty
+
+       Returns a new column where empty Text values have been replaced with the
+       provided default(s).
+
+       Arguments:
+       - default: The value to replace empty values with. If this argument
+         is a column, the value from `default` at the corresponding position
+         will be used.
+
+       > Example
+         Fill empty values in two columns with the value "hello".
+
+             fill_empty = table.fill_empty ["col0", "col1"] "hello"
+    fill_empty : Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector) -> Column | Any -> Table
+    fill_empty self selectors default =
+        transformer col = col.fill_empty default
+        Table_Helpers.replace_columns_with_transformed_columns self selectors transformer
+
 ## PRIVATE
 
    Ensures that the `txt` has at least `len` characters by appending spaces at

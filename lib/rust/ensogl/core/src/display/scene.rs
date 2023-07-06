@@ -138,6 +138,13 @@ pub struct Mouse {
     /// sampled and the most recent sample is stored here. Please note, that this sample may be
     /// from a few frames back, as it is not guaranteed when we will receive the data from GPU.
     pub pointer_target_encoded:  Uniform<Vector4<u32>>,
+    /// The display objects which are currently hovered by mouse, where "hovered" means
+    /// that it's a shape directly hovered, or one of the descendant is hovered. It's updated in
+    /// [`switch_target`] method.
+    ///
+    /// This field may be updated with a few frames delay, as we need to read mouse target from
+    /// the texture.
+    pub hovered_objects:         Rc<RefCell<Vec<display::object::WeakInstance>>>,
     pub target:                  Rc<Cell<PointerTargetId>>,
     pub handles:                 Rc<[callback::Handle; 6]>,
     pub scene_frp:               Frp,
@@ -257,6 +264,7 @@ impl Mouse {
         ));
 
         let handles = Rc::new([on_move, on_down, on_up, on_wheel, on_leave, on_enter]);
+        let hovered_objects = default();
         Self {
             pointer_target_registry,
             mouse_manager,
@@ -270,6 +278,7 @@ impl Mouse {
             scene_frp,
             last_move_event,
             background,
+            hovered_objects,
         }
     }
 
@@ -289,19 +298,38 @@ impl Mouse {
         if new_target != current_target {
             self.target.set(new_target);
             if let Some(event) = (*self.last_move_event.borrow()).clone() {
-                self.pointer_target_registry.with_mouse_target(current_target, |t, d| {
-                    t.mouse_out.emit(());
+                let mut new_hovered = self
+                    .pointer_target_registry
+                    .with_mouse_target(new_target, |_, d| d.rev_parent_chain())
+                    .unwrap_or_default();
+                new_hovered.sort();
+                let currently_hovered_weak = self.hovered_objects.take().into_iter();
+                let currently_hovered =
+                    currently_hovered_weak.filter_map(|w| w.upgrade()).sorted().collect_vec();
+                let left =
+                    currently_hovered.iter().filter(|t| new_hovered.binary_search(t).is_err());
+                for d in left {
                     let out_event = event.clone().unchecked_convert_to::<mouse::Out>();
                     let leave_event = event.clone().unchecked_convert_to::<mouse::Leave>();
                     d.emit_event(out_event);
                     d.emit_event_without_bubbling(leave_event);
-                });
-                self.pointer_target_registry.with_mouse_target(new_target, |t, d| {
-                    t.mouse_over.emit(());
+                }
+                let entered =
+                    new_hovered.iter().filter(|t| currently_hovered.binary_search(t).is_err());
+                for d in entered {
                     let over_event = event.clone().unchecked_convert_to::<mouse::Over>();
                     let enter_event = event.clone().unchecked_convert_to::<mouse::Enter>();
                     d.emit_event(over_event);
                     d.emit_event_without_bubbling(enter_event);
+                }
+                self.hovered_objects
+                    .replace(new_hovered.into_iter().map(|t| t.downgrade()).collect_vec());
+
+                self.pointer_target_registry.with_mouse_target(current_target, |t, _| {
+                    t.mouse_out.emit(());
+                });
+                self.pointer_target_registry.with_mouse_target(new_target, |t, _| {
+                    t.mouse_over.emit(());
                 });
 
                 // Re-emitting position event. See the docs of [`re_emit_position_event`] to learn
