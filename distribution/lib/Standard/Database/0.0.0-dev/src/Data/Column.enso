@@ -1134,7 +1134,7 @@ type Column
          Replace texts in quotes with parentheses.
 
              column.replace '"(.*?)"'.to_regex '($1)'
-    replace : Text | Column -> Text | Column -> Case_Sensitivity -> Boolean -> Boolean -> Column
+    replace : Text | Column | Regex -> Text | Column -> Case_Sensitivity -> Boolean -> Column
     replace self term="" new_text="" case_sensitivity=Case_Sensitivity.Sensitive only_first=False =
         _ = [term, new_text, case_sensitivity, only_first]
         msg = "`Column.replace` is not yet implemented."
