@@ -18,6 +18,7 @@ import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
+import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
 /** A column containing floating point numbers. */
@@ -107,12 +108,15 @@ public final class DoubleStorage extends NumericStorage<Double> {
   private Storage<?> fillMissingDouble(double arg) {
     final var builder = NumericBuilder.createDoubleBuilder(size());
     long rawArg = Double.doubleToRawLongBits(arg);
+    Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
       if (isMissing.get(i)) {
         builder.appendRawNoGrow(rawArg);
       } else {
         builder.appendRawNoGrow(data[i]);
       }
+
+      context.safepoint();
     }
     return builder.seal();
   }
@@ -135,6 +139,7 @@ public final class DoubleStorage extends NumericStorage<Double> {
     BitSet newMissing = new BitSet();
     long[] newData = new long[cardinality];
     int resIx = 0;
+    Context context = Context.getCurrent();
     for (int i = 0; i < size; i++) {
       if (mask.get(i)) {
         if (isMissing.get(i)) {
@@ -143,6 +148,8 @@ public final class DoubleStorage extends NumericStorage<Double> {
           newData[resIx++] = data[i];
         }
       }
+
+      context.safepoint();
     }
     return new DoubleStorage(newData, cardinality, newMissing);
   }
@@ -152,12 +159,15 @@ public final class DoubleStorage extends NumericStorage<Double> {
     int[] positions = mask.getPositions();
     long[] newData = new long[positions.length];
     BitSet newMissing = new BitSet();
+    Context context = Context.getCurrent();
     for (int i = 0; i < positions.length; i++) {
       if (positions[i] == Index.NOT_FOUND || isMissing.get(positions[i])) {
         newMissing.set(i);
       } else {
         newData[i] = data[positions[i]];
       }
+
+      context.safepoint();
     }
     return new DoubleStorage(newData, positions.length, newMissing);
   }
@@ -167,6 +177,7 @@ public final class DoubleStorage extends NumericStorage<Double> {
     long[] newData = new long[total];
     BitSet newMissing = new BitSet();
     int pos = 0;
+    Context context = Context.getCurrent();
     for (int i = 0; i < counts.length; i++) {
       if (isMissing.get(i)) {
         newMissing.set(pos, pos + counts[i]);
@@ -176,6 +187,8 @@ public final class DoubleStorage extends NumericStorage<Double> {
           newData[pos++] = data[i];
         }
       }
+
+      context.safepoint();
     }
     return new DoubleStorage(newData, total, newMissing);
   }
@@ -337,10 +350,13 @@ public final class DoubleStorage extends NumericStorage<Double> {
               @Override
               public BoolStorage run(DoubleStorage storage) {
                 BitSet nans = new BitSet();
+                Context context = Context.getCurrent();
                 for (int i = 0; i < storage.size; i++) {
                   if (!storage.isNa(i) && Double.isNaN(storage.getItem(i))) {
                     nans.set(i);
                   }
+
+                  context.safepoint();
                 }
                 return new BoolStorage(nans, new BitSet(), storage.size, false);
               }
@@ -369,11 +385,13 @@ public final class DoubleStorage extends NumericStorage<Double> {
     long[] newData = new long[newSize];
     BitSet newMissing = new BitSet(newSize);
     int offset = 0;
+    Context context = Context.getCurrent();
     for (SliceRange range : ranges) {
       int length = range.end() - range.start();
       System.arraycopy(data, range.start(), newData, offset, length);
       for (int i = 0; i < length; ++i) {
         newMissing.set(offset + i, isMissing.get(range.start() + i));
+        context.safepoint();
       }
       offset += length;
     }

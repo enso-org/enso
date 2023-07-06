@@ -9,6 +9,7 @@ import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
+import org.graalvm.polyglot.Context;
 
 public abstract class SpecializedStorage<T> extends Storage<T> {
 
@@ -42,11 +43,14 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
   /** @inheritDoc */
   @Override
   public int countMissing() {
+    Context context = Context.getCurrent();
     int count = 0;
     for (int i = 0; i < size; i++) {
       if (data[i] == null) {
         count += 1;
       }
+
+      context.safepoint();
     }
     return count;
   }
@@ -89,18 +93,22 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
 
   @Override
   public SpecializedStorage<T> mask(BitSet mask, int cardinality) {
+    Context context = Context.getCurrent();
     T[] newData = newUnderlyingArray(cardinality);
     int resIx = 0;
     for (int i = 0; i < size; i++) {
       if (mask.get(i)) {
         newData[resIx++] = data[i];
       }
+
+      context.safepoint();
     }
     return newInstance(newData, cardinality);
   }
 
   @Override
   public SpecializedStorage<T> applyMask(OrderMask mask) {
+    Context context = Context.getCurrent();
     int[] positions = mask.getPositions();
     T[] newData = newUnderlyingArray(positions.length);
     for (int i = 0; i < positions.length; i++) {
@@ -109,17 +117,21 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
       } else {
         newData[i] = data[positions[i]];
       }
+
+      context.safepoint();
     }
     return newInstance(newData, positions.length);
   }
 
   @Override
   public SpecializedStorage<T> countMask(int[] counts, int total) {
+    Context context = Context.getCurrent();
     T[] newData = newUnderlyingArray(total);
     int pos = 0;
     for (int i = 0; i < counts.length; i++) {
       for (int j = 0; j < counts[i]; j++) {
         newData[pos++] = data[i];
+        context.safepoint();
       }
     }
     return newInstance(newData, total);
@@ -139,6 +151,7 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
 
   @Override
   public SpecializedStorage<T> slice(List<SliceRange> ranges) {
+    Context context = Context.getCurrent();
     int newSize = SliceRange.totalLength(ranges);
     T[] newData = newUnderlyingArray(newSize);
     int offset = 0;
@@ -146,6 +159,7 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
       int length = range.end() - range.start();
       System.arraycopy(data, range.start(), newData, offset, length);
       offset += length;
+      context.safepoint();
     }
 
     return newInstance(newData, newSize);

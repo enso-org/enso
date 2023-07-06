@@ -63,12 +63,6 @@ spec =
             test_column.reverse.to_vector . should_equal expected_1.to_vector
             empty_column.reverse.to_vector . should_equal empty_column.to_vector
 
-        Test.specify "should allow to fill missing values from another column" <|
-            nulled = Column.from_vector "col" [0, Nothing, 4, 5, Nothing, Nothing]
-            defaults = Column.from_vector "def" [1, 2, 10, 20, Nothing, 30]
-            r = nulled.fill_nothing defaults
-            r.to_vector . should_equal [0, 2, 4, 5, Nothing, 30]
-
         Test.specify "should allow to count duplicate value occurences" <|
             c_1 = Column.from_vector "c 1" [0, 1, 2, 2, 1, 0, 2]
             c_1.duplicate_count.to_vector.should_equal [0, 0, 0, 1, 1, 1, 2]

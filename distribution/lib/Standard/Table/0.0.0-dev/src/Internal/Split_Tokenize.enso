@@ -5,7 +5,6 @@ import project.Data.Table.Table
 import project.Data.Type.Value_Type.Value_Type
 import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
-import Standard.Base.Data.Text.Regex.Pattern.Pattern
 
 from project.Errors import Column_Count_Exceeded, Column_Count_Mismatch, Duplicate_Output_Column_Names, Invalid_Value_Type, Missing_Input_Columns
 from project.Internal.Java_Exports import make_string_builder
@@ -72,7 +71,7 @@ parse_to_columns table input_column_id pattern="." case_sensitivity=Case_Sensiti
    Create a parser from a regex to a nested `Vector`. Each match becomes an
    element of the vector; each group (or the whole match, if there are no
    groups) becomes an element of the inner vectors.
-regex_parse_to_vectors : Pattern -> (Text -> Vector (Vector (Text | Nothing)))
+regex_parse_to_vectors : Regex -> (Text -> Vector (Vector (Text | Nothing)))
 regex_parse_to_vectors pattern =
     input->
         matches = pattern.match_all input
@@ -85,7 +84,7 @@ regex_parse_to_vectors pattern =
    If the regex has no explicit groups, it uses the original column name
    unchanged; otherwise, it uses the group name if it exists, or the original
    column name with a number.
-regex_to_column_names : Pattern -> Text -> Vector Text
+regex_to_column_names : Regex -> Text -> Vector Text
 regex_to_column_names pattern original_column_name =
     case pattern.group_count of
         1 ->

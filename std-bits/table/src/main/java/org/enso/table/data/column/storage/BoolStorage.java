@@ -15,6 +15,7 @@ import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.enso.table.error.UnexpectedColumnTypeException;
 import org.enso.table.error.UnexpectedTypeException;
+import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
 import java.util.BitSet;
@@ -127,6 +128,7 @@ public final class BoolStorage extends Storage<Boolean> {
 
   @Override
   public BoolStorage mask(BitSet mask, int cardinality) {
+    Context context = Context.getCurrent();
     BitSet newMissing = new BitSet();
     BitSet newValues = new BitSet();
     int resultIx = 0;
@@ -142,12 +144,15 @@ public final class BoolStorage extends Storage<Boolean> {
           resultIx++;
         }
       }
+
+      context.safepoint();
     }
     return new BoolStorage(newValues, newMissing, cardinality, negated);
   }
 
   @Override
   public BoolStorage applyMask(OrderMask mask) {
+    Context context = Context.getCurrent();
     int[] positions = mask.getPositions();
     BitSet newNa = new BitSet();
     BitSet newVals = new BitSet();
@@ -157,12 +162,15 @@ public final class BoolStorage extends Storage<Boolean> {
       } else if (values.get(positions[i])) {
         newVals.set(i);
       }
+
+      context.safepoint();
     }
     return new BoolStorage(newVals, newNa, positions.length, negated);
   }
 
   @Override
   public BoolStorage countMask(int[] counts, int total) {
+    Context context = Context.getCurrent();
     BitSet newNa = new BitSet();
     BitSet newVals = new BitSet();
     int pos = 0;
@@ -173,6 +181,8 @@ public final class BoolStorage extends Storage<Boolean> {
         newVals.set(pos, pos + counts[i]);
       }
       pos += counts[i];
+
+      context.safepoint();
     }
     return new BoolStorage(newVals, newNa, total, negated);
   }
@@ -182,6 +192,7 @@ public final class BoolStorage extends Storage<Boolean> {
   }
 
   public Storage<?> iif(Value when_true, Value when_false, StorageType resultStorageType) {
+    Context context = Context.getCurrent();
     var on_true = makeRowProvider(when_true);
     var on_false = makeRowProvider(when_false);
     Builder builder = Builder.getForType(resultStorageType, size);
@@ -193,6 +204,8 @@ public final class BoolStorage extends Storage<Boolean> {
       } else {
         builder.append(on_false.apply(i));
       }
+
+      context.safepoint();
     }
     return builder.seal();
   }
@@ -237,6 +250,7 @@ public final class BoolStorage extends Storage<Boolean> {
               @Override
               public BoolStorage runZip(
                   BoolStorage storage, Storage<?> arg, MapOperationProblemBuilder problemBuilder) {
+                Context context = Context.getCurrent();
                 BitSet out = new BitSet();
                 BitSet missing = new BitSet();
                 for (int i = 0; i < storage.size; i++) {
@@ -247,6 +261,8 @@ public final class BoolStorage extends Storage<Boolean> {
                   } else {
                     missing.set(i);
                   }
+
+                  context.safepoint();
                 }
                 return new BoolStorage(out, missing, storage.size, false);
               }
@@ -383,6 +399,7 @@ public final class BoolStorage extends Storage<Boolean> {
 
   @Override
   public BoolStorage slice(List<SliceRange> ranges) {
+    Context context = Context.getCurrent();
     int newSize = SliceRange.totalLength(ranges);
     BitSet newValues = new BitSet(newSize);
     BitSet newMissing = new BitSet(newSize);
@@ -392,6 +409,7 @@ public final class BoolStorage extends Storage<Boolean> {
       for (int i = 0; i < length; ++i) {
         newValues.set(offset + i, values.get(range.start() + i));
         newMissing.set(offset + i, isMissing.get(range.start() + i));
+        context.safepoint();
       }
       offset += length;
     }

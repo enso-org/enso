@@ -502,6 +502,8 @@
 - [Implemented `Table.update_database_table`.][7035]
 - [Removed `module` argument from `enso_project` and other minor tweaks.][7052]
 - [Integrated Database write operations with Execution Contexts.][7072]
+- [`Column.fill_nothing` and `.fill_empty` no longer rename the column. Added
+  `Table.fill_nothing` and `.fill_empty`.][7166]
 - [Implemented `add_row_number` for Database tables.][7174]
 
 [debug-shortcuts]:
@@ -727,6 +729,7 @@
 [7035]: https://github.com/enso-org/enso/pull/7035
 [7052]: https://github.com/enso-org/enso/pull/7052
 [7072]: https://github.com/enso-org/enso/pull/7072
+[7166]: https://github.com/enso-org/enso/pull/7166
 [7174]: https://github.com/enso-org/enso/pull/7174
 
 #### Enso Compiler
