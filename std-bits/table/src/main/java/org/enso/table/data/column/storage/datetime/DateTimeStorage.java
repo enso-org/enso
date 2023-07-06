@@ -1,15 +1,19 @@
 package org.enso.table.data.column.storage.datetime;
 
-import java.time.ZonedDateTime;
 import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.builder.DateBuilder;
 import org.enso.table.data.column.builder.DateTimeBuilder;
+import org.enso.table.data.column.operation.map.GenericBinaryObjectMapOperation;
 import org.enso.table.data.column.operation.map.MapOpStorage;
-import org.enso.table.data.column.operation.map.numeric.UnaryIntegerOp;
 import org.enso.table.data.column.operation.map.datetime.DateTimeIsInOp;
+import org.enso.table.data.column.operation.map.numeric.UnaryIntegerOp;
 import org.enso.table.data.column.storage.ObjectStorage;
 import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.type.DateTimeType;
 import org.enso.table.data.column.storage.type.StorageType;
+
+import java.time.Duration;
+import java.time.ZonedDateTime;
 
 public final class DateTimeStorage extends SpecializedStorage<ZonedDateTime> {
   /**
@@ -48,6 +52,20 @@ public final class DateTimeStorage extends SpecializedStorage<ZonedDateTime> {
             return (long) date.getDayOfMonth();
           }
         });
+    t.add(
+        new GenericBinaryObjectMapOperation<ZonedDateTime, SpecializedStorage<ZonedDateTime>, Duration>(Maps.SUB,
+            ZonedDateTime.class, DateTimeStorage.class) {
+          @Override
+          protected Builder createOutputBuilder(int size) {
+            return new DateBuilder(size);
+          }
+
+          @Override
+          protected Duration run(ZonedDateTime value, ZonedDateTime other) {
+            return Duration.between(other, value);
+          }
+        }
+    );
     return t;
   }
 

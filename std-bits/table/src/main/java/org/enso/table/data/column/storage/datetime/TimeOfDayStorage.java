@@ -1,14 +1,18 @@
 package org.enso.table.data.column.storage.datetime;
 
-import java.time.LocalTime;
 import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.builder.DateBuilder;
 import org.enso.table.data.column.builder.TimeOfDayBuilder;
+import org.enso.table.data.column.operation.map.GenericBinaryObjectMapOperation;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.datetime.DateTimeIsInOp;
 import org.enso.table.data.column.storage.ObjectStorage;
 import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
+
+import java.time.Duration;
+import java.time.LocalTime;
 
 public final class TimeOfDayStorage extends SpecializedStorage<LocalTime> {
   /**
@@ -24,6 +28,20 @@ public final class TimeOfDayStorage extends SpecializedStorage<LocalTime> {
   private static MapOpStorage<LocalTime, SpecializedStorage<LocalTime>> buildOps() {
     MapOpStorage<LocalTime, SpecializedStorage<LocalTime>> t = ObjectStorage.buildObjectOps();
     t.add(new DateTimeIsInOp<>(LocalTime.class));
+    t.add(
+        new GenericBinaryObjectMapOperation<LocalTime, SpecializedStorage<LocalTime>, Duration>(Maps.SUB,
+            LocalTime.class, TimeOfDayStorage.class) {
+          @Override
+          protected Builder createOutputBuilder(int size) {
+            return new DateBuilder(size);
+          }
+
+          @Override
+          protected Duration run(LocalTime value, LocalTime other) {
+            return Duration.between(other, value);
+          }
+        }
+    );
     return t;
   }
 
