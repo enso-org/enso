@@ -2,6 +2,8 @@
 import * as react from 'react'
 
 import * as backend from '../backend'
+import * as set from '../../set'
+
 import PermissionDisplay, * as permissionDisplay from './permissionDisplay'
 
 // =================
@@ -21,32 +23,38 @@ const PERMISSIONS = [
     permission: permissionDisplay.PERMISSION[object.action],
 }))
 
-// =============
-// === Types ===
-// =============
-
-/** Props for a HTML `div` element. */
-type DivProps = JSX.IntrinsicElements['div']
-
 // ==========================
 // === PermissionSelector ===
 // ==========================
 
 /** Props for a {@link PermissionSelector}. */
-export interface PermissionSelectorProps extends Omit<DivProps, 'onChange'> {
-    onChange: (permission: backend.PermissionAction) => void
+export interface PermissionSelectorProps {
+    /** If this prop changes, the internal state will be updated too. */
+    initialPermissions?: Set<backend.PermissionAction> | null
     className?: string
     permissionClassName?: string
+    onChange: (permissions: Set<backend.PermissionAction>) => void
 }
 
 /** A horizontal selector for all possible permissions. */
 function PermissionSelector(props: PermissionSelectorProps) {
-    const { onChange, className, permissionClassName, ...passthroughProps } = props
-    const [selectedPermission, setSelectedPermission] =
-        react.useState<backend.PermissionAction | null>(null)
+    const {
+        initialPermissions: rawInitialPermissions,
+        className,
+        permissionClassName,
+        onChange,
+    } = props
+    const [permissions, setPermissions] = react.useState(() => new Set<backend.PermissionAction>())
+
+    react.useEffect(() => {
+        if (rawInitialPermissions != null) {
+            setPermissions(rawInitialPermissions)
+            onChange(rawInitialPermissions)
+        }
+    }, [rawInitialPermissions])
 
     return (
-        <div className={`flex justify-items-center ${className ?? ''}`} {...passthroughProps}>
+        <div className={`flex justify-items-center ${className ?? ''}`}>
             {PERMISSIONS.map(object => {
                 const { name, action, permission } = object
 
@@ -59,20 +67,27 @@ function PermissionSelector(props: PermissionSelectorProps) {
                             <PermissionDisplay
                                 permissions={permission}
                                 className={`cursor-pointer ${
-                                    selectedPermission === action ? 'shadow-soft' : ''
+                                    permissions.has(action) ? 'shadow-soft-dark' : ''
                                 } ${permissionClassName ?? ''}`}
                             >
                                 <div className="mx-1">{name}</div>
                             </PermissionDisplay>
                         </label>
                         <input
-                            type="radio"
+                            type="checkbox"
+                            checked={permissions.has(action)}
                             id={`share_with_permission_${action.toLowerCase()}`}
                             name="share_with_permission_input"
                             className="w-0 h-0"
-                            onClick={() => {
-                                setSelectedPermission(action)
-                                onChange(action)
+                            onChange={event => {
+                                const element = event.currentTarget
+                                const newPermissions = set.withPresence(
+                                    permissions,
+                                    action,
+                                    element.checked
+                                )
+                                setPermissions(newPermissions)
+                                onChange(newPermissions)
                             }}
                         />
                     </div>

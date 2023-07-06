@@ -205,7 +205,7 @@ export class RemoteBackend implements backend.Backend {
     async inviteUser(body: backend.InviteUserRequestBody): Promise<void> {
         const response = await this.post(INVITE_USER_PATH, body)
         if (!responseIsSuccessful(response)) {
-            return this.throw(`Unable to invite user with email '${body.userEmail}'.`)
+            return this.throw(`Unable to invite user '${body.userEmail}'.`)
         } else {
             return
         }
@@ -215,7 +215,7 @@ export class RemoteBackend implements backend.Backend {
     async createPermission(body: backend.CreatePermissionRequestBody): Promise<void> {
         const response = await this.post<backend.UserOrOrganization>(CREATE_PERMISSION_PATH, body)
         if (!responseIsSuccessful(response)) {
-            return this.throw(`Unable to add permission.`)
+            return this.throw(`Unable to set permissions.`)
         } else {
             return
         }

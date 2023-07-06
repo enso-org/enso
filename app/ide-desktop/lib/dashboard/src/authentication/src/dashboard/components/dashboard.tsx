@@ -34,8 +34,8 @@ import ProjectActionButton, * as projectActionButton from './projectActionButton
 import ContextMenu from './contextMenu'
 import ContextMenuEntry from './contextMenuEntry'
 import Ide from './ide'
+import ManagePermissionsModal from './shareWithModal'
 import Rows from './rows'
-import ShareWithModal from './shareWithModal'
 import Templates from './templates'
 import TopBar from './topBar'
 
@@ -700,37 +700,43 @@ function Dashboard(props: DashboardProps) {
             const ownsThisAsset = selfPermission === backendModule.PermissionAction.own
             return (
                 <div className="flex">
-                    {(asset.permissions ?? []).map((user, index) => (
-                        <PermissionDisplay
-                            key={user.user.pk}
-                            permissions={permissionDisplay.PERMISSION[user.permission]}
-                            className={`border-2 rounded-full ${
-                                ownsThisAsset ? 'cursor-pointer hover:shadow-soft hover:z-10' : ''
-                            } ${index === 0 ? '' : '-ml-5'}`}
-                            onClick={event => {
-                                event.stopPropagation()
-                                if (ownsThisAsset) {
-                                    setModal(() => (
-                                        <ShareWithModal
-                                            key={Number(new Date())}
-                                            user={user.user}
-                                            asset={asset}
-                                            eventTarget={event.currentTarget}
-                                            onSuccess={doRefresh}
-                                        />
-                                    ))
-                                }
-                            }}
-                        >
-                            <img src={DefaultUserIcon} height={24} width={24} />
-                        </PermissionDisplay>
-                    ))}
+                    {backendModule
+                        .groupPermissionsByUser(asset.permissions ?? [])
+                        .map((user, index) => (
+                            <PermissionDisplay
+                                key={user.user.pk}
+                                permissions={permissionDisplay.permissionActionsToPermissions(
+                                    user.permissions
+                                )}
+                                className={`border-2 rounded-full ${
+                                    ownsThisAsset
+                                        ? 'cursor-pointer hover:shadow-soft hover:z-10'
+                                        : ''
+                                } ${index === 0 ? '' : '-ml-5'}`}
+                                onClick={event => {
+                                    event.stopPropagation()
+                                    if (ownsThisAsset) {
+                                        setModal(() => (
+                                            <ManagePermissionsModal
+                                                key={Number(new Date())}
+                                                user={user.user}
+                                                asset={asset}
+                                                eventTarget={event.currentTarget}
+                                                onSuccess={doRefresh}
+                                            />
+                                        ))
+                                    }
+                                }}
+                            >
+                                <img src={DefaultUserIcon} height={24} width={24} />
+                            </PermissionDisplay>
+                        ))}
                     {ownsThisAsset && (
                         <button
                             onClick={event => {
                                 event.stopPropagation()
                                 setModal(() => (
-                                    <ShareWithModal
+                                    <ManagePermissionsModal
                                         key={Number(new Date())}
                                         asset={asset}
                                         eventTarget={event.currentTarget}

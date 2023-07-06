@@ -74,6 +74,48 @@ export const PERMISSION: Record<backend.PermissionAction, Permissions> = {
     },
 }
 
+// ======================
+// === permissionsToX ===
+// ======================
+
+/** Converts an array of {@link backend.PermissionAction} to a {@link Permissions}. */
+export function permissionActionsToPermissions(
+    permissions: backend.PermissionAction[]
+): Permissions {
+    if (permissions.some(permission => permission === backend.PermissionAction.own)) {
+        return { type: Permission.owner }
+    } else {
+        const result: Permissions = {
+            type: Permission.regular,
+            read: false,
+            write: false,
+            docsWrite: false,
+            exec: false,
+        }
+        for (const permission of permissions) {
+            switch (permission) {
+                case backend.PermissionAction.own: {
+                    // Ignored. This should never happen because of the `permissions.some` above.
+                    break
+                }
+                case backend.PermissionAction.execute: {
+                    result.exec = true
+                    break
+                }
+                case backend.PermissionAction.edit: {
+                    result.write = true
+                    break
+                }
+                case backend.PermissionAction.view: {
+                    result.read = true
+                    break
+                }
+            }
+        }
+        return result
+    }
+}
+
 // =================
 // === Component ===
 // =================

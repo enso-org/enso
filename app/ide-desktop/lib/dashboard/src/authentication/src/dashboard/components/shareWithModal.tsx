@@ -28,8 +28,36 @@ const BLINK_ANIMATION_LENGTH_MS = 500
 // === ShareWithModal ===
 // ======================
 
-/** Props for a {@link ShareWithModal}. */
-export interface ShareWithModalProps {
+/** Possible actions that a {@link ManagePermissionsModal} can perform. */
+enum ManagePermissionsAction {
+    /** The default action. Add permissions for a new user. */
+    share = 'share',
+    /** Update permissions. */
+    update = 'update',
+    /** Remove access for a user from this asset. */
+    remove = 'remove',
+    /** Invite a user not yet in the organization. */
+    inviteToOrganization = 'invite-to-organization',
+}
+
+/** The text on the submit button, for each action. */
+const SUBMIT_BUTTON_TEXT: Record<ManagePermissionsAction, string> = {
+    [ManagePermissionsAction.share]: 'Share',
+    [ManagePermissionsAction.update]: 'Update',
+    [ManagePermissionsAction.remove]: 'Remove',
+    [ManagePermissionsAction.inviteToOrganization]: 'Invite to organization',
+} as const
+
+/** The classes specific to each action, for the submit button. */
+const ACTION_CSS_CLASS: Record<ManagePermissionsAction, string> = {
+    [ManagePermissionsAction.share]: 'bg-blue-600',
+    [ManagePermissionsAction.update]: 'bg-blue-600',
+    [ManagePermissionsAction.remove]: 'bg-red-700',
+    [ManagePermissionsAction.inviteToOrganization]: 'bg-blue-600',
+} as const
+
+/** Props for a {@link ManagePermissionsModal}. */
+export interface ManagePermissionsModalProps {
     asset: backendModule.Asset
     /* If present, the user cannot be changed. */
     user?: backendModule.User
@@ -38,8 +66,8 @@ export interface ShareWithModalProps {
 }
 
 /** A modal with inputs for user email and permission level. */
-export function ShareWithModal(props: ShareWithModalProps) {
-    const { asset, user, onSuccess, eventTarget } = props
+export function ManagePermissionsModal(props: ManagePermissionsModalProps) {
+    const { asset, user: rawUser, onSuccess, eventTarget } = props
     const { organization } = auth.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
     const { unsetModal } = modalProvider.useSetModal()
@@ -48,18 +76,49 @@ export function ShareWithModal(props: ShareWithModalProps) {
     const [users, setUsers] = react.useState<backendModule.SimpleUser[]>([])
     const [matchingUsers, setMatchingUsers] = react.useState(users)
     const [canSubmit, setCanSubmit] = react.useState(true)
-    const [email, setEmail] = react.useState<string>(user?.user_email ?? '')
-    const [permission, setPermission] = react.useState<backendModule.PermissionAction | null>(null)
+    const [email, setEmail] = react.useState<string>(rawUser?.user_email ?? '')
+    const [permissions, setPermissions] = react.useState(new Set<backendModule.PermissionAction>())
     const [userEmailClassName, setUserEmailClassName] = react.useState<string | null>(null)
     const [permissionClassName, setPermissionClassName] = react.useState<string | null>(null)
+
+    const user = react.useMemo(
+        () =>
+            rawUser ??
+            (asset.permissions ?? []).find(permission => permission.user.user_email === email)
+                ?.user,
+        [rawUser, email]
+    )
+
+    const action =
+        user != null
+            ? permissions.size !== 0
+                ? ManagePermissionsAction.update
+                : ManagePermissionsAction.remove
+            : willInviteNewUser
+            ? ManagePermissionsAction.inviteToOrganization
+            : ManagePermissionsAction.share
+
+    /** Overridden by the user's permissions only if it is not empty. */
+    const initialPermissions = react.useMemo(
+        () =>
+            permissions.size !== 0
+                ? permissions
+                : user != null
+                ? new Set(
+                      (asset.permissions ?? [])
+                          .filter(
+                              assetPermission => assetPermission.user.user_email === user.user_email
+                          )
+                          .map(userPermission => userPermission.permission)
+                  )
+                : null,
+        [user]
+    )
 
     const emailsOfUsersWithPermission = react.useMemo(
         () =>
             new Set(asset.permissions?.map(userPermission => userPermission.user.user_email) ?? []),
         [asset.permissions]
-    )
-    const alreadyHasPermission = emailsOfUsersWithPermission.has(
-        newtype.asNewtype<backendModule.EmailAddress>(email)
     )
 
     // This is INCORRECT, but SAFE to use in hooks as its value will be set by the time any hook
@@ -98,6 +157,9 @@ export function ShareWithModal(props: ShareWithModalProps) {
                     // A new user will be invited to the organization.
                     setWillInviteNewUser(
                         lowercaseEmail !== '' &&
+                            !emailsOfUsersWithPermission.has(
+                                newtype.asNewtype<backendModule.EmailAddress>(lowercaseEmail)
+                            ) &&
                             !users.some(
                                 innerUser => innerUser.email.toLowerCase() === lowercaseEmail
                             )
@@ -111,7 +173,8 @@ export function ShareWithModal(props: ShareWithModalProps) {
             async (formEvent: React.FormEvent) => {
                 formEvent.preventDefault()
                 const isEmailInvalid = !userEmailRef.current.validity.valid
-                const isPermissionInvalid = !willInviteNewUser && permission == null
+                const isPermissionsInvalid =
+                    !willInviteNewUser && user == null && permissions.size === 0
                 const lowercaseEmail = email.toLowerCase()
                 const finalUser: backendModule.SimpleUser | null =
                     user != null
@@ -120,14 +183,14 @@ export function ShareWithModal(props: ShareWithModalProps) {
                         ? null
                         : users.find(theUser => theUser.email.toLowerCase() === lowercaseEmail) ??
                           null
-                if (isEmailInvalid || isPermissionInvalid) {
+                if (isEmailInvalid || isPermissionsInvalid) {
                     if (isEmailInvalid) {
                         setUserEmailClassName(BLINK_BACKGROUND_CLASS_NAME)
                         window.setTimeout(() => {
                             setUserEmailClassName('')
                         }, BLINK_ANIMATION_LENGTH_MS)
                     }
-                    if (isPermissionInvalid) {
+                    if (isPermissionsInvalid) {
                         setPermissionClassName(BLINK_BACKGROUND_CLASS_NAME)
                         window.setTimeout(() => {
                             setPermissionClassName('')
@@ -145,31 +208,23 @@ export function ShareWithModal(props: ShareWithModalProps) {
                             userEmail: newtype.asNewtype<backendModule.EmailAddress>(email),
                         })
                     } catch (error) {
-                        toast.error(
-                            `Unable to invite user '${email}': ${
-                                errorModule.tryGetMessage(error) ?? 'unknown error.'
-                            }`
-                        )
+                        toast.error(errorModule.tryGetMessage(error) ?? 'Unknown error.')
                     }
-                } else if (finalUser != null && permission != null) {
+                } else if (finalUser != null) {
                     unsetModal()
                     try {
                         await backend.createPermission({
-                            userSubject: finalUser.id,
+                            userSubjects: [finalUser.id],
                             resourceId: asset.id,
-                            action: permission,
+                            actions: [...permissions],
                         })
                         onSuccess()
                     } catch (error) {
-                        toast.error(
-                            `Unable to give permission '${permission}' to '${finalUser.email}': ${
-                                errorModule.tryGetMessage(error) ?? 'unknown error'
-                            }.`
-                        )
+                        toast.error(`Unable to set permissions of '${finalUser.email}'.`)
                     }
                 }
             },
-            [email, permission, willInviteNewUser, /* should never change */ user]
+            [email, permissions, willInviteNewUser, /* should never change */ user]
         )
 
         return (
@@ -189,13 +244,13 @@ export function ShareWithModal(props: ShareWithModalProps) {
                         <img src={CloseIcon} />
                     </button>
                     <h2 className="inline-block font-semibold m-2">
-                        Share {backendModule.ASSET_TYPE_NAME[asset.type]}
+                        {user == null ? 'Share' : 'Update permissions'}
                     </h2>
                     <div className="mx-2">
                         <label htmlFor="share_with_user_email">Email</label>
                         <Autocomplete
                             autoFocus
-                            disabled={user != null}
+                            disabled={rawUser != null}
                             inputRef={userEmailRef}
                             type="email"
                             initialValue={email}
@@ -212,43 +267,29 @@ export function ShareWithModal(props: ShareWithModalProps) {
                             onChange={onEmailChange}
                         />
                     </div>
-                    {willInviteNewUser ? (
-                        <input
-                            type="submit"
-                            disabled={!canSubmit || alreadyHasPermission}
-                            className={`inline-block text-white bg-blue-600 rounded-full px-4 py-1 m-2 ${
-                                canSubmit && !alreadyHasPermission
-                                    ? 'hover:cursor-pointer'
-                                    : 'opacity-50'
-                            }`}
-                            value={
-                                alreadyHasPermission
-                                    ? 'Already has access'
-                                    : 'Invite user to organization'
-                            }
-                        />
-                    ) : (
+                    {!willInviteNewUser && (
                         <>
                             <div className="mx-2">Permission</div>
                             <PermissionSelector
                                 className="m-1"
+                                initialPermissions={initialPermissions}
                                 permissionClassName={permissionClassName ?? ''}
-                                onChange={setPermission}
-                            />
-                            <input
-                                type="submit"
-                                disabled={!canSubmit}
-                                className={`inline-block text-white bg-blue-600 rounded-full px-4 py-1 m-2 ${
-                                    canSubmit ? 'hover:cursor-pointer' : 'opacity-50'
-                                }`}
-                                value="Share"
+                                onChange={setPermissions}
                             />
                         </>
                     )}
+                    <input
+                        type="submit"
+                        disabled={!canSubmit}
+                        className={`inline-block text-white rounded-full px-4 py-1 m-2 ${
+                            ACTION_CSS_CLASS[action]
+                        } ${canSubmit ? 'hover:cursor-pointer' : 'opacity-50'}`}
+                        value={SUBMIT_BUTTON_TEXT[action]}
+                    />
                 </form>
             </Modal>
         )
     }
 }
 
-export default ShareWithModal
+export default ManagePermissionsModal

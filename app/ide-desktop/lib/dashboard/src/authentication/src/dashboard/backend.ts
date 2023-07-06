@@ -248,10 +248,17 @@ export enum PermissionAction {
     view = 'View',
 }
 
-/** User permissions for a specific user. */
+/** User permission for a specific user. */
 export interface UserPermission {
     user: User
     permission: PermissionAction
+}
+
+/** User permissions for a specific user. This is only returned by
+ * {@link groupPermissionsByUser}. */
+export interface UserPermissions {
+    user: User
+    permissions: PermissionAction[]
 }
 
 /** Metadata uniquely identifying a directory entry.
@@ -321,9 +328,9 @@ export interface InviteUserRequestBody {
 
 /** HTTP request body for the "create permission" endpoint. */
 export interface CreatePermissionRequestBody {
-    userSubject: Subject
+    userSubjects: Subject[]
     resourceId: AssetId
-    action: PermissionAction
+    actions: PermissionAction[]
 }
 
 /** HTTP request body for the "create directory" endpoint. */
@@ -397,6 +404,30 @@ export interface ListVersionsRequestParams {
 /** A type guard that returns whether an {@link Asset} is a specific type of asset. */
 export function assetIsType<Type extends AssetType>(type: Type) {
     return (asset: Asset): asset is Asset<Type> => asset.type === type
+}
+
+// ==============================
+// === groupPermissionsByUser ===
+// ==============================
+
+/** Converts an array of {@link UserPermission}s to an array of {@link UserPermissions}. */
+export function groupPermissionsByUser(permissions: UserPermission[]) {
+    const users: UserPermissions[] = []
+    const userMap: Record<Subject, UserPermissions> = {}
+    for (const permission of permissions) {
+        const existingUser = userMap[permission.user.pk]
+        if (existingUser != null) {
+            existingUser.permissions.push(permission.permission)
+        } else {
+            const newUser: UserPermissions = {
+                user: permission.user,
+                permissions: [permission.permission],
+            }
+            users.push(newUser)
+            userMap[permission.user.pk] = newUser
+        }
+    }
+    return users
 }
 
 // ===============
