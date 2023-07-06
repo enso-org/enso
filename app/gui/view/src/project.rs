@@ -107,6 +107,8 @@ ensogl::define_endpoints! {
         execution_context_interrupt(),
         /// Restart the program execution.
         execution_context_restart(),
+        /// Reload the main module and restart the program execution.
+        execution_context_reload_and_restart(),
         toggle_read_only(),
         set_read_only(bool),
     }
@@ -759,6 +761,9 @@ impl application::View for View {
             (Press, "debug_mode", DEBUG_MODE_SHORTCUT, "disable_debug_mode"),
             (Press, "", "cmd alt t", "execution_context_interrupt"),
             (Press, "", "cmd alt r", "execution_context_restart"),
+            // TODO(#7178): Remove this temporary shortcut when the modified-on-disk notification
+            // is ready.
+            (Press, "", "cmd alt y", "execution_context_reload_and_restart"),
             // TODO(#6179): Remove this temporary shortcut when Play button is ready.
             (Press, "", "ctrl shift b", "toggle_read_only"),
         ]
