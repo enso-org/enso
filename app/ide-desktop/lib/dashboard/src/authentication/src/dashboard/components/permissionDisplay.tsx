@@ -125,11 +125,13 @@ export interface PermissionDisplayProps extends React.PropsWithChildren {
     permissions: Permissions
     className?: string
     onClick?: React.MouseEventHandler<HTMLDivElement>
+    onMouseEnter?: React.MouseEventHandler<HTMLDivElement>
+    onMouseLeave?: React.MouseEventHandler<HTMLDivElement>
 }
 
 /** Colored border around icons and text indicating permissions. */
 function PermissionDisplay(props: PermissionDisplayProps) {
-    const { permissions, className, onClick, children } = props
+    const { permissions, className, onClick, onMouseEnter, onMouseLeave, children } = props
     let permissionBorder
     switch (permissions.type) {
         case Permission.owner: {
@@ -177,6 +179,8 @@ function PermissionDisplay(props: PermissionDisplayProps) {
         <div
             className={`mx-1 bg-white relative inline-block rounded-full ${className ?? ''}`}
             onClick={onClick}
+            onMouseEnter={onMouseEnter}
+            onMouseLeave={onMouseLeave}
         >
             {permissionBorder}
             <div className="bg-label rounded-full m-1">{children}</div>

@@ -230,6 +230,12 @@ function regexEscape(string: string) {
 // === Dashboard ===
 // =================
 
+/** Metadata uniquely identifying a user's permissions for a specific asset. */
+interface UserPermissionId {
+    userId: backendModule.Subject
+    assetId: backendModule.AssetId
+}
+
 /** Props for {@link Dashboard}s that are common to all platforms. */
 export interface DashboardProps {
     /** Whether the application may have the local backend running. */
@@ -291,6 +297,8 @@ function Dashboard(props: DashboardProps) {
     const [tab, setTab] = React.useState(Tab.dashboard)
     const [project, setProject] = React.useState<backendModule.Project | null>(null)
     const [selectedAssets, setSelectedAssets] = React.useState<backendModule.Asset[]>([])
+    const [hoveredUserPermission, setHoveredUserPermission] =
+        React.useState<UserPermissionId | null>(null)
     const [isFileBeingDragged, setIsFileBeingDragged] = React.useState(false)
     const [isScrollBarVisible, setIsScrollBarVisible] = React.useState(false)
 
@@ -728,7 +736,24 @@ function Dashboard(props: DashboardProps) {
                                         ))
                                     }
                                 }}
+                                onMouseEnter={() => {
+                                    setHoveredUserPermission({
+                                        userId: user.user.pk,
+                                        assetId: asset.id,
+                                    })
+                                }}
+                                onMouseLeave={() => {
+                                    setHoveredUserPermission(null)
+                                }}
                             >
+                                {hoveredUserPermission?.assetId === asset.id &&
+                                    hoveredUserPermission.userId === user.user.pk && (
+                                        <div className="relative">
+                                            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 rounded-full shadow-soft bg-white px-2 py-1">
+                                                {user.user.user_email}
+                                            </div>
+                                        </div>
+                                    )}
                                 <img src={DefaultUserIcon} height={24} width={24} />
                             </PermissionDisplay>
                         ))}
