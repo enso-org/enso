@@ -2,7 +2,6 @@
 
 use crate::prelude::*;
 
-use crate::config::ProjectToOpen;
 use crate::presenter::Presenter;
 
 use analytics::AnonymousData;
@@ -94,11 +93,6 @@ impl Ide {
             }
         }
     }
-
-    /// Open a project by name or ID. If no project with the given name exists, it will be created.
-    pub fn open_or_create_project(&self, project: ProjectToOpen) {
-        self.presenter.open_or_create_project(project)
-    }
 }
 
 /// A reduced version of [`Ide`] structure, representing an application which failed to initialize.
@@ -109,6 +103,7 @@ impl Ide {
 pub struct FailedIde {
     pub view: ide_view::root::View,
 }
+
 
 /// The Path of the module initially opened after opening project in IDE.
 pub fn initial_module_path(project: &model::Project) -> model::module::Path {
