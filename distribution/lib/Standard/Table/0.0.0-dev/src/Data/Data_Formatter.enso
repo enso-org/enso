@@ -2,27 +2,25 @@ from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import project.Internal.Parse_Values_Helper
-from project.Data.Type.Value_Type import Value_Type, Auto, Bits
-
-polyglot java import org.enso.table.parsing.BooleanParser
-polyglot java import org.enso.table.parsing.DateParser
-polyglot java import org.enso.table.parsing.TimeOfDayParser
-polyglot java import org.enso.table.parsing.DateTimeParser
-polyglot java import org.enso.table.parsing.WhitespaceStrippingParser
-polyglot java import org.enso.table.parsing.IdentityParser
-polyglot java import org.enso.table.parsing.TypeInferringParser
-polyglot java import org.enso.table.parsing.NumberParser
-
-polyglot java import org.enso.table.formatting.AnyObjectFormatter
-polyglot java import org.enso.table.formatting.BooleanFormatter
-polyglot java import org.enso.table.formatting.DecimalFormatter
-polyglot java import org.enso.table.formatting.IntegerFormatter
-polyglot java import org.enso.table.formatting.DateFormatter
-polyglot java import org.enso.table.formatting.DateTimeFormatter
-polyglot java import org.enso.table.formatting.TimeFormatter
-polyglot java import org.enso.table.formatting.TextFormatter
+from project.Data.Type.Value_Type import Auto, Bits, Value_Type
 
 polyglot java import java.lang.IllegalArgumentException
+polyglot java import org.enso.table.formatting.AnyObjectFormatter
+polyglot java import org.enso.table.formatting.BooleanFormatter
+polyglot java import org.enso.table.formatting.DateFormatter
+polyglot java import org.enso.table.formatting.DateTimeFormatter
+polyglot java import org.enso.table.formatting.DecimalFormatter
+polyglot java import org.enso.table.formatting.IntegerFormatter
+polyglot java import org.enso.table.formatting.TextFormatter
+polyglot java import org.enso.table.formatting.TimeFormatter
+polyglot java import org.enso.table.parsing.BooleanParser
+polyglot java import org.enso.table.parsing.DateParser
+polyglot java import org.enso.table.parsing.DateTimeParser
+polyglot java import org.enso.table.parsing.IdentityParser
+polyglot java import org.enso.table.parsing.NumberParser
+polyglot java import org.enso.table.parsing.TimeOfDayParser
+polyglot java import org.enso.table.parsing.TypeInferringParser
+polyglot java import org.enso.table.parsing.WhitespaceStrippingParser
 
 type Data_Formatter
     ## Specifies options for reading text data in a table to more specific types and

@@ -248,6 +248,15 @@ impl Model {
         })
     }
 
+    fn execution_context_reload_and_restart(&self) {
+        let controller = self.graph_controller.clone_ref();
+        executor::global::spawn(async move {
+            if let Err(err) = controller.reload_and_restart().await {
+                error!("Error reloading and restarting execution context: {err}");
+            }
+        })
+    }
+
     /// Prepare a list of projects to display in the Open Project dialog.
     fn project_list_opened(&self, project_list_ready: frp::Source<()>) {
         let controller = self.ide_controller.clone_ref();
@@ -374,6 +383,7 @@ impl Project {
             eval_ view.execution_context_interrupt(model.execution_context_interrupt());
 
             eval_ view.execution_context_restart(model.execution_context_restart());
+            eval_ view.execution_context_reload_and_restart(model.execution_context_reload_and_restart());
 
             view.set_read_only <+ view.toggle_read_only.map(f_!(model.toggle_read_only()));
             eval graph_view.execution_environment((env) model.execution_environment_changed(*env));

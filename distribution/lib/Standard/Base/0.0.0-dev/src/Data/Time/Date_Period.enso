@@ -1,13 +1,13 @@
 import project.Data.Time.Date.Date
-import project.Data.Time.Period.Period
 import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Day_Of_Week.Day_Of_Week
-from project.Data.Boolean import Boolean, True, False
+import project.Data.Time.Period.Period
+from project.Data.Boolean import Boolean, False, True
 
-polyglot java import org.enso.base.Time_Utils
-polyglot java import org.enso.base.time.Date_Period_Utils
 polyglot java import java.time.temporal.TemporalAdjuster
 polyglot java import java.time.temporal.TemporalAdjusters
+polyglot java import org.enso.base.time.Date_Period_Utils
+polyglot java import org.enso.base.Time_Utils
 
 ## Represents a unit of time longer on the scale of days (longer than a day).
 type Date_Period

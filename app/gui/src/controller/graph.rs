@@ -283,6 +283,16 @@ impl Connections {
             target: Self::convert_endpoint(&connection.target),
         }
     }
+
+    /// Return all connections that involve the given node.
+    pub fn with_node(&self, node: node::Id) -> impl Iterator<Item = Connection> {
+        self.connections
+            .iter()
+            .filter(move |conn| conn.source.node == node || conn.target.node == node)
+            .copied()
+            .collect_vec()
+            .into_iter()
+    }
 }
 
 

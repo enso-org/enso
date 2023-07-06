@@ -3,9 +3,8 @@ import Standard.Base.Errors.Encoding_Error.Encoding_Error
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-from Standard.Table import Table, Column, Data_Formatter, Quote_Style, Delimited
 import Standard.Table.Data.Table_Conversions
-import Standard.Table.Main as Table_Module
+from Standard.Table import Table, Column, Data_Formatter, Quote_Style, Delimited
 from Standard.Table.Errors import all
 
 from Standard.Test import Test, Test_Suite, Problems

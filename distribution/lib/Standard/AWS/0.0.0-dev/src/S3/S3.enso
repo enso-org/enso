@@ -4,8 +4,8 @@ import project.AWS_Credential.AWS_Credential
 import project.Errors.S3_Error
 import project.Internal.Auth
 
-polyglot java import software.amazon.awssdk.services.s3.S3Client
 polyglot java import software.amazon.awssdk.services.s3.model.S3Exception
+polyglot java import software.amazon.awssdk.services.s3.S3Client
 
 ## Gets the list of the S3 bucket names.
 @credentials AWS_Credential.default_widget

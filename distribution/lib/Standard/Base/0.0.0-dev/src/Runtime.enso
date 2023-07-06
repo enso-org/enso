@@ -2,7 +2,6 @@ import project.Any.Any
 import project.Data.Array.Array
 import project.Data.Boolean.Boolean
 import project.Data.Text.Case.Case
-from project.Data.Text.Extensions import all
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Errors.Common.Forbidden_Operation
@@ -11,8 +10,8 @@ import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Polyglot.Polyglot
 import project.Runtime.Source_Location.Source_Location
-
 from project.Data.Index_Sub_Range.Index_Sub_Range import First, Last
+from project.Data.Text.Extensions import all
 from project.Runtime.Context import Input, Output
 
 ## Utilities for interacting with the runtime.

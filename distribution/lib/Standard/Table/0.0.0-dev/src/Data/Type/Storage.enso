@@ -3,20 +3,20 @@ import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
-import Standard.Table.Data.Type.Value_Type.Value_Type
 import Standard.Table.Data.Type.Value_Type.Bits
+import Standard.Table.Data.Type.Value_Type.Value_Type
 from Standard.Table.Errors import Inexact_Type_Coercion
 
 polyglot java import org.enso.table.data.column.builder.Builder
-polyglot java import org.enso.table.data.column.storage.type.StorageType
-polyglot java import org.enso.table.data.column.storage.type.IntegerType
-polyglot java import org.enso.table.data.column.storage.type.FloatType
-polyglot java import org.enso.table.data.column.storage.type.BooleanType
-polyglot java import org.enso.table.data.column.storage.type.TextType
-polyglot java import org.enso.table.data.column.storage.type.DateType
-polyglot java import org.enso.table.data.column.storage.type.DateTimeType
-polyglot java import org.enso.table.data.column.storage.type.TimeOfDayType
 polyglot java import org.enso.table.data.column.storage.type.AnyObjectType
+polyglot java import org.enso.table.data.column.storage.type.BooleanType
+polyglot java import org.enso.table.data.column.storage.type.DateTimeType
+polyglot java import org.enso.table.data.column.storage.type.DateType
+polyglot java import org.enso.table.data.column.storage.type.FloatType
+polyglot java import org.enso.table.data.column.storage.type.IntegerType
+polyglot java import org.enso.table.data.column.storage.type.StorageType
+polyglot java import org.enso.table.data.column.storage.type.TextType
+polyglot java import org.enso.table.data.column.storage.type.TimeOfDayType
 
 ## PRIVATE
    Gets the value type represented by this Java Storage.
