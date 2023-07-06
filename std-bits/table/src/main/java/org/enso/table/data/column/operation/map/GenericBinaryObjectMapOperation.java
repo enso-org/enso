@@ -1,5 +1,6 @@
 package org.enso.table.data.column.operation.map;
 
+import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
@@ -25,6 +26,7 @@ public abstract class GenericBinaryObjectMapOperation<InputType, InputStorageTyp
 
   @Override
   public Storage<?> runMap(InputStorageType storage, Object arg, MapOperationProblemBuilder problemBuilder) {
+    arg = Polyglot_Utils.convertPolyglotValue(arg);
     if (arg == null) {
       int n = storage.size();
       Builder builder = createOutputBuilder(n);
@@ -47,7 +49,7 @@ public abstract class GenericBinaryObjectMapOperation<InputType, InputStorageTyp
       }
       return builder.seal();
     } else {
-      throw new UnexpectedTypeException("a " + inputTypeClass.getName());
+      throw new UnexpectedTypeException("a " + inputTypeClass.getName() + " but got " + arg.getClass().getName());
     }
   }
 

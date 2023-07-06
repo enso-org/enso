@@ -413,8 +413,22 @@ type Column
              example_minus = Examples.integer_column - 10
     - : Column | Any -> Column
     - self other =
-        Value_Type_Helpers.resolve_subtraction_kind self other . if_not_error <|
-            run_vectorized_binary_op self '-' fallback_fn=Nothing other
+        case Value_Type_Helpers.resolve_subtraction_kind self other of
+            Value_Type_Helpers.Subtraction_Kind.Numeric_Subtract ->
+                run_vectorized_binary_op self '-' fallback_fn=Nothing other
+            Value_Type_Helpers.Subtraction_Kind.Date_Time_Difference ->
+                case self.inferred_precise_value_type of
+                    Value_Type.Date ->
+                        ## Special handling for `Period` since it is hard to
+                           vectorize as there is no polyglot handling of it - we
+                           _wrap_ a Java object and the Java wrapper will always
+                           be an Enso callback, at which point its better to do
+                           the whole operation in pure Enso.
+                        fn = x-> y-> Period.between y x
+                        new_name = Naming_Helpers.binary_operation_name "-" self other
+                        run_binary_op self other fn new_name
+                    _ ->
+                        run_vectorized_binary_op self '-' fallback_fn=Nothing other
 
     ## ALIAS Multiply, Times, Product
        Element-wise multiplication.
@@ -1971,6 +1985,15 @@ run_vectorized_binary_op column name fallback_fn operand expected_result_type=No
             Column.Value (Java_Column.new effective_new_name rs)
     Problem_Behavior.Report_Warning.attach_problems_after result <|
         Java_Problems.parse_aggregated_problems problem_builder.getProblems
+
+## PRIVATE
+   Runs a binary operation over the provided column and operand which may be
+   another column or a scalar value.
+run_binary_op column operand function new_name =
+    new_column = case operand of
+        _ : Column -> column.zip operand function
+        _ -> column.map (function _ operand)
+    new_column.rename new_name
 
 ## PRIVATE
 
