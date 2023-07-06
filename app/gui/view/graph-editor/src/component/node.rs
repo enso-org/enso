@@ -617,8 +617,8 @@ impl Node {
             let background_enter = model.background.on_event::<mouse::Enter>();
             let background_leave = model.background.on_event::<mouse::Leave>();
             background_hover <- bool(&background_leave, &background_enter);
-            let input_enter = model.input.on_event::<mouse::Over>();
-            let input_leave = model.input.on_event::<mouse::Out>();
+            let input_enter = model.input.on_event::<mouse::Enter>();
+            let input_leave = model.input.on_event::<mouse::Leave>();
             input_hover <- bool(&input_leave, &input_enter);
             node_hover <- background_hover || input_hover;
             node_hover <- node_hover.debounce().on_change();
