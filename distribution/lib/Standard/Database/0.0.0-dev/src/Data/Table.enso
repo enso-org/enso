@@ -1089,11 +1089,7 @@ type Table
 
        ? Result Ordering
 
-         Rows in the result are first ordered by the order of the corresponding
-         rows from the left table and then the order of rows from the right
-         table. This applies only if the order of the rows was specified (for
-         example, by sorting the table; in-memory tables will keep the memory
-         layout order while for database tables the order may be unspecified).
+         The ordering of rows in the resulting table is not specified.
     cross_join : Table -> Integer | Nothing -> Text -> Problem_Behavior -> Table
     cross_join self right right_row_limit=100 right_prefix="Right " on_problems=Report_Warning =
         if check_db_table "right" right then

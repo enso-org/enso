@@ -150,7 +150,9 @@ spec setup =
             r4 = [100, 4, 'b', 'd']
             r5 = [100, 4, 'a', 'x']
             expected_rows = [r0, r1, r2, r3, r4, r5]
-            r.should_equal expected_rows
+            case setup.is_database of
+                True -> r.should_contain_the_same_elements_as expected_rows
+                False -> r.should_equal expected_rows
 
         Test.specify "Cross join via a direct call to .join should not allow join conditions" <|
             t1 = table_builder [["X", [1, 2]], ["Y", [4, 5]]]
