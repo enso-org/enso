@@ -109,6 +109,7 @@ function EmptyProjectButton(props: InternalEmptyProjectButtonProps) {
     return (
         <button
             onClick={() => {
+                setSpinnerState(spinner.SpinnerState.initial)
                 onTemplateClick(null, newSpinnerState => {
                     setSpinnerState(newSpinnerState)
                     if (newSpinnerState === spinner.SpinnerState.done) {
@@ -159,6 +160,7 @@ function TemplateButton(props: InternalTemplateButtonProps) {
             key={template.title}
             className="h-40 cursor-pointer"
             onClick={() => {
+                setSpinnerState(spinner.SpinnerState.initial)
                 onTemplateClick(template.id, newSpinnerState => {
                     setSpinnerState(newSpinnerState)
                     if (newSpinnerState === spinner.SpinnerState.done) {
