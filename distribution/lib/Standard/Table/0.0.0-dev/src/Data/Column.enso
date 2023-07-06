@@ -1,29 +1,27 @@
 from Standard.Base import all
-
 import Standard.Base.Data.Array_Proxy.Array_Proxy
+import Standard.Base.Data.Index_Sub_Range as Index_Sub_Range_Module
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
-
-import Standard.Base.Data.Index_Sub_Range as Index_Sub_Range_Module
+import Standard.Base.Internal.Rounding_Helpers
 
 import project.Data.Data_Formatter.Data_Formatter
+import project.Data.Table.Table
 import project.Data.Type.Enso_Types
 import project.Data.Type.Storage
 import project.Data.Type.Value_Type_Helpers
-import project.Data.Table.Table
 import project.Internal.Cast_Helpers
 import project.Internal.Column_Ops
 import project.Internal.Java_Problems
 import project.Internal.Naming_Helpers.Naming_Helpers
 import project.Internal.Parse_Values_Helper
 import project.Internal.Widget_Helpers
-
-from project.Internal.Column_Format import all
 from project.Data.Table import print_table
-from project.Data.Type.Value_Type import Value_Type, Auto
-from project.Errors import No_Index_Set_Error, Floating_Point_Equality, Invalid_Value_Type, Inexact_Type_Coercion, Conversion_Failure
-from project.Internal.Java_Exports import make_string_builder, make_double_builder, make_long_builder, make_date_builder_adapter
+from project.Data.Type.Value_Type import Auto, Value_Type
+from project.Errors import Conversion_Failure, Floating_Point_Equality, Inexact_Type_Coercion, Invalid_Value_Type, No_Index_Set_Error
+from project.Internal.Column_Format import all
+from project.Internal.Java_Exports import make_date_builder_adapter, make_double_builder, make_long_builder, make_string_builder
 
 polyglot java import org.enso.table.data.column.operation.map.MapOperationProblemBuilder
 polyglot java import org.enso.table.data.column.storage.Storage as Java_Storage

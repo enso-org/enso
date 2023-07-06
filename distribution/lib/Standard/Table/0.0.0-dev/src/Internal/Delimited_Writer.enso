@@ -3,25 +3,24 @@ import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.System.File.Output_Stream
 
-import project.Data.Table.Table
 import project.Data.Data_Formatter.Data_Formatter
 import project.Data.Match_Columns.Match_Columns
+import project.Data.Table.Table
 import project.Delimited.Delimited_Format.Delimited_Format
 import project.Delimited.Quote_Style.Quote_Style
 import project.Internal.Delimited_Reader
 import project.Internal.Delimited_Reader.Detected_Headers
 import project.Internal.Java_Problems
-
 from project.Errors import Column_Count_Mismatch, Column_Name_Mismatch
 
-polyglot java import org.enso.table.write.DelimitedWriter
-polyglot java import org.enso.table.write.WriteQuoteBehavior
-polyglot java import org.enso.table.formatting.TextFormatter
-polyglot java import org.enso.table.util.ColumnMapper
+polyglot java import java.io.IOException
 polyglot java import java.io.PrintWriter
 polyglot java import java.io.StringWriter
-polyglot java import java.io.IOException
 polyglot java import java.io.Writer
+polyglot java import org.enso.table.formatting.TextFormatter
+polyglot java import org.enso.table.util.ColumnMapper
+polyglot java import org.enso.table.write.DelimitedWriter
+polyglot java import org.enso.table.write.WriteQuoteBehavior
 
 ## PRIVATE
    Writes a delimited file according to the provided format.

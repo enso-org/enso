@@ -1,15 +1,16 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
+import Standard.Base.Internal.Rounding_Helpers
 
+import Standard.Table.Data.Column.Column as Materialized_Column
 import Standard.Table.Data.Type.Enso_Types
 import Standard.Table.Data.Type.Value_Type_Helpers
-import Standard.Table.Data.Column.Column as Materialized_Column
 import Standard.Table.Internal.Java_Problems
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 import Standard.Table.Internal.Widget_Helpers
-from Standard.Table import Sort_Column, Data_Formatter, Value_Type, Auto
-from Standard.Table.Errors import Floating_Point_Equality, Inexact_Type_Coercion, Invalid_Value_Type, Conversion_Failure
+from Standard.Table import Auto, Data_Formatter, Sort_Column, Value_Type
+from Standard.Table.Errors import Conversion_Failure, Floating_Point_Equality, Inexact_Type_Coercion, Invalid_Value_Type
 from Standard.Table.Internal.Cast_Helpers import check_cast_compatibility
 
 import project.Connection.Connection.Connection
@@ -17,14 +18,12 @@ import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
 import project.Internal.Helpers
 import project.Internal.IR.Context.Context
-import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.Query.Query
+import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
-
-from project.Data.Table import Table, freshen_columns
-
-from project.Errors import Unsupported_Database_Operation, Integrity_Error, Unsupported_Name
+from project.Data.Table import freshen_columns, Table
+from project.Errors import Integrity_Error, Unsupported_Database_Operation, Unsupported_Name
 
 polyglot java import org.enso.table.data.column.operation.map.MapOperationProblemBuilder
 
@@ -765,7 +764,7 @@ type Column
             new_name = self.naming_helpers.function_name "floor" [self]
             self.make_unary_op "FLOOR" new_name
 
-    ## PRVIATE
+    ## PRIVATE
        `/` for decimals.
     decimal_div : Column -> Column ! Invalid_Value_Type
     decimal_div self other =
@@ -773,7 +772,7 @@ type Column
             new_name = self.naming_helpers.function_name "decimal_div" [self, other]
             self.make_binary_op "DECIMAL_DIV" other new_name
 
-    ## PRVIATE
+    ## PRIVATE
        `mod` for decimals.
     decimal_mod : Column -> Column ! Invalid_Value_Type
     decimal_mod self other =

@@ -1,6 +1,5 @@
-## Methods for operating on `Text` in Enso.
-
 import project.Any.Any
+import project.Data.Index_Sub_Range as Index_Sub_Range_Module
 import project.Data.Index_Sub_Range.Index_Sub_Range
 import project.Data.Locale.Locale
 import project.Data.Range.Range
@@ -9,8 +8,8 @@ import project.Data.Text.Case_Sensitivity.Case_Sensitivity
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Location.Location
 import project.Data.Text.Matching_Mode.Matching_Mode
-import project.Data.Text.Regex.Regex
 import project.Data.Text.Regex.Match.Match
+import project.Data.Text.Regex.Regex
 import project.Data.Text.Regex.Regex_Syntax_Error
 import project.Data.Text.Span.Span
 import project.Data.Text.Span.Utf_16_Span
@@ -22,9 +21,9 @@ import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Time_Of_Day.Time_Of_Day
 import project.Data.Time.Time_Zone.Time_Zone
 import project.Data.Vector.Vector
+import project.Error.Error
 import project.Errors.Common.Index_Out_Of_Bounds
 import project.Errors.Common.Syntax_Error
-import project.Error.Error
 import project.Errors.Encoding_Error.Encoding_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
@@ -32,22 +31,18 @@ import project.Errors.Time_Error.Time_Error
 import project.Meta
 import project.Network.URI.URI
 import project.Nothing.Nothing
-
-from project.Data.Boolean import Boolean, True, False
-from project.Data.Json import Json, Invalid_JSON, JS_Object
+from project.Data.Boolean import Boolean, False, True
+from project.Data.Json import Invalid_JSON, JS_Object, Json
 from project.Data.Numbers import Decimal, Integer, Number, Number_Parse_Error
 from project.Data.Range.Extensions import all
-
-from project.Widget_Helpers import make_delimiter_selector, make_date_format_selector, make_date_time_format_selector, make_time_format_selector
-
-import project.Data.Index_Sub_Range as Index_Sub_Range_Module
+from project.Widget_Helpers import make_date_format_selector, make_date_time_format_selector, make_delimiter_selector, make_time_format_selector
 
 polyglot java import com.ibm.icu.lang.UCharacter
 polyglot java import com.ibm.icu.text.BreakIterator
 polyglot java import java.lang.StringBuilder
-polyglot java import org.enso.base.Text_Utils
 polyglot java import org.enso.base.Encoding_Utils
 polyglot java import org.enso.base.Regex_Utils
+polyglot java import org.enso.base.Text_Utils
 
 ## Returns a new `Text` object with the characters in the reverse order of the input.
 

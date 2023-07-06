@@ -1,8 +1,6 @@
 import project.Data.Numbers.Integer
-
+from project.Data.Boolean import Boolean, False, True
 from project.Data.Ordering import all
-from project.Data.Boolean import Boolean, True, False
-
 
 polyglot java import java.time.DayOfWeek
 

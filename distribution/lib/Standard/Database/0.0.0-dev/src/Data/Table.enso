@@ -7,11 +7,9 @@ import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Errors.Unimplemented.Unimplemented
-
 from Standard.Base.Metadata import make_single_choice
 from Standard.Base.Widget_Helpers import make_delimiter_selector
 
-from Standard.Table import Aggregate_Column, Data_Formatter, Column_Selector, Sort_Column, Match_Columns, Position, Set_Mode, Auto, Value_Type
 import Standard.Table.Data.Expression.Expression
 import Standard.Table.Data.Expression.Expression_Error
 import Standard.Table.Data.Join_Condition.Join_Condition
@@ -28,11 +26,13 @@ import Standard.Table.Internal.Table_Helpers
 import Standard.Table.Internal.Table_Helpers.Table_Column_Helper
 import Standard.Table.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 import Standard.Table.Internal.Widget_Helpers
+from Standard.Table import Aggregate_Column, Auto, Column_Selector, Data_Formatter, Match_Columns, Position, Set_Mode, Sort_Column, Value_Type
 from Standard.Table.Data.Column import get_item_string, normalize_string_for_display
 from Standard.Table.Data.Table import print_table
-from Standard.Table.Internal.Filter_Condition_Helpers import make_filter_column
 from Standard.Table.Errors import all
+from Standard.Table.Internal.Filter_Condition_Helpers import make_filter_column
 
+import project.Connection.Connection.Connection
 import project.Data.Column.Column
 import project.Data.SQL_Query.SQL_Query
 import project.Data.SQL_Statement.SQL_Statement
@@ -49,10 +49,8 @@ import project.Internal.IR.Query.Query
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
+from project.Errors import Integrity_Error, Table_Not_Found, Unsupported_Database_Operation, Unsupported_Name
 
-from project.Errors import Unsupported_Database_Operation, Integrity_Error, Unsupported_Name, Table_Not_Found
-
-import project.Connection.Connection.Connection
 polyglot java import java.sql.JDBCType
 polyglot java import java.util.UUID
 

@@ -1,6 +1,5 @@
 from Standard.Base import all
 
-polyglot java import org.enso.table.data.column.storage.Storage
 polyglot java import org.enso.table.data.column.builder.BoolBuilder
 polyglot java import org.enso.table.data.column.builder.DateBuilder
 polyglot java import org.enso.table.data.column.builder.DateTimeBuilder
@@ -8,6 +7,7 @@ polyglot java import org.enso.table.data.column.builder.InferredBuilder
 polyglot java import org.enso.table.data.column.builder.NumericBuilder
 polyglot java import org.enso.table.data.column.builder.StringBuilder
 polyglot java import org.enso.table.data.column.builder.TimeOfDayBuilder
+polyglot java import org.enso.table.data.column.storage.Storage
 
 ## PRIVATE
 make_bool_builder : BoolBuilder

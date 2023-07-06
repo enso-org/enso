@@ -1,7 +1,7 @@
 from Standard.Base import all
 
-import project.Data.Type.Value_Type.Value_Type
 import project.Data.Type.Value_Type.Bits
+import project.Data.Type.Value_Type.Value_Type
 
 ## PRIVATE
    Finds the most specific `Value_Type` that can be used to hold the given

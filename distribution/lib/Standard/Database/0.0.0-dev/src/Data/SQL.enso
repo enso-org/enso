@@ -3,8 +3,8 @@ import Standard.Base.Runtime.State
 
 import Standard.Table.Internal.Vector_Builder.Vector_Builder
 
-import project.Data.SQL_Type.SQL_Type
 import project.Data.SQL_Statement.SQL_Statement
+import project.Data.SQL_Type.SQL_Type
 
 ## PRIVATE
 
