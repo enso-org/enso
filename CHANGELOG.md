@@ -505,6 +505,9 @@
 - [`Column.fill_nothing` and `.fill_empty` no longer rename the column. Added
   `Table.fill_nothing` and `.fill_empty`.][7166]
 - [Implemented `add_row_number` for Database tables.][7174]
+- [Added `replace` to in-memory table. Changed replace for `Text`, in-memory
+  `Column`, and in-memory `Table` to take a `Regex` in addition to a `Text`.]
+  [7223]
 - [Added `cross_join` support to database tables.][7234]
 
 [debug-shortcuts]:
@@ -732,6 +735,7 @@
 [7072]: https://github.com/enso-org/enso/pull/7072
 [7166]: https://github.com/enso-org/enso/pull/7166
 [7174]: https://github.com/enso-org/enso/pull/7174
+[7223]: https://github.com/enso-org/enso/pull/7223
 [7234]: https://github.com/enso-org/enso/pull/7234
 
 #### Enso Compiler

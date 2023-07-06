@@ -422,12 +422,11 @@ Text.tokenize self pattern="." case_sensitivity=Case_Sensitivity.Sensitive =
        $<foo>: Named group `foo`
 
    Arguments:
-   - term: The string or regex to find.
+   - term: The `Text` or `Regex` to find.
    - replacement: The text to replace matches with.
    - case_sensitivity: Specifies if the text values should be compared case
      sensitively.
    - only_first: If True, only replace the first match.
-   - use_regex: If true, the term is used as a regular expression.
 
    If an empty regex is used, `replace` throws an `Illegal_Argument` error.
 
@@ -442,7 +441,7 @@ Text.tokenize self pattern="." case_sensitivity=Case_Sensitivity.Sensitive =
    > Example
      Replace all occurrences of letters 'l' and 'o' with '#'.
 
-         "Hello World!".replace "[lo]" "#" use_regex=True == "He### W#r#d!"
+         "Hello World!".replace "[lo]".to_regex "#" == "He### W#r#d!"
 
    > Example
      Replace the first occurrence of letter 'l' with '#'.
@@ -452,7 +451,7 @@ Text.tokenize self pattern="." case_sensitivity=Case_Sensitivity.Sensitive =
    > Example
      Replace texts in quotes with parentheses.
 
-          '"abc" foo "bar" baz'.replace '"(.*?)"' '($1)' use_regex=True == '(abc) foo (bar) baz'
+          '"abc" foo "bar" baz'.replace '"(.*?)"'.to_regex '($1)' == '(abc) foo (bar) baz'
 
    ! Matching Grapheme Clusters
      In case-insensitive mode, a single character can match multiple characters,
@@ -477,16 +476,15 @@ Text.tokenize self pattern="." case_sensitivity=Case_Sensitivity.Sensitive =
    > Example
      Regexp replace.
 
-     '<a href="url">content</a>'.replace '<a href="(.*?)">(.*?)</a>' '$2 is at $1' use_regex=True == 'content is at url'
-
-Text.replace : Text -> Text -> Case_Sensitivity -> Boolean -> Boolean -> Text ! Illegal_Argument
-Text.replace self term replacement case_sensitivity=Case_Sensitivity.Sensitive only_first=False use_regex=False =
-    case use_regex of
-        False -> if term.is_empty then self else
+     '<a href="url">content</a>'.replace '<a href="(.*?)">(.*?)</a>'.to_regex '$2 is at $1'== 'content is at url'
+Text.replace : Text | Regex  -> Text-> Case_Sensitivity -> Boolean -> Text ! Illegal_Argument
+Text.replace self term replacement case_sensitivity=Case_Sensitivity.Default only_first=False =
+    case term of
+        _ : Text -> if term.is_empty then self else
             array_from_single_result result = case result of
                 Nothing -> []
                 _ -> [result]
-            spans_array = case case_sensitivity of
+            spans_array = case case_sensitivity.to_explicit_sensitivity_in_memory of
                 Case_Sensitivity.Sensitive -> case only_first of
                     False -> Text_Utils.span_of_all self term
                     True -> array_from_single_result <| Text_Utils.span_of self term
@@ -497,10 +495,13 @@ Text.replace self term replacement case_sensitivity=Case_Sensitivity.Sensitive o
                         array_from_single_result <|
                             Text_Utils.span_of_case_insensitive self term locale.java_locale False
             Text_Utils.replace_spans self spans_array replacement
-        True ->
-            case_insensitive = case_sensitivity.is_case_insensitive_in_memory
-            compiled_pattern = Regex.compile term case_insensitive=case_insensitive
-            compiled_pattern.replace self replacement only_first
+        _ : Regex ->
+            updated_regex = case case_sensitivity of
+                Case_Sensitivity.Default -> term
+                _ ->
+                    case_insensitive = case_sensitivity.is_case_insensitive_in_memory
+                    term.recompile case_insensitive
+            updated_regex.replace self replacement only_first
 
 ## ALIAS Get Words
 
