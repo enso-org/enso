@@ -182,9 +182,6 @@ impl Modification {
                         "Prepending to {} the following paths: {:?}",
                         self.variable_name, paths_to_prepend
                     );
-                    for path in paths_to_prepend {
-                        assert!(path.exists());
-                    }
                     let new_paths_set = paths_to_prepend.iter().collect::<BTreeSet<_>>();
                     let old_paths = std::env::split_paths(&old_value).collect_vec();
 
