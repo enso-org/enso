@@ -1,5 +1,5 @@
 /** @file Colored border around icons and text indicating permissions. */
-import * as react from 'react'
+import * as React from 'react'
 
 import * as backend from '../backend'
 
@@ -121,10 +121,10 @@ export function permissionActionsToPermissions(
 // =================
 
 /** Props for a {@link PermissionDisplay}. */
-export interface PermissionDisplayProps extends react.PropsWithChildren {
+export interface PermissionDisplayProps extends React.PropsWithChildren {
     permissions: Permissions
     className?: string
-    onClick?: react.MouseEventHandler<HTMLDivElement>
+    onClick?: React.MouseEventHandler<HTMLDivElement>
 }
 
 /** Colored border around icons and text indicating permissions. */

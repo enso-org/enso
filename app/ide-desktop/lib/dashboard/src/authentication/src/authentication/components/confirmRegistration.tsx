@@ -1,6 +1,6 @@
 /** @file Registration confirmation page for when a user clicks the confirmation link set to their
  * email address. */
-import * as react from 'react'
+import * as React from 'react'
 import * as router from 'react-router-dom'
 import toast from 'react-hot-toast'
 
@@ -31,8 +31,10 @@ function ConfirmRegistration() {
 
     const { verificationCode, email } = parseUrlSearchParams(location.search)
 
-    react.useEffect(() => {
-        if (!email || !verificationCode) {
+    // No dependencies means this runs on every render, however this component should immediately
+    // navigate away so it shouldn't exist for more than a few renders.
+    React.useEffect(() => {
+        if (email == null || verificationCode == null) {
             navigate(app.LOGIN_PATH)
         } else {
             void (async () => {
@@ -48,7 +50,7 @@ function ConfirmRegistration() {
                 }
             })()
         }
-    }, [])
+    })
 
     return <></>
 }

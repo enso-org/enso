@@ -1,10 +1,10 @@
 /** @file A select menu with a dropdown. */
-import * as react from 'react'
+import * as React from 'react'
 
 /** Props for a {@link Autocomplete}. */
 export interface AutocompleteProps {
-    type?: react.HTMLInputTypeAttribute
-    inputRef?: react.MutableRefObject<HTMLInputElement>
+    type?: React.HTMLInputTypeAttribute
+    inputRef?: React.MutableRefObject<HTMLInputElement>
     initialValue: string
     autoFocus?: boolean
     disabled?: boolean
@@ -22,36 +22,37 @@ function Autocomplete(props: AutocompleteProps) {
         inputRef: rawInputRef,
         initialValue,
         autoFocus,
-        disabled,
+        disabled = false,
         items,
         onInput,
         onChange,
         className,
         optionsClassName,
     } = props
-    const [value, setValue] = react.useState(initialValue)
-    const [isDropdownVisible, setIsDropdownVisible] = react.useState(false)
-    const [selectedIndex, setSelectedIndex] = react.useState<number | null>(null)
+    const [value, setValue] = React.useState(initialValue)
+    const [isDropdownVisible, setIsDropdownVisible] = React.useState(false)
+    const [selectedIndex, setSelectedIndex] = React.useState<number | null>(null)
 
-    const overrideValue = react.useCallback(
+    // This is required. React emits an error when conditionally setting `value`. See:
+    // https://react.dev/reference/react-dom/components/input#im-getting-an-error-a-component-is-changing-an-uncontrolled-input-to-be-controlled
+    // `rawInputRef` MUST either alwoys be set, or always not be set, otherwise this `useRef` hook
+    // is called conditionally, which is not allowed in React.
+    // This is INCORRECT, but SAFE to use in hooks as its value will be set by the time any hook
+    // runs.
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion, react-hooks/rules-of-hooks
+    const inputRef = rawInputRef ?? React.useRef<HTMLInputElement>(null!)
+
+    const overrideValue = React.useCallback(
         (item: string) => {
             setIsDropdownVisible(false)
             setValue(item)
             inputRef.current.value = item
             onChange(item)
         },
-        [onChange]
+        [onChange, inputRef]
     )
 
-    // This is required, rather than conditionally setting the `value` prop on the input,
-    // because React disallows that. See:
-    // https://react.dev/reference/react-dom/components/input#im-getting-an-error-a-component-is-changing-an-uncontrolled-input-to-be-controlled
-    // This is INCORRECT, but SAFE to use in hooks as its value will be set by the time any hook
-    // runs.
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const inputRef = rawInputRef ?? react.useRef<HTMLInputElement>(null!)
-
-    const onKeyDown = (event: react.KeyboardEvent) => {
+    const onKeyDown = (event: React.KeyboardEvent) => {
         switch (event.key) {
             case 'ArrowUp': {
                 event.preventDefault()

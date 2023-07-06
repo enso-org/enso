@@ -1,5 +1,5 @@
 /** @file A horizontal selector for all possible permissions. */
-import * as react from 'react'
+import * as React from 'react'
 
 import * as backend from '../backend'
 import * as set from '../../set'
@@ -44,13 +44,15 @@ function PermissionSelector(props: PermissionSelectorProps) {
         permissionClassName,
         onChange,
     } = props
-    const [permissions, setPermissions] = react.useState(() => new Set<backend.PermissionAction>())
+    const [permissions, setPermissions] = React.useState(() => new Set<backend.PermissionAction>())
 
-    react.useEffect(() => {
+    React.useEffect(() => {
         if (rawInitialPermissions != null) {
             setPermissions(rawInitialPermissions)
             onChange(rawInitialPermissions)
         }
+        // `onChange` is NOT a dependency.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [rawInitialPermissions])
 
     return (

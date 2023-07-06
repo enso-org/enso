@@ -1,5 +1,5 @@
 /** @file A modal with inputs for user email and permission level. */
-import * as react from 'react'
+import * as React from 'react'
 import toast from 'react-hot-toast'
 
 import CloseIcon from 'enso-assets/close.svg'
@@ -65,28 +65,30 @@ export interface ManagePermissionsModalProps {
     eventTarget: HTMLElement
 }
 
-/** A modal with inputs for user email and permission level. */
+/** A modal with inputs for user email and permission level.
+ * @throws {Error} when the current backend is the local backend, or when the user is offline.
+ * This should never happen, as this modal should not be accessible in either case. */
 export function ManagePermissionsModal(props: ManagePermissionsModalProps) {
     const { asset, user: rawUser, onSuccess, eventTarget } = props
     const { organization } = auth.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
     const { unsetModal } = modalProvider.useSetModal()
 
-    const [willInviteNewUser, setWillInviteNewUser] = react.useState(false)
-    const [users, setUsers] = react.useState<backendModule.SimpleUser[]>([])
-    const [matchingUsers, setMatchingUsers] = react.useState(users)
-    const [canSubmit, setCanSubmit] = react.useState(true)
-    const [email, setEmail] = react.useState<string>(rawUser?.user_email ?? '')
-    const [permissions, setPermissions] = react.useState(new Set<backendModule.PermissionAction>())
-    const [userEmailClassName, setUserEmailClassName] = react.useState<string | null>(null)
-    const [permissionClassName, setPermissionClassName] = react.useState<string | null>(null)
+    const [willInviteNewUser, setWillInviteNewUser] = React.useState(false)
+    const [users, setUsers] = React.useState<backendModule.SimpleUser[]>([])
+    const [matchingUsers, setMatchingUsers] = React.useState(users)
+    const [canSubmit, setCanSubmit] = React.useState(true)
+    const [email, setEmail] = React.useState<string>(rawUser?.user_email ?? '')
+    const [permissions, setPermissions] = React.useState(new Set<backendModule.PermissionAction>())
+    const [userEmailClassName, setUserEmailClassName] = React.useState<string | null>(null)
+    const [permissionClassName, setPermissionClassName] = React.useState<string | null>(null)
 
-    const user = react.useMemo(
+    const user = React.useMemo(
         () =>
             rawUser ??
             (asset.permissions ?? []).find(permission => permission.user.user_email === email)
                 ?.user,
-        [rawUser, email]
+        [rawUser, email, /* should never change */ asset.permissions]
     )
 
     const action =
@@ -99,10 +101,10 @@ export function ManagePermissionsModal(props: ManagePermissionsModalProps) {
             : ManagePermissionsAction.share
 
     /** Overridden by the user's permissions only if it is not empty. */
-    const initialPermissions = react.useMemo(
+    const initialPermissions = React.useMemo(
         () =>
             permissions.size !== 0
-                ? permissions
+                ? null
                 : user != null
                 ? new Set(
                       (asset.permissions ?? [])
@@ -112,29 +114,33 @@ export function ManagePermissionsModal(props: ManagePermissionsModalProps) {
                           .map(userPermission => userPermission.permission)
                   )
                 : null,
-        [user]
+        // `permissions` is NOT a dependency; this is an expensive computation so it is only used
+        // to determine whether the computation should be avoided completely.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [user, /* should never change */ asset.permissions]
     )
 
-    const emailsOfUsersWithPermission = react.useMemo(
+    const emailsOfUsersWithPermission = React.useMemo(
         () =>
             new Set(asset.permissions?.map(userPermission => userPermission.user.user_email) ?? []),
-        [asset.permissions]
+        [/* should never change */ asset.permissions]
     )
 
     // This is INCORRECT, but SAFE to use in hooks as its value will be set by the time any hook
     // runs.
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const userEmailRef = react.useRef<HTMLInputElement>(null!)
+    const userEmailRef = React.useRef<HTMLInputElement>(null!)
 
     if (backend.type === backendModule.BackendType.local || organization == null) {
         // This should never happen - the local backend does not have the "shared with" column,
         // and `organization` is absent only when offline - in which case the user should only
         // be able to access the local backend.
-        return <></>
+        // This MUST be an error, otherwise the hooks below are considered as conditionally called.
+        throw new Error('Unable to share projects on the local backend.')
     } else {
         const position = eventTarget.getBoundingClientRect()
 
-        react.useEffect(() => {
+        React.useEffect(() => {
             void (async () => {
                 const listedUsers = await backend.listUsers()
                 const newUsers = listedUsers.filter(
@@ -147,9 +153,13 @@ export function ManagePermissionsModal(props: ManagePermissionsModalProps) {
                 )
             })()
             // `email` is NOT a dependency. `matchingUsers` is updated based on `email` elsewhere.
-        }, [])
+        }, [
+            email,
+            /* should never change */ backend,
+            /* should never change */ emailsOfUsersWithPermission,
+        ])
 
-        const onEmailChange = react.useCallback(
+        const onEmailChange = React.useCallback(
             (newEmail: string) => {
                 setEmail(newEmail)
                 const lowercaseEmail = newEmail.toLowerCase()
@@ -166,10 +176,10 @@ export function ManagePermissionsModal(props: ManagePermissionsModalProps) {
                     )
                 }
             },
-            [users]
+            [users, /* should never change */ emailsOfUsersWithPermission]
         )
 
-        const onSubmit = react.useCallback(
+        const onSubmit = React.useCallback(
             async (formEvent: React.FormEvent) => {
                 formEvent.preventDefault()
                 const isEmailInvalid = !userEmailRef.current.validity.valid
@@ -224,7 +234,18 @@ export function ManagePermissionsModal(props: ManagePermissionsModalProps) {
                     }
                 }
             },
-            [email, permissions, willInviteNewUser, /* should never change */ user]
+            [
+                email,
+                permissions,
+                willInviteNewUser,
+                asset.id,
+                organization.id,
+                users,
+                onSuccess,
+                /* should never change */ unsetModal,
+                /* should never change */ backend,
+                /* should never change */ user,
+            ]
         )
 
         return (
