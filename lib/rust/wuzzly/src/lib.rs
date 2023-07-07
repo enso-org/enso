@@ -2,29 +2,20 @@
 #![feature(iter_from_generator)]
 #![feature(iter_advance_by)]
 #![feature(let_chains)]
-#![feature(drain_filter)]
+#![feature(type_changing_struct_update)]
 
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Score(pub u32);
+pub mod score;
+pub use score::Score;
 
-pub trait ScoreBuilder: Default + Clone + Sized {
-    type SubmatchScore: SubmatchScore;
-    fn skip_word_chars(&mut self, count: u32);
-    fn match_word_char(&mut self);
-    fn match_delimiter(&mut self, pattern: char, value: char);
-    fn skip_delimiter(&mut self, pattern: char, value: char);
-    fn finish(self) -> Self::SubmatchScore;
-}
+use derivative::Derivative;
+use std::num::NonZeroU32;
+use std::ops::Add;
 
-pub trait SubmatchScore: core::ops::Add<Self, Output = Self> + Sized + Ord {
-    type TargetInfo;
-    fn with_submatch_by_initials_penalty(self) -> Self;
-    fn any_prefix_match_beats_any_initials_match() -> bool;
-    fn target_score(self, target_info: Self::TargetInfo) -> Score;
-}
+use score::*;
 
 mod std_score {
+    use super::score;
     use super::Score;
     use std::cmp::Ordering;
 
@@ -62,17 +53,17 @@ mod std_score {
         penalty: u32,
     }
 
-    impl super::ScoreBuilder for ScoreBuilder {
+    impl score::ScoreBuilder for ScoreBuilder {
         type SubmatchScore = ScoreInfo;
 
-        fn skip_word_chars(&mut self, count: u32) {
+        fn skip_word_chars(&mut self, count: core::num::NonZeroU32) {
             // Penalty if the first time we skip word chars, we haven't matched word chars first.
             if !self.word_chars_matched && !self.word_chars_skipped {
                 self.penalty += SUBMATCH_NOT_FROM_START_PENALTY;
             }
             // Penalty for skipped chars in matched words.
             if self.word_chars_matched_since_last_delimiter {
-                self.penalty += count * CHAR_IN_MATCHED_WORD_SKIPPED_PENALTY;
+                self.penalty += count.get() * CHAR_IN_MATCHED_WORD_SKIPPED_PENALTY;
             }
             self.word_chars_skipped = true;
         }
@@ -90,7 +81,7 @@ mod std_score {
             }
         }
 
-        fn skip_delimiter(&mut self, _pattern: char, value: char) {
+        fn skip_delimiter(&mut self, _pattern: Option<char>, value: char) {
             // Penalty for every skipped `.` after the first matched word character.
             if value == '.' && self.word_chars_matched {
                 self.penalty += SUBMATCH_INCLUDES_NAMESPACE_PENALTY;
@@ -104,6 +95,8 @@ mod std_score {
         }
     }
 
+    /// Score information for a submatch. Includes the accumulated penalty, and information needed
+    /// when merging a tree of submatch scores to produce a match score.
     #[derive(Copy, Clone, Default, PartialEq, Eq)]
     pub struct ScoreInfo {
         penalty:            u32,
@@ -122,21 +115,11 @@ mod std_score {
         }
     }
 
-    impl super::SubmatchScore for ScoreInfo {
+    impl score::SubmatchScore for ScoreInfo {
         type TargetInfo = TargetInfo;
+        const ANY_PREFIX_MATCH_BEATS_ANY_INITIALS_MATCH: bool = true;
 
-        fn with_submatch_by_initials_penalty(self) -> Self {
-            Self {
-                penalty:            self.penalty + SUBMATCH_BY_INITIALS_PENALTY,
-                word_chars_skipped: true,
-            }
-        }
-
-        fn any_prefix_match_beats_any_initials_match() -> bool {
-            true
-        }
-
-        fn target_score(self, target_info: TargetInfo) -> Score {
+        fn match_score(self, target_info: TargetInfo) -> Score {
             let Self { mut penalty, word_chars_skipped } = self;
             if target_info.is_alias {
                 penalty += MATCH_TARGET_IS_ALIAS_PENALTY;
@@ -145,6 +128,13 @@ mod std_score {
                 penalty += MATCH_IS_IMPERFECT_PENALTY;
             }
             Score(u32::MAX - penalty)
+        }
+
+        fn with_submatch_by_initials_penalty(self) -> Self {
+            Self {
+                penalty:            self.penalty + SUBMATCH_BY_INITIALS_PENALTY,
+                word_chars_skipped: true,
+            }
         }
     }
 
@@ -170,13 +160,17 @@ struct Matcher<SB> {
     pattern:            String,
     target:             String,
     /// Empty `Vec` used to reuse storage.
-    states_buffer:      Vec<State<'static, SB>>,
+    states_buffer:      Vec<State<'static, WithMatchIndexes<SB>>>,
     /// Empty `Vec` used to reuse storage.
-    next_states_buffer: Vec<State<'static, SB>>,
+    next_states_buffer: Vec<State<'static, WithMatchIndexes<SB>>>,
 }
 
 impl<SB: ScoreBuilder> Matcher<SB> {
-    fn match_initials(&mut self, pattern: &str, target: &str) -> Option<SB::SubmatchScore> {
+    fn match_initials(
+        &mut self,
+        pattern: &str,
+        target: &str,
+    ) -> Option<WithMatchIndexes<SB::SubmatchScore>> {
         self.reset_pattern();
         let mut chars = pattern.chars();
         if let Some(c) = chars.next() {
@@ -189,7 +183,11 @@ impl<SB: ScoreBuilder> Matcher<SB> {
         Some(self.do_match(target)?.with_submatch_by_initials_penalty())
     }
 
-    fn match_prefixes(&mut self, pattern: &str, target: &str) -> Option<SB::SubmatchScore> {
+    fn match_prefixes(
+        &mut self,
+        pattern: &str,
+        target: &str,
+    ) -> Option<WithMatchIndexes<SB::SubmatchScore>> {
         use core::fmt::Write;
         self.reset_pattern();
         self.pattern.write_str(pattern).unwrap();
@@ -204,7 +202,7 @@ impl<SB: ScoreBuilder> Matcher<SB> {
         self.pattern.push(' ');
     }
 
-    fn do_match(&mut self, target: &str) -> Option<SB::SubmatchScore> {
+    fn do_match(&mut self, target: &str) -> Option<WithMatchIndexes<SB::SubmatchScore>> {
         fn cast_lifetime<'a, 'b, T>(mut buffer: Vec<State<'a, T>>) -> Vec<State<'b, T>> {
             unsafe {
                 // Ensure the `Vec` is empty.
@@ -216,76 +214,48 @@ impl<SB: ScoreBuilder> Matcher<SB> {
                 core::mem::transmute::<Vec<State<'a, T>>, Vec<State<'b, T>>>(buffer)
             }
         }
-        use core::fmt::Write;
         self.target.clear();
-        self.target.push('_');
-        self.target.write_str(target).unwrap();
-        let initial_state =
-            State { chars: WordIndexedChars::new(&self.target), score: Default::default() };
+        self.target.push('_'); // Treat the beginning of the string as a word boundary.
+        self.target.extend(target.chars().map(|c| c.to_ascii_lowercase()));
+        let initial_state = State::new(&self.target);
         let mut states = cast_lifetime(core::mem::take(&mut self.states_buffer));
         let mut next_states = cast_lifetime(core::mem::take(&mut self.states_buffer));
         states.push(initial_state);
         for c in self.pattern.chars() {
             match c {
-                '_' | ' ' | '.' => {
-                    for mut state in states.drain(..) {
-                        while let Ok(skipped) = state.chars.advance_until_at_word_boundary() {
-                            if skipped != 0 {
-                                state.score.skip_word_chars(skipped);
-                            }
-                            let Some(d) = state.chars.next() else { break };
-                            if c == '_' && d == '.' {
-                                break;
-                            }
-                            if c == ' ' || c == d {
-                                let mut matched_state = state.clone();
-                                matched_state.score.match_delimiter(c, d);
-                                next_states.push(matched_state);
-                            }
-                            state.score.skip_delimiter(c, d);
-                        }
-                    }
-                    core::mem::swap(&mut states, &mut next_states);
-                }
-                c => {
-                    states.drain_filter(|state| {
-                        state.score.match_word_char();
-                        state.chars.next() != Some(c)
-                    });
-                }
+                '_' | ' ' | '.' =>
+                    for state in states.drain(..) {
+                        next_states.extend(state.match_delimiter(c));
+                    },
+                c =>
+                    for state in states.drain(..) {
+                        next_states.extend(state.match_word_character(c));
+                    },
             }
+            core::mem::swap(&mut states, &mut next_states);
         }
-        let best = states
-            .drain(..)
-            .map(|mut state| {
-                while let Ok(skipped) = state.chars.advance_until_at_word_boundary() {
-                    if skipped != 0 {
-                        state.score.skip_word_chars(skipped);
-                    }
-                    let Some(d) = state.chars.next() else { break };
-                    state.score.skip_delimiter('$', d);
-                }
-                let trailing_word_chars = state.chars.count() as u32;
-                if trailing_word_chars != 0 {
-                    state.score.skip_word_chars(trailing_word_chars);
-                }
-                state.score.finish()
-            })
-            .max();
+        let mut best = states.drain(..).map(|state| state.into_score()).max();
+        if let Some(best) = best.as_mut() {
+            best.match_indexes.pop_front();
+        }
         next_states.clear();
         self.states_buffer = cast_lifetime(states);
         self.next_states_buffer = cast_lifetime(next_states);
         best
     }
 
-    fn subsearch(&mut self, pattern: &str, target: &str) -> Option<SB::SubmatchScore> {
+    fn subsearch(
+        &mut self,
+        pattern: &str,
+        target: &str,
+    ) -> Option<WithMatchIndexes<SB::SubmatchScore>> {
         if let Some((r#type, name)) = pattern.rsplit_once('.') {
             // Try to match both parts, then compute a composite score.
             let (r#type2, name2) = target.rsplit_once('.')?;
             let r#type = self.subsearch(r#type, r#type2)?;
             let name = self.subsearch(name, name2)?;
             let dot = {
-                let mut builder = SB::default();
+                let mut builder = WithMatchIndexes::<SB>::default();
                 builder.match_delimiter('.', '.');
                 builder.finish()
             };
@@ -298,7 +268,7 @@ impl<SB: ScoreBuilder> Matcher<SB> {
                 // Optimization: The scoring criteria may guarantee that an initials-match would
                 // never be preferred to a prefix match.
                 let best_match_could_be_initials =
-                    !SB::SubmatchScore::any_prefix_match_beats_any_initials_match()
+                    !SB::SubmatchScore::ANY_PREFIX_MATCH_BEATS_ANY_INITIALS_MATCH
                         || matched_prefix.is_none();
                 no_delimiters_in_pattern && best_match_could_be_initials
             };
@@ -314,9 +284,10 @@ impl<SB: ScoreBuilder> Matcher<SB> {
         pattern: &str,
         target: &str,
         target_info: <SB::SubmatchScore as SubmatchScore>::TargetInfo,
-    ) -> Option<Score> {
+    ) -> Option<WithMatchIndexes<Score>> {
         let pattern: String = normalize_pattern(pattern.chars()).into_iter().collect();
-        self.subsearch(&pattern, target).map(|info| info.target_score(target_info))
+        self.subsearch(&pattern, target)
+            .map(|info| info.map(|score_info| score_info.match_score(target_info)))
     }
 }
 
@@ -343,7 +314,7 @@ fn normalize_pattern(pattern: impl Iterator<Item = char>) -> impl Iterator<Item 
                     if let Some(delimiter) = delimiter.take() {
                         yield delimiter;
                     }
-                    yield c
+                    yield c.to_ascii_lowercase()
                 }
             }
         }
@@ -355,8 +326,29 @@ fn normalize_pattern(pattern: impl Iterator<Item = char>) -> impl Iterator<Item 
 
 /// Search for a pattern in a string using a temporary [`Matcher`]. When performing multiple
 /// searches it is more efficient to reuse a [`Matcher`], but this is convenient for testing.
-fn search(pattern: &str, target: &str, target_info: std_score::TargetInfo) -> Option<Score> {
+fn search(
+    pattern: &str,
+    target: &str,
+    target_info: std_score::TargetInfo,
+) -> Option<WithMatchIndexes<Score>> {
     Matcher::<std_score::ScoreBuilder>::default().search(pattern, target, target_info)
+}
+
+fn fmt_match(s: WithMatchIndexes<&str>) -> String {
+    let chars = s.inner.chars();
+    let mut bits = s.match_indexes.bits;
+    let chars: Vec<_> = chars
+        .rev()
+        .map(|c| {
+            let c = match bits & 1 {
+                0 => c,
+                _ => c.to_ascii_uppercase(),
+            };
+            bits >>= 1;
+            c
+        })
+        .collect();
+    chars.iter().rev().collect()
 }
 
 
@@ -366,6 +358,53 @@ fn search(pattern: &str, target: &str, target_info: std_score::TargetInfo) -> Op
 struct State<'s, SB> {
     chars: WordIndexedChars<'s>,
     score: SB,
+}
+
+impl<'s, SB: ScoreBuilder + 's> State<'s, SB> {
+    fn new(target: &'s str) -> Self {
+        Self { chars: WordIndexedChars::new(target), score: Default::default() }
+    }
+
+    /// Produce all possible resulting states resulting from applying specified delimiter to the
+    /// current state.
+    fn match_delimiter(mut self, c: char) -> impl Iterator<Item = State<'s, SB>> {
+        core::iter::from_generator(move || {
+            while let Ok(skipped) = self.chars.advance_until_at_word_boundary() {
+                self.score.skip_word_chars_if_any(skipped);
+                let Some(d) = self.chars.next() else { break };
+                if c == '_' && d == '.' {
+                    break;
+                }
+                if c == ' ' || c == d {
+                    let mut matched_state = self.clone();
+                    matched_state.score.match_delimiter(c, d);
+                    yield matched_state;
+                }
+                self.score.skip_delimiter(Some(c), d);
+            }
+        })
+    }
+
+    /// Try to apply the given non-delimiter character to the state.
+    fn match_word_character(mut self, c: char) -> Option<Self> {
+        self.score.match_word_char();
+        (self.chars.next() == Some(c)).then(|| self)
+    }
+
+    /// Skip any remaining characters, and return the resulting score.
+    fn into_score(mut self) -> SB::SubmatchScore {
+        // Skip up to and including each remaining delimiter.
+        while let Ok(skipped) = self.chars.advance_until_at_word_boundary() {
+            self.score.skip_word_chars_if_any(skipped);
+            let Some(d) = self.chars.next() else { break };
+            self.score.skip_delimiter(None, d);
+        }
+        // Skip after the last delimiter.
+        let trailing_word_chars = self.chars.count() as u32;
+        self.score.skip_word_chars_if_any(trailing_word_chars);
+        // Return the score.
+        self.score.finish()
+    }
 }
 
 
@@ -414,6 +453,111 @@ impl<'s> Iterator for WordIndexedChars<'s> {
 }
 
 
+// === Matched character indexes ===
+
+#[derive(Default, Clone, Derivative)]
+#[derivative(PartialEq, Eq, PartialOrd, Ord)]
+struct WithMatchIndexes<T> {
+    inner:         T,
+    #[derivative(PartialEq = "ignore", PartialOrd = "ignore", Ord = "ignore")]
+    match_indexes: Bitstring,
+}
+
+impl<T> WithMatchIndexes<T> {
+    fn map<U>(self, f: impl FnOnce(T) -> U) -> WithMatchIndexes<U> {
+        WithMatchIndexes { inner: f(self.inner), ..self }
+    }
+}
+
+impl<SB: ScoreBuilder> ScoreBuilder for WithMatchIndexes<SB> {
+    type SubmatchScore = WithMatchIndexes<SB::SubmatchScore>;
+
+    fn skip_word_chars(&mut self, count: NonZeroU32) {
+        self.inner.skip_word_chars(count);
+        self.match_indexes.push_zeros(count);
+    }
+
+    fn match_word_char(&mut self) {
+        self.inner.match_word_char();
+        self.match_indexes.push(true);
+    }
+
+    fn match_delimiter(&mut self, pattern: char, value: char) {
+        self.inner.match_delimiter(pattern, value);
+        self.match_indexes.push(true);
+    }
+
+    fn skip_delimiter(&mut self, pattern: Option<char>, value: char) {
+        self.inner.skip_delimiter(pattern, value);
+        self.match_indexes.push(false);
+    }
+
+    fn finish(self) -> Self::SubmatchScore {
+        WithMatchIndexes { inner: self.inner.finish(), ..self }
+    }
+}
+
+impl<S: SubmatchScore> SubmatchScore for WithMatchIndexes<S> {
+    type TargetInfo = S::TargetInfo;
+    const ANY_PREFIX_MATCH_BEATS_ANY_INITIALS_MATCH: bool =
+        S::ANY_PREFIX_MATCH_BEATS_ANY_INITIALS_MATCH;
+
+    fn match_score(self, target_info: Self::TargetInfo) -> Score {
+        self.inner.match_score(target_info)
+    }
+
+    fn with_submatch_by_initials_penalty(self) -> Self {
+        Self { inner: self.inner.with_submatch_by_initials_penalty(), ..self }
+    }
+}
+
+impl<T: Add<Output = T>> Add<Self> for WithMatchIndexes<T> {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        Self {
+            inner:         self.inner + rhs.inner,
+            match_indexes: self.match_indexes + rhs.match_indexes,
+        }
+    }
+}
+
+#[derive(Default, Clone)]
+struct Bitstring {
+    bits: u64,
+    len:  u32,
+}
+
+impl Bitstring {
+    fn push_zeros(&mut self, count: core::num::NonZeroU32) {
+        self.bits <<= count.get();
+        self.len += count.get();
+    }
+
+    fn push(&mut self, bit: bool) {
+        self.bits <<= 1;
+        self.bits |= bit as u64;
+        self.len += 1;
+    }
+
+    fn pop_front(&mut self) {
+        self.bits &= !(1 << self.len);
+        self.len -= 1;
+    }
+}
+
+impl Add for Bitstring {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        Self {
+            bits: (self.bits << rhs.len) | rhs.bits,
+            len: self.len + rhs.len
+        }
+    }
+}
+
+
 
 // ===========================
 // === Accept/Reject Tests ===
@@ -423,12 +567,23 @@ impl<'s> Iterator for WordIndexedChars<'s> {
 mod test_match {
     use super::*;
 
+    /// Given a pattern, a target, and a bool:
+    /// - Check that the bool indicates whether the pattern matches the target.
+    /// - If the pattern matches the target, check that the matched characters in the target are the
+    ///   capitalized characters. (The capitalization will be ignored during matching due to
+    ///   normalization; it is only used to as a channel for this expected result information.)
     fn check_matches<'a, 'b>(cases: impl IntoIterator<Item = (&'a str, &'b str, bool)>) {
-        let expected: Vec<_> = cases.into_iter().collect();
+        let expected: Vec<_> = cases.into_iter().map(|(p, t, m)| (p, t.to_owned(), m)).collect();
         let computed: Vec<_> = expected
             .iter()
-            .map(|&(pattern, target, _)| {
-                (pattern, target, search(pattern, target, Default::default()).is_some())
+            .map(|(pattern, target, _)| {
+                let result = search(pattern, &target, Default::default());
+                let matched = result.is_some();
+                let target = match result {
+                    Some(result) => fmt_match(result.map(|_| target.as_str())),
+                    None => target.to_owned(),
+                };
+                (*pattern, target, matched)
             })
             .collect();
         assert_eq!(&computed[..], &expected[..]);
@@ -447,13 +602,13 @@ mod test_match {
     fn test_matches_initials() {
         check_matches([
             // === Sequences of initials of words ===
-            ("drf", "data.read_file21", true),
-            ("dr", "data.read_file21", true),
-            ("df", "data.read_file21", true),
-            ("rf", "data.read_file21", true),
-            ("d", "data.read_file21", true),
-            ("r", "data.read_file21", true),
-            ("f", "data.read_file21", true),
+            ("drf", "Data.Read_File21", true),
+            ("dr", "Data.Read_file21", true),
+            ("df", "Data.read_File21", true),
+            ("rf", "data.Read_File21", true),
+            ("d", "Data.read_file21", true),
+            ("r", "data.Read_file21", true),
+            ("f", "data.read_File21", true),
             // === Character not present ===
             ("dxf", "data.read_file21", false),
             // === Characters not present in this order ===
@@ -467,10 +622,10 @@ mod test_match {
     fn test_matches_with_spaces() {
         check_matches([
             // === Sequences of prefixes of words, separated by spaces ===
-            ("data r f", "data.read_file21", true),
-            ("da re", "data.read_file21", true),
-            ("re fi", "data.read_file21", true),
-            ("da fi", "data.read_file21", true),
+            ("data r f", "DATA.Read_File21", true),
+            ("da re", "DAta.REad_file21", true),
+            ("re fi", "data.REad_FIle21", true),
+            ("da fi", "DAta.read_FIle21", true),
             // === Not prefixes ===
             ("ead file", "data.read_file21", false),
             ("da ile", "data.read_file21", false),
@@ -482,9 +637,9 @@ mod test_match {
     fn test_matches_with_underscores() {
         check_matches([
             // === Sequence of word-prefixes matching a sequence of underscore-joined words ===
-            ("read_file", "data.read_file21", true),
-            ("re_fi", "data.read_file21", true),
-            ("a_c", "a_b_c", true),
+            ("read_file", "data.READ_FILE21", true),
+            ("re_fi", "data.REad_FIle21", true),
+            ("a_c", "A_b_C", true),
             // === Underscore does not match `.` ===
             ("data_re", "data.read_file21", false),
             // === Underscored prefixes do not match across `.` ===
@@ -500,16 +655,16 @@ mod test_match {
     fn test_matches_with_dots() {
         check_matches([
             // === Dot occurs at end of word and matches exactly ===
-            ("data.read", "data.read_file21", true),
-            ("data.re", "data.read_file21", true),
+            ("data.read", "DATA.READ_file21", true),
+            ("data.re", "DATA.REad_file21", true),
             // === Dot at ends of input matches ===
-            ("data.", "data.read_file21", true),
-            (".rea", "data.read_file21", true),
+            ("data.", "DATA.read_file21", true),
+            (".rea", "data.REAd_file21", true),
             // === Match prefix on one side and initials on the other ===
-            ("da.re", "data.read_file21", true),
-            ("da.fi", "data.read_file21", true),
-            ("fb.re", "foo_bar.read_file21", true),
-            ("fb.fi", "foo_bar.read_file21", true),
+            ("da.rf", "DAta.Read_File21", true),
+            ("da.fi", "DAta.read_FIle21", true),
+            ("fb.re", "Foo_Bar.REad_file21", true),
+            ("fb.fi", "Foo_Bar.read_FIle21", true),
             // === Dot does not match underscore ===
             ("read.file", "data.read_file21", false),
             ("re.fi", "data.read_file21", false),
@@ -520,13 +675,13 @@ mod test_match {
     fn test_matches_with_mixed_delimiters() {
         check_matches([
             // === Test combining rules of `.`/`_`/` `/concatenation ===
-            ("data.read_file", "data.read_file21", true),
-            ("d r_f", "data.read_file21", true),
-            ("da re_fi", "data.read_file21", true),
-            ("data.r f", "data.read_file21", true),
-            ("data.rf", "data.read_file21", true),
-            ("data.file", "data.read_file21", true),
-            ("da.read_file", "data.read_file21", true),
+            ("data.read_file", "DATA.READ_FILE21", true),
+            ("d r_f", "Data.Read_File21", true),
+            ("da re_fi", "DAta.REad_FIle21", true),
+            ("data.r f", "DATA.Read_File21", true),
+            ("data.rf", "DATA.Read_File21", true),
+            ("data.file", "DATA.read_FILE21", true),
+            ("da.read_file", "DAta.READ_FILE21", true),
             ("data.ead_ile", "data.read_file21", false),
             ("data.refi", "data.read_file21", false),
         ]);
@@ -536,10 +691,10 @@ mod test_match {
     fn test_matches_with_numbers() {
         check_matches([
             // === Numbers match when exactly present ===
-            ("data.read_file21", "data.read_file21", true),
+            ("data.read_file21", "DATA.READ_FILE21", true),
             // === Number prefixes match ===
-            ("data.read_file2", "data.read_file21", true),
-            ("data file2", "data.read_file21", true),
+            ("data.read_file2", "DATA.READ_FILE21", true),
+            ("data file2", "DATA.read_FILE21", true),
             // === Prefix-match doesn't treat a number as a word ===
             ("data 2", "data.read_file21", false),
             // === Initials-match doesn't treat a number as a word ===
