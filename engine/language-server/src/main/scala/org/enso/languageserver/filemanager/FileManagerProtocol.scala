@@ -45,9 +45,11 @@ object FileManagerProtocol {
     */
   case class WriteFileResult(result: Either[FileSystemFailure, FileAttributes])
 
-  /** Requests the Language Server write textual content to an arbitrary file.
+  /** Requests the Language Server write textual content to a file if it was not
+    * modified after `lastModifiedTime`.
     *
     * @param path a path to a file
+    * @param lastModifiedTime a last recorded modification time of the file
     * @param content a textual content
     */
   case class WriteFileIfNotModified(

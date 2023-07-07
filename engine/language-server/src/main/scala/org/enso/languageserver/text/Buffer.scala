@@ -31,6 +31,12 @@ case class Buffer(
     )
   }
 
+  /** Create a buffer with new contents.
+    *
+    * @param newContents the new contents of the buffer
+    * @param inMemory determines if the buffer is in-memory
+    * @return the buffer with new provided contents
+    */
   def withContents(
     newContents: Rope,
     inMemory: Boolean = inMemory
@@ -41,6 +47,11 @@ case class Buffer(
       inMemory = inMemory
     )
 
+  /** Create a buffer with new last modified time.
+    *
+    * @param lastModifiedTime the last modified time of the underlying file
+    * @return the buffer with new last modified time
+    */
   def withLastModifiedTime(lastModifiedTime: OffsetDateTime): Buffer =
     copy(
       fileWithMetadata =
