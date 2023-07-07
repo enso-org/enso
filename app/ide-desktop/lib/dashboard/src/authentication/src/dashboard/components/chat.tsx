@@ -464,7 +464,7 @@ function Chat(props: ChatProps) {
     )
 
     const maybeMakeThreadTitleEditable = react.useCallback((event: react.MouseEvent) => {
-        if (event.ctrlKey && !event.altKey && !event.metaKey && !event.shiftKey) {
+        if ((event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey) {
             event.stopPropagation()
             setIsThreadTitleEditable(true)
             setIsThreadListVisible(false)
