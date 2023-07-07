@@ -83,10 +83,17 @@ function PermissionSelector(props: PermissionSelectorProps) {
                             className="w-0 h-0"
                             onChange={event => {
                                 const element = event.currentTarget
-                                const newPermissions =
-                                    action === backend.PermissionAction.own && element.checked
-                                        ? new Set([action])
-                                        : set.withPresence(permissions, action, element.checked)
+                                let newPermissions: Set<backend.PermissionAction>
+                                if (action === backend.PermissionAction.own) {
+                                    newPermissions = new Set(element.checked ? [action] : [])
+                                } else {
+                                    newPermissions = set.withPresence(
+                                        permissions,
+                                        action,
+                                        element.checked
+                                    )
+                                    newPermissions.delete(backend.PermissionAction.own)
+                                }
                                 setPermissions(newPermissions)
                                 onChange(newPermissions)
                             }}
