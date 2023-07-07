@@ -510,9 +510,9 @@ make_date_add arguments (metadata : Date_Period_Metadata) =
             Time_Period.Hour ->
                 "hours=>1"
             Time_Period.Minute ->
-                "minutes=>1"
+                "mins=>1"
             Time_Period.Second ->
-                "seconds=>1"
+                "secs=>1"
         interval_expression = Builder.code "make_interval(" ++ interval_arg ++ ")"
         shifted = Builder.code "(" ++ expr ++ " + (" ++ amount ++ " * " ++ interval_expression ++ "))"
         case metadata.input_value_type of
