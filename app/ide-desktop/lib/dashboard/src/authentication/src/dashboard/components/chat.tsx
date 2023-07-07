@@ -190,6 +190,151 @@ function ChatMessage(props: ChatMessageProps) {
     )
 }
 
+// ==================
+// === ChatHeader ===
+// ==================
+
+/** Props for a {@Link ChatHeader}. */
+interface InternalChatHeaderProps {
+    threads: chat.ThreadData[]
+    setThreads: react.Dispatch<react.SetStateAction<chat.ThreadData[]>>
+    threadId: chat.ThreadId | null
+    threadTitle: string
+    setThreadTitle: (threadTitle: string) => void
+    switchThread: (threadId: chat.ThreadId) => void
+    sendMessage: (message: chat.ChatClientMessageData) => void
+    doClose: () => void
+}
+
+/** The header bar for a {@link Chat}. Includes the title, close button, and threads list. */
+function ChatHeader(props: InternalChatHeaderProps) {
+    const {
+        threads,
+        setThreads,
+        threadId,
+        threadTitle,
+        setThreadTitle,
+        switchThread,
+        sendMessage,
+        doClose,
+    } = props
+    const [isThreadListVisible, setIsThreadListVisible] = react.useState(false)
+
+    // These will never be `null` as their values are set immediately.
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const titleInputRef = react.useRef<HTMLInputElement>(null!)
+
+    react.useEffect(() => {
+        titleInputRef.current.value = threadTitle
+    }, [threadTitle])
+
+    react.useEffect(() => {
+        const onClick = () => {
+            setIsThreadListVisible(false)
+        }
+        document.addEventListener('click', onClick)
+        return () => {
+            document.removeEventListener('click', onClick)
+        }
+    }, [])
+
+    const toggleThreadListVisibility = react.useCallback((event: react.SyntheticEvent) => {
+        event.stopPropagation()
+        setIsThreadListVisible(visible => !visible)
+    }, [])
+
+    return (
+        <>
+            <div className="flex text-sm font-semibold mx-1">
+                <button className="flex grow items-center" onClick={toggleThreadListVisibility}>
+                    <img
+                        className={`transition-transform duration-300 ${
+                            isThreadListVisible ? '-rotate-180' : ''
+                        }`}
+                        src={TriangleDownIcon}
+                    />{' '}
+                    <div className="grow">
+                        <input
+                            type="text"
+                            ref={titleInputRef}
+                            defaultValue={threadTitle}
+                            className="bg-transparent w-full"
+                            onClick={event => {
+                                event.stopPropagation()
+                            }}
+                            onKeyDown={event => {
+                                switch (event.key) {
+                                    case 'Escape': {
+                                        event.currentTarget.value = threadTitle
+                                        break
+                                    }
+                                    case 'Enter': {
+                                        event.currentTarget.blur()
+                                        break
+                                    }
+                                }
+                            }}
+                            onBlur={event => {
+                                const newTitle = event.currentTarget.value
+                                setThreadTitle(newTitle)
+                                if (threadId != null) {
+                                    setThreads(oldThreads =>
+                                        oldThreads.map(thread =>
+                                            thread.id !== threadId
+                                                ? thread
+                                                : { ...thread, title: newTitle }
+                                        )
+                                    )
+                                    sendMessage({
+                                        type: chat.ChatMessageDataType.renameThread,
+                                        title: newTitle,
+                                        threadId: threadId,
+                                    })
+                                }
+                            }}
+                        />
+                    </div>
+                </button>
+                <button onClick={doClose}>
+                    <img src={CloseLargeIcon} />
+                </button>
+            </div>
+            <div className="relative text-sm font-semibold">
+                <div
+                    className={`grid absolute w-full bg-ide-bg shadow-soft clip-path-bottom-shadow overflow-hidden transition-grid-template-rows z-10 ${
+                        isThreadListVisible ? 'grid-rows-1fr' : 'grid-rows-0fr'
+                    }`}
+                >
+                    <div className="min-h-0 max-h-70 overflow-y-auto">
+                        {threads.map(thread => (
+                            <div
+                                key={thread.id}
+                                className={`flex p-1 ${
+                                    thread.id === threadId
+                                        ? 'cursor-default bg-gray-350'
+                                        : 'cursor-pointer hover:bg-gray-300'
+                                }`}
+                                onClick={event => {
+                                    event.stopPropagation()
+                                    if (thread.id !== threadId) {
+                                        switchThread(thread.id)
+                                        setIsThreadListVisible(false)
+                                    }
+                                }}
+                            >
+                                <div className="w-8 text-center">
+                                    {/* {thread.hasUnreadMessages ? '(!) ' : ''} */}
+                                </div>
+                                <div>{thread.title}</div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        </>
+    )
+}
+
 // ============
 // === Chat ===
 // ============
@@ -220,7 +365,6 @@ function Chat(props: ChatProps) {
     const [threads, setThreads] = react.useState<chat.ThreadData[]>([])
     const [messages, setMessages] = react.useState<ChatDisplayMessage[]>([])
     const [threadId, setThreadId] = react.useState<chat.ThreadId | null>(null)
-    const [isThreadListVisible, setIsThreadListVisible] = react.useState(false)
     const [threadTitle, setThreadTitle] = react.useState(DEFAULT_THREAD_TITLE)
     const [isAtTop, setIsAtTop] = react.useState(false)
     const [isAtBottom, setIsAtBottom] = react.useState(true)
@@ -233,9 +377,6 @@ function Chat(props: ChatProps) {
         ANIMATION_DURATION_MS,
         -WIDTH_PX
     )
-    // These will never be `null` as their values are set immediately.
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const titleInputRef = react.useRef<HTMLInputElement>(null!)
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const messageInputRef = react.useRef<HTMLTextAreaElement>(null!)
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -247,20 +388,6 @@ function Chat(props: ChatProps) {
             websocket.close()
         }
     }, [])
-
-    react.useEffect(() => {
-        const onClick = () => {
-            setIsThreadListVisible(false)
-        }
-        document.addEventListener('click', onClick)
-        return () => {
-            document.removeEventListener('click', onClick)
-        }
-    }, [])
-
-    react.useEffect(() => {
-        titleInputRef.current.value = threadTitle
-    }, [threadTitle])
 
     react.useLayoutEffect(() => {
         const element = messagesRef.current
@@ -287,10 +414,20 @@ function Chat(props: ChatProps) {
                     }
                     case chat.ChatMessageDataType.serverThread: {
                         if (!threads.some(thread => thread.id === message.id)) {
-                            setThreads([
-                                ...threads,
-                                { id: message.id, title: message.title, hasUnreadMessages: false },
-                            ])
+                            setThreads(oldThreads => {
+                                const newThread = {
+                                    id: message.id,
+                                    title: message.title,
+                                    hasUnreadMessages: false,
+                                }
+                                if (!oldThreads.some(thread => thread.id === message.id)) {
+                                    return [...oldThreads, newThread]
+                                } else {
+                                    return oldThreads.map(oldThread =>
+                                        oldThread.id === newThread.id ? newThread : oldThread
+                                    )
+                                }
+                            })
                         }
                         setThreadId(message.id)
                         setThreadTitle(message.title)
@@ -416,11 +553,6 @@ function Chat(props: ChatProps) {
         }
     }, [isOpen])
 
-    const toggleThreadListVisibility = react.useCallback((event: React.SyntheticEvent) => {
-        event.stopPropagation()
-        setIsThreadListVisible(visible => !visible)
-    }, [])
-
     const sendMessage = react.useCallback(
         (message: chat.ChatClientMessageData) => {
             websocket.send(JSON.stringify(message))
@@ -511,92 +643,16 @@ function Chat(props: ChatProps) {
                 style={{ right }}
                 className="text-xs text-primary flex flex-col fixed top-0 right-0 h-screen bg-ide-bg border-ide-bg-dark border-l-2 w-88 py-1 z-10"
             >
-                <div className="flex text-sm font-semibold mx-1">
-                    <button className="flex grow items-center" onClick={toggleThreadListVisibility}>
-                        <img
-                            className={`transition-transform duration-300 ${
-                                isThreadListVisible ? '-rotate-180' : ''
-                            }`}
-                            src={TriangleDownIcon}
-                        />{' '}
-                        <div className="grow">
-                            <input
-                                type="text"
-                                ref={titleInputRef}
-                                defaultValue={threadTitle}
-                                className="bg-transparent w-full"
-                                onClick={event => {
-                                    event.stopPropagation()
-                                }}
-                                onKeyDown={event => {
-                                    switch (event.key) {
-                                        case 'Escape': {
-                                            event.currentTarget.value = threadTitle
-                                            break
-                                        }
-                                        case 'Enter': {
-                                            event.currentTarget.blur()
-                                            break
-                                        }
-                                    }
-                                }}
-                                onBlur={event => {
-                                    const newTitle = event.currentTarget.value
-                                    setThreadTitle(newTitle)
-                                    if (threadId != null) {
-                                        setThreads(oldThreads =>
-                                            oldThreads.map(thread =>
-                                                thread.id !== threadId
-                                                    ? thread
-                                                    : { ...thread, title: newTitle }
-                                            )
-                                        )
-                                        sendMessage({
-                                            type: chat.ChatMessageDataType.renameThread,
-                                            title: newTitle,
-                                            threadId: threadId,
-                                        })
-                                    }
-                                }}
-                            />
-                        </div>
-                    </button>
-                    <button onClick={doClose}>
-                        <img src={CloseLargeIcon} />
-                    </button>
-                </div>
-                <div className="relative text-sm font-semibold">
-                    <div
-                        className={`grid absolute w-full bg-ide-bg shadow-soft clip-path-bottom-shadow overflow-hidden transition-grid-template-rows z-10 ${
-                            isThreadListVisible ? 'grid-rows-1fr' : 'grid-rows-0fr'
-                        }`}
-                    >
-                        <div className="min-h-0 max-h-70 overflow-y-auto">
-                            {threads.map(thread => (
-                                <div
-                                    key={thread.id}
-                                    className={`flex p-1 ${
-                                        thread.id === threadId
-                                            ? 'cursor-default bg-gray-350'
-                                            : 'cursor-pointer hover:bg-gray-300'
-                                    }`}
-                                    onClick={event => {
-                                        event.stopPropagation()
-                                        if (thread.id !== threadId) {
-                                            switchThread(thread.id)
-                                            setIsThreadListVisible(false)
-                                        }
-                                    }}
-                                >
-                                    <div className="w-8 text-center">
-                                        {/* {thread.hasUnreadMessages ? '(!) ' : ''} */}
-                                    </div>
-                                    <div>{thread.title}</div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
+                <ChatHeader
+                    threads={threads}
+                    setThreads={setThreads}
+                    threadId={threadId}
+                    threadTitle={threadTitle}
+                    setThreadTitle={setThreadTitle}
+                    switchThread={switchThread}
+                    sendMessage={sendMessage}
+                    doClose={doClose}
+                />
                 <div
                     ref={messagesRef}
                     className="flex-1 overflow-scroll"
