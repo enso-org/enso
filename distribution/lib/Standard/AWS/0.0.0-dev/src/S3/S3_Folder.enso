@@ -1,7 +1,0 @@
-from Standard.Base import all
-
-import project.AWS_Credential.AWS_Credential
-
-type S3_Folder
-    ## PRIVATE
-    Value cred:AWS_Credential bucket:Text path:Text=""
