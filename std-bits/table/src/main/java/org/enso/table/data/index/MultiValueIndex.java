@@ -145,12 +145,13 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
     final int columnCount = groupingColumns.length + nameIndex.locs.size() * aggregates.length;
     if (columnCount > MAXIMUM_CROSS_TAB_COLUMN_COUNT) {
       throw new TooManyColumnsException(
-          "Crosstab contained too many columns. Maximum allowed is "
+          "The cross_tab contained too many columns. Maximum allowed is "
               + MAXIMUM_CROSS_TAB_COLUMN_COUNT
               + " but was "
               + columnCount
               + ".",
-          columnCount);
+          columnCount,
+          MAXIMUM_CROSS_TAB_COLUMN_COUNT);
     }
 
     // Create the storage
