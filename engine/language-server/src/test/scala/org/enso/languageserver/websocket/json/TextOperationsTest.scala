@@ -2961,6 +2961,11 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
                 }
               }
               """)
+
+      // Change file on disk
+      val fooTxt = testContentRoot.file.toPath.resolve("foo.txt")
+      Files.write(fooTxt, "abcdef".getBytes(StandardCharsets.UTF_8))
+
       client.send(json"""
                 { "jsonrpc": "2.0",
                   "method": "text/applyEdit",
@@ -2999,10 +3004,6 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
                   "result": null
                 }
                 """)
-
-      // Change file on disk
-      val fooTxt = testContentRoot.file.toPath.resolve("foo.txt")
-      Files.write(fooTxt, "abcdef".getBytes(StandardCharsets.UTF_8))
 
       Thread.sleep(8.seconds.toMillis)
       // No explicit file save
