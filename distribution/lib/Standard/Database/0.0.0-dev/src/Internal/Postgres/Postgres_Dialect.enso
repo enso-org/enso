@@ -494,27 +494,27 @@ make_date_add arguments (metadata : Date_Period_Metadata) =
         amount = arguments.at 1
         ## From Postgres docs, make_interval takes:
            [years, months, weeks, days, hours, minutes, seconds]
-        interval_parts = case metadata.period of
+        interval_arg = case metadata.period of
             Date_Period.Year ->
-                [1, 0, 0, 0, 0, 0, 0]
+                "years=>1"
             Date_Period.Quarter ->
-                [0, 4, 0, 0, 0, 0, 0]
+                "months=>3"
             Date_Period.Month ->
-                [0, 1, 0, 0, 0, 0, 0]
+                "months=>1"
             Date_Period.Week _ ->
-                [0, 0, 1, 0, 0, 0, 0]
+                "weeks=>1"
             Date_Period.Day ->
-                [0, 0, 0, 1, 0, 0, 0]
+                "days=>1"
             Time_Period.Day ->
-                [0, 0, 0, 1, 0, 0, 0]
+                "days=>1"
             Time_Period.Hour ->
-                [0, 0, 0, 0, 1, 0, 0]
+                "hours=>1"
             Time_Period.Minute ->
-                [0, 0, 0, 0, 0, 1, 0]
+                "minutes=>1"
             Time_Period.Second ->
-                [0, 0, 0, 0, 0, 0, 1]
-        interval_expression = Builder.code "make_interval(" ++ Builder.join ", " (interval_parts.map i-> Builder.code i.to_text) ++ ")"
-        shifted = Builder.code "(" ++ expr ++ " + (" ++ amount ++ " * " ++ interval_expression ++ ")"
+                "seconds=>1"
+        interval_expression = Builder.code "make_interval(" ++ interval_arg ++ ")"
+        shifted = Builder.code "(" ++ expr ++ " + (" ++ amount ++ " * " ++ interval_expression ++ "))"
         case metadata.input_value_type of
             Value_Type.Date ->
                 Builder.code "(" ++ shifted ++ "::date)"
