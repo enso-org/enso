@@ -37,6 +37,7 @@ import project.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.Internal.Statement_Setter.Statement_Setter
 from project.Errors import SQL_Error, Unsupported_Database_Operation
+from project.Internal.IR.Operation_Metadata import Date_Period_Metadata
 
 ## PRIVATE
 
@@ -238,7 +239,7 @@ make_internal_generator_dialect =
     stddev_pop = ["STDDEV_POP", Base_Generator.make_function "stddev_pop"]
     stddev_samp = ["STDDEV_SAMP", Base_Generator.make_function "stddev_samp"]
     stats = [agg_median, agg_mode, agg_percentile, stddev_pop, stddev_samp]
-    date_ops = [make_extract_as_int "year" "YEAR", make_extract_as_int "month" "MONTH", make_extract_as_int "day" "DAY"]
+    date_ops = [make_extract_as_int "year" "YEAR", make_extract_as_int "month" "MONTH", make_extract_as_int "day" "DAY", ["date_add", make_date_add]]
     special_overrides = [is_null, is_empty]
     my_mappings = text + counts + stats + first_last_aggregators + arith_extensions + bool + date_ops + special_overrides
     Base_Generator.base_dialect . extend_with my_mappings
@@ -485,6 +486,39 @@ make_extract_as_int enso_name sql_name =
     Base_Generator.lift_unary_op enso_name arg->
         extract = Builder.code "EXTRACT(" ++ sql_name ++ " FROM " ++ arg ++ ")"
         Builder.code "CAST(" ++ extract ++ " AS integer)"
+
+## PRIVATE
+make_date_add arguments (metadata : Date_Period_Metadata) =
+    if arguments.length != 2 then Error.throw (Illegal_State.Error "date_add expects exactly 2 sub expressions. This is a bug in Database library.") else
+        expr = arguments.at 0
+        amount = arguments.at 1
+        ## From Postgres docs, make_interval takes:
+           [years, months, weeks, days, hours, minutes, seconds]
+        interval_parts = case metadata.period of
+            Date_Period.Year ->
+                [1, 0, 0, 0, 0, 0, 0]
+            Date_Period.Quarter ->
+                [0, 4, 0, 0, 0, 0, 0]
+            Date_Period.Month ->
+                [0, 1, 0, 0, 0, 0, 0]
+            Date_Period.Week _ ->
+                [0, 0, 1, 0, 0, 0, 0]
+            Date_Period.Day ->
+                [0, 0, 0, 1, 0, 0, 0]
+            Time_Period.Day ->
+                [0, 0, 0, 1, 0, 0, 0]
+            Time_Period.Hour ->
+                [0, 0, 0, 0, 1, 0, 0]
+            Time_Period.Minute ->
+                [0, 0, 0, 0, 0, 1, 0]
+            Time_Period.Second ->
+                [0, 0, 0, 0, 0, 0, 1]
+        interval_expression = Builder.code "make_interval(" ++ Builder.join ", " (interval_parts.map i-> Builder.code i.to_text) ++ ")"
+        shifted = Builder.code "(" ++ expr ++ " + (" ++ amount ++ " * " ++ interval_expression ++ ")"
+        case metadata.input_value_type of
+            Value_Type.Date ->
+                Builder.code "(" ++ shifted ++ "::date)"
+            _ -> shifted
 
 ## PRIVATE
 postgres_statement_setter = Statement_Setter.default

@@ -1,5 +1,7 @@
 from Standard.Base import all
 
+import Standard.Table.Data.Type.Value_Type.Value_Type
+
 ## PRIVATE
 type Row_Number_Metadata
     ## PRIVATE
@@ -8,4 +10,4 @@ type Row_Number_Metadata
 ## PRIVATE
 type Date_Period_Metadata
     ## PRIVATE
-    Value (period : Date_Period | Time_Period)
+    Value (period : Date_Period | Time_Period) (input_value_type : Value_Type)

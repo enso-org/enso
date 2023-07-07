@@ -1195,7 +1195,7 @@ type Column
             Value_Type.expect_type end (== my_type) my_type.to_display_text <|
                 Date_Time_Helpers.check_period_aligned_with_value_type my_type period <|
                     new_name = self.naming_helpers.function_name "date_diff" [self, end, period.to_display_text]
-                    metadata = Operation_Metadata.Date_Period_Metadata.Value period
+                    metadata = Operation_Metadata.Date_Period_Metadata.Value period my_type
                     self.make_op "date_diff" [end] new_name metadata
 
 
@@ -1215,7 +1215,7 @@ type Column
             Value_Type.expect_integer amount <|
                 Date_Time_Helpers.check_period_aligned_with_value_type my_type period <|
                     new_name = self.naming_helpers.function_name "date_add" [self, amount, period.to_display_text]
-                    metadata = Operation_Metadata.Date_Period_Metadata.Value period
+                    metadata = Operation_Metadata.Date_Period_Metadata.Value period my_type
                     self.make_op "date_add" [amount] new_name metadata
 
     ## Checks for each element of the column if it is contained within the
