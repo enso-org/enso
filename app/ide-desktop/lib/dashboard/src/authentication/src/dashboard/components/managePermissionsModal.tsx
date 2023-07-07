@@ -23,6 +23,9 @@ const BLINK_BACKGROUND_CLASS_NAME = 'blink-background'
 /** The duration of the blink animation. This MUST be synced with the corresponding value in
  * `tailwind.css`. */
 const BLINK_ANIMATION_LENGTH_MS = 500
+/** The maximum number of items to show in the {@link Autocomplete} before it switches to showing
+ * "X items selected". */
+const MAX_AUTOCOMPLETE_ITEMS_TO_SHOW = 3
 
 // ==============================
 // === ManagePermissionsModal ===
@@ -78,18 +81,23 @@ export function ManagePermissionsModal(props: ManagePermissionsModalProps) {
     const [users, setUsers] = React.useState<backendModule.SimpleUser[]>([])
     const [matchingUsers, setMatchingUsers] = React.useState(users)
     const [canSubmit, setCanSubmit] = React.useState(true)
-    const [email, setEmail] = React.useState<string>(rawUser?.user_email ?? '')
+    const [emails, setEmails] = React.useState<string[]>(
+        rawUser != null ? [rawUser.user_email] : []
+    )
     const [permissions, setPermissions] = React.useState(new Set<backendModule.PermissionAction>())
     const [userEmailClassName, setUserEmailClassName] = React.useState<string | null>(null)
     const [permissionClassName, setPermissionClassName] = React.useState<string | null>(null)
 
-    const user = React.useMemo(
-        () =>
-            rawUser ??
-            (asset.permissions ?? []).find(permission => permission.user.user_email === email)
-                ?.user,
-        [rawUser, email, /* should never change */ asset.permissions]
-    )
+    const user = React.useMemo(() => {
+        const firstEmail = emails[0]
+        if (firstEmail == null || emails.length !== 1) {
+            return rawUser
+        } else {
+            return (asset.permissions ?? []).find(
+                permission => permission.user.user_email === firstEmail
+            )?.user
+        }
+    }, [rawUser, emails, /* should never change */ asset.permissions])
 
     const action =
         user != null
@@ -126,10 +134,7 @@ export function ManagePermissionsModal(props: ManagePermissionsModalProps) {
         [/* should never change */ asset.permissions]
     )
 
-    // This is INCORRECT, but SAFE to use in hooks as its value will be set by the time any hook
-    // runs.
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const userEmailRef = React.useRef<HTMLInputElement>(null!)
+    const userEmailRef = React.useRef<HTMLInputElement>(null)
 
     if (backend.type === backendModule.BackendType.local || organization == null) {
         // This should never happen - the local backend does not have the "shared with" column,
@@ -141,35 +146,47 @@ export function ManagePermissionsModal(props: ManagePermissionsModalProps) {
         const position = eventTarget.getBoundingClientRect()
 
         React.useEffect(() => {
-            void (async () => {
-                const listedUsers = await backend.listUsers()
-                const newUsers = listedUsers.filter(
-                    listedUser => !emailsOfUsersWithPermission.has(listedUser.email)
-                )
-                setUsers(newUsers)
-                const lowercaseEmail = email.toLowerCase()
-                setMatchingUsers(
-                    newUsers.filter(newUser => newUser.email.toLowerCase().includes(lowercaseEmail))
-                )
-            })()
-            // `email` is NOT a dependency. `matchingUsers` is updated based on `email` elsewhere.
+            if (user == null) {
+                void (async () => {
+                    const listedUsers = await backend.listUsers()
+                    const newUsers = listedUsers.filter(
+                        listedUser => !emailsOfUsersWithPermission.has(listedUser.email)
+                    )
+                    setUsers(newUsers)
+                    if (emails.length <= 1) {
+                        const lowercaseEmail = emails[0]?.toLowerCase() ?? ''
+                        setMatchingUsers(
+                            newUsers.filter(newUser =>
+                                newUser.email.toLowerCase().includes(lowercaseEmail)
+                            )
+                        )
+                    }
+                })()
+            }
+            // `emails` is NOT a dependency. `matchingUsers` is updated based on `email` elsewhere.
+            // eslint-disable-next-line react-hooks/exhaustive-deps
         }, [
-            email,
+            user,
             /* should never change */ backend,
             /* should never change */ emailsOfUsersWithPermission,
         ])
 
-        const onEmailChange = React.useCallback(
-            (newEmail: string) => {
-                setEmail(newEmail)
-                const lowercaseEmail = newEmail.toLowerCase()
-                if (userEmailRef.current.validity.valid) {
+        const onEmailsChange = React.useCallback(
+            (newEmails: string[]) => {
+                setEmails(newEmails)
+                const lowercaseEmail =
+                    newEmails[0] != null
+                        ? newtype.asNewtype<backendModule.EmailAddress>(newEmails[0].toLowerCase())
+                        : null
+                if (
+                    userEmailRef.current?.validity.valid === true &&
+                    newEmails.length === 1 &&
+                    lowercaseEmail != null
+                ) {
                     // A new user will be invited to the organization.
                     setWillInviteNewUser(
                         lowercaseEmail !== '' &&
-                            !emailsOfUsersWithPermission.has(
-                                newtype.asNewtype<backendModule.EmailAddress>(lowercaseEmail)
-                            ) &&
+                            !emailsOfUsersWithPermission.has(lowercaseEmail) &&
                             !users.some(
                                 innerUser => innerUser.email.toLowerCase() === lowercaseEmail
                             )
@@ -182,17 +199,20 @@ export function ManagePermissionsModal(props: ManagePermissionsModalProps) {
         const onSubmit = React.useCallback(
             async (formEvent: React.FormEvent) => {
                 formEvent.preventDefault()
-                const isEmailInvalid = !userEmailRef.current.validity.valid
+                const isEmailInvalid = userEmailRef.current?.validity.valid === false
                 const isPermissionsInvalid =
                     !willInviteNewUser && user == null && permissions.size === 0
-                const lowercaseEmail = email.toLowerCase()
-                const finalUser: backendModule.SimpleUser | null =
-                    user != null
-                        ? { id: user.pk, email: user.user_email, name: user.user_name }
-                        : willInviteNewUser
-                        ? null
-                        : users.find(theUser => theUser.email.toLowerCase() === lowercaseEmail) ??
-                          null
+                const usersMap = Object.fromEntries(
+                    users.map(theUser => [theUser.email.toLowerCase(), theUser])
+                )
+                const finalUsers: backendModule.SimpleUser[] =
+                    rawUser != null
+                        ? [{ id: rawUser.pk, email: rawUser.user_email, name: rawUser.user_name }]
+                        : emails.flatMap(email => {
+                              const theUser = usersMap[email.toLowerCase()]
+                              return theUser != null ? [theUser] : []
+                          })
+                const firstEmail = emails[0]
                 if (isEmailInvalid || isPermissionsInvalid) {
                     if (isEmailInvalid) {
                         setUserEmailClassName(BLINK_BACKGROUND_CLASS_NAME)
@@ -210,41 +230,43 @@ export function ManagePermissionsModal(props: ManagePermissionsModalProps) {
                     window.setTimeout(() => {
                         setCanSubmit(true)
                     }, BLINK_ANIMATION_LENGTH_MS)
-                } else if (willInviteNewUser) {
+                } else if (willInviteNewUser && firstEmail != null) {
                     unsetModal()
                     try {
                         await backend.inviteUser({
                             organizationId: organization.id,
-                            userEmail: newtype.asNewtype<backendModule.EmailAddress>(email),
+                            userEmail: newtype.asNewtype<backendModule.EmailAddress>(firstEmail),
                         })
                     } catch (error) {
                         toast.error(errorModule.tryGetMessage(error) ?? 'Unknown error.')
                     }
-                } else if (finalUser != null) {
+                } else if (finalUsers.length !== 0) {
                     unsetModal()
                     try {
                         await backend.createPermission({
-                            userSubjects: [finalUser.id],
+                            userSubjects: finalUsers.map(finalUser => finalUser.id),
                             resourceId: asset.id,
                             actions: [...permissions],
                         })
                         onSuccess()
-                    } catch (error) {
-                        toast.error(`Unable to set permissions of '${finalUser.email}'.`)
+                    } catch {
+                        const finalUserEmails = finalUsers.map(finalUser => `'${finalUser.email}'`)
+                        toast.error(`Unable to set permissions of ${finalUserEmails.join(', ')}.`)
                     }
                 }
             },
             [
-                email,
+                emails,
                 permissions,
                 willInviteNewUser,
                 asset.id,
                 organization.id,
                 users,
+                user,
                 onSuccess,
                 /* should never change */ unsetModal,
                 /* should never change */ backend,
-                /* should never change */ user,
+                /* should never change */ rawUser,
             ]
         )
 
@@ -271,10 +293,13 @@ export function ManagePermissionsModal(props: ManagePermissionsModalProps) {
                         <label htmlFor="share_with_user_email">Email</label>
                         <Autocomplete
                             autoFocus
+                            multiple
+                            maxItemsToShow={MAX_AUTOCOMPLETE_ITEMS_TO_SHOW}
                             disabled={rawUser != null}
                             inputRef={userEmailRef}
                             type="email"
-                            initialValue={email}
+                            itemNamePlural="users"
+                            initialValue={emails[0] ?? null}
                             items={matchingUsers.map(matchingUser => matchingUser.email)}
                             className={userEmailClassName ?? ''}
                             onInput={newEmail => {
@@ -285,7 +310,7 @@ export function ManagePermissionsModal(props: ManagePermissionsModalProps) {
                                     )
                                 )
                             }}
-                            onChange={onEmailChange}
+                            onChange={onEmailsChange}
                         />
                     </div>
                     {!willInviteNewUser && (
