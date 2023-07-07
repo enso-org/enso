@@ -28,7 +28,7 @@ import Twemoji from './twemoji'
 
 const HELP_CHAT_ID = 'enso-chat'
 export const ANIMATION_DURATION_MS = 200
-const WIDTH_PX = 352
+const WIDTH_PX = 336
 /** The size (both width and height) of each reaction button. */
 const REACTION_BUTTON_SIZE = 20
 /** The size (both width and height) of each reaction on a message. */
@@ -161,21 +161,21 @@ export interface ChatMessageProps {
 function ChatMessage(props: ChatMessageProps) {
     const { message, reactions, shouldShowReactionBar, doReact, doRemoveReaction } = props
     return (
-        <div className="m-2">
+        <div className="mx-4 my-2">
             <div className="flex">
                 <img
                     crossOrigin="anonymous"
                     src={message.avatar ?? DefaultUserIcon}
-                    className="rounded-full h-8 w-8 m-1"
+                    className="rounded-full h-8 w-8 my-1"
                 />
-                <div className="m-1">
-                    <div className="font-semibold">{message.name}</div>
+                <div className="mx-2 leading-5">
+                    <div className="font-bold">{message.name}</div>
                     <div className="text-opacity-50 text-primary">
                         {dateTime.formatDateTimeChatFriendly(new Date(message.timestamp))}
                     </div>
                 </div>
             </div>
-            <div className="mx-1 whitespace-pre-wrap">
+            <div className="whitespace-pre-wrap">
                 {message.content}
                 <Reactions reactions={reactions} />
             </div>
@@ -245,20 +245,22 @@ function ChatHeader(props: InternalChatHeaderProps) {
 
     return (
         <>
-            <div className="flex text-sm font-semibold mx-1">
+            <div className="flex text-sm font-semibold mx-4 mt-2">
                 <button className="flex grow items-center" onClick={toggleThreadListVisibility}>
                     <img
                         className={`transition-transform duration-300 ${
                             isThreadListVisible ? '-rotate-180' : ''
                         }`}
                         src={TriangleDownIcon}
-                    />{' '}
+                    />
+                    {/* Spacing. */}
+                    <div className="w-2" />
                     <div className="grow">
                         <input
                             type="text"
                             ref={titleInputRef}
                             defaultValue={threadTitle}
-                            className="bg-transparent w-full"
+                            className="bg-transparent w-full leading-6"
                             onClick={event => {
                                 event.stopPropagation()
                             }}
@@ -295,7 +297,7 @@ function ChatHeader(props: InternalChatHeaderProps) {
                         />
                     </div>
                 </button>
-                <button onClick={doClose}>
+                <button className="mx-1" onClick={doClose}>
                     <img src={CloseLargeIcon} />
                 </button>
             </div>
@@ -641,7 +643,7 @@ function Chat(props: ChatProps) {
         return reactDom.createPortal(
             <div
                 style={{ right }}
-                className="text-xs text-primary flex flex-col fixed top-0 right-0 h-screen bg-ide-bg border-ide-bg-dark border-l-2 w-88 py-1 z-10"
+                className="text-xs-mini text-chat flex flex-col fixed top-0 right-0 h-screen bg-ide-bg border-ide-bg-dark border-l-2 w-83.5 py-1 z-10"
             >
                 <ChatHeader
                     threads={threads}
@@ -726,7 +728,7 @@ function Chat(props: ChatProps) {
                         />
                     ))}
                 </div>
-                <div className="rounded-xl bg-white p-2 mx-2 my-1">
+                <div className="rounded-2xl bg-white p-1 mx-2 my-1">
                     <form onSubmit={sendCurrentMessage}>
                         <div>
                             <textarea
@@ -791,7 +793,7 @@ function Chat(props: ChatProps) {
                 </div>
                 {!isPaidUser && (
                     <button
-                        className="rounded-xl bg-call-to-action text-white p-2 mx-2 my-1"
+                        className="text-left leading-5 rounded-2xl bg-call-to-action text-white p-2 mx-2 my-1"
                         onClick={upgradeToPro}
                     >
                         Click here to upgrade to Enso Pro and get access to high-priority, live
