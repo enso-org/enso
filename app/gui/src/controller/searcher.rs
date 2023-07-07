@@ -36,6 +36,7 @@ use flo_stream::Subscriber;
 pub mod action;
 pub mod breadcrumbs;
 pub mod component;
+pub mod component2;
 pub mod input;
 
 pub use action::Action;
@@ -260,10 +261,8 @@ impl PickedSuggestion {
 pub struct Data {
     /// The current searcher's input.
     pub input:              input::Input,
-    /// The action list which should be displayed.
-    pub actions:            Actions,
     /// The component list which should be displayed.
-    pub components:         component::List,
+    pub components:         component2::List,
     /// All picked suggestions. If the user changes the generated code, it will be removed from
     /// this list.
     pub picked_suggestions: Vec<PickedSuggestion>,
@@ -285,93 +284,9 @@ impl Data {
         let edited_node = graph.node(edited_node_id)?;
         let input_ast = ast::BlockLine { elem: edited_node.info.expression(), off: 0 };
         let input = input::Input::new(input_ast, cursor_position);
-        let actions = default();
         let components = default();
         let picked_suggestions = default();
-        Ok(Data { input, actions, components, picked_suggestions })
-    }
-}
-
-/// A helper wrapper for the state needed to provide the list of visible components.
-///
-/// It wraps the [`component::List`] structure and provide API providing always currently visible
-/// entries. Those in turn depends on current breadcrumbs state and presence of
-/// ["this" argument](ThisNode).
-#[derive(Clone, Debug, CloneRef)]
-pub struct ComponentsProvider {
-    breadcrumbs:  Breadcrumbs,
-    list:         component::List,
-    has_this_arg: Immutable<bool>,
-}
-
-/// Enum of top modules and their content to display.
-#[derive(Debug)]
-pub enum TopModules {
-    /// The selected `Groups` list and the section number the groups belong to.
-    Subset(group::AlphabeticalList, usize),
-    /// Vector of all `Group` lists in the same order as the sections they belong to.
-    All(Vec<group::AlphabeticalList>),
-}
-
-impl ComponentsProvider {
-    /// The list of modules and their content displayed in `Submodules` section of the browser.
-    pub fn top_modules(&self) -> TopModules {
-        let components = self.components();
-        if let Some(selected) = self.breadcrumbs.selected() {
-            let section = components
-                .module_qualified_name(selected)
-                .and_then(|name| {
-                    components.top_module_section_indices().get(&name.project().namespace).copied()
-                })
-                .unwrap_or_default();
-            let submodules =
-                components.submodules_of(selected).map(CloneRef::clone_ref).unwrap_or_default();
-            TopModules::Subset(submodules, section)
-        } else if *self.has_this_arg {
-            TopModules::All(components.top_modules_flattened().collect())
-        } else {
-            TopModules::All(components.top_modules().collect())
-        }
-    }
-
-    /// The list of components displayed in `Favorites` section of the browser.
-    ///
-    /// The favorites section is not empty only if the root module is selected.
-    pub fn favorites(&self) -> group::List {
-        if self.breadcrumbs.is_top_module() {
-            self.components().favorites.clone_ref()
-        } else {
-            default()
-        }
-    }
-
-    /// The list of components displayed in `Local Scope` section of the browser.
-    pub fn local_scope(&self) -> group::Group {
-        let components = self.components();
-        if let Some(selected) = self.breadcrumbs.selected() {
-            components.get_module_content(selected).map(CloneRef::clone_ref).unwrap_or_default()
-        } else {
-            components.local_scope.clone_ref()
-        }
-    }
-
-    /// Returns true if providing a content of some module currently.
-    pub fn displaying_module(&self) -> bool {
-        self.breadcrumbs.selected().is_some()
-    }
-
-    fn components(&self) -> &component::List {
-        &self.list
-    }
-
-    /// Returns the number of namespace sections.
-    pub fn namespace_section_count(&self) -> usize {
-        self.list.top_module_section_count()
-    }
-
-    /// Check if the component list is filtered.
-    pub fn is_filtered(&self) -> bool {
-        self.list.is_filtered()
+        Ok(Data { input, components, picked_suggestions })
     }
 }
 
@@ -499,30 +414,12 @@ impl Searcher {
         self.database.documentation_for_entry(id)
     }
 
-    /// Build a provider for this searcher.
-    pub fn provider(&self) -> ComponentsProvider {
-        ComponentsProvider {
-            breadcrumbs:  self.breadcrumbs.clone_ref(),
-            list:         self.components(),
-            has_this_arg: Immutable(self.this_arg.is_some()),
-        }
-    }
-
     /// Enter the specified module. The displayed content of the browser will be updated.
     pub fn enter_module(&self, module: &component::Id) {
-        let builder = breadcrumbs::Builder::new(&self.database, self.components());
-        let breadcrumbs = builder.build(module);
+        let bc_builder = breadcrumbs::Builder::new(&self.database, self.components());
+        let breadcrumbs = bc_builder.build(module);
         self.breadcrumbs.set_content(breadcrumbs);
         self.notifier.notify(Notification::NewActionList);
-    }
-
-    /// Whether the last module in the breadcrumbs list contains more descendants or not.
-    pub fn last_module_has_submodules(&self) -> bool {
-        let last_module = self.breadcrumbs.last();
-        let components = self.components();
-        let get_submodules = |module| components.submodules_of(module).map(CloneRef::clone_ref);
-        let submodules = last_module.and_then(get_submodules);
-        submodules.map_or(false, |submodules| !submodules.is_empty())
     }
 
     /// A list of breadcrumbs' text labels to be displayed. The list is updated by
@@ -564,11 +461,6 @@ impl Searcher {
             if filter != old_filter {
                 let data = self.data.borrow();
                 data.components.update_filtering(filter.clone_ref());
-                if let Actions::Loaded { list } = &data.actions {
-                    debug!("Update filtering.");
-                    list.update_filtering(filter.pattern);
-                    executor::global::spawn(self.notifier.publish(Notification::NewActionList));
-                }
             }
         }
         Ok(())
