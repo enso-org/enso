@@ -75,10 +75,14 @@ class MessageHandlerSpec
       .registerRequest(MyRequest)
       .registerRequest(MyEmptyRequest)
       .registerError(MyError)
+      .finalized()
 
     override def getProtocol(): Protocol = protocol
 
     override def init(): Unit = ()
+
+    /** Error returned when a requested method is not recognized */
+    override def onMissingMethod(): Error = Errors.MethodNotFound
   }
 
   var out: TestProbe        = _

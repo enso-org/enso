@@ -14,4 +14,7 @@ trait ProtocolFactory {
 
   /** Initialize the protocol with the full set of supported messages. */
   def init(): Unit
+
+  /** Error returned when a requested method is not recognized */
+  def onMissingMethod(): Error
 }

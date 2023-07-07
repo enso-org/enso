@@ -167,15 +167,16 @@ class MessageHandler(protocolFactory: ProtocolFactory, controller: ActorRef)
 
   private def resolveDecoder(
     methodName: String
-  ): Either[Error, ParamsDecoder[Method, Any]] =
+  ): Either[Error, ParamsDecoder[Method, Any]] = {
     for {
       method <- getProtocol()
         .resolveMethod(methodName)
-        .toRight(Errors.MethodNotFound)
+        .toRight(protocolFactory.onMissingMethod())
       decoder <- getProtocol()
         .getParamsDecoder(method)
         .toRight(Errors.InvalidRequest)
     } yield decoder
+  }
 }
 
 /** Control messages for the [[MessageHandler]] actor.
