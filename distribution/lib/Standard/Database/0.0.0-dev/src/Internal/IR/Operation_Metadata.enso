@@ -4,3 +4,8 @@ from Standard.Base import all
 type Row_Number_Metadata
     ## PRIVATE
     Value groupings_count:Integer
+
+## PRIVATE
+type Date_Period_Metadata
+    ## PRIVATE
+    Value (period : Date_Period | Time_Period)
