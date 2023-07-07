@@ -52,9 +52,11 @@ class FileManager(
     case FileManagerProtocol.WriteFile(path, content) =>
       val result =
         for {
-          file <- resolvePath(path)
-          _    <- fs.write(file, content)
-        } yield ()
+          root <- findContentRoot(path.rootId)
+          file = path.toFile(root.file)
+          _     <- fs.write(file, content)
+          attrs <- fs.info(file)
+        } yield FileAttributes.fromFileSystemAttributes(root.file, path, attrs)
       exec
         .execTimed(config.timeout, result)
         .map(FileManagerProtocol.WriteFileResult)
@@ -86,9 +88,11 @@ class FileManager(
     case FileManagerProtocol.WriteBinaryFile(path, contents) =>
       val result =
         for {
-          file <- resolvePath(path)
-          _    <- fs.writeBinary(file, contents)
-        } yield ()
+          root <- findContentRoot(path.rootId)
+          file = path.toFile(root.file)
+          _     <- fs.writeBinary(file, contents)
+          attrs <- fs.info(file)
+        } yield FileAttributes.fromFileSystemAttributes(root.file, path, attrs)
       exec
         .execTimed(config.timeout, result)
         .map(FileManagerProtocol.WriteFileResult)
@@ -132,6 +136,22 @@ class FileManager(
       exec
         .execTimed(config.timeout, result)
         .map(FileManagerProtocol.ReadBinaryFileResult)
+        .pipeTo(sender())
+
+    case FileManagerProtocol.ReadFileWithAttributes(path) =>
+      val result =
+        for {
+          root <- findContentRoot(path.rootId)
+          file = path.toFile(root.file)
+          content <- fs.read(file)
+          attrs   <- fs.info(file)
+        } yield (
+          FileManagerProtocol.TextualFileContent(file, content),
+          FileAttributes.fromFileSystemAttributes(root.file, path, attrs)
+        )
+      exec
+        .execTimed(config.timeout, result)
+        .map(FileManagerProtocol.ReadFileWithAttributesResult)
         .pipeTo(sender())
 
     case FileManagerProtocol.CreateFile(FileSystemObject.File(name, path)) =>

@@ -43,7 +43,7 @@ object FileManagerProtocol {
     *
     * @param result either file system failure or unit representing success
     */
-  case class WriteFileResult(result: Either[FileSystemFailure, Unit])
+  case class WriteFileResult(result: Either[FileSystemFailure, FileAttributes])
 
   /** Requests the Language Server write textual content to an arbitrary file.
     *
@@ -70,6 +70,12 @@ object FileManagerProtocol {
     */
   case class ReadFile(path: Path)
 
+  /** Requests the Language Server read a file with a file attributes.
+    *
+    * @param path a path to a file
+    */
+  case class ReadFileWithAttributes(path: Path)
+
   /** Requests the Language Server to read a binary content of a file.
     *
     * @param path a path to a file
@@ -90,6 +96,14 @@ object FileManagerProtocol {
     */
   case class ReadBinaryFileResult(
     result: Either[FileSystemFailure, BinaryFileContent]
+  )
+
+  /** Returns a result of reading a file with attributes.
+    *
+    * @param result either file system failure or content of a file
+    */
+  case class ReadFileWithAttributesResult(
+    result: Either[FileSystemFailure, (TextualFileContent, FileAttributes)]
   )
 
   /** Requests the Language Server create a file system object.
