@@ -14,6 +14,7 @@ import Standard.Table.Data.Expression.Expression
 import Standard.Table.Data.Expression.Expression_Error
 import Standard.Table.Data.Join_Condition.Join_Condition
 import Standard.Table.Data.Join_Kind.Join_Kind
+import Standard.Table.Data.Join_Kind_Cross.Join_Kind_Cross
 import Standard.Table.Data.Match_Columns as Match_Columns_Helpers
 import Standard.Table.Data.Report_Unmatched.Report_Unmatched
 import Standard.Table.Data.Row.Row
@@ -1008,11 +1009,17 @@ type Table
     @on Widget_Helpers.make_join_condition_selector
     join : Table -> Join_Kind -> Vector (Join_Condition | Text) | Text -> Text -> Problem_Behavior -> Table
     join self right join_kind=Join_Kind.Left_Outer on=(default_join_condition self join_kind) right_prefix="Right " on_problems=Report_Warning =
+        self.join_or_cross_join right join_kind on right_prefix on_problems
+
+    ## PRIVATE
+       Implementation of both `join` and `cross_join`.
+    join_or_cross_join : Table -> Join_Kind | Join_Kind_Cross -> Vector (Join_Condition | Text) | Text -> Text -> Problem_Behavior -> Table
+    join_or_cross_join self right join_kind on right_prefix on_problems =
         can_proceed = if Table_Helpers.is_table right . not then Error.throw (Type_Error.Error Table right "right") else
             same_backend = case right of
                 _ : Table -> True
                 _ -> False
-            join_conditions_ok = join_kind != Join_Kind.Cross || on == []
+            join_conditions_ok = join_kind != Join_Kind_Cross.Cross || on == []
             if same_backend . not then Error.throw (Illegal_Argument.Error "Currently cross-backend joins are not supported. You need to upload the in-memory table before joining it with a database one, or materialize this table.") else
                 if join_conditions_ok . not then Error.throw (Illegal_Argument.Error "Cross join does not allow join conditions") else
                     True
@@ -1053,7 +1060,7 @@ type Table
                 Join_Kind.Full            -> SQL_Join_Kind.Full
                 Join_Kind.Left_Exclusive  -> SQL_Join_Kind.Left
                 Join_Kind.Right_Exclusive -> SQL_Join_Kind.Right
-                Join_Kind.Cross           -> SQL_Join_Kind.Cross
+                Join_Kind_Cross.Cross     -> SQL_Join_Kind.Cross
 
             problem_builder.attach_problems_before on_problems <|
                 new_from = From_Spec.Join sql_join_kind left_setup.subquery right_setup.subquery on_expressions
@@ -1098,7 +1105,7 @@ type Table
                     [Cross_Join_Row_Limit_Exceeded.Error right_row_limit right.row_count]
                 False -> []
             on_problems.attach_problems_before limit_problems <|
-                self.join right join_kind=Join_Kind.Cross on=[] right_prefix on_problems
+                self.join_or_cross_join right join_kind=Join_Kind_Cross.Cross on=[] right_prefix on_problems
 
     ## ALIAS Join By Row Position
        Joins two tables by zipping rows from both tables table together - the
@@ -2121,7 +2128,7 @@ check_db_table arg_name table =
 
 ## By default, join on the first column, unless it's a cross join, in which
    case there are no join conditions.
-default_join_condition : Table -> Join_Kind -> Join_Condition
+default_join_condition : Table -> Join_Kind | Join_Kind_Cross -> Join_Condition
 default_join_condition table join_kind = case join_kind of
-    Join_Kind.Cross -> []
+    Join_Kind_Cross.Cross -> []
     _ -> [Join_Condition.Equals table.column_names.first]
