@@ -1,6 +1,8 @@
 package org.enso.interpreter.node.callable.argument;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.Node;
@@ -21,12 +23,23 @@ import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 
 public abstract class ReadArgumentCheckNode extends Node {
+  private final String name;
+  @Child IsValueOfTypeNode checkType;
+  @CompilerDirectives.CompilationFinal(dimensions = 1)
+  private final Type[] expectedTypes;
+
+  ReadArgumentCheckNode(String name, Type[] expectedTypes) {
+    this.name = name;
+    this.checkType = IsValueOfTypeNode.build();
+    this.expectedTypes = expectedTypes;
+  }
+
 
   static ReadArgumentCheckNode build(String argumentName, Type[] expectedTypes) {
     if (expectedTypes == null || expectedTypes.length == 0) {
       return null;
     } else {
-      return new Types(argumentName, expectedTypes);
+      return ReadArgumentCheckNodeGen.create(argumentName, expectedTypes);
     }
   }
 
@@ -37,57 +50,97 @@ public abstract class ReadArgumentCheckNode extends Node {
       (v instanceof Function fn && fn.isThunk());
   }
 
-  static final class Types extends ReadArgumentCheckNode {
-    private final String name;
-    @Child IsValueOfTypeNode checkType;
-    @CompilerDirectives.CompilationFinal(dimensions = 1)
-    private final Type[] expectedTypes;
-
-    Types(String name, Type[] expectedTypes) {
-      this.name = name;
-      this.checkType = IsValueOfTypeNode.build();
-      this.expectedTypes = expectedTypes;
+  @ExplodeLoop
+  private boolean findAmongTypes(Object v) {
+    for (Type t : expectedTypes) {
+      if (checkType.execute(t, v)) {
+        return true;
+      }
     }
+    if (isAllFitValue(v)) {
+      return true;
+    }
+    return false;
+  }
 
-    @Override
-    @ExplodeLoop
-    Object executeCheckOrConversion(VirtualFrame frame, Object v) {
-      for (Type t : expectedTypes) {
-        if (checkType.execute(t, v)) {
-          return v;
+  @Specialization(rewriteOn=IllegalArgumentException.class)
+  Object executeCheckNoConversion(VirtualFrame frame, Object v) {
+    if (findAmongTypes(v)) {
+      return v;
+    }
+    CompilerDirectives.transferToInterpreter();
+    throw new IllegalArgumentException();
+  }
+
+  ApplicationNode findConversionNode(Type from) {
+    var ctx = EnsoContext.get(this);
+
+    if (getRootNode() instanceof EnsoRootNode root) {
+      var convert = UnresolvedConversion.build(root.getModuleScope());
+      for (Type into : expectedTypes) {
+        var conv = convert.resolveFor(ctx, into, from);
+        if (conv != null && getParent() instanceof ReadArgumentNode ran) {
+          var convNode = LiteralNode.build(conv);
+          var intoNode = LiteralNode.build(into);
+          var valueNode = ran.plainRead();
+          var args = new CallArgument[]{
+            new CallArgument(null, intoNode),
+            new CallArgument(null, valueNode)
+          };
+          return ApplicationNode.build(convNode, args, DefaultsExecutionMode.EXECUTE);
         }
       }
-      if (isAllFitValue(v)) {
-        return v;
-      }
-      CompilerDirectives.transferToInterpreter();
-      var ctx = EnsoContext.get(this);
-
-      if (getRootNode() instanceof EnsoRootNode root) {
-        var convert = UnresolvedConversion.build(root.getModuleScope());
-        if (TypeOfNode.getUncached().execute(v) instanceof Type from) {
-          for (Type into : expectedTypes) {
-            var conv = convert.resolveFor(ctx, into, from);
-            if (conv != null) {
-              // XXX: absolutely ineffective:
-              var convNode = LiteralNode.build(conv);
-              var intoNode = LiteralNode.build(into);
-              var valueNode = LiteralNode.build(v);
-              var args = new CallArgument[]{
-                new CallArgument(null, intoNode),
-                new CallArgument(null, valueNode),};
-              var app = ApplicationNode.build(convNode, args, DefaultsExecutionMode.EXECUTE);
-              var r = app.executeGeneric(frame);
-              return r;
-            }
-          }
-        }
-      }
-
-      var expecting
-              = expectedTypes.length == 1 ? expectedTypes[0] : Arrays.stream(expectedTypes).map(Type::toString).collect(Collectors.joining(" | "));
-      var err = ctx.getBuiltins().error().makeTypeError(expecting, v, name);
-      throw new PanicException(err, this);
     }
+    return null;
+  }
+
+  Type findType(TypeOfNode typeOfNode, Object v) {
+    if (typeOfNode.execute(v) instanceof Type from) {
+      return from;
+    }
+    return null;
+  }
+
+  @Specialization(
+    limit="10",
+    guards={
+      "cachedType != null",
+      "findType(typeOfNode, v) == cachedType",
+      "convert != null"
+    }
+  )
+  Object executeWithConversion(
+    VirtualFrame frame, Object v,
+    @Cached TypeOfNode typeOfNode,
+    @Cached("findType(typeOfNode, v)") Type cachedType,
+    @Cached("findConversionNode(cachedType)") ApplicationNode convert
+  ) {
+    var converted = convert.executeGeneric(frame);
+    return converted;
+  }
+
+  boolean noConversionNode(TypeOfNode typeOfNode, Object value) {
+    var type = findType(typeOfNode, value);
+    return type == null || findConversionNode(type) == null;
+  }
+
+  @Specialization(
+    guards={
+      "noConversionNode(typeOfNode, v)"
+    }
+  )
+  Object fallbackOrPanicAtTheEnd(
+    Object v,
+    @Cached TypeOfNode typeOfNode
+  ) {
+    if (findAmongTypes(v)) {
+      return v;
+    }
+    var ctx = EnsoContext.get(this);
+    var expecting = expectedTypes.length == 1 ?
+      expectedTypes[0] :
+      Arrays.stream(expectedTypes).map(Type::toString).collect(Collectors.joining(" | "));
+    var err = ctx.getBuiltins().error().makeTypeError(expecting, v, name);
+    throw new PanicException(err, this);
   }
 }

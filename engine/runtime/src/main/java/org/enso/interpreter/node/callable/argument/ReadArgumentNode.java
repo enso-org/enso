@@ -45,6 +45,12 @@ public class ReadArgumentNode extends ExpressionNode {
     return new ReadArgumentNode(name, position, defaultValue, arr);
   }
 
+  ReadArgumentNode plainRead() {
+    var node = (ReadArgumentNode) this.copy();
+    node.checkType = null;
+    return node;
+  }
+
   /**
    * Computes the value of an argument in a function.
    *
