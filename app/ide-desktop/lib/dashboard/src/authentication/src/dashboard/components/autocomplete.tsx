@@ -194,7 +194,7 @@ function Autocomplete(props: InternalMultipleAutocompleteProps | InternalSingleA
                     <div
                         ref={element => element?.focus()}
                         tabIndex={-1}
-                        className="grow cursor-pointer bg-gray-200 rounded-lg"
+                        className="grow cursor-pointer bg-gray-200 rounded-xl px-2 py-1"
                         onClick={() => {
                             setIsDropdownVisible(true)
                         }}
@@ -212,7 +212,7 @@ function Autocomplete(props: InternalMultipleAutocompleteProps | InternalSingleA
                         ref={inputRef}
                         autoFocus={autoFocus}
                         disabled={disabled}
-                        className={`grow bg-gray-200 rounded-full px-1 ${
+                        className={`grow bg-gray-200 rounded-xl px-2 py-1 ${
                             disabled ? 'pointer-events-none opacity-70' : ''
                         } ${className ?? ''}`}
                         defaultValue={values}

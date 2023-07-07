@@ -289,8 +289,10 @@ export function ManagePermissionsModal(props: ManagePermissionsModalProps) {
                     <h2 className="inline-block font-semibold m-2">
                         {user == null ? 'Share' : 'Update permissions'}
                     </h2>
-                    <div className="mx-2">
+                    <div className="mx-2 my-1">
                         <label htmlFor="share_with_user_email">Email</label>
+                    </div>
+                    <div className="mx-2">
                         <Autocomplete
                             autoFocus
                             multiple
@@ -315,7 +317,7 @@ export function ManagePermissionsModal(props: ManagePermissionsModalProps) {
                     </div>
                     {!willInviteNewUser && (
                         <>
-                            <div className="mx-2">Permission</div>
+                            <div className="mx-2 my-1">Permission</div>
                             <PermissionSelector
                                 className="m-1"
                                 initialPermissions={initialPermissions}
