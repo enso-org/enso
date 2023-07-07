@@ -1,40 +1,43 @@
 from Standard.Base import all
 import Standard.Base.Runtime.Ref.Ref
+import Standard.Base.Data.Vector.Builder as Vector_Builder
 
 
 type Bench_Options
     ## PRIVATE
-    Impl iter_size num_iters
+    Impl (iter_size:Integer) (num_iters:Integer)
 
     size : Integer -> Bench_Options
-    size self v = Bench_Options.Impl v self.num_iters
+    size self s = Bench_Options.Impl s self.num_iters
 
     iter : Integer -> Bench_Options
-    iter self v = Bench_Options.Impl self.iter_size v
+    iter self i = Bench_Options.Impl self.iter_size i
 
     to_text self = "[iter_size=" + self.iter_size.to_text + ", num_iters=" + self.num_iters.to_text + "]"
 
 type Bench_Builder
     ## PRIVATE
-    Impl builder
+    Impl (builder : Vector_Builder)
 
-    group : Text -> Bench_Options -> (Group_Builder -> Any) -> Any
+    group : Text -> Bench_Options -> (Group_Builder -> Any) -> Bench_Builder
     group self (name:Text) (configuration:Bench_Options) fn =
         b = Vector.new_builder
         fn (Group_Builder.Impl b)
         self.builder.append <| Bench.Group name configuration b.to_vector
+        self
 
 type Group_Builder
     ## PRIVATE
     Impl builder
 
-    specify : Text -> Any -> Bench
+    specify : Text -> Any -> Group_Builder
     specify self (name:Text) ~benchmark =
         self.builder.append <| Bench.Spec name (_ -> benchmark)
+        self
 
 
 type Bench
-    All (groups : Vector Bench)
+    All (groups : Vector Group)
     Group (name:Text) (configuration:Bench_Options) (specs : Vector Bench)
     Spec (name:Text) (code : Any -> Any)
 
