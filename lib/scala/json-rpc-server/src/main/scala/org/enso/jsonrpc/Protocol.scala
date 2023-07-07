@@ -132,7 +132,8 @@ object Protocol {
       customErrors   = Map(),
       payloadsEncoder = { payload =>
         throw InexhaustivePayloadsSerializerError(payload)
-      }
+      },
+      initialized = false
     )
 }
 
@@ -185,13 +186,15 @@ class ResultDecoder[+M <: Method, +Result](method: M)(implicit
   * @param customErrors custom datatypes used for error codes.
   * @param payloadsEncoder an encoder for any payload (i.e. params or results)
   *                        used within this protocol.
+  * @param initialized indicates if the protocol has been fully initialized with all supported methods
   */
 case class Protocol(
   methods: Set[Method],
   paramsDecoders: Map[Method, ParamsDecoder[Method, Any]],
   resultDecoders: Map[Method, ResultDecoder[Method, Any]],
   customErrors: Map[Int, Error],
-  payloadsEncoder: Encoder[Any]
+  payloadsEncoder: Encoder[Any],
+  initialized: Boolean
 ) {
 
   private val builtinErrors: Map[Int, Error] = List(
@@ -291,6 +294,9 @@ case class Protocol(
         case other          => payloadsEncoder(other)
       }
     )
+
+  /** Indicates that the protocol has registered all supported methods and notifications */
+  def finalized(): Protocol = copy(initialized = true)
 
   /** Adds a new error code to this protocol.
     * @param error the error to add.
