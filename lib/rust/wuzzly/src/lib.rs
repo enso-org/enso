@@ -25,16 +25,24 @@ pub trait SubmatchScore: core::ops::Add<Self, Output = Self> + Sized + Ord {
 }
 
 mod std_score {
-    use std::cmp::Ordering;
     use super::Score;
+    use std::cmp::Ordering;
 
     const MAX_CHARS_LN2: u32 = 8;
     const MAX_SUBMATCHES_LN2: u32 = 4;
 
+    // `CHAR` penalties can occur many times in a submatch, and accumulate as submatches are merged.
+    // `SUBMATCH` penalties can occur once per submatch, and accumulate as submatches are merged.
+    // `MATCH` penalties are applied to calculate a match score for the root submatch of a match.
+
+    // A match that doesn't skip any word characters of the target is *perfect*, and should always
+    // be the first result.
+    const MATCH_IS_IMPERFECT_PENALTY: u32 =
+        1 << (MAX_CHARS_LN2 + MAX_SUBMATCHES_LN2 + 1 + MAX_SUBMATCHES_LN2 + MAX_SUBMATCHES_LN2);
     const SUBMATCH_BY_INITIALS_PENALTY: u32 =
         1 << (MAX_CHARS_LN2 + MAX_SUBMATCHES_LN2 + 1 + MAX_SUBMATCHES_LN2);
     const SUBMATCH_NOT_FROM_START_PENALTY: u32 = 1 << (MAX_CHARS_LN2 + MAX_SUBMATCHES_LN2 + 1);
-    const TARGET_IS_ALIAS_PENALTY: u32 = 1 << (MAX_CHARS_LN2 + MAX_SUBMATCHES_LN2);
+    const MATCH_TARGET_IS_ALIAS_PENALTY: u32 = 1 << (MAX_CHARS_LN2 + MAX_SUBMATCHES_LN2);
     const SUBMATCH_INCLUDES_NAMESPACE_PENALTY: u32 = 1 << MAX_CHARS_LN2;
     const CHAR_IN_MATCHED_WORD_SKIPPED_PENALTY: u32 = 1;
 
@@ -83,22 +91,23 @@ mod std_score {
         }
 
         fn skip_delimiter(&mut self, _pattern: char, value: char) {
-            self.word_chars_matched_since_last_delimiter = false;
             // Penalty for every skipped `.` after the first matched word character.
             if value == '.' && self.word_chars_matched {
                 self.penalty += SUBMATCH_INCLUDES_NAMESPACE_PENALTY;
             }
+            self.word_chars_matched_since_last_delimiter = false;
         }
 
         fn finish(self) -> Self::SubmatchScore {
-            let Self { penalty, .. } = self;
-            ScoreInfo { penalty }
+            let Self { penalty, word_chars_skipped, .. } = self;
+            ScoreInfo { penalty, word_chars_skipped }
         }
     }
 
     #[derive(Copy, Clone, Default, PartialEq, Eq)]
     pub struct ScoreInfo {
-        penalty: u32,
+        penalty:            u32,
+        word_chars_skipped: bool,
     }
 
     impl PartialOrd for ScoreInfo {
@@ -117,7 +126,10 @@ mod std_score {
         type TargetInfo = TargetInfo;
 
         fn with_submatch_by_initials_penalty(self) -> Self {
-            Self { penalty: self.penalty + SUBMATCH_BY_INITIALS_PENALTY }
+            Self {
+                penalty:            self.penalty + SUBMATCH_BY_INITIALS_PENALTY,
+                word_chars_skipped: true,
+            }
         }
 
         fn any_prefix_match_beats_any_initials_match() -> bool {
@@ -125,9 +137,12 @@ mod std_score {
         }
 
         fn target_score(self, target_info: TargetInfo) -> Score {
-            let mut penalty = self.penalty;
+            let Self { mut penalty, word_chars_skipped } = self;
             if target_info.is_alias {
-                penalty += TARGET_IS_ALIAS_PENALTY;
+                penalty += MATCH_TARGET_IS_ALIAS_PENALTY;
+            }
+            if word_chars_skipped {
+                penalty += MATCH_IS_IMPERFECT_PENALTY;
             }
             Score(u32::MAX - penalty)
         }
@@ -136,7 +151,10 @@ mod std_score {
     impl core::ops::Add for ScoreInfo {
         type Output = Self;
         fn add(self, rhs: Self) -> Self::Output {
-            ScoreInfo { penalty: self.penalty + rhs.penalty }
+            ScoreInfo {
+                penalty:            self.penalty + rhs.penalty,
+                word_chars_skipped: self.word_chars_skipped | rhs.word_chars_skipped,
+            }
         }
     }
 }
@@ -149,42 +167,44 @@ mod std_score {
 
 #[derive(Default)]
 struct Matcher<SB> {
-    needle:             String,
-    haystack:           String,
+    pattern:            String,
+    target:             String,
     /// Empty `Vec` used to reuse storage.
     states_buffer:      Vec<State<'static, SB>>,
     /// Empty `Vec` used to reuse storage.
     next_states_buffer: Vec<State<'static, SB>>,
 }
 
-impl<SB: ScoreBuilder> Matcher<SB>
-{
-    fn match_initials(&mut self, needle: &str, haystack: &str) -> Option<SB::SubmatchScore> {
-        self.reset_needle();
-        let mut chars = needle.chars();
+impl<SB: ScoreBuilder> Matcher<SB> {
+    fn match_initials(&mut self, pattern: &str, target: &str) -> Option<SB::SubmatchScore> {
+        self.reset_pattern();
+        let mut chars = pattern.chars();
         if let Some(c) = chars.next() {
-            self.needle.push(c);
+            self.pattern.push(c);
         }
         for c in chars {
-            self.needle.push(' ');
-            self.needle.push(c);
+            self.pattern.push(' ');
+            self.pattern.push(c);
         }
-        Some(self.do_match(haystack)?.with_submatch_by_initials_penalty())
+        Some(self.do_match(target)?.with_submatch_by_initials_penalty())
     }
 
-    fn match_prefixes(&mut self, needle: &str, haystack: &str) -> Option<SB::SubmatchScore> {
+    fn match_prefixes(&mut self, pattern: &str, target: &str) -> Option<SB::SubmatchScore> {
         use core::fmt::Write;
-        self.reset_needle();
-        self.needle.write_str(needle).unwrap();
-        self.do_match(haystack)
+        self.reset_pattern();
+        self.pattern.write_str(pattern).unwrap();
+        self.do_match(target)
     }
 
-    fn reset_needle(&mut self) {
-        self.needle.clear();
-        self.needle.push(' ');
+    /// Reset the pattern buffer so that it is ready to append a pattern to.
+    fn reset_pattern(&mut self) {
+        self.pattern.clear();
+        // All patterns start with the any-delimiter character so that the match can start at the
+        // beginning of any word in the target.
+        self.pattern.push(' ');
     }
 
-    fn do_match(&mut self, haystack: &str) -> Option<SB::SubmatchScore> {
+    fn do_match(&mut self, target: &str) -> Option<SB::SubmatchScore> {
         fn cast_lifetime<'a, 'b, T>(mut buffer: Vec<State<'a, T>>) -> Vec<State<'b, T>> {
             unsafe {
                 // Ensure the `Vec` is empty.
@@ -197,15 +217,15 @@ impl<SB: ScoreBuilder> Matcher<SB>
             }
         }
         use core::fmt::Write;
-        self.haystack.clear();
-        self.haystack.push('_');
-        self.haystack.write_str(haystack).unwrap();
+        self.target.clear();
+        self.target.push('_');
+        self.target.write_str(target).unwrap();
         let initial_state =
-            State { chars: WordIndexedChars::new(&self.haystack), score: Default::default() };
+            State { chars: WordIndexedChars::new(&self.target), score: Default::default() };
         let mut states = cast_lifetime(core::mem::take(&mut self.states_buffer));
         let mut next_states = cast_lifetime(core::mem::take(&mut self.states_buffer));
         states.push(initial_state);
-        for c in self.needle.chars() {
+        for c in self.pattern.chars() {
             match c {
                 '_' | ' ' | '.' => {
                     for mut state in states.drain(..) {
@@ -258,10 +278,10 @@ impl<SB: ScoreBuilder> Matcher<SB>
         best
     }
 
-    fn subsearch(&mut self, needle: &str, haystack: &str) -> Option<SB::SubmatchScore> {
-        if let Some((r#type, name)) = needle.rsplit_once('.') {
+    fn subsearch(&mut self, pattern: &str, target: &str) -> Option<SB::SubmatchScore> {
+        if let Some((r#type, name)) = pattern.rsplit_once('.') {
             // Try to match both parts, then compute a composite score.
-            let (r#type2, name2) = haystack.rsplit_once('.')?;
+            let (r#type2, name2) = target.rsplit_once('.')?;
             let r#type = self.subsearch(r#type, r#type2)?;
             let name = self.subsearch(name, name2)?;
             let dot = {
@@ -272,36 +292,41 @@ impl<SB: ScoreBuilder> Matcher<SB>
             Some(r#type + dot + name)
         } else {
             // Try to match either by prefix, or by initials; return the best score.
-            let matched_prefix = self.match_prefixes(needle, haystack);
+            let matched_prefix = self.match_prefixes(pattern, target);
             let try_initials_match = {
-                let no_delimiters_in_needle = !needle.contains('_') && !needle.contains(' ');
+                let no_delimiters_in_pattern = !pattern.contains('_') && !pattern.contains(' ');
                 // Optimization: The scoring criteria may guarantee that an initials-match would
                 // never be preferred to a prefix match.
                 let best_match_could_be_initials =
                     !SB::SubmatchScore::any_prefix_match_beats_any_initials_match()
                         || matched_prefix.is_none();
-                no_delimiters_in_needle && best_match_could_be_initials
+                no_delimiters_in_pattern && best_match_could_be_initials
             };
             let matched_initials = try_initials_match
                 .then_some(())
-                .and_then(|()| self.match_initials(needle, haystack));
+                .and_then(|()| self.match_initials(pattern, target));
             core::cmp::max(matched_prefix, matched_initials)
         }
     }
 
-    pub fn search(&mut self, needle: &str, haystack: &str, target_info: <SB::SubmatchScore as SubmatchScore>::TargetInfo) -> Option<Score> {
-        let needle: String = normalize_needle(needle.chars()).into_iter().collect();
-        self.subsearch(&needle, haystack).map(|info| info.target_score(target_info))
+    pub fn search(
+        &mut self,
+        pattern: &str,
+        target: &str,
+        target_info: <SB::SubmatchScore as SubmatchScore>::TargetInfo,
+    ) -> Option<Score> {
+        let pattern: String = normalize_pattern(pattern.chars()).into_iter().collect();
+        self.subsearch(&pattern, target).map(|info| info.target_score(target_info))
     }
 }
 
 /// Normalize the search pattern. [`Matcher::search`] applies this to its arguments implicitly, but
 /// it is exposed for testing.
-fn normalize_needle(needle: impl Iterator<Item = char>) -> impl Iterator<Item = char> {
+fn normalize_pattern(pattern: impl Iterator<Item = char>) -> impl Iterator<Item = char> {
     // Collapse any sequence of delimiters to the strongest, in this ranking: `.` > `_` > ` `
     core::iter::from_generator(|| {
         let mut delimiter = None;
-        for c in needle {
+        for c in pattern {
             match c {
                 '.' => {
                     delimiter = Some('.');
@@ -330,8 +355,8 @@ fn normalize_needle(needle: impl Iterator<Item = char>) -> impl Iterator<Item = 
 
 /// Search for a pattern in a string using a temporary [`Matcher`]. When performing multiple
 /// searches it is more efficient to reuse a [`Matcher`], but this is convenient for testing.
-fn search(needle: &str, haystack: &str, target_info: std_score::TargetInfo) -> Option<Score> {
-    Matcher::<std_score::ScoreBuilder>::default().search(needle, haystack, target_info)
+fn search(pattern: &str, target: &str, target_info: std_score::TargetInfo) -> Option<Score> {
+    Matcher::<std_score::ScoreBuilder>::default().search(pattern, target, target_info)
 }
 
 
@@ -402,7 +427,9 @@ mod test_match {
         let expected: Vec<_> = cases.into_iter().collect();
         let computed: Vec<_> = expected
             .iter()
-            .map(|&(needle, haystack, _)| (needle, haystack, search(needle, haystack, Default::default()).is_some()))
+            .map(|&(pattern, target, _)| {
+                (pattern, target, search(pattern, target, Default::default()).is_some())
+            })
             .collect();
         assert_eq!(&computed[..], &expected[..]);
     }
@@ -411,7 +438,7 @@ mod test_match {
         let normalized = cases.iter().map(|(_raw, normalized)| normalized);
         let raw = cases.iter().map(|(raw, _normalized)| raw);
         let computed: Vec<String> =
-            raw.map(|raw| normalize_needle(raw.chars()).collect()).collect();
+            raw.map(|raw| normalize_pattern(raw.chars()).collect()).collect();
         let expected: Vec<_> = normalized.map(|s| s.to_owned()).collect();
         assert_eq!(&computed[..], &expected[..]);
     }
@@ -550,10 +577,11 @@ mod test_score {
 
     /// Given a pattern and a set of targets, assert that the targets match and are in order by
     /// score from best match to worst.
-    fn check_order(needle: &str, inputs: &[(&str, std_score::TargetInfo)]) {
+    fn check_order(pattern: &str, inputs: &[(&str, std_score::TargetInfo)]) {
         let expected = &inputs[..];
         let mut computed: Vec<_> = inputs.iter().cloned().collect();
-        computed.sort_by_key(|(haystack, target)| search(needle, haystack, *target).unwrap());
+        computed
+            .sort_by_key(|(target, target_info)| search(pattern, target, *target_info).unwrap());
         computed.reverse();
         assert_eq!(computed, expected);
     }
@@ -561,42 +589,36 @@ mod test_score {
     #[test]
     fn test_order() {
         check_order("ab", &[
-            // Prefix match, first-word: Name (Exact match)
+            // Exact match: Name
             ("ab", std_score::TargetInfo { is_alias: false }),
+            // Exact match: Alias
+            ("ab", std_score::TargetInfo { is_alias: true }),
             // Prefix match, first-word: Name
             ("abx", std_score::TargetInfo { is_alias: false }),
             // Prefix match, first-word: Name (Lower % of word used)
             ("abxx", std_score::TargetInfo { is_alias: false }),
-
             // Prefix match, first-word: Type (Exact match)
             ("ab.x", std_score::TargetInfo { is_alias: false }),
             // Prefix match, first-word: Type
             ("abx.x", std_score::TargetInfo { is_alias: false }),
             // Prefix match, first-word: Type (Lower % of word used)
             ("abxx.x", std_score::TargetInfo { is_alias: false }),
-
-            // Prefix match, first-word: Alias (Exact match)
-            ("ab", std_score::TargetInfo { is_alias: true }),
             // Prefix match, first-word: Alias
-            ("abc", std_score::TargetInfo { is_alias: true }),
+            ("abx", std_score::TargetInfo { is_alias: true }),
             // Prefix match, first-word: Alias (Lower % of word used)
-            ("abcc", std_score::TargetInfo { is_alias: true }),
-
+            ("abxx", std_score::TargetInfo { is_alias: true }),
             // Prefix match, later-word: Name
-            ("z_ab", std_score::TargetInfo { is_alias: false }),
+            ("x_ab", std_score::TargetInfo { is_alias: false }),
             // Prefix match, later-word: Name (Lower % of word used)
-            ("z_abc", std_score::TargetInfo { is_alias: false }),
-
+            ("x_abx", std_score::TargetInfo { is_alias: false }),
             // Prefix match, later-word: Type
-            ("z_ab.x", std_score::TargetInfo { is_alias: false }),
+            ("x_ab.x", std_score::TargetInfo { is_alias: false }),
             // Prefix match, later-word: Type (Lower % of word used)
-            ("z_abc.x", std_score::TargetInfo { is_alias: false }),
-
+            ("x_abx.x", std_score::TargetInfo { is_alias: false }),
             // Prefix match, later-word: Alias
-            ("z_ab", std_score::TargetInfo { is_alias: true }),
+            ("x_ab", std_score::TargetInfo { is_alias: true }),
             // Prefix match, later-word: Alias (Lower % of word used)
-            ("z_abc", std_score::TargetInfo { is_alias: true }),
-
+            ("x_abx", std_score::TargetInfo { is_alias: true }),
             // Initials match: Name
             ("ax_bx", std_score::TargetInfo { is_alias: false }),
             // Initials match: Type
