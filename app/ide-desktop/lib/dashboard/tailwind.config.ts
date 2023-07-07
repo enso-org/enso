@@ -37,6 +37,7 @@ export const theme = {
             // Should be `#3e515f14`, but `bg-opacity` does not work with RGBA.
             'perm-none': '#f0f1f3',
             'call-to-action': '#fa6c08',
+            'gray-350': '#b7bcc5',
         },
         flexGrow: {
             2: '2',
