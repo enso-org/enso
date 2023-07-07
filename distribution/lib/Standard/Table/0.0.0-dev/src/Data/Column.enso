@@ -1288,7 +1288,7 @@ type Column
                     fn = case period of
                         Date_Period.Quarter ->
                             # Workaround as there is no ChronoUnit for quarter.
-                            java_unit = Date_Period.Month
+                            java_unit = Date_Period.Month.to_java_unit
                             start-> end->
                                 months = diff java_unit start end
                                 months.div 3
@@ -1316,7 +1316,7 @@ type Column
                     fn = case period of
                         Date_Period.Quarter ->
                             # Workaround as there is no ChronoUnit for quarter.
-                            java_unit = Date_Period.Month
+                            java_unit = Date_Period.Month.to_java_unit
                             date-> amount->
                                 java_unit.addTo date (amount*3)
                         _ ->
