@@ -20,14 +20,18 @@ make_aggregate_column_selector table display=Display.Always include_group_by=Tru
     col_names_selector = make_column_name_selector table display=Display.Always
     column_widget = ["column", col_names_selector]
 
-    col_list_selector = make_column_name_vector_selector table display=Display.Always
-
     fqn = Meta.get_qualified_type_name Aggregate_Column
     group_by = if include_group_by then [Option "Group By" fqn+".Group_By" [column_widget]] else []
     count = Option "Count" fqn+".Count"
-    count_distinct = Option "Count Distinct" fqn+".Count_Distinct" [["columns", col_list_selector]]
-    first = Option "First" fqn+".First" [column_widget, ["order_by" , col_list_selector]]
-    last = Option "Last" fqn+".Last" [column_widget, ["order_by" , col_list_selector]]
+
+    ## Currently can't support nested vector editors so using single picker
+    ## col_list_selector = make_column_name_vector_selector table display=Display.Always
+    count_distinct = Option "Count Distinct" fqn+".Count_Distinct" [["columns", col_names_selector]]
+
+    ## Currently can't support nested vector editors so using single order by picker
+    order_by_selector = make_order_by_selector table . item_editor
+    first = Option "First" fqn+".First" [column_widget, ["order_by" , order_by_selector]]
+    last = Option "Last" fqn+".Last" [column_widget, ["order_by" , order_by_selector]]
 
     count_not_nothing = Option "Count Not Nothing" fqn+".Count_Not_Nothing" [column_widget]
     count_nothing = Option "Count Nothing" fqn+".Count_Nothing" [column_widget]

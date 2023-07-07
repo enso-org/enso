@@ -19,10 +19,8 @@ spec = Test.group "Aggregate Columns" <|
     test_aggregator table col expected_name expected_result epsilon=False =
         problem_builder = Problem_Builder.new
         resolved = Aggregate_Column_Helper.resolve_aggregate table problem_builder col
-        name = case resolved.new_name of
-            Nothing ->
-                Aggregate_Column_Helper.default_aggregate_column_name resolved
-            overridden -> overridden
+        name = if resolved.new_name != "" then resolved.new_name else
+            Aggregate_Column_Helper.default_aggregate_column_name resolved
         name . should_equal expected_name
 
         result =
