@@ -311,5 +311,5 @@ spec setup =
                 t.at "B" . month . should_fail_with Invalid_Value_Type
                 t.at "C" . day . should_fail_with Invalid_Value_Type
 
-                t.at "A" . date_diff (t.at "B") . should_fail_with Invalid_Value_Type
-                t.at "A" . date_add 42 . should_fail_with Invalid_Value_Type
+                t.at "A" . date_diff (t.at "B") Date_Period.Day . should_fail_with Invalid_Value_Type
+                t.at "A" . date_add 42 Date_Period.Day . should_fail_with Invalid_Value_Type
