@@ -56,6 +56,7 @@ polyglot java import org.enso.table.data.table.join.Between as Java_Join_Between
 polyglot java import org.enso.table.data.table.join.Equals as Java_Join_Equals
 polyglot java import org.enso.table.data.table.join.EqualsIgnoreCase as Java_Join_Equals_Ignore_Case
 polyglot java import org.enso.table.data.table.Table as Java_Table
+polyglot java import org.enso.table.error.TooManyColumnsException
 polyglot java import org.enso.table.operations.OrderBuilder
 
 ## Represents a column-oriented table data structure.
@@ -1901,7 +1902,12 @@ type Table
                 False ->
                     aggregate_names = validated_values.map c->
                         if c.new_name != "" then c.new_name else (name_mapper c)
-                    index.makeCrossTabTable java_key_columns matched_name.first.java_column data_columns aggregate_names
+
+                    too_many_columns caught_panic =
+                        inner_panic = caught_panic.payload
+                        Error.throw (Column_Count_Exceeded.Error inner_panic.getMaximumColumnCount inner_panic.getColumnCount)
+                    Panic.catch TooManyColumnsException handler=too_many_columns <|
+                        index.makeCrossTabTable java_key_columns matched_name.first.java_column data_columns aggregate_names
 
             on_problems.attach_problems_after (Table.Value result) <|
                 problems = result.getProblems
