@@ -1094,7 +1094,19 @@ type Table
          name will be in use, in this case it will be resolved using the normal
          renaming strategy - adding subsequent `_1`, `_2` etc.
 
-       ? Result Ordering
+       ? Row Ordering For In-Memory Tables
+
+         This operation requires a well-defined order of rows in the input
+         tables. In-memory tables rely on the ordering stemming directly from
+         their layout in memory. Database tables may not impose a deterministic
+         ordering. If the table defines a primary key, it is used to by default
+         to ensure deterministic ordering. That can be overridden by specifying
+         a different ordering using `Table.order_by`. If no primary key was
+         defined nor any ordering was specified explicitly by the user, the
+         order of columns is undefined and the operation will fail, reporting a
+         `Undefined_Column_Order` problem and returning an empty table.
+
+       ? Result Ordering For Database Tables
 
          The ordering of rows in the resulting table is not specified.
     cross_join : Table -> Integer | Nothing -> Text -> Problem_Behavior -> Table
