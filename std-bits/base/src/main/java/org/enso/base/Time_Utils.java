@@ -16,6 +16,7 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.temporal.ChronoUnit;
+import java.time.temporal.Temporal;
 import java.time.temporal.TemporalField;
 import java.time.temporal.WeekFields;
 import java.util.Locale;
@@ -265,5 +266,32 @@ public class Time_Utils {
    */
   public static ZonedDateTime with_zone_same_instant(ZonedDateTime dateTime, ZoneId zone) {
     return dateTime.withZoneSameInstant(zone);
+  }
+
+  /**
+   * This wrapper function is needed to ensure that EnsoDate gets converted to LocalDate correctly.
+   * <p>
+   * The {@code ChronoUnit::between} takes a value of type Temporal which does not trigger a polyglot conversion.
+   */
+  public static long unit_date_difference(ChronoUnit unit, LocalDate start, LocalDate end) {
+    return unit.between(start, end);
+  }
+
+  /**
+   * This wrapper function is needed to ensure that EnsoTimeOfDay gets converted to LocalTime correctly.
+   * <p>
+   * The {@code ChronoUnit::between} takes a value of type Temporal which does not trigger a polyglot conversion.
+   */
+  public static long unit_time_difference(ChronoUnit unit, LocalTime start, LocalTime end) {
+    return unit.between(start, end);
+  }
+
+  /**
+   * This wrapper function is needed to ensure that EnsoDateTime gets converted to ZonedDateTime correctly.
+   * <p>
+   * The {@code ChronoUnit::between} takes a value of type Temporal which does not trigger a polyglot conversion.
+   */
+  public static long unit_datetime_difference(ChronoUnit unit, ZonedDateTime start, ZonedDateTime end) {
+    return unit.between(start, end);
   }
 }
