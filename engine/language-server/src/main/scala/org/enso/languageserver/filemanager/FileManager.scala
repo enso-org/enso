@@ -59,7 +59,29 @@ class FileManager(
         .execTimed(config.timeout, result)
         .map(FileManagerProtocol.WriteFileResult)
         .pipeTo(sender())
-      ()
+
+    case FileManagerProtocol.WriteFileIfNotModified(
+          path,
+          lastRecordedModifiedTime,
+          content
+        ) =>
+      val isModified =
+        for {
+          file  <- resolvePath(path)
+          attrs <- fs.info(file)
+        } yield attrs.lastModifiedTime.isAfter(lastRecordedModifiedTime)
+      val write =
+        for {
+          root <- findContentRoot(path.rootId)
+          file = path.toFile(root.file)
+          _     <- fs.write(file, content)
+          attrs <- fs.info(file)
+        } yield FileAttributes.fromFileSystemAttributes(root.file, path, attrs)
+      val result = ZIO.unlessZIO(isModified)(write)
+      exec
+        .execTimed(config.timeout, result)
+        .map(FileManagerProtocol.WriteFileIfNotModifiedResult)
+        .pipeTo(sender())
 
     case FileManagerProtocol.WriteBinaryFile(path, contents) =>
       val result =

@@ -384,6 +384,20 @@ class CollaborativeBuffer(
           )
       }
 
+    case FileManagerProtocol.WriteFileIfNotModifiedResult(Left(failure)) =>
+      replyTo.foreach(_ ! SaveFailed(failure))
+      unstashAll()
+      timeoutCancellable.cancel()
+      onClose match {
+        case Some(clientId) =>
+          replyTo.foreach(_ ! FileClosed)
+          removeClient(buffer, clients, lockHolder, clientId, autoSave)
+        case None =>
+          context.become(
+            collaborativeEditing(buffer, clients, lockHolder, autoSave)
+          )
+      }
+
     case Status.Failure(failure) =>
       logger.error(
         s"Waiting on save operation to complete failed with: ${failure.getMessage}.",
@@ -420,6 +434,32 @@ class CollaborativeBuffer(
           )
       }
 
+    case FileManagerProtocol.WriteFileIfNotModifiedResult(Right(result)) =>
+      replyTo match {
+        case Some(replyTo) => replyTo ! FileSaved
+        case None =>
+          val message = result.fold[Any](FileModifiedOnDisk(bufferPath))(_ =>
+            FileAutoSaved(bufferPath)
+          )
+          clients.values.foreach {
+            _.rpcController ! message
+          }
+      }
+      unstashAll()
+      timeoutCancellable.cancel()
+      onClose match {
+        case Some(clientId) =>
+          replyTo.foreach(_ ! FileClosed)
+          removeClient(buffer, clients, lockHolder, clientId, autoSave)
+        case None =>
+          val newBuffer = result.fold(buffer)(attrs =>
+            buffer.withLastModifiedTime(attrs.lastModifiedTime)
+          )
+          context.become(
+            collaborativeEditing(newBuffer, clients, lockHolder, autoSave)
+          )
+      }
+
     case _ =>
       stash()
   }
@@ -438,10 +478,17 @@ class CollaborativeBuffer(
     val hasLock = lockHolder.exists(_.clientId == clientId)
     if (hasLock) {
       if (clientVersion == buffer.version) {
-        fileManager ! FileManagerProtocol.WriteFile(
-          bufferPath,
-          buffer.contents.toString
-        )
+        val saveMessage =
+          if (isAutoSave && buffer.fileWithMetadata.lastModifiedTime.nonEmpty) {
+            FileManagerProtocol.WriteFileIfNotModified(
+              bufferPath,
+              buffer.fileWithMetadata.lastModifiedTime.get,
+              buffer.contents.toString
+            )
+          } else {
+            FileManagerProtocol.WriteFile(bufferPath, buffer.contents.toString)
+          }
+        fileManager ! saveMessage
         currentAutoSaves.get(clientId).foreach(_._2.cancel())
 
         val timeoutCancellable = context.system.scheduler
@@ -518,7 +565,7 @@ class CollaborativeBuffer(
         subscribers foreach { _.rpcController ! TextDidChange(List(change)) }
         runtimeConnector ! Api.Request(
           Api.SetExpressionValueNotification(
-            buffer.file,
+            buffer.fileWithMetadata.file,
             change.edits,
             expressionId,
             expressionValue
@@ -551,7 +598,11 @@ class CollaborativeBuffer(
         val subscribers = clients.filterNot(_._1 == clientId).values
         subscribers foreach { _.rpcController ! TextDidChange(List(change)) }
         runtimeConnector ! Api.Request(
-          Api.EditFileNotification(buffer.file, change.edits, execute)
+          Api.EditFileNotification(
+            buffer.fileWithMetadata.file,
+            change.edits,
+            execute
+          )
         )
         val newAutoSave: Map[ClientId, (ContentVersion, Cancellable)] =
           upsertAutoSaveTimer(
@@ -617,14 +668,7 @@ class CollaborativeBuffer(
     EditorOps
       .applyEdits(buffer.contents, edits)
       .leftMap(toEditFailure)
-      .map(rope =>
-        Buffer(
-          buffer.file,
-          rope,
-          buffer.inMemory,
-          versionCalculator.evalVersion(rope.toString)
-        )
-      )
+      .map(rope => buffer.withContents(rope))
   }
 
   private val toEditFailure: TextEditValidationFailure => ApplyEditFailure = {
@@ -737,7 +781,9 @@ class CollaborativeBuffer(
 
     val newClientMap = clients - clientId
     if (newClientMap.isEmpty) {
-      runtimeConnector ! Api.Request(Api.CloseFileNotification(buffer.file))
+      runtimeConnector ! Api.Request(
+        Api.CloseFileNotification(buffer.fileWithMetadata.file)
+      )
       stop(autoSave)
     } else {
       context.become(

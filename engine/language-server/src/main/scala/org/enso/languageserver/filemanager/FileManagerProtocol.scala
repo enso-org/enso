@@ -1,6 +1,7 @@
 package org.enso.languageserver.filemanager
 
 import java.io.File
+import java.time.OffsetDateTime
 
 object FileManagerProtocol {
 
@@ -43,6 +44,25 @@ object FileManagerProtocol {
     * @param result either file system failure or unit representing success
     */
   case class WriteFileResult(result: Either[FileSystemFailure, Unit])
+
+  /** Requests the Language Server write textual content to an arbitrary file.
+    *
+    * @param path a path to a file
+    * @param content a textual content
+    */
+  case class WriteFileIfNotModified(
+    path: Path,
+    lastModifiedTime: OffsetDateTime,
+    content: String
+  )
+
+  /** Signals file manipulation status.
+    *
+    * @param result either file system failure or unit representing success
+    */
+  case class WriteFileIfNotModifiedResult(
+    result: Either[FileSystemFailure, Option[FileAttributes]]
+  )
 
   /** Requests the Language Server read a file.
     *
