@@ -1,27 +1,12 @@
 package org.enso.interpreter.node.callable.argument;
 
-import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.profiles.ConditionProfile;
-import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
-import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.node.callable.ApplicationNode;
-import org.enso.interpreter.node.callable.InvokeCallableNode.DefaultsExecutionMode;
-import org.enso.interpreter.node.expression.builtin.meta.IsValueOfTypeNode;
-import org.enso.interpreter.node.expression.builtin.meta.TypeOfNode;
-import org.enso.interpreter.node.expression.literal.LiteralNode;
-import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.callable.UnresolvedConversion;
-import org.enso.interpreter.runtime.callable.argument.CallArgument;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
-import org.enso.interpreter.runtime.error.DataflowError;
-import org.enso.interpreter.runtime.error.PanicException;
 
 /**
  * Reads and evaluates the expression provided as a function argument. It handles the case where
@@ -29,23 +14,17 @@ import org.enso.interpreter.runtime.error.PanicException;
  */
 @NodeInfo(shortName = "ReadArg", description = "Read function argument.")
 public class ReadArgumentNode extends ExpressionNode {
-  private final String name;
   private final int index;
   @Child ExpressionNode defaultValue;
-  @Child IsValueOfTypeNode checkType;
+  @Child ReadArgumentCheckNode checkType;
   private final ConditionProfile defaultingProfile = ConditionProfile.createCountingProfile();
-  // XXX: Type in a Node is wrong!!!!!
-  @CompilerDirectives.CompilationFinal(dimensions = 1)
-  private final Type[] expectedTypes;
 
-  private ReadArgumentNode(String name, int position, ExpressionNode defaultValue, Type[] expectedTypes) {
-    this.name = name;
+  private ReadArgumentNode(
+      String name, int position, ExpressionNode defaultValue, Type[] expectedTypes) {
     this.index = position;
     this.defaultValue = defaultValue;
-    this.expectedTypes = expectedTypes;
-    if (expectedTypes != null) {
-      checkType = IsValueOfTypeNode.build();
-    }
+    var argName = name != null ? name : "Argument #" + (index + 1);
+    this.checkType = ReadArgumentCheckNode.build(argName, expectedTypes);
   }
 
   /**
@@ -78,7 +57,6 @@ public class ReadArgumentNode extends ExpressionNode {
    * @return the computed value of the argument at this position
    */
   @Override
-  @ExplodeLoop
   public Object executeGeneric(VirtualFrame frame) {
     Object arguments[] = Function.ArgumentsHelper.getPositionalArguments(frame.getArguments());
 
@@ -94,43 +72,7 @@ public class ReadArgumentNode extends ExpressionNode {
       }
     }
     if (checkType != null) {
-      for (Type t : expectedTypes) {
-        if (checkType.execute(t, v)) {
-          return v;
-        }
-      }
-      if (!(v instanceof DataflowError) && !(v instanceof Function fn && fn.isThunk())) {
-        CompilerDirectives.transferToInterpreter();
-        var ctx = EnsoContext.get(this);
-
-        if (getRootNode() instanceof EnsoRootNode root) {
-          var convert = UnresolvedConversion.build(root.getModuleScope());
-          if (TypeOfNode.getUncached().execute(v) instanceof Type from) {
-            for (Type into : expectedTypes) {
-              var conv = convert.resolveFor(ctx, into, from);
-              if (conv != null) {
-                // XXX: absolutely ineffective:
-                var convNode = LiteralNode.build(conv);
-                var intoNode = LiteralNode.build(into);
-                var valueNode = LiteralNode.build(v);
-                var args = new CallArgument[] {
-                  new CallArgument(null, intoNode),
-                  new CallArgument(null, valueNode),
-                };
-                var app = ApplicationNode.build(convNode, args, DefaultsExecutionMode.EXECUTE);
-                var r = app.executeGeneric(frame);
-                return r;
-              }
-            }
-          }
-        }
-
-        var expecting =
-            expectedTypes.length == 1 ? expectedTypes[0] : Arrays.stream(expectedTypes).map(Type::toString).collect(Collectors.joining(" | "));
-        var argName = name != null ? name : "Argument #" + (index + 1);
-        var err = ctx.getBuiltins().error().makeTypeError(expecting, v, argName);
-        throw new PanicException(err, this);
-      }
+      v = checkType.executeCheckOrConversion(frame, v);
     }
     return v;
   }
