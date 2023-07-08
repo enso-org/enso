@@ -238,6 +238,21 @@ spec setup =
             (t3.at "X").date_diff (t3.at "Y") Time_Period.Minute . to_vector . should_equal [135]
             (t3.at "X").date_diff (Time_Of_Day.new 10 04 0) Time_Period.Minute . to_vector . should_equal [-11]
 
+        Test.specify "date_diff should return integers" <|
+            t = table_builder [["X", [Date.new 2021 01 31]], ["Y", [Time_Of_Day.new 12 30 20]], ["Z", [Date_Time.new 2021 12 5 12 30 20]]]
+
+            time_periods = [Time_Period.Hour, Time_Period.Minute, Time_Period.Second]
+            date_periods = [Date_Period.Day, Date_Period.Week, Date_Period.Month, Date_Period.Quarter, Date_Period.Year]
+
+            date_periods.each p->
+                (t.at "X").date_diff (Date.new 2021 12 05) p . value_type . is_integer . should_be_true
+
+            time_periods.each p->
+                (t.at "Y").date_diff (Time_Of_Day.new 01 02) p . value_type . is_integer . should_be_true
+
+            (date_periods+time_periods).each p->
+                (t.at "Z").date_diff (Date_Time.new 2021 12 05 01 02) p . value_type . is_integer . should_be_true
+
         Test.specify "TODO tests for DST hours/days" pending="TODO" <|
             Nothing
 
