@@ -28,6 +28,7 @@ within_table table = Test.with_clue 'Resulting table:\n'+table.display+'\n\n'
 ## PRIVATE
 Any.should_equal_tz_agnostic self other =
     loc = Meta.get_source_location 1
+    _ = other
     Test.fail "Expected a vector but got "+self.to_display_text+" (at "+loc+")."
 
 ## PRIVATE
@@ -52,4 +53,5 @@ Vector.should_equal_tz_agnostic self other =
 ## PRIVATE
 Error.should_equal_tz_agnostic self other =
     loc = Meta.get_source_location 1
+    _ = other
     Test.fail "Expected a vector but got a dataflow error "+self.catch.to_display_text+" (at "+loc+")."

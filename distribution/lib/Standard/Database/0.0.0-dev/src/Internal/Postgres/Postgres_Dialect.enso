@@ -524,18 +524,25 @@ make_date_diff arguments (metadata : Date_Period_Metadata) =
         start = arguments.at 0
         end = arguments.at 1
 
+        truncate expr =
+            Builder.code "TRUNC(" ++ expr ++ ")"
+
+        as_int expr =
+            Builder.code "(" ++ expr ++ "::int8)"
+
         # `age` computes a 'symbolic' difference expressed in years, months and days.
         extract_years =
-            Builder.code "EXTRACT(YEARS FROM age(" ++ end ++ ", " ++ start ++ "))"
+            as_int <| Builder.code "EXTRACT(YEARS FROM age(" ++ end ++ ", " ++ start ++ "))"
         # To get total months, we need to sum up with whole years.
         extract_months =
-            months = Builder.code "EXTRACT(MONTHS FROM age(" ++ end ++ ", " ++ start ++ "))"
+            months = as_int <|
+                Builder.code "EXTRACT(MONTHS FROM age(" ++ end ++ ", " ++ start ++ "))"
             Builder.code "(" ++ extract_years ++ " * 12 + " ++ months ++ ")"
         ## To get total days, we cannot use `age`, because we cannot convert an
            amount of months to days (month lengths vary). Instead we rely on `-`
            returning an interval based in 'raw' days.
         extract_days =
-            case metadata.input_value_type of
+            as_int <| case metadata.input_value_type of
                 ## For pure 'date' datatype, the difference is a simple integer
                    count of days.
                 Value_Type.Date -> (end ++ " - " ++ start).paren
@@ -547,8 +554,9 @@ make_date_diff arguments (metadata : Date_Period_Metadata) =
            symbolic `age` has no clear mapping to the count of days, skewing the
            result.
         extract_seconds =
-            Builder.code "(TRUNC(EXTRACT(EPOCH FROM (" ++ end ++ " - " ++ start ++ ")))::int8)"
-        case effective_period of
+            seconds_numeric = Builder.code "EXTRACT(EPOCH FROM (" ++ end ++ " - " ++ start ++ "))"
+            as_int (truncate seconds_numeric)
+        case metadata.period of
             Date_Period.Year    -> extract_years
             Date_Period.Month   -> extract_months
             Date_Period.Quarter -> (extract_months ++ " / 3").paren
