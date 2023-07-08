@@ -101,7 +101,7 @@ type Column
     ## Returns a vector containing all the elements in this column.
     to_vector : Vector Any
     to_vector self =
-        self.to_table.read . at self.name . to_vector
+        self.to_table.read . at 0 . to_vector
 
     ## Returns the `Value_Type` associated with that column.
 
