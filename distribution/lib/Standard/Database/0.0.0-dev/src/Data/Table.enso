@@ -1981,7 +1981,7 @@ type Table
        been replaced with the provided default(s).
 
        Arguments:
-       - columns: The column(s) to fill Nothing values.
+       - columns: The column(s) to fill missing values of.
        - default: The value to replace missing values with. If this argument
          is a column, the value from `default` at the corresponding position
          will be used.
@@ -2051,7 +2051,7 @@ type Table
     replace : Vector (Integer | Text | Column_Selector) | Text | Integer -> Text | Column | Regex -> Text | Column -> Case_Sensitivity -> Boolean -> Column
     replace self columns term="" new_text="" case_sensitivity=Case_Sensitivity.Sensitive only_first=False =
         _ = [columns, term, new_text, case_sensitivity, only_first]
-        Error.throw (Unsupported_Database_Operation.Error "Text replace is not currently supported in the database.")
+        Error.throw (Unsupported_Database_Operation.Error "Text replace is currently not supported in the database backend.")
 
 ## PRIVATE
 
