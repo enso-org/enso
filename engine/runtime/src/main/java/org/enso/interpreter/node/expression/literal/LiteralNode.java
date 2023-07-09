@@ -64,7 +64,7 @@ public class LiteralNode extends ExpressionNode implements Patchable {
   /**
    * Creates an instance of the literal node.
    *
-   * @param value big integer value for the node to represent
+   * @param value interop value for the node to represent
    * @return a node representing the literal given by {@code value}
    */
   public static LiteralNode build(TruffleObject value) {
