@@ -1,8 +1,7 @@
 package org.enso.interpreter.bench
 
-import org.enso.compiler.core.IR
-
 object IRUtils {
+  /*
   private def collectBenchCalls(ir: IR.Module): List[BenchCall] = {
     val methods = ir.bindings.collect { case m : IR.Module.Scope.Definition.Method => m }
 
@@ -25,7 +24,6 @@ object IRUtils {
         }
       })
     }
-
   }
 
   private class BenchCall(
@@ -43,4 +41,5 @@ object IRUtils {
       }
     }
   }
+  */
 }

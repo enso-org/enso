@@ -5,13 +5,12 @@ import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Collections;
 import org.graalvm.polyglot.Context;
+import org.openjdk.jmh.results.RunResult;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.ChainedOptionsBuilder;
 import org.openjdk.jmh.runner.options.CommandLineOptionException;
 import org.openjdk.jmh.runner.options.CommandLineOptions;
-import org.openjdk.jmh.runner.options.Options;
-import org.openjdk.jmh.results.RunResult;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
 // TODO: Move to different project?
@@ -61,6 +60,6 @@ public class LibBenchRunner {
             Paths.get("../../distribution/component").toFile().getAbsolutePath()
         ).build();
 
-    ctx.eval()...
+    // ctx.eval()...
   }
 }

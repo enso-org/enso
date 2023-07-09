@@ -5,7 +5,7 @@ import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.infra.BenchmarkParams;
 
 public class LibBench {
-  @Setup
+  // @Setup
   public void setup(BenchmarkParams params) {
     String benchName = params.getBenchmark();
   }
