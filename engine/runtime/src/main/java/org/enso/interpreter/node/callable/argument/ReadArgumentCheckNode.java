@@ -4,8 +4,10 @@ import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
+import com.oracle.truffle.api.nodes.InvalidAssumptionException;
 import com.oracle.truffle.api.nodes.Node;
 import java.util.Arrays;
 import java.util.stream.Collectors;
@@ -38,7 +40,6 @@ public abstract class ReadArgumentCheckNode extends Node {
     this.expectedTypes = expectedTypes;
   }
 
-
   static ReadArgumentCheckNode build(String argumentName, Type[] expectedTypes) {
     if (expectedTypes == null || expectedTypes.length == 0) {
       return null;
@@ -49,9 +50,40 @@ public abstract class ReadArgumentCheckNode extends Node {
 
   abstract Object executeCheckOrConversion(VirtualFrame frame, Object value);
 
+  @Specialization(rewriteOn = InvalidAssumptionException.class)
+  Object doCheckNoConversionNeeded(VirtualFrame frame, Object v) throws InvalidAssumptionException {
+    if (findAmongTypes(v)) {
+      return v;
+    } else {
+      throw new InvalidAssumptionException();
+    }
+  }
+
+  @Specialization(limit = "10", guards = {
+      "cachedType != null",
+      "findType(typeOfNode, v) == cachedType"
+  })
+  Object doWithConversionCached(
+    VirtualFrame frame, Object v,
+    @Cached TypeOfNode typeOfNode,
+    @Cached("findType(typeOfNode, v)") Type cachedType,
+    @Cached("findConversionNode(cachedType)") ApplicationNode convertNode
+  ) {
+    return handleWithConversion(frame, v, convertNode);
+  }
+
+  @Specialization(replaces = "doWithConversionCached")
+  Object doWithConversionUncached(
+    VirtualFrame frame, Object v,
+    @Cached TypeOfNode typeOfNode
+  ) {
+    var type = findType(typeOfNode, v);
+    return doWithConversionUncachedBoundary(frame.materialize(), v, type);
+  }
+
   private static boolean isAllFitValue(Object v) {
-    return v instanceof DataflowError ||
-      (v instanceof Function fn && fn.isThunk());
+    return v instanceof DataflowError
+            || (v instanceof Function fn && fn.isThunk());
   }
 
   @ExplodeLoop
@@ -61,23 +93,11 @@ public abstract class ReadArgumentCheckNode extends Node {
         return true;
       }
     }
-    if (isAllFitValue(v)) {
-      return true;
-    }
-    return false;
-  }
-
-  @Specialization(rewriteOn=IllegalArgumentException.class)
-  Object executeCheckNoConversion(VirtualFrame frame, Object v) {
-    if (findAmongTypes(v)) {
-      return v;
-    }
-    CompilerDirectives.transferToInterpreter();
-    throw new IllegalArgumentException();
+    return isAllFitValue(v);
   }
 
   @ExplodeLoop
-  Pair<Function,Type> findConversion(Type from) {
+  private Pair<Function, Type> findConversion(Type from) {
     var ctx = EnsoContext.get(this);
 
     if (getRootNode() instanceof EnsoRootNode root) {
@@ -116,50 +136,35 @@ public abstract class ReadArgumentCheckNode extends Node {
     return null;
   }
 
-  @Specialization(
-    limit="10",
-    guards={
-      "cachedType != null",
-      "findType(typeOfNode, v) == cachedType",
-      "convert != null"
-    }
-  )
-  Object executeWithConversion(
-    VirtualFrame frame, Object v,
-    @Cached TypeOfNode typeOfNode,
-    @Cached("findType(typeOfNode, v)") Type cachedType,
-    @Cached("findConversionNode(cachedType)") ApplicationNode convert
-  ) {
-    var converted = convert.executeGeneric(frame);
-    return converted;
-  }
-
-  boolean noConversionNode(TypeOfNode typeOfNode, Object value) {
-    var type = findType(typeOfNode, value);
-    return type == null || findConversion(type) == null;
-  }
-
-  @Specialization(
-    guards={
-      "noConversionNode(typeOfNode, v)"
-    }
-  )
-  Object fallbackOrPanicAtTheEnd(
-    Object v,
-    @Cached TypeOfNode typeOfNode
-  ) {
-    if (findAmongTypes(v)) {
-      return v;
+  private Object handleWithConversion(
+          VirtualFrame frame, Object v, ApplicationNode convertNode
+  ) throws PanicException {
+    if (convertNode == null) {
+      if (findAmongTypes(v)) {
+        return v;
+      }
+      throw panicAtTheEnd(v);
     } else {
-      var ctx = EnsoContext.get(this);
-      var err = ctx.getBuiltins().error().makeTypeError(expectedTypeMessage(), v, name);
-      throw new PanicException(err, this);
+      var converted = convertNode.executeGeneric(frame);
+      return converted;
     }
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  private Object doWithConversionUncachedBoundary(MaterializedFrame frame, Object v, Type type) {
+    var convertNode = findConversionNode(type);
+    return handleWithConversion(frame, v, convertNode);
+  }
+
+  private PanicException panicAtTheEnd(Object v) {
+    var ctx = EnsoContext.get(this);
+    var err = ctx.getBuiltins().error().makeTypeError(expectedTypeMessage(), v, name);
+    throw new PanicException(err, this);
   }
 
   private String expectedTypeMessage() {
     if (expectedTypeMessage != null) {
-        return expectedTypeMessage;
+      return expectedTypeMessage;
     }
     CompilerDirectives.transferToInterpreterAndInvalidate();
     expectedTypeMessage = expectedTypes.length == 1 ?
