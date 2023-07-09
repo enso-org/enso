@@ -193,6 +193,10 @@
   in the text. This is fixed now.
 - [Added prototype AI Searcher that can be used to create new nodes from  
   natural language input][7146]
+- [Allow visualization resizing][7164]. Now the user can adjust the
+  visualization size by dragging its right and bottom borders. Visualization
+  width also follows the node's width, and visualizations are aligned to the
+  left side of the node.
 
 [5910]: https://github.com/enso-org/enso/pull/5910
 [6279]: https://github.com/enso-org/enso/pull/6279
@@ -211,6 +215,7 @@
 [7028]: https://github.com/enso-org/enso/pull/7028
 [7014]: https://github.com/enso-org/enso/pull/7014
 [7146]: https://github.com/enso-org/enso/pull/7146
+[7164]: https://github.com/enso-org/enso/pull/7164
 
 #### EnsoGL (rendering engine)
 
