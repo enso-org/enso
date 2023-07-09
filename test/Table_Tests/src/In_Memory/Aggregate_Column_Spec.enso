@@ -123,7 +123,7 @@ spec = Test.group "Aggregate Columns" <|
         test_aggregator empty_table (Last 0 test_name) test_name Nothing
 
     Test.specify "should be able to concatenate a set of values excluding missing" <|
-        test_aggregator simple_table (Concatenate -1 Nothing ',' '[' ']' '"') "Concatenate text" '[A,"",,"B,C",]'
+        test_aggregator simple_table (Concatenate -1 "" ',' '[' ']' '"') "Concatenate text" '[A,"",,"B,C",]'
         test_aggregator simple_table (Concatenate -1 test_name) test_name 'AB,C'
         test_aggregator simple_table (Concatenate "text" test_name ',') test_name 'A,,,B,C,'
         # TODO [RW] Re-enable this once #6281 is implemented.
