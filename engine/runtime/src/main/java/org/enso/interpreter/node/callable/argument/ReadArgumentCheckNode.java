@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.callable.argument;
 
+import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -21,12 +22,15 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
+import org.graalvm.collections.Pair;
 
 public abstract class ReadArgumentCheckNode extends Node {
   private final String name;
   @Child IsValueOfTypeNode checkType;
   @CompilerDirectives.CompilationFinal(dimensions = 1)
   private final Type[] expectedTypes;
+  @CompilerDirectives.CompilationFinal
+  private String expectedTypeMessage;
 
   ReadArgumentCheckNode(String name, Type[] expectedTypes) {
     this.name = name;
@@ -72,24 +76,35 @@ public abstract class ReadArgumentCheckNode extends Node {
     throw new IllegalArgumentException();
   }
 
-  ApplicationNode findConversionNode(Type from) {
+  @ExplodeLoop
+  Pair<Function,Type> findConversion(Type from) {
     var ctx = EnsoContext.get(this);
 
     if (getRootNode() instanceof EnsoRootNode root) {
       var convert = UnresolvedConversion.build(root.getModuleScope());
       for (Type into : expectedTypes) {
         var conv = convert.resolveFor(ctx, into, from);
-        if (conv != null && getParent() instanceof ReadArgumentNode ran) {
-          var convNode = LiteralNode.build(conv);
-          var intoNode = LiteralNode.build(into);
-          var valueNode = ran.plainRead();
-          var args = new CallArgument[]{
-            new CallArgument(null, intoNode),
-            new CallArgument(null, valueNode)
-          };
-          return ApplicationNode.build(convNode, args, DefaultsExecutionMode.EXECUTE);
+        if (conv != null) {
+          return Pair.create(conv, into);
         }
       }
+    }
+    return null;
+  }
+
+  ApplicationNode findConversionNode(Type from) {
+    var convAndType = findConversion(from);
+
+    if (convAndType != null && getParent() instanceof ReadArgumentNode ran) {
+      CompilerAsserts.neverPartOfCompilation();
+      var convNode = LiteralNode.build(convAndType.getLeft());
+      var intoNode = LiteralNode.build(convAndType.getRight());
+      var valueNode = ran.plainRead();
+      var args = new CallArgument[]{
+        new CallArgument(null, intoNode),
+        new CallArgument(null, valueNode)
+      };
+      return ApplicationNode.build(convNode, args, DefaultsExecutionMode.EXECUTE);
     }
     return null;
   }
@@ -121,7 +136,7 @@ public abstract class ReadArgumentCheckNode extends Node {
 
   boolean noConversionNode(TypeOfNode typeOfNode, Object value) {
     var type = findType(typeOfNode, value);
-    return type == null || findConversionNode(type) == null;
+    return type == null || findConversion(type) == null;
   }
 
   @Specialization(
@@ -135,12 +150,21 @@ public abstract class ReadArgumentCheckNode extends Node {
   ) {
     if (findAmongTypes(v)) {
       return v;
+    } else {
+      var ctx = EnsoContext.get(this);
+      var err = ctx.getBuiltins().error().makeTypeError(expectedTypeMessage(), v, name);
+      throw new PanicException(err, this);
     }
-    var ctx = EnsoContext.get(this);
-    var expecting = expectedTypes.length == 1 ?
-      expectedTypes[0] :
-      Arrays.stream(expectedTypes).map(Type::toString).collect(Collectors.joining(" | "));
-    var err = ctx.getBuiltins().error().makeTypeError(expecting, v, name);
-    throw new PanicException(err, this);
+  }
+
+  private String expectedTypeMessage() {
+    if (expectedTypeMessage != null) {
+        return expectedTypeMessage;
+    }
+    CompilerDirectives.transferToInterpreterAndInvalidate();
+    expectedTypeMessage = expectedTypes.length == 1 ?
+            expectedTypes[0].toString() :
+            Arrays.stream(expectedTypes).map(Type::toString).collect(Collectors.joining(" | "));
+    return expectedTypeMessage;
   }
 }

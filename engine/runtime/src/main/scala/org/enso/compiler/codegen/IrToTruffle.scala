@@ -1582,7 +1582,7 @@ class IrToTruffle(
       literal match {
         case lit @ IR.Literal.Number(_, _, location, _, _) =>
           val node = lit.numericValue match {
-            case l: Long       => LiteralNode.build(l.asInstanceOf[Any])
+            case l: Long       => LiteralNode.build(l)
             case d: Double     => LiteralNode.build(d)
             case b: BigInteger => LiteralNode.build(b)
           }

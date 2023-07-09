@@ -13,7 +13,7 @@ import org.enso.interpreter.runtime.data.Type;
  * none is given and the default should be used instead.
  */
 @NodeInfo(shortName = "ReadArg", description = "Read function argument.")
-public class ReadArgumentNode extends ExpressionNode {
+public final class ReadArgumentNode extends ExpressionNode {
   private final int index;
   @Child ExpressionNode defaultValue;
   @Child ReadArgumentCheckNode checkType;
@@ -92,4 +92,9 @@ public class ReadArgumentNode extends ExpressionNode {
    * encounters a null value at the argument position, then it will instead execute the default
    * value.
    */
+
+  @Override
+  public boolean isInstrumentable() {
+    return false;
+  }
 }
