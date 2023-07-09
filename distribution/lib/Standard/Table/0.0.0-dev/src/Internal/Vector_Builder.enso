@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-from project.Internal.Vector_Builder.Vector_Builder import Leaf, Append
+from project.Internal.Vector_Builder.Vector_Builder import Append, Leaf
 
 ## PRIVATE
 

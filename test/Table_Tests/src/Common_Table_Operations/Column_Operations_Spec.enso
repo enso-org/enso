@@ -273,6 +273,27 @@ spec setup =
             actual.at "col1" . to_vector . should_equal [1000, 200, 1000, 400, 500, 1000]
             actual.column_names . should_equal ["col0", "col_between", "col1", "def"]
 
+    Test.group prefix+"Table.replace" <|
+        if setup.is_database.not then
+            Test.specify "should allow to replace values in a table" <|
+                t = table_builder [["col0", ["abc", "def", "ghi"]], ["col1", ["nabc", "ndef", "asdf"]]]
+                actual = t.replace ["col0", "col1"] "ab" "xy"
+                actual.at "col0" . to_vector . should_equal ["xyc", "def", "ghi"]
+                actual.at "col1" . to_vector . should_equal ["nxyc", "ndef", "asdf"]
+
+            Test.specify "should allow to replace values in a table with a regex" <|
+                t = table_builder [["col0", ["abc", "def", "ghi"]], ["col1", ["nabc", "ndef", "asdf"]]]
+                actual = t.replace ["col0", "col1"] "[bdi]".to_regex "xy"
+                actual.at "col0" . to_vector . should_equal ["axyc", "xyef", "ghxy"]
+                actual.at "col1" . to_vector . should_equal ["naxyc", "nxyef", "asxyf"]
+
+            Test.specify "should allow to replace values in a table with a column" <|
+                t = table_builder [["col0", ["abc", "def", "ghi"]], ["col1", ["nabc", "ndef", "asdf"]], ["col2", ["xy", "yx", "zz"]]]
+                actual = t.replace ["col0", "col1"] "[bdi]".to_regex (t.at "col2")
+                actual.at "col0" . to_vector . should_equal ["axyc", "yxef", "ghzz"]
+                actual.at "col1" . to_vector . should_equal ["naxyc", "nyxef", "aszzf"]
+                actual.at "col2" . to_vector . should_equal ["xy", "yx", "zz"]
+
     Test.group prefix+"Column Comparisons" <|
         Test.specify "should allow to compare numbers" <|
             x.value_type . is_integer . should_be_true
@@ -1019,9 +1040,9 @@ spec setup =
                 a.replace b "#" Case_Sensitivity.Insensitive only_first=True . to_vector . should_equal ["#lpha", "Brav#", "Ch#rlie", "D#lta", "Ech#", "F#xtrot"]
 
             Test.specify "should allow regex based replacing" <|
-                a.replace "[aeiou]" "#" use_regex=True . to_vector . should_equal ["Alph#", "Br#v#", "Ch#rl##", "D#lt#", "Ech#", "F#xtr#t"]
-                a.replace "[aeiou]" "#" use_regex=True . to_vector . should_equal ["Alph#", "Br#v#", "Ch#rl##", "D#lt#", "Ech#", "F#xtr#t"]
-                a.replace "([aeiou])(.*?)[aeiou]" "$1$2$1" use_regex=True . to_vector . should_equal ["Alpha", "Brava", "Charlae", "Delte", "Echo", "Foxtrot"]
+                a.replace "[aeiou]".to_regex "#" . to_vector . should_equal ["Alph#", "Br#v#", "Ch#rl##", "D#lt#", "Ech#", "F#xtr#t"]
+                a.replace "[aeiou]".to_regex "#" . to_vector . should_equal ["Alph#", "Br#v#", "Ch#rl##", "D#lt#", "Ech#", "F#xtr#t"]
+                a.replace "([aeiou])(.*?)[aeiou]".to_regex "$1$2$1" . to_vector . should_equal ["Alpha", "Brava", "Charlae", "Delte", "Echo", "Foxtrot"]
 
             Test.specify "should only allow replace on Text columns" <|
                 c.replace "a" "#" . should_fail_with Invalid_Value_Type
@@ -1032,9 +1053,7 @@ spec setup =
 
             Test.specify "should not replace if Empty term" <|
                 a.replace '' "#" . to_vector . should_equal ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot"]
-                a.replace '' "#" use_regex=True . to_vector . should_equal ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot"]
                 a.replace d "#" . to_vector . should_equal ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot"]
-                a.replace d "#" use_regex=True . to_vector . should_equal ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot"]
 
             Test.specify "should infer correct return type" <|
                 c = table_builder [["texts", ["foo", "bar"]]] . at "texts"

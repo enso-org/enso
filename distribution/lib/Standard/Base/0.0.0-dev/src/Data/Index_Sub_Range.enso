@@ -3,24 +3,22 @@ import project.Data.Numbers.Integer
 import project.Data.Range.Range
 import project.Data.Text.Text
 import project.Data.Vector.Vector
+import project.Error.Error
 import project.Errors.Common.Index_Out_Of_Bounds
 import project.Errors.Common.Type_Error
-import project.Error.Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Function.Function
 import project.Math
 import project.Meta
+import project.Metadata.Display
+import project.Metadata.Widget
 import project.Panic.Panic
 import project.Random
 import project.Runtime.Ref.Ref
-
-from project.Data.Boolean import Boolean, True, False
+from project.Data.Boolean import Boolean, False, True
 from project.Data.Range.Extensions import all
-
-import project.Metadata.Widget
-from project.Metadata.Widget import Single_Choice
 from project.Metadata.Choice import Option
-import project.Metadata.Display
+from project.Metadata.Widget import Single_Choice
 
 type Index_Sub_Range
     ## Select the first `count` items.

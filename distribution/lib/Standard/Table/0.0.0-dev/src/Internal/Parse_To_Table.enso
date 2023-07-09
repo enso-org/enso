@@ -1,13 +1,12 @@
 from Standard.Base import all
+import Standard.Base.Data.Text.Regex.Regex_Syntax_Error
+import Standard.Base.Errors.Common.Type_Error
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import project.Data.Column.Column
 import project.Data.Data_Formatter.Data_Formatter
 import project.Data.Table.Table
 import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
-import Standard.Base.Data.Text.Regex.Regex_Syntax_Error
-import Standard.Base.Errors.Common.Type_Error
-import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
-
 from project import Value_Type
 from project.Errors import Duplicate_Output_Column_Names
 

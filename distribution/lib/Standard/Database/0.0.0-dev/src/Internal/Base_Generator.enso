@@ -1,16 +1,15 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
-import project.Data.SQL.Builder
 import project.Data.Column_Constraint.Column_Constraint
+import project.Data.SQL.Builder
 import project.Internal.IR.Context.Context
-import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.From_Spec.From_Spec
-import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
-import project.Internal.IR.Order_Descriptor.Order_Descriptor
 import project.Internal.IR.Nulls_Order.Nulls_Order
+import project.Internal.IR.Order_Descriptor.Order_Descriptor
 import project.Internal.IR.Query.Query
-
+import project.Internal.IR.SQL_Expression.SQL_Expression
+import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 from project.Errors import Unsupported_Database_Operation
 
 type Internal_Dialect

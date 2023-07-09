@@ -191,6 +191,8 @@
 - [Fixed cursor position when ctrl-clicking the node][7014]. Sometimes
   ctrl-clicking to edit the node placed the mouse cursor in the wrong position
   in the text. This is fixed now.
+- [Added prototype AI Searcher that can be used to create new nodes from  
+  natural language input][7146]
 - [Allow visualization resizing][7164]. Now the user can adjust the
   visualization size by dragging its right and bottom borders. Visualization
   width also follows the node's width, and visualizations are aligned to the
@@ -212,6 +214,7 @@
 [6893]: https://github.com/enso-org/enso/pull/6893
 [7028]: https://github.com/enso-org/enso/pull/7028
 [7014]: https://github.com/enso-org/enso/pull/7014
+[7146]: https://github.com/enso-org/enso/pull/7146
 [7164]: https://github.com/enso-org/enso/pull/7164
 
 #### EnsoGL (rendering engine)
@@ -510,6 +513,9 @@
 - [`Column.fill_nothing` and `.fill_empty` no longer rename the column. Added
   `Table.fill_nothing` and `.fill_empty`.][7166]
 - [Implemented `add_row_number` for Database tables.][7174]
+- [Added `replace` to in-memory table. Changed replace for `Text`, in-memory
+  `Column`, and in-memory `Table` to take a `Regex` in addition to a `Text`.]
+  [7223]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -736,6 +742,7 @@
 [7072]: https://github.com/enso-org/enso/pull/7072
 [7166]: https://github.com/enso-org/enso/pull/7166
 [7174]: https://github.com/enso-org/enso/pull/7174
+[7223]: https://github.com/enso-org/enso/pull/7223
 
 #### Enso Compiler
 

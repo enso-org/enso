@@ -1,16 +1,15 @@
 from Standard.Base import all
-import Standard.Base.Errors.Common.Forbidden_Operation
 import Standard.Base.Errors.Common.Dry_Run_Operation
+import Standard.Base.Errors.Common.Forbidden_Operation
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
+import Standard.Base.Metadata.Display
+import Standard.Base.Metadata.Widget
 import Standard.Base.Runtime.Context as Execution_Context
 import Standard.Base.Runtime.Managed_Resource.Managed_Resource
 import Standard.Base.Runtime.Ref.Ref
-
-import Standard.Base.Metadata.Widget
-from Standard.Base.Metadata.Widget import Single_Choice, Vector_Editor
 from Standard.Base.Metadata.Choice import Option
-import Standard.Base.Metadata.Display
+from Standard.Base.Metadata.Widget import Single_Choice, Vector_Editor
 
 import Standard.Table.Data.Table.Table as Materialized_Table
 import Standard.Table.Data.Type.Value_Type.Value_Type
@@ -20,18 +19,17 @@ import project.Data.Dialect.Dialect
 import project.Data.SQL_Query.SQL_Query
 import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
-import project.Data.Table.Table as Database_Table
 import project.Data.Table as Database_Table_Module
+import project.Data.Table.Table as Database_Table
+import project.Internal.Hidden_Table_Registry
 import project.Internal.IR.Context.Context
-import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.Query.Query
+import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.Internal.Statement_Setter.Statement_Setter
-import project.Internal.Hidden_Table_Registry
-
+from project.Errors import SQL_Error, Table_Already_Exists, Table_Not_Found
+from project.Internal.JDBC_Connection import handle_sql_errors, JDBC_Connection
 from project.Internal.Result_Set import read_column, result_set_to_table
-from project.Internal.JDBC_Connection import JDBC_Connection, handle_sql_errors
-from project.Errors import SQL_Error, Table_Not_Found, Table_Already_Exists
 from project.Internal.Upload_Table import create_table_implementation, first_column_name_in_structure
 
 polyglot java import java.lang.UnsupportedOperationException
