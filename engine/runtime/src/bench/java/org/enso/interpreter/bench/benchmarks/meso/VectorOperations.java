@@ -127,6 +127,11 @@ public class VectorOperations {
     benchmark(blackhole);
   }
 
+  @Benchmark
+  public void sumStatistic(Blackhole blackhole) {
+    benchmark(blackhole);
+  }
+
   protected final void benchmark(Blackhole blackhole) {
     var result = code.execute(0);
     blackhole.consume(result);

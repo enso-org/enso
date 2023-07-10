@@ -31,6 +31,7 @@ bench group_builder =
     bench_measure (random_vec + [1]) "Append Single" iter_size num_iterations
     bench_measure (random_vec + random_vec_2) "Append Large" iter_size num_iterations
     bench_measure (random_vec.reduce (+)) "Sum" iter_size num_iterations
+    bench_measure (random_vec.compute Statistic.Sum) "Sum Statistic" iter_size num_iterations
     bench_measure ((random_vec.drop (First 20)).reduce (+)) "Drop First 20 and Sum" iter_size num_iterations
     bench_measure ((random_vec.drop (Last 20)).reduce (+)) "Drop Last 20 and Sum" iter_size num_iterations
     bench_measure (random_vec.filter (x -> x % 3 == 1)) "Filter" iter_size num_iterations
