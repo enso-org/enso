@@ -1,9 +1,9 @@
 from Standard.Base import all
 
-import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.From_Spec.From_Spec
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.Order_Descriptor.Order_Descriptor
+import project.Internal.IR.SQL_Expression.SQL_Expression
 
 ## PRIVATE
 

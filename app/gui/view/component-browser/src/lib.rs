@@ -71,7 +71,7 @@ impl component::Model for Model {
         let scene = &app.display.default_scene;
         shapes_order_dependencies! {
             scene => {
-                component_list_panel::background -> documentation::overlay;
+                component_list_panel::background -> display::shape::compound::rectangle;
             }
         }
 

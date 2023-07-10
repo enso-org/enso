@@ -1,20 +1,20 @@
 from Standard.Base import all
-import Standard.Base.Runtime.Context
 import Standard.Base.Errors.Common.Forbidden_Operation
 import Standard.Base.Errors.File_Error.File_Error
+import Standard.Base.Runtime.Context
 
-import project.Read_Flag.Read_Flag
-import project.Write_Flag.Write_Flag
 import project.Data.Histogram.Histogram
 import project.Data.Matrix.Matrix
 import project.Data.Matrix_Error.Matrix_Error
+import project.Read_Flag.Read_Flag
+import project.Write_Flag.Write_Flag
 
 polyglot java import java.lang.Exception as JException
+polyglot java import org.enso.image.Codecs as Java_Codecs
 polyglot java import org.enso.image.data.Histogram as Java_Histogram
 polyglot java import org.enso.image.data.Image as Java_Image
-polyglot java import org.enso.image.Codecs as Java_Codecs
-polyglot java import org.opencv.core.MatOfInt
 polyglot java import org.opencv.core.Mat
+polyglot java import org.opencv.core.MatOfInt
 polyglot java import org.opencv.core.Scalar
 
 ## UNSTABLE

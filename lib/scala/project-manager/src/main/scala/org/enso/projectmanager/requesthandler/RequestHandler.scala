@@ -129,7 +129,7 @@ abstract class RequestHandler[
           s"Pending $method response. Timeout retries left: {}.",
           retriesLeft
         )
-        responseStage(id, replyTo, cancellable)
+        context.become(responseStage(id, replyTo, cancellable))
       }
 
     case Left(failure: FailureType) =>

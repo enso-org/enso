@@ -1,10 +1,9 @@
 import project.Any.Any
-import project.Data.Ordering.Ordering
 import project.Data.Ordering.Comparable
+import project.Data.Ordering.Ordering
 import project.Nothing.Nothing
-
-from project.Data.Boolean.Boolean import True, False
-from project.Data.Boolean.Boolean export True, False
+from project.Data.Boolean.Boolean import False, True
+from project.Data.Boolean.Boolean export False, True
 
 ## A type with only two possible values.
 

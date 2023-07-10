@@ -6,7 +6,7 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Context
 
 import Standard.Table.Data.Table.Table as In_Memory_Table
-from Standard.Table import Aggregate_Column, Join_Kind, Value_Type, Column_Selector
+from Standard.Table import Aggregate_Column, Column_Selector, Join_Kind, Value_Type
 from Standard.Table.Errors import all
 
 import project.Connection.Connection.Connection

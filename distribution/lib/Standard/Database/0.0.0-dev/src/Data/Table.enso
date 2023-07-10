@@ -7,11 +7,9 @@ import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Errors.Unimplemented.Unimplemented
-
 from Standard.Base.Metadata import make_single_choice
 from Standard.Base.Widget_Helpers import make_delimiter_selector
 
-from Standard.Table import Aggregate_Column, Data_Formatter, Column_Selector, Sort_Column, Match_Columns, Position, Set_Mode, Auto, Value_Type
 import Standard.Table.Data.Expression.Expression
 import Standard.Table.Data.Expression.Expression_Error
 import Standard.Table.Data.Join_Condition.Join_Condition
@@ -28,11 +26,13 @@ import Standard.Table.Internal.Table_Helpers
 import Standard.Table.Internal.Table_Helpers.Table_Column_Helper
 import Standard.Table.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 import Standard.Table.Internal.Widget_Helpers
+from Standard.Table import Aggregate_Column, Auto, Column_Selector, Data_Formatter, Match_Columns, Position, Set_Mode, Sort_Column, Value_Type
 from Standard.Table.Data.Column import get_item_string, normalize_string_for_display
 from Standard.Table.Data.Table import print_table
-from Standard.Table.Internal.Filter_Condition_Helpers import make_filter_column
 from Standard.Table.Errors import all
+from Standard.Table.Internal.Filter_Condition_Helpers import make_filter_column
 
+import project.Connection.Connection.Connection
 import project.Data.Column.Column
 import project.Data.SQL_Query.SQL_Query
 import project.Data.SQL_Statement.SQL_Statement
@@ -49,10 +49,8 @@ import project.Internal.IR.Query.Query
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
+from project.Errors import Integrity_Error, Table_Not_Found, Unsupported_Database_Operation, Unsupported_Name
 
-from project.Errors import Unsupported_Database_Operation, Integrity_Error, Unsupported_Name, Table_Not_Found
-
-import project.Connection.Connection.Connection
 polyglot java import java.sql.JDBCType
 polyglot java import java.util.UUID
 
@@ -1514,7 +1512,7 @@ type Table
     @name_column Widget_Helpers.make_column_name_selector
     @values (Widget_Helpers.make_aggregate_column_selector include_group_by=False)
     cross_tab : Vector (Integer | Text | Column_Selector | Aggregate_Column) | Text | Integer -> (Text | Integer) -> Aggregate_Column | Vector Aggregate_Column -> Problem_Behavior -> Table ! Missing_Input_Columns | Invalid_Aggregate_Column | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings
-    cross_tab self group_by=[] name_column=self.column_names.first values=Aggregate_Column.Count (on_problems=Report_Warning) =
+    cross_tab self group_by name_column values=Aggregate_Column.Count (on_problems=Report_Warning) =
         ## Avoid unused arguments warning. We cannot rename arguments to `_`,
            because we need to keep the API consistent with the in-memory table.
         _ = [group_by, name_column, values, on_problems]
@@ -1976,6 +1974,84 @@ type Table
     write self path format=Auto_Detect on_existing_file=Existing_File_Behavior.Backup match_columns=Match_Columns.By_Name on_problems=Report_Warning =
         # TODO This should ideally be done in a streaming manner, or at least respect the row limits.
         self.read.write path format on_existing_file match_columns on_problems
+
+    ## ALIAS Fill Missing, if_nothing
+
+       Returns a new table where missing values in the specified columns have
+       been replaced with the provided default(s).
+
+       Arguments:
+       - columns: The column(s) to fill missing values of.
+       - default: The value to replace missing values with. If this argument
+         is a column, the value from `default` at the corresponding position
+         will be used.
+
+       > Example
+         Fill missing values in two columns with the value 20.5.
+
+             fill_nothing = table.fill_nothing ["col0", "col1"] 20.5
+    @columns Widget_Helpers.make_column_name_vector_selector
+    fill_nothing : Vector (Integer | Text | Column_Selector) | Text | Integer -> Column | Any -> Table
+    fill_nothing self columns default =
+        transformer col = col.fill_nothing default
+        Table_Helpers.replace_columns_with_transformed_columns self columns transformer
+
+    ## ALIAS Fill Empty, if_empty
+
+       Returns a new column where empty Text values have been replaced with the
+       provided default(s).
+
+       Arguments:
+       - columns: The column(s) to fill empty values.
+       - default: The value to replace empty values with. If this argument
+         is a column, the value from `default` at the corresponding position
+         will be used.
+
+       > Example
+         Fill empty values in two columns with the value "hello".
+
+             fill_empty = table.fill_empty ["col0", "col1"] "hello"
+    @columns Widget_Helpers.make_column_name_vector_selector
+    fill_empty : Vector (Integer | Text | Column_Selector) | Text | Integer -> Column | Any -> Table
+    fill_empty self columns default =
+        transformer col = col.fill_empty default
+        Table_Helpers.replace_columns_with_transformed_columns self columns transformer
+
+    ## Replaces the first, or all occurrences of `term` with `new_text` in each
+       row of the specified column. If `term` is empty, the function returns the
+       table unchanged.
+
+       This method follows the exact replacement semantics of the
+       `Text.replace` method.
+
+       Arguments:
+       - columns: The column(s) to replace values on.
+       - term: The term to find. Can be `Text`, `Regex`, or a `Column` of
+         strings.
+       - replacement: The text to replace matches with.
+       - case_sensitivity: Specifies if the text values should be compared case
+         sensitively.
+       - only_first: If True, only replace the first match.
+
+       > Example
+         Replace dashes with underscores.
+
+             table.replace "-" "_"
+
+       > Example
+         Remove leading and trailing spaces from cells.
+
+             column.replace "^\s*(.*?)\s*$".to_regex "$1"
+
+       > Example
+         Replace texts in quotes with parentheses.
+
+             column.replace '"(.*?)"'.to_regex '($1)'
+    @columns Widget_Helpers.make_column_name_vector_selector
+    replace : Vector (Integer | Text | Column_Selector) | Text | Integer -> Text | Column | Regex -> Text | Column -> Case_Sensitivity -> Boolean -> Column
+    replace self columns term="" new_text="" case_sensitivity=Case_Sensitivity.Sensitive only_first=False =
+        _ = [columns, term, new_text, case_sensitivity, only_first]
+        Error.throw (Unsupported_Database_Operation.Error "Text replace is currently not supported in the database backend.")
 
 ## PRIVATE
 
