@@ -56,6 +56,7 @@ polyglot java import org.enso.table.data.table.join.Between as Java_Join_Between
 polyglot java import org.enso.table.data.table.join.Equals as Java_Join_Equals
 polyglot java import org.enso.table.data.table.join.EqualsIgnoreCase as Java_Join_Equals_Ignore_Case
 polyglot java import org.enso.table.data.table.Table as Java_Table
+polyglot java import org.enso.table.error.TooManyColumnsException
 polyglot java import org.enso.table.operations.OrderBuilder
 
 ## Represents a column-oriented table data structure.
@@ -1849,7 +1850,7 @@ type Table
     @name_column Widget_Helpers.make_column_name_selector
     @values (Widget_Helpers.make_aggregate_column_selector include_group_by=False)
     cross_tab : Vector (Integer | Text | Column_Selector | Aggregate_Column) | Text | Integer -> (Text | Integer) -> Aggregate_Column | Vector Aggregate_Column -> Problem_Behavior -> Table ! Missing_Input_Columns | Invalid_Aggregate_Column | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings
-    cross_tab self group_by=[] name_column=self.column_names.first values=Aggregate_Column.Count (on_problems=Report_Warning) =
+    cross_tab self group_by name_column values=Aggregate_Column.Count (on_problems=Report_Warning) =
         columns_helper = self.columns_helper
         problem_builder = Problem_Builder.new error_on_missing_columns=True
 
@@ -1890,7 +1891,7 @@ type Table
                     c -> Aggregate_Column_Helper.default_aggregate_column_name c include_column_name
 
             data_columns = validated_values.map c->
-                col_name = c.new_name.if_nothing <|
+                col_name = if c.new_name != "" then c.new_name else
                     Aggregate_Column_Helper.default_aggregate_column_name c
                 Aggregate_Column_Helper.java_aggregator col_name c
 
@@ -1900,8 +1901,13 @@ type Table
                     index.makeTable (group_by + data_columns)
                 False ->
                     aggregate_names = validated_values.map c->
-                        c.new_name.if_nothing (name_mapper c)
-                    index.makeCrossTabTable java_key_columns matched_name.first.java_column data_columns aggregate_names
+                        if c.new_name != "" then c.new_name else (name_mapper c)
+
+                    too_many_columns caught_panic =
+                        inner_panic = caught_panic.payload
+                        Error.throw (Column_Count_Exceeded.Error inner_panic.getMaximumColumnCount inner_panic.getColumnCount)
+                    Panic.catch TooManyColumnsException handler=too_many_columns <|
+                        index.makeCrossTabTable java_key_columns matched_name.first.java_column data_columns aggregate_names
 
             on_problems.attach_problems_after (Table.Value result) <|
                 problems = result.getProblems
@@ -2025,8 +2031,7 @@ type Table
        been replaced with the provided default(s).
 
        Arguments:
-       - selectors: Single instance or a Vector of names, indexes or
-         `Column_Selector`s.
+       - columns: The column(s) to fill Nothing values.
        - default: The value to replace missing values with. If this argument
          is a column, the value from `default` at the corresponding position
          will be used.
@@ -2035,10 +2040,11 @@ type Table
          Fill missing values in two columns with the value 20.5.
 
              fill_nothing = table.fill_nothing ["col0", "col1"] 20.5
-    fill_nothing : Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector) -> Column | Any -> Table
-    fill_nothing self selectors default =
+    @columns Widget_Helpers.make_column_name_vector_selector
+    fill_nothing : Vector (Integer | Text | Column_Selector) | Text | Integer -> Column | Any -> Table
+    fill_nothing self columns default =
         transformer col = col.fill_nothing default
-        Table_Helpers.replace_columns_with_transformed_columns self selectors transformer
+        Table_Helpers.replace_columns_with_transformed_columns self columns transformer
 
     ## ALIAS Fill Empty, if_empty
 
@@ -2046,8 +2052,7 @@ type Table
        provided default(s).
 
        Arguments:
-       - selectors: Single instance or a Vector of names, indexes or
-         `Column_Selector`s.
+       - columns: The column(s) to fill empty values.
        - default: The value to replace empty values with. If this argument
          is a column, the value from `default` at the corresponding position
          will be used.
@@ -2056,10 +2061,11 @@ type Table
          Fill empty values in two columns with the value "hello".
 
              fill_empty = table.fill_empty ["col0", "col1"] "hello"
-    fill_empty : Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector) -> Column | Any -> Table
-    fill_empty self selectors default =
+    @columns Widget_Helpers.make_column_name_vector_selector
+    fill_empty : Vector (Integer | Text | Column_Selector) | Text | Integer -> Column | Any -> Table
+    fill_empty self columns default =
         transformer col = col.fill_empty default
-        Table_Helpers.replace_columns_with_transformed_columns self selectors transformer
+        Table_Helpers.replace_columns_with_transformed_columns self columns transformer
 
     ## Replaces the first, or all occurrences of `term` with `new_text` in each
        row of the specified column. If `term` is empty, the function returns the
@@ -2069,8 +2075,7 @@ type Table
        `Text.replace` method.
 
        Arguments:
-       - selectors: Single instance or a Vector of names, indexes or
-         `Column_Selector`s.
+       - columns: The column(s) to replace values on.
        - term: The term to find. Can be `Text`, `Regex`, or a `Column` of
          strings.
        - replacement: The text to replace matches with.
@@ -2092,10 +2097,11 @@ type Table
          Replace texts in quotes with parentheses.
 
              column.replace '"(.*?)"'.to_regex '($1)'
-    replace : Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector) -> Text | Column | Regex -> Text | Column -> Case_Sensitivity -> Boolean -> Column
-    replace self selectors term="" new_text="" case_sensitivity=Case_Sensitivity.Sensitive only_first=False =
+    @columns Widget_Helpers.make_column_name_vector_selector
+    replace : Vector (Integer | Text | Column_Selector) | Text | Integer -> Text | Column | Regex -> Text | Column -> Case_Sensitivity -> Boolean -> Column
+    replace self columns term="" new_text="" case_sensitivity=Case_Sensitivity.Sensitive only_first=False =
         transformer col = col.replace term new_text case_sensitivity only_first
-        Table_Helpers.replace_columns_with_transformed_columns self selectors transformer
+        Table_Helpers.replace_columns_with_transformed_columns self columns transformer
 
 ## PRIVATE
 

@@ -79,6 +79,11 @@ pub struct NoPatternOnNode {
 
 #[allow(missing_docs)]
 #[derive(Clone, Copy, Debug, Fail)]
+#[fail(display = "Source node has an unsupported pattern, so it cannot form connections.")]
+pub struct UnsupportedPatternOnNode;
+
+#[allow(missing_docs)]
+#[derive(Clone, Copy, Debug, Fail)]
 #[fail(display = "AST node is missing ID.")]
 pub struct MissingAstId;
 
@@ -126,6 +131,22 @@ impl Node {
     /// Check if node has a specific position set in metadata.
     pub fn has_position(&self) -> bool {
         self.metadata.as_ref().map_or(false, |m| m.position.is_some())
+    }
+
+    /// Get the node's variable name, if it has one.
+    pub fn variable_name(&self) -> Result<Option<&str>, UnsupportedPatternOnNode> {
+        // TODO [mwu]
+        //   Here we just require that the whole node's pattern is a single var, like
+        //   `var = expr`. This prevents using pattern subpart (like `x` in
+        //   `Point x y = get_pos`), or basically any node that doesn't stick to `var = expr`
+        //   form. If we wanted to support pattern subparts, the engine would need to send us
+        //   value updates for matched pattern pieces. See the issue:
+        //   https://github.com/enso-org/enso/issues/1038
+        if let Some(pattern) = self.info.pattern() {
+            ast::identifier::as_var(pattern).map(Some).ok_or(UnsupportedPatternOnNode)
+        } else {
+            Ok(None)
+        }
     }
 }
 

@@ -260,7 +260,7 @@ run_tests prefix connection upload =
             aggregates = [Sum "price" "sum price", Sum "quantity" "sum quantity", Average "price" "avg price"]
             ## TODO can check the datatypes
 
-            t1 = determinize_by "name" (t.aggregate ([Group_By "name" Nothing] + aggregates) . read)
+            t1 = determinize_by "name" (t.aggregate ([Group_By "name"] + aggregates) . read)
             t1.at  "name" . to_vector . should_equal ["bar", "baz", "foo", "quux", "zzzz"]
             t1.at  "sum price" . to_vector . should_equal [100.5, 6.7, 1, Nothing, 2]
             t1.at  "sum quantity" . to_vector . should_equal [80, 40, 120, 70, 2]
@@ -270,6 +270,7 @@ run_tests prefix connection upload =
             t2.at  "sum price" . to_vector . should_equal [110.2]
             t2.at  "sum quantity" . to_vector . should_equal [312]
             t2.at  "avg price" . to_vector . should_equal [(110.2 / 11)]
+
     Test.group prefix+"Table.filter" <|
         Test.specify "report error when trying to filter by a custom predicate" <|
             t1.filter "a" (x -> x % 2 == 0) . should_fail_with Unsupported_Database_Operation
