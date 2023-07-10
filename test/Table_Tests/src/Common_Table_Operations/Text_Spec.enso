@@ -16,9 +16,10 @@ spec setup =
             col = table_builder [["x", ["asdfSd", "zsdcSD", "sdsd"]]].at "x"
 
             col . replace "sd" "qqq" . to_vector . should_equal ["aqqqfqqq", "zqqqcSD", "qqqqqq"]
-            col . replace "sd" "qqq" case_sensitivity=Case_Sensitive.Sensitive . to_vector . should_equal ["aqqqfSd", "zqqqcSD", "qqqqqq"]
-            col . replace "sd" "qqq" case_sensitivity=Case_Sensitive.Insensitive . to_vector . should_equal ["aqqqfqqq", "zqqqcqqq", "qqqqqq"]
+            ##
+                col . replace "sd" "qqq" case_sensitivity=Case_Sensitive.Sensitive . to_vector . should_equal ["aqqqfSd", "zqqqcSD", "qqqqqq"]
+                col . replace "sd" "qqq" case_sensitivity=Case_Sensitive.Insensitive . to_vector . should_equal ["aqqqfqqq", "zqqqcqqq", "qqqqqq"]
 
-            col . replace "sd" "qqq" only_first=True . to_vector . should_equal ["aqqqfqqq", "zqqqcSD", "qqqsd"]
-            col . replace "sd" "qqq" case_sensitivity=Case_Sensitive.Sensitive only_first=True . to_vector . should_equal ["aqqqfSd", "zqqqcSD", "qqqsd"]
-            col . replace "sd" "qqq" case_sensitivity=Case_Sensitive.Insensitive only_first=True . to_vector . should_equal ["aqqqfSd", "zqqqcSD", "qqqsd"]
+                col . replace "sd" "qqq" only_first=True . to_vector . should_equal ["aqqqfqqq", "zqqqcSD", "qqqsd"]
+                col . replace "sd" "qqq" case_sensitivity=Case_Sensitive.Sensitive only_first=True . to_vector . should_equal ["aqqqfSd", "zqqqcSD", "qqqsd"]
+                col . replace "sd" "qqq" case_sensitivity=Case_Sensitive.Insensitive only_first=True . to_vector . should_equal ["aqqqfSd", "zqqqcSD", "qqqsd"]

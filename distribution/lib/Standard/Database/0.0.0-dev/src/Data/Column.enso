@@ -1135,9 +1135,10 @@ type Column
              column.replace '"(.*?)"'.to_regex '($1)'
     replace : Text | Column | Regex -> Text | Column -> Case_Sensitivity -> Boolean -> Column
     replace self term="" new_text="" case_sensitivity=Case_Sensitivity.Sensitive only_first=False =
-        _ = [term, new_text, case_sensitivity, only_first]
-        msg = "`Column.replace` is not yet implemented."
-        Error.throw (Unsupported_Database_Operation.Error msg)
+        _ = [case_sensitivity, only_first]
+        Value_Type.expect_text self <|
+            new_name = self.naming_helpers.function_name "replace" [self, term, new_text]
+            self.make_unary_op "REPLACE" new_name
 
     ## Gets the year as a number from the date stored in the column.
 
