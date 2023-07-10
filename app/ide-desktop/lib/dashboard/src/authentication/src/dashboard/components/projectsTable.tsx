@@ -1,4 +1,4 @@
-/** @file Form to create a project. */
+/** @file Table displaying a list of projects. */
 import * as React from 'react'
 import toast from 'react-hot-toast'
 
@@ -484,7 +484,7 @@ function ProjectName(props: InternalProjectNameProps) {
             )
             return
         } catch (error) {
-            const message = `Error renaming project: ${
+            const message = `Unable to rename project: ${
                 errorModule.tryGetMessage(error) ?? 'unknown error.'
             }`
             toast.error(message)
@@ -642,9 +642,9 @@ function ProjectRowContextMenu(props: InternalProjectRowContextMenuProps) {
     )
 }
 
-// =================
+// ==================
 // === ProjectRow ===
-// =================
+// ==================
 
 /** A row in a {@link ProjectsTable}. */
 function ProjectRow(
@@ -685,9 +685,14 @@ function ProjectRow(
                 type: projectListEventModule.ProjectListEventType.delete,
                 projectId: key,
             })
-        } catch {
+        } catch (error) {
             setStatus(presence.Presence.present)
             markItemAsVisible(key)
+            const message = `Unable to delete project: ${
+                errorModule.tryGetMessage(error) ?? 'unknown error.'
+            }`
+            toast.error(message)
+            logger.error(message)
         }
     }
 
@@ -846,17 +851,19 @@ function ProjectsTable(props: ProjectsTableProps) {
     const keysOfHiddenItemsRef = React.useRef(new Set<string>())
 
     const updateShouldForceShowPlaceholder = React.useCallback(() => {
-        setShouldForceShowPlaceholder(keysOfHiddenItemsRef.current.size === visibleItems.length)
-    }, [visibleItems.length])
+        setShouldForceShowPlaceholder(
+            visibleItems.every(item => keysOfHiddenItemsRef.current.has(item.id))
+        )
+    }, [visibleItems])
 
     React.useEffect(updateShouldForceShowPlaceholder, [updateShouldForceShowPlaceholder])
 
     React.useEffect(() => {
         const oldKeys = keysOfHiddenItemsRef.current
         keysOfHiddenItemsRef.current = new Set(
-            visibleItems.map(backendModule.getAssetId).filter(key => oldKeys.has(key))
+            items.map(backendModule.getAssetId).filter(key => oldKeys.has(key))
         )
-    }, [visibleItems])
+    }, [items])
 
     const markItemAsHidden = React.useCallback(
         (key: string) => {
@@ -1049,9 +1056,6 @@ function ProjectsTable(props: ProjectsTableProps) {
                         </ContextMenuEntry>
                     </ContextMenu>
                 )
-            }}
-            onRowContextMenu={() => {
-                /** Overridden by {@link ProjectRow}. */
             }}
         />
     )

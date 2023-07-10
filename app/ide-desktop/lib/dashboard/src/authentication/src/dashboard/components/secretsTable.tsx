@@ -1,4 +1,4 @@
-/** @file Form to create a project. */
+/** @file Table displaying a list of secrets. */
 import * as React from 'react'
 import toast from 'react-hot-toast'
 
@@ -239,6 +239,48 @@ function SecretName(props: InternalSecretNameProps) {
     )
 }
 
+// ============================
+// === SecretRowContextMenu ===
+// ============================
+
+/** Props for a {@link SecretRowContextMenu}. */
+interface InternalDirectoryRowContextMenuProps {
+    innerProps: tableRow.TableRowInnerProps<
+        backendModule.SecretAsset,
+        backendModule.SecretId,
+        SecretRowState
+    >
+    event: React.MouseEvent
+    doDelete: () => Promise<void>
+}
+
+/** The context menu for a row of a {@link SecretsTable}. */
+function SecretRowContextMenu(props: InternalDirectoryRowContextMenuProps) {
+    const {
+        innerProps: { item },
+        event,
+        doDelete,
+    } = props
+    const { setModal } = modalProvider.useSetModal()
+
+    return (
+        <ContextMenu key={item.id} event={event}>
+            <ContextMenuEntry
+                onClick={() => {
+                    setModal(
+                        <ConfirmDeleteModal
+                            description={`the ${ASSET_TYPE_NAME} '${item.title}'`}
+                            doDelete={doDelete}
+                        />
+                    )
+                }}
+            >
+                <span className="text-red-700">Delete</span>
+            </ContextMenuEntry>
+        </ContextMenu>
+    )
+}
+
 // =================
 // === SecretRow ===
 // =================
@@ -259,12 +301,35 @@ function SecretRow(
     } = props
     const logger = loggerProvider.useLogger()
     const { backend } = backendProvider.useBackend()
+    const { setModal } = modalProvider.useSetModal()
     const [item, setItem] = React.useState(rawItem)
     const [status, setStatus] = React.useState(presence.Presence.present)
 
     React.useEffect(() => {
         setItem(rawItem)
     }, [rawItem])
+
+    const doDelete = async () => {
+        if (backend.type !== backendModule.BackendType.local) {
+            setStatus(presence.Presence.deleting)
+            markItemAsHidden(key)
+            try {
+                await backend.deleteSecret(item.id, item.title)
+                dispatchSecretListEvent({
+                    type: secretListEventModule.SecretListEventType.delete,
+                    secretId: key,
+                })
+            } catch (error) {
+                setStatus(presence.Presence.present)
+                markItemAsVisible(key)
+                const message = `Unable to delete secret: ${
+                    errorModule.tryGetMessage(error) ?? 'unknown error.'
+                }`
+                toast.error(message)
+                logger.error(message)
+            }
+        }
+    }
 
     hooks.useEventHandler(secretEvent, async event => {
         switch (event.type) {
@@ -304,26 +369,32 @@ function SecretRow(
                 break
             }
             case secretEventModule.SecretEventType.deleteMultiple: {
-                if (event.secretIds.has(key) && backend.type !== backendModule.BackendType.local) {
-                    setStatus(presence.Presence.deleting)
-                    markItemAsHidden(key)
-                    try {
-                        await backend.deleteSecret(item.id, item.title)
-                        dispatchSecretListEvent({
-                            type: secretListEventModule.SecretListEventType.delete,
-                            secretId: key,
-                        })
-                    } catch {
-                        setStatus(presence.Presence.present)
-                        markItemAsVisible(key)
-                    }
+                if (event.secretIds.has(key)) {
+                    await doDelete()
                 }
                 break
             }
         }
     })
 
-    return <TableRow className={presence.CLASS_NAME[status]} {...props} item={item} />
+    return (
+        <TableRow
+            className={presence.CLASS_NAME[status]}
+            {...props}
+            onContextMenu={(innerProps, event) => {
+                event.preventDefault()
+                event.stopPropagation()
+                setModal(
+                    <SecretRowContextMenu
+                        innerProps={innerProps}
+                        event={event}
+                        doDelete={doDelete}
+                    />
+                )
+            }}
+            item={item}
+        />
+    )
 }
 
 // ====================
@@ -384,17 +455,19 @@ function SecretsTable(props: SecretsTableProps) {
     const keysOfHiddenItemsRef = React.useRef(new Set<string>())
 
     const updateShouldForceShowPlaceholder = React.useCallback(() => {
-        setShouldForceShowPlaceholder(keysOfHiddenItemsRef.current.size === visibleItems.length)
-    }, [visibleItems.length])
+        setShouldForceShowPlaceholder(
+            visibleItems.every(item => keysOfHiddenItemsRef.current.has(item.id))
+        )
+    }, [visibleItems])
 
     React.useEffect(updateShouldForceShowPlaceholder, [updateShouldForceShowPlaceholder])
 
     React.useEffect(() => {
         const oldKeys = keysOfHiddenItemsRef.current
         keysOfHiddenItemsRef.current = new Set(
-            visibleItems.map(backendModule.getAssetId).filter(key => oldKeys.has(key))
+            items.map(backendModule.getAssetId).filter(key => oldKeys.has(key))
         )
-    }, [visibleItems])
+    }, [items])
 
     const markItemAsHidden = React.useCallback(
         (key: string) => {
@@ -522,26 +595,6 @@ function SecretsTable(props: SecretsTableProps) {
                                 <span className="text-red-700">
                                     Delete {selectedKeys.size} {pluralized}
                                 </span>
-                            </ContextMenuEntry>
-                        </ContextMenu>
-                    )
-                }}
-                onRowContextMenu={(innerProps, event) => {
-                    const { item } = innerProps
-                    event.preventDefault()
-                    event.stopPropagation()
-                    const doDelete = () => {
-                        setModal(
-                            <ConfirmDeleteModal
-                                description={`the ${ASSET_TYPE_NAME} '${item.title}'`}
-                                doDelete={() => backend.deleteSecret(item.id, item.title)}
-                            />
-                        )
-                    }
-                    setModal(
-                        <ContextMenu key={item.id} event={event}>
-                            <ContextMenuEntry onClick={doDelete}>
-                                <span className="text-red-700">Delete</span>
                             </ContextMenuEntry>
                         </ContextMenu>
                     )

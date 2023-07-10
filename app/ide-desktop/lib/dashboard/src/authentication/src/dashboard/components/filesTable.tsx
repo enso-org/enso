@@ -1,4 +1,4 @@
-/** @file Form to create a project. */
+/** @file Table displaying a list of files. */
 import * as React from 'react'
 import toast from 'react-hot-toast'
 
@@ -192,11 +192,62 @@ function FileName(props: InternalFileNameProps) {
     )
 }
 
+// ==========================
+// === FileRowContextMenu ===
+// ==========================
+
+/** Props for a {@link FileRowContextMenu}. */
+interface InternalDirectoryRowContextMenuProps {
+    innerProps: tableRow.TableRowInnerProps<
+        backendModule.FileAsset,
+        backendModule.FileId,
+        FileRowState
+    >
+    event: React.MouseEvent
+    doDelete: () => Promise<void>
+}
+
+/** The context menu for a row of a {@link FilesTable}. */
+function FileRowContextMenu(props: InternalDirectoryRowContextMenuProps) {
+    const {
+        innerProps: { item },
+        event,
+        doDelete,
+    } = props
+    const { setModal } = modalProvider.useSetModal()
+
+    return (
+        <ContextMenu key={item.id} event={event}>
+            {/*<ContextMenuEntry disabled onClick={doCopy}>
+                                Copy
+                            </ContextMenuEntry>
+                            <ContextMenuEntry disabled onClick={doCut}>
+                                Cut
+                            </ContextMenuEntry>*/}
+            <ContextMenuEntry
+                onClick={() => {
+                    setModal(
+                        <ConfirmDeleteModal
+                            description={`the ${ASSET_TYPE_NAME} '${item.title}'`}
+                            doDelete={doDelete}
+                        />
+                    )
+                }}
+            >
+                <span className="text-red-700">Delete</span>
+            </ContextMenuEntry>
+            {/*<ContextMenuEntry disabled onClick={doDownload}>
+                                Download
+                            </ContextMenuEntry>*/}
+        </ContextMenu>
+    )
+}
+
 // ===============
 // === FileRow ===
 // ===============
 
-/** A row in a {@link DirectoriesTable}. */
+/** A row in a {@link FilesTable}. */
 function FileRow(
     props: tableRow.TableRowProps<
         backendModule.FileAsset,
@@ -212,12 +263,35 @@ function FileRow(
     } = props
     const logger = loggerProvider.useLogger()
     const { backend } = backendProvider.useBackend()
+    const { setModal } = modalProvider.useSetModal()
     const [item, setItem] = React.useState(rawItem)
     const [status, setStatus] = React.useState(presence.Presence.present)
 
     React.useEffect(() => {
         setItem(rawItem)
     }, [rawItem])
+
+    const doDelete = async () => {
+        if (backend.type !== backendModule.BackendType.local) {
+            setStatus(presence.Presence.deleting)
+            markItemAsHidden(key)
+            try {
+                await backend.deleteFile(item.id, item.title)
+                dispatchFileListEvent({
+                    type: fileListEventModule.FileListEventType.delete,
+                    fileId: key,
+                })
+            } catch (error) {
+                setStatus(presence.Presence.present)
+                markItemAsVisible(key)
+                const message = `Unable to delete file: ${
+                    errorModule.tryGetMessage(error) ?? 'unknown error.'
+                }`
+                toast.error(message)
+                logger.error(message)
+            }
+        }
+    }
 
     hooks.useEventHandler(fileEvent, async event => {
         switch (event.type) {
@@ -261,26 +335,28 @@ function FileRow(
                 break
             }
             case fileEventModule.FileEventType.deleteMultiple: {
-                if (event.fileIds.has(key) && backend.type !== backendModule.BackendType.local) {
-                    setStatus(presence.Presence.deleting)
-                    markItemAsHidden(key)
-                    try {
-                        await backend.deleteFile(item.id, item.title)
-                        dispatchFileListEvent({
-                            type: fileListEventModule.FileListEventType.delete,
-                            fileId: key,
-                        })
-                    } catch {
-                        setStatus(presence.Presence.present)
-                        markItemAsVisible(key)
-                    }
+                if (event.fileIds.has(key)) {
+                    await doDelete()
                 }
                 break
             }
         }
     })
 
-    return <TableRow className={presence.CLASS_NAME[status]} {...props} item={item} />
+    return (
+        <TableRow
+            className={presence.CLASS_NAME[status]}
+            {...props}
+            onContextMenu={(innerProps, event) => {
+                event.preventDefault()
+                event.stopPropagation()
+                setModal(
+                    <FileRowContextMenu innerProps={innerProps} event={event} doDelete={doDelete} />
+                )
+            }}
+            item={item}
+        />
+    )
 }
 
 // ==================
@@ -300,7 +376,7 @@ interface FileRowState {
     isEditingName: boolean
 }
 
-/** The default {@link SecretRowState} associated with a {@link FileRow}. */
+/** The default {@link FileRowState} associated with a {@link FileRow}. */
 const INITIAL_ROW_STATE: FileRowState = Object.freeze({
     isEditingName: false,
 })
@@ -348,17 +424,19 @@ function FilesTable(props: FilesTableProps) {
     const keysOfHiddenItemsRef = React.useRef(new Set<string>())
 
     const updateShouldForceShowPlaceholder = React.useCallback(() => {
-        setShouldForceShowPlaceholder(keysOfHiddenItemsRef.current.size === visibleItems.length)
-    }, [visibleItems.length])
+        setShouldForceShowPlaceholder(
+            visibleItems.every(item => keysOfHiddenItemsRef.current.has(item.id))
+        )
+    }, [visibleItems])
 
     React.useEffect(updateShouldForceShowPlaceholder, [updateShouldForceShowPlaceholder])
 
     React.useEffect(() => {
         const oldKeys = keysOfHiddenItemsRef.current
         keysOfHiddenItemsRef.current = new Set(
-            visibleItems.map(backendModule.getAssetId).filter(key => oldKeys.has(key))
+            items.map(backendModule.getAssetId).filter(key => oldKeys.has(key))
         )
-    }, [visibleItems])
+    }, [items])
 
     const markItemAsHidden = React.useCallback(
         (key: string) => {
@@ -491,37 +569,6 @@ function FilesTable(props: FilesTableProps) {
                                     Delete {selectedKeys.size} {pluralized}
                                 </span>
                             </ContextMenuEntry>
-                        </ContextMenu>
-                    )
-                }}
-                onRowContextMenu={(innerProps, event) => {
-                    const { item } = innerProps
-                    event.preventDefault()
-                    event.stopPropagation()
-                    const doDelete = () => {
-                        setModal(
-                            <ConfirmDeleteModal
-                                description={`the ${ASSET_TYPE_NAME} '${item.title}'`}
-                                doDelete={async () => {
-                                    await backend.deleteFile(item.id, item.title)
-                                }}
-                            />
-                        )
-                    }
-                    setModal(
-                        <ContextMenu key={item.id} event={event}>
-                            {/*<ContextMenuEntry disabled onClick={doCopy}>
-                                Copy
-                            </ContextMenuEntry>
-                            <ContextMenuEntry disabled onClick={doCut}>
-                                Cut
-                            </ContextMenuEntry>*/}
-                            <ContextMenuEntry onClick={doDelete}>
-                                <span className="text-red-700">Delete</span>
-                            </ContextMenuEntry>
-                            {/*<ContextMenuEntry disabled onClick={doDownload}>
-                                Download
-                            </ContextMenuEntry>*/}
                         </ContextMenu>
                     )
                 }}

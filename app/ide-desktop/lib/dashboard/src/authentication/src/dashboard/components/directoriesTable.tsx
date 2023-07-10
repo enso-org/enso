@@ -1,4 +1,4 @@
-/** @file Form to create a project. */
+/** @file Table displaying a list of directories. */
 import * as React from 'react'
 import toast from 'react-hot-toast'
 
@@ -183,6 +183,56 @@ function DirectoryName(props: InternalDirectoryNameProps) {
     )
 }
 
+// ===============================
+// === DirectoryRowContextMenu ===
+// ===============================
+
+/** Props for a {@link DirectoryRowContextMenu}. */
+interface InternalDirectoryRowContextMenuProps {
+    innerProps: tableRow.TableRowInnerProps<
+        backendModule.DirectoryAsset,
+        backendModule.DirectoryId,
+        DirectoryRowState
+    >
+    event: React.MouseEvent
+    doDelete: () => Promise<void>
+}
+
+/** The context menu for a row of a {@link DirectorysTable}. */
+function DirectoryRowContextMenu(props: InternalDirectoryRowContextMenuProps) {
+    const {
+        innerProps: { item, setRowState },
+        event,
+        doDelete,
+    } = props
+    const { setModal, unsetModal } = modalProvider.useSetModal()
+
+    const doRename = () => {
+        setRowState(oldRowState => ({
+            ...oldRowState,
+            isEditingName: true,
+        }))
+        unsetModal()
+    }
+    return (
+        <ContextMenu key={item.id} event={event}>
+            <ContextMenuEntry onClick={doRename}>Rename</ContextMenuEntry>
+            <ContextMenuEntry
+                onClick={() => {
+                    setModal(
+                        <ConfirmDeleteModal
+                            description={`the ${ASSET_TYPE_NAME} '${item.title}'`}
+                            doDelete={doDelete}
+                        />
+                    )
+                }}
+            >
+                <span className="text-red-700">Delete</span>
+            </ContextMenuEntry>
+        </ContextMenu>
+    )
+}
+
 // ====================
 // === DirectoryRow ===
 // ====================
@@ -203,12 +253,35 @@ function DirectoryRow(
     } = props
     const logger = loggerProvider.useLogger()
     const { backend } = backendProvider.useBackend()
+    const { setModal } = modalProvider.useSetModal()
     const [item, setItem] = React.useState(rawItem)
     const [status, setStatus] = React.useState(presence.Presence.present)
 
     React.useEffect(() => {
         setItem(rawItem)
     }, [rawItem])
+
+    const doDelete = async () => {
+        if (backend.type !== backendModule.BackendType.local) {
+            setStatus(presence.Presence.deleting)
+            markItemAsHidden(key)
+            try {
+                await backend.deleteDirectory(item.id, item.title)
+                dispatchDirectoryListEvent({
+                    type: directoryListEventModule.DirectoryListEventType.delete,
+                    directoryId: key,
+                })
+            } catch (error) {
+                setStatus(presence.Presence.present)
+                markItemAsVisible(key)
+                const message = `Unable to delete directory: ${
+                    errorModule.tryGetMessage(error) ?? 'unknown error.'
+                }`
+                toast.error(message)
+                logger.error(message)
+            }
+        }
+    }
 
     hooks.useEventHandler(directoryEvent, async event => {
         switch (event.type) {
@@ -247,29 +320,32 @@ function DirectoryRow(
                 break
             }
             case directoryEventModule.DirectoryEventType.deleteMultiple: {
-                if (
-                    event.directoryIds.has(key) &&
-                    backend.type !== backendModule.BackendType.local
-                ) {
-                    setStatus(presence.Presence.deleting)
-                    markItemAsHidden(key)
-                    try {
-                        await backend.deleteDirectory(item.id, item.title)
-                        dispatchDirectoryListEvent({
-                            type: directoryListEventModule.DirectoryListEventType.delete,
-                            directoryId: key,
-                        })
-                    } catch {
-                        setStatus(presence.Presence.present)
-                        markItemAsVisible(key)
-                    }
+                if (event.directoryIds.has(key)) {
+                    await doDelete()
                 }
                 break
             }
         }
     })
 
-    return <TableRow className={presence.CLASS_NAME[status]} {...props} item={item} />
+    return (
+        <TableRow
+            className={presence.CLASS_NAME[status]}
+            {...props}
+            onContextMenu={(innerProps, event) => {
+                event.preventDefault()
+                event.stopPropagation()
+                setModal(
+                    <DirectoryRowContextMenu
+                        innerProps={innerProps}
+                        event={event}
+                        doDelete={doDelete}
+                    />
+                )
+            }}
+            item={item}
+        />
+    )
 }
 
 // ========================
@@ -290,7 +366,7 @@ export interface DirectoryRowState {
     isEditingName: boolean
 }
 
-/** The default {@link DirectoryRowState} associated with a {@link ProjectRow}. */
+/** The default {@link DirectoryRowState} associated with a {@link DirectoryRow}. */
 export const INITIAL_ROW_STATE: DirectoryRowState = Object.freeze({
     isEditingName: false,
 })
@@ -318,7 +394,7 @@ function DirectoriesTable(props: DirectoriesTableProps) {
     const logger = loggerProvider.useLogger()
     const { organization } = authProvider.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
-    const { setModal, unsetModal } = modalProvider.useSetModal()
+    const { setModal } = modalProvider.useSetModal()
     const [items, setItems] = React.useState(rawItems)
     const [directoryEvent, dispatchDirectoryEvent] =
         hooks.useEvent<directoryEventModule.DirectoryEvent>()
@@ -340,17 +416,19 @@ function DirectoriesTable(props: DirectoriesTableProps) {
     const keysOfHiddenItemsRef = React.useRef(new Set<string>())
 
     const updateShouldForceShowPlaceholder = React.useCallback(() => {
-        setShouldForceShowPlaceholder(keysOfHiddenItemsRef.current.size === visibleItems.length)
-    }, [visibleItems.length])
+        setShouldForceShowPlaceholder(
+            visibleItems.every(item => keysOfHiddenItemsRef.current.has(item.id))
+        )
+    }, [visibleItems])
 
     React.useEffect(updateShouldForceShowPlaceholder, [updateShouldForceShowPlaceholder])
 
     React.useEffect(() => {
         const oldKeys = keysOfHiddenItemsRef.current
         keysOfHiddenItemsRef.current = new Set(
-            visibleItems.map(backendModule.getAssetId).filter(key => oldKeys.has(key))
+            items.map(backendModule.getAssetId).filter(key => oldKeys.has(key))
         )
-    }, [visibleItems])
+    }, [items])
 
     const markItemAsHidden = React.useCallback(
         (key: string) => {
@@ -496,34 +574,6 @@ function DirectoriesTable(props: DirectoriesTableProps) {
                                 <span className="text-red-700">
                                     Delete {selectedKeys.size} {pluralized}
                                 </span>
-                            </ContextMenuEntry>
-                        </ContextMenu>
-                    )
-                }}
-                onRowContextMenu={(innerProps, event) => {
-                    const { item, setRowState } = innerProps
-                    event.preventDefault()
-                    event.stopPropagation()
-                    const doRename = () => {
-                        setRowState(oldRowState => ({
-                            ...oldRowState,
-                            isEditingName: true,
-                        }))
-                        unsetModal()
-                    }
-                    const doDelete = () => {
-                        setModal(
-                            <ConfirmDeleteModal
-                                description={`the ${ASSET_TYPE_NAME} '${item.title}'`}
-                                doDelete={() => backend.deleteDirectory(item.id, item.title)}
-                            />
-                        )
-                    }
-                    setModal(
-                        <ContextMenu key={item.id} event={event}>
-                            <ContextMenuEntry onClick={doRename}>Rename</ContextMenuEntry>
-                            <ContextMenuEntry onClick={doDelete}>
-                                <span className="text-red-700">Delete</span>
                             </ContextMenuEntry>
                         </ContextMenu>
                     )

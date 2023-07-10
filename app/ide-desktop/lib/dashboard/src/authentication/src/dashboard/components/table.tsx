@@ -54,10 +54,6 @@ interface InternalTableProps<T, Key extends string = string, State = never, RowS
         event: React.MouseEvent<HTMLTableElement>,
         setSelectedKeys: (items: Set<Key>) => void
     ) => void
-    onRowContextMenu: (
-        props: tableRow.TableRowInnerProps<T, Key, RowState>,
-        event: React.MouseEvent<HTMLTableRowElement>
-    ) => void
 }
 
 /** Props for a {@link Table}. */
@@ -83,7 +79,6 @@ function Table<T, Key extends string = string, State = never, RowState = never>(
         placeholder,
         forceShowPlaceholder = false,
         onContextMenu,
-        onRowContextMenu,
         ...rowProps
     } = props
 
@@ -234,7 +229,6 @@ function Table<T, Key extends string = string, State = never, RowState = never>(
                         (selectedKeys.size === 1 && selectedKeys.has(key))
                     }
                     onClick={onRowClick}
-                    onContextMenu={onRowContextMenu}
                 />
             )
         })

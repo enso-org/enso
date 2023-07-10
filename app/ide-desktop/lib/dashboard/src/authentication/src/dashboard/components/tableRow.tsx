@@ -59,7 +59,7 @@ interface InternalBaseTableRowProps<
     selected: boolean
     allowContextMenu: boolean
     onClick: (props: TableRowInnerProps<T, Key, TableRowState>, event: React.MouseEvent) => void
-    onContextMenu: (
+    onContextMenu?: (
         props: TableRowInnerProps<T, Key, TableRowState>,
         event: React.MouseEvent<HTMLTableRowElement>
     ) => void
@@ -123,7 +123,7 @@ function TableRow<T, Key extends string = string, State = never, RowState = neve
             }}
             onContextMenu={event => {
                 if (allowContextMenu) {
-                    onContextMenu(innerProps, event)
+                    onContextMenu?.(innerProps, event)
                 }
             }}
             className={`h-10 transition duration-300 ease-in-out hover:bg-gray-100 ${
