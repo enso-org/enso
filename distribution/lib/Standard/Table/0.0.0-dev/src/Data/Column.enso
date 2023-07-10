@@ -1324,12 +1324,22 @@ type Column
                         Value_Type.Time ->
                             java_unit-> start-> end-> Time_Utils.unit_time_difference java_unit start end
                     fn = case period of
+                        # Workaround as there is no ChronoUnit for quarter.
                         Date_Period.Quarter ->
-                            # Workaround as there is no ChronoUnit for quarter.
                             java_unit = Date_Period.Month.to_java_unit
                             start-> end->
                                 months = diff java_unit start end
                                 months.div 3
+                        # Time_Period.Day is treated as 24 hours, if used with used that support time-of-day.
+                        Time_Period.Day ->
+                            case my_type of
+                                Value_Type.Date_Time _ ->
+                                    java_unit = Time_Period.Hour.to_java_unit
+                                    start-> end->
+                                        hours = diff java_unit start end
+                                        hours.div 24
+                                _ ->
+                                    diff period.to_java_unit
                         _ ->
                             diff period.to_java_unit
                     run_binary_op self end fn new_name
@@ -1359,11 +1369,22 @@ type Column
                 Date_Time_Helpers.check_period_aligned_with_value_type my_type period <|
                     new_name = Naming_Helpers.function_name "date_add" [self, amount, period.to_display_text]
                     fn = case period of
+                        # Workaround as there is no ChronoUnit for quarter.
                         Date_Period.Quarter ->
-                            # Workaround as there is no ChronoUnit for quarter.
                             java_unit = Date_Period.Month.to_java_unit
                             date-> amount->
                                 java_unit.addTo date (amount*3)
+                        # Time_Period.Day is treated as 24 hours, if used with used that support time-of-day.
+                        Time_Period.Day ->
+                            case my_type.has_time of
+                                True ->
+                                    java_unit = Time_Period.Hour.to_java_unit
+                                    date-> amount->
+                                        java_unit.addTo date (amount*24)
+                                # For date-only types, we do not have the needed resolution so we just add the days.
+                                False ->
+                                    java_unit = period.to_java_unit
+                                    date-> amount-> java_unit.addTo date amount
                         _ ->
                             java_unit = period.to_java_unit
                             date-> amount-> java_unit.addTo date amount
