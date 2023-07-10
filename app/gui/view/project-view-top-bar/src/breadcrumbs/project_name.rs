@@ -3,21 +3,18 @@
 use ensogl::display::shape::*;
 use ensogl::prelude::*;
 
-use crate::breadcrumbs::TEXT_SIZE;
-
 use enso_frp as frp;
-use ensogl::application::shortcut;
 use ensogl::application::Application;
 use ensogl::application::View;
 use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::object::ObjectOps;
 use ensogl::display::shape::compound::rectangle::Rectangle;
-use ensogl::gui::cursor;
 use ensogl::DEPRECATED_Animation;
 use ensogl_component::text;
 use ensogl_component::text::formatting::Size as TextSize;
-use ensogl_hardcoded_theme::graph_editor::breadcrumbs as breadcrumbs_theme;
+use ensogl_hardcoded_theme::application::top_bar::breadcrumbs as breadcrumbs_theme;
+use ensogl_hardcoded_theme::application::top_bar::project_name_with_environment_selector::project_name as theme;
 use parser::Parser;
 
 
@@ -30,8 +27,6 @@ use parser::Parser;
 // always be initialized externally for the current project. If this value is visible in the UI,
 // it was not set to the correct project name due to some bug.
 const UNINITIALIZED_PROJECT_NAME: &str = "Initializing project...";
-/// Default line height for project names.
-pub const LINE_HEIGHT: f32 = TEXT_SIZE * 1.5;
 
 
 
@@ -43,36 +38,14 @@ ensogl::define_endpoints_2! {
     Input {
        /// Set the project name.
        set_name (String),
-       /// Reset the project name to the one before editing.
-       cancel_editing (),
-       /// Enable editing the project name field and add a cursor at the mouse position.
-       start_editing  (),
-       /// Try committing current project name.
-       try_commit         (),
-       outside_press      (),
-       /// Indicates that this is the currently active breadcrumb.
-       select             (),
-       /// Indicates that this is not the currently active breadcrumb.
-       deselect           (),
-       /// Indicates the IDE is in edit mode. This means a click on some editable text should
-       /// start editing it.
-       ide_text_edit_mode (bool),
        /// Set whether the project was changed since the last snapshot save.
        set_project_changed(bool),
-       /// Set the read-only mode for this component.
-       set_read_only(bool),
     }
 
     Output {
-        pointer_style (cursor::Style),
         name          (String),
-        width         (f32),
         mouse_down    (),
-        edit_mode     (bool),
-        selected      (bool),
         is_hovered    (bool),
-        error         (String),
-        read_only     (bool),
     }
 }
 
@@ -122,8 +95,9 @@ impl ProjectNameModel {
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
         // system (#795)
         let style = StyleWatch::new(&scene.style_sheet);
-        let base_color = style.get_color(breadcrumbs_theme::transparent);
-        let text_size: TextSize = TEXT_SIZE.into();
+        let base_color = style.get_color(theme::color);
+        let text_size = style.get_number(theme::text_size);
+        let text_size: TextSize = text_size.into();
         let text_field = app.new_view::<text::Text>();
         text_field.set_property_default(base_color);
         text_field.set_property_default(text_size);
@@ -144,12 +118,6 @@ impl ProjectNameModel {
         self.add_child(&self.overlay);
         self.update_text_field_content(self.project_name.borrow().as_str());
         self
-    }
-
-    /// Revert the text field content to the last committed project name.
-    fn reset_name(&self) {
-        debug!("Resetting project name.");
-        self.update_text_field_content(self.project_name.borrow().as_str());
     }
 
     /// Update the visible content of the text field.
@@ -176,32 +144,6 @@ impl ProjectNameModel {
         let name = name.into();
         debug!("Renaming: '{name}'.");
         self.update_text_field_content(&name);
-        self.commit(name);
-    }
-
-    /// Confirm the given name as the current project name if it's valid.
-    fn try_commit(&self, name: impl Str) -> Result<(), String> {
-        let name = name.into();
-        Self::validate(&name)
-            .map_err(|error| format!("The project couldn't be renamed. {error}"))?;
-        self.commit(name);
-        Ok(())
-    }
-
-    /// Check whether the given name is a valid project name.
-    fn validate(name: impl Str) -> Result<(), String> {
-        let parser = Parser::new();
-        match parser.parse_line_ast(name).map(|ast| ast.shape().clone()) {
-            Ok(ast::Shape::Cons(_)) => Ok(()),
-            _ => Err("The project name should use the 'Upper_Snake' case.".to_owned()),
-        }
-    }
-
-    /// Confirm the given name as the current project name.
-    fn commit<T: Into<String>>(&self, name: T) {
-        let name = name.into();
-        debug!("Committing name: '{name}'.");
-        *self.project_name.borrow_mut() = name;
     }
 }
 
@@ -248,14 +190,9 @@ impl ProjectName {
         let input = &frp.private.input;
         let output = &frp.private.output;
         frp::extend! { network
-            // === Read-only mode ===
-
-            output.read_only <+ input.set_read_only;
-
-
+            init <- source_();
             // === Mouse IO ===
 
-            let mouse_down = model.overlay.events_deprecated.mouse_down_primary.clone_ref();
             output.is_hovered <+ bool(
                 &model.overlay.events_deprecated.mouse_out,
                 &model.overlay.events_deprecated.mouse_over
@@ -263,98 +200,37 @@ impl ProjectName {
             output.mouse_down <+ model.overlay.events_deprecated.mouse_down_primary;
 
             text_color <- all3(
-                &frp.output.selected,
+                &init,
                 &output.is_hovered,
                 &input.set_project_changed,
-            ).map(move |(selected, hovered, changed)| match (*selected, *hovered, *changed) {
-                (true, _, true) => unsaved_selected_color,
-                (true, _, false) => saved_selected_color,
-                (false, false, true) => unsaved_deselected_color,
-                (false, false, false) => saved_deselected_color,
-                (false, true, true) => unsaved_hover_color,
-                (false, true, false) => saved_hover_color,
+            ).map(move |(_, hovered, changed)| match (*hovered, *changed) {
+                (false, true) => unsaved_deselected_color,
+                (false, false) => saved_deselected_color,
+                (true, true) => unsaved_hover_color,
+                (true, false) => saved_hover_color,
             });
             eval text_color((&color) animations.color.set_target_value(color));
-
-            edit_click    <- mouse_down.gate(&frp.ide_text_edit_mode);
-            start_editing <- any(edit_click,frp.input.start_editing);
-            eval_ start_editing ([model, text]{
-                model.text_field.focus();
-                text.deprecated_set_focus(true);
-                text.set_cursor_at_mouse_position()
-            });
-            output.edit_mode <+ start_editing.to_true();
 
 
             // === Text Area ===
 
-            text_content <- text.content.map(|txt| txt.to_string());
             size <- all(text.width, text.height).map(|(w, h)| Vector2(*w, *h));
             eval size([model](size) { model.update_size(*size); });
-            // TODO: can I remove this output?
-            output.width <+ text.width;
 
 
             // === Input Commands ===
 
-            eval_ frp.input.cancel_editing  (model.reset_name());
             eval  frp.input.set_name((name) {model.rename(name)});
             output.name <+ frp.input.set_name;
-
-
-            // === Commit ===
-
-            try_commit <- any(&frp.try_commit, &frp.outside_press).gate(&frp.output.edit_mode);
-            commit_result <- try_commit.map2(&text_content, f!([model] (_, text) {
-                let result = model.try_commit(text);
-                (result.as_ref().ok().copied(), result.err())
-            }));
-            commit_success <- commit_result.filter_map(|(ok, _)| *ok);
-            commit_failure <- commit_result.filter_map(|(_, error)| error.clone());
-            output.name <+ text_content.sample(&commit_success);
-            output.error <+ commit_failure;
-
-            not_selected <- frp.output.selected.map(|selected| !selected);
-            on_deselect <- not_selected.gate(&not_selected).constant(());
-            output.edit_mode <+ on_deselect.to_false();
-
-
-            // === Selection ===
-
-            output.selected <+ frp.select.to_true();
-            set_inactive <- any(&frp.deselect, &commit_success);
-            eval_ set_inactive ([text,model] {
-                text.deprecated_set_focus(false);
-                text.remove_all_cursors();
-                model.text_field.blur();
-            });
-            output.selected <+ set_inactive.to_false();
 
 
             // === Animations ===
 
             eval animations.color.value((value) model.set_color(*value));
             eval animations.position.value((value) model.set_position(*value));
-
-
-             // === Pointer style ===
-
-             editable <- all(&frp.output.edit_mode,&frp.ide_text_edit_mode).map(|(a,b)| *a || *b);
-             on_mouse_over_and_editable <- all(frp.output.is_hovered,editable).map(|(a,b)| *a && *b);
-             mouse_over_while_editing <- on_mouse_over_and_editable.gate(&on_mouse_over_and_editable);
-             output.pointer_style <+ mouse_over_while_editing.map(|_|
-                cursor::Style::cursor()
-             );
-             no_mouse_or_edit <- on_mouse_over_and_editable.gate_not(&on_mouse_over_and_editable);
-             output.pointer_style <+ no_mouse_or_edit.map(|_|
-                cursor::Style::default()
-             );
-             output.pointer_style <+ frp.input.start_editing.gate(&frp.output.is_hovered).map(|_|
-                cursor::Style::cursor()
-             );
         }
+        init.emit(());
 
-        frp.deselect();
         frp.input.set_name.emit(UNINITIALIZED_PROJECT_NAME.to_string());
 
         Self { model, frp }
@@ -387,17 +263,5 @@ impl View for ProjectName {
 
     fn new(app: &Application) -> Self {
         ProjectName::new(app)
-    }
-
-    fn default_shortcuts() -> Vec<shortcut::Shortcut> {
-        use shortcut::ActionType::*;
-        [
-            (Press, "!read_only", "enter", "try_commit"),
-            (Release, "", "escape", "cancel_editing"),
-            (DoublePress, "is_hovered & !read_only", "left-mouse-button", "start_editing"),
-        ]
-        .iter()
-        .map(|(a, b, c, d)| Self::self_shortcut_when(*a, *c, *d, *b))
-        .collect()
     }
 }

@@ -4,8 +4,6 @@
 use ensogl::display::shape::*;
 use ensogl::prelude::*;
 
-use project_name::LINE_HEIGHT;
-
 use engine_protocol::language_server::MethodPointer;
 use enso_frp as frp;
 use ensogl::application::Application;
@@ -13,6 +11,8 @@ use ensogl::display;
 use ensogl::display::camera::Camera2d;
 use ensogl::display::object::ObjectOps;
 use ensogl::gui::cursor;
+use ensogl_hardcoded_theme::application::top_bar as top_bar_theme;
+use ensogl_hardcoded_theme::application::top_bar::breadcrumbs as theme;
 use std::cmp::Ordering;
 
 
@@ -75,14 +75,6 @@ const HORIZONTAL_MARGIN: f32 = GLYPH_WIDTH;
 const BACKGROUND_PADDING: f32 = 8.0;
 const BACKGROUND_HEIGHT: f32 = 32.0;
 const TEXT_SIZE: f32 = 12.0;
-/// The height of the breadcrumb bar's content. The background may be higher.
-pub const HEIGHT: f32 = VERTICAL_MARGIN
-    + breadcrumb::VERTICAL_MARGIN
-    + breadcrumb::PADDING
-    + LINE_HEIGHT
-    + breadcrumb::PADDING
-    + breadcrumb::VERTICAL_MARGIN
-    + VERTICAL_MARGIN;
 
 /// Text offset to make the text appear more centered.
 const TEXT_Y_OFFSET: f32 = 2.0;
@@ -192,11 +184,14 @@ impl BreadcrumbsModel {
         let camera = scene.camera().clone_ref();
         let background: Rectangle = default();
         let gap_width = default();
-        background.use_auto_layout().set_padding_left(8.0).set_children_alignment_left_center();
+        background
+            .use_auto_layout()
+            .set_padding_left(8.0)
+            .set_padding_right(8.0)
+            .set_children_alignment_left_center();
 
         let style = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
-        use ensogl_hardcoded_theme::graph_editor::breadcrumbs;
-        background.set_style(breadcrumbs::background::HERE, &style);
+        background.set_style(top_bar_theme::background::HERE, &style);
 
         scene.layers.panel_background_rect_level_0.add(&background);
 
@@ -266,11 +261,12 @@ impl BreadcrumbsModel {
         // self.breadcrumbs_container.set_x(gap_width);
         // self.breadcrumbs_container.set_y(TEXT_Y_OFFSET);
 
-        let width = gap_width + self.breadcrumbs_container_width();
-        let background_width = width + 2.0 * BACKGROUND_PADDING;
+        let width = self.breadcrumbs_container_width();
+        let background_width = width;
         let background_height = BACKGROUND_HEIGHT;
-        self.background.set_size(Vector2(background_width, background_height));
+        self.breadcrumbs_container.set_size(Vector2(width, BACKGROUND_HEIGHT));
         self.background.set_padding_left(8.0);
+        self.background.set_padding_right(8.0);
         // self.background.set_x(-BACKGROUND_PADDING);
         // self.background.set_y(-HEIGHT / 2.0 - background_height / 2.0);
         // self.display_object.set_size(Vector2(background_width, background_height));

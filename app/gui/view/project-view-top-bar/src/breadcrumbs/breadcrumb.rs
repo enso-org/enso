@@ -4,7 +4,6 @@ use ensogl::display::shape::*;
 use ensogl::prelude::*;
 
 use crate::breadcrumbs;
-use crate::breadcrumbs::project_name::LINE_HEIGHT;
 use crate::breadcrumbs::SharedMethodPointer;
 
 use super::BACKGROUND_HEIGHT;
@@ -18,9 +17,8 @@ use ensogl::display;
 use ensogl::display::object::ObjectOps;
 use ensogl::display::shape::compound::rectangle::Rectangle;
 use ensogl::Animation;
-use ensogl::DEPRECATED_Animation;
 use ensogl_component::text;
-use ensogl_hardcoded_theme as theme;
+use ensogl_hardcoded_theme::application::top_bar::breadcrumbs as theme;
 use std::f32::consts::PI;
 
 
@@ -45,7 +43,8 @@ const SEPARATOR_WIDTH: f32 = 6.0;
 const SEPARATOR_HEIGHT: f32 = 8.0;
 /// Breadcrumb padding.
 pub const PADDING: f32 = 1.0;
-const SEPARATOR_MARGIN: f32 = 10.0;
+const SEPARATOR_MARGIN: f32 = 6.0;
+const LINE_HEIGHT: f32 = 11.5 * 1.5;
 
 
 
@@ -289,8 +288,8 @@ impl BreadcrumbModel {
         self.add_child(&self.label);
 
         let styles = &self.style;
-        let full_color = styles.get_color(theme::graph_editor::breadcrumbs::full);
-        let transparent_color = styles.get_color(theme::graph_editor::breadcrumbs::transparent);
+        let full_color = styles.get_color(theme::full);
+        let transparent_color = styles.get_color(theme::transparent);
 
         self.label.set_property_default(full_color);
         self.label.set_property_default(text::formatting::Size::from(TEXT_SIZE));
@@ -385,8 +384,8 @@ impl BreadcrumbModel {
 
     fn select(&self) {
         let styles = &self.style;
-        let selected_color = styles.get_color(theme::graph_editor::breadcrumbs::selected);
-        let left_deselected = styles.get_color(theme::graph_editor::breadcrumbs::deselected::left);
+        let selected_color = styles.get_color(theme::selected);
+        let left_deselected = styles.get_color(theme::deselected::left);
     }
 
     fn deselect(&self, old: usize, new: usize) {
@@ -398,10 +397,9 @@ impl BreadcrumbModel {
 
     fn deselected_color(&self) -> color::Rgba {
         let styles = &self.style;
-        let selected_color = styles.get_color(theme::graph_editor::breadcrumbs::selected);
-        let left_deselected = styles.get_color(theme::graph_editor::breadcrumbs::deselected::left);
-        let right_deselected =
-            styles.get_color(theme::graph_editor::breadcrumbs::deselected::right);
+        let selected_color = styles.get_color(theme::selected);
+        let left_deselected = styles.get_color(theme::deselected::left);
+        let right_deselected = styles.get_color(theme::deselected::right);
 
         match self.relative_position.get() {
             Some(RelativePosition::Right) => right_deselected,
@@ -447,12 +445,11 @@ impl Breadcrumb {
         let animations = Animations::new(&frp.network);
         let styles = StyleWatchFrp::new(&scene.style_sheet);
 
-        let hover_color = styles.get_color(theme::graph_editor::breadcrumbs::hover);
-        let selected_color = styles.get_color(theme::graph_editor::breadcrumbs::selected);
-        let selected_color = styles.get_color(theme::graph_editor::breadcrumbs::selected);
-        let left_deselected = styles.get_color(theme::graph_editor::breadcrumbs::deselected::left);
-        let right_deselected =
-            styles.get_color(theme::graph_editor::breadcrumbs::deselected::right);
+        let hover_color = styles.get_color(theme::hover);
+        let selected_color = styles.get_color(theme::selected);
+        let selected_color = styles.get_color(theme::selected);
+        let left_deselected = styles.get_color(theme::deselected::left);
+        let right_deselected = styles.get_color(theme::deselected::right);
 
         frp::extend! { network
             deselected_color <- all_with3(&selected_color, &left_deselected, &right_deselected,
@@ -478,7 +475,7 @@ impl Breadcrumb {
             mouse_over_if_not_selected <- model.overlay.events_deprecated.mouse_over.gate(&not_selected);
             mouse_out_if_not_selected  <- model.overlay.events_deprecated.mouse_out.gate(&not_selected);
             animations.color.target <+ hover_color.sample(&mouse_over_if_not_selected);
-            animations.color.target <+ deselected_color.sample(&mouse_over_if_not_selected);
+            animations.color.target <+ deselected_color.sample(&mouse_out_if_not_selected);
 
             eval_ model.overlay.events_deprecated.mouse_down_primary(out.clicked.emit(()));
         }

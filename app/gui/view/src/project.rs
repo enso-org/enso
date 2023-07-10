@@ -29,7 +29,7 @@ use ensogl_component::text;
 use ensogl_component::text::selection::Selection;
 use ensogl_hardcoded_theme::Theme;
 use ide_view_graph_editor::NodeSource;
-use project_view_top_bar::ProjectViewTopBar;
+use ide_view_project_view_top_bar::ProjectViewTopBar;
 
 
 // ==============
@@ -107,6 +107,10 @@ ensogl::define_endpoints! {
         execution_context_restart(),
         toggle_read_only(),
         set_read_only(bool),
+        /// Push a hardcoded breadcrumb without notifying the controller.
+        debug_push_breadcrumb(),
+        /// Pop a breadcrumb without notifying the controller.
+        debug_pop_breadcrumb(),
     }
 
     Output {
@@ -240,7 +244,7 @@ impl Model {
         let top_left = Vector2(-scene_shape.width, scene_shape.height) / 2.0;
         let project_view_top_bar_origin = Vector2(
             0.0,
-            crate::graph_editor::MACOS_TRAFFIC_LIGHTS_VERTICAL_CENTER
+            ide_view_project_view_top_bar::window_control_buttons::MACOS_TRAFFIC_LIGHTS_VERTICAL_CENTER
                 - project_view_top_bar_size.y / 2.0,
         );
         self.project_view_top_bar.set_xy(top_left + project_view_top_bar_origin);
@@ -350,6 +354,17 @@ impl View {
             .init_fullscreen_visualization_frp()
             .init_debug_mode_frp()
             .init_shortcut_observer(app)
+            .init_execution_environment_selector_frp()
+    }
+
+    fn init_execution_environment_selector_frp(self) -> Self {
+        crate::graph_editor::execution_environment::init_frp(
+            &self.model.graph_editor.frp,
+            &self.model.graph_editor.model,
+            &self.model.project_view_top_bar.project_name_with_environment_selector.selector,
+        );
+
+        self
     }
 
     fn init_top_bar_frp(self, scene: &Scene) -> Self {
@@ -378,6 +393,9 @@ impl View {
             project_view_top_bar_width <-
                 project_view_top_bar_display_object.on_resized.map(|new_size| new_size.x);
             self.model.graph_editor.graph_editor_top_bar_offset_x <+ project_view_top_bar_width;
+
+            project_view_top_bar.breadcrumbs.debug_push_breadcrumb <+ frp.debug_push_breadcrumb.constant(None);
+            project_view_top_bar.breadcrumbs.debug_pop_breadcrumb <+ frp.debug_pop_breadcrumb;
         }
         init.emit(());
         self
@@ -398,7 +416,6 @@ impl View {
             disable_navigation <- searcher_active || frp.project_list_shown;
             graph.set_navigator_disabled <+ disable_navigation;
 
-            model.popup.set_label <+ graph.model.breadcrumbs.project_name_error;
             model.popup.set_label <+ graph.visualization_update_error._1();
             graph.set_read_only <+ frp.set_read_only;
             graph.set_debug_mode <+ frp.source.debug_mode;
@@ -759,6 +776,8 @@ impl application::View for View {
             (Press, "", "cmd alt r", "execution_context_restart"),
             // TODO(#6179): Remove this temporary shortcut when Play button is ready.
             (Press, "", "ctrl shift b", "toggle_read_only"),
+            (Press, "debug_mode", "ctrl shift enter", "debug_push_breadcrumb"),
+            (Press, "debug_mode", "ctrl shift up", "debug_pop_breadcrumb"),
         ]
         .iter()
         .map(|(a, b, c, d)| Self::self_shortcut_when(*a, *c, *d, *b))

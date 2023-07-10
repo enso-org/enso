@@ -587,10 +587,6 @@ ensogl::define_endpoints_2! {
         /// Enable or disable debug-only features.
         set_debug_mode(bool),
 
-        /// Push a hardcoded breadcrumb without notifying the controller.
-        debug_push_breadcrumb(),
-        /// Pop a breadcrumb without notifying the controller.
-        debug_pop_breadcrumb(),
         /// Set a test visualization data for the selected nodes. Useful for testing visualizations
         /// during their development.
         debug_set_test_visualization_data_for_selected_node(),
@@ -3460,12 +3456,6 @@ fn init_remaining_graph_editor_frp(
     frp.private.output.default_y_gap_between_nodes.emit(default_y_gap.value());
     frp.private.output.min_x_spacing_for_new_nodes.emit(min_x_spacing.value());
 
-
-    // ================================
-    // === Execution Mode Selection ===
-    // ================================
-
-    execution_environment::init_frp(frp, model);
 
 
     // ==================

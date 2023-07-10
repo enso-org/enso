@@ -7,7 +7,6 @@ use ensogl::prelude::*;
 
 use enso_config::ARGS;
 use ensogl::application::Application;
-use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::shape::compound::rectangle::Rectangle;
 
@@ -27,8 +26,6 @@ use ensogl_hardcoded_theme::application::top_bar as theme;
 
 #[derive(Clone, CloneRef, Debug)]
 pub struct ProjectNameWithEnvironmentSelector {
-    // root:             display::object::Instance,
-    // content:          display::object::Instance,
     pub project_name: ProjectName,
     pub selector:     ide_view_execution_environment_selector::ExecutionEnvironmentSelector,
     background:       Rectangle,
@@ -37,8 +34,6 @@ pub struct ProjectNameWithEnvironmentSelector {
 
 impl ProjectNameWithEnvironmentSelector {
     pub fn new(app: &Application) -> Self {
-        // let root = display::object::Instance::new();
-        // let content = display::object::Instance::new();
         let project_name = app.new_view::<ProjectName>();
         let selector =
             ide_view_execution_environment_selector::ExecutionEnvironmentSelector::new(app);
