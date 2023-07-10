@@ -19,7 +19,6 @@ use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::shape::Rectangle;
 use ensogl::display::shape::StyleWatch;
-use ensogl::display::shape::StyleWatchFrp;
 use ensogl_component::text;
 use ensogl_hardcoded_theme as theme;
 
@@ -31,7 +30,6 @@ use ensogl_hardcoded_theme as theme;
 
 const HIDE_DELAY_DURATION_MS: f32 = 150.0;
 const SHOW_DELAY_DURATION_MS: f32 = 150.0;
-
 
 
 // ================
@@ -116,6 +114,7 @@ ensogl::define_endpoints! {
         set_expression_visibility (bool),
         set_type_label_visibility (bool),
         set_view_mode             (view::Mode),
+        set_port_color            (color::Lcha),
 
         /// Set the expression USAGE type. This is not the definition type, which can be set with
         /// `set_expression` instead. In case the usage type is set to None, ports still may be
@@ -127,6 +126,7 @@ ensogl::define_endpoints! {
         on_port_press               (PortId),
         on_port_hover               (Switch<PortId>),
         port_size_multiplier        (f32),
+        port_color                  (color::Lcha),
         body_hover                  (bool),
         type_label_visibility       (bool),
         expression_label_visibility (bool),
@@ -148,7 +148,6 @@ pub struct Model {
     expression:     RefCell<Expression>,
     id_ports_map:   RefCell<HashMap<ast::Id, usize>>,
     styles:         StyleWatch,
-    styles_frp:     StyleWatchFrp,
     frp:            FrpEndpoints,
 }
 
@@ -164,7 +163,6 @@ impl Model {
         let id_ports_map = default();
         let expression = default();
         let styles = StyleWatch::new(&app.display.default_scene.style_sheet);
-        let styles_frp = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
         let frp = frp.output.clone_ref();
         display_object.add_child(&label);
         display_object.add_child(&ports);
@@ -179,7 +177,6 @@ impl Model {
             expression,
             id_ports_map,
             styles,
-            styles_frp,
             frp,
         }
         .init(app)
@@ -284,15 +281,7 @@ impl Model {
                 let span = node.span();
                 let index = span.start.into();
                 let length = span.size();
-                let model = port::Model::new(
-                    &self.app,
-                    &self.styles,
-                    &self.styles_frp,
-                    port_index,
-                    port_count,
-                    index,
-                    length,
-                );
+                let model = port::Model::new(&self.app, port_index, port_count, index, length);
 
                 let port_frp = &model.frp;
                 let port_network = &port_frp.network;
@@ -300,17 +289,19 @@ impl Model {
                 let port_id = node.port_id.unwrap_or_default();
                 frp::extend! { port_network
                     port_frp.set_size_multiplier <+ self.frp.port_size_multiplier;
+                    // Currently we always use the same color for all ports.
+                    port_frp.set_color <+ self.frp.port_color;
                     port_frp.set_type_label_visibility <+ self.frp.type_label_visibility;
                     source.tooltip <+ port_frp.tooltip;
-                    port_frp.set_view_mode <+ self.frp.view_mode;
                     port_frp.set_size <+ self.frp.size;
                     source.on_port_hover <+ port_frp.on_hover.map(move |&t| Switch::new(port_id,t));
                     source.on_port_press <+ port_frp.on_press.constant(port_id);
                 }
 
                 port_frp.set_type_label_visibility.emit(self.frp.type_label_visibility.value());
-                port_frp.set_view_mode.emit(self.frp.view_mode.value());
                 port_frp.set_size.emit(self.frp.size.value());
+                port_frp.set_color.emit(self.frp.port_color.value());
+                port_frp.set_size_multiplier.emit(self.frp.port_size_multiplier.value());
                 port_frp.set_definition_type.emit(node_tp);
                 self.ports.add_child(&model.shape.root);
                 self.hover_root.add_child(&model.shape.hover);
@@ -381,6 +372,7 @@ impl Area {
 
             frp.source.port_size_multiplier <+ hysteretic_transition.value;
             frp.source.size <+ frp.set_size;
+            frp.source.port_color <+ frp.set_port_color;
 
             expr_label_x <- frp.set_size.map(|size| size.x + input::area::TEXT_OFFSET);
             eval expr_label_x ((x) model.label.set_x(*x));
@@ -409,7 +401,7 @@ impl Area {
             label_color.target_alpha <+ label_alpha_tgt;
             label_color_on_change    <- label_color.value.sample(&frp.set_expression);
             new_label_color          <- any(&label_color.value,&label_color_on_change);
-            eval new_label_color ((color) model.label.set_property(.., color::Rgba::from(color)));
+            eval new_label_color ((color) model.label.set_property_default(color::Rgba::from(color)));
 
 
             // === View Mode ===

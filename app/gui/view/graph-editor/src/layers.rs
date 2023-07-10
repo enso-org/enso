@@ -24,7 +24,7 @@ pub struct GraphLayersData {
 
     /// The layer that is used for for all non-active edge shapes. Those must be drawn above node
     /// selection, but below backgrounds of all nodes. When an edge becomes active (it is being
-    /// dragged), it is moved to the `active_edges` layer.
+    /// dragged), it is moved to the `edge_above_nodes` layer.
     ///
     /// Note that small portion of the dragged edge (the very end near the source edge) is always
     /// being drawn on this layer, since it must be occluded by its source's node background.
@@ -69,8 +69,15 @@ pub struct MainNodeLayers {
     /// shapes).
     pub widget_rectangles: PartitionStack<rectangle::Shape>,
 
-    /// The layer used for action bar, which should always be rendered above all other node shapes.
-    pub action_bar: Layer,
+    /// The layer used for elements which should always be rendered above all other node shapes.
+    pub above_base: Layer,
+
+    /// The layer used for the action bar, which is rendered above all other node shapes.
+    pub action_bar: LayerSymbolPartition<rectangle::Shape>,
+
+    /// The stack of hover areas used by the node port. The ports at given tree depth are rendered
+    /// above the ports at lower depths.
+    pub port_hover: PartitionStack<rectangle::Shape>,
 }
 
 impl GraphLayers {
@@ -106,13 +113,15 @@ impl NodeBackdropLayers {
 impl MainNodeLayers {
     fn new(layer: &Layer, camera: Option<&Camera2d>) -> Self {
         let node_base = layer.create_sublayer_with_optional_camera("node_base", camera);
-        let action_bar = layer.create_sublayer_with_optional_camera("action_bar", camera);
+        let above_base = layer.create_sublayer_with_optional_camera("above", camera);
         Self {
             body: node_base.create_symbol_partition("body"),
             body_hover: node_base.create_symbol_partition("body_hover"),
             widget_rectangles: PartitionStack::new(&node_base),
+            action_bar: above_base.create_symbol_partition("action_bar"),
+            port_hover: PartitionStack::new(&above_base),
             node_base,
-            action_bar,
+            above_base,
         }
     }
 
@@ -132,6 +141,11 @@ impl MainNodeLayers {
         let visual = self.widget_rectangles.get(depth * 2);
         let hover = self.widget_rectangles.get(depth * 2 + 1);
         CommonLayers { visual, hover }
+    }
+
+    /// Get a layer partition for node port hover areas at given tree depth.
+    pub fn port_hover_layer(&self, depth: usize) -> LayerSymbolPartition<rectangle::Shape> {
+        self.port_hover.get(depth)
     }
 }
 

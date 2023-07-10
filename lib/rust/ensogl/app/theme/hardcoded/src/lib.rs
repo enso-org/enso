@@ -499,6 +499,7 @@ define_themes! { [light:0, dark:1]
         }
         node {
             background         = Rgba(0.992,0.996,1.0,1.0), Rgba(0.182,0.188,0.196,1.0);
+            port_color_tint    = Rgba(1.0,1.0,1.0,0.2), Rgba(1.0,1.0,1.0,0.1);
             text               = code::syntax::base, code::syntax::base;
             selection {
                 size = 20.0 , 20.0;

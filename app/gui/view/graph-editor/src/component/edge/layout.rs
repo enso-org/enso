@@ -122,12 +122,16 @@ mod three_corner {
 // ==============
 
 /// Determine the positions and shapes of all the components of the edge.
-pub(super) fn layout(source_half_width: f32, target: Vector2, target_attached: bool) -> Layout {
-    let (junction_points, max_radius, attachment_length) =
-        junction_points(source_half_width, target, target_attached);
+pub(super) fn layout(
+    source_size: Vector2,
+    target: Vector2,
+    target_size: Vector2,
+    target_attached: bool,
+) -> Layout {
+    let (junction_points, max_radius, target_attachment) =
+        junction_points(source_size, target, target_size, target_attached);
     let corners = corners(&junction_points, max_radius).collect_vec();
     let arrow = arrow(target, &junction_points);
-    let target_attachment = attachment_length.map(|length| TargetAttachment { target, length });
     Layout { corners, arrow, target_attachment }
 }
 
@@ -141,16 +145,25 @@ pub(super) fn layout(source_half_width: f32, target: Vector2, target_attached: b
 /// given offset. Return the points, the maximum radius that should be used to draw the corners
 /// connecting them, and the length of the target attachment bit.
 fn junction_points(
-    source_half_width: f32,
+    source_size: Vector2,
     target: Vector2,
+    target_size: Vector2,
     target_attached: bool,
-) -> (Vec<Vector2>, f32, Option<f32>) {
+) -> (Vec<Vector2>, f32, Option<TargetAttachment>) {
+    let source_half_width = source_size.x() / 2.0;
+    let source_half_height = source_size.y() / 2.0;
     // The maximum x-distance from the source (our local coordinate origin) for the point where the
     // edge will begin.
     let source_max_x_offset = (source_half_width - NODE_CORNER_RADIUS).max(0.0);
     // The maximum y-length of the target-attachment segment. If the layout allows, the
     // target-attachment segment will fully exit the node before the first corner begins.
-    let target_max_attachment_height = target_attached.then_some(NODE_HEIGHT / 2.0);
+    let target_max_attachment_height =
+        target_attached.then_some((NODE_HEIGHT - target_size.y) / 2.0);
+    let attachment = target_max_attachment_height.map(|length| TargetAttachment {
+        target: target + Vector2(0.0, NODE_HEIGHT / 2.0),
+        length,
+    });
+
     let target_well_below_source =
         target.y() + target_max_attachment_height.unwrap_or_default() <= -MIN_APPROACH_HEIGHT;
     let target_below_source = target.y() < -NODE_HEIGHT / 2.0;
@@ -185,7 +198,7 @@ fn junction_points(
             let intersection = circle_intersection(circle_offset, NODE_CORNER_RADIUS, radius);
             -(radius - intersection).abs()
         } else {
-            SOURCE_NODE_OVERLAP - NODE_HEIGHT / 2.0
+            SOURCE_NODE_OVERLAP - source_half_height
         };
         let source = Vector2(source_x, source_y);
         // The target attachment will extend as far toward the edge of the node as it can without
@@ -193,7 +206,7 @@ fn junction_points(
         let attachment_height = target_max_attachment_height.map(|dy| min(dy, target.y().abs()));
         let attachment_y = target.y() + attachment_height.unwrap_or_default();
         let target_attachment = Vector2(target.x(), attachment_y);
-        (vec![source, target_attachment], max_radius, attachment_height)
+        (vec![source, target_attachment], max_radius, attachment)
     } else {
         use three_corner::*;
         // The edge originates from either side of the node.
@@ -234,9 +247,8 @@ fn junction_points(
         let j0 = Vector2(j0_x, top / 2.0);
         let j1 = Vector2(j1_x, top);
         // The corners meet the target attachment at the top of the node.
-        let attachment_height = target_max_attachment_height.unwrap_or_default();
-        let target_attachment = target + Vector2(0.0, attachment_height);
-        (vec![source, j0, j1, target_attachment], RADIUS_MAX, Some(attachment_height))
+        let attachment_target = attachment.map_or(target, |a| a.target);
+        (vec![source, j0, j1, attachment_target], RADIUS_MAX, attachment)
     }
 }
 

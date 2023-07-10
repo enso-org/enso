@@ -54,7 +54,6 @@ mod shortcuts;
 
 use crate::application::command::FrpNetworkProvider;
 use crate::component::node;
-use crate::component::type_coloring;
 use crate::component::visualization;
 use crate::component::visualization::instance::PreprocessorConfiguration;
 use crate::data::enso;
@@ -2165,19 +2164,16 @@ impl GraphEditorModel {
             .into_iter()
             .filter(|edge_id| {
                 let Some(edge) = edges.get_mut(edge_id) else { return false };
-                let source_type = || match edge.target {
-                    Some(target) => self.target_endpoint_type(target),
-                    None => self.hovered_input_type(),
+                let source_color = || match edge.target {
+                    Some(target) => self.node_color(target.node_id),
+                    None => self.hovered_input_color(),
                 };
-                let target_type = || match edge.source {
-                    Some(source) => self.source_endpoint_type(source),
-                    None => self.hovered_output_type(),
+                let target_color = || match edge.source {
+                    Some(source) => self.node_color(source.node_id),
+                    None => self.hovered_output_color(),
                 };
-                let edge_type = source_type().or_else(target_type);
-                // FIXME: `type_coloring::compute` should be ported to `StyleWatchFrp`.
-                #[allow(deprecated)] // `self.styles`
-                let opt_color = edge_type.map(|t| type_coloring::compute(&t, &self.styles));
-                let color = opt_color.unwrap_or_else(|| self.edge_fallback_color());
+                let edge_color = source_color().or_else(target_color);
+                let color = edge_color.unwrap_or_else(|| self.edge_fallback_color());
                 edge.set_color(color)
             })
             .collect()
@@ -2204,9 +2200,12 @@ impl GraphEditorModel {
             }
             if let Some(edge_target) = edge.target() {
                 self.with_node(edge_target.node_id, |node| {
-                    let port_offset = node.model().input.port_offset(edge_target.port);
+                    let input = &node.model().input;
+                    let port_offset = input.port_offset(edge_target.port);
+                    let port_size = input.port_size(edge_target.port);
                     let node_position = node.position().xy();
                     edge.view.target_position.emit(node_position + port_offset);
+                    edge.view.target_size.emit(port_size);
                 });
             }
         }
@@ -2252,22 +2251,18 @@ impl GraphEditorModel {
         self.with_edge(id, |edge| edge.target).flatten()
     }
 
-    fn source_endpoint_type(&self, endpoint: EdgeEndpoint) -> Option<Type> {
-        self.with_node(endpoint.node_id, |node| node.model().output.port_type(endpoint.port))?
+    fn node_color(&self, id: NodeId) -> Option<color::Lcha> {
+        self.with_node(id, |node| node.port_color.value())
     }
 
-    fn target_endpoint_type(&self, endpoint: EdgeEndpoint) -> Option<Type> {
-        self.with_node(endpoint.node_id, |node| node.model().input.port_type(endpoint.port))?
-    }
-
-    fn hovered_input_type(&self) -> Option<Type> {
+    fn hovered_input_color(&self) -> Option<color::Lcha> {
         let hover_target = self.frp_public.output.hover_node_input.value();
-        hover_target.and_then(|tgt| self.target_endpoint_type(tgt))
+        hover_target.and_then(|tgt| self.node_color(tgt.node_id))
     }
 
-    fn hovered_output_type(&self) -> Option<Type> {
+    fn hovered_output_color(&self) -> Option<color::Lcha> {
         let hover_target = self.frp_public.output.hover_node_output.value();
-        hover_target.and_then(|tgt| self.source_endpoint_type(tgt))
+        hover_target.and_then(|tgt| self.node_color(tgt.node_id))
     }
 
     /// Retrieve the color of the edge. Does not recomputes it, but returns the cached value.
@@ -2741,6 +2736,7 @@ impl GraphEditor {
 
             cursor_pos_on_update <- cursor.scene_position.sample(&state.detached_edge);
             refresh_cursor_pos <- any(cursor_pos_on_update, cursor.scene_position);
+            refresh_cursor_data <- all(refresh_cursor_pos, cursor.box_size);
 
             // Only allow hovering output ports of different nodes than the current target node.
             is_hovering_valid_output <- out.hover_node_output.all_with(&detached_target_node,
@@ -2750,9 +2746,10 @@ impl GraphEditor {
             snap_source_to_node <- out.hover_node_output.unwrap().gate(&is_hovering_valid_output);
 
 
-            _eval <- refresh_cursor_pos.map2(&detached_source_edge,
-                f!((position, &edge_id) model.with_edge(edge_id?, |edge| {
+            _eval <- refresh_cursor_data.map2(&detached_source_edge,
+                f!(((position, cursor_size), &edge_id) model.with_edge(edge_id?, |edge| {
                     edge.view.target_position.emit(position.xy());
+                    edge.view.target_size.emit(cursor_size);
                 }))
             );
             _eval <- refresh_source.map2(&detached_target_edge,

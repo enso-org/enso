@@ -585,6 +585,12 @@ impl Area {
         })
     }
 
+    /// An the computed layout size of a specific port.
+    pub fn port_size(&self, port: PortId) -> Vector2<f32> {
+        let object = self.model.widget_tree.get_port_display_object(port);
+        object.map_or_default(|object| object.computed_size())
+    }
+
     /// A type of the specified port.
     pub fn port_type(&self, port: PortId) -> Option<Type> {
         self.model.port_type(port)

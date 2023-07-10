@@ -39,7 +39,7 @@ mod attachment {
     /// appears to pass through the top of the node. Without this adjustment, inexact
     /// floating-point math and anti-aliasing would cause a 1-pixel gap artifact right where
     /// the attachment should meet the corner at the edge of the node.
-    pub(super) const TOP_ADJUSTMENT: f32 = 0.5;
+    pub(super) const TOP_ADJUSTMENT: f32 = 0.1;
 }
 
 
@@ -105,7 +105,7 @@ impl Shapes {
         *self.hover_sections.borrow_mut() = corners
             .iter()
             .zip(hover_factory)
-            .map(|(corner, shape)| draw_corner(shape, **corner, HOVER_WIDTH))
+            .map(|(corner, shape)| draw_corner(shape, **corner, INVISIBLE_HOVER_COLOR, HOVER_WIDTH))
             .collect();
     }
 
@@ -126,15 +126,9 @@ impl Shapes {
             source_color,
             target_color,
         );
-        for (idx, shape) in new_sections.iter().enumerate() {
-            Self::set_layer(parent, is_attached || idx == 0, shape);
-        }
         let arc_shapes = self.split_arc.take();
         if let Some(split_corner) = split_corner {
-            let source_side = rectangle_geometry(*split_corner.source_end, LINE_WIDTH);
-            let target_side = rectangle_geometry(*split_corner.target_end, LINE_WIDTH);
-            let split_arc = split_corner.split_arc;
-            if let Some(split_arc) = split_arc {
+            if let Some(split_arc) = split_corner.split_arc {
                 let arc_shapes = arc_shapes.unwrap_or_else(|| [parent.new_arc(), parent.new_arc()]);
                 let arc_shapes = draw_split_arc(arc_shapes, split_arc);
                 arc_shapes[0].color.set(source_color.into());
@@ -143,11 +137,16 @@ impl Shapes {
             }
             let (source_shape, target_shape) =
                 (section_factory.next().unwrap(), section_factory.next().unwrap());
-            source_shape.set_border_color(source_color);
-            target_shape.set_border_color(target_color);
-            new_sections.push(draw_geometry(source_shape, source_side));
-            new_sections.push(draw_geometry(target_shape, target_side));
+            new_sections.extend([
+                draw_corner(source_shape, *split_corner.source_end, source_color, LINE_WIDTH),
+                draw_corner(target_shape, *split_corner.target_end, target_color, LINE_WIDTH),
+            ]);
         }
+
+        for (idx, shape) in new_sections.iter().enumerate() {
+            Self::set_layer(parent, is_attached || idx == 0, shape);
+        }
+
         *self.sections.borrow_mut() = new_sections;
     }
 
@@ -175,11 +174,7 @@ impl Shapes {
                 }
             })
             .zip(section_factory)
-            .map(|((color, corner), shape)| {
-                let shape = draw_corner(shape, **corner, LINE_WIDTH);
-                shape.set_border_color(color);
-                shape
-            })
+            .map(|((color, corner), shape)| draw_corner(shape, **corner, color, LINE_WIDTH))
             .collect()
     }
 
@@ -194,17 +189,17 @@ impl Shapes {
         if let Some(TargetAttachment { target, length }) = target_attachment
                 && length > f32::EPSILON {
             let shape = shape.unwrap_or_else(|| parent.new_target_attachment());
-            shape.set_size_y(length + attachment::TOP_ADJUSTMENT);
-            shape.set_xy(target + Vector2(-LINE_WIDTH / 2.0, attachment::TOP_ADJUSTMENT));
+            shape.set_size_y(length + attachment::TOP_ADJUSTMENT * 2.0);
+            shape.set_xy(target + Vector2(-LINE_WIDTH / 2.0, -length - attachment::TOP_ADJUSTMENT));
             shape.set_color(color);
             self.target_attachment.replace(Some(shape));
         }
     }
 
     /// Add the given shape to the appropriate layer depending on whether it is attached.
-    fn set_layer(parent: &impl ShapeParent, is_attached: bool, shape: &Rectangle) {
+    fn set_layer(parent: &impl ShapeParent, below_nodes: bool, shape: &Rectangle) {
         let layers = parent.layers();
-        let layer = if is_attached { &layers.edge_below_nodes } else { &layers.edge_above_nodes };
+        let layer = if below_nodes { &layers.edge_below_nodes } else { &layers.edge_above_nodes };
         layer.add(shape);
     }
 }
@@ -287,7 +282,7 @@ pub(super) trait ShapeParent: display::Object {
     /// Create a shape object to render one of the [`Corner`]s making up the edge.
     fn new_section(&self) -> Rectangle {
         let new = Rectangle::new();
-        new.set_border_and_inset(LINE_WIDTH);
+        new.set_inner_border(LINE_WIDTH, 0.0);
         new.set_color(color::Rgba::transparent());
         new.set_pointer_events(false);
         self.display_object().add_child(&new);
@@ -298,7 +293,7 @@ pub(super) trait ShapeParent: display::Object {
     /// [`Corner`]s making up the edge.
     fn new_hover_section(&self) -> Rectangle {
         let new = Rectangle::new();
-        new.set_border_and_inset(HOVER_WIDTH);
+        new.set_inner_border(HOVER_WIDTH, 0.0);
         new.set_color(color::Rgba::transparent());
         self.display_object().add_child(&new);
         self.layers().edge_below_nodes.add(&new);
@@ -348,40 +343,23 @@ pub(super) trait ShapeParent: display::Object {
 /// Note that the shape's `inset` and `border` should be the same value as the provided
 /// [`line_width`]. They are not set here as an optimization: When shapes are reused, the value does
 /// not need to be set again, reducing needed GPU uploads.
-pub(super) fn draw_corner(shape: Rectangle, corner: Corner, line_width: f32) -> Rectangle {
-    draw_geometry(shape, rectangle_geometry(corner, line_width))
-}
-
-fn draw_geometry(shape: Rectangle, geometry: RectangleGeometry) -> Rectangle {
-    shape.set_clip(geometry.clip);
-    shape.set_size(geometry.size);
-    shape.set_xy(geometry.xy);
-    shape.set_corner_radius(geometry.radius);
+pub(super) fn draw_corner(
+    shape: Rectangle,
+    corner: Corner,
+    color: color::Rgba,
+    line_width: f32,
+) -> Rectangle {
+    let size = corner.size(line_width);
+    let is_straight_line = size.x == line_width || size.y == line_width;
+    // Convert from a layout radius (in the center of the line) to a [`Rectangle`] inner radius (on
+    // the outside edge of the border).
+    let radius = if is_straight_line { 0.0 } else { corner.max_radius() + line_width / 2.0 };
+    shape.set_clip(corner.clip());
+    shape.set_size(size);
+    shape.set_xy(corner.origin(line_width));
+    shape.set_corner_radius(radius);
+    shape.set_border_color(color);
     shape
-}
-
-
-// === Rectangle Geometry ===
-
-#[derive(Debug, Copy, Clone, Default)]
-struct RectangleGeometry {
-    pub clip:   Vector2,
-    pub size:   Vector2,
-    pub xy:     Vector2,
-    pub radius: f32,
-}
-
-/// Return [`Rectangle`] geometry parameters to draw this corner shape.
-fn rectangle_geometry(corner: Corner, line_width: f32) -> RectangleGeometry {
-    // Convert from a layout radius (in the center of the line) to a [`Rectangle`] radius (on the
-    // inside edge of the border).
-    let radius = max(corner.max_radius() - line_width / 2.0, 0.0);
-    RectangleGeometry {
-        clip: corner.clip(),
-        size: corner.size(line_width),
-        xy: corner.origin(line_width),
-        radius,
-    }
 }
 
 

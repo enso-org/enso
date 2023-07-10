@@ -11,7 +11,9 @@ use enso_frp as frp;
 use ensogl::control::io::mouse;
 use ensogl::data::color;
 use ensogl::display;
+use ensogl::display::scene::layer::LayerSymbolPartition;
 use ensogl::display::shape;
+use ensogl::display::shape::compound::rectangle;
 use ensogl::display::shape::Rectangle;
 use span_tree::PortId;
 
@@ -31,7 +33,7 @@ pub const PORT_PADDING_X: f32 = 4.0;
 const HOVER_PADDING_X: f32 = 2.0;
 
 /// The minimum size of the port visual area.
-pub const BASE_PORT_HEIGHT: f32 = 18.0;
+pub const BASE_PORT_HEIGHT: f32 = 24.0;
 
 /// The minimum size of the port hover area.
 const BASE_PORT_HOVER_HEIGHT: f32 = 16.0;
@@ -141,7 +143,9 @@ impl Port {
         config: &DynConfig,
         ctx: ConfigContext,
         pad_x_override: Option<f32>,
+        port_hover_layer: &LayerSymbolPartition<rectangle::Shape>,
     ) {
+        port_hover_layer.add(&self.hover_shape);
         match ctx.span_node.port_id {
             Some(id) => self.port_id.emit(id),
             None => error!("Port widget created on node with no port ID assigned."),
@@ -178,7 +182,6 @@ impl Port {
     }
 
     fn set_port_layout(&mut self, ctx: &ConfigContext, margin_x: f32) {
-        ctx.hover_layer.add(&self.hover_shape);
         let is_primary = ctx.info.nesting_level.is_primary();
         let margin_y = if is_primary { PRIMARY_PORT_HOVER_PADDING_Y } else { 0.0 };
 

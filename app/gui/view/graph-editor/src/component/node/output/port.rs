@@ -6,8 +6,6 @@ use enso_text::unit::*;
 use crate::application::tooltip;
 use crate::application::tooltip::Placement;
 use crate::component::node;
-use crate::component::type_coloring;
-use crate::view;
 use crate::Type;
 
 use enso_frp as frp;
@@ -17,8 +15,6 @@ use ensogl::control::io::mouse;
 use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::shape::Rectangle;
-use ensogl::display::shape::StyleWatch;
-use ensogl::display::shape::StyleWatchFrp;
 use ensogl::gui::text;
 use ensogl::Animation;
 
@@ -27,6 +23,7 @@ use ensogl::Animation;
 // === Constants ===
 // =================
 
+const NODE_OVERLAP: f32 = 0.1;
 const PORT_LINE_WIDTH: f32 = 4.0;
 const PORT_OPACITY_HOVERED: f32 = 1.0;
 const PORT_OPACITY_NOT_HOVERED: f32 = 0.25;
@@ -34,6 +31,8 @@ const SEGMENT_GAP_WIDTH: f32 = 2.0;
 const HOVER_AREA_PADDING: f32 = 20.0;
 const FULL_TYPE_ONSET_DELAY_MS: f32 = 2000.0;
 const LABEL_OFFSET: f32 = 10.0;
+const END_CAP_CLIP: f32 = 0.495;
+
 
 const TOOLTIP_LOCATION: Placement = Placement::Bottom;
 
@@ -94,7 +93,7 @@ impl ShapeView {
         // neither corners of the main shape.
         let is_first = port_index == 0;
         let is_last = port_index == number_of_ports - 1;
-        let main_radius = node::CORNER_RADIUS + PORT_LINE_WIDTH;
+        let main_radius = node::CORNER_RADIUS + PORT_LINE_WIDTH - NODE_OVERLAP;
         match (is_first, is_last) {
             (true, true) => main.keep_bottom_half().set_corner_radius(main_radius),
             (true, false) => main.keep_bottom_left_quarter().set_corner_radius(main_radius),
@@ -110,10 +109,10 @@ impl ShapeView {
             end_cap
                 .set_size((PORT_LINE_WIDTH, PORT_LINE_WIDTH / 2.0))
                 .set_corner_radius(PORT_LINE_WIDTH)
-                .keep_top_half();
+                .set_clip(Vector2(0.0, END_CAP_CLIP));
             end_cap.set_pointer_events(false);
             // End caps are positioned right above the main port line shape.
-            end_cap.set_y(node::HEIGHT * 0.5);
+            end_cap.set_y(node::HEIGHT * 0.5 + NODE_OVERLAP);
             root.add_child(&end_cap);
             end_cap
         };
@@ -168,14 +167,15 @@ impl ShapeView {
 
         // Ports at either end receive additional space to fill the rounded corners. This space
         // also includes the width of the port line.
-        let corner_space = PORT_LINE_WIDTH + node::CORNER_RADIUS;
+        let corner_space = PORT_LINE_WIDTH + node::CORNER_RADIUS - NODE_OVERLAP;
         let is_first = self.port_index == 0;
         let is_last = self.port_index == self.number_of_ports - 1;
         let left_corner = if is_first { corner_space } else { 0.0 };
         let right_corner = if is_last { corner_space } else { 0.0 };
         let corner_before_port = if is_first { 0.0 } else { corner_space };
 
-        let port_left_position = line_space_before_port + corner_before_port - PORT_LINE_WIDTH;
+        let port_left_position =
+            line_space_before_port + corner_before_port - PORT_LINE_WIDTH + NODE_OVERLAP;
         let port_total_width = single_port_width + left_corner + right_corner;
 
         let hover_corner_pad = HOVER_AREA_PADDING - PORT_LINE_WIDTH;
@@ -195,12 +195,12 @@ impl ShapeView {
             .set_xy(origin_offset + Vector2(hover_left_position, -HOVER_AREA_PADDING));
         self.main
             .set_size((port_total_width, port_total_height))
-            .set_xy((port_left_position, -PORT_LINE_WIDTH));
+            .set_xy((port_left_position, -PORT_LINE_WIDTH + NODE_OVERLAP));
 
         let label_width = self.type_label.width.value();
         let label_x = port_left_position + port_total_width * 0.5 - label_width * 0.5;
         self.type_label.set_x(label_x);
-        self.end_cap_right.as_ref().map(|cap| cap.set_x(size.x));
+        self.end_cap_right.as_ref().map(|cap| cap.set_x(size.x - NODE_OVERLAP));
     }
 
     fn set_size_multiplier(&self, multiplier: f32) {
@@ -208,7 +208,9 @@ impl ShapeView {
         let current_width = PORT_LINE_WIDTH * multiplier;
         self.main.set_border(current_width);
         let cap_size = (current_width, current_width * 0.5);
-        self.end_cap_left.as_ref().map(|cap| cap.set_size(cap_size).set_x(-current_width));
+        self.end_cap_left
+            .as_ref()
+            .map(|cap| cap.set_size(cap_size).set_x(-current_width + NODE_OVERLAP));
         self.end_cap_right.as_ref().map(|cap| cap.set_size(cap_size));
     }
 
@@ -238,7 +240,7 @@ ensogl::define_endpoints! {
         set_usage_type            (Option<Type>),
         set_type_label_visibility (bool),
         set_size                  (Vector2),
-        set_view_mode             (view::Mode),
+        set_color                 (color::Lcha),
     }
 
     Output {
@@ -251,20 +253,22 @@ ensogl::define_endpoints! {
 }
 
 #[derive(Debug)]
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
+/// The model of a single output port - a shape and a type label, which are made visible on hover. A
+/// node can have multiple output ports.
+#[allow(missing_docs)]
 pub struct Model {
     pub frp:    Frp,
     pub shape:  Rc<ShapeView>,
+    /// The index of the first byte in node's output expression at which this port starts.
     pub index:  ByteDiff,
+    /// The length of the substring of output expression for this port.
     pub length: ByteDiff,
 }
 
 impl Model {
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
+    /// Constructor for a single output port model.
     pub fn new(
         app: &Application,
-        styles: &StyleWatch,
-        styles_frp: &StyleWatchFrp,
         port_index: usize,
         port_count: usize,
         index: ByteDiff,
@@ -275,11 +279,11 @@ impl Model {
 
         let frp = Frp::new();
         let mut this = Self { frp, shape: Rc::new(shape), index, length };
-        this.init_frp(styles, styles_frp);
+        this.init_frp();
         this
     }
 
-    fn init_frp(&mut self, styles: &StyleWatch, styles_frp: &StyleWatchFrp) {
+    fn init_frp(&mut self) {
         let frp = &self.frp;
         let shape = &self.shape;
         let network = &frp.network;
@@ -316,14 +320,9 @@ impl Model {
                 |usage_tp,def_tp| usage_tp.clone().or_else(|| def_tp.clone())
             );
 
-            normal_color <- frp.tp.map(f!([styles](t)
-                type_coloring::compute_for_selection(t.as_ref(),&styles)));
-            let profiling_color = styles_frp.get_color_lcha(ensogl_hardcoded_theme::code::types::any::selection);
-            in_profiling_mode <- frp.set_view_mode.map(|mode| mode.is_profiling());
-            color_base <- in_profiling_mode.switch(&normal_color,&profiling_color);
             is_hovered <- all(is_hovered, init)._0();
             color_opacity <- is_hovered.switch_constant(PORT_OPACITY_NOT_HOVERED, PORT_OPACITY_HOVERED);
-            color.target <+ color_base.all_with(&color_opacity, |c, a| c.multiply_alpha(*a));
+            color.target <+ frp.set_color.all_with(&color_opacity, |c, a| c.multiply_alpha(*a));
             eval color.value ((t) shape.set_color(t.into()));
 
             full_type_timer.start <+ frp.on_hover.on_true();
@@ -373,7 +372,5 @@ impl Model {
                 });
             }
         }
-
-        color.target.emit(type_coloring::compute_for_code(None, styles));
     }
 }

@@ -104,6 +104,8 @@ struct BackgroundStyle {
     selection_hover_opacity: f32,
     #[theme_path = "theme::graph_editor::node::selection::size"]
     selection_size:          f32,
+    #[theme_path = "theme::application::background"]
+    app_bg:                  color::Lcha,
 }
 
 impl Background {
@@ -128,8 +130,8 @@ impl Background {
             selection_colors <- color_animation.value.all_with3(
                 &hover_animation.value, &style.update,
                 |color, hover, style| (
-                    color.multiply_alpha(style.selection_opacity),
-                    color.multiply_alpha(style.selection_hover_opacity * hover),
+                    color.multiply_alpha(style.selection_opacity).over(style.app_bg),
+                    color.multiply_alpha(style.selection_hover_opacity * hover).over(style.app_bg),
                 )
             );
             selection_border <- selection_animation.value.all_with(&style.update,
@@ -323,6 +325,9 @@ ensogl::define_endpoints_2! {
         /// call's target expression (`self` or first argument).
         requested_widgets        (ast::Id, ast::Id),
         request_import           (ImString),
+
+        base_color               (color::Lcha),
+        port_color               (color::Lcha),
     }
 }
 
@@ -490,10 +495,6 @@ impl NodeModel {
     fn init(self) -> Self {
         self.set_expression(Expression::new_plain("empty"));
         self.set_layers_for_state(self.interaction_state.get());
-        // TODO: handle color change. Will likely require moving the node background and backdrop
-        // into a widget, which is also necessary to later support "split" nodes, where '.' chains
-        // are displayed as separate shapes.
-        self.set_base_color(color::Lcha(0.56708, 0.23249, 0.71372, 1.0));
         self
     }
 
@@ -587,8 +588,9 @@ impl NodeModel {
     }
 
     #[profile(Debug)]
-    fn set_base_color(&self, color: color::Lcha) {
+    fn update_colors(&self, color: color::Lcha, port_color: color::Lcha) {
         self.background.set_color(color);
+        self.output.set_port_color(port_color);
     }
 
     fn set_selected(&self, selected: bool) {
@@ -617,12 +619,14 @@ impl Node {
 
         frp::extend! { network
             init <- source::<()>();
-
             // Hook up the display object position updates to the node's FRP. Required to calculate
             // the bounding box.
             out.position <+ display_object.on_transformed.map(f_!(display_object.position().xy()));
+        }
 
+        frp::extend! { network
             // === Hover ===
+
             // The hover discovery of a node is an interesting process. First, we discover whether
             // ths user hovers the background. The input port manager merges this information with
             // port hover events and outputs the final hover event for any part inside of the node.
@@ -639,7 +643,9 @@ impl Node {
             model.output.set_hover <+ model.input.body_hover;
             out.hover <+ model.output.body_hover;
             model.background.node_is_hovered <+ out.hover;
+        }
 
+        frp::extend! { network
             // === Background Press ===
 
             let background_press = model.background.on_event::<mouse::Down>();
@@ -648,14 +654,16 @@ impl Node {
             any_background_press <- any(&background_press, &input_as_background_press);
             any_primary_press <- any_background_press.filter(mouse::event::is_primary);
             out.background_press <+ any_primary_press.constant(());
+        }
 
-
+        frp::extend! { network
             // === Selection ===
 
             selected <- bool(&input.deselect, &input.select);
             eval selected ((selected) model.set_selected(*selected));
+        }
 
-
+        frp::extend! { network
             // === Expression ===
 
             let unresolved_symbol_type = Some(Type(ImString::new(UNRESOLVED_SYMBOL_TYPE)));
@@ -674,8 +682,11 @@ impl Node {
             model.input.update_widgets <+ input.update_widgets;
             model.output.set_expression_visibility <+ input.set_output_expression_visibility;
 
+        }
 
+        frp::extend! { network
             // === Comment ===
+
 
             let comment_base_color = style_frp.get_color(theme::graph_editor::node::text);
             comment_color <- all_with(
@@ -696,14 +707,16 @@ impl Node {
                 model.comment.set_y(*height / 2.0));
             model.comment.set_content <+ input.set_comment;
             out.comment <+ model.comment.content.map(|text| text.to_im_string());
+        }
 
-
+        frp::extend! { network
             // === Size ===
 
             input_width <- all(&model.input.frp.width, &init)._0();
             new_size <- input_width.map(f!((w) model.set_width(*w)));
+        }
 
-
+        frp::extend! { network
             // === Action Bar ===
 
             out.context_switch <+ action_bar.action_context_switch;
@@ -716,8 +729,9 @@ impl Node {
             action_bar.set_action_skip_state <+ input.set_skip_macro;
             action_bar.set_action_context_switch_state <+ input.set_context_switch;
             action_bar.set_execution_environment <+ input.set_execution_environment;
+        }
 
-
+        frp::extend! { network
             // === View Mode ===
 
             model.input.set_view_mode <+ input.set_view_mode;
@@ -727,8 +741,9 @@ impl Node {
             model.vcs_indicator.set_visibility  <+ input.set_view_mode.map(|&mode| {
                 !matches!(mode,view::Mode::Profiling {..})
             });
+        }
 
-
+        frp::extend! { network
             // === Read-only mode ===
 
             action_bar.set_read_only <+ input.set_read_only;
@@ -764,7 +779,8 @@ impl Node {
             viz_enabled <- enabled && no_error_set;
             visualization.set_view_state <+ viz_enabled.on_true().constant(visualization::ViewState::Enabled);
             visualization.set_view_state <+ viz_enabled.on_false().constant(visualization::ViewState::Disabled);
-
+        }
+        frp::extend! { network
             // Integration between visualization and action bar.
             visualization.set_visualization <+ input.set_visualization;
             is_enabled <- visualization.view_state.map(|state|{
@@ -778,7 +794,8 @@ impl Node {
             action_bar.set_action_visibility_state <+ button_set_to_true_with_error.constant(false);
 
             visualization.set_view_state <+ action_bar.user_action_visibility.on_false().constant(visualization::ViewState::Disabled);
-
+        }
+        frp::extend! { network
             // Show preview visualization after some delay, depending on whether we show an error
             // or are in quick preview mode. Also, omit the preview if we don't have an
             // expression.
@@ -795,7 +812,8 @@ impl Node {
             });
             hover_onset_delay.set_delay <+ preview_show_delay;
             hide_tooltip                <- preview_show_delay.map(|&delay| delay <= f32::EPSILON);
-
+        }
+        frp::extend! { network
             output_hover <- model.output.on_port_hover.map(|s| s.is_on());
             visualization_hover <- bool(&model.visualization.on_event::<mouse::Out>(), &model.visualization.on_event::<mouse::Over>());
             hovered_for_preview <- output_hover || visualization_hover;
@@ -818,7 +836,8 @@ impl Node {
             vis_preview_visible <- vis_preview_visible.on_change();
             visualization.set_view_state <+ vis_preview_visible.on_true().constant(visualization::ViewState::Preview);
             visualization.set_view_state <+ vis_preview_visible.on_false().constant(visualization::ViewState::Disabled);
-
+        }
+        frp::extend! { network
             update_error <- all(input.set_error,preview_visible);
             eval update_error([model]((error,visible)){
                 if *visible {
@@ -836,9 +855,9 @@ impl Node {
 
         }
 
-        // === Profiling Indicator ===
-
         frp::extend! { network
+            // === Profiling Indicator ===
+
             model.profiling_label.set_min_global_duration
                 <+ input.set_profiling_min_global_duration;
             model.profiling_label.set_max_global_duration
@@ -848,7 +867,6 @@ impl Node {
         }
 
         frp::extend! { network
-
             // === Tooltip ===
 
             // Hide tooltip if we show the preview vis.
@@ -856,14 +874,15 @@ impl Node {
             // Propagate output tooltip. Only if it is not hidden, or to disable it.
             block_tooltip      <- hide_tooltip && has_tooltip;
             app.frp.set_tooltip <+ model.output.frp.tooltip.gate_not(&block_tooltip);
+        }
 
+        frp::extend! { network
+            // === Type Labels ===`
 
-            // === Type Labels ===
+            model.output.set_type_label_visibility <+ visualization.visible.not().and(&no_error_set);
+        }
 
-            model.output.set_type_label_visibility
-                <+ visualization.visible.not().and(&no_error_set);
-
-
+        frp::extend! { network
             // === Bounding Box ===
 
             let visualization_size = &model.visualization.frp.size;
@@ -873,12 +892,38 @@ impl Node {
 
             inner_bbox_input <- all2(&out.position,&new_size);
             out.inner_bounding_box <+ inner_bbox_input.map(|(a,b)| bounding_box(*a,*b,None));
+        }
 
-
+        frp::extend! { network
             // === VCS Handling ===
 
             model.vcs_indicator.frp.set_status <+ input.set_vcs_status;
         }
+
+        frp::extend! { network
+            // === Colors ===
+
+            let port_color_tint = style_frp.get_color_lcha(theme::graph_editor::node::port_color_tint);
+            base_color_source <- source();
+            out.base_color <+ base_color_source;
+            out.port_color <+ out.base_color.all_with(&port_color_tint, |c, tint| tint.over(*c));
+            node_colors <- all(frp.base_color, frp.port_color);
+            eval node_colors(((base, port)) model.update_colors(*base, *port));
+        }
+
+
+        // TODO: handle color change. Will likely require moving the node background and backdrop
+        // into a widget, which is also necessary to later support "split" nodes, where '.' chains
+        // are displayed as separate shapes.
+        let colors = [
+            color::Lcha(0.56708, 0.23249, 0.71372, 1.0),
+            color::Lcha(0.44680, 0.45460, 0.96805, 1.0),
+            color::Lcha(0.44370, 0.45460, 0.72008, 1.0),
+        ];
+        let mut hasher = crate::DefaultHasher::new();
+        Rc::as_ptr(&model).hash(&mut hasher);
+        base_color_source.emit(colors[hasher.finish() as usize % colors.len()]);
+
 
         // Init defaults.
         init.emit(());

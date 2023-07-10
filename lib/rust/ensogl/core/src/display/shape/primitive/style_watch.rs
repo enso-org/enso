@@ -177,14 +177,19 @@ impl ThemeAccess for color::Lcha {
 /// Style watch utility. It's reference is passed to shapes defined with the `shape`
 /// macro. Whenever a style sheet value is accessed, the value reference is being remembered and
 /// tracked. Whenever it changes, the `callback` runs. The callback should trigger shape redraw.
-#[derive(Clone, CloneRef, Derivative)]
-#[derivative(Debug)]
+#[derive(Clone, CloneRef, Debug)]
 pub struct StyleWatch {
+    data: Rc<RefCell<StyleWatchData>>,
+}
+
+#[derive(Derivative)]
+#[derivative(Debug)]
+struct StyleWatchData {
     sheet:    style::Sheet,
-    vars:     Rc<RefCell<Vec<style::Var>>>,
-    handles:  Rc<RefCell<Vec<callback::Handle>>>,
+    vars:     HashSet<style::Var>,
+    handles:  Vec<callback::Handle>,
     #[derivative(Debug = "ignore")]
-    callback: Rc<RefCell<Box<dyn Fn()>>>,
+    callback: Rc<dyn Fn()>,
 }
 
 impl StyleWatch {
@@ -194,31 +199,36 @@ impl StyleWatch {
         let sheet = sheet.clone_ref();
         let vars = default();
         let handles = default();
-        let callback = Rc::new(RefCell::new(Box::new(|| {}) as Box<dyn Fn()>));
-        Self { sheet, vars, handles, callback }
+        let callback = Rc::new(|| {}) as Rc<dyn Fn()>;
+        let data = StyleWatchData { sheet, vars, handles, callback };
+        Self { data: Rc::new(RefCell::new(data)) }
     }
 
     /// Resets the state of style manager. Should be used on each new shape definition. It is
     /// called automatically when used by `shape`.
     pub fn reset(&self) {
-        *self.vars.borrow_mut() = default();
-        *self.handles.borrow_mut() = default();
+        let mut data = self.data.borrow_mut();
+        data.vars = default();
+        data.handles = default();
     }
 
     /// Sets the callback which will be used when dependent styles change.
     pub fn set_on_style_change<F: 'static + Fn()>(&self, callback: F) {
-        *self.callback.borrow_mut() = Box::new(callback);
+        self.data.borrow_mut().callback = Rc::new(callback);
     }
 
     /// Queries style sheet value for a value.
     pub fn get(&self, path: impl Into<Path>) -> Option<style::Data> {
+        let mut data = self.data.borrow_mut();
         let path = path.into();
-        let var = self.sheet.var(path);
+        let var = data.sheet.var(path);
         let value = var.value();
-        let callback = self.callback.clone_ref();
-        let handle = var.on_change(move |_: &Option<style::Data>| (callback.borrow())());
-        self.vars.borrow_mut().push(var);
-        self.handles.borrow_mut().push(handle);
+        if !data.vars.contains(&var) {
+            let callback = data.callback.clone_ref();
+            let handle = var.on_change(move |_: &Option<style::Data>| callback());
+            data.vars.insert(var);
+            data.handles.push(handle);
+        }
         value
     }
 
@@ -244,7 +254,7 @@ impl StyleWatch {
 
     /// A debug check of how many stylesheet variables are registered in this style watch.
     pub fn debug_var_count(&self) -> usize {
-        self.vars.borrow().len()
+        self.data.borrow().vars.len()
     }
 }
 

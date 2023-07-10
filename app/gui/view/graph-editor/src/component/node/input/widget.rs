@@ -704,6 +704,7 @@ impl Tree {
     }
 
     /// Get pretty-printed representation of this widget tree for debugging purposes.
+    #[allow(unused)]
     fn debug_print(&self) -> String {
         let mut result = String::new();
         let hierarchy = self.model.hierarchy.borrow();
@@ -1530,6 +1531,7 @@ impl<'a> TreeBuilder<'a> {
         // usage type and whether it has children.
         let disallowed_configs = ptr_usage.used_configs;
         let parent_extensions_len = self.extensions.len();
+
         let layers = self.layers.main_nodes.layers_for_widgets_at_depth(depth);
 
         let ctx = ConfigContext {
@@ -1590,7 +1592,8 @@ impl<'a> TreeBuilder<'a> {
                 Some(TreeNode::Widget(widget)) => Port::new(widget, &ctx),
                 None => Port::new(DynWidget::new(&configuration.kind, &ctx), &ctx),
             };
-            port.configure(&configuration.kind, ctx, port_pad);
+            let port_hover_layer = ctx.builder.layers.main_nodes.port_hover_layer(depth);
+            port.configure(&configuration.kind, ctx, port_pad, &port_hover_layer);
             TreeNode::Port(port)
         } else {
             let mut widget = match old_node {

@@ -3,11 +3,11 @@
 use super::prelude::*;
 use crate::prelude::*;
 
+use crate::component::node::input::port::PORT_PADDING_X;
 use crate::component::node::HEIGHT as NODE_HEIGHT;
 use ensogl::data::color;
 use ensogl::display::object;
 use ensogl::display::shape::Rectangle;
-
 
 
 // =================
@@ -51,7 +51,7 @@ impl SpanWidget for Widget {
             .set_children_alignment_left_center()
             .justify_content_center_y();
         let separator = Rectangle();
-        separator.set_size((2.0, NODE_HEIGHT)).set_margin_xy((7.0, 0.0));
+        separator.set_size((1.0, NODE_HEIGHT)).set_margin_xy((7.5 + PORT_PADDING_X, 0.0));
         separator.set_color(color::Rgba::new(0.0, 0.0, 0.0, 0.12));
         Self { root, separator }
     }

@@ -39,6 +39,8 @@ define_endpoints_2! {
     Input {
         /// The width and height of the source node in pixels.
         source_size(Vector2),
+        /// The width and height of the target port in pixels.
+        target_size(Vector2),
         /// The location of the center of the target node's input port.
         target_position(Vector2),
         /// Whether the target end of the edge is attached to a node (If `false`, it is being
@@ -102,6 +104,7 @@ impl Edge {
             eval frp.source_attached ((t) model.inputs.set_source_attached(*t));
             eval frp.target_attached ((t) model.inputs.set_target_attached(*t));
             eval frp.source_size ((t) model.inputs.set_source_size(*t));
+            eval frp.target_size ((t) model.inputs.set_target_size(*t));
             eval frp.set_disabled ((t) model.inputs.set_disabled(*t));
 
             // Mouse events.
@@ -212,7 +215,9 @@ impl EdgeModel {
         let target_offset = self.target_offset();
         let target_attached = self.inputs.target_attached.get();
         let source_attached = self.inputs.source_attached.get();
-        let layout = layout::layout(self.source_half_width(), target_offset, target_attached);
+        let source_size = self.inputs.source_size.get();
+        let target_size = self.inputs.target_size.get();
+        let layout = layout::layout(source_size, target_offset, target_size, target_attached);
         let is_attached = target_attached && source_attached;
         let focus_split = is_attached
             .then(|| {
@@ -223,7 +228,7 @@ impl EdgeModel {
                 // `mouse::Out` event.
                 self.inputs.hover_position.get().and_then(|position| {
                     let position = self.scene_pos_to_parent_pos(position);
-                    let source_height = self.inputs.source_size.get().y();
+                    let source_height = source_size.y();
                     layout::find_position(position, &layout, source_height, render::HOVER_WIDTH)
                 })
             })
@@ -305,10 +310,6 @@ impl EdgeModel {
 // === Low-level operations ===
 
 impl EdgeModel {
-    fn source_half_width(&self) -> f32 {
-        self.inputs.source_size.get().x() / 2.0
-    }
-
     fn screen_pos_to_scene_pos(&self, screen_pos: Vector2) -> SceneCoords {
         let screen_pos_3d = Vector3(screen_pos.x(), screen_pos.y(), 0.0);
         SceneCoords(self.scene.screen_to_scene_coordinates(screen_pos_3d).xy())

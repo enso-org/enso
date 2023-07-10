@@ -201,6 +201,7 @@ crate::define_endpoints_2! {
         scene_position        (Vector3),
          /// Change between the current and the previous scene position.
         scene_position_delta  (Vector3),
+        box_size              (Vector2),
         start_drag(),
         stop_drag(),
         is_dragging(bool),
@@ -598,6 +599,7 @@ impl Cursor {
             frp.private.output.scene_position       <+ scene_position;
             frp.private.output.scene_position_delta <+ scene_position_delta;
             frp.private.output.is_dragging <+ bool(&frp.stop_drag, &frp.start_drag);
+            frp.private.output.box_size <+ size.value;
         }
 
         // Hide on init.
