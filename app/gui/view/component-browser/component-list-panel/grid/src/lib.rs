@@ -250,6 +250,7 @@ pub struct Model {
     grid:                   Grid,
     grid_layer:             Layer,
     selection_layer:        Layer,
+    scroll_bars_layer:      Layer,
     layout:                 Rc<RefCell<Layout>>,
     enterable_elements:     Rc<RefCell<HashSet<ElementId>>>,
     colors:                 Rc<RefCell<HashMap<GroupId, entry::MainColor>>>,
@@ -274,9 +275,11 @@ impl component::Model for Model {
         let base_layer = &app.display.default_scene.layers.node_searcher;
         let grid_layer = base_layer.create_sublayer("grid_layer");
         let selection_layer = base_layer.create_sublayer("selection_layer");
+        let scroll_bars_layer = base_layer.create_sublayer("scrollbars_layer");
         display_object.add_child(&grid);
         grid_layer.add(&grid);
         grid.selection_highlight_frp().setup_masked_layer(selection_layer.downgrade());
+        grid.set_scrollbars_layer(&scroll_bars_layer);
         Self {
             display_object,
             grid,
@@ -285,6 +288,7 @@ impl component::Model for Model {
             colors,
             grid_layer,
             selection_layer,
+            scroll_bars_layer,
             requested_section_info,
         }
     }

@@ -225,6 +225,10 @@ impl<InnerGridView> GridViewTemplate<InnerGridView> {
         self.area.deref()
     }
 
+    pub fn set_scrollbars_layer(&self, layer: &Layer) {
+        self.area.set_scrollbars_layer(layer)
+    }
+
     /// Access the parts of the FRP API of a scrollable Grid View that are not available through
     /// either the [`InnerGridView`] FRP or the [`scroll_frp`] API.
     pub fn extra_scroll_frp(&self) -> &Frp {
