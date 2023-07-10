@@ -516,6 +516,7 @@
 - [Added `replace` to in-memory table. Changed replace for `Text`, in-memory
   `Column`, and in-memory `Table` to take a `Regex` in addition to a `Text`.]
   [7223]
+- [Added `cross_join` support to database tables.][7234]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -743,6 +744,7 @@
 [7166]: https://github.com/enso-org/enso/pull/7166
 [7174]: https://github.com/enso-org/enso/pull/7174
 [7223]: https://github.com/enso-org/enso/pull/7223
+[7234]: https://github.com/enso-org/enso/pull/7234
 
 #### Enso Compiler
 
