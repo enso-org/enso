@@ -39,6 +39,7 @@ export const theme = {
             2: '2',
         },
         fontSize: {
+            xs: '0.71875rem',
             vs: '0.8125rem',
         },
         spacing: {

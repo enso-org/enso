@@ -22,6 +22,7 @@ const SPINNER_LOADING_CLASSES = 'grow dasharray-75 duration-1000 ease-linear'
 export interface Column<T> {
     id: string
     heading: JSX.Element
+    widthClass?: string
     render: (item: T, index: number) => react.ReactNode
 }
 
@@ -50,7 +51,9 @@ function Rows<T>(props: RowsProps<T>) {
             {columns.map(column => (
                 <th
                     key={column.id}
-                    className="text-vs px-4 align-middle py-1 border-0 border-r whitespace-nowrap font-semibold text-left"
+                    className={`text-vs px-4 align-middle py-1 border-0 border-r whitespace-nowrap font-bold text-left ${
+                        column.widthClass ?? ''
+                    }`}
                 >
                     {column.heading}
                 </th>
@@ -92,10 +95,15 @@ function Rows<T>(props: RowsProps<T>) {
                 onContextMenu={event => {
                     onContextMenu(item, event)
                 }}
-                className="h-10 transition duration-300 ease-in-out hover:bg-gray-100 focus:bg-gray-200"
+                className="h-10 transition duration-300 ease-in-out"
             >
                 {columns.map(column => (
-                    <td key={column.id} className="px-4 border-0 border-r vertical-align-middle">
+                    <td
+                        key={column.id}
+                        className={`px-4 border-0 border-r vertical-align-middle ${
+                            column.widthClass ?? ''
+                        }`}
+                    >
                         {column.render(item, index)}
                     </td>
                 ))}
@@ -103,10 +111,10 @@ function Rows<T>(props: RowsProps<T>) {
         ))
     )
     return (
-        <>
-            {headerRow}
-            {itemRows}
-        </>
+        <table className="rounded-rows table-fixed items-center border-collapse ml-1 mt-2">
+            <thead>{headerRow}</thead>
+            <tbody>{itemRows}</tbody>
+        </table>
     )
 }
 
