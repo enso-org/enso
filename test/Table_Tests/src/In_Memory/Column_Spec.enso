@@ -118,7 +118,7 @@ spec =
             Column.from_vector "foo" [12, 24, 25, 29] . round -1 . value_type . should_equal Value_Type.Integer
 
         Test.specify "rounding should not attach a warning by default" <|
-            Column.from_vector "foo" [12, 24, 25, 29] . round 1 . has_warnings . should_be_false
+            Problems.assume_no_problems <| Column.from_vector "foo" [12, 24, 25, 29] . round 1
 
         Test.specify "should report out-of-range values as warnings" <|
             col = Column.from_vector "foo" [12, 23, 99999999999999999]
