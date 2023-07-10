@@ -192,6 +192,9 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
                 }
                 case ProjectEventType.cancelOpeningAll: {
                     setShouldOpenWhenReady(false)
+                    onSpinnerStateChange?.(null)
+                    setOnSpinnerStateChange(null)
+                    break
                 }
             }
         }
