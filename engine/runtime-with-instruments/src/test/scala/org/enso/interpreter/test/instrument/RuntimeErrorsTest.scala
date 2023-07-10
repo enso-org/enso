@@ -799,7 +799,20 @@ class RuntimeErrorsTest
       3,
       updatesOnlyFor = Set(xId, yId)
     ) should contain theSameElementsAs Seq(
-      TestMessages.update(contextId, xId, ConstantsGen.INTEGER),
+      TestMessages.update(
+        contextId,
+        xId,
+        ConstantsGen.INTEGER,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Standard.Base.Error",
+              "Standard.Base.Error.Error",
+              "throw"
+            )
+          )
+        )
+      ),
       TestMessages.update(contextId, yId, ConstantsGen.INTEGER),
       context.executionComplete(contextId)
     )
@@ -2041,6 +2054,108 @@ class RuntimeErrorsTest
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("MyError")
+  }
+
+  it should "cache dataflow errors" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+    val newline    = "\n" // was: System.lineSeparator()
+
+    val metadata   = new Metadata
+    val xId        = metadata.addItem(111, 79)
+    val mainResId  = metadata.addItem(195, 1)
+    val mainRes1Id = metadata.addItem(209, 1)
+
+    val code =
+      """import Standard.Base.Error.Error
+        |import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+        |
+        |main =
+        |    x = Error.throw (Illegal_Argument.Error "The operation failed due to some reason.")
+        |    x
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveNIgnorePendingExpressionUpdates(
+      5
+    ) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.error(
+        contextId,
+        xId,
+        methodCall = Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Error",
+            "Standard.Base.Error.Error",
+            "throw"
+          )
+        ),
+        Api.ExpressionUpdate.Payload.DataflowError(Seq(xId))
+      ),
+      TestMessages.error(
+        contextId,
+        mainResId,
+        Api.ExpressionUpdate.Payload.DataflowError(Seq(xId))
+      ),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual Seq()
+
+    // Modify the file
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(
+            TextEdit(
+              model.Range(model.Position(5, 4), model.Position(5, 5)),
+              s"y = x - 1${newline}    y"
+            )
+          ),
+          execute = true
+        )
+      )
+    )
+    context.receiveNIgnorePendingExpressionUpdates(
+      2
+    ) should contain theSameElementsAs Seq(
+      TestMessages.error(
+        contextId,
+        mainRes1Id,
+        Api.ExpressionUpdate.Payload.DataflowError(Seq(xId))
+      ),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual Seq()
   }
 
 }

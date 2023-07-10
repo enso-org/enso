@@ -3,8 +3,9 @@ import Standard.Base.Data.Text.Regex.Regex_Syntax_Error
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Unimplemented.Unimplemented
-import project.Data.Table.Table
+
 import project.Data.Match_Columns.Match_Columns
+import project.Data.Table.Table
 import project.Delimited.Delimited_Format.Delimited_Format
 import project.Errors.Invalid_JSON_Format
 import project.Internal.Delimited_Reader

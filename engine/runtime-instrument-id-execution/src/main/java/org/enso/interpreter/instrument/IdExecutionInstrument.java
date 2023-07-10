@@ -25,6 +25,7 @@ import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.control.TailCallException;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
 import org.enso.interpreter.runtime.state.State;
@@ -250,7 +251,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
     }
 
     private void onExpressionReturn(Object result, Node node, EventContext context) throws ThreadDeath {
-      boolean isPanic = result instanceof AbstractTruffleException;
+      boolean isPanic = result instanceof AbstractTruffleException && !(result instanceof DataflowError);
       UUID nodeId = ((ExpressionNode) node).getId();
 
       String resultType = typeOf(result);

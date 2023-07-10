@@ -3,8 +3,8 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import project.Data.Column.Column
 
-polyglot java import java.sql.Types
 polyglot java import java.sql.ResultSetMetaData
+polyglot java import java.sql.Types
 
 ## PRIVATE
    Represents an internal SQL data-type.
