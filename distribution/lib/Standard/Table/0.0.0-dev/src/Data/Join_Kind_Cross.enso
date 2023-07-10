@@ -8,4 +8,4 @@ type Join_Kind_Cross
     ## PRIVATE
        Returns the SQL representation of this join kind as text.
     to_sql : Text
-    to_sql self = "INNER JOIN"
+    to_sql self = "CROSS JOIN"
