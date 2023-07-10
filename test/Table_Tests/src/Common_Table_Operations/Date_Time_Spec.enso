@@ -329,7 +329,8 @@ spec setup =
 
             # But 1 day date shift will shift 1 day, keeping the time, even if that particular day is only 23 hours.
             x.date_add 1 Date_Period.Day . to_vector . should_equal_tz_agnostic [Date_Time.new 2023 03 27 00 30 00]
-            x.date_add 1 Time_Period.Day . to_vector . should_equal_tz_agnostic [Date_Time.new 2023 03 27 00 30 00]
+            # Time_Period.Day will shift by 24 hours.
+            x.date_add 1 Time_Period.Day . to_vector . should_equal_tz_agnostic [Date_Time.new 2023 03 27 01 30 00]
 
             dt2 = Date_Time.new 2023 03 27 00 30 00 zone=zone
             x.date_diff dt2 Time_Period.Hour . to_vector . should_equal [23]
@@ -344,7 +345,8 @@ spec setup =
                  cannot 'guess' that it should be a day of a difference and
                  since it is 'just' 23 hours - there is 0 days.
             [[0], [1]] . should_contain (x.date_diff dt2 Date_Period.Day . to_vector)
-            [[0], [1]] . should_contain (x.date_diff dt2 Time_Period.Day . to_vector)
+            # Again consistent for both backends, when counting in hours - 23 hours is not a full 24-hour day.
+            x.date_diff dt2 Time_Period.Day . to_vector . should_equal [0]
 
             dt3 = Date_Time.new 2023 03 28 01 30 00 zone=zone
             dt4 = Date_Time.new 2023 03 29 00 30 00 zone=zone
