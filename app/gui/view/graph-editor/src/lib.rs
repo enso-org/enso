@@ -1801,7 +1801,7 @@ impl GraphEditorModel {
                 &visualization.visible, &visualization.visualization_path,
                 move |_init, is_enabled, path| (node_id, is_enabled.and_option(path.clone()))
             );
-            out.enabled_visualization_path <+ enabled_visualization_path;
+            out.enabled_visualization_path <+ enabled_visualization_path.on_change();
 
 
             // === Read-only mode ===
@@ -3006,7 +3006,6 @@ fn init_remaining_graph_editor_frp(
         );
         out.node_added <+ new_node;
         node_to_edit_after_adding <- new_node.filter_map(|&(id,_,do_edit)| do_edit.as_some(id));
-        eval node_to_edit_after_adding((id) model.with_node(*id, |node| node.show_preview()));
 
         let on_before_rendering = ensogl::animation::on_before_rendering();
         node_to_pan <- new_node._0().debounce();

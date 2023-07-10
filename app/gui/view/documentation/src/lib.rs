@@ -19,6 +19,7 @@
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
+use ensogl::display::shape::*;
 use ensogl::prelude::*;
 use ensogl::system::web::traits::*;
 
@@ -31,7 +32,6 @@ use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::scene::Scene;
 use ensogl::display::shape::primitive::StyleWatch;
-use ensogl::display::shape::StyleWatchFrp;
 use ensogl::display::DomSymbol;
 use ensogl::system::web;
 use ensogl::Animation;
@@ -47,8 +47,6 @@ use ide_view_graph_editor as graph_editor;
 // ==============
 
 pub mod html;
-
-pub use visualization::container::overlay;
 
 
 
@@ -91,7 +89,7 @@ pub struct Model {
     inner_dom:      DomSymbol,
     /// The purpose of this overlay is stop propagating mouse events under the documentation panel
     /// to EnsoGL shapes, and pass them to the DOM instead.
-    overlay:        overlay::View,
+    overlay:        Rectangle,
     display_object: display::object::Instance,
     event_handlers: Rc<RefCell<Vec<web::EventListenerHandle>>>,
 }
@@ -104,7 +102,9 @@ impl Model {
         let outer_dom = DomSymbol::new(&outer_div);
         let inner_div = web::document.create_div_or_panic();
         let inner_dom = DomSymbol::new(&inner_div);
-        let overlay = overlay::View::new();
+        let overlay = Rectangle::new().build(|r| {
+            r.set_color(INVISIBLE_HOVER_COLOR);
+        });
         let caption_div = web::document.create_div_or_panic();
         let caption_dom = DomSymbol::new(&caption_div);
         caption_dom.set_inner_html(&html::caption_html());
@@ -125,7 +125,6 @@ impl Model {
         inner_dom.dom().set_style_or_warn("overflow-x", "auto");
         inner_dom.dom().set_style_or_warn("pointer-events", "auto");
 
-        overlay.roundness.set(1.0);
         display_object.add_child(&outer_dom);
         outer_dom.add_child(&caption_dom);
         outer_dom.add_child(&inner_dom);
@@ -161,6 +160,7 @@ impl Model {
     /// Set size of the documentation view.
     fn set_size(&self, size: Vector2) {
         self.overlay.set_size(size);
+        self.overlay.set_xy(Vector2(-size.x / 2.0, -size.y / 2.0));
         self.outer_dom.set_dom_size(Vector2(size.x, size.y));
     }
 
@@ -204,7 +204,7 @@ impl Model {
 
     fn update_style(&self, style: Style) {
         self.set_size(Vector2(style.width, style.height));
-        self.overlay.radius.set(style.corner_radius);
+        self.overlay.set_corner_radius(style.corner_radius);
         self.outer_dom.set_style_or_warn("border-radius", format!("{}px", style.corner_radius));
         self.inner_dom.set_style_or_warn("border-radius", format!("{}px", style.corner_radius));
         let bg_color = style.background.to_javascript_string();

@@ -70,10 +70,10 @@ prepare_aggregate_columns aggregates table error_on_missing_columns =
            The second pass resolves the default names, ensuring that they do not
            clash with the user-specified names (ensuring that user-specified names
            take precedence).
-        pass_1 = valid_resolved_aggregate_columns.map c->(if c.new_name.is_nothing then Nothing else unique.make_unique c.new_name)
+        pass_1 = valid_resolved_aggregate_columns.map c-> if c.new_name == "" then "" else unique.make_unique c.new_name
         renamed_columns = pass_1.map_with_index i->name->
             agg = valid_resolved_aggregate_columns.at i
-            new_name = name.if_nothing (unique.make_unique (default_aggregate_column_name agg))
+            new_name = if name != "" then name else unique.make_unique (default_aggregate_column_name agg)
             Pair.new new_name agg
 
         # Build Problems Output

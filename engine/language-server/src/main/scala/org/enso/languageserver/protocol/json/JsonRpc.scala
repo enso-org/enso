@@ -29,12 +29,14 @@ import org.enso.languageserver.workspace.WorkspaceApi.ProjectInfo
 
 object JsonRpc {
 
-  /** A description of supported JSON RPC messages.
-    */
-  val protocol: Protocol = Protocol.empty
-    .registerRequest(Ping)
+  /** A description of JSON RPC messages support during the initialization stage */
+  val initProtocol: Protocol = Protocol.empty
     .registerRequest(InitialPing)
     .registerRequest(InitProtocolConnection)
+
+  /** A description of supported JSON RPC messages at a post-initialization stage */
+  def fullProtocol(init: Protocol): Protocol = init
+    .registerRequest(Ping)
     .registerRequest(AcquireCapability)
     .registerRequest(ReleaseCapability)
     .registerRequest(WriteFile)
@@ -116,4 +118,5 @@ object JsonRpc {
     .registerNotification(WaitingForStandardInput)
     .registerNotification(SuggestionsDatabaseUpdates)
     .registerNotification(VisualizationEvaluationFailed)
+    .finalized()
 }
