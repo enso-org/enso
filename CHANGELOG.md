@@ -193,6 +193,10 @@
   in the text. This is fixed now.
 - [Added prototype AI Searcher that can be used to create new nodes from  
   natural language input][7146]
+- [Allow visualization resizing][7164]. Now the user can adjust the
+  visualization size by dragging its right and bottom borders. Visualization
+  width also follows the node's width, and visualizations are aligned to the
+  left side of the node.
 
 [5910]: https://github.com/enso-org/enso/pull/5910
 [6279]: https://github.com/enso-org/enso/pull/6279
@@ -211,6 +215,7 @@
 [7028]: https://github.com/enso-org/enso/pull/7028
 [7014]: https://github.com/enso-org/enso/pull/7014
 [7146]: https://github.com/enso-org/enso/pull/7146
+[7164]: https://github.com/enso-org/enso/pull/7164
 
 #### EnsoGL (rendering engine)
 
@@ -862,6 +867,7 @@
 - [Add method call info for infix operators][7090]
 - [`executionComplete` response is sent on successful execution only][7143]
 - [Send info about function values][7168]
+- [Cache dataflow errors][7193]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -986,6 +992,7 @@
 [7090]: https://github.com/enso-org/enso/pull/7090
 [7143]: https://github.com/enso-org/enso/pull/7143
 [7168]: https://github.com/enso-org/enso/pull/7168
+[7193]: https://github.com/enso-org/enso/pull/7193
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 
