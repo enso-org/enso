@@ -158,6 +158,21 @@ type Column
 
     ## PRIVATE
 
+       Creates a ternary operation with given kind and operand.
+
+       Arguments:
+       - op_kind: The kind of ternary operator.
+       - operand1: The second operand to the binary operator.
+       - operand2: The third operand to the binary operator.
+       - new_name: The name of the resulting column.
+    make_ternary_op : Text -> Column | Any -> Column | Any -> (Text | Nothing) -> Column
+    make_ternary_op self op_kind operand1 operand2 new_name=Nothing =
+        effective_new_name = new_name.if_nothing <|
+            self.naming_helpers.function_name op_kind [self, operand1, operand2]
+        self.make_op op_kind [operand1, operand2] effective_new_name
+
+    ## PRIVATE
+
        Creates a binary operation with given kind and operand.
 
        Arguments:
@@ -1138,7 +1153,7 @@ type Column
         _ = [case_sensitivity, only_first]
         Value_Type.expect_text self <|
             new_name = self.naming_helpers.function_name "replace" [self, term, new_text]
-            self.make_unary_op "REPLACE" new_name
+            self.make_ternary_op "REPLACE" term new_text new_name
 
     ## Gets the year as a number from the date stored in the column.
 

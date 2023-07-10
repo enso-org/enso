@@ -11,11 +11,11 @@ spec setup =
     prefix = setup.prefix
     table_builder = setup.table_builder
 
-    Test.group prefix+"replace" <|
+    Test.group prefix+"replaceasdfasdf" <|
         Test.specify "Can do replace" <|
-            col = table_builder [["x", ["asdfSd", "zsdcSD", "sdsd"]]].at "x"
+            col = table_builder [["x", ["asdfSd", "zsdcSD", "sdsd"]]] . at "x"
 
-            col . replace "sd" "qqq" . to_vector . should_equal ["aqqqfqqq", "zqqqcSD", "qqqqqq"]
+            col . replace "sd" "qqq" . to_vector . should_equal ["aqqqfSd", "zqqqcSD", "qqqqqq"]
             ##
                 col . replace "sd" "qqq" case_sensitivity=Case_Sensitive.Sensitive . to_vector . should_equal ["aqqqfSd", "zqqqcSD", "qqqqqq"]
                 col . replace "sd" "qqq" case_sensitivity=Case_Sensitive.Insensitive . to_vector . should_equal ["aqqqfqqq", "zqqqcqqq", "qqqqqq"]
