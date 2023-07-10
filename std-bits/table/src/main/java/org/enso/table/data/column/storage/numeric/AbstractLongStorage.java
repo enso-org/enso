@@ -284,7 +284,7 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
               @Override
               public BoolStorage run(AbstractLongStorage storage) {
                 BitSet isNaN = new BitSet();
-                return new BoolStorage(storage.getIsMissing(), isNaN, storage.size(), false);
+                return new BoolStorage(isNaN, storage.getIsMissing(), storage.size(), false);
               }
             })
         .add(
@@ -292,7 +292,7 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
               @Override
               public BoolStorage run(AbstractLongStorage storage) {
                 BitSet isInfinite = new BitSet();
-                return new BoolStorage(storage.getIsMissing(), isInfinite, storage.size(), false);
+                return new BoolStorage(isInfinite, storage.getIsMissing(), storage.size(), false);
               }
             })
         .add(new LongIsInOp());

@@ -911,6 +911,7 @@ type Column
         new_name = Naming_Helpers.function_name "is_nan" [self]
         fallback x = case x of
             _ : Decimal -> x.is_nan
+            Nothing     -> on_missing
             _           -> False
         run_vectorized_unary_op self "is_nan" fallback expected_result_type=Value_Type.Boolean new_name on_missing=on_missing
 
@@ -922,6 +923,7 @@ type Column
         new_name = Naming_Helpers.function_name "is_infinite" [self]
         fallback x = case x of
             _ : Decimal -> x.is_infinite
+            Nothing     -> Nothing
             _           -> False
         run_vectorized_unary_op self "is_infinite" fallback expected_result_type=Value_Type.Boolean new_name on_missing=Nothing
 
@@ -968,9 +970,9 @@ type Column
         result = case self.value_type of
             Value_Type.Char _ _ -> self.is_empty
             Value_Type.Float _ ->
-                if treat_nans_as_blank then self.is_nothing || (self.internal_is_nan on_missing=False) else self.is_nothing
+                if treat_nans_as_blank then self.is_nothing.iif True (self.internal_is_nan on_missing=False) else self.is_nothing
             Value_Type.Mixed ->
-                self.internal_is_empty || (if treat_nans_as_blank then self.is_nothing || (self.internal_is_nan on_missing=False) else self.is_nothing)
+                self.internal_is_empty || (if treat_nans_as_blank then self.is_nothing.iif True (self.internal_is_nan on_missing=False) else self.is_nothing)
             _ -> self.is_nothing
         result.rename new_name
 

@@ -358,7 +358,7 @@ public final class DoubleStorage extends NumericStorage<Double> {
 
                   context.safepoint();
                 }
-                return new BoolStorage(nans, new BitSet(), storage.size, false);
+                return new BoolStorage(nans, storage.isMissing, storage.size, false);
               }
             })
         .add(
@@ -374,7 +374,7 @@ public final class DoubleStorage extends NumericStorage<Double> {
 
                   context.safepoint();
                 }
-                return new BoolStorage(infintes, new BitSet(), storage.size, false);
+                return new BoolStorage(infintes, storage.isMissing, storage.size, false);
               }
             })
         .add(new DoubleIsInOp());
