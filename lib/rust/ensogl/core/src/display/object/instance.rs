@@ -1125,7 +1125,7 @@ use unit2::Fraction;
 
 /// Enable debugging of display objects hierarchy. When enabled, all display objects will be
 /// represented in the DOM tree, which can be inspected using browser devtools inspector.
-pub const ENABLE_DOM_DEBUG: bool = true;
+pub const ENABLE_DOM_DEBUG: bool = false;
 
 /// Enable DOM debugging for all display objects as a default. When enabled, all display objects
 /// created with `new` or `new_named` constructors will be represented in the debug DOM tree. When

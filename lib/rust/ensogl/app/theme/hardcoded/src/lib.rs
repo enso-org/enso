@@ -187,6 +187,23 @@ define_themes! { [light:0, dark:1]
             show_delay_duration_ms = 500.0, 500.0;
             hide_delay_duration_ms = 0.0, 0.0;
         }
+
+        top_bar {
+            padding_left = 19.0, 19.0;
+            gap = 16.0, 16.0;
+            background {
+                color = Rgba(1.0, 1.0, 1.0, 0.44), Rgba(0.0, 0.0, 0.0, 0.44);
+                corner_radius = 24.0, 24.0;
+            }
+            project_name_with_environment_selector {
+                background {
+                    height = 32.0, 32.0;
+                    padding_left = 10.0, 10.0;
+                    padding_right = 4.0, 4.0;
+                }
+                gap = 8.0, 8.0;
+            }
+        }
         component_browser {
             panels_gap = 3.0, 3.0;
             documentation {
@@ -597,7 +614,7 @@ define_themes! { [light:0, dark:1]
             }
             background {
                 color = application::background , application::background;
-                corner_radius = 8.0 , 8.0;
+                corner_radius = 24.0 , 24.0;
             }
         }
         edge {

@@ -73,6 +73,7 @@ const GLYPH_WIDTH: f32 = 7.224_609_4;
 const VERTICAL_MARGIN: f32 = GLYPH_WIDTH;
 const HORIZONTAL_MARGIN: f32 = GLYPH_WIDTH;
 const BACKGROUND_PADDING: f32 = 8.0;
+const BACKGROUND_HEIGHT: f32 = 32.0;
 const TEXT_SIZE: f32 = 12.0;
 /// The height of the breadcrumb bar's content. The background may be higher.
 pub const HEIGHT: f32 = VERTICAL_MARGIN
@@ -160,9 +161,7 @@ ensogl::define_endpoints! {
 #[derive(Debug, Clone, CloneRef)]
 pub struct BreadcrumbsModel {
     /// The breadcrumbs panel display object.
-    display_object:        display::object::Instance,
     background:            Rectangle,
-    root:                  display::object::Instance,
     /// A container for all the breadcrumbs after project name. This contained and all its
     /// breadcrumbs are moved when project name component is resized.
     breadcrumbs_container: display::object::Instance,
@@ -185,8 +184,6 @@ impl BreadcrumbsModel {
     pub fn new(app: &Application, frp: &Frp) -> Self {
         let app = app.clone_ref();
         let scene = &app.display.default_scene;
-        let display_object = display::object::Instance::new_named("Breadcrumbs");
-        let root = display::object::Instance::new();
         let breadcrumbs_container = display::object::Instance::new();
         let scene = scene.clone_ref();
         let breadcrumbs = default();
@@ -195,6 +192,7 @@ impl BreadcrumbsModel {
         let camera = scene.camera().clone_ref();
         let background: Rectangle = default();
         let gap_width = default();
+        background.use_auto_layout().set_padding_left(8.0).set_children_alignment_left_center();
 
         let style = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
         use ensogl_hardcoded_theme::graph_editor::breadcrumbs;
@@ -203,9 +201,7 @@ impl BreadcrumbsModel {
         scene.layers.panel_background_rect_level_0.add(&background);
 
         Self {
-            display_object,
             background,
-            root,
             breadcrumbs_container,
             app,
             breadcrumbs,
@@ -218,9 +214,7 @@ impl BreadcrumbsModel {
     }
 
     fn init(self) -> Self {
-        self.add_child(&self.root);
-        self.root.add_child(&self.breadcrumbs_container);
-        self.root.add_child(&self.background);
+        self.background.add_child(&self.breadcrumbs_container);
         self.add_root_breadcrumb();
 
         self.update_layout();
@@ -244,9 +238,9 @@ impl BreadcrumbsModel {
         }
 
         breadcrumb.set_x(self.breadcrumbs_container_width().round());
-        breadcrumb.set_label("main");
         self.breadcrumbs_container.add_child(&breadcrumb);
         self.breadcrumbs.borrow_mut().push(breadcrumb);
+        self.current_index.set(1);
     }
 
     fn camera_changed(&self) {
@@ -274,12 +268,12 @@ impl BreadcrumbsModel {
 
         let width = gap_width + self.breadcrumbs_container_width();
         let background_width = width + 2.0 * BACKGROUND_PADDING;
-        let background_height = crate::window_control_buttons::MACOS_TRAFFIC_LIGHTS_CONTENT_HEIGHT
-            + BACKGROUND_PADDING * 2.0;
+        let background_height = BACKGROUND_HEIGHT;
         self.background.set_size(Vector2(background_width, background_height));
+        self.background.set_padding_left(8.0);
         // self.background.set_x(-BACKGROUND_PADDING);
         // self.background.set_y(-HEIGHT / 2.0 - background_height / 2.0);
-        self.display_object.set_size(Vector2(background_width, background_height));
+        // self.display_object.set_size(Vector2(background_width, background_height));
     }
 
     fn get_breadcrumb(&self, index: usize) -> Option<Breadcrumb> {
@@ -454,7 +448,7 @@ impl BreadcrumbsModel {
 
 impl display::Object for BreadcrumbsModel {
     fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
+        self.background.display_object()
     }
 }
 
@@ -542,7 +536,7 @@ impl Breadcrumbs {
 
 impl display::Object for Breadcrumbs {
     fn display_object(&self) -> &display::object::Instance {
-        &self.model.display_object
+        self.model.display_object()
     }
 }
 

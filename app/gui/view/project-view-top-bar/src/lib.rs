@@ -2,11 +2,14 @@
 //! merely here to make use of the auto-layout functionality.
 
 #![recursion_limit = "512"]
+use ensogl::display::shape::StyleWatchFrp;
 use ensogl::prelude::*;
 
 use enso_config::ARGS;
 use ensogl::application::Application;
+use ensogl::data::color;
 use ensogl::display;
+use ensogl::display::shape::compound::rectangle::Rectangle;
 
 
 
@@ -14,47 +17,79 @@ mod breadcrumbs;
 mod go_to_dashboard_button;
 pub mod window_control_buttons;
 use breadcrumbs::project_name::ProjectName;
+use ensogl_hardcoded_theme::application::top_bar as theme;
 
 
 
-// =================
-// === Constants ===
-// =================
-
-/// The gap in pixels between the various components of the project view top bar.
-const GAP: f32 = 16.0;
-/// The padding left of the project view top bar.
-const PADDING_LEFT: f32 = 19.0;
-
-// TODO: Read only setup for breadcrumbs.
-
+// ==========================================
+// === ProjectNameWithEnvironmentSelector ===
+// ==========================================
 
 #[derive(Clone, CloneRef, Debug)]
 pub struct ProjectNameWithEnvironmentSelector {
-    root:             display::object::Instance,
+    // root:             display::object::Instance,
+    // content:          display::object::Instance,
     pub project_name: ProjectName,
     pub selector:     ide_view_execution_environment_selector::ExecutionEnvironmentSelector,
+    background:       Rectangle,
+    network:          frp::Network,
 }
 
 impl ProjectNameWithEnvironmentSelector {
     pub fn new(app: &Application) -> Self {
-        let root = display::object::Instance::new();
-        let project_name = app.new_view();
+        // let root = display::object::Instance::new();
+        // let content = display::object::Instance::new();
+        let project_name = app.new_view::<ProjectName>();
         let selector =
             ide_view_execution_environment_selector::ExecutionEnvironmentSelector::new(app);
+        let background = Rectangle::new();
 
-        root.use_auto_layout().set_children_alignment_center();
-        root.add_child(&project_name);
-        root.add_child(&selector);
-        Self { root, project_name, selector }
+        scene().layers.panel_background.add(&background);
+        background.add_child(&background);
+        background
+            .use_auto_layout()
+            .set_children_alignment_left_center()
+            .justify_content_center_y();
+        background.add_child(&project_name);
+        background.add_child(&selector);
+        let network = frp::Network::new("ProjectNameWithEnvironmentSelector");
+
+        Self { project_name, selector, background, network }.init()
+    }
+
+    fn init(self) -> Self {
+        let style_watch = StyleWatchFrp::new(&scene().style_sheet);
+        self.background.set_style(&theme::background::HERE, &style_watch);
+        let network = &self.network;
+        let background = &self.background;
+        frp::extend! { network
+            init <- source_();
+            let height = style_watch.get_number(theme::project_name_with_environment_selector::background::height);
+            let gap = style_watch.get_number(theme::project_name_with_environment_selector::gap);
+            let padding_left = style_watch.get_number(theme::project_name_with_environment_selector::background::padding_left);
+            let padding_right = style_watch.get_number(theme::project_name_with_environment_selector::background::padding_right);
+            height <- all(init, height)._1();
+            gap <- all(init, gap)._1();
+            padding_left <- all(init, padding_left)._1();
+            padding_right <- all(init, padding_right)._1();
+            eval height([background](h) { background.set_size_y(*h); });
+            eval gap([background](g) { background.set_gap((*g, 0.0)); });
+            eval padding_left([background](p) { background.set_padding_left(*p); });
+            eval padding_right([background](p) { background.set_padding_right(*p); });
+        }
+        init.emit(());
+
+        self
     }
 }
 
 impl display::Object for ProjectNameWithEnvironmentSelector {
     fn display_object(&self) -> &display::object::Instance {
-        &self.root
+        self.background.display_object()
     }
 }
+
+
 
 // ============================
 // === Project View Top Bar ===
@@ -71,6 +106,7 @@ pub struct ProjectViewTopBar {
     pub go_to_dashboard_button: go_to_dashboard_button::View,
     pub breadcrumbs: breadcrumbs::Breadcrumbs,
     pub project_name_with_environment_selector: ProjectNameWithEnvironmentSelector,
+    network: frp::Network,
 }
 
 impl ProjectViewTopBar {
@@ -88,15 +124,11 @@ impl ProjectViewTopBar {
         root.add_child(&go_to_dashboard_button);
         root.add_child(&project_name_with_environment_selector);
         root.add_child(&breadcrumbs);
-        root.use_auto_layout()
-            .set_gap((GAP, 0.0))
-            .set_padding_left(PADDING_LEFT)
-            // We use `GAP` as the right padding since it delimits the space to the part of the top
-            // bar that's defined in the graph editor.
-            .set_padding_right(GAP)
-            .set_children_alignment_center();
+        root.use_auto_layout().set_children_alignment_center();
 
         app.display.default_scene.layers.panel.add(&root);
+
+        let network = frp::Network::new("ProjectViewTopBar");
 
         Self {
             root,
@@ -104,7 +136,27 @@ impl ProjectViewTopBar {
             go_to_dashboard_button,
             breadcrumbs,
             project_name_with_environment_selector,
+            network,
         }
+        .init()
+    }
+
+    fn init(self) -> Self {
+        let network = &self.network;
+        let style_watch = StyleWatchFrp::new(&scene().style_sheet);
+        let root = &self.root;
+
+        frp::extend! { network
+            init <- source_();
+            let gap = style_watch.get_number(theme::gap);
+            let padding_left = style_watch.get_number(theme::padding_left);
+            gap <- all(init, gap)._1();
+            padding_left <- all(init, padding_left)._1();
+            eval gap([root](g) { root.set_gap((*g, 0.0)); });
+            eval padding_left([root](p) { root.set_padding_left(*p); });
+        }
+        init.emit(());
+        self
     }
 }
 

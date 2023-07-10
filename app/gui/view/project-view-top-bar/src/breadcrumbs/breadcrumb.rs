@@ -7,6 +7,7 @@ use crate::breadcrumbs;
 use crate::breadcrumbs::project_name::LINE_HEIGHT;
 use crate::breadcrumbs::SharedMethodPointer;
 
+use super::BACKGROUND_HEIGHT;
 use super::GLYPH_WIDTH;
 use super::HORIZONTAL_MARGIN;
 use super::TEXT_SIZE;
@@ -40,7 +41,8 @@ const ICON_RADIUS: f32 = 6.0;
 const ICON_SIZE: f32 = ICON_RADIUS * 2.0;
 const ICON_RING_WIDTH: f32 = 1.5;
 const ICON_ARROW_SIZE: f32 = 4.0;
-const SEPARATOR_SIZE: f32 = 6.0;
+const SEPARATOR_WIDTH: f32 = 6.0;
+const SEPARATOR_HEIGHT: f32 = 8.0;
 /// Breadcrumb padding.
 pub const PADDING: f32 = 1.0;
 const SEPARATOR_MARGIN: f32 = 10.0;
@@ -58,9 +60,8 @@ mod separator {
         pointer_events = false;
         alignment = center;
         (style: Style, red: f32, green: f32, blue: f32, alpha: f32) {
-            let size     = SEPARATOR_SIZE;
             let angle    = PI/2.0;
-            let triangle = Triangle(size.px(),size.px()).rotate(angle.radians());
+            let triangle = Triangle(SEPARATOR_HEIGHT.px(),SEPARATOR_WIDTH.px()).rotate(angle.radians());
             let color    = format!("vec4({red},{green},{blue},{alpha})");
             let color : Var<color::Rgba> = color.into();
             triangle.fill(color).into()
@@ -285,7 +286,6 @@ impl BreadcrumbModel {
 
     fn init(self) -> Self {
         self.add_child(&self.overlay);
-        self.add_child(&self.separator);
         self.add_child(&self.label);
 
         let styles = &self.style;
@@ -297,33 +297,37 @@ impl BreadcrumbModel {
         self.label.set_single_line_mode(true);
         self.label.set_content(&self.info.method_pointer.name);
 
+        self.update_layout();
+
         self
     }
 
     fn update_layout(&self) {
-        if self.separator_visible.get() {
-            self.label.set_x(SEPARATOR_SIZE / 2.0 + SEPARATOR_MARGIN);
-        }
-        self.label.set_y(TEXT_SIZE / 2.0);
-
         let width = self.width();
         let height = self.height();
-        let offset = SEPARATOR_MARGIN + SEPARATOR_SIZE / 2.0;
+        let offset = SEPARATOR_MARGIN + SEPARATOR_WIDTH / 2.0;
 
+        if self.separator_visible.get() {
+            self.label.set_x(offset + SEPARATOR_WIDTH / 2.0 + SEPARATOR_MARGIN);
+        }
+
+        self.label.set_y(height / 2.0 + TEXT_SIZE / 2.0);
         self.overlay.set_size(Vector2::new(width, height));
         self.fade_in(0.0);
-        let separator_size = (SEPARATOR_SIZE + PADDING * 2.0).max(0.0);
-        self.separator.set_size(Vector2::new(separator_size, separator_size));
+        let separator_width = (SEPARATOR_WIDTH + PADDING * 2.0).max(0.0);
+        self.separator.set_size(Vector2::new(separator_width, SEPARATOR_HEIGHT));
         self.separator.set_x(offset.round());
         self.separator.set_y(height / 2.0);
     }
 
+    /// Hide a separator for this breadcrumb.
     pub fn hide_separator(&self) {
         self.remove_child(&self.separator);
         self.separator_visible.set(false);
         self.update_layout();
     }
 
+    /// Show a separator for this breadcrumb.
     pub fn show_separator(&self) {
         self.add_child(&self.separator);
         self.separator_visible.set(true);
@@ -345,7 +349,7 @@ impl BreadcrumbModel {
         let label_width = self.label_width();
         let margin_and_padding = LEFT_MARGIN + RIGHT_MARGIN + PADDING * 2.0;
         let separator_width = if self.separator_visible.get() {
-            SEPARATOR_MARGIN * 2.0 + SEPARATOR_SIZE
+            SEPARATOR_MARGIN * 2.0 + SEPARATOR_WIDTH
         } else {
             0.0
         };
@@ -355,7 +359,8 @@ impl BreadcrumbModel {
 
     /// Get the height of the view.
     pub fn height(&self) -> f32 {
-        LINE_HEIGHT //+ breadcrumbs::VERTICAL_MARGIN * 2.0
+        BACKGROUND_HEIGHT
+        // LINE_HEIGHT //+ breadcrumbs::VERTICAL_MARGIN * 2.0
     }
 
     fn fade_in(&self, value: f32) {
