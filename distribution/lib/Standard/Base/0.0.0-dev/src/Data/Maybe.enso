@@ -1,7 +1,7 @@
 import project.Any.Any
 import project.Data.Text.Text
 
-from project.Data.Boolean import Boolean, True, False
+from project.Data.Boolean import Boolean, False, True
 
 ## A type representing computations that may fail.
 type Maybe

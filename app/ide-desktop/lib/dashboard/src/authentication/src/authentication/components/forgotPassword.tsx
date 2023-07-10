@@ -1,6 +1,6 @@
 /** @file Container responsible for rendering and interactions in first half of forgot password
  * flow. */
-import * as react from 'react'
+import * as React from 'react'
 import * as router from 'react-router-dom'
 
 import ArrowRightIcon from 'enso-assets/arrow_right.svg'
@@ -22,7 +22,7 @@ import SvgIcon from './svgIcon'
 function ForgotPassword() {
     const { forgotPassword } = auth.useAuth()
 
-    const [email, setEmail] = react.useState('')
+    const [email, setEmail] = React.useState('')
 
     return (
         <div className="min-h-screen flex flex-col items-center justify-center bg-gray-300">

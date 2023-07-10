@@ -333,6 +333,9 @@ impl Rectangle {
         }
         set_property!(corner_radius: number);
         set_property!(color: color);
+        set_property!(border_color: color);
+        set_property!(inset: number);
+        set_property!(border: number);
     }
 }
 

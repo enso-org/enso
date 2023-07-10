@@ -1,5 +1,5 @@
 /** @file A label, which may be either user-defined, or a system warning message. */
-import * as react from 'react'
+import * as React from 'react'
 
 import ExclamationIcon from 'enso-assets/exclamation.svg'
 
@@ -47,11 +47,11 @@ const STATUS_ICON: Record<Status, JSX.Element | null> = {
 /** Props for a {@link Label}. */
 export interface LabelProps {
     status?: Status
-    onContextMenu?: react.MouseEventHandler<HTMLDivElement>
+    onContextMenu?: React.MouseEventHandler<HTMLDivElement>
 }
 
 /** A label, which may be either user-defined, or a system warning message. */
-function Label(props: react.PropsWithChildren<LabelProps>) {
+function Label(props: React.PropsWithChildren<LabelProps>) {
     const { status = Status.none, children, onContextMenu } = props
     return (
         <div

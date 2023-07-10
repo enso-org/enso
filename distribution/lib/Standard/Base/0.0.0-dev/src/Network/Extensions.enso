@@ -1,6 +1,6 @@
 import project.Data.Text.Text
-import project.Network.URI.URI
 import project.Errors.Common.Syntax_Error
+import project.Network.URI.URI
 
 ## ALIAS URI from Text, parse_uri
    Convert Text to a URI.

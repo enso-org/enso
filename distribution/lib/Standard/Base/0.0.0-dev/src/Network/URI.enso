@@ -2,8 +2,8 @@ import project.Any.Any
 import project.Data.Boolean.Boolean
 import project.Data.Json.JS_Object
 import project.Data.Text.Text
-import project.Errors.Common.Syntax_Error
 import project.Error.Error
+import project.Errors.Common.Syntax_Error
 import project.Nothing.Nothing
 import project.Panic.Panic
 

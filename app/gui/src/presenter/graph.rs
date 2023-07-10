@@ -652,7 +652,7 @@ impl ViewUpdate {
 /// This presenter focuses on the graph structure: nodes, their expressions and types, and
 /// connections between them. It does not integrate Searcher nor Breadcrumbs (managed by
 /// [`presenter::Searcher`] and [`presenter::CallStack`] respectively).
-#[derive(Debug)]
+#[derive(Clone, CloneRef, Debug)]
 pub struct Graph {
     network: frp::Network,
     model:   Rc<Model>,

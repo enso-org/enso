@@ -1,23 +1,22 @@
-import project.Errors.Common.Syntax_Error
 import project.Data.Numbers.Integer
 import project.Data.Range.Range
 import project.Data.Text.Prim_Text_Helper
-import project.Data.Text.Span.Utf_16_Span
 import project.Data.Text.Regex.Match.Match
 import project.Data.Text.Regex.Regex
 import project.Data.Text.Regex.Regex_Syntax_Error
+import project.Data.Text.Span.Utf_16_Span
 import project.Data.Text.Text
 import project.Error.Error
+import project.Errors.Common.Syntax_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Nothing.Nothing
 import project.Panic.Panic
-
-from project.Data.Boolean import Boolean, True, False
+from project.Data.Boolean import Boolean, False, True
 from project.Data.Range.Extensions import all
 from project.Data.Text.Extensions import all
 
-polyglot java import org.enso.base.Text_Utils
 polyglot java import org.enso.base.Regex_Utils
+polyglot java import org.enso.base.Text_Utils
 
 ## PRIVATE
 

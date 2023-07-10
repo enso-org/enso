@@ -1,7 +1,6 @@
 import project.Any.Any
 import project.Data.Map.Map
 import project.Data.Numbers.Integer
-from project.Data.Range.Extensions import all
 import project.Data.Range.Range
 import project.Data.Text.Regex.No_Such_Group
 import project.Data.Text.Regex.Regex
@@ -13,8 +12,8 @@ import project.Error.Error
 import project.Errors.Common.Index_Out_Of_Bounds
 import project.Nothing.Nothing
 import project.Panic.Panic
-
-from project.Data.Boolean import Boolean, True, False
+from project.Data.Boolean import Boolean, False, True
+from project.Data.Range.Extensions import all
 
 
 type Match

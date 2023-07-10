@@ -4,18 +4,16 @@ import project.Data.Numbers.Decimal
 import project.Data.Numbers.Integer
 import project.Data.Numbers.Number
 import project.Data.Text.Text
-import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Date.Date
+import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Duration.Duration
 import project.Data.Time.Time_Of_Day.Time_Of_Day
 import project.Data.Time.Time_Zone.Time_Zone
 import project.Data.Vector.Vector
+import project.Error.Error as Base_Error
 import project.Nothing.Nothing
 import project.Polyglot.Java
-
-import project.Error.Error as Base_Error
-
-from project.Data.Boolean import Boolean, True, False
+from project.Data.Boolean import Boolean, False, True
 
 type Type
     ## PRIVATE

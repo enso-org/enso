@@ -509,6 +509,7 @@ define_themes! { [light:0, dark:1]
             background         = Rgba(0.992,0.996,1.0,1.0), Rgba(0.182,0.188,0.196,1.0);
             background.skipped = graph_editor::node::background , graph_editor::node::background;
             selection          = selection, selection;
+            corner_radius = 14.0, 14.0;
             selection {
                 size = 3.5 , 3.5;
                 offset = 3.75 , 3.75;
@@ -550,7 +551,8 @@ define_themes! { [light:0, dark:1]
             }
         }
         visualization {
-            background = graph_editor::node::background , graph_editor::node::background;
+            background = graph_editor::node::background, graph_editor::node::background;
+            corner_radius = graph_editor::node::corner_radius, graph_editor::node::corner_radius;
             text           = Lcha(0.0,0.0,0.0,0.7)   , Lcha(1.0,0.0,0.0,0.7);
             text.selection = Lcha(0.7,0.0,0.125,0.7) , Lcha(0.7,0.0,0.125,0.7);
             error {
@@ -565,12 +567,13 @@ define_themes! { [light:0, dark:1]
                 icon       = Lcha(0.0,0.0,0.0,0.7) , Lcha(1.0,0.0,0.0,0.7);
                 text       = Lcha(0.0,0.0,0.0,0.7) , Lcha(1.0,0.0,0.0,0.7);
             }
-            // Original RGB values (for reference after fixing color-conversion issues)
-            // ... , rgb(35 41 47)
-            selection = Rgba(0.306,0.647,0.992,0.14) , Rgba(0.137,0.16,0.184,1.0);
             selection {
-                size = 8.0 , 8.0;
-                offset = 0.0 , 0.0;
+                color = Rgba(0.306,0.647,0.992,0.14) , Rgba(0.137,0.16,0.184,1.0);
+                width = 7.0, 7.0;
+            }
+            resize_grip {
+                offset_x = 10.0, 10.0;
+                offset_y = -10.0, -10.0;
             }
             text_grid {
                 font = "DejaVu Sans Mono" , "DejaVu Sans Mono";

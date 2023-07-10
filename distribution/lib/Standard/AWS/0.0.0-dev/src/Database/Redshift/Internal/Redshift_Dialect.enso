@@ -11,18 +11,18 @@ import Standard.Database.Data.SQL_Statement.SQL_Statement
 import Standard.Database.Data.SQL_Type.SQL_Type
 import Standard.Database.Data.Table.Table
 import Standard.Database.Internal.Base_Generator
-import Standard.Database.Internal.Column_Fetcher.Column_Fetcher
 import Standard.Database.Internal.Column_Fetcher as Column_Fetcher_Module
+import Standard.Database.Internal.Column_Fetcher.Column_Fetcher
+import Standard.Database.Internal.Common.Database_Join_Helper
 import Standard.Database.Internal.Error_Mapper.Error_Mapper
 import Standard.Database.Internal.IR.Context.Context
 import Standard.Database.Internal.IR.From_Spec.From_Spec
 import Standard.Database.Internal.IR.Internal_Column.Internal_Column
-import Standard.Database.Internal.IR.SQL_Expression.SQL_Expression
-import Standard.Database.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import Standard.Database.Internal.IR.Order_Descriptor.Order_Descriptor
 import Standard.Database.Internal.IR.Query.Query
+import Standard.Database.Internal.IR.SQL_Expression.SQL_Expression
+import Standard.Database.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import Standard.Database.Internal.Postgres.Postgres_Dialect
-import Standard.Database.Internal.Common.Database_Join_Helper
 import Standard.Database.Internal.Postgres.Postgres_Type_Mapping.Postgres_Type_Mapping
 import Standard.Database.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import Standard.Database.Internal.SQL_Type_Reference.SQL_Type_Reference
