@@ -307,10 +307,10 @@ export function AuthProvider(props: AuthProviderProps) {
         })
         // `userSession` MUST NOT be a dependency as this effect always does a `setUserSession`,
         // which would result in an infinite loop.
+        // `initialized` MUST NOT be a dependency as it breaks offline mode.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
         cognito,
-        initialized,
         logger,
         onAuthenticated,
         session,
