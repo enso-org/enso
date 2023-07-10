@@ -291,8 +291,8 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
             new UnaryMapOperation<>(Storage.Maps.IS_INFINITE) {
               @Override
               public BoolStorage run(AbstractLongStorage storage) {
-                BitSet isInfinte = new BitSet();
-                return new BoolStorage(storage.getIsMissing(), isInfinte, storage.size(), false);
+                BitSet isInfinite = new BitSet();
+                return new BoolStorage(storage.getIsMissing(), isInfinite, storage.size(), false);
               }
             })
         .add(new LongIsInOp());
