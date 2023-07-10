@@ -431,7 +431,7 @@ spec setup =
 
                 Test.specify "should support is_infinite" <|
                     t.at "X" . is_nan . to_vector . should_equal [False, False, True, True, False, Nothing]
-                    t.at "Y" . is_nan . to_vector . should_equal [False, False, False, False, False, Nothing
+                    t.at "Y" . is_nan . to_vector . should_equal [False, False, False, False, False, Nothing]
                     t.at "Z" . is_nan . to_vector . should_fail_with Invalid_Value_Type
             False ->
                 Test.specify "should report that is_nan is not supported" <|
