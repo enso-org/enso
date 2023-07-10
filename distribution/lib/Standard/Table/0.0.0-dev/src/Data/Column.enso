@@ -1271,6 +1271,13 @@ type Column
        - period: The period to compute the difference in. For `Date` columns it
          should be a `Date_Period` and for `Time` columns it should be a
          `Time_Period`. For `Date_Time` columns it can be either.
+
+       ? Time Zone handling
+
+         Some backends may not preserve the timezone data in a `Date_Time`
+         (preserving the represented time instant). This may lead to slight
+         differences in time calculations between backends, especially around
+         unusual events like DST.
     date_diff : (Column | Date | Date_Time | Time_Of_Day) -> Date_Period | Time_Period -> Column
     date_diff self end (period : Date_Period | Time_Period) =
         Value_Type.expect_type self .is_date_or_time "date/time" <|
@@ -1306,6 +1313,13 @@ type Column
        - period: The period by which to shift. For `Date` columns it should be a
          `Date_Period` and for `Time` columns it should be a `Time_Period`. For
          `Date_Time` columns it can be either.
+
+       ? Time Zone handling
+
+         Some backends may not preserve the timezone data in a `Date_Time`
+         (preserving the represented time instant). This may lead to slight
+         differences in time calculations between backends, especially around
+         unusual events like DST.
     date_add : (Column | Date | Date_Time | Time_Of_Day) -> Date_Period | Time_Period -> Column
     date_add self amount (period : Date_Period | Time_Period) =
         Value_Type.expect_type self .is_date_or_time "date/time" <|
