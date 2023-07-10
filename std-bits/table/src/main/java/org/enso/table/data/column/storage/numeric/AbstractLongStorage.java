@@ -279,6 +279,22 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
                 return new BoolStorage(storage.getIsMissing(), new BitSet(), storage.size(), false);
               }
             })
+        .add(
+            new UnaryMapOperation<>(Storage.Maps.IS_NAN) {
+              @Override
+              public BoolStorage run(AbstractLongStorage storage) {
+                BitSet isNaN = new BitSet(storage.size());
+                return new BoolStorage(storage.getIsMissing(), isNaN, storage.size(), false);
+              }
+            })
+        .add(
+            new UnaryMapOperation<>(Storage.Maps.IS_INFINITE) {
+              @Override
+              public BoolStorage run(AbstractLongStorage storage) {
+                BitSet isNaN = new BitSet(storage.size());
+                return new BoolStorage(storage.getIsMissing(), isNaN, storage.size(), false);
+              }
+            })
         .add(new LongIsInOp());
     return ops;
   }
