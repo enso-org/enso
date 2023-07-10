@@ -482,12 +482,14 @@ function ProjectName(props: InternalProjectNameProps) {
                 },
                 item.title
             )
+            return
         } catch (error) {
             const message = `Error renaming project: ${
-                errorModule.tryGetMessage(error) ?? 'unknown error'
+                errorModule.tryGetMessage(error) ?? 'unknown error.'
             }`
             toast.error(message)
             logger.error(message)
+            throw error
         }
     }
 
@@ -578,6 +580,7 @@ interface InternalProjectRowContextMenuProps {
     >
     event: React.MouseEvent
     dispatchProjectEvent: (projectListEvent: projectEventModule.ProjectEvent) => void
+    doDelete: () => Promise<void>
 }
 
 /** The context menu for a row of a {@link ProjectsTable}. */
@@ -586,6 +589,7 @@ function ProjectRowContextMenu(props: InternalProjectRowContextMenuProps) {
         innerProps: { item, rowState, setRowState },
         event,
         dispatchProjectEvent,
+        doDelete,
     } = props
     const { backend } = backendProvider.useBackend()
     const { setModal, unsetModal } = modalProvider.useSetModal()
@@ -605,15 +609,6 @@ function ProjectRowContextMenu(props: InternalProjectRowContextMenuProps) {
         }))
         unsetModal()
     }
-    const doDelete = () => {
-        setModal(
-            <ConfirmDeleteModal
-                description={item.title}
-                assetType={item.type}
-                doDelete={() => backend.deleteProject(item.id, item.title)}
-            />
-        )
-    }
     return (
         <ContextMenu key={item.id} event={event}>
             <ContextMenuEntry onClick={doOpenForEditing}>Open for editing</ContextMenuEntry>
@@ -632,7 +627,14 @@ function ProjectRowContextMenu(props: InternalProjectRowContextMenuProps) {
                           title: 'A running local project cannot be removed.',
                       }
                     : {})}
-                onClick={doDelete}
+                onClick={() => {
+                    setModal(
+                        <ConfirmDeleteModal
+                            description={`the ${ASSET_TYPE_NAME} '${item.title}'`}
+                            doDelete={doDelete}
+                        />
+                    )
+                }}
             >
                 <span className="text-red-700">Delete</span>
             </ContextMenuEntry>
@@ -656,16 +658,38 @@ function ProjectRow(
     const {
         keyProp: key,
         item: rawItem,
-        state: { projectEvent, dispatchProjectListEvent, markItemAsHidden, markItemAsVisible },
+        state: {
+            projectEvent,
+            dispatchProjectEvent,
+            dispatchProjectListEvent,
+            markItemAsHidden,
+            markItemAsVisible,
+        },
     } = props
     const logger = loggerProvider.useLogger()
     const { backend } = backendProvider.useBackend()
+    const { setModal } = modalProvider.useSetModal()
     const [item, setItem] = React.useState(rawItem)
     const [status, setStatus] = React.useState(presence.Presence.present)
 
     React.useEffect(() => {
         setItem(rawItem)
     }, [rawItem])
+
+    const doDelete = async () => {
+        setStatus(presence.Presence.deleting)
+        markItemAsHidden(key)
+        try {
+            await backend.deleteProject(item.id, item.title)
+            dispatchProjectListEvent({
+                type: projectListEventModule.ProjectListEventType.delete,
+                projectId: key,
+            })
+        } catch {
+            setStatus(presence.Presence.present)
+            markItemAsVisible(key)
+        }
+    }
 
     hooks.useEventHandler(projectEvent, async event => {
         switch (event.type) {
@@ -709,26 +733,33 @@ function ProjectRow(
                 break
             }
             case projectEventModule.ProjectEventType.deleteMultiple: {
-                if (event.projectIds.has(key) && backend.type !== backendModule.BackendType.local) {
-                    setStatus(presence.Presence.deleting)
-                    markItemAsHidden(key)
-                    try {
-                        await backend.deleteProject(item.id, item.title)
-                        dispatchProjectListEvent({
-                            type: projectListEventModule.ProjectListEventType.delete,
-                            projectId: key,
-                        })
-                    } catch {
-                        setStatus(presence.Presence.present)
-                        markItemAsVisible(key)
-                    }
+                if (event.projectIds.has(key)) {
+                    await doDelete()
                 }
                 break
             }
         }
     })
 
-    return <TableRow className={presence.CLASS_NAME[status]} {...props} item={item} />
+    return (
+        <TableRow
+            className={presence.CLASS_NAME[status]}
+            {...props}
+            onContextMenu={(innerProps, event) => {
+                event.preventDefault()
+                event.stopPropagation()
+                setModal(
+                    <ProjectRowContextMenu
+                        innerProps={innerProps}
+                        event={event}
+                        dispatchProjectEvent={dispatchProjectEvent}
+                        doDelete={doDelete}
+                    />
+                )
+            }}
+            item={item}
+        />
+    )
 }
 
 // =====================
@@ -997,7 +1028,6 @@ function ProjectsTable(props: ProjectsTableProps) {
                     setModal(
                         <ConfirmDeleteModal
                             description={`${selectedKeys.size} selected projects`}
-                            assetType="projects"
                             doDelete={() => {
                                 setSelectedKeys(new Set())
                                 dispatchProjectEvent({
@@ -1020,16 +1050,8 @@ function ProjectsTable(props: ProjectsTableProps) {
                     </ContextMenu>
                 )
             }}
-            onRowContextMenu={(innerProps, event) => {
-                event.preventDefault()
-                event.stopPropagation()
-                setModal(
-                    <ProjectRowContextMenu
-                        innerProps={innerProps}
-                        event={event}
-                        dispatchProjectEvent={dispatchProjectEvent}
-                    />
-                )
+            onRowContextMenu={() => {
+                /** Overridden by {@link ProjectRow}. */
             }}
         />
     )

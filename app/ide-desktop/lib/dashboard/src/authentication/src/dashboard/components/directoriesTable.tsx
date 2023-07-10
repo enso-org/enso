@@ -118,12 +118,14 @@ function DirectoryName(props: InternalDirectoryNameProps) {
         if (backend.type !== backendModule.BackendType.local) {
             try {
                 await backend.updateDirectory(item.id, { title: newName }, item.title)
+                return
             } catch (error) {
                 const message = `Error renaming folder: ${
                     errorModule.tryGetMessage(error) ?? 'unknown error'
                 }`
                 toast.error(message)
                 logger.error(message)
+                throw error
             }
         }
     }
@@ -476,7 +478,6 @@ function DirectoriesTable(props: DirectoriesTableProps) {
                                 description={
                                     `${selectedKeys.size} selected ` + ASSET_TYPE_NAME_PLURAL
                                 }
-                                assetType="folders"
                                 doDelete={() => {
                                     dispatchDirectoryEvent({
                                         type: directoryEventModule.DirectoryEventType
@@ -513,8 +514,7 @@ function DirectoriesTable(props: DirectoriesTableProps) {
                     const doDelete = () => {
                         setModal(
                             <ConfirmDeleteModal
-                                description={item.title}
-                                assetType={item.type}
+                                description={`the ${ASSET_TYPE_NAME} '${item.title}'`}
                                 doDelete={() => backend.deleteDirectory(item.id, item.title)}
                             />
                         )

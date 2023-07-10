@@ -229,7 +229,10 @@ function Table<T, Key extends string = string, State = never, RowState = never>(
                     keyProp={key}
                     item={item}
                     selected={selectedKeys.has(key)}
-                    allowContextMenu={selectedKeys.size === 0 || selectedKeys.has(key)}
+                    allowContextMenu={
+                        selectedKeys.size === 0 ||
+                        (selectedKeys.size === 1 && selectedKeys.has(key))
+                    }
                     onClick={onRowClick}
                     onContextMenu={onRowContextMenu}
                 />

@@ -18,8 +18,10 @@ export const PREVIOUS_PASSWORD_TITLE =
     'at least two characters.'
 
 // The Project Manager has restrictions on names of projects.
-/** Regex pattern for valid names for local projects. */
-export const LOCAL_PROJECT_NAME_PATTERN = '[A-Z][a-z]*(?:_\\d+|_[A-Z][a-z]*)*'
+/** Regex pattern for valid names for local projects.
+ * @see https://github.com/enso-org/enso/blob/72ec775d8cf46b1862884fe7905477354943f0a5/lib/scala/pkg/src/main/scala/org/enso/pkg/validation/NameValidation.scala#L37
+ */
+export const LOCAL_PROJECT_NAME_PATTERN = '[A-Z]+[a-z]*(?:_\\d+|_[A-Z]+[a-z]*)*'
 /** Human readable explanation of project name restrictions for local projects. */
 export const LOCAL_PROJECT_NAME_TITLE =
     'Project names must be in Upper_Snake_Case. (Numbers (_0, _1) are also allowed.)'

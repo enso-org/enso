@@ -467,7 +467,6 @@ function FilesTable(props: FilesTableProps) {
                                 description={
                                     `${selectedKeys.size} selected ` + ASSET_TYPE_NAME_PLURAL
                                 }
-                                assetType={ASSET_TYPE_NAME_PLURAL}
                                 doDelete={() => {
                                     dispatchFileEvent({
                                         type: fileEventModule.FileEventType.deleteMultiple,
@@ -502,8 +501,7 @@ function FilesTable(props: FilesTableProps) {
                     const doDelete = () => {
                         setModal(
                             <ConfirmDeleteModal
-                                description={`'${item.title}'`}
-                                assetType={item.type}
+                                description={`the ${ASSET_TYPE_NAME} '${item.title}'`}
                                 doDelete={async () => {
                                     await backend.deleteFile(item.id, item.title)
                                 }}

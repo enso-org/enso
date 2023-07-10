@@ -16,7 +16,6 @@ import Modal from './modal'
 
 /** Props for a {@link ConfirmDeleteModal}. */
 export interface ConfirmDeleteModalProps {
-    assetType: string
     /** Must fit in the sentence "Are you sure you want to delete <description>"? */
     description: string
     doDelete: () => void
@@ -24,7 +23,7 @@ export interface ConfirmDeleteModalProps {
 
 /** A modal for confirming the deletion of an asset. */
 function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
-    const { assetType, description, doDelete } = props
+    const { description, doDelete } = props
     const logger = loggerProvider.useLogger()
     const { unsetModal } = modalProvider.useSetModal()
 
@@ -33,7 +32,7 @@ function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
         try {
             doDelete()
         } catch (error) {
-            const message = `Could not delete ${assetType}: ${
+            const message = `Could not delete ${description}: ${
                 errorModule.tryGetMessage(error) ?? 'unknown error.'
             }`
             toast.error(message)
