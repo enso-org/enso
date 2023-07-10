@@ -361,6 +361,22 @@ public final class DoubleStorage extends NumericStorage<Double> {
                 return new BoolStorage(nans, new BitSet(), storage.size, false);
               }
             })
+        .add(
+            new UnaryMapOperation<>(Maps.IS_INFINITE) {
+              @Override
+              public BoolStorage run(DoubleStorage storage) {
+                BitSet infintes = new BitSet();
+                Context context = Context.getCurrent();
+                for (int i = 0; i < storage.size; i++) {
+                  if (!storage.isNa(i) && Double.isInfinite(storage.getItem(i))) {
+                    infintes.set(i);
+                  }
+
+                  context.safepoint();
+                }
+                return new BoolStorage(infintes, new BitSet(), storage.size, false);
+              }
+            })
         .add(new DoubleIsInOp());
     return ops;
   }
