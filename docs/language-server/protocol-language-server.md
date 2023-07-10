@@ -3154,7 +3154,7 @@ null;
 ### `text/fileModifiedOnDisk`
 
 This is a notification sent from the server to the clients to inform them that
-the file was modified on dis by an external editor.
+the file was modified on disk by an external editor.
 
 - **Type:** Notification
 - **Direction:** Server -> Client
