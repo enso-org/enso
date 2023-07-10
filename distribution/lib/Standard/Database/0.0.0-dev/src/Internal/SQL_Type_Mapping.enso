@@ -35,7 +35,8 @@ type SQL_Type_Mapping
         _ = sql_type
         Unimplemented.throw "This is an interface only."
 
-    ## Converts an SQL_Type to a Text representation compatible with the related
+    ## PRIVATE
+       Converts an SQL_Type to a Text representation compatible with the related
        SQL dialect that can be used in SQL expressions like CAST or column
        definitions.
     sql_type_to_text : SQL_Type -> Text

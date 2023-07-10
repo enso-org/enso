@@ -1,7 +1,6 @@
 //! This module consists of all structures describing Execution Context.
 
 use crate::prelude::*;
-use std::collections::hash_map::Entry;
 
 use double_representation::identifier::Identifier;
 use double_representation::name::project;
@@ -11,13 +10,14 @@ use engine_protocol::language_server::ExecutionEnvironment;
 use engine_protocol::language_server::ExpressionUpdate;
 use engine_protocol::language_server::ExpressionUpdatePayload;
 use engine_protocol::language_server::MethodPointer;
-use engine_protocol::language_server::VisualisationConfiguration;
+use engine_protocol::language_server::VisualizationConfiguration;
 use ensogl::data::color;
 use flo_stream::Subscriber;
 use mockall::automock;
 use notification::Publisher;
 use serde::Deserialize;
 use serde::Serialize;
+use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use uuid::Uuid;
 
@@ -323,6 +323,8 @@ pub struct Visualization {
     pub id:             VisualizationId,
     /// Expression that is to be visualized.
     pub expression_id:  ExpressionId,
+    /// Module to evaluate visualization in context of.
+    pub module:         QualifiedName,
     /// A pointer to the enso method that will transform the data into expected format.
     pub method_pointer: QualifiedMethodPointer,
     /// Enso expressions for positional arguments
@@ -333,19 +335,21 @@ impl Visualization {
     /// Creates a new visualization description. The visualization will get a randomly assigned
     /// identifier.
     pub fn new(
+        module: QualifiedName,
         expression_id: ExpressionId,
         method_pointer: QualifiedMethodPointer,
         arguments: Vec<String>,
     ) -> Visualization {
         let id = VisualizationId::new_v4();
-        Visualization { id, expression_id, method_pointer, arguments }
+        Visualization { id, expression_id, module, method_pointer, arguments }
     }
 
-    /// Creates a `VisualisationConfiguration` that is used in communication with language server.
-    pub fn config(&self, execution_context_id: Uuid) -> VisualisationConfiguration {
+    /// Creates a `VisualizationConfiguration` that is used in communication with language server.
+    pub fn config(&self, execution_context_id: Uuid) -> VisualizationConfiguration {
         let expression = self.method_pointer.clone().into();
         let positional_arguments_expressions = self.arguments.clone();
-        VisualisationConfiguration {
+        VisualizationConfiguration {
+            visualization_module: self.module.to_string_with_main_segment(),
             execution_context_id,
             expression,
             positional_arguments_expressions,

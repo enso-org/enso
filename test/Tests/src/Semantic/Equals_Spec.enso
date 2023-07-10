@@ -193,7 +193,7 @@ spec =
             ([(Child.Value 1)] == [(Child.Value 2)]).should_be_false
 
         Test.specify "should dispatch to overriden `==` in arrays" <|
-            ((Array.new_1 (Child.Value 1)) == (Array.new_1 (Child.Value 101))).should_be_true
+            ([Child.Value 1].to_array == [Child.Value 101].to_array).should_be_true
 
         Test.specify "should handle recursive atoms without custom `==`" <|
             rnd = (Random.new seed=42).java_random

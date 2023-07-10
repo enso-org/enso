@@ -2,7 +2,7 @@
 //!
 //! This controller provides operations on a specific graph with some execution context - these
 //! operations usually involves retrieving values on nodes: that's are i.e. operations on
-//! visualisations, retrieving types on ports, etc.
+//! visualizations, retrieving types on ports, etc.
 
 use crate::prelude::*;
 
@@ -380,6 +380,21 @@ impl Handle {
         }
     }
 
+    /// Reload the main file and restart the program execution.
+    ///
+    /// ### Errors
+    /// - Fails if the project is in read-only mode.
+    pub async fn reload_and_restart(&self) -> FallibleResult {
+        if self.project.read_only() {
+            Err(ReadOnly.into())
+        } else {
+            let model = self.project.main_module_model().await?;
+            model.reopen_externally_changed_file().await?;
+            self.execution_ctx.restart().await?;
+            Ok(())
+        }
+    }
+
     /// Get the current call stack frames.
     pub fn call_stack(&self) -> Vec<LocalCall> {
         self.execution_ctx.stack_items().collect()
@@ -403,10 +418,19 @@ impl Handle {
     }
 
 
+    /// Get a fully qualified name of the module in the [`graph`]. The name is obtained from the
+    /// module's path and the `project` name.
+    pub fn module_qualified_name_with_project(
+        &self,
+        project: &dyn model::project::API,
+    ) -> QualifiedName {
+        self.graph().module.path().qualified_module_name(project.qualified_name())
+    }
+
     /// Get a full qualified name of the module in the [`graph`]. The name is obtained from the
     /// module's path and the `project` name.
-    pub fn module_qualified_name(&self, project: &dyn model::project::API) -> QualifiedName {
-        self.graph().module.path().qualified_module_name(project.qualified_name())
+    pub fn module_qualified_name(&self) -> QualifiedName {
+        self.graph().module.path().qualified_module_name(self.project.qualified_name())
     }
 
     /// Returns information about all the connections between graph's nodes.
@@ -439,6 +463,21 @@ impl Handle {
             Err(ReadOnly.into())
         } else {
             self.graph.borrow().disconnect(connection, self)
+        }
+    }
+
+    /// Remove all the connections from the graph. This is a convenience method that calls
+    /// [`disconnect`] for each connection. If any of the calls fails, the first error is
+    /// propagated, but all the connections are attempted to be disconnected.
+    pub fn disconnect_all(&self, connections: impl Iterator<Item = Connection>) -> FallibleResult {
+        let errors =
+            connections.map(|c| self.disconnect(&c)).filter_map(|r| r.err()).collect::<Vec<_>>();
+        // Failure has no good way to propagate multiple errors with `Failure`. So we propagate
+        // only the first one.
+        if let Some(error) = errors.into_iter().next() {
+            Err(error)
+        } else {
+            Ok(())
         }
     }
 

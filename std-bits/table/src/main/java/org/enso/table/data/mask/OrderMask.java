@@ -2,6 +2,7 @@ package org.enso.table.data.mask;
 
 import java.util.Arrays;
 import java.util.List;
+import org.graalvm.polyglot.Context;
 
 /** Describes a storage reordering operator. */
 public class OrderMask {
@@ -40,23 +41,28 @@ public class OrderMask {
   }
 
   public static OrderMask fromList(List<Integer> positions) {
+    Context context = Context.getCurrent();
     int[] result = new int[positions.size()];
     for (int i = 0; i < positions.size(); i++) {
       result[i] = positions.get(i);
+      context.safepoint();
     }
     return new OrderMask(result);
   }
 
   public static OrderMask concat(List<OrderMask> masks) {
+    Context context = Context.getCurrent();
     int size = 0;
     for (OrderMask mask : masks) {
       size += mask.positions.length;
+      context.safepoint();
     }
     int[] result = new int[size];
     int offset = 0;
     for (OrderMask mask : masks) {
       System.arraycopy(mask.positions, 0, result, offset, mask.positions.length);
       offset += mask.positions.length;
+      context.safepoint();
     }
     return new OrderMask(result);
   }

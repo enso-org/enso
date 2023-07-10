@@ -1,5 +1,5 @@
 /** @file Container that launches the IDE. */
-import * as react from 'react'
+import * as React from 'react'
 
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
@@ -10,7 +10,7 @@ import GLOBAL_CONFIG from '../../../../../../../../gui/config.yaml' assert { typ
 // === Constants ===
 // =================
 
-const IDE_CDN_URL = 'https://ensocdn.s3.us-west-1.amazonaws.com/ide'
+const IDE_CDN_URL = 'https://cdn.enso.org/ide'
 const JS_EXTENSION: Record<backendModule.BackendType, string> = {
     [backendModule.BackendType.remote]: '.js.gz',
     [backendModule.BackendType.local]: '.js',
@@ -31,7 +31,7 @@ function Ide(props: IdeProps) {
     const { project, appRunner } = props
     const { backend } = backendProvider.useBackend()
 
-    react.useEffect(() => {
+    React.useEffect(() => {
         void (async () => {
             const ideVersion =
                 project.ideVersion?.value ??
@@ -122,7 +122,10 @@ function Ide(props: IdeProps) {
                 }
             }
         })()
-    }, [project])
+        // The backend MUST NOT be a dependency, since the IDE should only be recreated when a new
+        // project is opened.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [appRunner, project])
 
     return <></>
 }

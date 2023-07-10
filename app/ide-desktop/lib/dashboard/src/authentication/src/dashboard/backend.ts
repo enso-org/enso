@@ -291,6 +291,13 @@ export interface Directory extends Asset<AssetType.directory> {}
 export interface CreateUserRequestBody {
     userName: string
     userEmail: EmailAddress
+    organizationId: UserOrOrganizationId | null
+}
+
+/** HTTP request body for the "invite user" endpoint. */
+export interface InviteUserRequestBody {
+    organizationId: UserOrOrganizationId
+    userEmail: EmailAddress
 }
 
 /** HTTP request body for the "create directory" endpoint. */
@@ -376,6 +383,8 @@ export interface Backend {
 
     /** Set the username of the current user. */
     createUser: (body: CreateUserRequestBody) => Promise<UserOrOrganization>
+    /** Return user details for the current user. */
+    inviteUser: (body: InviteUserRequestBody) => Promise<void>
     /** Return user details for the current user. */
     usersMe: () => Promise<UserOrOrganization | null>
     /** Return a list of assets in a directory. */

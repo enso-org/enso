@@ -627,8 +627,7 @@ mod tests {
     /// excluded from the list.
     #[test]
     fn building_component_list_with_private_component() {
-        use ast::constants::PRIVATE_DOC_SECTION_TAG_NAME as PRIVATE_TAG;
-        let private_doc_section = enso_suggestion_database::doc_section!(@ PRIVATE_TAG, "");
+        let private_doc_section = enso_suggestion_database::doc_section!(@ Private, "");
         let suggestion_db = enso_suggestion_database::mock_suggestion_database! {
             test.Test {
                 mod LocalModule {

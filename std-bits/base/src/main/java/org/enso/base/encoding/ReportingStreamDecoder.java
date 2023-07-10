@@ -217,6 +217,15 @@ public class ReportingStreamDecoder extends Reader {
       } else if (cr.isOverflow()) {
         growOutputBuffer();
       }
+
+      /*
+       We cannot have a safepoint here, because `read` is called from a separate Thread by the `CsvParser` where
+       there is no context to get. On this separate thread there is no reason to have a safepoint anyway.
+       Ideally, we should be able to check if a context is available and poll safepoints only if it is. The issue
+       tracking this feature can be found at: https://github.com/oracle/graal/issues/6931
+       For now, we just disable safepoints in this method - it is not run directly from Enso code anyway. But we may
+       need to revisit this in the future.
+      */
     }
 
     if (eof) {

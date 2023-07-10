@@ -1,5 +1,5 @@
 /** @file  */
-import * as react from 'react'
+import * as React from 'react'
 
 // =============
 // === Modal ===
@@ -14,7 +14,7 @@ interface ModalContextType {
     setModal: (modal: Modal | null) => void
 }
 
-const ModalContext = react.createContext<ModalContextType>({
+const ModalContext = React.createContext<ModalContextType>({
     modal: null,
     setModal: () => {
         // Ignored. This default value will never be used
@@ -28,19 +28,19 @@ export interface ModalProviderProps extends React.PropsWithChildren<object> {}
 /** A React provider containing the currently active modal. */
 export function ModalProvider(props: ModalProviderProps) {
     const { children } = props
-    const [modal, setModal] = react.useState<Modal | null>(null)
+    const [modal, setModal] = React.useState<Modal | null>(null)
     return <ModalContext.Provider value={{ modal, setModal }}>{children}</ModalContext.Provider>
 }
 
 /** A React context hook exposing the currently active modal, if one is currently visible. */
 export function useModal() {
-    const { modal } = react.useContext(ModalContext)
+    const { modal } = React.useContext(ModalContext)
     return { modal }
 }
 
 /** A React context hook exposing functions to set and unset the currently active modal. */
 export function useSetModal() {
-    const { setModal: setModalRaw } = react.useContext(ModalContext)
+    const { setModal: setModalRaw } = React.useContext(ModalContext)
     const setModal = (modal: Modal) => {
         setModalRaw(modal)
     }

@@ -1,5 +1,6 @@
 import project.Any.Any
 import project.Data.Vector.Vector
+import project.Nothing.Nothing
 
 ## A function is any type that represents a not-yet evaluated computation.
 
@@ -78,7 +79,6 @@ identity x = x
 flip : (Any -> Any -> Any) -> (Any -> Any -> Any)
 flip f = (x -> y -> f y x)
 
-
 ## Creates a function which drops its input and returns the provided value instead.
    The expression const a is the same as \_ -> a.
 
@@ -88,7 +88,10 @@ flip f = (x -> y -> f y x)
    > Example
     IO.println <| [1, 2, 3].map (Function.const 7) # Prints '[7, 7, 7]'
 const : Any -> Any -> Any
-const x _ = x
+const x ~f =
+    black_hole ~_ = Nothing
+    black_hole f
+    x
 
 ## Converts a single-argument function accepting a pair of elements into a multi-argument one.
 

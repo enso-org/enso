@@ -1,5 +1,4 @@
 from Standard.Base import all
-import Standard.Base.Errors.Unimplemented.Unimplemented
 
 import Standard.Base.Data.Noise.Deterministic_Random
 
@@ -10,11 +9,11 @@ spec =
     Test.group "Deterministic Random Noise Generator" <|
         gen = Deterministic_Random
         Test.specify "should always return the same output for the same input" <|
-            interval = Interval.inclusive 0 1
+            interval = Interval.new 0 1 Interval_Type.Inclusive
             values = Vector.fill 10000 1 . map (gen.step _ interval)
             values.all (== values.at 0) . should_be_true
         Test.specify "should always produce values within the specified interval" <|
-            interval = Interval.inclusive -100 100
+            interval = Interval.new -100 100 Interval_Type.Inclusive
             values = 1.up_to 10000 . to_vector . map (gen.step _ interval)
             values.all (v -> (v >= -100) && (v <= 100)) . should_be_true
 

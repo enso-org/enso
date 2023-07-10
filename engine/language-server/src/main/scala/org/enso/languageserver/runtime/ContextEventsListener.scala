@@ -5,10 +5,10 @@ import akka.pattern.pipe
 import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.languageserver.runtime.ContextRegistryProtocol.{
-  DetachVisualisation,
-  RegisterOneshotVisualisation,
-  VisualisationContext,
-  VisualisationUpdate
+  DetachVisualization,
+  RegisterOneshotVisualization,
+  VisualizationContext,
+  VisualizationUpdate
 }
 import org.enso.languageserver.runtime.ExecutionApi.ContextId
 import org.enso.languageserver.session.JsonSession
@@ -60,49 +60,49 @@ final class ContextEventsListener(
   override def receive: Receive = withState(Set(), Vector())
 
   private def withState(
-    oneshotVisualisations: Set[Api.VisualisationContext],
+    oneshotVisualizations: Set[Api.VisualizationContext],
     expressionUpdates: Vector[Api.ExpressionUpdate]
   ): Receive = {
 
-    case RegisterOneshotVisualisation(
+    case RegisterOneshotVisualization(
           contextId,
-          visualisationId,
+          visualizationId,
           expressionId
         ) =>
-      val visualisationContext =
-        Api.VisualisationContext(
-          visualisationId,
+      val visualizationContext =
+        Api.VisualizationContext(
+          visualizationId,
           contextId,
           expressionId
         )
       context.become(
         withState(
-          oneshotVisualisations + visualisationContext,
+          oneshotVisualizations + visualizationContext,
           expressionUpdates
         )
       )
 
-    case Api.VisualisationUpdate(ctx, data) if ctx.contextId == contextId =>
+    case Api.VisualizationUpdate(ctx, data) if ctx.contextId == contextId =>
       val payload =
-        VisualisationUpdate(
-          VisualisationContext(
-            ctx.visualisationId,
+        VisualizationUpdate(
+          VisualizationContext(
+            ctx.visualizationId,
             ctx.contextId,
             ctx.expressionId
           ),
           data
         )
       sessionRouter ! DeliverToBinaryController(rpcSession.clientId, payload)
-      if (oneshotVisualisations.contains(ctx)) {
-        context.parent ! DetachVisualisation(
+      if (oneshotVisualizations.contains(ctx)) {
+        context.parent ! DetachVisualization(
           rpcSession.clientId,
           contextId,
-          ctx.visualisationId,
+          ctx.visualizationId,
           ctx.expressionId
         )
         context.become(
           withState(
-            oneshotVisualisations - ctx,
+            oneshotVisualizations - ctx,
             expressionUpdates
           )
         )
@@ -110,7 +110,7 @@ final class ContextEventsListener(
 
     case Api.ExpressionUpdates(`contextId`, apiUpdates) =>
       context.become(
-        withState(oneshotVisualisations, expressionUpdates :++ apiUpdates)
+        withState(oneshotVisualizations, expressionUpdates :++ apiUpdates)
       )
 
     case Api.ExecutionFailed(`contextId`, error) =>
@@ -144,9 +144,9 @@ final class ContextEventsListener(
 
       message.pipeTo(sessionRouter)
 
-    case Api.VisualisationEvaluationFailed(
+    case Api.VisualizationEvaluationFailed(
           `contextId`,
-          visualisationId,
+          visualizationId,
           expressionId,
           message,
           diagnostic
@@ -156,9 +156,9 @@ final class ContextEventsListener(
           .map(runtimeFailureMapper.toProtocolDiagnostic)
           .sequence
         payload =
-          ContextRegistryProtocol.VisualisationEvaluationFailed(
+          ContextRegistryProtocol.VisualizationEvaluationFailed(
             contextId,
-            visualisationId,
+            visualizationId,
             expressionId,
             message,
             diagnostic
@@ -169,7 +169,7 @@ final class ContextEventsListener(
 
     case RunExpressionUpdates if expressionUpdates.nonEmpty =>
       runExpressionUpdates(expressionUpdates)
-      context.become(withState(oneshotVisualisations, Vector()))
+      context.become(withState(oneshotVisualizations, Vector()))
 
     case RunExpressionUpdates if expressionUpdates.isEmpty =>
   }
@@ -209,9 +209,10 @@ final class ContextEventsListener(
     payload: Api.ExpressionUpdate.Payload
   ): ContextRegistryProtocol.ExpressionUpdate.Payload =
     payload match {
-      case Api.ExpressionUpdate.Payload.Value(warnings) =>
+      case Api.ExpressionUpdate.Payload.Value(warnings, functionSchema) =>
         ContextRegistryProtocol.ExpressionUpdate.Payload.Value(
-          warnings.map(toProtocolWarnings)
+          warnings.map(toProtocolWarnings),
+          functionSchema.map(toProtocolFunctionSchema)
         )
 
       case Api.ExpressionUpdate.Payload.Pending(m, p) =>
@@ -235,6 +236,19 @@ final class ContextEventsListener(
   ): ContextRegistryProtocol.ExpressionUpdate.Payload.Value.Warnings =
     ContextRegistryProtocol.ExpressionUpdate.Payload.Value
       .Warnings(payload.count, payload.warning, payload.reachedMaxCount)
+
+  /** Convert the runtime function schema to the context registry protocol
+    * representation.
+    *
+    * @param functionSchema the function schema
+    */
+  private def toProtocolFunctionSchema(
+    functionSchema: Api.FunctionSchema
+  ): ContextRegistryProtocol.ExpressionUpdate.Payload.Value.FunctionSchema =
+    ContextRegistryProtocol.ExpressionUpdate.Payload.Value.FunctionSchema(
+      toProtocolMethodPointer(functionSchema.methodPointer),
+      functionSchema.notAppliedArguments
+    )
 
   /** Convert the runtime profiling info to the context registry protocol
     * representation.

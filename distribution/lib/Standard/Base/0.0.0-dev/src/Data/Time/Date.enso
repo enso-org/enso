@@ -2,10 +2,9 @@ import project.Any.Any
 import project.Data.Json.JS_Object
 import project.Data.Locale.Locale
 import project.Data.Numbers.Integer
-import project.Data.Ordering.Ordering
 import project.Data.Ordering.Comparable
+import project.Data.Ordering.Ordering
 import project.Data.Text.Text
-from project.Data.Text.Extensions import all
 import project.Data.Time.Date_Period.Date_Period
 import project.Data.Time.Date_Range.Date_Range
 import project.Data.Time.Date_Time.Date_Time
@@ -16,26 +15,24 @@ import project.Data.Time.Period.Period
 import project.Data.Time.Time_Of_Day.Time_Of_Day
 import project.Data.Time.Time_Zone.Time_Zone
 import project.Data.Vector.Vector
-import project.Errors.Common.Type_Error
 import project.Error.Error
+import project.Errors.Common.Type_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Time_Error.Time_Error
 import project.Math
 import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
-
-from project.Data.Boolean import Boolean, True, False
+from project.Data.Boolean import Boolean, False, True
+from project.Data.Text.Extensions import all
 from project.Data.Time.Date_Time import ensure_in_epoch
-
 from project.Widget_Helpers import make_date_format_selector
 
+polyglot java import java.lang.ArithmeticException
 polyglot java import java.lang.Exception as JException
+polyglot java import java.time.DateTimeException
 polyglot java import java.time.temporal.ChronoField
 polyglot java import java.time.temporal.IsoFields
-polyglot java import java.time.DateTimeException
-polyglot java import java.lang.ArithmeticException
-
 polyglot java import org.enso.base.Time_Utils
 
 ## PRIVATE
@@ -61,16 +58,7 @@ new_builtin year month day = @Builtin_Method "Date.new_builtin"
    offset or timezone.
 @Builtin_Type
 type Date
-    ## Obtains the current date from the system clock in the system timezone.
-
-       > Example
-         Get the current date.
-
-             example_now = Date.now
-    now : Date
-    now = @Builtin_Method "Date.now"
-
-    ## ALIAS Current Date
+    ## ALIAS Current Date, now
 
        Obtains the current date from the system clock in the system timezone.
 
@@ -79,7 +67,7 @@ type Date
 
              example_today = Date.today
     today : Date
-    today = Date.now
+    today = @Builtin_Method "Date.today"
 
     ## Constructs a new Date from a year, month, and day.
 
@@ -192,7 +180,7 @@ type Date
 
              from Standard.Base import Date
 
-             example_year = Date.now.year
+             example_year = Date.today.year
     year : Integer
     year self = @Builtin_Method "Date.year"
 
@@ -201,7 +189,7 @@ type Date
        > Example
          Get the current month.
 
-             example_month = Date.now.month
+             example_month = Date.today.month
     month : Integer
     month self = @Builtin_Method "Date.month"
 
@@ -212,7 +200,7 @@ type Date
 
              from Standard.Base import Date
 
-             example_day = Date.now.day
+             example_day = Date.today.day
     day : Integer
     day self = @Builtin_Method "Date.day"
 
@@ -641,7 +629,7 @@ type Date
        > Example
          Convert the current date to a JS_Object.
 
-             example_to_json = Date.now.to_js_object
+             example_to_json = Date.today.to_js_object
     to_js_object : JS_Object
     to_js_object self =
         type_pair = ["type", "Date"]
@@ -722,9 +710,9 @@ week_days_between start end =
                     _ -> days_between
         False ->
             # We count the days in the first week up until Friday - the weekend is not counted.
-            first_week_days = Math.max 0 (Time_Utils.days_between start (start_of_first_full_week - (Period.new days=2)))
+            first_week_days = (Time_Utils.days_between start (start_of_first_full_week - (Period.new days=2))).max 0
             # We count the days in the last week, not including the weekend.
-            last_week_days = Math.min (Time_Utils.days_between start_of_last_week end) 5
+            last_week_days = (Time_Utils.days_between start_of_last_week end).min 5
             full_weeks_between * 5 + first_week_days + last_week_days
 
 ## PRIVATE

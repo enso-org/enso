@@ -8,6 +8,7 @@ import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
+import org.graalvm.polyglot.Context;
 
 /**
  * Implements a storage that computes the ith stored value using some function.
@@ -67,10 +68,13 @@ public abstract class ComputedLongStorage extends AbstractLongStorage {
     BitSet newMissing = new BitSet();
     long[] newData = new long[cardinality];
     int resIx = 0;
+    Context context = Context.getCurrent();
     for (int i = 0; i < size; i++) {
       if (mask.get(i)) {
         newData[resIx++] = getItem(i);
       }
+
+      context.safepoint();
     }
     return new LongStorage(newData, cardinality, newMissing);
   }
@@ -80,12 +84,15 @@ public abstract class ComputedLongStorage extends AbstractLongStorage {
     int[] positions = mask.getPositions();
     long[] newData = new long[positions.length];
     BitSet newMissing = new BitSet();
+    Context context = Context.getCurrent();
     for (int i = 0; i < positions.length; i++) {
       if (positions[i] == Index.NOT_FOUND) {
         newMissing.set(i);
       } else {
         newData[i] = getItem(positions[i]);
       }
+
+      context.safepoint();
     }
     return new LongStorage(newData, positions.length, newMissing);
   }
@@ -95,11 +102,14 @@ public abstract class ComputedLongStorage extends AbstractLongStorage {
     long[] newData = new long[total];
     BitSet newMissing = new BitSet();
     int pos = 0;
+    Context context = Context.getCurrent();
     for (int i = 0; i < counts.length; i++) {
       long item = getItem(i);
       for (int j = 0; j < counts[i]; j++) {
         newData[pos++] = item;
       }
+
+      context.safepoint();
     }
     return new LongStorage(newData, total, newMissing);
   }
@@ -108,8 +118,10 @@ public abstract class ComputedLongStorage extends AbstractLongStorage {
   public Storage<Long> slice(int offset, int limit) {
     int newSize = Math.min(size - offset, limit);
     long[] newData = new long[newSize];
+    Context context = Context.getCurrent();
     for (int i = 0; i < newSize; i++) {
       newData[i] = getItem(offset + i);
+      context.safepoint();
     }
     BitSet newMask = new BitSet();
     return new LongStorage(newData, newSize, newMask);
@@ -121,11 +133,13 @@ public abstract class ComputedLongStorage extends AbstractLongStorage {
     long[] newData = new long[newSize];
     BitSet newMissing = new BitSet(newSize);
     int offset = 0;
+    Context context = Context.getCurrent();
     for (SliceRange range : ranges) {
       int rangeStart = range.start();
       int length = range.end() - rangeStart;
       for (int i = 0; i < length; i++) {
         newData[offset + i] = getItem(rangeStart + i);
+        context.safepoint();
       }
       offset += length;
     }

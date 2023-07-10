@@ -16,9 +16,9 @@ spec =
             mock_text = "abc def"
             default_widget = Text_Sub_Range.default_widget
             expect = [["range", default_widget]] . to_json
-            json = Widgets.get_widget_json mock_text "take" ["range"]
+            json = Widgets.get_widget_json mock_text .take ["range"]
             json . should_equal expect
-            Widgets.get_widget_json mock_text "drop" ["range"] . should_equal expect
+            Widgets.get_widget_json mock_text .drop ["range"] . should_equal expect
             obj = json.parse_json
             widget = obj.first.second
             options = widget . at "values"

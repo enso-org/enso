@@ -775,6 +775,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
     (Compile / run / fork) := true,
     (Test / fork) := true,
     (Compile / run / connectInput) := true,
+    commands += WithDebugCommand.withDebug,
     libraryDependencies ++= akka ++ Seq(akkaTestkit % Test),
     libraryDependencies ++= circe,
     libraryDependencies ++= Seq(
@@ -1289,7 +1290,7 @@ lazy val runtime = (project in file("engine/runtime"))
       "org.typelevel"      %% "cats-core"             % catsVersion,
       "junit"               % "junit"                 % junitVersion      % Test,
       "com.novocode"        % "junit-interface"       % junitIfVersion    % Test exclude ("junit", "junit-dep"),
-      "com.lihaoyi"        %% "fansi"                 % fansiVersion      % "provided"
+      "com.lihaoyi"        %% "fansi"                 % fansiVersion
     ),
     Compile / compile / compileInputs := (Compile / compile / compileInputs)
       .dependsOn(CopyTruffleJAR.preCompileTask)
@@ -1917,8 +1918,8 @@ lazy val `std-base` = project
     Compile / packageBin / artifactPath :=
       `base-polyglot-root` / "std-base.jar",
     libraryDependencies ++= Seq(
-      "org.graalvm.truffle" % "truffle-api"             % graalVersion       % "provided",
-      "org.netbeans.api"    % "org-openide-util-lookup" % netbeansApiVersion % "provided"
+      "org.graalvm.sdk"  % "graal-sdk"               % graalVersion       % "provided",
+      "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided"
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
@@ -1944,8 +1945,8 @@ lazy val `common-polyglot-core-utils` = project
     Compile / packageBin / artifactPath :=
       `base-polyglot-root` / "common-polyglot-core-utils.jar",
     libraryDependencies ++= Seq(
-      "com.ibm.icu"         % "icu4j"       % icuVersion,
-      "org.graalvm.truffle" % "truffle-api" % graalVersion % "provided"
+      "com.ibm.icu"     % "icu4j"     % icuVersion,
+      "org.graalvm.sdk" % "graal-sdk" % graalVersion % "provided"
     )
   )
 
@@ -1957,7 +1958,7 @@ lazy val `enso-test-java-helpers` = project
     Compile / packageBin / artifactPath :=
       file("test/Tests/polyglot/java/helpers.jar"),
     libraryDependencies ++= Seq(
-      "org.graalvm.truffle" % "truffle-api" % graalVersion % "provided"
+      "org.graalvm.sdk" % "graal-sdk" % graalVersion % "provided"
     ),
     Compile / packageBin := Def.task {
       val result          = (Compile / packageBin).value
@@ -1990,7 +1991,7 @@ lazy val `std-table` = project
       (Antlr4 / sourceManaged).value / "main" / "antlr4"
     },
     libraryDependencies ++= Seq(
-      "org.graalvm.truffle" % "truffle-api"             % graalVersion       % "provided",
+      "org.graalvm.sdk"     % "graal-sdk"               % graalVersion       % "provided",
       "org.netbeans.api"    % "org-openide-util-lookup" % netbeansApiVersion % "provided",
       "com.univocity"       % "univocity-parsers"       % univocityParsersVersion,
       "org.apache.poi"      % "poi-ooxml"               % poiOoxmlVersion,
@@ -2019,6 +2020,7 @@ lazy val `std-image` = project
     Compile / packageBin / artifactPath :=
       `image-polyglot-root` / "std-image.jar",
     libraryDependencies ++= Seq(
+      "org.graalvm.sdk"  % "graal-sdk"               % graalVersion       % "provided",
       "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided",
       "org.openpnp"      % "opencv"                  % "4.7.0-0"
     ),
@@ -2068,6 +2070,7 @@ lazy val `std-database` = project
     Compile / packageBin / artifactPath :=
       `database-polyglot-root` / "std-database.jar",
     libraryDependencies ++= Seq(
+      "org.graalvm.sdk"  % "graal-sdk"               % graalVersion       % "provided",
       "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided",
       "org.xerial"       % "sqlite-jdbc"             % sqliteVersion,
       "org.postgresql"   % "postgresql"              % "42.4.0"

@@ -9,8 +9,8 @@ import project.System.File_Format.File_Format
 
 polyglot java import java.io.IOException
 polyglot java import java.nio.file.AccessDeniedException
-polyglot java import java.nio.file.NoSuchFileException
 polyglot java import java.nio.file.FileAlreadyExistsException
+polyglot java import java.nio.file.NoSuchFileException
 
 ## Errors when reading or writing to a file.
 type File_Error
