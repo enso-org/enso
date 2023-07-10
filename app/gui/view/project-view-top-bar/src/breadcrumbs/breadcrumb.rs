@@ -3,12 +3,10 @@
 use ensogl::display::shape::*;
 use ensogl::prelude::*;
 
-use crate::breadcrumbs;
 use crate::breadcrumbs::SharedMethodPointer;
 
 use super::BACKGROUND_HEIGHT;
 use super::GLYPH_WIDTH;
-use super::HORIZONTAL_MARGIN;
 use super::TEXT_SIZE;
 use enso_frp as frp;
 use ensogl::application::Application;
@@ -27,24 +25,15 @@ use std::f32::consts::PI;
 // === Constants ===
 // =================
 
-/// Breadcrumb vertical margin.
-pub const VERTICAL_MARGIN: f32 = 0.0;
 /// Breadcrumb left margin.
 pub const LEFT_MARGIN: f32 = 0.0;
 /// Breadcrumb right margin.
 pub const RIGHT_MARGIN: f32 = 0.0;
-const ICON_LEFT_MARGIN: f32 = 0.0;
-const ICON_RIGHT_MARGIN: f32 = HORIZONTAL_MARGIN;
-const ICON_RADIUS: f32 = 6.0;
-const ICON_SIZE: f32 = ICON_RADIUS * 2.0;
-const ICON_RING_WIDTH: f32 = 1.5;
-const ICON_ARROW_SIZE: f32 = 4.0;
 const SEPARATOR_WIDTH: f32 = 6.0;
 const SEPARATOR_HEIGHT: f32 = 8.0;
 /// Breadcrumb padding.
 pub const PADDING: f32 = 1.0;
 const SEPARATOR_MARGIN: f32 = 6.0;
-const LINE_HEIGHT: f32 = 11.5 * 1.5;
 
 
 
@@ -93,16 +82,14 @@ enum RelativePosition {
 pub struct Animations {
     color:           Animation<color::Rgba>,
     separator_color: Animation<color::Rgba>,
-    fade_in:         Animation<f32>,
 }
 
 impl Animations {
     /// Constructor.
     pub fn new(network: &frp::Network) -> Self {
         let color = Animation::new(network);
-        let fade_in = Animation::new(network);
         let separator_color = Animation::new(network);
-        Self { color, separator_color, fade_in }
+        Self { color, separator_color }
     }
 }
 
@@ -121,8 +108,6 @@ pub struct FrpInputs {
     /// breadcrumb indices to determine if the breadcrumb is on the left or on the right of the
     /// newly selected breadcrumb.
     pub deselect: frp::Source<(usize, usize)>,
-    /// Triggers the fade in animation, which only makes sense during the breadcrumb creation.
-    pub fade_in:  frp::Source,
 }
 
 impl FrpInputs {
@@ -131,9 +116,8 @@ impl FrpInputs {
         frp::extend! {network
             select   <- source();
             deselect <- source();
-            fade_in  <- source();
         }
-        Self { select, deselect, fade_in }
+        Self { select, deselect }
     }
 }
 
@@ -289,7 +273,6 @@ impl BreadcrumbModel {
 
         let styles = &self.style;
         let full_color = styles.get_color(theme::full);
-        let transparent_color = styles.get_color(theme::transparent);
 
         self.label.set_property_default(full_color);
         self.label.set_property_default(text::formatting::Size::from(TEXT_SIZE));
@@ -312,30 +295,16 @@ impl BreadcrumbModel {
 
         self.label.set_y(height / 2.0 + TEXT_SIZE / 2.0);
         self.overlay.set_size(Vector2::new(width, height));
-        self.fade_in(0.0);
         let separator_width = (SEPARATOR_WIDTH + PADDING * 2.0).max(0.0);
         self.separator.set_size(Vector2::new(separator_width, SEPARATOR_HEIGHT));
         self.separator.set_x(offset.round());
         self.separator.set_y(height / 2.0);
     }
 
-    /// Hide a separator for this breadcrumb.
-    pub fn hide_separator(&self) {
-        self.remove_child(&self.separator);
-        self.separator_visible.set(false);
-        self.update_layout();
-    }
-
     /// Show a separator for this breadcrumb.
     pub fn show_separator(&self) {
         self.add_child(&self.separator);
         self.separator_visible.set(true);
-        self.update_layout();
-    }
-
-    /// Set a displayed label.
-    pub fn set_label(&self, content: &str) {
-        self.label.set_content(content);
         self.update_layout();
     }
 
@@ -359,16 +328,6 @@ impl BreadcrumbModel {
     /// Get the height of the view.
     pub fn height(&self) -> f32 {
         BACKGROUND_HEIGHT
-        // LINE_HEIGHT //+ breadcrumbs::VERTICAL_MARGIN * 2.0
-    }
-
-    fn fade_in(&self, value: f32) {
-        let width = self.width();
-        let height = self.height();
-        let x_position = width * value / 2.0;
-        // let y_position = -height / 2.0 - VERTICAL_MARGIN - PADDING;
-        let y_position: f32 = height / 4.0;
-        self.overlay.set_position(Vector3(x_position.round(), y_position.round(), 0.0));
     }
 
     fn set_color(&self, color: color::Rgba) {
@@ -382,30 +341,11 @@ impl BreadcrumbModel {
         self.separator.alpha.set(color.alpha);
     }
 
-    fn select(&self) {
-        let styles = &self.style;
-        let selected_color = styles.get_color(theme::selected);
-        let left_deselected = styles.get_color(theme::deselected::left);
-    }
-
     fn deselect(&self, old: usize, new: usize) {
         let left = RelativePosition::Left;
         let right = RelativePosition::Right;
         self.relative_position
             .set((new > old).as_option().map(|_| Some(left)).unwrap_or(Some(right)));
-    }
-
-    fn deselected_color(&self) -> color::Rgba {
-        let styles = &self.style;
-        let selected_color = styles.get_color(theme::selected);
-        let left_deselected = styles.get_color(theme::deselected::left);
-        let right_deselected = styles.get_color(theme::deselected::right);
-
-        match self.relative_position.get() {
-            Some(RelativePosition::Right) => right_deselected,
-            Some(RelativePosition::Left) => left_deselected,
-            None => selected_color,
-        }
     }
 }
 
@@ -447,7 +387,6 @@ impl Breadcrumb {
 
         let hover_color = styles.get_color(theme::hover);
         let selected_color = styles.get_color(theme::selected);
-        let selected_color = styles.get_color(theme::selected);
         let left_deselected = styles.get_color(theme::deselected::left);
         let right_deselected = styles.get_color(theme::deselected::right);
 
@@ -461,10 +400,8 @@ impl Breadcrumb {
                     }
                 }
             ));
-            animations.fade_in.target <+ frp.fade_in.constant(1.0);
             eval_ frp.select(out.selected.emit(true));
             eval_ frp.deselect(out.selected.emit(false));
-            eval_ frp.select(model.select());
             animations.color.target <+ selected_color.sample(&frp.select);
             animations.separator_color.target <+ left_deselected.sample(&frp.select);
             eval frp.deselect(((old, new)) model.deselect(*old, *new));
@@ -484,7 +421,6 @@ impl Breadcrumb {
         // === Animations ===
 
         frp::extend! { network
-            eval animations.fade_in.value((value) model.fade_in(*value));
             eval animations.color.value((value) model.set_color(*value));
             eval animations.separator_color.value((value) model.set_separator_color(*value));
         }

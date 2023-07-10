@@ -12,7 +12,6 @@ use ensogl::display::camera::Camera2d;
 use ensogl::display::object::ObjectOps;
 use ensogl::gui::cursor;
 use ensogl_hardcoded_theme::application::top_bar as top_bar_theme;
-use ensogl_hardcoded_theme::application::top_bar::breadcrumbs as theme;
 use std::cmp::Ordering;
 
 
@@ -21,10 +20,8 @@ use std::cmp::Ordering;
 // ==============
 
 pub mod breadcrumb;
-pub mod project_name;
 
 pub use breadcrumb::Breadcrumb;
-pub use project_name::ProjectName;
 
 
 
@@ -70,14 +67,8 @@ pub struct LocalCall {
 
 // FIXME[dg] hardcoded literal for glyph of height 12.0. Copied from port.rs
 const GLYPH_WIDTH: f32 = 7.224_609_4;
-const VERTICAL_MARGIN: f32 = GLYPH_WIDTH;
-const HORIZONTAL_MARGIN: f32 = GLYPH_WIDTH;
-const BACKGROUND_PADDING: f32 = 8.0;
 const BACKGROUND_HEIGHT: f32 = 32.0;
 const TEXT_SIZE: f32 = 12.0;
-
-/// Text offset to make the text appear more centered.
-const TEXT_Y_OFFSET: f32 = 2.0;
 
 
 
@@ -97,8 +88,6 @@ ensogl::define_endpoints! {
         /// Signalizes a mouse press happened outside the breadcrumb panel. It's used to finish
         /// project renaming, committing the name in text field.
         outside_press               (),
-        /// Sets the project name.
-        project_name                (String),
         /// Select the breadcrumb by its index.
         select_breadcrumb           (usize),
         /// Same as `FrpInputs::push_breadcrumb`, but pushes a hardcoded breadcrumb if
@@ -113,8 +102,6 @@ ensogl::define_endpoints! {
         /// The `gap_width` describes an empty space on the left of all the content. This space will
         /// be covered by the background and is intended to make room for windows control buttons.
         gap_width                   (f32),
-        /// Set whether the project was changed since the last snapshot save.
-        set_project_changed(bool),
         /// Set read-only mode for this component.
         set_read_only(bool),
     }
@@ -123,8 +110,6 @@ ensogl::define_endpoints! {
         breadcrumb_push (Vec<LocalCall>),
         /// Signalizes how many breadcrumbs to pop.
         breadcrumb_pop (usize),
-        /// Signalizes when project name is changed.
-        project_name      (String),
         /// Signalizes when a breadcrumb is selected, returning a tuple with the amount of
         /// breadcrumbs to be popped, in case the selection happens on the left of the currently
         /// selected breadcrumb, or else a vector of existing breadcrumbs to be pushed.
@@ -132,12 +117,6 @@ ensogl::define_endpoints! {
         /// Indicates the pointer style that should be shown based on the interactions with the
         /// breadcrumb.
         pointer_style      (cursor::Style),
-        /// Indicates whether the cursor hovers over the project name.
-        project_name_hovered (bool),
-        /// Indicates whether the project name was clicked.
-        project_mouse_down (),
-        /// Signalizes an error if the user tried to rename the project to an invalid name.
-        project_name_error (String),
         /// Indicates if the read-only mode is enabled.
         read_only(bool),
     }
@@ -235,16 +214,6 @@ impl BreadcrumbsModel {
         breadcrumb.set_x(self.breadcrumbs_container_width().round());
         self.breadcrumbs_container.add_child(&breadcrumb);
         self.breadcrumbs.borrow_mut().push(breadcrumb);
-        self.current_index.set(1);
-    }
-
-    fn camera_changed(&self) {
-        let camera = &self.camera;
-        let screen = camera.screen();
-        let x_position = -screen.width / 2.0;
-        // We add half a pixel to the y offset as a quick fix for misaligned text.
-        let y_position = screen.height / 2.0 - 0.5;
-        // self.root.set_position(Vector3(x_position.round(), y_position.round(), 0.0));
     }
 
     fn breadcrumbs_container_width(&self) -> f32 {
@@ -257,19 +226,10 @@ impl BreadcrumbsModel {
     }
 
     fn update_layout(&self) {
-        let gap_width = self.gap_width.get();
-        // self.breadcrumbs_container.set_x(gap_width);
-        // self.breadcrumbs_container.set_y(TEXT_Y_OFFSET);
-
         let width = self.breadcrumbs_container_width();
-        let background_width = width;
-        let background_height = BACKGROUND_HEIGHT;
         self.breadcrumbs_container.set_size(Vector2(width, BACKGROUND_HEIGHT));
         self.background.set_padding_left(8.0);
         self.background.set_padding_right(8.0);
-        // self.background.set_x(-BACKGROUND_PADDING);
-        // self.background.set_y(-HEIGHT / 2.0 - background_height / 2.0);
-        // self.display_object.set_size(Vector2(background_width, background_height));
     }
 
     fn get_breadcrumb(&self, index: usize) -> Option<Breadcrumb> {
@@ -282,7 +242,7 @@ impl BreadcrumbsModel {
     /// where `popped_count` is the number of breadcrumbs in the right side of `index` that needs to
     /// be popped or a list of `LocalCall`s identifying the breadcrumbs we need to push.
     fn select_breadcrumb(&self, index: usize) -> (usize, Vec<LocalCall>) {
-        debug!("Selecting breadcrumb #{index}.");
+        error!("Selecting breadcrumb #{index}.");
         let current_index = self.current_index.get();
         match index.cmp(&current_index) {
             Ordering::Less => (current_index - index, default()),
@@ -437,7 +397,6 @@ impl BreadcrumbsModel {
         // Select new breadcrumb
         if let Some(breadcrumb) = self.get_breadcrumb(new_index) {
             breadcrumb.frp.select.emit(());
-            breadcrumb.frp.fade_in.emit(());
         }
     }
 }
@@ -465,7 +424,6 @@ pub struct Breadcrumbs {
 impl Breadcrumbs {
     /// Constructor.
     pub fn new(app: &Application) -> Self {
-        let scene = app.display.default_scene.clone_ref();
         let frp = Frp::new();
         let model = BreadcrumbsModel::new(app, &frp);
         let network = &frp.network;
@@ -518,7 +476,6 @@ impl Breadcrumbs {
 
             // === Relayout ===
             eval frp.input.gap_width((gap_width) model.set_gap_width(*gap_width));
-            eval_ scene.frp.camera_changed(model.camera_changed());
 
 
             // === Read-only mode ===

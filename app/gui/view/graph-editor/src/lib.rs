@@ -108,8 +108,6 @@ const VIZ_PREVIEW_MODE_TOGGLE_TIME_MS: f32 = 300.0;
 const VIZ_PREVIEW_MODE_TOGGLE_FRAMES: i32 =
     (VIZ_PREVIEW_MODE_TOGGLE_TIME_MS / 1000.0 * 60.0) as i32;
 const MAX_ZOOM: f32 = 1.0;
-/// Space between items in the top bar.
-const TOP_BAR_ITEM_MARGIN: f32 = 10.0;
 
 
 

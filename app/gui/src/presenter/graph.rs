@@ -84,35 +84,40 @@ pub fn default_node_position() -> Vector2 {
 
 #[derive(Debug)]
 struct Model {
-    project:          model::Project,
-    controller:       controller::ExecutedGraph,
-    view:             view::graph_editor::GraphEditor,
-    state:            Rc<State>,
-    _visualization:   Visualization,
-    widget:           controller::Widget,
-    _execution_stack: CallStack,
+    project:           model::Project,
+    controller:        controller::ExecutedGraph,
+    graph_editor_view: view::graph_editor::GraphEditor,
+    state:             Rc<State>,
+    _visualization:    Visualization,
+    widget:            controller::Widget,
+    _execution_stack:  CallStack,
 }
 
 impl Model {
     pub fn new(
         project: model::Project,
         controller: controller::ExecutedGraph,
-        view: view::graph_editor::GraphEditor,
+        graph_editor_view: view::graph_editor::GraphEditor,
+        project_view: view::project::View,
     ) -> Self {
         let state: Rc<State> = default();
         let visualization = Visualization::new(
             project.clone_ref(),
             controller.clone_ref(),
-            view.clone_ref(),
+            graph_editor_view.clone_ref(),
             state.clone_ref(),
         );
         let widget = controller::Widget::new(controller.clone_ref());
-        let execution_stack =
-            CallStack::new(controller.clone_ref(), view.clone_ref(), state.clone_ref());
+        let execution_stack = CallStack::new(
+            controller.clone_ref(),
+            graph_editor_view.clone_ref(),
+            project_view.clone_ref(),
+            state.clone_ref(),
+        );
         Self {
             project,
             controller,
-            view,
+            graph_editor_view,
             state,
             _visualization: visualization,
             widget,
@@ -657,8 +662,9 @@ impl Graph {
         project_view: &view::project::View,
     ) -> Self {
         let network = frp::Network::new("presenter::Graph");
-        let view = project_view.graph().clone_ref();
-        let model = Rc::new(Model::new(project, controller, view));
+        let graph_editor_view = project_view.graph().clone_ref();
+        let project_view_clone = project_view.clone_ref();
+        let model = Rc::new(Model::new(project, controller, graph_editor_view, project_view_clone));
         Self { network, model }.init(project_view)
     }
 
@@ -666,7 +672,7 @@ impl Graph {
     fn init(self, project_view: &view::project::View) -> Self {
         let network = &self.network;
         let model = &self.model;
-        let view = &model.view.frp;
+        let view = &model.graph_editor_view.frp;
 
         frp::extend! { network
             update_view <- source::<()>();
@@ -769,7 +775,7 @@ impl Graph {
     ) {
         let network = &self.network;
         let model = &self.model;
-        let view = &model.view.frp;
+        let view = &model.graph_editor_view.frp;
         let widget = &model.widget;
 
         frp::extend! { network

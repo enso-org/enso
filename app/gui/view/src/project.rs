@@ -145,15 +145,15 @@ ensogl::define_endpoints! {
 
 #[derive(Clone, CloneRef, Debug)]
 struct Model {
-    display_object:       display::object::Instance,
-    project_view_top_bar: ProjectViewTopBar,
-    graph_editor:         Rc<GraphEditor>,
-    searcher:             component_browser::View,
-    code_editor:          code_editor::View,
-    fullscreen_vis:       Rc<RefCell<Option<visualization::fullscreen::Panel>>>,
-    project_list:         Rc<ProjectList>,
-    debug_mode_popup:     debug_mode_popup::View,
-    popup:                popup::View,
+    display_object:   display::object::Instance,
+    top_bar:          ProjectViewTopBar,
+    graph_editor:     Rc<GraphEditor>,
+    searcher:         component_browser::View,
+    code_editor:      code_editor::View,
+    fullscreen_vis:   Rc<RefCell<Option<visualization::fullscreen::Panel>>>,
+    project_list:     Rc<ProjectList>,
+    debug_mode_popup: debug_mode_popup::View,
+    popup:            popup::View,
 }
 
 impl Model {
@@ -179,7 +179,7 @@ impl Model {
         let graph_editor = Rc::new(graph_editor);
         Self {
             display_object,
-            project_view_top_bar,
+            top_bar: project_view_top_bar,
             graph_editor,
             searcher,
             code_editor,
@@ -222,7 +222,7 @@ impl Model {
             let visualization =
                 node.view.model().visualization.fullscreen_visualization().clone_ref();
             self.display_object.remove_child(&*self.graph_editor);
-            self.display_object.remove_child(&self.project_view_top_bar);
+            self.display_object.remove_child(&self.top_bar);
             self.display_object.add_child(&visualization);
             *self.fullscreen_vis.borrow_mut() = Some(visualization);
         });
@@ -232,7 +232,7 @@ impl Model {
         if let Some(visualization) = std::mem::take(&mut *self.fullscreen_vis.borrow_mut()) {
             self.display_object.remove_child(&visualization);
             self.display_object.add_child(&*self.graph_editor);
-            self.display_object.add_child(&self.project_view_top_bar);
+            self.display_object.add_child(&self.top_bar);
         }
     }
 
@@ -247,7 +247,7 @@ impl Model {
             ide_view_project_view_top_bar::window_control_buttons::MACOS_TRAFFIC_LIGHTS_VERTICAL_CENTER
                 - project_view_top_bar_size.y / 2.0,
         );
-        self.project_view_top_bar.set_xy(top_left + project_view_top_bar_origin);
+        self.top_bar.set_xy(top_left + project_view_top_bar_origin);
     }
 
     fn on_close_clicked(&self) {
@@ -360,8 +360,7 @@ impl View {
     fn init_execution_environment_selector_frp(self) -> Self {
         crate::graph_editor::execution_environment::init_frp(
             &self.model.graph_editor.frp,
-            &self.model.graph_editor.model,
-            &self.model.project_view_top_bar.project_name_with_environment_selector.selector,
+            &self.model.top_bar.project_name_with_environment_selector.selector,
         );
 
         self
@@ -371,7 +370,7 @@ impl View {
         let frp = &self.frp;
         let network = &frp.network;
         let model = &self.model;
-        let project_view_top_bar = &model.project_view_top_bar;
+        let project_view_top_bar = &model.top_bar;
         frp::extend! { network
             init <- source_();
             let window_control_buttons = &project_view_top_bar.window_control_buttons;
@@ -705,6 +704,11 @@ impl View {
         self
     }
 
+    /// Top Bar View.
+    pub fn top_bar(&self) -> &ProjectViewTopBar {
+        &self.model.top_bar
+    }
+
     /// Graph Editor View.
     pub fn graph(&self) -> &GraphEditor {
         &self.model.graph_editor
@@ -777,7 +781,7 @@ impl application::View for View {
             // TODO(#6179): Remove this temporary shortcut when Play button is ready.
             (Press, "", "ctrl shift b", "toggle_read_only"),
             (Press, "debug_mode", "ctrl shift enter", "debug_push_breadcrumb"),
-            (Press, "debug_mode", "ctrl shift up", "debug_pop_breadcrumb"),
+            (Press, "debug_mode", "ctrl shift b", "debug_pop_breadcrumb"),
         ]
         .iter()
         .map(|(a, b, c, d)| Self::self_shortcut_when(*a, *c, *d, *b))

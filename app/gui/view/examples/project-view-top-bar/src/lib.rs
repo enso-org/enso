@@ -33,9 +33,9 @@ use ide_view_project_view_top_bar as project_view_top_bar;
 fn init(app: &Application) {
     let app = app.clone_ref();
     let world = &app.display;
-    let _scene = &world.default_scene;
-    let camera = _scene.layers.panel.camera().clone_ref();
-    let navigator = Navigator::new(&_scene, &camera);
+    let scene = &world.default_scene;
+    let camera = scene.layers.panel.camera().clone_ref();
+    let navigator = Navigator::new(scene, &camera);
     navigator.enable();
 
     let top_bar = project_view_top_bar::ProjectViewTopBar::new(&app);

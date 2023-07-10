@@ -13,12 +13,10 @@ use crate::Frp;
 /// Initialise the FRP logic for the execution environment selector.
 pub fn init_frp(
     frp: &Frp,
-    model: &Rc<GraphEditorModel>,
     selector: &ide_view_execution_environment_selector::ExecutionEnvironmentSelector,
 ) {
     let out = &frp.private.output;
     let network = frp.network();
-    let inputs = &frp.private.input;
 
     frp::extend! { network
 

@@ -9,14 +9,16 @@ use enso_config::ARGS;
 use ensogl::application::Application;
 use ensogl::display;
 use ensogl::display::shape::compound::rectangle::Rectangle;
+use ensogl_hardcoded_theme::application::top_bar as theme;
+use project_name::ProjectName;
 
 
+pub mod project_name;
+pub mod window_control_buttons;
+pub use breadcrumbs::LocalCall;
 
 mod breadcrumbs;
 mod go_to_dashboard_button;
-pub mod window_control_buttons;
-use breadcrumbs::project_name::ProjectName;
-use ensogl_hardcoded_theme::application::top_bar as theme;
 
 
 
@@ -54,7 +56,7 @@ impl ProjectNameWithEnvironmentSelector {
 
     fn init(self) -> Self {
         let style_watch = StyleWatchFrp::new(&scene().style_sheet);
-        self.background.set_style(&theme::background::HERE, &style_watch);
+        self.background.set_style(theme::background::HERE, &style_watch);
         let network = &self.network;
         let background = &self.background;
         frp::extend! { network

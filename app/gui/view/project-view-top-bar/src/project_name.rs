@@ -15,7 +15,6 @@ use ensogl_component::text;
 use ensogl_component::text::formatting::Size as TextSize;
 use ensogl_hardcoded_theme::application::top_bar::breadcrumbs as breadcrumbs_theme;
 use ensogl_hardcoded_theme::application::top_bar::project_name_with_environment_selector::project_name as theme;
-use parser::Parser;
 
 
 
@@ -180,11 +179,9 @@ impl ProjectName {
         let styles = StyleWatch::new(&scene.style_sheet);
         let saved_hover_color = styles.get_color(breadcrumbs_theme::hover);
         let saved_deselected_color = styles.get_color(breadcrumbs_theme::deselected::left);
-        let saved_selected_color = styles.get_color(breadcrumbs_theme::selected);
         let unsaved_hover_color = styles.get_color(breadcrumbs_theme::unsaved::hover);
         let unsaved_deselected_color =
             styles.get_color(breadcrumbs_theme::unsaved::deselected::left);
-        let unsaved_selected_color = styles.get_color(breadcrumbs_theme::unsaved::selected);
         let animations = Animations::new(network);
 
         let input = &frp.private.input;

@@ -3,14 +3,12 @@
 use ensogl::display::shape::*;
 use ensogl::prelude::*;
 
-use enso_config::ARGS;
 use enso_frp as frp;
 use ensogl::application;
 use ensogl::application::Application;
 use ensogl::display;
 use ensogl::display::object::ObjectOps;
 use ensogl::shape;
-use ensogl::system::web;
 use ensogl_hardcoded_theme::application::window_control_buttons as theme;
 
 // =================
@@ -26,16 +24,6 @@ pub const MACOS_TRAFFIC_LIGHTS_VERTICAL_CENTER: f32 =
     -MACOS_TRAFFIC_LIGHTS_SIDE_OFFSET - MACOS_TRAFFIC_LIGHTS_CONTENT_HEIGHT / 2.0;
 
 
-fn traffic_lights_gap_width() -> f32 {
-    let platform_str = ARGS.groups.startup.options.platform.value.as_str();
-    let platform = web::platform::Platform::try_from(platform_str);
-    let is_macos = platform.map(|p| p.is_macos()).ok() == Some(true);
-    if is_macos && !ARGS.groups.window.options.frame.value {
-        MACOS_TRAFFIC_LIGHTS_CONTENT_WIDTH + MACOS_TRAFFIC_LIGHTS_SIDE_OFFSET
-    } else {
-        0.0
-    }
-}
 
 // ==============
 // === Export ===
