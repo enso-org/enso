@@ -1,5 +1,5 @@
 /** @file Renders the list of templates from which a project can be created. */
-import * as react from 'react'
+import * as React from 'react'
 
 import PlusCircledIcon from 'enso-assets/plus_circled.svg'
 import RotatingArrowIcon from 'enso-assets/rotating_arrow.svg'
@@ -104,7 +104,7 @@ interface InternalEmptyProjectButtonProps {
 /** A button that, when clicked, creates and opens a new blank project. */
 function EmptyProjectButton(props: InternalEmptyProjectButtonProps) {
     const { onTemplateClick } = props
-    const [spinnerState, setSpinnerState] = react.useState<spinner.SpinnerState | null>(null)
+    const [spinnerState, setSpinnerState] = React.useState<spinner.SpinnerState | null>(null)
 
     return (
         <button
@@ -153,7 +153,7 @@ interface InternalTemplateButtonProps {
 /** A button that, when clicked, creates and opens a new project based on a template. */
 function TemplateButton(props: InternalTemplateButtonProps) {
     const { template, onTemplateClick } = props
-    const [spinnerState, setSpinnerState] = react.useState<spinner.SpinnerState | null>(null)
+    const [spinnerState, setSpinnerState] = React.useState<spinner.SpinnerState | null>(null)
 
     return (
         <button
@@ -181,7 +181,7 @@ function TemplateButton(props: InternalTemplateButtonProps) {
                     <h2 className="text-sm font-bold">{template.title}</h2>
                     <div className="text-xs h-16 text-ellipsis py-2">{template.description}</div>
                 </div>
-                {spinnerState && (
+                {spinnerState != null && (
                     <div className="absolute grid w-full h-full place-items-center">
                         <Spinner size={SPINNER_SIZE} state={spinnerState} />
                     </div>
@@ -239,10 +239,10 @@ export interface TemplatesProps {
 function Templates(props: TemplatesProps) {
     const { onTemplateClick } = props
 
-    const [shadowClass, setShadowClass] = react.useState(
+    const [shadowClass, setShadowClass] = React.useState(
         window.innerWidth <= MAX_WIDTH_NEEDING_SCROLL ? ShadowClass.bottom : ShadowClass.none
     )
-    const [isOpen, setIsOpen] = react.useState(() => {
+    const [isOpen, setIsOpen] = React.useState(() => {
         /** This must not be in a `useEffect` as it would flash open for one frame.
          * It can be in a `useLayoutEffect` but as that needs to be checked every re-render,
          * this is slightly more performant. */
@@ -261,9 +261,9 @@ function Templates(props: TemplatesProps) {
 
     // This is incorrect, but SAFE, as its value will always be assigned before any hooks are run.
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const containerRef = react.useRef<HTMLDivElement>(null!)
+    const containerRef = React.useRef<HTMLDivElement>(null!)
 
-    const toggleIsOpen = react.useCallback(() => {
+    const toggleIsOpen = React.useCallback(() => {
         setIsOpen(oldIsOpen => !oldIsOpen)
     }, [])
 
@@ -291,14 +291,14 @@ function Templates(props: TemplatesProps) {
         setShadowClass(newShadowClass)
     }
 
-    react.useEffect(() => {
+    React.useEffect(() => {
         window.addEventListener('resize', updateShadowClass)
         return () => {
             window.removeEventListener('resize', updateShadowClass)
         }
     })
 
-    react.useEffect(() => {
+    React.useEffect(() => {
         localStorage.setItem(IS_TEMPLATES_OPEN_KEY, JSON.stringify(isOpen))
     }, [isOpen])
 

@@ -28,7 +28,7 @@ pub mod searcher;
 pub use code::Code;
 pub use graph::Graph;
 pub use project::Project;
-pub use searcher::Searcher;
+pub use searcher::component_browser::ComponentBrowserSearcher;
 
 
 

@@ -2,8 +2,7 @@ import project.Data.Locale.Locale
 import project.Data.Text.Case_Sensitivity.Case_Sensitivity
 import project.Data.Text.Text
 import project.Nothing.Nothing
-
-from project.Data.Boolean import Boolean, True, False
+from project.Data.Boolean import Boolean, False, True
 
 type Text_Ordering
     ## Specifies the ordering of text values.

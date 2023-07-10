@@ -1,6 +1,6 @@
 /** @file A context menu. */
 
-import * as react from 'react'
+import * as React from 'react'
 
 // =================
 // === Constants ===
@@ -18,18 +18,18 @@ export interface ContextMenuProps {
     // `left: number` and `top: number` may be more correct,
     // however passing an event eliminates the chance
     // of passing the wrong coordinates from the event.
-    event: react.MouseEvent
+    event: React.MouseEvent
 }
 
 /** A context menu that opens at the current mouse position. */
-function ContextMenu(props: react.PropsWithChildren<ContextMenuProps>) {
+function ContextMenu(props: React.PropsWithChildren<ContextMenuProps>) {
     const { children, event } = props
-    const contextMenuRef = react.useRef<HTMLDivElement>(null)
-    const [top, setTop] = react.useState(event.pageY)
+    const contextMenuRef = React.useRef<HTMLDivElement>(null)
+    const [top, setTop] = React.useState(event.pageY)
     // This must be the original height before the returned element affects the `scrollHeight`.
-    const [bodyHeight] = react.useState(document.body.scrollHeight)
+    const [bodyHeight] = React.useState(document.body.scrollHeight)
 
-    react.useEffect(() => {
+    React.useEffect(() => {
         if (contextMenuRef.current != null) {
             setTop(Math.min(top, bodyHeight - contextMenuRef.current.clientHeight))
             const boundingBox = contextMenuRef.current.getBoundingClientRect()
@@ -38,7 +38,7 @@ function ContextMenu(props: react.PropsWithChildren<ContextMenuProps>) {
                 scroll(scrollX, scrollY + scrollBy)
             }
         }
-    }, [children])
+    }, [bodyHeight, children, top])
 
     return (
         <div

@@ -3,7 +3,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import project.Data.Column.Column
 import project.Data.Type.Enso_Types
-from project.Data.Type.Value_Type import Value_Type, Auto
+from project.Data.Type.Value_Type import Auto, Value_Type
 from project.Errors import Invalid_Value_Type, No_Common_Type
 from project.Internal.Table_Helpers import is_column
 

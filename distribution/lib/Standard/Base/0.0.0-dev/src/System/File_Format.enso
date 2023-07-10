@@ -1,7 +1,6 @@
 import project.Any.Any
 import project.Data.Json.Json
 import project.Data.Text.Encoding.Encoding
-from project.Data.Text.Extensions import all
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error
@@ -10,18 +9,17 @@ import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Errors.Unimplemented.Unimplemented
 import project.Function.Function
 import project.Meta
+import project.Metadata.Display
+import project.Metadata.Widget
 import project.Network.HTTP.Response.Response
 import project.Network.URI.URI
 import project.Nothing.Nothing
 import project.System.File.File
-
-from project.Data.Boolean import Boolean, True, False
+from project.Data.Boolean import Boolean, False, True
 from project.Data.Json import Invalid_JSON
-
-import project.Metadata.Widget
-from project.Metadata.Widget import Single_Choice
+from project.Data.Text.Extensions import all
 from project.Metadata.Choice import Option
-import project.Metadata.Display
+from project.Metadata.Widget import Single_Choice
 
 polyglot java import org.enso.base.file_format.FileFormatSPI
 

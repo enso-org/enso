@@ -17,6 +17,8 @@ import project.Errors.File_Error.File_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Meta
+import project.Metadata.Display
+import project.Metadata.Widget
 import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Runtime.Context
@@ -24,18 +26,10 @@ import project.Runtime.Managed_Resource.Managed_Resource
 import project.System.File.File_Access.File_Access
 import project.System.File.File_Permissions.File_Permissions
 import project.Warning.Warning
-
-from project.Data.Boolean import Boolean, True, False
+from project.Data.Boolean import Boolean, False, True
+from project.Metadata.Choice import Option
 from project.System.File_Format import Auto_Detect, File_Format
 
-import project.Metadata.Widget
-from project.Metadata.Choice import Option
-import project.Metadata.Display
-
-polyglot java import org.enso.base.DryRunFileManager
-polyglot java import org.enso.base.Encoding_Utils
-polyglot java import org.enso.base.encoding.ReportingStreamDecoder
-polyglot java import org.enso.base.encoding.ReportingStreamEncoder
 polyglot java import java.io.File as Java_File
 polyglot java import java.io.InputStream as Java_Input_Stream
 polyglot java import java.io.OutputStream as Java_Output_Stream
@@ -43,6 +37,10 @@ polyglot java import java.nio.file.FileSystems
 polyglot java import java.nio.file.Path
 polyglot java import java.nio.file.StandardCopyOption
 polyglot java import java.time.ZonedDateTime
+polyglot java import org.enso.base.DryRunFileManager
+polyglot java import org.enso.base.encoding.ReportingStreamDecoder
+polyglot java import org.enso.base.encoding.ReportingStreamEncoder
+polyglot java import org.enso.base.Encoding_Utils
 
 @Builtin_Type
 type File

@@ -1484,13 +1484,13 @@ spec =
     Test.group "Text.replace" <|
         Test.specify "should work as in examples" <|
             'aaa'.replace 'aa' 'b' . should_equal 'ba'
-            "Hello World!".replace "[lo]" "#" use_regex=True . should_equal "He### W#r#d!"
+            "Hello World!".replace "[lo]".to_regex "#" . should_equal "He### W#r#d!"
             "Hello World!".replace "l" "#" only_first=True . should_equal "He#lo World!"
-            '"abc" foo "bar" baz'.replace '"(.*?)"' '($1)' use_regex=True . should_equal '(abc) foo (bar) baz'
+            '"abc" foo "bar" baz'.replace '"(.*?)"'.to_regex '($1)' . should_equal '(abc) foo (bar) baz'
 
         Test.specify "works when mapped over a vector of inputs" <|
             inputs = ["axyz", "bxyz", "xabcz", "zazaz"]
-            inputs.map (s-> s.replace "[abc]" "q" use_regex=True) . should_equal ["qxyz", "qxyz", "xqqqz", "zqzqz"]
+            inputs.map (s-> s.replace "[abc]".to_regex "q") . should_equal ["qxyz", "qxyz", "xqqqz", "zqzqz"]
 
         Test.specify "should correctly handle empty-string edge cases" <|
             [True, False] . each only_first->
@@ -1507,7 +1507,7 @@ spec =
             "aaa aaa".replace "aa" "c" only_first=True . should_equal "ca aaa"
 
         Test.specify "Regex `replace` with an empty pattern should be an error" <|
-                'b'.replace '' 'c' use_regex=True . should_fail_with Illegal_Argument
+                'b'.replace ''.to_regex 'c' . should_fail_with Illegal_Argument
 
         Test.specify "should correctly handle case-insensitive matches" <|
             'AaąĄ' . replace "A" "-" case_sensitivity=Case_Sensitivity.Insensitive . should_equal '--ąĄ'
@@ -1563,38 +1563,66 @@ spec =
 
         Test.specify "regex and non-regex `replace` handle accented grapheme splitting differently" <|
             'sśs\u{301}' . replace 's' 'O' . should_equal 'Ośs\u{301}'
-            'sśs\u{301}' . replace 's' 'O' use_regex=True . should_equal 'OśO\u{301}'
+            'sśs\u{301}' . replace 's'.to_regex 'O' . should_equal 'OśO\u{301}'
 
         Test.specify "should perform simple replacement in Regex mode" <|
-            "ababab".replace "b" "a" use_regex=True . should_equal "aaaaaa"
-            "ababab".replace "b" "a" only_first=True use_regex=True . should_equal "aaabab"
+            "ababab".replace "b".to_regex "a" . should_equal "aaaaaa"
+            "ababab".replace "b".to_regex "a" only_first=True . should_equal "aaabab"
 
-            "aaaa".replace "aa" "c" use_regex=True . should_equal "cc"
-            "aaaa".replace "aa" "c" only_first=True use_regex=True . should_equal "caa"
+            "aaaa".replace "aa".to_regex "c" . should_equal "cc"
+            "aaaa".replace "aa".to_regex "c" only_first=True . should_equal "caa"
 
-            "aaa".replace "aa" "c" use_regex=True . should_equal "ca"
-            "aaa".replace "aa" "c" only_first=True use_regex=True . should_equal "ca"
+            "aaa".replace "aa".to_regex "c" . should_equal "ca"
+            "aaa".replace "aa".to_regex "c" only_first=True . should_equal "ca"
 
-            "aaa aaa".replace "aa" "c" case_sensitivity=Case_Sensitivity.Sensitive use_regex=True . should_equal "ca ca"
-            "aaa aaa".replace "aa" "c" only_first=True case_sensitivity=Case_Sensitivity.Sensitive use_regex=True . should_equal "ca aaa"
-            "aaa aaa".replace "aa" "c" use_regex=True . should_equal "ca ca"
-            "aaa aaa".replace "aa" "c" only_first=True use_regex=True . should_equal "ca aaa"
+            "aaa aaa".replace "aa".to_regex "c" . should_equal "ca ca"
+            "aaa aaa".replace "aa".to_regex "c" only_first=True . should_equal "ca aaa"
+            "aaa aaa".replace "aa".to_regex "c" . should_equal "ca ca"
+            "aaa aaa".replace "aa".to_regex "c" only_first=True . should_equal "ca aaa"
 
         Test.specify "in Regex mode should work with Unicode" <|
-            "Korean: 건반".replace "건반" "keyboard" use_regex=True . should_equal "Korean: keyboard"
-            'sśs\u{301}'.replace 'ś' '-' use_regex=True . should_equal 's-s\u{301}'
-            'sśs\u{301}'.replace 's\u{301}' '-' use_regex=True . should_equal 'sś-'
+            "Korean: 건반".replace "건반".to_regex "keyboard" . should_equal "Korean: keyboard"
+            'sśs\u{301}'.replace 'ś'.to_regex '-' . should_equal 's-s\u{301}'
+            'sśs\u{301}'.replace 's\u{301}'.to_regex '-' . should_equal 'sś-'
 
         Test.specify "in Regex mode should allow referring to capture groups in substitutions" <|
-            '<a href="url">content</a>'.replace '<a href="(.*?)">(.*?)</a>' '$2 is at $1' use_regex=True . should_equal 'content is at url'
-            '<a href="url">content</a>'.replace '<a href="(?<address>.*?)">(?<text>.*?)</a>' '$<text> is at $<address>' use_regex=True . should_equal 'content is at url'
+            '<a href="url">content</a>'.replace '<a href="(.*?)">(.*?)</a>'.to_regex '$2 is at $1' . should_equal 'content is at url'
+            '<a href="url">content</a>'.replace '<a href="(?<address>.*?)">(?<text>.*?)</a>'.to_regex '$<text> is at $<address>' . should_equal 'content is at url'
 
         Test.specify "should not allow non-default locale in regex replace" <|
             locale = Locale.new "en" "GB" "UTF-8"
-            'a'.replace 'a' 'b' case_sensitivity=(Case_Sensitivity.Insensitive locale) use_regex=True . should_fail_with Illegal_Argument
+            'a'.replace 'a'.to_regex 'b' case_sensitivity=(Case_Sensitivity.Insensitive locale) . should_fail_with Illegal_Argument
 
         Test.specify "should allow non-default locale in text replace" <|
             locale = Locale.new "en" "GB" "UTF-8"
             'a'.replace 'a' 'b' case_sensitivity=(Case_Sensitivity.Insensitive locale) . should_equal 'b'
+
+        Test.specify "should work with a regex param" <|
+            'aaa'.replace 'aa'.to_regex 'b' . should_equal 'ba'
+            "Hello World!".replace "[lo]".to_regex "#" . should_equal "He### W#r#d!"
+            "Hello World!".replace "l".to_regex "#" only_first=True . should_equal "He#lo World!"
+            '"abc" foo "bar" baz'.replace '"(.*?)"'.to_regex '($1)' . should_equal '(abc) foo (bar) baz'
+
+        Test.specify "should respect the regex's case sensitivity setting, and override the regex's case sensitivity setting with an explicit case_sensitivity param" <|
+            r_cs = "aa".to_regex
+            r_ci = "aa".to_regex True
+
+            "aaa".replace r_cs "b" . should_equal "ba"
+            "Aaa".replace r_cs "b" . should_equal "Ab"
+            "aaa".replace r_cs "b" case_sensitivity=Case_Sensitivity.Default . should_equal "ba"
+            "Aaa".replace r_cs "b" case_sensitivity=Case_Sensitivity.Default . should_equal "Ab"
+            "aaa".replace r_cs "b" case_sensitivity=Case_Sensitivity.Sensitive . should_equal "ba"
+            "Aaa".replace r_cs "b" case_sensitivity=Case_Sensitivity.Sensitive . should_equal "Ab"
+            "aaa".replace r_cs "b" case_sensitivity=Case_Sensitivity.Insensitive . should_equal "ba"
+            "Aaa".replace r_cs "b" case_sensitivity=Case_Sensitivity.Insensitive . should_equal "ba"
+
+            "aaa".replace r_ci "b" . should_equal "ba"
+            "Aaa".replace r_ci "b" . should_equal "ba"
+            "aaa".replace r_ci "b" case_sensitivity=Case_Sensitivity.Default . should_equal "ba"
+            "Aaa".replace r_ci "b" case_sensitivity=Case_Sensitivity.Default . should_equal "ba"
+            "aaa".replace r_ci "b" case_sensitivity=Case_Sensitivity.Sensitive . should_equal "ba"
+            "Aaa".replace r_ci "b" case_sensitivity=Case_Sensitivity.Sensitive . should_equal "Ab"
+            "aaa".replace r_ci "b" case_sensitivity=Case_Sensitivity.Insensitive . should_equal "ba"
+            "Aaa".replace r_ci "b" case_sensitivity=Case_Sensitivity.Insensitive . should_equal "ba"
 
 main = Test_Suite.run_main spec

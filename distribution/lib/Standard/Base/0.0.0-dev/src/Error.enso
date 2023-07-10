@@ -5,7 +5,7 @@ import project.Meta
 import project.Panic.Panic
 import project.Runtime.Stack_Trace_Element
 
-from project.Data.Boolean import Boolean, True, False
+from project.Data.Boolean import Boolean, False, True
 from project.Function import const
 
 ## A type representing dataflow errors.
