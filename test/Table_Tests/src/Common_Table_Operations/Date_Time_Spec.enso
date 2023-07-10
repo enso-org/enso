@@ -253,9 +253,6 @@ spec setup =
             (date_periods+time_periods).each p->
                 (t.at "Z").date_diff (Date_Time.new 2021 12 05 01 02) p . value_type . is_integer . should_be_true
 
-        Test.specify "TODO tests for DST hours/days" pending="TODO" <|
-            Nothing
-
         Test.specify "should not allow mixing types in date_diff" <|
             t = table_builder [["X", [Date.new 2021 01 31]], ["Y", [Time_Of_Day.new 12 30 20]], ["Z", [Date_Time.new 2021 12 5 12 30 20]]]
             (t.at "X").date_diff (t.at "Y") Date_Period.Day . should_fail_with Invalid_Value_Type
@@ -320,6 +317,26 @@ spec setup =
         Test.specify "should check shift_amount type in date_add" <|
             t = table_builder [["X", [Date.new 2021 01 31]]]
             t.at "X" . date_add "text" Date_Period.Day . should_fail_with Invalid_Value_Type
+
+        Test.specify "date_diff and date_add should work correctly with DST" <|
+            zone = Time_Zone.parse "Europe/Warsaw"
+            dt1 = Date_Time.new 2023 03 26 00 30 00 zone=zone
+            t = table_builder [["X", [dt1]]]
+            x = t.at "X"
+
+            # +24h will shift 1 day and 1 hour, because they 26th of March has only 23 hours within it
+            x.date_add 24 Time_Period.Hour . to_vector . should_equal_tz_agnostic [Date_Time.new 2023 03 27 01 30 00]
+
+            # But 1 day date shift will shift 1 day, keeping the time, even if that particular day is only 23 hours.
+            x.date_add 1 Date_Period.Day . to_vector . should_equal_tz_agnostic [Date_Time.new 2023 03 27 00 30 00]
+            x.date_add 1 Time_Period.Day . to_vector . should_equal_tz_agnostic [Date_Time.new 2023 03 27 00 30 00]
+
+            dt2 = Date_Time.new 2023 03 27 00 30 00 zone=zone
+            x.date_diff dt2 Time_Period.Hour . to_vector . should_equal [23]
+
+            # Date_Period.Day and Time_Period.Day are interchangeable.
+            x.date_diff dt2 Date_Period.Day . to_vector . should_equal [1]
+            x.date_diff dt2 Time_Period.Day . to_vector . should_equal [1]
 
     if setup.test_selection.date_time.not then
         Test.group prefix+"partial Date-Time support" <|
