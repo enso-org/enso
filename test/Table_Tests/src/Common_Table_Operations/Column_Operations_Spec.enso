@@ -422,9 +422,10 @@ spec setup =
 
         case setup.test_selection.is_nan_and_nothing_distinct of
             True -> Test.specify "should support is_nan" <|
-                t = table_builder [["X", [1.5, 2, Number.nan]], ["Y", [1, 2, 3]]]
+                t = table_builder [["X", [1.5, 2, Number.nan]], ["Y", [1, 2, 3]], ["Z", ["1", "2", "3"]]]
                 t.at "X" . is_nan . to_vector . should_equal [False, False, True]
-                t.at "Y" . is_nan . should_fail_with Invalid_Value_Type
+                t.at "Y" . is_nan . to_vector . should_equal [False, False, False]
+                t.at "Z" . is_nan . to_vector . should_fail_with Invalid_Value_Type
             False -> Test.specify "should report that is_nan is not supported" <|
                 t = table_builder [["X", [1.5]]]
                 t.at "X" . is_nan . should_fail_with Unsupported_Database_Operation
