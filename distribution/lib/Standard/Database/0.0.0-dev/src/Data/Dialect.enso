@@ -223,6 +223,14 @@ type Dialect
         _ = [connection, table_name]
         Unimplemented.throw "This is an interface only."
 
+    ## PRIVATE
+       Prepares metadata for an operation taking a date/time period and checks
+       if the given period is supported.
+    prepare_metadata_for_period : Date_Period | Time_Period -> Value_Type -> Any
+    prepare_metadata_for_period self period operation_input_type =
+        _ = [period, operation_input_type]
+        Unimplemented.throw "This is an interface only."
+
 ## PRIVATE
 
    The dialect of SQLite databases.

@@ -228,6 +228,17 @@ type Postgres_Dialect
     fetch_primary_key self connection table_name =
         Dialect.default_fetch_primary_key connection table_name
 
+    ## PRIVATE
+       Prepares metadata for an operation taking a date/time period and checks
+       if the given period is supported.
+    prepare_metadata_for_period : Date_Period | Time_Period -> Value_Type -> Any
+    prepare_metadata_for_period self period operation_input_type =
+        case period of
+            Time_Period.Nanosecond ->
+                Error.throw (Unsupported_Database_Operation.Error "Postgres backend does not support nanosecond precision in date/time operations.")
+            _ ->
+                Date_Period_Metadata.Value period operation_input_type
+
 ## PRIVATE
 make_internal_generator_dialect =
     cases = [["LOWER", Base_Generator.make_function "LOWER"], ["UPPER", Base_Generator.make_function "UPPER"]]
@@ -511,6 +522,10 @@ make_date_add arguments (metadata : Date_Period_Metadata) =
                 "mins=>1"
             Time_Period.Second ->
                 "secs=>1"
+            Time_Period.Millisecond ->
+                "secs=>0.001"
+            Time_Period.Microsecond ->
+                "secs=>0.000001"
         interval_expression = Builder.code "make_interval(" ++ interval_arg ++ ")"
         shifted = Builder.code "(" ++ expr ++ " + (" ++ amount ++ " * " ++ interval_expression ++ "))"
         case metadata.input_value_type of
@@ -568,6 +583,23 @@ make_date_diff arguments (metadata : Date_Period_Metadata) =
             Time_Period.Hour    -> (extract_seconds ++ " / 3600").paren
             Time_Period.Minute  -> (extract_seconds ++ " / 60").paren
             Time_Period.Second  -> extract_seconds
+            ## The EPOCH gives back just the integer amount of seconds, without
+               the fractional part. So we get the fractional part using
+               MILLISECONDS - but that does not give the _total_ just the
+               'seconds of minute' part, expressed in milliseconds. So we need
+               to merge both - but then seconds of minute appear twice, so we %
+               the milliseconds to get just the fractional part from it and sum
+               both.
+            Time_Period.Millisecond ->
+                millis = truncate <|
+                    Builder.code "EXTRACT(MILLISECONDS FROM (" ++ end ++ " - " ++ start ++ "))"
+                as_int <|
+                    ((extract_seconds ++ " * 1000").paren ++ " + " ++ (millis ++ " % 1000").paren).paren
+            Time_Period.Microsecond ->
+                micros = Builder.code "EXTRACT(MICROSECONDS FROM (" ++ end ++ " - " ++ start ++ "))"
+                as_int <|
+                    ((extract_seconds ++ " * 1000000").paren ++ " + " ++ (micros ++ " % 1000000").paren).paren
+
 
 ## PRIVATE
 postgres_statement_setter = Statement_Setter.default
