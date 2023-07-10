@@ -2367,7 +2367,7 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
                 "params": {
                   "path": {
                     "rootId": $testContentRootId,
-                    "segments": [ "foo.txt" ]
+                    "segments": [ "foo1.txt" ]
                   },
                   "contents": "123456789"
                 }
@@ -2386,7 +2386,7 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
                 "params": {
                   "path": {
                     "rootId": $testContentRootId,
-                    "segments": [ "foo.txt" ]
+                    "segments": [ "foo1.txt" ]
                   }
                 }
               }
@@ -2402,7 +2402,7 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
                       "path" : {
                         "rootId" : $testContentRootId,
                         "segments" : [
-                          "foo.txt"
+                          "foo1.txt"
                         ]
                       }
                     }
@@ -2421,7 +2421,7 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
                   "edit": {
                     "path": {
                       "rootId": $testContentRootId,
-                      "segments": [ "foo.txt" ]
+                      "segments": [ "foo1.txt" ]
                     },
                     "oldVersion": "5795c3d628fd638c9835a4c79a55809f265068c88729a1a3fcdf8522",
                     "newVersion": "ebe55342f9c8b86857402797dd723fb4a2174e0b56d6ace0a6929ec3",
@@ -2453,7 +2453,7 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
               """)
 
       // Change file on disk
-      val fooTxt = testContentRoot.file.toPath.resolve("foo.txt")
+      val fooTxt = testContentRoot.file.toPath.resolve("foo1.txt")
       Files.write(fooTxt, "abcdef".getBytes(StandardCharsets.UTF_8))
 
       client.send(json"""
@@ -2463,7 +2463,7 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
                 "params": {
                   "path": {
                     "rootId": $testContentRootId,
-                    "segments": [ "foo.txt" ]
+                    "segments": [ "foo1.txt" ]
                   }
                 }
               }
@@ -2482,7 +2482,7 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
                 "params": {
                   "path": {
                     "rootId": $testContentRootId,
-                    "segments": [ "foo.txt" ]
+                    "segments": [ "foo1.txt" ]
                   },
                   "currentVersion": "ebe55342f9c8b86857402797dd723fb4a2174e0b56d6ace0a6929ec3"
                 }
@@ -2501,7 +2501,7 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
                 "params": {
                   "path": {
                     "rootId": $testContentRootId,
-                    "segments": [ "foo.txt" ]
+                    "segments": [ "foo1.txt" ]
                   }
                 }
               }
