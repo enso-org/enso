@@ -15,18 +15,36 @@ polyglot java import org.enso.base.Time_Utils
 
 ## Represents a unit of time longer on the scale of days (longer than a day).
 type Date_Period
+    ## Represents a date period of a calendar year.
+
+       Its length in days will depend on context (accounting for leap years).
     Year
 
+    ## Represents a date period of a quarter - 3 calendar months.
     Quarter
 
+    ## Represents a date period of a month.
+
+       Its length in days will depend on context of what month it is used.
     Month
 
     ## Represents a 7-day week starting at a given day.
 
        By default, the first day of the week is Monday, but this can be adjusted
        to any other day.
+
+       The starting day will be ignored for methods that just compute the time
+       differences. It only matters for methods that need to find a beginning or
+       end of a specific period (like `start_of` or `end_of`).
     Week (first_day:Day_Of_Week = Day_Of_Week.Monday)
 
+    ## Represents a time period of a single calendar day.
+
+       ? Daylight Saving Time
+
+         Note that due to DST changes, some days may be slightly longer or
+         shorter. This date period will reflect that and still count such days
+         as one day. For a measure of exactly 24 hours, use `Time_Period.Day`.
     Day
 
     ## PRIVATE

@@ -1153,7 +1153,7 @@ type Column
        Returns a column of `Integer` type.
     year : Column ! Invalid_Value_Type
     year self = Value_Type.expect_has_date self <|
-        self.make_unary_op "year"
+        simple_unary_op self "year"
 
     ## Gets the month as a number (1-12) from the date stored in the column.
 
@@ -1161,7 +1161,7 @@ type Column
        Returns a column of `Integer` type.
     month : Column ! Invalid_Value_Type
     month self = Value_Type.expect_has_date self <|
-        self.make_unary_op "month"
+        simple_unary_op self "month"
 
     ## Gets the day of the month as a number (1-31) from the date stored in the
        column.
@@ -1170,8 +1170,38 @@ type Column
        Returns a column of `Integer` type.
     day : Column ! Invalid_Value_Type
     day self = Value_Type.expect_has_date self <|
-        self.make_unary_op "day"
+        simple_unary_op self "day"
 
+    ## Gets the hour as a number (0-23) from the time stored in the column.
+
+       Applies only to columns that hold the `Time_Of_Day` or `Date_Time` types.
+       Returns a column of `Integer` type.
+    hour : Column ! Invalid_Value_Type
+    hour self = Value_Type.expect_has_time self <|
+        simple_unary_op self "hour"
+
+    ## Gets the minute as a number (0-59) from the time stored in the column.
+
+       Applies only to columns that hold the `Time_Of_Day` or `Date_Time` types.
+       Returns a column of `Integer` type.
+    minute : Column ! Invalid_Value_Type
+    minute self = Value_Type.expect_has_time self <|
+        simple_unary_op self "minute"
+
+    ## Gets the second as an integer (0-60) from the time stored in the column.
+
+       Applies only to columns that hold the `Time_Of_Day` or `Date_Time` types.
+       Returns a column of `Integer` type.
+    second : Column ! Invalid_Value_Type
+    second self = Value_Type.expect_has_time self <|
+        simple_unary_op self "second"
+
+    ## Gets the date part of the date/time value.
+
+       Returns a column of `Integer` type.
+    date_part : Date_Period | Time_Period -> Column ! Invalid_Value_Type
+    date_part self period =
+        Date_Time_Helpers.make_date_part_function self period simple_unary_op self.naming_helpers
 
     ## Computes a time difference between the two dates.
 
@@ -1204,7 +1234,6 @@ type Column
                     new_name = self.naming_helpers.function_name "date_diff" [self, end, period.to_display_text]
                     metadata = Operation_Metadata.Date_Period_Metadata.Value period my_type
                     self.make_op "date_diff" [end] new_name metadata
-
 
     ## Shifts the date/time by a specified period, returning a new date/time
        column of the same type.
@@ -1540,3 +1569,8 @@ adapt_unified_column column expected_type =
         SQL_Type_Reference.new column.connection column.context expression
     adapted = dialect.adapt_unified_column column.as_internal expected_type infer_return_type
     Column.Value name=column.name connection=column.connection sql_type_reference=adapted.sql_type_reference expression=adapted.expression context=column.context
+
+## PRIVATE
+   A shorthand to be able to share the implementations between in-memory and
+   database.
+simple_unary_op column op_kind = column.make_unary_op op_kind

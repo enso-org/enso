@@ -188,6 +188,15 @@ type Value_Type
         Value_Type.Date_Time _ -> True
         _ -> False
 
+    ## Checks if the `Value_Type` represents a type that holds a time of day.
+
+       It will return true for both `Time_Of_Day` and `Date_Time` types.
+    has_time : Boolean
+    has_time self = case self of
+        Value_Type.Time_Of_Day -> True
+        Value_Type.Date_Time _ -> True
+        _ -> False
+
     ## Checks if the `Value_Type` represents a date/time type.
     is_date_or_time : Boolean
     is_date_or_time self = case self of
@@ -328,11 +337,19 @@ type Value_Type
 
     ## PRIVATE
        ADVANCED
-       Checks if the provided argument (which may be a value or a Column) is has
+       Checks if the provided argument (which may be a value or a Column) has
        type `Date` or `Date_Time`.
     expect_has_date : Any -> Any -> Any ! Invalid_Value_Type
     expect_has_date argument ~action =
         Value_Type.expect_type argument .has_date "Date or Date_Time" action
+
+    ## PRIVATE
+       ADVANCED
+       Checks if the provided argument (which may be a value or a Column) has
+       type `Time_Of_Day` or `Date_Time`.
+    expect_has_time : Any -> Any -> Any ! Invalid_Value_Type
+    expect_has_time argument ~action =
+        Value_Type.expect_type argument .has_time "Time_Of_Day or Date_Time" action
 
     ## PRIVATE
        A helper for generating the `Value_Type.expect_` checks.
