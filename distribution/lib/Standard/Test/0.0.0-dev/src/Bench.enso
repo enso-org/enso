@@ -37,7 +37,7 @@ type Group_Builder
 
 
 type Bench
-    All (groups : Vector Group)
+    All (groups : Vector Bench)
     Group (name:Text) (configuration:Bench_Options) (specs : Vector Bench)
     Spec (name:Text) (code : Any -> Any)
 
