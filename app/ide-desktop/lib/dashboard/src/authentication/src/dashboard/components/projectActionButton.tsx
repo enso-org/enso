@@ -156,7 +156,9 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
                     ? REMOTE_SPINNER_STATE[state]
                     : LOCAL_SPINNER_STATE[state]
             setSpinnerState(newSpinnerState)
-            onSpinnerStateChange?.(newSpinnerState)
+            onSpinnerStateChange?.(
+                state === backendModule.ProjectState.closed ? null : newSpinnerState
+            )
         })
     }, [state, onSpinnerStateChange, backend.type])
 
@@ -217,6 +219,9 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
                 case ProjectEventType.open: {
                     if (event.projectId !== project.id) {
                         setShouldOpenWhenReady(false)
+                        if (onSpinnerStateChange === event.onSpinnerStateChange) {
+                            setOnSpinnerStateChange(null)
+                        }
                     } else {
                         setShouldOpenWhenReady(true)
                         setOnSpinnerStateChange(() => event.onSpinnerStateChange)
@@ -232,7 +237,9 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
                 }
             }
         }
-    }, [event, openProject, project.id, onSpinnerStateChange])
+        // This effect MUST run if and only if `event` changes.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [event])
 
     React.useEffect(() => {
         if (shouldOpenWhenReady && state === backendModule.ProjectState.opened) {
