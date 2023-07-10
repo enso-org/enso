@@ -36,6 +36,9 @@ type Date_Period
        The starting day will be ignored for methods that just compute the time
        differences. It only matters for methods that need to find a beginning or
        end of a specific period (like `start_of` or `end_of`).
+
+       The `date_part` method will return the ISO 8601 week of year number,
+       regardless of the starting day.
     Week (first_day:Day_Of_Week = Day_Of_Week.Monday)
 
     ## Represents a time period of a single calendar day.

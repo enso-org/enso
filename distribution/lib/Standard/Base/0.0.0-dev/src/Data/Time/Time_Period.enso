@@ -30,6 +30,9 @@ type Time_Period
     ## Represents a time period of a millisecond.
     Millisecond
 
+    ## Represents a time period of a microsecond.
+    Microsecond
+
     ## Represents a time period of a nanosecond.
     Nanosecond
 

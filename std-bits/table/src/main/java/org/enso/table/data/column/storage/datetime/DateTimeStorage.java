@@ -5,6 +5,7 @@ import org.enso.table.data.column.builder.DateTimeBuilder;
 import org.enso.table.data.column.builder.ObjectBuilder;
 import org.enso.table.data.column.operation.map.GenericBinaryObjectMapOperation;
 import org.enso.table.data.column.operation.map.MapOpStorage;
+import org.enso.table.data.column.operation.map.datetime.DatePartExtractors;
 import org.enso.table.data.column.operation.map.datetime.DateTimeIsInOp;
 import org.enso.table.data.column.operation.map.numeric.UnaryIntegerOp;
 import org.enso.table.data.column.storage.ObjectStorage;
@@ -31,27 +32,17 @@ public final class DateTimeStorage extends SpecializedStorage<ZonedDateTime> {
     MapOpStorage<ZonedDateTime, SpecializedStorage<ZonedDateTime>> t =
         ObjectStorage.buildObjectOps();
     t.add(new DateTimeIsInOp<>(ZonedDateTime.class));
-    t.add(
-        new UnaryIntegerOp<>(Maps.YEAR) {
-          @Override
-          protected long doOperation(ZonedDateTime date) {
-            return (long) date.getYear();
-          }
-        });
-    t.add(
-        new UnaryIntegerOp<>(Maps.MONTH) {
-          @Override
-          protected long doOperation(ZonedDateTime date) {
-            return (long) date.getMonthValue();
-          }
-        });
-    t.add(
-        new UnaryIntegerOp<>(Maps.DAY) {
-          @Override
-          protected long doOperation(ZonedDateTime date) {
-            return (long) date.getDayOfMonth();
-          }
-        });
+    t.add(DatePartExtractors.year());
+    t.add(DatePartExtractors.quarter());
+    t.add(DatePartExtractors.month());
+    t.add(DatePartExtractors.week());
+    t.add(DatePartExtractors.day());
+    t.add(DatePartExtractors.hour());
+    t.add(DatePartExtractors.minute());
+    t.add(DatePartExtractors.second());
+    t.add(DatePartExtractors.millisecond());
+    t.add(DatePartExtractors.microsecond());
+    t.add(DatePartExtractors.nanosecond());
     t.add(
         new GenericBinaryObjectMapOperation<ZonedDateTime, SpecializedStorage<ZonedDateTime>, Duration>(Maps.SUB,
             ZonedDateTime.class, DateTimeStorage.class) {
