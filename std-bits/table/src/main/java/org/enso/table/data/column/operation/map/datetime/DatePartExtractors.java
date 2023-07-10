@@ -38,7 +38,7 @@ public class DatePartExtractors {
   }
 
   public static <T extends Temporal, I extends Storage<T>> GenericUnaryIntegerOp<Temporal, T, I> week() {
-    return make_op("month", IsoFields.WEEK_OF_WEEK_BASED_YEAR);
+    return make_op("week", IsoFields.WEEK_OF_WEEK_BASED_YEAR);
   }
 
   public static <T extends Temporal, I extends Storage<T>> GenericUnaryIntegerOp<Temporal, T, I> day() {
@@ -50,7 +50,7 @@ public class DatePartExtractors {
   }
 
   public static <T extends Temporal, I extends Storage<T>> GenericUnaryIntegerOp<Temporal, T, I> minute() {
-    return make_op("hour", ChronoField.HOUR_OF_DAY);
+    return make_op("minute", ChronoField.MINUTE_OF_HOUR);
   }
 
   public static <T extends Temporal, I extends Storage<T>> GenericUnaryIntegerOp<Temporal, T, I> second() {

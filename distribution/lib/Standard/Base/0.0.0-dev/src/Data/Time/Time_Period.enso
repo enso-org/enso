@@ -46,6 +46,7 @@ type Time_Period
         Time_Period.Minute -> ChronoUnit.MINUTES
         Time_Period.Second -> ChronoUnit.SECONDS
         Time_Period.Millisecond -> ChronoUnit.MILLIS
+        Time_Period.Microsecond -> ChronoUnit.MICROS
         Time_Period.Nanosecond -> ChronoUnit.NANOS
 
     ## PRIVATE
@@ -66,4 +67,5 @@ type Time_Period
         Time_Period.Minute -> Duration.new minutes=1
         Time_Period.Second -> Duration.new seconds=1
         Time_Period.Millisecond -> Duration.new milliseconds=1
+        Time_Period.Microsecond -> Duration.new nanoseconds=1000
         Time_Period.Nanosecond -> Duration.new nanoseconds=1

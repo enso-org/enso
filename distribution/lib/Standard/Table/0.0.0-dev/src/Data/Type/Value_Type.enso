@@ -193,7 +193,7 @@ type Value_Type
        It will return true for both `Time_Of_Day` and `Date_Time` types.
     has_time : Boolean
     has_time self = case self of
-        Value_Type.Time_Of_Day -> True
+        Value_Type.Time -> True
         Value_Type.Date_Time _ -> True
         _ -> False
 
