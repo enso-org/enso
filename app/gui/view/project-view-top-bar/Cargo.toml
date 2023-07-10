@@ -9,7 +9,7 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 engine-protocol = { path = "../../controller/engine-protocol" }
 ide-view-execution-environment-selector = { path = "../execution-environment-selector" }
-enso-config = { path = "../../config" } 
+enso-config = { path = "../../config" }
 enso-frp = { path = "../../../../lib/rust/frp" }
 ensogl = { path = "../../../../lib/rust/ensogl" }
 ensogl-hardcoded-theme = { path = "../../../../lib/rust/ensogl/app/theme/hardcoded" }

@@ -2,20 +2,33 @@
 //! merely here to make use of the auto-layout functionality.
 
 #![recursion_limit = "512"]
-use ensogl::display::shape::StyleWatchFrp;
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
+#![allow(clippy::let_and_return)]
+
 use ensogl::prelude::*;
 
 use enso_config::ARGS;
 use ensogl::application::Application;
 use ensogl::display;
 use ensogl::display::shape::compound::rectangle::Rectangle;
+use ensogl::display::shape::StyleWatchFrp;
 use ensogl_hardcoded_theme::application::top_bar as theme;
 use project_name::ProjectName;
 
 
+// ==============
+// === Export ===
+// ==============
+
 pub mod project_name;
 pub mod window_control_buttons;
+
 pub use breadcrumbs::LocalCall;
+
+
 
 mod breadcrumbs;
 mod go_to_dashboard_button;

@@ -14,11 +14,11 @@
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
-use ensogl::display::navigation::navigator::Navigator;
 use ensogl::prelude::*;
 
 use ensogl::animation;
 use ensogl::application::Application;
+use ensogl::display::navigation::navigator::Navigator;
 use ensogl_text_msdf::run_once_initialized;
 use ide_view_execution_environment_selector as execution_environment_selector;
 use ide_view_project_view_top_bar as project_view_top_bar;
