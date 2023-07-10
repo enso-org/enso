@@ -454,7 +454,7 @@ make_order_descriptor internal_column sort_direction text_ordering =
 
 ## PRIVATE
 is_nan = Base_Generator.lift_unary_op "IS_NAN" arg->
-    (arg ++ " = double precision 'NaN'").paren
+    (arg ++ " in (double precision 'NaN')").paren
 
 ## PRIVATE
 is_inf = Base_Generator.lift_unary_op "IS_INF" arg->
