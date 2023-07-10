@@ -47,45 +47,41 @@ spec setup =
             xs = [1, 2, 3]
             table = table_builder [["C", dates], ["X", xs]]
             table.at "C" . value_type . should_equal Value_Type.Date_Time
-            ## We compare the timestamps converted to UTC.
-               This ensures that the value we are getting back represents the
-               exact same instant in time as the one we put in.
-
-               We cannot guarantee that time time _zone_ itself will be the same
-               - for example Postgres stores all timestamps in UTC, regardless
-               of what timezone they were in at input.
-            table.at "C" . to_vector . map to_utc . should_equal (dates.map to_utc)
+            table.at "C" . to_vector . should_equal_tz_agnostic dates
             table.at "X" . to_vector . should_equal xs
 
     Test.group prefix+"Date-Time operations" pending=pending_datetime <|
+        dates = table_builder [["A", [Date.new 2020 12 31, Date.new 2024 2 29, Date.new 1990 1 1, Nothing]], ["X", [2020, 29, 1, 100]]]
+        times = table_builder [["A", [Time_Of_Day.new 23 59 59 millisecond=567 nanosecond=987, Time_Of_Day.new 2 30 44 nanosecond=1000000, Time_Of_Day.new 0 0 0, Nothing]]]
+        datetimes = table_builder [["A", [Date_Time.new 2020 12 31 23 59 59 millisecond=567 nanosecond=987, Date_Time.new 2024 2 29 2 30 44 nanosecond=1000000, Date_Time.new 1990 1 1 0 0 0, Nothing]]]
         Test.specify "should allow to get the year/month/day of a Date" <|
-            t = table_builder [["A", [Date.new 2020 12 31, Date.new 2024 2 29, Date.new 1990 1 1, Nothing]], ["X", [2020, 29, 1, 100]]]
-
-            t.at "A" . year . to_vector . should_equal [2020, 2024, 1990, Nothing]
-            t.at "A" . month . to_vector . should_equal [12, 2, 1, Nothing]
-            t.at "A" . day . to_vector . should_equal [31, 29, 1, Nothing]
-            [t.at "A" . year, t.at "A" . month, t.at "A" . day].each c->
+            t = dates
+            a = t.at "A"
+            a.year . to_vector . should_equal [2020, 2024, 1990, Nothing]
+            a.month . to_vector . should_equal [12, 2, 1, Nothing]
+            a.day . to_vector . should_equal [31, 29, 1, Nothing]
+            [a.year, a.month, a.day].each c->
                 Test.with_clue "The column "+c.name+" value type ("+c.value_type.to_display_text+") should be an integer: " <|
                     c.value_type.is_integer.should_be_true
                 c.value_type.is_integer.should_be_true
 
-            ((t.at "A" . year) == (t.at "X")).to_vector . should_equal [True, False, False, Nothing]
-            ((t.at "A" . month) == (t.at "X")).to_vector . should_equal [False, False, True, Nothing]
-            ((t.at "A" . day) == (t.at "X")).to_vector . should_equal [False, True, True, Nothing]
+            ((a.year) == (t.at "X")).to_vector . should_equal [True, False, False, Nothing]
+            ((a.month) == (t.at "X")).to_vector . should_equal [False, False, True, Nothing]
+            ((a.day) == (t.at "X")).to_vector . should_equal [False, True, True, Nothing]
 
         Test.specify "should allow to get the year/month/day of a Date_Time" <|
-            t = table_builder [["A", [Date_Time.new 2020 12 31 23 59 59, Date_Time.new 2024 2 29 2 30 44, Date_Time.new 1990 1 1 0 0 0, Nothing]], ["X", [2020, 29, 1, 100]]]
-
-            t.at "A" . year . to_vector . should_equal [2020, 2024, 1990, Nothing]
-            t.at "A" . month . to_vector . should_equal [12, 2, 1, Nothing]
-            t.at "A" . day . to_vector . should_equal [31, 29, 1, Nothing]
-            [t.at "A" . year, t.at "A" . month, t.at "A" . day].each c->
+            t = datetimes
+            a = t.at "A"
+            a.year . to_vector . should_equal [2020, 2024, 1990, Nothing]
+            a.month . to_vector . should_equal [12, 2, 1, Nothing]
+            a.day . to_vector . should_equal [31, 29, 1, Nothing]
+            [a.year, a.month, a.day].each c->
                 Test.with_clue "The column "+c.name+" value type ("+c.value_type.to_display_text+") should be an integer: " <|
                     c.value_type.is_integer.should_be_true
 
-            ((t.at "A" . year) == (t.at "X")).to_vector . should_equal [True, False, False, Nothing]
-            ((t.at "A" . month) == (t.at "X")).to_vector . should_equal [False, False, True, Nothing]
-            ((t.at "A" . day) == (t.at "X")).to_vector . should_equal [False, True, True, Nothing]
+            ((a.year) == (t.at "X")).to_vector . should_equal [True, False, False, Nothing]
+            ((a.month) == (t.at "X")).to_vector . should_equal [False, False, True, Nothing]
+            ((a.day) == (t.at "X")).to_vector . should_equal [False, True, True, Nothing]
 
         Test.specify "should allow to evaluate expressions with year/month/day" <|
             t = table_builder [["A", [Date.new 2020 12 31, Date.new 2024 2 29, Date.new 1990 1 1, Nothing]], ["X", [0, 2, 1, 100]], ["B", [Date_Time.new 2020 10 31 23 59 59, Date_Time.new 2024 4 29 2 30 44, Date_Time.new 1990 10 1 0 0 0, Nothing]]]
@@ -93,6 +89,69 @@ spec setup =
             Test.with_clue "The column "+c.name+" value type ("+c.value_type.to_display_text+") should be an integer: " <|
                 c.value_type.is_integer.should_be_true
             c.to_vector . should_equal [(2020 + 0 + 31 * 10), (2024 + 2 + 29 * 4), (1990 + 1 + 1 * 10), Nothing]
+
+        Test.specify "should allow to get hour/minute/second of a Time_Of_Day" <|
+            a = times.at "A"
+            a.hour . to_vector . should_equal [23, 2, 0, Nothing]
+            a.minute . to_vector . should_equal [59, 30, 0, Nothing]
+            a.second . to_vector . should_equal [59, 44, 0, Nothing]
+
+            a.date_part Time_Period.Hour . to_vector . should_equal [23, 2, 0, Nothing]
+            a.date_part Time_Period.Minute . to_vector . should_equal [59, 30, 0, Nothing]
+            a.date_part Time_Period.Second . to_vector . should_equal [59, 44, 0, Nothing]
+
+            [a.hour, a.minute, a.second, a.date_part Time_Period.Hour, a.date_part Time_Period.Minute, a.date_part Time_Period.Second].each c->
+                Test.with_clue "The column "+c.name+" value type ("+c.value_type.to_display_text+") should be an integer: " <|
+                    c.value_type.is_integer.should_be_true
+
+        Test.specify "should allow to get hour/minute/second of a Date_Time" <|
+            a = datetimes.at "A"
+            a.hour . to_vector . should_equal [23, 2, 0, Nothing]
+            a.minute . to_vector . should_equal [59, 30, 0, Nothing]
+            a.second . to_vector . should_equal [59, 44, 0, Nothing]
+
+            a.date_part Time_Period.Hour . to_vector . should_equal [23, 2, 0, Nothing]
+            a.date_part Time_Period.Minute . to_vector . should_equal [59, 30, 0, Nothing]
+            a.date_part Time_Period.Second . to_vector . should_equal [59, 44, 0, Nothing]
+
+            [a.hour, a.minute, a.second, a.date_part Time_Period.Hour, a.date_part Time_Period.Minute, a.date_part Time_Period.Second].each c->
+                Test.with_clue "The column "+c.name+" value type ("+c.value_type.to_display_text+") should be an integer: " <|
+                    c.value_type.is_integer.should_be_true
+
+        Test.specify "should allow to get millisecond/nanosecond of Time_Of_Day through date_part" <|
+            a = times.at "A"
+            a.date_part Time_Period.Second . to_vector . should_equal [59, 30, 0, Nothing]
+            a.date_part Time_Period.Millisecond . to_vector . should_equal [567, 1, 0, Nothing]
+            a.date_part Time_Period.Nanosecond . to_vector . should_equal [987, 0, 0, Nothing]
+
+            [a.date_part Time_Period.Second, a.date_part Time_Period.Millisecond, a.date_part Time_Period.Nanosecond].each c->
+                Test.with_clue "The column "+c.name+" value type ("+c.value_type.to_display_text+") should be an integer: " <|
+                    c.value_type.is_integer.should_be_true
+
+        Test.specify "should allow to get week/quarter of Date through date_part" <|
+            a = dates.at "A"
+            a.date_part Date_Period.Quarter . to_vector . should_equal [4, 1, 1, Nothing]
+            # TODO :)
+            a.date_part Date_Period.Week . to_vector . should_equal [0, 0, 0, Nothing]
+
+            [a.date_part Date_Period.Quarter, a.date_part Date_Period.Week].each c->
+                Test.with_clue "The column "+c.name+" value type ("+c.value_type.to_display_text+") should be an integer: " <|
+                    c.value_type.is_integer.should_be_true
+
+        Test.specify "should allow to get various date_part of Date_Time" <|
+            a = datetimes.at "A"
+
+            a.date_part Date_Period.Quarter . to_vector . should_equal [4, 1, 1, Nothing]
+            # TODO :)
+            a.date_part Date_Period.Week . to_vector . should_equal [0, 0, 0, Nothing]
+            a.date_part Time_Period.Second . to_vector . should_equal [59, 30, 0, Nothing]
+            a.date_part Time_Period.Millisecond . to_vector . should_equal [567, 1, 0, Nothing]
+            a.date_part Time_Period.Nanosecond . to_vector . should_equal [987, 0, 0, Nothing]
+
+            [a.date_part Date_Period.Quarter, a.date_part Date_Period.Week, a.date_part Time_Period.Second, a.date_part Time_Period.Millisecond, a.date_part Time_Period.Nanosecond].each c->
+                Test.with_clue "The column "+c.name+" value type ("+c.value_type.to_display_text+") should be an integer: " <|
+                    c.value_type.is_integer.should_be_true
+
 
         Test.specify "should allow to compare dates" <|
             t = table_builder [["X", [Date.new 2021 12 3]], ["Y", [Date.new 2021 12 5]]]
