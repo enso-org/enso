@@ -2963,6 +2963,7 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
               """)
 
       // Change file on disk
+      Thread.sleep(1.seconds.toMillis)
       val fooTxt = testContentRoot.file.toPath.resolve("foo.txt")
       Files.write(fooTxt, "abcdef".getBytes(StandardCharsets.UTF_8))
 
