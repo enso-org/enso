@@ -88,14 +88,15 @@ export interface ReactionBarProps {
     selectedReactions: Set<chat.ReactionSymbol>
     doReact: (reaction: chat.ReactionSymbol) => void
     doRemoveReaction: (reaction: chat.ReactionSymbol) => void
+    className?: string
 }
 
 /** A list of emoji reactions to choose from. */
 function ReactionBar(props: ReactionBarProps) {
-    const { selectedReactions, doReact, doRemoveReaction } = props
+    const { selectedReactions, doReact, doRemoveReaction, className } = props
 
     return (
-        <div className="inline-block bg-white rounded-full m-1">
+        <div className={`inline-block bg-white rounded-full m-1 ${className ?? ''}`}>
             {REACTION_EMOJIS.map(emoji => (
                 <button
                     key={emoji}
@@ -160,8 +161,17 @@ export interface ChatMessageProps {
 /** A chat message, including user info, sent date, and reactions (if any). */
 function ChatMessage(props: ChatMessageProps) {
     const { message, reactions, shouldShowReactionBar, doReact, doRemoveReaction } = props
+    const [isHovered, setIsHovered] = React.useState(false)
     return (
-        <div className="mx-4 my-2">
+        <div
+            className="mx-4 my-2"
+            onMouseEnter={() => {
+                setIsHovered(true)
+            }}
+            onMouseLeave={() => {
+                setIsHovered(false)
+            }}
+        >
             <div className="flex">
                 <img
                     crossOrigin="anonymous"
@@ -185,6 +195,16 @@ function ChatMessage(props: ChatMessageProps) {
                     doRemoveReaction={doRemoveReaction}
                     selectedReactions={new Set(message.reactions)}
                 />
+            )}
+            {message.isStaffMessage && !shouldShowReactionBar && isHovered && (
+                <div className="relative h-0 py-1 -my-1">
+                    <ReactionBar
+                        doReact={doReact}
+                        doRemoveReaction={doRemoveReaction}
+                        selectedReactions={new Set(message.reactions)}
+                        className="absolute shadow-soft"
+                    />
+                </div>
             )}
         </div>
     )
