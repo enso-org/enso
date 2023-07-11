@@ -143,7 +143,6 @@ spec setup =
 
         Test.specify "should allow to get various date_part of Date_Time" <|
             a = datetimes.at "A"
-
             a.date_part Date_Period.Quarter . to_vector . should_equal [4, 1, 1, Nothing]
             a.date_part Date_Period.Week . to_vector . should_equal [53, 9, 1, Nothing]
             a.date_part Time_Period.Millisecond . to_vector . should_equal [567, 1, 0, Nothing]
@@ -288,6 +287,20 @@ spec setup =
             (t2.at "X").date_diff (t2.at "Y") Time_Period.Second . to_vector . should_equal [2772920]
             (t2.at "X").date_diff (Date_Time.new 2021 11 3 10 15 30) Time_Period.Second . to_vector . should_equal [30]
 
+            (t2.at "X").date_diff (t2.at "Y") Time_Period.Millisecond . to_vector . should_equal [2772920000]
+            (t2.at "X").date_diff (Date_Time.new 2021 11 3 10 15 30 123) Time_Period.Millisecond . to_vector . should_equal [30123]
+
+            (t2.at "X").date_diff (t2.at "Y") Time_Period.Microsecond . to_vector . should_equal [2772920000000]
+            (t2.at "X").date_diff (Date_Time.new 2021 11 3 10 15 30 123 456) Time_Period.Microsecond . to_vector . should_equal [30123456]
+
+            case setup.test_selection.supports_nanoseconds_in_time of
+                True ->
+                    (t2.at "X").date_diff (t2.at "Y") Time_Period.Nanosecond . to_vector . should_equal [2772920000000000]
+                    (t2.at "X").date_diff (Date_Time.new 2021 11 3 10 15 30 123 456 789) Time_Period.Nanosecond . to_vector . should_equal [30123456789]
+                False ->
+                    (t2.at "X").date_diff (t2.at "Y") Time_Period.Nanosecond . should_fail_with Unsupported_Database_Operation
+                    (t2.at "X").date_diff (Date_Time.new 2021 11 3 10 15 30 123 456 789) Time_Period.Nanosecond . should_fail_with Unsupported_Database_Operation
+
             t3 = table_builder [["X", [Time_Of_Day.new 10 15 0]], ["Y", [Time_Of_Day.new 12 30 20]]]
 
             # There is no default period:
@@ -302,6 +315,23 @@ spec setup =
 
             (t3.at "X").date_diff (t3.at "Y") Time_Period.Minute . to_vector . should_equal [135]
             (t3.at "X").date_diff (Time_Of_Day.new 10 04 0) Time_Period.Minute . to_vector . should_equal [-11]
+
+            (t3.at "X").date_diff (t3.at "Y") Time_Period.Second . to_vector . should_equal [135*60]
+            (t3.at "X").date_diff (Time_Of_Day.new 10 15 12) Time_Period.Second . to_vector . should_equal [12]
+
+            (t3.at "X").date_diff (t3.at "Y") Time_Period.Millisecond . to_vector . should_equal [135*60*1000]
+            (t3.at "X").date_diff (Time_Of_Day.new 10 15 12 34) Time_Period.Millisecond . to_vector . should_equal [12034]
+
+            (t3.at "X").date_diff (t3.at "Y") Time_Period.Microsecond . to_vector . should_equal [135*60*1000*1000]
+            (t3.at "X").date_diff (Time_Of_Day.new 10 15 12 34 56) Time_Period.Microsecond . to_vector . should_equal [12034056]
+
+            case setup.test_selection.supports_nanoseconds_in_time of
+                True ->
+                    (t3.at "X").date_diff (t3.at "Y") Time_Period.Nanosecond . to_vector . should_equal [135*60*1000*1000]
+                    (t3.at "X").date_diff (Time_Of_Day.new 10 15 12 34 56 78) Time_Period.Nanosecond . to_vector . should_equal [12034056078]
+                False ->
+                    (t3.at "X").date_diff (t3.at "Y") Time_Period.Nanosecond . should_fail_with Unsupported_Database_Operation
+                    (t3.at "X").date_diff (Time_Of_Day.new 10 15 12 34 56 78) Time_Period.Nanosecond . should_fail_with Unsupported_Database_Operation
 
         Test.specify "date_diff should return integers" <|
             t = table_builder [["X", [Date.new 2021 01 31]], ["Y", [Time_Of_Day.new 12 30 20]], ["Z", [Date_Time.new 2021 12 5 12 30 20]]]
@@ -362,6 +392,13 @@ spec setup =
             (t2.at "X").date_add 1 Time_Period.Minute . to_vector . should_equal_tz_agnostic [Date_Time.new 2021 01 31 12 31 0, Date_Time.new 2021 01 01 12 31 0, Date_Time.new 2021 12 31 12 31 0]
             (t2.at "X").date_add (t2.at "Y") Time_Period.Second . to_vector . should_equal_tz_agnostic [Date_Time.new 2021 01 31 12 30 5, Date_Time.new 2021 01 01 12 29 59, Date_Time.new 2021 12 31 12 30 0]
             (t2.at "X").date_add 1 Time_Period.Second . to_vector . should_equal_tz_agnostic [Date_Time.new 2021 01 31 12 30 1, Date_Time.new 2021 01 01 12 30 1, Date_Time.new 2021 12 31 12 30 1]
+            (t2.at "X").date_add 1 Time_Period.Millisecond . to_vector . should_equal_tz_agnostic [Date_Time.new 2021 01 31 12 30 millisecond=1, Date_Time.new 2021 01 01 12 30 millisecond=1, Date_Time.new 2021 12 31 12 30 millisecond=1]
+            (t2.at "X").date_add 1 Time_Period.Microsecond . to_vector . should_equal_tz_agnostic [Date_Time.new 2021 01 31 12 30 microsecond=1, Date_Time.new 2021 01 01 12 30 microsecond=1, Date_Time.new 2021 12 31 12 30 microsecond=1]
+            case setup.test_selection.supports_nanoseconds_in_time of
+                True ->
+                    (t2.at "X").date_add 1 Time_Period.Nanosecond . to_vector . should_equal [Date_Time.new 2021 01 31 12 30 nanosecond=1, Date_Time.new 2021 01 01 12 30 nanosecond=1, Date_Time.new 2021 12 31 12 30 nanosecond=1]
+                False ->
+                    (t2.at "X").date_add 1 Time_Period.Nanosecond . should_fail_with Unsupported_Database_Operation
 
             t3 = table_builder [["X", [Time_Of_Day.new 12 30 0, Time_Of_Day.new 23 45 0, Time_Of_Day.new 1 30 0]], ["Y", [5, -1, 0]]]
 
@@ -371,6 +408,13 @@ spec setup =
             (t3.at "X").date_add 1 Time_Period.Minute . to_vector . should_equal [Time_Of_Day.new 12 31 0, Time_Of_Day.new 23 46 0, Time_Of_Day.new 1 31 0]
             (t3.at "X").date_add (t3.at "Y") Time_Period.Second . to_vector . should_equal [Time_Of_Day.new 12 30 5, Time_Of_Day.new 23 44 59, Time_Of_Day.new 1 30 0]
             (t3.at "X").date_add 1 Time_Period.Second . to_vector . should_equal [Time_Of_Day.new 12 30 1, Time_Of_Day.new 23 45 1, Time_Of_Day.new 1 30 1]
+            (t3.at "X").date_add 1 Time_Period.Millisecond . to_vector . should_equal [Time_Of_Day.new 12 30 millisecond=1, Time_Of_Day.new 23 45 millisecond=1, Time_Of_Day.new 1 30 millisecond=1]
+            (t3.at "X").date_add 1 Time_Period.Microsecond . to_vector . should_equal [Time_Of_Day.new 12 30 microsecond=1, Time_Of_Day.new 23 45 microsecond=1, Time_Of_Day.new 1 30 microsecond=1]
+            case setup.test_selection.supports_nanoseconds_in_time of
+                True ->
+                    (t3.at "X").date_add 1 Time_Period.Nanosecond . to_vector . should_equal [Time_Of_Day.new 12 30 nanosecond=1, Time_Of_Day.new 23 45 nanosecond=1, Time_Of_Day.new 1 30 nanosecond=1]
+                False ->
+                    (t3.at "X").date_add 1 Time_Period.Nanosecond . should_fail_with Unsupported_Database_Operation
 
             # No sense to shift Time_Of_Day by days either or by a Date_Period
             (t3.at "X").date_add (t3.at "Y") Time_Period.Day . to_vector . should_fail_with Illegal_Argument
