@@ -6,6 +6,7 @@ import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Table.Data.Aggregate_Column.Aggregate_Column
 import Standard.Table.Internal.Naming_Helpers.Naming_Helpers
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
+import Standard.Table.Internal.Vector_Builder.Vector_Builder
 from Standard.Table import Value_Type
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
 from Standard.Table.Errors import Inexact_Type_Coercion
@@ -230,7 +231,8 @@ type Postgres_Dialect
 ## PRIVATE
 make_internal_generator_dialect =
     cases = [["LOWER", Base_Generator.make_function "LOWER"], ["UPPER", Base_Generator.make_function "UPPER"]]
-    text = [starts_with, contains, ends_with, agg_shortest, agg_longest, make_case_sensitive, replace]+concat_ops+cases+trim_ops
+    text = [starts_with, contains, ends_with, agg_shortest, agg_longest, make_case_sensitive]+concat_ops+cases+trim_ops
+    text_replace = [replace_text_cs_all, replace_text_cs_only_first]
     counts = [agg_count_is_null, agg_count_empty, agg_count_not_empty, ["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null]]
     arith_extensions = [is_nan, is_inf, floating_point_div, mod_op, decimal_div, decimal_mod, ["ROW_MIN", Base_Generator.make_function "LEAST"], ["ROW_MAX", Base_Generator.make_function "GREATEST"]]
     bool = [bool_or]
@@ -240,7 +242,7 @@ make_internal_generator_dialect =
     stats = [agg_median, agg_mode, agg_percentile, stddev_pop, stddev_samp]
     date_ops = [make_extract_as_int "year" "YEAR", make_extract_as_int "month" "MONTH", make_extract_as_int "day" "DAY"]
     special_overrides = [is_null, is_empty]
-    my_mappings = text + counts + stats + first_last_aggregators + arith_extensions + bool + date_ops + special_overrides
+    my_mappings = text + text_replace + counts + stats + first_last_aggregators + arith_extensions + bool + date_ops + special_overrides
     Base_Generator.base_dialect . extend_with my_mappings
 
 ## PRIVATE
@@ -480,8 +482,25 @@ decimal_div = Base_Generator.lift_binary_op "DECIMAL_DIV" x-> y->
 decimal_mod = Base_Generator.lift_binary_op "DECIMAL_MOD" x-> y->
     x ++ " - FLOOR(CAST(" ++ x ++ " AS decimal) / CAST(" ++ y ++ " AS decimal)) * " ++ y
 
-replace = Base_Generator.lift_ternary_op "REPLACE" t-> p-> r->
+replace_text_cs_all = Base_Generator.lift_ternary_op "REPLACE_TEXT_CS_ALL" t-> p-> r->
     Builder.code "REPLACE(" ++ t ++ ", " ++ p ++ ", " ++ r ++ ")"
+
+replace_text_cs_only_first = Base_Generator.lift_ternary_op "REPLACE_TEXT_CS_ONLY_FIRST" t-> p-> r->
+    escaped_pattern = escape_regex_param p
+    Builder.code "REGEXP_REPLACE(" ++ t ++ ", " ++ escaped_pattern ++ ", " ++ r ++ ", 1, 1)"
+
+## PRIVATE
+   Escape a literal regex param
+escape_regex_param : Builder -> Builder
+escape_regex_param regex_param = transform_literal_param Regex.escape regex_param
+
+## PRIVATE
+   Transform the interpolation value within the Builder
+transform_literal_param : (Any -> Any) -> Builder -> Builder
+transform_literal_param transformer param =
+    x = case param of Builder.Value (Vector_Builder.Leaf x) -> case x.at 0 of SQL_Fragment.Interpolation y -> y
+    transformed_x = transformer x
+    Builder.Value (Vector_Builder.Leaf [SQL_Fragment.Interpolation transformed_x])
 
 ## PRIVATE
 make_extract_as_int enso_name sql_name =
