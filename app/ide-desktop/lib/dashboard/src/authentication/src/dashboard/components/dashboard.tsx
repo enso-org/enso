@@ -1061,7 +1061,7 @@ function Dashboard(props: DashboardProps) {
 
     return (
         <div
-            className={`flex flex-col gap-2 relative select-none text-primary text-xs h-screen py-2 ${
+            className={`flex flex-col gap-2 relative select-none text-primary text-xs leading-normal h-screen pt-2.25 pb-5.5 ${
                 tab === Tab.dashboard ? '' : 'hidden'
             }`}
             onClick={event => {

@@ -59,8 +59,8 @@ function TopBar(props: TopBarProps) {
     return (
         <div className="flex mx-2 h-8">
             {/* FIGMA MODE ONLY */}
-            <div style={{ width: '60px' }} />
-            {supportsLocalBackend && (
+            <div style={{ width: '70px' }} />
+            {false && supportsLocalBackend && (
                 <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap p-1.5">
                     <button
                         onClick={() => {
@@ -89,14 +89,14 @@ function TopBar(props: TopBarProps) {
                 </div>
             )}
             <div
-                className={`flex items-center bg-label rounded-full pl-1 pr-2.5 mx-2 w-39 ${
-                    projectName != null ? 'cursor-pointer' : 'opacity-50'
+                className={`flex items-center bg-label rounded-full px-1 mx-2 w-39 ${
+                    projectName != null ? 'cursor-pointer' : '' // 'opacity-50'
                 }`}
                 onClick={toggleTab}
             >
                 <span
-                    className={`flex-1 opacity-50 overflow-hidden transition-width nowrap ${
-                        tab === dashboard.Tab.dashboard ? 'm-2' : 'grow-0 w-0'
+                    className={`flex-1 opacity-50 overflow-hidden transition-width whitespace-nowrap ${
+                        tab === dashboard.Tab.dashboard && false ? 'm-2' : 'grow-0 w-0'
                     }`}
                 >
                     {projectName ?? 'Dashboard'}
@@ -105,15 +105,15 @@ function TopBar(props: TopBarProps) {
                     <img src={BarsIcon} />
                 </div>
                 <span
-                    className={`flex-1 opacity-50 overflow-hidden transition-width nowrap ${
-                        tab === dashboard.Tab.ide ? 'm-2' : 'grow-0 w-0'
+                    className={`flex-1 opacity-50 overflow-hidden transition-width whitespace-nowrap ${
+                        tab === dashboard.Tab.ide || true ? 'm-2' : 'grow-0 w-0'
                     }`}
                 >
-                    {projectName ?? 'No project open'}
+                    {'My current project' ?? projectName ?? 'No project open'}
                 </span>
             </div>
-            <div className="grow flex items-center bg-label rounded-full px-2">
-                <div>
+            <div className="grow flex items-center bg-label rounded-full px-2 mx-2">
+                <div className="mx-1">
                     <img src={MagnifyingGlassIcon} />
                 </div>
                 <input
@@ -131,12 +131,12 @@ function TopBar(props: TopBarProps) {
                 href="https://discord.gg/enso"
                 target="_blank"
                 rel="noreferrer"
-                className="flex items-center bg-help rounded-full px-2.25 text-white mx-1.25"
+                className="flex items-center bg-help rounded-full pl-2.5 pr-2.25 text-white mx-1.25"
             >
-                <span className="whitespace-nowrap">help chat</span>
-                <div className="ml-2">
-                    <img src={SpeechBubbleIcon} />
-                </div>
+                <span className="whitespace-nowrap my-0.5">help chat</span>
+                {/* Spacing. */}
+                <div className="w-2" />
+                <img src={SpeechBubbleIcon} />
             </a>
             {/* User profile and menu. */}
             <div className="transform w-8 mx-2.75">

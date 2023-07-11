@@ -79,17 +79,25 @@ function esbuildPluginGenerateTailwind(): esbuild.Plugin {
                 const lastModified = (await fs.stat(loadArgs.path)).mtimeMs
                 let output = cachedOutput[loadArgs.path]
                 if (!output || output.lastModified !== lastModified || tailwindConfigWasModified) {
-                    console.log(`Processing CSS file '${loadArgs.path}'.`)
-                    const content = await fs.readFile(loadArgs.path, 'utf8')
-                    const result = await cssProcessor.process(content, { from: loadArgs.path })
-                    console.log(`Processed CSS file '${loadArgs.path}'.`)
-                    output = { contents: result.css, lastModified }
-                    cachedOutput[loadArgs.path] = output
+                    try {
+                        console.log(`Processing CSS file '${loadArgs.path}'.`)
+                        const content = await fs.readFile(loadArgs.path, 'utf8')
+                        const result = await cssProcessor.process(content, { from: loadArgs.path })
+                        console.log(`Processed CSS file '${loadArgs.path}'.`)
+                        output = { contents: result.css, lastModified }
+                        cachedOutput[loadArgs.path] = output
+                    } catch {
+                        // Ignored.
+                    }
                 }
-                return {
-                    contents: output.contents,
-                    loader: 'css',
-                    watchFiles: [loadArgs.path, TAILWIND_CONFIG_PATH],
+                if (output != null) {
+                    return {
+                        contents: output.contents,
+                        loader: 'css',
+                        watchFiles: [loadArgs.path, TAILWIND_CONFIG_PATH],
+                    }
+                } else {
+                    return
                 }
             })
         },

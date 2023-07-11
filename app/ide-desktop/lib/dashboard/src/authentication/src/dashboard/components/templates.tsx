@@ -46,6 +46,13 @@ export interface Template {
 /** The full list of templates. */
 export const TEMPLATES: [Template, ...Template[]] = [
     {
+        // FIGMA MODE ONLY
+        title: 'Combine spreadsheets',
+        id: 'Orders',
+        description: 'Glue multiple spreadsheets together to analyse all your data at once.',
+        background: 'url("/spreadsheets.png") 50% 11% / 50% no-repeat, #479366',
+    },
+    {
         title: 'Colorado COVID',
         id: 'Colorado_COVID',
         description: 'Learn to glue multiple spreadsheets to analyses all your data at once.',
@@ -67,7 +74,7 @@ export const TEMPLATES: [Template, ...Template[]] = [
         title: 'Combine spreadsheets',
         id: 'Orders',
         description: 'Glue multiple spreadsheets together to analyse all your data at once.',
-        background: 'url("/spreadsheets.png") 50% 20% / 80% no-repeat, #479366',
+        background: 'url("/spreadsheets.png") 50% 11% / 50% no-repeat, #479366',
     },
     {
         title: 'Geospatial analysis',
@@ -109,7 +116,7 @@ function TemplatesRender(props: TemplatesRenderProps) {
             <div className="relative flex h-full w-full border-dashed-custom rounded-2xl text-primary transition-all hover:shadow-soft hover:scale-103-1/3 hover:translate-y-0.5 hover:z-10">
                 <div className="flex flex-col text-center items-center m-auto">
                     <img src={PlusCircledIcon} />
-                    <p className="font-semibold text-sm">New empty project</p>
+                    <p className="font-semibold text-vs">New empty project</p>
                 </div>
             </div>
         </button>
@@ -132,9 +139,9 @@ function TemplatesRender(props: TemplatesRenderProps) {
                         }}
                         className="relative flex flex-col justify-end h-full w-full rounded-2xl overflow-hidden text-white text-left transition-all hover:shadow-soft hover:scale-103-1/3 hover:translate-y-0.5 hover:z-10"
                     >
-                        <div className="bg-black bg-opacity-30 px-4 py-2">
-                            <h2 className="text-sm font-bold">{template.title}</h2>
-                            <div className="text-xs h-16 text-ellipsis py-2">
+                        <div className="bg-black bg-opacity-30 px-4 pt-1.75 pb-3.25">
+                            <h2 className="h-5 text-vs font-bold my-0.5">{template.title}</h2>
+                            <div className="text-xs h-8.75 text-ellipsis">
                                 {template.description}
                             </div>
                         </div>
