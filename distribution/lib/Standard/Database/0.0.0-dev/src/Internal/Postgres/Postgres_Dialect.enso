@@ -250,7 +250,7 @@ make_internal_generator_dialect =
     stddev_pop = ["STDDEV_POP", Base_Generator.make_function "stddev_pop"]
     stddev_samp = ["STDDEV_SAMP", Base_Generator.make_function "stddev_samp"]
     stats = [agg_median, agg_mode, agg_percentile, stddev_pop, stddev_samp]
-    date_ops = [make_extract_as_int "year" "YEAR", make_extract_as_int "month" "MONTH", make_extract_as_int "day" "DAY", ["date_add", make_date_add], ["date_diff", make_date_diff]]
+    date_ops = [make_extract_as_int "year", make_extract_as_int "quarter", make_extract_as_int "month", make_extract_as_int "week", make_extract_as_int "day", make_extract_as_int "hour", make_extract_as_int "minute", ["date_add", make_date_add], ["date_diff", make_date_diff]]
     special_overrides = [is_null, is_empty]
     my_mappings = text + counts + stats + first_last_aggregators + arith_extensions + bool + date_ops + special_overrides
     Base_Generator.base_dialect . extend_with my_mappings
@@ -493,10 +493,9 @@ decimal_mod = Base_Generator.lift_binary_op "DECIMAL_MOD" x-> y->
     x ++ " - FLOOR(CAST(" ++ x ++ " AS decimal) / CAST(" ++ y ++ " AS decimal)) * " ++ y
 
 ## PRIVATE
-make_extract_as_int enso_name sql_name =
+make_extract_as_int enso_name sql_name=enso_name =
     Base_Generator.lift_unary_op enso_name arg->
-        extract = Builder.code "EXTRACT(" ++ sql_name ++ " FROM " ++ arg ++ ")"
-        Builder.code "CAST(" ++ extract ++ " AS integer)"
+        as_int32 <| Builder.code "EXTRACT(" ++ sql_name ++ " FROM " ++ arg ++ ")"
 
 ## PRIVATE
 make_date_add arguments (metadata : Date_Period_Metadata) =
@@ -542,22 +541,19 @@ make_date_diff arguments (metadata : Date_Period_Metadata) =
         truncate expr =
             Builder.code "TRUNC(" ++ expr ++ ")"
 
-        as_int expr =
-            Builder.code "(" ++ expr ++ "::int8)"
-
         # `age` computes a 'symbolic' difference expressed in years, months and days.
         extract_years =
-            as_int <| Builder.code "EXTRACT(YEARS FROM age(" ++ end ++ ", " ++ start ++ "))"
+            as_int32 <| Builder.code "EXTRACT(YEARS FROM age(" ++ end ++ ", " ++ start ++ "))"
         # To get total months, we need to sum up with whole years.
         extract_months =
-            months = as_int <|
+            months = as_int32 <|
                 Builder.code "EXTRACT(MONTHS FROM age(" ++ end ++ ", " ++ start ++ "))"
             Builder.code "(" ++ extract_years ++ " * 12 + " ++ months ++ ")"
         ## To get total days, we cannot use `age`, because we cannot convert an
            amount of months to days (month lengths vary). Instead we rely on `-`
            returning an interval based in 'raw' days.
         extract_days =
-            as_int <| case metadata.input_value_type of
+            as_int32 <| case metadata.input_value_type of
                 ## For pure 'date' datatype, the difference is a simple integer
                    count of days.
                 Value_Type.Date -> (end ++ " - " ++ start).paren
@@ -570,7 +566,7 @@ make_date_diff arguments (metadata : Date_Period_Metadata) =
            result.
         extract_seconds =
             seconds_numeric = Builder.code "EXTRACT(EPOCH FROM (" ++ end ++ " - " ++ start ++ "))"
-            as_int (truncate seconds_numeric)
+            as_int64 (truncate seconds_numeric)
         case metadata.period of
             Date_Period.Year    -> extract_years
             Date_Period.Month   -> extract_months
@@ -593,13 +589,22 @@ make_date_diff arguments (metadata : Date_Period_Metadata) =
             Time_Period.Millisecond ->
                 millis = truncate <|
                     Builder.code "EXTRACT(MILLISECONDS FROM (" ++ end ++ " - " ++ start ++ "))"
-                as_int <|
+                as_int64 <|
                     ((extract_seconds ++ " * 1000").paren ++ " + " ++ (millis ++ " % 1000").paren).paren
             Time_Period.Microsecond ->
                 micros = Builder.code "EXTRACT(MICROSECONDS FROM (" ++ end ++ " - " ++ start ++ "))"
-                as_int <|
+                as_int64 <|
                     ((extract_seconds ++ " * 1000000").paren ++ " + " ++ (micros ++ " % 1000000").paren).paren
 
+## PRIVATE
+   Alters the expression casting the value to a 64-bit integer.
+as_int64 expr =
+    Builder.code "(" ++ expr ++ "::int8)"
+
+## PRIVATE
+   Alters the expression casting the value to a 32-bit integer (the default choice for integers in Postgres).
+as_int32 expr =
+    Builder.code "(" ++ expr ++ "::int4)"
 
 ## PRIVATE
 postgres_statement_setter = Statement_Setter.default
