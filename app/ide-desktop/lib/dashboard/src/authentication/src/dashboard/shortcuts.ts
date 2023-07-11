@@ -1,6 +1,8 @@
 /** @file A registry for keyboard and mouse shortcuts. */
 import * as React from 'react'
 
+import * as detect from 'enso-common/src/detect'
+
 // =============
 // === Types ===
 // =============
@@ -51,6 +53,13 @@ export interface MouseShortcut extends Modifiers {
     button: MouseButton
 }
 
+/** All possible modifier keys. */
+export type ModifierKey = 'Alt' | 'Ctrl' | 'Meta' | 'Shift'
+
+// ===========================
+// === modifiersMatchEvent ===
+// ===========================
+
 /** Return `true` if and only if the modifiers match the evenet's modifier key states. */
 function modifiersMatchEvent(
     modifiers: Modifiers,
@@ -63,6 +72,10 @@ function modifiersMatchEvent(
         ('meta' in modifiers ? event.metaKey === modifiers.meta : true)
     )
 }
+
+// ========================
+// === ShortcutRegistry ===
+// ========================
 
 /** Holds all keyboard and mouse shortcuts, and provides functions to detect them. */
 export class ShortcutRegistry {
@@ -89,7 +102,7 @@ export class ShortcutRegistry {
 
 /** A shorthand for creating a {@link KeyboardShortcut}. Should only be used in
  * {@link DEFAULT_KEYBOARD_SHORTCUTS}. */
-function keybind(modifiers: ('Alt' | 'Ctrl' | 'Meta' | 'Shift')[], key: string): KeyboardShortcut {
+function keybind(modifiers: ModifierKey[], key: string): KeyboardShortcut {
     return {
         key: key,
         ctrl: modifiers.includes('Ctrl'),
@@ -101,10 +114,7 @@ function keybind(modifiers: ('Alt' | 'Ctrl' | 'Meta' | 'Shift')[], key: string):
 
 /** A shorthand for creating a {@link MouseShortcut}. Should only be used in
  * {@link DEFAULT_MOUSE_SHORTCUTS}. */
-function mousebind(
-    modifiers: ('Alt' | 'Ctrl' | 'Meta' | 'Shift')[],
-    button: MouseButton
-): MouseShortcut {
+function mousebind(modifiers: ModifierKey[], button: MouseButton): MouseShortcut {
     return {
         button: button,
         ctrl: modifiers.includes('Ctrl'),
@@ -114,6 +124,13 @@ function mousebind(
     }
 }
 
+// =================
+// === Constants ===
+// =================
+
+/** The equivalent of the `Control` key for the current platform. */
+const CTRL = detect.platform() === detect.Platform.macOS ? 'Meta' : 'Ctrl'
+
 /** The default keyboard shortcuts. */
 const DEFAULT_KEYBOARD_SHORTCUTS: Record<KeyboardAction, KeyboardShortcut[]> = {
     [KeyboardAction.closeModal]: [keybind([], 'Escape')],
@@ -122,10 +139,10 @@ const DEFAULT_KEYBOARD_SHORTCUTS: Record<KeyboardAction, KeyboardShortcut[]> = {
 
 /** The default mouse shortcuts. */
 const DEFAULT_MOUSE_SHORTCUTS: Record<MouseAction, MouseShortcut[]> = {
-    [MouseAction.editName]: [mousebind(['Ctrl'], MouseButton.left)],
-    [MouseAction.selectAdditional]: [mousebind(['Ctrl'], MouseButton.left)],
+    [MouseAction.editName]: [mousebind([CTRL], MouseButton.left)],
+    [MouseAction.selectAdditional]: [mousebind([CTRL], MouseButton.left)],
     [MouseAction.selectRange]: [mousebind(['Shift'], MouseButton.left)],
-    [MouseAction.selectAdditionalRange]: [mousebind(['Ctrl', 'Shift'], MouseButton.left)],
+    [MouseAction.selectAdditionalRange]: [mousebind([CTRL, 'Shift'], MouseButton.left)],
 }
 
 /** The global instance of the shortcut registry. */

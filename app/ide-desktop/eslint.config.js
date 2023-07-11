@@ -226,6 +226,10 @@ const RESTRICTED_SYNTAXES = [
         selector: 'IfStatement > ExpressionStatement',
         message: 'Wrap `if` branches in `{}`',
     },
+    {
+        selector: ':matches(ForStatement[test=null], ForStatement[test.value=true])',
+        message: 'Use `while (true)` instead of `for (;;)`',
+    },
 ]
 
 // ============================
@@ -287,6 +291,7 @@ export default [
                 },
             ],
             'sort-imports': ['error', { allowSeparatedGroups: true }],
+            'no-constant-condition': ['error', { checkLoops: false }],
             'no-restricted-properties': [
                 'error',
                 {
@@ -354,7 +359,10 @@ export default [
                 { checksVoidReturn: { attributes: false } },
             ],
             '@typescript-eslint/no-redundant-type-constituents': 'error',
-            '@typescript-eslint/no-unnecessary-condition': 'error',
+            '@typescript-eslint/no-unnecessary-condition': [
+                'error',
+                { allowConstantLoopConditions: true },
+            ],
             '@typescript-eslint/no-useless-empty-export': 'error',
             '@typescript-eslint/parameter-properties': ['error', { prefer: 'parameter-property' }],
             '@typescript-eslint/prefer-enum-initializers': 'error',

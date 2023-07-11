@@ -527,7 +527,7 @@ function ProjectName(props: InternalProjectNameProps) {
         <div
             className="flex text-left items-center align-middle whitespace-nowrap"
             onClick={event => {
-                if (eventModule.isDoubleClick(event)) {
+                if (!rowState.isEditingName && eventModule.isDoubleClick(event)) {
                     // It is a double click; open the project.
                     dispatchProjectEvent({
                         type: projectEventModule.ProjectEventType.open,
@@ -589,7 +589,9 @@ function ProjectName(props: InternalProjectNameProps) {
                           inputTitle: validation.LOCAL_PROJECT_NAME_TITLE,
                       }
                     : {})}
-                className="cursor-pointer bg-transparent grow px-2"
+                className={`bg-transparent grow px-2 ${
+                    rowState.isEditingName ? 'cursor-text' : 'cursor-pointer'
+                }`}
             >
                 {item.title}
             </EditableSpan>

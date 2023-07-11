@@ -253,7 +253,7 @@ export function AuthProvider(props: AuthProviderProps) {
                     setBackendWithoutSavingType(backend)
                 }
                 let organization: backendModule.UserOrOrganization | null
-                for (;;) {
+                while (true) {
                     try {
                         organization = await backend.usersMe()
                         break
