@@ -4,22 +4,19 @@ import project.Data.Text.Text
 import project.Data.Time.Duration.Duration
 import project.Data.Vector.Vector
 import project.Error.Error
-import project.Nothing.Nothing
-import project.Panic.Panic
-
 import project.Network.HTTP.Form.Form
 import project.Network.HTTP.Form.Part_Value
-import project.Network.HTTP.Request.Request
-import project.Network.HTTP.Request_Body.Request_Body
-import project.Network.HTTP.Response.Response
-
 import project.Network.HTTP.Header.Header
 import project.Network.HTTP.HTTP_Method.HTTP_Method
 import project.Network.HTTP.HTTP_Version.HTTP_Version
+import project.Network.HTTP.Request.Request
+import project.Network.HTTP.Request_Body.Request_Body
+import project.Network.HTTP.Response.Response
 import project.Network.Proxy.Proxy
 import project.Network.URI.URI
-
-from project.Data.Boolean import Boolean, True, False
+import project.Nothing.Nothing
+import project.Panic.Panic
+from project.Data.Boolean import Boolean, False, True
 
 polyglot java import java.lang.Exception as JException
 polyglot java import java.net.http.HttpClient

@@ -304,6 +304,12 @@ class JsonConnectionController(
     case TextProtocol.FileAutoSaved(path) =>
       webActor ! Notification(FileAutoSaved, FileAutoSaved.Params(path))
 
+    case TextProtocol.FileModifiedOnDisk(path) =>
+      webActor ! Notification(
+        FileModifiedOnDisk,
+        FileModifiedOnDisk.Params(path)
+      )
+
     case TextProtocol.FileEvent(path, event) =>
       webActor ! Notification(EventFile, EventFile.Params(path, event))
 

@@ -2,10 +2,10 @@ from Standard.Base import all
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
-from project.Errors import Invalid_Value_Type, No_Such_Column, Missing_Input_Columns
 import project.Data.Join_Condition.Join_Condition
 import project.Data.Type.Value_Type.Value_Type
 import project.Internal.Problem_Builder.Problem_Builder
+from project.Errors import Invalid_Value_Type, Missing_Input_Columns, No_Such_Column
 
 type Join_Condition_Resolver
     ## PRIVATE

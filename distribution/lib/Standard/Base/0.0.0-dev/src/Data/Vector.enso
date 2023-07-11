@@ -6,14 +6,14 @@ import project.Data.Map.Map
 import project.Data.Numbers.Integer
 import project.Data.Pair.Pair
 import project.Data.Range.Range
-import project.Data.Text.Text
 import project.Data.Sort_Direction.Sort_Direction
+import project.Data.Text.Text
+import project.Error.Error
 import project.Errors.Common.Incomparable_Values
 import project.Errors.Common.Index_Out_Of_Bounds
 import project.Errors.Common.No_Such_Method
 import project.Errors.Common.Not_Found
 import project.Errors.Common.Type_Error
-import project.Error.Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Function.Function
@@ -23,10 +23,9 @@ import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Random
 import project.Warning.Warning
-
-from project.Data.Boolean import Boolean, True, False
+from project.Data.Boolean import Boolean, False, True
 from project.Data.Filter_Condition import unify_condition_or_predicate, unify_condition_predicate_or_element
-from project.Data.Index_Sub_Range import Index_Sub_Range, take_helper, drop_helper
+from project.Data.Index_Sub_Range import drop_helper, Index_Sub_Range, take_helper
 from project.Data.Ordering import all
 from project.Data.Range.Extensions import all
 

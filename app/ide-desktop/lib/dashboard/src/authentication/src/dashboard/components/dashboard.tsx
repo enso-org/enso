@@ -1,6 +1,6 @@
 /** @file Main dashboard component, responsible for listing user's projects as well as other
  * interactive components. */
-import * as react from 'react'
+import * as React from 'react'
 import toast from 'react-hot-toast'
 
 import ArrowRightSmallIcon from 'enso-assets/arrow_right_small.svg'
@@ -22,6 +22,7 @@ import * as localBackend from '../localBackend'
 import * as newtype from '../../newtype'
 import * as projectManager from '../projectManager'
 import * as remoteBackendModule from '../remoteBackend'
+import * as spinner from './spinner'
 import * as uploadMultipleFiles from '../../uploadMultipleFiles'
 
 import * as authProvider from '../../authentication/providers/auth'
@@ -279,7 +280,7 @@ function Dashboard(props: DashboardProps) {
 
     const [refresh, doRefresh] = hooks.useRefresh()
 
-    const [onDirectoryNextLoaded, setOnDirectoryNextLoaded] = react.useState<
+    const [onDirectoryNextLoaded, setOnDirectoryNextLoaded] = React.useState<
         ((assets: backendModule.Asset[]) => void) | null
     >(() =>
         initialProjectName != null
@@ -299,66 +300,70 @@ function Dashboard(props: DashboardProps) {
             : null
     )
     const [nameOfProjectToImmediatelyOpen, setNameOfProjectToImmediatelyOpen] =
-        react.useState(initialProjectName)
-    const [projectEvent, setProjectEvent] = react.useState<projectActionButton.ProjectEvent | null>(
+        React.useState(initialProjectName)
+    const [onSpinnerStateChange, setOnSpinnerStateChange] = React.useState<
+        ((state: spinner.SpinnerState | null) => void) | null
+    >(null)
+    const [projectEvent, setProjectEvent] = React.useState<projectActionButton.ProjectEvent | null>(
         null
     )
-    const [query, setQuery] = react.useState('')
-    const [loadingProjectManagerDidFail, setLoadingProjectManagerDidFail] = react.useState(false)
-    const [directoryId, setDirectoryId] = react.useState(
+    const [query, setQuery] = React.useState('')
+    const [loadingProjectManagerDidFail, setLoadingProjectManagerDidFail] = React.useState(false)
+    const [directoryId, setDirectoryId] = React.useState(
         session.organization != null ? rootDirectoryId(session.organization.id) : null
     )
-    const [directoryStack, setDirectoryStack] = react.useState<
+    const [directoryStack, setDirectoryStack] = React.useState<
         backendModule.Asset<backendModule.AssetType.directory>[]
     >([])
     // Defined by the spec as `compact` by default, however it is not ready yet.
-    const [columnDisplayMode, setColumnDisplayMode] = react.useState(ColumnDisplayMode.release)
-    const [tab, setTab] = react.useState(Tab.dashboard)
-    const [project, setProject] = react.useState<backendModule.Project | null>(null)
-    const [selectedAssets, setSelectedAssets] = react.useState<backendModule.Asset[]>([])
-    const [isFileBeingDragged, setIsFileBeingDragged] = react.useState(false)
-    const [isScrollBarVisible, setIsScrollBarVisible] = react.useState(false)
+    const [columnDisplayMode, setColumnDisplayMode] = React.useState(ColumnDisplayMode.release)
+    const [tab, setTab] = React.useState(Tab.dashboard)
+    const [project, setProject] = React.useState<backendModule.Project | null>(null)
+    const [selectedAssets, setSelectedAssets] = React.useState<backendModule.Asset[]>([])
+    const [isFileBeingDragged, setIsFileBeingDragged] = React.useState(false)
+    const [isScrollBarVisible, setIsScrollBarVisible] = React.useState(false)
 
-    const [isLoadingAssets, setIsLoadingAssets] = react.useState(true)
-    const [projectAssets, setProjectAssetsRaw] = react.useState<
+    const [isLoadingAssets, setIsLoadingAssets] = React.useState(true)
+    const [projectAssets, setProjectAssetsRaw] = React.useState<
         backendModule.Asset<backendModule.AssetType.project>[]
     >([])
-    const [directoryAssets, setDirectoryAssetsRaw] = react.useState<
+    const [directoryAssets, setDirectoryAssetsRaw] = React.useState<
         backendModule.Asset<backendModule.AssetType.directory>[]
     >([])
-    const [secretAssets, setSecretAssetsRaw] = react.useState<
+    const [secretAssets, setSecretAssetsRaw] = React.useState<
         backendModule.Asset<backendModule.AssetType.secret>[]
     >([])
-    const [fileAssets, setFileAssetsRaw] = react.useState<
+    const [fileAssets, setFileAssetsRaw] = React.useState<
         backendModule.Asset<backendModule.AssetType.file>[]
     >([])
-    const [visibleProjectAssets, setVisibleProjectAssets] = react.useState<
+    const [visibleProjectAssets, setVisibleProjectAssets] = React.useState<
         backendModule.Asset<backendModule.AssetType.project>[]
     >([])
-    const [visibleDirectoryAssets, setVisibleDirectoryAssets] = react.useState<
+    const [visibleDirectoryAssets, setVisibleDirectoryAssets] = React.useState<
         backendModule.Asset<backendModule.AssetType.directory>[]
     >([])
-    const [visibleSecretAssets, setVisibleSecretAssets] = react.useState<
+    const [visibleSecretAssets, setVisibleSecretAssets] = React.useState<
         backendModule.Asset<backendModule.AssetType.secret>[]
     >([])
-    const [visibleFileAssets, setVisibleFileAssets] = react.useState<
+    const [visibleFileAssets, setVisibleFileAssets] = React.useState<
         backendModule.Asset<backendModule.AssetType.file>[]
     >([])
-    const [projectDatas, setProjectDatas] = react.useState<
+    const [projectDatas, setProjectDatas] = React.useState<
         Record<backendModule.ProjectId, projectActionButton.ProjectData>
     >({})
 
     const isListingLocalDirectoryAndWillFail =
         backend.type === backendModule.BackendType.local && loadingProjectManagerDidFail
     const isListingRemoteDirectoryAndWillFail =
-        backend.type === backendModule.BackendType.remote && !session.organization?.isEnabled
+        backend.type === backendModule.BackendType.remote &&
+        session.organization?.isEnabled !== true
     const isListingRemoteDirectoryWhileOffline =
         session.type === authProvider.UserSessionType.offline &&
         backend.type === backendModule.BackendType.remote
     const directory = directoryStack[directoryStack.length - 1]
     const parentDirectory = directoryStack[directoryStack.length - 2]
 
-    const switchToIdeTab = react.useCallback(() => {
+    const switchToIdeTab = React.useCallback(() => {
         setTab(Tab.ide)
         const ideElement = document.getElementById(IDE_ELEMENT_ID)
         if (ideElement) {
@@ -367,7 +372,7 @@ function Dashboard(props: DashboardProps) {
         }
     }, [])
 
-    const switchToDashboardTab = react.useCallback(() => {
+    const switchToDashboardTab = React.useCallback(() => {
         setTab(Tab.dashboard)
         doRefresh()
         const ideElement = document.getElementById(IDE_ELEMENT_ID)
@@ -375,9 +380,9 @@ function Dashboard(props: DashboardProps) {
             ideElement.style.top = '-100vh'
             ideElement.style.display = 'fixed'
         }
-    }, [])
+    }, [doRefresh])
 
-    react.useEffect(() => {
+    React.useEffect(() => {
         const onProjectManagerLoadingFailed = () => {
             setLoadingProjectManagerDidFail(true)
         }
@@ -393,13 +398,13 @@ function Dashboard(props: DashboardProps) {
         }
     }, [])
 
-    react.useEffect(() => {
+    React.useEffect(() => {
         if (backend.type === backendModule.BackendType.local && loadingProjectManagerDidFail) {
             setIsLoadingAssets(false)
         }
     }, [isLoadingAssets, loadingProjectManagerDidFail, backend.type])
 
-    react.useEffect(() => {
+    React.useEffect(() => {
         if (
             supportsLocalBackend &&
             localStorage.getItem(backendProvider.BACKEND_TYPE_KEY) !==
@@ -407,16 +412,16 @@ function Dashboard(props: DashboardProps) {
         ) {
             setBackend(new localBackend.LocalBackend())
         }
-    }, [])
+    }, [setBackend, supportsLocalBackend])
 
-    react.useEffect(() => {
+    React.useEffect(() => {
         document.addEventListener('show-dashboard', switchToDashboardTab)
         return () => {
             document.removeEventListener('show-dashboard', switchToDashboardTab)
         }
-    }, [])
+    }, [switchToDashboardTab])
 
-    react.useEffect(() => {
+    React.useEffect(() => {
         if (projectEvent != null) {
             setProjectEvent(null)
         }
@@ -500,9 +505,9 @@ function Dashboard(props: DashboardProps) {
         setDirectoryStack([...directoryStack, directoryAsset])
     }
 
-    react.useEffect(() => {
+    React.useEffect(() => {
         const cachedDirectoryStackJson = localStorage.getItem(DIRECTORY_STACK_KEY)
-        if (cachedDirectoryStackJson) {
+        if (cachedDirectoryStackJson != null) {
             // The JSON was inserted by the code below, so it will always have the right type.
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             const cachedDirectoryStack: backendModule.Asset<backendModule.AssetType.directory>[] =
@@ -515,7 +520,7 @@ function Dashboard(props: DashboardProps) {
         }
     }, [])
 
-    react.useEffect(() => {
+    React.useEffect(() => {
         if (
             session.organization == null ||
             directoryId === rootDirectoryId(session.organization.id)
@@ -524,7 +529,7 @@ function Dashboard(props: DashboardProps) {
         } else {
             localStorage.setItem(DIRECTORY_STACK_KEY, JSON.stringify(directoryStack))
         }
-    }, [directoryStack])
+    }, [directoryId, directoryStack, session.organization])
 
     /** React components for the name column. */
     const nameRenderers: {
@@ -539,6 +544,7 @@ function Dashboard(props: DashboardProps) {
                         setProjectEvent({
                             type: projectActionButton.ProjectEventType.open,
                             projectId: projectAsset.id,
+                            onSpinnerStateChange: null,
                         })
                     } else if (
                         event.ctrlKey &&
@@ -606,6 +612,7 @@ function Dashboard(props: DashboardProps) {
                         setProjectEvent({
                             type: projectActionButton.ProjectEventType.open,
                             projectId: projectAsset.id,
+                            onSpinnerStateChange: null,
                         })
                     }}
                     onClose={() => {
@@ -714,7 +721,7 @@ function Dashboard(props: DashboardProps) {
     // eslint-disable-next-line no-restricted-syntax
     const columnRenderer: Record<
         Exclude<Column, Column.name>,
-        (asset: backendModule.Asset) => react.ReactNode
+        (asset: backendModule.Asset) => React.ReactNode
     > = {
         [Column.lastModified]: asset =>
             asset.modifiedAt && <>{dateTime.formatDateTime(new Date(asset.modifiedAt))}</>,
@@ -734,7 +741,7 @@ function Dashboard(props: DashboardProps) {
         [Column.labels]: () => {
             // This is not a React component even though it contains JSX.
             // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unused-vars
-            const onContextMenu = (event: react.MouseEvent) => {
+            const onContextMenu = (event: React.MouseEvent) => {
                 event.preventDefault()
                 event.stopPropagation()
                 setModal(() => (
@@ -863,23 +870,30 @@ function Dashboard(props: DashboardProps) {
             <>{COLUMN_NAME[column]}</>
         )
 
-    react.useEffect(() => {
+    React.useEffect(() => {
         const queryRegex = new RegExp(regexEscape(query), 'i')
         const doesItMatchQuery = (asset: backendModule.Asset) => queryRegex.test(asset.title)
         setVisibleProjectAssets(projectAssets.filter(doesItMatchQuery))
         setVisibleDirectoryAssets(directoryAssets.filter(doesItMatchQuery))
         setVisibleSecretAssets(secretAssets.filter(doesItMatchQuery))
         setVisibleFileAssets(fileAssets.filter(doesItMatchQuery))
-    }, [query])
+    }, [directoryAssets, fileAssets, projectAssets, query, secretAssets])
 
-    react.useLayoutEffect(() => {
+    React.useLayoutEffect(() => {
         if (isLoadingAssets) {
             document.body.style.overflowY = isScrollBarVisible ? 'scroll' : ''
         } else {
             document.body.style.overflowY = ''
             setIsScrollBarVisible(document.body.scrollHeight > document.body.clientHeight)
         }
-    }, [isLoadingAssets, projectAssets, directoryAssets, secretAssets, fileAssets])
+    }, [
+        isLoadingAssets,
+        projectAssets,
+        directoryAssets,
+        secretAssets,
+        fileAssets,
+        isScrollBarVisible,
+    ])
 
     const setAssets = (assets: backendModule.Asset[]) => {
         const newProjectAssets = assets.filter(
@@ -904,9 +918,11 @@ function Dashboard(props: DashboardProps) {
                 setProjectEvent({
                     type: projectActionButton.ProjectEventType.open,
                     projectId: projectToLoad.id,
+                    onSpinnerStateChange,
                 })
             }
             setNameOfProjectToImmediatelyOpen(null)
+            setOnSpinnerStateChange(null)
         }
         onDirectoryNextLoaded?.(assets)
         setOnDirectoryNextLoaded(null)
@@ -947,7 +963,7 @@ function Dashboard(props: DashboardProps) {
         [session.accessToken, directoryId, refresh, backend]
     )
 
-    react.useEffect(() => {
+    React.useEffect(() => {
         const onBlur = () => {
             setIsFileBeingDragged(false)
         }
@@ -957,7 +973,7 @@ function Dashboard(props: DashboardProps) {
         }
     }, [])
 
-    const handleEscapeKey = (event: react.KeyboardEvent<HTMLDivElement>) => {
+    const handleEscapeKey = (event: React.KeyboardEvent<HTMLDivElement>) => {
         if (
             event.key === 'Escape' &&
             !event.ctrlKey &&
@@ -972,7 +988,7 @@ function Dashboard(props: DashboardProps) {
         }
     }
 
-    const openDropZone = (event: react.DragEvent<HTMLDivElement>) => {
+    const openDropZone = (event: React.DragEvent<HTMLDivElement>) => {
         if (event.dataTransfer.types.includes('Files')) {
             setIsFileBeingDragged(true)
         }
@@ -984,14 +1000,17 @@ function Dashboard(props: DashboardProps) {
         let highestProjectIndex = 0
         for (const projectAsset of projectAssets) {
             const projectIndex = projectNameTemplate.exec(projectAsset.title)?.groups?.projectIndex
-            if (projectIndex) {
+            if (projectIndex != null) {
                 highestProjectIndex = Math.max(highestProjectIndex, parseInt(projectIndex, 10))
             }
         }
         return `${prefix}${highestProjectIndex + 1}`
     }
 
-    const handleCreateProject = async (templateId?: string | null) => {
+    const handleCreateProject = async (
+        templateId?: string | null,
+        newOnSpinnerStateChange?: (state: spinner.SpinnerState) => void
+    ) => {
         const projectName = getNewProjectName(templateId)
         const body: backendModule.CreateProjectRequestBody = {
             projectName,
@@ -1020,10 +1039,11 @@ function Dashboard(props: DashboardProps) {
             error: (promiseError: Error) =>
                 `Error creating '${projectName}'${templateText}: ${promiseError.message}`,
         })
-        // `newProject.projectId` cannot be used directly in a `ProjectEvet` as the project
+        // `newProject.projectId` cannot be used directly in a `ProjectEvent` as the project
         // does not yet exist in the project list. Opening the project would work, but the project
         // would display as closed as it would be created after the event is sent.
         setNameOfProjectToImmediatelyOpen(projectName)
+        setOnSpinnerStateChange(() => newOnSpinnerStateChange ?? null)
         doRefresh()
     }
 
@@ -1274,6 +1294,7 @@ function Dashboard(props: DashboardProps) {
                                             setProjectEvent({
                                                 type: projectActionButton.ProjectEventType.open,
                                                 projectId: projectAsset.id,
+                                                onSpinnerStateChange: null,
                                             })
                                         }
                                         const doOpenAsFolder = () => {

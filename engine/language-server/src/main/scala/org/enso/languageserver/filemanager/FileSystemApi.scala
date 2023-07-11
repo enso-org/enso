@@ -255,7 +255,7 @@ object FileSystemApi {
     *
     * @param creationTime creation time
     * @param lastAccessTime last access time
-    * @param lastModifiedtime last modified time
+    * @param lastModifiedTime last modified time
     * @param kind either [[DirectoryEntryTruncated]] or [[FileEntry]] or [[OtherEntry]]
     * @param byteSize size of entry in bytes
     */
@@ -273,7 +273,7 @@ object FileSystemApi {
       *
       * @param creationTime creation time
       * @param lastAccessTime last access time
-      * @param lastModifiedtime last modified time
+      * @param lastModifiedTime last modified time
       * @param kind a type of the file system object
       * @param byteSize size of an entry in bytes
       * @return file attributes
@@ -296,7 +296,7 @@ object FileSystemApi {
     /** Creates [[Attributes]] from file system attributes
       *
       * @param path to the file system object
-      * @param attributes of a file system object
+      * @param basic attributes of a file system object
       * @return file attributes
       */
     def fromBasicAttributes(

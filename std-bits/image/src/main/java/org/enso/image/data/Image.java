@@ -2,6 +2,7 @@ package org.enso.image.data;
 
 import java.util.Base64;
 import nu.pattern.OpenCV;
+import org.graalvm.polyglot.Context;
 import org.opencv.core.*;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
@@ -27,9 +28,11 @@ public class Image {
    * @return the new matrix.
    */
   public static Mat from_vector(double[] values, int rows, int channels) {
+    Context context = Context.getCurrent();
     byte[] bytes = new byte[values.length];
     for (int i = 0; i < values.length; i++) {
       bytes[i] = denormalize(values[i]);
+      context.safepoint();
     }
     return new MatOfByte(bytes).reshape(channels, rows);
   }
@@ -203,9 +206,11 @@ public class Image {
    * @return return normalized values in the range of 0.0 to 1.0.
    */
   private static double[] normalize(byte[] bytes) {
+    Context context = Context.getCurrent();
     double[] buf = new double[bytes.length];
     for (int i = 0; i < bytes.length; i++) {
       buf[i] = Image.normalize(bytes[i]);
+      context.safepoint();
     }
     return buf;
   }

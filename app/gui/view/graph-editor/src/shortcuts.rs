@@ -10,18 +10,6 @@ use ensogl::application::shortcut::ActionType::*;
 
 /// The list of all shortcuts used in the graph editor.
 pub const SHORTCUTS: &[(ensogl::application::shortcut::ActionType, &str, &str, &str)] = &[
-    (
-        Press,
-        "!node_editing & !read_only & !is_fs_visualization_displayed",
-        "tab",
-        "start_node_creation",
-    ),
-    (
-        Press,
-        "!node_editing & !read_only & !is_fs_visualization_displayed",
-        "enter",
-        "start_node_creation",
-    ),
     // === Drag ===
     (Press, "", "left-mouse-button", "node_press"),
     (Release, "", "left-mouse-button", "node_release"),

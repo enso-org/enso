@@ -2,8 +2,7 @@ from Standard.Base import all
 import Standard.Base.Runtime.Ref.Ref
 
 import project.Internal.Vector_Builder.Vector_Builder
-
-from project.Errors import Missing_Input_Columns, Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Invalid_Aggregate_Column
+from project.Errors import Duplicate_Output_Column_Names, Invalid_Aggregate_Column, Invalid_Output_Column_Names, Missing_Input_Columns
 
 ## PRIVATE
 type Problem_Builder

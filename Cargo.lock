@@ -4416,6 +4416,7 @@ dependencies = [
  "enso-text",
  "ensogl",
  "ensogl-component",
+ "ensogl-derive-theme",
  "ensogl-drop-manager",
  "ensogl-hardcoded-theme",
  "ensogl-text-msdf",
