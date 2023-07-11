@@ -796,7 +796,7 @@ function Chat(props: ChatProps) {
                                     element.style.height = '0px'
                                     element.style.height =
                                         `min(${MAX_MESSAGE_INPUT_LINES}lh,` +
-                                        `${element.scrollHeight}px)`
+                                        `${element.scrollHeight + 1}px)`
                                     const newIsReplyEnabled = element.value !== ''
                                     if (newIsReplyEnabled !== isReplyEnabled) {
                                         setIsReplyEnabled(newIsReplyEnabled)
