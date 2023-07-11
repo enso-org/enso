@@ -1,5 +1,6 @@
 package org.enso.interpreter.epb.node;
 
+import com.oracle.truffle.api.dsl.Cached.Exclusive;
 import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.GenerateUncached;
@@ -80,7 +81,7 @@ public abstract class ContextRewrapNode extends Node {
       Object b,
       GuardedTruffleContext origin,
       GuardedTruffleContext target,
-      @Shared("interop") @CachedLibrary(limit = "5") InteropLibrary bools) {
+      @Exclusive @CachedLibrary(limit = "5") InteropLibrary bools) {
     try {
       return bools.asBoolean(b);
     } catch (UnsupportedMessageException e) {
