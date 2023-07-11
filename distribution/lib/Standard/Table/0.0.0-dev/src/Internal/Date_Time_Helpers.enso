@@ -1,7 +1,12 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Metadata.Display
+import Standard.Base.Metadata.Widget
+from Standard.Base.Metadata.Choice import Option
+from Standard.Base.Metadata.Widget import Single_Choice
 
-import Standard.Table.Data.Type.Value_Type.Value_Type
+import project.Data.Column.Column
+import project.Data.Type.Value_Type.Value_Type
 
 ## PRIVATE
 check_period_aligned_with_value_type value_type period ~action = case value_type of
@@ -43,3 +48,19 @@ make_date_part_function column period make_unary_op naming_helpers =
                 Time_Period.Microsecond -> make_unary_op column "microsecond"
                 Time_Period.Nanosecond -> make_unary_op column "nanosecond"
             result.rename new_name
+
+## PRIVATE
+make_period_selector_for_column : Column -> Widget
+make_period_selector_for_column column =
+    column_type = column.inferred_precise_value_type
+    date_periods = ["Year", "Quarter", "Month", "Week", "Day"].map name->
+        Option name "Date_Period."+name
+    time_periods = ["Hour", "Minute", "Second", "Millisecond", "Microsecond", "Nanosecond"].map name->
+        Option name "Time_Period."+name
+    values = case column_type of
+        Value_Type.Date -> date_periods
+        Value_Type.Date_Time _ -> date_periods + time_periods
+        Value_Type.Time -> time_periods
+        # Some fallback is needed for the type mismatch case. Throwing an error will not work as expected as just the widget code will fail. (TODO right?)
+        _ -> [Option ("Expected a date/time column but got "+column_type.to_display_text+".") "Date_Period.Day"]
+    Single_Choice display=Display.Always values=values
