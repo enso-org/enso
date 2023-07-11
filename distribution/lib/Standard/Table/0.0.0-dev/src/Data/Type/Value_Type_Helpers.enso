@@ -131,14 +131,8 @@ resolve_subtraction_kind arg1 arg2 =
     type_1 = find_argument_type arg1
     type_2 = find_argument_type arg2
 
-    is_date_or_time t = case t of
-        Value_Type.Date -> True
-        Value_Type.Date_Time _ -> True
-        Value_Type.Time -> True
-        _ -> False
-
     if type_1.is_numeric && (type_2.is_nothing || type_2.is_numeric) then Subtraction_Kind.Numeric_Subtract else
-        case is_date_or_time type_1 of
+        case type_1.is_date_or_time of
             True ->
                 if type_2.is_nothing || (type_2 == type_1) then Subtraction_Kind.Date_Time_Difference else
                     raise_unexpected_type type_1 arg2
