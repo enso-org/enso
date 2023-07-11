@@ -128,7 +128,7 @@ class ProjectService[
       name
     )
     _ <- repo
-      .update(project.copy(path = Some(path.toString)))
+      .update(project.copy(path = Some(path.toFile)))
       .mapError(toServiceFailure)
     _ <- log.debug("Project [{}] updated in repository [{}].", projectId, repo)
     _ <- log.info("Project created [{}].", project)

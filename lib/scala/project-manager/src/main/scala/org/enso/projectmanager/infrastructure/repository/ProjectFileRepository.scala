@@ -111,7 +111,7 @@ class ProjectFileRepository[
         created               = meta.created,
         edition               = pkg.getConfig().edition,
         lastOpened            = meta.lastOpened,
-        path                  = Some(directory.toString),
+        path                  = Some(directory),
         directoryCreationTime = directoryCreationTime
       )
     }
@@ -134,7 +134,7 @@ class ProjectFileRepository[
       case Some(project) =>
         project.path match {
           case Some(directory) =>
-            renamePackage(new File(directory), name)
+            renamePackage(directory, name)
           case None =>
             ErrorChannel[F].fail(ProjectNotFoundInIndex)
         }
@@ -155,7 +155,7 @@ class ProjectFileRepository[
   def getPackageName(projectId: UUID): F[ProjectRepositoryFailure, String] = {
     for {
       project        <- getProject(projectId)
-      projectPackage <- getPackage(new File(project.path.get))
+      projectPackage <- getPackage(project.path.get)
     } yield projectPackage.getConfig().name
   }
 
@@ -165,7 +165,7 @@ class ProjectFileRepository[
   ): F[ProjectRepositoryFailure, String] = {
     for {
       project        <- getProject(projectId)
-      projectPackage <- getPackage(new File(project.path.get))
+      projectPackage <- getPackage(project.path.get)
     } yield projectPackage.getConfig().namespace
   }
 
@@ -211,7 +211,7 @@ class ProjectFileRepository[
   def update(project: Project): F[ProjectRepositoryFailure, Unit] =
     project.path match {
       case Some(path) =>
-        metadataStorage(new File(path))
+        metadataStorage(path)
           .persist(
             ProjectMetadata(
               id         = project.id,
@@ -233,7 +233,7 @@ class ProjectFileRepository[
           project.path match {
             case Some(directory) =>
               fileSystem
-                .removeDir(new File(directory))
+                .removeDir(directory)
                 .mapError(th => StorageFailure(th.toString))
             case None =>
               ErrorChannel[F].fail(ProjectNotFoundInIndex)
@@ -258,7 +258,7 @@ class ProjectFileRepository[
       project <- getProject(projectId)
       primaryPath = new File(storageConfig.userProjectsPath, newName)
       finalPath <-
-        if (isLocationOk(project.path.get, primaryPath.toString)) {
+        if (isLocationOk(project.path.get, primaryPath)) {
           CovariantFlatMap[F].pure(primaryPath)
         } else {
           move(project)
@@ -267,9 +267,11 @@ class ProjectFileRepository[
   }
 
   private def isLocationOk(
-    currentPath: String,
-    primaryPath: String
+    currentFile: File,
+    primaryFile: File
   ): Boolean = {
+    val currentPath = currentFile.toString
+    val primaryPath = primaryFile.toString
     if (currentPath.startsWith(primaryPath)) {
       val suffixPattern = "_\\d+"
       val suffix        = currentPath.substring(primaryPath.length, currentPath.length)
@@ -281,7 +283,7 @@ class ProjectFileRepository[
 
   private def moveProjectDir(project: Project, targetPath: File) = {
     fileSystem
-      .move(new File(project.path.get), targetPath)
+      .move(project.path.get, targetPath)
       .mapError[ProjectRepositoryFailure](failure =>
         StorageFailure(failure.toString)
       )

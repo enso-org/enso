@@ -2,6 +2,7 @@ package org.enso.projectmanager.model
 
 import org.enso.editions.Editions
 
+import java.io.File
 import java.nio.file.attribute.FileTime
 import java.time.OffsetDateTime
 import java.util.UUID
@@ -25,6 +26,6 @@ case class Project(
   created: OffsetDateTime,
   edition: Option[Editions.RawEdition],
   lastOpened: Option[OffsetDateTime]      = None,
-  path: Option[String]                    = None,
+  path: Option[File]                      = None,
   directoryCreationTime: Option[FileTime] = None
 )

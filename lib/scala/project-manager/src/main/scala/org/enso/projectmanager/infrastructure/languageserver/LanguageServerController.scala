@@ -73,7 +73,7 @@ class LanguageServerController(
     LanguageServerDescriptor(
       name                           = s"language-server-${project.id}",
       rootId                         = UUID.randomUUID(),
-      rootPath                       = project.path.get,
+      rootPath                       = project.path.get.toString,
       networkConfig                  = networkConfig,
       distributionConfiguration      = distributionConfiguration,
       engineVersion                  = engineVersion,
