@@ -137,6 +137,8 @@ pub struct FrpOutputs {
     pub selected:    frp::Source<bool>,
     /// Used to check if the breadcrumb is selected.
     pub is_selected: frp::Sampler<bool>,
+    /// Width of the breadcrumb.
+    pub width:       frp::Source<f32>,
 }
 
 impl FrpOutputs {
@@ -147,8 +149,9 @@ impl FrpOutputs {
             size        <- source();
             selected    <- source();
             is_selected <- selected.sampler();
+            width <- source();
         }
-        Self { clicked, size, selected, is_selected }
+        Self { clicked, size, selected, is_selected, width }
     }
 }
 
@@ -310,9 +313,11 @@ impl BreadcrumbModel {
         self.update_layout();
     }
 
-    fn update_label_width(&self, new_width: f32) {
+    /// Update layout and return current width of the whole breadcrumb.
+    fn update_label_width(&self, new_width: f32) -> f32 {
         self.label_width.set(new_width);
         self.update_layout();
+        self.width()
     }
 
     /// Get the width of the view.
@@ -432,7 +437,8 @@ impl Breadcrumb {
             animations.color.target <+ deselected_color.sample(&mouse_out_if_not_selected);
 
             eval_ model.overlay.events_deprecated.mouse_down_primary(out.clicked.emit(()));
-            _eval <- model.label.width.all_with(&init, f!((w, _) model.update_label_width(*w)));
+            updated_width <- model.label.width.all_with(&init, f!((w, _) model.update_label_width(*w)));
+            eval updated_width((w) out.width.emit(*w));
         }
 
         // === Animations ===

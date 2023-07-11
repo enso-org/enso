@@ -102,6 +102,7 @@ ensogl::define_endpoints! {
         gap_width                   (f32),
         /// Set read-only mode for this component.
         set_read_only(bool),
+        update_layout(),
     }
     Output {
         /// Signalizes new breadcrumbs to be pushed.
@@ -204,6 +205,7 @@ impl BreadcrumbsModel {
             eval_ breadcrumb.frp.outputs.clicked(
                 frp_inputs.select_breadcrumb.emit(0);
             );
+            eval_ breadcrumb.frp.outputs.width(frp_inputs.update_layout.emit(()));
         }
 
         breadcrumb.set_x(self.breadcrumbs_container_width().round());
@@ -235,7 +237,7 @@ impl BreadcrumbsModel {
     /// where `popped_count` is the number of breadcrumbs in the right side of `index` that needs to
     /// be popped or a list of `LocalCall`s identifying the breadcrumbs we need to push.
     fn select_breadcrumb(&self, index: usize) -> (usize, Vec<LocalCall>) {
-        error!("Selecting breadcrumb #{index}.");
+        debug!("Selecting breadcrumb #{index}.");
         let current_index = self.current_index.get();
         match index.cmp(&current_index) {
             Ordering::Less => (current_index - index, default()),
@@ -286,9 +288,9 @@ impl BreadcrumbsModel {
                 });
 
             if breadcrumb_exists {
-                error!("Entering an existing {} breadcrumb.", method_pointer.name);
+                debug!("Entering an existing {} breadcrumb.", method_pointer.name);
             } else {
-                error!("Creating a new {} breadcrumb.", method_pointer.name);
+                debug!("Creating a new {} breadcrumb.", method_pointer.name);
                 self.remove_breadcrumbs_history_beginning_from(breadcrumb_index);
                 let breadcrumb = Breadcrumb::new(&self.app, method_pointer, expression_id);
                 breadcrumb.show_separator();
@@ -299,12 +301,10 @@ impl BreadcrumbsModel {
                     eval_ breadcrumb.frp.outputs.clicked(
                         frp_inputs.select_breadcrumb.emit(breadcrumb_index);
                     );
+                    eval_ breadcrumb.frp.outputs.width(frp_inputs.update_layout.emit(()));
                 }
 
-                error!(
-                    "Pushing {:?} breadcrumb.",
-                    breadcrumb.info.deref().as_ref().map(|i| i.method_pointer.name.as_str())
-                );
+                debug!("Pushing {} breadcrumb.", method_pointer.name);
                 breadcrumb.set_x(self.breadcrumbs_container_width().round());
                 self.breadcrumbs_container.add_child(&breadcrumb);
                 self.breadcrumbs.borrow_mut().push(breadcrumb);
@@ -368,7 +368,7 @@ impl BreadcrumbsModel {
         (self.current_index.get() > 0).as_option().map(|_| {
             let old_index = self.current_index.get();
             let new_index = old_index - count;
-            error!("Popping {count} breadcrumbs, from {old_index} to {new_index} (excl.).");
+            debug!("Popping {count} breadcrumbs, from {old_index} to {new_index} (excl.).");
             self.current_index.set(new_index);
             self.update_layout();
             (old_index, new_index)
@@ -377,10 +377,8 @@ impl BreadcrumbsModel {
 
     fn remove_breadcrumbs_history_beginning_from(&self, index: usize) {
         for breadcrumb in self.breadcrumbs.borrow_mut().split_off(index) {
-            error!(
-                "Removing {:?}.",
-                breadcrumb.info.deref().as_ref().map(|i| i.method_pointer.name.as_str())
-            );
+            let name = breadcrumb.info.deref().as_ref().map(|i| i.method_pointer.name.as_str());
+            debug!("Removing {:?}.", name);
             breadcrumb.unset_parent();
         }
         self.update_layout();
@@ -477,6 +475,7 @@ impl Breadcrumbs {
 
             // === Relayout ===
             eval frp.input.gap_width((gap_width) model.set_gap_width(*gap_width));
+            eval_ frp.input.update_layout(model.update_layout());
 
 
             // === Read-only mode ===
