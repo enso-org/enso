@@ -27,6 +27,11 @@
       const branchNames = ['{{ branches|join('\',\n  \'') }}'];
       const tooltipColIdx = branchNames.length + 1;
 
+      /**
+       * A helper function, not used in the production code.
+       * @param dataTable Google chart DataTable
+       * @returns {string} representation of the data table.
+       */
       function dataTableToString(dataTable) {
         let dataTableString = "";
         for (let rowIdx = 0; rowIdx < dataTable.getNumberOfRows(); rowIdx++) {

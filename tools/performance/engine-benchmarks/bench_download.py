@@ -686,7 +686,8 @@ if __name__ == '__main__':
                             metavar=("<Bench action ID 1>", "<Bench action ID 2>"),
                             help="Compare two benchmark actions runs. Choose an action from https://github.com/enso-org/enso/actions/workflows/benchmark.yml, "
                                  "and copy its ID from the URL. For example ID 4602465427 from URL https://github.com/enso-org/enso/actions/runs/4602465427. "
-                                 "This option excludes --since, --until, --output, and --create-csv options.")
+                                 "This option excludes --since, --until, --output, and --create-csv options."
+                                 " Note: THIS OPTION IS DEPRECATED, use --branches instead")
     arg_parser.add_argument("-o", "--output",
                             default="Engine_Benchs/data/benchs.csv",
                             metavar="CSV_OUTPUT",
