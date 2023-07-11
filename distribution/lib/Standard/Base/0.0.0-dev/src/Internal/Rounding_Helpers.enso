@@ -1,6 +1,6 @@
 import project.Any.Any
-import project.Data.Numbers.Number
 import project.Data.Numbers.Integer
+import project.Data.Numbers.Number
 import project.Error.Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Function.Function

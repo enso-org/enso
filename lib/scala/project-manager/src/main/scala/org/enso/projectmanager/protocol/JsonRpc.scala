@@ -34,5 +34,6 @@ object JsonRpc {
       .registerRequest(ConfigSet)
       .registerRequest(ConfigDelete)
       .registerRequest(LoggingServiceGetEndpoint)
+      .finalized()
 
 }

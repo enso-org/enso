@@ -6,6 +6,7 @@ import org.enso.table.data.column.operation.map.MapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
+import org.graalvm.polyglot.Context;
 
 /**
  * A specialized implementation for the IS_IN operation on booleans - since booleans have just three
@@ -31,6 +32,7 @@ public class BooleanIsInOp extends MapOperation<Boolean, BoolStorage> {
     boolean hadTrue = false;
     boolean hadFalse = false;
 
+    Context context = Context.getCurrent();
     for (Object o : arg) {
       switch (o) {
         case Boolean b -> {
@@ -40,6 +42,8 @@ public class BooleanIsInOp extends MapOperation<Boolean, BoolStorage> {
         case null -> hadNull = true;
         default -> {}
       }
+
+      context.safepoint();
     }
 
     return run(storage, hadNull, hadTrue, hadFalse);

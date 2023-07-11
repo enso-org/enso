@@ -380,6 +380,21 @@ impl Handle {
         }
     }
 
+    /// Reload the main file and restart the program execution.
+    ///
+    /// ### Errors
+    /// - Fails if the project is in read-only mode.
+    pub async fn reload_and_restart(&self) -> FallibleResult {
+        if self.project.read_only() {
+            Err(ReadOnly.into())
+        } else {
+            let model = self.project.main_module_model().await?;
+            model.reopen_externally_changed_file().await?;
+            self.execution_ctx.restart().await?;
+            Ok(())
+        }
+    }
+
     /// Get the current call stack frames.
     pub fn call_stack(&self) -> Vec<LocalCall> {
         self.execution_ctx.stack_items().collect()
@@ -448,6 +463,21 @@ impl Handle {
             Err(ReadOnly.into())
         } else {
             self.graph.borrow().disconnect(connection, self)
+        }
+    }
+
+    /// Remove all the connections from the graph. This is a convenience method that calls
+    /// [`disconnect`] for each connection. If any of the calls fails, the first error is
+    /// propagated, but all the connections are attempted to be disconnected.
+    pub fn disconnect_all(&self, connections: impl Iterator<Item = Connection>) -> FallibleResult {
+        let errors =
+            connections.map(|c| self.disconnect(&c)).filter_map(|r| r.err()).collect::<Vec<_>>();
+        // Failure has no good way to propagate multiple errors with `Failure`. So we propagate
+        // only the first one.
+        if let Some(error) = errors.into_iter().next() {
+            Err(error)
+        } else {
+            Ok(())
         }
     }
 

@@ -1,15 +1,13 @@
 import project.Any.Any
 import project.Data.Array.Array
 import project.Data.Array_Proxy.Array_Proxy
-import project.Data.Json.Json
 import project.Data.Json.JS_Object
+import project.Data.Json.Json
 import project.Data.Locale.Locale
 import project.Data.Map.Map
 import project.Data.Numbers.Decimal
 import project.Data.Numbers.Integer
 import project.Data.Numbers.Number
-from project.Data.Range.Extensions import all
-from project.Data.Text.Extensions import all
 import project.Data.Text.Text
 import project.Data.Text.Text_Sub_Range.Text_Sub_Range
 import project.Data.Vector.Vector
@@ -17,8 +15,9 @@ import project.Error.Error
 import project.Meta
 import project.Nothing.Nothing
 import project.Warning.Warning
-
-from project.Data.Boolean import Boolean, True, False
+from project.Data.Boolean import Boolean, False, True
+from project.Data.Range.Extensions import all
+from project.Data.Text.Extensions import all
 
 ## Converts the given value to a JSON serialized value.
 Any.to_json : Text

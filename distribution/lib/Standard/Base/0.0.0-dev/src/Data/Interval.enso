@@ -1,7 +1,7 @@
 import project.Data.Numbers.Number
 import project.Data.Text.Text
 
-from project.Data.Boolean import Boolean, False
+from project.Data.Boolean import Boolean, False, True
 
 ## A type representing an interval bound over any order-able type.
 

@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.enso.base.Encoding_Utils;
+import org.graalvm.polyglot.Context;
 
 /**
  * A {@code Writer} which encodes any characters provided to itself using the provided {@code
@@ -112,6 +113,8 @@ public class ReportingStreamEncoder extends Writer {
   }
 
   private void runEncoderOnInputBuffer() {
+    Context context = Context.getCurrent();
+
     while (inputBuffer.hasRemaining()) {
       CoderResult cr = encoder.encode(inputBuffer, outputBuffer, false);
 
@@ -129,6 +132,8 @@ public class ReportingStreamEncoder extends Writer {
       } else if (cr.isOverflow()) {
         growOutputBuffer();
       }
+
+      context.safepoint();
     }
   }
 

@@ -1,5 +1,5 @@
 /** @file The top-bar of dashboard. */
-import * as react from 'react'
+import * as React from 'react'
 
 import BarsIcon from 'enso-assets/bars.svg'
 import CloudIcon from 'enso-assets/cloud.svg'
@@ -48,24 +48,24 @@ function TopBar(props: TopBarProps) {
         query,
         setQuery,
     } = props
-    const [isUserMenuVisible, setIsUserMenuVisible] = react.useState(false)
+    const [isUserMenuVisible, setIsUserMenuVisible] = React.useState(false)
     const { modal } = modalProvider.useModal()
     const { setModal, unsetModal } = modalProvider.useSetModal()
     const { backend } = backendProvider.useBackend()
 
-    react.useEffect(() => {
+    React.useEffect(() => {
         if (!modal) {
             setIsUserMenuVisible(false)
         }
     }, [modal])
 
-    react.useEffect(() => {
+    React.useEffect(() => {
         if (isUserMenuVisible) {
             setModal(() => <UserMenu />)
         } else {
             unsetModal()
         }
-    }, [isUserMenuVisible])
+    }, [isUserMenuVisible, setModal, unsetModal])
 
     return (
         <div className="flex mx-2 h-8">
@@ -98,8 +98,9 @@ function TopBar(props: TopBarProps) {
                 </div>
             )}
             <div
-                className={`flex items-center bg-label rounded-full pl-1
-                                pr-2.5 mx-2 ${projectName ? 'cursor-pointer' : 'opacity-50'}`}
+                className={`flex items-center bg-label rounded-full pl-1 pr-2.5 mx-2 ${
+                    projectName != null ? 'cursor-pointer' : 'opacity-50'
+                }`}
                 onClick={toggleTab}
             >
                 <span
@@ -143,7 +144,7 @@ function TopBar(props: TopBarProps) {
                         setIsHelpChatOpen(true)
                     }}
                 >
-                    <span>help chat</span>
+                    <span className="whitespace-nowrap">help chat</span>
                     <div className="ml-2">
                         <img src={SpeechBubbleIcon} />
                     </div>

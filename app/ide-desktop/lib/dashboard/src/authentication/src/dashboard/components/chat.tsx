@@ -1,5 +1,5 @@
 /** @file A WebSocket-based chat directly to official support on the official Discord server. */
-import * as react from 'react'
+import * as React from 'react'
 import * as reactDom from 'react-dom'
 import toast from 'react-hot-toast'
 
@@ -137,7 +137,7 @@ function Reactions(props: ReactionsProps) {
         return (
             <div>
                 {reactions.map(reaction => (
-                    <Twemoji emoji={reaction} size={REACTION_SIZE} />
+                    <Twemoji key={reaction} emoji={reaction} size={REACTION_SIZE} />
                 ))}
             </div>
         )
@@ -197,7 +197,7 @@ function ChatMessage(props: ChatMessageProps) {
 /** Props for a {@Link ChatHeader}. */
 interface InternalChatHeaderProps {
     threads: chat.ThreadData[]
-    setThreads: react.Dispatch<react.SetStateAction<chat.ThreadData[]>>
+    setThreads: React.Dispatch<React.SetStateAction<chat.ThreadData[]>>
     threadId: chat.ThreadId | null
     threadTitle: string
     setThreadTitle: (threadTitle: string) => void
@@ -218,17 +218,17 @@ function ChatHeader(props: InternalChatHeaderProps) {
         sendMessage,
         doClose,
     } = props
-    const [isThreadListVisible, setIsThreadListVisible] = react.useState(false)
+    const [isThreadListVisible, setIsThreadListVisible] = React.useState(false)
 
     // These will never be `null` as their values are set immediately.
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const titleInputRef = react.useRef<HTMLInputElement>(null!)
+    const titleInputRef = React.useRef<HTMLInputElement>(null!)
 
-    react.useEffect(() => {
+    React.useEffect(() => {
         titleInputRef.current.value = threadTitle
     }, [threadTitle])
 
-    react.useEffect(() => {
+    React.useEffect(() => {
         const onClick = () => {
             setIsThreadListVisible(false)
         }
@@ -238,7 +238,7 @@ function ChatHeader(props: InternalChatHeaderProps) {
         }
     }, [])
 
-    const toggleThreadListVisibility = react.useCallback((event: react.SyntheticEvent) => {
+    const toggleThreadListVisibility = React.useCallback((event: React.SyntheticEvent) => {
         event.stopPropagation()
         setIsThreadListVisible(visible => !visible)
     }, [])
@@ -359,39 +359,42 @@ function Chat(props: ChatProps) {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const accessToken = rawAccessToken!
 
-    const [isPaidUser, setIsPaidUser] = react.useState(true)
-    const [isReplyEnabled, setIsReplyEnabled] = react.useState(false)
+    const [isPaidUser, setIsPaidUser] = React.useState(true)
+    const [isReplyEnabled, setIsReplyEnabled] = React.useState(false)
     // `true` if and only if scrollback was triggered for the current thread.
-    const [shouldIgnoreMessageLimit, setShouldIgnoreMessageLimit] = react.useState(false)
-    const [isAtBeginning, setIsAtBeginning] = react.useState(false)
-    const [threads, setThreads] = react.useState<chat.ThreadData[]>([])
-    const [messages, setMessages] = react.useState<ChatDisplayMessage[]>([])
-    const [threadId, setThreadId] = react.useState<chat.ThreadId | null>(null)
-    const [threadTitle, setThreadTitle] = react.useState(DEFAULT_THREAD_TITLE)
-    const [isAtTop, setIsAtTop] = react.useState(false)
-    const [isAtBottom, setIsAtBottom] = react.useState(true)
+    const [shouldIgnoreMessageLimit, setShouldIgnoreMessageLimit] = React.useState(false)
+    const [isAtBeginning, setIsAtBeginning] = React.useState(false)
+    const [threads, setThreads] = React.useState<chat.ThreadData[]>([])
+    const [messages, setMessages] = React.useState<ChatDisplayMessage[]>([])
+    const [threadId, setThreadId] = React.useState<chat.ThreadId | null>(null)
+    const [threadTitle, setThreadTitle] = React.useState(DEFAULT_THREAD_TITLE)
+    const [isAtTop, setIsAtTop] = React.useState(false)
+    const [isAtBottom, setIsAtBottom] = React.useState(true)
     const [messagesHeightBeforeMessageHistory, setMessagesHeightBeforeMessageHistory] =
-        react.useState<number | null>(null)
+        React.useState<number | null>(null)
     // TODO: proper URL
-    const [websocket] = react.useState(() => new WebSocket('ws://localhost:8082'))
+    const [websocket] = React.useState(() => new WebSocket('ws://localhost:8082'))
     const [right, setTargetRight] = animations.useInterpolateOverTime(
         animations.interpolationFunctionEaseInOut,
         ANIMATION_DURATION_MS,
         -WIDTH_PX
     )
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const messageInputRef = react.useRef<HTMLTextAreaElement>(null!)
+    const messageInputRef = React.useRef<HTMLTextAreaElement>(null!)
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const messagesRef = react.useRef<HTMLDivElement>(null!)
+    const messagesRef = React.useRef<HTMLDivElement>(null!)
 
-    react.useEffect(() => {
+    React.useEffect(() => {
         setIsPaidUser(false)
+    }, [])
+
+    React.useEffect(() => {
         return () => {
             websocket.close()
         }
-    }, [])
+    }, [websocket])
 
-    react.useLayoutEffect(() => {
+    React.useLayoutEffect(() => {
         const element = messagesRef.current
         if (isAtTop && messagesHeightBeforeMessageHistory != null) {
             element.scrollTop = element.scrollHeight - messagesHeightBeforeMessageHistory
@@ -399,9 +402,18 @@ function Chat(props: ChatProps) {
         } else if (isAtBottom) {
             element.scrollTop = element.scrollHeight - element.clientHeight
         }
+        // Auto-scroll MUST only happen when the message list changes.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [messages])
 
-    react.useEffect(() => {
+    const sendMessage = React.useCallback(
+        (message: chat.ChatClientMessageData) => {
+            websocket.send(JSON.stringify(message))
+        },
+        [/* should never change */ websocket]
+    )
+
+    React.useEffect(() => {
         const onMessage = (data: MessageEvent) => {
             if (typeof data.data !== 'string') {
                 logger.error('Chat cannot handle binary messages.')
@@ -431,6 +443,7 @@ function Chat(props: ChatProps) {
                                 }
                             })
                         }
+                        setShouldIgnoreMessageLimit(false)
                         setThreadId(message.id)
                         setThreadTitle(message.title)
                         setIsAtBeginning(message.isAtBeginning)
@@ -531,11 +544,19 @@ function Chat(props: ChatProps) {
             websocket.removeEventListener('message', onMessage)
             websocket.removeEventListener('open', onOpen)
         }
-    }, [websocket, shouldIgnoreMessageLimit])
+    }, [
+        websocket,
+        shouldIgnoreMessageLimit,
+        logger,
+        threads,
+        messages,
+        accessToken,
+        /* should never change */ sendMessage,
+    ])
 
     const container = document.getElementById(HELP_CHAT_ID)
 
-    react.useEffect(() => {
+    React.useEffect(() => {
         // The types come from a third-party API and cannot be changed.
         // eslint-disable-next-line no-restricted-syntax
         let handle: number | undefined
@@ -553,16 +574,9 @@ function Chat(props: ChatProps) {
         return () => {
             clearTimeout(handle)
         }
-    }, [isOpen])
+    }, [isOpen, container, setTargetRight])
 
-    const sendMessage = react.useCallback(
-        (message: chat.ChatClientMessageData) => {
-            websocket.send(JSON.stringify(message))
-        },
-        [websocket]
-    )
-
-    const switchThread = react.useCallback(
+    const switchThread = React.useCallback(
         (newThreadId: chat.ThreadId) => {
             const threadData = threads.find(thread => thread.id === newThreadId)
             if (threadData == null) {
@@ -576,11 +590,11 @@ function Chat(props: ChatProps) {
                 })
             }
         },
-        [threads, /* should never change */ logger]
+        [threads, /* should never change */ sendMessage, /* should never change */ logger]
     )
 
-    const sendCurrentMessage = react.useCallback(
-        (event: react.SyntheticEvent, createNewThread?: boolean) => {
+    const sendCurrentMessage = React.useCallback(
+        (event: React.SyntheticEvent, createNewThread?: boolean) => {
             event.preventDefault()
             const element = messageInputRef.current
             const content = element.value
@@ -600,7 +614,7 @@ function Chat(props: ChatProps) {
                     timestamp: Number(new Date()),
                     editedTimestamp: null,
                 }
-                if (threadId == null || createNewThread) {
+                if (threadId == null || createNewThread === true) {
                     const newThreadTitle =
                         threadId == null ? threadTitle : makeNewThreadTitle(threads)
                     sendMessage({
@@ -626,7 +640,13 @@ function Chat(props: ChatProps) {
                 }
             }
         },
-        [sendMessage, threadId, shouldIgnoreMessageLimit]
+        [
+            threads,
+            threadId,
+            threadTitle,
+            shouldIgnoreMessageLimit,
+            /* should never change */ sendMessage,
+        ]
     )
 
     const upgradeToPro = () => {

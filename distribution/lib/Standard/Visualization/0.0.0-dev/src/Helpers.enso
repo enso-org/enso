@@ -2,12 +2,12 @@ from Standard.Base import all
 import Standard.Base.Data.Array_Proxy.Array_Proxy
 from Standard.Base.Data.Json import render
 
-from Standard.Table import Table, Column
 import Standard.Table.Data.Row.Row
+from Standard.Table import Column, Table
 
 import project.Id.Id
-from project.Text import get_lazy_visualization_text_window
 import project.Table as Table_Visualization
+from project.Text import get_lazy_visualization_text_window
 
 ## PRIVATE
    Specifies that the builtin JSON visualization should be used for any type,

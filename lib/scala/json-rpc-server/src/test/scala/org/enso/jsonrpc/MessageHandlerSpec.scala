@@ -66,15 +66,23 @@ class MessageHandlerSpec
 
   case object MyError extends Error(15, "Test error")
 
-  object MyProtocol {
+  object MyProtocolFactory extends ProtocolFactory {
     import io.circe.generic.auto._
 
-    val protocol: Protocol = Protocol.empty
+    private val protocol: Protocol = Protocol.empty
       .registerNotification(MyNotification)
       .registerNotification(MyEmptyNotification)
       .registerRequest(MyRequest)
       .registerRequest(MyEmptyRequest)
       .registerError(MyError)
+      .finalized()
+
+    override def getProtocol(): Protocol = protocol
+
+    override def init(): Unit = ()
+
+    /** Error returned when a requested method is not recognized */
+    override def onMissingMethod(): Error = Errors.MethodNotFound
   }
 
   var out: TestProbe        = _
@@ -85,7 +93,7 @@ class MessageHandlerSpec
     out        = TestProbe()
     controller = TestProbe()
     handler = system.actorOf(
-      Props(new MessageHandler(MyProtocol.protocol, controller.ref))
+      Props(new MessageHandler(MyProtocolFactory, controller.ref))
     )
     handler ! Connected(out.ref)
   }

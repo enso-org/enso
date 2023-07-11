@@ -1,4 +1,5 @@
 /** @file A wrapper for a twemoji image. */
+import * as React from 'react'
 
 // =================
 // === Constants ===
