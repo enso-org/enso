@@ -12,9 +12,8 @@ import project.Data.Type.Value_Type.Value_Type
 import project.Data.Type.Value_Type_Helpers
 import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
-
-from project.Data.Aggregate_Column.Aggregate_Column import Minimum, Maximum
-from project.Errors import Missing_Input_Columns, No_Output_Columns, Too_Many_Column_Names_Provided, No_Input_Columns_Selected, No_Common_Type, Column_Type_Mismatch, Ambiguous_Column_Rename, Invalid_Aggregate_Column
+from project.Data.Aggregate_Column.Aggregate_Column import Maximum, Minimum
+from project.Errors import Ambiguous_Column_Rename, Column_Type_Mismatch, Invalid_Aggregate_Column, Missing_Input_Columns, No_Common_Type, No_Input_Columns_Selected, No_Output_Columns, Too_Many_Column_Names_Provided
 
 polyglot java import java.util.HashSet
 
@@ -492,7 +491,7 @@ get_blank_columns when_any treat_nans_as_blank internal_columns make_column tabl
    Replace a set of columns in the table with a new set of columns. The old
    columns must all exist in the table, and the list of new columns must be the
    same length and have the same names.
-replace_columns_with_columns : Table -> Vector Column -> Table
+replace_columns_with_columns : Table -> Vector Column -> Vector Column -> Table
 replace_columns_with_columns table old_columns new_columns =
     reducer = table-> old_new_pair->
         old_column = old_new_pair.at 0

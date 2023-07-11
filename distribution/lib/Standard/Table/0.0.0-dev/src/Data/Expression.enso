@@ -1,8 +1,8 @@
 from Standard.Base import all
 
-polyglot java import org.enso.table.expressions.ExpressionVisitorImpl
 polyglot java import java.lang.IllegalArgumentException
 polyglot java import java.lang.UnsupportedOperationException
+polyglot java import org.enso.table.expressions.ExpressionVisitorImpl
 
 type Expression
     ## PRIVATE

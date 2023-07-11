@@ -44,7 +44,7 @@ pub struct Model {
 }
 
 impl Model {
-    /// Constuctor.
+    /// Constructor.
     pub fn new(app: &Application, frp: &Frp) -> Self {
         let app = app.clone_ref();
         let display_object = display::object::Instance::new();

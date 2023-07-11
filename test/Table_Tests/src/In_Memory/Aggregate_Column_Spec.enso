@@ -19,10 +19,8 @@ spec = Test.group "Aggregate Columns" <|
     test_aggregator table col expected_name expected_result epsilon=False =
         problem_builder = Problem_Builder.new
         resolved = Aggregate_Column_Helper.resolve_aggregate table problem_builder col
-        name = case resolved.new_name of
-            Nothing ->
-                Aggregate_Column_Helper.default_aggregate_column_name resolved
-            overridden -> overridden
+        name = if resolved.new_name != "" then resolved.new_name else
+            Aggregate_Column_Helper.default_aggregate_column_name resolved
         name . should_equal expected_name
 
         result =
@@ -125,7 +123,7 @@ spec = Test.group "Aggregate Columns" <|
         test_aggregator empty_table (Last 0 test_name) test_name Nothing
 
     Test.specify "should be able to concatenate a set of values excluding missing" <|
-        test_aggregator simple_table (Concatenate -1 Nothing ',' '[' ']' '"') "Concatenate text" '[A,"",,"B,C",]'
+        test_aggregator simple_table (Concatenate -1 "" ',' '[' ']' '"') "Concatenate text" '[A,"",,"B,C",]'
         test_aggregator simple_table (Concatenate -1 test_name) test_name 'AB,C'
         test_aggregator simple_table (Concatenate "text" test_name ',') test_name 'A,,,B,C,'
         # TODO [RW] Re-enable this once #6281 is implemented.

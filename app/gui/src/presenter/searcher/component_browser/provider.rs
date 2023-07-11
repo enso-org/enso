@@ -72,7 +72,7 @@ impl Action {
         use controller::searcher::action::Suggestion;
         match suggestion {
             Suggestion::FromDatabase(suggestion) =>
-                presenter::searcher::doc_placeholder_for(suggestion),
+                presenter::searcher::component_browser::doc_placeholder_for(suggestion),
             Suggestion::Hardcoded(suggestion) => {
                 format!(
                     "<div class=\"enso docs summary\"><p />{}<p />No documentation available</div>",

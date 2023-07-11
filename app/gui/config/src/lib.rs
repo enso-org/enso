@@ -19,6 +19,13 @@ use enso_json_to_struct::json_to_struct;
 
 
 
+// =================
+// === Constants ===
+// =================
+
+const LOCAL_ENGINE_VERSION: &str = "0.0.0-dev";
+
+
 // ==============
 // === Errors ===
 // ==============
@@ -49,11 +56,19 @@ pub fn engine_version_required() -> semver::Version {
     semver::Version::parse(engine_version_supported).unwrap()
 }
 
+fn local_engine_version() -> semver::Version {
+    // Safe to unwrap, as `LOCAL_ENGINE_VERSION` compile-time and is validated by the test.
+    semver::Version::parse(LOCAL_ENGINE_VERSION).unwrap()
+}
+
 /// Check if the given Engine version meets the requirements.
 ///
 /// Effectively, this checks if the given version is greater or equal to the minimum supported.
 /// "Greater or equal" is defined by the [Semantic Versioning specification](https://semver.org/)
 /// term of precedence.
+///
+/// There is a special exception for locally built engine's version, as they may be theoretically
+/// lower versions, but we don't want to treat them as unsupported.
 pub fn check_engine_version_requirement(
     required_version: &semver::Version,
     tested_version: &semver::Version,
@@ -71,7 +86,7 @@ pub fn check_engine_version_requirement(
     // See: https://docs.rs/semver/latest/semver/struct.VersionReq.html#associatedconstant.STAR
     // This leads to counter-intuitive behavior, where `2023.0.0-dev` does not fulfill the
     // `>= 2022.0.0-dev` requirement.
-    if tested_version < required_version {
+    if tested_version < required_version && tested_version != &local_engine_version() {
         Err(UnsupportedEngineVersion {
             required: required_version.clone(),
             found:    tested_version.clone(),
@@ -137,7 +152,13 @@ mod tests {
     #[test]
     fn check_that_version_requirement_parses() {
         // We just expect that it won't panic.
-        let _ = engine_version_required();
+        engine_version_required();
+    }
+
+    #[test]
+    fn check_that_local_engine_version_constant_parses() {
+        // We just expect that it won't panic.
+        local_engine_version();
     }
 
     #[test]

@@ -1,6 +1,7 @@
 package org.enso.interpreter.node.expression.literal;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import java.math.BigInteger;
@@ -58,6 +59,16 @@ public class LiteralNode extends ExpressionNode implements Patchable {
    */
   public static LiteralNode build(BigInteger value) {
     return new LiteralNode(new EnsoBigInteger(value));
+  }
+
+  /**
+   * Creates an instance of the literal node.
+   *
+   * @param value interop value for the node to represent
+   * @return a node representing the literal given by {@code value}
+   */
+  public static LiteralNode build(TruffleObject value) {
+    return new LiteralNode(value);
   }
 
   /**

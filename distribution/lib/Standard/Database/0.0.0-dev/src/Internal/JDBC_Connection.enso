@@ -2,8 +2,8 @@ from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Errors.Unimplemented.Unimplemented
-import Standard.Base.Runtime.Managed_Resource.Managed_Resource
 import Standard.Base.Runtime.Context
+import Standard.Base.Runtime.Managed_Resource.Managed_Resource
 
 import Standard.Table.Data.Table.Table as Materialized_Table
 import Standard.Table.Data.Type.Value_Type.Value_Type
@@ -11,12 +11,9 @@ import Standard.Table.Data.Type.Value_Type.Value_Type
 import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
 import project.Data.Table.Table as Database_Table
-import project.Internal.Statement_Setter.Statement_Setter
 import project.Internal.In_Transaction.In_Transaction
-
+import project.Internal.Statement_Setter.Statement_Setter
 from project.Errors import SQL_Error, SQL_Timeout
-
-polyglot java import java.util.Properties
 
 polyglot java import java.sql.Connection
 polyglot java import java.sql.DatabaseMetaData
@@ -24,9 +21,9 @@ polyglot java import java.sql.PreparedStatement
 polyglot java import java.sql.ResultSet
 polyglot java import java.sql.SQLException
 polyglot java import java.sql.SQLTimeoutException
-
-polyglot java import org.enso.database.JDBCProxy
+polyglot java import java.util.Properties
 polyglot java import org.enso.database.dryrun.OperationSynchronizer
+polyglot java import org.enso.database.JDBCProxy
 
 type JDBC_Connection
     ## PRIVATE

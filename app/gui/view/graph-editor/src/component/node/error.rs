@@ -67,7 +67,7 @@ impl Error {
 
 // === Constants ===
 
-const SIZE: (f32, f32) = super::super::visualization::container::DEFAULT_SIZE;
+const SIZE: Vector2 = super::super::visualization::container::DEFAULT_SIZE;
 const Z_INDEX: usize = 1;
 const BORDER_RADIUS: f32 = 14.0;
 
@@ -121,7 +121,7 @@ impl Container {
 
         let div = web::document.create_div_or_panic();
         let background_dom = DomSymbol::new(&div);
-        let (width, height) = SIZE;
+        let (width, height) = (SIZE.x, SIZE.y);
         let width = format!("{width}.px");
         let height = format!("{height}.px");
         let z_index = Z_INDEX.to_string();
