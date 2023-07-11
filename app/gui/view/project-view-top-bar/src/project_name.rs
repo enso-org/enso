@@ -13,7 +13,6 @@ use ensogl::display::shape::compound::rectangle::Rectangle;
 use ensogl::DEPRECATED_Animation;
 use ensogl_component::text;
 use ensogl_component::text::formatting::Size as TextSize;
-use ensogl_hardcoded_theme::application::top_bar::breadcrumbs as breadcrumbs_theme;
 use ensogl_hardcoded_theme::application::top_bar::project_name_with_environment_selector::project_name as theme;
 
 
@@ -177,11 +176,10 @@ impl ProjectName {
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
         // system (#795)
         let styles = StyleWatch::new(&scene.style_sheet);
-        let saved_hover_color = styles.get_color(breadcrumbs_theme::hover);
-        let saved_deselected_color = styles.get_color(breadcrumbs_theme::deselected::left);
-        let unsaved_hover_color = styles.get_color(breadcrumbs_theme::unsaved::hover);
-        let unsaved_deselected_color =
-            styles.get_color(breadcrumbs_theme::unsaved::deselected::left);
+        let saved_hover_color = styles.get_color(theme::color);
+        let saved_deselected_color = styles.get_color(theme::color);
+        let unsaved_hover_color = styles.get_color(theme::color_unsaved);
+        let unsaved_deselected_color = styles.get_color(theme::color_unsaved);
         let animations = Animations::new(network);
 
         let input = &frp.private.input;

@@ -203,7 +203,9 @@ define_themes! { [light:0, dark:1]
                 }
                 gap = 8.0, 8.0;
                 project_name {
-                    color = Lcha(0.0, 0.0, 0.0, 0.7), Lcha(1.0, 0.0, 0.0, 0.7);
+                    // Rgb(118, 118, 118)
+                    color = Lcha(0.49, 0.0, 0.75, 1.0), Lcha(0.49, 0.0, 0.75, 1.0);
+                    color_unsaved = Lcha(0.49, 0.0, 0.75, 0.8), Lcha(0.49, 0.0, 0.75, 0.8);
                     text_size = 11.5, 11.5;
                 }
             }
