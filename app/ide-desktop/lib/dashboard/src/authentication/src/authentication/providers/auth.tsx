@@ -271,6 +271,11 @@ export function AuthProvider(props: AuthProviderProps) {
                         await new Promise(resolve => setTimeout(resolve, REQUEST_DELAY_MS))
                     }
                 }
+                const url = new URL(location.href)
+                if (url.searchParams.get('authentication') === 'false') {
+                    url.searchParams.delete('authentication')
+                    history.replaceState(null, '', url.toString())
+                }
                 let newUserSession: UserSession
                 const sharedSessionData = { email, accessToken }
                 if (!organization) {
