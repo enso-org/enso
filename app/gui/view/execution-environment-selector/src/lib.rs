@@ -28,6 +28,7 @@ use ensogl::prelude::*;
 use enso_frp as frp;
 use ensogl::application::Application;
 use ensogl::data::color::Rgba;
+use ensogl::data::text;
 use ensogl::display;
 use ensogl::display::shape::StyleWatchFrp;
 use ensogl_derive_theme::FromTheme;
@@ -123,6 +124,7 @@ impl Model {
             .set_xy(Vector2(style.overall_width() - style.divider_offset, style.height / 2.0));
         self.dropdown.set_width(style.dropdown_width);
         self.dropdown.set_label_color(Rgba::white());
+        self.dropdown.set_label_weight(text::Weight::ExtraBold);
         self.dropdown.set_icon_size(Vector2::new(1.0, 1.0));
         self.dropdown.set_menu_alignment(ensogl_drop_down_menu::Alignment::Right);
         self.dropdown.set_label_alignment(ensogl_drop_down_menu::Alignment::Left);
@@ -133,7 +135,6 @@ impl Model {
         let Style { height, background, .. } = *style;
         let size = Vector2::new(width, height);
         self.background.set_size(size);
-        // self.background.set_xy(-size / 2.0);
         self.background.set_corner_radius(height / 2.0);
         self.background.set_color(background);
         self.display_object.set_size(size);
@@ -149,7 +150,7 @@ impl Model {
     }
 
     fn set_entries(&self, entries: Rc<Vec<ExecutionEnvironment>>) {
-        let labels = entries.iter().map(|e| e.to_string().capitalize_first_letter()).collect_vec();
+        let labels = entries.iter().map(ToString::to_string).collect_vec();
         let labels = Rc::new(labels);
         let provider = ensogl_list_view::entry::AnyModelProvider::from(labels);
         self.dropdown.set_entries(provider);

@@ -17,5 +17,4 @@ enso-prelude = { path = "../../../../lib/rust/prelude" }
 ensogl-component = { path = "../../../../lib/rust/ensogl/component" }
 parser = { path = "../../language/parser" }
 ast = { path = "../../language/ast/impl" }
-# TODO: use workspace version here?
 uuid = { version = "0.8", features = ["v4"] }

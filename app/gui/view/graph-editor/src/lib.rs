@@ -2862,31 +2862,6 @@ fn init_remaining_graph_editor_frp(
 
 
 
-    // ============================
-    // === Project Name Editing ===
-    // ============================
-
-
-    // === Start project name edit ===
-    // frp::extend! { network
-    //     edit_mode <- bool(&inputs.edit_mode_off,&inputs.edit_mode_on);
-    //     eval edit_mode ((edit_mode_on) model.breadcrumbs.ide_text_edit_mode.emit(edit_mode_on));
-    //     // Deselect nodes when the project name is edited.
-    //     frp.deselect_all_nodes <+ model.breadcrumbs.project_mouse_down;
-    // }
-
-
-    // === Commit project name edit ===
-
-    // frp::extend! { network
-    //     deactivate_breadcrumbs <- any3_(&touch.background.down,
-    //                                     &out.node_editing_started,
-    //                                     &out.node_entered);
-    //     eval_ deactivate_breadcrumbs(model.breadcrumbs.outside_press());
-    // }
-
-
-
     // =========================
     // === User Interactions ===
     // =========================
@@ -3362,8 +3337,6 @@ fn init_remaining_graph_editor_frp(
 
     let selection_style  = selection_controller.cursor_style.clone_ref();
 
-
-        // TODO: breadcrumb pointer style
     cursor.set_style <+ all
         [ pointer_on_drag
         , selection_style

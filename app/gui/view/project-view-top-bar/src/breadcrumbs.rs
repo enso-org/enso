@@ -30,10 +30,6 @@ pub use breadcrumb::Breadcrumb;
 // =============================
 
 /// Information about target definition for node entering.
-// TODO [mwu]
-//  As currently there is no good place to wrap Rc into a newtype that can be easily depended on
-//  both by `ide-view` and `ide` crates, we put this as-is. Refactoring should be considered in the
-//  future, once code organization and emerging patterns are more clear.
 #[derive(Clone, Debug, Deref, PartialEq, Eq)]
 pub struct SharedMethodPointer(pub Rc<engine_protocol::language_server::MethodPointer>);
 
@@ -51,7 +47,7 @@ impl From<engine_protocol::language_server::MethodPointer> for SharedMethodPoint
 
 /// A specific function call occurring within another function's definition body.
 /// It's closely related to the `LocalCall` type defined in `Language Server` types, but uses the
-/// new type `MethodPointer` defined in `GraphEditor`.
+/// new type `SharedMethodPointer`.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct LocalCall {
     /// An expression being a call to a method.
@@ -195,6 +191,7 @@ impl BreadcrumbsModel {
         self
     }
 
+    /// Add a fake breadcrumb called "main".
     fn add_root_breadcrumb(&self) {
         let breadcrumb = Breadcrumb::new_empty(&self.app);
         breadcrumb.set_label("main");
@@ -292,7 +289,7 @@ impl BreadcrumbsModel {
             } else {
                 debug!("Creating a new {} breadcrumb.", method_pointer.name);
                 self.remove_breadcrumbs_history_beginning_from(breadcrumb_index);
-                let breadcrumb = Breadcrumb::new(&self.app, method_pointer, expression_id);
+                let breadcrumb = Breadcrumb::new(&self.app, method_pointer, *expression_id);
                 breadcrumb.show_separator();
                 let network = &breadcrumb.frp.network;
                 let frp_inputs = &self.frp_inputs;

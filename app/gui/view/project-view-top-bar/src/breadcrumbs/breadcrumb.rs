@@ -383,12 +383,9 @@ impl Breadcrumb {
     pub fn new(
         app: &Application,
         method_pointer: &SharedMethodPointer,
-        expression_id: &ast::Id,
+        expression_id: ast::Id,
     ) -> Self {
-        let info = BreadcrumbInfo {
-            method_pointer: method_pointer.clone(),
-            expression_id:  expression_id.clone(),
-        };
+        let info = BreadcrumbInfo { method_pointer: method_pointer.clone(), expression_id };
         Self::new_inner(app, Some(info))
     }
 
