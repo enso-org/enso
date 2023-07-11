@@ -167,7 +167,7 @@ export interface AuthProviderProps {
     authService: authServiceModule.AuthService
     /** Callback to execute once the user has authenticated successfully. */
     onAuthenticated: (accessToken?: string) => void
-    children: react.ReactNode
+    children: React.ReactNode
 }
 
 /** A React provider for the Cognito API. */
