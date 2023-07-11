@@ -21,8 +21,7 @@ export const theme = {
             // Should be `#3e515fe5`, but `bg-opacity` does not work with RGBA.
             /** The default color of all text. */
             primary: '#52636f',
-            // Should be `#3e515f14`, but `bg-opacity` does not work with RGBA.
-            label: '#f0f1f3',
+            label: '#3e515f14',
             help: '#3f68ce',
             warning: '#eab120',
             'severe-warning': '#e06740',
@@ -43,6 +42,7 @@ export const theme = {
             vs: '0.8125rem',
         },
         spacing: {
+            '0.75': '0.1875rem',
             '1.25': '0.3125rem',
             '1.75': '0.4375rem',
             '2.25': '0.5625rem',
@@ -61,6 +61,9 @@ export const theme = {
         },
         lineHeight: {
             normal: '1.445',
+        },
+        opacity: {
+            '56': '0.56',
         },
         boxShadow: {
             soft: `0 0.5px 2.2px 0px #00000008, 0 1.2px 5.3px 0px #0000000b, \

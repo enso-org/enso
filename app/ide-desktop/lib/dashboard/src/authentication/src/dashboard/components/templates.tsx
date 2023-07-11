@@ -1,7 +1,7 @@
 /** @file Renders the list of templates from which a project can be created. */
 import * as react from 'react'
 
-import PlusCircledIcon from 'enso-assets/plus_circled.svg'
+import PlusLargeThinIcon from 'enso-assets/plus_large_thin.svg'
 import RotatingArrowIcon from 'enso-assets/rotating_arrow.svg'
 
 import * as common from 'enso-common'
@@ -80,7 +80,7 @@ export const TEMPLATES: [Template, ...Template[]] = [
         title: 'Geospatial analysis',
         id: 'Restaurants',
         description: 'Learn where to open a coffee shop to maximize your income.',
-        background: 'url("/geo.png") center / cover',
+        background: 'url("/geo.png") 50% 0% / 186.7768% no-repeat',
     },
     {
         title: 'Analyze GitHub stars',
@@ -114,9 +114,11 @@ function TemplatesRender(props: TemplatesRenderProps) {
             className="h-35 cursor-pointer"
         >
             <div className="relative flex h-full w-full border-dashed-custom rounded-2xl text-primary transition-all hover:shadow-soft hover:scale-103-1/3 hover:translate-y-0.5 hover:z-10">
-                <div className="flex flex-col text-center items-center m-auto">
-                    <img src={PlusCircledIcon} />
-                    <p className="font-semibold text-vs">New empty project</p>
+                <div className="flex flex-col gap-3 text-center items-center m-auto">
+                    <div className="rounded-full border-primary border-2 opacity-56 p-0.75">
+                        <img src={PlusLargeThinIcon} />
+                    </div>
+                    <p className="font-semibold text-vs h-5 my-0.5">New empty project</p>
                 </div>
             </div>
         </button>
@@ -139,7 +141,7 @@ function TemplatesRender(props: TemplatesRenderProps) {
                         }}
                         className="relative flex flex-col justify-end h-full w-full rounded-2xl overflow-hidden text-white text-left transition-all hover:shadow-soft hover:scale-103-1/3 hover:translate-y-0.5 hover:z-10"
                     >
-                        <div className="bg-black bg-opacity-30 px-4 pt-1.75 pb-3.25">
+                        <div className="backdrop-blur bg-black bg-opacity-30 px-4 pt-1.75 pb-3.25">
                             <h2 className="h-5 text-vs font-bold my-0.5">{template.title}</h2>
                             <div className="text-xs h-8.75 text-ellipsis">
                                 {template.description}
@@ -245,14 +247,14 @@ function Templates(props: TemplatesProps) {
                 <h1 className="text-xl font-bold self-center">Templates</h1>
             </div>
             {/* FIGMA MODE ONLY */}
-            <div style={{ height: '9px' }} />
+            <div style={{ height: '8px' }} />
             <div
                 ref={containerRef}
-                className={`grid gap-2 grid-cols-fill-60 justify-center overflow-y-scroll scroll-hidden transition-all duration-300 ease-in-out px-3 ${
+                className={`grid gap-2 grid-cols-fill-60 justify-center overflow-y-scroll scroll-hidden transition-all duration-300 ease-in-out px-2.75 ${
                     isOpen ? `h-templates-custom ${shadowClass}` : 'h-0'
                 }`}
                 // FIGMA MODE ONLY
-                style={{ height: '246px' }}
+                style={{ height: '244px' }}
                 onScroll={updateShadowClass}
             >
                 <TemplatesRender templates={TEMPLATES} onTemplateClick={onTemplateClick} />

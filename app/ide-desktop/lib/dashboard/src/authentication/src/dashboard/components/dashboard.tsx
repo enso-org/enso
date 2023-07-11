@@ -96,8 +96,9 @@ export interface CreateFormProps {
 
 /** Feature flags to enable or disable experimental features. */
 const EXPERIMENTAL = {
+    // FIGMA MODE ONLY
     /** A selector that lets the user choose between pre-defined sets of visible columns. */
-    columnModeSwitcher: false,
+    columnModeSwitcher: true,
 }
 
 /** The `id` attribute of the element into which the IDE will be rendered. */
@@ -1119,27 +1120,49 @@ function Dashboard(props: DashboardProps) {
                     <div className="flex flex-row flex-nowrap mx-2">
                         <h1 className="text-xl font-bold mx-2.5 self-center">Drive</h1>
                         <div className="w-1.75" />
-                        <div className="flex flex-row flex-nowrap mx-4">
+                        <div className="flex flex-row flex-nowrap gap-8 mx-4">
                             {backend.type === backendModule.BackendType.remote && (
-                                <>
-                                    <div className="bg-gray-100 rounded-l-full flex flex-row flex-nowrap items-center p-1 mx-0.5">
-                                        {directory && (
-                                            <>
-                                                <button className="mx-2" onClick={exitDirectory}>
-                                                    {parentDirectory?.title ?? '/'}
-                                                </button>
-                                                <img src={ArrowRightSmallIcon} />
-                                            </>
-                                        )}
-                                        <span className="mx-2">{directory?.title ?? '/'}</span>
+                                <div className="flex">
+                                    <div className="bg-gray-100 rounded-l-full p-1">
+                                        {/* FIGMA MODE ONLY: `true &&`, `'cloud' ??`, `'nike' ??` */}
+                                        <div className="flex flex-nowrap gap-1.75 items-center pl-2 pr-2.5">
+                                            {directory ||
+                                                (true && (
+                                                    <>
+                                                        <div
+                                                            className="cursor-pointer h-5 my-0.5"
+                                                            onClick={exitDirectory}
+                                                        >
+                                                            {'cloud' ??
+                                                                parentDirectory?.title ??
+                                                                '/'}
+                                                        </div>
+                                                        <img src={ArrowRightSmallIcon} />
+                                                    </>
+                                                ))}
+                                            <span className="h-5 my-0.5">
+                                                {'nike' ?? directory?.title ?? '/'}
+                                            </span>
+                                        </div>
                                     </div>
-                                    <div className="bg-gray-100 rounded-r-full flex flex-row flex-nowrap items-center mx-0.5">
+                                    <div className="bg-gray-100 rounded-r-full flex flex-nowrap items-center mx-0.5">
                                         <div className="m-2">Shared with</div>
-                                        <div></div>
+                                        <div>
+                                            {/* FIGMA MODE ONLY */}
+                                            <PermissionDisplay
+                                                permissions={{
+                                                    type: permissionDisplay.Permission.admin,
+                                                }}
+                                            >
+                                                <div className="flex items-center h-6 m-1">
+                                                    marketing
+                                                </div>
+                                            </PermissionDisplay>
+                                        </div>
                                     </div>
-                                </>
+                                </div>
                             )}
-                            <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap px-1.5 py-1 mx-4">
+                            <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap px-1.5 py-1">
                                 <input
                                     type="file"
                                     multiple
@@ -1173,7 +1196,7 @@ function Dashboard(props: DashboardProps) {
                             </div>
                             {EXPERIMENTAL.columnModeSwitcher && (
                                 <>
-                                    <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap p-1.5 mx-4">
+                                    <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap p-1.5">
                                         <button
                                             className={`${
                                                 columnDisplayMode === ColumnDisplayMode.all
