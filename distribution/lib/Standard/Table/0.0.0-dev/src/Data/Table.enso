@@ -1432,7 +1432,7 @@ type Table
              table.join other on=[Join_Condition.Equals "A" "A", Join_Condition.Equals "B" "B"]
     @on Widget_Helpers.make_join_condition_selector
     join : Table -> Join_Kind -> Vector (Join_Condition | Text) | Text -> Text -> Problem_Behavior -> Table
-    join self right join_kind=Join_Kind.Left_Outer on=[Join_Condition.Equals self.column_names.first] right_prefix="Right " on_problems=Report_Warning =
+    join self right (join_kind : Join_Kind = Join_Kind.Left_Outer) on=[Join_Condition.Equals self.column_names.first] right_prefix="Right " on_problems=Report_Warning =
         if check_table "right" right then
             # [left_unmatched, matched, right_unmatched]
             rows_to_keep = case join_kind of
@@ -1537,7 +1537,7 @@ type Table
          name will be in use, in this case it will be resolved using the normal
          renaming strategy - adding subsequent `_1`, `_2` etc.
 
-       ? Row Ordering
+       ? Row Ordering For In-Memory Tables
 
          This operation requires a well-defined order of rows in the input
          tables. In-memory tables rely on the ordering stemming directly from
@@ -1548,6 +1548,10 @@ type Table
          defined nor any ordering was specified explicitly by the user, the
          order of columns is undefined and the operation will fail, reporting a
          `Undefined_Column_Order` problem and returning an empty table.
+
+       ? Row Ordering For Database Tables
+
+         The ordering of rows in the resulting table is not specified.
     @keep_unmatched (make_single_choice [["True", "Boolean.True"], ["False", "Boolean.False"], ["Report", Meta.get_qualified_type_name Report_Unmatched]])
     zip : Table -> Boolean | Report_Unmatched -> Text -> Problem_Behavior -> Table
     zip self right keep_unmatched=Report_Unmatched right_prefix="Right " on_problems=Report_Warning =

@@ -732,32 +732,32 @@ type Column
             if self.value_type.is_integer && decimal_places >= 0 then self.rename new_name else
                 should_cast_to_integer = decimal_places <= 0 || self.value_type.is_integer
                 target_value_type = if should_cast_to_integer then Value_Type.Integer else self.value_type
-                result = self.check_round_input target_value_type <|
+                result = self.check_round_input col->
                     scale = 10 ^ decimal_places
-                    scaled = self * scale
+                    scaled = col * scale
                     round_base = scaled.floor
                     round_midpoint = (round_base + 0.5) / scale
-                    even_is_up = (self >= 0).iif ((scaled.truncate % 2) != 0) ((scaled.truncate % 2) == 0)
-                    half_goes_up = if use_bankers then even_is_up else self >= 0
-                    do_round_up = half_goes_up.iif (self >= round_midpoint) (self > round_midpoint)
+                    even_is_up = (col >= 0).iif ((scaled.truncate % 2) != 0) ((scaled.truncate % 2) == 0)
+                    half_goes_up = if use_bankers then even_is_up else col >= 0
+                    do_round_up = half_goes_up.iif (col >= round_midpoint) (col > round_midpoint)
                     result_float = do_round_up.iif ((round_base + 1.0) / scale) (round_base / scale)
                     cast_if_needed result_float target_value_type
                 result.rename new_name
 
     ## PRIVATE
        Restrict allowed range of input to rounding methods.
-    check_round_input : Column -> Value_Type -> Any ! Illegal_Argument
-    check_round_input self target_value_type column =
+    check_round_input : (Column -> Column) -> Any ! Illegal_Argument
+    check_round_input self action =
         min = Rounding_Helpers.round_min_long
         max = Rounding_Helpers.round_max_long
-        within_range = self >= self.const min && self <= self.const max
-        warning = Illegal_Argument.Error <| "Error: `round` can only accept values between " + min.to_text + " and " + max.to_text + " (inclusive)"
-        nothing_with_problem = Warning.attach warning Nothing
-        ## TODO: This should be cast to NULL when that type is available,
-           see https://github.com/enso-org/enso/issues/6281.
-        nothings = self.const nothing_with_problem . cast target_value_type
-        result = within_range.iif column nothings
-        result.rename column.name
+        within_range = if self.value_type.is_floating_point.not then self.between min max else
+            self.is_nan || self.is_infinite || self.between min max
+
+        any_issues = within_range.to_vector . any (== False)
+        if any_issues.not then action self else
+            warning = Illegal_Argument.Error <| "Error: `round` can only accept values between " + min.to_text + " and " + max.to_text + " (inclusive)"
+            result = action (within_range.iif self Nothing)
+            Warning.attach warning result
 
     ## ALIAS int
 
@@ -902,9 +902,8 @@ type Column
     ## Returns a column of booleans, with `True` items at the positions where
        this column contains a NaN. This is only applicable to double columns.
     is_nan : Column
-    is_nan self =
-        Value_Type.expect_floating_point self <|
-            self.internal_is_nan on_missing=Nothing
+    is_nan self = Value_Type.expect_numeric self <|
+        self.internal_is_nan on_missing=Nothing
 
     ## PRIVATE
     internal_is_nan : Any -> Column
@@ -912,8 +911,21 @@ type Column
         new_name = Naming_Helpers.function_name "is_nan" [self]
         fallback x = case x of
             _ : Decimal -> x.is_nan
+            Nothing     -> on_missing
             _           -> False
         run_vectorized_unary_op self "is_nan" fallback expected_result_type=Value_Type.Boolean new_name on_missing=on_missing
+
+    ## Returns a column of booleans, with `True` items at the positions where
+       this column contains a +Inf/-Inf. This is only applicable to double
+       columns.
+    is_infinite : Column
+    is_infinite self = Value_Type.expect_numeric self <|
+        new_name = Naming_Helpers.function_name "is_infinite" [self]
+        fallback x = case x of
+            _ : Decimal -> x.is_infinite
+            Nothing     -> Nothing
+            _           -> False
+        run_vectorized_unary_op self "is_infinite" fallback expected_result_type=Value_Type.Boolean new_name on_missing=Nothing
 
     ## PRIVATE
        Returns a column of booleans, with `True` items at the positions where
@@ -958,9 +970,9 @@ type Column
         result = case self.value_type of
             Value_Type.Char _ _ -> self.is_empty
             Value_Type.Float _ ->
-                if treat_nans_as_blank then self.is_nothing || (self.internal_is_nan on_missing=False) else self.is_nothing
+                if treat_nans_as_blank then self.is_nothing.iif True (self.internal_is_nan on_missing=False) else self.is_nothing
             Value_Type.Mixed ->
-                self.internal_is_empty || (if treat_nans_as_blank then self.is_nothing || (self.internal_is_nan on_missing=False) else self.is_nothing)
+                self.internal_is_empty || (if treat_nans_as_blank then self.is_nothing.iif True (self.internal_is_nan on_missing=False) else self.is_nothing)
             _ -> self.is_nothing
         result.rename new_name
 

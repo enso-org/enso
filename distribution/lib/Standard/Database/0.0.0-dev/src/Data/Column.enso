@@ -851,16 +851,15 @@ type Column
     ## Returns a column of booleans, with `True` items at the positions where
        this column contains a NaN. This is only applicable to double columns.
     is_nan : Column
-    is_nan self = Value_Type.expect_floating_point self <|
+    is_nan self = Value_Type.expect_numeric self <|
         new_name = self.naming_helpers.function_name "is_nan" [self]
         self.make_unary_op "IS_NAN" new_name
 
-    ## UNSTABLE
-       Returns a column of booleans, with `True` items at the positions where
+    ## Returns a column of booleans, with `True` items at the positions where
        this column contains a +Inf/-Inf. This is only applicable to double
        columns.
     is_infinite : Column
-    is_infinite self = Value_Type.expect_floating_point self <|
+    is_infinite self = Value_Type.expect_numeric self <|
         new_name = self.naming_helpers.function_name "is_infinite" [self]
         self.make_unary_op "IS_INF" new_name
 
