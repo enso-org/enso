@@ -6,7 +6,6 @@ use ensogl::prelude::*;
 use crate::breadcrumbs::SharedMethodPointer;
 
 use super::BACKGROUND_HEIGHT;
-use super::GLYPH_WIDTH;
 use super::TEXT_SIZE;
 use enso_frp as frp;
 use ensogl::application::Application;
@@ -220,19 +219,16 @@ pub struct BreadcrumbModel {
     label:             text::Text,
     style:             StyleWatch,
     /// Breadcrumb information such as name and expression ID.
-    pub info:          Rc<BreadcrumbInfo>,
+    pub info:          Rc<Option<BreadcrumbInfo>>,
     relative_position: Rc<Cell<Option<RelativePosition>>>,
     separator_visible: Rc<Cell<bool>>,
+    label_width:       Rc<Cell<f32>>,
 }
 
 impl BreadcrumbModel {
     /// Constructor.
     #[profile(Detail)]
-    pub fn new(
-        app: &Application,
-        method_pointer: &SharedMethodPointer,
-        expression_id: &ast::Id,
-    ) -> Self {
+    fn new(app: &Application, info: Option<BreadcrumbInfo>) -> Self {
         let scene = &app.display.default_scene;
         let display_object = display::object::Instance::new();
         let overlay = Rectangle::new().build(|r| {
@@ -240,11 +236,9 @@ impl BreadcrumbModel {
         });
         let separator = separator::View::new();
         let label = app.new_view::<text::Text>();
-        let expression_id = *expression_id;
-        let method_pointer = method_pointer.clone();
-        let info = Rc::new(BreadcrumbInfo { method_pointer, expression_id });
         let relative_position = default();
         let separator_visible = default();
+        let label_width = default();
 
         scene.layers.panel_overlay.add(&overlay);
         scene.layers.panel.add(&separator);
@@ -260,9 +254,10 @@ impl BreadcrumbModel {
             separator,
             label,
             style,
-            info,
+            info: info.into(),
             relative_position,
             separator_visible,
+            label_width,
         }
         .init()
     }
@@ -277,7 +272,8 @@ impl BreadcrumbModel {
         self.label.set_property_default(full_color);
         self.label.set_property_default(text::formatting::Size::from(TEXT_SIZE));
         self.label.set_single_line_mode(true);
-        self.label.set_content(&self.info.method_pointer.name);
+        let label = self.info.deref().as_ref().map_or_default(|i| i.method_pointer.name.as_str());
+        self.set_label(label);
 
         self.update_layout();
 
@@ -308,13 +304,20 @@ impl BreadcrumbModel {
         self.update_layout();
     }
 
-    fn label_width(&self) -> f32 {
-        self.info.method_pointer.name.len() as f32 * GLYPH_WIDTH
+    /// Set label content.
+    pub fn set_label(&self, label: &str) {
+        self.label.set_content(label);
+        self.update_layout();
+    }
+
+    fn update_label_width(&self, new_width: f32) {
+        self.label_width.set(new_width);
+        self.update_layout();
     }
 
     /// Get the width of the view.
     pub fn width(&self) -> f32 {
-        let label_width = self.label_width();
+        let label_width = self.label_width.get();
         let margin_and_padding = LEFT_MARGIN + RIGHT_MARGIN + PADDING * 2.0;
         let separator_width = if self.separator_visible.get() {
             SEPARATOR_MARGIN * 2.0 + SEPARATOR_WIDTH
@@ -377,8 +380,21 @@ impl Breadcrumb {
         method_pointer: &SharedMethodPointer,
         expression_id: &ast::Id,
     ) -> Self {
+        let info = BreadcrumbInfo {
+            method_pointer: method_pointer.clone(),
+            expression_id:  expression_id.clone(),
+        };
+        Self::new_inner(app, Some(info))
+    }
+
+    /// Constructor. Creates an empty breadcrumb without [`BreadcrumbInfo`].
+    pub fn new_empty(app: &Application) -> Self {
+        Self::new_inner(app, None)
+    }
+
+    fn new_inner(app: &Application, info: Option<BreadcrumbInfo>) -> Self {
         let frp = Frp::new();
-        let model = Rc::new(BreadcrumbModel::new(app, method_pointer, expression_id));
+        let model = Rc::new(BreadcrumbModel::new(app, info));
         let network = &frp.network;
         let out = &frp.outputs;
         let scene = &app.display.default_scene;
@@ -391,6 +407,7 @@ impl Breadcrumb {
         let right_deselected = styles.get_color(theme::deselected::right);
 
         frp::extend! { network
+            init <- source_();
             deselected_color <- all_with3(&selected_color, &left_deselected, &right_deselected,
                 f!([model](selected, left, right) {
                     match model.relative_position.get() {
@@ -415,8 +432,8 @@ impl Breadcrumb {
             animations.color.target <+ deselected_color.sample(&mouse_out_if_not_selected);
 
             eval_ model.overlay.events_deprecated.mouse_down_primary(out.clicked.emit(()));
+            _eval <- model.label.width.all_with(&init, f!((w, _) model.update_label_width(*w)));
         }
-
 
         // === Animations ===
 
@@ -424,6 +441,7 @@ impl Breadcrumb {
             eval animations.color.value((value) model.set_color(*value));
             eval animations.separator_color.value((value) model.set_separator_color(*value));
         }
+        init.emit(());
 
         Self { model, frp }
     }

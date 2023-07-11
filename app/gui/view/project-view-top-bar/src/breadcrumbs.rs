@@ -65,8 +65,6 @@ pub struct LocalCall {
 // === Constants ===
 // =================
 
-// FIXME[dg] hardcoded literal for glyph of height 12.0. Copied from port.rs
-const GLYPH_WIDTH: f32 = 7.224_609_4;
 const BACKGROUND_HEIGHT: f32 = 32.0;
 const TEXT_SIZE: f32 = 12.0;
 
@@ -197,11 +195,8 @@ impl BreadcrumbsModel {
     }
 
     fn add_root_breadcrumb(&self) {
-        let defined_on_type = default();
-        let module = default();
-        let name = "main".to_string();
-        let method_pointer = MethodPointer { module, defined_on_type, name }.into();
-        let breadcrumb = Breadcrumb::new(&self.app, &method_pointer, &uuid::Uuid::new_v4());
+        let breadcrumb = Breadcrumb::new_empty(&self.app);
+        breadcrumb.set_label("main");
         let network = &breadcrumb.frp.network;
         let frp_inputs = &self.frp_inputs;
 
@@ -233,9 +228,7 @@ impl BreadcrumbsModel {
     }
 
     fn get_breadcrumb(&self, index: usize) -> Option<Breadcrumb> {
-        (index > 0).as_option().and_then(|_| {
-            self.breadcrumbs.borrow_mut().get(index - 1).map(|breadcrumb| breadcrumb.clone_ref())
-        })
+        self.breadcrumbs.borrow().get(index).map(|breadcrumb| breadcrumb.clone_ref())
     }
 
     /// Selects the breadcrumb identified by its `index` and returns `(popped_count,local_calls)`,
@@ -249,24 +242,24 @@ impl BreadcrumbsModel {
             Ordering::Equal => default(),
             Ordering::Greater => {
                 let mut local_calls = Vec::new();
-                for index in current_index..index {
+                for index in current_index..=index {
                     let info = self
                         .breadcrumbs
                         .borrow()
                         .get(index)
-                        .map(|breadcrumb| {
-                            let definition = breadcrumb.info.method_pointer.clone();
-                            let call = breadcrumb.info.expression_id;
-                            LocalCall { call, definition }
+                        .and_then(|breadcrumb| {
+                            if let Some(ref info) = *breadcrumb.info {
+                                let definition = info.method_pointer.clone();
+                                let call = info.expression_id;
+                                Some(LocalCall { call, definition })
+                            } else {
+                                None
+                            }
                         })
                         .as_ref()
                         .cloned();
                     if let Some(local_call) = info {
                         local_calls.push(local_call);
-                    } else {
-                        error!("LocalCall info is not present.");
-                        self.remove_breadcrumbs_history_beginning_from(index);
-                        break;
                     }
                 }
                 (default(), local_calls)
@@ -281,20 +274,22 @@ impl BreadcrumbsModel {
         for (substack_index, local_call) in stack.iter().enumerate() {
             let method_pointer = &local_call.definition;
             let expression_id = &local_call.call;
-            let breadcrumb_index = old_index + substack_index;
+            let breadcrumb_index = old_index + substack_index + 1;
 
-            let breadcrumb_exists = self
-                .breadcrumbs
-                .borrow()
-                .get(breadcrumb_index)
-                .contains_if(|breadcrumb| breadcrumb.info.expression_id == *expression_id);
+            let breadcrumb_exists =
+                self.get_breadcrumb(breadcrumb_index).contains_if(|breadcrumb| {
+                    breadcrumb
+                        .info
+                        .deref()
+                        .as_ref()
+                        .map_or(false, |i| i.expression_id == *expression_id)
+                });
 
             if breadcrumb_exists {
-                debug!("Entering an existing {} breadcrumb.", method_pointer.name);
+                error!("Entering an existing {} breadcrumb.", method_pointer.name);
             } else {
-                debug!("Creating a new {} breadcrumb.", method_pointer.name);
+                error!("Creating a new {} breadcrumb.", method_pointer.name);
                 self.remove_breadcrumbs_history_beginning_from(breadcrumb_index);
-                let new_index = breadcrumb_index + 1;
                 let breadcrumb = Breadcrumb::new(&self.app, method_pointer, expression_id);
                 breadcrumb.show_separator();
                 let network = &breadcrumb.frp.network;
@@ -302,11 +297,14 @@ impl BreadcrumbsModel {
 
                 frp::extend! { network
                     eval_ breadcrumb.frp.outputs.clicked(
-                        frp_inputs.select_breadcrumb.emit(new_index);
+                        frp_inputs.select_breadcrumb.emit(breadcrumb_index);
                     );
                 }
 
-                debug!("Pushing {} breadcrumb.", breadcrumb.info.method_pointer.name);
+                error!(
+                    "Pushing {:?} breadcrumb.",
+                    breadcrumb.info.deref().as_ref().map(|i| i.method_pointer.name.as_str())
+                );
                 breadcrumb.set_x(self.breadcrumbs_container_width().round());
                 self.breadcrumbs_container.add_child(&breadcrumb);
                 self.breadcrumbs.borrow_mut().push(breadcrumb);
@@ -370,7 +368,7 @@ impl BreadcrumbsModel {
         (self.current_index.get() > 0).as_option().map(|_| {
             let old_index = self.current_index.get();
             let new_index = old_index - count;
-            debug!("Popping {count} breadcrumbs, from {old_index} to {new_index} (excl.).");
+            error!("Popping {count} breadcrumbs, from {old_index} to {new_index} (excl.).");
             self.current_index.set(new_index);
             self.update_layout();
             (old_index, new_index)
@@ -379,7 +377,10 @@ impl BreadcrumbsModel {
 
     fn remove_breadcrumbs_history_beginning_from(&self, index: usize) {
         for breadcrumb in self.breadcrumbs.borrow_mut().split_off(index) {
-            debug!("Removing {}.", breadcrumb.info.method_pointer.name);
+            error!(
+                "Removing {:?}.",
+                breadcrumb.info.deref().as_ref().map(|i| i.method_pointer.name.as_str())
+            );
             breadcrumb.unset_parent();
         }
         self.update_layout();
