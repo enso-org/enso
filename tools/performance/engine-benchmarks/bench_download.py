@@ -545,6 +545,9 @@ def create_template_data(
                     tooltip += "date = " + str(timestamp) + "\\n"
                     tooltip += "branch = " + branch + "\\n"
                     tooltip += "diff = " + diff_str(score_diff, score_diff_perc)
+                    author_name = commit.author.name\
+                        .replace('"', '\\"')\
+                        .replace("'", "\\'")
                     datapoints.append(BenchDatapoint(
                         timestamp=timestamp,
                         score=score,
@@ -554,7 +557,7 @@ def create_template_data(
                         bench_run_url=job_report.bench_run.html_url,
                         commit_id=commit.id,
                         commit_msg=commit_msg_header,
-                        commit_author=commit.author.name,
+                        commit_author=author_name,
                         commit_url=ENSO_COMMIT_BASE_URL + commit.id,
                     ))
             logging.debug(f"{len(datapoints)} datapoints created for branch {branch}")
