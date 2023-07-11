@@ -299,7 +299,7 @@ function FileRow(
                 const file = event.files.get(key)
                 if (file != null) {
                     if (backend.type !== backendModule.BackendType.remote) {
-                        const message = 'Folders cannot be created on the local backend.'
+                        const message = 'Files cannot be uploaded on the local backend.'
                         toast.error(message)
                         logger.error(message)
                     } else {
@@ -324,7 +324,7 @@ function FileRow(
                                 type: fileListEventModule.FileListEventType.delete,
                                 fileId: key,
                             })
-                            const message = `Error creating new folder: ${
+                            const message = `Error creating new file: ${
                                 errorModule.tryGetMessage(error) ?? 'unknown error.'
                             }`
                             toast.error(message)

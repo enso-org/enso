@@ -1,5 +1,6 @@
 /** @file Events related to changes in project state. */
 import * as backendModule from '../backend'
+import * as spinner from '../components/spinner'
 
 // This is required, to whitelist this event.
 // eslint-disable-next-line no-restricted-syntax
@@ -32,6 +33,7 @@ interface ProjectBaseEvent<Type extends ProjectEventType> {
 export interface ProjectCreateEvent extends ProjectBaseEvent<ProjectEventType.create> {
     placeholderId: backendModule.ProjectId
     templateId: string | null
+    onSpinnerStateChange: ((state: spinner.SpinnerState) => void) | null
 }
 
 /** A signal to open the specified project. */

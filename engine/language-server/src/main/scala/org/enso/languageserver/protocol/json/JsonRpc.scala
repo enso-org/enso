@@ -106,6 +106,7 @@ object JsonRpc {
     .registerNotification(GrantCapability)
     .registerNotification(TextDidChange)
     .registerNotification(FileAutoSaved)
+    .registerNotification(FileModifiedOnDisk)
     .registerNotification(EventFile)
     .registerNotification(ContentRootAdded)
     .registerNotification(ContentRootRemoved)

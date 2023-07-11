@@ -24,6 +24,7 @@ import * as svg from '../../components/svg'
 import * as uniqueString from '../../uniqueString'
 import * as validation from '../validation'
 
+import * as spinner from './spinner'
 import * as tableColumn from './tableColumn'
 import TableRow, * as tableRow from './tableRow'
 import ConfirmDeleteModal from './confirmDeleteModal'
@@ -85,20 +86,24 @@ const LOADING_MESSAGE =
 const CHECK_STATUS_INTERVAL_MS = 5000
 /** The interval between requests checking whether the VM is ready. */
 const CHECK_RESOURCES_INTERVAL_MS = 1000
-/** The corresponding {@link SpinnerState} for each {@link backendModule.ProjectState}. */
-const SPINNER_STATE: Record<backendModule.ProjectState, SpinnerState> = {
-    [backendModule.ProjectState.closed]: SpinnerState.initial,
-    [backendModule.ProjectState.created]: SpinnerState.initial,
-    [backendModule.ProjectState.new]: SpinnerState.initial,
-    [backendModule.ProjectState.openInProgress]: SpinnerState.loading,
-    [backendModule.ProjectState.opened]: SpinnerState.done,
+/** The corresponding {@link SpinnerState} for each {@link backendModule.ProjectState},
+ * when using the remote backend. */
+const REMOTE_SPINNER_STATE: Record<backendModule.ProjectState, spinner.SpinnerState> = {
+    [backendModule.ProjectState.closed]: spinner.SpinnerState.initial,
+    [backendModule.ProjectState.created]: spinner.SpinnerState.initial,
+    [backendModule.ProjectState.new]: spinner.SpinnerState.initial,
+    [backendModule.ProjectState.openInProgress]: spinner.SpinnerState.loadingSlow,
+    [backendModule.ProjectState.opened]: spinner.SpinnerState.done,
 }
-
-const SPINNER_CSS_CLASSES: Record<SpinnerState, string> = {
-    [SpinnerState.initial]: 'dasharray-5 ease-linear',
-    [SpinnerState.loading]: 'dasharray-75 duration-90000 ease-linear',
-    [SpinnerState.done]: 'dasharray-100 duration-1000 ease-in',
-} as const
+/** The corresponding {@link SpinnerState} for each {@link backendModule.ProjectState},
+ * when using the local backend. */
+const LOCAL_SPINNER_STATE: Record<backendModule.ProjectState, spinner.SpinnerState> = {
+    [backendModule.ProjectState.closed]: spinner.SpinnerState.initial,
+    [backendModule.ProjectState.created]: spinner.SpinnerState.initial,
+    [backendModule.ProjectState.new]: spinner.SpinnerState.initial,
+    [backendModule.ProjectState.openInProgress]: spinner.SpinnerState.loadingMedium,
+    [backendModule.ProjectState.opened]: spinner.SpinnerState.done,
+}
 
 // ===========================
 // === ProjectActionButton ===
@@ -145,7 +150,10 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         }
     })
     const [checkState, setCheckState] = React.useState(CheckState.notChecking)
-    const [spinnerState, setSpinnerState] = React.useState(SPINNER_STATE[state])
+    const [spinnerState, setSpinnerState] = React.useState(REMOTE_SPINNER_STATE[state])
+    const [onSpinnerStateChange, setOnSpinnerStateChange] = React.useState<
+        ((state: spinner.SpinnerState | null) => void) | null
+    >(null)
     const [shouldOpenWhenReady, setShouldOpenWhenReady] = React.useState(false)
     const [toastId, setToastId] = React.useState<string | null>(null)
 
@@ -195,9 +203,20 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
     React.useEffect(() => {
         // Ensure that the previous spinner state is visible for at least one frame.
         requestAnimationFrame(() => {
-            setSpinnerState(SPINNER_STATE[state])
+            const newSpinnerState =
+                backend.type === backendModule.BackendType.remote
+                    ? REMOTE_SPINNER_STATE[state]
+                    : LOCAL_SPINNER_STATE[state]
+            setSpinnerState(newSpinnerState)
+            onSpinnerStateChange?.(
+                state === backendModule.ProjectState.closed ? null : newSpinnerState
+            )
         })
-    }, [state])
+    }, [state, onSpinnerStateChange, backend.type])
+
+    React.useEffect(() => {
+        onSpinnerStateChange?.(spinner.SpinnerState.initial)
+    }, [onSpinnerStateChange])
 
     React.useEffect(() => {
         if (toastId != null && state !== backendModule.ProjectState.openInProgress) {
@@ -237,11 +256,14 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
                     setCheckState(CheckState.notChecking)
                 }
                 setShouldOpenWhenReady(false)
+                onSpinnerStateChange?.(null)
+                setOnSpinnerStateChange(null)
                 break
             }
             case projectEventModule.ProjectEventType.create: {
                 if (event.placeholderId === project.id) {
                     setState(backendModule.ProjectState.openInProgress)
+                    setOnSpinnerStateChange(() => event.onSpinnerStateChange)
                 }
                 break
             }
@@ -352,6 +374,8 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         onClose()
         setShouldOpenWhenReady(false)
         setState(backendModule.ProjectState.closed)
+        onSpinnerStateChange?.(null)
+        setOnSpinnerStateChange(null)
         appRunner?.stopApp()
         setCheckState(CheckState.notChecking)
         try {
@@ -388,7 +412,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
                         await closeProject()
                     }}
                 >
-                    <svg.StopIcon className={SPINNER_CSS_CLASSES[spinnerState]} />
+                    <svg.StopIcon className={spinner.SPINNER_CSS_CLASSES[spinnerState]} />
                 </button>
             )
         case backendModule.ProjectState.opened:
@@ -401,7 +425,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
                             await closeProject()
                         }}
                     >
-                        <svg.StopIcon className={SPINNER_CSS_CLASSES[spinnerState]} />
+                        <svg.StopIcon className={spinner.SPINNER_CSS_CLASSES[spinnerState]} />
                     </button>
                     <button
                         onClick={clickEvent => {
@@ -708,36 +732,38 @@ function ProjectRow(
             }
             case projectEventModule.ProjectEventType.create: {
                 if (key === event.placeholderId) {
-                    if (backend.type === backendModule.BackendType.local) {
-                        const message = 'Folders cannot be created on the local backend.'
+                    setStatus(presence.Presence.inserting)
+                    try {
+                        const createdProject = await backend.createProject({
+                            parentDirectoryId: item.parentId,
+                            projectName: item.title,
+                            projectTemplateName: event.templateId,
+                        })
+                        setStatus(presence.Presence.present)
+                        const newItem: backendModule.ProjectAsset = {
+                            ...item,
+                            id: createdProject.projectId,
+                            projectState: createdProject.state,
+                        }
+                        setItem(newItem)
+                        // This MUST be delayed, otherwise the `ProjectActionButton` does not yet
+                        // have the correct `Project`.
+                        setTimeout(() => {
+                            dispatchProjectEvent({
+                                type: projectEventModule.ProjectEventType.open,
+                                projectId: createdProject.projectId,
+                            })
+                        }, 0)
+                    } catch (error) {
+                        dispatchProjectListEvent({
+                            type: projectListEventModule.ProjectListEventType.delete,
+                            projectId: key,
+                        })
+                        const message = `Error creating new project: ${
+                            errorModule.tryGetMessage(error) ?? 'unknown error.'
+                        }`
                         toast.error(message)
                         logger.error(message)
-                    } else {
-                        setStatus(presence.Presence.inserting)
-                        try {
-                            const createdProject = await backend.createProject({
-                                parentDirectoryId: item.parentId,
-                                projectName: item.title,
-                                projectTemplateName: event.templateId,
-                            })
-                            setStatus(presence.Presence.present)
-                            const newItem: backendModule.ProjectAsset = {
-                                ...item,
-                                id: createdProject.projectId,
-                                projectState: createdProject.state,
-                            }
-                            setItem(newItem)
-                        } catch (error) {
-                            dispatchProjectListEvent({
-                                type: projectListEventModule.ProjectListEventType.delete,
-                                projectId: key,
-                            })
-                            const message = `Error creating new folder: ${
-                                errorModule.tryGetMessage(error) ?? 'unknown error.'
-                            }`
-                            toast.error(message)
-                            logger.error(message)
-                        }
                     }
                 }
                 break
@@ -920,6 +946,7 @@ function ProjectsTable(props: ProjectsTableProps) {
                     type: projectEventModule.ProjectEventType.create,
                     placeholderId: dummyId,
                     templateId: event.templateId,
+                    onSpinnerStateChange: event.onSpinnerStateChange,
                 })
                 break
             }

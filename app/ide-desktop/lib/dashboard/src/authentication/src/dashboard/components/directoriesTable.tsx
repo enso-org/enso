@@ -391,7 +391,6 @@ function DirectoriesTable(props: DirectoriesTableProps) {
         columnDisplayMode,
         enterDirectory,
     } = props
-    const logger = loggerProvider.useLogger()
     const { organization } = authProvider.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
     const { setModal } = modalProvider.useSetModal()
@@ -457,34 +456,28 @@ function DirectoriesTable(props: DirectoriesTableProps) {
     hooks.useEventHandler(directoryListEvent, event => {
         switch (event.type) {
             case directoryListEventModule.DirectoryListEventType.create: {
-                if (backend.type !== backendModule.BackendType.remote) {
-                    const message = 'Folders cannot be created on the local backend.'
-                    toast.error(message)
-                    logger.error(message)
-                } else {
-                    const directoryIndices = items
-                        .map(item => DIRECTORY_NAME_REGEX.exec(item.title))
-                        .map(match => match?.groups?.directoryIndex)
-                        .map(maybeIndex => (maybeIndex != null ? parseInt(maybeIndex, 10) : 0))
-                    const title = `${DIRECTORY_NAME_DEFAULT_PREFIX}${
-                        Math.max(0, ...directoryIndices) + 1
-                    }`
-                    const placeholderId = backendModule.DirectoryId(uniqueString.uniqueString())
-                    const placeholderItem: backendModule.DirectoryAsset = {
-                        id: placeholderId,
-                        title,
-                        modifiedAt: dateTime.toRfc3339(new Date()),
-                        parentId: directoryId ?? backendModule.DirectoryId(''),
-                        permissions: permissions.tryGetSingletonOwnerPermission(organization),
-                        projectState: null,
-                        type: backendModule.AssetType.directory,
-                    }
-                    setItems(oldItems => [placeholderItem, ...oldItems])
-                    dispatchDirectoryEvent({
-                        type: directoryEventModule.DirectoryEventType.create,
-                        placeholderId: placeholderId,
-                    })
+                const directoryIndices = items
+                    .map(item => DIRECTORY_NAME_REGEX.exec(item.title))
+                    .map(match => match?.groups?.directoryIndex)
+                    .map(maybeIndex => (maybeIndex != null ? parseInt(maybeIndex, 10) : 0))
+                const title = `${DIRECTORY_NAME_DEFAULT_PREFIX}${
+                    Math.max(0, ...directoryIndices) + 1
+                }`
+                const placeholderId = backendModule.DirectoryId(uniqueString.uniqueString())
+                const placeholderItem: backendModule.DirectoryAsset = {
+                    id: placeholderId,
+                    title,
+                    modifiedAt: dateTime.toRfc3339(new Date()),
+                    parentId: directoryId ?? backendModule.DirectoryId(''),
+                    permissions: permissions.tryGetSingletonOwnerPermission(organization),
+                    projectState: null,
+                    type: backendModule.AssetType.directory,
                 }
+                setItems(oldItems => [placeholderItem, ...oldItems])
+                dispatchDirectoryEvent({
+                    type: directoryEventModule.DirectoryEventType.create,
+                    placeholderId: placeholderId,
+                })
                 break
             }
             case directoryListEventModule.DirectoryListEventType.delete: {

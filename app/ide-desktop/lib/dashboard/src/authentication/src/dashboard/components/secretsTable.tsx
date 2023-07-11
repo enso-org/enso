@@ -336,7 +336,7 @@ function SecretRow(
             case secretEventModule.SecretEventType.create: {
                 if (key === event.placeholderId) {
                     if (backend.type !== backendModule.BackendType.remote) {
-                        const message = 'Folders cannot be created on the local backend.'
+                        const message = 'Secrets cannot be created on the local backend.'
                         toast.error(message)
                         logger.error(message)
                     } else {
@@ -358,7 +358,7 @@ function SecretRow(
                                 type: secretListEventModule.SecretListEventType.delete,
                                 secretId: key,
                             })
-                            const message = `Error creating new folder: ${
+                            const message = `Error creating new secret: ${
                                 errorModule.tryGetMessage(error) ?? 'unknown error.'
                             }`
                             toast.error(message)

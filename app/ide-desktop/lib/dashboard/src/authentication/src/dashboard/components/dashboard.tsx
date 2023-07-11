@@ -11,6 +11,7 @@ import * as projectListEventModule from '../events/projectListEvent'
 import * as projectManager from '../projectManager'
 import * as remoteBackendModule from '../remoteBackend'
 import * as shortcuts from '../shortcuts'
+import * as spinner from './spinner'
 import * as tabModule from '../tab'
 
 import * as authProvider from '../../authentication/providers/auth'
@@ -178,10 +179,14 @@ function Dashboard(props: DashboardProps) {
     )
 
     const doCreateProject = React.useCallback(
-        (templateId?: string | null) => {
+        (
+            templateId: string | null,
+            onSpinnerStateChange: ((state: spinner.SpinnerState) => void) | null
+        ) => {
             dispatchProjectListEvent({
                 type: projectListEventModule.ProjectListEventType.create,
                 templateId: templateId ?? null,
+                onSpinnerStateChange: onSpinnerStateChange,
             })
         },
         [/* should never change */ dispatchProjectListEvent]

@@ -4,9 +4,9 @@
 import * as React from 'react'
 
 import * as shortcuts from '../shortcuts'
-import * as svg from '../../components/svg'
 
 import * as tableColumn from './tableColumn'
+import Spinner, * as spinner from './spinner'
 import TableRow, * as tableRow from './tableRow'
 
 // =================
@@ -15,10 +15,6 @@ import TableRow, * as tableRow from './tableRow'
 
 /** The size of the loading spinner. */
 const LOADING_SPINNER_SIZE = 36
-/** The classes for the initial state of the spinner. */
-const SPINNER_INITIAL_CLASSES = 'grow dasharray-5 ease-linear'
-/** The classes for the final state of the spinner. */
-const SPINNER_LOADING_CLASSES = 'grow dasharray-75 duration-1000 ease-linear'
 
 // =============================
 // === Partial `Props` types ===
@@ -82,7 +78,7 @@ function Table<T, Key extends string = string, State = never, RowState = never>(
         ...rowProps
     } = props
 
-    const [spinnerClasses, setSpinnerClasses] = React.useState(SPINNER_INITIAL_CLASSES)
+    const [spinnerState, setSpinnerState] = React.useState(spinner.SpinnerState.initial)
     // This should not be made mutable for the sake of optimization, otherwise its value may
     // be different after `await`ing an I/O operation.
     const [selectedKeys, setSelectedKeys] = React.useState(() => new Set<Key>())
@@ -115,10 +111,10 @@ function Table<T, Key extends string = string, State = never, RowState = never>(
             // Ensure the spinner stays in the "initial" state for at least one frame,
             // to ensure the CSS animation begins at the initial state.
             requestAnimationFrame(() => {
-                setSpinnerClasses(SPINNER_LOADING_CLASSES)
+                setSpinnerState(spinner.SpinnerState.loadingFast)
             })
         } else {
-            setSpinnerClasses(SPINNER_INITIAL_CLASSES)
+            setSpinnerState(spinner.SpinnerState.initial)
         }
     }, [isLoading])
 
@@ -199,7 +195,7 @@ function Table<T, Key extends string = string, State = never, RowState = never>(
         <tr className="h-10">
             <td colSpan={columns.length}>
                 <div className="grid justify-around w-full">
-                    <svg.Spinner size={LOADING_SPINNER_SIZE} className={spinnerClasses} />
+                    <Spinner size={LOADING_SPINNER_SIZE} state={spinnerState} />
                 </div>
             </td>
         </tr>

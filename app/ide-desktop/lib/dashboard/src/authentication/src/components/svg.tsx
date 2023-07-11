@@ -10,40 +10,6 @@ import * as React from 'react'
 // === SVGs with custom formatting ===
 // ===================================
 
-/** Props for a {@link Spinner}. */
-export interface SpinnerProps {
-    size: number
-    className: string
-}
-
-/** A spinning arc that animates using the `dasharray-<percentage>` custom Tailwind classes. */
-export function Spinner(props: SpinnerProps) {
-    const { size, className } = props
-    return (
-        <svg
-            width={size}
-            height={size}
-            viewBox="0 0 24 24"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-        >
-            <rect
-                x={1.5}
-                y={1.5}
-                width={21}
-                height={21}
-                rx={10.5}
-                stroke="currentColor"
-                strokeLinecap="round"
-                strokeWidth={3}
-                className={
-                    'animate-spin-ease origin-center transition-stroke-dasharray ' + className
-                }
-            />
-        </svg>
-    )
-}
-
 /** Props for a {@link StopIcon}. */
 export interface StopIconProps {
     className?: string
