@@ -11,6 +11,7 @@ import * as chat from 'enso-chat/chat'
 
 import * as animations from '../../animations'
 import * as authProvider from '../../authentication/providers/auth'
+import * as config from '../../config'
 import * as dateTime from '../dateTime'
 import * as loggerProvider from '../../providers/logger'
 import * as newtype from '../../newtype'
@@ -395,7 +396,7 @@ function Chat(props: ChatProps) {
     const [messagesHeightBeforeMessageHistory, setMessagesHeightBeforeMessageHistory] =
         React.useState<number | null>(null)
     // TODO: proper URL
-    const [websocket] = React.useState(() => new WebSocket('ws://localhost:8082'))
+    const [websocket] = React.useState(() => new WebSocket(config.ACTIVE_CONFIG.chatUrl))
     const [right, setTargetRight] = animations.useInterpolateOverTime(
         animations.interpolationFunctionEaseInOut,
         ANIMATION_DURATION_MS,

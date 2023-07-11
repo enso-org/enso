@@ -25,6 +25,12 @@ interface NewtypeVariant<TypeName extends string> {
  * `a: string = asNewtype<Newtype<string, 'Name'>>(b)` successfully typechecks. */
 export type Newtype<T, TypeName extends string> = NewtypeVariant<TypeName> & T
 
+/** Extracts the original type out of a {@link Newtype}.
+ * Its only use is in {@link asNewtype}. */
+type UnNewtype<T extends Newtype<unknown, string>> = T extends infer U & NewtypeVariant<T['_$type']>
+    ? U
+    : NotNewtype & Omit<T, '_$type'>
+
 /** An interface that matches a type if and only if it is not a newtype. */
 interface NotNewtype {
     // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -32,9 +38,7 @@ interface NotNewtype {
 }
 
 /** Converts a value that is not a newtype, to a value that is a newtype. */
-export function asNewtype<T extends Newtype<unknown, string>>(
-    s: NotNewtype & Omit<T, '_$type'>
-): T {
+export function asNewtype<T extends Newtype<unknown, string>>(s: UnNewtype<T>): T {
     // This cast is unsafe.
     // `T` has an extra property `_$type` which is used purely for typechecking
     // and does not exist at runtime.
