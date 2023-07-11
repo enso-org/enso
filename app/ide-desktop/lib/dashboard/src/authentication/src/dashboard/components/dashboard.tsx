@@ -22,6 +22,7 @@ import * as localBackend from '../localBackend'
 import * as newtype from '../../newtype'
 import * as projectManager from '../projectManager'
 import * as remoteBackendModule from '../remoteBackend'
+import * as spinner from './spinner'
 import * as uploadMultipleFiles from '../../uploadMultipleFiles'
 
 import * as authProvider from '../../authentication/providers/auth'
@@ -300,6 +301,9 @@ function Dashboard(props: DashboardProps) {
     )
     const [nameOfProjectToImmediatelyOpen, setNameOfProjectToImmediatelyOpen] =
         React.useState(initialProjectName)
+    const [onSpinnerStateChange, setOnSpinnerStateChange] = React.useState<
+        ((state: spinner.SpinnerState | null) => void) | null
+    >(null)
     const [projectEvent, setProjectEvent] = React.useState<projectActionButton.ProjectEvent | null>(
         null
     )
@@ -540,6 +544,7 @@ function Dashboard(props: DashboardProps) {
                         setProjectEvent({
                             type: projectActionButton.ProjectEventType.open,
                             projectId: projectAsset.id,
+                            onSpinnerStateChange: null,
                         })
                     } else if (
                         event.ctrlKey &&
@@ -607,6 +612,7 @@ function Dashboard(props: DashboardProps) {
                         setProjectEvent({
                             type: projectActionButton.ProjectEventType.open,
                             projectId: projectAsset.id,
+                            onSpinnerStateChange: null,
                         })
                     }}
                     onClose={() => {
@@ -912,9 +918,11 @@ function Dashboard(props: DashboardProps) {
                 setProjectEvent({
                     type: projectActionButton.ProjectEventType.open,
                     projectId: projectToLoad.id,
+                    onSpinnerStateChange,
                 })
             }
             setNameOfProjectToImmediatelyOpen(null)
+            setOnSpinnerStateChange(null)
         }
         onDirectoryNextLoaded?.(assets)
         setOnDirectoryNextLoaded(null)
@@ -999,7 +1007,10 @@ function Dashboard(props: DashboardProps) {
         return `${prefix}${highestProjectIndex + 1}`
     }
 
-    const handleCreateProject = async (templateId?: string | null) => {
+    const handleCreateProject = async (
+        templateId?: string | null,
+        newOnSpinnerStateChange?: (state: spinner.SpinnerState) => void
+    ) => {
         const projectName = getNewProjectName(templateId)
         const body: backendModule.CreateProjectRequestBody = {
             projectName,
@@ -1028,10 +1039,11 @@ function Dashboard(props: DashboardProps) {
             error: (promiseError: Error) =>
                 `Error creating '${projectName}'${templateText}: ${promiseError.message}`,
         })
-        // `newProject.projectId` cannot be used directly in a `ProjectEvet` as the project
+        // `newProject.projectId` cannot be used directly in a `ProjectEvent` as the project
         // does not yet exist in the project list. Opening the project would work, but the project
         // would display as closed as it would be created after the event is sent.
         setNameOfProjectToImmediatelyOpen(projectName)
+        setOnSpinnerStateChange(() => newOnSpinnerStateChange ?? null)
         doRefresh()
     }
 
@@ -1282,6 +1294,7 @@ function Dashboard(props: DashboardProps) {
                                             setProjectEvent({
                                                 type: projectActionButton.ProjectEventType.open,
                                                 projectId: projectAsset.id,
+                                                onSpinnerStateChange: null,
                                             })
                                         }
                                         const doOpenAsFolder = () => {

@@ -6,6 +6,8 @@ import RotatingArrowIcon from 'enso-assets/rotating_arrow.svg'
 
 import * as common from 'enso-common'
 
+import Spinner, * as spinner from './spinner'
+
 // =================
 // === Constants ===
 // =================
@@ -18,6 +20,10 @@ const MAX_WIDTH_NEEDING_SCROLL = 1031
 /** The height of the bottom padding - 8px for the grid gap, and another 8px for the height
  * of the padding div. */
 const PADDING_HEIGHT = 16
+/** The size (both width and height) of the spinner, in pixels. */
+const SPINNER_SIZE = 64
+/** The duration of the "spinner done" animation. */
+const SPINNER_DONE_DURATION_MS = 1000
 
 // =============
 // === Types ===
@@ -83,63 +89,135 @@ export const TEMPLATES: [Template, ...Template[]] = [
     },
 ]
 
-// =======================
-// === TemplatesRender ===
-// =======================
+// ==========================
+// === EmptyProjectButton ===
+// ==========================
 
-/** Props for a {@link TemplatesRender}. */
-export interface TemplatesRenderProps {
-    // Later this data may be requested and therefore needs to be passed dynamically.
-    templates: Template[]
-    onTemplateClick: (name: string | null) => void
+/** Props for an {@link EmptyProjectButton}. */
+interface InternalEmptyProjectButtonProps {
+    onTemplateClick: (
+        name: null,
+        onSpinnerStateChange: (spinnerState: spinner.SpinnerState | null) => void
+    ) => void
 }
 
-/** Render all templates, and a button to create an empty project. */
-function TemplatesRender(props: TemplatesRenderProps) {
-    const { templates, onTemplateClick } = props
+/** A button that, when clicked, creates and opens a new blank project. */
+function EmptyProjectButton(props: InternalEmptyProjectButtonProps) {
+    const { onTemplateClick } = props
+    const [spinnerState, setSpinnerState] = React.useState<spinner.SpinnerState | null>(null)
 
-    /** The action button for creating an empty project. */
-    const CreateEmptyTemplate = (
+    return (
         <button
             onClick={() => {
-                onTemplateClick(null)
+                setSpinnerState(spinner.SpinnerState.initial)
+                onTemplateClick(null, newSpinnerState => {
+                    setSpinnerState(newSpinnerState)
+                    if (newSpinnerState === spinner.SpinnerState.done) {
+                        setTimeout(() => {
+                            setSpinnerState(null)
+                        }, SPINNER_DONE_DURATION_MS)
+                    }
+                })
             }}
-            className="h-40 cursor-pointer"
+            className="cursor-pointer relative text-primary h-40"
         >
-            <div className="flex h-full w-full border-dashed-custom rounded-2xl text-primary">
+            <div className="flex h-full w-full border-dashed-custom rounded-2xl">
                 <div className="flex flex-col text-center items-center m-auto">
-                    <img src={PlusCircledIcon} />
+                    {spinnerState != null ? (
+                        <div className="p-2">
+                            <Spinner size={SPINNER_SIZE} state={spinnerState} />
+                        </div>
+                    ) : (
+                        <img src={PlusCircledIcon} />
+                    )}
                     <p className="font-semibold text-sm">New empty project</p>
                 </div>
             </div>
         </button>
     )
+}
+
+// ======================
+// === TemplateButton ===
+// ======================
+
+/** Props for a {@link TemplateButton}. */
+interface InternalTemplateButtonProps {
+    template: Template
+    onTemplateClick: (
+        name: string | null,
+        onSpinnerStateChange: (state: spinner.SpinnerState | null) => void
+    ) => void
+}
+
+/** A button that, when clicked, creates and opens a new project based on a template. */
+function TemplateButton(props: InternalTemplateButtonProps) {
+    const { template, onTemplateClick } = props
+    const [spinnerState, setSpinnerState] = React.useState<spinner.SpinnerState | null>(null)
+
+    return (
+        <button
+            key={template.title}
+            className="h-40 cursor-pointer"
+            onClick={() => {
+                setSpinnerState(spinner.SpinnerState.initial)
+                onTemplateClick(template.id, newSpinnerState => {
+                    setSpinnerState(newSpinnerState)
+                    if (newSpinnerState === spinner.SpinnerState.done) {
+                        setTimeout(() => {
+                            setSpinnerState(null)
+                        }, SPINNER_DONE_DURATION_MS)
+                    }
+                })
+            }}
+        >
+            <div
+                style={{
+                    background: template.background,
+                }}
+                className="relative flex flex-col justify-end h-full w-full rounded-2xl overflow-hidden text-white text-left"
+            >
+                <div className="bg-black bg-opacity-30 px-4 py-2">
+                    <h2 className="text-sm font-bold">{template.title}</h2>
+                    <div className="text-xs h-16 text-ellipsis py-2">{template.description}</div>
+                </div>
+                {spinnerState != null && (
+                    <div className="absolute grid w-full h-full place-items-center">
+                        <Spinner size={SPINNER_SIZE} state={spinnerState} />
+                    </div>
+                )}
+            </div>
+        </button>
+    )
+}
+
+// =======================
+// === TemplatesRender ===
+// =======================
+
+/** Props for a {@link TemplatesRender}. */
+interface InternalTemplatesRenderProps {
+    // Later this data may be requested and therefore needs to be passed dynamically.
+    templates: Template[]
+    onTemplateClick: (
+        name: string | null,
+        onSpinnerStateChange: (spinnerState: spinner.SpinnerState | null) => void
+    ) => void
+}
+
+/** Render all templates, and a button to create an empty project. */
+function TemplatesRender(props: InternalTemplatesRenderProps) {
+    const { templates, onTemplateClick } = props
 
     return (
         <>
-            {CreateEmptyTemplate}
+            <EmptyProjectButton onTemplateClick={onTemplateClick} />
             {templates.map(template => (
-                <button
-                    key={template.title}
-                    className="h-40 cursor-pointer"
-                    onClick={() => {
-                        onTemplateClick(template.id)
-                    }}
-                >
-                    <div
-                        style={{
-                            background: template.background,
-                        }}
-                        className="flex flex-col justify-end h-full w-full rounded-2xl overflow-hidden text-white text-left"
-                    >
-                        <div className="bg-black bg-opacity-30 px-4 py-2">
-                            <h2 className="text-sm font-bold">{template.title}</h2>
-                            <div className="text-xs h-16 text-ellipsis py-2">
-                                {template.description}
-                            </div>
-                        </div>
-                    </div>
-                </button>
+                <TemplateButton
+                    key={template.id}
+                    template={template}
+                    onTemplateClick={onTemplateClick}
+                />
             ))}
         </>
     )
@@ -151,7 +229,10 @@ function TemplatesRender(props: TemplatesRenderProps) {
 
 /** Props for a {@link Templates}. */
 export interface TemplatesProps {
-    onTemplateClick: (name?: string | null) => void
+    onTemplateClick: (
+        name: string | null,
+        onSpinnerStateChange: (state: spinner.SpinnerState | null) => void
+    ) => void
 }
 
 /** A container for a {@link TemplatesRender} which passes it a list of templates. */

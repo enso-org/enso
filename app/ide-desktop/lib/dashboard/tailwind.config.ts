@@ -72,6 +72,7 @@ inset 0 -36px 51px -51px #00000014`,
             'stroke-dasharray': 'stroke-dasharray',
         },
         transitionDuration: {
+            '5000': '5000ms',
             '90000': '90000ms',
         },
         gridTemplateColumns: {
