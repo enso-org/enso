@@ -1,4 +1,5 @@
 /** @file Modal for confirming delete of any type of asset. */
+import * as React from 'react'
 import toast from 'react-hot-toast'
 
 import CloseIcon from 'enso-assets/close.svg'
@@ -61,7 +62,7 @@ function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
                     </button>
                 </div>
                 <div className="m-2">
-                    Are you sure you want to delete the {assetType} '{name}'?
+                    Are you sure you want to delete the {assetType} &lsquo;{name}&rsquo;?
                 </div>
                 <div className="m-1">
                     <button

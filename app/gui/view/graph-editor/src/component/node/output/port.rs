@@ -520,18 +520,18 @@ impl Model {
             // === Mouse Event Handling ===
 
             let mouse_down = shape.on_event::<mouse::Down>();
-            let mouse_out = shape.on_event::<mouse::Out>();
-            let mouse_over = shape.on_event::<mouse::Over>();
+            let mouse_enter = shape.on_event::<mouse::Enter>();
+            let mouse_leave = shape.on_event::<mouse::Leave>();
             mouse_down_primary <- mouse_down.filter(mouse::is_primary);
 
-            frp.source.on_hover <+ bool(&mouse_out,&mouse_over);
+            frp.source.on_hover <+ bool(&mouse_leave, &mouse_enter);
             frp.source.on_press <+ mouse_down_primary.constant(());
 
 
             // === Opacity ===
 
-            opacity.target <+ mouse_over.constant(PORT_OPACITY_HOVERED);
-            opacity.target <+ mouse_out.constant(PORT_OPACITY_NOT_HOVERED);
+            opacity.target <+ mouse_enter.constant(PORT_OPACITY_HOVERED);
+            opacity.target <+ mouse_leave.constant(PORT_OPACITY_NOT_HOVERED);
             eval opacity.value ((t) shape.set_opacity(*t));
 
 

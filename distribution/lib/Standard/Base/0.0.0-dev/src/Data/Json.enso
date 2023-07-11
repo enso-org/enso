@@ -1,32 +1,29 @@
 import project.Any.Any
 import project.Data.Array.Array
 import project.Data.Array_Proxy.Array_Proxy
-from project.Data.Json.Extensions import all
 import project.Data.Map.Map
 import project.Data.Numbers.Integer
 import project.Data.Numbers.Number
 import project.Data.Pair.Pair
-from project.Data.Range.Extensions import all
-from project.Data.Text.Extensions import all
 import project.Data.Text.Text
 import project.Data.Vector.Vector
-import project.Errors.Common.Type_Error
 import project.Error.Error
+import project.Errors.Common.Type_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.No_Such_Key.No_Such_Key
 import project.Meta
+import project.Metadata.Display
+import project.Metadata.Widget
 import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Warning.Warning
-
-import project.Metadata.Widget
-from project.Metadata.Widget import Single_Choice
-from project.Metadata.Choice import Option
-import project.Metadata.Display
-
-# We need to import conversion methods from Ordering, therefore, we import all
+from project.Data.Boolean import Boolean, False, True
+from project.Data.Json.Extensions import all
 from project.Data.Ordering import all
-from project.Data.Boolean import Boolean, True, False
+from project.Data.Range.Extensions import all
+from project.Data.Text.Extensions import all
+from project.Metadata.Choice import Option
+from project.Metadata.Widget import Single_Choice
 
 ## Methods for serializing from and to JSON.
 type Json

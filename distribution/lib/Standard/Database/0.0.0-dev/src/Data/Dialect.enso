@@ -1,9 +1,9 @@
 from Standard.Base import all
 import Standard.Base.Errors.Unimplemented.Unimplemented
 
-from Standard.Table import Aggregate_Column, Join_Kind, Value_Type, Column_Selector
 import Standard.Table.Internal.Naming_Helpers.Naming_Helpers
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
+from Standard.Table import Aggregate_Column, Column_Selector, Join_Kind, Value_Type
 
 import project.Connection.Connection.Connection
 import project.Data.SQL.Builder
@@ -19,9 +19,9 @@ import project.Internal.IR.Order_Descriptor.Order_Descriptor
 import project.Internal.IR.Query.Query
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.Postgres.Postgres_Dialect
-import project.Internal.SQLite.SQLite_Dialect
 import project.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
+import project.Internal.SQLite.SQLite_Dialect
 import project.Internal.Statement_Setter.Statement_Setter
 from project.Errors import SQL_Error, Unsupported_Database_Operation
 from project.Internal.Result_Set import result_set_to_table

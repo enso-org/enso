@@ -1,5 +1,5 @@
 /** @file Container that launches the IDE. */
-import * as react from 'react'
+import * as React from 'react'
 
 import * as auth from '../../authentication/providers/auth'
 import * as backendModule from '../backend'
@@ -33,7 +33,7 @@ function Ide(props: IdeProps) {
     const { backend } = backendProvider.useBackend()
     const { accessToken } = auth.useNonPartialUserSession()
 
-    react.useEffect(() => {
+    React.useEffect(() => {
         void (async () => {
             const ideVersion =
                 project.ideVersion?.value ??
@@ -129,7 +129,10 @@ function Ide(props: IdeProps) {
                 }
             }
         })()
-    }, [project])
+        // The backend MUST NOT be a dependency, since the IDE should only be recreated when a new
+        // project is opened.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [appRunner, project])
 
     return <></>
 }

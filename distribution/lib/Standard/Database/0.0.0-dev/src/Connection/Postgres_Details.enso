@@ -6,8 +6,8 @@ import project.Connection.Client_Certificate.Client_Certificate
 import project.Connection.Connection_Options.Connection_Options
 import project.Connection.Credentials.Credentials
 import project.Connection.SSL_Mode.SSL_Mode
-import project.Internal.Postgres.Postgres_Connection
 import project.Internal.Postgres.Pgpass
+import project.Internal.Postgres.Postgres_Connection
 
 polyglot java import org.postgresql.Driver
 

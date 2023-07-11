@@ -6,13 +6,15 @@ import org.enso.jsonrpc.Errors.InvalidParams
 
 /** An actor responsible for passing parsed massages between the web and
   * a controller actor.
-  * @param protocol a protocol object describing supported messages and their
+  * @param protocol a factory for retrieving protocol object describing supported messages and their
   *                 serialization modes.
   * @param controller the controller actor, handling parsed messages.
   */
-class MessageHandler(val protocol: Protocol, val controller: ActorRef)
+class MessageHandler(protocolFactory: ProtocolFactory, controller: ActorRef)
     extends Actor
     with Stash {
+
+  private def getProtocol(): Protocol = protocolFactory.getProtocol()
 
   /** A pre-initialization behavior, awaiting a to-web connection end.
     * @return the actor behavior.
@@ -53,7 +55,7 @@ class MessageHandler(val protocol: Protocol, val controller: ActorRef)
     response: ResponseResult[Method, Any],
     webConnection: ActorRef
   ): Unit = {
-    val responseDataJson: Json = protocol.payloadsEncoder(response.data)
+    val responseDataJson: Json = getProtocol().payloadsEncoder(response.data)
     val bareResp               = JsonProtocol.ResponseResult(response.id, responseDataJson)
     webConnection ! MessageHandler.WebMessage(JsonProtocol.encode(bareResp))
   }
@@ -77,7 +79,7 @@ class MessageHandler(val protocol: Protocol, val controller: ActorRef)
     webConnection: ActorRef,
     awaitingResponses: Map[Id, Method]
   ): Unit = {
-    val paramsJson = protocol.payloadsEncoder(req.params)
+    val paramsJson = getProtocol().payloadsEncoder(req.params)
     val bareReq    = JsonProtocol.Request(req.method.name, req.id, paramsJson)
     webConnection ! MessageHandler.WebMessage(JsonProtocol.encode(bareReq))
     context.become(
@@ -89,7 +91,7 @@ class MessageHandler(val protocol: Protocol, val controller: ActorRef)
     notification: Notification[Method, Any],
     webConnection: ActorRef
   ): Unit = {
-    val paramsJson = protocol.payloadsEncoder(notification.params)
+    val paramsJson = getProtocol().payloadsEncoder(notification.params)
     val bareNotification =
       JsonProtocol.Notification(notification.method.name, paramsJson)
     webConnection ! MessageHandler.WebMessage(
@@ -131,14 +133,14 @@ class MessageHandler(val protocol: Protocol, val controller: ActorRef)
       case Some(JsonProtocol.ResponseResult(id, result)) =>
         val maybeDecoded: Option[Any] = for {
           method   <- awaitingResponses.get(id)
-          decoder  <- protocol.getResultDecoder(method)
+          decoder  <- getProtocol().getResultDecoder(method)
           response <- decoder.buildResponse(id, result)
         } yield response
         maybeDecoded.foreach(controller ! _)
         context.become(established(webConnection, awaitingResponses - id))
 
       case Some(JsonProtocol.ResponseError(mayId, bareError)) =>
-        val error = protocol
+        val error = getProtocol()
           .resolveError(bareError.code)
           .getOrElse(
             Errors
@@ -165,15 +167,16 @@ class MessageHandler(val protocol: Protocol, val controller: ActorRef)
 
   private def resolveDecoder(
     methodName: String
-  ): Either[Error, ParamsDecoder[Method, Any]] =
+  ): Either[Error, ParamsDecoder[Method, Any]] = {
     for {
-      method <- protocol
+      method <- getProtocol()
         .resolveMethod(methodName)
-        .toRight(Errors.MethodNotFound)
-      decoder <- protocol
+        .toRight(protocolFactory.onMissingMethod())
+      decoder <- getProtocol()
         .getParamsDecoder(method)
         .toRight(Errors.InvalidRequest)
     } yield decoder
+  }
 }
 
 /** Control messages for the [[MessageHandler]] actor.

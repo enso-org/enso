@@ -1,5 +1,5 @@
 /** @file Colored border around icons and text indicating permissions. */
-import * as react from 'react'
+import * as React from 'react'
 
 // =============
 // === Types ===
@@ -44,7 +44,7 @@ export type Permissions = AdminPermissions | OwnerPermissions | RegularPermissio
 // =================
 
 /** Props for a {@link PermissionDisplay}. */
-export interface PermissionDisplayProps extends react.PropsWithChildren {
+export interface PermissionDisplayProps extends React.PropsWithChildren {
     permissions: Permissions
 }
 
