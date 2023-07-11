@@ -13,8 +13,8 @@ use crate::presenter;
 use crate::presenter::graph::AstNodeId;
 use crate::presenter::graph::ViewNodeId;
 use crate::presenter::searcher::component_browser::provider::ControllerComponentsProviderExt;
-
 use crate::presenter::searcher::SearcherPresenter;
+
 use enso_frp as frp;
 use enso_suggestion_database::documentation_ir::EntryDocumentation;
 use enso_suggestion_database::documentation_ir::Placeholder;
@@ -33,6 +33,7 @@ use ide_view::project::SearcherParams;
 // ==============
 
 pub mod provider;
+
 
 
 // ==============
