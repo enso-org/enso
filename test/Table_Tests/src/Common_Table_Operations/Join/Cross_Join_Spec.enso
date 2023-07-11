@@ -1,16 +1,17 @@
 from Standard.Base import all
+
+import Standard.Base.Errors.Common.Type_Error
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
-
-from Standard.Table import all hiding Table
-from Standard.Table.Errors import all
-
-from Standard.Database.Errors import Unsupported_Database_Operation
-
-from Standard.Test import Test, Problems
+import Standard.Table.Data.Join_Kind_Cross.Join_Kind_Cross
 import Standard.Test.Extensions
 
-from project.Common_Table_Operations.Util import expect_column_names, run_default_backend
+from Standard.Database.Errors import Unsupported_Database_Operation
+from Standard.Table import all hiding Table
+from Standard.Table.Errors import all
+from Standard.Test import Test, Problems
 
+from project.Common_Table_Operations.Util import expect_column_names, run_default_backend
 
 main = run_default_backend spec
 
@@ -18,8 +19,7 @@ spec setup =
     prefix = setup.prefix
     table_builder = setup.table_builder
     materialize = setup.materialize
-    db_todo = if setup.is_database.not then Nothing else "Table.cross_join is still WIP for the DB backend."
-    Test.group prefix+"Table.cross_join" pending=db_todo <|
+    Test.group prefix+"Table.cross_join" <|
         Test.specify "should allow to create a cross product of two tables in the right order" <|
             t1 = table_builder [["X", [1, 2]], ["Y", [4, 5]]]
             t2 = table_builder [["Z", ['a', 'b']], ["W", ['c', 'd']]]
@@ -76,16 +76,18 @@ spec setup =
 
         Test.specify "should ensure 1-1 mapping even with duplicate rows" <|
             t1 = table_builder [["X", [2, 1, 2, 2]], ["Y", [5, 4, 5, 5]]]
-            t2 = table_builder [["Z", ['a', 'a']]]
+            t2 = table_builder [["Z", ['a', 'b', 'a', 'b']]]
 
             t3 = t1.cross_join t2
             expect_column_names ["X", "Y", "Z"] t3
-            t3.row_count . should_equal 8
+            t3.row_count . should_equal 16
             r = materialize t3 . rows . map .to_vector
-            r.length . should_equal 8
+            r.length . should_equal 16
             r1 = [2, 5, 'a']
             r2 = [1, 4, 'a']
-            expected_rows = [r1, r1, r2, r2, r1, r1, r1, r1]
+            r3 = [2, 5, 'b']
+            r4 = [1, 4, 'b']
+            expected_rows = [r1, r3, r1, r3, r2, r4, r2, r4, r1, r3, r1, r3, r1, r3, r1, r3]
             case setup.is_database of
                 True -> r.should_contain_the_same_elements_as expected_rows
                 False -> r.should_equal expected_rows
@@ -149,4 +151,11 @@ spec setup =
             r4 = [100, 4, 'b', 'd']
             r5 = [100, 4, 'a', 'x']
             expected_rows = [r0, r1, r2, r3, r4, r5]
-            r.should_equal expected_rows
+            case setup.is_database of
+                True -> r.should_contain_the_same_elements_as expected_rows
+                False -> r.should_equal expected_rows
+
+        Test.specify "Cross join is not possible via call to .join" <|
+            t1 = table_builder [["X", [1, 2]], ["Y", [4, 5]]]
+            t2 = table_builder [["Z", ['a', 'b']], ["W", ['c', 'd']]]
+            Test.expect_panic_with (t1.join t2 join_kind=Join_Kind_Cross.Cross on=[]) Type_Error

@@ -79,7 +79,7 @@ type Test_Selection
          such comparisons, when mixed type storage is allowed or by coercing to
          the target type; others will fail with a type error.
        - supports_unicode_normalization: Specifies if the backend compares
-         strings taking Unicode Normalization into accout, i.e. whether
+         strings taking Unicode Normalization into account, i.e. whether
          's\u0301' is considered equal to 'ś'.
        - is_nan_and_nothing_distinct: Specifies if the backend is able to
          distinguish between a decimal NaN value and a missing value (Enso's
