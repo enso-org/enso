@@ -634,7 +634,6 @@ public abstract class InvokeMethodNode extends BaseNode {
     }
   }
 
-  @NonIdempotent
   @Specialization(
       guards = {
         "!warnings.hasWarnings(self)",
