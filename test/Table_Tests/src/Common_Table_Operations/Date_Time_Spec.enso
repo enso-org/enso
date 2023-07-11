@@ -316,18 +316,18 @@ spec setup =
             (t3.at "X").date_diff (t3.at "Y") Time_Period.Minute . to_vector . should_equal [135]
             (t3.at "X").date_diff (Time_Of_Day.new 10 04 0) Time_Period.Minute . to_vector . should_equal [-11]
 
-            (t3.at "X").date_diff (t3.at "Y") Time_Period.Second . to_vector . should_equal [135*60]
+            (t3.at "X").date_diff (t3.at "Y") Time_Period.Second . to_vector . should_equal [8120]
             (t3.at "X").date_diff (Time_Of_Day.new 10 15 12) Time_Period.Second . to_vector . should_equal [12]
 
-            (t3.at "X").date_diff (t3.at "Y") Time_Period.Millisecond . to_vector . should_equal [135*60*1000]
+            (t3.at "X").date_diff (t3.at "Y") Time_Period.Millisecond . to_vector . should_equal [8120*1000]
             (t3.at "X").date_diff (Time_Of_Day.new 10 15 12 34) Time_Period.Millisecond . to_vector . should_equal [12034]
 
-            (t3.at "X").date_diff (t3.at "Y") Time_Period.Microsecond . to_vector . should_equal [135*60*1000*1000]
+            (t3.at "X").date_diff (t3.at "Y") Time_Period.Microsecond . to_vector . should_equal [8120*1000*1000]
             (t3.at "X").date_diff (Time_Of_Day.new 10 15 12 34 56) Time_Period.Microsecond . to_vector . should_equal [12034056]
 
             case setup.test_selection.supports_nanoseconds_in_time of
                 True ->
-                    (t3.at "X").date_diff (t3.at "Y") Time_Period.Nanosecond . to_vector . should_equal [135*60*1000*1000]
+                    (t3.at "X").date_diff (t3.at "Y") Time_Period.Nanosecond . to_vector . should_equal [8120*1000*1000*1000]
                     (t3.at "X").date_diff (Time_Of_Day.new 10 15 12 34 56 78) Time_Period.Nanosecond . to_vector . should_equal [12034056078]
                 False ->
                     (t3.at "X").date_diff (t3.at "Y") Time_Period.Nanosecond . should_fail_with Unsupported_Database_Operation
