@@ -808,6 +808,8 @@ if __name__ == '__main__':
 
     template_bench_datas: List[TemplateBenchData] = \
         create_template_data(job_reports_per_branch, bench_labels)
+    template_bench_datas.sort(key=lambda data: data.id)
+
     jinja_data = JinjaData(
         since=since,
         until=until,
