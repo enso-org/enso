@@ -49,6 +49,7 @@ from datetime import datetime, timedelta, date
 from os import path
 from typing import List, Dict, Optional, Any, Union, Set
 from dataclasses import dataclass
+
 if not (sys.version_info.major >= 3 and sys.version_info.minor >= 7):
     print("ERROR: python version lower than 3.7")
     exit(1)
@@ -59,7 +60,6 @@ try:
 except ModuleNotFoundError as err:
     print("ERROR: One of pandas, numpy, or jinja2 packages not installed")
     exit(1)
-
 
 BENCH_RUN_NAME = "Benchmark Engine"
 DATE_FORMAT = "%Y-%m-%d"
@@ -116,12 +116,14 @@ class BenchmarkData:
     """
     Data for a single benchmark compiled from all the job reports.
     """
+
     @dataclass
     class Entry:
         score: float
         commit: Commit
         bench_run_url: str
         bench_run_event: str
+
     label: str
     """ Label for the benchmark, as reported by org.enso.interpreter.bench.BenchmarksRunner """
     entries: List[Entry]
@@ -274,6 +276,7 @@ class Cache:
     Cache is a directory filled with json files that have name of format <bench_run_id>.json, and
     in every json, there is `BenchReport` dataclass serialized.
     """
+
     def __init__(self, dirname: str):
         assert path.exists(dirname) and path.isdir(dirname)
         self._dir = dirname
@@ -492,6 +495,7 @@ def create_template_data(
     :param bench_labels:
     :return:
     """
+
     def pct_to_str(score_diff_perc: float) -> str:
         if not np.isnan(score_diff_perc):
             buff = "+" if score_diff_perc > 0 else ""
@@ -670,12 +674,12 @@ if __name__ == '__main__':
                             nargs="+",
                             default=["develop"],
                             help="List of branches to gather the benchmark results from. "
-                            "The default is ['develop']")
+                                 "The default is ['develop']")
     arg_parser.add_argument("-l", "--labels", action="store",
                             nargs="+",
                             default=set(),
                             help="List of labels to gather the benchmark results from."
-                            "The default behavior is to gather all the labels")
+                                 "The default behavior is to gather all the labels")
     arg_parser.add_argument("--compare",
                             nargs=2,
                             default=[],
@@ -766,11 +770,14 @@ if __name__ == '__main__':
 
         logging.debug("Sorting job_reports by commit date")
 
+
         def get_timestamp(job_report: JobReport) -> datetime:
             return datetime.strptime(
                 job_report.bench_run.head_commit.timestamp,
                 GH_DATE_FORMAT
             )
+
+
         job_reports.sort(key=lambda report: get_timestamp(report))
 
         if create_csv:
