@@ -25,5 +25,5 @@ export enum Presence {
 export const CLASS_NAME: Record<Presence, string> = {
     [Presence.present]: '',
     [Presence.deleting]: 'hidden',
-    [Presence.inserting]: 'opacity-50',
+    [Presence.inserting]: 'opacity-50 pointer-events-none-recursive',
 } as const

@@ -239,6 +239,12 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
                 setShouldOpenWhenReady(false)
                 break
             }
+            case projectEventModule.ProjectEventType.create: {
+                if (event.placeholderId === project.id) {
+                    setState(backendModule.ProjectState.openInProgress)
+                }
+                break
+            }
             case projectEventModule.ProjectEventType.showAsOpening: {
                 if (event.projectId === project.id) {
                     setState(backendModule.ProjectState.openInProgress)
@@ -294,7 +300,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
                 return () => {
                     continuePolling = false
                     if (handle != null) {
-                        clearTimeout(handle)
+                        window.clearTimeout(handle)
                     }
                 }
             }
@@ -335,7 +341,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
                 return () => {
                     continuePolling = false
                     if (handle != null) {
-                        clearTimeout(handle)
+                        window.clearTimeout(handle)
                     }
                 }
             }
@@ -688,9 +694,7 @@ function ProjectRow(
         } catch (error) {
             setStatus(presence.Presence.present)
             markItemAsVisible(key)
-            const message = `Unable to delete project: ${
-                errorModule.tryGetMessage(error) ?? 'unknown error.'
-            }`
+            const message = errorModule.tryGetMessage(error) ?? 'Unable to delete project.'
             toast.error(message)
             logger.error(message)
         }
@@ -704,7 +708,7 @@ function ProjectRow(
             }
             case projectEventModule.ProjectEventType.create: {
                 if (key === event.placeholderId) {
-                    if (backend.type !== backendModule.BackendType.remote) {
+                    if (backend.type === backendModule.BackendType.local) {
                         const message = 'Folders cannot be created on the local backend.'
                         toast.error(message)
                         logger.error(message)
@@ -719,7 +723,8 @@ function ProjectRow(
                             setStatus(presence.Presence.present)
                             const newItem: backendModule.ProjectAsset = {
                                 ...item,
-                                ...createdProject,
+                                id: createdProject.projectId,
+                                projectState: createdProject.state,
                             }
                             setItem(newItem)
                         } catch (error) {
@@ -831,7 +836,6 @@ function ProjectsTable(props: ProjectsTableProps) {
         doOpenIde,
         doCloseIde: rawDoCloseIde,
     } = props
-    const logger = loggerProvider.useLogger()
     const { backend } = backendProvider.useBackend()
     const { setModal } = modalProvider.useSetModal()
     const [items, setItems] = React.useState(rawItems)
@@ -895,7 +899,7 @@ function ProjectsTable(props: ProjectsTableProps) {
         [items]
     )
 
-    hooks.useEventHandler(projectListEvent, async event => {
+    hooks.useEventHandler(projectListEvent, event => {
         switch (event.type) {
             case projectListEventModule.ProjectListEventType.create: {
                 const projectName = getNewProjectName(event.templateId)
@@ -913,37 +917,10 @@ function ProjectsTable(props: ProjectsTableProps) {
                 }
                 setItems(oldProjectAssets => [placeholderItem, ...oldProjectAssets])
                 dispatchProjectEvent({
-                    type: projectEventModule.ProjectEventType.showAsOpening,
-                    projectId: dummyId,
+                    type: projectEventModule.ProjectEventType.create,
+                    placeholderId: dummyId,
+                    templateId: event.templateId,
                 })
-                try {
-                    // FIXME: individual rows should handle this?
-                    const createdProject = await backend.createProject({
-                        projectName,
-                        projectTemplateName: event.templateId ?? null,
-                        parentDirectoryId: directoryId,
-                    })
-                    const newItem: backendModule.ProjectAsset = {
-                        ...placeholderItem,
-                        type: backendModule.AssetType.project,
-                        title: createdProject.name,
-                        id: createdProject.projectId,
-                        projectState: createdProject.state,
-                    }
-                    setItems(oldItems =>
-                        oldItems.map(item => (item !== placeholderItem ? item : newItem))
-                    )
-                    dispatchProjectEvent({
-                        type: projectEventModule.ProjectEventType.open,
-                        projectId: createdProject.projectId,
-                    })
-                } catch (error) {
-                    const message = `Could not create new empty project: ${
-                        errorModule.tryGetMessage(error) ?? 'unknown error.'
-                    }`
-                    toast.error(message)
-                    logger.error(message)
-                }
                 break
             }
             case projectListEventModule.ProjectListEventType.delete: {
