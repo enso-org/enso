@@ -250,7 +250,7 @@ make_internal_generator_dialect =
     stddev_pop = ["STDDEV_POP", Base_Generator.make_function "stddev_pop"]
     stddev_samp = ["STDDEV_SAMP", Base_Generator.make_function "stddev_samp"]
     stats = [agg_median, agg_mode, agg_percentile, stddev_pop, stddev_samp]
-    date_ops = [make_extract_as_int "year", make_extract_as_int "quarter", make_extract_as_int "month", make_extract_as_int "week", make_extract_as_int "day", make_extract_as_int "hour", make_extract_as_int "minute", ["date_add", make_date_add], ["date_diff", make_date_diff]]
+    date_ops = [make_extract_as_int "year", make_extract_as_int "quarter", make_extract_as_int "month", make_extract_as_int "week", make_extract_as_int "day", make_extract_as_int "hour", make_extract_as_int "minute", make_extract_fractional_as_int "second", make_extract_fractional_as_int "millisecond" modulus=1000, make_extract_fractional_as_int "microsecond" modulus=1000, ["date_add", make_date_add], ["date_diff", make_date_diff]]
     special_overrides = [is_null, is_empty]
     my_mappings = text + counts + stats + first_last_aggregators + arith_extensions + bool + date_ops + special_overrides
     Base_Generator.base_dialect . extend_with my_mappings
@@ -498,6 +498,15 @@ make_extract_as_int enso_name sql_name=enso_name =
         as_int32 <| Builder.code "EXTRACT(" ++ sql_name ++ " FROM " ++ arg ++ ")"
 
 ## PRIVATE
+make_extract_fractional_as_int enso_name sql_name=enso_name modulus=Nothing =
+    Base_Generator.lift_unary_op enso_name arg->
+        result = as_int32 <| Builder.code "TRUNC(EXTRACT(" ++ sql_name ++ " FROM " ++ arg ++ "))"
+        case modulus of
+            Nothing -> result
+            _ : Integer ->
+                (result ++ (" % "+modulus.to_text)).paren
+
+## PRIVATE
 make_date_add arguments (metadata : Date_Period_Metadata) =
     if arguments.length != 2 then Error.throw (Illegal_State.Error "date_add expects exactly 2 sub expressions. This is a bug in Database library.") else
         expr = arguments.at 0
@@ -514,7 +523,7 @@ make_date_add arguments (metadata : Date_Period_Metadata) =
             Date_Period.Day ->
                 "days=>1"
             Time_Period.Day ->
-                "days=>1"
+                "hours=>24"
             Time_Period.Hour ->
                 "hours=>1"
             Time_Period.Minute ->
@@ -573,12 +582,15 @@ make_date_diff arguments (metadata : Date_Period_Metadata) =
             Date_Period.Quarter -> (extract_months ++ " / 3").paren
             Date_Period.Week _  -> (extract_days ++ " / 7").paren
             Date_Period.Day     -> extract_days
-            Time_Period.Day     -> extract_days
             ## EXTRACT HOURS/MINUTES would yield only a date part, but we need
                the total which is easiest achieved by EPOCH
             Time_Period.Hour    -> (extract_seconds ++ " / 3600").paren
             Time_Period.Minute  -> (extract_seconds ++ " / 60").paren
             Time_Period.Second  -> extract_seconds
+            Time_Period.Day     -> case metadata.input_value_type of
+                Value_Type.Date -> extract_days
+                # Time_Period.Day is treated as 24 hours, so for types that support time we use the same algorithm like for hours, but divide by 24.
+                _ -> (extract_seconds ++ " / (3600 * 24)").paren
             ## The EPOCH gives back just the integer amount of seconds, without
                the fractional part. So we get the fractional part using
                MILLISECONDS - but that does not give the _total_ just the

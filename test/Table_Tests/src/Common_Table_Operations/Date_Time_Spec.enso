@@ -51,8 +51,8 @@ spec setup =
 
     Test.group prefix+"Date-Time operations" pending=pending_datetime <|
         dates = table_builder [["A", [Date.new 2020 12 31, Date.new 2024 2 29, Date.new 1990 1 1, Nothing]], ["X", [2020, 29, 1, 100]]]
-        times = table_builder [["A", [Time_Of_Day.new 23 59 59 millisecond=567 nanosecond=987, Time_Of_Day.new 2 30 44 nanosecond=1002000, Time_Of_Day.new 0 0 0, Nothing]], ["X", [2020, 29, 1, 100]]]
-        datetimes = table_builder [["A", [Date_Time.new 2020 12 31 23 59 59 millisecond=567 nanosecond=987, Date_Time.new 2024 2 29 2 30 44 nanosecond=1002000, Date_Time.new 1990 1 1 0 0 0, Nothing]], ["X", [2020, 29, 1, 100]]]
+        times = table_builder [["A", [Time_Of_Day.new 23 59 59 millisecond=567 nanosecond=123, Time_Of_Day.new 2 30 44 nanosecond=1002000, Time_Of_Day.new 0 0 0, Nothing]], ["X", [2020, 29, 1, 100]]]
+        datetimes = table_builder [["A", [Date_Time.new 2020 12 31 23 59 59 millisecond=567 nanosecond=123, Date_Time.new 2024 2 29 2 30 44 nanosecond=1002000, Date_Time.new 1990 1 1 0 0 0, Nothing]], ["X", [2020, 29, 1, 100]]]
         Test.specify "should allow to get the year/month/day of a Date" <|
             t = dates
             a = t.at "A"
@@ -122,7 +122,11 @@ spec setup =
             a.date_part Time_Period.Second . to_vector . should_equal      [59, 44, 0, Nothing]
             a.date_part Time_Period.Millisecond . to_vector . should_equal [567, 1, 0, Nothing]
             a.date_part Time_Period.Microsecond . to_vector . should_equal [0,   2, 0, Nothing]
-            a.date_part Time_Period.Nanosecond . to_vector . should_equal  [987, 0, 0, Nothing]
+            case setup.test_selection.supports_nanoseconds_in_time of
+                True ->
+                    a.date_part Time_Period.Nanosecond . to_vector . should_equal  [123, 0, 0, Nothing]
+                False ->
+                    a.date_part Time_Period.Nanosecond . should_fail_with Unsupported_Database_Operation
 
             [a.date_part Time_Period.Second, a.date_part Time_Period.Millisecond, a.date_part Time_Period.Microsecond, a.date_part Time_Period.Nanosecond].each c->
                 Test.with_clue "The column "+c.name+" value type ("+c.value_type.to_display_text+") should be an integer: " <|
@@ -144,7 +148,11 @@ spec setup =
             a.date_part Date_Period.Week . to_vector . should_equal [53, 9, 1, Nothing]
             a.date_part Time_Period.Millisecond . to_vector . should_equal [567, 1, 0, Nothing]
             a.date_part Time_Period.Microsecond . to_vector . should_equal [0,   2, 0, Nothing]
-            a.date_part Time_Period.Nanosecond . to_vector . should_equal  [987, 0, 0, Nothing]
+            case setup.test_selection.supports_nanoseconds_in_time of
+                True ->
+                    a.date_part Time_Period.Nanosecond . to_vector . should_equal  [123, 0, 0, Nothing]
+                False ->
+                    a.date_part Time_Period.Nanosecond . should_fail_with Unsupported_Database_Operation
 
             [a.date_part Date_Period.Quarter, a.date_part Date_Period.Week, a.date_part Time_Period.Second, a.date_part Time_Period.Millisecond, a.date_part Time_Period.Microsecond, a.date_part Time_Period.Nanosecond].each c->
                 Test.with_clue "The column "+c.name+" value type ("+c.value_type.to_display_text+") should be an integer: " <|
