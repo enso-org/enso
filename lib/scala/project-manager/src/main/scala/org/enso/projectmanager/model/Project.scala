@@ -25,7 +25,7 @@ case class Project(
   kind: ProjectKind,
   created: OffsetDateTime,
   edition: Option[Editions.RawEdition],
+  path: File,
   lastOpened: Option[OffsetDateTime]      = None,
-  path: Option[File]                      = None,
   directoryCreationTime: Option[FileTime] = None
 )
