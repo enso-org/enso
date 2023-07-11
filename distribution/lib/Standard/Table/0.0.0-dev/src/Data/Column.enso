@@ -1364,7 +1364,7 @@ type Column
          differences in time calculations between backends, especially around
          unusual events like DST.
     @period Date_Time_Helpers.make_period_selector_for_column
-    date_add : (Column | Date | Date_Time | Time_Of_Day) -> Date_Period | Time_Period -> Column
+    date_add : (Column | Integer) -> Date_Period | Time_Period -> Column
     date_add self amount (period : Date_Period | Time_Period) =
         Value_Type.expect_type self .is_date_or_time "date/time" <|
             my_type = self.inferred_precise_value_type
