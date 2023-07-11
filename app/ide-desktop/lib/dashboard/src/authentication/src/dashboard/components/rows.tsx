@@ -47,11 +47,11 @@ function Rows<T>(props: RowsProps<T>) {
     const [spinnerClasses, setSpinnerClasses] = react.useState(SPINNER_INITIAL_CLASSES)
 
     const headerRow = (
-        <tr>
+        <tr className="flex">
             {columns.map(column => (
                 <th
                     key={column.id}
-                    className={`text-vs px-4 align-middle py-1 border-0 border-r whitespace-nowrap font-bold text-left ${
+                    className={`block text-vs px-4 align-middle py-1 border-0 border-r whitespace-nowrap font-bold text-left ${
                         column.widthClass ?? ''
                     }`}
                 >
@@ -73,16 +73,18 @@ function Rows<T>(props: RowsProps<T>) {
     }, [isLoading])
 
     const itemRows = isLoading ? (
-        <tr className="h-10">
-            <td colSpan={columns.length}>
+        <tr className="flex h-10 spinner">
+            <td colSpan={columns.length} className="block grow">
                 <div className="grid justify-around w-full">
                     <svg.Spinner size={LOADING_SPINNER_SIZE} className={spinnerClasses} />
                 </div>
             </td>
         </tr>
     ) : items.length === 0 ? (
-        <tr className="h-10">
-            <td colSpan={columns.length}>{placeholder}</td>
+        <tr className="flex h-10 placeholder px-4">
+            <td colSpan={columns.length} className="block grow">
+                {placeholder}
+            </td>
         </tr>
     ) : (
         items.map((item, index) => (
@@ -95,12 +97,12 @@ function Rows<T>(props: RowsProps<T>) {
                 onContextMenu={event => {
                     onContextMenu(item, event)
                 }}
-                className="h-10 transition duration-300 ease-in-out"
+                className="flex h-10 transition duration-300 ease-in-out rounded-full even:bg-gray-100 hover:bg-gray-200 focus:bg-gray-300"
             >
                 {columns.map(column => (
                     <td
                         key={column.id}
-                        className={`px-4 border-0 border-r vertical-align-middle ${
+                        className={`flex items-center px-4 border-0 border-r h-full ${
                             column.widthClass ?? ''
                         }`}
                     >

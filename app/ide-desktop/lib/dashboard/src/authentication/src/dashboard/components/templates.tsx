@@ -104,9 +104,9 @@ function TemplatesRender(props: TemplatesRenderProps) {
             onClick={() => {
                 onTemplateClick(null)
             }}
-            className="h-40 cursor-pointer"
+            className="h-35 cursor-pointer"
         >
-            <div className="flex h-full w-full border-dashed-custom rounded-2xl text-primary">
+            <div className="relative flex h-full w-full border-dashed-custom rounded-2xl text-primary transition-all hover:shadow-soft hover:scale-103-1/3 hover:translate-y-0.5 hover:z-10">
                 <div className="flex flex-col text-center items-center m-auto">
                     <img src={PlusCircledIcon} />
                     <p className="font-semibold text-sm">New empty project</p>
@@ -121,7 +121,7 @@ function TemplatesRender(props: TemplatesRenderProps) {
             {templates.map(template => (
                 <button
                     key={template.title}
-                    className="h-40 cursor-pointer"
+                    className="h-35 cursor-pointer"
                     onClick={() => {
                         onTemplateClick(template.id)
                     }}
@@ -130,7 +130,7 @@ function TemplatesRender(props: TemplatesRenderProps) {
                         style={{
                             background: template.background,
                         }}
-                        className="flex flex-col justify-end h-full w-full rounded-2xl overflow-hidden text-white text-left"
+                        className="relative flex flex-col justify-end h-full w-full rounded-2xl overflow-hidden text-white text-left transition-all hover:shadow-soft hover:scale-103-1/3 hover:translate-y-0.5 hover:z-10"
                     >
                         <div className="bg-black bg-opacity-30 px-4 py-2">
                             <h2 className="text-sm font-bold">{template.title}</h2>
@@ -223,7 +223,8 @@ function Templates(props: TemplatesProps) {
 
     return (
         <div className="mx-2">
-            <div className="flex items-center my-2">
+            {/* FIGMA MODE ONLY: `hidden` */}
+            <div className="flex items-center my-2 hidden">
                 <div className="w-4">
                     <div
                         className={`cursor-pointer transition-all ease-in-out ${
@@ -236,13 +237,15 @@ function Templates(props: TemplatesProps) {
                 </div>
                 <h1 className="text-xl font-bold self-center">Templates</h1>
             </div>
+            {/* FIGMA MODE ONLY */}
+            <div style={{ height: '9px' }} />
             <div
                 ref={containerRef}
-                className={`grid gap-2 grid-cols-fill-60 justify-center overflow-y-scroll scroll-hidden transition-all duration-300 ease-in-out px-3.5 ${
+                className={`grid gap-2 grid-cols-fill-60 justify-center overflow-y-scroll scroll-hidden transition-all duration-300 ease-in-out px-3 ${
                     isOpen ? `h-templates-custom ${shadowClass}` : 'h-0'
                 }`}
                 // FIGMA MODE ONLY
-                style={{ height: '210px' }}
+                style={{ height: '246px' }}
                 onScroll={updateShadowClass}
             >
                 <TemplatesRender templates={TEMPLATES} onTemplateClick={onTemplateClick} />

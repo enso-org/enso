@@ -122,30 +122,5 @@ body {
         height: 11rem;
       }
     }
-
-    .rounded-rows tr:nth-child(odd) > td {
-      --tw-bg-opacity: 1;
-      background-color: rgb(243 244 246 / var(--tw-bg-opacity));
-    }
-
-    .rounded-rows tr:hover > td {
-      --tw-bg-opacity: 1;
-      background-color: rgb(229 231 235 / var(--tw-bg-opacity));
-    }
-
-    .rounded-rows tr:focus > td {
-      --tw-bg-opacity: 1;
-      background-color: rgb(209 213 219 / var(--tw-bg-opacity));
-    }
-
-    .rounded-rows td:first-child {
-      border-top-left-radius: 9999px;
-      border-bottom-left-radius: 9999px;
-    }
-
-    .rounded-rows td:last-child {
-      border-top-right-radius: 9999px;
-      border-bottom-right-radius: 9999px;
-    }
   }
 }
