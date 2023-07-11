@@ -143,7 +143,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
-      @Shared("typesLib") @CachedLibrary(limit = "10") TypesLibrary typesLibrary,
+      @Shared("types") @CachedLibrary(limit = "10") TypesLibrary typesLibrary,
       @Shared("methodResolverNode") @Cached MethodResolverNode methodResolverNode,
       @Cached("symbol") UnresolvedSymbol cachedSymbol,
       @Cached("typesLibrary.getType(self)") Type cachedSelfTpe,
@@ -198,7 +198,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
-      @Shared("typesLib") @CachedLibrary(limit = "10") TypesLibrary typesLibrary,
+      @Shared("types") @CachedLibrary(limit = "10") TypesLibrary typesLibrary,
       @Shared("methodResolverNode") @Cached MethodResolverNode methodResolverNode) {
     Type selfTpe = typesLibrary.getType(self);
     Function function = resolveFunction(symbol, selfTpe, methodResolverNode);
@@ -368,8 +368,8 @@ public abstract class InvokeMethodNode extends BaseNode {
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
-      @Shared("typesLib") @CachedLibrary(limit = "10") TypesLibrary types,
-      @Shared("warnsLib") @CachedLibrary(limit = "10") WarningsLibrary warnings,
+      @Shared("types") @CachedLibrary(limit = "10") TypesLibrary types,
+      @Shared("warnings") @CachedLibrary(limit = "10") WarningsLibrary warnings,
       @Cached("resolveWarningFunction(self, symbol, types, warnings)") Function resolvedFunction,
       @Cached("resolvedFunction.getSchema()") FunctionSchema cachedSchema,
       @Cached("buildInvokeFunctionWithSelf()") InvokeFunctionNode warningFunctionNode) {
@@ -390,7 +390,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
-      @Shared("warnsLib") @CachedLibrary(limit = "10") WarningsLibrary warnings) {
+      @Shared("warnings") @CachedLibrary(limit = "10") WarningsLibrary warnings) {
     Object selfWithoutWarnings;
     Warning[] arrOfWarnings;
     try {
@@ -449,9 +449,9 @@ public abstract class InvokeMethodNode extends BaseNode {
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
-      @Shared("typesLib") @CachedLibrary(limit = "10") TypesLibrary methods,
+      @Shared("types") @CachedLibrary(limit = "10") TypesLibrary methods,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
-      @Shared("warnsLib") @CachedLibrary(limit = "10") WarningsLibrary warnings,
+      @Shared("warnings") @CachedLibrary(limit = "10") WarningsLibrary warnings,
       @Shared("methodResolverNode") @Cached MethodResolverNode preResolveMethod,
       @Bind("getPolyglotCallType(self, symbol, interop, preResolveMethod)")
           HostMethodCallNode.PolyglotCallType polyglotCallType,
@@ -504,8 +504,8 @@ public abstract class InvokeMethodNode extends BaseNode {
       Object self,
       Object[] arguments,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
-      @Shared("typesLib") @CachedLibrary(limit = "10") TypesLibrary types,
-      @Shared("warnsLib") @CachedLibrary(limit = "10") WarningsLibrary warnings,
+      @Shared("types") @CachedLibrary(limit = "10") TypesLibrary types,
+      @Shared("warnings") @CachedLibrary(limit = "10") WarningsLibrary warnings,
       @Shared("methodResolverNode") @Cached MethodResolverNode methodResolverNode) {
     try {
       var str = interop.asString(self);
@@ -535,8 +535,8 @@ public abstract class InvokeMethodNode extends BaseNode {
       Object self,
       Object[] arguments,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
-      @Shared("typesLib") @CachedLibrary(limit = "10") TypesLibrary types,
-      @Shared("warnsLib") @CachedLibrary(limit = "10") WarningsLibrary warnings,
+      @Shared("types") @CachedLibrary(limit = "10") TypesLibrary types,
+      @Shared("warnings") @CachedLibrary(limit = "10") WarningsLibrary warnings,
       @Shared("methodResolverNode") @Cached MethodResolverNode methodResolverNode) {
     var ctx = EnsoContext.get(this);
     var arrayType = ctx.getBuiltins().array();
@@ -560,8 +560,8 @@ public abstract class InvokeMethodNode extends BaseNode {
       Object self,
       Object[] arguments,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
-      @Shared("typesLib") @CachedLibrary(limit = "10") TypesLibrary types,
-      @Shared("warnsLib") @CachedLibrary(limit = "10") WarningsLibrary warnings,
+      @Shared("types") @CachedLibrary(limit = "10") TypesLibrary types,
+      @Shared("warnings") @CachedLibrary(limit = "10") WarningsLibrary warnings,
       @Shared("methodResolverNode") @Cached MethodResolverNode methodResolverNode) {
     var ctx = EnsoContext.get(this);
     var hashMapType = ctx.getBuiltins().map();
@@ -584,9 +584,9 @@ public abstract class InvokeMethodNode extends BaseNode {
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
-      @Shared("typesLib") @CachedLibrary(limit = "10") TypesLibrary types,
+      @Shared("types") @CachedLibrary(limit = "10") TypesLibrary types,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
-      @Shared("warnsLib") @CachedLibrary(limit = "10") WarningsLibrary warnings,
+      @Shared("warnings") @CachedLibrary(limit = "10") WarningsLibrary warnings,
       @Shared("methodResolverNode") @Cached MethodResolverNode methodResolverNode) {
     var ctx = EnsoContext.get(this);
     try {
@@ -615,9 +615,9 @@ public abstract class InvokeMethodNode extends BaseNode {
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
-      @Shared("typesLib") @CachedLibrary(limit = "10") TypesLibrary types,
+      @Shared("types") @CachedLibrary(limit = "10") TypesLibrary types,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
-      @Shared("warnsLib") @CachedLibrary(limit = "10") WarningsLibrary warnings,
+      @Shared("warnings") @CachedLibrary(limit = "10") WarningsLibrary warnings,
       @Shared("methodResolverNode") @Cached MethodResolverNode methodResolverNode) {
     var ctx = EnsoContext.get(this);
     try {
@@ -647,9 +647,9 @@ public abstract class InvokeMethodNode extends BaseNode {
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
-      @Shared("typesLib") @CachedLibrary(limit = "10") TypesLibrary types,
+      @Shared("types") @CachedLibrary(limit = "10") TypesLibrary types,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
-      @Shared("warnsLib") @CachedLibrary(limit = "10") WarningsLibrary warnings,
+      @Shared("warnings") @CachedLibrary(limit = "10") WarningsLibrary warnings,
       @Shared("methodResolverNode") @Cached MethodResolverNode methodResolverNode) {
     var ctx = EnsoContext.get(this);
     try {
@@ -688,9 +688,9 @@ public abstract class InvokeMethodNode extends BaseNode {
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
-      @Shared("typesLib") @CachedLibrary(limit = "10") TypesLibrary types,
+      @Shared("types") @CachedLibrary(limit = "10") TypesLibrary types,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
-      @Shared("warnsLib") @CachedLibrary(limit = "10") WarningsLibrary warnings,
+      @Shared("warnings") @CachedLibrary(limit = "10") WarningsLibrary warnings,
       @Shared("methodResolverNode") @Cached MethodResolverNode methodResolverNode) {
     var ctx = EnsoContext.get(this);
     try {
@@ -721,9 +721,9 @@ public abstract class InvokeMethodNode extends BaseNode {
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
-      @Shared("typesLib") @CachedLibrary(limit = "10") TypesLibrary types,
+      @Shared("types") @CachedLibrary(limit = "10") TypesLibrary types,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
-      @Shared("warnsLib") @CachedLibrary(limit = "10") WarningsLibrary warnings,
+      @Shared("warnings") @CachedLibrary(limit = "10") WarningsLibrary warnings,
       @Shared("methodResolverNode") @Cached MethodResolverNode methodResolverNode) {
     var ctx = EnsoContext.get(this);
     try {
@@ -752,9 +752,9 @@ public abstract class InvokeMethodNode extends BaseNode {
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
-      @Shared("typesLib") @CachedLibrary(limit = "10") TypesLibrary types,
+      @Shared("types") @CachedLibrary(limit = "10") TypesLibrary types,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
-      @Shared("warnsLib") @CachedLibrary(limit = "10") WarningsLibrary warnings,
+      @Shared("warnings") @CachedLibrary(limit = "10") WarningsLibrary warnings,
       @Shared("methodResolverNode") @Cached MethodResolverNode methodResolverNode) {
     var ctx = EnsoContext.get(this);
     try {
@@ -783,9 +783,9 @@ public abstract class InvokeMethodNode extends BaseNode {
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
-      @Shared("typesLib") @CachedLibrary(limit = "10") TypesLibrary methods,
+      @Shared("types") @CachedLibrary(limit = "10") TypesLibrary methods,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
-      @Shared("warnsLib") @CachedLibrary(limit = "10") WarningsLibrary warnings,
+      @Shared("warnings") @CachedLibrary(limit = "10") WarningsLibrary warnings,
       @Shared("methodResolverNode") @Cached MethodResolverNode resolverNode) {
     var ctx = EnsoContext.get(this);
     Function function = resolverNode.expectNonNull(self, ctx.getBuiltins().function(), symbol);
