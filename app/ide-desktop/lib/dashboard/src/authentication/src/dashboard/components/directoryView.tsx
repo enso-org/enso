@@ -247,6 +247,7 @@ function DirectoryView(props: DirectoryViewProps) {
         dispatchProjectListEvent({
             type: projectListEventModule.ProjectListEventType.create,
             templateId: null,
+            onSpinnerStateChange: null,
         })
     }, [/* should never change */ dispatchProjectListEvent])
 
