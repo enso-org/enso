@@ -115,8 +115,6 @@ impl display::Object for ProjectNameWithEnvironmentSelector {
 // === Project View Top Bar ===
 // ============================
 
-/// Defines a UI container for the window control buttons and the "go to dashboard" button. This is
-/// merely here to make use of the auto-layout functionality.
 #[derive(Clone, CloneRef, Debug)]
 #[allow(missing_docs)]
 pub struct ProjectViewTopBar {

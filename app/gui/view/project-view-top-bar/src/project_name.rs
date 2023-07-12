@@ -1,4 +1,5 @@
-//! This module provides a view for project's name which can be used to edit it.
+//! This module provides a view for project's name that changes color when project is changed since
+//! last snapshot.
 
 use ensogl::display::shape::*;
 use ensogl::prelude::*;
@@ -76,7 +77,6 @@ impl Animations {
 // ========================
 
 #[derive(Debug, Clone, CloneRef)]
-#[allow(missing_docs)]
 struct ProjectNameModel {
     display_object: display::object::Instance,
     overlay:        Rectangle,
