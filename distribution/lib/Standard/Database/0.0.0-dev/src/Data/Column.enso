@@ -1131,7 +1131,40 @@ type Column
        - case_sensitivity: Specifies if the text values should be compared case
          sensitively.
        - only_first: If True, only replace the first match.
-       - use_regex: If true, the term is used as a regular expression.
+
+       ! Backend Support
+
+         Each database backend supports different combinations of options:
+
+         Text:
+         +----------------+------------+----------+--------+
+         | case_sensitive | only_first | postgres | sqlite |
+         +----------------+------------+----------+--------+
+         |       t        |      f     |     ✓    |    ✓   |
+         |       t        |      t     |     ✓    |    ✓   |
+         |       f        |      f     |     ✓    |    ✗   |
+         |       f        |      t     |     ✓    |    ✓   |
+         +----------------+------------+----------+--------+
+
+         Regex:
+         +----------------+------------+----------+--------+
+         | case_sensitive | only_first | postgres | sqlite |
+         +----------------+------------+----------+--------+
+         |       t        |      f     |     ✓    |    ✗   |
+         |       t        |      t     |     ✓    |    ✗   |
+         |       f        |      f     |     ✓    |    ✗   |
+         |       f        |      t     |     ✓    |    ✗   |
+         +----------------+------------+----------+--------+
+
+         Text Column:
+         +----------------+------------+----------+--------+
+         | case_sensitive | only_first | postgres | sqlite |
+         +----------------+------------+----------+--------+
+         |       t        |      f     |     ✓    |    ✓   |
+         |       t        |      t     |     ✗    |    ✓   |
+         |       f        |      f     |     ✗    |    ✗   |
+         |       f        |      t     |     ✗    |    ✓   |
+         +----------------+------------+----------+--------+
 
        > Example
          Replace dashes with underscores.
@@ -1149,24 +1182,25 @@ type Column
              column.replace '"(.*?)"'.to_regex '($1)'
     replace : Text | Column | Regex -> Text | Column -> Case_Sensitivity -> Boolean -> Column
     replace self term="" new_text="" case_sensitivity=Case_Sensitivity.Default only_first=False =
-        Value_Type.expect_text self <|
-            term_name = case term of
-                _ : Text -> term
-                _ : Column -> term
-                _ : Regex -> term.pattern_string
-            new_name = self.naming_helpers.function_name "replace" [self, term_name, new_text]
-            use_regex_part = case term of
-                _ : Text -> "TEXT"
-                _ : Column -> "COLUMN"
-                _ : Regex -> "REGEX"
-            case_sensitivity_part = case case_sensitivity of
-                Case_Sensitivity.Default -> "CS"
-                Case_Sensitivity.Sensitive -> "CS"
-                Case_Sensitivity.Insensitive _ -> "CI"
-            only_first_part = if only_first then "ONLY_FIRST" else "ALL"
-            op_name = "REPLACE_" + use_regex_part + "_" + case_sensitivity_part + "_" + only_first_part
-            if_replace_op_supported self.connection.dialect op_name term case_sensitivity only_first <|
-                self.make_ternary_op op_name term new_text new_name
+        case_sensitivity.disallow_non_default_locale <|
+            Value_Type.expect_text self <|
+                term_name = case term of
+                    _ : Text -> term
+                    _ : Column -> term
+                    _ : Regex -> term.pattern_string
+                new_name = self.naming_helpers.function_name "replace" [self, term_name, new_text]
+                use_regex_part = case term of
+                    _ : Text -> "TEXT"
+                    _ : Column -> "COLUMN"
+                    _ : Regex -> "REGEX"
+                case_sensitivity_part = case case_sensitivity of
+                    Case_Sensitivity.Default -> "CS"
+                    Case_Sensitivity.Sensitive -> "CS"
+                    Case_Sensitivity.Insensitive _ -> "CI"
+                only_first_part = if only_first then "ONLY_FIRST" else "ALL"
+                op_name = "REPLACE_" + use_regex_part + "_" + case_sensitivity_part + "_" + only_first_part
+                if_replace_op_supported self.connection.dialect op_name term case_sensitivity only_first <|
+                    self.make_ternary_op op_name term new_text new_name
 
     ## Gets the year as a number from the date stored in the column.
 

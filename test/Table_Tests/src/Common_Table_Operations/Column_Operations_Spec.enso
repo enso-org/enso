@@ -1107,6 +1107,13 @@ spec setup =
                     vt3.should_be_a (Value_Type.Char ...)
                     vt3.variable_length.should_be_true
 
+        if setup.is_database then
+            t4 = table_builder [["A", ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot"]], ["B", ["A","O","a","E","o","O"]], ["C", [1,2,3,4,5,6]], ["D", ['',Nothing,'',Nothing,'','']]]
+            a = t4.at "A"
+            Test.specify "should not allow Case_Sensitivity.Insensitive with a non-default locale" <|
+                locale = Locale.new "en" "GB" "UTF-8"
+                a.replace 'asdf' 'zxcv' case_sensitivity=(Case_Sensitivity.Insensitive locale) . should_fail_with Illegal_Argument
+
     Test.group prefix+"Column Operations - Text Trim" <|
         t5 = table_builder [["A", [" A ", ' \t\n\rA\r\n\t ', "xxxAxx"]], ["B", [" ",' \t',"x"]], ["C", [1,2,3]]]
         a = t5.at "A"
