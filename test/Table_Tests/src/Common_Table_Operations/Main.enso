@@ -96,25 +96,25 @@ type Test_Selection
     Config supports_case_sensitive_columns=True order_by=True natural_ordering=False case_insensitive_ordering=True order_by_unicode_normalization_by_default=False case_insensitive_ascii_only=False take_drop=True allows_mixed_type_comparisons=True supports_unicode_normalization=False is_nan_and_nothing_distinct=True distinct_returns_first_row_from_group_if_ordered=True date_time=True fixed_length_text_columns=False supports_decimal_type=False
 
 spec setup =
-    Add_Row_Number_Spec.spec setup
-    Aggregate_Spec.spec setup
-    Column_Operations_Spec.spec setup
-    Conversion_Spec.spec setup
     Core_Spec.spec setup
-    Cross_Join_Spec.spec setup
-    Cross_Tab_Spec.spec setup
+    Select_Columns_Spec.spec setup
+    Column_Operations_Spec.spec setup
     Date_Time_Spec.spec setup
-    Distinct_Spec.spec setup
-    Expression_Spec.spec detailed=False setup
+    Conversion_Spec.spec setup
+    Aggregate_Spec.spec setup
     Filter_Spec.spec setup
-    Integration_Tests.spec setup
-    Join_Spec.spec setup
     Missing_Values_Spec.spec setup
     Order_By_Spec.spec setup
-    Select_Columns_Spec.spec setup
     Take_Drop_Spec.spec setup
-    Transpose_Spec.spec setup
-    Union_Spec.spec setup
+    Expression_Spec.spec detailed=False setup
+    Join_Spec.spec setup
+    Cross_Join_Spec.spec setup
     Zip_Spec.spec setup
+    Union_Spec.spec setup
+    Distinct_Spec.spec setup
+    Cross_Tab_Spec.spec setup
+    Transpose_Spec.spec setup
+    Add_Row_Number_Spec.spec setup
+    Integration_Tests.spec setup
 
 main = run_default_backend spec
