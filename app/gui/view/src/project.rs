@@ -29,6 +29,7 @@ use ensogl_component::text;
 use ensogl_component::text::selection::Selection;
 use ensogl_hardcoded_theme::Theme;
 use ide_view_graph_editor::NodeSource;
+use ide_view_project_view_top_bar::window_control_buttons;
 use ide_view_project_view_top_bar::ProjectViewTopBar;
 
 
@@ -276,11 +277,9 @@ impl Model {
         project_view_top_bar_size: Vector2,
     ) {
         let top_left = Vector2(-scene_shape.width, scene_shape.height) / 2.0;
-        let project_view_top_bar_origin = Vector2(
-            0.0,
-            ide_view_project_view_top_bar::window_control_buttons::MACOS_TRAFFIC_LIGHTS_VERTICAL_CENTER
-                - project_view_top_bar_size.y / 2.0,
-        );
+        let buttons_y = window_control_buttons::MACOS_TRAFFIC_LIGHTS_VERTICAL_CENTER;
+        let y = buttons_y - project_view_top_bar_size.y / 2.0;
+        let project_view_top_bar_origin = Vector2(0.0, y);
         self.top_bar.set_xy(top_left + project_view_top_bar_origin);
     }
 
