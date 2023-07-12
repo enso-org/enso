@@ -52,6 +52,12 @@
         "configuration": "./src/main/resources/org/enso/tools/enso4igv/enso.tmLanguage.json"
       }
     ],
+    "netbeans.documentSelectors": [
+      {
+        "language": "enso",
+        "pattern": "**/*.enso"
+      }
+    ],
     "grammars": [
       {
         "language": "enso",
