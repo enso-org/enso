@@ -261,7 +261,7 @@ postgres_specific_spec connection db_name setup =
             do_round 231 . should_be_a Decimal
             do_round 231 -1 . should_be_a Decimal
 
-    Test.group "replace: literal pattern and replacementasdfasdf" <|
+    Test.group "replace: literal pattern and replacement" <|
         col0 = table_builder [["x", ['hello Hello', 'hello hello', 'HELLO HELLO']]] . at "x"
         col1 = table_builder [["x", ['a[bcd] A[bCd] a[bcd]', 'abac ad Ab aCAd']]] . at "x"
 
@@ -287,7 +287,6 @@ postgres_specific_spec connection db_name setup =
 
             col1.replace 'a[bcd]' 'hey' case_sensitivity=Case_Sensitivity.Insensitive only_first=True . to_vector . should_equal ['hey A[bCd] a[bcd]', 'abac ad Ab aCAd']
 
-
         Test.specify "case_sensitivity=sensitive/default use_regex=True only_first=false"
             col1.replace 'a[bcd]'.to_regex 'hey' . to_vector . should_equal ['a[bcd] A[bCd] a[bcd]', 'heyhey hey Ab aCAd']
 
@@ -305,7 +304,7 @@ postgres_specific_spec connection db_name setup =
             col = table_builder [["x", [regex]]] . at "x"
             col.replace regex "asdf" . to_vector . should_equal ["asdf"]
 
-    Test.group "replace: pattern and replacement columnsasdfasdf" <|
+    Test.group "replace: pattern and replacement columns" <|
         table = table_builder [["x", ['hello Hello', 'hello hello', 'HELLO HELLO', 'a[bcd] A[bCd] a[bcd]', 'abac ad Ab aCAd']], ["patterns", ['hello', 'hello', 'hello', 'a[bcd]', 'a[bcd]']], ["replacements", ['bye', 'bye', 'bye', 'hey', 'hey']]]
         col = table.at "x"
         patterns = table.at "patterns"
