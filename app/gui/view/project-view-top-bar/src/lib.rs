@@ -168,6 +168,11 @@ impl ProjectViewTopBar {
         init.emit(());
         self
     }
+
+    /// Access the project name view directly.
+    pub fn project_name(&self) -> &ProjectName {
+        &self.project_name_with_environment_selector.project_name
+    }
 }
 
 impl display::Object for ProjectViewTopBar {

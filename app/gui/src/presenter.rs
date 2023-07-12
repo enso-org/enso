@@ -72,8 +72,7 @@ impl Model {
         // displaying a placeholder on the scene during loading.
         let project_view = self.view.project();
         let status_bar = self.view.status_bar().clone_ref();
-        let project_name =
-            &project_view.top_bar().project_name_with_environment_selector.project_name;
+        let project_name = project_view.top_bar().project_name();
         project_name.set_name(project_model.name().to_string());
 
         let status_notifications = self.controller.status_notifications().clone_ref();

@@ -153,7 +153,7 @@ impl Model {
     fn save_project_snapshot(&self) {
         let controller = self.controller.clone_ref();
         let project_name =
-            self.view.top_bar().project_name_with_environment_selector.project_name.clone_ref();
+            self.view.top_bar().project_name().clone_ref();
         executor::global::spawn(async move {
             if let Err(err) = controller.save_project_snapshot().await {
                 error!("Error while saving project snapshot: {err}");
@@ -190,8 +190,8 @@ impl Model {
 
     fn restore_project_snapshot(&self) {
         let controller = self.controller.clone_ref();
-        let project_name =
-            self.view.top_bar().project_name_with_environment_selector.project_name.clone_ref();
+        let top_bar = self.view.top_bar();
+        let project_name = top_bar.project_name().clone_ref();
         executor::global::spawn(async move {
             if let Err(err) = controller.restore_project_snapshot().await {
                 error!("Error while restoring project snapshot: {err}");
@@ -204,8 +204,7 @@ impl Model {
     fn set_project_changed(&self, changed: bool) {
         self.view
             .top_bar()
-            .project_name_with_environment_selector
-            .project_name
+            .project_name()
             .set_project_changed(changed);
     }
 
