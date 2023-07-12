@@ -201,6 +201,28 @@ type Time_Of_Day
     second : Integer
     second self = @Builtin_Method "Time_Of_Day.second"
 
+    ## Get the millisecond portion of the time of day.
+
+       > Example
+         Get the current millisecond.
+
+             from Standard.Base import Time_Of_Day
+
+             example_millisecond = Time_Of_Day.now.millisecond
+    millisecond : Integer
+    millisecond self = @Builtin_Method "Time_Of_Day.millisecond"
+
+    ## Get the microsecond portion of the time of day.
+
+       > Example
+         Get the current microsecond.
+
+             from Standard.Base import Time_Of_Day
+
+             example_microsecond = Time_Of_Day.now.microsecond
+    microsecond : Integer
+    microsecond self = @Builtin_Method "Time_Of_Day.microsecond"
+
     ## Get the nanosecond portion of the time of day.
 
        > Example
@@ -246,6 +268,44 @@ type Time_Of_Day
     to_date_time : Date -> Time_Zone -> Date_Time
     to_date_time self date (zone=Time_Zone.system) =
         Time_Utils.make_zoned_date_time date self zone
+
+
+    ## Returns a requested time part as integer.
+    date_part : Time_Period -> Integer
+    date_part self (period : Time_Period) =
+        case period of
+            Time_Period.Day -> self.day
+            Time_Period.Hour -> self.hour
+            Time_Period.Minute -> self.minute
+            Time_Period.Second -> self.second
+            Time_Period.Millisecond -> self.millisecond
+            Time_Period.Microsecond -> self.microsecond
+            Time_Period.Nanosecond -> self.nanosecond
+
+    ## Computes a time difference between the two times of day.
+
+       It returns an integer expressing how many periods fit between the two
+       times of day.
+
+       The difference will be positive if `end` is greater than `self`.
+
+       Arguments:
+       - end: A time of day to compute the difference from.
+       - period: The period to compute the difference in.
+    date_diff : Time_Of_Day -> Time_Period -> Integer
+    date_diff self (end : Time_Of_Day) (period : Time_Period) =
+        java_unit = period.to_java_unit
+        Time_Utils.unit_time_difference java_unit self end
+
+    ## Shifts the time of day by a specified period.
+
+       Arguments:
+       - amount: An integer specifying by how many periods to shift the time.
+       - period: The period by which to shift.
+    date_add : Integer -> Time_Period -> Time_Of_Day
+    date_add self (amount : Integer) (period : Time_Period) =
+        java_unit = period.to_java_unit
+        java_unit.addTo self amount
 
     ## ALIAS Add Duration
        Add the specified amount of time to this instant to get a new instant.

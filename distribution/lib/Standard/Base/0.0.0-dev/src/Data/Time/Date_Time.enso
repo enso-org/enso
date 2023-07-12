@@ -312,6 +312,28 @@ type Date_Time
     second : Integer
     second self = @Builtin_Method "Date_Time.second"
 
+    ## Get the millisecond portion of the time.
+
+       > Example
+         Get the current millisecond.
+
+             from Standard.Base import Date_Time
+
+             example_millisecond = Date_Time.now.millisecond
+    millisecond : Integer
+    millisecond self = @Builtin_Method "Date_Time.millisecond"
+
+    ## Get the microsecond portion of the time.
+
+       > Example
+         Get the current microsecond.
+
+             from Standard.Base import Date_Time
+
+             example_microsecond = Date_Time.now.microsecond
+    microsecond : Integer
+    microsecond self = @Builtin_Method "Date_Time.microsecond"
+
     ## Get the nanosecond portion of the time.
 
        > Example
@@ -494,6 +516,58 @@ type Date_Time
     at_zone : Time_Zone -> Date_Time
     at_zone self zone =
         Time_Utils.with_zone_same_instant self zone
+
+    ## Returns a requested date-time part as integer.
+
+       Produces a warning for a Date_Time that is before epoch start.
+       See `Date_Time.enso_epoch_start`.
+    date_part : Date_Period | Time_Period -> Integer
+    date_part self (period : Date_Period | Time_Period) =
+        case period of
+            Date_Period.Year -> self.year
+            Date_Period.Quarter -> self.quarter
+            Date_Period.Month -> self.month
+            Date_Period.Week -> self.week_of_year locale=Nothing
+            Date_Period.Day -> self.day
+            Time_Period.Day -> self.day
+            Time_Period.Hour -> self.hour
+            Time_Period.Minute -> self.minute
+            Time_Period.Second -> self.second
+            Time_Period.Millisecond -> self.millisecond
+            Time_Period.Microsecond -> self.microsecond
+            Time_Period.Nanosecond -> self.nanosecond
+
+    ## Computes a time difference between the two date-times.
+
+       It returns an integer expressing how many periods fit between the two
+       date-times.
+
+       The difference will be positive if `end` is greater than `self`.
+
+       Produces a warning for a Date_Time that is before epoch start.
+       See `Date_Time.enso_epoch_start`.
+
+       Arguments:
+       - end: A date-time to compute the difference from.
+       - period: The period to compute the difference in.
+    date_diff : Date_Time -> Date_Period | Time_Period -> Integer
+    date_diff self (end : Date_Time) (period : Date_Period | Time_Period) = ensure_in_epoch self <|
+        java_unit = period.to_java_unit
+        Time_Utils.unit_datetime_difference java_unit self end
+
+    ## Shifts the date-time by a specified period.
+
+       Produces a warning for a Date_Time that is before epoch start.
+       See `Date_Time.enso_epoch_start`.
+
+       Arguments:
+       - amount: An integer specifying by how many periods to shift the
+         date-time.
+       - period: The period by which to shift.
+    date_add : Integer -> Date_Period | Time_Period -> Date_Time
+    date_add self (amount : Integer) (period : Date_Period | Time_Period) = ensure_in_epoch self <|
+        java_unit = period.to_java_unit
+        java_unit.addTo self amount
 
     ## ALIAS Add Period, Add Duration
        Add the specified amount of time to this instant to produce a new instant.
