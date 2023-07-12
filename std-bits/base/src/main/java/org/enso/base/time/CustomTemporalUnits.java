@@ -11,11 +11,13 @@ import java.time.temporal.TemporalUnit;
 public class CustomTemporalUnits {
   /**
    * A unit that represents a 24-hour period.
-   * <p>
-   * It will behave differently from DAYS if DST is involved in time-supporting Temporal values. However, if a
-   * pure-date-based Temporal value is provided (one that does not support time), it will act exactly as DAYS.
+   *
+   * <p>It will behave differently from DAYS if DST is involved in time-supporting Temporal values.
+   * However, if a pure-date-based Temporal value is provided (one that does not support time), it
+   * will act exactly as DAYS.
    */
   public static final TemporalUnit DAY_AS_24_HOURS = new DayAs24Hours();
+
   public static final TemporalUnit QUARTERS = new Quarters();
 
   private static class DayAs24Hours implements TemporalUnit {

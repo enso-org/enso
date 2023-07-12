@@ -7,11 +7,14 @@ import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.error.UnexpectedTypeException;
 import org.graalvm.polyglot.Context;
 
-public abstract class GenericBinaryObjectMapOperation<InputType, InputStorageType extends Storage<InputType>,
-    OutputType> extends MapOperation<InputType, InputStorageType> {
+public abstract class GenericBinaryObjectMapOperation<
+        InputType, InputStorageType extends Storage<InputType>, OutputType>
+    extends MapOperation<InputType, InputStorageType> {
 
-  protected GenericBinaryObjectMapOperation(String name, Class<InputType> inputTypeClass,
-                                            Class<? extends InputStorageType> inputStorageTypeClass) {
+  protected GenericBinaryObjectMapOperation(
+      String name,
+      Class<InputType> inputTypeClass,
+      Class<? extends InputStorageType> inputStorageTypeClass) {
     super(name);
     this.inputTypeClass = inputTypeClass;
     this.inputStorageTypeClass = inputStorageTypeClass;
@@ -25,7 +28,8 @@ public abstract class GenericBinaryObjectMapOperation<InputType, InputStorageTyp
   protected abstract OutputType run(InputType value, InputType other);
 
   @Override
-  public Storage<?> runMap(InputStorageType storage, Object arg, MapOperationProblemBuilder problemBuilder) {
+  public Storage<?> runMap(
+      InputStorageType storage, Object arg, MapOperationProblemBuilder problemBuilder) {
     arg = Polyglot_Utils.convertPolyglotValue(arg);
     if (arg == null) {
       int n = storage.size();
@@ -49,12 +53,14 @@ public abstract class GenericBinaryObjectMapOperation<InputType, InputStorageTyp
       }
       return builder.seal();
     } else {
-      throw new UnexpectedTypeException("a " + inputTypeClass.getName() + " but got " + arg.getClass().getName());
+      throw new UnexpectedTypeException(
+          "a " + inputTypeClass.getName() + " but got " + arg.getClass().getName());
     }
   }
 
   @Override
-  public Storage<?> runZip(InputStorageType storage, Storage<?> arg, MapOperationProblemBuilder problemBuilder) {
+  public Storage<?> runZip(
+      InputStorageType storage, Storage<?> arg, MapOperationProblemBuilder problemBuilder) {
     if (inputStorageTypeClass.isInstance(arg)) {
       InputStorageType otherCasted = inputStorageTypeClass.cast(arg);
       int n = storage.size();
@@ -88,7 +94,11 @@ public abstract class GenericBinaryObjectMapOperation<InputType, InputStorageTyp
             OutputType result = run(left, inputTypeClass.cast(right));
             builder.append(result);
           } else {
-            throw new UnexpectedTypeException("Got a mixed storage where values were assumed to be of type " + inputTypeClass.getName() + ", but got a value of type " + right.getClass().getName());
+            throw new UnexpectedTypeException(
+                "Got a mixed storage where values were assumed to be of type "
+                    + inputTypeClass.getName()
+                    + ", but got a value of type "
+                    + right.getClass().getName());
           }
         }
 
@@ -96,7 +106,8 @@ public abstract class GenericBinaryObjectMapOperation<InputType, InputStorageTyp
       }
       return builder.seal();
     } else {
-      throw new UnexpectedTypeException("a " + inputStorageTypeClass.getName() + " or a mixed storage");
+      throw new UnexpectedTypeException(
+          "a " + inputStorageTypeClass.getName() + " or a mixed storage");
     }
   }
 }

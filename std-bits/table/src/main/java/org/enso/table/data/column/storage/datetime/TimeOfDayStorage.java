@@ -1,5 +1,7 @@
 package org.enso.table.data.column.storage.datetime;
 
+import java.time.Duration;
+import java.time.LocalTime;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.ObjectBuilder;
 import org.enso.table.data.column.builder.TimeOfDayBuilder;
@@ -11,9 +13,6 @@ import org.enso.table.data.column.storage.ObjectStorage;
 import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
-
-import java.time.Duration;
-import java.time.LocalTime;
 
 public final class TimeOfDayStorage extends SpecializedStorage<LocalTime> {
   /**
@@ -36,8 +35,8 @@ public final class TimeOfDayStorage extends SpecializedStorage<LocalTime> {
     t.add(DatePartExtractors.microsecond());
     t.add(DatePartExtractors.nanosecond());
     t.add(
-        new GenericBinaryObjectMapOperation<LocalTime, SpecializedStorage<LocalTime>, Duration>(Maps.SUB,
-            LocalTime.class, TimeOfDayStorage.class) {
+        new GenericBinaryObjectMapOperation<LocalTime, SpecializedStorage<LocalTime>, Duration>(
+            Maps.SUB, LocalTime.class, TimeOfDayStorage.class) {
           @Override
           protected Builder createOutputBuilder(int size) {
             return new ObjectBuilder(size);
@@ -47,8 +46,7 @@ public final class TimeOfDayStorage extends SpecializedStorage<LocalTime> {
           protected Duration run(LocalTime value, LocalTime other) {
             return Duration.between(other, value);
           }
-        }
-    );
+        });
     return t;
   }
 
