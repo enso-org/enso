@@ -258,16 +258,17 @@ class LanguageServerController(
     val updatedClients = clients - clientId
     if (updatedClients.isEmpty) {
       logger.debug("Delaying shutdown for project {}.", project.id)
-      val scheduledShutdown = shutdownTimeout.orElse(
-        Some(
-          context.system.scheduler
-            .scheduleOnce(
-              timeoutConfig.shutdownTimeout,
-              self,
-              ScheduledShutdown(maybeRequester)
-            )
+      val scheduledShutdown =
+        shutdownTimeout.orElse(
+          Some(
+            context.system.scheduler
+              .scheduleOnce(
+                timeoutConfig.delayedShutdownTimeout,
+                self,
+                ScheduledShutdown(maybeRequester)
+              )
+          )
         )
-      )
       context.become(
         supervising(
           connectionInfo,
