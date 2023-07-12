@@ -524,18 +524,18 @@ type Date_Time
     date_part : Date_Period | Time_Period -> Integer
     date_part self (period : Date_Period | Time_Period) =
         case period of
-            Date_Period.Year -> self.year
-            Date_Period.Quarter -> self.quarter
-            Date_Period.Month -> self.month
-            Date_Period.Week -> self.week_of_year locale=Nothing
-            Date_Period.Day -> self.day
-            Time_Period.Day -> self.day
-            Time_Period.Hour -> self.hour
-            Time_Period.Minute -> self.minute
-            Time_Period.Second -> self.second
+            Date_Period.Year        -> self.year
+            Date_Period.Quarter     -> self.quarter
+            Date_Period.Month       -> self.month
+            Date_Period.Week _      -> self.week_of_year locale=Nothing
+            Date_Period.Day         -> self.day
+            Time_Period.Day         -> self.day
+            Time_Period.Hour        -> self.hour
+            Time_Period.Minute      -> self.minute
+            Time_Period.Second      -> self.second
             Time_Period.Millisecond -> self.millisecond
             Time_Period.Microsecond -> self.microsecond
-            Time_Period.Nanosecond -> self.nanosecond
+            Time_Period.Nanosecond  -> self.nanosecond
 
     ## Computes a time difference between the two date-times.
 

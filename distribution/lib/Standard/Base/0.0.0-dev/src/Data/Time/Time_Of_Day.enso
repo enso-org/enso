@@ -274,13 +274,13 @@ type Time_Of_Day
     date_part : Time_Period -> Integer
     date_part self (period : Time_Period) =
         case period of
-            Time_Period.Day -> self.day
-            Time_Period.Hour -> self.hour
-            Time_Period.Minute -> self.minute
-            Time_Period.Second -> self.second
+            Time_Period.Day         -> self.day
+            Time_Period.Hour        -> self.hour
+            Time_Period.Minute      -> self.minute
+            Time_Period.Second      -> self.second
             Time_Period.Millisecond -> self.millisecond
             Time_Period.Microsecond -> self.microsecond
-            Time_Period.Nanosecond -> self.nanosecond
+            Time_Period.Nanosecond  -> self.nanosecond
 
     ## Computes a time difference between the two times of day.
 

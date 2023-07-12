@@ -332,11 +332,11 @@ type Date
     date_part : Date_Period -> Integer
     date_part self (period : Date_Period) =
         case period of
-            Date_Period.Year -> self.year
+            Date_Period.Year    -> self.year
             Date_Period.Quarter -> self.quarter
-            Date_Period.Month -> self.month
-            Date_Period.Week -> self.week_of_year locale=Nothing
-            Date_Period.Day -> self.day
+            Date_Period.Month   -> self.month
+            Date_Period.Week _  -> self.week_of_year locale=Nothing
+            Date_Period.Day     -> self.day
 
     ## Computes a time difference between the two dates.
 
