@@ -4,7 +4,7 @@ import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
 
-from project.Data.Boolean import True, False
+from project.Data.Boolean import Boolean, False, True
 
 polyglot java import java.lang.ClassCastException
 polyglot java import org.enso.base.CompareException

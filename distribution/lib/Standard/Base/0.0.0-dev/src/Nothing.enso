@@ -2,7 +2,7 @@ import project.Any.Any
 import project.Data.Numbers.Integer
 import project.Data.Text.Text
 
-from project.Data.Boolean import Boolean, True
+from project.Data.Boolean import Boolean, False, True
 
 ## The type that has only a singleton value. Nothing in Enso is used as an
    universal value to indicate the lack of presence of a value.

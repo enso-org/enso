@@ -463,7 +463,7 @@ object PackageRepository {
     ): Either[Error, Unit] =
       if (loadedComponents.contains(pkg.libraryName)) Right(())
       else {
-        pkg.config.componentGroups match {
+        pkg.getConfig().componentGroups match {
           case Left(err) =>
             Left(Error.PackageLoadingError(err.getMessage()))
           case Right(componentGroups) =>
@@ -760,7 +760,7 @@ object PackageRepository {
       .map(v => Editions.Raw.Edition(parent = Some(v)))
       .orElse(
         projectPackage
-          .flatMap(_.config.edition)
+          .flatMap(_.getConfig().edition)
       )
       .getOrElse(DefaultEdition.getDefaultEdition)
 
@@ -777,7 +777,7 @@ object PackageRepository {
         languageHome        = homeManager,
         edition             = edition,
         preferLocalLibraries =
-          projectPackage.exists(_.config.preferLocalLibraries)
+          projectPackage.exists(_.getConfig().preferLocalLibraries)
       )
     new Default(
       resolvingLibraryProvider,

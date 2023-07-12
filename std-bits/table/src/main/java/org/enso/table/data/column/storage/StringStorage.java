@@ -13,6 +13,7 @@ import org.enso.table.data.column.operation.map.text.StringIsInOp;
 import org.enso.table.data.column.operation.map.text.StringStringOp;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
+import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
 import java.util.BitSet;
@@ -83,12 +84,15 @@ public final class StringStorage extends SpecializedStorage<String> {
               MapOperationProblemBuilder problemBuilder) {
             BitSet r = new BitSet();
             BitSet missing = new BitSet();
+            Context context = Context.getCurrent();
             for (int i = 0; i < storage.size(); i++) {
               if (storage.getItem(i) == null) {
                 missing.set(i);
               } else if (arg instanceof String s && Text_Utils.equals(storage.getItem(i), s)) {
                 r.set(i);
               }
+
+              context.safepoint();
             }
             return new BoolStorage(r, missing, storage.size(), false);
           }
@@ -100,6 +104,7 @@ public final class StringStorage extends SpecializedStorage<String> {
               MapOperationProblemBuilder problemBuilder) {
             BitSet r = new BitSet();
             BitSet missing = new BitSet();
+            Context context = Context.getCurrent();
             for (int i = 0; i < storage.size(); i++) {
               if (storage.getItem(i) == null || i >= arg.size() || arg.isNa(i)) {
                 missing.set(i);
@@ -107,6 +112,8 @@ public final class StringStorage extends SpecializedStorage<String> {
                   && Text_Utils.equals(storage.getItem(i), s)) {
                 r.set(i);
               }
+
+              context.safepoint();
             }
             return new BoolStorage(r, missing, storage.size(), false);
           }
@@ -116,11 +123,14 @@ public final class StringStorage extends SpecializedStorage<String> {
           @Override
           protected BoolStorage run(SpecializedStorage<String> storage) {
             BitSet r = new BitSet();
+            Context context = Context.getCurrent();
             for (int i = 0; i < storage.size; i++) {
               String s = storage.data[i];
               if (s == null || s.isEmpty()) {
                 r.set(i);
               }
+
+              context.safepoint();
             }
             return new BoolStorage(r, new BitSet(), storage.size, false);
           }

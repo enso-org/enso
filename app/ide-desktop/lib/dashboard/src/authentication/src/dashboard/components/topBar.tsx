@@ -1,5 +1,5 @@
 /** @file The top-bar of dashboard. */
-import * as react from 'react'
+import * as React from 'react'
 
 import BarsIcon from 'enso-assets/bars.svg'
 import CloudIcon from 'enso-assets/cloud.svg'
@@ -45,29 +45,29 @@ export interface TopBarProps {
 function TopBar(props: TopBarProps) {
     const { supportsLocalBackend, projectName, tab, toggleTab, setBackendType, query, setQuery } =
         props
-    const [isUserMenuVisible, setIsUserMenuVisible] = react.useState(false)
+    const [isUserMenuVisible, setIsUserMenuVisible] = React.useState(false)
     const { modal } = modalProvider.useModal()
     const { setModal, unsetModal } = modalProvider.useSetModal()
     const { backend } = backendProvider.useBackend()
     // This is INCORRECT, but SAFE, as its value is guaranteed to be set by the time any hooks run.
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const searchRef = react.useRef<HTMLInputElement>(null!)
+    const searchRef = React.useRef<HTMLInputElement>(null!)
 
-    react.useEffect(() => {
+    React.useEffect(() => {
         if (!modal) {
             setIsUserMenuVisible(false)
         }
     }, [modal])
 
-    react.useEffect(() => {
+    React.useEffect(() => {
         if (isUserMenuVisible) {
             setModal(() => <UserMenu />)
         } else {
             unsetModal()
         }
-    }, [isUserMenuVisible])
+    }, [isUserMenuVisible, setModal, unsetModal])
 
-    react.useEffect(() => {
+    React.useEffect(() => {
         const onKeyPress = (event: KeyboardEvent) => {
             // Allow `alt` key to be pressed in case it is being used to enter special characters.
             if (

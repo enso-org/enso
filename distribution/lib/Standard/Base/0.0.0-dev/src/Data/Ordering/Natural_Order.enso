@@ -3,11 +3,10 @@ import project.Data.Ordering.Ordering
 import project.Data.Pair.Pair
 import project.Data.Text.Case_Sensitivity.Case_Sensitivity
 import project.Data.Text.Text
+from project.Data.Boolean import Boolean, False, True
 
-from project.Data.Boolean import True, False
-
-polyglot java import org.enso.base.Text_Utils
 polyglot java import com.ibm.icu.text.BreakIterator
+polyglot java import org.enso.base.Text_Utils
 
 ## PRIVATE
    ADVANCED

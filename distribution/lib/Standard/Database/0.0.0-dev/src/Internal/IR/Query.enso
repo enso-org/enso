@@ -1,8 +1,8 @@
 from Standard.Base import all
 
 import project.Internal.IR.Context.Context
-import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.Create_Column_Descriptor.Create_Column_Descriptor
+import project.Internal.IR.SQL_Expression.SQL_Expression
 
 ## PRIVATE
 

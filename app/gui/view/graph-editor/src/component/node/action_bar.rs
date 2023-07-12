@@ -47,7 +47,6 @@ const SKIP_TOOLTIP_LABEL: &str = "Skip";
 fn hover_area() -> Rectangle {
     let area = Rectangle();
     area.set_color(INVISIBLE_HOVER_COLOR);
-    area.set_border_color(INVISIBLE_HOVER_COLOR);
     area
 }
 

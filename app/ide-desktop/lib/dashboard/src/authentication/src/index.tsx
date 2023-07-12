@@ -1,14 +1,6 @@
 /** @file Authentication module used by Enso IDE & Cloud.
  *
  * This module declares the main DOM structure for the authentication/dashboard app. */
-/** This import is unused in this file, but React doesn't work without it, under Electron. This is
- * probably because it gets tree-shaken out of the bundle, so we need to explicitly import it.
- * Unlike all other imports in this project, this one is not `camelCase`. We use `React` instead of
- * `react` here. This is because if the import is named any differently then React doesn't get
- * included in the final bundle. */
-// It is safe to disable `no-restricted-syntax` because the `PascalCase` naming is required
-// as per the above comment.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars, no-restricted-syntax
 import * as React from 'react'
 import * as reactDOM from 'react-dom/client'
 

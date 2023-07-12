@@ -6,6 +6,7 @@ import org.enso.table.parsing.problems.ProblemAggregator;
 import org.enso.table.parsing.problems.ProblemAggregatorImpl;
 import org.enso.table.parsing.problems.SimplifiedProblemAggregator;
 import org.enso.table.problems.WithProblems;
+import org.graalvm.polyglot.Context;
 
 /**
  * The type inferring parser tries to parse the given column using a set of provided parsers. It
@@ -48,6 +49,7 @@ public class TypeInferringParser extends DatatypeParser {
       return fallbackParser.parseColumn(columnName, sourceStorage);
     }
 
+    Context context = Context.getCurrent();
     parsers:
     for (IncrementalDatatypeParser parser : baseParsers) {
       Builder builder = parser.makeBuilderWithCapacity(sourceStorage.size());
@@ -64,6 +66,8 @@ public class TypeInferringParser extends DatatypeParser {
         } else {
           builder.appendNoGrow(null);
         }
+
+        context.safepoint();
       }
 
       return new WithProblems<>(builder.seal(), aggregator.getAggregatedProblems());

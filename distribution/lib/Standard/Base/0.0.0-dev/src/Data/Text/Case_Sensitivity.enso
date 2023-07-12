@@ -1,10 +1,9 @@
 import project.Data.Locale.Locale
-import project.Data.Text.Regex
+import project.Data.Text.Regex.Regex
 import project.Data.Text.Text
 import project.Error.Error
 import project.Errors.Illegal_Argument.Illegal_Argument
-
-from project.Data.Boolean import Boolean, True, False
+from project.Data.Boolean import Boolean, False, True
 
 polyglot java import org.enso.base.text.TextFoldingStrategy
 
@@ -54,6 +53,13 @@ type Case_Sensitivity
             False ->
                 msg = "Custom locales are not supported for this operation."
                 Error.throw (Illegal_Argument.Error msg)
+
+    ## PRIVATE
+       Convert to either Sensitive or Insensitive, for the in-memory case.
+    to_explicit_sensitivity_in_memory : Case_Sensitivity
+    to_explicit_sensitivity_in_memory self = case self of
+        Case_Sensitivity.Default -> Case_Sensitivity.Sensitive
+        _ -> self
 
     ## PRIVATE
        Create matcher function

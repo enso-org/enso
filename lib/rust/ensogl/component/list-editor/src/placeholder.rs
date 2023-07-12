@@ -121,7 +121,7 @@ impl PlaceholderModel {
                 t.set_size(Vector2::new(0.0, 10.0))
                     .allow_grow_x()
                     .set_color(color::Rgba::new(1.0, 0.0, 0.0, 0.3))
-                    .set_inset_border(2.0)
+                    .set_border_and_inset(2.0)
                     .set_border_color(color::Rgba::new(1.0, 0.0, 0.0, 1.0));
             });
             root.add_child(&viz);

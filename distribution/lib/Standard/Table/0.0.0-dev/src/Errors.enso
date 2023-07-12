@@ -596,4 +596,4 @@ type Column_Count_Exceeded
        Create a human-readable version of the error.
     to_display_text : Text
     to_display_text self =
-        "The operation produced more columns than the specified limit. The limit is "+self.limit.to_text+" and the number of new columns was "+self.column_count.to_text+". The limit may be turned off by setting the `limit` option to `Nothing`."
+        "The operation produced more columns than the specified limit. The limit is "+self.limit.to_text+" and the number of new columns was "+self.column_count.to_text+"."
