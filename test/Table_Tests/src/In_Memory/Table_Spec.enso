@@ -315,14 +315,8 @@ spec =
             t2.at "Y" . to_vector . should_equal ['A', 0]
 
             t3 = Table.new [["X", [1, 2, 3]], ["Y", ["", Nothing, Number.nan]]]
-            t4 = t3.remove_columns (Column_Selector.Blank_Columns treat_nans_as_blank=True)
+            t4 = t3.remove_blank_columns treat_nans_as_blank=True
             t4.columns . map .name . should_equal ["X"]
-
-        Test.specify "Blank_Columns selector should work for all kinds of methods accepting Column_Selector" <|
-            t = Table.new [["X", [1, 2, 3, 4, 5]], ["Y", ["", Nothing, Nothing, Number.nan, ""]]]
-            r1 = t.distinct (Column_Selector.Blank_Columns treat_nans_as_blank=True)
-            r1.at "Y" . to_vector . to_text . should_equal "[, Nothing, NaN]"
-            r1.at "X" . to_vector . should_equal [1, 2, 4]
 
     Test.group "Info" <|
         Test.specify "should return Table information" <|

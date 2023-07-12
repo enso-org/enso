@@ -364,6 +364,58 @@ type Table
         new_columns = self.columns_helper.remove_columns selectors=columns error_on_missing_columns=error_on_missing_columns on_problems=on_problems
         Table.new new_columns
 
+    ## ALIAS select_na
+       ALIAS select_missing_columns
+
+       Select columns which are either all blank or contain blank values. If no
+       rows are present, all columns are considered blank.
+
+       Arguments:
+       - when_any: By default, only columns consisting of all blank cells are
+         selected. If set to `True`, columns with one or more blank values are
+         selected.
+       - treat_nans_as_blank: If `True`, then `Number.nan` is considered as
+         blank.
+
+       ? Blank values
+         Blank values are `Nothing`, `""` and depending on setting `Number.nan`.
+
+       > Example
+         Select completely blank columns from a table.
+
+             table.select_blank_columns
+    select_blank_columns : Boolean -> Boolean -> Table ! No_Output_Columns
+    select_blank_columns self (when_any : Boolean = False) (treat_nans_as_blank : Boolean = False) =
+        new_columns = self.columns_helper.select_blank_columns_helper when_any treat_nans_as_blank
+        if new_columns.length == 0 then Error.throw (No_Output_Columns) else
+            Table.new new_columns
+
+    ## ALIAS drop_na
+       ALIAS drop_missing_columns
+
+       Remove columns which are either all blank or contain blank values. If no
+       rows are present, all columns are considered blank.
+
+       Arguments:
+       - when_any: By default, only columns consisting of all blank cells are
+         selected. If set to `True`, columns with one or more blank values are
+         selected.
+       - treat_nans_as_blank: If `True`, then `Number.nan` is considered as
+         blank.
+
+       ? Blank values
+         Blank values are `Nothing`, `""` and depending on setting `Number.nan`.
+
+       > Example
+         Remove completely blank columns from a table.
+
+             table.remove_blank_columns
+    remove_blank_columns : Boolean -> Boolean -> Table ! No_Output_Columns
+    remove_blank_columns self (when_any : Boolean = False) (treat_nans_as_blank : Boolean = False) =
+        new_columns = self.columns_helper.select_blank_columns_helper when_any treat_nans_as_blank True
+        if new_columns.length == 0 then Error.throw (No_Output_Columns) else
+            Table.new new_columns
+
     ## Returns a new table with the specified selection of columns moved to
        either the start or the end in the specified order.
 
