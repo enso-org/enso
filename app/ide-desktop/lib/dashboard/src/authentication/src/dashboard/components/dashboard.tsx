@@ -100,6 +100,8 @@ const EXPERIMENTAL = {
     columnModeSwitcher: false,
 }
 
+/** The name of the root directory. */
+const ROOT_DIRECTORY_NAME = 'cloud'
 /** The `id` attribute of the element into which the IDE will be rendered. */
 const IDE_ELEMENT_ID = 'root'
 /** The `localStorage` key under which the ID of the current directory is stored. */
@@ -308,9 +310,23 @@ function Dashboard(props: DashboardProps) {
     const [directoryId, setDirectoryId] = react.useState(
         session.organization != null ? rootDirectoryId(session.organization.id) : null
     )
-    const [directoryStack, setDirectoryStack] = react.useState<
+    const [path, setPath] = react.useState<
         backendModule.Asset<backendModule.AssetType.directory>[]
-    >([])
+    >(() =>
+        session.organization == null
+            ? []
+            : [
+                  {
+                      type: backendModule.AssetType.directory,
+                      id: rootDirectoryId(session.organization.id),
+                      modifiedAt: dateTime.toRfc3339(new Date()),
+                      parentId: rootDirectoryId(session.organization.id),
+                      permissions: [],
+                      projectState: null,
+                      title: ROOT_DIRECTORY_NAME,
+                  },
+              ]
+    )
     // Defined by the spec as `compact` by default, however it is not ready yet.
     const [columnDisplayMode, setColumnDisplayMode] = react.useState(ColumnDisplayMode.release)
     const [tab, setTab] = react.useState(Tab.dashboard)
@@ -355,8 +371,9 @@ function Dashboard(props: DashboardProps) {
     const isListingRemoteDirectoryWhileOffline =
         session.type === authProvider.UserSessionType.offline &&
         backend.type === backendModule.BackendType.remote
-    const directory = directoryStack[directoryStack.length - 1]
-    const parentDirectory = directoryStack[directoryStack.length - 2]
+    /** This is safe as {@link path} is guaranteed to never be empty. */
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const directory = path[path.length - 1]!
 
     const switchToIdeTab = react.useCallback(() => {
         setTab(Tab.ide)
@@ -482,22 +499,16 @@ function Dashboard(props: DashboardProps) {
         setVisibleFileAssets(newFileAssets.filter(asset => queryRegex.test(asset.title)))
     }
 
-    const exitDirectory = () => {
-        setDirectoryId(
-            parentDirectory?.id ??
-                (session.organization != null ? rootDirectoryId(session.organization.id) : null)
-        )
-        setDirectoryStack(
-            // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-            directoryStack.slice(0, -1)
-        )
+    const goToDirectoryLevel = (level: number) => {
+        setDirectoryId(path[level]?.id ?? null)
+        setPath(path.slice(0, level))
     }
 
     const enterDirectory = (
         directoryAsset: backendModule.Asset<backendModule.AssetType.directory>
     ) => {
         setDirectoryId(directoryAsset.id)
-        setDirectoryStack([...directoryStack, directoryAsset])
+        setPath([...path, directoryAsset])
     }
 
     react.useEffect(() => {
@@ -507,7 +518,7 @@ function Dashboard(props: DashboardProps) {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             const cachedDirectoryStack: backendModule.Asset<backendModule.AssetType.directory>[] =
                 JSON.parse(cachedDirectoryStackJson)
-            setDirectoryStack(cachedDirectoryStack)
+            setPath(cachedDirectoryStack)
             const cachedDirectoryId = cachedDirectoryStack[cachedDirectoryStack.length - 1]?.id
             if (cachedDirectoryId) {
                 setDirectoryId(cachedDirectoryId)
@@ -522,9 +533,9 @@ function Dashboard(props: DashboardProps) {
         ) {
             localStorage.removeItem(DIRECTORY_STACK_KEY)
         } else {
-            localStorage.setItem(DIRECTORY_STACK_KEY, JSON.stringify(directoryStack))
+            localStorage.setItem(DIRECTORY_STACK_KEY, JSON.stringify(path))
         }
-    }, [directoryStack])
+    }, [path])
 
     /** React components for the name column. */
     const nameRenderers: {
@@ -1125,28 +1136,30 @@ function Dashboard(props: DashboardProps) {
                         <div className="flex flex-nowrap gap-8 mx-4">
                             {backend.type === backendModule.BackendType.remote && (
                                 <div className="flex gap-0.5">
-                                    <div className="bg-gray-100 rounded-l-full p-1">
+                                    <div className="bg-gray-100 rounded-l-full rounded-r-full p-1">
                                         <div className="flex flex-nowrap gap-1.75 items-center pl-2 pr-2.5">
-                                            {directory && (
+                                            {path.slice(0, -1).map((pathDirectory, index) => (
                                                 <>
-                                                    <div
-                                                        className="cursor-pointer leading-5 my-0.5"
-                                                        onClick={exitDirectory}
+                                                    <button
+                                                        className="rounded-full leading-5 px-1 py-0.5 -mx-1 hover:bg-gray-200"
+                                                        onClick={() => {
+                                                            goToDirectoryLevel(index + 1)
+                                                        }}
                                                     >
-                                                        {parentDirectory?.title ?? '/'}
-                                                    </div>
+                                                        {pathDirectory.title}
+                                                    </button>
                                                     <img src={ArrowRightSmallIcon} />
                                                 </>
-                                            )}
+                                            ))}
                                             <span className="leading-5 my-0.5">
-                                                {directory?.title ?? '/'}
+                                                {directory.title}
                                             </span>
                                         </div>
                                     </div>
-                                    <div className="bg-gray-100 rounded-r-full flex flex-nowrap items-center gap-2 pl-3">
+                                    {/* <div className="bg-gray-100 rounded-r-full flex flex-nowrap items-center gap-2 pl-3">
                                         <div className="leading-5 my-0.5">Shared with</div>
                                         <div className="-mr-1">
-                                            {/* <PermissionDisplay
+                                            <PermissionDisplay
                                                 permissions={{
                                                     type: permissionDisplay.Permission.admin,
                                                 }}
@@ -1154,9 +1167,9 @@ function Dashboard(props: DashboardProps) {
                                                 <div className="flex items-center leading-6 mx-2 my-1">
                                                     marketing
                                                 </div>
-                                            </PermissionDisplay> */}
+                                            </PermissionDisplay>
                                         </div>
-                                    </div>
+                                    </div> */}
                                 </div>
                             )}
                             <div className="bg-gray-100 rounded-full flex flex-nowrap gap-2 px-2.5 py-1">

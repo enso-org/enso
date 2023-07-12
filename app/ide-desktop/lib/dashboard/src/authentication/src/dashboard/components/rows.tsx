@@ -116,7 +116,11 @@ function Rows<T>(props: RowsProps<T>) {
     return (
         <table className="relative flex flex-col self-start gap-1 mx-0.75">
             <thead>
-                <tr className="flex absolute top-2.75 h-[calc(100%-11px)] pointer-events-none">
+                <tr
+                    className={`flex absolute top-2.75 pointer-events-none ${
+                        items.length !== 0 ? 'h-[calc(100%-11px)]' : 'h-[calc(100%-2rem-11px)]'
+                    }`}
+                >
                     {columns.map(column => (
                         <td key={column.id} className={`border-r ${column.widthClass ?? ''}`} />
                     ))}
