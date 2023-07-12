@@ -48,7 +48,7 @@ specWith name create_new_time parse_time nanoseconds_loss_in_precision=False =
         Test.specify "should convert to Json" <|
             time = create_new_time 1 2 3
             time.to_json.should_equal <|
-                time_pairs = [["hour", time.hour], ["minute", time.minute], ["second", time.second], ["nanosecond", time.nanosecond]]
+                time_pairs = [["hour", 1], ["minute", 2], ["second", 3], ["nanosecond", 0]]
                 JS_Object.from_pairs ([["type", "Time_Of_Day"], ["constructor", "new"]] + time_pairs) . to_text
 
         Test.specify "should parse default time format" <|
@@ -87,6 +87,8 @@ specWith name create_new_time parse_time nanoseconds_loss_in_precision=False =
             datetime . hour . should_equal 1
             datetime . minute . should_equal 0
             datetime . second . should_equal 0
+            datetime . millisecond . should_equal 0
+            datetime . microsecond . should_equal 0
             datetime . nanosecond . should_equal 0
             datetime . zone . zone_id . should_equal Time_Zone.utc.zone_id
 
