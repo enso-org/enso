@@ -17,7 +17,9 @@ use ensogl_hardcoded_theme::application::window_control_buttons as theme;
 // === Constants ===
 // =================
 
+/// Width of the buttons panel.
 pub const MACOS_TRAFFIC_LIGHTS_CONTENT_WIDTH: f32 = 52.0;
+/// Height of the buttons panel.
 pub const MACOS_TRAFFIC_LIGHTS_CONTENT_HEIGHT: f32 = 12.0;
 /// Horizontal and vertical offset between traffic lights and window border
 pub const MACOS_TRAFFIC_LIGHTS_SIDE_OFFSET: f32 = 13.0;

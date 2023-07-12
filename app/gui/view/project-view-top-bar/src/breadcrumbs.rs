@@ -31,10 +31,10 @@ pub use breadcrumb::Breadcrumb;
 
 /// Information about target definition for node entering.
 #[derive(Clone, Debug, Deref, PartialEq, Eq)]
-pub struct SharedMethodPointer(pub Rc<engine_protocol::language_server::MethodPointer>);
+pub struct SharedMethodPointer(pub Rc<MethodPointer>);
 
-impl From<engine_protocol::language_server::MethodPointer> for SharedMethodPointer {
-    fn from(method_pointer: engine_protocol::language_server::MethodPointer) -> Self {
+impl From<MethodPointer> for SharedMethodPointer {
+    fn from(method_pointer: MethodPointer) -> Self {
         Self(Rc::new(method_pointer))
     }
 }

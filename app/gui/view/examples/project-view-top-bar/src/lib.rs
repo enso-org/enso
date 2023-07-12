@@ -1,4 +1,4 @@
-//! This is a visualization example scene which creates a sinusoidal graph.
+//! This is a debug scene for project view top bar component.
 
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]

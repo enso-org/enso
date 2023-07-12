@@ -1,5 +1,5 @@
-//! Defines a UI container for the window control buttons and the "go to dashboard" button. This is
-//! merely here to make use of the auto-layout functionality.
+//! Defines a top bar component for the project view. It contains window control buttons, a "go to
+//! dashboard" button, project name with execution environment selector, and project breadcrumbs.
 
 #![recursion_limit = "512"]
 // === Standard Linter Configuration ===
@@ -7,6 +7,13 @@
 #![warn(unsafe_code)]
 #![allow(clippy::bool_to_int_with_if)]
 #![allow(clippy::let_and_return)]
+#![warn(missing_docs)]
+#![warn(trivial_casts)]
+#![warn(trivial_numeric_casts)]
+#![warn(unused_import_braces)]
+#![warn(unused_qualifications)]
+#![warn(missing_copy_implementations)]
+#![warn(missing_debug_implementations)]
 
 use ensogl::prelude::*;
 
@@ -39,6 +46,8 @@ mod go_to_dashboard_button;
 // === ProjectNameWithEnvironmentSelector ===
 // ==========================================
 
+/// A container for the project name and execution environment selector.
+#[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug)]
 pub struct ProjectNameWithEnvironmentSelector {
     pub project_name: ProjectName,
@@ -48,6 +57,7 @@ pub struct ProjectNameWithEnvironmentSelector {
 }
 
 impl ProjectNameWithEnvironmentSelector {
+    /// Constructor.
     pub fn new(app: &Application) -> Self {
         let project_name = app.new_view::<ProjectName>();
         let selector =
