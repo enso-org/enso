@@ -78,10 +78,15 @@ public final class EnsoTimeOfDay implements TruffleObject {
     return (localTime.getNano() / 1000) % 1000;
   }
 
-  @Builtin.Method(description = "Gets the nanosecond")
+  @Builtin.Method(name = "nanosecond_builtin", description = "Gets the nanosecond")
   @CompilerDirectives.TruffleBoundary
-  public long nanosecond() {
-    return localTime.getNano() % 1000;
+  public long nanosecond(boolean includeMilliseconds) {
+    long nanos = localTime.getNano();
+    if (includeMilliseconds) {
+      return nanos;
+    } else {
+      return nanos % 1000;
+    }
   }
 
   @Builtin.Method(name = "plus_builtin", description = "Adds a duration to this Time_Of_Day")

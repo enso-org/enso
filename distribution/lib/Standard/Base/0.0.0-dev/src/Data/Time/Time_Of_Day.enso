@@ -225,14 +225,20 @@ type Time_Of_Day
 
     ## Get the nanosecond portion of the time of day.
 
+       Arguments:
+       - include_milliseconds: Specifies if the whole fractional part of the
+         second should be returned as nanoseconds. Defaults to `False`, meaning
+         it will only return the nanosecond part in the range 0-999.
+
        > Example
          Get the current nanosecond.
 
              from Standard.Base import Time_Of_Day
 
              example_nanosecond = Time_Of_Day.now.nanosecond
-    nanosecond : Integer
-    nanosecond self = @Builtin_Method "Time_Of_Day.nanosecond"
+    nanosecond : Boolean -> Integer
+    nanosecond self include_milliseconds=False =
+        self.nanosecond_builtin include_milliseconds
 
     ## Returns the first time within the `Time_Period` containing self.
     start_of : Time_Period -> Time_Of_Day
@@ -373,13 +379,13 @@ type Time_Of_Day
     to_js_object self =
         type_pair = ["type", "Time_Of_Day"]
         cons_pair = ["constructor", "new"]
-        JS_Object.from_pairs [type_pair, cons_pair, ["hour", self.hour], ["minute", self.minute], ["second", self.second], ["nanosecond", self.nanosecond]]
+        JS_Object.from_pairs [type_pair, cons_pair, ["hour", self.hour], ["minute", self.minute], ["second", self.second], ["nanosecond", self.nanosecond include_milliseconds=True]]
 
     ## PRIVATE
        Convert to a display representation of this Time_Of_Day.
     to_display_text : Text
     to_display_text self =
-        if self.nanosecond == 0 then self.format "HH:mm:ss" else
+        if self.nanosecond include_milliseconds=True == 0 then self.format "HH:mm:ss" else
             self.format "HH:mm:ss.n"
 
     ## Format this time of day using the provided formatter pattern.

@@ -120,10 +120,15 @@ public final class EnsoDateTime implements TruffleObject {
     return (dateTime.getNano() / 1000) % 1000;
   }
 
-  @Builtin.Method(description = "Gets the nanosecond")
+  @Builtin.Method(name = "nanosecond_builtin", description = "Gets the nanosecond")
   @CompilerDirectives.TruffleBoundary
-  public long nanosecond() {
-    return dateTime.getNano() % 1000;
+  public long nanosecond(boolean includeMilliseconds) {
+    long nanos = dateTime.getNano();
+    if (includeMilliseconds) {
+      return nanos;
+    } else {
+      return nanos % 1000;
+    }
   }
 
   @Builtin.Method(name = "zone", description = "Gets the zone")
