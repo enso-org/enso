@@ -1355,7 +1355,7 @@ type Column
                     new_name = Naming_Helpers.function_name "date_add" [self, amount, period.to_display_text]
                     java_unit = period.to_java_unit
                     fn date amount =
-                        java_unit.addTo date (amount*24)
+                        java_unit.addTo date amount
                     run_binary_op self amount fn new_name
 
     ## Checks for each element of the column if it is contained within the

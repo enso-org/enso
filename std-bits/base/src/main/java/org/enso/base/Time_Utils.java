@@ -16,8 +16,8 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.temporal.ChronoUnit;
-import java.time.temporal.Temporal;
 import java.time.temporal.TemporalField;
+import java.time.temporal.TemporalUnit;
 import java.time.temporal.WeekFields;
 import java.util.Locale;
 
@@ -273,7 +273,7 @@ public class Time_Utils {
    * <p>
    * The {@code ChronoUnit::between} takes a value of type Temporal which does not trigger a polyglot conversion.
    */
-  public static long unit_date_difference(ChronoUnit unit, LocalDate start, LocalDate end) {
+  public static long unit_date_difference(TemporalUnit unit, LocalDate start, LocalDate end) {
     return unit.between(start, end);
   }
 
@@ -282,7 +282,7 @@ public class Time_Utils {
    * <p>
    * The {@code ChronoUnit::between} takes a value of type Temporal which does not trigger a polyglot conversion.
    */
-  public static long unit_time_difference(ChronoUnit unit, LocalTime start, LocalTime end) {
+  public static long unit_time_difference(TemporalUnit unit, LocalTime start, LocalTime end) {
     return unit.between(start, end);
   }
 
@@ -291,7 +291,7 @@ public class Time_Utils {
    * <p>
    * The {@code ChronoUnit::between} takes a value of type Temporal which does not trigger a polyglot conversion.
    */
-  public static long unit_datetime_difference(ChronoUnit unit, ZonedDateTime start, ZonedDateTime end) {
+  public static long unit_datetime_difference(TemporalUnit unit, ZonedDateTime start, ZonedDateTime end) {
     return unit.between(start, end);
   }
 }
