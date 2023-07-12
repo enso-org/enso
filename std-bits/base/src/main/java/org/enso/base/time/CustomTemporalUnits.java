@@ -43,6 +43,7 @@ public class CustomTemporalUnits {
       return true;
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public <R extends Temporal> R addTo(R temporal, long amount) {
       if (temporal.isSupported(ChronoUnit.HOURS)) {
