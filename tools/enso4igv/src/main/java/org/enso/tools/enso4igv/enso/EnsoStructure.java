@@ -36,24 +36,30 @@ public final class EnsoStructure implements StructureProvider {
       collectStructureItem(arr, b);
     }
   }
-  private static void collectStructureItem(List<StructureElement> arr, IR b) {
-    switch (b) {
+  private static void collectStructureItem(List<StructureElement> arr, IR ir) {
+    var b = switch (ir) {
       case IR$Module$Scope$Definition$SugaredType type -> {
         var bldr = StructureProvider.newBuilder(type.name().name(), StructureElement.Kind.Class);
         var children = new ArrayList<StructureElement>();
         collectStructure(children, type.body().iterator());
         bldr.children(children);
-        var e = bldr.build();
-        arr.add(e);
+        yield bldr;
       }
 
       case IR$Module$Scope$Definition$Data data -> {
         var bldr = StructureProvider.newBuilder(data.name().name(), StructureElement.Kind.Constructor);
-        var e = bldr.build();
-        arr.add(e);
+        yield bldr;
       }
-
-      default -> {}
+      default -> null;
+    };
+    if (b != null) {
+      if (ir.location() != null && ir.location().isDefined()) {
+        var loc = ir.location().get().location();
+        b.selectionStartOffset(loc.start());
+        b.selectionEndOffset(loc.end());
+      }
+      var e = b.build();
+      arr.add(e);
     }
   }
 }
