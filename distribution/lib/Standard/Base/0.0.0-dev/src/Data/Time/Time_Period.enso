@@ -38,8 +38,7 @@ type Time_Period
     Nanosecond
 
     ## PRIVATE
-       Note that this needs to be used with care, since `ChronoUnit.DAYS` is
-       actually closer to `Date_Period.Day` than the 24-hour interval here.
+       We treat the `Time_Period.Day` as a period of 24 hours, not a calendar day.
     to_java_unit : TemporalUnit
     to_java_unit self = case self of
         Time_Period.Day -> CustomTemporalUnits.DAY_AS_24_HOURS
@@ -51,14 +50,24 @@ type Time_Period
         Time_Period.Nanosecond -> ChronoUnit.NANOS
 
     ## PRIVATE
+       A special case for `adjust_start` and `adjust_end` methods.
+       In this particular case, it seems better to treat `Time_Period.Day` as a
+       calendar day. Otherwise, the behaviour of `start_of` and `end_of` methods
+       near DST would become unintuitive.
+    to_java_unit_for_adjust : TemporalUnit
+    to_java_unit_for_adjust self = case self of
+        Time_Period.Day -> ChronoUnit.DAYS
+        _ -> self.to_java_unit
+
+    ## PRIVATE
     adjust_start : (Time_Of_Day | Date_Time) -> (Time_Of_Day | Date_Time)
     adjust_start self date =
-        (Time_Utils.utils_for date).start_of_time_period date self.to_java_unit
+        (Time_Utils.utils_for date).start_of_time_period date self.to_java_unit_for_adjust
 
     ## PRIVATE
     adjust_end : (Time_Of_Day | Date_Time) -> (Time_Of_Day | Date_Time)
     adjust_end self date =
-        (Time_Utils.utils_for date).end_of_time_period date self.to_java_unit
+        (Time_Utils.utils_for date).end_of_time_period date self.to_java_unit_for_adjust
 
     ## PRIVATE
     to_duration : Duration

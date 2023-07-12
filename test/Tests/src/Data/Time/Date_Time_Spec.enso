@@ -553,6 +553,8 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             d1_plus . should_equal d2
 
             check_dates_spring date =
+                date.start_of Date_Period.Day . should_equal (Date_Time.new 2022 3 27 zone=tz)
+                date.end_of Date_Period.Day . should_equal (Date_Time.new 2022 3 27 23 59 59 nanosecond=max_nanos zone=tz)
                 date.start_of Time_Period.Day . should_equal (Date_Time.new 2022 3 27 zone=tz)
                 date.end_of Time_Period.Day . should_equal (Date_Time.new 2022 3 27 23 59 59 nanosecond=max_nanos zone=tz)
 
