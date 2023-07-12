@@ -35,6 +35,7 @@ import ProjectActionButton, * as projectActionButton from './projectActionButton
 import ContextMenu from './contextMenu'
 import ContextMenuEntry from './contextMenuEntry'
 import Ide from './ide'
+import ManagePermissionsModal from './managePermissionsModal'
 import Rows from './rows'
 import Templates from './templates'
 import TopBar from './topBar'
@@ -144,46 +145,20 @@ const COLUMN_NAME: Record<Exclude<Column, Column.name>, string> = {
 
 /** CSS classes for every column. Currently only used to set the widths. */
 const COLUMN_CSS_CLASS: Record<Column, string> = {
-    [Column.name]: 'w-60',
-    [Column.lastModified]: 'w-40',
-    [Column.sharedWith]: 'w-36',
-    [Column.docs]: 'w-96',
-    [Column.labels]: 'w-80',
-    [Column.dataAccess]: 'w-96',
+    [Column.name]: 'min-w-60',
+    [Column.lastModified]: 'min-w-40',
+    [Column.sharedWith]: 'min-w-36',
+    [Column.docs]: 'min-w-96',
+    [Column.labels]: 'min-w-80',
+    [Column.dataAccess]: 'min-w-96',
     [Column.usagePlan]: '',
-    [Column.engine]: 'w-20',
-    [Column.ide]: 'w-20',
+    [Column.engine]: 'min-w-20',
+    [Column.ide]: 'min-w-20',
 } as const
-
-/** The corresponding `Permissions` for each backend `PermissionAction`. */
-const PERMISSION: Record<backendModule.PermissionAction, permissionDisplay.Permissions> = {
-    [backendModule.PermissionAction.own]: { type: permissionDisplay.Permission.owner },
-    [backendModule.PermissionAction.execute]: {
-        type: permissionDisplay.Permission.regular,
-        read: false,
-        write: false,
-        docsWrite: false,
-        exec: true,
-    },
-    [backendModule.PermissionAction.edit]: {
-        type: permissionDisplay.Permission.regular,
-        read: false,
-        write: true,
-        docsWrite: false,
-        exec: false,
-    },
-    [backendModule.PermissionAction.read]: {
-        type: permissionDisplay.Permission.regular,
-        read: true,
-        write: false,
-        docsWrite: false,
-        exec: false,
-    },
-}
 
 /** The list of columns displayed on each `ColumnDisplayMode`. */
 const COLUMNS_FOR: Record<ColumnDisplayMode, Column[]> = {
-    [ColumnDisplayMode.release]: [Column.name, Column.lastModified /*, Column.sharedWith*/],
+    [ColumnDisplayMode.release]: [Column.name, Column.lastModified, Column.sharedWith],
     [ColumnDisplayMode.all]: [
         Column.name,
         Column.lastModified,
@@ -256,6 +231,12 @@ function regexEscape(string: string) {
 // === Dashboard ===
 // =================
 
+/** Metadata uniquely identifying a user's permissions for a specific asset. */
+interface UserPermissionId {
+    userId: backendModule.Subject
+    assetId: backendModule.AssetId
+}
+
 /** Props for {@link Dashboard}s that are common to all platforms. */
 export interface DashboardProps {
     /** Whether the application may have the local backend running. */
@@ -320,6 +301,8 @@ function Dashboard(props: DashboardProps) {
     const [tab, setTab] = React.useState(Tab.dashboard)
     const [project, setProject] = React.useState<backendModule.Project | null>(null)
     const [selectedAssets, setSelectedAssets] = React.useState<backendModule.Asset[]>([])
+    const [hoveredUserPermission, setHoveredUserPermission] =
+        React.useState<UserPermissionId | null>(null)
     const [isFileBeingDragged, setIsFileBeingDragged] = React.useState(false)
     const [isScrollBarVisible, setIsScrollBarVisible] = React.useState(false)
 
@@ -725,18 +708,81 @@ function Dashboard(props: DashboardProps) {
     > = {
         [Column.lastModified]: asset =>
             asset.modifiedAt && <>{dateTime.formatDateTime(new Date(asset.modifiedAt))}</>,
-        [Column.sharedWith]: asset => (
-            <>
-                {(asset.permissions ?? []).map(user => (
-                    <PermissionDisplay
-                        key={user.user.organization_id}
-                        permissions={PERMISSION[user.permission]}
-                    >
-                        <img src={DefaultUserIcon} height={24} width={24} />
-                    </PermissionDisplay>
-                ))}
-            </>
-        ),
+        [Column.sharedWith]: asset => {
+            const selfPermission = asset.permissions?.find(
+                permission => permission.user.user_email === session.organization?.email
+            )?.permission
+            const ownsThisAsset = selfPermission === backendModule.PermissionAction.own
+            return (
+                <div className="flex">
+                    {backendModule
+                        .groupPermissionsByUser(asset.permissions ?? [])
+                        .map((user, index) => (
+                            <PermissionDisplay
+                                key={user.user.pk}
+                                permissions={permissionDisplay.permissionActionsToPermissions(
+                                    user.permissions
+                                )}
+                                className={`border-2 rounded-full ${
+                                    ownsThisAsset
+                                        ? 'cursor-pointer hover:shadow-soft hover:z-10'
+                                        : ''
+                                } ${index === 0 ? '' : '-ml-5'}`}
+                                onClick={event => {
+                                    event.stopPropagation()
+                                    if (ownsThisAsset) {
+                                        setModal(() => (
+                                            <ManagePermissionsModal
+                                                key={Number(new Date())}
+                                                user={user.user}
+                                                asset={asset}
+                                                eventTarget={event.currentTarget}
+                                                onSuccess={doRefresh}
+                                            />
+                                        ))
+                                    }
+                                }}
+                                onMouseEnter={() => {
+                                    setHoveredUserPermission({
+                                        userId: user.user.pk,
+                                        assetId: asset.id,
+                                    })
+                                }}
+                                onMouseLeave={() => {
+                                    setHoveredUserPermission(null)
+                                }}
+                            >
+                                {hoveredUserPermission?.assetId === asset.id &&
+                                    hoveredUserPermission.userId === user.user.pk && (
+                                        <div className="relative">
+                                            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 rounded-full shadow-soft bg-white px-2 py-1">
+                                                {user.user.user_email}
+                                            </div>
+                                        </div>
+                                    )}
+                                <img src={DefaultUserIcon} height={24} width={24} />
+                            </PermissionDisplay>
+                        ))}
+                    {ownsThisAsset && (
+                        <button
+                            onClick={event => {
+                                event.stopPropagation()
+                                setModal(() => (
+                                    <ManagePermissionsModal
+                                        key={Number(new Date())}
+                                        asset={asset}
+                                        eventTarget={event.currentTarget}
+                                        onSuccess={doRefresh}
+                                    />
+                                ))
+                            }}
+                        >
+                            <img src={PlusIcon} />
+                        </button>
+                    )}
+                </div>
+            )
+        },
         [Column.docs]: () => <></>,
         [Column.labels]: () => {
             // This is not a React component even though it contains JSX.
@@ -1247,11 +1293,14 @@ function Dashboard(props: DashboardProps) {
                     {/* Padding. */}
                     <div className="h-6 mx-2" />
                     <div className="flex-1 overflow-auto mx-2">
-                        <table className="table-fixed items-center border-collapse mt-2">
+                        <table className="items-center self-start border-collapse mt-2 whitespace-nowrap">
                             <tbody>
-                                <tr className="h-0">
+                                <tr className="h-10">
                                     {columnsFor(columnDisplayMode, backend.type).map(column => (
-                                        <td key={column} className={COLUMN_CSS_CLASS[column]} />
+                                        <td
+                                            key={column}
+                                            className={`block ${COLUMN_CSS_CLASS[column]}`}
+                                        />
                                     ))}
                                 </tr>
                                 <Rows<backendModule.Asset<backendModule.AssetType.project>>

@@ -370,6 +370,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         case backendModule.ProjectState.closed:
             return (
                 <button
+                    className="w-6"
                     onClick={clickEvent => {
                         clickEvent.stopPropagation()
                         unsetModal()
@@ -382,6 +383,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         case backendModule.ProjectState.openInProgress:
             return (
                 <button
+                    className="w-6"
                     onClick={async clickEvent => {
                         clickEvent.stopPropagation()
                         unsetModal()
@@ -395,6 +397,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
             return (
                 <>
                     <button
+                        className="w-6"
                         onClick={async clickEvent => {
                             clickEvent.stopPropagation()
                             unsetModal()
@@ -404,6 +407,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
                         <svg.StopIcon className={spinner.SPINNER_CSS_CLASSES[spinnerState]} />
                     </button>
                     <button
+                        className="w-6"
                         onClick={clickEvent => {
                             clickEvent.stopPropagation()
                             unsetModal()
