@@ -70,7 +70,6 @@ use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::navigation::navigator::Navigator;
 use ensogl::display::object::Id;
-use ensogl::display::shape::StyleWatch;
 use ensogl::display::shape::StyleWatchFrp;
 use ensogl::display::Scene;
 use ensogl::gui::cursor;
@@ -1874,8 +1873,6 @@ pub struct GraphEditorModel {
     frp_public: api::Public,
     profiling_statuses: profiling::Statuses,
     styles_frp: StyleWatchFrp,
-    #[deprecated = "StyleWatch was designed as an internal tool for shape system (#795)"]
-    styles: StyleWatch,
     selection_controller: selection::Controller,
     execution_environment_selector: ExecutionEnvironmentSelector,
 }
@@ -1905,7 +1902,6 @@ impl GraphEditorModel {
         let drop_manager =
             ensogl_drop_manager::Manager::new(&scene.dom.root.clone_ref().into(), scene);
         let styles_frp = StyleWatchFrp::new(&scene.style_sheet);
-        let styles = StyleWatch::new(&scene.style_sheet);
         let selection_controller = selection::Controller::new(
             frp,
             &app.cursor,
@@ -1916,7 +1912,6 @@ impl GraphEditorModel {
 
         let layers = GraphLayers::new(&scene.layers);
 
-        #[allow(deprecated)] // `styles`
         Self {
             display_object,
             app,
@@ -1935,7 +1930,6 @@ impl GraphEditorModel {
             frp: frp.private.clone_ref(),
             frp_public: frp.public.clone_ref(),
             styles_frp,
-            styles,
             selection_controller,
             execution_environment_selector,
         }

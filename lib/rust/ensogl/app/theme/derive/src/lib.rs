@@ -24,7 +24,7 @@
 //! Example usage
 //!```no_compile
 //! use ensogl_core::data::color;
-//! use ensogl_derive_theme::FromTheme;
+//! use ensogl_core::display::style::FromTheme;
 //!
 //! #[derive(FromTheme)]
 //! #[base_path = "ensogl_hardcoded_theme"]

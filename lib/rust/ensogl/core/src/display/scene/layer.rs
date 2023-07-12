@@ -3,6 +3,7 @@
 use crate::data::dirty::traits::*;
 use crate::prelude::*;
 
+use crate::data::color;
 use crate::data::dirty;
 use crate::data::OptVec;
 use crate::display;
@@ -15,6 +16,7 @@ use crate::display::shape::system::ShapeSystemId;
 use crate::display::symbol;
 use crate::display::symbol::RenderGroup;
 use crate::display::symbol::SymbolId;
+use crate::display::Context;
 
 use enso_data_structures::dependency_graph::DependencyGraph;
 use enso_shapely::shared;
@@ -439,6 +441,7 @@ pub struct LayerModel {
     symbol_buffer_partitions: RefCell<HashMap<ShapeSystemId, usize>>,
     mask: RefCell<Option<WeakLayer>>,
     scissor_box: RefCell<Option<ScissorBox>>,
+    blend_mode: RefCell<BlendMode>,
     mem_mark: Rc<()>,
     pub flags: LayerFlags,
     /// When [`display::object::ENABLE_DOM_DEBUG`] is enabled all display objects on this layer
@@ -522,6 +525,7 @@ impl LayerModel {
             symbol_buffer_partitions: default(),
             mask: default(),
             scissor_box: default(),
+            blend_mode: default(),
             mem_mark: default(),
             debug_dom,
         }
@@ -614,6 +618,13 @@ impl LayerModel {
                 layer.set_camera(camera.clone_ref());
             }
         });
+    }
+
+
+    /// Set the blend mode used during rendering of this layer. See [`BlendMode`] for more
+    /// information.
+    pub fn set_blend_mode(&self, blend_mode: BlendMode) {
+        self.blend_mode.replace(blend_mode);
     }
 
     /// Add the symbol to this layer.
@@ -1705,5 +1716,147 @@ impl PartialSemigroup<ScissorBox> for ScissorBox {
 impl PartialSemigroup<&ScissorBox> for ScissorBox {
     fn concat_mut(&mut self, other: &Self) {
         self.concat_mut(*other)
+    }
+}
+
+// =================
+// === BlendMode ===
+// =================
+
+/// Description of color blending that is used during rendering of this layer. Specifies how shape
+/// colors rendered on this layer will be combined with ones drawn before them, including on all
+/// layers below them. Blend modes can be used for many visual effects, especially involving
+/// different interpretation of transparency, without any additional performance cost. Blending is
+/// set up on webgl context using [`blendFuncSeparate`][func], [`blendEquationSeparate`][equation],
+/// and [`blendColor`][color].
+///
+/// By default, each layer is set up in "alpha over" blending mode (assuming premultiplied alpha in
+/// shader output), which corresponds to equation [`BlendEquation::Add`], source
+/// [`BlendEquation::One`] and destination [`BlendEquation::OneMinusSrcAlpha`].
+///
+///
+/// To learn more about blending in general, see a [Learn OpenGL tutorial about blending][tutorial].
+///
+/// [func]: https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext/blendFuncSeparate
+/// [equation]: https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext/blendEquationSeparate
+/// [color]: https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext/blendColor
+/// [tutorial]: https://learnopengl.com/Advanced-OpenGL/Blending
+#[derive(Debug, Clone, Copy)]
+pub struct BlendMode {
+    /// Blend equation used for RGB components.
+    pub equation_color: BlendEquation,
+    /// Blend equation used for Alpha component.
+    pub equation_alpha: BlendEquation,
+    /// Blend factor used for source RGB components.
+    pub src_color:      BlendFactor,
+    /// Blend factor used for source Alpha component.
+    pub src_alpha:      BlendFactor,
+    /// Blend factor used for source RGB components.
+    pub dst_color:      BlendFactor,
+    /// Blend factor used for source RGB components.
+    pub dst_alpha:      BlendFactor,
+    /// Constant color value used in [`BlendFactor::ConstantColor`] and
+    /// [`BlendFactor::OneMinusConstantColor`]. It is shared by all set blend factors with either
+    /// of those variants.
+    pub constant:       color::Rgba,
+}
+
+/// Blend equation used for either color or alpha blending, used as an argument to
+/// [`gl.blendEquationSeparate`][mdn] before rendering this layer. See [`BlendMode`] for more
+/// information.
+///
+/// Blending is computed using following formula: `f(s * S, d * D)`, where `s` and `d` are
+/// respective src and dst blend factors (see [`BlendFactor`]), and `S` and `D` are the source and
+/// destination pixel values. [`BlendEquation`] selects what function `f` is used.
+///
+/// [mdn]: https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext/blendEquationSeparate
+#[derive(Debug, Clone, Copy, Default)]
+#[repr(u32)]
+pub enum BlendEquation {
+    #[default]
+    /// `O = s * S + d * D`
+    Add             = *Context::FUNC_ADD,
+    /// `O = s * S - d * D`
+    Subtract        = *Context::FUNC_SUBTRACT,
+    /// `O = s * S - d * D`
+    ReverseSubtract = *Context::FUNC_REVERSE_SUBTRACT,
+    /// `O = min(s * S, d * D)`
+    Min             = *Context::MIN,
+    /// `O = max(s * S, d * D)`
+    Max             = *Context::MAX,
+}
+
+/// Blend factor for particular color component, used as an argument to
+/// [`gl.blendFuncSeparate`][mdn] before rendering this layer. See [`BlendMode`] for more
+/// information.
+///
+/// [mdn]: https://developer.mozilla.org/en-US/docs/Web/API/WebGLRendering*Context/blendFuncSepare
+#[derive(Debug, Clone, Copy)]
+#[repr(u32)]
+pub enum BlendFactor {
+    /// Always `0.0`. Will effectively remove given color component from the blend equation.
+    Zero             = *Context::ZERO,
+    /// Always `1.0`.
+    One              = *Context::ONE,
+    /// value of corresponding component in source pixel (either rgb or alpha).
+    SrcColor         = *Context::SRC_COLOR,
+    /// inverse of value of corresponding component in source pixel (either rgb or alpha).
+    OneMinusSrcColor = *Context::ONE_MINUS_SRC_COLOR,
+    /// value of corresponding component in destination pixel (either rgb or alpha).
+    DstColor         = *Context::DST_COLOR,
+    /// inverse of value of corresponding component in destination pixel (either rgb or alpha).
+    OneMinusDstColor = *Context::ONE_MINUS_DST_COLOR,
+    /// value of alpha component in source pixel
+    SrcAlpha         = *Context::SRC_ALPHA,
+    /// inverse of value of alpha component in source pixel
+    OneMinusSrcAlpha = *Context::ONE_MINUS_SRC_ALPHA,
+    /// value of alpha component in destination pixel
+    DstAlpha         = *Context::DST_ALPHA,
+    /// inverse of value of alpha component in destination pixel
+    OneMinusDstAlpha = *Context::ONE_MINUS_DST_ALPHA,
+    /// value of corresponding component in constant value (['BlendMode.constant']).
+    ConstantColor    = *Context::CONSTANT_COLOR,
+    /// inverse of value of corresponding component in constant value (['BlendMode.constant']).
+    OneMinusConstantColor = *Context::ONE_MINUS_CONSTANT_COLOR,
+}
+
+impl BlendMode {
+    const PREMULTIPLIED_ALPHA_OVER: BlendMode =
+        BlendMode::simple(BlendEquation::Add, BlendFactor::One, BlendFactor::OneMinusSrcAlpha);
+    const ADDITIVE: BlendMode =
+        BlendMode::simple(BlendEquation::Add, BlendFactor::One, BlendFactor::One);
+
+    const fn simple(equation: BlendEquation, src: BlendFactor, dst: BlendFactor) -> Self {
+        BlendMode {
+            equation_color: equation,
+            equation_alpha: equation,
+            src_color:      src,
+            src_alpha:      src,
+            dst_color:      dst,
+            dst_alpha:      dst,
+            constant:       color::Rgba::transparent(),
+        }
+    }
+
+    fn apply_to_context(&self, context: &Context) {
+        context.blend_equation_separate(self.equation_color as _, self.equation_alpha as _);
+        context.blend_func_separate(
+            self.src_color as _,
+            self.src_alpha as _,
+            self.dst_color as _,
+            self.dst_alpha as _,
+        );
+        context.blend_color(
+            self.constant.red,
+            self.constant.green,
+            self.constant.blue,
+            self.constant.alpha,
+        );
+    }
+}
+
+impl Default for BlendMode {
+    fn default() -> Self {
+        Self::PREMULTIPLIED_ALPHA_OVER
     }
 }

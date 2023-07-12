@@ -465,32 +465,32 @@ fn byte_from_hex(s: [u8; 2]) -> Option<u8> {
 
 impl Rgba {
     /// Constructor.
-    pub fn black() -> Self {
+    pub const fn black() -> Self {
         Self::new(0.0, 0.0, 0.0, 1.0)
     }
 
     /// Constructor.
-    pub fn white() -> Self {
+    pub const fn white() -> Self {
         Self::new(1.0, 1.0, 1.0, 1.0)
     }
 
     /// Constructor.
-    pub fn red() -> Self {
+    pub const fn red() -> Self {
         Self::new(1.0, 0.0, 0.0, 1.0)
     }
 
     /// Constructor.
-    pub fn green() -> Self {
+    pub const fn green() -> Self {
         Self::new(0.0, 1.0, 0.0, 1.0)
     }
 
     /// Constructor.
-    pub fn blue() -> Self {
+    pub const fn blue() -> Self {
         Self::new(0.0, 0.0, 1.0, 1.0)
     }
 
     /// Fully transparent color constructor.
-    pub fn transparent() -> Self {
+    pub const fn transparent() -> Self {
         Self::new(0.0, 0.0, 0.0, 0.0)
     }
 

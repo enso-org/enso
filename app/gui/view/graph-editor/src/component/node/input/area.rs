@@ -38,7 +38,7 @@ pub const TEXT_OFFSET: f32 = 10.0;
 pub const NODE_HEIGHT: f32 = 18.0;
 
 /// Text size used for input area text.
-pub const TEXT_SIZE: f32 = 12.0;
+pub const TEXT_SIZE: f32 = 11.5;
 
 
 

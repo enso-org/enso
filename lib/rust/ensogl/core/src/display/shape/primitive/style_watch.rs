@@ -146,6 +146,15 @@ impl ThemeAccess for f32 {
     }
 }
 
+impl ThemeAccess for Vector2 {
+    fn from_style_data(path_str: &str, data: &Option<style::Data>) -> Self {
+        data.vector().unwrap_or_else(|| {
+            warn!("Tried to access undefined vector from theme: {path_str}");
+            default()
+        })
+    }
+}
+
 impl ThemeAccess for ImString {
     fn from_style_data(path_str: &str, data: &Option<style::Data>) -> Self {
         data.im_string_or_else(|| {

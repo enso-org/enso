@@ -17,7 +17,6 @@ enso-shapely = { path = "../../../lib/rust/shapely" }
 engine-protocol = { path = "../controller/engine-protocol" }
 ensogl = { path = "../../../lib/rust/ensogl" }
 ensogl-component = { path = "../../../lib/rust/ensogl/component" }
-ensogl-derive-theme = { path = "../../../lib/rust/ensogl/app/theme/derive" }
 ensogl-gui-component = { path = "../../../lib/rust/ensogl/component/gui" }
 ensogl-text = { path = "../../../lib/rust/ensogl/component/text" }
 ensogl-text-msdf = { path = "../../../lib/rust/ensogl/component/text/src/font/msdf" }

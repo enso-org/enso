@@ -82,7 +82,7 @@ impl SpanWidget for Widget {
         let weight_anim = ensogl::Animation::new(network);
         weight_anim.precision.emit(0.001);
 
-        let style = Style::from_theme(network, ctx.styles());
+        let style = ctx.cached_style::<Style>();
         frp::extend! { network
             let id = ctx.info.identity;
             parent_port_hovered <- widgets_frp.hovered_port_children.map(move |h| h.contains(&id));

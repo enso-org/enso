@@ -1,4 +1,5 @@
 use crate::prelude::*;
+use ensogl::display::scene::layer;
 
 use crate::display;
 use crate::display::camera::Camera2d;
@@ -42,9 +43,16 @@ pub struct GraphLayersData {
     pub edited_nodes:    MainNodeLayers,
 }
 
+/// Layers used by node backdrop shapes. Separated from node layers, so that other layers can
+/// be inserted between the backdrop and main node layers (e.g. edges).
 #[derive(Debug)]
 pub struct NodeBackdropLayers {
     /// The actual layer that is used as the base for all backdrop partitions, below any edges.
+    /// This layer uses a special blend mode, which guarantees that shapes with alpha with
+    /// identical colors will nicely blend together without visible overdraw. When shapes of
+    /// different colors are combined together, the result may look a little funky, but
+    /// acceptable for backdrops. If something needs to be drawn below nodes without special blend,
+    /// a new layer must be created.
     pub backdrop_base: Layer,
 
     /// The visual layer for all rectangle shapes displayed below node background and edges, such
@@ -106,6 +114,15 @@ impl GraphLayers {
 impl NodeBackdropLayers {
     fn new(layer: &Layer, camera: Option<&Camera2d>) -> Self {
         let backdrop_base = layer.create_sublayer_with_optional_camera("backdrop_base", camera);
+        backdrop_base.set_blend_mode(layer::BlendMode {
+            equation_color: layer::BlendEquation::Add,
+            equation_alpha: layer::BlendEquation::Max,
+            src_color: layer::BlendFactor::SrcAlpha,
+            src_alpha: layer::BlendFactor::One,
+            dst_color: layer::BlendFactor::OneMinusSrcAlpha,
+            dst_alpha: layer::BlendFactor::One,
+            ..default()
+        });
         Self { backdrop: backdrop_base.create_symbol_partition("backdrop"), backdrop_base }
     }
 }

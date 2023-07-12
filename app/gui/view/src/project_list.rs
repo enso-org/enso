@@ -11,9 +11,9 @@ use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::scene::Layer;
+use ensogl::display::style::FromTheme;
 use ensogl_component::grid_view;
 use ensogl_component::shadow;
-use ensogl_derive_theme::FromTheme;
 use ensogl_hardcoded_theme::application::project_list as theme;
 use ensogl_text as text;
 

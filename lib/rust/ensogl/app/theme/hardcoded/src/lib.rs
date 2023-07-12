@@ -16,9 +16,9 @@
 #![warn(missing_debug_implementations)]
 
 use enso_prelude::*;
+use ensogl_core::prelude::*;
 
 use enso_shapely::before_main;
-use ensogl_core::prelude::ImString;
 use ensogl_text::font::DEFAULT_FONT;
 use ensogl_text::font::DEFAULT_FONT_MONO;
 
@@ -287,6 +287,12 @@ define_themes! { [light:0, dark:1]
                         group_5 = Rgb::from_base_255(181.0, 97.0, 35.0), Rgb::from_base_255(181.0, 97.0, 35.0);
                         local_scope_group = Rgba::new(0.0, 0.42, 0.64, 1.0),Rgba::new(0.0, 0.42, 0.64, 1.0);
                     }
+
+                    temp_colors {
+                        color_0 = Lch(0.491, 0.339, 0.727), Lch(0.491, 0.339, 0.727);
+                        color_1 = Lch(0.447, 0.379, 0.968), Lch(0.447, 0.379, 0.968);
+                        color_2 = Lch(0.444, 0.124, 0.701), Lch(0.444, 0.124, 0.701);
+                    }
                 }
                 menu_height = 45.0, 45.0;
                 menu_divider_color = Rgb(0.7804, 0.7804, 0.7804), Rgb(0.7804, 0.7804, 0.7804);
@@ -499,7 +505,7 @@ define_themes! { [light:0, dark:1]
         }
         node {
             background         = Rgba(0.992,0.996,1.0,1.0), Rgba(0.182,0.188,0.196,1.0);
-            port_color_tint    = Rgba(1.0,1.0,1.0,0.2), Rgba(1.0,1.0,1.0,0.1);
+            port_color_tint    = Rgba(1.0,1.0,1.0,0.15), Rgba(1.0,1.0,1.0,0.15);
             text               = code::syntax::base, code::syntax::base;
             selection {
                 size = 20.0 , 20.0;
@@ -517,7 +523,7 @@ define_themes! { [light:0, dark:1]
                 edited    = Lcha::yellow(0.9,1.0), Lcha::yellow(0.9,1.0);
             }
             error {
-                dataflow     = Rgba(1.0,0.341,0.125,1.0), Rgba(1.0,0.341,0.125,1.0);
+                dataflow     = Lcha(0.566,0.564,0.082,1.0), Lcha(0.566,0.564,0.082,1.0);
                 panic        = Rgba(0.7,0.235,0.08,1.0), Rgba(0.7,0.235,0.08,1.0);
                 warning      = Rgba(1.0,0.655,0.141,1.0), Rgba(1.0,0.655,0.141,1.0);
                 width        = 4.0  , 4.0;
@@ -633,10 +639,13 @@ define_themes! { [light:0, dark:1]
         }
     }
     widget {
-        activation_shape {
-            base      = graph_editor::node::background , graph_editor::node::background;
-            // base      = Lcha(0.56708, 0.23249, 0.71372, 1.0), Lcha(0.56708, 0.23249, 0.71372, 1.0);
-            connected = graph_editor::node::background , graph_editor::node::background;
+        single_choice {
+            triangle_base = Lcha(1.0,0.0,0.0,0.5) , Lcha(1.0,0.0,0.0,0.5);
+            triangle_connected = Lcha(1.0,0.0,0.0,1.0) , Lcha(1.0,0.0,0.0,1.0);
+            triangle_size = Vector2(8.0, 6.0) , Vector2(8.0, 6.0);
+            triangle_offset = Vector2(0.0, 2.0) , Vector2(0.0, 2.0);
+            dropdown_offset = Vector2(0.0, -20.0) , Vector2(0.0, -20.0);
+            dropdown_max_size = Vector2(300.0, 500.0) , Vector2(300.0, 500.0);
         }
         list_view {
             background = graph_editor::node::background , graph_editor::node::background;
@@ -656,6 +665,13 @@ define_themes! { [light:0, dark:1]
                 corner_radius = 12.0, 12.0;
             }
             padding = 5.0, 5.0;
+        }
+        blank {
+            color = Lcha(0.0,0.0,0.0,0.33), Lcha(0.0,0.0,0.0,0.33);
+            size = Vector2(20.0, 4.0) , Vector2(20.0, 4.0);
+            margin_sides = 2.0, 2.0;
+            margin_top = 8.0, 8.0;
+            corner_radius = 4.0, 4.0;
         }
     }
     colors {

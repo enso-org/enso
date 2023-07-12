@@ -44,6 +44,7 @@
 
 use crate::prelude::*;
 use crate::GraphLayers;
+use std::any::TypeId;
 
 use crate::component::node::input::area::NODE_HEIGHT;
 use crate::component::node::input::area::TEXT_OFFSET;
@@ -56,8 +57,12 @@ use enso_text as text;
 use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display;
+use ensogl::display::scene;
 use ensogl::display::scene::layer::LayerSymbolPartition;
 use ensogl::display::shape::StyleWatchFrp;
+use ensogl::display::style::FromTheme;
+use ensogl::display::style::FromThemeFrp;
+use ensogl::display::Scene;
 use ensogl::gui::cursor;
 use ensogl_component::drop_down::DropdownValue;
 use span_tree::node::Ref as SpanRef;
@@ -81,8 +86,9 @@ pub(super) mod prelude {
     pub use super::WidgetsFrp;
 
     pub use crate::display::shape::Rectangle;
+    pub use ensogl::data::color;
     pub use ensogl::display::shape::StyleWatchFrp;
-    pub use ensogl_derive_theme::FromTheme;
+    pub use ensogl::display::style::FromTheme;
     pub use ensogl_hardcoded_theme as theme;
     pub use span_tree::node::Ref as SpanRef;
 }
@@ -358,6 +364,8 @@ define_widget_modules! {
     InsertionPoint insertion_point,
     /// Default span tree traversal widget.
     Hierarchy hierarchy,
+    /// Dedicated widget for '_' symbol in argument position.
+    Blank blank,
     /// Default widget that only displays text.
     Label label,
 }
@@ -946,7 +954,7 @@ impl TreeModel {
             start..start + total_descendants
         });
 
-        std::iter::from_fn(move || {
+        iter::from_fn(move || {
             let index = total_range.next()?;
             let entry = hierarchy[index];
             // Skip all descendants of the child. The range is now at the next direct child.
@@ -999,6 +1007,9 @@ impl TreeModel {
         let mut hierarchy = self.hierarchy.take();
         hierarchy.clear();
 
+        let global_scene = scene();
+        let shared_extension = global_scene.extension::<SceneSharedExtension>();
+
         let mut builder = TreeBuilder {
             app,
             frp,
@@ -1018,6 +1029,7 @@ impl TreeModel {
             last_ast_depth: default(),
             extensions: default(),
             node_settings: default(),
+            shared: &shared_extension.shared,
         };
 
         let child = builder.child_widget(tree.root_ref(), default());
@@ -1133,11 +1145,18 @@ impl<'a, 'b> ConfigContext<'a, 'b> {
         self.builder.styles
     }
 
+    /// Get an instance of typed style object. This cached style object is shared across all widget
+    /// instances in the scene, therefore this method is preferred over manually using
+    /// [`ConfigContext::styles`] in combination with [`FromTheme::from_theme`].
+    pub fn cached_style<T: FromTheme + Any>(&self) -> FromThemeFrp<T> {
+        self.builder.shared.cached_style::<T>()
+    }
+
     /// Set an extension object of specified type at the current tree position. Any descendant
     /// widget will be able to access it, as long as it can name its type. This allows for
     /// configure-time communication between any widgets inside the widget tree.
     pub fn set_extension<T: Any>(&mut self, val: T) {
-        let id = std::any::TypeId::of::<T>();
+        let id = TypeId::of::<T>();
         match self.self_extension_index_by_type(id) {
             Some(idx) => *self.builder.extensions[idx].downcast_mut().unwrap() = val,
             None => {
@@ -1152,7 +1171,7 @@ impl<'a, 'b> ConfigContext<'a, 'b> {
     ///
     /// See also: [`ConfigContext::get_extension_or_default`], [`ConfigContext::modify_extension`].
     pub fn get_extension<T: Any>(&self) -> Option<&T> {
-        self.any_extension_index_by_type(std::any::TypeId::of::<T>())
+        self.any_extension_index_by_type(TypeId::of::<T>())
             .map(|idx| self.builder.extensions[idx].downcast_ref().unwrap())
     }
 
@@ -1170,7 +1189,7 @@ impl<'a, 'b> ConfigContext<'a, 'b> {
     /// See also: [`ConfigContext::get_extension`].
     pub fn modify_extension<T>(&mut self, f: impl FnOnce(&mut T))
     where T: Any + Default + Clone {
-        match self.any_extension_index_by_type(std::any::TypeId::of::<T>()) {
+        match self.any_extension_index_by_type(TypeId::of::<T>()) {
             // This extension has been created by this widget, so we can modify it directly.
             Some(idx) if idx >= self.parent_extensions_len => {
                 f(self.builder.extensions[idx].downcast_mut().unwrap());
@@ -1190,11 +1209,11 @@ impl<'a, 'b> ConfigContext<'a, 'b> {
         }
     }
 
-    fn any_extension_index_by_type(&self, id: std::any::TypeId) -> Option<usize> {
+    fn any_extension_index_by_type(&self, id: TypeId) -> Option<usize> {
         self.builder.extensions.iter().rposition(|ext| ext.deref().type_id() == id)
     }
 
-    fn self_extension_index_by_type(&self, id: std::any::TypeId) -> Option<usize> {
+    fn self_extension_index_by_type(&self, id: TypeId) -> Option<usize> {
         let self_extensions = &self.builder.extensions[self.parent_extensions_len..];
         self_extensions.iter().rposition(|ext| ext.deref().type_id() == id)
     }
@@ -1408,6 +1427,7 @@ struct TreeBuilder<'a> {
     node_settings:   NodeSettings,
     last_ast_depth:  usize,
     extensions:      Vec<Box<dyn Any>>,
+    shared:          &'a SceneShared,
 }
 
 impl<'a> TreeBuilder<'a> {
@@ -1576,8 +1596,8 @@ impl<'a> TreeBuilder<'a> {
 
         let port_pad = this.node_settings.custom_port_hover_padding;
         let old_node = this.old_nodes.remove(&widget_id).map(|e| e.node);
-        let parent_info = std::mem::replace(&mut this.parent_info, Some(info.clone()));
-        let saved_node_settings = std::mem::take(&mut this.node_settings);
+        let parent_info = mem::replace(&mut this.parent_info, Some(info.clone()));
+        let saved_node_settings = mem::take(&mut this.node_settings);
 
 
         // Widget creation/update can recurse into the builder. All borrows must be dropped
@@ -1665,4 +1685,65 @@ struct Child {
     /// [`configure`d]: SpanWidget::configure
     #[deref]
     pub root_object: display::object::Instance,
+}
+
+
+
+// ===================
+// === SceneShared ===
+// ===================
+
+/// A set of cached objects shared between all widget trees within a given scene. It is currently
+/// used to cache all style objects of common types created from within widget instances. That way
+/// we can avoid a cost of creating dedicated style FRP nodes for each widget instance.
+#[derive(Debug)]
+struct SceneShared {
+    /// An `StyleWatchFrp` instance used by all cached style objects. Since the style objects are
+    /// reused between multiple nodes, it would be not correct to use the node-specific
+    /// [`TreeBuilder.styles`] object. Instead, a dedicated shared one is used.
+    cached_styles_frp: StyleWatchFrp,
+    /// FRP Network shared by all cached style FRP nodes.
+    ///
+    /// NOTE: Any FRP nodes created within this network will have a lifetime of the whole scene. It
+    /// is very important to not create any per-widget-instance nodes in it, as that would lead to
+    /// a memory leak. Use this network only for shared, intentionally long-lived nodes.
+    network:           frp::Network,
+    /// All shared state used by widgets, including shared style objects. Indexable by type.
+    objects:           RefCell<HashMap<TypeId, Box<dyn Any>>>,
+}
+
+/// A scene extension holding [`SceneShared`] object.
+#[derive(Debug, Clone, CloneRef)]
+struct SceneSharedExtension {
+    shared: Rc<SceneShared>,
+}
+
+impl scene::Extension for SceneSharedExtension {
+    fn init(scene: &Scene) -> Self {
+        let shared = SceneShared {
+            cached_styles_frp: StyleWatchFrp::new(&scene.style_sheet),
+            network:           frp::Network::new("widget::SceneShared"),
+            objects:           default(),
+        };
+        Self { shared: Rc::new(shared) }
+    }
+}
+
+impl SceneShared {
+    /// Retrieve a shared style object that implements `FromTheme`. All calls using the same type
+    /// will receive a `clone_ref` of the same object instance.
+    fn cached_style<T: FromTheme + Any>(&self) -> FromThemeFrp<T> {
+        self.get_or_insert_with(|| T::from_theme(&self.network, &self.cached_styles_frp))
+            .clone_ref()
+    }
+
+    fn get_or_insert_with<T: Any>(&self, with: impl FnOnce() -> T) -> RefMut<T> {
+        RefMut::map(self.objects.borrow_mut(), |objects| {
+            objects
+                .entry(TypeId::of::<T>())
+                .or_insert_with(|| Box::new(with()))
+                .downcast_mut::<T>()
+                .expect("TypeId key should always be matching stored object type.")
+        })
+    }
 }

@@ -332,6 +332,48 @@ impl AsRef<Manager> for Manager {
 
 
 
+// =================
+// === FromTheme ===
+// =================
+
+/// A struct containing a set of predefined styles that can be constructed from theme. This trait
+/// can be derived using `#[derive(FromTheme)]`.
+///
+/// ```
+/// # use ensogl_core::data::color;
+/// # use ensogl_core::display::style::FromTheme;
+/// #[derive(Clone, Debug, Default, FromTheme)]
+/// #[base_path = "theme::code::syntax"]
+/// struct Style {
+///     base:      color::Rgba,
+///     selection: color::Rgba,
+///     disabled:  color::Rgba,
+///     expected:  color::Rgba,
+/// }
+/// ```
+pub trait FromTheme: Clone + Debug + Default {
+    /// Create FRP endpoints used to obtain this style's FRP endpoints from a style sheet.
+    fn from_theme(
+        network: &enso_frp::Network,
+        style: &crate::display::shape::StyleWatchFrp,
+    ) -> FromThemeFrp<Self>;
+}
+
+/// FRP endpoints for a style struct created with [`FromTheme`].
+#[derive(Debug, Clone, CloneRef)]
+pub struct FromThemeFrp<T: FromTheme> {
+    /// Event emitted each time the style will be updated.
+    pub update: enso_frp::Stream<T>,
+    /// Emit this event when you want to reinitialize all nodes dependant on the `update`
+    /// field. Note that the initialization of `update` will already automatically happen on
+    /// next microtask after calling [`FromTheme::from_theme`].
+    pub init:   enso_frp::Source,
+}
+
+// Reexport the derive here, so that importing the trait also allows it to be derived.
+pub use ensogl_derive_theme::FromTheme;
+
+
 // ============
 // === Test ===
 // ============

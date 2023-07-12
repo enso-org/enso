@@ -23,15 +23,15 @@ use ensogl::Animation;
 // === Constants ===
 // =================
 
-const NODE_OVERLAP: f32 = 0.1;
-const PORT_LINE_WIDTH: f32 = 4.0;
+const NODE_OVERLAP: f32 = 0.2;
+const PORT_LINE_WIDTH: f32 = 6.0;
 const PORT_OPACITY_HOVERED: f32 = 1.0;
 const PORT_OPACITY_NOT_HOVERED: f32 = 0.25;
 const SEGMENT_GAP_WIDTH: f32 = 2.0;
 const HOVER_AREA_PADDING: f32 = 20.0;
 const FULL_TYPE_ONSET_DELAY_MS: f32 = 2000.0;
 const LABEL_OFFSET: f32 = 10.0;
-const END_CAP_CLIP: f32 = 0.495;
+const END_CAP_CLIP: f32 = 0.45;
 
 
 const TOOLTIP_LOCATION: Placement = Placement::Bottom;
@@ -106,13 +106,16 @@ impl ShapeView {
 
         let make_end_cap = || {
             let end_cap = Rectangle();
+            let half_height = PORT_LINE_WIDTH / 2.0;
+            let clip_adjusted_height = PORT_LINE_WIDTH / (END_CAP_CLIP * 2.0 + 1.0);
+            let clip_diff = clip_adjusted_height - half_height;
             end_cap
-                .set_size((PORT_LINE_WIDTH, PORT_LINE_WIDTH / 2.0))
+                .set_size((PORT_LINE_WIDTH, clip_adjusted_height))
                 .set_corner_radius(PORT_LINE_WIDTH)
                 .set_clip(Vector2(0.0, END_CAP_CLIP));
             end_cap.set_pointer_events(false);
             // End caps are positioned right above the main port line shape.
-            end_cap.set_y(node::HEIGHT * 0.5 + NODE_OVERLAP);
+            end_cap.set_y(node::HEIGHT * 0.5 + NODE_OVERLAP - clip_diff);
             root.add_child(&end_cap);
             end_cap
         };

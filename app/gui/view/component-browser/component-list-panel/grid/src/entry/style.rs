@@ -6,9 +6,9 @@ use enso_frp as frp;
 use ensogl_core::data::color;
 use ensogl_core::display::shape::StyleWatchFrp;
 use ensogl_core::display::shape::ThemeAccess;
-use ensogl_core::display::style::data::DataMatch;
 use ensogl_core::display::style;
-use ensogl_derive_theme::FromTheme;
+use ensogl_core::display::style::data::DataMatch;
+use ensogl_core::display::style::FromTheme;
 use ensogl_hardcoded_theme::application::component_browser::component_list_panel as panel_theme;
 use ensogl_hardcoded_theme::application::component_browser::component_list_panel::grid as grid_theme;
 use entry_theme::highlight::selection as selection_theme;
@@ -45,7 +45,6 @@ impl Color {
             Self::Arbitrary(color) => *color,
         }
     }
-
 }
 
 /// A custom accessor for retrieving the color from the stylesheet using the [`FromTheme`]
@@ -55,8 +54,8 @@ impl Color {
 /// such property in the stylesheet.
 impl ThemeAccess for Color {
     fn from_style_data(path_str: &str, data: &Option<style::Data>) -> Self {
-        data
-            .color().map(|color| Color::Arbitrary(color::Lcha::from(color)))
+        data.color()
+            .map(|color| Color::Arbitrary(color::Lcha::from(color)))
             .or_else(move || data.number().map(|a| Color::ComponentGroup { alpha_multiplier: a }))
             .unwrap_or_else(|| {
                 warn!("Neither color nor alpha defined for {path_str}.");

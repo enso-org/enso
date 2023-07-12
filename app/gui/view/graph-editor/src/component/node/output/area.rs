@@ -391,8 +391,6 @@ impl Area {
             port_hover                             <- frp.on_port_hover.map(|t| t.is_on());
             frp.source.body_hover                  <+ frp.set_hover || port_hover;
             expr_vis                               <- frp.body_hover || frp.set_expression_visibility;
-            in_normal_mode                         <- frp.set_view_mode.map(|m| m.is_normal());
-            expr_vis                               <- expr_vis && in_normal_mode;
             frp.source.expression_label_visibility <+ expr_vis;
 
             let label_vis_color = color::Lcha::from(model.styles.get_color(theme::graph_editor::node::text));

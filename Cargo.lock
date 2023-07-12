@@ -2674,6 +2674,7 @@ dependencies = [
  "enso-shortcuts",
  "enso-types",
  "enso-web",
+ "ensogl-derive-theme",
  "ensogl-text-embedded-fonts",
  "enum_dispatch",
  "failure",
@@ -2700,6 +2701,7 @@ dependencies = [
 name = "ensogl-derive-theme"
 version = "0.1.0"
 dependencies = [
+ "proc-macro-crate",
  "proc-macro2",
  "quote",
  "syn 1.0.107",
@@ -4262,7 +4264,6 @@ dependencies = [
  "enso-shapely",
  "ensogl",
  "ensogl-component",
- "ensogl-derive-theme",
  "ensogl-gui-component",
  "ensogl-hardcoded-theme",
  "ensogl-text",
@@ -4308,7 +4309,6 @@ dependencies = [
  "approx 0.5.1",
  "enso-frp",
  "ensogl-core",
- "ensogl-derive-theme",
  "ensogl-grid-view",
  "ensogl-gui-component",
  "ensogl-hardcoded-theme",
@@ -4329,7 +4329,6 @@ version = "0.1.0"
 dependencies = [
  "enso-frp",
  "ensogl-core",
- "ensogl-derive-theme",
  "ensogl-grid-view",
  "ensogl-hardcoded-theme",
  "ensogl-text",
@@ -4341,7 +4340,6 @@ version = "0.1.0"
 dependencies = [
  "enso-frp",
  "ensogl-core",
- "ensogl-derive-theme",
  "ensogl-grid-view",
  "ensogl-gui-component",
  "ensogl-hardcoded-theme",
@@ -4373,7 +4371,6 @@ dependencies = [
  "enso-suggestion-database",
  "ensogl",
  "ensogl-component",
- "ensogl-derive-theme",
  "ensogl-hardcoded-theme",
  "horrorshow",
  "ide-ci",
@@ -4392,7 +4389,6 @@ dependencies = [
  "enso-frp",
  "enso-prelude",
  "ensogl",
- "ensogl-derive-theme",
  "ensogl-drop-down-menu",
  "ensogl-gui-component",
  "ensogl-hardcoded-theme",
@@ -4417,7 +4413,6 @@ dependencies = [
  "enso-text",
  "ensogl",
  "ensogl-component",
- "ensogl-derive-theme",
  "ensogl-drop-manager",
  "ensogl-hardcoded-theme",
  "ensogl-text-msdf",

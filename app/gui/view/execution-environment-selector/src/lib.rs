@@ -31,7 +31,7 @@ use ensogl::data::color::Rgba;
 use ensogl::display;
 use ensogl::display::camera::Camera2d;
 use ensogl::display::shape::StyleWatchFrp;
-use ensogl_derive_theme::FromTheme;
+use ensogl::display::style::FromTheme;
 use ensogl_gui_component::component;
 use ensogl_hardcoded_theme::graph_editor::execution_environment_selector as theme;
 

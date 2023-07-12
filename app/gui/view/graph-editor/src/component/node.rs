@@ -21,11 +21,10 @@ use ensogl::application::Application;
 use ensogl::control::io::mouse;
 use ensogl::data::color;
 use ensogl::display;
-use ensogl::display::shape::compound::rectangle;
+use ensogl::display::style::FromTheme;
 use ensogl::gui;
 use ensogl::Animation;
 use ensogl_component::text;
-use ensogl_derive_theme::FromTheme;
 use ensogl_hardcoded_theme as theme;
 
 
@@ -60,6 +59,10 @@ pub const HEIGHT: f32 = 32.0;
 /// The additional reserved space around base background shape to allow for drawing node backdrop
 /// shapes, such as selection or status.
 pub const BACKDROP_INSET: f32 = 25.0;
+/// Size of error indicator border around node.
+pub const ERROR_BORDER_WIDTH: f32 = 3.0;
+/// Distance between node and error indicator border.
+pub const ERROR_BORDER_DISTANCE: f32 = 3.0;
 /// Radius of rounded corners of base node background shape. Node also contains other shapes, such
 /// as selection, that will also received rounded corners by growing the background shape.
 pub const CORNER_RADIUS: f32 = HEIGHT / 2.0;
@@ -104,8 +107,6 @@ struct BackgroundStyle {
     selection_hover_opacity: f32,
     #[theme_path = "theme::graph_editor::node::selection::size"]
     selection_size:          f32,
-    #[theme_path = "theme::application::background"]
-    app_bg:                  color::Lcha,
 }
 
 impl Background {
@@ -130,8 +131,8 @@ impl Background {
             selection_colors <- color_animation.value.all_with3(
                 &hover_animation.value, &style.update,
                 |color, hover, style| (
-                    color.multiply_alpha(style.selection_opacity).over(style.app_bg),
-                    color.multiply_alpha(style.selection_hover_opacity * hover).over(style.app_bg),
+                    color.multiply_alpha(style.selection_opacity),
+                    color.multiply_alpha(style.selection_hover_opacity * hover),
                 )
             );
             selection_border <- selection_animation.value.all_with(&style.update,
@@ -203,41 +204,6 @@ impl display::Object for Background {
 
 
 
-// =======================
-// === Error Indicator ===
-// =======================
-
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
-pub mod error_shape {
-    use super::*;
-
-    ensogl::shape! {
-        below = [rectangle];
-        alignment = center;
-        (style:Style,color_rgba:Vector4<f32>) {
-            use theme::graph_editor::node as node_theme;
-
-            let padded_size = Var::canvas_size();
-            let size = padded_size - Var::from(Vector2::repeat(BACKDROP_INSET.pixels() * 2.0));
-            let base = Rect(size).corners_radius(CORNER_RADIUS.px());
-
-            let zoom   = Var::<f32>::from("1.0/zoom()");
-            let error_width         = style.get_number(node_theme::error::width).px();
-            let stripe_gap          = style.get_number(node_theme::error::stripe_gap).px();
-            let stripe_width        = style.get_number(node_theme::error::stripe_width);
-            let stripe_angle        = style.get_number(node_theme::error::stripe_angle);
-            let stripe_angle        = Radians::from(stripe_angle.degrees());
-            let repeat              = Var::<Vector2<Pixels>>::from((1.0.px(),stripe_gap));
-            let stripe              = Line(zoom * stripe_width);
-            let mask                = base.grow(error_width);
-            let stripe_pattern      = stripe.repeat(repeat).rotate(stripe_angle);
-            let stripe_pattern      = mask.intersection(stripe_pattern).fill(color_rgba);
-            stripe_pattern.into()
-        }
-    }
-}
-
-
 // ============
 // === Node ===
 // ============
@@ -307,7 +273,6 @@ ensogl::define_endpoints_2! {
         freeze                   (bool),
         hover                    (bool),
         error                    (Option<Error>),
-        expression_label_visible (bool),
         /// The [`display::object::Model::position`] of the Node. Emitted when the Display Object
         /// hierarchy is updated (see: [`ensogl_core::display::object::Instance::update`]).
         position                 (Vector2),
@@ -416,7 +381,7 @@ pub struct NodeModel {
     pub layers:              GraphLayers,
     pub display_object:      display::object::Instance,
     pub background:          Background,
-    pub error_indicator:     error_shape::View,
+    pub error_indicator:     Rectangle,
     pub profiling_label:     ProfilingLabel,
     pub input:               input::Area,
     pub output:              output::Area,
@@ -436,7 +401,12 @@ impl NodeModel {
     pub fn new(app: &Application, layers: &GraphLayers, registry: visualization::Registry) -> Self {
         let style = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
 
-        let error_indicator = error_shape::View::new();
+        let error_indicator = Rectangle();
+        error_indicator
+            .set_corner_radius_max()
+            .set_pointer_events(false)
+            .set_color(color::Rgba::transparent())
+            .set_border_and_inset(ERROR_BORDER_WIDTH);
         let profiling_label = ProfilingLabel::new(app);
         let background = Background::new(&style);
         let vcs_indicator = vcs::StatusIndicator::new(app);
@@ -547,13 +517,15 @@ impl NodeModel {
         let height = self.height();
         let size = Vector2(width, height);
         let padded_size = size + Vector2(BACKDROP_INSET, BACKDROP_INSET) * 2.0;
+        let error_padding = ERROR_BORDER_WIDTH + ERROR_BORDER_DISTANCE;
+        let error_size = size + Vector2(error_padding, error_padding) * 2.0;
         self.output.frp.set_size(size);
-        self.error_indicator.set_size(padded_size);
+        self.error_indicator.set_size(error_size);
         self.vcs_indicator.frp.set_size(padded_size);
         let x_offset_to_node_center = x_offset_to_node_center(width);
         let background_origin = Vector2(x_offset_to_node_center, 0.0);
         self.background.set_size_and_center_xy(size, background_origin);
-        self.error_indicator.set_x(x_offset_to_node_center);
+        self.error_indicator.set_xy((-error_padding, -height / 2.0 - error_padding));
         self.vcs_indicator.set_x(x_offset_to_node_center);
 
         let visualization_offset = visualization_offset(width);
@@ -579,10 +551,10 @@ impl NodeModel {
 
     #[profile(Debug)]
     fn set_error_color(&self, color: &color::Lcha) {
-        self.error_indicator.color_rgba.set(color::Rgba::from(color).into());
         if color.alpha < f32::EPSILON {
             self.error_indicator.unset_parent();
         } else {
+            self.error_indicator.set_border_color(color.into());
             self.display_object.add_child(&self.error_indicator);
         }
     }
@@ -916,9 +888,9 @@ impl Node {
         // into a widget, which is also necessary to later support "split" nodes, where '.' chains
         // are displayed as separate shapes.
         let colors = [
-            color::Lcha(0.56708, 0.23249, 0.71372, 1.0),
-            color::Lcha(0.44680, 0.45460, 0.96805, 1.0),
-            color::Lcha(0.44370, 0.45460, 0.72008, 1.0),
+            color::Lcha(0.4911, 0.3390, 0.72658, 1.0),
+            color::Lcha(0.4468, 0.3788, 0.96805, 1.0),
+            color::Lcha(0.4437, 0.1239, 0.70062, 1.0),
         ];
         let mut hasher = crate::DefaultHasher::new();
         Rc::as_ptr(&model).hash(&mut hasher);

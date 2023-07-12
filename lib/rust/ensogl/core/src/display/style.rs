@@ -14,3 +14,5 @@ pub mod theme;
 pub use path::Path;
 pub use path::StaticPath;
 pub use sheet::*;
+pub use theme::FromTheme;
+pub use theme::FromThemeFrp;

@@ -348,7 +348,7 @@ fn generate_node_for_ast(
                 tree_generate_node(tree, kind, context, ast.id),
             ast::Shape::Block(block) => block_generate_node(block, kind, context, ast.id),
             _ => {
-                let size = (ast.len().value as i32).byte_diff();
+                let size = (ast.repr_len().value as i32).byte_diff();
                 let ast_id = ast.id;
                 if let Some(info) = ast_id.and_then(|id| context.call_info(id)) {
                     let node = Node::new()
