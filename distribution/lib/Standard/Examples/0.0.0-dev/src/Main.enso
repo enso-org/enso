@@ -1,14 +1,13 @@
 from Standard.Base import all
-
 import Standard.Base.Data.Text.Regex.Match.Match
 import Standard.Base.Errors.Common.No_Such_Method
 import Standard.Base.Network.HTTP.Response.Response
 import Standard.Base.Network.HTTP.Response_Body.Response_Body
 import Standard.Base.Runtime.Context
 
-from Standard.Table import Table, Column
+from Standard.Table import Column, Table
 
-from Standard.Image import Image, Read_Flag, Matrix
+from Standard.Image import Image, Matrix, Read_Flag
 
 ## An example error type used in a number of examples.
 

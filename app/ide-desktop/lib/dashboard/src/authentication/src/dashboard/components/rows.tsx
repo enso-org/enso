@@ -1,7 +1,7 @@
 /** @file Table that projects an object into each column. */
 import * as React from 'react'
 
-import * as svg from '../../components/svg'
+import Spinner, * as spinner from './spinner'
 
 // =================
 // === Constants ===
@@ -9,10 +9,6 @@ import * as svg from '../../components/svg'
 
 /** The size of the loading spinner. */
 const LOADING_SPINNER_SIZE = 36
-/** The classes for the initial state of the spinner. */
-const SPINNER_INITIAL_CLASSES = 'grow dasharray-5 ease-linear'
-/** The classes for the final state of the spinner. */
-const SPINNER_LOADING_CLASSES = 'grow dasharray-75 duration-1000 ease-linear'
 
 // =============
 // === Types ===
@@ -43,7 +39,7 @@ export interface RowsProps<T> {
 /** Table that projects an object into each column. */
 function Rows<T>(props: RowsProps<T>) {
     const { columns, items, isLoading, getKey, placeholder, onClick, onContextMenu } = props
-    const [spinnerClasses, setSpinnerClasses] = React.useState(SPINNER_INITIAL_CLASSES)
+    const [spinnerState, setSpinnerState] = React.useState(spinner.SpinnerState.initial)
 
     const headerRow = (
         <tr>
@@ -62,10 +58,10 @@ function Rows<T>(props: RowsProps<T>) {
         if (isLoading) {
             // Ensure the spinner stays in the "initial" state for at least one frame.
             requestAnimationFrame(() => {
-                setSpinnerClasses(SPINNER_LOADING_CLASSES)
+                setSpinnerState(spinner.SpinnerState.loadingFast)
             })
         } else {
-            setSpinnerClasses(SPINNER_INITIAL_CLASSES)
+            setSpinnerState(spinner.SpinnerState.initial)
         }
     }, [isLoading])
 
@@ -73,7 +69,7 @@ function Rows<T>(props: RowsProps<T>) {
         <tr className="h-10">
             <td colSpan={columns.length}>
                 <div className="grid justify-around w-full">
-                    <svg.Spinner size={LOADING_SPINNER_SIZE} className={spinnerClasses} />
+                    <Spinner size={LOADING_SPINNER_SIZE} state={spinnerState} />
                 </div>
             </td>
         </tr>

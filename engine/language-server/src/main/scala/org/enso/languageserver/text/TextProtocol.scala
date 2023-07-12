@@ -136,6 +136,13 @@ object TextProtocol {
     */
   case class FileAutoSaved(path: Path)
 
+  /** A notification sent by the Language Server, notifying a client that the
+    * file was modified on disk.
+    *
+    * @param path path to the file
+    */
+  case class FileModifiedOnDisk(path: Path)
+
   /** A notification sent by the Language Server, notifying a client about
     * a file event after reloading the buffer to sync with file system
     *
@@ -155,16 +162,13 @@ object TextProtocol {
     currentVersion: TextApi.Version
   )
 
-  /** Signals the result of saving a file.
-    */
+  /** Signals the result of saving a file. */
   sealed trait SaveFileResult
 
-  /** Signals that saving a file was executed successfully.
-    */
+  /** Signals that saving a file was executed successfully. */
   case object FileSaved extends SaveFileResult
 
-  /** Signals that the client doesn't hold write lock to the buffer.
-    */
+  /** Signals that the client doesn't hold write lock to the buffer. */
   case object SaveDenied extends SaveFileResult
 
   /** Signals that version provided by a client doesn't match to the version
@@ -183,5 +187,8 @@ object TextProtocol {
     * @param fsFailure a filesystem failure
     */
   case class SaveFailed(fsFailure: FileSystemFailure) extends SaveFileResult
+
+  /** Signals that the file is modified on disk. */
+  case object SaveFailedFileModifiedOnDisk extends SaveFileResult
 
 }

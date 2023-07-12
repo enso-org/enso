@@ -6,12 +6,16 @@ use crate::prelude::*;
 use crate::executor::global::spawn_stream_handler;
 use crate::model::project::synchronized::ProjectNameInvalid;
 use crate::presenter;
+use crate::presenter::searcher::ai::AISearcher;
+use crate::presenter::searcher::SearcherPresenter;
+use crate::presenter::ComponentBrowserSearcher;
 
 use engine_protocol::language_server::ExecutionEnvironment;
 use enso_frp as frp;
 use ensogl::system::js;
 use ide_view as view;
 use ide_view::project::SearcherParams;
+use ide_view::project::SearcherType;
 use model::module::NotificationKind;
 use model::project::Notification;
 use model::project::VcsStatus;
@@ -44,7 +48,7 @@ struct Model {
     status_bar:           view::status_bar::View,
     graph:                presenter::Graph,
     code:                 presenter::Code,
-    searcher:             RefCell<Option<presenter::Searcher>>,
+    searcher:             RefCell<Option<Box<dyn SearcherPresenter>>>,
     available_projects:   Rc<RefCell<Vec<(ImString, Uuid)>>>,
     shortcut_transaction: RefCell<Option<Rc<model::undo_redo::Transaction>>>,
 }
@@ -86,7 +90,12 @@ impl Model {
     }
 
     fn setup_searcher_presenter(&self, params: SearcherParams) {
-        let new_presenter = presenter::Searcher::setup_controller(
+        let searcher_constructor = match params.searcher_type {
+            SearcherType::AiCompletion => AISearcher::setup_searcher_boxed,
+            SearcherType::ComponentBrowser => ComponentBrowserSearcher::setup_searcher_boxed,
+        };
+
+        let new_presenter = searcher_constructor(
             self.ide_controller.clone_ref(),
             self.controller.clone_ref(),
             self.graph_controller.clone_ref(),
@@ -94,6 +103,7 @@ impl Model {
             self.view.clone_ref(),
             params,
         );
+
         match new_presenter {
             Ok(searcher) => {
                 *self.searcher.borrow_mut() = Some(searcher);
@@ -106,11 +116,12 @@ impl Model {
 
     fn editing_committed(
         &self,
+        view_id: ide_view::graph_editor::NodeId,
         entry_id: Option<view::component_browser::component_list_panel::grid::GroupEntryId>,
     ) -> bool {
         let searcher = self.searcher.take();
         if let Some(searcher) = searcher {
-            if let Some(created_node) = searcher.expression_accepted(entry_id) {
+            if let Some(created_node) = searcher.expression_accepted(view_id, entry_id) {
                 self.graph.allow_expression_auto_updates(created_node, true);
                 false
             } else {
@@ -254,6 +265,15 @@ impl Model {
         executor::global::spawn(async move {
             if let Err(err) = controller.restart().await {
                 error!("Error restarting execution context: {err}");
+            }
+        })
+    }
+
+    fn execution_context_reload_and_restart(&self) {
+        let controller = self.graph_controller.clone_ref();
+        executor::global::spawn(async move {
+            if let Err(err) = controller.reload_and_restart().await {
+                error!("Error reloading and restarting execution context: {err}");
             }
         })
     }
@@ -407,7 +427,7 @@ impl Project {
             });
 
             graph_view.remove_node <+ view.editing_committed.filter_map(f!([model]((node_view, entry)) {
-                model.editing_committed(*entry).as_some(*node_view)
+                model.editing_committed(*node_view,*entry).as_some(*node_view)
             }));
             eval_ view.editing_aborted(model.editing_aborted());
 
@@ -429,6 +449,7 @@ impl Project {
             eval_ view.execution_context_interrupt(model.execution_context_interrupt());
 
             eval_ view.execution_context_restart(model.execution_context_restart());
+            eval_ view.execution_context_reload_and_restart(model.execution_context_reload_and_restart());
 
             view.set_read_only <+ view.toggle_read_only.map(f_!(model.toggle_read_only()));
             eval graph_view.execution_environment((env) model.execution_environment_changed(*env));

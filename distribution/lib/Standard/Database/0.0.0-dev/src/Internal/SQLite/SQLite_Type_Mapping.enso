@@ -3,8 +3,8 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
 import Standard.Table.Data.Type.Enso_Types
-import Standard.Table.Data.Type.Value_Type.Value_Type
 import Standard.Table.Data.Type.Value_Type.Bits
+import Standard.Table.Data.Type.Value_Type.Value_Type
 import Standard.Table.Data.Type.Value_Type_Helpers
 from Standard.Table.Errors import Inexact_Type_Coercion
 

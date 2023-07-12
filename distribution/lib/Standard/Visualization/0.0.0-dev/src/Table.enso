@@ -1,8 +1,9 @@
 from Standard.Base import all
+import Standard.Base.Errors.Common.Not_Found
+
+import Standard.Table as Table_Module
 
 from Standard.Visualization.Text import get_chunk_from_line
-import Standard.Base.Errors.Common.Not_Found
-import Standard.Table as Table_Module
 
 
 ## PRIVATE

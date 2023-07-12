@@ -13,7 +13,7 @@ import project.Runtime
 import project.Runtime.Source_Location.Source_Location
 import project.Runtime.Stack_Trace_Element
 
-from project.Data.Boolean import Boolean, True, False
+from project.Data.Boolean import Boolean, False, True
 
 ## A representation of a dataflow warning attached to a value.
 @Builtin_Type

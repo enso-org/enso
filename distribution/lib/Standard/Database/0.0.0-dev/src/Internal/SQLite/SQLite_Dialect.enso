@@ -6,8 +6,8 @@ import Standard.Base.Runtime.Ref.Ref
 import Standard.Table.Data.Aggregate_Column.Aggregate_Column
 import Standard.Table.Internal.Naming_Helpers.Naming_Helpers
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
-from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
 from Standard.Table import Value_Type
+from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
 
 import project.Connection.Connection.Connection
 import project.Data.Dialect
@@ -16,22 +16,22 @@ import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
 import project.Data.Table.Table
 import project.Internal.Base_Generator
-import project.Internal.Column_Fetcher.Column_Fetcher
 import project.Internal.Column_Fetcher as Column_Fetcher_Module
-import project.Internal.IR.Context.Context
+import project.Internal.Column_Fetcher.Column_Fetcher
+import project.Internal.Common.Database_Distinct_Helper
+import project.Internal.Common.Database_Join_Helper
 import project.Internal.Error_Mapper.Error_Mapper
+import project.Internal.IR.Context.Context
 import project.Internal.IR.From_Spec.From_Spec
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.Order_Descriptor.Order_Descriptor
 import project.Internal.IR.Query.Query
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
-import project.Internal.Common.Database_Distinct_Helper
-import project.Internal.Common.Database_Join_Helper
 import project.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
-import project.Internal.SQLite.SQLite_Type_Mapping.SQLite_Type_Mapping
 import project.Internal.SQLite.SQLite_Error_Mapper.SQLite_Error_Mapper
+import project.Internal.SQLite.SQLite_Type_Mapping.SQLite_Type_Mapping
 import project.Internal.Statement_Setter.Statement_Setter
 from project.Errors import SQL_Error, Unsupported_Database_Operation
 
