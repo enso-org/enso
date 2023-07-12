@@ -16,7 +16,6 @@
 
 use ensogl::prelude::*;
 
-use ensogl::animation;
 use ensogl::application::Application;
 use ensogl::display::navigation::navigator::Navigator;
 use ensogl_text_msdf::run_once_initialized;
@@ -47,13 +46,8 @@ fn init(app: &Application) {
         execution_environment_selector::make_dummy_execution_environments(),
     );
 
-    world
-        .on
-        .before_frame
-        .add(move |_time_info: animation::TimeInfo| {
-            let _keep_alive = (&top_bar, &navigator);
-        })
-        .forget();
+    mem::forget(top_bar);
+    mem::forget(navigator);
 }
 
 
