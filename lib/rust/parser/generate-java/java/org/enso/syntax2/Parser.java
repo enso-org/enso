@@ -24,7 +24,7 @@ public final class Parser implements AutoCloseable {
       File dir = new File(whereAmI.toURI()).getParentFile();
       parser = new File(dir, name);
       System.load(parser.getAbsolutePath());
-    } catch (URISyntaxException | LinkageError e) {
+    } catch (IllegalArgumentException | URISyntaxException | LinkageError e) {
       File root = new File(".").getAbsoluteFile();
       if (!searchFromDirToTop(e, root, "target", "rust", "debug", name)) {
         throw new IllegalStateException("Cannot load parser from " + parser, e);
