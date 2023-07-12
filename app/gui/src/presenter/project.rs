@@ -30,17 +30,18 @@ use model::project::VcsStatus;
 #[allow(unused)]
 #[derive(Debug)]
 struct Model {
-    controller:           controller::Project,
-    module_model:         model::Module,
-    graph_controller:     controller::ExecutedGraph,
-    ide_controller:       controller::Ide,
-    view:                 view::project::View,
-    status_bar:           view::status_bar::View,
-    graph:                presenter::Graph,
-    code:                 presenter::Code,
-    searcher:             RefCell<Option<Box<dyn SearcherPresenter>>>,
-    available_projects:   Rc<RefCell<Vec<ProjectMetadata>>>,
+    controller: controller::Project,
+    module_model: model::Module,
+    graph_controller: controller::ExecutedGraph,
+    ide_controller: controller::Ide,
+    view: view::project::View,
+    status_bar: view::status_bar::View,
+    graph: presenter::Graph,
+    code: presenter::Code,
+    searcher: RefCell<Option<Box<dyn SearcherPresenter>>>,
+    available_projects: Rc<RefCell<Vec<ProjectMetadata>>>,
     shortcut_transaction: RefCell<Option<Rc<model::undo_redo::Transaction>>>,
+    execution_failed_process_id: Rc<Cell<Option<view::status_bar::process::Id>>>,
 }
 
 impl Model {
@@ -64,6 +65,7 @@ impl Model {
         let searcher = default();
         let available_projects = default();
         let shortcut_transaction = default();
+        let execution_failed_process_id = default();
         Model {
             controller,
             module_model,
@@ -76,6 +78,7 @@ impl Model {
             searcher,
             available_projects,
             shortcut_transaction,
+            execution_failed_process_id,
         }
     }
 
@@ -230,15 +233,20 @@ impl Model {
         self.view.graph().model.breadcrumbs.set_project_changed(changed);
     }
 
-    fn execution_finished(&self) {
+    fn execution_complete(&self) {
         self.view.graph().frp.set_read_only(false);
-        self.view.graph().frp.execution_finished.emit(());
+        self.view.graph().frp.execution_complete.emit(());
+        if let Some(id) = self.execution_failed_process_id.get() {
+            self.status_bar.finish_process(id);
+        }
     }
 
     fn execution_failed(&self) {
         let message = crate::EXECUTION_FAILED_MESSAGE;
-        let message = view::status_bar::event::Label::from(message);
-        self.status_bar.add_event(message);
+        let message = view::status_bar::process::Label::from(message);
+        self.status_bar.add_process(message);
+        let id = self.status_bar.last_process.value();
+        self.execution_failed_process_id.set(Some(id));
     }
 
     fn execution_context_interrupt(&self) {
@@ -456,8 +464,8 @@ impl Project {
                 Notification::VcsStatusChanged(VcsStatus::Clean) => {
                     model.set_project_changed(false);
                 }
-                Notification::ExecutionFinished => {
-                    model.execution_finished();
+                Notification::ExecutionComplete => {
+                    model.execution_complete();
                 }
                 Notification::ExecutionFailed => {
                     model.execution_failed();
