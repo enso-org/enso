@@ -30,178 +30,72 @@
 
 pub mod score;
 
+mod bitstring;
+use bitstring::Bitstring;
+
 use derivative::Derivative;
 use std::num::NonZeroU32;
 use std::ops::Add;
 
 use score::*;
 
-mod std_score {
-    use super::score;
-    use std::cmp::Ordering;
+/// [`ScoreBuilder`] implementation for the Enso application.
+// Note: This module should not belong to the library, and will be moved to application code during
+// integration.
+mod std_score;
 
-    macro_rules! define_mixed_binary_radix_bases_impl {
-        ($width_subtotal:expr, $ty:ty, ) => {
-            const _STATIC_CHECK_ALL_BITS_FIT_IN_WORD: $ty = 1 << $width_subtotal;
-        };
-        ($width_subtotal:expr, $ty:ty, $(#[$attr:meta])* $ident:ident: $width:expr; $($rest:tt)*) => {
-            $(#[$attr])* const $ident: $ty = 1 << $width_subtotal;
-            define_mixed_binary_radix_bases_impl!($width_subtotal + $width, $ty, $($rest)*);
-        };
-    }
 
-    /// Define factors partitioning the given type arithmetically into bitfields of specified
-    /// widths, starting from the little end of the word.
-    macro_rules! define_mixed_binary_radix_bases_low_to_high {
-        ($ty:ty, $($rest:tt)*) => {
-            define_mixed_binary_radix_bases_impl!(0, $ty, $($rest)*);
-        };
-    }
 
-    /// Value enabling comparison of quality of a match.
-    #[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
-    pub struct Score(u32);
+// ====================================
+// === Result of a successful match ===
+// ====================================
 
-    /// Per-match penalty. These are only applied when converting a root-submatch score to a match
-    /// score, so each will not occur more than once and overflow is not possible.
-    const MATCH_BITS: u32 = 1;
-    /// A per-submatch penalty can occur up to 15 times in a match before it overflows.
-    const SUBMATCH_BITS: u32 = 4;
-    /// A per-character penalty can occur up to 255 times in a match before it overflows.
-    const CHAR_BITS: u32 = 8;
+#[derive(Debug, Clone, Derivative)]
+#[derivative(PartialEq, Eq, PartialOrd, Ord)]
+pub struct Match<Score> {
+    pub score: Score,
+    #[derivative(PartialEq = "ignore", PartialOrd = "ignore", Ord = "ignore")]
+    pub match_indexes: MatchIndexes,
+}
 
-    define_mixed_binary_radix_bases_low_to_high!(u32,
-        /// When part of the pattern is matched against a prefix of a word in the target, this
-        /// penalty is applied for each unused character in the rest of the word.
-        CHAR_IN_MATCHED_WORD_SKIPPED_PENALTY: CHAR_BITS;
-        /// When a submatch includes a `.` character, this penalty is applied.
-        SUBMATCH_INCLUDES_NAMESPACE_PENALTY: SUBMATCH_BITS;
-        /// When the target is an *alias*, this penalty is applied to the match.
-        MATCH_TARGET_IS_ALIAS_PENALTY: MATCH_BITS;
-        /// When the first character in the pattern matches a character that is not the first
-        /// character of the submatch, this penalty is applied.
-        SUBMATCH_NOT_FROM_START_PENALTY: SUBMATCH_BITS;
-        /// When consecutive characters in the pattern are treated as initials rather than a single
-        /// prefix, this penalty is applied.
-        SUBMATCH_BY_INITIALS_PENALTY: SUBMATCH_BITS;
-        /// When the match skips characters in the target, this penalty is applied.
-        ///
-        /// Although this overlaps with other criteria, applying the highest penalty for this case
-        /// ensures that a perfect match is always the first result, even if it has other penalties
-        /// (such as the [`MATCH_TARGET_IS_ALIAS`] penalty).
-        MATCH_IS_IMPERFECT_PENALTY: MATCH_BITS;
-    );
 
-    #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
-    pub struct TargetInfo {
-        pub is_alias: bool,
-    }
 
-    /// Observes how characters are matched within a submatch.
-    #[derive(Clone, Default)]
-    pub struct ScoreBuilder {
-        // === State maintained to determine how further characters affect penalty ===
-        word_chars_matched: bool,
-        word_chars_skipped: bool,
-        word_chars_matched_since_last_delimiter: bool,
-        // === Penalty accrued so far ===
-        penalty: u32,
-    }
+// =================================
+// === Matched character indexes ===
+// =================================
 
-    impl score::ScoreBuilder for ScoreBuilder {
-        type SubmatchScore = ScoreInfo;
+/// Identifies the characters within the target of a match that were matched against characters in
+/// the pattern.
+#[derive(Debug, Clone)]
+pub struct MatchIndexes {
+    indexes: Bitstring,
+}
 
-        fn skip_word_chars(&mut self, count: core::num::NonZeroU32) {
-            // Penalty if the first time we skip word chars, we haven't matched word chars first.
-            if !self.word_chars_matched && !self.word_chars_skipped {
-                self.penalty += SUBMATCH_NOT_FROM_START_PENALTY;
+impl MatchIndexes {
+    /// Produce a sequence of byte ranges corresponding to the substrings of matched characters, in
+    /// unspecified order.
+    pub fn to_byte_ranges(self, target: &str) -> impl '_ + Iterator<Item=core::ops::Range<usize>> {
+        core::iter::from_generator(move || {
+            let mut indexes = self.indexes;
+            let mut previously_in_match = false;
+            let mut match_end = 0;
+            for i in 0..target.len() {
+                if target.is_char_boundary(target.len() - i) {
+                    let now_in_match = indexes.pop().unwrap_or_default();
+                    if !now_in_match {
+                        let pos = target.len();
+                        if previously_in_match {
+                            yield pos..match_end;
+                        }
+                        match_end = pos;
+                    }
+                    previously_in_match = now_in_match;
+                }
             }
-            // Penalty for skipped chars in matched words.
-            if self.word_chars_matched_since_last_delimiter {
-                self.penalty += count.get() * CHAR_IN_MATCHED_WORD_SKIPPED_PENALTY;
+            if previously_in_match {
+                yield 0..match_end;
             }
-            self.word_chars_skipped = true;
-        }
-
-        fn match_word_char(&mut self) {
-            self.word_chars_matched = true;
-            self.word_chars_matched_since_last_delimiter = true;
-        }
-
-        fn match_delimiter(&mut self, _pattern: char, value: char) {
-            self.word_chars_matched_since_last_delimiter = false;
-            // Penalty for every matched `.`.
-            if value == '.' {
-                self.penalty += SUBMATCH_INCLUDES_NAMESPACE_PENALTY;
-            }
-        }
-
-        fn skip_delimiter(&mut self, _pattern: Option<char>, value: char) {
-            // Penalty for every skipped `.` after the first matched word character.
-            if value == '.' && self.word_chars_matched {
-                self.penalty += SUBMATCH_INCLUDES_NAMESPACE_PENALTY;
-            }
-            self.word_chars_matched_since_last_delimiter = false;
-        }
-
-        fn finish(self) -> Self::SubmatchScore {
-            let Self { penalty, word_chars_skipped, .. } = self;
-            ScoreInfo { penalty, word_chars_skipped }
-        }
-    }
-
-    /// Score information for a submatch. Includes the accumulated penalty, and information needed
-    /// when merging a tree of submatch scores to produce a match score.
-    #[derive(Copy, Clone, Default, PartialEq, Eq)]
-    pub struct ScoreInfo {
-        penalty:            u32,
-        word_chars_skipped: bool,
-    }
-
-    impl PartialOrd for ScoreInfo {
-        fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-            Some(Ord::cmp(self, other))
-        }
-    }
-
-    impl Ord for ScoreInfo {
-        fn cmp(&self, other: &Self) -> Ordering {
-            Ord::cmp(&self.penalty, &other.penalty).reverse()
-        }
-    }
-
-    impl score::SubmatchScore for ScoreInfo {
-        type TargetInfo = TargetInfo;
-        type MatchScore = Score;
-        const ANY_PREFIX_MATCH_BEATS_ANY_INITIALS_MATCH: bool = true;
-
-        fn match_score(self, target_info: TargetInfo) -> Score {
-            let Self { mut penalty, word_chars_skipped } = self;
-            if target_info.is_alias {
-                penalty += MATCH_TARGET_IS_ALIAS_PENALTY;
-            }
-            if word_chars_skipped {
-                penalty += MATCH_IS_IMPERFECT_PENALTY;
-            }
-            Score(u32::MAX - penalty)
-        }
-
-        fn with_submatch_by_initials_penalty(self) -> Self {
-            Self {
-                penalty:            self.penalty + SUBMATCH_BY_INITIALS_PENALTY,
-                word_chars_skipped: true,
-            }
-        }
-    }
-
-    impl core::ops::Add for ScoreInfo {
-        type Output = Self;
-        fn add(self, rhs: Self) -> Self::Output {
-            ScoreInfo {
-                penalty:            self.penalty + rhs.penalty,
-                word_chars_skipped: self.word_chars_skipped | rhs.word_chars_skipped,
-            }
-        }
+        })
     }
 }
 
@@ -211,9 +105,14 @@ mod std_score {
 // === Matcher ===
 // ===============
 
-#[derive(Default)]
-struct Matcher<SB> {
+/// NFA that computes match scores. Note that this type semantically has no persistent state, but
+/// reusing one object for many matches is much more efficient than performing each match
+/// independently, because the buffers will be reused.
+#[derive(Debug, Default)]
+pub struct Matcher<SB> {
+    /// The normalized pattern for the current match.
     pattern:            String,
+    /// The normalized target for the current match.
     target:             String,
     /// Empty `Vec` used to reuse storage.
     states_buffer:      Vec<State<'static, WithMatchIndexes<SB>>>,
@@ -258,6 +157,7 @@ impl<SB: ScoreBuilder> Matcher<SB> {
         self.pattern.push(' ');
     }
 
+    /// Shared match implementation supporting both by-prefix and by-initials matching.
     fn do_match(&mut self, target: &str) -> Option<WithMatchIndexes<SB::SubmatchScore>> {
         /// Supports reusing *the storage* of a buffer, despite it being used for objects of
         /// different lifetimes.
@@ -339,20 +239,30 @@ impl<SB: ScoreBuilder> Matcher<SB> {
         }
     }
 
+    /// Determine whether the given pattern matches the given target. If so, uses the matching
+    /// characteristics along with the given target information to produce a score representing the
+    /// quality of the match; returns this score along with information about what characters of the
+    /// target were matched by the pattern.
     pub fn search(
         &mut self,
         pattern: &str,
         target: &str,
         target_info: <SB::SubmatchScore as SubmatchScore>::TargetInfo,
-    ) -> Option<WithMatchIndexes<<SB::SubmatchScore as SubmatchScore>::MatchScore>> {
+    ) -> Option<Match<<SB::SubmatchScore as SubmatchScore>::MatchScore>> {
         let pattern: String = normalize_pattern(pattern.chars()).collect();
-        self.subsearch(&pattern, target)
-            .map(|info| info.map(|score_info| score_info.match_score(target_info)))
+        let root_submatch = self.subsearch(&pattern, target)?;
+        let WithMatchIndexes { inner: score, match_indexes } = root_submatch;
+        let match_indexes = MatchIndexes { indexes: match_indexes };
+        let score = score.match_score(target_info);
+        Some(Match { score, match_indexes })
     }
 }
 
 /// Normalize the search pattern. [`Matcher::search`] applies this to its arguments implicitly, but
 /// it is exposed for testing.
+///
+/// This is not a static method of [`Matcher`] because it is independent of [`Matcher`]'s generic
+/// parameterization.
 fn normalize_pattern(pattern: impl Iterator<Item = char>) -> impl Iterator<Item = char> {
     // Collapse any sequence of delimiters to the strongest, in this ranking: `.` > `_` > ` `
     core::iter::from_generator(|| {
@@ -384,33 +294,10 @@ fn normalize_pattern(pattern: impl Iterator<Item = char>) -> impl Iterator<Item 
     })
 }
 
-/// Search for a pattern in a string using a temporary [`Matcher`]. When performing multiple
-/// searches it is more efficient to reuse a [`Matcher`], but this is convenient for testing.
-fn search(
-    pattern: &str,
-    target: &str,
-    target_info: std_score::TargetInfo,
-) -> Option<WithMatchIndexes<std_score::Score>> {
-    Matcher::<std_score::ScoreBuilder>::default().search(pattern, target, target_info)
-}
-
-fn fmt_match(s: WithMatchIndexes<&str>) -> String {
-    let chars = s.inner.chars();
-    let mut bits = s.match_indexes;
-    let chars: Vec<_> = chars
-        .rev()
-        .map(|c| match bits.pop().unwrap_or_default() {
-            false => c,
-            true => c.to_ascii_uppercase(),
-        })
-        .collect();
-    chars.iter().rev().collect()
-}
-
 
 // === State ===
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 struct State<'s, SB> {
     chars: WordIndexedChars<'s>,
     score: SB,
@@ -507,7 +394,7 @@ impl<'s> Iterator for WordIndexedChars<'s> {
 
 // === Matched character indexes ===
 
-#[derive(Default, Clone, Derivative)]
+#[derive(Debug, Default, Clone, Derivative)]
 #[derivative(PartialEq, Eq, PartialOrd, Ord)]
 struct WithMatchIndexes<T> {
     inner:         T,
@@ -575,8 +462,39 @@ impl<T: Add<Output = T>> Add<Self> for WithMatchIndexes<T> {
     }
 }
 
-mod bitstring;
-use bitstring::Bitstring;
+
+
+// ====================
+// === Test Support ===
+// ====================
+
+#[cfg(test)]
+mod test_utils {
+    use super::*;
+
+    /// Search for a pattern in a string using a temporary [`Matcher`]. When performing multiple
+    /// searches it is more efficient to reuse a [`Matcher`], but this is convenient for testing.
+    pub(crate) fn search(
+        pattern: &str,
+        target: &str,
+        target_info: std_score::TargetInfo,
+    ) -> Option<Match<std_score::Score>> {
+        Matcher::<std_score::ScoreBuilder>::default().search(pattern, target, target_info)
+    }
+
+    pub(crate) fn fmt_match(indexes: MatchIndexes, target: &str) -> String {
+        let chars = target.chars();
+        let mut bits = indexes.indexes;
+        let chars: Vec<_> = chars
+            .rev()
+            .map(|c| match bits.pop().unwrap_or_default() {
+                false => c,
+                true => c.to_ascii_uppercase(),
+            })
+            .collect();
+        chars.iter().rev().collect()
+    }
+}
 
 
 
@@ -587,6 +505,7 @@ use bitstring::Bitstring;
 #[cfg(test)]
 mod test_match {
     use super::*;
+    use super::test_utils::*;
 
     /// Given a pattern, a target, and a bool:
     /// - Check that the bool indicates whether the pattern matches the target.
@@ -601,7 +520,7 @@ mod test_match {
                 let result = search(pattern, target, Default::default());
                 let matched = result.is_some();
                 let target = match result {
-                    Some(result) => fmt_match(result.map(|_| target.as_str())),
+                    Some(Match { match_indexes, .. }) => fmt_match(match_indexes, target.as_str()),
                     None => target.to_owned(),
                 };
                 (*pattern, target, matched)
@@ -750,6 +669,7 @@ mod test_match {
 #[cfg(test)]
 mod test_score {
     use super::*;
+    use super::test_utils::*;
 
     /// Given a pattern and a set of targets, assert that the targets match and are in order by
     /// score from best match to worst.
@@ -757,7 +677,7 @@ mod test_score {
         let expected = inputs;
         let mut computed: Vec<_> = inputs.to_vec();
         computed
-            .sort_by_key(|(target, target_info)| search(pattern, target, *target_info).unwrap());
+            .sort_by_key(|(target, target_info)| search(pattern, target, *target_info).unwrap().score);
         computed.reverse();
         assert_eq!(computed, expected);
     }
@@ -802,5 +722,46 @@ mod test_score {
             // Initials match: Alias
             ("ax_bx", std_score::TargetInfo { is_alias: true }),
         ])
+    }
+}
+
+
+
+// =========================
+// === Match index tests ===
+// =========================
+
+#[cfg(test)]
+mod test_match_indexes {
+    use super::test_utils::*;
+
+    /// Strips parentheses from `target` and matches `pattern` against it. Asserts that when
+    /// `MatchIndexes::to_byte_ranges` is applied to the result, the byte ranges output correspond
+    /// to the parenthesized parts of the target.
+    fn check_match_ranges(pattern: &str, target: &str) {
+        let mut target_stripped = String::new();
+        let mut expected = vec![];
+        let mut start = None;
+        for c in target.chars() {
+            match c {
+                '(' => start = Some(target_stripped.len()),
+                ')' => {
+                    let end = target_stripped.len();
+                    expected.push(start.unwrap()..end);
+                }
+                c => target_stripped.push(c),
+            }
+        }
+        let result = search(pattern, target, Default::default()).unwrap();
+        let mut byte_ranges: Vec<_> = result.match_indexes.to_byte_ranges(&target_stripped).collect();
+        byte_ranges.sort_by_key(|range| range.start);
+        assert_eq!(byte_ranges, expected);
+    }
+
+    fn test_byte_ranges() {
+        check_match_ranges("a🦄b🦄c🦄", "(a)_(🦄)_(b)_(🦄)_(c)_(🦄)");
+        check_match_ranges("abc🦄", "xyz_(abc🦄)_xyz");
+        check_match_ranges("🦄abc", "xyz_(🦄abc)_xyz");
+        check_match_ranges("a🦄c", "xyz_(a🦄c)_xyz");
     }
 }

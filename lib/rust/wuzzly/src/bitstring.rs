@@ -6,6 +6,10 @@ use std::ops::Add;
 
 
 
+// =================
+// === Bitstring ===
+// =================
+
 /// A sequence of bits, supporting stack operations, and concatenation. Optimized for sequences of
 /// 64 or fewer elements.
 #[derive(Debug, Default, Clone)]
@@ -96,6 +100,7 @@ impl Bitstring {
         result
     }
 
+    /// Remove all consecutive zero bits at the little end. Returns the number of bits removed.
     #[inline]
     pub fn pop_trailing_zeros(&mut self) -> u32 {
         let zeros = self.head.bits.trailing_zeros();
