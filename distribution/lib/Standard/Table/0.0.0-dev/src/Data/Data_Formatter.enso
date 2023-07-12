@@ -2,27 +2,25 @@ from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import project.Internal.Parse_Values_Helper
-from project.Data.Type.Value_Type import Value_Type, Auto, Bits
-
-polyglot java import org.enso.table.parsing.BooleanParser
-polyglot java import org.enso.table.parsing.DateParser
-polyglot java import org.enso.table.parsing.TimeOfDayParser
-polyglot java import org.enso.table.parsing.DateTimeParser
-polyglot java import org.enso.table.parsing.WhitespaceStrippingParser
-polyglot java import org.enso.table.parsing.IdentityParser
-polyglot java import org.enso.table.parsing.TypeInferringParser
-polyglot java import org.enso.table.parsing.NumberParser
-
-polyglot java import org.enso.table.formatting.AnyObjectFormatter
-polyglot java import org.enso.table.formatting.BooleanFormatter
-polyglot java import org.enso.table.formatting.DecimalFormatter
-polyglot java import org.enso.table.formatting.IntegerFormatter
-polyglot java import org.enso.table.formatting.DateFormatter
-polyglot java import org.enso.table.formatting.DateTimeFormatter
-polyglot java import org.enso.table.formatting.TimeFormatter
-polyglot java import org.enso.table.formatting.TextFormatter
+from project.Data.Type.Value_Type import Auto, Bits, Value_Type
 
 polyglot java import java.lang.IllegalArgumentException
+polyglot java import org.enso.table.formatting.AnyObjectFormatter
+polyglot java import org.enso.table.formatting.BooleanFormatter
+polyglot java import org.enso.table.formatting.DateFormatter
+polyglot java import org.enso.table.formatting.DateTimeFormatter
+polyglot java import org.enso.table.formatting.DecimalFormatter
+polyglot java import org.enso.table.formatting.IntegerFormatter
+polyglot java import org.enso.table.formatting.TextFormatter
+polyglot java import org.enso.table.formatting.TimeFormatter
+polyglot java import org.enso.table.parsing.BooleanParser
+polyglot java import org.enso.table.parsing.DateParser
+polyglot java import org.enso.table.parsing.DateTimeParser
+polyglot java import org.enso.table.parsing.IdentityParser
+polyglot java import org.enso.table.parsing.NumberParser
+polyglot java import org.enso.table.parsing.TimeOfDayParser
+polyglot java import org.enso.table.parsing.TypeInferringParser
+polyglot java import org.enso.table.parsing.WhitespaceStrippingParser
 
 type Data_Formatter
     ## Specifies options for reading text data in a table to more specific types and
@@ -133,8 +131,7 @@ type Data_Formatter
     with_locale : Locale -> Data_Formatter
     with_locale self datetime_locale = self.clone datetime_locale=datetime_locale
 
-    ## UNSTABLE
-       Create a clone of self with a changed format string for a particular
+    ## Create a clone of self with a changed format string for a particular
        datatype.
 
        It is mostly a convenience function to easily specify a datatype format.
@@ -187,22 +184,22 @@ type Data_Formatter
 
     ## PRIVATE
     make_boolean_parser self = self.wrap_base_parser <|
-        BooleanParser.new self.true_values.to_array self.false_values.to_array
+        BooleanParser.new self.true_values self.false_values
 
     ## PRIVATE
     make_date_parser self = self.wrap_base_parser <|
         Panic.catch Any handler=(caught_panic-> Error.throw (Illegal_Argument.Error caught_panic.payload.getMessage)) <|
-            DateParser.new self.date_formats.to_array self.datetime_locale.java_locale
+            DateParser.new self.date_formats self.datetime_locale.java_locale
 
     ## PRIVATE
     make_date_time_parser self = self.wrap_base_parser <|
         Panic.catch Any handler=(caught_panic-> Error.throw (Illegal_Argument.Error caught_panic.payload.getMessage)) <|
-            DateTimeParser.new self.datetime_formats.to_array self.datetime_locale.java_locale
+            DateTimeParser.new self.datetime_formats self.datetime_locale.java_locale
 
     ## PRIVATE
     make_time_of_day_parser self = self.wrap_base_parser <|
         Panic.catch Any handler=(caught_panic-> Error.throw (Illegal_Argument.Error caught_panic.payload.getMessage)) <|
-            TimeOfDayParser.new self.time_formats.to_array self.datetime_locale.java_locale
+            TimeOfDayParser.new self.time_formats self.datetime_locale.java_locale
 
     ## PRIVATE
     make_identity_parser self = self.wrap_base_parser IdentityParser.new
@@ -243,7 +240,7 @@ type Data_Formatter
     ## PRIVATE
     make_auto_parser self =
         fallback_parser = self.make_identity_parser
-        TypeInferringParser.new self.get_specific_type_parsers.to_array fallback_parser
+        TypeInferringParser.new self.get_specific_type_parsers fallback_parser
 
     ## PRIVATE
     make_integer_formatter self =
@@ -290,7 +287,7 @@ type Data_Formatter
     make_auto_formatter self =
         # TODO The panic rethrow+recover is a workaround for the vector error propagation bug.
         formatters = Panic.recover Illegal_Argument (self.get_specific_type_formatters.map Panic.rethrow)
-        AnyObjectFormatter.new formatters.to_array
+        AnyObjectFormatter.new formatters
 
     ## PRIVATE
     make_formatter_for_column_type self (column_type : Value_Type) = case column_type of

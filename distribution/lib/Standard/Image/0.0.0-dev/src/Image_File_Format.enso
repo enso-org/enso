@@ -27,8 +27,9 @@ type Image_File_Format
     ## PRIVATE
        If the File_Format supports reading from the web response, return a configured instance.
     for_web : Text -> URI -> Image_File_Format | Nothing
-    for_web _ _ =
+    for_web content_type uri =
         ## Currently not loading Image files automatically. This should be supported later.
+        _ = [content_type, uri]
         Nothing
 
     ## PRIVATE

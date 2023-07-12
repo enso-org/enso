@@ -15,8 +15,6 @@ import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.resolve.IgnoredBindings
 import org.enso.syntax.text.Location
 
-import scala.annotation.unused
-
 /** This pass consolidates chains of lambdas into multi-argument lambdas
   * internally.
   *
@@ -110,12 +108,6 @@ case object LambdaConsolidate extends IRPass {
       collapseFunction(fn, inlineContext, freshNameSupply)
     }
   }
-
-  /** @inheritdoc */
-  override def updateMetadataInDuplicate[T <: IR](
-    @unused sourceIr: T,
-    copyOfIr: T
-  ): T = copyOfIr
 
   /** Collapses chained lambdas for a function definition where possible.
     *

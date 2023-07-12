@@ -1,4 +1,4 @@
-//! Bubble Chart visualisation implemented using the native shape system.
+//! Bubble Chart visualization implemented using the native shape system.
 
 use crate::component::visualization::*;
 use crate::prelude::*;

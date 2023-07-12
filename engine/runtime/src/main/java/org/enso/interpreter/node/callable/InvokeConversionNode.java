@@ -17,6 +17,7 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.control.TailCallException;
 import org.enso.interpreter.runtime.data.ArrayRope;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
@@ -162,7 +163,7 @@ public abstract class InvokeConversionNode extends BaseNode {
                       invokeFunctionNode.getDefaultsExecutionMode(),
                       invokeFunctionNode.getArgumentsExecutionMode(),
                       thatArgumentPosition));
-          childDispatch.setTailStatus(TailStatus.NOT_TAIL);
+          childDispatch.setTailStatus(getTailStatus());
           childDispatch.setId(invokeFunctionNode.getId());
           notifyInserted(childDispatch);
         }
@@ -170,11 +171,15 @@ public abstract class InvokeConversionNode extends BaseNode {
         lock.unlock();
       }
     }
-    arguments[thatArgumentPosition] = that.getValue();
+    Object value = that.getValue();
+    arguments[thatArgumentPosition] = value;
     ArrayRope<Warning> warnings = that.getReassignedWarningsAsRope(this);
-    Object result =
-        childDispatch.execute(frame, state, conversion, self, that.getValue(), arguments);
-    return WithWarnings.appendTo(EnsoContext.get(this), result, warnings);
+    try {
+      Object result = childDispatch.execute(frame, state, conversion, self, value, arguments);
+      return WithWarnings.appendTo(EnsoContext.get(this), result, warnings);
+    } catch (TailCallException e) {
+      throw new TailCallException(e, warnings.toArray(Warning[]::new));
+    }
   }
 
   @Specialization(guards = "interop.isString(that)")

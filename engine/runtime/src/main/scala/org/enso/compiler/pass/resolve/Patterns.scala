@@ -9,8 +9,6 @@ import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{AliasAnalysis, BindingAnalysis}
 import org.enso.compiler.pass.desugar.{GenerateMethodBodies, NestedPatternMatch}
 
-import scala.annotation.unused
-
 /** Resolves constructors in pattern matches and validates their arity.
   */
 object Patterns extends IRPass {
@@ -61,12 +59,6 @@ object Patterns extends IRPass {
     )
     doExpression(ir, bindings, None)
   }
-
-  /** @inheritdoc */
-  override def updateMetadataInDuplicate[T <: IR](
-    @unused sourceIr: T,
-    copyOfIr: T
-  ): T = copyOfIr
 
   private def doDefinition(
     ir: IR.Module.Scope.Definition,

@@ -191,6 +191,12 @@
 - [Fixed cursor position when ctrl-clicking the node][7014]. Sometimes
   ctrl-clicking to edit the node placed the mouse cursor in the wrong position
   in the text. This is fixed now.
+- [Added prototype AI Searcher that can be used to create new nodes from  
+  natural language input][7146]
+- [Allow visualization resizing][7164]. Now the user can adjust the
+  visualization size by dragging its right and bottom borders. Visualization
+  width also follows the node's width, and visualizations are aligned to the
+  left side of the node.
 
 [5910]: https://github.com/enso-org/enso/pull/5910
 [6279]: https://github.com/enso-org/enso/pull/6279
@@ -208,6 +214,8 @@
 [6893]: https://github.com/enso-org/enso/pull/6893
 [7028]: https://github.com/enso-org/enso/pull/7028
 [7014]: https://github.com/enso-org/enso/pull/7014
+[7146]: https://github.com/enso-org/enso/pull/7146
+[7164]: https://github.com/enso-org/enso/pull/7164
 
 #### EnsoGL (rendering engine)
 
@@ -496,9 +504,19 @@
 - [Speed improvements to `Column` `.truncate`, `.ceil`, and `.floor`.][6941]
 - [Implemented addition and subtraction for `Date_Period` and
   `Time_Period`.][6956]
-- [Implemented `Table.update_database_table`.][7035]
 - [Added AWS credential support and initial S3 list buckets API.][6973]
+- [Added `round`, `ceil`, `floor`, `truncate` to the In-Database Column type]
+  [6988]
+- [Implemented `Table.update_database_table`.][7035]
 - [Removed `module` argument from `enso_project` and other minor tweaks.][7052]
+- [Integrated Database write operations with Execution Contexts.][7072]
+- [`Column.fill_nothing` and `.fill_empty` no longer rename the column. Added
+  `Table.fill_nothing` and `.fill_empty`.][7166]
+- [Implemented `add_row_number` for Database tables.][7174]
+- [Added `replace` to in-memory table. Changed replace for `Text`, in-memory
+  `Column`, and in-memory `Table` to take a `Regex` in addition to a `Text`.]
+  [7223]
+- [Added `cross_join` support to database tables.][7234]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -719,8 +737,14 @@
 [6941]: https://github.com/enso-org/enso/pull/6941
 [6956]: https://github.com/enso-org/enso/pull/6956
 [6973]: https://github.com/enso-org/enso/pull/6973
+[6988]: https://github.com/enso-org/enso/pull/6988
 [7035]: https://github.com/enso-org/enso/pull/7035
 [7052]: https://github.com/enso-org/enso/pull/7052
+[7072]: https://github.com/enso-org/enso/pull/7072
+[7166]: https://github.com/enso-org/enso/pull/7166
+[7174]: https://github.com/enso-org/enso/pull/7174
+[7223]: https://github.com/enso-org/enso/pull/7223
+[7234]: https://github.com/enso-org/enso/pull/7234
 
 #### Enso Compiler
 
@@ -838,10 +862,15 @@
 - [Add compiler pass that discovers ambiguous and duplicated symbols][6868]
 - [Improve and colorize compiler's diagnostic messages][6931]
 - [Execute some runtime commands synchronously to avoid race conditions][6998]
+- [Automatic conversion for runtime checked arguments][7009]
 - [Scala 2.13.11 update][7010]
 - [Add special handling for static method calls on Any][7033]
 - [Improve parallel execution of commands and jobs in Language Server][7042]
 - [Added retries when executing GraalVM updater][7079]
+- [Add method call info for infix operators][7090]
+- [`executionComplete` response is sent on successful execution only][7143]
+- [Send info about function values][7168]
+- [Cache dataflow errors][7193]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -959,10 +988,15 @@
 [6868]: https://github.com/enso-org/enso/pull/6868
 [6931]: https://github.com/enso-org/enso/pull/6931
 [6998]: https://github.com/enso-org/enso/pull/6998
+[7009]: https://github.com/enso-org/enso/pull/7009
 [7010]: https://github.com/enso-org/enso/pull/7010
 [7033]: https://github.com/enso-org/enso/pull/7033
 [7042]: https://github.com/enso-org/enso/pull/7042
 [7079]: https://github.com/enso-org/enso/pull/7079
+[7090]: https://github.com/enso-org/enso/pull/7090
+[7143]: https://github.com/enso-org/enso/pull/7143
+[7168]: https://github.com/enso-org/enso/pull/7168
+[7193]: https://github.com/enso-org/enso/pull/7193
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

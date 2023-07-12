@@ -1,5 +1,5 @@
 /** @file The top-bar of dashboard. */
-import * as react from 'react'
+import * as React from 'react'
 
 import BarsIcon from 'enso-assets/bars.svg'
 import CloudIcon from 'enso-assets/cloud.svg'
@@ -22,6 +22,7 @@ import UserMenu from './userMenu'
 
 /** Props for a {@link TopBar}. */
 export interface TopBarProps {
+    /** Whether the application may have the local backend running. */
     supportsLocalBackend: boolean
     projectName: string | null
     tab: dashboard.Tab
@@ -36,27 +37,27 @@ export interface TopBarProps {
 function TopBar(props: TopBarProps) {
     const { supportsLocalBackend, projectName, tab, toggleTab, setBackendType, query, setQuery } =
         props
-    const [isUserMenuVisible, setIsUserMenuVisible] = react.useState(false)
+    const [isUserMenuVisible, setIsUserMenuVisible] = React.useState(false)
     const { modal } = modalProvider.useModal()
     const { setModal, unsetModal } = modalProvider.useSetModal()
     const { backend } = backendProvider.useBackend()
 
-    react.useEffect(() => {
+    React.useEffect(() => {
         if (!modal) {
             setIsUserMenuVisible(false)
         }
     }, [modal])
 
-    react.useEffect(() => {
+    React.useEffect(() => {
         if (isUserMenuVisible) {
             setModal(() => <UserMenu />)
         } else {
             unsetModal()
         }
-    }, [isUserMenuVisible])
+    }, [isUserMenuVisible, setModal, unsetModal])
 
     return (
-        <div className="flex mb-2 h-8">
+        <div className="flex mx-2 h-8">
             {supportsLocalBackend && (
                 <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap p-1.5">
                     <button
@@ -86,8 +87,9 @@ function TopBar(props: TopBarProps) {
                 </div>
             )}
             <div
-                className={`flex items-center bg-label rounded-full pl-1
-                                pr-2.5 mx-2 ${projectName ? 'cursor-pointer' : 'opacity-50'}`}
+                className={`flex items-center bg-label rounded-full pl-1 pr-2.5 mx-2 ${
+                    projectName != null ? 'cursor-pointer' : 'opacity-50'
+                }`}
                 onClick={toggleTab}
             >
                 <span
@@ -126,6 +128,7 @@ function TopBar(props: TopBarProps) {
             <a
                 href="https://discord.gg/enso"
                 target="_blank"
+                rel="noreferrer"
                 className="flex items-center bg-help rounded-full px-2.5 text-white mx-2"
             >
                 <span className="whitespace-nowrap">help chat</span>

@@ -16,6 +16,7 @@ import org.enso.base.text.CaseFoldedString.Grapheme;
 import org.enso.base.text.GraphemeSpan;
 import org.enso.base.text.Utf16Span;
 import org.enso.polyglot.common_utils.Core_Text_Utils;
+import org.graalvm.polyglot.Context;
 
 /** Utils for standard library operations on Text. */
 public class Text_Utils {
@@ -77,6 +78,7 @@ public class Text_Utils {
     int length = str.length();
     int currentStart = 0;
     int currentPos = 0;
+    Context context = Context.getCurrent();
     while (currentPos < length) {
       if (str.charAt(currentPos) == '\n') {
         acc.add(str.substring(currentStart, keep_endings ? currentPos + 1 : currentPos));
@@ -94,6 +96,8 @@ public class Text_Utils {
       } else {
         currentPos += 1;
       }
+
+      context.safepoint();
     }
 
     if (currentStart < length) {
@@ -345,8 +349,10 @@ public class Text_Utils {
     StringSearch search = new StringSearch(needle, haystack);
     ArrayList<Utf16Span> occurrences = new ArrayList<>();
     int ix;
+    Context context = Context.getCurrent();
     while ((ix = search.next()) != StringSearch.DONE) {
       occurrences.add(new Utf16Span(ix, ix + search.getMatchLength()));
+      context.safepoint();
     }
     return occurrences;
   }
@@ -369,6 +375,8 @@ public class Text_Utils {
             .toArray(StringSearch[]::new);
     List<Utf16Span> occurrences = new ArrayList<>();
 
+    Context context = Context.getCurrent();
+
     int ix = 0;
     while (ix != StringSearch.DONE) {
       int earliestIndex = -1;
@@ -380,6 +388,8 @@ public class Text_Utils {
           earliestIndex = i;
           earliestStart = start;
         }
+
+        context.safepoint();
       }
       if (earliestIndex == -1) {
         // No more matches.
@@ -388,6 +398,8 @@ public class Text_Utils {
       int matchLength = stringSearches[earliestIndex].getMatchLength();
       occurrences.add(new Utf16Span(earliestStart, earliestStart + matchLength));
       ix = earliestStart + matchLength;
+
+      context.safepoint();
     }
 
     return occurrences;
@@ -411,9 +423,11 @@ public class Text_Utils {
     int grapheme_end = breakIterator.next();
     long grapheme_index = 0;
 
+    Context context = Context.getCurrent();
     while (grapheme_end <= codeunit_index && grapheme_end != BreakIterator.DONE) {
       grapheme_index++;
       grapheme_end = breakIterator.next();
+      context.safepoint();
     }
     return grapheme_index;
   }
@@ -442,10 +456,13 @@ public class Text_Utils {
     long[] result = new long[codeunit_indices.size()];
     int result_ix = 0;
 
+    Context context = Context.getCurrent();
+
     for (long codeunit_index : codeunit_indices) {
       while (grapheme_end <= codeunit_index && grapheme_end != BreakIterator.DONE) {
         grapheme_index++;
         grapheme_end = breakIterator.next();
+        context.safepoint();
       }
       result[result_ix++] = grapheme_index;
     }
@@ -508,8 +525,10 @@ public class Text_Utils {
     ArrayList<GraphemeSpan> result = new ArrayList<>();
 
     int pos;
+    Context context = Context.getCurrent();
     while ((pos = search.next()) != StringSearch.DONE) {
       result.add(findExtendedSpan(foldedHaystack, pos, search.getMatchLength()));
+      context.safepoint();
     }
 
     return result;
@@ -608,6 +627,7 @@ public class Text_Utils {
    */
   public static String replace_spans(String str, List<Utf16Span> spans, String newSequence) {
     StringBuilder sb = new StringBuilder();
+    Context context = Context.getCurrent();
     int current_ix = 0;
     for (Utf16Span span : spans) {
       if (span.codeunit_start > current_ix) {
@@ -616,6 +636,7 @@ public class Text_Utils {
 
       sb.append(newSequence);
       current_ix = span.codeunit_end;
+      context.safepoint();
     }
 
     // Add the remaining part of the string (if any).

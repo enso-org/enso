@@ -404,7 +404,13 @@ withDebug benchOnly --showCompilations -- RecursionBenchmark
 Step by step debugging can be triggered as
 
 ```
-withDebug testOnly --debugger -- *FavoriteTest*
+sbt:runtime> withDebug testOnly --debugger -- *FavoriteTest*
+```
+
+One can debug `project-manager` code by executing
+
+```
+sbt:project-manager> withDebug run --debugger
 ```
 
 read more about [debugging Java & Enso code](debugger/README.md).
@@ -799,7 +805,7 @@ Below are options uses by the Language Server:
   Default value is 127.0.0.1
 - `--rpc-port <port>`: RPC port for processing all incoming connections. Default
   value is 8080.
-- `--data-port <port>`: Data port for visualisation protocol. Default value
+- `--data-port <port>`: Data port for visualization protocol. Default value
   is 8081.
 
 To run the Language Server on 127.0.0.1:8080 type:

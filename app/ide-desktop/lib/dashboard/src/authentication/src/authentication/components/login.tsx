@@ -1,5 +1,5 @@
 /** @file Login component responsible for rendering and interactions in sign in flow. */
-import * as react from 'react'
+import * as React from 'react'
 import * as router from 'react-router-dom'
 
 import ArrowRightIcon from 'enso-assets/arrow_right.svg'
@@ -36,8 +36,8 @@ function Login() {
 
     const initialEmail = parseUrlSearchParams(search)
 
-    const [email, setEmail] = react.useState(initialEmail ?? '')
-    const [password, setPassword] = react.useState('')
+    const [email, setEmail] = React.useState(initialEmail ?? '')
+    const [password, setPassword] = React.useState('')
 
     return (
         <div className="min-h-screen flex flex-col items-center justify-center bg-gray-300">

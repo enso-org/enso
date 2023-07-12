@@ -4,7 +4,8 @@ import project.Panic.Panic
 
 @Builtin_Type
 type Unimplemented
-    ## UNSTABLE
+    ## PRIVATE
+       UNSTABLE
 
        A type used to represent that something has not yet been implemented.
 

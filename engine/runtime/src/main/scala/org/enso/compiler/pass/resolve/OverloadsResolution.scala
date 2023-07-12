@@ -154,8 +154,5 @@ case object OverloadsResolution extends IRPass {
   ): IR.Expression = ir
 
   /** @inheritdoc */
-  override def updateMetadataInDuplicate[T <: IR](
-    sourceIr: T,
-    copyOfIr: T
-  ): T = copyOfIr
+
 }

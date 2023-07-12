@@ -1,16 +1,15 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
-import project.Data.SQL.Builder
 import project.Data.Column_Constraint.Column_Constraint
+import project.Data.SQL.Builder
 import project.Internal.IR.Context.Context
-import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.From_Spec.From_Spec
-import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
-import project.Internal.IR.Order_Descriptor.Order_Descriptor
 import project.Internal.IR.Nulls_Order.Nulls_Order
+import project.Internal.IR.Order_Descriptor.Order_Descriptor
 import project.Internal.IR.Query.Query
-
+import project.Internal.IR.SQL_Expression.SQL_Expression
+import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 from project.Errors import Unsupported_Database_Operation
 
 type Internal_Dialect
@@ -175,7 +174,7 @@ base_dialect =
     unary = name -> [name, make_unary_op name]
     fun = name -> [name, make_function name]
 
-    arith = [["ADD_NUMBER", make_binary_op "+"], ["ADD_TEXT", make_binary_op "||"], bin "-", bin "*", bin "/", bin "%", ["mod", make_function "MOD"], ["^", make_function "POWER"]]
+    arith = [["ADD_NUMBER", make_binary_op "+"], ["ADD_TEXT", make_binary_op "||"], bin "-", bin "*", bin "/", bin "%", ["mod", make_function "MOD"], ["^", make_function "POWER"], ["ROUND", make_function "ROUND"], ["TRUNCATE", make_function "TRUNC"], ["CEIL", make_function "CEIL"], ["FLOOR", make_function "FLOOR"]]
     logic = [bin "AND", bin "OR", unary "NOT", ["IIF", make_iif], ["CASE", case_when]]
     eq = lift_binary_op "==" make_equals
     neq = lift_binary_op "!=" make_not_equals
@@ -187,7 +186,8 @@ base_dialect =
     nulls = [["IS_NULL", make_right_unary_op "IS NULL"], ["FILL_NULL", make_function "COALESCE"]]
     contains = [["IS_IN", make_is_in], ["IS_IN_COLUMN", make_is_in_column]]
     types = [simple_cast]
-    base_map = Map.from_vector (arith + logic + compare + functions + agg + counts + text + nulls + contains + types)
+    windows = [["ROW_NUMBER", make_row_number]]
+    base_map = Map.from_vector (arith + logic + compare + functions + agg + counts + text + nulls + contains + types + windows)
     Internal_Dialect.Value base_map wrap_in_quotes
 
 ## PRIVATE
@@ -266,6 +266,39 @@ make_is_in_column arguments = case arguments.length of
     _ -> Error.throw <| Illegal_State.Error ("The operation IS_IN_COLUMN requires at exactly 3 arguments: the expression, the IN subquery, the subquery checking for nulls.")
 
 ## PRIVATE
+make_row_number : Vector Builder -> Builder
+make_row_number arguments = if arguments.length < 4 then Error.throw (Illegal_State.Error "Wrong amount of parameters in ROW_NUMBER IR. This is a bug in the Database library.") else
+    offset = arguments.at 0
+    step = arguments.at 1
+
+    separator_ix = arguments.index_of code->
+        code.build.prepare.first == row_number_parameter_separator
+    ordering = arguments.take (Range.new 2 separator_ix)
+    grouping = arguments.drop (separator_ix+1)
+
+    group_part = if grouping.length == 0 then "" else
+        Builder.code "PARTITION BY " ++ Builder.join ", " grouping
+    Builder.code "(row_number() OVER (" ++ group_part ++ " ORDER BY " ++ Builder.join ", " ordering ++ ") * " ++ step.paren ++ " + " ++ offset.paren ++ ")"
+
+## PRIVATE
+   This is a terrible hack, but I could not figure a decent way to have an
+   operation take a variable number of arguments of multiple kinds (here both
+   groups and orders are varying).
+
+   Currently, the IR just allows to put a list of parameters for the operation
+   and they are all converted into SQL code before being passed to the
+   particular operation builder. So at this stage there is no way to distinguish
+   the arguments.
+
+   So to distinguish different groups of arguments, we use this 'fake' parameter
+   to act as a separator. This parameter is not supposed to end up in the
+   generated SQL code.
+
+   This is yet another argument for the IR redesign.
+row_number_parameter_separator =
+    "--<!PARAMETER_SEPARATOR!>--"
+
+## PRIVATE
 
    Builds code for an expression.
 
@@ -307,7 +340,7 @@ alias dialect name =
    - from_spec: A description of the FROM clause.
 generate_from_part : Internal_Dialect -> From_Spec -> Builder
 generate_from_part dialect from_spec = case from_spec of
-    From_Spec.Table name as_name ->
+    From_Spec.Table name as_name _ ->
         dialect.wrap_identifier name ++ alias dialect as_name
     From_Spec.Query raw_sql as_name ->
         Builder.code raw_sql . paren ++ alias dialect as_name
@@ -434,8 +467,9 @@ generate_query dialect query = case query of
         generate_insert_query dialect table_name pairs
     Query.Create_Table name columns primary_key temporary ->
         generate_create_table dialect name columns primary_key temporary
-    Query.Drop_Table name ->
-        Builder.code "DROP TABLE " ++ dialect.wrap_identifier name
+    Query.Drop_Table name if_exists ->
+        maybe_if_exists = if if_exists then Builder.code "IF EXISTS " else Builder.empty
+        Builder.code "DROP TABLE " ++ maybe_if_exists ++ dialect.wrap_identifier name
     Query.Insert_From_Select table_name column_names select_query -> case select_query of
         Query.Select _ _ ->
             inner_query = generate_query dialect select_query

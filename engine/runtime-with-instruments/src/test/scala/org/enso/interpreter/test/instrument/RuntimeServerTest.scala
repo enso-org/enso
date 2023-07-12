@@ -807,21 +807,22 @@ class RuntimeServerTest
   }
 
   it should "send method pointer updates of partially applied constructors" in {
-    pending
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
 
     val metadata = new Metadata
-    val id_x_1   = metadata.addItem(35, 5, "aa")
-    val id_x_2   = metadata.addItem(51, 5, "ab")
+    val id_x_0   = metadata.addItem(35, 3, "aa")
+    val id_x_1   = metadata.addItem(49, 5, "ab")
+    val id_x_2   = metadata.addItem(65, 5, "ac")
 
     val code =
       """type T
         |    A x y
         |
         |main =
-        |    x_1 = T.A 1
+        |    x_0 = T.A
+        |    x_1 = x_0 1
         |    x_2 = x_1 2
         |    x_2
         |""".stripMargin.linesIterator.mkString("\n")
@@ -854,32 +855,33 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(5) should contain theSameElementsAs Seq(
+    context.receiveN(6) should contain theSameElementsAs Seq(
       Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(
         contextId,
-        id_x_1,
+        id_x_0,
         ConstantsGen.FUNCTION_BUILTIN,
         Api.MethodCall(
           Api
-            .MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main.T", "A"),
-          Vector(1)
+            .MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main.T", "A")
         )
       ),
       TestMessages.update(
         contextId,
+        id_x_1,
+        ConstantsGen.FUNCTION_BUILTIN
+      ),
+      TestMessages.update(
+        contextId,
         id_x_2,
-        "Enso_Test.Test.Main.T",
-        Api.MethodCall(
-          Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main.T", "A")
-        )
+        "Enso_Test.Test.Main.T"
       ),
       context.executionComplete(contextId)
     )
   }
 
-  it should "send method pointer updates of partially applied method returning a method" in {
+  it should "send method pointer updates of partially applied static method returning a method" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
@@ -933,10 +935,18 @@ class RuntimeServerTest
         contextId,
         id_x_1,
         ConstantsGen.FUNCTION_BUILTIN,
-        Api.MethodCall(
-          Api
-            .MethodPointer(moduleName, moduleName, "func1"),
-          Vector()
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(moduleName, moduleName, "func1")
+          )
+        ),
+        payload = Api.ExpressionUpdate.Payload.Value(
+          functionSchema = Some(
+            Api.FunctionSchema(
+              Api.MethodPointer(moduleName, moduleName, "func2"),
+              Vector(2)
+            )
+          )
         )
       ),
       TestMessages.update(
@@ -947,6 +957,109 @@ class RuntimeServerTest
           Api
             .MethodPointer(moduleName, moduleName, "func2"),
           Vector()
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+  }
+
+  it should "send method pointer updates of partially applied type method returning a method" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+
+    val metadata = new Metadata
+    val id_x_1   = metadata.addItem(17, 9, "aa")
+    val id_x_2   = metadata.addItem(37, 5, "ab")
+    val id_x_3   = metadata.addItem(53, 7, "ac")
+
+    val code =
+      """main =
+        |    x_1 = T.A.func1
+        |    x_2 = x_1 1
+        |    x_3 = x_2 2 3
+        |    x_3
+        |
+        |type T
+        |    A
+        |    func1 self x = self.func2 x
+        |    func2 self x y z = x + y + z
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, moduleName, "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveN(6) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(
+        contextId,
+        id_x_1,
+        ConstantsGen.FUNCTION_BUILTIN,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(moduleName, s"$moduleName.T", "func1"),
+            Vector(1)
+          )
+        ),
+        payload = Api.ExpressionUpdate.Payload.Value(
+          functionSchema = Some(
+            Api.FunctionSchema(
+              Api.MethodPointer(moduleName, s"$moduleName.T", "func1"),
+              Vector(1)
+            )
+          )
+        )
+      ),
+      TestMessages.update(
+        contextId,
+        id_x_2,
+        ConstantsGen.FUNCTION_BUILTIN,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(moduleName, s"$moduleName.T", "func1")
+          )
+        ),
+        payload = Api.ExpressionUpdate.Payload.Value(
+          functionSchema = Some(
+            Api.FunctionSchema(
+              Api.MethodPointer(moduleName, s"$moduleName.T", "func2"),
+              Vector(2, 3)
+            )
+          )
+        )
+      ),
+      TestMessages.update(
+        contextId,
+        id_x_3,
+        ConstantsGen.INTEGER_BUILTIN,
+        Api.MethodCall(
+          Api.MethodPointer(moduleName, s"$moduleName.T", "func2")
         )
       ),
       context.executionComplete(contextId)
@@ -1011,26 +1124,46 @@ class RuntimeServerTest
         contextId,
         id_x1_1,
         ConstantsGen.FUNCTION_BUILTIN,
-        Api.MethodCall(
-          Api.MethodPointer(
-            "Enso_Test.Test.Main",
-            "Enso_Test.Test.Main.T",
-            "func1"
-          ),
-          Vector(0, 1)
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Enso_Test.Test.Main",
+              "Enso_Test.Test.Main.T",
+              "func1"
+            ),
+            Vector(0, 1)
+          )
+        ),
+        payload = Api.ExpressionUpdate.Payload.Value(
+          functionSchema = Some(
+            Api.FunctionSchema(
+              Api.MethodPointer(moduleName, s"$moduleName.T", "func1"),
+              Vector(0, 1)
+            )
+          )
         )
       ),
       TestMessages.update(
         contextId,
         id_x1_2,
         ConstantsGen.FUNCTION_BUILTIN,
-        Api.MethodCall(
-          Api.MethodPointer(
-            "Enso_Test.Test.Main",
-            "Enso_Test.Test.Main.T",
-            "func1"
-          ),
-          Vector(1)
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Enso_Test.Test.Main",
+              "Enso_Test.Test.Main.T",
+              "func1"
+            ),
+            Vector(1)
+          )
+        ),
+        payload = Api.ExpressionUpdate.Payload.Value(
+          functionSchema = Some(
+            Api.FunctionSchema(
+              Api.MethodPointer(moduleName, s"$moduleName.T", "func1"),
+              Vector(1)
+            )
+          )
         )
       ),
       TestMessages.update(
@@ -1205,26 +1338,46 @@ class RuntimeServerTest
         contextId,
         id_x1_1,
         ConstantsGen.FUNCTION_BUILTIN,
-        Api.MethodCall(
-          Api.MethodPointer(
-            "Enso_Test.Test.Main",
-            "Enso_Test.Test.Main.T",
-            "func1"
-          ),
-          Vector(0, 1)
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Enso_Test.Test.Main",
+              "Enso_Test.Test.Main.T",
+              "func1"
+            ),
+            Vector(0, 1)
+          )
+        ),
+        payload = Api.ExpressionUpdate.Payload.Value(
+          functionSchema = Some(
+            Api.FunctionSchema(
+              Api.MethodPointer(moduleName, s"$moduleName.T", "func1"),
+              Vector(0, 1)
+            )
+          )
         )
       ),
       TestMessages.update(
         contextId,
         id_x1_2,
         ConstantsGen.FUNCTION_BUILTIN,
-        Api.MethodCall(
-          Api.MethodPointer(
-            "Enso_Test.Test.Main",
-            "Enso_Test.Test.Main.T",
-            "func1"
-          ),
-          Vector(1)
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Enso_Test.Test.Main",
+              "Enso_Test.Test.Main.T",
+              "func1"
+            ),
+            Vector(1)
+          )
+        ),
+        payload = Api.ExpressionUpdate.Payload.Value(
+          functionSchema = Some(
+            Api.FunctionSchema(
+              Api.MethodPointer(moduleName, s"$moduleName.T", "func1"),
+              Vector(1)
+            )
+          )
         )
       ),
       TestMessages.update(
@@ -1302,26 +1455,46 @@ class RuntimeServerTest
         contextId,
         id_x1_1,
         ConstantsGen.FUNCTION_BUILTIN,
-        Api.MethodCall(
-          Api.MethodPointer(
-            "Enso_Test.Test.Main",
-            "Enso_Test.Test.Main.T",
-            "func1"
-          ),
-          Vector(1, 2)
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Enso_Test.Test.Main",
+              "Enso_Test.Test.Main.T",
+              "func1"
+            ),
+            Vector(1, 2)
+          )
+        ),
+        payload = Api.ExpressionUpdate.Payload.Value(
+          functionSchema = Some(
+            Api.FunctionSchema(
+              Api.MethodPointer(moduleName, s"$moduleName.T", "func1"),
+              Vector(1, 2)
+            )
+          )
         )
       ),
       TestMessages.update(
         contextId,
         id_x1_2,
         ConstantsGen.FUNCTION_BUILTIN,
-        Api.MethodCall(
-          Api.MethodPointer(
-            "Enso_Test.Test.Main",
-            "Enso_Test.Test.Main.T",
-            "func1"
-          ),
-          Vector(2)
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Enso_Test.Test.Main",
+              "Enso_Test.Test.Main.T",
+              "func1"
+            ),
+            Vector(2)
+          )
+        ),
+        payload = Api.ExpressionUpdate.Payload.Value(
+          functionSchema = Some(
+            Api.FunctionSchema(
+              Api.MethodPointer(moduleName, s"$moduleName.T", "func1"),
+              Vector(2)
+            )
+          )
         )
       ),
       TestMessages.update(
@@ -1399,26 +1572,46 @@ class RuntimeServerTest
         contextId,
         id_x1_1,
         ConstantsGen.FUNCTION_BUILTIN,
-        Api.MethodCall(
-          Api.MethodPointer(
-            "Enso_Test.Test.Main",
-            "Enso_Test.Test.Main.T",
-            "func1"
-          ),
-          Vector(1, 2)
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Enso_Test.Test.Main",
+              "Enso_Test.Test.Main.T",
+              "func1"
+            ),
+            Vector(1, 2)
+          )
+        ),
+        payload = Api.ExpressionUpdate.Payload.Value(
+          functionSchema = Some(
+            Api.FunctionSchema(
+              Api.MethodPointer(moduleName, s"$moduleName.T", "func1"),
+              Vector(1, 2)
+            )
+          )
         )
       ),
       TestMessages.update(
         contextId,
         id_x1_2,
         ConstantsGen.FUNCTION_BUILTIN,
-        Api.MethodCall(
-          Api.MethodPointer(
-            "Enso_Test.Test.Main",
-            "Enso_Test.Test.Main.T",
-            "func1"
-          ),
-          Vector(2)
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Enso_Test.Test.Main",
+              "Enso_Test.Test.Main.T",
+              "func1"
+            ),
+            Vector(2)
+          )
+        ),
+        payload = Api.ExpressionUpdate.Payload.Value(
+          functionSchema = Some(
+            Api.FunctionSchema(
+              Api.MethodPointer(moduleName, s"$moduleName.T", "func1"),
+              Vector(2)
+            )
+          )
         )
       ),
       TestMessages.update(
@@ -1496,26 +1689,46 @@ class RuntimeServerTest
         contextId,
         id_x1_1,
         ConstantsGen.FUNCTION_BUILTIN,
-        Api.MethodCall(
-          Api.MethodPointer(
-            "Enso_Test.Test.Main",
-            "Enso_Test.Test.Main.T",
-            "func1"
-          ),
-          Vector(0, 1, 2)
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Enso_Test.Test.Main",
+              "Enso_Test.Test.Main.T",
+              "func1"
+            ),
+            Vector(0, 1, 2)
+          )
+        ),
+        payload = Api.ExpressionUpdate.Payload.Value(
+          functionSchema = Some(
+            Api.FunctionSchema(
+              Api.MethodPointer(moduleName, s"$moduleName.T", "func1"),
+              Vector(0, 1, 2)
+            )
+          )
         )
       ),
       TestMessages.update(
         contextId,
         id_x1_2,
         ConstantsGen.FUNCTION_BUILTIN,
-        Api.MethodCall(
-          Api.MethodPointer(
-            "Enso_Test.Test.Main",
-            "Enso_Test.Test.Main.T",
-            "func1"
-          ),
-          Vector(1)
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(
+              "Enso_Test.Test.Main",
+              "Enso_Test.Test.Main.T",
+              "func1"
+            ),
+            Vector(1)
+          )
+        ),
+        payload = Api.ExpressionUpdate.Payload.Value(
+          functionSchema = Some(
+            Api.FunctionSchema(
+              Api.MethodPointer(moduleName, s"$moduleName.T", "func1"),
+              Vector(1)
+            )
+          )
         )
       ),
       TestMessages.update(
@@ -1589,18 +1802,38 @@ class RuntimeServerTest
         contextId,
         id_x1_1,
         ConstantsGen.FUNCTION_BUILTIN,
-        Api.MethodCall(
-          Api.MethodPointer(moduleName, moduleName, "func1"),
-          Vector(0, 1, 2)
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(moduleName, moduleName, "func1"),
+            Vector(0, 1, 2)
+          )
+        ),
+        payload = Api.ExpressionUpdate.Payload.Value(
+          functionSchema = Some(
+            Api.FunctionSchema(
+              Api.MethodPointer(moduleName, moduleName, "func1"),
+              Vector(0, 1, 2)
+            )
+          )
         )
       ),
       TestMessages.update(
         contextId,
         id_x1_2,
         ConstantsGen.FUNCTION_BUILTIN,
-        Api.MethodCall(
-          Api.MethodPointer(moduleName, moduleName, "func1"),
-          Vector(0, 2)
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(moduleName, moduleName, "func1"),
+            Vector(0, 2)
+          )
+        ),
+        payload = Api.ExpressionUpdate.Payload.Value(
+          functionSchema = Some(
+            Api.FunctionSchema(
+              Api.MethodPointer(moduleName, moduleName, "func1"),
+              Vector(0, 2)
+            )
+          )
         )
       ),
       TestMessages.update(
@@ -1668,18 +1901,38 @@ class RuntimeServerTest
         contextId,
         id_x1_1,
         ConstantsGen.FUNCTION_BUILTIN,
-        Api.MethodCall(
-          Api.MethodPointer(moduleName, moduleName, "func1"),
-          Vector(0, 1, 2)
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(moduleName, moduleName, "func1"),
+            Vector(0, 1, 2)
+          )
+        ),
+        payload = Api.ExpressionUpdate.Payload.Value(
+          functionSchema = Some(
+            Api.FunctionSchema(
+              Api.MethodPointer(moduleName, moduleName, "func1"),
+              Vector(0, 1, 2)
+            )
+          )
         )
       ),
       TestMessages.update(
         contextId,
         id_x1_2,
         ConstantsGen.FUNCTION_BUILTIN,
-        Api.MethodCall(
-          Api.MethodPointer(moduleName, moduleName, "func1"),
-          Vector(0, 2)
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(moduleName, moduleName, "func1"),
+            Vector(0, 2)
+          )
+        ),
+        payload = Api.ExpressionUpdate.Payload.Value(
+          functionSchema = Some(
+            Api.FunctionSchema(
+              Api.MethodPointer(moduleName, moduleName, "func1"),
+              Vector(0, 2)
+            )
+          )
         )
       ),
       TestMessages.update(
@@ -1688,6 +1941,187 @@ class RuntimeServerTest
         ConstantsGen.INTEGER_BUILTIN,
         Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "func1"))
       ),
+      context.executionComplete(contextId)
+    )
+  }
+
+  it should "send method pointer updates of a builtin method" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+
+    val metadata = new Metadata
+    val id_x     = metadata.addItem(46, 17, "aa")
+
+    val code =
+      """from Standard.Base import all
+        |
+        |main =
+        |    x = "hello" + "world"
+        |    x
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, moduleName, "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(
+        contextId,
+        id_x,
+        ConstantsGen.TEXT,
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Data.Text",
+            "Standard.Base.Data.Text.Text",
+            "+"
+          )
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+  }
+
+  it should "send method pointer updates of a builtin method called as static" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+
+    val metadata = new Metadata
+    val id_x     = metadata.addItem(52, 25, "aa")
+    val id_y     = metadata.addItem(86, 16, "ab")
+
+    val code =
+      """import Standard.Base.Data.Time.Date
+        |
+        |main =
+        |    x = Date.new_builtin 1970 1 1
+        |    y = Date.Date.year x
+        |    y
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, moduleName, "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(contextId, id_x, ConstantsGen.DATE),
+      TestMessages.update(
+        contextId,
+        id_y,
+        ConstantsGen.INTEGER_BUILTIN,
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Data.Time.Date",
+            "Standard.Base.Data.Time.Date.Date",
+            "year"
+          )
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+  }
+
+  it should "not send method pointer updates of a builtin method defined as static" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+
+    val metadata = new Metadata
+    val id_x     = metadata.addItem(52, 25, "aa")
+
+    val code =
+      """import Standard.Base.Data.Time.Date
+        |
+        |main =
+        |    x = Date.new_builtin 2022 1 1
+        |    x
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, moduleName, "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+      Api.Response(Api.BackgroundJobsStartedNotification()),
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(contextId, id_x, "Standard.Base.Data.Time.Date.Date"),
       context.executionComplete(contextId)
     )
   }
@@ -2108,7 +2542,12 @@ class RuntimeServerTest
     context.receiveN(4) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PopContextResponse(contextId)),
       TestMessages
-        .update(contextId, mainRes, ConstantsGen.NOTHING, typeChanged = false),
+        .update(
+          contextId,
+          mainRes,
+          ConstantsGen.NOTHING,
+          typeChanged = false
+        ),
       TestMessages.update(
         contextId,
         mainFoo,
@@ -2231,8 +2670,12 @@ class RuntimeServerTest
         fromCache   = false,
         typeChanged = false
       ),
-      TestMessages
-        .update(contextId, mainRes, ConstantsGen.NOTHING, typeChanged = false),
+      TestMessages.update(
+        contextId,
+        mainRes,
+        ConstantsGen.NOTHING,
+        typeChanged = false
+      ),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("6")
@@ -2489,8 +2932,12 @@ class RuntimeServerTest
         ConstantsGen.INTEGER,
         Api.MethodCall(Api.MethodPointer(moduleName, ConstantsGen.NUMBER, "x"))
       ),
-      TestMessages
-        .update(contextId, idMainP, ConstantsGen.NOTHING, typeChanged = false),
+      TestMessages.update(
+        contextId,
+        idMainP,
+        ConstantsGen.NOTHING,
+        typeChanged = false
+      ),
       TestMessages
         .update(contextId, idMain, ConstantsGen.NOTHING, typeChanged = false),
       context.executionComplete(contextId)
@@ -2522,8 +2969,12 @@ class RuntimeServerTest
         fromCache   = false,
         typeChanged = false
       ),
-      TestMessages
-        .update(contextId, idMainP, ConstantsGen.NOTHING, typeChanged = false),
+      TestMessages.update(
+        contextId,
+        idMainP,
+        ConstantsGen.NOTHING,
+        typeChanged = false
+      ),
       TestMessages
         .update(contextId, idMain, ConstantsGen.NOTHING, typeChanged = false),
       context.executionComplete(contextId)
@@ -2555,8 +3006,12 @@ class RuntimeServerTest
         fromCache   = false,
         typeChanged = true
       ),
-      TestMessages
-        .update(contextId, idMainP, ConstantsGen.NOTHING, typeChanged = false),
+      TestMessages.update(
+        contextId,
+        idMainP,
+        ConstantsGen.NOTHING,
+        typeChanged = false
+      ),
       TestMessages
         .update(contextId, idMain, ConstantsGen.NOTHING, typeChanged = false),
       context.executionComplete(contextId)
@@ -2588,8 +3043,12 @@ class RuntimeServerTest
         fromCache   = false,
         typeChanged = true
       ),
-      TestMessages
-        .update(contextId, idMainP, ConstantsGen.NOTHING, typeChanged = false),
+      TestMessages.update(
+        contextId,
+        idMainP,
+        ConstantsGen.NOTHING,
+        typeChanged = false
+      ),
       TestMessages
         .update(contextId, idMain, ConstantsGen.NOTHING, typeChanged = false),
       context.executionComplete(contextId)
@@ -2619,8 +3078,12 @@ class RuntimeServerTest
         ConstantsGen.TEXT,
         Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "hie"))
       ),
-      TestMessages
-        .update(contextId, idMainP, ConstantsGen.NOTHING, typeChanged = false),
+      TestMessages.update(
+        contextId,
+        idMainP,
+        ConstantsGen.NOTHING,
+        typeChanged = false
+      ),
       TestMessages
         .update(contextId, idMain, ConstantsGen.NOTHING, typeChanged = false),
       context.executionComplete(contextId)
@@ -2652,8 +3115,12 @@ class RuntimeServerTest
         fromCache   = false,
         typeChanged = true
       ),
-      TestMessages
-        .update(contextId, idMainP, ConstantsGen.NOTHING, typeChanged = false),
+      TestMessages.update(
+        contextId,
+        idMainP,
+        ConstantsGen.NOTHING,
+        typeChanged = false
+      ),
       TestMessages
         .update(contextId, idMain, ConstantsGen.NOTHING, typeChanged = false),
       context.executionComplete(contextId)
@@ -3500,8 +3967,12 @@ class RuntimeServerTest
     ) should contain theSameElementsAs Seq(
       TestMessages
         .update(contextId, idText, ConstantsGen.TEXT, typeChanged = false),
-      TestMessages
-        .update(contextId, idRes, ConstantsGen.NOTHING, typeChanged = false),
+      TestMessages.update(
+        contextId,
+        idRes,
+        ConstantsGen.NOTHING,
+        typeChanged = false
+      ),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List(prompt2)
@@ -3794,7 +4265,7 @@ class RuntimeServerTest
           Api.ExecutionResult.Failure("Module Unnamed.Main not found.", None)
         )
       ),
-      context.executionComplete(contextId)
+      Api.Response(Api.BackgroundJobsStartedNotification())
     )
   }
 
@@ -3846,7 +4317,7 @@ class RuntimeServerTest
           )
         )
       ),
-      context.executionComplete(contextId)
+      Api.Response(Api.BackgroundJobsStartedNotification())
     )
   }
 
@@ -3898,7 +4369,7 @@ class RuntimeServerTest
           )
         )
       ),
-      context.executionComplete(contextId)
+      Api.Response(Api.BackgroundJobsStartedNotification())
     )
   }
 
@@ -3941,33 +4412,30 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(4) should contain theSameElementsAs Seq(
+    context.receiveN(3) should contain theSameElementsAs Seq(
       Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
-        Api.ExecutionUpdate(
+        Api.ExecutionFailed(
           contextId,
-          Seq(
-            Api.ExecutionResult.Diagnostic.error(
-              "Not_Invokable.Error",
-              Some(mainFile),
-              Some(model.Range(model.Position(0, 7), model.Position(0, 19))),
-              None,
-              Vector(
-                Api.StackTraceElement(
-                  "Main.main",
-                  Some(mainFile),
-                  Some(
-                    model.Range(model.Position(0, 7), model.Position(0, 19))
-                  ),
-                  None
-                )
+          Api.ExecutionResult.Diagnostic.error(
+            "Not_Invokable.Error",
+            Some(mainFile),
+            Some(model.Range(model.Position(0, 7), model.Position(0, 19))),
+            None,
+            Vector(
+              Api.StackTraceElement(
+                "Main.main",
+                Some(mainFile),
+                Some(
+                  model.Range(model.Position(0, 7), model.Position(0, 19))
+                ),
+                None
               )
             )
           )
         )
-      ),
-      context.executionComplete(contextId)
+      )
     )
   }
 
@@ -4015,29 +4483,27 @@ class RuntimeServerTest
       Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
-        Api.ExecutionUpdate(
+        Api.ExecutionFailed(
           contextId,
-          Seq(
-            Api.ExecutionResult.Diagnostic.error(
-              "Type error: expected a function, but got 42.",
-              Some(mainFile),
-              Some(model.Range(model.Position(1, 7), model.Position(1, 19))),
-              None,
-              Vector(
-                Api.StackTraceElement(
-                  "Main.main",
-                  Some(mainFile),
-                  Some(
-                    model.Range(model.Position(1, 7), model.Position(1, 19))
-                  ),
-                  None
-                )
+          Api.ExecutionResult.Diagnostic.error(
+            "Type error: expected a function, but got 42.",
+            Some(mainFile),
+            Some(model.Range(model.Position(1, 7), model.Position(1, 19))),
+            None,
+            Vector(
+              Api.StackTraceElement(
+                "Main.main",
+                Some(mainFile),
+                Some(
+                  model.Range(model.Position(1, 7), model.Position(1, 19))
+                ),
+                None
               )
             )
           )
         )
       ),
-      context.executionComplete(contextId)
+      Api.Response(Api.BackgroundJobsStartedNotification())
     )
   }
 
@@ -4080,41 +4546,38 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(4) should contain theSameElementsAs Seq(
+    context.receiveN(3) should contain theSameElementsAs Seq(
       Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
-        Api.ExecutionUpdate(
+        Api.ExecutionFailed(
           contextId,
-          Seq(
-            Api.ExecutionResult.Diagnostic.error(
-              "No_Such_Method.Error",
-              Some(mainFile),
-              Some(model.Range(model.Position(2, 14), model.Position(2, 23))),
-              None,
-              Vector(
-                Api.StackTraceElement(
-                  "Main.bar",
-                  Some(mainFile),
-                  Some(
-                    model.Range(model.Position(2, 14), model.Position(2, 23))
-                  ),
-                  None
+          Api.ExecutionResult.Diagnostic.error(
+            "No_Such_Method.Error",
+            Some(mainFile),
+            Some(model.Range(model.Position(2, 14), model.Position(2, 23))),
+            None,
+            Vector(
+              Api.StackTraceElement(
+                "Main.bar",
+                Some(mainFile),
+                Some(
+                  model.Range(model.Position(2, 14), model.Position(2, 23))
                 ),
-                Api.StackTraceElement(
-                  "Main.main",
-                  Some(mainFile),
-                  Some(
-                    model.Range(model.Position(0, 7), model.Position(0, 16))
-                  ),
-                  None
-                )
+                None
+              ),
+              Api.StackTraceElement(
+                "Main.main",
+                Some(mainFile),
+                Some(
+                  model.Range(model.Position(0, 7), model.Position(0, 16))
+                ),
+                None
               )
             )
           )
         )
-      ),
-      context.executionComplete(contextId)
+      )
     )
   }
 
@@ -4162,37 +4625,35 @@ class RuntimeServerTest
       Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
-        Api.ExecutionUpdate(
+        Api.ExecutionFailed(
           contextId,
-          Seq(
-            Api.ExecutionResult.Diagnostic.error(
-              "Method `+` of type Function could not be found.",
-              Some(mainFile),
-              Some(model.Range(model.Position(3, 14), model.Position(3, 23))),
-              None,
-              Vector(
-                Api.StackTraceElement(
-                  "Main.bar",
-                  Some(mainFile),
-                  Some(
-                    model.Range(model.Position(3, 14), model.Position(3, 23))
-                  ),
-                  None
+          Api.ExecutionResult.Diagnostic.error(
+            "Method `+` of type Function could not be found.",
+            Some(mainFile),
+            Some(model.Range(model.Position(3, 14), model.Position(3, 23))),
+            None,
+            Vector(
+              Api.StackTraceElement(
+                "Main.bar",
+                Some(mainFile),
+                Some(
+                  model.Range(model.Position(3, 14), model.Position(3, 23))
                 ),
-                Api.StackTraceElement(
-                  "Main.main",
-                  Some(mainFile),
-                  Some(
-                    model.Range(model.Position(1, 7), model.Position(1, 16))
-                  ),
-                  None
-                )
+                None
+              ),
+              Api.StackTraceElement(
+                "Main.main",
+                Some(mainFile),
+                Some(
+                  model.Range(model.Position(1, 7), model.Position(1, 16))
+                ),
+                None
               )
             )
           )
         )
       ),
-      context.executionComplete(contextId)
+      Api.Response(Api.BackgroundJobsStartedNotification())
     )
   }
 
@@ -4235,41 +4696,38 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(4) should contain theSameElementsAs Seq(
+    context.receiveN(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
-        Api.ExecutionUpdate(
+        Api.ExecutionFailed(
           contextId,
-          Seq(
-            Api.ExecutionResult.Diagnostic.error(
-              "Type_Error.Error",
-              Some(mainFile),
-              Some(model.Range(model.Position(2, 10), model.Position(2, 15))),
-              None,
-              Vector(
-                Api.StackTraceElement(
-                  "Main.bar",
-                  Some(mainFile),
-                  Some(
-                    model.Range(model.Position(2, 10), model.Position(2, 15))
-                  ),
-                  None
+          Api.ExecutionResult.Diagnostic.error(
+            "Type_Error.Error",
+            Some(mainFile),
+            Some(model.Range(model.Position(2, 10), model.Position(2, 15))),
+            None,
+            Vector(
+              Api.StackTraceElement(
+                "Main.bar",
+                Some(mainFile),
+                Some(
+                  model.Range(model.Position(2, 10), model.Position(2, 15))
                 ),
-                Api.StackTraceElement(
-                  "Main.main",
-                  Some(mainFile),
-                  Some(
-                    model.Range(model.Position(0, 7), model.Position(0, 18))
-                  ),
-                  None
-                )
+                None
+              ),
+              Api.StackTraceElement(
+                "Main.main",
+                Some(mainFile),
+                Some(
+                  model.Range(model.Position(0, 7), model.Position(0, 18))
+                ),
+                None
               )
             )
           )
         )
       ),
-      Api.Response(Api.BackgroundJobsStartedNotification()),
-      context.executionComplete(contextId)
+      Api.Response(Api.BackgroundJobsStartedNotification())
     )
   }
 
@@ -4313,41 +4771,38 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
-        Api.ExecutionUpdate(
+        Api.ExecutionFailed(
           contextId,
-          Seq(
-            Api.ExecutionResult.Diagnostic.error(
-              "Type error: expected `str` to be Text, but got Integer.",
-              Some(mainFile),
-              Some(model.Range(model.Position(3, 10), model.Position(3, 15))),
-              None,
-              Vector(
-                Api.StackTraceElement(
-                  "Main.bar",
-                  Some(mainFile),
-                  Some(
-                    model.Range(model.Position(3, 10), model.Position(3, 15))
-                  ),
-                  None
+          Api.ExecutionResult.Diagnostic.error(
+            "Type error: expected `str` to be Text, but got Integer.",
+            Some(mainFile),
+            Some(model.Range(model.Position(3, 10), model.Position(3, 15))),
+            None,
+            Vector(
+              Api.StackTraceElement(
+                "Main.bar",
+                Some(mainFile),
+                Some(
+                  model.Range(model.Position(3, 10), model.Position(3, 15))
                 ),
-                Api.StackTraceElement(
-                  "Main.main",
-                  Some(mainFile),
-                  Some(
-                    model.Range(model.Position(1, 7), model.Position(1, 18))
-                  ),
-                  None
-                )
+                None
+              ),
+              Api.StackTraceElement(
+                "Main.main",
+                Some(mainFile),
+                Some(
+                  model.Range(model.Position(1, 7), model.Position(1, 18))
+                ),
+                None
               )
             )
           )
         )
       ),
-      Api.Response(Api.BackgroundJobsStartedNotification()),
-      context.executionComplete(contextId)
+      Api.Response(Api.BackgroundJobsStartedNotification())
     )
   }
 
@@ -4391,33 +4846,30 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
       Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
-        Api.ExecutionUpdate(
+        Api.ExecutionFailed(
           contextId,
-          Seq(
-            Api.ExecutionResult.Diagnostic.error(
-              "No_Such_Method.Error",
-              Some(mainFile),
-              Some(model.Range(model.Position(2, 7), model.Position(2, 16))),
-              None,
-              Vector(
-                Api.StackTraceElement(
-                  "Main.main",
-                  Some(mainFile),
-                  Some(
-                    model.Range(model.Position(2, 7), model.Position(2, 16))
-                  ),
-                  None
-                )
+          Api.ExecutionResult.Diagnostic.error(
+            "No_Such_Method.Error",
+            Some(mainFile),
+            Some(model.Range(model.Position(2, 7), model.Position(2, 16))),
+            None,
+            Vector(
+              Api.StackTraceElement(
+                "Main.main",
+                Some(mainFile),
+                Some(
+                  model.Range(model.Position(2, 7), model.Position(2, 16))
+                ),
+                None
               )
             )
           )
         )
-      ),
-      context.executionComplete(contextId)
+      )
     )
   }
 
@@ -4462,33 +4914,30 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
       Api.Response(Api.BackgroundJobsStartedNotification()),
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
-        Api.ExecutionUpdate(
+        Api.ExecutionFailed(
           contextId,
-          Seq(
-            Api.ExecutionResult.Diagnostic.error(
-              "Method `pi` of type Number.type could not be found.",
-              Some(mainFile),
-              Some(model.Range(model.Position(3, 7), model.Position(3, 16))),
-              None,
-              Vector(
-                Api.StackTraceElement(
-                  "Main.main",
-                  Some(mainFile),
-                  Some(
-                    model.Range(model.Position(3, 7), model.Position(3, 16))
-                  ),
-                  None
-                )
+          Api.ExecutionResult.Diagnostic.error(
+            "Method `pi` of type Number.type could not be found.",
+            Some(mainFile),
+            Some(model.Range(model.Position(3, 7), model.Position(3, 16))),
+            None,
+            Vector(
+              Api.StackTraceElement(
+                "Main.main",
+                Some(mainFile),
+                Some(
+                  model.Range(model.Position(3, 7), model.Position(3, 16))
+                ),
+                None
               )
             )
           )
         )
-      ),
-      context.executionComplete(contextId)
+      )
     )
   }
 
@@ -4541,57 +4990,54 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(4) should contain theSameElementsAs Seq(
+    context.receiveN(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
-        Api.ExecutionUpdate(
+        Api.ExecutionFailed(
           contextId,
-          Seq(
-            Api.ExecutionResult.Diagnostic.error(
-              "Type_Error.Error",
-              Some(mainFile),
-              Some(model.Range(model.Position(10, 8), model.Position(10, 17))),
-              None,
-              Vector(
-                Api.StackTraceElement(
-                  "Main.baz",
-                  Some(mainFile),
-                  Some(
-                    model.Range(model.Position(10, 8), model.Position(10, 17))
-                  ),
-                  None
+          Api.ExecutionResult.Diagnostic.error(
+            "Type_Error.Error",
+            Some(mainFile),
+            Some(model.Range(model.Position(10, 8), model.Position(10, 17))),
+            None,
+            Vector(
+              Api.StackTraceElement(
+                "Main.baz",
+                Some(mainFile),
+                Some(
+                  model.Range(model.Position(10, 8), model.Position(10, 17))
                 ),
-                Api.StackTraceElement(
-                  "Main.bar",
-                  Some(mainFile),
-                  Some(
-                    model.Range(model.Position(7, 8), model.Position(7, 11))
-                  ),
-                  None
+                None
+              ),
+              Api.StackTraceElement(
+                "Main.bar",
+                Some(mainFile),
+                Some(
+                  model.Range(model.Position(7, 8), model.Position(7, 11))
                 ),
-                Api.StackTraceElement(
-                  "Main.foo",
-                  Some(mainFile),
-                  Some(
-                    model.Range(model.Position(4, 8), model.Position(4, 11))
-                  ),
-                  None
+                None
+              ),
+              Api.StackTraceElement(
+                "Main.foo",
+                Some(mainFile),
+                Some(
+                  model.Range(model.Position(4, 8), model.Position(4, 11))
                 ),
-                Api.StackTraceElement(
-                  "Main.main",
-                  Some(mainFile),
-                  Some(
-                    model.Range(model.Position(1, 4), model.Position(1, 7))
-                  ),
-                  None
-                )
+                None
+              ),
+              Api.StackTraceElement(
+                "Main.main",
+                Some(mainFile),
+                Some(
+                  model.Range(model.Position(1, 4), model.Position(1, 7))
+                ),
+                None
               )
             )
           )
         )
       ),
-      Api.Response(Api.BackgroundJobsStartedNotification()),
-      context.executionComplete(contextId)
+      Api.Response(Api.BackgroundJobsStartedNotification())
     )
   }
 
@@ -4645,57 +5091,54 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
-        Api.ExecutionUpdate(
+        Api.ExecutionFailed(
           contextId,
-          Seq(
-            Api.ExecutionResult.Diagnostic.error(
-              "Type error: expected `that` to be Number, but got Function.",
-              Some(mainFile),
-              Some(model.Range(model.Position(11, 8), model.Position(11, 17))),
-              None,
-              Vector(
-                Api.StackTraceElement(
-                  "Main.baz",
-                  Some(mainFile),
-                  Some(
-                    model.Range(model.Position(11, 8), model.Position(11, 17))
-                  ),
-                  None
+          Api.ExecutionResult.Diagnostic.error(
+            "Type error: expected `that` to be Number, but got Function.",
+            Some(mainFile),
+            Some(model.Range(model.Position(11, 8), model.Position(11, 17))),
+            None,
+            Vector(
+              Api.StackTraceElement(
+                "Main.baz",
+                Some(mainFile),
+                Some(
+                  model.Range(model.Position(11, 8), model.Position(11, 17))
                 ),
-                Api.StackTraceElement(
-                  "Main.bar",
-                  Some(mainFile),
-                  Some(
-                    model.Range(model.Position(8, 8), model.Position(8, 11))
-                  ),
-                  None
+                None
+              ),
+              Api.StackTraceElement(
+                "Main.bar",
+                Some(mainFile),
+                Some(
+                  model.Range(model.Position(8, 8), model.Position(8, 11))
                 ),
-                Api.StackTraceElement(
-                  "Main.foo",
-                  Some(mainFile),
-                  Some(
-                    model.Range(model.Position(5, 8), model.Position(5, 11))
-                  ),
-                  None
+                None
+              ),
+              Api.StackTraceElement(
+                "Main.foo",
+                Some(mainFile),
+                Some(
+                  model.Range(model.Position(5, 8), model.Position(5, 11))
                 ),
-                Api.StackTraceElement(
-                  "Main.main",
-                  Some(mainFile),
-                  Some(
-                    model.Range(model.Position(2, 4), model.Position(2, 7))
-                  ),
-                  None
-                )
+                None
+              ),
+              Api.StackTraceElement(
+                "Main.main",
+                Some(mainFile),
+                Some(
+                  model.Range(model.Position(2, 4), model.Position(2, 7))
+                ),
+                None
               )
             )
           )
         )
       ),
-      Api.Response(Api.BackgroundJobsStartedNotification()),
-      context.executionComplete(contextId)
+      Api.Response(Api.BackgroundJobsStartedNotification())
     )
   }
 
