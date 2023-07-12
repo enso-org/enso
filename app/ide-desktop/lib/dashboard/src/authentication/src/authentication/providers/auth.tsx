@@ -165,7 +165,7 @@ export interface AuthProviderProps {
     supportsLocalBackend: boolean
     authService: authServiceModule.AuthService
     /** Callback to execute once the user has authenticated successfully. */
-    onAuthenticated: () => void
+    onAuthenticated: (accessToken?: string) => void
     children: React.ReactNode
 }
 
@@ -289,7 +289,7 @@ export function AuthProvider(props: AuthProviderProps) {
 
                     /** Execute the callback that should inform the Electron app that the user has logged in.
                      * This is done to transition the app from the authentication/dashboard view to the IDE. */
-                    onAuthenticated()
+                    onAuthenticated(session.accessToken)
                 }
 
                 setUserSession(newUserSession)

@@ -59,6 +59,13 @@ const BASE_AMPLIFY_CONFIG = {
 
 /** Collection of configuration details for Amplify user pools, sorted by deployment environment. */
 const AMPLIFY_CONFIGS = {
+    /** Configuration for @indiv0's Cognito user pool. */
+    npekin: {
+        userPoolId: auth.UserPoolId('eu-west-1_AXX1gMvpx'),
+        userPoolWebClientId: auth.UserPoolWebClientId('1rpnb2n1ijn6o5529a7ob017o'),
+        domain: auth.OAuthDomain('npekin-enso-domain.auth.eu-west-1.amazoncognito.com'),
+        ...BASE_AMPLIFY_CONFIG,
+    } satisfies Partial<auth.AmplifyConfig>,
     /** Configuration for @pbuchu's Cognito user pool. */
     pbuchu: {
         userPoolId: auth.UserPoolId('eu-west-1_jSF1RbgPK'),

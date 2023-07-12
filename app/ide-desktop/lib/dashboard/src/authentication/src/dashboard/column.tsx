@@ -2,12 +2,16 @@
 import * as React from 'react'
 
 import DefaultUserIcon from 'enso-assets/default_user.svg'
+import PlusIcon from 'enso-assets/plus.svg'
 
+import * as authProvider from '../authentication/providers/auth'
 import * as backend from './backend'
 import * as dateTime from './dateTime'
+import * as modalProvider from '../providers/modal'
 import * as tableColumn from './components/tableColumn'
 
 import PermissionDisplay, * as permissionDisplay from './components/permissionDisplay'
+import ManagePermissionsModal from './components/managePermissionsModal'
 
 // =============
 // === Types ===
@@ -77,32 +81,6 @@ export const COLUMN_DISPLAY_MODES_AND_NAMES: [ColumnDisplayMode, string][] = [
     [ColumnDisplayMode.settings, 'Settings'],
 ]
 
-/** The corresponding `Permissions` for each backend `PermissionAction`. */
-const PERMISSION: Record<backend.PermissionAction, permissionDisplay.Permissions> = {
-    [backend.PermissionAction.own]: { type: permissionDisplay.Permission.owner },
-    [backend.PermissionAction.execute]: {
-        type: permissionDisplay.Permission.regular,
-        read: false,
-        write: false,
-        docsWrite: false,
-        exec: true,
-    },
-    [backend.PermissionAction.edit]: {
-        type: permissionDisplay.Permission.regular,
-        read: false,
-        write: true,
-        docsWrite: false,
-        exec: false,
-    },
-    [backend.PermissionAction.read]: {
-        type: permissionDisplay.Permission.regular,
-        read: true,
-        write: false,
-        docsWrite: false,
-        exec: false,
-    },
-}
-
 /** {@link table.ColumnProps} for an unknown variant of {@link backend.Asset}. */
 type AnyAssetColumnProps = Omit<
     tableColumn.TableColumnProps<backend.Asset>,
@@ -110,25 +88,149 @@ type AnyAssetColumnProps = Omit<
 >
 
 /** A column displaying the time at which the asset was last modified. */
-export function LastModifiedColumn(props: AnyAssetColumnProps) {
+function LastModifiedColumn(props: AnyAssetColumnProps) {
     return <>{props.item.modifiedAt && dateTime.formatDateTime(new Date(props.item.modifiedAt))}</>
 }
 
-/** A column listing the users with which this asset is shared. */
-export function SharedWithColumn(props: AnyAssetColumnProps) {
+/** Props for a {@link UserPermissionDisplay}. */
+interface InternalUserPermissionDisplayProps {
+    user: backend.UserPermissions
+    item: backend.Asset
+    ownsThisAsset: boolean
+    isFirst: boolean
+}
+
+/** Displays permissions for a user on a specific asset. */
+function UserPermissionDisplay(props: InternalUserPermissionDisplayProps) {
+    const { user, item, ownsThisAsset, isFirst } = props
+    const { setModal } = modalProvider.useSetModal()
+    const [permissions, setPermissions] = React.useState(user.permissions)
+    const [isHovered, setIsHovered] = React.useState(false)
+
+    React.useEffect(() => {
+        setPermissions(user.permissions)
+    }, [user.permissions])
+
     return (
-        <>
-            {(props.item.permissions ?? []).map(user => (
-                <PermissionDisplay key={user.user.pk} permissions={PERMISSION[user.permission]}>
-                    <img src={DefaultUserIcon} height={24} width={24} />
-                </PermissionDisplay>
+        <PermissionDisplay
+            key={user.user.pk}
+            permissions={permissionDisplay.permissionActionsToPermissions(permissions)}
+            className={`border-2 rounded-full ${
+                ownsThisAsset ? 'cursor-pointer hover:shadow-soft hover:z-10' : ''
+            } ${isFirst ? '' : '-ml-5'}`}
+            onClick={event => {
+                event.stopPropagation()
+                if (ownsThisAsset) {
+                    setModal(
+                        <ManagePermissionsModal
+                            key={Number(new Date())}
+                            user={user.user}
+                            asset={item}
+                            eventTarget={event.currentTarget}
+                            onSubmit={(_users, newPermissions) => {
+                                setPermissions(newPermissions)
+                            }}
+                            onFailure={() => {
+                                setPermissions(user.permissions)
+                            }}
+                        />
+                    )
+                }
+            }}
+            onMouseEnter={() => {
+                setIsHovered(true)
+            }}
+            onMouseLeave={() => {
+                setIsHovered(false)
+            }}
+        >
+            {isHovered && (
+                <div className="relative">
+                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 rounded-full shadow-soft bg-white px-2 py-1">
+                        {user.user.user_email}
+                    </div>
+                </div>
+            )}
+            <img src={DefaultUserIcon} height={24} width={24} />
+        </PermissionDisplay>
+    )
+}
+
+/** A column listing the users with which this asset is shared. */
+function SharedWithColumn(props: AnyAssetColumnProps) {
+    const { item } = props
+    const session = authProvider.useNonPartialUserSession()
+    const { setModal } = modalProvider.useSetModal()
+    const [permissions, setPermissions] = React.useState(() =>
+        backend.groupPermissionsByUser(item.permissions ?? [])
+    )
+    const selfPermission = item.permissions?.find(
+        permission => permission.user.user_email === session.organization?.email
+    )?.permission
+    const ownsThisAsset = selfPermission === backend.PermissionAction.own
+    return (
+        <div className="flex">
+            {permissions.map((user, index) => (
+                <UserPermissionDisplay
+                    key={user.user.user_email}
+                    user={user}
+                    item={item}
+                    ownsThisAsset={ownsThisAsset}
+                    isFirst={index === 0}
+                />
             ))}
-        </>
+            {ownsThisAsset && (
+                <button
+                    onClick={event => {
+                        event.stopPropagation()
+                        setModal(
+                            <ManagePermissionsModal
+                                key={Number(new Date())}
+                                asset={item}
+                                eventTarget={event.currentTarget}
+                                onSubmit={(users, newPermissions) => {
+                                    setPermissions(oldPermissions => [
+                                        ...oldPermissions,
+                                        ...users.map(user => {
+                                            const userPermissions: backend.UserPermissions = {
+                                                user: {
+                                                    pk: backend.Subject(''),
+                                                    // The names come from a third-party API
+                                                    // and cannot be changed.
+                                                    /* eslint-disable @typescript-eslint/naming-convention */
+                                                    user_name: user.name,
+                                                    user_email: user.email,
+                                                    /** {@link SharedWithColumn} is only accessible
+                                                     * if `session.organization` is not `null`. */
+                                                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                                                    organization_id: session.organization!.id,
+                                                    /* eslint-enable @typescript-eslint/naming-convention */
+                                                },
+                                                permissions: newPermissions,
+                                            }
+                                            return userPermissions
+                                        }),
+                                    ])
+                                }}
+                                onFailure={() => {
+                                    // Set permissions to original permissions.
+                                    setPermissions(
+                                        backend.groupPermissionsByUser(item.permissions ?? [])
+                                    )
+                                }}
+                            />
+                        )
+                    }}
+                >
+                    <img src={PlusIcon} />
+                </button>
+            )}
+        </div>
     )
 }
 
 /** A placeholder component for columns which do not yet have corresponding data to display. */
-export function PlaceholderColumn() {
+function PlaceholderColumn() {
     return <></>
 }
 

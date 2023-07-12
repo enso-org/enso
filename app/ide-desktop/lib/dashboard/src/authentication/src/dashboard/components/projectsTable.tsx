@@ -6,6 +6,7 @@ import ArrowUpIcon from 'enso-assets/arrow_up.svg'
 import PlayIcon from 'enso-assets/play.svg'
 import PlusIcon from 'enso-assets/plus.svg'
 
+import * as authProvider from '../../authentication/providers/auth'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as columnModule from '../column'
@@ -15,6 +16,7 @@ import * as eventModule from '../event'
 import * as hooks from '../../hooks'
 import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
+import * as permissions from '../permissions'
 import * as presence from '../presence'
 import * as projectEventModule from '../events/projectEvent'
 import * as projectListEventModule from '../events/projectListEvent'
@@ -394,6 +396,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         case backendModule.ProjectState.closed:
             return (
                 <button
+                    className="w-6"
                     onClick={clickEvent => {
                         clickEvent.stopPropagation()
                         unsetModal()
@@ -406,6 +409,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         case backendModule.ProjectState.openInProgress:
             return (
                 <button
+                    className="w-6"
                     onClick={async clickEvent => {
                         clickEvent.stopPropagation()
                         unsetModal()
@@ -419,6 +423,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
             return (
                 <>
                     <button
+                        className="w-6"
                         onClick={async clickEvent => {
                             clickEvent.stopPropagation()
                             unsetModal()
@@ -428,6 +433,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
                         <svg.StopIcon className={spinner.SPINNER_CSS_CLASSES[spinnerState]} />
                     </button>
                     <button
+                        className="w-6"
                         onClick={clickEvent => {
                             clickEvent.stopPropagation()
                             unsetModal()
@@ -864,6 +870,7 @@ function ProjectsTable(props: ProjectsTableProps) {
         doOpenIde,
         doCloseIde: rawDoCloseIde,
     } = props
+    const { organization } = authProvider.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
     const { setModal } = modalProvider.useSetModal()
     const [items, setItems] = React.useState(rawItems)
@@ -931,15 +938,13 @@ function ProjectsTable(props: ProjectsTableProps) {
         switch (event.type) {
             case projectListEventModule.ProjectListEventType.create: {
                 const projectName = getNewProjectName(event.templateId)
-                // Although this is a dummy value, it MUST be unique as it is used
-                // as the React key for lists.
                 const dummyId = backendModule.ProjectId(uniqueString.uniqueString())
                 const placeholderItem: backendModule.ProjectAsset = {
                     id: dummyId,
                     title: projectName,
                     modifiedAt: dateTime.toRfc3339(new Date()),
                     parentId: directoryId ?? backendModule.DirectoryId(''),
-                    permissions: [],
+                    permissions: permissions.tryGetSingletonOwnerPermission(organization),
                     projectState: { type: backendModule.ProjectState.new },
                     type: backendModule.AssetType.project,
                 }

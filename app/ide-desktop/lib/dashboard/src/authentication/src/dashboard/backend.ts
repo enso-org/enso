@@ -266,18 +266,33 @@ export interface User {
     /* eslint-enable @typescript-eslint/naming-convention */
 }
 
+/** Metadata uniquely identifying a user inside an organization.
+ * This is similar to {@link User}, but without `organization_id`. */
+export interface SimpleUser {
+    id: Subject
+    name: string
+    email: EmailAddress
+}
+
 /** Backend representation of user permission types. */
 export enum PermissionAction {
     own = 'Own',
     execute = 'Execute',
     edit = 'Edit',
-    read = 'Read',
+    view = 'View',
 }
 
-/** User permissions for a specific user. */
+/** User permission for a specific user. */
 export interface UserPermission {
     user: User
     permission: PermissionAction
+}
+
+/** User permissions for a specific user. This is only returned by
+ * {@link groupPermissionsByUser}. */
+export interface UserPermissions {
+    user: User
+    permissions: PermissionAction[]
 }
 
 /** The type returned from the "update directory" endpoint. */
@@ -339,6 +354,17 @@ export interface FileAsset extends Asset<AssetType.file> {}
 export interface Directory extends DirectoryAsset {}
 
 // =================
+// === Constants ===
+// =================
+
+export const ASSET_TYPE_NAME: Record<AssetType, string> = {
+    [AssetType.project]: 'project',
+    [AssetType.directory]: 'folder',
+    [AssetType.secret]: 'secret',
+    [AssetType.file]: 'file',
+} as const
+
+// =================
 // === Endpoints ===
 // =================
 
@@ -353,6 +379,13 @@ export interface CreateUserRequestBody {
 export interface InviteUserRequestBody {
     organizationId: UserOrOrganizationId
     userEmail: EmailAddress
+}
+
+/** HTTP request body for the "create permission" endpoint. */
+export interface CreatePermissionRequestBody {
+    userSubjects: Subject[]
+    resourceId: AssetId
+    actions: PermissionAction[]
 }
 
 /** HTTP request body for the "create directory" endpoint. */
@@ -464,6 +497,30 @@ export function getAssetId<Type extends AssetType>(asset: Asset<Type>) {
     return asset.id
 }
 
+// ==============================
+// === groupPermissionsByUser ===
+// ==============================
+
+/** Converts an array of {@link UserPermission}s to an array of {@link UserPermissions}. */
+export function groupPermissionsByUser(permissions: UserPermission[]) {
+    const users: UserPermissions[] = []
+    const userMap: Record<Subject, UserPermissions> = {}
+    for (const permission of permissions) {
+        const existingUser = userMap[permission.user.pk]
+        if (existingUser != null) {
+            existingUser.permissions.push(permission.permission)
+        } else {
+            const newUser: UserPermissions = {
+                user: permission.user,
+                permissions: [permission.permission],
+            }
+            users.push(newUser)
+            userMap[permission.user.pk] = newUser
+        }
+    }
+    return users
+}
+
 // ===============
 // === Backend ===
 // ===============
@@ -472,10 +529,14 @@ export function getAssetId<Type extends AssetType>(asset: Asset<Type>) {
 export interface Backend {
     readonly type: BackendType
 
+    /** Return a list of all users in the same organization. */
+    listUsers: () => Promise<SimpleUser[]>
     /** Set the username of the current user. */
     createUser: (body: CreateUserRequestBody) => Promise<UserOrOrganization>
-    /** Return user details for the current user. */
+    /** Invite a new user to the organization by email. */
     inviteUser: (body: InviteUserRequestBody) => Promise<void>
+    /** Adds a permission for a specific user on a specific asset. */
+    createPermission: (body: CreatePermissionRequestBody) => Promise<void>
     /** Return user details for the current user. */
     usersMe: () => Promise<UserOrOrganization | null>
     /** Return a list of assets in a directory. */

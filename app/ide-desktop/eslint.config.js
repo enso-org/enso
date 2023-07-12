@@ -230,6 +230,10 @@ const RESTRICTED_SYNTAXES = [
         selector: ':matches(ForStatement[test=null], ForStatement[test.value=true])',
         message: 'Use `while (true)` instead of `for (;;)`',
     },
+    {
+        selector: 'VariableDeclarator[id.name=ENVIRONMENT][init.value!=production]',
+        message: "Environment must be 'production' when committing",
+    },
 ]
 
 // ============================

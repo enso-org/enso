@@ -495,9 +495,8 @@ function SecretsTable(props: SecretsTableProps) {
                     toast.error(message)
                     logger.error(message)
                 } else {
-                    const placeholderId = backendModule.SecretId(uniqueString.uniqueString())
                     const placeholderItem: backendModule.SecretAsset = {
-                        id: placeholderId,
+                        id: backendModule.SecretId(uniqueString.uniqueString()),
                         title: event.name,
                         modifiedAt: dateTime.toRfc3339(new Date()),
                         parentId: directoryId ?? backendModule.DirectoryId(''),
@@ -508,7 +507,7 @@ function SecretsTable(props: SecretsTableProps) {
                     setItems(oldItems => [placeholderItem, ...oldItems])
                     dispatchSecretEvent({
                         type: secretEventModule.SecretEventType.create,
-                        placeholderId: placeholderId,
+                        placeholderId: placeholderItem.id,
                         value: event.value,
                     })
                 }

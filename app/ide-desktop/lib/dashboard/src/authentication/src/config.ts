@@ -37,11 +37,16 @@ const CLOUD_REDIRECTS = {
 /** All possible API URLs, sorted by environment. */
 const API_URLS = {
     pbuchu: ApiUrl('https://xw0g8j3tsb.execute-api.eu-west-1.amazonaws.com'),
+    npekin: ApiUrl('https://s02ejyepk1.execute-api.eu-west-1.amazonaws.com'),
     production: ApiUrl('https://7aqkn3tnbc.execute-api.eu-west-1.amazonaws.com'),
 }
 
 /** All possible configuration options, sorted by environment. */
 const CONFIGS = {
+    npekin: {
+        cloudRedirect: CLOUD_REDIRECTS.development,
+        apiUrl: API_URLS.npekin,
+    } satisfies Config,
     pbuchu: {
         cloudRedirect: CLOUD_REDIRECTS.development,
         apiUrl: API_URLS.pbuchu,
@@ -72,4 +77,4 @@ export interface Config {
 
 /** Possible values for the environment/user we're running for and whose infrastructure we're
  * testing against. */
-export type Environment = 'pbuchu' | 'production'
+export type Environment = 'npekin' | 'pbuchu' | 'production'

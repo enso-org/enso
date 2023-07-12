@@ -463,9 +463,8 @@ function DirectoriesTable(props: DirectoriesTableProps) {
                 const title = `${DIRECTORY_NAME_DEFAULT_PREFIX}${
                     Math.max(0, ...directoryIndices) + 1
                 }`
-                const placeholderId = backendModule.DirectoryId(uniqueString.uniqueString())
                 const placeholderItem: backendModule.DirectoryAsset = {
-                    id: placeholderId,
+                    id: backendModule.DirectoryId(uniqueString.uniqueString()),
                     title,
                     modifiedAt: dateTime.toRfc3339(new Date()),
                     parentId: directoryId ?? backendModule.DirectoryId(''),
@@ -476,7 +475,7 @@ function DirectoriesTable(props: DirectoriesTableProps) {
                 setItems(oldItems => [placeholderItem, ...oldItems])
                 dispatchDirectoryEvent({
                     type: directoryEventModule.DirectoryEventType.create,
-                    placeholderId: placeholderId,
+                    placeholderId: placeholderItem.id,
                 })
                 break
             }

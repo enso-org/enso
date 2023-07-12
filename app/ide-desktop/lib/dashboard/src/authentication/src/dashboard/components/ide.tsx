@@ -1,6 +1,7 @@
 /** @file Container that launches the IDE. */
 import * as React from 'react'
 
+import * as auth from '../../authentication/providers/auth'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 
@@ -30,6 +31,7 @@ export interface IdeProps {
 function Ide(props: IdeProps) {
     const { project, appRunner } = props
     const { backend } = backendProvider.useBackend()
+    const { accessToken } = auth.useNonPartialUserSession()
 
     let hasEffectRun = false
 
@@ -92,20 +94,25 @@ function Ide(props: IdeProps) {
                             : {
                                   projectManagerUrl: GLOBAL_CONFIG.projectManagerEndpoint,
                               }
-                    await appRunner.runApp({
-                        loader: {
-                            assetsUrl: `${assetsRoot}dynamic-assets`,
-                            wasmUrl: `${assetsRoot}pkg-opt.wasm`,
-                            jsUrl: `${assetsRoot}pkg${JS_EXTENSION[backend.type]}`,
+                    await appRunner.runApp(
+                        {
+                            loader: {
+                                assetsUrl: `${assetsRoot}dynamic-assets`,
+                                wasmUrl: `${assetsRoot}pkg-opt.wasm`,
+                                jsUrl: `${assetsRoot}pkg${JS_EXTENSION[backend.type]}`,
+                            },
+                            engine: {
+                                ...engineConfig,
+                                preferredVersion: engineVersion,
+                            },
+                            startup: {
+                                project: project.packageName,
+                            },
                         },
-                        engine: {
-                            ...engineConfig,
-                            preferredVersion: engineVersion,
-                        },
-                        startup: {
-                            project: project.packageName,
-                        },
-                    })
+                        // Here we actually need explicit undefined.
+                        // eslint-disable-next-line no-restricted-syntax
+                        accessToken ?? undefined
+                    )
                 }
                 if (backend.type === backendModule.BackendType.local) {
                     await runNewProject()
