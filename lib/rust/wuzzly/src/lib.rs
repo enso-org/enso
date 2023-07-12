@@ -1,11 +1,15 @@
+#![feature(core_intrinsics)]
 #![feature(generators)]
 #![feature(iter_from_generator)]
 #![feature(iter_advance_by)]
 #![feature(let_chains)]
 #![feature(type_changing_struct_update)]
+#![feature(exclusive_range_pattern)]
+#![feature(assert_matches)]
 
 
 pub mod score;
+
 pub use score::Score;
 
 use derivative::Derivative;
@@ -19,23 +23,40 @@ mod std_score {
     use super::Score;
     use std::cmp::Ordering;
 
-    const MAX_CHARS_LN2: u32 = 8;
-    const MAX_SUBMATCHES_LN2: u32 = 4;
+    macro_rules! define_mixed_binary_radix_bases_impl {
+        ($width_subtotal:expr, $ty:ty, ) => {
+            const _STATIC_CHECK_ALL_BITS_FIT_IN_WORD: $ty = 1 << $width_subtotal;
+        };
+        ($width_subtotal:expr, $ty:ty, $ident:ident: $width:expr; $($rest:tt)*) => {
+            const $ident: $ty = 1 << $width_subtotal;
+            define_mixed_binary_radix_bases_impl!($width_subtotal + $width, $ty, $($rest)*);
+        };
+    }
 
-    // `CHAR` penalties can occur many times in a submatch, and accumulate as submatches are merged.
-    // `SUBMATCH` penalties can occur once per submatch, and accumulate as submatches are merged.
-    // `MATCH` penalties are applied to calculate a match score for the root submatch of a match.
+    /// Define factors partitioning the given type arithmetically into bitfields of specified
+    /// widths, starting from the little end of the word.
+    macro_rules! define_mixed_binary_radix_bases_low_to_high {
+        ($ty:ty, $($rest:tt)*) => {
+            define_mixed_binary_radix_bases_impl!(0, $ty, $($rest)*);
+        };
+    }
 
-    // A match that doesn't skip any word characters of the target is *perfect*, and should always
-    // be the first result.
-    const MATCH_IS_IMPERFECT_PENALTY: u32 =
-        1 << (MAX_CHARS_LN2 + MAX_SUBMATCHES_LN2 + 1 + MAX_SUBMATCHES_LN2 + MAX_SUBMATCHES_LN2);
-    const SUBMATCH_BY_INITIALS_PENALTY: u32 =
-        1 << (MAX_CHARS_LN2 + MAX_SUBMATCHES_LN2 + 1 + MAX_SUBMATCHES_LN2);
-    const SUBMATCH_NOT_FROM_START_PENALTY: u32 = 1 << (MAX_CHARS_LN2 + MAX_SUBMATCHES_LN2 + 1);
-    const MATCH_TARGET_IS_ALIAS_PENALTY: u32 = 1 << (MAX_CHARS_LN2 + MAX_SUBMATCHES_LN2);
-    const SUBMATCH_INCLUDES_NAMESPACE_PENALTY: u32 = 1 << MAX_CHARS_LN2;
-    const CHAR_IN_MATCHED_WORD_SKIPPED_PENALTY: u32 = 1;
+    /// Per-match penalty. These are only applied when converting a root-submatch score to a match
+    /// score, so each will not occur more than once and overflow is not possible.
+    const MATCH_BITS: u32 = 1;
+    /// A per-submatch penalty can occur up to 15 times in a match before it overflows.
+    const SUBMATCH_BITS: u32 = 4;
+    /// A per-character penalty can occur up to 255 times in a match before it overflows.
+    const CHAR_BITS: u32 = 8;
+
+    define_mixed_binary_radix_bases_low_to_high!(u32,
+        CHAR_IN_MATCHED_WORD_SKIPPED_PENALTY: CHAR_BITS;
+        SUBMATCH_INCLUDES_NAMESPACE_PENALTY: SUBMATCH_BITS;
+        MATCH_TARGET_IS_ALIAS_PENALTY: MATCH_BITS;
+        SUBMATCH_NOT_FROM_START_PENALTY: SUBMATCH_BITS;
+        SUBMATCH_BY_INITIALS_PENALTY: SUBMATCH_BITS;
+        MATCH_IS_IMPERFECT_PENALTY: MATCH_BITS;
+    );
 
     #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
     pub struct TargetInfo {
@@ -203,6 +224,8 @@ impl<SB: ScoreBuilder> Matcher<SB> {
     }
 
     fn do_match(&mut self, target: &str) -> Option<WithMatchIndexes<SB::SubmatchScore>> {
+        /// Supports reusing *the storage* of a buffer, despite it being used for objects of
+        /// different lifetimes.
         fn cast_lifetime<'a, 'b, T>(mut buffer: Vec<State<'a, T>>) -> Vec<State<'b, T>> {
             unsafe {
                 // Ensure the `Vec` is empty.
@@ -235,8 +258,9 @@ impl<SB: ScoreBuilder> Matcher<SB> {
             core::mem::swap(&mut states, &mut next_states);
         }
         let mut best = states.drain(..).map(|state| state.into_score()).max();
+        // Strip the initial delimiter we prepended to the pattern and target.
         if let Some(best) = best.as_mut() {
-            best.match_indexes.pop_front();
+            best.match_indexes.drop_front();
         }
         next_states.clear();
         self.states_buffer = cast_lifetime(states);
@@ -336,16 +360,12 @@ fn search(
 
 fn fmt_match(s: WithMatchIndexes<&str>) -> String {
     let chars = s.inner.chars();
-    let mut bits = s.match_indexes.bits;
+    let mut bits = s.match_indexes;
     let chars: Vec<_> = chars
         .rev()
-        .map(|c| {
-            let c = match bits & 1 {
-                0 => c,
-                _ => c.to_ascii_uppercase(),
-            };
-            bits >>= 1;
-            c
+        .map(|c| match bits.pop().unwrap_or_default() {
+            false => c,
+            true => c.to_ascii_uppercase(),
         })
         .collect();
     chars.iter().rev().collect()
@@ -413,16 +433,14 @@ impl<'s, SB: ScoreBuilder + 's> State<'s, SB> {
 #[derive(Debug, Clone)]
 struct WordIndexedChars<'s> {
     chars:           core::str::Chars<'s>,
-    word_boundaries: u64,
+    word_boundaries: Bitstring,
 }
 
 impl<'s> WordIndexedChars<'s> {
     fn new(pattern: &'s str) -> Self {
-        assert!(pattern.len() <= 64); // FIXME
-        let mut word_boundaries = 0;
+        let mut word_boundaries = Bitstring::new();
         for c in pattern.chars().rev() {
-            word_boundaries <<= 1;
-            word_boundaries |= matches!(c, '_' | '.') as u64;
+            word_boundaries.push(matches!(c, '_' | '.'));
         }
         let chars = pattern.chars();
         Self { word_boundaries, chars }
@@ -430,10 +448,13 @@ impl<'s> WordIndexedChars<'s> {
 
     /// Succeeds if there is any word boundary; returns the number of characters positions advanced.
     fn advance_until_at_word_boundary(&mut self) -> Result<u32, ()> {
-        let n = self.word_boundaries.trailing_zeros();
-        match n {
-            64 => Err(()),
-            valid_shift => self.advance_by(valid_shift as usize).map(|()| n).map_err(|_| ()),
+        let n = self.word_boundaries.pop_trailing_zeros();
+        match self.word_boundaries.is_empty() {
+            false => {
+                self.chars.advance_by(n as usize).unwrap();
+                Ok(n)
+            }
+            true => Err(()),
         }
     }
 }
@@ -442,13 +463,8 @@ impl<'s> Iterator for WordIndexedChars<'s> {
     type Item = char;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.word_boundaries >>= 1;
+        self.word_boundaries.pop();
         self.chars.next()
-    }
-
-    fn advance_by(&mut self, n: usize) -> Result<(), usize> {
-        self.word_boundaries >>= n;
-        self.chars.advance_by(n)
     }
 }
 
@@ -522,40 +538,8 @@ impl<T: Add<Output = T>> Add<Self> for WithMatchIndexes<T> {
     }
 }
 
-#[derive(Default, Clone)]
-struct Bitstring {
-    bits: u64,
-    len:  u32,
-}
-
-impl Bitstring {
-    fn push_zeros(&mut self, count: core::num::NonZeroU32) {
-        self.bits <<= count.get();
-        self.len += count.get();
-    }
-
-    fn push(&mut self, bit: bool) {
-        self.bits <<= 1;
-        self.bits |= bit as u64;
-        self.len += 1;
-    }
-
-    fn pop_front(&mut self) {
-        self.bits &= !(1 << self.len);
-        self.len -= 1;
-    }
-}
-
-impl Add for Bitstring {
-    type Output = Self;
-
-    fn add(self, rhs: Self) -> Self::Output {
-        Self {
-            bits: (self.bits << rhs.len) | rhs.bits,
-            len: self.len + rhs.len
-        }
-    }
-}
+mod bitstring;
+use bitstring::Bitstring;
 
 
 
