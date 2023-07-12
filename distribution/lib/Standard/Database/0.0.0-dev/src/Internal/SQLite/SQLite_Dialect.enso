@@ -410,19 +410,6 @@ replace_column_cs_all = Base_Generator.lift_ternary_op "REPLACE_COLUMN_CS_ALL" t
 replace_column_cs_only_first = Base_Generator.lift_ternary_op "REPLACE_COLUMN_CS_ONLY_FIRST" <| replace_only_first True
 replace_column_ci_only_first = Base_Generator.lift_ternary_op "REPLACE_COLUMN_CI_ONLY_FIRST" <| replace_only_first False
 
-##
-    , replace(a, p, r) as "cs=s/d r=f of=f"
-    , case when instr(a, p) = 0 then a
-           else substr(a, 1, instr(a, p)-1) ||
-                r ||
-                substr(a, instr(a, p)+length(p))
-           end as "cs=s/d r=f of=t"
-    , case when instr(lower(a), p) = 0 then a
-           else substr(a, 1, instr(lower(a), p)-1) ||
-                r ||
-                substr(a, instr(lower(a), p)+length(p))
-           end as "cs=i r=f of=t"
-
 replace_only_first case_sensitive t p r =
     search_string = if case_sensitive then t else
         Builder.code "LOWER(" ++ t ++ ")"

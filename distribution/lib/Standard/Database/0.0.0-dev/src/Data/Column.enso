@@ -1166,9 +1166,8 @@ type Column
                 Case_Sensitivity.Insensitive _ -> "CI"
             only_first_part = if only_first then "ONLY_FIRST" else "ALL"
             op_name = "REPLACE_" + use_regex_part + "_" + case_sensitivity_part + "_" + only_first_part
-            IO.println 'AAA'
-            IO.println op_name
-            self.make_ternary_op op_name term new_text new_name
+            if_replace_op_supported self.connection.dialect op_name term case_sensitivity only_first <|
+                self.make_ternary_op op_name term new_text new_name
 
     ## Gets the year as a number from the date stored in the column.
 
@@ -1503,3 +1502,13 @@ adapt_unified_column column expected_type =
         SQL_Type_Reference.new column.connection column.context expression
     adapted = dialect.adapt_unified_column column.as_internal expected_type infer_return_type
     Column.Value name=column.name connection=column.connection sql_type_reference=adapted.sql_type_reference expression=adapted.expression context=column.context
+
+## PRIVATE
+   Build a friendly error explaining that the combination of REPLACE options is
+   not supported for this backend.
+if_replace_op_supported : Any -> Text -> Text | Column | Regex -> Case_Sensitivity -> Boolean -> Any -> Any
+if_replace_op_supported dialect op_name term case_sensitivity only_first ~action =
+    if dialect.is_supported op_name then action else
+        term_type = Meta.type_of term . to_text
+        msg = "The REPLACE operation on " + dialect.name + " is not supported for the following options: argument type " + term_type + ", case_sensitivity " + case_sensitivity.to_display_text + ", only_first " + only_first.to_text
+        Error.throw (Unsupported_Database_Operation.Error msg)
