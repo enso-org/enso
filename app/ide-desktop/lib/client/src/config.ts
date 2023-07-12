@@ -14,10 +14,8 @@ import * as paths from 'paths'
 
 export const HELP_EXTENDED_NAME = 'helpExtended'
 export const HELP_EXTENDED_OPTION_NAME = naming.camelToKebabCase(HELP_EXTENDED_NAME)
-// FIGMA MODE ONLY
-const DEFAULT_WIDTH = 1280
-// FIGMA MODE ONLY
-const DEFAULT_HEIGHT = 832
+const DEFAULT_WIDTH = 1380
+const DEFAULT_HEIGHT = 900
 const DEFAULT_PORT = 8080
 
 // ==================

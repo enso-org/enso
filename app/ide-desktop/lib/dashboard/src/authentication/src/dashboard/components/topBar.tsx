@@ -87,9 +87,7 @@ function TopBar(props: TopBarProps) {
 
     return (
         <div className="flex mx-2 h-8">
-            {/* FIGMA MODE ONLY */}
-            <div style={{ width: '70px' }} />
-            {false && supportsLocalBackend && (
+            {supportsLocalBackend && (
                 <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap p-1.5">
                     <button
                         onClick={() => {
@@ -119,13 +117,13 @@ function TopBar(props: TopBarProps) {
             )}
             <div
                 className={`flex items-center bg-label rounded-full px-1 mx-2 w-39 ${
-                    projectName != null ? 'cursor-pointer' : '' // 'opacity-50'
+                    projectName != null ? 'cursor-pointer' : 'opacity-50'
                 }`}
                 onClick={toggleTab}
             >
                 <span
                     className={`flex-1 opacity-50 overflow-hidden transition-width whitespace-nowrap ${
-                        tab === dashboard.Tab.dashboard && false ? 'm-2' : 'grow-0 w-0'
+                        tab === dashboard.Tab.dashboard ? 'm-2' : 'grow-0 w-0'
                     }`}
                 >
                     {projectName ?? 'Dashboard'}
@@ -135,10 +133,10 @@ function TopBar(props: TopBarProps) {
                 </div>
                 <span
                     className={`flex-1 opacity-50 overflow-hidden transition-width whitespace-nowrap leading-5 py-0.5 ${
-                        tab === dashboard.Tab.ide || true ? 'm-2' : 'grow-0 w-0'
+                        tab === dashboard.Tab.ide ? 'm-2' : 'grow-0 w-0'
                     }`}
                 >
-                    {'My current project' ?? projectName ?? 'No project open'}
+                    {projectName ?? 'No project open'}
                 </span>
             </div>
             <div className="flex flex-nowrap flex-1 grow-0 bg-label items-center rounded-full gap-2.5 pl-2.75 pr-3.25 mx-2">

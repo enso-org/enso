@@ -96,9 +96,8 @@ export interface CreateFormProps {
 
 /** Feature flags to enable or disable experimental features. */
 const EXPERIMENTAL = {
-    // FIGMA MODE ONLY
     /** A selector that lets the user choose between pre-defined sets of visible columns. */
-    columnModeSwitcher: true,
+    columnModeSwitcher: false,
 }
 
 /** The `id` attribute of the element into which the IDE will be rendered. */
@@ -313,8 +312,7 @@ function Dashboard(props: DashboardProps) {
         backendModule.Asset<backendModule.AssetType.directory>[]
     >([])
     // Defined by the spec as `compact` by default, however it is not ready yet.
-    // FIGMA MODE ONLY
-    const [columnDisplayMode, setColumnDisplayMode] = react.useState(ColumnDisplayMode.all)
+    const [columnDisplayMode, setColumnDisplayMode] = react.useState(ColumnDisplayMode.release)
     const [tab, setTab] = react.useState(Tab.dashboard)
     const [project, setProject] = react.useState<backendModule.Project | null>(null)
     const [selectedAssets, setSelectedAssets] = react.useState<backendModule.Asset[]>([])
@@ -1128,32 +1126,27 @@ function Dashboard(props: DashboardProps) {
                             {backend.type === backendModule.BackendType.remote && (
                                 <div className="flex gap-0.5">
                                     <div className="bg-gray-100 rounded-l-full p-1">
-                                        {/* FIGMA MODE ONLY: `true &&`, `'cloud' ??`, `'nike' ??` */}
                                         <div className="flex flex-nowrap gap-1.75 items-center pl-2 pr-2.5">
-                                            {directory ||
-                                                (true && (
-                                                    <>
-                                                        <div
-                                                            className="cursor-pointer leading-5 my-0.5"
-                                                            onClick={exitDirectory}
-                                                        >
-                                                            {'cloud' ??
-                                                                parentDirectory?.title ??
-                                                                '/'}
-                                                        </div>
-                                                        <img src={ArrowRightSmallIcon} />
-                                                    </>
-                                                ))}
+                                            {directory && (
+                                                <>
+                                                    <div
+                                                        className="cursor-pointer leading-5 my-0.5"
+                                                        onClick={exitDirectory}
+                                                    >
+                                                        {parentDirectory?.title ?? '/'}
+                                                    </div>
+                                                    <img src={ArrowRightSmallIcon} />
+                                                </>
+                                            )}
                                             <span className="leading-5 my-0.5">
-                                                {'nike' ?? directory?.title ?? '/'}
+                                                {directory?.title ?? '/'}
                                             </span>
                                         </div>
                                     </div>
                                     <div className="bg-gray-100 rounded-r-full flex flex-nowrap items-center gap-2 pl-3">
                                         <div className="leading-5 my-0.5">Shared with</div>
                                         <div className="-mr-1">
-                                            {/* FIGMA MODE ONLY */}
-                                            <PermissionDisplay
+                                            {/* <PermissionDisplay
                                                 permissions={{
                                                     type: permissionDisplay.Permission.admin,
                                                 }}
@@ -1161,7 +1154,7 @@ function Dashboard(props: DashboardProps) {
                                                 <div className="flex items-center leading-6 mx-2 my-1">
                                                     marketing
                                                 </div>
-                                            </PermissionDisplay>
+                                            </PermissionDisplay> */}
                                         </div>
                                     </div>
                                 </div>

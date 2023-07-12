@@ -46,13 +46,6 @@ export interface Template {
 /** The full list of templates. */
 export const TEMPLATES: [Template, ...Template[]] = [
     {
-        // FIGMA MODE ONLY
-        title: 'Combine spreadsheets',
-        id: 'Orders',
-        description: 'Glue multiple spreadsheets together to analyse all your data at once.',
-        background: 'url("/spreadsheets.png") 50% 11% / 50% no-repeat, #479366',
-    },
-    {
         title: 'Colorado COVID',
         id: 'Colorado_COVID',
         description: 'Learn to glue multiple spreadsheets to analyses all your data at once.',
@@ -232,29 +225,20 @@ function Templates(props: TemplatesProps) {
 
     return (
         <div>
-            {/* FIGMA MODE ONLY: `hidden` */}
-            <div className="flex items-center m-2 hidden">
-                <div className="w-4">
-                    <div
-                        className={`cursor-pointer transition-all ease-in-out ${
-                            isOpen ? 'rotate-90' : ''
-                        }`}
-                        onClick={toggleIsOpen}
-                    >
-                        <img src={RotatingArrowIcon} />
-                    </div>
-                </div>
-                <h1 className="text-xl font-bold self-center">Templates</h1>
+            <div className="flex items-center mb-2">
+                <button onClick={toggleIsOpen} className="flex items-center">
+                    <img
+                        src={RotatingArrowIcon}
+                        className={`transition-all ease-in-out ${isOpen ? 'rotate-90' : ''}`}
+                    />
+                    <h1 className="text-xl font-bold self-center">Templates</h1>
+                </button>
             </div>
-            {/* FIGMA MODE ONLY */}
-            <div style={{ height: '8px' }} />
             <div
                 ref={containerRef}
                 className={`grid gap-2 grid-cols-fill-60 justify-center overflow-y-scroll scroll-hidden transition-all duration-300 ease-in-out px-4.75 ${
-                    isOpen ? `h-templates-custom ${shadowClass}` : 'h-0'
+                    isOpen ? `h-templates-custom ${shadowClass}` : 'h-0 -mb-6'
                 }`}
-                // FIGMA MODE ONLY
-                style={{ height: '244px' }}
                 onScroll={updateShadowClass}
             >
                 <TemplatesRender templates={TEMPLATES} onTemplateClick={onTemplateClick} />

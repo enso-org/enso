@@ -114,14 +114,16 @@ function Rows<T>(props: RowsProps<T>) {
         ))
     )
     return (
-        <table className="relative flex flex-col self-start rounded-rows gap-1 mx-0.75">
-            <tr className="flex absolute top-2.75 h-[calc(100%-11px)] pointer-events-none">
-                {columns.map(column => (
-                    <td className={`border-r ${column.widthClass ?? ''}`} />
-                ))}
-            </tr>
-            {headerRow}
-            {itemRows}
+        <table className="relative flex flex-col self-start gap-1 mx-0.75">
+            <thead>
+                <tr className="flex absolute top-2.75 h-[calc(100%-11px)] pointer-events-none">
+                    {columns.map(column => (
+                        <td key={column.id} className={`border-r ${column.widthClass ?? ''}`} />
+                    ))}
+                </tr>
+                {headerRow}
+            </thead>
+            <tbody className="flex flex-col gap-1">{itemRows}</tbody>
         </table>
     )
 }
