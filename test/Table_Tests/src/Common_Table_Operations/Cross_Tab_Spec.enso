@@ -22,7 +22,7 @@ spec setup =
         table = table_builder [["Key", ["x", "x", "x", "x", "y", "y", "y", "z", "z"]], ["Value", [1, 2, 3, 4, 5, 6, 7, 8, 9]]]
         table2 = table_builder [["Group", ["A","B","A","B","A","B","A","B","A"]], ["Key", ["x", "x", "x", "x", "y", "y", "y", "z", "z"]], ["Value", [1, 2, 3, 4, 5, 6, 7, 8, 9]]]
         Test.specify "should cross_tab counts by default using first column as names" <|
-            t1 = table.cross_tab
+            t1 = table.cross_tab [] "Key"
             t1.column_names . should_equal ["x", "y", "z"]
             t1.row_count . should_equal 1
             t1.at "x" . to_vector . should_equal [4]
@@ -30,7 +30,7 @@ spec setup =
             t1.at "z" . to_vector . should_equal [2]
 
         Test.specify "should allow a different aggregate" <|
-            t1 = table.cross_tab values=[Sum "Value"]
+            t1 = table.cross_tab [] "Key" values=[Sum "Value"]
             t1.column_names . should_equal ["x", "y", "z"]
             t1.row_count . should_equal 1
             t1.at "x" . to_vector . should_equal [10]
@@ -38,7 +38,7 @@ spec setup =
             t1.at "z" . to_vector . should_equal [17]
 
         Test.specify "should allow a custom expression for the aggregate" <|
-            t1 = table.cross_tab values=[Sum "[Value]*[Value]"]
+            t1 = table.cross_tab [] "Key" values=[Sum "[Value]*[Value]"]
             t1.column_names . should_equal ["x", "y", "z"]
             t1.row_count . should_equal 1
             t1.at "x" . to_vector . should_equal [30]
@@ -94,7 +94,7 @@ spec setup =
             t2.column_names . should_equal ["Group", "x", "y", "z"]
 
         Test.specify "should allow multiple values aggregates" <|
-            t1 = table.cross_tab values=[Count, Sum "Value"]
+            t1 = table.cross_tab [] "Key" values=[Count, Sum "Value"]
             t1.column_names . should_equal ["x Count", "x Sum", "y Count", "y Sum", "z Count", "z Sum"]
             t1.row_count . should_equal 1
             t1.at "x Count" . to_vector . should_equal [4]
@@ -123,21 +123,21 @@ spec setup =
             err2.catch.criteria . should_equal [42]
 
         Test.specify "should fail if aggregate values contain missing columns" <|
-            err1 = table.cross_tab values=[Count, Sum "Nonexistent Value", Sum "Value", Sum "OTHER"]
+            err1 = table.cross_tab [] "Key" values=[Count, Sum "Nonexistent Value", Sum "Value", Sum "OTHER"]
             err1.should_fail_with Invalid_Aggregate_Column
             err1.catch.name . should_equal "Nonexistent Value"
 
-            err2 = table.cross_tab values=[Count, Sum "Nonexistent Value", Sum "Value", Sum 42]
+            err2 = table.cross_tab [] "Key" values=[Count, Sum "Nonexistent Value", Sum "Value", Sum 42]
             err2.should_fail_with Missing_Input_Columns
             err2.catch.criteria . should_equal [42]
 
         Test.specify "should fail if aggregate values contain invalid expressions" <|
-            err1 = table.cross_tab values=[Sum "[MISSING]*10"]
+            err1 = table.cross_tab [] "Key" values=[Sum "[MISSING]*10"]
             err1.should_fail_with Invalid_Aggregate_Column
             err1.catch.name . should_equal "[MISSING]*10"
             err1.catch.expression_error . should_equal (No_Such_Column.Error "MISSING")
 
-            err2 = table.cross_tab values=[Sum "[[["]
+            err2 = table.cross_tab [] "Key" values=[Sum "[[["]
             err2.should_fail_with Invalid_Aggregate_Column
             err2.catch.name . should_equal "[[["
             err2.catch.expression_error . should_be_a Expression_Error.Syntax_Error
@@ -162,7 +162,7 @@ spec setup =
 
         Test.specify "should allow non-Text columns to be used as name" <|
             table = table_builder [["Key", [1, 1, 1, 2, 2, 1, 3, 3, 1]], ["Value", [1, 2, 3, 4, 5, 6, 7, 8, 9]]]
-            t1 = table.cross_tab
+            t1 = table.cross_tab [] "Key"
             t1.column_names . should_equal ["1", "2", "3"]
             t1.row_count . should_equal 1
             t1.at "1" . to_vector . should_equal [5]
@@ -171,7 +171,7 @@ spec setup =
 
         Test.specify "should correctly handle uncommon characters in fields becoming column names" <|
             table = table_builder [["Key", ["💡🎉🌻", "ąęź", "ąęź", '\n\n', "😊", "😊", "🌻", "😊", "🌻", " "]], ["Value", [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]]]
-            t1 = table.cross_tab . sort_columns
+            t1 = table.cross_tab [] "Key" . sort_columns
             t1.column_names . should_equal ['\n\n', ' ', 'ąęź', '🌻', '💡🎉🌻', '😊']
             t1.row_count . should_equal 1
             t1.at "💡🎉🌻" . to_vector . should_equal [1]
@@ -183,7 +183,7 @@ spec setup =
 
         Test.specify "should report Floating_Point_Equality if the group or name column is floating point" <|
             t = table_builder [["X", [1.5, 2.5, 2.5, 1.5]], ["Y", [1, 2, 3, 4]], ["Z", ["a", "b", "b", "b"]]]
-            t1 = t.cross_tab
+            t1 = t.cross_tab [] "X"
             Problems.expect_warning Floating_Point_Equality t1
             t1.column_names . should_equal ["1.5", "2.5"]
             t1.row_count . should_equal 1
@@ -226,7 +226,7 @@ spec setup =
 
         Test.specify "should fail gracefully if an effective column name would contain invalid characters" <|
             table = table_builder [["Key", ['x', 'x', 'y\0', '\0', 'y\0', 'z', 'z', 'z', 'z']], ["Value", [1, 2, 3, 4, 5, 6, 7, 8, 9]]]
-            r1 = table.cross_tab
+            r1 = table.cross_tab [] "Key"
             r1.should_fail_with Illegal_Argument
             r1.catch.to_display_text . should_contain "must not contain the NUL character"
 
@@ -237,11 +237,17 @@ spec setup =
 
         Test.specify "should fail gracefully if an effective column name would be empty or null" <|
             table = table_builder [["Key", [" ", "x", "x", "x", "", "", "", "y", "y"]], ["Value", [1, 2, 3, 4, 5, 6, 7, 8, 9]]]
-            r1 = table.cross_tab
+            r1 = table.cross_tab [] "Key"
             r1.should_fail_with Illegal_Argument
             r1.catch.to_display_text . should_contain "cannot be empty"
 
             table2 = table_builder [["Key", [" ", "x", "x", "x", Nothing, Nothing, Nothing, "y", "y"]], ["Value", [1, 2, 3, 4, 5, 6, 7, 8, 9]]]
-            r2 = table2.cross_tab
+            r2 = table2.cross_tab [] "Key"
             r2 . should_fail_with Illegal_Argument
             r2.catch.to_display_text . should_contain "cannot be Nothing"
+
+        Test.specify "should fail gracefully if producing too many columns in a table" <|
+            table = table_builder [["Key", 0.up_to 25000 . to_vector]]
+            r1 = table.cross_tab [] "Key"
+            r1 . should_fail_with Column_Count_Exceeded
+            r1.catch.column_count . should_equal 25000

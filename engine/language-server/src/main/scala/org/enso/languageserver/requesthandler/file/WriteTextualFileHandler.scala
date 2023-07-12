@@ -61,7 +61,7 @@ class WriteTextualFileHandler(
       cancellable.cancel()
       context.stop(self)
 
-    case FileManagerProtocol.WriteFileResult(Right(())) =>
+    case FileManagerProtocol.WriteFileResult(Right(_)) =>
       replyTo ! ResponseResult(WriteFile, id, Unused)
       cancellable.cancel()
       context.stop(self)

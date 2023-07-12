@@ -1363,12 +1363,6 @@ spec setup =
             err6 = table.aggregate [Group_By "Index", Sum "Value", Sum 42] on_problems=Problem_Behavior.Ignore error_on_missing_columns=True
             err6.catch . should_equal (Missing_Input_Columns.Error [42])
 
-        Test.specify "should raise a warning when an invalid output name" <|
-            action = table.aggregate [Group_By "Index" ""] on_problems=_
-            problems = [Invalid_Output_Column_Names.Error [""]]
-            tester = expect_column_names ["Column 1"]
-            Problems.test_problem_handling action problems tester
-
         Test.specify "should raise a warning when a duplicate column name" <|
             action = table.aggregate [Group_By "Index", Group_By 0] on_problems=_
             problems = [Duplicate_Output_Column_Names.Error ["Index"]]

@@ -421,13 +421,28 @@ spec setup =
             (y ^ 42).should_fail_with Invalid_Value_Type
 
         case setup.test_selection.is_nan_and_nothing_distinct of
-            True -> Test.specify "should support is_nan" <|
-                t = table_builder [["X", [1.5, 2, Number.nan]], ["Y", [1, 2, 3]]]
-                t.at "X" . is_nan . to_vector . should_equal [False, False, True]
-                t.at "Y" . is_nan . should_fail_with Invalid_Value_Type
-            False -> Test.specify "should report that is_nan is not supported" <|
-                t = table_builder [["X", [1.5]]]
-                t.at "X" . is_nan . should_fail_with Unsupported_Database_Operation
+            True ->
+                t = table_builder [["X", [1.5, 3.0, Number.positive_infinity, Number.negative_infinity, Number.nan, Nothing]], ["Y", [1, 2, 3, 4, 5, Nothing]], ["Z", ["1", "2", "3", "4", "5", Nothing]]]
+
+                Test.specify "should support is_nan" <|
+                    t.at "X" . is_nan . to_vector . should_equal [False, False, False, False, True, Nothing]
+                    t.at "Y" . is_nan . to_vector . should_equal [False, False, False, False, False, Nothing]
+                    t.at "Z" . is_nan . to_vector . should_fail_with Invalid_Value_Type
+
+                Test.specify "should support is_infinite" <|
+                    t.at "X" . is_infinite . to_vector . should_equal [False, False, True, True, False, Nothing]
+                    t.at "Y" . is_infinite . to_vector . should_equal [False, False, False, False, False, Nothing]
+                    t.at "Z" . is_infinite . to_vector . should_fail_with Invalid_Value_Type
+            False ->
+                Test.specify "should report that is_nan is not supported" <|
+                    t = table_builder [["X", [1.5]]]
+                    t.at "X" . is_nan . should_fail_with Unsupported_Database_Operation
+
+                Test.specify "should support is_infinite" <|
+                    t = table_builder [["X", [1.5, 3.0, Number.positive_infinity, Number.negative_infinity, Nothing]], ["Y", [1, 2, 3, 4, Nothing]], ["Z", ["1", "2", "3", "4", Nothing]]]
+                    t.at "X" . is_infinite . to_vector . should_equal [False, False, True, True, Nothing]
+                    t.at "Y" . is_infinite . to_vector . should_equal [False, False, False, False, Nothing]
+                    t.at "Z" . is_infinite . to_vector . should_fail_with Invalid_Value_Type
 
         Test.specify "should support is_blank" <|
             t = table_builder [["X", [1.5, 2, Number.nan, Nothing]], ["Y", [1, Nothing, 3, 4]]]

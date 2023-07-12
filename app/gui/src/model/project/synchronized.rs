@@ -21,6 +21,7 @@ use engine_protocol::language_server::ContentRoot;
 use engine_protocol::language_server::ExpressionUpdates;
 use engine_protocol::language_server::FileEditList;
 use engine_protocol::language_server::MethodPointer;
+use engine_protocol::language_server::TextFileModifiedOnDisk;
 use engine_protocol::project_manager;
 use engine_protocol::project_manager::MissingComponentAction;
 use engine_protocol::project_manager::ProjectName;
@@ -206,6 +207,20 @@ async fn update_modules_on_file_change(
         if let Some(module) = module_registry.get(&module_path).await? {
             module.apply_text_change_from_ls(file_edit.edits).await?;
         }
+    }
+    Ok(())
+}
+
+
+/// Reload the file from disk when `text/fileModifiedOnDisk` notification received.
+#[profile(Detail)]
+async fn reload_module_on_file_change(
+    modified: TextFileModifiedOnDisk,
+    module_registry: Rc<model::registry::Registry<module::Path, module::Synchronized>>,
+) -> FallibleResult {
+    let module_path = module::Path::from_file_path(modified.path)?;
+    if let Some(module) = module_registry.get(&module_path).await? {
+        module.reopen_externally_changed_file().await?;
     }
     Ok(())
 }
@@ -539,6 +554,16 @@ impl Project {
                             let status = update_modules_on_file_change(changes, module_registry);
                             if let Err(err) = status.await {
                                 error!("Error while applying file changes to modules: {err}");
+                            }
+                        });
+                    }
+                }
+                Event::Notification(Notification::TextFileModifiedOnDisk(modified)) => {
+                    if let Some(module_registry) = weak_module_registry.upgrade() {
+                        executor::global::spawn(async move {
+                            let status = reload_module_on_file_change(modified, module_registry);
+                            if let Err(err) = status.await {
+                                error!("Error while reloading module on file change: {err}");
                             }
                         });
                     }
