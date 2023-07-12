@@ -1,0 +1,13 @@
+## NOTE
+  This file is _not_ automatically run when the benchmarks are run.
+  It can be used to run all performance tests in a single run.
+import project.Table.Performance_Research.Column_Aggregate
+import project.Table.Performance_Research.Column_Bi_Map
+import project.Table.Performance_Research.Column_Map
+import project.Table.Performance_Research.Common_Setup.Common_Setup
+
+main =
+    setup = Common_Setup.Config
+    Column_Map.spec setup
+    Column_Bi_Map.spec setup
+    Column_Aggregate.spec setup

@@ -1,0 +1,85 @@
+## NOTE
+   This benchmark assumes that the Table operations used here are implemented in Java.
+   This is a valid assumption as of 2023-07-12.
+   If we ever change these operations, we would need to add this benchmark to have custom implementations for the Java side as well if we still want to use it for comparisons.
+
+   This file is _not_ automatically run when the benchmarks are run.
+from Standard.Base import all
+from Standard.Table import all
+
+from Standard.Test import Bench
+
+import project.Table.Performance_Research.Common_Setup.Common_Setup
+
+polyglot java import org.enso.table.data.column.builder.BoolBuilder
+polyglot java import org.enso.table.data.column.builder.NumericBuilder
+polyglot java import org.enso.table.data.column.builder.StringBuilder
+
+## Computes the Longest text in the column - aggregate with no grouping.
+   This is of interest, because in contrast to all benchmarks above, it can generally be done in O(1) memory.
+type Boxed_Total_Aggregate
+    Instance text_column
+
+    java_aggregate self =
+        self.text_column.to_table.aggregate [Aggregate_Column.Longest 0] . at 0 . at 0
+
+    enso_aggregate_vector_proxy self =
+        n = self.text_column.length
+        vector_proxy = self.text_column.to_vector
+        (0.up_to n).fold Nothing acc-> ix->
+            item = vector_proxy.at ix
+            if acc.is_nothing then item else
+                if item.is_nothing then acc else
+                    if item.length > acc.length then item else acc
+
+    enso_aggregate_storage_get_item self =
+        n = self.text_column.length
+        storage = self.text_column.java_column.getStorage
+        (0.up_to n).fold Nothing acc-> ix->
+            item = storage.getItemBoxed ix
+            if acc.is_nothing then item else
+                if item.is_nothing then acc else
+                    if item.length > acc.length then item else acc
+
+## Computes Sum of integers.
+   We have to be careful with `n` because if we use too large values Enso will start using BigInts, while Java will overflow.
+type Primitive_Total_Aggregate
+    Instance int_column
+
+    java_aggregate self =
+        self.int_column.to_table.aggregate [Aggregate_Column.Sum 0] . at 0 . at 0
+
+    enso_aggregate_vector_proxy self =
+        n = self.int_column.length
+        vector_proxy = self.int_column.to_vector
+        (0.up_to n).fold 0 acc-> ix->
+            item = vector_proxy.at ix
+            if item.is_nothing then acc else
+                acc + item
+
+    enso_aggregate_storage_get_item self =
+        n = self.int_column.length
+        storage = self.int_column.java_column.getStorage
+        (0.up_to n).fold 0 acc-> ix->
+            if storage.isNa ix then acc else
+                acc + storage.getItem ix
+
+main = spec Common_Setup.Config
+
+spec setup =
+    t = setup.generate_input_table
+
+    iter_size = setup.iter_size
+    num_iterations = setup.num_iterations
+
+    # Using ints2 to get smaller values to avoid integer overflow.
+    primitive_total_aggregate = Primitive_Total_Aggregate.Instance (t.at "ints2")
+    # GC not needed here as this should be O(1) memory.
+    Bench.measure (primitive_total_aggregate.java_aggregate) "Primitive_Total_Aggregate.java_aggregate" iter_size num_iterations run_gc_between_iterations=False
+    Bench.measure (primitive_total_aggregate.enso_aggregate_vector_proxy) "Primitive_Total_Aggregate.enso_aggregate_vector_proxy" iter_size num_iterations run_gc_between_iterations=False
+    Bench.measure (primitive_total_aggregate.enso_aggregate_storage_get_item) "Primitive_Total_Aggregate.enso_aggregate_storage_get_item" iter_size num_iterations run_gc_between_iterations=False
+
+    boxed_total_aggregate = Boxed_Total_Aggregate.Instance (t.at "text")
+    Bench.measure (boxed_total_aggregate.java_aggregate) "Boxed_Total_Aggregate.java_aggregate" iter_size num_iterations run_gc_between_iterations=False
+    Bench.measure (boxed_total_aggregate.enso_aggregate_vector_proxy) "Boxed_Total_Aggregate.enso_aggregate_vector_proxy" iter_size num_iterations run_gc_between_iterations=False
+    Bench.measure (boxed_total_aggregate.enso_aggregate_storage_get_item) "Boxed_Total_Aggregate.enso_aggregate_storage_get_item" iter_size num_iterations run_gc_between_iterations=False
