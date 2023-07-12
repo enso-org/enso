@@ -205,7 +205,7 @@ define_themes! { [light:0, dark:1]
                 project_name {
                     // Rgb(118, 118, 118)
                     color = Lcha(0.49, 0.0, 0.75, 1.0), Lcha(0.49, 0.0, 0.75, 1.0);
-                    color_unsaved = Lcha(0.49, 0.0, 0.75, 0.8), Lcha(0.49, 0.0, 0.75, 0.8);
+                    color_unsaved = Lcha(0.49, 0.0, 0.75, 0.6), Lcha(0.49, 0.0, 0.75, 0.6);
                     text_size = 11.5, 11.5;
                 }
             }
