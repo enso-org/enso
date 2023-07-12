@@ -25,9 +25,9 @@ pub use breadcrumb::Breadcrumb;
 
 
 
-// =============================
-// === OptionalMethodPointer ===
-// =============================
+// ===========================
+// === SharedMethodPointer ===
+// ===========================
 
 /// Information about target definition for node entering.
 #[derive(Clone, Debug, Deref, PartialEq, Eq)]
@@ -191,7 +191,7 @@ impl BreadcrumbsModel {
         self
     }
 
-    /// Add a fake breadcrumb called "main".
+    /// Add a breadcrumb called "main" that represents the initial frame on stack.
     fn add_root_breadcrumb(&self) {
         let breadcrumb = Breadcrumb::new_empty(&self.app);
         breadcrumb.set_label("main");
@@ -246,14 +246,11 @@ impl BreadcrumbsModel {
                         .breadcrumbs
                         .borrow()
                         .get(index)
-                        .and_then(|breadcrumb| {
-                            if let Some(ref info) = *breadcrumb.info {
-                                let definition = info.method_pointer.clone();
-                                let call = info.expression_id;
-                                Some(LocalCall { call, definition })
-                            } else {
-                                None
-                            }
+                        .and_then(|breadcrumb| breadcrumb.info.deref().clone())
+                        .map(|info| {
+                            let definition = info.method_pointer.clone();
+                            let call = info.expression_id;
+                            LocalCall { call, definition }
                         })
                         .as_ref()
                         .cloned();

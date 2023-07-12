@@ -200,7 +200,7 @@ impl Frp {
 // ======================
 
 /// Breadcrumb information such as name and expression ID.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[allow(missing_docs)]
 pub struct BreadcrumbInfo {
     pub method_pointer: SharedMethodPointer,
