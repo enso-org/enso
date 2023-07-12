@@ -10,8 +10,9 @@ polyglot java import java.time.temporal.ChronoUnit
 polyglot java import java.time.temporal.TemporalAdjuster
 polyglot java import java.time.temporal.TemporalAdjusters
 polyglot java import java.time.temporal.TemporalUnit
-polyglot java import org.enso.base.time.Date_Period_Utils
 polyglot java import org.enso.base.Time_Utils
+polyglot java import org.enso.base.time.Date_Period_Utils
+polyglot java import org.enso.base.time.CustomTemporalUnits
 
 ## Represents a unit of time longer on the scale of days (longer than a day).
 type Date_Period
@@ -85,8 +86,7 @@ type Date_Period
     to_java_unit : TemporalUnit
     to_java_unit self = case self of
         Date_Period.Year -> ChronoUnit.YEARS
+        Date_Period.Quarter -> CustomTemporalUnits.QUARTERS
         Date_Period.Month -> ChronoUnit.MONTHS
         Date_Period.Week _ -> ChronoUnit.WEEKS
         Date_Period.Day -> ChronoUnit.DAYS
-        _ ->
-            Error.throw (Illegal_State.Error "Converting "+self.to_display_text+" to a Java unit is not supported.")

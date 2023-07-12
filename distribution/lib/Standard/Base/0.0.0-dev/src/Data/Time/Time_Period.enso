@@ -6,6 +6,7 @@ from project.Data.Boolean import Boolean, False, True
 polyglot java import java.time.temporal.ChronoUnit
 polyglot java import java.time.temporal.TemporalUnit
 polyglot java import org.enso.base.Time_Utils
+polyglot java import org.enso.base.time.CustomTemporalUnits
 
 ## Represents a unit of time of a day or shorter.
 type Time_Period
@@ -41,7 +42,7 @@ type Time_Period
        actually closer to `Date_Period.Day` than the 24-hour interval here.
     to_java_unit : TemporalUnit
     to_java_unit self = case self of
-        Time_Period.Day -> ChronoUnit.DAYS
+        Time_Period.Day -> CustomTemporalUnits.DAY_AS_24_HOURS
         Time_Period.Hour -> ChronoUnit.HOURS
         Time_Period.Minute -> ChronoUnit.MINUTES
         Time_Period.Second -> ChronoUnit.SECONDS
