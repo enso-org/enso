@@ -84,13 +84,13 @@ pub fn default_node_position() -> Vector2 {
 
 #[derive(Debug)]
 struct Model {
-    project:           model::Project,
-    controller:        controller::ExecutedGraph,
-    graph_editor_view: view::graph_editor::GraphEditor,
-    state:             Rc<State>,
-    _visualization:    Visualization,
-    widget:            controller::Widget,
-    _execution_stack:  CallStack,
+    project:          model::Project,
+    controller:       controller::ExecutedGraph,
+    view:             view::graph_editor::GraphEditor,
+    state:            Rc<State>,
+    _visualization:   Visualization,
+    widget:           controller::Widget,
+    _execution_stack: CallStack,
 }
 
 impl Model {
@@ -117,7 +117,7 @@ impl Model {
         Self {
             project,
             controller,
-            graph_editor_view,
+            view: graph_editor_view,
             state,
             _visualization: visualization,
             widget,
@@ -683,7 +683,7 @@ impl Graph {
     fn init(self, project_view: &view::project::View) -> Self {
         let network = &self.network;
         let model = &self.model;
-        let view = &model.graph_editor_view.frp;
+        let view = &model.view.frp;
 
         frp::extend! { network
             update_view <- source::<()>();
@@ -786,7 +786,7 @@ impl Graph {
     ) {
         let network = &self.network;
         let model = &self.model;
-        let view = &model.graph_editor_view.frp;
+        let view = &model.view.frp;
         let widget = &model.widget;
 
         frp::extend! { network
