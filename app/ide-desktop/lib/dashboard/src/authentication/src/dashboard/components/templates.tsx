@@ -113,7 +113,7 @@ function TemplatesRender(props: TemplatesRenderProps) {
             }}
             className="h-35 cursor-pointer"
         >
-            <div className="relative flex h-full w-full border-dashed-template rounded-2.25xl text-primary transition-all m-px hover:shadow-soft hover:scale-103-1/3 hover:translate-y-0.5 hover:z-10">
+            <div className="relative flex h-full w-full border-dashed-template rounded-2.25xl text-primary transition-all hover:shadow-soft hover:scale-103-1/3 hover:translate-y-0.5 hover:z-10">
                 <div className="flex flex-col gap-3 text-center items-center m-auto">
                     <div className="rounded-full border-primary border-2 opacity-56 p-0.75">
                         <img src={PlusLargeThinIcon} />
@@ -231,9 +231,9 @@ function Templates(props: TemplatesProps) {
     }, [isOpen])
 
     return (
-        <div className="mx-2">
+        <div>
             {/* FIGMA MODE ONLY: `hidden` */}
-            <div className="flex items-center my-2 hidden">
+            <div className="flex items-center m-2 hidden">
                 <div className="w-4">
                     <div
                         className={`cursor-pointer transition-all ease-in-out ${
@@ -250,7 +250,7 @@ function Templates(props: TemplatesProps) {
             <div style={{ height: '8px' }} />
             <div
                 ref={containerRef}
-                className={`grid gap-2 grid-cols-fill-60 justify-center overflow-y-scroll scroll-hidden transition-all duration-300 ease-in-out px-2.75 ${
+                className={`grid gap-2 grid-cols-fill-60 justify-center overflow-y-scroll scroll-hidden transition-all duration-300 ease-in-out px-4.75 ${
                     isOpen ? `h-templates-custom ${shadowClass}` : 'h-0'
                 }`}
                 // FIGMA MODE ONLY

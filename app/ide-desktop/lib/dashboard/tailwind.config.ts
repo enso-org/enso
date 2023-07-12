@@ -33,6 +33,7 @@ export const theme = {
             'perm-docs-write': '#2db1c3',
             // Should be `#3e515f14`, but `bg-opacity` does not work with RGBA.
             'perm-none': '#f0f1f3',
+            'gray-250': '#dbdee3',
         },
         flexGrow: {
             2: '2',
@@ -48,15 +49,17 @@ export const theme = {
             '2.25': '0.5625rem',
             '2.75': '0.6875rem',
             '3.25': '0.8125rem',
+            '4.75': '1.1875rem',
             '5.5': '1.375rem',
             '8.75': '2.1875rem',
             '15.25': '3.8125rem',
             '35': '8.75rem',
             '39': '9.75rem',
             '39.5': '9.875rem',
-            '58': '14.5rem',
+            '57.5': '14.375rem',
             '68.75': '17.1875rem',
             '84.25': '21.0625rem',
+            '118.25': '29.5625rem',
             '140': '35rem',
         },
         scale: {

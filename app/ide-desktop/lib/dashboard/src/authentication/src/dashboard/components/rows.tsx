@@ -51,7 +51,8 @@ function Rows<T>(props: RowsProps<T>) {
             {columns.map(column => (
                 <th
                     key={column.id}
-                    className={`block text-vs px-4 align-middle py-1 border-0 border-r whitespace-nowrap font-bold text-left ${
+                    // className="flex h-8 transition duration-300 ease-in-out rounded-full odd:bg-gray-100 hover:bg-gray-200 focus:bg-gray-300"
+                    className={`flex text-vs whitespace-nowrap font-bold text-left grow-0 shrink-0 px-4 py-1 ${
                         column.widthClass ?? ''
                     }`}
                 >
@@ -73,7 +74,7 @@ function Rows<T>(props: RowsProps<T>) {
     }, [isLoading])
 
     const itemRows = isLoading ? (
-        <tr className="flex h-10 spinner">
+        <tr className="flex h-8 spinner">
             <td colSpan={columns.length} className="block grow">
                 <div className="grid justify-around w-full">
                     <svg.Spinner size={LOADING_SPINNER_SIZE} className={spinnerClasses} />
@@ -81,7 +82,7 @@ function Rows<T>(props: RowsProps<T>) {
             </td>
         </tr>
     ) : items.length === 0 ? (
-        <tr className="flex h-10 placeholder px-4">
+        <tr className="flex h-8 placeholder px-4">
             <td colSpan={columns.length} className="block grow">
                 {placeholder}
             </td>
@@ -97,12 +98,12 @@ function Rows<T>(props: RowsProps<T>) {
                 onContextMenu={event => {
                     onContextMenu(item, event)
                 }}
-                className="flex h-10 transition duration-300 ease-in-out rounded-full even:bg-gray-100 hover:bg-gray-200 focus:bg-gray-300"
+                className="flex h-8 transition duration-300 ease-in-out rounded-full even:bg-gray-100 hover:bg-gray-200 focus:bg-gray-250"
             >
                 {columns.map(column => (
                     <td
                         key={column.id}
-                        className={`flex items-center px-4 border-0 border-r h-full ${
+                        className={`flex items-center px-4 grow-0 shrink-0 ${
                             column.widthClass ?? ''
                         }`}
                     >
@@ -113,9 +114,14 @@ function Rows<T>(props: RowsProps<T>) {
         ))
     )
     return (
-        <table className="rounded-rows table-fixed items-center border-collapse ml-1 mt-2">
-            <thead>{headerRow}</thead>
-            <tbody>{itemRows}</tbody>
+        <table className="relative flex flex-col self-start rounded-rows gap-1 mx-0.75">
+            <tr className="flex absolute top-2.75 h-[calc(100%-11px)] pointer-events-none">
+                {columns.map(column => (
+                    <td className={`border-r ${column.widthClass ?? ''}`} />
+                ))}
+            </tr>
+            {headerRow}
+            {itemRows}
         </table>
     )
 }

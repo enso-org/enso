@@ -144,7 +144,7 @@ const COLUMN_NAME: Record<Exclude<Column, Column.name>, string> = {
 
 /** CSS classes for every column. Currently only used to set the widths. */
 const COLUMN_CSS_CLASS: Record<Column, string> = {
-    [Column.name]: 'w-58',
+    [Column.name]: 'w-57.5',
     [Column.lastModified]: 'w-36',
     [Column.sharedWith]: 'w-39.5',
     [Column.docs]: 'w-96',
@@ -810,7 +810,7 @@ function Dashboard(props: DashboardProps) {
                     </label>
                 </div>
             ) : (
-                <div className="inline-flex">
+                <div className="inline-flex h-5 py-0.5">
                     {ASSET_TYPE_NAME[assetType]}
                     <button
                         className="mx-1"
@@ -862,7 +862,7 @@ function Dashboard(props: DashboardProps) {
                 </div>
             )
         ) : (
-            <>{COLUMN_NAME[column]}</>
+            <span className="h-5 py-0.5">{COLUMN_NAME[column]}</span>
         )
 
     react.useEffect(() => {
@@ -1063,7 +1063,7 @@ function Dashboard(props: DashboardProps) {
 
     return (
         <div
-            className={`flex flex-col gap-2 relative select-none text-primary text-xs leading-normal h-screen pt-2.25 pb-5.5 ${
+            className={`flex flex-col relative select-none text-primary text-xs leading-normal gap-6 h-screen pt-2.25 pb-5.5 ${
                 tab === Tab.dashboard ? '' : 'hidden'
             }`}
             onClick={event => {
@@ -1073,6 +1073,9 @@ function Dashboard(props: DashboardProps) {
                         setSelectedAssets([])
                     }
                 }
+            }}
+            onContextMenu={() => {
+                unsetModal()
             }}
             onKeyDown={handleEscapeKey}
             onDragEnter={openDropZone}
@@ -1115,15 +1118,15 @@ function Dashboard(props: DashboardProps) {
                 </div>
             ) : (
                 <>
-                    <Templates onTemplateClick={handleCreateProject} />
                     {/* Padding. */}
-                    <div className="h-2.5" />
-                    <div className="flex flex-row flex-nowrap mx-2">
+                    <div className="-mt-10" />
+                    <Templates onTemplateClick={handleCreateProject} />
+                    <div className="flex flex-nowrap mx-2 pt-0.5">
                         <h1 className="text-xl font-bold mx-2.5 self-center">Drive</h1>
                         <div className="w-1.75" />
-                        <div className="flex flex-row flex-nowrap gap-8 mx-4">
+                        <div className="flex flex-nowrap gap-8 mx-4">
                             {backend.type === backendModule.BackendType.remote && (
-                                <div className="flex gap-2">
+                                <div className="flex gap-0.5">
                                     <div className="bg-gray-100 rounded-l-full p-1">
                                         {/* FIGMA MODE ONLY: `true &&`, `'cloud' ??`, `'nike' ??` */}
                                         <div className="flex flex-nowrap gap-1.75 items-center pl-2 pr-2.5">
@@ -1148,7 +1151,7 @@ function Dashboard(props: DashboardProps) {
                                     </div>
                                     <div className="bg-gray-100 rounded-r-full flex flex-nowrap items-center gap-2 pl-3">
                                         <div className="leading-5 my-0.5">Shared with</div>
-                                        <div className="-mx-1">
+                                        <div className="-mr-1">
                                             {/* FIGMA MODE ONLY */}
                                             <PermissionDisplay
                                                 permissions={{
@@ -1163,7 +1166,7 @@ function Dashboard(props: DashboardProps) {
                                     </div>
                                 </div>
                             )}
-                            <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap gap-2 px-2.5 py-1">
+                            <div className="bg-gray-100 rounded-full flex flex-nowrap gap-2 px-2.5 py-1">
                                 <div className="flex">
                                     <input
                                         type="file"
@@ -1199,13 +1202,13 @@ function Dashboard(props: DashboardProps) {
                             </div>
                             {EXPERIMENTAL.columnModeSwitcher && (
                                 <>
-                                    <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap p-1.5">
+                                    <div className="bg-gray-100 rounded-full flex flex-nowrap p-1">
                                         <button
-                                            className={`${
+                                            className={`rounded-full leading-5 px-1.5 py-0.5 ${
                                                 columnDisplayMode === ColumnDisplayMode.all
                                                     ? 'bg-white shadow-soft'
                                                     : 'opacity-50'
-                                            } rounded-full px-1.5`}
+                                            }`}
                                             onClick={() => {
                                                 setColumnDisplayMode(ColumnDisplayMode.all)
                                             }}
@@ -1213,11 +1216,11 @@ function Dashboard(props: DashboardProps) {
                                             All
                                         </button>
                                         <button
-                                            className={`${
+                                            className={`rounded-full leading-5 px-1.5 py-0.5 ${
                                                 columnDisplayMode === ColumnDisplayMode.compact
                                                     ? 'bg-white shadow-soft'
                                                     : 'opacity-50'
-                                            } rounded-full px-1.5`}
+                                            }`}
                                             onClick={() => {
                                                 setColumnDisplayMode(ColumnDisplayMode.compact)
                                             }}
@@ -1225,11 +1228,11 @@ function Dashboard(props: DashboardProps) {
                                             Compact
                                         </button>
                                         <button
-                                            className={`${
+                                            className={`rounded-full leading-5 px-1.5 py-0.5 ${
                                                 columnDisplayMode === ColumnDisplayMode.docs
                                                     ? 'bg-white shadow-soft'
                                                     : 'opacity-50'
-                                            } rounded-full px-1.5`}
+                                            }`}
                                             onClick={() => {
                                                 setColumnDisplayMode(ColumnDisplayMode.docs)
                                             }}
@@ -1237,11 +1240,11 @@ function Dashboard(props: DashboardProps) {
                                             Docs
                                         </button>
                                         <button
-                                            className={`${
+                                            className={`rounded-full leading-5 px-1.5 py-0.5 ${
                                                 columnDisplayMode === ColumnDisplayMode.settings
                                                     ? 'bg-white shadow-soft'
                                                     : 'opacity-50'
-                                            } rounded-full px-1.5`}
+                                            }`}
                                             onClick={() => {
                                                 setColumnDisplayMode(ColumnDisplayMode.settings)
                                             }}
@@ -1253,9 +1256,7 @@ function Dashboard(props: DashboardProps) {
                             )}
                         </div>
                     </div>
-                    {/* Padding. */}
-                    <div className="h-2 mx-2" />
-                    <div className="flex-1 overflow-auto">
+                    <div className="flex flex-col flex-1 gap-6 overflow-auto">
                         <Rows<backendModule.Asset<backendModule.AssetType.project>>
                             items={visibleProjectAssets}
                             getKey={projectAsset => projectAsset.id}
@@ -1386,8 +1387,6 @@ function Dashboard(props: DashboardProps) {
                         {backend.type === backendModule.BackendType.remote &&
                             (remoteBackend => (
                                 <>
-                                    {/* Padding. */}
-                                    <div className="h-10" />
                                     <Rows<backendModule.Asset<backendModule.AssetType.directory>>
                                         items={visibleDirectoryAssets}
                                         getKey={directoryAsset => directoryAsset.id}
@@ -1432,8 +1431,6 @@ function Dashboard(props: DashboardProps) {
                                             ))
                                         }}
                                     />
-                                    {/* Padding. */}
-                                    <div className="h-10" />
                                     <Rows<backendModule.Asset<backendModule.AssetType.secret>>
                                         items={visibleSecretAssets}
                                         getKey={secret => secret.id}
@@ -1501,8 +1498,6 @@ function Dashboard(props: DashboardProps) {
                                             ))
                                         }}
                                     />
-                                    {/* Padding. */}
-                                    <div className="h-10" />
                                     <Rows<backendModule.Asset<backendModule.AssetType.file>>
                                         items={visibleFileAssets}
                                         getKey={file => file.id}

@@ -16,6 +16,14 @@ import * as modalProvider from '../../providers/modal'
 
 import UserMenu from './userMenu'
 
+// =================
+// === Constants ===
+// =================
+
+/** A {@link RegExp} that matches {@link KeyboardEvent.code}s corresponding to non-printable
+ * keys. */
+const SPECIAL_CHARACTER_KEYCODE_REGEX = /^[A-Z][a-z]/
+
 // ==============
 // === TopBar ===
 // ==============
@@ -41,6 +49,9 @@ function TopBar(props: TopBarProps) {
     const { modal } = modalProvider.useModal()
     const { setModal, unsetModal } = modalProvider.useSetModal()
     const { backend } = backendProvider.useBackend()
+    // This is INCORRECT, but SAFE, as its value is guaranteed to be set by the time any hooks run.
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const searchRef = react.useRef<HTMLInputElement>(null!)
 
     react.useEffect(() => {
         if (!modal) {
@@ -55,6 +66,24 @@ function TopBar(props: TopBarProps) {
             unsetModal()
         }
     }, [isUserMenuVisible])
+
+    react.useEffect(() => {
+        const onKeyPress = (event: KeyboardEvent) => {
+            // Allow `alt` key to be pressed in case it is being used to enter special characters.
+            if (
+                !event.ctrlKey &&
+                !event.shiftKey &&
+                !event.metaKey &&
+                !SPECIAL_CHARACTER_KEYCODE_REGEX.test(event.key)
+            ) {
+                searchRef.current.focus()
+            }
+        }
+        document.addEventListener('keypress', onKeyPress)
+        return () => {
+            document.removeEventListener('keypress', onKeyPress)
+        }
+    }, [])
 
     return (
         <div className="flex mx-2 h-8">
@@ -105,33 +134,45 @@ function TopBar(props: TopBarProps) {
                     <img src={BarsIcon} />
                 </div>
                 <span
-                    className={`flex-1 opacity-50 overflow-hidden transition-width whitespace-nowrap ${
+                    className={`flex-1 opacity-50 overflow-hidden transition-width whitespace-nowrap leading-5 py-0.5 ${
                         tab === dashboard.Tab.ide || true ? 'm-2' : 'grow-0 w-0'
                     }`}
                 >
                     {'My current project' ?? projectName ?? 'No project open'}
                 </span>
             </div>
-            <div className="grow flex items-center bg-label rounded-full px-2 mx-2">
-                <div className="mx-1">
-                    <img src={MagnifyingGlassIcon} />
-                </div>
+            <div className="flex flex-nowrap flex-1 grow-0 bg-label items-center rounded-full gap-2.5 pl-2.75 pr-3.25 mx-2">
+                <img src={MagnifyingGlassIcon} />
                 <input
+                    ref={searchRef}
                     type="text"
                     size={1}
                     placeholder="Click here or start typing to search for projects, data connectors, users, and more ..."
                     value={query}
+                    onKeyDown={event => {
+                        if (event.key === 'Escape') {
+                            event.stopPropagation()
+                            event.currentTarget.blur()
+                            setQuery('')
+                            event.currentTarget.value = ''
+                        } else if (event.key === 'Enter') {
+                            event.stopPropagation()
+                            event.currentTarget.blur()
+                        }
+                    }}
                     onChange={event => {
                         setQuery(event.target.value)
                     }}
-                    className="flex-1 mx-2 bg-transparent"
+                    className="flex grow-0 bg-transparent w-118.25 leading-5 py-0.5"
                 />
             </div>
+            {/* Padding. */}
+            <div className="grow" />
             <a
                 href="https://discord.gg/enso"
                 target="_blank"
                 rel="noreferrer"
-                className="flex items-center bg-help rounded-full pl-2.5 pr-2.25 text-white mx-1.25"
+                className="flex items-center text-white bg-help rounded-full pl-2.5 pr-2.25 mx-1.25"
             >
                 <span className="whitespace-nowrap my-0.5">help chat</span>
                 {/* Spacing. */}
