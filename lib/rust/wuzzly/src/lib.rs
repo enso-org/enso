@@ -1,4 +1,3 @@
-
 #![recursion_limit = "256"]
 // === Features ===
 #![feature(core_intrinsics)]
@@ -53,7 +52,7 @@ mod std_score;
 #[derive(Debug, Clone, Derivative)]
 #[derivative(PartialEq, Eq, PartialOrd, Ord)]
 pub struct Match<Score> {
-    pub score: Score,
+    pub score:         Score,
     #[derivative(PartialEq = "ignore", PartialOrd = "ignore", Ord = "ignore")]
     pub match_indexes: MatchIndexes,
 }
@@ -74,13 +73,16 @@ pub struct MatchIndexes {
 impl MatchIndexes {
     /// Produce a sequence of byte ranges corresponding to the substrings of matched characters, in
     /// unspecified order.
-    pub fn to_byte_ranges(self, target: &str) -> impl '_ + Iterator<Item=core::ops::Range<usize>> {
+    pub fn to_byte_ranges(
+        self,
+        target: &str,
+    ) -> impl '_ + Iterator<Item = core::ops::Range<usize>> {
         core::iter::from_generator(move || {
             let mut indexes = self.indexes;
             let mut previously_in_match = false;
             let mut match_end = 0;
-            for i in 0..target.len() {
-                if target.is_char_boundary(target.len() - i) {
+            for i in 0..(target.len() + 1) {
+                if target.is_char_boundary(target.len() - i - 1) {
                     let now_in_match = indexes.pop().unwrap_or_default();
                     if !now_in_match {
                         let pos = target.len();
@@ -91,9 +93,6 @@ impl MatchIndexes {
                     }
                     previously_in_match = now_in_match;
                 }
-            }
-            if previously_in_match {
-                yield 0..match_end;
             }
         })
     }
@@ -243,17 +242,11 @@ impl<SB: ScoreBuilder> Matcher<SB> {
     /// characteristics along with the given target information to produce a score representing the
     /// quality of the match; returns this score along with information about what characters of the
     /// target were matched by the pattern.
-    pub fn search(
-        &mut self,
-        pattern: &str,
-        target: &str,
-        target_info: <SB::SubmatchScore as SubmatchScore>::TargetInfo,
-    ) -> Option<Match<<SB::SubmatchScore as SubmatchScore>::MatchScore>> {
+    pub fn search(&mut self, pattern: &str, target: &str) -> Option<Match<SB::SubmatchScore>> {
         let pattern: String = normalize_pattern(pattern.chars()).collect();
         let root_submatch = self.subsearch(&pattern, target)?;
         let WithMatchIndexes { inner: score, match_indexes } = root_submatch;
         let match_indexes = MatchIndexes { indexes: match_indexes };
-        let score = score.match_score(target_info);
         Some(Match { score, match_indexes })
     }
 }
@@ -437,14 +430,8 @@ impl<SB: ScoreBuilder> ScoreBuilder for WithMatchIndexes<SB> {
 }
 
 impl<S: SubmatchScore> SubmatchScore for WithMatchIndexes<S> {
-    type TargetInfo = S::TargetInfo;
-    type MatchScore = S::MatchScore;
     const ANY_PREFIX_MATCH_BEATS_ANY_INITIALS_MATCH: bool =
         S::ANY_PREFIX_MATCH_BEATS_ANY_INITIALS_MATCH;
-
-    fn match_score(self, target_info: Self::TargetInfo) -> Self::MatchScore {
-        self.inner.match_score(target_info)
-    }
 
     fn with_submatch_by_initials_penalty(self) -> Self {
         Self { inner: self.inner.with_submatch_by_initials_penalty(), ..self }
@@ -474,12 +461,8 @@ mod test_utils {
 
     /// Search for a pattern in a string using a temporary [`Matcher`]. When performing multiple
     /// searches it is more efficient to reuse a [`Matcher`], but this is convenient for testing.
-    pub(crate) fn search(
-        pattern: &str,
-        target: &str,
-        target_info: std_score::TargetInfo,
-    ) -> Option<Match<std_score::Score>> {
-        Matcher::<std_score::ScoreBuilder>::default().search(pattern, target, target_info)
+    pub(crate) fn search(pattern: &str, target: &str) -> Option<MatchIndexes> {
+        Some(Matcher::<ScoreForgetter>::default().search(pattern, target)?.match_indexes)
     }
 
     pub(crate) fn fmt_match(indexes: MatchIndexes, target: &str) -> String {
@@ -494,6 +477,38 @@ mod test_utils {
             .collect();
         chars.iter().rev().collect()
     }
+
+    /// Simple score builder for testing match results without considering order.
+    #[derive(Debug, Default, Clone)]
+    struct ScoreForgetter;
+
+    impl ScoreBuilder for ScoreForgetter {
+        type SubmatchScore = Zero;
+        fn skip_word_chars(&mut self, _count: NonZeroU32) {}
+        fn match_word_char(&mut self) {}
+        fn match_delimiter(&mut self, _pattern: char, _value: char) {}
+        fn skip_delimiter(&mut self, _pattern: Option<char>, _value: char) {}
+        fn finish(self) -> Self::SubmatchScore {
+            Zero
+        }
+    }
+
+    #[derive(Debug, Default, Clone, PartialOrd, Ord, PartialEq, Eq)]
+    struct Zero;
+
+    impl SubmatchScore for Zero {
+        const ANY_PREFIX_MATCH_BEATS_ANY_INITIALS_MATCH: bool = true;
+        fn with_submatch_by_initials_penalty(self) -> Self {
+            self
+        }
+    }
+
+    impl Add for Zero {
+        type Output = Self;
+        fn add(self, _rhs: Self) -> Self::Output {
+            self
+        }
+    }
 }
 
 
@@ -504,8 +519,8 @@ mod test_utils {
 
 #[cfg(test)]
 mod test_match {
-    use super::*;
     use super::test_utils::*;
+    use super::*;
 
     /// Given a pattern, a target, and a bool:
     /// - Check that the bool indicates whether the pattern matches the target.
@@ -517,10 +532,10 @@ mod test_match {
         let computed: Vec<_> = expected
             .iter()
             .map(|(pattern, target, _)| {
-                let result = search(pattern, target, Default::default());
+                let result = search(pattern, target);
                 let matched = result.is_some();
                 let target = match result {
-                    Some(Match { match_indexes, .. }) => fmt_match(match_indexes, target.as_str()),
+                    Some(match_indexes) => fmt_match(match_indexes, target.as_str()),
                     None => target.to_owned(),
                 };
                 (*pattern, target, matched)
@@ -662,71 +677,6 @@ mod test_match {
 
 
 
-// =====================
-// === Ranking Tests ===
-// =====================
-
-#[cfg(test)]
-mod test_score {
-    use super::*;
-    use super::test_utils::*;
-
-    /// Given a pattern and a set of targets, assert that the targets match and are in order by
-    /// score from best match to worst.
-    fn check_order(pattern: &str, inputs: &[(&str, std_score::TargetInfo)]) {
-        let expected = inputs;
-        let mut computed: Vec<_> = inputs.to_vec();
-        computed
-            .sort_by_key(|(target, target_info)| search(pattern, target, *target_info).unwrap().score);
-        computed.reverse();
-        assert_eq!(computed, expected);
-    }
-
-    #[test]
-    fn test_order() {
-        check_order("ab", &[
-            // Exact match: Name
-            ("ab", std_score::TargetInfo { is_alias: false }),
-            // Exact match: Alias
-            ("ab", std_score::TargetInfo { is_alias: true }),
-            // Prefix match, first-word: Name
-            ("abx", std_score::TargetInfo { is_alias: false }),
-            // Prefix match, first-word: Name (Lower % of word used)
-            ("abxx", std_score::TargetInfo { is_alias: false }),
-            // Prefix match, first-word: Type (Exact match)
-            ("ab.x", std_score::TargetInfo { is_alias: false }),
-            // Prefix match, first-word: Type
-            ("abx.x", std_score::TargetInfo { is_alias: false }),
-            // Prefix match, first-word: Type (Lower % of word used)
-            ("abxx.x", std_score::TargetInfo { is_alias: false }),
-            // Prefix match, first-word: Alias
-            ("abx", std_score::TargetInfo { is_alias: true }),
-            // Prefix match, first-word: Alias (Lower % of word used)
-            ("abxx", std_score::TargetInfo { is_alias: true }),
-            // Prefix match, later-word: Name
-            ("x_ab", std_score::TargetInfo { is_alias: false }),
-            // Prefix match, later-word: Name (Lower % of word used)
-            ("x_abx", std_score::TargetInfo { is_alias: false }),
-            // Prefix match, later-word: Type
-            ("x_ab.x", std_score::TargetInfo { is_alias: false }),
-            // Prefix match, later-word: Type (Lower % of word used)
-            ("x_abx.x", std_score::TargetInfo { is_alias: false }),
-            // Prefix match, later-word: Alias
-            ("x_ab", std_score::TargetInfo { is_alias: true }),
-            // Prefix match, later-word: Alias (Lower % of word used)
-            ("x_abx", std_score::TargetInfo { is_alias: true }),
-            // Initials match: Name
-            ("ax_bx", std_score::TargetInfo { is_alias: false }),
-            // Initials match: Type
-            ("ax.bx", std_score::TargetInfo { is_alias: false }),
-            // Initials match: Alias
-            ("ax_bx", std_score::TargetInfo { is_alias: true }),
-        ])
-    }
-}
-
-
-
 // =========================
 // === Match index tests ===
 // =========================
@@ -752,8 +702,8 @@ mod test_match_indexes {
                 c => target_stripped.push(c),
             }
         }
-        let result = search(pattern, target, Default::default()).unwrap();
-        let mut byte_ranges: Vec<_> = result.match_indexes.to_byte_ranges(&target_stripped).collect();
+        let result = search(pattern, target).unwrap();
+        let mut byte_ranges: Vec<_> = result.to_byte_ranges(&target_stripped).collect();
         byte_ranges.sort_by_key(|range| range.start);
         assert_eq!(byte_ranges, expected);
     }

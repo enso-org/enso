@@ -41,21 +41,11 @@ pub trait ScoreBuilder: Default + Clone + Sized {
 
 // === Submatch Score ===
 
-/// Score information for a submatch. Must enable comparing quality of submatches, computing
-/// parent submatch scores by merging submatches, and calculating a match score from the root of a
-/// submatch tree.
+/// Score information for a submatch. Supports comparing quality of submatches and computing parent
+/// submatch scores by merging submatches.
 pub trait SubmatchScore: core::ops::Add<Self, Output = Self> + Sized + Ord {
-    /// Information about a target that is used to adjust the score for a match. When there are
-    /// external factors that should be stronger than some match factors but weaker than others,
-    /// they can be incorporated into the score calculation.
-    type TargetInfo;
-    /// The type representing the overall quality of a match.
-    type MatchScore;
     /// If this is [`true`], it enables an optimization in the [`Matcher`].
     const ANY_PREFIX_MATCH_BEATS_ANY_INITIALS_MATCH: bool;
-    /// Use the specified [`TargetInfo`] to compute the match score for a match with this submatch
-    /// as its root.
-    fn match_score(self, target_info: Self::TargetInfo) -> Self::MatchScore;
     /// Adjust the score as appropriate for when the submatch is performed by initials (rather than
     /// as a prefix).
     fn with_submatch_by_initials_penalty(self) -> Self;

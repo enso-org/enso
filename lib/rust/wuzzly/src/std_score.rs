@@ -1,6 +1,46 @@
 use super::score;
 use std::cmp::Ordering;
 
+
+
+// ==============
+// === Search ===
+// ==============
+
+pub fn search(pattern: &str, target: &str, target_info: TargetInfo) -> Option<Score> {
+    thread_local! {
+        static MATCHER: std::cell::RefCell<crate::Matcher<ScoreBuilder>> = Default::default();
+    }
+    let score = MATCHER.with(|matcher| Some(matcher.borrow_mut().search(pattern, target)?.score))?;
+    Some(match_score(score, target_info))
+}
+
+
+// === Target scoring parameters ===
+
+/// Information about a match target that is used to evaluate the quality of the match.
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub struct TargetInfo {
+    /// True if this is an alias for a method, rather than the canonical name.
+    pub is_alias: bool,
+}
+
+
+
+// =============
+// === Score ===
+// =============
+
+/// Value enabling comparison of quality of a match.
+#[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
+pub struct Score(u32);
+
+
+
+// =========================
+// === Ordering criteria ===
+// =========================
+
 macro_rules! define_mixed_binary_radix_bases_impl {
     ($width_subtotal:expr, $ty:ty, ) => {
         const _STATIC_CHECK_ALL_BITS_FIT_IN_WORD: $ty = 1 << $width_subtotal;
@@ -21,10 +61,6 @@ macro_rules! define_mixed_binary_radix_bases_low_to_high {
         define_mixed_binary_radix_bases_impl!(0, $ty, $($rest)*);
     };
 }
-
-/// Value enabling comparison of quality of a match.
-#[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
-pub struct Score(u32);
 
 /// Per-match penalty. These are only applied when converting a root-submatch score to a match
 /// score, so each will not occur more than once and overflow is not possible.
@@ -56,16 +92,15 @@ define_mixed_binary_radix_bases_low_to_high!(u32,
     MATCH_IS_IMPERFECT_PENALTY: MATCH_BITS;
 );
 
-/// Information about a match target that is used to evaluate the quality of the match.
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
-pub struct TargetInfo {
-    /// True if this is an alias for a method, rather than the canonical name.
-    pub is_alias: bool,
-}
+
+
+// =====================
+// === Score builder ===
+// =====================
 
 /// Observes how characters are matched within a submatch.
 #[derive(Clone, Default)]
-pub struct ScoreBuilder {
+struct ScoreBuilder {
     // === State maintained to determine how further characters affect penalty ===
     word_chars_matched: bool,
     word_chars_skipped: bool,
@@ -116,10 +151,16 @@ impl score::ScoreBuilder for ScoreBuilder {
     }
 }
 
+
+
+// =======================
+// === Submatch scores ===
+// =======================
+
 /// Score information for a submatch. Includes the accumulated penalty, and information needed
 /// when merging a tree of submatch scores to produce a match score.
 #[derive(Copy, Clone, Default, PartialEq, Eq)]
-pub struct ScoreInfo {
+struct ScoreInfo {
     penalty:            u32,
     word_chars_skipped: bool,
 }
@@ -137,20 +178,7 @@ impl Ord for ScoreInfo {
 }
 
 impl score::SubmatchScore for ScoreInfo {
-    type TargetInfo = TargetInfo;
-    type MatchScore = Score;
     const ANY_PREFIX_MATCH_BEATS_ANY_INITIALS_MATCH: bool = true;
-
-    fn match_score(self, target_info: TargetInfo) -> Score {
-        let Self { mut penalty, word_chars_skipped } = self;
-        if target_info.is_alias {
-            penalty += MATCH_TARGET_IS_ALIAS_PENALTY;
-        }
-        if word_chars_skipped {
-            penalty += MATCH_IS_IMPERFECT_PENALTY;
-        }
-        Score(u32::MAX - penalty)
-    }
 
     fn with_submatch_by_initials_penalty(self) -> Self {
         Self {
@@ -167,5 +195,87 @@ impl core::ops::Add for ScoreInfo {
             penalty:            self.penalty + rhs.penalty,
             word_chars_skipped: self.word_chars_skipped | rhs.word_chars_skipped,
         }
+    }
+}
+
+
+
+// ===================
+// === Match score ===
+// ===================
+
+/// Given a submatch score a root submatch and information about a target, return a score for the
+/// target.
+fn match_score(score: ScoreInfo, target_info: TargetInfo) -> Score {
+    let ScoreInfo { mut penalty, word_chars_skipped } = score;
+    if target_info.is_alias {
+        penalty += MATCH_TARGET_IS_ALIAS_PENALTY;
+    }
+    if word_chars_skipped {
+        penalty += MATCH_IS_IMPERFECT_PENALTY;
+    }
+    Score(u32::MAX - penalty)
+}
+
+
+
+// =====================
+// === Ranking Tests ===
+// =====================
+
+#[cfg(test)]
+mod test_score {
+    use super::*;
+
+    /// Given a pattern and a set of targets, assert that the targets match and are in order by
+    /// score from best match to worst.
+    fn check_order(pattern: &str, inputs: &[(&str, TargetInfo)]) {
+        let expected = inputs;
+        let mut computed: Vec<_> = inputs.to_vec();
+        computed.sort_by_key(|(target, target_info)| search(pattern, target, *target_info));
+        computed.reverse();
+        assert_eq!(computed, expected);
+    }
+
+    #[test]
+    fn test_order() {
+        check_order("ab", &[
+            // Exact match: Name
+            ("ab", TargetInfo { is_alias: false }),
+            // Exact match: Alias
+            ("ab", TargetInfo { is_alias: true }),
+            // Prefix match, first-word: Name
+            ("abx", TargetInfo { is_alias: false }),
+            // Prefix match, first-word: Name (Lower % of word used)
+            ("abxx", TargetInfo { is_alias: false }),
+            // Prefix match, first-word: Type (Exact match)
+            ("ab.x", TargetInfo { is_alias: false }),
+            // Prefix match, first-word: Type
+            ("abx.x", TargetInfo { is_alias: false }),
+            // Prefix match, first-word: Type (Lower % of word used)
+            ("abxx.x", TargetInfo { is_alias: false }),
+            // Prefix match, first-word: Alias
+            ("abx", TargetInfo { is_alias: true }),
+            // Prefix match, first-word: Alias (Lower % of word used)
+            ("abxx", TargetInfo { is_alias: true }),
+            // Prefix match, later-word: Name
+            ("x_ab", TargetInfo { is_alias: false }),
+            // Prefix match, later-word: Name (Lower % of word used)
+            ("x_abx", TargetInfo { is_alias: false }),
+            // Prefix match, later-word: Type
+            ("x_ab.x", TargetInfo { is_alias: false }),
+            // Prefix match, later-word: Type (Lower % of word used)
+            ("x_abx.x", TargetInfo { is_alias: false }),
+            // Prefix match, later-word: Alias
+            ("x_ab", TargetInfo { is_alias: true }),
+            // Prefix match, later-word: Alias (Lower % of word used)
+            ("x_abx", TargetInfo { is_alias: true }),
+            // Initials match: Name
+            ("ax_bx", TargetInfo { is_alias: false }),
+            // Initials match: Type
+            ("ax.bx", TargetInfo { is_alias: false }),
+            // Initials match: Alias
+            ("ax_bx", TargetInfo { is_alias: true }),
+        ])
     }
 }
