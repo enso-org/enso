@@ -260,12 +260,13 @@ type SQLite_Dialect
 ## PRIVATE
 make_internal_generator_dialect =
     text = [starts_with, contains, ends_with, make_case_sensitive]+concat_ops+trim_ops
+    text_replace = [replace_text_cs_all, replace_text_cs_only_first, replace_text_ci_only_first]
     counts = [agg_count_is_null, agg_count_empty, agg_count_not_empty, ["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null]]
     stats = [agg_stddev_pop, agg_stddev_samp]
     arith_extensions = [is_inf, floating_point_div, mod_op]
 
     bool = [bool_or]
-    my_mappings = text + counts + stats + arith_extensions + bool
+    my_mappings = text + text_replace + counts + stats + arith_extensions + bool
     Base_Generator.base_dialect . extend_with my_mappings
 
 ## PRIVATE
@@ -396,6 +397,34 @@ floating_point_div = Base_Generator.lift_binary_op "/" x-> y->
 ## PRIVATE
 mod_op = Base_Generator.lift_binary_op "mod" x-> y->
     x ++ " - FLOOR(CAST(" ++ x ++ " AS REAL) / CAST(" ++ y ++ " AS REAL)) * " ++ y
+
+replace_text_cs_all = Base_Generator.lift_ternary_op "REPLACE_TEXT_CS_ALL" t-> p-> r->
+    Builder.code "REPLACE(" ++ t ++ ", " ++ p ++ ", " ++ r ++ ")"
+
+replace_text_cs_only_first = Base_Generator.lift_ternary_op "REPLACE_TEXT_CS_ONLY_FIRST" <| replace_text_only_first True
+replace_text_ci_only_first = Base_Generator.lift_ternary_op "REPLACE_TEXT_CI_ONLY_FIRST" <| replace_text_only_first False
+
+##
+    , replace(a, p, r) as "cs=s/d r=f of=f"
+    , case when instr(a, p) = 0 then a
+           else substr(a, 1, instr(a, p)-1) ||
+                r ||
+                substr(a, instr(a, p)+length(p))
+           end as "cs=s/d r=f of=t"
+    , case when instr(lower(a), p) = 0 then a
+           else substr(a, 1, instr(lower(a), p)-1) ||
+                r ||
+                substr(a, instr(lower(a), p)+length(p))
+           end as "cs=i r=f of=t"
+
+replace_text_only_first case_sensitive t p r =
+    search_string = if case_sensitive then t else
+        Builder.code "LOWER(" ++ t ++ ")"
+    instr = Builder.code "INSTR(" ++ search_string ++ ", " ++ p ++ ")"
+    prefix = Builder.code "SUBSTR(" ++ t ++ ", 1," ++ instr ++ "-1)"
+    suffix = Builder.code "SUBSTR(" ++ t ++ "," ++ instr ++ "+LENGTH(" ++ p ++ "))"
+    concatenation = prefix ++ " || " ++ r ++ " || " ++ suffix
+    Builder.code "CASE WHEN " ++ instr ++ "= 0 THEN " ++ t ++ " ELSE " ++ concatenation ++ "END"
 
 ## PRIVATE
    It will return `Nothing` if the type does not require custom logic.
