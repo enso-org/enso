@@ -21,7 +21,7 @@ public final class EnsoStructure implements StructureProvider {
       var parser = new EnsoParser();
       var text = dcmnt.getText(0, dcmnt.getLength());
       var moduleIr = parser.compile(text);
-      var arr = new ArrayList();
+      var arr = new ArrayList<StructureElement>();
       var it = moduleIr.bindings().iterator();
       collectStructure(arr, moduleIr.bindings().iterator());
       return arr;
@@ -30,23 +30,29 @@ public final class EnsoStructure implements StructureProvider {
     }
   }
 
-  private static void collectStructure(ArrayList arr, Iterator<? extends IR> it) {
+  private static void collectStructure(List<StructureElement> arr, Iterator<? extends IR> it) {
     while (it.hasNext()) {
       var b = it.next();
       collectStructureItem(arr, b);
     }
   }
-  private static void collectStructureItem(ArrayList arr, IR b) {
+  private static void collectStructureItem(List<StructureElement> arr, IR b) {
     switch (b) {
       case IR$Module$Scope$Definition$SugaredType type -> {
-        var e = StructureProvider.newBuilder(type.name().name(), StructureElement.Kind.Class).build();
+        var bldr = StructureProvider.newBuilder(type.name().name(), StructureElement.Kind.Class);
+        var children = new ArrayList<StructureElement>();
+        collectStructure(children, type.body().iterator());
+        bldr.children(children);
+        var e = bldr.build();
         arr.add(e);
-        collectStructure(arr, type.body().iterator());
       }
+
       case IR$Module$Scope$Definition$Data data -> {
-        var e = StructureProvider.newBuilder(data.name().name(), StructureElement.Kind.Constructor).build();
+        var bldr = StructureProvider.newBuilder(data.name().name(), StructureElement.Kind.Constructor);
+        var e = bldr.build();
         arr.add(e);
       }
+
       default -> {}
     }
   }
