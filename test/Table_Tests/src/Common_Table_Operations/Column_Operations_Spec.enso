@@ -1044,6 +1044,14 @@ spec setup =
                 a.replace "[aeiou]".to_regex "#" . to_vector . should_equal ["Alph#", "Br#v#", "Ch#rl##", "D#lt#", "Ech#", "F#xtr#t"]
                 a.replace "([aeiou])(.*?)[aeiou]".to_regex "$1$2$1" . to_vector . should_equal ["Alpha", "Brava", "Charlae", "Delte", "Echo", "Foxtrot"]
 
+            Test.specify "should take pattern and replacement string columns" <|
+                t = table_builder [["x", ["hello", "what", "yes"]], ["patterns", ["ell", "wh", "es"]], ["replacements", ["xyz", "qwer", "asdf"]]]
+                col = t.at "x"
+                patterns = t.at "patterns"
+                replacements = t.at "replacements"
+
+                col.replace patterns replacements . to_vector . should_equal ["hxyzo", "qwerat", "yasdf"]
+
             Test.specify "should only allow replace on Text columns" <|
                 c.replace "a" "#" . should_fail_with Invalid_Value_Type
                 a.replace 1 "#" . should_fail_with Invalid_Value_Type
