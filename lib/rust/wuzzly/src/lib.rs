@@ -1,3 +1,6 @@
+
+#![recursion_limit = "256"]
+// === Features ===
 #![feature(core_intrinsics)]
 #![feature(generators)]
 #![feature(iter_from_generator)]
@@ -6,11 +9,26 @@
 #![feature(type_changing_struct_update)]
 #![feature(exclusive_range_pattern)]
 #![feature(assert_matches)]
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
+#![allow(clippy::let_and_return)]
+// === Non-Standard Linter Configuration ===
+#![allow(clippy::option_map_unit_fn)]
+#![allow(clippy::precedence)]
+#![allow(dead_code)]
+#![deny(unconditional_recursion)]
+#![warn(missing_copy_implementations)]
+#![warn(missing_debug_implementations)]
+#![warn(missing_docs)]
+#![warn(trivial_casts)]
+#![warn(trivial_numeric_casts)]
+#![warn(unused_import_braces)]
+#![warn(unused_qualifications)]
 
 
 pub mod score;
-
-pub use score::Score;
 
 use derivative::Derivative;
 use std::num::NonZeroU32;
@@ -20,15 +38,14 @@ use score::*;
 
 mod std_score {
     use super::score;
-    use super::Score;
     use std::cmp::Ordering;
 
     macro_rules! define_mixed_binary_radix_bases_impl {
         ($width_subtotal:expr, $ty:ty, ) => {
             const _STATIC_CHECK_ALL_BITS_FIT_IN_WORD: $ty = 1 << $width_subtotal;
         };
-        ($width_subtotal:expr, $ty:ty, $ident:ident: $width:expr; $($rest:tt)*) => {
-            const $ident: $ty = 1 << $width_subtotal;
+        ($width_subtotal:expr, $ty:ty, $(#[$attr:meta])* $ident:ident: $width:expr; $($rest:tt)*) => {
+            $(#[$attr])* const $ident: $ty = 1 << $width_subtotal;
             define_mixed_binary_radix_bases_impl!($width_subtotal + $width, $ty, $($rest)*);
         };
     }
@@ -41,6 +58,10 @@ mod std_score {
         };
     }
 
+    /// Value enabling comparison of quality of a match.
+    #[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
+    pub struct Score(u32);
+
     /// Per-match penalty. These are only applied when converting a root-submatch score to a match
     /// score, so each will not occur more than once and overflow is not possible.
     const MATCH_BITS: u32 = 1;
@@ -50,11 +71,24 @@ mod std_score {
     const CHAR_BITS: u32 = 8;
 
     define_mixed_binary_radix_bases_low_to_high!(u32,
+        /// When part of the pattern is matched against a prefix of a word in the target, this
+        /// penalty is applied for each unused character in the rest of the word.
         CHAR_IN_MATCHED_WORD_SKIPPED_PENALTY: CHAR_BITS;
+        /// When a submatch includes a `.` character, this penalty is applied.
         SUBMATCH_INCLUDES_NAMESPACE_PENALTY: SUBMATCH_BITS;
+        /// When the target is an *alias*, this penalty is applied to the match.
         MATCH_TARGET_IS_ALIAS_PENALTY: MATCH_BITS;
+        /// When the first character in the pattern matches a character that is not the first
+        /// character of the submatch, this penalty is applied.
         SUBMATCH_NOT_FROM_START_PENALTY: SUBMATCH_BITS;
+        /// When consecutive characters in the pattern are treated as initials rather than a single
+        /// prefix, this penalty is applied.
         SUBMATCH_BY_INITIALS_PENALTY: SUBMATCH_BITS;
+        /// When the match skips characters in the target, this penalty is applied.
+        ///
+        /// Although this overlaps with other criteria, applying the highest penalty for this case
+        /// ensures that a perfect match is always the first result, even if it has other penalties
+        /// (such as the [`MATCH_TARGET_IS_ALIAS`] penalty).
         MATCH_IS_IMPERFECT_PENALTY: MATCH_BITS;
     );
 
@@ -138,6 +172,7 @@ mod std_score {
 
     impl score::SubmatchScore for ScoreInfo {
         type TargetInfo = TargetInfo;
+        type MatchScore = Score;
         const ANY_PREFIX_MATCH_BEATS_ANY_INITIALS_MATCH: bool = true;
 
         fn match_score(self, target_info: TargetInfo) -> Score {
@@ -227,6 +262,7 @@ impl<SB: ScoreBuilder> Matcher<SB> {
         /// Supports reusing *the storage* of a buffer, despite it being used for objects of
         /// different lifetimes.
         fn cast_lifetime<'a, 'b, T>(mut buffer: Vec<State<'a, T>>) -> Vec<State<'b, T>> {
+            #[allow(unsafe_code)] // See comments in block.
             unsafe {
                 // Ensure the `Vec` is empty.
                 buffer.clear();
@@ -308,8 +344,8 @@ impl<SB: ScoreBuilder> Matcher<SB> {
         pattern: &str,
         target: &str,
         target_info: <SB::SubmatchScore as SubmatchScore>::TargetInfo,
-    ) -> Option<WithMatchIndexes<Score>> {
-        let pattern: String = normalize_pattern(pattern.chars()).into_iter().collect();
+    ) -> Option<WithMatchIndexes<<SB::SubmatchScore as SubmatchScore>::MatchScore>> {
+        let pattern: String = normalize_pattern(pattern.chars()).collect();
         self.subsearch(&pattern, target)
             .map(|info| info.map(|score_info| score_info.match_score(target_info)))
     }
@@ -354,7 +390,7 @@ fn search(
     pattern: &str,
     target: &str,
     target_info: std_score::TargetInfo,
-) -> Option<WithMatchIndexes<Score>> {
+) -> Option<WithMatchIndexes<std_score::Score>> {
     Matcher::<std_score::ScoreBuilder>::default().search(pattern, target, target_info)
 }
 
@@ -408,7 +444,7 @@ impl<'s, SB: ScoreBuilder + 's> State<'s, SB> {
     /// Try to apply the given non-delimiter character to the state.
     fn match_word_character(mut self, c: char) -> Option<Self> {
         self.score.match_word_char();
-        (self.chars.next() == Some(c)).then(|| self)
+        (self.chars.next() == Some(c)).then_some(self)
     }
 
     /// Skip any remaining characters, and return the resulting score.
@@ -515,10 +551,11 @@ impl<SB: ScoreBuilder> ScoreBuilder for WithMatchIndexes<SB> {
 
 impl<S: SubmatchScore> SubmatchScore for WithMatchIndexes<S> {
     type TargetInfo = S::TargetInfo;
+    type MatchScore = S::MatchScore;
     const ANY_PREFIX_MATCH_BEATS_ANY_INITIALS_MATCH: bool =
         S::ANY_PREFIX_MATCH_BEATS_ANY_INITIALS_MATCH;
 
-    fn match_score(self, target_info: Self::TargetInfo) -> Score {
+    fn match_score(self, target_info: Self::TargetInfo) -> Self::MatchScore {
         self.inner.match_score(target_info)
     }
 
@@ -561,7 +598,7 @@ mod test_match {
         let computed: Vec<_> = expected
             .iter()
             .map(|(pattern, target, _)| {
-                let result = search(pattern, &target, Default::default());
+                let result = search(pattern, target, Default::default());
                 let matched = result.is_some();
                 let target = match result {
                     Some(result) => fmt_match(result.map(|_| target.as_str())),
@@ -717,8 +754,8 @@ mod test_score {
     /// Given a pattern and a set of targets, assert that the targets match and are in order by
     /// score from best match to worst.
     fn check_order(pattern: &str, inputs: &[(&str, std_score::TargetInfo)]) {
-        let expected = &inputs[..];
-        let mut computed: Vec<_> = inputs.iter().cloned().collect();
+        let expected = inputs;
+        let mut computed: Vec<_> = inputs.to_vec();
         computed
             .sort_by_key(|(target, target_info)| search(pattern, target, *target_info).unwrap());
         computed.reverse();

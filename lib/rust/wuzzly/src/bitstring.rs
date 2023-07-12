@@ -1,3 +1,4 @@
+#[cfg(test)]
 use std::assert_matches::assert_matches;
 use std::intrinsics::likely;
 use std::mem;
@@ -128,7 +129,7 @@ impl Bitstring {
 
     #[cfg(not(test))]
     #[inline]
-    fn check_invariants() {}
+    fn check_invariants(&self) {}
 }
 
 impl Add for Bitstring {

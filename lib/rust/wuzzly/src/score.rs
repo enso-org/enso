@@ -1,33 +1,14 @@
 
 
 
-// =============
-// === Types ===
-// =============
-
-/// Value which can be used to order match results by quality. A [`Score`] compares higher if it is
-/// a better match.
-///
-/// The same information can be represented by [`Penalty`]. The [`Score`] representation has the
-/// property that `Option<Score>` sorts correctly: `Some(score)` > `None`, for any `score`.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Score(pub(crate) u32);
-
-/// Value which can be used to order match results by quality. A [`Penalty`] compares lower if it is
-/// a better match.
-///
-/// The same information can be represented by [`Score`]. The [`Penalty`] representation produces an
-/// ascending sort, so it combines well with other sort criteria such as lexicographic comparison.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Penalty(u32);
-
-
-
 // =========================
 // === Score Builder API ===
 // =========================
 
+/// Interface for accumulating a score for a match by observing character-level match and non-match
+/// events.
 pub trait ScoreBuilder: Default + Clone + Sized {
+    /// The result of observing all matching events for a submatch.
     type SubmatchScore: SubmatchScore;
     /// Adjust the score information as appropriate for the specified number of word characters
     /// in the target being skipped without matching anything in the pattern.
@@ -68,11 +49,13 @@ pub trait SubmatchScore: core::ops::Add<Self, Output = Self> + Sized + Ord {
     /// external factors that should be stronger than some match factors but weaker than others,
     /// they can be incorporated into the score calculation.
     type TargetInfo;
+    /// The type representing the overall quality of a match.
+    type MatchScore;
     /// If this is [`true`], it enables an optimization in the [`Matcher`].
     const ANY_PREFIX_MATCH_BEATS_ANY_INITIALS_MATCH: bool;
     /// Use the specified [`TargetInfo`] to compute the match score for a match with this submatch
     /// as its root.
-    fn match_score(self, target_info: Self::TargetInfo) -> Score;
+    fn match_score(self, target_info: Self::TargetInfo) -> Self::MatchScore;
     /// Adjust the score as appropriate for when the submatch is performed by initials (rather than
     /// as a prefix).
     fn with_submatch_by_initials_penalty(self) -> Self;
