@@ -300,6 +300,11 @@ postgres_specific_spec connection db_name setup =
         Test.specify "case_sensitivity=insensitive use_regex=True only_first=true"
             col1.replace 'a[bcd]'.to_regex 'hey' case_sensitivity=Case_Sensitivity.Insensitive only_first=True . to_vector . should_equal ['a[bcd] A[bCd] a[bcd]', 'heyac ad Ab aCAd']
 
+        Test.specify "can properly escape complex regexes" <|
+            regex = "^([^\(]+)|(?<foo>\w\d[a-z])+$"
+            col = table_builder [["x", [regex]]] . at "x"
+            col.replace regex "asdf" . to_vector . should_equal ["asdf"]
+
     Test.group "replace: pattern and replacement columnsasdfasdf" <|
         table = table_builder [["x", ['hello Hello', 'hello hello', 'HELLO HELLO', 'a[bcd] A[bCd] a[bcd]', 'abac ad Ab aCAd']], ["patterns", ['hello', 'hello', 'hello', 'a[bcd]', 'a[bcd]']], ["replacements", ['bye', 'bye', 'bye', 'hey', 'hey']]]
         col = table.at "x"
