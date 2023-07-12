@@ -3,11 +3,6 @@
     "authentication": {
       "value": true,
       "description": "Determines whether user authentication is enabled. This option is always true when executed in the cloud."
-    },
-    "dataCollection": {
-      "value": true,
-      "description": "Determines whether anonymous usage data is to be collected.",
-      "primary": false
     }
   },
   "groups": {
