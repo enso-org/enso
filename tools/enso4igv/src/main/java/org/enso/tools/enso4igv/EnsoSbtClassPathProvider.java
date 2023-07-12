@@ -292,7 +292,11 @@ Sources, BinaryForSourceQueryImplementation2<EnsoSbtClassPathProvider.EnsoSource
 
     @Override
     public URL[] computeRoots(EnsoSources result) {
+      if (result.output() == null) {
+        return new URL[0];
+      } else {
         return new URL[] { result.output().toURL() };
+      }
     }
 
     @Override
