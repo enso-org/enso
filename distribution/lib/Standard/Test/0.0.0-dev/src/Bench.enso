@@ -38,7 +38,8 @@ type Bench
             x2 = System.nano_time
             x2 - x1
         iteration = it_size -> it_num ->
-            Runtime.gc
+            if run_gc_between_iterations then
+                Runtime.gc
             act_it_num = num_iters - it_num
             res = times it_size single_call
             avg = avg_list res
