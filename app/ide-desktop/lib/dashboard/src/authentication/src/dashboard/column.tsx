@@ -48,6 +48,9 @@ export enum Column {
 // === Constants ===
 // =================
 
+/** An immutable empty array, useful as a React prop. */
+const EMPTY_ARRAY: never[] = []
+
 /** English names for every column except for the name column. */
 export const COLUMN_NAME: Record<Exclude<Column, Column.name>, string> = {
     [Column.lastModified]: 'Last modified',
@@ -96,28 +99,30 @@ function LastModifiedColumn(props: AnyAssetColumnProps) {
 interface InternalUserPermissionDisplayProps {
     user: backend.UserPermissions
     item: backend.Asset
+    emailsOfUsersWithPermission: Set<backend.EmailAddress>
     ownsThisAsset: boolean
-    isFirst: boolean
+    onDelete: () => void
 }
 
 /** Displays permissions for a user on a specific asset. */
 function UserPermissionDisplay(props: InternalUserPermissionDisplayProps) {
-    const { user, item, ownsThisAsset, isFirst } = props
+    const { user, item, emailsOfUsersWithPermission, ownsThisAsset, onDelete } = props
     const { setModal } = modalProvider.useSetModal()
     const [permissions, setPermissions] = React.useState(user.permissions)
     const [isHovered, setIsHovered] = React.useState(false)
+    const [isDeleting, setIsDeleting] = React.useState(false)
 
     React.useEffect(() => {
         setPermissions(user.permissions)
     }, [user.permissions])
 
-    return (
+    return isDeleting ? null : (
         <PermissionDisplay
             key={user.user.pk}
             permissions={permissionDisplay.permissionActionsToPermissions(permissions)}
-            className={`border-2 rounded-full ${
+            className={`border-2 rounded-full -ml-5 first:ml-0 ${
                 ownsThisAsset ? 'cursor-pointer hover:shadow-soft hover:z-10' : ''
-            } ${isFirst ? '' : '-ml-5'}`}
+            }`}
             onClick={event => {
                 event.stopPropagation()
                 if (ownsThisAsset) {
@@ -125,12 +130,20 @@ function UserPermissionDisplay(props: InternalUserPermissionDisplayProps) {
                         <ManagePermissionsModal
                             key={Number(new Date())}
                             user={user.user}
+                            initialPermissions={user.permissions}
                             asset={item}
+                            emailsOfUsersWithPermission={emailsOfUsersWithPermission}
                             eventTarget={event.currentTarget}
                             onSubmit={(_users, newPermissions) => {
-                                setPermissions(newPermissions)
+                                if (newPermissions.length === 0) {
+                                    setIsDeleting(true)
+                                } else {
+                                    setPermissions(newPermissions)
+                                }
                             }}
+                            onSuccess={onDelete}
                             onFailure={() => {
+                                setIsDeleting(false)
                                 setPermissions(user.permissions)
                             }}
                         />
@@ -164,19 +177,30 @@ function SharedWithColumn(props: AnyAssetColumnProps) {
     const [permissions, setPermissions] = React.useState(() =>
         backend.groupPermissionsByUser(item.permissions ?? [])
     )
+    const emailsOfUsersWithPermission = React.useMemo(
+        () => new Set(permissions.map(permission => permission.user.user_email)),
+        [permissions]
+    )
     const selfPermission = item.permissions?.find(
         permission => permission.user.user_email === session.organization?.email
     )?.permission
     const ownsThisAsset = selfPermission === backend.PermissionAction.own
     return (
         <div className="flex">
-            {permissions.map((user, index) => (
+            {permissions.map(user => (
                 <UserPermissionDisplay
                     key={user.user.user_email}
                     user={user}
                     item={item}
+                    emailsOfUsersWithPermission={emailsOfUsersWithPermission}
                     ownsThisAsset={ownsThisAsset}
-                    isFirst={index === 0}
+                    onDelete={() => {
+                        setPermissions(oldPermissions =>
+                            oldPermissions.filter(
+                                permission => permission.user.user_email !== user.user.user_email
+                            )
+                        )
+                    }}
                 />
             ))}
             {ownsThisAsset && (
@@ -187,6 +211,8 @@ function SharedWithColumn(props: AnyAssetColumnProps) {
                             <ManagePermissionsModal
                                 key={Number(new Date())}
                                 asset={item}
+                                initialPermissions={EMPTY_ARRAY}
+                                emailsOfUsersWithPermission={emailsOfUsersWithPermission}
                                 eventTarget={event.currentTarget}
                                 onSubmit={(users, newPermissions) => {
                                     setPermissions(oldPermissions => [
@@ -194,7 +220,7 @@ function SharedWithColumn(props: AnyAssetColumnProps) {
                                         ...users.map(user => {
                                             const userPermissions: backend.UserPermissions = {
                                                 user: {
-                                                    pk: backend.Subject(''),
+                                                    pk: user.id,
                                                     // The names come from a third-party API
                                                     // and cannot be changed.
                                                     /* eslint-disable @typescript-eslint/naming-convention */

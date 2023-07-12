@@ -61,6 +61,8 @@ const ACTION_CSS_CLASS: Record<ManagePermissionsAction, string> = {
 /** Props for a {@link ManagePermissionsModal}. */
 export interface ManagePermissionsModalProps {
     asset: backendModule.Asset
+    initialPermissions: backendModule.PermissionAction[]
+    emailsOfUsersWithPermission: Set<backendModule.EmailAddress>
     /* If present, the user cannot be changed. */
     user?: backendModule.User
     onSubmit: (
@@ -76,7 +78,16 @@ export interface ManagePermissionsModalProps {
  * @throws {Error} when the current backend is the local backend, or when the user is offline.
  * This should never happen, as this modal should not be accessible in either case. */
 export function ManagePermissionsModal(props: ManagePermissionsModalProps) {
-    const { asset, user: rawUser, onSubmit: rawOnSubmit, onSuccess, onFailure, eventTarget } = props
+    const {
+        asset,
+        initialPermissions,
+        emailsOfUsersWithPermission,
+        user: rawUser,
+        onSubmit: rawOnSubmit,
+        onSuccess,
+        onFailure,
+        eventTarget,
+    } = props
     const { organization } = auth.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
     const { unsetModal } = modalProvider.useSetModal()
@@ -94,12 +105,13 @@ export function ManagePermissionsModal(props: ManagePermissionsModalProps) {
 
     const user = React.useMemo(() => {
         const firstEmail = emails[0]
-        if (firstEmail == null || emails.length !== 1) {
+        if (rawUser != null) {
             return rawUser
+        } else if (firstEmail != null && emails.length === 1) {
+            return asset.permissions?.find(permission => permission.user.user_email === firstEmail)
+                ?.user
         } else {
-            return (asset.permissions ?? []).find(
-                permission => permission.user.user_email === firstEmail
-            )?.user
+            return null
         }
     }, [rawUser, emails, /* should never change */ asset.permissions])
 
@@ -111,32 +123,6 @@ export function ManagePermissionsModal(props: ManagePermissionsModalProps) {
             : willInviteNewUser
             ? ManagePermissionsAction.inviteToOrganization
             : ManagePermissionsAction.share
-
-    /** Overridden by the user's permissions only if it is not empty. */
-    const initialPermissions = React.useMemo(
-        () =>
-            permissions.size !== 0
-                ? null
-                : user != null
-                ? new Set(
-                      (asset.permissions ?? [])
-                          .filter(
-                              assetPermission => assetPermission.user.user_email === user.user_email
-                          )
-                          .map(userPermission => userPermission.permission)
-                  )
-                : null,
-        // `permissions` is NOT a dependency; this is an expensive computation so it is only used
-        // to determine whether the computation should be avoided completely.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-        [user, /* should never change */ asset.permissions]
-    )
-
-    const emailsOfUsersWithPermission = React.useMemo(
-        () =>
-            new Set(asset.permissions?.map(userPermission => userPermission.user.user_email) ?? []),
-        [/* should never change */ asset.permissions]
-    )
 
     const userEmailRef = React.useRef<HTMLInputElement>(null)
 
