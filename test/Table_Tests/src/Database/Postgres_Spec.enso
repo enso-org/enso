@@ -278,12 +278,12 @@ postgres_specific_spec connection db_name setup =
             col1.replace 'a[bcd]' 'hey' only_first=True . to_vector . should_equal ['hey A[bCd] a[bcd]', 'abac ad Ab aCAd']
 
         Test.specify "case_sensitivity=insensitive use_regex=false only_first=false"
-            col0.replace 'hello' 'bye' case_sensitivity=Case_Sensitivity.Insensitive . to_vector . should_equal ['bye bye', 'bye bye', 'bye bye ']
+            col0.replace 'hello' 'bye' case_sensitivity=Case_Sensitivity.Insensitive . to_vector . should_equal ['bye bye', 'bye bye', 'bye bye']
 
             col1.replace 'a[bcd]' 'hey' case_sensitivity=Case_Sensitivity.Insensitive . to_vector . should_equal ['hey hey hey', 'abac ad Ab aCAd']
 
         Test.specify "case_sensitivity=insensitive use_regex=false only_first=true"
-            col0.replace 'hello' 'bye' case_sensitivity=Case_Sensitivity.Insensitive only_first=True . to_vector . should_equal ['bye Hello', 'bye Hello', 'bye Hello ']
+            col0.replace 'hello' 'bye' case_sensitivity=Case_Sensitivity.Insensitive only_first=True . to_vector . should_equal ['bye Hello', 'bye hello', 'bye HELLO']
 
             col1.replace 'a[bcd]' 'hey' case_sensitivity=Case_Sensitivity.Insensitive only_first=True . to_vector . should_equal ['hey A[bCd] a[bcd]', 'abac ad Ab aCAd']
 
@@ -292,13 +292,13 @@ postgres_specific_spec connection db_name setup =
             col1.replace 'a[bcd]'.to_regex 'hey' . to_vector . should_equal ['a[bcd] A[bCd] a[bcd]', 'heyhey hey Ab aCAd']
 
         Test.specify "case_sensitivity=sensitive/default use_regex=True only_first=true"
-            col1.replace 'a[bcd]'.to_regex 'hey' . to_vector . should_equal ['a[bcd] A[bCd] a[bcd]', 'heyac ad Ab aCAd']
+            col1.replace 'a[bcd]'.to_regex 'hey' only_first=True . to_vector . should_equal ['a[bcd] A[bCd] a[bcd]', 'heyac ad Ab aCAd']
 
         Test.specify "case_sensitivity=insensitive use_regex=True only_first=false"
-            col1.replace 'a[bcd]'.to_regex 'hey' . to_vector . should_equal ['a[bcd] A[bCd] a[bcd]', 'heyhey hey hey heyhey']
+            col1.replace 'a[bcd]'.to_regex 'hey' case_sensitivity=Case_Sensitivity.Insensitive . to_vector . should_equal ['a[bcd] A[bCd] a[bcd]', 'heyhey hey hey heyhey']
 
         Test.specify "case_sensitivity=insensitive use_regex=True only_first=true"
-            col1.replace 'a[bcd]'.to_regex 'hey' . to_vector . should_equal ['a[bcd] A[bCd] a[bcd]', 'heyac ad Ab aCAd']
+            col1.replace 'a[bcd]'.to_regex 'hey' case_sensitivity=Case_Sensitivity.Insensitive only_first=True . to_vector . should_equal ['a[bcd] A[bCd] a[bcd]', 'heyac ad Ab aCAd']
 
     Test.group "replace: pattern and replacement columnsasdfasdf" <|
         col = table_builder [["x", ['hello Hello', 'hello hello', 'HELLO HELLO', 'a[bcd] A[bCd] a[bcd]', 'abac ad Ab aCAd']]] . at "x"

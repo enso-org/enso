@@ -1151,7 +1151,11 @@ type Column
     replace : Text | Column | Regex -> Text | Column -> Case_Sensitivity -> Boolean -> Column
     replace self term="" new_text="" case_sensitivity=Case_Sensitivity.Default only_first=False =
         Value_Type.expect_text self <|
-            new_name = self.naming_helpers.function_name "replace" [self, term, new_text]
+            term_name = case term of
+                _ : Text -> term
+                _ : Column -> term
+                _ : Regex -> term.pattern_string
+            new_name = self.naming_helpers.function_name "replace" [self, term_name, new_text]
             use_regex_part = case term of
                 _ : Text -> "TEXT"
                 _ : Column -> "COLUMN"
