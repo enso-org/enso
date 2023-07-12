@@ -103,8 +103,11 @@ body {
       stroke-dasharray: calc(12 * 6.2832) 0;
     }
 
-    .border-dashed-custom {
-      background-image: url("enso-assets/dashed_border.svg");
+    .border-dashed-template {
+      /* The size is fixed so it can only be used for templates.
+       * This is necessary because the svg attribute `stroke-align` is not supported,
+       * and it is the only way to get a responsive inset of 1px. */
+      background-image: url("enso-assets/dashed_template_border.svg");
     }
 
     .scroll-hidden {

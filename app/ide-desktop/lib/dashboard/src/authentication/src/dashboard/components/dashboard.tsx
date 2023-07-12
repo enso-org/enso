@@ -146,11 +146,11 @@ const COLUMN_NAME: Record<Exclude<Column, Column.name>, string> = {
 const COLUMN_CSS_CLASS: Record<Column, string> = {
     [Column.name]: 'w-58',
     [Column.lastModified]: 'w-36',
-    [Column.sharedWith]: 'w-36',
+    [Column.sharedWith]: 'w-39.5',
     [Column.docs]: 'w-96',
-    [Column.labels]: 'w-80',
-    [Column.dataAccess]: 'w-96',
-    [Column.usagePlan]: '',
+    [Column.labels]: 'w-68.75',
+    [Column.dataAccess]: 'w-84.25',
+    [Column.usagePlan]: 'w-80',
     [Column.engine]: 'w-20',
     [Column.ide]: 'w-20',
 } as const
@@ -313,7 +313,8 @@ function Dashboard(props: DashboardProps) {
         backendModule.Asset<backendModule.AssetType.directory>[]
     >([])
     // Defined by the spec as `compact` by default, however it is not ready yet.
-    const [columnDisplayMode, setColumnDisplayMode] = react.useState(ColumnDisplayMode.release)
+    // FIGMA MODE ONLY
+    const [columnDisplayMode, setColumnDisplayMode] = react.useState(ColumnDisplayMode.all)
     const [tab, setTab] = react.useState(Tab.dashboard)
     const [project, setProject] = react.useState<backendModule.Project | null>(null)
     const [selectedAssets, setSelectedAssets] = react.useState<backendModule.Asset[]>([])
@@ -1122,7 +1123,7 @@ function Dashboard(props: DashboardProps) {
                         <div className="w-1.75" />
                         <div className="flex flex-row flex-nowrap gap-8 mx-4">
                             {backend.type === backendModule.BackendType.remote && (
-                                <div className="flex">
+                                <div className="flex gap-2">
                                     <div className="bg-gray-100 rounded-l-full p-1">
                                         {/* FIGMA MODE ONLY: `true &&`, `'cloud' ??`, `'nike' ??` */}
                                         <div className="flex flex-nowrap gap-1.75 items-center pl-2 pr-2.5">
@@ -1130,7 +1131,7 @@ function Dashboard(props: DashboardProps) {
                                                 (true && (
                                                     <>
                                                         <div
-                                                            className="cursor-pointer h-5 my-0.5"
+                                                            className="cursor-pointer leading-5 my-0.5"
                                                             onClick={exitDirectory}
                                                         >
                                                             {'cloud' ??
@@ -1140,21 +1141,21 @@ function Dashboard(props: DashboardProps) {
                                                         <img src={ArrowRightSmallIcon} />
                                                     </>
                                                 ))}
-                                            <span className="h-5 my-0.5">
+                                            <span className="leading-5 my-0.5">
                                                 {'nike' ?? directory?.title ?? '/'}
                                             </span>
                                         </div>
                                     </div>
-                                    <div className="bg-gray-100 rounded-r-full flex flex-nowrap items-center mx-0.5">
-                                        <div className="m-2">Shared with</div>
-                                        <div>
+                                    <div className="bg-gray-100 rounded-r-full flex flex-nowrap items-center gap-2 pl-3">
+                                        <div className="leading-5 my-0.5">Shared with</div>
+                                        <div className="-mx-1">
                                             {/* FIGMA MODE ONLY */}
                                             <PermissionDisplay
                                                 permissions={{
                                                     type: permissionDisplay.Permission.admin,
                                                 }}
                                             >
-                                                <div className="flex items-center h-6 m-1">
+                                                <div className="flex items-center leading-6 mx-2 my-1">
                                                     marketing
                                                 </div>
                                             </PermissionDisplay>
@@ -1162,28 +1163,30 @@ function Dashboard(props: DashboardProps) {
                                     </div>
                                 </div>
                             )}
-                            <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap px-1.5 py-1">
-                                <input
-                                    type="file"
-                                    multiple
-                                    disabled={backend.type === backendModule.BackendType.local}
-                                    id="upload_files_input"
-                                    name="upload_files_input"
-                                    className="w-0 h-0"
-                                    onInput={uploadFilesFromInput}
-                                />
-                                <label
-                                    htmlFor="upload_files_input"
-                                    className={`mx-1 ${
-                                        backend.type === backendModule.BackendType.local
-                                            ? 'opacity-50'
-                                            : 'cursor-pointer'
-                                    }`}
-                                >
-                                    <img src={UploadIcon} />
-                                </label>
+                            <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap gap-2 px-2.5 py-1">
+                                <div className="flex">
+                                    <input
+                                        type="file"
+                                        multiple
+                                        disabled={backend.type === backendModule.BackendType.local}
+                                        id="upload_files_input"
+                                        name="upload_files_input"
+                                        className="w-0 h-0"
+                                        onInput={uploadFilesFromInput}
+                                    />
+                                    <label
+                                        htmlFor="upload_files_input"
+                                        className={
+                                            backend.type === backendModule.BackendType.local
+                                                ? 'opacity-50'
+                                                : 'cursor-pointer'
+                                        }
+                                    >
+                                        <img src={UploadIcon} />
+                                    </label>
+                                </div>
                                 <button
-                                    className={`mx-1 opacity-50`}
+                                    className={`opacity-50`}
                                     disabled={true}
                                     onClick={event => {
                                         event.stopPropagation()

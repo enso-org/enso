@@ -113,7 +113,7 @@ function TemplatesRender(props: TemplatesRenderProps) {
             }}
             className="h-35 cursor-pointer"
         >
-            <div className="relative flex h-full w-full border-dashed-custom rounded-2xl text-primary transition-all hover:shadow-soft hover:scale-103-1/3 hover:translate-y-0.5 hover:z-10">
+            <div className="relative flex h-full w-full border-dashed-template rounded-2.25xl text-primary transition-all m-px hover:shadow-soft hover:scale-103-1/3 hover:translate-y-0.5 hover:z-10">
                 <div className="flex flex-col gap-3 text-center items-center m-auto">
                     <div className="rounded-full border-primary border-2 opacity-56 p-0.75">
                         <img src={PlusLargeThinIcon} />
@@ -139,7 +139,7 @@ function TemplatesRender(props: TemplatesRenderProps) {
                         style={{
                             background: template.background,
                         }}
-                        className="relative flex flex-col justify-end h-full w-full rounded-2xl overflow-hidden text-white text-left transition-all hover:shadow-soft hover:scale-103-1/3 hover:translate-y-0.5 hover:z-10"
+                        className="relative flex flex-col justify-end backdrop-blur-none h-full w-full rounded-2xl overflow-hidden text-white text-left transition-all hover:shadow-soft hover:scale-103-1/3 hover:translate-y-0.5 hover:z-10"
                     >
                         <div className="backdrop-blur bg-black bg-opacity-30 px-4 pt-1.75 pb-3.25">
                             <h2 className="h-5 text-vs font-bold my-0.5">{template.title}</h2>

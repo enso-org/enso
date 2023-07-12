@@ -53,7 +53,10 @@ export const theme = {
             '15.25': '3.8125rem',
             '35': '8.75rem',
             '39': '9.75rem',
+            '39.5': '9.875rem',
             '58': '14.5rem',
+            '68.75': '17.1875rem',
+            '84.25': '21.0625rem',
             '140': '35rem',
         },
         scale: {
@@ -64,6 +67,9 @@ export const theme = {
         },
         opacity: {
             '56': '0.56',
+        },
+        borderRadius: {
+            '2.25xl': '1.125rem',
         },
         boxShadow: {
             soft: `0 0.5px 2.2px 0px #00000008, 0 1.2px 5.3px 0px #0000000b, \
