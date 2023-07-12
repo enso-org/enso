@@ -1044,6 +1044,14 @@ spec setup =
                 a.replace "[aeiou]".to_regex "#" . to_vector . should_equal ["Alph#", "Br#v#", "Ch#rl##", "D#lt#", "Ech#", "F#xtr#t"]
                 a.replace "([aeiou])(.*?)[aeiou]".to_regex "$1$2$1" . to_vector . should_equal ["Alpha", "Brava", "Charlae", "Delte", "Echo", "Foxtrot"]
 
+            Test.specify "should handle unicode" <|
+                table = table_builder [["x", ["śćxx", "ąąasdfąą", "aﬃb"]], ["patterns", ["ć", "ąą", "ﬃ"]], ["replacements", ["abc", "def", "ghi"]]]
+                col = table.at "x"
+                patterns = table.at "patterns"
+                replacements = table.at "replacements"
+
+                col.replace patterns replacements . to_vector . should_equal ["śabcxx", "defasdfdef", "aghib"]
+
             Test.specify "should take pattern and replacement string columns" <|
                 t = table_builder [["x", ["hello", "what", "yes"]], ["patterns", ["ell", "wh", "es"]], ["replacements", ["xyz", "qwer", "asdf"]]]
                 col = t.at "x"
