@@ -37,7 +37,7 @@ const API_URLS = {
 const CHAT_URLS = {
     development: newtype.asNewtype<ChatUrl>('ws://localhost:8082'),
     // TODO[sb]: Insert the actual URL of the production chat bot here.
-    production: newtype.asNewtype<ChatUrl>('wss://'),
+    production: newtype.asNewtype<ChatUrl>('wss://chat.cloud.enso.org'),
 }
 
 /** All possible configuration options, sorted by environment. */
