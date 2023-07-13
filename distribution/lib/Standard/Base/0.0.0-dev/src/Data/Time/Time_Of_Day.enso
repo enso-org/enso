@@ -301,10 +301,10 @@ type Time_Of_Day
        - period: The period to compute the difference in.
     date_diff : Time_Of_Day -> Time_Period -> Integer
     date_diff self (end : Time_Of_Day) (period : Time_Period) = case period of
-        Time_Period.Day -> Error.throw (Illegal_Argument.Error "The Time_Of_Day does not have a day part to compute a difference in days.")
+        Time_Period.Day ->
+            Error.throw (Illegal_Argument.Error "The Time_Of_Day does not have a day part to compute a difference in days.")
         _ ->
-            java_unit = period.to_java_unit
-            Time_Utils.unit_time_difference java_unit self end
+            Time_Utils.unit_time_difference period.to_java_unit self end
 
     ## Shifts the time of day by a specified period.
 
@@ -313,10 +313,10 @@ type Time_Of_Day
        - period: The period by which to shift.
     date_add : Integer -> Time_Period -> Time_Of_Day
     date_add self (amount : Integer) (period : Time_Period) = case period of
-        Time_Period.Day -> Error.throw (Illegal_Argument.Error "The Time_Of_Day does not have a day part to add days to.")
+        Time_Period.Day ->
+            Error.throw (Illegal_Argument.Error "The Time_Of_Day does not have a day part to add days to.")
         _ ->
-            java_unit = period.to_java_unit
-            java_unit.addTo self amount
+            Time_Utils.unit_time_add period.to_java_unit self amount
 
     ## ALIAS Add Duration
        Add the specified amount of time to this instant to get a new instant.

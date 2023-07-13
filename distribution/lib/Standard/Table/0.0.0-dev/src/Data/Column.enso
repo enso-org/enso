@@ -1354,6 +1354,10 @@ type Column
                 Date_Time_Helpers.check_period_aligned_with_value_type my_type period <|
                     new_name = Naming_Helpers.function_name "date_add" [self, amount, period.to_display_text]
                     java_unit = period.to_java_unit
+                    ## Here we do not need a Time_Utils helper like in scalar
+                       implementations of `date_add`, because the date coming
+                       from the column will always be already converted into a
+                       Java instance.
                     fn date amount =
                         java_unit.addTo date amount
                     run_binary_op self amount fn new_name
