@@ -22,6 +22,7 @@ class EnsoProjectArchiveSpec extends AnyWordSpec with Matchers {
             .getResource("Enso_Project_Archive_Test")
             .getPath
         )
+      println(pkgPath)
 
       val archive = EnsoProjectArchive.build(pkgPath)
       val entries = readTarGz(archive.outputStream().toByteArray)
@@ -30,7 +31,8 @@ class EnsoProjectArchiveSpec extends AnyWordSpec with Matchers {
         "src/",
         "src/Main.enso",
         "package.yaml",
-        "data/"
+        "data/",
+        "data/sample.txt"
       )
     }
   }
