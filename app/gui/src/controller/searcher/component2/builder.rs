@@ -11,34 +11,37 @@ use double_representation::name::QualifiedNameRef;
 use enso_suggestion_database::entry;
 use enso_suggestion_database::SuggestionDatabase;
 
-#[derive(Clone, Debug)]
-struct EntryInGroup {
-    entry:       Rc<suggestion_database::Entry>,
-    group_index: usize,
-}
+
+
+// ===============================
+// === Component Ordering Keys ===
+// ===============================
+
+// === InGroupComponentOrderingKey ===
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 enum InGroupComponentOrderingKey<'a> {
-    FromDatabase { module: QualifiedNameRef<'a>, name: &'a str },
+    FromDatabase { module: QualifiedNameRef<'a>, index: suggestion_database::entry::Id },
     Virtual { name: &'a str },
 }
 
 impl<'a> InGroupComponentOrderingKey<'a> {
     fn of(component: &'a Component) -> Self {
-        match &component.data {
-            component2::Data::FromDatabase { entry, .. } =>
-                Self::FromDatabase { module: entry.defined_in.as_ref(), name: &entry.name },
-            component2::Data::Virtual { snippet } => Self::Virtual { name: &snippet.name },
+        match &component.suggestion {
+            component2::Suggestion::FromDatabase { entry, id } =>
+                Self::FromDatabase { module: entry.defined_in.as_ref(), index: *id },
+            component2::Suggestion::Virtual { snippet } => Self::Virtual { name: &snippet.name },
         }
     }
 }
 
+// === ComponentOrderingKey ===
+
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 enum ComponentOrderingKey<'a> {
     InGroup { group_index: usize, key: InGroupComponentOrderingKey<'a> },
-    ModuleContent { module: QualifiedNameRef<'a>, id: suggestion_database::entry::Id },
+    ModuleContent { key: InGroupComponentOrderingKey<'a> },
     Module { non_standard: bool, module: QualifiedNameRef<'a> },
-    Other { label: &'a str },
 }
 
 impl<'a> ComponentOrderingKey<'a> {
@@ -46,22 +49,32 @@ impl<'a> ComponentOrderingKey<'a> {
         match component.group_id {
             Some(group_index) =>
                 Self::InGroup { group_index, key: InGroupComponentOrderingKey::of(component) },
-            None => match &component.data {
-                component2::Data::FromDatabase { entry, .. }
+            None => match &component.suggestion {
+                component2::Suggestion::FromDatabase { entry, .. }
                     if entry.kind == entry::Kind::Module =>
                     Self::Module {
                         non_standard: entry.defined_in.project().namespace != STANDARD_NAMESPACE,
                         module:       entry.defined_in.as_ref(),
                     },
-                component2::Data::FromDatabase { entry, id } =>
-                    Self::ModuleContent { module: entry.defined_in.as_ref(), id: *id },
-                component2::Data::Virtual { snippet } => Self::Other { label: &snippet.name },
+                _ => Self::ModuleContent { key: InGroupComponentOrderingKey::of(component) },
             },
         }
     }
 }
 
 
+
+// ===============
+// === Builder ===
+// ===============
+
+#[derive(Clone, Debug)]
+struct EntryInGroup {
+    entry:       Rc<suggestion_database::Entry>,
+    group_index: usize,
+}
+
+#[derive(Clone, Debug)]
 pub struct Builder<'a> {
     db:                &'a SuggestionDatabase,
     this_type:         Option<QualifiedName>,
@@ -71,6 +84,16 @@ pub struct Builder<'a> {
 }
 
 impl<'a> Builder<'a> {
+    pub fn new_empty(db: &'a SuggestionDatabase) -> Self {
+        Self {
+            db,
+            this_type: default(),
+            inside_module: default(),
+            built_list: default(),
+            groups_of_entries: default(),
+        }
+    }
+
     pub fn new_static(
         db: &'a SuggestionDatabase,
         groups: Vec<execution_context::ComponentGroup>,
@@ -89,8 +112,9 @@ impl<'a> Builder<'a> {
             })
             .flatten();
         let groups = groups.iter().map(|group_data| component2::Group {
-            name:  group_data.name.clone_ref(),
-            color: group_data.color,
+            project: group_data.project.clone_ref(),
+            name:    group_data.name.clone_ref(),
+            color:   group_data.color,
         });
         Self {
             db,
@@ -101,21 +125,27 @@ impl<'a> Builder<'a> {
         }
     }
 
-    pub fn new_with_this_type(db: &'a SuggestionDatabase, this_type: QualifiedName) -> Self {
+    pub fn new_with_this_type(db: &'a SuggestionDatabase, this_type: &str) -> Self {
         Self {
             db,
-            this_type: Some(this_type),
+            this_type: QualifiedName::from_text(this_type).handle_err(|err| warn!("Cannot create component list for type {this_type}: {err} Will display all components.")),
             inside_module: None,
             built_list: default(),
             groups_of_entries: default(),
         }
     }
 
-    pub fn new_inside_module(db: &'a SuggestionDatabase, module: QualifiedName) -> Self {
+    pub fn new_inside_module(
+        db: &'a SuggestionDatabase,
+        module_id: suggestion_database::entry::Id,
+    ) -> Self {
         Self {
             db,
             this_type: None,
-            inside_module: Some(module),
+            inside_module: db
+                .lookup(module_id)
+                .map(|module_entry| module_entry.defined_in.clone())
+                .handle_err(|err| warn!("Cannot create component list inside module: {err} Will display all components.")),
             built_list: default(),
             groups_of_entries: default(),
         }
@@ -134,19 +164,31 @@ impl<'a> Builder<'a> {
         let in_group = self.groups_of_entries.get(&id);
         let entry =
             in_group.map_or_else(|| self.db.lookup(id), |group| Ok(group.entry.clone_ref()))?;
-        let matches_this_type = entry.self_type == self.this_type;
+        // let matches_this_type = entry.self_type == self.this_type;
         let (is_shown, is_shown_when_filtering) = match &self.inside_module {
+            Some(module) if entry.kind == suggestion_database::entry::Kind::Module => {
+                let parent_module = entry.defined_in.parent();
+                (
+                    parent_module.contains(module),
+                    parent_module.map_or(false, |parent| parent.is_descendant_of(module.as_ref())),
+                )
+            }
             Some(module) =>
                 (&entry.defined_in == module, entry.defined_in.is_descendant_of(module.as_ref())),
             None if self.this_type.is_some() => (true, true),
-            None => (entry.defined_in.is_top_element() || in_group.is_some(), true),
+            None => (
+                (entry.kind == suggestion_database::entry::Kind::Module
+                    && entry.defined_in.is_top_element())
+                    || in_group.is_some(),
+                true,
+            ),
         };
         let component =
             Component::new_from_database_entry(id, entry, in_group.map(|e| e.group_index));
-        if matches_this_type && is_shown {
+        if is_shown {
             self.built_list.components.push(component.clone());
         }
-        if matches_this_type && is_shown_when_filtering {
+        if is_shown_when_filtering {
             self.built_list.filterable_components.push(component);
         }
         Ok(())
@@ -161,12 +203,12 @@ impl<'a> Builder<'a> {
         let groups = &mut self.built_list.groups;
         let group_index =
             groups.iter().position(|grp| grp.name == group_name).unwrap_or_else(|| {
-                groups.push(component2::Group { name: group_name.into(), color: None });
-                groups.len()
+                groups.push(component2::Group { project, name: group_name.into(), color: None });
+                groups.len() - 1
             });
         for snippet in snippets {
             let component = Component {
-                data:       component2::Data::Virtual { snippet },
+                suggestion: component2::Suggestion::Virtual { snippet },
                 group_id:   Some(group_index),
                 match_info: Default::default(),
             };
@@ -180,5 +222,217 @@ impl<'a> Builder<'a> {
             .components
             .sort_by(|lhs, rhs| ComponentOrderingKey::of(lhs).cmp(&ComponentOrderingKey::of(rhs)));
         self.built_list
+    }
+}
+
+
+
+// =============
+// === Tests ===
+// =============
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::controller::searcher::component2::tests::check_components;
+    use crate::controller::searcher::component2::tests::check_groups;
+    use enso_suggestion_database::mock_suggestion_database;
+    use ide_view::component_browser::component_list_panel::icon;
+
+    fn mock_database() -> SuggestionDatabase {
+        mock_suggestion_database! {
+            test.Test {
+                mod TopModule1 {
+                    fn fun2() -> Standard.Base.Any;
+
+                    mod SubModule1 {
+                        fn fun4() -> Standard.Base.Any;
+                    }
+                    mod SubModule2 {
+                        fn fun5 -> Standard.Base.Any;
+                        mod SubModule3 {
+                            fn fun6 -> Standard.Base.Any;
+                        }
+                    }
+
+                    fn fun1() -> Standard.Base.Any;
+                }
+                mod TopModule2 {
+                    fn fun0() -> Standard.Base.Any;
+                }
+            }
+        }
+
+        // FIXME[ao]: Add support for local scope entries.
+    }
+
+    fn mock_groups() -> Vec<execution_context::ComponentGroup> {
+        let project = project::QualifiedName::from_text("test.Test").unwrap();
+        vec![
+            execution_context::ComponentGroup {
+                project:    project.clone(),
+                name:       "First Group".into(),
+                color:      None,
+                components: vec![
+                    "test.Test.TopModule2.fun0".try_into().unwrap(),
+                    "test.Test.TopModule1.fun1".try_into().unwrap(),
+                    "test.Test.TopModule1.fun2".try_into().unwrap(),
+                ],
+            },
+            execution_context::ComponentGroup {
+                project,
+                name: "Second Group".into(),
+                color: None,
+                components: vec!["test.Test.TopModule1.SubModule2.fun5".try_into().unwrap()],
+            },
+        ]
+    }
+
+    fn check_filterable_components(list: &component2::List, mut expected: Vec<&str>) {
+        expected.sort();
+        let components = list
+            .filterable_components
+            .iter()
+            .map(|component| component.label())
+            .sorted()
+            .collect_vec();
+        assert_eq!(components, expected);
+    }
+
+    #[test]
+    fn building_main_list() {
+        let database = mock_database();
+        let groups = mock_groups();
+        let mut builder = Builder::new_static(&database, groups);
+
+        let empty = builder.clone().build();
+        assert_eq!(empty.len(), 0);
+        assert_eq!(empty.groups.len(), 2);
+
+        builder.add_components_from_db(database.keys());
+        let list = builder.build();
+
+        check_components(&list, vec![
+            "TopModule1.fun2",
+            "TopModule1.fun1",
+            "TopModule2.fun0",
+            "SubModule2.fun5",
+            "test.Test.TopModule1",
+            "test.Test.TopModule2",
+        ]);
+        assert_eq!(list.filterable_components.len(), database.keys().len());
+
+        assert_eq!(list.groups.len(), 2);
+        check_groups(&list, vec![Some(0), Some(0), Some(0), Some(1), None, None]);
+    }
+
+    #[test]
+    fn building_module_content_list() {
+        let database = mock_database();
+        let (module_id, _) = database
+            .lookup_by_qualified_name(&QualifiedName::from_text("test.Test.TopModule1").unwrap())
+            .unwrap();
+        let mut builder = Builder::new_inside_module(&database, module_id);
+
+        let empty = builder.clone().build();
+        assert_eq!(empty.len(), 0);
+
+        builder.add_components_from_db(database.keys());
+        let list = builder.build();
+
+        check_components(&list, vec![
+            "TopModule1.fun2",
+            "TopModule1.fun1",
+            "SubModule1",
+            "SubModule2",
+        ]);
+        check_filterable_components(&list, vec![
+            "TopModule1.fun1",
+            "TopModule1.fun2",
+            "SubModule1",
+            "SubModule1.fun4",
+            "SubModule2",
+            "SubModule2.fun5",
+            "SubModule3",
+            "SubModule3.fun6",
+        ]);
+    }
+
+
+
+    #[test]
+    fn adding_virtual_entries_to_group() {
+        let project = project::QualifiedName::from_text("test.Test").unwrap();
+        let database = mock_database();
+        let groups = mock_groups();
+        let snippets = vec![
+            Rc::new(hardcoded::Snippet::new("test1", "3 + 3", icon::Id::NumberInput)),
+            Rc::new(hardcoded::Snippet::new("test2", "4 + 4", icon::Id::NumberInput)),
+        ];
+
+        // Adding to an empty builder.
+        let mut builder = Builder::new_empty(&database);
+        builder.add_virtual_entries_to_group("First Group", project.clone_ref(), snippets.clone());
+        let list = builder.build();
+        check_components(&list, vec!["test1", "test2"]);
+        check_filterable_components(&list, vec!["test1", "test2"]);
+
+        let case = |group_name: &str,
+                    expected_components: Vec<&str>,
+                    expected_group: Vec<Option<usize>>| {
+            let mut builder = Builder::new_static(&database, groups.clone());
+            builder.add_virtual_entries_to_group(group_name, project.clone_ref(), snippets.clone());
+            builder.add_components_from_db(database.keys());
+            let list = builder.build();
+            check_components(&list, expected_components.clone());
+            check_groups(&list, expected_group.clone());
+
+            let mut builder = Builder::new_static(&database, groups.clone());
+            builder.add_components_from_db(database.keys());
+            builder.add_virtual_entries_to_group(group_name, project.clone_ref(), snippets.clone());
+            let list = builder.build();
+            check_components(&list, expected_components.clone());
+            check_groups(&list, expected_group.clone());
+        };
+
+        // Adding to existing group.
+        case(
+            "First Group",
+            vec![
+                "TopModule1.fun2",
+                "TopModule1.fun1",
+                "TopModule2.fun0",
+                "test1",
+                "test2",
+                "SubModule2.fun5",
+                "test.Test.TopModule1",
+                "test.Test.TopModule2",
+            ],
+            iter::repeat(Some(0))
+                .take(5)
+                .chain(iter::once(Some(1)))
+                .chain(iter::repeat(None).take(2))
+                .collect(),
+        );
+        // Adding to non-exiting group.
+        case(
+            "Another Group",
+            vec![
+                "TopModule1.fun2",
+                "TopModule1.fun1",
+                "TopModule2.fun0",
+                "SubModule2.fun5",
+                "test1",
+                "test2",
+                "test.Test.TopModule1",
+                "test.Test.TopModule2",
+            ],
+            iter::repeat(Some(0))
+                .take(3)
+                .chain(iter::once(Some(1)))
+                .chain(iter::repeat(Some(2)).take(2))
+                .chain(iter::repeat(None).take(2))
+                .collect(),
+        );
     }
 }

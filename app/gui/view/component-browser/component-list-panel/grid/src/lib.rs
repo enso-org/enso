@@ -358,7 +358,7 @@ impl Model {
 
     fn color_of_entry(&self, model: &EntryModel) -> entry::MainColor {
         let group_color = model.group.and_then(|group| self.colors.borrow().get(&group).copied());
-        group_color.unwrap_or_else(|| entry::MainColor::OutsideGroup)
+        group_color.unwrap_or(entry::MainColor::OutsideGroup)
     }
 }
 

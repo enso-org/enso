@@ -18,9 +18,6 @@ use ensogl_core::display::scene::Layer;
 use ensogl_core::display::shape::StyleWatchFrp;
 use ensogl_grid_view as grid_view;
 use ensogl_grid_view::entry::Contour;
-use ensogl_grid_view::entry::MovedHeaderPosition;
-use ensogl_hardcoded_theme::application::component_browser::component_list_panel::grid::entry as theme;
-use ensogl_shadow as shadow;
 use ensogl_text as text;
 
 
@@ -286,7 +283,7 @@ impl grid_view::Entry for View {
 
             // === Icon and Text ===
 
-            max_text_width <- all_with(&style, &grid_style, |s, gs| Data::max_text_width(s, gs));
+            max_text_width <- all_with(&style, &grid_style, Data::max_text_width);
             caption <- input.set_model.map(|m| m.caption.clone_ref());
             icon <- input.set_model.map(|m| m.icon);
             data.label.set_content <+ caption;

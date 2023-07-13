@@ -11,6 +11,9 @@ use crate::presenter;
 use crate::presenter::graph::AstNodeId;
 use crate::presenter::graph::ViewNodeId;
 
+use enso_frp as frp;
+use enso_suggestion_database::documentation_ir::EntryDocumentation;
+use enso_text as text;
 use ide_view as view;
 use ide_view::component_browser::component_list_panel::grid as component_grid;
 use ide_view::graph_editor::GraphEditor;
@@ -121,7 +124,7 @@ pub trait SearcherPresenter: Debug {
     fn expression_accepted(
         self: Box<Self>,
         node_id: NodeId,
-        entry_id: Option<component_grid::GroupEntryId>,
+        entry_id: Option<component_grid::EntryId>,
     ) -> Option<AstNodeId>;
 
     /// Abort editing, without taking any action.

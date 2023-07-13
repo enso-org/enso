@@ -2,17 +2,15 @@
 
 use crate::prelude::*;
 
-use crate::controller::searcher::action;
-use crate::controller::searcher::component2;
 use crate::controller::searcher::Filter;
 use crate::controller::searcher::RequiredImport;
 
+use crate::controller::searcher::component2::Suggestion;
 use ast::HasTokens;
 use double_representation::name::QualifiedName;
 use double_representation::name::QualifiedNameRef;
 use enso_text as text;
 use parser::Parser;
-
 
 
 // ==============
@@ -409,7 +407,7 @@ impl InsertedSuggestion {
 /// For example, if the user types `Foo.Bar.` and accepts a method `Foo.Bar.baz` we insert
 /// `Foo.Bar.baz` with `Foo` import instead of inserting `Bar.baz` with `Bar` import.
 struct InsertContext<'a> {
-    component:     &'a component2::Component,
+    suggestion:    &'a Suggestion,
     context:       Option<ast::opr::Chain>,
     generate_this: bool,
 }
@@ -435,7 +433,7 @@ impl InsertContext<'_> {
     /// by the user and the segments that need to be added.
     fn segments_to_replace(&self) -> Option<(Vec<ImString>, Option<RequiredImport>)> {
         if let Some(existing_segments) = self.qualified_name_segments() {
-            if let component2::Data::FromDatabase { entry, .. } = self.component {
+            if let Suggestion::FromDatabase { entry, .. } = &self.suggestion {
                 let name = entry.qualified_name();
                 let all_segments = name.segments().cloned().collect_vec();
                 // A list of search windows is reversed, because we want to look from the end, as it
@@ -469,8 +467,8 @@ impl InsertContext<'_> {
     }
 
     fn code_to_insert(&self, in_module: QualifiedNameRef) -> (Cow<str>, Option<RequiredImport>) {
-        match self.component {
-            action::Suggestion::FromDatabase(entry) => {
+        match &self.suggestion {
+            Suggestion::FromDatabase { entry, .. } => {
                 if let Some((segments, import)) = self.segments_to_replace() {
                     (Cow::from(segments.iter().join(ast::opr::predefined::ACCESS)), import)
                 } else {
@@ -479,7 +477,7 @@ impl InsertContext<'_> {
                     (code, import)
                 }
             }
-            action::Suggestion::Hardcoded(snippet) => (Cow::from(snippet.code.as_str()), None),
+            Suggestion::Virtual { snippet } => (Cow::from(snippet.code.as_str()), None),
         }
     }
 }
@@ -490,13 +488,13 @@ impl Input {
     /// Return an information about input change after inserting given suggestion.
     pub fn after_inserting_suggestion(
         &self,
-        component: &component2::Component,
+        suggestion: &Suggestion,
         has_this: bool,
         in_module: QualifiedNameRef,
     ) -> FallibleResult<InsertedSuggestion> {
         let context = self.context();
         let generate_this = !has_this;
-        let context = InsertContext { component, context, generate_this };
+        let context = InsertContext { suggestion, context, generate_this };
         let default_range = (self.cursor_position..self.cursor_position).into();
         let replaced = if context.has_qualified_name() {
             self.accessor_chain_range().unwrap_or(default_range)

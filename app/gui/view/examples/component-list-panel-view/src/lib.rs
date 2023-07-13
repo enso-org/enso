@@ -77,10 +77,9 @@ const GROUP_COUNT: usize = 3;
 
 fn content_info() -> grid::content::Info {
     grid::content::Info {
-        entry_count:               100,
-        groups:                    (0..GROUP_COUNT).map(make_group).collect(),
-        is_filtered:               false,
-        displaying_module_content: false,
+        entry_count: 100,
+        groups:      (0..GROUP_COUNT).map(make_group).collect(),
+        is_filtered: false,
     }
 }
 

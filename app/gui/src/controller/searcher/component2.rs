@@ -4,7 +4,6 @@ use crate::controller::searcher::Filter;
 use crate::prelude::*;
 use convert_case::Case;
 use convert_case::Casing;
-use double_representation::name::QualifiedName;
 use enso_doc_parser::DocSection;
 use enso_doc_parser::Tag;
 use ensogl::data::color;
@@ -16,17 +15,15 @@ use crate::model::suggestion_database;
 
 pub mod builder;
 
+use crate::controller::graph::RequiredImport;
+pub use builder::Builder;
+use double_representation::name::project;
+use enso_suggestion_database::entry;
 
 
 // =================
 // === Constants ===
 // =================
-
-/// A "matching" score assigned to the entries which does not match the current pattern entirely.
-///
-/// **Note**: If some entries matches, but their score are equal or below this value, they will be
-/// filtered out as well!
-pub const NOT_MATCHING_SCORE: f32 = 0.0;
 
 /// A factor to multiply a component's alias match score by. It is intended to reduce the importance
 /// of alias matches compared to label matches.
@@ -34,15 +31,62 @@ const ALIAS_MATCH_ATTENUATION_FACTOR: f32 = 0.75;
 
 
 
-// ====================
-// === Type Aliases ===
-// ====================
+// =================
+// === MatchInfo ===
+// =================
 
-/// Information how the component matches the filtering pattern.
-pub type MatchInfo = controller::searcher::action::MatchInfo;
-
+/// Information how the list entry matches the filtering pattern.
+#[allow(missing_docs)]
 #[derive(Clone, Debug)]
-pub enum Data {
+pub enum MatchInfo {
+    DoesNotMatch,
+    Matches { subsequence: fuzzly::Subsequence, kind: MatchKind },
+}
+
+impl Default for MatchInfo {
+    fn default() -> Self {
+        Self::Matches { subsequence: default(), kind: default() }
+    }
+}
+
+impl Ord for MatchInfo {
+    /// Compare Match infos: the better matches are greater. The scores are compared using the full
+    /// ordering as described in [`fuzzly::Subsequence::compare_scores`].
+    fn cmp(&self, rhs: &Self) -> std::cmp::Ordering {
+        use std::cmp::Ordering::*;
+        use MatchInfo::*;
+        match (&self, &rhs) {
+            (DoesNotMatch, DoesNotMatch) => Equal,
+            (DoesNotMatch, Matches { .. }) => Less,
+            (Matches { .. }, DoesNotMatch) => Greater,
+            (Matches { subsequence: lhs, .. }, Matches { subsequence: rhs, .. }) =>
+                OrderedFloat(lhs.score).cmp(&OrderedFloat(rhs.score)),
+        }
+    }
+}
+
+impl PartialOrd for MatchInfo {
+    fn partial_cmp(&self, rhs: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(rhs))
+    }
+}
+
+impl PartialEq for MatchInfo {
+    fn eq(&self, rhs: &Self) -> bool {
+        self.cmp(rhs) == std::cmp::Ordering::Equal
+    }
+}
+
+impl Eq for MatchInfo {}
+
+
+
+// ==================
+// === Suggestion ===
+// ==================
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum Suggestion {
     /// A component from the [`suggestion_database`]. When this component is picked in the
     /// Component Browser, the code returned by [`suggestion_database::Entry::code_to_insert`] will
     /// be inserted into the program.
@@ -60,18 +104,51 @@ pub enum Data {
     },
 }
 
+impl Suggestion {
+    /// The name of the suggested component.
+    pub fn name(&self) -> &str {
+        match self {
+            Self::FromDatabase { entry, .. }
+                if entry.kind == entry::Kind::Module && entry.defined_in.is_main_module() =>
+                entry.defined_in.alias_name().as_str(),
+            Self::FromDatabase { entry, .. } => entry.name.as_str(),
+            Self::Virtual { snippet } => snippet.name.as_str(),
+        }
+    }
+
+    pub fn required_import(&self) -> Option<RequiredImport> {
+        match self {
+            Self::FromDatabase { entry, .. } => Some(RequiredImport::Entry(entry.clone_ref())),
+            Self::Virtual { .. } => None,
+        }
+    }
+}
+
+
+
+// =============
+// === Group ===
+// =============
+
 #[derive(Clone, Debug, Default)]
 pub struct Group {
-    name:  ImString,
-    color: Option<color::Rgb>,
+    pub project: project::QualifiedName,
+    pub name:    ImString,
+    pub color:   Option<color::Rgb>,
 }
+
+
+
+// =================
+// === Component ===
+// =================
 
 #[allow(missing_docs)]
 #[derive(Clone, Debug)]
 pub struct Component {
-    data:       Data,
-    group_id:   Option<usize>,
-    match_info: MatchInfo,
+    pub suggestion: Suggestion,
+    pub group_id:   Option<usize>,
+    pub match_info: MatchInfo,
 }
 
 impl Component {
@@ -83,8 +160,8 @@ impl Component {
         entry: Rc<suggestion_database::Entry>,
         group_id: Option<usize>,
     ) -> Self {
-        let data = Data::FromDatabase { id, entry };
-        Self { data, group_id, match_info: default() }
+        let data = Suggestion::FromDatabase { id, entry };
+        Self { suggestion: data, group_id, match_info: default() }
     }
 
     /// The label which should be displayed in the Component Browser.
@@ -99,18 +176,15 @@ impl Component {
 
     /// The name of the component.
     pub fn name(&self) -> &str {
-        match &self.data {
-            Data::FromDatabase { entry, .. } => entry.name.as_str(),
-            Data::Virtual { snippet } => snippet.name.as_str(),
-        }
+        self.suggestion.name()
     }
 
     /// The [ID](suggestion_database::entry::Id) of the component in the [`suggestion_database`], or
     /// `None` if not applicable.
     pub fn id(&self) -> Option<suggestion_database::entry::Id> {
-        match &self.data {
-            Data::FromDatabase { id, .. } => Some(*id),
-            Data::Virtual { .. } => None,
+        match &self.suggestion {
+            Suggestion::FromDatabase { id, .. } => Some(*id),
+            Suggestion::Virtual { .. } => None,
         }
     }
 
@@ -125,7 +199,7 @@ impl Component {
     /// submodules of the entered module.
     pub fn can_be_entered(&self) -> bool {
         use suggestion_database::entry::Kind as EntryKind;
-        matches!(&self.data, Data::FromDatabase { entry, .. } if entry.kind == EntryKind::Module)
+        matches!(&self.suggestion, Suggestion::FromDatabase { entry, .. } if entry.kind == EntryKind::Module)
     }
 
     /// Update matching info.
@@ -181,7 +255,7 @@ impl Component {
 
         // Filter out components with FQN not matching the context.
         if let Some(context) = filter.context {
-            if let Data::FromDatabase { entry, .. } = &self.data {
+            if let Suggestion::FromDatabase { entry, .. } = &self.suggestion {
                 if !entry.qualified_name().to_string().contains(context.as_str()) {
                     self.match_info = MatchInfo::DoesNotMatch;
                 }
@@ -194,8 +268,8 @@ impl Component {
 
     /// Check whether the component contains the "PRIVATE" tag.
     pub fn is_private(&self) -> bool {
-        match &self.data {
-            Data::FromDatabase { entry, .. } => entry
+        match &self.suggestion {
+            Suggestion::FromDatabase { entry, .. } => entry
                 .documentation
                 .iter()
                 .any(|doc| matches!(doc, DocSection::Tag { tag: Tag::Private, .. })),
@@ -206,8 +280,8 @@ impl Component {
     /// Return an iterator over the component's aliases from the "ALIAS" tags in the entry's
     /// documentation.
     pub fn aliases(&self) -> impl Iterator<Item = &str> {
-        let aliases = match &self.data {
-            Data::FromDatabase { entry, .. } => {
+        let aliases = match &self.suggestion {
+            Suggestion::FromDatabase { entry, .. } => {
                 let aliases = entry.documentation.iter().filter_map(|doc| match doc {
                     DocSection::Tag { tag: Tag::Alias, body } =>
                         Some(body.as_str().split(',').map(|s| s.trim())),
@@ -221,26 +295,29 @@ impl Component {
     }
 }
 
-
 impl Display for Component {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match &self.data {
-            Data::FromDatabase { entry, .. } => {
-                let entry_name = entry.name.from_case(Case::Snake).to_case(Case::Lower);
-                let self_type_ref = entry.self_type.as_ref();
-                let self_type_not_here = self_type_ref.filter(|t| *t != &entry.defined_in);
-                if let Some(self_type) = self_type_not_here {
-                    let self_name = self_type.name().from_case(Case::Snake).to_case(Case::Title);
-                    write!(f, "{entry_name} ({self_name})")
-                } else {
-                    write!(f, "{entry_name}")
-                }
-            }
-            Data::Virtual { snippet } => write!(f, "{}", snippet.name),
+        use suggestion_database::entry::Kind;
+        match &self.suggestion {
+            Suggestion::FromDatabase { entry, .. } => match entry.kind {
+                Kind::Module
+                    if entry.defined_in.is_main_module() || entry.defined_in.is_top_element() =>
+                    write!(f, "{}", entry.defined_in),
+                _ => match entry.self_type.as_ref() {
+                    Some(self_type) => write!(f, "{}.{}", self_type.alias_name(), entry.name),
+                    None => write!(f, "{}", entry.name),
+                },
+            },
+            Suggestion::Virtual { snippet } => write!(f, "{}", snippet.name),
         }
     }
 }
 
+
+
+// ============
+// === List ===
+// ============
 
 #[derive(Clone, Debug, Default)]
 pub struct List {
@@ -249,7 +326,6 @@ pub struct List {
     pub(crate) filterable_components: Vec<Component>,
     pub(crate) groups:                Vec<Group>,
 }
-
 
 impl List {
     pub fn is_filtering(&self) -> bool {
@@ -278,8 +354,8 @@ impl List {
     }
 
     pub fn components(&self) -> &[Component] {
-        if self.is_filtering() {
-            &self.filterable_components
+        if let Some(range) = self.filtered_in {
+            &self.filterable_components[range]
         } else {
             &self.components
         }
@@ -287,5 +363,80 @@ impl List {
 
     pub fn get(&self, index: usize) -> Option<&Component> {
         self.components().get(index)
+    }
+
+    pub fn len(&self) -> usize {
+        self.components().len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.components().is_empty()
+    }
+
+    pub fn groups(&self) -> &[Group] {
+        &self.groups
+    }
+}
+
+
+
+// =============
+// === Tests ===
+// =============
+
+#[cfg(test)]
+pub(crate) mod tests {
+    use super::*;
+    use crate::model::execution_context;
+    use double_representation::name::QualifiedName;
+    use enso_suggestion_database::mock_suggestion_database;
+
+    pub fn check_components(list: &List, expected: Vec<&str>) {
+        let components = list.components().iter().map(|component| component.label()).collect_vec();
+        assert_eq!(components, expected);
+    }
+
+    pub fn check_groups(list: &List, expected: Vec<Option<usize>>) {
+        let groups = list.components().iter().map(|component| component.group_id).collect_vec();
+        assert_eq!(groups, expected);
+    }
+
+    #[test]
+    fn filtering() {
+        let db = mock_suggestion_database! {
+            local.New_Project_1 {
+                fn main() -> Standard.Base.Any;
+            }
+            test.Test {
+                mod TopModule1 {
+                    fn foo() -> Standard.Base.Any;
+                    fn bar() -> Standard.Base.Any;
+
+                    mod SubModule1 {
+                        fn bazz() -> Standard.Base.Any;
+                    }
+                }
+            }
+        };
+
+        let mut builder = Builder::new_empty(&db);
+        builder.add_components_from_db(db.keys());
+        let mut list = builder.build();
+
+        let module_name = Rc::new(QualifiedName::from_text("local.New_Project_1").unwrap());
+        let make_filter = |pat: &str| Filter {
+            pattern:     pat.into(),
+            context:     None,
+            module_name: module_name.clone_ref(),
+        };
+        check_components(&list, vec!["test.Test.TopModule1"]);
+        list.update_filtering(make_filter("main"));
+        check_components(&list, vec!["New_Project_1.main"]);
+        list.update_filtering(make_filter("fo"));
+        check_components(&list, vec!["TopModule1.foo"]);
+        list.update_filtering(make_filter("ba"));
+        check_components(&list, vec!["TopModule1.bar", "SubModule1.bazz"]);
+        list.update_filtering(make_filter(""));
+        check_components(&list, vec!["test.Test.TopModule1"]);
     }
 }
