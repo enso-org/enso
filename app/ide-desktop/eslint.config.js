@@ -225,6 +225,10 @@ const RESTRICTED_SYNTAXES = [
         selector: 'IfStatement > ExpressionStatement',
         message: 'Wrap `if` branches in `{}`',
     },
+    {
+        selector: 'VariableDeclarator[id.name=ENVIRONMENT][init.value!=production]',
+        message: "Environment must be 'production' when committing",
+    },
 ]
 
 // ============================

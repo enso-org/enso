@@ -3,7 +3,6 @@ import Standard.Base.Data.Text.Span.Span
 import Standard.Base.Data.Text.Span.Utf_16_Span
 import Standard.Base.Data.Text.Regex.Match.Match
 import Standard.Base.Data.Text.Regex.No_Such_Group
-import Standard.Base.Data.Text.Regex.Regex
 import Standard.Base.Data.Text.Regex.Regex_Syntax_Error
 import Standard.Base.Data.Text.Regex.Internal.Replacer.Replacer
 import Standard.Base.Errors.Common.Type_Error

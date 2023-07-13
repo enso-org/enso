@@ -9,7 +9,7 @@ from Standard.Database.Errors import Unsupported_Database_Operation
 from Standard.Test import Test, Problems
 import Standard.Test.Extensions
 
-from project.Common_Table_Operations.Util import run_default_backend
+from project.Common_Table_Operations.Util import all
 
 main = run_default_backend spec
 
@@ -42,50 +42,45 @@ spec setup =
             named_zone = Time_Zone.parse "US/Hawaii"
             dt3 = Date_Time.new 2019 11 23 4 5 6 zone=named_zone
 
-            to_utc dt = dt.at_zone Time_Zone.utc
             dates = [dt1, dt2, dt3]
             xs = [1, 2, 3]
             table = table_builder [["C", dates], ["X", xs]]
             table.at "C" . value_type . should_equal Value_Type.Date_Time
-            ## We compare the timestamps converted to UTC.
-               This ensures that the value we are getting back represents the
-               exact same instant in time as the one we put in.
-
-               We cannot guarantee that time time _zone_ itself will be the same
-               - for example Postgres stores all timestamps in UTC, regardless
-               of what timezone they were in at input.
-            table.at "C" . to_vector . map to_utc . should_equal (dates.map to_utc)
+            table.at "C" . to_vector . should_equal_tz_agnostic dates
             table.at "X" . to_vector . should_equal xs
 
     Test.group prefix+"Date-Time operations" pending=pending_datetime <|
+        dates = table_builder [["A", [Date.new 2020 12 31, Date.new 2024 2 29, Date.new 1990 1 1, Nothing]], ["X", [2020, 29, 1, 100]]]
+        times = table_builder [["A", [Time_Of_Day.new 23 59 59 millisecond=567 nanosecond=123, Time_Of_Day.new 2 30 44 nanosecond=1002000, Time_Of_Day.new 0 0 0, Nothing]], ["X", [2020, 29, 1, 100]]]
+        datetimes = table_builder [["A", [Date_Time.new 2020 12 31 23 59 59 millisecond=567 nanosecond=123, Date_Time.new 2024 2 29 2 30 44 nanosecond=1002000, Date_Time.new 1990 1 1 0 0 0, Nothing]], ["X", [2020, 29, 1, 100]]]
         Test.specify "should allow to get the year/month/day of a Date" <|
-            t = table_builder [["A", [Date.new 2020 12 31, Date.new 2024 2 29, Date.new 1990 1 1, Nothing]], ["X", [2020, 29, 1, 100]]]
-
-            t.at "A" . year . to_vector . should_equal [2020, 2024, 1990, Nothing]
-            t.at "A" . month . to_vector . should_equal [12, 2, 1, Nothing]
-            t.at "A" . day . to_vector . should_equal [31, 29, 1, Nothing]
-            [t.at "A" . year, t.at "A" . month, t.at "A" . day].each c->
+            t = dates
+            a = t.at "A"
+            a.year . to_vector . should_equal [2020, 2024, 1990, Nothing]
+            a.month . to_vector . should_equal [12, 2, 1, Nothing]
+            a.day . to_vector . should_equal [31, 29, 1, Nothing]
+            [a.year, a.month, a.day].each c->
                 Test.with_clue "The column "+c.name+" value type ("+c.value_type.to_display_text+") should be an integer: " <|
                     c.value_type.is_integer.should_be_true
                 c.value_type.is_integer.should_be_true
 
-            ((t.at "A" . year) == (t.at "X")).to_vector . should_equal [True, False, False, Nothing]
-            ((t.at "A" . month) == (t.at "X")).to_vector . should_equal [False, False, True, Nothing]
-            ((t.at "A" . day) == (t.at "X")).to_vector . should_equal [False, True, True, Nothing]
+            ((a.year) == (t.at "X")).to_vector . should_equal [True, False, False, Nothing]
+            ((a.month) == (t.at "X")).to_vector . should_equal [False, False, True, Nothing]
+            ((a.day) == (t.at "X")).to_vector . should_equal [False, True, True, Nothing]
 
         Test.specify "should allow to get the year/month/day of a Date_Time" <|
-            t = table_builder [["A", [Date_Time.new 2020 12 31 23 59 59, Date_Time.new 2024 2 29 2 30 44, Date_Time.new 1990 1 1 0 0 0, Nothing]], ["X", [2020, 29, 1, 100]]]
-
-            t.at "A" . year . to_vector . should_equal [2020, 2024, 1990, Nothing]
-            t.at "A" . month . to_vector . should_equal [12, 2, 1, Nothing]
-            t.at "A" . day . to_vector . should_equal [31, 29, 1, Nothing]
-            [t.at "A" . year, t.at "A" . month, t.at "A" . day].each c->
+            t = datetimes
+            a = t.at "A"
+            a.year . to_vector . should_equal [2020, 2024, 1990, Nothing]
+            a.month . to_vector . should_equal [12, 2, 1, Nothing]
+            a.day . to_vector . should_equal [31, 29, 1, Nothing]
+            [a.year, a.month, a.day].each c->
                 Test.with_clue "The column "+c.name+" value type ("+c.value_type.to_display_text+") should be an integer: " <|
                     c.value_type.is_integer.should_be_true
 
-            ((t.at "A" . year) == (t.at "X")).to_vector . should_equal [True, False, False, Nothing]
-            ((t.at "A" . month) == (t.at "X")).to_vector . should_equal [False, False, True, Nothing]
-            ((t.at "A" . day) == (t.at "X")).to_vector . should_equal [False, True, True, Nothing]
+            ((a.year) == (t.at "X")).to_vector . should_equal [True, False, False, Nothing]
+            ((a.month) == (t.at "X")).to_vector . should_equal [False, False, True, Nothing]
+            ((a.day) == (t.at "X")).to_vector . should_equal [False, True, True, Nothing]
 
         Test.specify "should allow to evaluate expressions with year/month/day" <|
             t = table_builder [["A", [Date.new 2020 12 31, Date.new 2024 2 29, Date.new 1990 1 1, Nothing]], ["X", [0, 2, 1, 100]], ["B", [Date_Time.new 2020 10 31 23 59 59, Date_Time.new 2024 4 29 2 30 44, Date_Time.new 1990 10 1 0 0 0, Nothing]]]
@@ -94,13 +89,74 @@ spec setup =
                 c.value_type.is_integer.should_be_true
             c.to_vector . should_equal [(2020 + 0 + 31 * 10), (2024 + 2 + 29 * 4), (1990 + 1 + 1 * 10), Nothing]
 
-        Test.specify "should report a type error if year/month/day is invoked on a non-date column" <|
-            t = table_builder [["A", [1, 2, 3]], ["B", ["a", "b", "c"]], ["C", [True, False, True]]]
-            r1 = t.at "A" . year
-            r1.should_fail_with Invalid_Value_Type
-            r1.catch . to_display_text . should_start_with "Expected type Date or Date_Time, but got a column [A] of type Integer"
-            t.at "B" . month . should_fail_with Invalid_Value_Type
-            t.at "C" . day . should_fail_with Invalid_Value_Type
+        Test.specify "should allow to get hour/minute/second of a Time_Of_Day" <|
+            a = times.at "A"
+            a.hour . to_vector . should_equal [23, 2, 0, Nothing]
+            a.minute . to_vector . should_equal [59, 30, 0, Nothing]
+            a.second . to_vector . should_equal [59, 44, 0, Nothing]
+
+            a.date_part Time_Period.Hour . to_vector . should_equal [23, 2, 0, Nothing]
+            a.date_part Time_Period.Minute . to_vector . should_equal [59, 30, 0, Nothing]
+            a.date_part Time_Period.Second . to_vector . should_equal [59, 44, 0, Nothing]
+
+            [a.hour, a.minute, a.second, a.date_part Time_Period.Hour, a.date_part Time_Period.Minute, a.date_part Time_Period.Second].each c->
+                Test.with_clue "The column "+c.name+" value type ("+c.value_type.to_display_text+") should be an integer: " <|
+                    c.value_type.is_integer.should_be_true
+
+        Test.specify "should allow to get hour/minute/second of a Date_Time" <|
+            a = datetimes.at "A"
+            a.hour . to_vector . should_equal [23, 2, 0, Nothing]
+            a.minute . to_vector . should_equal [59, 30, 0, Nothing]
+            a.second . to_vector . should_equal [59, 44, 0, Nothing]
+
+            a.date_part Time_Period.Hour . to_vector . should_equal [23, 2, 0, Nothing]
+            a.date_part Time_Period.Minute . to_vector . should_equal [59, 30, 0, Nothing]
+            a.date_part Time_Period.Second . to_vector . should_equal [59, 44, 0, Nothing]
+
+            [a.hour, a.minute, a.second, a.date_part Time_Period.Hour, a.date_part Time_Period.Minute, a.date_part Time_Period.Second].each c->
+                Test.with_clue "The column "+c.name+" value type ("+c.value_type.to_display_text+") should be an integer: " <|
+                    c.value_type.is_integer.should_be_true
+
+        Test.specify "should allow to get millisecond/nanosecond of Time_Of_Day through date_part" <|
+            a = times.at "A"
+            a.date_part Time_Period.Second . to_vector . should_equal      [59, 44, 0, Nothing]
+            a.date_part Time_Period.Millisecond . to_vector . should_equal [567, 1, 0, Nothing]
+            a.date_part Time_Period.Microsecond . to_vector . should_equal [0,   2, 0, Nothing]
+            case setup.test_selection.supports_nanoseconds_in_time of
+                True ->
+                    a.date_part Time_Period.Nanosecond . to_vector . should_equal  [123, 0, 0, Nothing]
+                False ->
+                    a.date_part Time_Period.Nanosecond . should_fail_with Unsupported_Database_Operation
+
+            [a.date_part Time_Period.Second, a.date_part Time_Period.Millisecond, a.date_part Time_Period.Microsecond, a.date_part Time_Period.Nanosecond].each c->
+                Test.with_clue "The column "+c.name+" value type ("+c.value_type.to_display_text+") should be an integer: " <|
+                    c.value_type.is_integer.should_be_true
+
+        Test.specify "should allow to get week/quarter of Date through date_part" <|
+            a = dates.at "A"
+            a.date_part Date_Period.Quarter . to_vector . should_equal [4, 1, 1, Nothing]
+            a.date_part Date_Period.Week . to_vector . should_equal [53, 9, 1, Nothing]
+
+            [a.date_part Date_Period.Quarter, a.date_part Date_Period.Week].each c->
+                Test.with_clue "The column "+c.name+" value type ("+c.value_type.to_display_text+") should be an integer: " <|
+                    c.value_type.is_integer.should_be_true
+
+        Test.specify "should allow to get various date_part of Date_Time" <|
+            a = datetimes.at "A"
+            a.date_part Date_Period.Quarter . to_vector . should_equal [4, 1, 1, Nothing]
+            a.date_part Date_Period.Week . to_vector . should_equal [53, 9, 1, Nothing]
+            a.date_part Time_Period.Millisecond . to_vector . should_equal [567, 1, 0, Nothing]
+            a.date_part Time_Period.Microsecond . to_vector . should_equal [0,   2, 0, Nothing]
+            case setup.test_selection.supports_nanoseconds_in_time of
+                True ->
+                    a.date_part Time_Period.Nanosecond . to_vector . should_equal  [123, 0, 0, Nothing]
+                False ->
+                    a.date_part Time_Period.Nanosecond . should_fail_with Unsupported_Database_Operation
+
+            [a.date_part Date_Period.Quarter, a.date_part Date_Period.Week, a.date_part Time_Period.Second, a.date_part Time_Period.Millisecond, a.date_part Time_Period.Microsecond, a.date_part Time_Period.Nanosecond].each c->
+                Test.with_clue "The column "+c.name+" value type ("+c.value_type.to_display_text+") should be an integer: " <|
+                    c.value_type.is_integer.should_be_true
+
 
         Test.specify "should allow to compare dates" <|
             t = table_builder [["X", [Date.new 2021 12 3]], ["Y", [Date.new 2021 12 5]]]
@@ -126,16 +182,303 @@ spec setup =
                 op (t.at "X") (t.at "Y") . to_vector . should_succeed
                 op (t.at "X") (Time_Of_Day.new 12 30 0) . to_vector . should_succeed
 
-        Test.specify "should not allow to mix" <|
+        Test.specify "should not allow to mix types in ordering comparisons" <|
             t = table_builder [["X", [Date.new 2021 12 3]], ["Y", [Date_Time.new 2021 12 5 12 30 0]], ["Z", [Time_Of_Day.new 12 30 0]]]
 
             [(<), (<=), (>), (>=)].each op->
                 op (t.at "X") (t.at "Y") . should_fail_with Invalid_Value_Type
                 op (t.at "X") (t.at "Z") . should_fail_with Invalid_Value_Type
 
+        if setup.test_selection.supports_time_duration then
+            Test.specify "should allow to subtract two Dates" <|
+                t = table_builder [["X", [Date.new 2021 11 3]], ["Y", [Date.new 2021 12 5]]]
+
+                ((t.at "Y") - (t.at "X")) . to_vector . should_equal [Period.new months=1 days=2]
+                ((t.at "Y") - (Date.new 2020 12 5)) . to_vector . should_equal [Period.new years=1]
+
+            Test.specify "should allow to subtract two Date_Times" <|
+                dx = Date_Time.new 2021 11 30 10 15 0
+                t = table_builder [["X", [dx]], ["Y", [Date_Time.new 2021 12 5 12 30 20]]]
+
+                hours = 2 + 24 * 5
+                diff = Duration.new hours=hours minutes=15 seconds=20
+                ((t.at "Y") - (t.at "X")) . to_vector . should_equal [diff]
+                ((t.at "Y") - dx) . to_vector . should_equal [diff]
+
+            Test.specify "should allow to subtract two Time_Of_Days" <|
+                t = table_builder [["X", [Time_Of_Day.new 10 15 0, Time_Of_Day.new 1 0 0]], ["Y", [Time_Of_Day.new 12 30 20, Time_Of_Day.new 0 0 0]]]
+
+                ((t.at "Y") - (t.at "X")) . to_vector . should_equal [Duration.new hours=2 minutes=15 seconds=20, Duration.new hours=(-1) minutes=0 seconds=0]
+                ((t.at "Y") - (Time_Of_Day.new 0 0 0)) . to_vector . should_equal [Duration.new hours=12 minutes=30 seconds=20, Duration.zero]
+
+        if setup.test_selection.supports_time_duration.not then
+            Test.specify "should report unsupported operation for subtracting date/time" <|
+                t1 = table_builder [["X", [Date.new 2021 11 3]], ["Y", [Date.new 2021 12 5]]]
+                t2 = table_builder [["X", [Date_Time.new 2021 11 3 10 15 0]], ["Y", [Date_Time.new 2021 12 5 12 30 20]]]
+                t3 = table_builder [["X", [Time_Of_Day.new 10 15 0, Time_Of_Day.new 1 0 0]], ["Y", [Time_Of_Day.new 12 30 20, Time_Of_Day.new 0 0 0]]]
+
+                ((t1.at "Y") - (t1.at "X")) . should_fail_with Unsupported_Database_Operation
+                ((t1.at "Y") - (Date.new 2020 12 5)) . should_fail_with Unsupported_Database_Operation
+                ((t2.at "Y") - (t2.at "X")) . should_fail_with Unsupported_Database_Operation
+                ((t2.at "Y") - (Date_Time.new 2020 12 5 10 15 0)) . should_fail_with Unsupported_Database_Operation
+                ((t3.at "Y") - (t3.at "X")) . should_fail_with Unsupported_Database_Operation
+                ((t3.at "Y") - (Time_Of_Day.new 0 0 0)) . should_fail_with Unsupported_Database_Operation
+
+        Test.specify "should report an Invalid_Value_Type error when subtracting mixed date/time types" <|
+            t = table_builder [["X", [Date.new 2021 11 3]], ["Y", [Date_Time.new 2021 12 5 12 30 0]], ["Z", [Time_Of_Day.new 12 30 0]]]
+
+            ((t.at "Y") - (t.at "X")) . should_fail_with Invalid_Value_Type
+            ((t.at "Y") - (Time_Of_Day.new 12 30 0)) . should_fail_with Invalid_Value_Type
+            ((t.at "X") - (t.at "Z")) . should_fail_with Invalid_Value_Type
+            ((t.at "X") - (Date_Time.new 2021 12 5 12 30 0)) . should_fail_with Invalid_Value_Type
+            ((t.at "Z") - (t.at "Y")) . should_fail_with Invalid_Value_Type
+            ((t.at "Z") - (Date.new 2021 11 3)) . should_fail_with Invalid_Value_Type
+
+        Test.specify "should allow computing a SQL-like difference" <|
+            t1 = table_builder [["X", [Date.new 2021 11 3]], ["Y", [Date.new 2021 12 5]]]
+
+            (t1.at "X").date_diff (t1.at "Y") Date_Period.Day . to_vector . should_equal [32]
+            (t1.at "Y").date_diff (t1.at "X") Date_Period.Day . to_vector . should_equal [-32]
+            (t1.at "X").date_diff (Date.new 2021 11 3) Date_Period.Day . to_vector . should_equal [0]
+
+            (t1.at "X").date_diff (t1.at "Y") Date_Period.Month . to_vector . should_equal [1]
+            (t1.at "X").date_diff (Date.new 2021 12 1) Date_Period.Month . to_vector . should_equal [0]
+            (t1.at "X").date_diff (Date.new 2020 12 1) Date_Period.Month . to_vector . should_equal [-11]
+
+            (t1.at "X").date_diff (t1.at "Y") Date_Period.Quarter . to_vector . should_equal [0]
+            (t1.at "X").date_diff (Date.new 2021 5 1) Date_Period.Quarter . to_vector . should_equal [-2]
+            (t1.at "X").date_diff (Date.new 2023 7 1) Date_Period.Quarter . to_vector . should_equal [6]
+
+            (t1.at "X").date_diff (t1.at "Y") Date_Period.Year . to_vector . should_equal [0]
+            (t1.at "X").date_diff (Date.new 2021 12 1) Date_Period.Year . to_vector . should_equal [0]
+            (t1.at "X").date_diff (Date.new 2020 10 1) Date_Period.Year . to_vector . should_equal [-1]
+
+            # Ensure months of varying length (e.g. February) are still counted right.
+            t1_2 = table_builder [["X", [Date.new 2021 01 02]]]
+            (t1_2 . at "X").date_diff (Date.new 2021 03 02) Date_Period.Day . to_vector . should_equal [59]
+            (t1_2 . at "X").date_diff (Date.new 2021 03 02) Date_Period.Month . to_vector . should_equal [2]
+            (t1_2 . at "X").date_diff (Date.new 2021 03 01) Date_Period.Day . to_vector . should_equal [58]
+            (t1_2 . at "X").date_diff (Date.new 2021 03 01) Date_Period.Month . to_vector . should_equal [1]
+
+            # We do allow the `Time_Period.Day` as a kind of alias for `Date_Period.Day` here.
+            (t1.at "X").date_diff (t1.at "Y") Time_Period.Day . to_vector . should_equal [32]
+            (t1.at "X").date_diff (t1.at "Y") Time_Period.Hour . should_fail_with Illegal_Argument
+
+            t2 = table_builder [["X", [Date_Time.new 2021 11 3 10 15 0]], ["Y", [Date_Time.new 2021 12 5 12 30 20]]]
+
+            (t2.at "X").date_diff (t2.at "Y") Date_Period.Day . to_vector . should_equal [32]
+            (t2.at "Y").date_diff (t2.at "X") Date_Period.Day . to_vector . should_equal [-32]
+            (t2.at "X").date_diff (Date_Time.new 2021 11 3 10 15 0) Date_Period.Day . to_vector . should_equal [0]
+
+            (t2.at "X").date_diff (t2.at "Y") Date_Period.Month . to_vector . should_equal [1]
+            (t2.at "X").date_diff (Date_Time.new 2021 12 1 10 15 0) Date_Period.Month . to_vector . should_equal [0]
+
+            (t2.at "X").date_diff (t2.at "Y") Date_Period.Year . to_vector . should_equal [0]
+            (t2.at "X").date_diff (Date_Time.new 2031 12 1 10 15 0) Date_Period.Year . to_vector . should_equal [10]
+
+            (t2.at "X").date_diff (t2.at "Y") Time_Period.Day . to_vector . should_equal [32]
+
+            (t2.at "X").date_diff (t2.at "Y") Time_Period.Hour . to_vector . should_equal [770]
+            (t2.at "X").date_diff (Date_Time.new 2021 11 3 12 15 0) Time_Period.Hour . to_vector . should_equal [2]
+
+            (t2.at "X").date_diff (t2.at "Y") Time_Period.Minute . to_vector . should_equal [46215]
+            (t2.at "X").date_diff (Date_Time.new 2021 11 3 10 45 0) Time_Period.Minute . to_vector . should_equal [30]
+
+            (t2.at "X").date_diff (t2.at "Y") Time_Period.Second . to_vector . should_equal [2772920]
+            (t2.at "X").date_diff (Date_Time.new 2021 11 3 10 15 30) Time_Period.Second . to_vector . should_equal [30]
+
+            (t2.at "X").date_diff (t2.at "Y") Time_Period.Millisecond . to_vector . should_equal [2772920000]
+            (t2.at "X").date_diff (Date_Time.new 2021 11 3 10 15 30 123) Time_Period.Millisecond . to_vector . should_equal [30123]
+
+            (t2.at "X").date_diff (t2.at "Y") Time_Period.Microsecond . to_vector . should_equal [2772920000000]
+            (t2.at "X").date_diff (Date_Time.new 2021 11 3 10 15 30 123 456) Time_Period.Microsecond . to_vector . should_equal [30123456]
+
+            case setup.test_selection.supports_nanoseconds_in_time of
+                True ->
+                    (t2.at "X").date_diff (t2.at "Y") Time_Period.Nanosecond . to_vector . should_equal [2772920000000000]
+                    (t2.at "X").date_diff (Date_Time.new 2021 11 3 10 15 30 123 456 789) Time_Period.Nanosecond . to_vector . should_equal [30123456789]
+                False ->
+                    (t2.at "X").date_diff (t2.at "Y") Time_Period.Nanosecond . should_fail_with Unsupported_Database_Operation
+                    (t2.at "X").date_diff (Date_Time.new 2021 11 3 10 15 30 123 456 789) Time_Period.Nanosecond . should_fail_with Unsupported_Database_Operation
+
+            t3 = table_builder [["X", [Time_Of_Day.new 10 15 0]], ["Y", [Time_Of_Day.new 12 30 20]]]
+
+            # There is no default period:
+            (t3.at "X").date_diff (t3.at "Y") . should_be_a Function
+            (t3.at "X").date_diff (t3.at "Y") Date_Period.Month . should_fail_with Illegal_Argument
+
+            # This will always be 0, should it be allowed?
+            (t3.at "X").date_diff (t3.at "Y") Time_Period.Day . should_fail_with Illegal_Argument
+
+            (t3.at "X").date_diff (t3.at "Y") Time_Period.Hour . to_vector . should_equal [2]
+            (t3.at "X").date_diff (Time_Of_Day.new 9 15 0) Time_Period.Hour . to_vector . should_equal [-1]
+
+            (t3.at "X").date_diff (t3.at "Y") Time_Period.Minute . to_vector . should_equal [135]
+            (t3.at "X").date_diff (Time_Of_Day.new 10 04 0) Time_Period.Minute . to_vector . should_equal [-11]
+
+            (t3.at "X").date_diff (t3.at "Y") Time_Period.Second . to_vector . should_equal [8120]
+            (t3.at "X").date_diff (Time_Of_Day.new 10 15 12) Time_Period.Second . to_vector . should_equal [12]
+
+            (t3.at "X").date_diff (t3.at "Y") Time_Period.Millisecond . to_vector . should_equal [8120*1000]
+            (t3.at "X").date_diff (Time_Of_Day.new 10 15 12 34) Time_Period.Millisecond . to_vector . should_equal [12034]
+
+            (t3.at "X").date_diff (t3.at "Y") Time_Period.Microsecond . to_vector . should_equal [8120*1000*1000]
+            (t3.at "X").date_diff (Time_Of_Day.new 10 15 12 34 56) Time_Period.Microsecond . to_vector . should_equal [12034056]
+
+            case setup.test_selection.supports_nanoseconds_in_time of
+                True ->
+                    (t3.at "X").date_diff (t3.at "Y") Time_Period.Nanosecond . to_vector . should_equal [8120*1000*1000*1000]
+                    (t3.at "X").date_diff (Time_Of_Day.new 10 15 12 34 56 78) Time_Period.Nanosecond . to_vector . should_equal [12034056078]
+                False ->
+                    (t3.at "X").date_diff (t3.at "Y") Time_Period.Nanosecond . should_fail_with Unsupported_Database_Operation
+                    (t3.at "X").date_diff (Time_Of_Day.new 10 15 12 34 56 78) Time_Period.Nanosecond . should_fail_with Unsupported_Database_Operation
+
+        Test.specify "date_diff should return integers" <|
+            t = table_builder [["X", [Date.new 2021 01 31]], ["Y", [Time_Of_Day.new 12 30 20]], ["Z", [Date_Time.new 2021 12 5 12 30 20]]]
+
+            time_periods = [Time_Period.Hour, Time_Period.Minute, Time_Period.Second]
+            date_periods = [Date_Period.Day, Date_Period.Week, Date_Period.Month, Date_Period.Quarter, Date_Period.Year]
+
+            date_periods.each p->
+                (t.at "X").date_diff (Date.new 2021 12 05) p . value_type . is_integer . should_be_true
+
+            time_periods.each p->
+                (t.at "Y").date_diff (Time_Of_Day.new 01 02) p . value_type . is_integer . should_be_true
+
+            (date_periods+time_periods).each p->
+                (t.at "Z").date_diff (Date_Time.new 2021 12 05 01 02) p . value_type . is_integer . should_be_true
+
+        Test.specify "should not allow mixing types in date_diff" <|
+            t = table_builder [["X", [Date.new 2021 01 31]], ["Y", [Time_Of_Day.new 12 30 20]], ["Z", [Date_Time.new 2021 12 5 12 30 20]]]
+            (t.at "X").date_diff (t.at "Y") Date_Period.Day . should_fail_with Invalid_Value_Type
+            (t.at "Z").date_diff (t.at "X") Date_Period.Day . should_fail_with Invalid_Value_Type
+            (t.at "Y").date_diff (t.at "Z") Time_Period.Hour . should_fail_with Invalid_Value_Type
+
+            r1 = (t.at "X").date_diff (Date_Time.new 2021 12 5 12 30 20) Date_Period.Day
+            r1.should_fail_with Invalid_Value_Type
+            r1.catch.expected.to_text . should_equal "Date"
+            (t.at "Y").date_diff (Date.new 2021 12 5) Date_Period.Day . should_fail_with Invalid_Value_Type
+            (t.at "Z").date_diff (Time_Of_Day.new 12 30 20) Time_Period.Hour . should_fail_with Invalid_Value_Type
+
+        Test.specify "should allow an SQL-like shift" <|
+            t1 = table_builder [["X", [Date.new 2021 01 31, Date.new 2021 01 01, Date.new 2021 12 31]], ["Y", [5, -1, 0]]]
+            (t1.at "X").date_add (t1.at "Y") Date_Period.Day . to_vector . should_equal [Date.new 2021 02 05, Date.new 2020 12 31, Date.new 2021 12 31]
+            (t1.at "X").date_add -1 Date_Period.Day . to_vector . should_equal [Date.new 2021 01 30, Date.new 2020 12 31, Date.new 2021 12 30]
+            (t1.at "X").date_add (t1.at "Y") Date_Period.Month . to_vector . should_equal [Date.new 2021 06 30, Date.new 2020 12 01, Date.new 2021 12 31]
+            (t1.at "X").date_add 1 Date_Period.Month . to_vector . should_equal [Date.new 2021 02 28, Date.new 2021 02 01, Date.new 2022 01 31]
+            (t1.at "X").date_add (t1.at "Y") Date_Period.Year . to_vector . should_equal [Date.new 2026 01 31, Date.new 2020 01 01, Date.new 2021 12 31]
+            (t1.at "X").date_add 1 Date_Period.Year . to_vector . should_equal [Date.new 2022 01 31, Date.new 2022 01 01, Date.new 2022 12 31]
+
+            (t1.at "X").date_add (t1.at "Y") Date_Period.Week . to_vector . should_equal [Date.new 2021 03 07, Date.new 2020 12 25, Date.new 2021 12 31]
+            (t1.at "X").date_add 1 Date_Period.Week . to_vector . should_equal [Date.new 2021 02 07, Date.new 2021 01 08, Date.new 2022 01 07]
+            (t1.at "X").date_add (t1.at "Y") Date_Period.Quarter . to_vector . should_equal [Date.new 2022 04 30, Date.new 2020 10 01, Date.new 2021 12 31]
+            (t1.at "X").date_add 1 Date_Period.Quarter . to_vector . should_equal [Date.new 2021 04 30, Date.new 2021 04 01, Date.new 2022 03 31]
+
+            (t1.at "X").date_add 1 Time_Period.Hour . should_fail_with Illegal_Argument
+            # Will accept Time_Period.Day as alias of Date_Period.Day
+            (t1.at "X").date_add 1 Time_Period.Day . to_vector . should_equal [Date.new 2021 02 01, Date.new 2021 01 02, Date.new 2022 01 01]
+
+            t2 = table_builder [["X", [Date_Time.new 2021 01 31 12 30 0, Date_Time.new 2021 01 01 12 30 0, Date_Time.new 2021 12 31 12 30 0]], ["Y", [5, -1, 0]]]
+            (t2.at "X").date_add (t2.at "Y") Date_Period.Day . to_vector . should_equal_tz_agnostic [Date_Time.new 2021 02 05 12 30 0, Date_Time.new 2020 12 31 12 30 0, Date_Time.new 2021 12 31 12 30 0]
+            (t2.at "X").date_add -1 Time_Period.Day . to_vector . should_equal_tz_agnostic [Date_Time.new 2021 01 30 12 30 0, Date_Time.new 2020 12 31 12 30 0, Date_Time.new 2021 12 30 12 30 0]
+            (t2.at "X").date_add (t2.at "Y") Date_Period.Month . to_vector . should_equal_tz_agnostic [Date_Time.new 2021 06 30 12 30 0, Date_Time.new 2020 12 01 12 30 0, Date_Time.new 2021 12 31 12 30 0]
+            (t2.at "X").date_add 1 Date_Period.Month . to_vector . should_equal_tz_agnostic [Date_Time.new 2021 02 28 12 30 0, Date_Time.new 2021 02 01 12 30 0, Date_Time.new 2022 01 31 12 30 0]
+            (t2.at "X").date_add (t2.at "Y") Date_Period.Year . to_vector . should_equal_tz_agnostic [Date_Time.new 2026 01 31 12 30 0, Date_Time.new 2020 01 01 12 30 0, Date_Time.new 2021 12 31 12 30 0]
+            (t2.at "X").date_add 1 Date_Period.Year . to_vector . should_equal_tz_agnostic [Date_Time.new 2022 01 31 12 30 0, Date_Time.new 2022 01 01 12 30 0, Date_Time.new 2022 12 31 12 30 0]
+
+            (t2.at "X").date_add (t2.at "Y") Time_Period.Hour . to_vector . should_equal_tz_agnostic [Date_Time.new 2021 01 31 17 30 0, Date_Time.new 2021 01 01 11 30 0, Date_Time.new 2021 12 31 12 30 0]
+            (t2.at "X").date_add 1 Time_Period.Hour . to_vector . should_equal_tz_agnostic [Date_Time.new 2021 01 31 13 30 0, Date_Time.new 2021 01 01 13 30 0, Date_Time.new 2021 12 31 13 30 0]
+            (t2.at "X").date_add (t2.at "Y") Time_Period.Minute . to_vector . should_equal_tz_agnostic [Date_Time.new 2021 01 31 12 35 0, Date_Time.new 2021 01 01 12 29 0, Date_Time.new 2021 12 31 12 30 0]
+            (t2.at "X").date_add 1 Time_Period.Minute . to_vector . should_equal_tz_agnostic [Date_Time.new 2021 01 31 12 31 0, Date_Time.new 2021 01 01 12 31 0, Date_Time.new 2021 12 31 12 31 0]
+            (t2.at "X").date_add (t2.at "Y") Time_Period.Second . to_vector . should_equal_tz_agnostic [Date_Time.new 2021 01 31 12 30 5, Date_Time.new 2021 01 01 12 29 59, Date_Time.new 2021 12 31 12 30 0]
+            (t2.at "X").date_add 1 Time_Period.Second . to_vector . should_equal_tz_agnostic [Date_Time.new 2021 01 31 12 30 1, Date_Time.new 2021 01 01 12 30 1, Date_Time.new 2021 12 31 12 30 1]
+            (t2.at "X").date_add 1 Time_Period.Millisecond . to_vector . should_equal_tz_agnostic [Date_Time.new 2021 01 31 12 30 millisecond=1, Date_Time.new 2021 01 01 12 30 millisecond=1, Date_Time.new 2021 12 31 12 30 millisecond=1]
+            (t2.at "X").date_add 1 Time_Period.Microsecond . to_vector . should_equal_tz_agnostic [Date_Time.new 2021 01 31 12 30 microsecond=1, Date_Time.new 2021 01 01 12 30 microsecond=1, Date_Time.new 2021 12 31 12 30 microsecond=1]
+            case setup.test_selection.supports_nanoseconds_in_time of
+                True ->
+                    (t2.at "X").date_add 1 Time_Period.Nanosecond . to_vector . should_equal [Date_Time.new 2021 01 31 12 30 nanosecond=1, Date_Time.new 2021 01 01 12 30 nanosecond=1, Date_Time.new 2021 12 31 12 30 nanosecond=1]
+                False ->
+                    (t2.at "X").date_add 1 Time_Period.Nanosecond . should_fail_with Unsupported_Database_Operation
+
+            t3 = table_builder [["X", [Time_Of_Day.new 12 30 0, Time_Of_Day.new 23 45 0, Time_Of_Day.new 1 30 0]], ["Y", [5, -1, 0]]]
+
+            (t3.at "X").date_add (t3.at "Y") Time_Period.Hour . to_vector . should_equal [Time_Of_Day.new 17 30 0, Time_Of_Day.new 22 45 0, Time_Of_Day.new 1 30 0]
+            (t3.at "X").date_add 1 Time_Period.Hour . to_vector . should_equal [Time_Of_Day.new 13 30 0, Time_Of_Day.new 0 45 0, Time_Of_Day.new 2 30 0]
+            (t3.at "X").date_add (t3.at "Y") Time_Period.Minute . to_vector . should_equal [Time_Of_Day.new 12 35 0, Time_Of_Day.new 23 44 0, Time_Of_Day.new 1 30 0]
+            (t3.at "X").date_add 1 Time_Period.Minute . to_vector . should_equal [Time_Of_Day.new 12 31 0, Time_Of_Day.new 23 46 0, Time_Of_Day.new 1 31 0]
+            (t3.at "X").date_add (t3.at "Y") Time_Period.Second . to_vector . should_equal [Time_Of_Day.new 12 30 5, Time_Of_Day.new 23 44 59, Time_Of_Day.new 1 30 0]
+            (t3.at "X").date_add 1 Time_Period.Second . to_vector . should_equal [Time_Of_Day.new 12 30 1, Time_Of_Day.new 23 45 1, Time_Of_Day.new 1 30 1]
+            (t3.at "X").date_add 1 Time_Period.Millisecond . to_vector . should_equal [Time_Of_Day.new 12 30 millisecond=1, Time_Of_Day.new 23 45 millisecond=1, Time_Of_Day.new 1 30 millisecond=1]
+            (t3.at "X").date_add 1 Time_Period.Microsecond . to_vector . should_equal [Time_Of_Day.new 12 30 microsecond=1, Time_Of_Day.new 23 45 microsecond=1, Time_Of_Day.new 1 30 microsecond=1]
+            case setup.test_selection.supports_nanoseconds_in_time of
+                True ->
+                    (t3.at "X").date_add 1 Time_Period.Nanosecond . to_vector . should_equal [Time_Of_Day.new 12 30 nanosecond=1, Time_Of_Day.new 23 45 nanosecond=1, Time_Of_Day.new 1 30 nanosecond=1]
+                False ->
+                    (t3.at "X").date_add 1 Time_Period.Nanosecond . should_fail_with Unsupported_Database_Operation
+
+            # No sense to shift Time_Of_Day by days either or by a Date_Period
+            (t3.at "X").date_add (t3.at "Y") Time_Period.Day . to_vector . should_fail_with Illegal_Argument
+            (t3.at "X").date_add 1 Date_Period.Month . to_vector . should_fail_with Illegal_Argument
+
+            # There is no default period.
+            (t1.at "X").date_add (t1.at "Y") . should_be_a Function
+
+        Test.specify "should check shift_amount type in date_add" <|
+            t = table_builder [["X", [Date.new 2021 01 31]]]
+            t.at "X" . date_add "text" Date_Period.Day . should_fail_with Invalid_Value_Type
+
+        Test.specify "date_diff and date_add should work correctly with DST" <|
+            zone = Time_Zone.parse "Europe/Warsaw"
+            dt1 = Date_Time.new 2023 03 26 00 30 00 zone=zone
+            t = table_builder [["X", [dt1]]]
+            x = t.at "X"
+
+            # +24h will shift 1 day and 1 hour, because they 26th of March has only 23 hours within it
+            x.date_add 24 Time_Period.Hour . to_vector . should_equal_tz_agnostic [Date_Time.new 2023 03 27 01 30 00 zone=zone]
+
+            # But 1 day date shift will shift 1 day, keeping the time, even if that particular day is only 23 hours.
+            x.date_add 1 Date_Period.Day . to_vector . should_equal_tz_agnostic [Date_Time.new 2023 03 27 00 30 00 zone=zone]
+            # Time_Period.Day will shift by 24 hours.
+            x.date_add 1 Time_Period.Day . to_vector . should_equal_tz_agnostic [Date_Time.new 2023 03 27 01 30 00 zone=zone]
+
+            dt2 = Date_Time.new 2023 03 27 00 30 00 zone=zone
+            x.date_diff dt2 Time_Period.Hour . to_vector . should_equal [23]
+
+            # Date_Period.Day and Time_Period.Day are interchangeable.
+            ## The results may vary between backends.
+               - In-memory we know this is a DST switch moment and so even if
+                 there's 23 hours between the instants, it is a day difference.
+               - Postgres backend accepts times with timezone, but in its inner
+                 storage, it converts them into UTC. In UTC there is no DST - so
+                 these are 2 instants 23 hours from each other and the database
+                 cannot 'guess' that it should be a day of a difference and
+                 since it is 'just' 23 hours - there is 0 days.
+            [[0], [1]] . should_contain (x.date_diff dt2 Date_Period.Day . to_vector)
+            # Again consistent for both backends, when counting in hours - 23 hours is not a full 24-hour day.
+            x.date_diff dt2 Time_Period.Day . to_vector . should_equal [0]
+
+            dt3 = Date_Time.new 2023 03 28 01 30 00 zone=zone
+            dt4 = Date_Time.new 2023 03 29 00 30 00 zone=zone
+            t2 = table_builder [["X", [dt3]]]
+            # No DST switch here, so all backends agree that 0 days elapsed in the 23 hours.
+            (t2.at "X").date_diff dt4 Date_Period.Day . to_vector . should_equal [0]
+            (t2.at "X").date_diff dt4 Time_Period.Day . to_vector . should_equal [0]
+            (t2.at "X").date_diff dt4 Time_Period.Hour . to_vector . should_equal [23]
+
     if setup.test_selection.date_time.not then
         Test.group prefix+"partial Date-Time support" <|
-            Test.specify "will warn when uploading a Table containing Dates" <|
+            Test.specify "will fail when uploading a Table containing Dates" <|
                 d = Date.new 2020 10 24
                 table = table_builder [["A", [d]], ["X", [123]]]
                 table.should_fail_with Unsupported_Database_Operation
+
+            Test.specify "should report a type error when date operations are invoked on a non-date column" <|
+                t = table_builder [["A", [1, 2, 3]], ["B", ["a", "b", "c"]], ["C", [True, False, True]]]
+                r1 = t.at "A" . year
+                r1.should_fail_with Invalid_Value_Type
+                r1.catch . to_display_text . should_start_with "Expected type Date or Date_Time, but got a column [A] of type Integer"
+                t.at "B" . month . should_fail_with Invalid_Value_Type
+                t.at "C" . day . should_fail_with Invalid_Value_Type
+
+                t.at "A" . date_diff (t.at "B") Date_Period.Day . should_fail_with Invalid_Value_Type
+                t.at "A" . date_add 42 Date_Period.Day . should_fail_with Invalid_Value_Type

@@ -1,12 +1,37 @@
 /** @file Contains useful error types common across the module. */
 
-// ================================
-// === Type assertions (unsafe) ===
-// ================================
+// =====================
+// === tryGetMessage ===
+// =====================
+
+/** Evaluates the given type only if it the exact same type as {@link Expected}. */
+type MustBe<T, Expected> = (<U>() => U extends T ? 1 : 2) extends <U>() => U extends Expected
+    ? 1
+    : 2
+    ? T
+    : never
 
 /** Used to enforce a parameter must be `any`. This is useful to verify that the value comes
  * from an API that returns `any`. */
-type MustBeAny<T> = never extends T ? (T & 1 extends 0 ? T : never) : never
+type MustBeAny<T> = never extends T ? (0 extends T & 1 ? T : never) : never
+
+export function tryGetMessage<T>(
+    error: MustBe<T, object> | MustBe<T, unknown> | MustBeAny<T>
+): string | null
+/** Extracts the `message` property of a value if it is a string. Intended to be used on
+ * {@link Error}s. */
+export function tryGetMessage(error: unknown): string | null {
+    return error != null &&
+        typeof error === 'object' &&
+        'message' in error &&
+        typeof error.message === 'string'
+        ? error.message
+        : null
+}
+
+// ================================
+// === Type assertions (unsafe) ===
+// ================================
 
 /** Assumes an unknown value is an {@link Error}. */
 export function unsafeAsError<T>(error: MustBeAny<T>) {

@@ -6,39 +6,76 @@ from project.Data.Boolean import Boolean, False, True
 polyglot java import java.time.temporal.ChronoUnit
 polyglot java import java.time.temporal.TemporalUnit
 polyglot java import org.enso.base.Time_Utils
+polyglot java import org.enso.base.time.CustomTemporalUnits
 
 ## Represents a unit of time of a day or shorter.
 type Time_Period
+    ## Represents a time period of a single day, measured as 24 hours.
+
+       ? Daylight Saving Time
+
+         Note that due to DST changes, some days may be slightly longer or
+         shorter. This is not reflected in the duration of this time period. For
+         a calendar-oriented day period, use `Date_Period.Day` instead.
     Day
 
+    ## Represents a time period of an hour.
     Hour
 
+    ## Represents a time period of a minute.
     Minute
 
+    ## Represents a time period of a second.
     Second
 
+    ## Represents a time period of a millisecond.
+    Millisecond
+
+    ## Represents a time period of a microsecond.
+    Microsecond
+
+    ## Represents a time period of a nanosecond.
+    Nanosecond
+
     ## PRIVATE
+       We treat the `Time_Period.Day` as a period of 24 hours, not a calendar day.
     to_java_unit : TemporalUnit
     to_java_unit self = case self of
-        Time_Period.Day -> ChronoUnit.DAYS
+        Time_Period.Day -> CustomTemporalUnits.DAY_AS_24_HOURS
         Time_Period.Hour -> ChronoUnit.HOURS
         Time_Period.Minute -> ChronoUnit.MINUTES
         Time_Period.Second -> ChronoUnit.SECONDS
+        Time_Period.Millisecond -> ChronoUnit.MILLIS
+        Time_Period.Microsecond -> ChronoUnit.MICROS
+        Time_Period.Nanosecond -> ChronoUnit.NANOS
+
+    ## PRIVATE
+       A special case for `adjust_start` and `adjust_end` methods.
+       In this particular case, it seems better to treat `Time_Period.Day` as a
+       calendar day. Otherwise, the behaviour of `start_of` and `end_of` methods
+       near DST would become unintuitive.
+    to_java_unit_for_adjust : TemporalUnit
+    to_java_unit_for_adjust self = case self of
+        Time_Period.Day -> ChronoUnit.DAYS
+        _ -> self.to_java_unit
 
     ## PRIVATE
     adjust_start : (Time_Of_Day | Date_Time) -> (Time_Of_Day | Date_Time)
     adjust_start self date =
-        (Time_Utils.utils_for date).start_of_time_period date self.to_java_unit
+        (Time_Utils.utils_for date).start_of_time_period date self.to_java_unit_for_adjust
 
     ## PRIVATE
     adjust_end : (Time_Of_Day | Date_Time) -> (Time_Of_Day | Date_Time)
     adjust_end self date =
-        (Time_Utils.utils_for date).end_of_time_period date self.to_java_unit
+        (Time_Utils.utils_for date).end_of_time_period date self.to_java_unit_for_adjust
 
     ## PRIVATE
     to_duration : Duration
     to_duration self = case self of
-        Time_Period.Day -> Duration.new 24
-        Time_Period.Hour -> Duration.new 1
-        Time_Period.Minute -> Duration.new 0 1
-        Time_Period.Second -> Duration.new 0 0 1
+        Time_Period.Day -> Duration.new hours=24
+        Time_Period.Hour -> Duration.new hours=1
+        Time_Period.Minute -> Duration.new minutes=1
+        Time_Period.Second -> Duration.new seconds=1
+        Time_Period.Millisecond -> Duration.new milliseconds=1
+        Time_Period.Microsecond -> Duration.new nanoseconds=1000
+        Time_Period.Nanosecond -> Duration.new nanoseconds=1

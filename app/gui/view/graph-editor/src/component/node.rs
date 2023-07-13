@@ -711,7 +711,6 @@ impl Node {
             // === View Mode ===
 
             model.input.set_view_mode <+ input.set_view_mode;
-            model.output.set_view_mode <+ input.set_view_mode;
             model.input.set_edit_ready_mode <+ input.set_edit_ready_mode;
             model.profiling_label.set_view_mode <+ input.set_view_mode;
             model.vcs_indicator.set_visibility  <+ input.set_view_mode.map(|&mode| {

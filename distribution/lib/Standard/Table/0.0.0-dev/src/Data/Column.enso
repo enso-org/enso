@@ -13,6 +13,7 @@ import project.Data.Type.Storage
 import project.Data.Type.Value_Type_Helpers
 import project.Internal.Cast_Helpers
 import project.Internal.Column_Ops
+import project.Internal.Date_Time_Helpers
 import project.Internal.Java_Problems
 import project.Internal.Naming_Helpers.Naming_Helpers
 import project.Internal.Parse_Values_Helper
@@ -23,6 +24,7 @@ from project.Errors import Conversion_Failure, Floating_Point_Equality, Inexact_
 from project.Internal.Column_Format import all
 from project.Internal.Java_Exports import make_date_builder_adapter, make_double_builder, make_long_builder, make_string_builder
 
+polyglot java import org.enso.base.Time_Utils
 polyglot java import org.enso.table.data.column.operation.map.MapOperationProblemBuilder
 polyglot java import org.enso.table.data.column.storage.Storage as Java_Storage
 polyglot java import org.enso.table.data.table.Column as Java_Column
@@ -358,7 +360,7 @@ type Column
                 result.rename new_name
 
     ## ALIAS Add, Plus, Concatenate
-       Element-wise addition.
+       Element-wise addition. Works on numeric types or text.
 
        Arguments:
        - other: The value to add to `self`. If `other` is a column, the addition
@@ -387,7 +389,8 @@ type Column
             run_vectorized_binary_op self '+' fallback_fn=Nothing other
 
     ## ALIAS Subtract, Minus
-       Element-wise subtraction.
+       Element-wise subtraction. Allows to subtract numeric types or compute a
+       difference between two date/time values.
 
        Arguments:
        - other: The value to subtract from `self`. If `other` is a column, the
@@ -412,8 +415,22 @@ type Column
              example_minus = Examples.integer_column - 10
     - : Column | Any -> Column
     - self other =
-        Value_Type_Helpers.check_binary_numeric_op self other <|
-            run_vectorized_binary_op self '-' fallback_fn=Nothing other
+        case Value_Type_Helpers.resolve_subtraction_kind self other of
+            Value_Type_Helpers.Subtraction_Kind.Numeric_Subtract ->
+                run_vectorized_binary_op self '-' fallback_fn=Nothing other
+            Value_Type_Helpers.Subtraction_Kind.Date_Time_Difference ->
+                case self.inferred_precise_value_type of
+                    Value_Type.Date ->
+                        ## Special handling for `Period` since it is hard to
+                           vectorize as there is no polyglot handling of it - we
+                           _wrap_ a Java object and the Java wrapper will always
+                           be an Enso callback, at which point its better to do
+                           the whole operation in pure Enso.
+                        fn = x-> y-> Period.between y x
+                        new_name = Naming_Helpers.binary_operation_name "-" self other
+                        run_binary_op self other fn new_name
+                    _ ->
+                        run_vectorized_binary_op self '-' fallback_fn=Nothing other
 
     ## ALIAS Multiply, Times, Product
        Element-wise multiplication.
@@ -1239,6 +1256,108 @@ type Column
     day self = Value_Type.expect_has_date self <|
         simple_unary_op self "day"
 
+    ## Gets the hour as a number (0-23) from the time stored in the column.
+
+       Applies only to columns that hold the `Time_Of_Day` or `Date_Time` types.
+       Returns a column of `Integer` type.
+    hour : Column ! Invalid_Value_Type
+    hour self = Value_Type.expect_has_time self <|
+        simple_unary_op self "hour"
+
+    ## Gets the minute as a number (0-59) from the time stored in the column.
+
+       Applies only to columns that hold the `Time_Of_Day` or `Date_Time` types.
+       Returns a column of `Integer` type.
+    minute : Column ! Invalid_Value_Type
+    minute self = Value_Type.expect_has_time self <|
+        simple_unary_op self "minute"
+
+    ## Gets the second as an integer (0-60) from the time stored in the column.
+
+       Applies only to columns that hold the `Time_Of_Day` or `Date_Time` types.
+       Returns a column of `Integer` type.
+    second : Column ! Invalid_Value_Type
+    second self = Value_Type.expect_has_time self <|
+        simple_unary_op self "second"
+
+    ## Gets the date part of the date/time value.
+
+       Returns a column of `Integer` type.
+    @period Date_Time_Helpers.make_period_selector_for_column
+    date_part : Date_Period | Time_Period -> Column ! Invalid_Value_Type
+    date_part self period =
+        Date_Time_Helpers.make_date_part_function self period simple_unary_op Naming_Helpers
+
+    ## Computes a time difference between the two dates.
+
+       It returns a column of integers expressing how many periods fit between
+       the two dates/times.
+
+       The difference will be positive if `end` is greater than `self`.
+
+       Arguments:
+       - end: A date/time column or a date/time value to compute the difference
+         from. It should have the same type as the current column, i.e. a
+         `Date_Time` column cannot be compared to a `Date` - to do so you first
+         need to `cast`.
+       - period: The period to compute the difference in. For `Date` columns it
+         should be a `Date_Period` and for `Time` columns it should be a
+         `Time_Period`. For `Date_Time` columns it can be either.
+
+       ? Time Zone handling
+
+         Some backends may not preserve the timezone data in a `Date_Time`
+         (preserving the represented time instant). This may lead to slight
+         differences in time calculations between backends, especially around
+         unusual events like DST.
+    @period Date_Time_Helpers.make_period_selector_for_column
+    date_diff : (Column | Date | Date_Time | Time_Of_Day) -> Date_Period | Time_Period -> Column
+    date_diff self end (period : Date_Period | Time_Period) =
+        Value_Type.expect_type self .is_date_or_time "date/time" <|
+            my_type = self.inferred_precise_value_type
+            Value_Type.expect_type end (== my_type) my_type.to_display_text <|
+                Date_Time_Helpers.check_period_aligned_with_value_type my_type period <|
+                    new_name = Naming_Helpers.function_name "date_diff" [self, end, period.to_display_text]
+                    java_unit = period.to_java_unit
+                    fn = case my_type of
+                        Value_Type.Date_Time _ ->
+                            start-> end-> Time_Utils.unit_datetime_difference java_unit start end
+                        Value_Type.Date ->
+                            start-> end-> Time_Utils.unit_date_difference java_unit start end
+                        Value_Type.Time ->
+                            start-> end-> Time_Utils.unit_time_difference java_unit start end
+                    run_binary_op self end fn new_name
+
+
+    ## Shifts the date/time by a specified period, returning a new date/time
+       column of the same type.
+
+       Arguments:
+       - amount: An integer or integer column specifying by how many periods to
+         shift each date.
+       - period: The period by which to shift. For `Date` columns it should be a
+         `Date_Period` and for `Time` columns it should be a `Time_Period`. For
+         `Date_Time` columns it can be either.
+
+       ? Time Zone handling
+
+         Some backends may not preserve the timezone data in a `Date_Time`
+         (preserving the represented time instant). This may lead to slight
+         differences in time calculations between backends, especially around
+         unusual events like DST.
+    @period Date_Time_Helpers.make_period_selector_for_column
+    date_add : (Column | Integer) -> Date_Period | Time_Period -> Column
+    date_add self amount (period : Date_Period | Time_Period) =
+        Value_Type.expect_type self .is_date_or_time "date/time" <|
+            my_type = self.inferred_precise_value_type
+            Value_Type.expect_integer amount <|
+                Date_Time_Helpers.check_period_aligned_with_value_type my_type period <|
+                    new_name = Naming_Helpers.function_name "date_add" [self, amount, period.to_display_text]
+                    java_unit = period.to_java_unit
+                    fn date amount =
+                        java_unit.addTo date amount
+                    run_binary_op self amount fn new_name
+
     ## Checks for each element of the column if it is contained within the
        provided vector or column.
 
@@ -1970,6 +2089,15 @@ run_vectorized_binary_op column name fallback_fn operand expected_result_type=No
             Column.Value (Java_Column.new effective_new_name rs)
     Problem_Behavior.Report_Warning.attach_problems_after result <|
         Java_Problems.parse_aggregated_problems problem_builder.getProblems
+
+## PRIVATE
+   Runs a binary operation over the provided column and operand which may be
+   another column or a scalar value.
+run_binary_op column operand function new_name =
+    new_column = case operand of
+        _ : Column -> column.zip operand function
+        _ -> column.map (function _ operand)
+    new_column.rename new_name
 
 ## PRIVATE
 
