@@ -1,0 +1,21 @@
+from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
+from Standard.Table import all
+
+polyglot java import org.enso.table.data.table.Column as Java_Column
+
+## PRIVATE
+   A helper implementation essentially mimicking Column.from_vector, but
+   allowing to control whether polyglot conversions are performed.
+   Used to make tests stable regardless of changes to Column.from_vector.
+column_from_vector : Text -> Vector -> Boolean -> Column
+column_from_vector name items convert_polyglot_dates =
+    expected_storage_type = Nothing
+    Illegal_Argument.handle_java_exception <|
+        java_column = case convert_polyglot_dates of
+            True ->
+                Java_Column.fromItemsConvertPolyglot name items expected_storage_type
+            False ->
+                Java_Column.fromItemsRaw name items expected_storage_type
+        Column.Value java_column
