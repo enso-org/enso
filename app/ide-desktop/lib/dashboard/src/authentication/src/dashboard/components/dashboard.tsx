@@ -104,10 +104,13 @@ const EXPERIMENTAL = {
 
 /** The name of the root directory. */
 const ROOT_DIRECTORY_NAME = 'cloud'
+/** The minimum path length at which `...` should be showin instead of the more parent
+ * directories. */
+const MIN_PATH_LENGTH_TO_SHOW_ELLIPSIS = 3
 /** The `id` attribute of the element into which the IDE will be rendered. */
 const IDE_ELEMENT_ID = 'root'
-/** The `localStorage` key under which the ID of the current directory is stored. */
-const DIRECTORY_STACK_KEY = `${common.PRODUCT_NAME.toLowerCase()}-dashboard-directory-stack`
+/** The `localStorage` key under which the full path to the current directory is stored. */
+const PATH_KEY = `${common.PRODUCT_NAME.toLowerCase()}-dashboard-path`
 /** The {@link RegExp} matching a directory name following the default naming convention. */
 const DIRECTORY_NAME_REGEX = /^New_Directory_(?<directoryIndex>\d+)$/
 /** The default prefix of an automatically generated directory. */
@@ -297,21 +300,7 @@ function Dashboard(props: DashboardProps) {
     )
     const [path, setPath] = React.useState<
         backendModule.Asset<backendModule.AssetType.directory>[]
-    >(() =>
-        session.organization == null
-            ? []
-            : [
-                  {
-                      type: backendModule.AssetType.directory,
-                      id: rootDirectoryId(session.organization.id),
-                      modifiedAt: dateTime.toRfc3339(new Date()),
-                      parentId: rootDirectoryId(session.organization.id),
-                      permissions: [],
-                      projectState: null,
-                      title: ROOT_DIRECTORY_NAME,
-                  },
-              ]
-    )
+    >([])
     // Defined by the spec as `compact` by default, however it is not ready yet.
     const [columnDisplayMode, setColumnDisplayMode] = React.useState(ColumnDisplayMode.release)
     const [tab, setTab] = React.useState(Tab.dashboard)
@@ -359,9 +348,8 @@ function Dashboard(props: DashboardProps) {
     const isListingRemoteDirectoryWhileOffline =
         session.type === authProvider.UserSessionType.offline &&
         backend.type === backendModule.BackendType.remote
-    /** This is safe as {@link path} is guaranteed to never be empty. */
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const directory = path[path.length - 1]!
+    const directory = path[path.length - 1]
+    const parentDirectory = path[path.length - 2]
 
     const switchToIdeTab = React.useCallback(() => {
         setTab(Tab.ide)
@@ -487,14 +475,17 @@ function Dashboard(props: DashboardProps) {
         setVisibleFileAssets(newFileAssets.filter(asset => queryRegex.test(asset.title)))
     }
 
-    /** Level 0 is the root directory. */
-    const goToDirectoryLevel = React.useCallback(
-        (level: number) => {
-            setDirectoryId(path[level]?.id ?? null)
-            setPath(path.slice(0, level + 1))
-        },
-        [path]
-    )
+    const goToRootDirectory = React.useCallback(() => {
+        setDirectoryId(
+            session.organization != null ? rootDirectoryId(session.organization.id) : null
+        )
+        setPath([])
+    }, [session.organization])
+
+    const goToParentDirectory = React.useCallback(() => {
+        setDirectoryId(path[path.length - 1]?.id ?? null)
+        setPath(path.slice(0, path.length - 1))
+    }, [path])
 
     const enterDirectory = (
         directoryAsset: backendModule.Asset<backendModule.AssetType.directory>
@@ -504,7 +495,7 @@ function Dashboard(props: DashboardProps) {
     }
 
     React.useEffect(() => {
-        const cachedDirectoryStackJson = localStorage.getItem(DIRECTORY_STACK_KEY)
+        const cachedDirectoryStackJson = localStorage.getItem(PATH_KEY)
         if (cachedDirectoryStackJson != null) {
             // The JSON was inserted by the code below, so it will always have the right type.
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -523,9 +514,9 @@ function Dashboard(props: DashboardProps) {
             session.organization == null ||
             directoryId === rootDirectoryId(session.organization.id)
         ) {
-            localStorage.removeItem(DIRECTORY_STACK_KEY)
+            localStorage.removeItem(PATH_KEY)
         } else {
-            localStorage.setItem(DIRECTORY_STACK_KEY, JSON.stringify(path))
+            localStorage.setItem(PATH_KEY, JSON.stringify(path))
         }
     }, [path, directoryId, session.organization])
 
@@ -1208,22 +1199,43 @@ function Dashboard(props: DashboardProps) {
                                 <div className="flex gap-0.5">
                                     <div className="bg-gray-100 rounded-l-full rounded-r-full p-1">
                                         <div className="flex flex-nowrap gap-1.75 items-center pl-2 pr-2.5">
-                                            {path.slice(0, -1).map((pathDirectory, index) => (
-                                                <React.Fragment key={pathDirectory.id}>
+                                            {directory ? (
+                                                <button
+                                                    className="rounded-full leading-5 px-1 py-0.5 -mx-1 hover:bg-gray-300"
+                                                    onClick={goToRootDirectory}
+                                                >
+                                                    {ROOT_DIRECTORY_NAME}
+                                                </button>
+                                            ) : (
+                                                <span className="leading-5 my-0.5">
+                                                    {ROOT_DIRECTORY_NAME}
+                                                </span>
+                                            )}
+                                            {path.length >= MIN_PATH_LENGTH_TO_SHOW_ELLIPSIS && (
+                                                <>
+                                                    <img src={ArrowRightSmallIcon} />
+                                                    <span className="leading-5 my-0.5">...</span>
+                                                </>
+                                            )}
+                                            {parentDirectory && (
+                                                <>
+                                                    <img src={ArrowRightSmallIcon} />
                                                     <button
                                                         className="rounded-full leading-5 px-1 py-0.5 -mx-1 hover:bg-gray-300"
-                                                        onClick={() => {
-                                                            goToDirectoryLevel(index)
-                                                        }}
+                                                        onClick={goToParentDirectory}
                                                     >
-                                                        {pathDirectory.title}
+                                                        {parentDirectory.title}
                                                     </button>
+                                                </>
+                                            )}
+                                            {directory && (
+                                                <>
                                                     <img src={ArrowRightSmallIcon} />
-                                                </React.Fragment>
-                                            ))}
-                                            <span className="leading-5 my-0.5">
-                                                {directory.title}
-                                            </span>
+                                                    <span className="leading-5 my-0.5">
+                                                        {directory.title}
+                                                    </span>
+                                                </>
+                                            )}
                                         </div>
                                     </div>
                                     {/* <div className="bg-gray-100 rounded-r-full flex flex-nowrap items-center gap-2 pl-3">
