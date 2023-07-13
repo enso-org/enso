@@ -452,7 +452,7 @@ type Table
              people.filter "age" (age -> (age%10 == 0))
     @column Widget_Helpers.make_column_name_selector
     filter : (Column | Text | Integer) -> (Filter_Condition|(Any->Boolean)) -> Problem_Behavior -> Table ! No_Such_Column | Index_Out_Of_Bounds | Invalid_Value_Type
-    filter self column filter=(Filter_Condition.Equal True) on_problems=Report_Warning = case column of
+    filter self column (filter : Filter_Condition | Function = Filter_Condition.Equal True) on_problems=Report_Warning = case column of
        _ : Column ->
            mask filter_column = case Helpers.check_integrity self filter_column of
                False ->
