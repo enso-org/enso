@@ -487,10 +487,14 @@ function Dashboard(props: DashboardProps) {
         setVisibleFileAssets(newFileAssets.filter(asset => queryRegex.test(asset.title)))
     }
 
-    const goToDirectoryLevel = (level: number) => {
-        setDirectoryId(path[level]?.id ?? null)
-        setPath(path.slice(0, level))
-    }
+    /** Level 0 is the root directory. */
+    const goToDirectoryLevel = React.useCallback(
+        (level: number) => {
+            setDirectoryId(path[level]?.id ?? null)
+            setPath(path.slice(0, level + 1))
+        },
+        [path]
+    )
 
     const enterDirectory = (
         directoryAsset: backendModule.Asset<backendModule.AssetType.directory>
@@ -1207,9 +1211,9 @@ function Dashboard(props: DashboardProps) {
                                             {path.slice(0, -1).map((pathDirectory, index) => (
                                                 <React.Fragment key={pathDirectory.id}>
                                                     <button
-                                                        className="rounded-full leading-5 px-1 py-0.5 -mx-1 hover:bg-gray-200"
+                                                        className="rounded-full leading-5 px-1 py-0.5 -mx-1 hover:bg-gray-300"
                                                         onClick={() => {
-                                                            goToDirectoryLevel(index + 1)
+                                                            goToDirectoryLevel(index)
                                                         }}
                                                     >
                                                         {pathDirectory.title}
@@ -1276,6 +1280,7 @@ function Dashboard(props: DashboardProps) {
                                 <>
                                     <div className="bg-gray-100 rounded-full flex flex-nowrap p-1">
                                         <button
+                                            disabled={columnDisplayMode === ColumnDisplayMode.all}
                                             className={`rounded-full leading-5 px-1.5 py-0.5 ${
                                                 columnDisplayMode === ColumnDisplayMode.all
                                                     ? 'bg-white shadow-soft'
@@ -1288,6 +1293,9 @@ function Dashboard(props: DashboardProps) {
                                             All
                                         </button>
                                         <button
+                                            disabled={
+                                                columnDisplayMode === ColumnDisplayMode.compact
+                                            }
                                             className={`rounded-full leading-5 px-1.5 py-0.5 ${
                                                 columnDisplayMode === ColumnDisplayMode.compact
                                                     ? 'bg-white shadow-soft'
@@ -1300,6 +1308,7 @@ function Dashboard(props: DashboardProps) {
                                             Compact
                                         </button>
                                         <button
+                                            disabled={columnDisplayMode === ColumnDisplayMode.docs}
                                             className={`rounded-full leading-5 px-1.5 py-0.5 ${
                                                 columnDisplayMode === ColumnDisplayMode.docs
                                                     ? 'bg-white shadow-soft'
@@ -1312,6 +1321,9 @@ function Dashboard(props: DashboardProps) {
                                             Docs
                                         </button>
                                         <button
+                                            disabled={
+                                                columnDisplayMode === ColumnDisplayMode.settings
+                                            }
                                             className={`rounded-full leading-5 px-1.5 py-0.5 ${
                                                 columnDisplayMode === ColumnDisplayMode.settings
                                                     ? 'bg-white shadow-soft'

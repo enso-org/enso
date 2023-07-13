@@ -187,9 +187,9 @@ class Main implements AppRunner {
         // We override the remote logger stub with the "real" one. Eventually the runner should not be aware of the
         // remote logger at all, and it should be integrated with our logging infrastructure.
         const remoteLogger = accessToken != null ? new remoteLog.RemoteLogger(accessToken) : null
-        newApp.remoteLog = (message: string, metadata: unknown) => {
-            if (newApp.config.options.dataCollection?.value != null && remoteLogger != null) {
-                void remoteLogger.remoteLog(message, metadata)
+        newApp.remoteLog = async (message: string, metadata: unknown) => {
+            if (newApp.config.options.dataCollection.value && remoteLogger != null) {
+                await remoteLogger.remoteLog(message, metadata)
             } else {
                 const logMessage = [
                     'Not sending log to remote server. Data collection is disabled.',

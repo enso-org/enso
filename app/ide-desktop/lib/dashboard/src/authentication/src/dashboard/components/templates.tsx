@@ -307,7 +307,10 @@ function Templates(props: TemplatesProps) {
     return (
         <div>
             <div className="flex items-center mb-2">
-                <button onClick={toggleIsOpen} className="flex items-center">
+                <button
+                    onClick={toggleIsOpen}
+                    className="flex items-center rounded-full pr-2 hover:bg-gray-200"
+                >
                     <img
                         src={RotatingArrowIcon}
                         className={`transition-all ease-in-out ${isOpen ? 'rotate-90' : ''}`}
