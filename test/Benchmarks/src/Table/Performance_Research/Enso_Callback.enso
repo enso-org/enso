@@ -16,6 +16,7 @@ import project.Table.Performance_Research.Common_Setup.Common_Setup
 polyglot java import org.enso.table.data.column.builder.StringBuilder
 polyglot java import org.enso.table.data.column.builder.NumericBuilder
 polyglot java import org.enso.table.data.column.operation.map.MapOperationProblemBuilder
+polyglot java import org.enso.table.data.table.Column as Java_Column
 
 ## This tests an operation that executes an Enso function on each element of a column.
    It is meant to compare the cost of calling-back into Enso from Java vs staying in Enso.
@@ -67,11 +68,26 @@ type Primitive_Enso_Callback_Test
         new_storage = storage.map Nothing self.fn Nothing storage_type problem_builder
         Column.from_storage "result" new_storage
 
-    enso_map_as_vector self =
+    enso_map_as_vector_inferred_builder_and_date_conversions self =
         vector_proxy = self.int_column.to_vector
         mapped = vector_proxy.map self.fn
-        new_column = Column.from_vector "result" mapped
-        new_column
+        # No expected storage will use inferred builder.
+        expected_storage_type = Nothing
+        Column.Value (Java_Column.fromItemsConvertPolyglot "result" mapped expected_storage_type)
+
+    enso_map_as_vector_inferred_builder self =
+        vector_proxy = self.int_column.to_vector
+        mapped = vector_proxy.map self.fn
+        # No expected storage will use inferred builder.
+        expected_storage_type = Nothing
+        Column.Value (Java_Column.fromItemsRaw "result" mapped expected_storage_type)
+
+    enso_map_as_vector_long_builder self =
+        vector_proxy = self.int_column.to_vector
+        mapped = vector_proxy.map self.fn
+        # No expected storage will use inferred builder.
+        expected_storage_type = Storage.from_value_type_strict Value_Type.Integer
+        Column.Value (Java_Column.fromItemsRaw "result" mapped expected_storage_type)
 
     enso_map_with_builder_2_calls_unboxed self =
         n = self.int_column.length
@@ -100,7 +116,7 @@ type Primitive_Enso_Callback_Test
                     builder.append (fn item)
         Column.from_storage "result" builder.seal
 
-main = spec Common_Setup.Config
+main = spec (Common_Setup.Config)
 
 spec setup =
     t = setup.generate_input_table
@@ -111,7 +127,9 @@ spec setup =
     primitive_callback_test = Primitive_Enso_Callback_Test.Instance (t.at "ints") 42
     Bench.measure (primitive_callback_test.java_vectorized) "Primitive_Enso_Callback_Test.java_vectorized" iter_size num_iterations run_gc_between_iterations=True
     Bench.measure (primitive_callback_test.java_roundtrip) "Primitive_Enso_Callback_Test.java_roundtrip" iter_size num_iterations run_gc_between_iterations=True
-    Bench.measure (primitive_callback_test.enso_map_as_vector) "Primitive_Enso_Callback_Test.enso_map_as_vector" iter_size num_iterations run_gc_between_iterations=True
+    Bench.measure (primitive_callback_test.enso_map_as_vector_inferred_builder) "Primitive_Enso_Callback_Test.enso_map_as_vector_inferred_builder" iter_size num_iterations run_gc_between_iterations=True
+    Bench.measure (primitive_callback_test.enso_map_as_vector_inferred_builder_and_date_conversions) "Primitive_Enso_Callback_Test.enso_map_as_vector_inferred_builder_and_date_conversions" iter_size num_iterations run_gc_between_iterations=True
+    Bench.measure (primitive_callback_test.enso_map_as_vector_long_builder) "Primitive_Enso_Callback_Test.enso_map_as_vector_long_builder" iter_size num_iterations run_gc_between_iterations=True
     Bench.measure (primitive_callback_test.enso_map_with_builder_2_calls_unboxed) "Primitive_Enso_Callback_Test.enso_map_with_builder_2_calls_unboxed" iter_size num_iterations run_gc_between_iterations=True
     Bench.measure (primitive_callback_test.enso_map_with_builder_1_call_boxed) "Primitive_Enso_Callback_Test.enso_map_with_builder_1_call_boxed" iter_size num_iterations run_gc_between_iterations=True
 
