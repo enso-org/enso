@@ -22,9 +22,9 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.StreamSupport;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.PackageRepository;
+import org.enso.compiler.PackageRepositoryUtils;
 import org.enso.compiler.data.CompilerConfig;
 import org.enso.distribution.DistributionManager;
 import org.enso.distribution.locking.LockManager;
@@ -38,7 +38,6 @@ import org.enso.interpreter.runtime.scope.TopLevelScope;
 import org.enso.interpreter.runtime.state.ExecutionEnvironment;
 import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.util.TruffleFileSystem;
-import org.enso.interpreter.util.ScalaConversions;
 import org.enso.librarymanager.ProjectLoadingFailure;
 import org.enso.pkg.Package;
 import org.enso.pkg.PackageManager;
@@ -289,10 +288,7 @@ public class EnsoContext {
    * @return a qualified name of the module corresponding to the file, if exists.
    */
   public Optional<QualifiedName> getModuleNameForFile(TruffleFile file) {
-    return ScalaConversions.asJava(packageRepository.getLoadedPackages()).stream()
-        .filter(pkg -> file.startsWith(pkg.sourceDir()))
-        .map(pkg -> pkg.moduleNameForFile(file))
-        .findFirst();
+    return PackageRepositoryUtils.getModuleNameForFile(packageRepository, file);
   }
 
   /**
@@ -384,12 +380,7 @@ public class EnsoContext {
    * @return {@code module}'s package, if exists
    */
   public Optional<Package<TruffleFile>> getPackageOf(TruffleFile file) {
-    if (file == null) {
-      return Optional.empty();
-    }
-    return StreamSupport.stream(packageRepository.getLoadedPackagesJava().spliterator(), true)
-        .filter(pkg -> file.getAbsoluteFile().startsWith(pkg.root().getAbsoluteFile()))
-        .findFirst();
+    return PackageRepositoryUtils.getPackageOf(packageRepository, file);
   }
 
   /**
