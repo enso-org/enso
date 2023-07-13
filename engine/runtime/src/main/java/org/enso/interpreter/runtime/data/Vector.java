@@ -1,7 +1,6 @@
 package org.enso.interpreter.runtime.data;
 
 import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -124,21 +123,6 @@ public final class Vector implements TruffleObject {
 
   public static Vector fromArray(Object arr) {
     return new Vector(arr);
-  }
-
-  @TruffleBoundary
-  public Array toEnsoArray() throws InvalidArrayIndexException {
-    var interop = InteropLibrary.getUncached();
-    try {
-      long size = interop.getArraySize(storage);
-      Object[] arr = new Object[Math.toIntExact(size)];
-      for (int i = 0; i < size; i++) {
-        arr[i] = interop.readArrayElement(storage, i);
-      }
-      return new Array(arr);
-    } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException("Unreachable", e);
-    }
   }
 
   /**

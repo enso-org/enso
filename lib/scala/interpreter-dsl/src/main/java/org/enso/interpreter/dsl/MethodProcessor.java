@@ -121,9 +121,6 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
   private final List<String> necessaryImports =
       Arrays.asList(
           "com.oracle.truffle.api.frame.VirtualFrame",
-          "com.oracle.truffle.api.interop.InteropLibrary",
-          "com.oracle.truffle.api.interop.InvalidArrayIndexException",
-          "com.oracle.truffle.api.interop.UnsupportedMessageException",
           "com.oracle.truffle.api.nodes.NodeInfo",
           "com.oracle.truffle.api.nodes.RootNode",
           "com.oracle.truffle.api.nodes.UnexpectedResultException",
@@ -466,73 +463,36 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
   private void generateCheckedArgumentRead(
       PrintWriter out, MethodDefinition.ArgumentDefinition arg, String argsArray) {
     String builtinName = capitalize(arg.getTypeName());
+    String castName = "TypesGen.expect" + builtinName;
     String varName = mkArgumentInternalVarName(arg);
     out.println("    " + arg.getTypeName() + " " + varName + ";");
-    if (arg.getTypeName().equals("Array")) {
-      String argFromArray = argsArray + "[arg" + arg.getPosition() + "Idx]";
-      String uncachedInterop = "InteropLibrary.getUncached()";
-      String errBuiltin = "EnsoContext.get(bodyNode).getBuiltins().error()";
-      out.println("    // " + argFromArray + " is expected to be an Array-like");
-      out.println("    if (TypesGen.isArray(" + argFromArray + ")) {");
-      out.println("      " + varName + " = TypesGen.asArray(" + argFromArray + ");");
-      out.println("    } else if (TypesGen.isVector(" + argFromArray + ")) {");
-      out.println("      try {");
-      out.println("        " + varName + " = TypesGen.asVector(" + argFromArray + ").toEnsoArray();");
-      out.println("      } catch (InvalidArrayIndexException e) {");
-      out.println("        var err = " + errBuiltin + ".makeInvalidArrayIndex(" + argFromArray + ", e.getInvalidIndex());");
-      out.println("        throw new PanicException(err, bodyNode);");
-      out.println("      }");
-      out.println("    } else {");
-      out.println("      com.oracle.truffle.api.CompilerDirectives.transferToInterpreter();");
-      out.println("      try {");
-      out.println("        // Try unwrapping the interop array elements into plain Java array");
-      out.println("        long arrSize = " + uncachedInterop + ".getArraySize(" + argFromArray + ");");
-      out.println("        Object[] storage = new Object[Math.toIntExact(arrSize)];");
-      out.println("        for (int i = 0; i < arrSize; i++) {");
-      out.println("          if (" + uncachedInterop + ".isArrayElementReadable(" + argFromArray + ", i)) {");
-      out.println("            Object elem = " + uncachedInterop + ".readArrayElement(" + argFromArray + ", i);");
-      out.println("            storage[i] = elem;");
-      out.println("          } else {");
-      out.println("            com.oracle.truffle.api.CompilerDirectives.transferToInterpreter();");
-      out.println("            var err = " + errBuiltin + ".makeInvalidArrayIndex(" + argFromArray + ", i);");
-      out.println("            throw new PanicException(err, bodyNode);");
-      out.println("          }"); // end else
-      out.println("        }"); // end for
-      out.println("        " + varName + " = new Array(storage);");
-      out.println("      } catch (UnsupportedMessageException | InvalidArrayIndexException e) {");
-      out.println("        throw new IllegalStateException(\"Unreachable: Failed to unwrap interop array\", e);");
-      out.println("      }");
-      out.println("    }"); // end else
-    } else {
-      String castName = "TypesGen.expect" + builtinName;
-      out.println("    try {");
-      out.println(
-          "      " + varName + " = " + castName + "(" + argsArray + "[arg" + arg.getPosition() + "Idx]);");
-      out.println("    } catch (UnexpectedResultException e) {");
-      out.println("      com.oracle.truffle.api.CompilerDirectives.transferToInterpreter();");
-      out.println("      var builtins = EnsoContext.get(bodyNode).getBuiltins();");
-      out.println("      var ensoTypeName = org.enso.interpreter.runtime.type.ConstantsGen.getEnsoTypeName(\"" + builtinName + "\");");
-      out.println("      var error = (ensoTypeName != null)");
-      out.println("        ? builtins.error().makeTypeError(builtins.fromTypeSystem(ensoTypeName), arguments[arg"
-          + arg.getPosition()
-          + "Idx], \""
-          + varName
-          + "\")");
-      out.println("        : builtins.error().makeUnsupportedArgumentsError(new Object[] { arguments[arg"
-          + arg.getPosition()
-          + "Idx] }, \"Unsupported argument for "
-          + varName
-          + " expected a '"
-          + builtinName
-          + "' but got a '\""
-          + " + arguments[arg" + arg.getPosition() + "Idx]"
-          + " + \"' [\""
-          + " + arguments[arg" + arg.getPosition() + "Idx].getClass()"
-          + " + \"]\""
-          + ");");
-      out.println("      throw new PanicException(error, bodyNode);");
-      out.println("    }");
-    }
+    out.println("    try {");
+    out.println(
+        "      " + varName + " = " + castName + "(" + argsArray + "[arg" + arg.getPosition() + "Idx]);");
+    out.println("    } catch (UnexpectedResultException e) {");
+    out.println("      com.oracle.truffle.api.CompilerDirectives.transferToInterpreter();");
+    out.println("      var builtins = EnsoContext.get(bodyNode).getBuiltins();");
+    out.println("      var ensoTypeName = org.enso.interpreter.runtime.type.ConstantsGen.getEnsoTypeName(\"" + builtinName + "\");");
+    out.println("      var error = (ensoTypeName != null)");
+    out.println("        ? builtins.error().makeTypeError(builtins.fromTypeSystem(ensoTypeName), arguments[arg"
+                      + arg.getPosition()
+                      + "Idx], \""
+                      + varName
+                      + "\")");
+    out.println("        : builtins.error().makeUnsupportedArgumentsError(new Object[] { arguments[arg"
+                      + arg.getPosition()
+                      + "Idx] }, \"Unsupported argument for "
+                      + varName
+                      + " expected a '"
+                      + builtinName
+                      + "' but got a '\""
+                      + " + arguments[arg" + arg.getPosition() + "Idx]"
+                      + " + \"' [\""
+                      + " + arguments[arg" + arg.getPosition() + "Idx].getClass()"
+                      + " + \"]\""
+                      + ");");
+    out.println("      throw new PanicException(error, bodyNode);");
+    out.println("    }");
   }
 
   private boolean generateWarningsCheck(
