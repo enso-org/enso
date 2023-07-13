@@ -119,6 +119,9 @@ public final class Type implements TruffleObject {
 
   public Type getSupertype() {
     if (supertype == null) {
+      if (builtin) {
+        return null;
+      }
       var ctx = EnsoContext.get(null);
       if (ctx.getBuiltins().any() != this) {
         return ctx.getBuiltins().any();
@@ -210,13 +213,13 @@ public final class Type implements TruffleObject {
     if (isNothing(lib) || !hasMetaParents()) {
       throw UnsupportedMessageException.create();
     }
-    assert supertype != null;
-    return new Array(supertype);
+    assert getSupertype() != null;
+    return new Array(getSupertype());
   }
 
   @ExportMessage
   boolean hasMetaParents() {
-    return supertype != null && supertype != this;
+    return getSupertype() != null && getSupertype() != this;
   }
 
   @ExportMessage
