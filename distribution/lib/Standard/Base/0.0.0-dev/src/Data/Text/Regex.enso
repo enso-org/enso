@@ -375,7 +375,7 @@ type Regex
     recompile self case_sensitivity = case case_sensitivity of
         Case_Sensitivity.Default -> self
         _ ->
-            case_insensitive = Case_Sensitivity.to_explicit_sensitivity_in_memory
+            case_insensitive = case_sensitivity.is_case_insensitive_in_memory
             should_recompile = self.case_insensitive != case_insensitive
             if should_recompile.not then self else
                 Regex.compile self.internal_regex_object.pattern case_insensitive
