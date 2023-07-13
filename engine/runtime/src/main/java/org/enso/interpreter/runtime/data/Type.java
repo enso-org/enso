@@ -118,6 +118,12 @@ public final class Type implements TruffleObject {
   }
 
   public Type getSupertype() {
+    if (supertype == null) {
+      var ctx = EnsoContext.get(null);
+      if (ctx.getBuiltins().any() != this) {
+        return ctx.getBuiltins().any();
+      }
+    }
     return supertype;
   }
 
