@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Data.Array_Proxy.Array_Proxy
+import Standard.Base.Data.Filter_Condition as Filter_Condition_Module
 import Standard.Base.Data.Index_Sub_Range as Index_Sub_Range_Module
 import Standard.Base.Errors.Common.Incomparable_Values
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
@@ -1080,7 +1081,8 @@ type Table
             mask filter_column = Table.Value (self.java_table.mask filter_column.java_column)
             case filter of
                 _ : Filter_Condition -> mask (make_filter_column column filter on_problems)
-                _ : Function -> mask (column.map filter)
+                _ : Function -> Filter_Condition_Module.handle_constructor_missing_arguments filter <|
+                    mask (column.map filter)
         _ ->
             table_at = self.at column
             self.filter table_at filter on_problems

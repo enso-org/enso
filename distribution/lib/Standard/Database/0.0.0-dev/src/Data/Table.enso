@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Data.Array_Proxy.Array_Proxy
+import Standard.Base.Data.Filter_Condition as Filter_Condition_Module
 import Standard.Base.Errors.Common.Incomparable_Values
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Common.Type_Error
@@ -463,7 +464,11 @@ type Table
                    self.updated_context new_ctx
            case filter of
                _ : Filter_Condition -> mask (make_filter_column column filter on_problems)
-               _ : Function -> Error.throw (Unsupported_Database_Operation.Error "Filtering with a custom predicate is not supported in the database.")
+               ## We check the `filter` predicate before reporting unsupported
+                  operation, because it may just be a Filter_Condition with
+                  missing arguments and then another error is more appropriate.
+               _ : Function -> Filter_Condition_Module.handle_constructor_missing_arguments filter <|
+                   Error.throw (Unsupported_Database_Operation.Error "Filtering with a custom predicate is not supported in the database.")
        _ ->
            table_at = self.at column
            self.filter table_at filter on_problems
