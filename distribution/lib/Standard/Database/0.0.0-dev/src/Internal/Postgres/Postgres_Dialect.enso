@@ -70,6 +70,8 @@ type Postgres_Dialect
        according to the specific dialect.
     generate_sql : Query -> SQL_Statement
     generate_sql self query =
+        IO.println 'GENERATE pg'
+        IO.println query
         Base_Generator.generate_query self.internal_generator_dialect query . build
 
     ## PRIVATE
@@ -496,6 +498,9 @@ decimal_mod = Base_Generator.lift_binary_op "DECIMAL_MOD" x-> y->
 
 replace : Vector Builder -> Any -> Builder
 replace args metadata =
+    IO.println 'BBB2'
+    IO.println args
+    IO.println metadata
     input = args.at 0
     pattern = args.at 1
     replacement = args.at 2
@@ -543,6 +548,8 @@ replace args metadata =
     case expression of
         Nothing ->
             msg = "The REPLACE operation is not supported on PostgreSQL for the following options: argument type " + input_type + ", case_sensitivity " + case_sensitivity.to_display_text + ", only_first " + only_first.to_text
+            IO.println 'ERR postgres'
+            IO.println msg
             Error.throw (Unsupported_Database_Operation.Error msg)
         _ -> expression
 

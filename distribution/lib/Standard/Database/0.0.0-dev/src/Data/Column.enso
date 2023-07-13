@@ -1190,8 +1190,10 @@ type Column
              column.replace '"(.*?)"'.to_regex '($1)'
     replace : Text | Column | Regex -> Text | Column -> Case_Sensitivity -> Boolean -> Column
     replace self term="" new_text="" case_sensitivity=Case_Sensitivity.Default only_first=False =
+        IO.println 'REPL0'
         Value_Type.expect_text self <| case_sensitivity.disallow_non_default_locale <|
             input_type = Meta.type_of term
+            IO.println 'REPL1'
             self.make_op "REPLACE" [term, new_text] "new name" [input_type, case_sensitivity, only_first]
 
     ## Gets the year as a number from the date stored in the column.

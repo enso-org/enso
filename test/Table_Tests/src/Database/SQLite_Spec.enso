@@ -190,7 +190,13 @@ sqlite_specific_spec prefix connection setup =
             do_round 231 . should_be_a Decimal
             do_round 231 -1 . should_be_a Decimal
 
-    Test.group "replace: literal pattern and replacement" <|
+    Test.group 'qwerqwer' <|
+        col0 = table_builder [["x", ['hello Hello', 'hello hello', 'HELLO HELLO']]] . at "x"
+        col1 = table_builder [["x", ['a[bcd] A[bCd] a[bcd]', 'abac ad Ab aCAd']]] . at "x"
+        Test.specify "case_sensitivity=insensitive use_regex=false only_first=false"
+            col0.replace 'hello' 'bye' case_sensitivity=Case_Sensitivity.Insensitive . should_fail_with Unsupported_Database_Operation
+
+    Test.group "replace: literal pattern and replacementasdfasdf" <|
         col0 = table_builder [["x", ['hello Hello', 'hello hello', 'HELLO HELLO']]] . at "x"
         col1 = table_builder [["x", ['a[bcd] A[bCd] a[bcd]', 'abac ad Ab aCAd']]] . at "x"
 
@@ -226,7 +232,7 @@ sqlite_specific_spec prefix connection setup =
         Test.specify "case_sensitivity=insensitive use_regex=True only_first=true"
             col1.replace 'a[bcd]'.to_regex 'hey' case_sensitivity=Case_Sensitivity.Insensitive only_first=True . should_fail_with Unsupported_Database_Operation
 
-    Test.group "replace: pattern and replacement columns" <|
+    Test.group "replace: pattern and replacement columnsasdfasdf" <|
         table = table_builder [["x", ['hello Hello', 'hello hello', 'HELLO HELLO', 'a[bcd] A[bCd] a[bcd]', 'abac ad Ab aCAd']], ["patterns", ['hello', 'hello', 'hello', 'a[bcd]', 'a[bcd]']], ["replacements", ['bye', 'bye', 'bye', 'hey', 'hey']]]
         col = table.at "x"
         patterns = table.at "patterns"
