@@ -10,8 +10,8 @@ use crate::controller::searcher::component::group;
 use crate::model::module::NodeEditStatus;
 use crate::model::module::NodeMetadata;
 use crate::model::suggestion_database;
-
 use crate::presenter::searcher;
+
 use breadcrumbs::Breadcrumbs;
 use double_representation::graph::GraphInfo;
 use double_representation::graph::LocationHint;
