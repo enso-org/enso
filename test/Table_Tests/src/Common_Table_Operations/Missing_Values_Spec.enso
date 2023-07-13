@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-from Standard.Table import Column_Selector, Value_Type
+from Standard.Table import Value_Type
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import Count_Distinct
 from Standard.Table.Errors import all
 

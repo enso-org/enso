@@ -2,8 +2,8 @@ from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
+import project.Data.Aggregate_Column.Aggregate_Column
 import project.Data.Column.Column
-import project.Data.Column_Selector.Column_Selector
 import project.Data.Position.Position
 import project.Data.Set_Mode.Set_Mode
 import project.Data.Sort_Column.Sort_Column
@@ -12,7 +12,6 @@ import project.Data.Type.Value_Type.Value_Type
 import project.Data.Type.Value_Type_Helpers
 import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
-from project.Data.Aggregate_Column.Aggregate_Column import Maximum, Minimum
 from project.Errors import Ambiguous_Column_Rename, Column_Type_Mismatch, Invalid_Aggregate_Column, Missing_Input_Columns, No_Common_Type, No_Input_Columns_Selected, No_Output_Columns, Too_Many_Column_Names_Provided
 
 polyglot java import java.util.HashSet
@@ -41,7 +40,9 @@ type Table_Column_Helper
 
        Arguments:
        - selectors: Single instance or a Vector of names, indexes or
-         `Column_Selector`s.
+         regular expressions.
+       - case_sensitivity: Specifies whether the matching should be case
+         sensitive or not.
        - reorder: Specifies whether to reorder the matched columns according to
          the order of the selection criteria.
          If `False`, the matched entries are returned in the same order as in
@@ -57,23 +58,14 @@ type Table_Column_Helper
          operation. By default, a warning is issued, but the operation proceeds.
          If set to `Report_Error`, the operation fails with a dataflow error.
          If set to `Ignore`, the operation proceeds without errors or warnings.
-    select_columns : Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector) -> Boolean -> Boolean -> Problem_Behavior -> Vector
-    select_columns self selectors reorder error_on_missing_columns on_problems =
+       - error_on_empty: Specifies if the operation should fail if no columns
+         are selected.
+    select_columns : Text | Integer | Regex | Vector (Integer | Text | Regex) -> Case_Sensitivity -> Boolean -> Boolean -> Problem_Behavior -> Boolean -> Vector
+    select_columns self selectors (case_sensitivity:Case_Sensitivity) (reorder:Boolean) (error_on_missing_columns:Boolean) (on_problems:Problem_Behavior) (error_on_empty:Boolean=True) =
         problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns
-        result = self.select_columns_helper selectors reorder problem_builder
+        result = self.select_columns_helper selectors case_sensitivity reorder problem_builder
         problem_builder.attach_problems_before on_problems <|
-            if result.is_empty then Error.throw No_Output_Columns else result
-
-    ## PRIVATE
-       Works like `select_columns` but will not throw `No_Output_Columns` error
-       and will return proper columns instead of internal columns.
-       Useful, when selecting a subset of columns to transform.
-    resolve_columns : Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector) -> Boolean -> Problem_Behavior -> Boolean -> Vector
-    resolve_columns self selectors error_on_missing_columns on_problems reorder=False =
-        problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns
-        result = self.select_columns_helper selectors reorder problem_builder
-        problem_builder.attach_problems_before on_problems <|
-            result.map self.make_column
+            if error_on_empty && result.is_empty then Error.throw No_Output_Columns else result
 
     ## PRIVATE
        A helper function encapsulating shared code for `remove_columns`
@@ -86,17 +78,19 @@ type Table_Column_Helper
 
        Arguments:
        - selectors: Single instance or a Vector of names, indexes or
-         `Column_Selector`s.
+         regular expressions.
+       - case_sensitivity: Specifies whether the matching should be case
+         sensitive or not.
        - error_on_missing_columns: Specifies if missing columns should be raised
          as error regardless of `on_problems`.
        - on_problems: Specifies the behavior when a problem occurs during the
          operation. By default, a warning is issued, but the operation proceeds.
          If set to `Report_Error`, the operation fails with a dataflow error.
          If set to `Ignore`, the operation proceeds without errors or warnings.
-    remove_columns : Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector) -> Boolean -> Problem_Behavior -> Vector
-    remove_columns self selectors error_on_missing_columns on_problems =
+    remove_columns : Text | Integer | Regex | Vector (Integer | Text | Regex) -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Vector
+    remove_columns self selectors (case_sensitivity:Case_Sensitivity) (error_on_missing_columns:Boolean) (on_problems:Problem_Behavior) =
         problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns
-        selection = self.select_columns_helper selectors reorder=False problem_builder
+        selection = self.select_columns_helper selectors case_sensitivity False problem_builder
         selected_names = Map.from_vector (selection.map column-> [column.name, True])
         result = self.internal_columns.filter column->
             should_be_removed = selected_names.get column.name False
@@ -115,7 +109,9 @@ type Table_Column_Helper
 
        Arguments:
        - selectors: Single instance or a Vector of names, indexes or
-         `Column_Selector`s.
+         regular expressions.
+       - case_sensitivity: Specifies whether the matching should be case
+         sensitive or not.
        - position: Specifies how to place the selected columns in relation to
          the columns which were not matched by the `selector` (if any).
        - error_on_missing_columns: Specifies if missing columns should be raised
@@ -124,10 +120,10 @@ type Table_Column_Helper
          operation. By default, a warning is issued, but the operation proceeds.
          If set to `Report_Error`, the operation fails with a dataflow error.
          If set to `Ignore`, the operation proceeds without errors or warnings.
-    reorder_columns : Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector) -> Position -> Boolean -> Problem_Behavior -> Vector
-    reorder_columns self selectors position error_on_missing_columns on_problems =
+    reorder_columns : Text | Integer | Regex | Vector (Integer | Text | Regex) -> Case_Sensitivity -> Position -> Boolean -> Problem_Behavior -> Vector
+    reorder_columns self selectors (case_sensitivity:Case_Sensitivity) position error_on_missing_columns on_problems =
         problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns
-        selection = self.select_columns_helper selectors reorder=True problem_builder
+        selection = self.select_columns_helper selectors case_sensitivity True problem_builder
         problem_builder.attach_problems_before on_problems <|
             selected_names = Map.from_vector (selection.map column-> [column.name, True])
             other_columns = self.internal_columns.filter column->
@@ -143,29 +139,27 @@ type Table_Column_Helper
        provided selection criteria.
 
        Arguments:
-       - selectors: Single instance or a Vector of names, indexes or
-         `Column_Selector`s.
+       - selectors: Single instance or a Vector of names, indexes or regular
+         expressions.
+       - case_sensitivity: Specifies whether to match the column names ignoring
+         case.
        - reorder: Specifies whether to reorder the matched columns according to
-         the order of the selection criteria.
-         If `False`, the matched entries are returned in the same order as in
-         the input.
-         If `True`, the matched entries are returned in the order of the
-         criteria matching them. If a single object has been matched by multiple
-         criteria, it is placed in the group belonging to the first matching
-         criterion on the list. If a single criterion's group has more than one
-         element, their relative order is the same as in the input.
+         the order of the selection criteria. If `False`, the matched entries
+         are returned in the same order as in the input. If `True`, the matched
+         entries are returned in the order of the first criteria matching them.
+         If a single criterion matches more than one column, their order is the
+         same as in the input table.
        - problem_builder: Encapsulates the aggregation of encountered problems.
-    select_columns_helper : Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector) -> Boolean -> Problem_Builder -> Vector
-    select_columns_helper self selectors reorder problem_builder =
-        resolve_selector selector = case selector of
-            name : Text -> resolve_selector (Column_Selector.By_Name name Case_Sensitivity.Sensitive False)
-            ix : Integer -> if is_index_valid self.internal_columns.length ix then [self.internal_columns.at ix] else
-                problem_builder.report_oob_indices [ix]
-                []
-            Column_Selector.By_Name name case_sensitivity use_regex ->
-                matches = match_columns name case_sensitivity use_regex self.internal_columns
-                if matches.is_empty then problem_builder.report_missing_input_columns [name]
-                matches
+    select_columns_helper : Text | Integer | Regex | Vector (Integer | Text | Regex) -> Case_Sensitivity -> Boolean -> Problem_Builder -> Vector
+    select_columns_helper self selectors (case_sensitivity:Case_Sensitivity) (reorder:Boolean) (problem_builder:Problem_Builder) =
+        resolve_selector selector =
+            matches = case selector of
+                ix : Integer -> if is_index_valid self.internal_columns.length ix then [self.internal_columns.at ix] else
+                    problem_builder.report_oob_indices [ix]
+                    []
+                _ -> match_columns selector case_sensitivity self.internal_columns
+            if matches.is_empty then problem_builder.report_missing_input_columns [selector]
+            matches
 
         vector = case selectors of
             _ : Vector -> selectors
@@ -227,7 +221,7 @@ type Table_Column_Helper
         just_indicators = table_with_blank_indicators.select_columns (blanks.map .name) on_problems=Problem_Behavior.Report_Error
 
         # Maximum is equivalent to Exists and Minimum is equivalent to Forall.
-        col_aggregate = if when_any then Maximum _ else Minimum _
+        col_aggregate = if when_any then Aggregate_Column.Maximum _ else Aggregate_Column.Minimum _
         aggregates = blanks.map blanks_col-> col_aggregate blanks_col.name
 
         aggregate_result = just_indicators.aggregate aggregates on_problems=Problem_Behavior.Report_Error
@@ -260,14 +254,16 @@ type Table_Column_Helper
    - internal_columns: A list of all columns in a table.
    - mapping: A selector specifying which columns should be moved and the order
      in which they should appear in the result.
+   - case_sensitivity: Specifies whether to match the column names ignoring
+     case.
    - error_on_missing_columns: If set to `True`, missing columns are treated as
      error regardless of `on_problems`.
    - on_problems: Specifies the behavior when a problem occurs during the
      operation. By default, a warning is issued, but the operation proceeds.
      If set to `Report_Error`, the operation fails with a dataflow error.
      If set to `Ignore`, the operation proceeds without errors or warnings.
-rename_columns : Vector -> Map (Text | Integer | Column_Selector) Text | Vector Text -> Boolean -> Problem_Behavior -> Map Text Text
-rename_columns internal_columns mapping error_on_missing_columns on_problems =
+rename_columns : Vector -> Map (Text | Integer | Regex) Text | Vector Text -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Map Text Text
+rename_columns (internal_columns:Vector) (mapping:Map|Vector) (case_sensitivity:Case_Sensitivity) (error_on_missing_columns:Boolean) (on_problems:Problem_Behavior) =
     ## Convert Vector of Pairs to Map
     is_vec_pairs = mapping.is_a Vector && mapping.length > 0 && (mapping.first.is_a Text . not)
     case is_vec_pairs of
@@ -294,20 +290,18 @@ rename_columns internal_columns mapping error_on_missing_columns on_problems =
                     internal_columns.take good_names.length . zip good_names
                 _ : Map ->
                     resolve_rename selector replacement = case selector of
-                        name : Text -> resolve_rename (Column_Selector.By_Name name Case_Sensitivity.Sensitive False) replacement
                         ix : Integer -> if is_index_valid internal_columns.length ix then [Pair.new (internal_columns.at ix) replacement] else
                             problem_builder.report_oob_indices [ix]
                             []
-                        Column_Selector.By_Name name case_sensitivity use_regex ->
-                            matches = match_columns name case_sensitivity use_regex internal_columns
+                        _ ->
+                            matches = match_columns selector case_sensitivity internal_columns
                             case matches.is_empty of
                                 True ->
-                                    problem_builder.report_missing_input_columns [name]
+                                    problem_builder.report_missing_input_columns [selector]
                                     []
                                 False ->
-                                    if use_regex.not then matches.map c-> Pair.new c replacement else
-                                        pattern = Regex.compile name case_insensitive=case_sensitivity.is_case_insensitive_in_memory
-                                        matches.map c-> Pair.new c (pattern.replace c.name replacement)
+                                    if selector.is_a Regex then matches.map c-> Pair.new c replacement else
+                                        matches.map c-> Pair.new c (selector.replace c.name replacement)
                     builder = mapping.to_vector.fold Vector.new_builder builder-> pair-> builder.append_vector_range (resolve_rename pair.first pair.second)
                     builder.to_vector
 
@@ -390,9 +384,14 @@ is_index_valid length ix =
 
 ## PRIVATE
    A helper method to match columns by name
-match_columns : Text -> Case_Sensitivity -> Boolean -> Vector -> Vector
-match_columns name case_sensitivity use_regex columns =
-    match = case_sensitivity.create_match_function use_regex
+match_columns : Text | Regex -> Case_Sensitivity -> Boolean -> Vector -> Vector
+match_columns (name : Text | Regex) (case_sensitivity : Case_Sensitivity) columns =
+    match = case name of
+        _ : Text -> case case_sensitivity of
+            Case_Sensitivity.Default -> (==)
+            Case_Sensitivity.Sensitive -> (==)
+            Case_Sensitivity.Insensitive locale -> name.equals_ignore_case locale=locale
+        _ : Regex -> name.recompile case_sensitivity . matches
     columns.filter c-> match c.name name
 
 ## PRIVATE
@@ -509,9 +508,9 @@ replace_columns_with_columns table old_columns new_columns =
    Replace a set of columns in the table with a new set of columns produced by
    transforming the old columns. The old columns must all exist in the table,
    and the new columns must all have the same name.
-replace_columns_with_transformed_columns : Table -> Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector) -> (Column -> Column) -> Boolean -> Problem_Behavior -> Table
+replace_columns_with_transformed_columns : Table -> Text | Integer | Regex | Vector (Integer | Text | Regex) -> (Column -> Column) -> Boolean -> Problem_Behavior -> Table
 replace_columns_with_transformed_columns table selectors transformer error_on_missing_columns=True on_problems=Report_Warning =
-    internal_columns = table.columns_helper.select_columns selectors reorder=False error_on_missing_columns=error_on_missing_columns on_problems=on_problems
+    internal_columns = table.columns_helper.select_columns selectors Case_Sensitivity.Default reorder=False error_on_missing_columns=error_on_missing_columns on_problems=on_problems
     columns = internal_columns.map table.columns_helper.make_column
     new_columns = columns.map transformer
     replace_columns_with_columns table columns new_columns
