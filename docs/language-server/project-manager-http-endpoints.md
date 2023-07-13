@@ -13,11 +13,11 @@ JSONRPC protocol.
 
 <!-- MarkdownTOC levels="2" autolink="true" indent="    " -->
 
-- [`/projects/{project_id}/enso_project`](#projectsproject_idenso_project)
+- [`/projects/{project_id}/enso-project`](#projectsproject_idenso-project)
 
 <!-- /MarkdownTOC -->
 
-## `/projects/{project_id}/enso_project`
+## `/projects/{project_id}/enso-project`
 
 HTTP endpoint that returns the project structure in `.enso-project` format.
 
