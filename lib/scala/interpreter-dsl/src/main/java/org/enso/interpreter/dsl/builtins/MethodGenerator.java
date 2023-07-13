@@ -94,12 +94,13 @@ public abstract class MethodGenerator {
             return tpe.baseType();
           } else {
             if (!convertToGuestValue) {
-              processingEnvironment.getMessager().printMessage(
-                  Kind.ERROR,
-                  "Automatic conversion of value of type "
-                      + tpe.baseType()
-                      + " to guest value requires explicit '@Builtin.ReturningGuestObject' annotation"
-              );
+              processingEnvironment
+                  .getMessager()
+                  .printMessage(
+                      Kind.ERROR,
+                      "Automatic conversion of value of type "
+                          + tpe.baseType()
+                          + " to guest value requires explicit '@Builtin.ReturningGuestObject' annotation");
             }
             return "Object";
           }
@@ -116,18 +117,22 @@ public abstract class MethodGenerator {
    * @param v variable element representing the parameter
    * @return MethodParameter encapsulating the method's parameter info
    */
-  protected MethodParameter fromVariableElementToMethodParameter(ProcessingEnvironment processingEnv, int i, VariableElement v) {
+  protected MethodParameter fromVariableElementToMethodParameter(
+      ProcessingEnvironment processingEnv, int i, VariableElement v) {
     String ensoName =
         CaseFormat.LOWER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, v.getSimpleName().toString());
     TypeWithKind tpe = TypeWithKind.createFromTpe(v.asType().toString());
     if (tpe.kind() == TypeKind.ARRAY && !tpe.isValidGuestType()) {
-      processingEnv.getMessager().printMessage(
-          Kind.ERROR,
-          "Parameter " + v + " is an array of host objects, which "
-              + "is not supported by the MethodGenerator. Either use array of primitive, or valid guest objects, "
-              + "or accept the array as Object and transform it in the method body.",
-          v
-      );
+      processingEnv
+          .getMessager()
+          .printMessage(
+              Kind.ERROR,
+              "Parameter "
+                  + v
+                  + " is an array of host objects, which "
+                  + "is not supported by the MethodGenerator. Either use array of primitive, or valid guest objects, "
+                  + "or accept the array as Object and transform it in the method body.",
+              v);
     }
     return new MethodParameter(
         i,

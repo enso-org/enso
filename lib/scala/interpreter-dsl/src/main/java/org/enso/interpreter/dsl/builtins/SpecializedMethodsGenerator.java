@@ -24,11 +24,15 @@ public final class SpecializedMethodsGenerator extends MethodGenerator {
   private static final String WithWarningsClassName =
       "org.enso.interpreter.runtime.error.WithWarnings";
 
-  public SpecializedMethodsGenerator(ProcessingEnvironment processingEnvironment, List<ExecutableElement> elements) {
+  public SpecializedMethodsGenerator(
+      ProcessingEnvironment processingEnvironment, List<ExecutableElement> elements) {
     this(processingEnvironment, elements, elements.get(0));
   }
 
-  private SpecializedMethodsGenerator(ProcessingEnvironment processingEnvironment, List<ExecutableElement> elements, ExecutableElement first) {
+  private SpecializedMethodsGenerator(
+      ProcessingEnvironment processingEnvironment,
+      List<ExecutableElement> elements,
+      ExecutableElement first) {
     this(
         processingEnvironment,
         elements,
@@ -101,7 +105,10 @@ public final class SpecializedMethodsGenerator extends MethodGenerator {
                   return new SpecializeMethodInfo(
                       method,
                       IntStream.range(0, params.size())
-                          .mapToObj(i -> fromVariableElementToMethodParameter(processingEnv, i, params.get(i)))
+                          .mapToObj(
+                              i ->
+                                  fromVariableElementToMethodParameter(
+                                      processingEnv, i, params.get(i)))
                           .collect(Collectors.toList()),
                       wrapExceptions(processingEnv, method));
                 });
@@ -142,7 +149,10 @@ public final class SpecializedMethodsGenerator extends MethodGenerator {
                 method -> {
                   List<? extends VariableElement> params = method.getParameters();
                   return IntStream.range(0, params.size())
-                      .mapToObj(i -> fromVariableElementToMethodParameter(processingEnv, i, params.get(i)));
+                      .mapToObj(
+                          i ->
+                              fromVariableElementToMethodParameter(
+                                  processingEnv, i, params.get(i)));
                 })
             .collect(Collectors.groupingBy(p -> p.index()));
 
@@ -277,12 +287,17 @@ public final class SpecializedMethodsGenerator extends MethodGenerator {
             methodBody.add("  var result = " + qual + "." + name + "(" + paramsApplied + ");");
             methodBody.add("  return EnsoContext.get(this).getEnvironment().asGuestValue(result);");
           } else {
-            processingEnvironment.getMessager().printMessage(
-                Diagnostic.Kind.ERROR,
-                "Cannot convert return type of " + owner + "." + name + " to guest value." +
-                    " Specify @ReturningGuestValue annotation",
-                methodInfo.origin
-            );
+            processingEnvironment
+                .getMessager()
+                .printMessage(
+                    Diagnostic.Kind.ERROR,
+                    "Cannot convert return type of "
+                        + owner
+                        + "."
+                        + name
+                        + " to guest value."
+                        + " Specify @ReturningGuestValue annotation",
+                    methodInfo.origin);
           }
       }
     }

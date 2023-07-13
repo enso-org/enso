@@ -966,7 +966,7 @@ lazy val `interpreter-dsl-test` =
         sbt.internal.util.CustomLogManager.excludeMsg(
           "Could not determine source for class ",
           Level.Warn
-      ),
+        ),
       commands += WithDebugCommand.withDebug,
       libraryDependencies ++= Seq(
         "org.graalvm.truffle" % "truffle-api"           % graalVersion   % "provided",
