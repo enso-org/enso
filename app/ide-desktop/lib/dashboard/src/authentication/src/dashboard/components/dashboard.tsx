@@ -738,7 +738,7 @@ function Dashboard(props: DashboardProps) {
                                 permissions={permissionDisplay.permissionActionsToPermissions(
                                     user.permissions
                                 )}
-                                className={`border-2 rounded-full ${
+                                className={`border-2 rounded-full bg-white mx-1 ${
                                     ownsThisAsset
                                         ? 'cursor-pointer hover:shadow-soft hover:z-10'
                                         : ''

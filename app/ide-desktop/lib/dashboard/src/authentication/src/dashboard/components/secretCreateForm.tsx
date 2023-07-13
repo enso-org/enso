@@ -57,7 +57,7 @@ function SecretCreateForm(props: SecretCreateFormProps) {
         }
 
         return (
-            <CreateForm title="New Secret" onSubmit={onSubmit} {...passThrough}>
+            <CreateForm title="New secret" onSubmit={onSubmit} {...passThrough}>
                 <div className="flex flex-row flex-nowrap m-1">
                     <label className="inline-block flex-1 grow m-1" htmlFor="project_name">
                         Name

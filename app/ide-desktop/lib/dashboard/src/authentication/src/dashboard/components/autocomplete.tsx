@@ -209,6 +209,7 @@ function Autocomplete(props: InternalMultipleAutocompleteProps | InternalSingleA
                 ) : (
                     <input
                         type={type}
+                        size={1}
                         ref={inputRef}
                         autoFocus={autoFocus}
                         disabled={disabled}

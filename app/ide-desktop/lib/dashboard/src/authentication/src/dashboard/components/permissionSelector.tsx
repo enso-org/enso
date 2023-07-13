@@ -68,7 +68,7 @@ function PermissionSelector(props: PermissionSelectorProps) {
                         >
                             <PermissionDisplay
                                 permissions={permission}
-                                className={`cursor-pointer ${
+                                className={`cursor-pointer rounded-full ${
                                     permissions.has(action) ? 'shadow-soft-dark' : ''
                                 } ${permissionClassName ?? ''}`}
                             >
