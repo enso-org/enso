@@ -110,7 +110,7 @@ pub mod freeze {
             let lock_top_radius  = &unit * 4.0;
             let lock_top_width   = &unit * 2.0;
             let lock_top         = make_ring(&lock_top_radius,&lock_top_radius - &lock_top_width);
-            let lock_top         = lock_top.intersection(HalfPlane().rotate(right_angle*2.0));
+            let lock_top         = lock_top.intersection(BottomHalfPlane().rotate(right_angle*2.0));
             let lock_top         = lock_top.translate_y(lock_body_radius - &unit * 3.0);
             let vertical_bar     = Rect((&lock_top_width,&unit * 4.0));
             let left_bar         = vertical_bar.translate_x(&lock_top_radius-&lock_top_width/2.0);
