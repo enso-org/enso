@@ -252,6 +252,10 @@ pub struct List {
 
 
 impl List {
+    pub fn is_filtering(&self) -> bool {
+        self.filtered_in.is_some()
+    }
+
     pub fn update_filtering(&mut self, filter: Filter) {
         if filter.pattern.trim().is_empty() {
             self.filtered_in = None;
@@ -271,5 +275,17 @@ impl List {
     /// Return the entry match ordering when sorting by match. See [`component::Order::ByMatch`].
     fn entry_match_ordering(lhs: &MatchInfo, rhs: &MatchInfo) -> cmp::Ordering {
         lhs.cmp(rhs).reverse()
+    }
+
+    pub fn components(&self) -> &[Component] {
+        if self.is_filtering() {
+            &self.filterable_components
+        } else {
+            &self.components
+        }
+    }
+
+    pub fn get(&self, index: usize) -> Option<&Component> {
+        self.components().get(index)
     }
 }

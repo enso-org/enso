@@ -106,49 +106,6 @@ pub enum Notification {
 }
 
 
-// ===================
-// === Suggestions ===
-// ===================
-
-/// List of actions available in Searcher.
-#[derive(Clone, CloneRef, Debug)]
-pub enum Actions {
-    /// The action list is still gathering suggestions from the Language Server.
-    Loading,
-    /// The action list is ready.
-    #[allow(missing_docs)]
-    Loaded { list: Rc<action::List> },
-    /// Loading suggestions from the Language Server resulted in error.
-    Error(Rc<failure::Error>),
-}
-
-impl Actions {
-    /// Check if list is still loading.
-    pub fn is_loading(&self) -> bool {
-        matches!(self, Self::Loading)
-    }
-
-    /// Check if retrieving suggestion list was unsuccessful
-    pub fn is_error(&self) -> bool {
-        matches!(self, Self::Error(_))
-    }
-
-    /// Get the list of actions. Returns None if still loading or error was returned.
-    pub fn list(&self) -> Option<&action::List> {
-        match self {
-            Self::Loaded { list } => Some(list),
-            _ => None,
-        }
-    }
-}
-
-impl Default for Actions {
-    fn default() -> Self {
-        Self::Loading
-    }
-}
-
-
 
 // ================
 // === ThisNode ===
@@ -470,23 +427,19 @@ impl Searcher {
         self.this_arg.deref().as_ref().map(|this| this.var.as_ref())
     }
 
-    /// Pick a completion suggestion.
-    ///
-    /// This function should be called when user do the _use as suggestion_ action as a code
-    /// suggestion (see struct documentation). The picked suggestion will be remembered, and the
-    /// searcher's input will be updated and returned by this function.
+    /// Pick a component suggestion and apply it to the input.
     #[profile(Debug)]
     pub fn use_suggestion(
         &self,
-        picked_suggestion: action::Suggestion,
+        component: &component2::Component,
     ) -> FallibleResult<text::Change<Byte, String>> {
-        debug!("Picking suggestion: {picked_suggestion:?}.");
+        debug!("Picking suggestion: {component:?}.");
         let change = {
             let mut data = self.data.borrow_mut();
             let has_this = self.this_var().is_some();
             let module_name = self.module_qualified_name();
             let inserted = data.input.after_inserting_suggestion(
-                &picked_suggestion,
+                &component,
                 has_this,
                 module_name.as_ref(),
             )?;
@@ -505,35 +458,21 @@ impl Searcher {
     }
 
     /// Use action at given index as a suggestion. The exact outcome depends on the action's type.
-    pub fn use_as_suggestion(
+    pub fn use_suggestion_by_index(
         &self,
         index: usize,
     ) -> FallibleResult<enso_text::Change<Byte, String>> {
         let error = || NoSuchAction { index };
-        let suggestion = {
-            let data = self.data.borrow();
-            let list = data.actions.list().ok_or_else(error)?;
-            list.get_cloned(index).ok_or_else(error)?.action
-        };
-        match suggestion {
-            Action::Suggestion(suggestion) => self.use_suggestion(suggestion),
-            _ => Err(NotASuggestion { index }.into()),
-        }
+        let suggestion = self.data.borrow().components.get(index).ok_or_else(error)?;
+        self.use_suggestion(suggestion)
     }
 
     /// Preview the suggestion in the searcher.
-    pub fn preview_entry_as_suggestion(&self, index: usize) -> FallibleResult {
+    pub fn preview_suggestion(&self, index: usize) -> FallibleResult {
         debug!("Previewing entry: {index:?}.");
         let error = || NoSuchAction { index };
-        let suggestion = {
-            let data = self.data.borrow();
-            let list = data.actions.list().ok_or_else(error)?;
-            list.get_cloned(index).ok_or_else(error)?.action
-        };
-        if let Action::Suggestion(picked_suggestion) = suggestion {
-            self.preview(Some(picked_suggestion))?;
-        };
-
+        let suggestion = self.data.borrow().components.get(index).ok_or_else(error)?;
+        self.preview(Some(suggestion))?;
         Ok(())
     }
 
@@ -546,7 +485,7 @@ impl Searcher {
     ///
     /// If `suggestion` is specified, the preview will contains code after applying it.
     /// Otherwise it will be just the current searcher input.
-    pub fn preview(&self, suggestion: Option<action::Suggestion>) -> FallibleResult {
+    pub fn preview(&self, component: Option<&component2::Component>) -> FallibleResult {
         let transaction_name = "Previewing Component Browser suggestion.";
         let _skip = self
             .graph
@@ -556,10 +495,10 @@ impl Searcher {
         debug!("Updating node preview. Previewed suggestion: \"{suggestion:?}\".");
         self.clear_temporary_imports();
         let has_this = self.this_var().is_some();
-        let preview_change_result = suggestion.map(|suggestion| {
+        let preview_change_result = component.map(|component| {
             let module_name = self.module_qualified_name();
             self.data.borrow().input.after_inserting_suggestion(
-                &suggestion,
+                component,
                 has_this,
                 module_name.as_ref(),
             )
@@ -589,70 +528,13 @@ impl Searcher {
         Ok(())
     }
 
-    /// Execute given action.
-    ///
-    /// If the action results in adding new node to the graph, or changing an exiting node, its id
-    /// will be returned by this function.
+    /// Preview the suggestion selected in the searcher.
     #[profile(Task)]
-    pub fn execute_action(&self, action: Action) -> FallibleResult<Option<ast::Id>> {
-        match action {
-            Action::Suggestion(suggestion) => {
-                self.use_suggestion(suggestion)?;
-                self.commit_node().map(Some)
-            }
-            Action::Example(example) => match *self.mode {
-                Mode::NewNode { .. } => self.add_example(&example).map(Some),
-                _ => Err(CannotExecuteWhenEditingNode.into()),
-            },
-            Action::ProjectManagement(action) => {
-                match self.ide.manage_projects() {
-                    Ok(_) => {
-                        let ide = self.ide.clone_ref();
-                        executor::global::spawn(async move {
-                            // We checked that manage_projects returns Some just a moment ago, so
-                            // unwrapping is safe.
-                            let manage_projects = ide.manage_projects().unwrap();
-                            let result = match action {
-                                action::ProjectManagement::CreateNewProject =>
-                                    manage_projects.create_new_project(None),
-                                action::ProjectManagement::OpenProject { id, .. } =>
-                                    manage_projects.open_project(*id),
-                            };
-                            if let Err(err) = result.await {
-                                error!("Error when creating new project: {err}");
-                            }
-                        });
-                        Ok(None)
-                    }
-                    Err(err) => Err(NotSupported {
-                        action_label: Action::ProjectManagement(action).to_string(),
-                        reason:       err,
-                    }
-                    .into()),
-                }
-            }
-        }
-    }
-
-    /// See `execute_action` documentation.
-    #[profile(Task)]
-    pub fn execute_action_by_index(&self, index: usize) -> FallibleResult<Option<ast::Id>> {
+    pub fn preview_suggestion_by_index(&self, index: usize) -> FallibleResult<()> {
         let error = || NoSuchAction { index };
         let action = {
             let data = self.data.borrow();
-            let list = data.actions.list().ok_or_else(error)?;
-            list.get_cloned(index).ok_or_else(error)?.action
-        };
-        self.execute_action(action.clone_ref())
-    }
 
-    /// Preview the action in the searcher.
-    #[profile(Task)]
-    pub fn preview_action_by_index(&self, index: usize) -> FallibleResult<()> {
-        let error = || NoSuchAction { index };
-        let action = {
-            let data = self.data.borrow();
-            let list = data.actions.list().ok_or_else(error)?;
             list.get_cloned(index).ok_or_else(error)?.action
         };
         debug!("Previewing action: {action:?}");
@@ -704,55 +586,6 @@ impl Searcher {
             Some(this_var) => searcher::apply_this_argument(this_var, &input),
             None => input,
         }
-    }
-
-    /// Adds an example to the graph.
-    ///
-    /// The example piece of code will be inserted as a new function definition, and in current
-    /// graph the node calling this function will appear.
-    #[profile(Debug)]
-    pub fn add_example(&self, example: &action::Example) -> FallibleResult<ast::Id> {
-        // === Add new function definition ===
-        let graph = self.graph.graph();
-        let mut module = double_representation::module::Info { ast: graph.module.ast() };
-        let graph_definition_name = graph.graph_info()?.source.name.item;
-        let new_definition = example.definition_to_add(&module, self.ide.parser())?;
-        let new_definition_name = Ast::var(new_definition.name.name.item.clone());
-        let new_definition_place =
-            double_representation::module::Placement::Before(graph_definition_name);
-        module.add_method(new_definition, new_definition_place, self.ide.parser())?;
-
-
-        // === Add new node ===
-        let args = std::iter::empty();
-        let this_expression = Ast::var(self.module_qualified_name().name());
-        let node_expression =
-            ast::prefix::Chain::new_with_this(new_definition_name, this_expression, args);
-        let node_expression = node_expression.into_ast();
-        let node = NodeInfo::from_main_line_ast(&node_expression).ok_or(FailedToCreateNode)?;
-        let added_node_id = node.id();
-        let graph_definition =
-            double_representation::module::locate(&module.ast, &self.graph.graph().id)?;
-        let mut graph_info = GraphInfo::from_definition(graph_definition.item);
-        graph_info.add_node(&node, LocationHint::End)?;
-        module.ast = module.ast.set_traversing(&graph_definition.crumbs, graph_info.ast())?;
-        let position =
-            self.graph.graph().node(self.mode.node_id())?.metadata.and_then(|md| md.position);
-        let metadata = NodeMetadata { position, ..default() };
-
-
-        // === Add imports ===
-        for import in example.imports.iter().map(QualifiedName::from_text).filter_map(Result::ok) {
-            let import = model::suggestion_database::entry::Import::Qualified { module: import };
-            let already_imported = module.iter_imports().any(|info| import.covered_by(&info));
-            if !already_imported {
-                module.add_import(self.ide.parser(), import.into());
-            }
-        }
-        graph.module.update_ast(module.ast)?;
-        graph.module.set_node_metadata(added_node_id, metadata)?;
-
-        Ok(added_node_id)
     }
 
     #[profile(Debug)]
@@ -855,48 +688,6 @@ impl Searcher {
             }
             this.notifier.publish(Notification::NewActionList).await;
         });
-    }
-
-    /// Process multiple completion responses from the engine into a single list of suggestion.
-    #[profile(Debug)]
-    fn make_action_list(
-        &self,
-        completion_response: &language_server::response::Completion,
-    ) -> action::List {
-        let creating_new_node = matches!(self.mode.deref(), Mode::NewNode { .. });
-        let should_add_additional_entries = creating_new_node && self.this_arg.is_none();
-        let mut actions = action::ListWithSearchResultBuilder::new();
-        let (libraries_icon, default_icon) =
-            action::hardcoded::ICONS.with(|i| (i.libraries.clone_ref(), i.default.clone_ref()));
-        if should_add_additional_entries && self.ide.manage_projects().is_ok() {
-            let mut root_cat = actions.add_root_category("Projects", default_icon.clone_ref());
-            let category = root_cat.add_category("Projects", default_icon.clone_ref());
-            let create_project = action::ProjectManagement::CreateNewProject;
-            category.add_action(Action::ProjectManagement(create_project));
-        }
-        let mut libraries_root_cat =
-            actions.add_root_category("Libraries", libraries_icon.clone_ref());
-        if should_add_additional_entries {
-            let examples_cat =
-                libraries_root_cat.add_category("Examples", default_icon.clone_ref());
-            examples_cat.extend(self.database.iterate_examples().map(Action::Example));
-        }
-        let libraries_cat =
-            libraries_root_cat.add_category("Libraries", libraries_icon.clone_ref());
-        let entries = completion_response.results.iter().filter_map(|id| {
-            self.database
-                .lookup(*id)
-                .map(|entry| Action::Suggestion(action::Suggestion::FromDatabase(entry)))
-                .handle_err(|e| {
-                    error!(
-                        "Response provided a suggestion ID that cannot be \
-                    resolved: {e}."
-                    )
-                })
-        });
-        libraries_cat.extend(entries);
-
-        actions.build()
     }
 
     #[profile(Debug)]

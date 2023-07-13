@@ -3,6 +3,7 @@
 use crate::prelude::*;
 
 use crate::controller::searcher::action;
+use crate::controller::searcher::component2;
 use crate::controller::searcher::Filter;
 use crate::controller::searcher::RequiredImport;
 
@@ -408,7 +409,7 @@ impl InsertedSuggestion {
 /// For example, if the user types `Foo.Bar.` and accepts a method `Foo.Bar.baz` we insert
 /// `Foo.Bar.baz` with `Foo` import instead of inserting `Bar.baz` with `Bar` import.
 struct InsertContext<'a> {
-    suggestion:    &'a action::Suggestion,
+    component:     &'a component2::Component,
     context:       Option<ast::opr::Chain>,
     generate_this: bool,
 }
@@ -434,7 +435,7 @@ impl InsertContext<'_> {
     /// by the user and the segments that need to be added.
     fn segments_to_replace(&self) -> Option<(Vec<ImString>, Option<RequiredImport>)> {
         if let Some(existing_segments) = self.qualified_name_segments() {
-            if let action::Suggestion::FromDatabase(entry) = self.suggestion {
+            if let component2::Data::FromDatabase { entry, .. } = self.component {
                 let name = entry.qualified_name();
                 let all_segments = name.segments().cloned().collect_vec();
                 // A list of search windows is reversed, because we want to look from the end, as it
@@ -468,7 +469,7 @@ impl InsertContext<'_> {
     }
 
     fn code_to_insert(&self, in_module: QualifiedNameRef) -> (Cow<str>, Option<RequiredImport>) {
-        match self.suggestion {
+        match self.component {
             action::Suggestion::FromDatabase(entry) => {
                 if let Some((segments, import)) = self.segments_to_replace() {
                     (Cow::from(segments.iter().join(ast::opr::predefined::ACCESS)), import)
@@ -489,13 +490,13 @@ impl Input {
     /// Return an information about input change after inserting given suggestion.
     pub fn after_inserting_suggestion(
         &self,
-        suggestion: &action::Suggestion,
+        component: &component2::Component,
         has_this: bool,
         in_module: QualifiedNameRef,
     ) -> FallibleResult<InsertedSuggestion> {
         let context = self.context();
         let generate_this = !has_this;
-        let context = InsertContext { suggestion, context, generate_this };
+        let context = InsertContext { component, context, generate_this };
         let default_range = (self.cursor_position..self.cursor_position).into();
         let replaced = if context.has_qualified_name() {
             self.accessor_chain_range().unwrap_or(default_range)
