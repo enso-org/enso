@@ -15,16 +15,6 @@ use std::collections::hash_map::Entry;
 
 
 
-// =================
-// === Constants ===
-// =================
-
-/// Height of the header of the component group. This value is added to the group's number of
-/// entries to get the total height.
-pub const HEADER_HEIGHT_IN_ROWS: usize = 1;
-
-
-
 // =============
 // === Group ===
 // =============
@@ -35,30 +25,33 @@ pub const HEADER_HEIGHT_IN_ROWS: usize = 1;
 /// The information of group in the layout.
 #[derive(Copy, Clone, Debug)]
 pub struct LaidGroup<'a> {
-    /// The row where header is placed.
-    pub header_row: Row,
+    /// The first row of the group. It may be a header.
+    pub first_row:         Row,
+    /// First row with group's content. It may differ from the `first_row` if group contains
+    /// a header.
+    pub first_content_row: Row,
     /// The column where the group is placed.
-    pub column:     Col,
+    pub column:            Col,
     /// The reference to the group information in [`Layout`] structure.
-    pub group:      &'a Group,
+    pub group:             &'a Group,
 }
 
 impl<'a> LaidGroup<'a> {
-    fn from_map_entry(column: Col, entry: (&Row, &'a Group)) -> Self {
-        let (&header_row, group) = entry;
-        Self { header_row, column, group }
+    fn from_map_entry(column: Col, entry: (&Row, &'a Group), header_height: Row) -> Self {
+        let (&first_row, group) = entry;
+        Self { first_row, first_content_row: first_row + header_height, column, group }
     }
 
     /// The range of rows where the group spans, _including_ the header.
     pub fn rows(&self) -> Range<Row> {
-        self.header_row..(self.header_row + self.group.height + HEADER_HEIGHT_IN_ROWS)
+        self.first_row..(self.first_content_row + self.group.height)
     }
 
     /// The id of element at given row, or `None` if row is outside the group.
     pub fn element_at_row(&self, row: Row) -> Option<ElementId> {
         let rows = self.rows();
         let element = rows.contains(&row).then(|| {
-            if row < self.header_row + HEADER_HEIGHT_IN_ROWS {
+            if row < self.first_content_row {
                 ElementInGroup::Header
             } else {
                 // We may unwrap here, as we check above if rows.contains(&row) - if range contains
@@ -67,6 +60,11 @@ impl<'a> LaidGroup<'a> {
             }
         });
         element.map(|element| ElementId { group: self.group.id, element })
+    }
+
+    /// Check if there are rows assigned to group's header.
+    pub fn has_header(&self) -> bool {
+        self.first_row < self.first_content_row
     }
 }
 
@@ -105,7 +103,7 @@ impl Column {
 /// information about their heights. It provides information about where given group is laid out
 /// in Grid View, and what group element is at given location (row and column).
 #[derive(Clone, Debug, Default)]
-pub struct Layout {
+pub struct Layout<const HEADER_HEIGHT: Row = 0> {
     columns:                 Vec<Column>,
     positions:               HashMap<GroupId, (Range<Row>, Col)>,
     local_scope_first_row:   Row,
@@ -113,7 +111,7 @@ pub struct Layout {
     row_count:               Row,
 }
 
-impl Layout {
+impl<const HEADER_HEIGHT: Row> Layout<HEADER_HEIGHT> {
     /// Create layout without standard (not the "Local Scope") groups.
     ///
     /// The layout will be completely empty if `local_scope_entry_count` will be 0.
@@ -138,9 +136,8 @@ impl Layout {
             g.drain_filter(|g| g.height == 0);
             g
         });
-        let col_heights: [usize; COLUMN_COUNT] = filtered_groups
-            .each_ref()
-            .map(|v| v.iter().map(|g| g.height + HEADER_HEIGHT_IN_ROWS).sum());
+        let col_heights: [usize; COLUMN_COUNT] =
+            filtered_groups.each_ref().map(|v| v.iter().map(|g| g.height + HEADER_HEIGHT).sum());
         let groups_rows = col_heights.into_iter().max().unwrap_or_default();
         let all_rows = local_scope_rows + groups_rows;
         let mut this = Self::new(all_rows, COLUMN_COUNT, local_scope_entry_count);
@@ -174,7 +171,7 @@ impl Layout {
     pub fn group_at_location(&self, row: Row, column: Col) -> Option<LaidGroup> {
         let groups_in_col = &self.columns.get(column)?.groups;
         let group_before_entry = groups_in_col.range(..=row).last()?;
-        let group_before = LaidGroup::from_map_entry(column, group_before_entry);
+        let group_before = LaidGroup::from_map_entry(column, group_before_entry, HEADER_HEIGHT);
         group_before.rows().contains(&row).as_some(group_before)
     }
 
@@ -182,9 +179,10 @@ impl Layout {
     pub fn group_above_location(&self, row: Row, column: Col) -> Option<LaidGroup> {
         let groups_in_col = &self.columns.get(column)?.groups;
         let mut groups_before = groups_in_col.range(..row).rev();
-        let first_before = LaidGroup::from_map_entry(column, groups_before.next()?);
+        let first_before = LaidGroup::from_map_entry(column, groups_before.next()?, HEADER_HEIGHT);
         if first_before.rows().contains(&row) {
-            let second_before = LaidGroup::from_map_entry(column, groups_before.next()?);
+            let second_before =
+                LaidGroup::from_map_entry(column, groups_before.next()?, HEADER_HEIGHT);
             Some(second_before)
         } else {
             Some(first_before)
@@ -196,7 +194,7 @@ impl Layout {
     pub fn group_below_location(&self, row: Row, column: Col) -> Option<LaidGroup> {
         let groups_in_col = &self.columns.get(column)?.groups;
         let group_after = groups_in_col.range((row + 1)..).next()?;
-        Some(LaidGroup::from_map_entry(column, group_after))
+        Some(LaidGroup::from_map_entry(column, group_after, HEADER_HEIGHT))
     }
 
     /// Get the information what element is at given location.
@@ -215,23 +213,28 @@ impl Layout {
 
     /// Return the location of element in Grid View.
     pub fn location_of_element(&self, element: ElementId) -> Option<(Row, Col)> {
-        if element.group.section == SectionId::LocalScope {
-            match element.element {
-                ElementInGroup::Header => None,
-                ElementInGroup::Entry(index) => {
-                    let row = self.local_scope_first_row + index / self.columns.len();
-                    let col = index % self.columns.len();
-                    Some((row, col))
+        self.positions
+            .get(&element.group)
+            .cloned()
+            .and_then(|(rows, col)| {
+                let header_pos = rows.start;
+                match element.element {
+                    ElementInGroup::Header => Some((header_pos, col)),
+                    ElementInGroup::Entry(index) => Some((rows.last()? - index, col)),
                 }
-            }
-        } else {
-            let (rows, col) = self.positions.get(&element.group)?.clone();
-            let header_pos = rows.start;
-            match element.element {
-                ElementInGroup::Header => Some((header_pos, col)),
-                ElementInGroup::Entry(index) => Some((rows.last()? - index, col)),
-            }
-        }
+            })
+            .or_else(|| {
+                (element.group.section == SectionId::LocalScope).and_option_from(|| {
+                    match element.element {
+                        ElementInGroup::Header => None,
+                        ElementInGroup::Entry(index) => {
+                            let row = self.local_scope_first_row + index / self.columns.len();
+                            let col = index % self.columns.len();
+                            Some((row, col))
+                        }
+                    }
+                })
+            })
     }
 
     /// Return the location of given group. Returns [`None`] if there's no such group in the layout
@@ -242,11 +245,12 @@ impl Layout {
 
     /// Return the minimum row range containing all entries from given section in a column.
     pub fn section_rows_at_column(&self, section: SectionId, column: Col) -> Option<Range<Row>> {
-        if section == SectionId::LocalScope {
-            Some(self.local_scope_rows())
-        } else {
-            self.columns.get(column)?.section_range.get(&section).cloned()
-        }
+        self.columns
+            .get(column)?
+            .section_range
+            .get(&section)
+            .cloned()
+            .or_else(|| (section == SectionId::LocalScope).as_some_from(|| self.local_scope_rows()))
     }
 
     /// Return the range of rows taken by Local Scope group.
@@ -258,7 +262,7 @@ impl Layout {
     pub fn push_group(&mut self, column: Col, group: Group) -> Row {
         let group_column = &mut self.columns[column];
         let prev_header_row = group_column.top_row;
-        let next_header_row = group_column.top_row - group.height - HEADER_HEIGHT_IN_ROWS;
+        let next_header_row = group_column.top_row - group.height - HEADER_HEIGHT;
         let group_rows = next_header_row..prev_header_row;
         group_column.groups.insert(next_header_row, group);
         group_column.top_row = next_header_row;
@@ -315,7 +319,7 @@ mod tests {
         let groups = group_data.map(mk_group).collect_vec();
         let groups_in_columns =
             [vec![groups[1], groups[4]], vec![groups[0], groups[3]], vec![groups[2], groups[5]]];
-        let layout = Layout::create_from_arranged_groups(groups_in_columns, 8);
+        let layout = Layout::<1>::create_from_arranged_groups(groups_in_columns, 8);
 
         let header_of = |group_idx| ElementId {
             group:   group_ids[group_idx],
@@ -375,7 +379,7 @@ mod tests {
 
     #[test]
     fn checking_element_at_location_empty_column_and_empty_local_scope() {
-        let mut layout = Layout::new(3, 3, 0);
+        let mut layout = Layout::<1>::new(3, 3, 0);
         let group = Group {
             id:               GroupId { section: SectionId::Popular, index: 0 },
             height:           2,
@@ -401,7 +405,7 @@ mod tests {
 
     #[test]
     fn section_ranges_in_layout() {
-        let mut layout = Layout::new(9, 3, 0);
+        let mut layout = Layout::<1>::new(9, 3, 0);
         let popular_group_ids = (0..6).map(|index| GroupId { section: SectionId::Popular, index });
         let submodule_group_ids =
             (6..8).map(|index| GroupId { section: SectionId::Namespace(0), index });
@@ -448,7 +452,7 @@ mod tests {
         // 6 |     |     |     |
         // - +-----+-----+-----+
         // ```
-        let mut layout = Layout::new(7, 3, 0);
+        let mut layout = Layout::<1>::new(7, 3, 0);
         let group_ids = (0..7).map(|index| GroupId { section: SectionId::Popular, index });
         let group_sizes = [1, 2].into_iter().cycle();
         let group_columns = [CENTER, LEFT, RIGHT].into_iter().cycle();

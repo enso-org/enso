@@ -238,12 +238,11 @@ export class App {
     }
 
     /** Log the message on the remote server. */
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    remoteLog(message: string, data: any) {
-        // FIXME [PB]: https://github.com/enso-org/cloud-v2/issues/359
-        // Implement remote logging. This should be done after cloud integration.
-        // Function interface is left intentionally for readability.
-        // Remove typescript error suppression after resolving fixme.
+    // This method is assumed to be overriden by the App's owner. Eventually it should be removed from the runner
+    // altogether, as it is not its responsibility.
+    // eslint-disable-next-line @typescript-eslint/require-await, @typescript-eslint/no-unused-vars
+    async remoteLog(message: string, data: any) {
+        console.warn('Remote logging is not set up.')
     }
 
     /** Initialize the browser. Set the background color, print user-facing warnings, etc. */
@@ -281,8 +280,9 @@ export class App {
             }
         }
     }
+
     /** Sets application stop to true and calls drop method which removes all rust memory references
-     *  and calls all destructors. */
+     * and calls all destructors. */
     stop() {
         this.stopped = true
         this.wasm?.drop()

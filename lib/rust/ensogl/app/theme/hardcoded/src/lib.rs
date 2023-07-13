@@ -201,11 +201,11 @@ define_themes! { [light:0, dark:1]
                 background_color = Rgb::from_base_255(236.0, 240.0, 242.0),Rgb::from_base_255(236.0, 240.0, 242.0);
                 corners_radius = 16.0, 16.0;
                 grid {
-                    width = 413.0, 413.0;
+                    width = 196.0, 196.0;
                     height = 414.0, 414.0;
                     padding = 4.0, 4.0;
                     column_gap = 3.0, 3.0;
-                    entry_height = 30.0, 30.0;
+                    entry_height = 32.0, 32.0;
 
                     // The `color` values support color types (like `color::Rgba`)
                     // and floating-point numbers. This is possible due to a custom stylesheet
@@ -214,16 +214,16 @@ define_themes! { [light:0, dark:1]
                     // Floating-point numbers mean the alpha multiplier for the "main" color of the
                     // component group.
                     entry {
-                        background.intensity = 0.08, 0.08;
+                        background.intensity = 0.0, 0.0;
                         dimmed = Rgb::from_base_255(160.0, 163.0, 165.0), Rgb::from_base_255(160.0, 163.0, 165.0);
-                        padding = 16.0, 16.0;
+                        padding = 8.0, 8.0;
                         text {
                             font = DEFAULT_FONT, DEFAULT_FONT;
                             y_offset = 8.0, 8.0;
                             y_offset_header = 5.0, 5.0;
                             x_offset_header = 0.0, 0.0;
                             size = 11.5, 11.5;
-                            color = 1.0, 1.0;
+                            color = Rgba(0.0, 0.0, 0.0, 0.6), Rgba(0.0, 0.0, 0.0, 0.6);
                             highlight_bold = 0.01, 0.01;
                         }
                         icon {
@@ -253,7 +253,7 @@ define_themes! { [light:0, dark:1]
                             }
                         }
                         highlight {
-                            corners_radius = 12.0, 12.0;
+                            corners_radius = 16.0, 16.0;
                             hover.color = 0.4, 0.4;
                             selection {
                                 background.intensity = 0.75, 0.75;
@@ -273,16 +273,16 @@ define_themes! { [light:0, dark:1]
                     }
 
                     group_colors {
-                        // Yellow
-                        group_0 = Rgb::from_base_255(134.0, 135.0, 43.0), Rgb::from_base_255(134.0, 135.0, 43.0);
                         // Green
-                        group_1 = Rgb::from_base_255(63.0, 139.0, 41.0), Rgb::from_base_255(63.0, 139.0, 41.0);
-                        // Light Blue
-                        group_2 = Rgb::from_base_255(54.0, 122.0, 185.0), Rgb::from_base_255(54.0, 122.0, 185.0);
+                        group_0 = Rgb::from_base_255(77.0, 154.0, 41.0), Rgb::from_base_255(77.0, 154.0, 41.0);
+                        // Yellow
+                        group_1 = Rgb::from_base_255(178.0, 121.0, 35.0), Rgb::from_base_255(178.0, 121.0, 35.0);
+                        // Purple
+                        group_2 = Rgb::from_base_255(151.0, 53.0, 185.0), Rgb::from_base_255(151.0, 53.0, 185.0);
                         // Pink
                         group_3 = Rgb::from_base_255(193.0, 71.0, 171.0), Rgb::from_base_255(193.0, 71.0, 171.0);
                         // Blue
-                        group_4 = Rgb::from_base_255(43.0, 117.0, 239.0), Rgb::from_base_255(43.0, 117.0, 239.0);
+                        group_4 = Rgb::from_base_255(42.0, 103.0, 223.0), Rgb::from_base_255(42.0, 103.0, 223.0);
                         // Orange
                         group_5 = Rgb::from_base_255(181.0, 97.0, 35.0), Rgb::from_base_255(181.0, 97.0, 35.0);
                         local_scope_group = Rgba::new(0.0, 0.42, 0.64, 1.0),Rgba::new(0.0, 0.42, 0.64, 1.0);
