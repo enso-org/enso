@@ -266,6 +266,9 @@ specWith name create_new_time parse_time nanoseconds_loss_in_precision=False =
             # There is no default period.
             t1.date_add 10 . should_be_a Function
 
+            Test.expect_panic_with (t1.date_add 1.5 Time_Period.Hour) Type_Error
+            Test.expect_panic_with (t1.date_add 1.0 Time_Period.Hour) Type_Error
+
 enso_time hour minute=0 second=0 nanoOfSecond=0 =
     Time_Of_Day.new hour minute second nanosecond=nanoOfSecond
 

@@ -543,6 +543,8 @@ spec_with name create_new_date parse_date =
 
             Test.expect_panic_with (d1.date_add 1 Time_Period.Hour) Type_Error
             Test.expect_panic_with (d1.date_add 1 Time_Period.Day) Type_Error
+            Test.expect_panic_with (t1.date_add 1.5 Date_Period.Day) Type_Error
+            Test.expect_panic_with (t1.date_add 1.0 Date_Period.Day) Type_Error
 
     Date_Part_Spec.spec name create_new_date
 

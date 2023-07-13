@@ -752,6 +752,59 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
                 d1.date_part Time_Period.Microsecond . should_equal 456
                 d1.date_part Time_Period.Nanosecond . should_equal 789
 
+        Test.specify "should allow computing date_diff" <|
+            t1 = create_new_datetime 2021 11 3 10 15 0
+            t2 = create_new_datetime 2021 12 5 12 30 20
+
+            t1.date_diff t2 Date_Period.Day . should_equal 32
+            t2.date_diff t1 Date_Period.Day . should_equal -32
+            t1.date_diff (Date_Time.new 2021 11 3 10 15 0) Date_Period.Day . should_equal 0
+
+            t1.date_diff t2 Date_Period.Month . should_equal 1
+            t1.date_diff (Date_Time.new 2021 12 1 10 15 0) Date_Period.Month . should_equal 0
+
+            t1.date_diff t2 Date_Period.Year . should_equal 0
+            t1.date_diff (Date_Time.new 2031 12 1 10 15 0) Date_Period.Year . should_equal 10
+
+            t1.date_diff t2 Time_Period.Day . should_equal 32
+
+            t1.date_diff t2 Time_Period.Hour . should_equal 770
+            t1.date_diff (Date_Time.new 2021 11 3 12 15 0) Time_Period.Hour . should_equal 2
+
+            t1.date_diff t2 Time_Period.Minute . should_equal 46215
+            t1.date_diff (Date_Time.new 2021 11 3 10 45 0) Time_Period.Minute . should_equal 30
+
+            t1.date_diff t2 Time_Period.Second . should_equal 2772920
+            t1.date_diff (Date_Time.new 2021 11 3 10 15 30) Time_Period.Second . should_equal 30
+
+            t1.date_diff t2 Time_Period.Millisecond . should_equal 2772920000
+            t1.date_diff (Date_Time.new 2021 11 3 10 15 30 123) Time_Period.Millisecond . should_equal 30123
+
+            if nanoseconds_loss_in_precision.not then
+                t1.date_diff t2 Time_Period.Microsecond . should_equal 2772920000000
+                t1.date_diff (Date_Time.new 2021 11 3 10 15 30 123 456) Time_Period.Microsecond . should_equal 30123456
+                t1.date_diff t2 Time_Period.Nanosecond . should_equal 2772920000000000
+                t1.date_diff (Date_Time.new 2021 11 3 10 15 30 123 456 789) Time_Period.Nanosecond . should_equal 30123456789
+
+        Test.specify "should allow shifting with date_add" <|
+            t1 = Date_Time.new 2021 01 01 12 30 0
+            t1.date_add 5 Date_Period.Day . should_equal (Date_Time.new 2021 01 06 12 30 0)
+            t1.date_add -1 Time_Period.Day . should_equal (Date_Time.new 2020 12 31 12 30 0)
+            t1.date_add 1 Date_Period.Month . should_equal (Date_Time.new 2021 02 01 12 30 0)
+            t1.date_add 10 Date_Period.Year . should_equal (Date_Time.new 2031 01 01 12 30 0)
+
+            t1.date_add 24 Time_Period.Hour . should_equal (Date_Time.new 2021 01 02 12 30 0)
+            t1.date_add -1 Time_Period.Hour . should_equal (Date_Time.new 2021 01 01 11 30 0)
+            t1.date_add 23 Time_Period.Minute . should_equal (Date_Time.new 2021 01 01 12 53 0)
+            t1.date_add -15 Time_Period.Second . should_equal (Date_Time.new 2021 01 01 12 29 45)
+            t1.date_add 1 Time_Period.Millisecond . should_equal (Date_Time.new 2021 01 01 12 30 0 1)
+            if nanoseconds_loss_in_precision.not then
+                t1.date_add 1 Time_Period.Microsecond . should_equal (Date_Time.new 2021 01 01 12 30 0 microsecond=1)
+                t1.date_add 1 Time_Period.Nanosecond . should_equal (Date_Time.new 2021 01 01 12 30 0 nanosecond=1)
+
+            Test.expect_panic_with (t1.date_add 1.5 Date_Period.Day) Type_Error
+            Test.expect_panic_with (t1.date_add 1.0 Date_Period.Day) Type_Error
+
         Test.specify "date_diff and date_add should behave well around DST" <|
             zone = Time_Zone.parse "Europe/Warsaw"
             dt1 = Date_Time.new 2023 03 26 00 30 00 zone=zone
@@ -774,9 +827,9 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             dt3 = Date_Time.new 2023 03 28 01 30 00 zone=zone
             dt4 = Date_Time.new 2023 03 29 00 30 00 zone=zone
 
-            dt3.date_diff dt4 Date_Period.Day . to_vector . should_equal [0]
-            dt3.date_diff dt4 Time_Period.Day . to_vector . should_equal [0]
-            dt3.date_diff dt4 Time_Period.Hour . to_vector . should_equal [23]
+            dt3.date_diff dt4 Date_Period.Day . should_equal 0
+            dt3.date_diff dt4 Time_Period.Day . should_equal 0
+            dt3.date_diff dt4 Time_Period.Hour . should_equal 23
 
     Date_Part_Spec.spec name create_new_datetime
 
