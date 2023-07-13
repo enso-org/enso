@@ -444,7 +444,6 @@ spec setup =
             dt2 = Date_Time.new 2023 03 27 00 30 00 zone=zone
             x.date_diff dt2 Time_Period.Hour . to_vector . should_equal [23]
 
-            # Date_Period.Day and Time_Period.Day are interchangeable.
             ## The results may vary between backends.
                - In-memory we know this is a DST switch moment and so even if
                  there's 23 hours between the instants, it is a day difference.

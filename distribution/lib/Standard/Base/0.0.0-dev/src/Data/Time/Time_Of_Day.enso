@@ -12,6 +12,7 @@ import project.Data.Time.Time_Period.Time_Period
 import project.Data.Time.Time_Zone.Time_Zone
 import project.Error.Error
 import project.Errors.Common.Type_Error
+import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Time_Error.Time_Error
 import project.Meta
 import project.Nothing.Nothing
@@ -280,7 +281,7 @@ type Time_Of_Day
     date_part : Time_Period -> Integer
     date_part self (period : Time_Period) =
         case period of
-            Time_Period.Day         -> self.day
+            Time_Period.Day         -> Error.throw (Illegal_Argument.Error "The Time_Of_Day does not have a day part.")
             Time_Period.Hour        -> self.hour
             Time_Period.Minute      -> self.minute
             Time_Period.Second      -> self.second
@@ -299,9 +300,11 @@ type Time_Of_Day
        - end: A time of day to compute the difference from.
        - period: The period to compute the difference in.
     date_diff : Time_Of_Day -> Time_Period -> Integer
-    date_diff self (end : Time_Of_Day) (period : Time_Period) =
-        java_unit = period.to_java_unit
-        Time_Utils.unit_time_difference java_unit self end
+    date_diff self (end : Time_Of_Day) (period : Time_Period) = case period of
+        Time_Period.Day -> Error.throw (Illegal_Argument.Error "The Time_Of_Day does not have a day part to compute a difference in days.")
+        _ ->
+            java_unit = period.to_java_unit
+            Time_Utils.unit_time_difference java_unit self end
 
     ## Shifts the time of day by a specified period.
 
@@ -309,9 +312,11 @@ type Time_Of_Day
        - amount: An integer specifying by how many periods to shift the time.
        - period: The period by which to shift.
     date_add : Integer -> Time_Period -> Time_Of_Day
-    date_add self (amount : Integer) (period : Time_Period) =
-        java_unit = period.to_java_unit
-        java_unit.addTo self amount
+    date_add self (amount : Integer) (period : Time_Period) = case period of
+        Time_Period.Day -> Error.throw (Illegal_Argument.Error "The Time_Of_Day does not have a day part to add days to.")
+        _ ->
+            java_unit = period.to_java_unit
+            java_unit.addTo self amount
 
     ## ALIAS Add Duration
        Add the specified amount of time to this instant to get a new instant.

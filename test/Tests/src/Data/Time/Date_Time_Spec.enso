@@ -736,6 +736,48 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             create_new_datetime 1999 10 30 14 40 . add_work_days 0 (duplicated_holiday_november 1999) . should_equal (Date_Time.new 1999 11 3 14 40)
             create_new_datetime 1999 10 30 15 50 . add_work_days 1 (duplicated_holiday_november 1999) . should_equal (Date_Time.new 1999 11 4 15 50)
 
+        Test.specify "should allow extracting a date_part" <|
+            d1 = create_new_datetime 2023 12 30 15 37 58 123456789
+            d1.date_part Date_Period.Year . should_equal 2023
+            d1.date_part Date_Period.Quarter . should_equal 4
+            d1.date_part Date_Period.Month . should_equal 12
+            d1.date_part Date_Period.Week . should_equal 52
+            d1.date_part Date_Period.Day . should_equal 30
+            d1.date_part Time_Period.Day . should_equal 30
+            d1.date_part Time_Period.Hour . should_equal 15
+            d1.date_part Time_Period.Minute . should_equal 37
+            d1.date_part Time_Period.Second . should_equal 58
+            d1.date_part Time_Period.Millisecond . should_equal 123
+            if nanoseconds_loss_in_precision.not then
+                d1.date_part Time_Period.Microsecond . should_equal 456
+                d1.date_part Time_Period.Nanosecond . should_equal 789
+
+        Test.specify "date_diff and date_add should behave well around DST" <|
+            zone = Time_Zone.parse "Europe/Warsaw"
+            dt1 = Date_Time.new 2023 03 26 00 30 00 zone=zone
+
+            # +24h will shift 1 day and 1 hour, because they 26th of March has only 23 hours within it
+            dt1.date_add 24 Time_Period.Hour . should_equal (Date_Time.new 2023 03 27 01 30 00 zone=zone)
+
+            # But 1 day date shift will shift 1 day, keeping the time, even if that particular day is only 23 hours.
+            dt1.date_add 1 Date_Period.Day . should_equal (Date_Time.new 2023 03 27 00 30 00 zone=zone)
+            # Time_Period.Day will shift by 24 hours.
+            dt1.date_add 1 Time_Period.Day . should_equal (Date_Time.new 2023 03 27 01 30 00 zone=zone)
+
+            dt2 = Date_Time.new 2023 03 27 00 30 00 zone=zone
+            dt1.date_diff dt2 Time_Period.Hour . should_equal 23
+
+            dt1.date_diff dt2 Date_Period.Day . should_equal 1
+            # But when counting in hours - 23 hours is not a full 24-hour day.
+            dt1.date_diff dt2 Time_Period.Day . should_equal 0
+
+            dt3 = Date_Time.new 2023 03 28 01 30 00 zone=zone
+            dt4 = Date_Time.new 2023 03 29 00 30 00 zone=zone
+
+            dt3.date_diff dt4 Date_Period.Day . to_vector . should_equal [0]
+            dt3.date_diff dt4 Time_Period.Day . to_vector . should_equal [0]
+            dt3.date_diff dt4 Time_Period.Hour . to_vector . should_equal [23]
+
     Date_Part_Spec.spec name create_new_datetime
 
 js_datetime year month=1 day=1 hour=0 minute=0 second=0 nanosecond=0 zone=Time_Zone.system =
