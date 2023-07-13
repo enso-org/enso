@@ -141,7 +141,7 @@ public final class ExecuteMethodImplGenerator extends MethodGenerator {
     List<? extends VariableElement> rawParams = method.getParameters();
     List<MethodParameter> params =
         IntStream.range(0, method.getParameters().size())
-            .mapToObj(i -> fromVariableElementToMethodParameter(i, rawParams.get(i)))
+            .mapToObj(i -> fromVariableElementToMethodParameter(processingEnv, i, rawParams.get(i)))
             .collect(Collectors.toList());
 
     String[] body = bodyBase(name, owner, params);

@@ -14,6 +14,7 @@ import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.*;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.Types;
+import javax.tools.Diagnostic.Kind;
 import org.apache.commons.lang3.StringUtils;
 import org.enso.interpreter.dsl.Builtin;
 
@@ -111,14 +112,24 @@ public abstract class MethodGenerator {
    * @param v variable element representing the parameter
    * @return MethodParameter encapsulating the method's parameter info
    */
-  protected MethodParameter fromVariableElementToMethodParameter(int i, VariableElement v) {
+  protected MethodParameter fromVariableElementToMethodParameter(ProcessingEnvironment processingEnv, int i, VariableElement v) {
     String ensoName =
         CaseFormat.LOWER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, v.getSimpleName().toString());
+    TypeWithKind tpe = TypeWithKind.createFromTpe(v.asType().toString());
+    if (tpe.kind() == TypeKind.ARRAY && !tpe.isValidGuestType()) {
+      processingEnv.getMessager().printMessage(
+          Kind.ERROR,
+          "Parameter " + v + " is an array of host objects, which "
+              + "is not supported by the MethodGenerator. Either use array of primitive, or valid guest objects, "
+              + "or accept the array as Object and transform it in the method body.",
+          v
+      );
+    }
     return new MethodParameter(
         i,
         ensoName,
         v.asType().toString(),
-        v.getAnnotationMirrors().stream().map(am -> am.toString()).collect(Collectors.toList()));
+        v.getAnnotationMirrors().stream().map(Object::toString).collect(Collectors.toList()));
   }
 
   protected abstract Optional<Integer> expandVararg(int paramsLen, int paramIndex);

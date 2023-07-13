@@ -60,7 +60,7 @@ public final class SpecializedMethodsGenerator extends MethodGenerator {
 
   @Override
   public List<String> generate(ProcessingEnvironment processingEnv, String name, String owner) {
-    SpecializationMeta meta = inferExecuteParameters();
+    SpecializationMeta meta = inferExecuteParameters(processingEnv);
     List<String> result = new ArrayList<>();
 
     result.add(methodSigDef(owner, meta.execParams(), true));
@@ -98,7 +98,7 @@ public final class SpecializedMethodsGenerator extends MethodGenerator {
                   return new SpecializeMethodInfo(
                       method,
                       IntStream.range(0, params.size())
-                          .mapToObj(i -> fromVariableElementToMethodParameter(i, params.get(i)))
+                          .mapToObj(i -> fromVariableElementToMethodParameter(processingEnv, i, params.get(i)))
                           .collect(Collectors.toList()),
                       wrapExceptions(processingEnv, method));
                 });
@@ -132,14 +132,14 @@ public final class SpecializedMethodsGenerator extends MethodGenerator {
     return p.tpe().equals("java.lang.Object") || p.tpe().equals("java.lang.String");
   }
 
-  private SpecializationMeta inferExecuteParameters() {
+  private SpecializationMeta inferExecuteParameters(ProcessingEnvironment processingEnv) {
     Map<Integer, List<MethodParameter>> paramss =
         elements.stream()
             .flatMap(
                 method -> {
                   List<? extends VariableElement> params = method.getParameters();
                   return IntStream.range(0, params.size())
-                      .mapToObj(i -> fromVariableElementToMethodParameter(i, params.get(i)));
+                      .mapToObj(i -> fromVariableElementToMethodParameter(processingEnv, i, params.get(i)));
                 })
             .collect(Collectors.groupingBy(p -> p.index()));
 
