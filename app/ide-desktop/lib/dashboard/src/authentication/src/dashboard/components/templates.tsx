@@ -332,4 +332,5 @@ function Templates(props: TemplatesProps) {
         </div>
     )
 }
+
 export default Templates

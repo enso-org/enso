@@ -14,7 +14,9 @@ import * as auth from '../providers/auth'
 import * as svg from '../../components/svg'
 import * as validation from '../../dashboard/validation'
 
+import Dialog from './dialog'
 import Input from './input'
+import SubmitButton from './submitButton'
 import SvgIcon from './svgIcon'
 
 // =================
@@ -52,142 +54,97 @@ function ResetPassword() {
     }
 
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center bg-gray-300">
-            <div
-                className={
-                    'flex flex-col bg-white shadow-md px-4 sm:px-6 md:px-8 lg:px-10 py-8 rounded-md w-full ' +
-                    'max-w-md'
-                }
-            >
-                <div className="font-medium self-center text-xl sm:text-2xl uppercase text-gray-800">
-                    Reset Your Password
-                </div>
-                <div className="mt-10">
-                    <form
-                        onSubmit={async event => {
-                            event.preventDefault()
-                            await onSubmit()
-                        }}
-                    >
-                        <div className="flex flex-col mb-6">
-                            <label
-                                htmlFor="email"
-                                className="mb-1 text-xs sm:text-sm tracking-wide text-gray-600"
-                            >
-                                E-Mail Address:
-                            </label>
-                            <div className="relative">
-                                <SvgIcon>
-                                    <svg.SvgMask src={AtIcon} />
-                                </SvgIcon>
-                                <Input
-                                    id="email"
-                                    type="email"
-                                    name="email"
-                                    placeholder="E-Mail Address"
-                                    value={email}
-                                    setValue={setEmail}
-                                />
-                            </div>
-                        </div>
-                        <div className="flex flex-col mb-6">
-                            <label
-                                htmlFor="code"
-                                className="mb-1 text-xs sm:text-sm tracking-wide text-gray-600"
-                            >
-                                Confirmation Code:
-                            </label>
-                            <div className="relative">
-                                <SvgIcon>
-                                    <svg.SvgMask src={LockIcon} />
-                                </SvgIcon>
-                                <Input
-                                    id="code"
-                                    type="text"
-                                    name="code"
-                                    placeholder="Confirmation Code"
-                                    value={code}
-                                    setValue={setCode}
-                                />
-                            </div>
-                        </div>
-                        <div className="flex flex-col mb-6">
-                            <label
-                                htmlFor="new_password"
-                                className="mb-1 text-xs sm:text-sm tracking-wide text-gray-600"
-                            >
-                                New Password:
-                            </label>
-                            <div className="relative">
-                                <SvgIcon>
-                                    <svg.SvgMask src={LockIcon} />
-                                </SvgIcon>
-                                <Input
-                                    id="new_password"
-                                    type="password"
-                                    name="new_password"
-                                    placeholder="New Password"
-                                    pattern={validation.PASSWORD_PATTERN}
-                                    title={validation.PASSWORD_TITLE}
-                                    value={newPassword}
-                                    setValue={setNewPassword}
-                                />
-                            </div>
-                        </div>
-                        <div className="flex flex-col mb-6">
-                            <label
-                                htmlFor="new_password_confirm"
-                                className="mb-1 text-xs sm:text-sm tracking-wide text-gray-600"
-                            >
-                                Confirm New Password:
-                            </label>
-                            <div className="relative">
-                                <SvgIcon>
-                                    <svg.SvgMask src={LockIcon} />
-                                </SvgIcon>
-                                <Input
-                                    id="new_password_confirm"
-                                    type="password"
-                                    name="new_password_confirm"
-                                    placeholder="Confirm New Password"
-                                    value={newPasswordConfirm}
-                                    setValue={setNewPasswordConfirm}
-                                />
-                            </div>
-                        </div>
-                        <div className="flex w-full">
-                            <button
-                                type="submit"
-                                className={
-                                    'flex items-center justify-center focus:outline-none text-white text-sm ' +
-                                    'sm:text-base bg-blue-600 hover:bg-blue-700 rounded py-2 w-full transition ' +
-                                    'duration-150 ease-in'
-                                }
-                            >
-                                <span className="mr-2 uppercase">Reset</span>
-                                <span>
-                                    <svg.SvgMask src={ArrowRightIcon} />
-                                </span>
-                            </button>
-                        </div>
-                    </form>
-                </div>
-                <div className="flex justify-center items-center mt-6">
+        <Dialog
+            title="Reset your password"
+            onSubmit={async event => {
+                event.preventDefault()
+                await onSubmit()
+            }}
+            footer={
+                <div className="flex justify-center items-center">
                     <router.Link
                         to={app.LOGIN_PATH}
-                        className={
-                            'inline-flex items-center font-bold text-blue-500 hover:text-blue-700 text-xs ' +
-                            'text-center'
-                        }
+                        className="inline-flex items-center font-bold gap-2 text-blue-500 hover:text-blue-700 text-center"
                     >
-                        <span>
-                            <svg.SvgMask src={GoBackIcon} />
-                        </span>
-                        <span className="ml-2">Go back to login</span>
+                        <svg.SvgMask src={GoBackIcon} />
+                        Go back to login
                     </router.Link>
                 </div>
+            }
+        >
+            <div className="flex flex-col gap-1">
+                <label htmlFor="reset_password_email">Email address</label>
+                <div className="relative">
+                    <SvgIcon>
+                        <svg.SvgMask src={AtIcon} />
+                    </SvgIcon>
+                    <Input
+                        id="reset_password_email"
+                        type="email"
+                        name="reset_password_email"
+                        placeholder="Email address"
+                        value={email}
+                        setValue={setEmail}
+                    />
+                </div>
             </div>
-        </div>
+            <div className="flex flex-col gap-1">
+                <label htmlFor="reset_password_code">Confirmation Code:</label>
+                <div className="relative">
+                    <SvgIcon>
+                        <svg.SvgMask src={LockIcon} />
+                    </SvgIcon>
+                    <Input
+                        id="reset_password_code"
+                        type="text"
+                        name="reset_password_code"
+                        placeholder="Confirmation Code"
+                        value={code}
+                        setValue={setCode}
+                    />
+                </div>
+            </div>
+            <div className="flex flex-col gap-1">
+                <label htmlFor="reset_password_new_password">New Password:</label>
+                <div className="relative">
+                    <SvgIcon>
+                        <svg.SvgMask src={LockIcon} />
+                    </SvgIcon>
+                    <Input
+                        id="reset_password_new_password"
+                        type="password"
+                        name="reset_password_new_password"
+                        placeholder="New Password"
+                        pattern={validation.PASSWORD_PATTERN}
+                        title={validation.PASSWORD_TITLE}
+                        value={newPassword}
+                        setValue={setNewPassword}
+                    />
+                </div>
+            </div>
+            <div className="flex flex-col gap-1">
+                <label htmlFor="reset_password_new_password_confirm">Confirm new password</label>
+                <div className="relative">
+                    <SvgIcon>
+                        <svg.SvgMask src={LockIcon} />
+                    </SvgIcon>
+                    <Input
+                        id="reset_password_new_password_confirm"
+                        type="password"
+                        name="reset_password_new_password_confirm"
+                        placeholder="Confirm New Password"
+                        value={newPasswordConfirm}
+                        setValue={setNewPasswordConfirm}
+                    />
+                </div>
+            </div>
+            {/* Padding. */}
+            <div />
+            <SubmitButton>
+                Reset
+                <svg.SvgMask src={ArrowRightIcon} />
+            </SubmitButton>
+        </Dialog>
     )
 }
 

@@ -88,7 +88,7 @@ function TopBar(props: TopBarProps) {
     return (
         <div className="flex overflow-x-hidden h-8 mx-2">
             {supportsLocalBackend && (
-                <div className="flex flex-nowrap shrink-0 bg-gray-100 rounded-full p-1.5">
+                <div className="flex flex-nowrap shrink-0 bg-label rounded-full p-1.5">
                     <button
                         disabled={backend.type === backendModule.BackendType.local}
                         className={`${
