@@ -31,7 +31,6 @@ public final class ModuleScope implements TruffleObject {
    * Creates a new object of this class.
    *
    * @param module the module related to the newly created scope.
-   * @param context the current langauge context
    */
   public ModuleScope(Module module) {
     this.polyglotSymbols = new HashMap<>();

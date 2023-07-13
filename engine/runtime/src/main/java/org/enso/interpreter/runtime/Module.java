@@ -328,7 +328,7 @@ public final class Module implements TruffleObject {
    * @return the scope defined by this module
    */
   public ModuleScope compileScope(EnsoContext context) {
-    ensureScopeExists(context);
+    ensureScopeExists();
     if (!compilationStage.isAtLeast(CompilationStage.AFTER_CODEGEN)) {
       try {
         compile(context);
@@ -339,7 +339,7 @@ public final class Module implements TruffleObject {
   }
 
   /** Create scope if it does not exist. */
-  public void ensureScopeExists(Object ignore) {
+  public void ensureScopeExists() {
     if (scope == null) {
       scope = new ModuleScope(this);
       compilationStage = CompilationStage.INITIAL;
@@ -399,7 +399,7 @@ public final class Module implements TruffleObject {
   }
 
   private void compile(EnsoContext context) throws IOException {
-    ensureScopeExists(context);
+    ensureScopeExists();
     Source source = getSource();
     if (source == null) return;
     scope.reset();
