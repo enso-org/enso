@@ -41,11 +41,9 @@ export function useModal() {
 /** A React context hook exposing functions to set and unset the currently active modal. */
 export function useSetModal() {
     const { setModal: setModalRaw } = React.useContext(ModalContext)
-    const setModal = (modal: Modal) => {
-        setModalRaw(modal)
-    }
-    const unsetModal = () => {
+    const setModal: (modal: Modal) => void = setModalRaw
+    const unsetModal = React.useCallback(() => {
         setModalRaw(null)
-    }
+    }, [/* should never change */ setModalRaw])
     return { setModal, unsetModal }
 }
