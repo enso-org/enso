@@ -1199,7 +1199,7 @@ type Column
 
        Returns a column of `Integer` type.
     @period Date_Time_Helpers.make_period_selector_for_column
-    date_part : Date_Period | Time_Period -> Column ! Invalid_Value_Type
+    date_part : Date_Period | Time_Period -> Column ! Invalid_Value_Type | Illegal_Argument
     date_part self period =
         Date_Time_Helpers.make_date_part_function self period simple_unary_op self.naming_helpers
 
@@ -1226,7 +1226,7 @@ type Column
          differences in time calculations between backends, especially around
          unusual events like DST.
     @period Date_Time_Helpers.make_period_selector_for_column
-    date_diff : (Column | Date | Date_Time | Time_Of_Day) -> Date_Period | Time_Period -> Column
+    date_diff : (Column | Date | Date_Time | Time_Of_Day) -> Date_Period | Time_Period -> Column ! Invalid_Value_Type | Illegal_Argument
     date_diff self end (period : Date_Period | Time_Period) =
         Value_Type.expect_type self .is_date_or_time "date/time" <|
             my_type = self.inferred_precise_value_type
@@ -1253,7 +1253,7 @@ type Column
          differences in time calculations between backends, especially around
          unusual events like DST.
     @period Date_Time_Helpers.make_period_selector_for_column
-    date_add : (Column | Integer) -> Date_Period | Time_Period -> Column
+    date_add : (Column | Integer) -> Date_Period | Time_Period -> Column ! Invalid_Value_Type | Illegal_Argument
     date_add self amount (period : Date_Period | Time_Period) =
         Value_Type.expect_type self .is_date_or_time "date/time" <|
             my_type = self.inferred_precise_value_type
