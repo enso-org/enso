@@ -64,7 +64,7 @@ final class ProjectsEndpoint[
         complete(
           HttpEntity(
             ProjectsEndpoint.CONTENT_TYPE_GZIP,
-            archive.outputStream().toByteArray
+            archive.bytes()
           )
         )
     }

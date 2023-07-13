@@ -10,7 +10,7 @@ import org.apache.commons.compress.archivers.tar.TarConstants;
 import org.enso.pkg.Package$;
 
 /** A file visitor that builds a tar archive out of visited files. */
-public final class TarArchiveBuildingFileVisitor implements FileVisitor<Path> {
+final class TarArchiveBuildingFileVisitor implements FileVisitor<Path> {
 
   private final Path root;
   private final TarArchiveOutputStream tarOut;

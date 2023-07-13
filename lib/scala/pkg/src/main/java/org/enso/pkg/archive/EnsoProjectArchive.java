@@ -9,7 +9,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 /** An enso project in .enso-project format. */
-public record EnsoProjectArchive(ByteArrayOutputStream outputStream) {
+public record EnsoProjectArchive(byte[] bytes) {
 
   /** Builds an enso-project archive.
    *
@@ -27,6 +27,6 @@ public record EnsoProjectArchive(ByteArrayOutputStream outputStream) {
       tarOut.finish();
     }
 
-    return new EnsoProjectArchive(out);
+    return new EnsoProjectArchive(out.toByteArray());
   }
 }
