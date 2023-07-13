@@ -1317,10 +1317,6 @@ lazy val runtime = (project in file("engine/runtime"))
       "ENSO_TEST_DISABLE_IR_CACHE" -> "false"
     ),
     bootstrap := CopyTruffleJAR.bootstrapJARs.value,
-    Global / onLoad := EnvironmentCheck.addVersionCheck(
-      graalMavenVersion,
-      javaLangVersion
-    )((Global / onLoad).value)
   )
   .settings(
     (Compile / javacOptions) ++= Seq(
