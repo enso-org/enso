@@ -3,11 +3,12 @@
 //!
 //! See [`Layouter`] struct documentation to learn more.
 
+//TODO[ao] update docs.
+
 use ensogl_core::prelude::*;
 
 use crate::content::Group;
 use crate::layout::Layout;
-use crate::layout::HEADER_HEIGHT_IN_ROWS;
 
 use ensogl_grid_view::Col;
 
@@ -23,6 +24,9 @@ const COLUMNS: usize = 3;
 const LEFT: usize = 0;
 const CENTER: usize = 1;
 const RIGHT: usize = 2;
+/// Height of the header of the component group. This value is added to the group's number of
+/// entries to get the total height.
+const HEADER_HEIGHT_IN_ROWS: usize = 1;
 
 
 
