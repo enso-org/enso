@@ -277,7 +277,7 @@ export function ManagePermissionsModal(props: ManagePermissionsModalProps) {
                         left: position.left + window.scrollX,
                         top: position.top + window.scrollY,
                     }}
-                    className="sticky bg-white shadow-soft rounded-2xl w-64"
+                    className="bg-primary-bg sticky shadow-soft rounded-2xl w-64"
                     onSubmit={onSubmit}
                     onClick={mouseEvent => {
                         mouseEvent.stopPropagation()

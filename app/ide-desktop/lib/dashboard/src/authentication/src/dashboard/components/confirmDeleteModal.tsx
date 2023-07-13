@@ -52,7 +52,7 @@ function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
                     // delete an important asset.
                     await onSubmit()
                 }}
-                className="relative bg-white shadow-soft rounded-lg w-96 p-2"
+                className="bg-primary-bg relative shadow-soft rounded-lg w-96 p-2"
             >
                 <div className="flex">
                     {/* Padding. */}

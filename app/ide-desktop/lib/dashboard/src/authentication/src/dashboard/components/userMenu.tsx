@@ -62,7 +62,7 @@ function UserMenu() {
 
     return (
         <div
-            className="absolute right-4.75 top-11 z-10 flex flex-col rounded-xl bg-white shadow-soft"
+            className="bg-primary-bg absolute right-4.75 top-11 z-10 flex flex-col rounded-xl shadow-soft"
             onClick={event => {
                 event.stopPropagation()
             }}

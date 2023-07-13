@@ -237,7 +237,7 @@ function Autocomplete(props: InternalMultipleAutocompleteProps | InternalSingleA
             </div>
             <div className={`relative h-0 ${optionsClassName ?? ''}`}>
                 <div
-                    className={`absolute bg-white z-10 w-full rounded-lg shadow-soft max-h-10lh ${
+                    className={`absolute bg-primary-bg z-10 w-full rounded-lg shadow-soft max-h-10lh ${
                         isDropdownVisible ? 'overflow-auto' : 'overflow-hidden h-0'
                     }`}
                 >
@@ -249,7 +249,7 @@ function Autocomplete(props: InternalMultipleAutocompleteProps | InternalSingleA
                                     ? 'bg-gray-100'
                                     : valuesSet.has(item)
                                     ? 'bg-gray-200'
-                                    : 'bg-white'
+                                    : 'bg-primary-bg'
                             }`}
                             onMouseDown={event => {
                                 event.preventDefault()

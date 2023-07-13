@@ -44,7 +44,7 @@ function ChangePasswordModal() {
                 onClick={event => {
                     event.stopPropagation()
                 }}
-                className="flex flex-col gap-4 bg-white shadow-soft p-4 rounded-2xl w-full max-w-sm"
+                className="bg-primary-bg flex flex-col gap-4 shadow-soft p-4 rounded-2xl w-full max-w-sm"
             >
                 <div className="font-semibold text-lg">Change your password</div>
                 <form

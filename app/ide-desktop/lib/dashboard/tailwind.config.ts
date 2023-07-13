@@ -21,6 +21,7 @@ export const theme = {
             // Should be `#3e515fe5`, but `bg-opacity` does not work with RGBA.
             /** The default color of all text. */
             primary: '#52636f',
+            'primary-bg': '#f8f9f9',
             label: '#3e515f14',
             help: '#3f68ce',
             warning: '#eab120',

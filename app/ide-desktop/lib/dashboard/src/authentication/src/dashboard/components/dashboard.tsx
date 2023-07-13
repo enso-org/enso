@@ -729,7 +729,7 @@ function Dashboard(props: DashboardProps) {
                                 permissions={permissionDisplay.permissionActionsToPermissions(
                                     user.permissions
                                 )}
-                                className={`border-2 rounded-full bg-white mx-1 ${
+                                className={`border-2 rounded-full bg-primary-bg mx-1 ${
                                     ownsThisAsset
                                         ? 'cursor-pointer hover:shadow-soft hover:z-10'
                                         : ''
@@ -761,7 +761,7 @@ function Dashboard(props: DashboardProps) {
                                 {hoveredUserPermission?.assetId === asset.id &&
                                     hoveredUserPermission.userId === user.user.pk && (
                                         <div className="relative">
-                                            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 rounded-full shadow-soft bg-white px-2 py-1">
+                                            <div className="bg-primary-bg absolute bottom-2 left-1/2 -translate-x-1/2 rounded-full shadow-soft px-2 py-1">
                                                 {user.user.user_email}
                                             </div>
                                         </div>
@@ -1133,7 +1133,7 @@ function Dashboard(props: DashboardProps) {
 
     return (
         <div
-            className={`flex flex-col relative select-none text-primary text-xs leading-normal gap-6 h-screen pt-2.25 pb-5.5 ${
+            className={`bg-primary-bg flex flex-col relative select-none text-primary text-xs leading-normal gap-6 h-screen pt-2.25 pb-5.5 ${
                 tab === Tab.dashboard ? '' : 'hidden'
             }`}
             onClick={event => {
@@ -1295,7 +1295,7 @@ function Dashboard(props: DashboardProps) {
                                             disabled={columnDisplayMode === ColumnDisplayMode.all}
                                             className={`rounded-full leading-5 px-1.5 py-0.5 ${
                                                 columnDisplayMode === ColumnDisplayMode.all
-                                                    ? 'bg-white shadow-soft'
+                                                    ? 'bg-primary-bg shadow-soft'
                                                     : 'opacity-50'
                                             }`}
                                             onClick={() => {
@@ -1310,7 +1310,7 @@ function Dashboard(props: DashboardProps) {
                                             }
                                             className={`rounded-full leading-5 px-1.5 py-0.5 ${
                                                 columnDisplayMode === ColumnDisplayMode.compact
-                                                    ? 'bg-white shadow-soft'
+                                                    ? 'bg-primary-bg shadow-soft'
                                                     : 'opacity-50'
                                             }`}
                                             onClick={() => {
@@ -1323,7 +1323,7 @@ function Dashboard(props: DashboardProps) {
                                             disabled={columnDisplayMode === ColumnDisplayMode.docs}
                                             className={`rounded-full leading-5 px-1.5 py-0.5 ${
                                                 columnDisplayMode === ColumnDisplayMode.docs
-                                                    ? 'bg-white shadow-soft'
+                                                    ? 'bg-primary-bg shadow-soft'
                                                     : 'opacity-50'
                                             }`}
                                             onClick={() => {
@@ -1338,7 +1338,7 @@ function Dashboard(props: DashboardProps) {
                                             }
                                             className={`rounded-full leading-5 px-1.5 py-0.5 ${
                                                 columnDisplayMode === ColumnDisplayMode.settings
-                                                    ? 'bg-white shadow-soft'
+                                                    ? 'bg-primary-bg shadow-soft'
                                                     : 'opacity-50'
                                             }`}
                                             onClick={() => {

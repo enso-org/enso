@@ -45,7 +45,7 @@ function ContextMenu(props: React.PropsWithChildren<ContextMenuProps>) {
             ref={contextMenuRef}
             // The location must be offset by -0.5rem to balance out the `m-2`.
             style={{ left: `calc(${event.pageX}px - 0.5rem)`, top: `calc(${top}px - 0.5rem)` }}
-            className="absolute bg-white rounded-lg shadow-soft flex flex-col flex-nowrap m-2"
+            className="bg-primary-bg absolute rounded-lg shadow-soft flex flex-col flex-nowrap m-2"
         >
             {children}
         </div>

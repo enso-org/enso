@@ -93,7 +93,7 @@ function TopBar(props: TopBarProps) {
                         disabled={backend.type === backendModule.BackendType.local}
                         className={`${
                             backend.type === backendModule.BackendType.local
-                                ? 'bg-white shadow-soft'
+                                ? 'bg-primary-bg shadow-soft'
                                 : 'opacity-50'
                         } rounded-full px-1.5 py-1`}
                         onClick={() => {
@@ -106,7 +106,7 @@ function TopBar(props: TopBarProps) {
                         disabled={backend.type === backendModule.BackendType.remote}
                         className={`${
                             backend.type === backendModule.BackendType.remote
-                                ? 'bg-white shadow-soft'
+                                ? 'bg-primary-bg shadow-soft'
                                 : 'opacity-50'
                         } rounded-full px-1.5 py-1`}
                         onClick={() => {
@@ -130,7 +130,7 @@ function TopBar(props: TopBarProps) {
                 >
                     {projectName ?? 'Dashboard'}
                 </span>
-                <div className="bg-white shadow-soft rounded-full px-1.5 py-1">
+                <div className="bg-primary-bg shadow-soft rounded-full px-1.5 py-1">
                     <img src={BarsIcon} />
                 </div>
                 <span
