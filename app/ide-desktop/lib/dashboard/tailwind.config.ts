@@ -64,7 +64,7 @@ export const theme = {
             '10lh': '10lh',
         },
         scale: {
-            '103-1/3': '1.033333333',
+            '103-1/3': '1.03333',
         },
         lineHeight: {
             normal: '1.445',
