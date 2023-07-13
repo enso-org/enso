@@ -93,7 +93,11 @@ type Test_Selection
          length text columns.
        - supports_decimal_type: Specifies if the backend supports the `Decimal`
          high-precision type.
-    Config supports_case_sensitive_columns=True order_by=True natural_ordering=False case_insensitive_ordering=True order_by_unicode_normalization_by_default=False case_insensitive_ascii_only=False take_drop=True allows_mixed_type_comparisons=True supports_unicode_normalization=False is_nan_and_nothing_distinct=True distinct_returns_first_row_from_group_if_ordered=True date_time=True fixed_length_text_columns=False supports_decimal_type=False
+       - supports_time_duration: Specifies if the backend supports a
+         `Duration`/`Period` type.
+       - supports_nanoseconds_in_time: Specifies if the backend supports
+         nanosecond precision in time values.
+    Config supports_case_sensitive_columns=True order_by=True natural_ordering=False case_insensitive_ordering=True order_by_unicode_normalization_by_default=False case_insensitive_ascii_only=False take_drop=True allows_mixed_type_comparisons=True supports_unicode_normalization=False is_nan_and_nothing_distinct=True distinct_returns_first_row_from_group_if_ordered=True date_time=True fixed_length_text_columns=False supports_decimal_type=False supports_time_duration=False supports_nanoseconds_in_time=False
 
 spec setup =
     Core_Spec.spec setup

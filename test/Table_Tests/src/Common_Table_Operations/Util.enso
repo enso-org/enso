@@ -24,3 +24,34 @@ run_default_backend spec =
          within_table t <|
              t.at "A" . to_vector . should_equal [1, 2, 3]
 within_table table = Test.with_clue 'Resulting table:\n'+table.display+'\n\n'
+
+## PRIVATE
+Any.should_equal_tz_agnostic self other =
+    loc = Meta.get_source_location 1
+    _ = other
+    Test.fail "Expected a vector but got "+self.to_display_text+" (at "+loc+")."
+
+## PRIVATE
+   A helper method that compares two vectors of Date_Time values.
+
+   It ensures that they represent the same instant in time, but ignore the
+   timezone that is attached to them. This is simply done by converting them to
+   UTC.
+Vector.should_equal_tz_agnostic self other =
+    loc = Meta.get_source_location 1
+    case other of
+        _ : Vector ->
+            utc = Time_Zone.utc
+            normalize_date_time dt = case dt of
+                _ : Date_Time -> dt.at_zone utc
+                _ -> Test.fail "The vector should contain Date_Time objects but it contained "+dt.to_display_text+" (at "+loc+")"
+            self_normalized = self.map normalize_date_time
+            other_normalized = other.map normalize_date_time
+            self_normalized.should_equal other_normalized frames_to_skip=2
+        _ -> Test.fail "Expected a vector but got "+other.to_display_text+" (at "+loc+")"
+
+## PRIVATE
+Error.should_equal_tz_agnostic self other =
+    loc = Meta.get_source_location 1
+    _ = other
+    Test.fail "Expected a vector but got a dataflow error "+self.catch.to_display_text+" (at "+loc+")."

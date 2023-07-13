@@ -2,27 +2,53 @@ import project.Data.Time.Date.Date
 import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Day_Of_Week.Day_Of_Week
 import project.Data.Time.Period.Period
+import project.Error.Error
+import project.Errors.Illegal_State.Illegal_State
 from project.Data.Boolean import Boolean, False, True
 
+polyglot java import java.time.temporal.ChronoUnit
 polyglot java import java.time.temporal.TemporalAdjuster
 polyglot java import java.time.temporal.TemporalAdjusters
-polyglot java import org.enso.base.time.Date_Period_Utils
+polyglot java import java.time.temporal.TemporalUnit
 polyglot java import org.enso.base.Time_Utils
+polyglot java import org.enso.base.time.Date_Period_Utils
+polyglot java import org.enso.base.time.CustomTemporalUnits
 
 ## Represents a unit of time longer on the scale of days (longer than a day).
 type Date_Period
+    ## Represents a date period of a calendar year.
+
+       Its length in days will depend on context (accounting for leap years).
     Year
 
+    ## Represents a date period of a quarter - 3 calendar months.
     Quarter
 
+    ## Represents a date period of a month.
+
+       Its length in days will depend on context of what month it is used.
     Month
 
     ## Represents a 7-day week starting at a given day.
 
        By default, the first day of the week is Monday, but this can be adjusted
        to any other day.
+
+       The starting day will be ignored for methods that just compute the time
+       differences. It only matters for methods that need to find a beginning or
+       end of a specific period (like `start_of` or `end_of`).
+
+       The `date_part` method will return the ISO 8601 week of year number,
+       regardless of the starting day.
     Week (first_day:Day_Of_Week = Day_Of_Week.Monday)
 
+    ## Represents a time period of a single calendar day.
+
+       ? Daylight Saving Time
+
+         Note that due to DST changes, some days may be slightly longer or
+         shorter. This date period will reflect that and still count such days
+         as one day. For a measure of exactly 24 hours, use `Time_Period.Day`.
     Day
 
     ## PRIVATE
@@ -55,3 +81,12 @@ type Date_Period
         Date_Period.Month -> Period.new months=1
         Date_Period.Week _ -> Period.new days=7
         Date_Period.Day -> Period.new days=1
+
+    ## PRIVATE
+    to_java_unit : TemporalUnit
+    to_java_unit self = case self of
+        Date_Period.Year -> ChronoUnit.YEARS
+        Date_Period.Quarter -> CustomTemporalUnits.QUARTERS
+        Date_Period.Month -> ChronoUnit.MONTHS
+        Date_Period.Week _ -> ChronoUnit.WEEKS
+        Date_Period.Day -> ChronoUnit.DAYS

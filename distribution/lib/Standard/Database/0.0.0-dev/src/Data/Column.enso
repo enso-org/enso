@@ -7,6 +7,7 @@ import Standard.Base.Internal.Rounding_Helpers
 import Standard.Table.Data.Column.Column as Materialized_Column
 import Standard.Table.Data.Type.Enso_Types
 import Standard.Table.Data.Type.Value_Type_Helpers
+import Standard.Table.Internal.Date_Time_Helpers
 import Standard.Table.Internal.Java_Problems
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 import Standard.Table.Internal.Widget_Helpers
@@ -99,7 +100,7 @@ type Column
     ## Returns a vector containing all the elements in this column.
     to_vector : Vector Any
     to_vector self =
-        self.to_table.read . at self.name . to_vector
+        self.to_table.read . at 0 . to_vector
 
     ## Returns the `Value_Type` associated with that column.
 
@@ -133,8 +134,9 @@ type Column
        - operands: A vector of additional operation arguments (the column itself
          is always passed as the first argument).
        - new_name: The name of the resulting column.
-    make_op : Text -> Vector Text -> (Text | Nothing) -> Column
-    make_op self op_kind operands new_name =
+       - metadata: Optional metadata for the `SQL_Expression.Operation`.
+    make_op : Text -> Vector Text -> (Text | Nothing) -> (Any | Nothing) -> Column
+    make_op self op_kind operands new_name metadata=Nothing =
         checked_support = if self.connection.dialect.is_supported op_kind then True else
             Error.throw (Unsupported_Database_Operation.Error "The operation "+op_kind+" is not supported by this backend.")
         checked_support.if_not_error <|
@@ -149,7 +151,7 @@ type Column
                     SQL_Expression.Constant constant
 
             expressions = operands.map prepare_operand
-            new_expr = SQL_Expression.Operation op_kind ([self.expression] + expressions)
+            new_expr = SQL_Expression.Operation op_kind ([self.expression] + expressions) metadata
 
             infer_from_database_callback expression =
                 SQL_Type_Reference.new self.connection self.context expression
@@ -356,7 +358,7 @@ type Column
                 self.make_op "BETWEEN" [lower, upper] new_name
 
     ## ALIAS Add, Plus, Concatenate
-       Element-wise addition.
+       Element-wise addition. Works on numeric types or text.
 
        Arguments:
        - other: The other column to add to this column.
@@ -366,13 +368,16 @@ type Column
        between corresponding elements of `self` and `other`.
     + : Column | Any -> Column
     + self other =
-        op = Value_Type_Helpers.resolve_addition_kind self other
+        op = case Value_Type_Helpers.resolve_addition_kind self other of
+            Value_Type_Helpers.Addition_Kind.Numeric_Add -> "ADD_NUMBER"
+            Value_Type_Helpers.Addition_Kind.Text_Concat -> "ADD_TEXT"
         op.if_not_error <|
             new_name = self.naming_helpers.binary_operation_name "+" self other
             self.make_binary_op op other new_name
 
-    ## ALIAS Subtract, Minus
-       Element-wise subtraction.
+    ## ALIAS Subtract, Minus, Time Difference
+       Element-wise subtraction. Allows to subtract numeric types or compute a
+       difference between two date/time values.
 
        Arguments:
        - other: The other column to subtract from this column.
@@ -382,8 +387,11 @@ type Column
        pairwise between corresponding elements of `self` and `other`.
     - : Column | Any -> Column
     - self other =
-        Value_Type_Helpers.check_binary_numeric_op self other <|
-            self.make_binary_op "-" other
+        case Value_Type_Helpers.resolve_subtraction_kind self other of
+            Value_Type_Helpers.Subtraction_Kind.Numeric_Subtract ->
+                self.make_binary_op "-" other
+            Value_Type_Helpers.Subtraction_Kind.Date_Time_Difference ->
+                Error.throw (Unsupported_Database_Operation.Error "Subtracting date/time values is not supported in this database.")
 
     ## ALIAS Multiply, Times, Product
        Element-wise multiplication.
@@ -1144,7 +1152,7 @@ type Column
        Returns a column of `Integer` type.
     year : Column ! Invalid_Value_Type
     year self = Value_Type.expect_has_date self <|
-        self.make_unary_op "year"
+        simple_unary_op self "year"
 
     ## Gets the month as a number (1-12) from the date stored in the column.
 
@@ -1152,7 +1160,7 @@ type Column
        Returns a column of `Integer` type.
     month : Column ! Invalid_Value_Type
     month self = Value_Type.expect_has_date self <|
-        self.make_unary_op "month"
+        simple_unary_op self "month"
 
     ## Gets the day of the month as a number (1-31) from the date stored in the
        column.
@@ -1161,7 +1169,99 @@ type Column
        Returns a column of `Integer` type.
     day : Column ! Invalid_Value_Type
     day self = Value_Type.expect_has_date self <|
-        self.make_unary_op "day"
+        simple_unary_op self "day"
+
+    ## Gets the hour as a number (0-23) from the time stored in the column.
+
+       Applies only to columns that hold the `Time_Of_Day` or `Date_Time` types.
+       Returns a column of `Integer` type.
+    hour : Column ! Invalid_Value_Type
+    hour self = Value_Type.expect_has_time self <|
+        simple_unary_op self "hour"
+
+    ## Gets the minute as a number (0-59) from the time stored in the column.
+
+       Applies only to columns that hold the `Time_Of_Day` or `Date_Time` types.
+       Returns a column of `Integer` type.
+    minute : Column ! Invalid_Value_Type
+    minute self = Value_Type.expect_has_time self <|
+        simple_unary_op self "minute"
+
+    ## Gets the second as an integer (0-60) from the time stored in the column.
+
+       Applies only to columns that hold the `Time_Of_Day` or `Date_Time` types.
+       Returns a column of `Integer` type.
+    second : Column ! Invalid_Value_Type
+    second self = Value_Type.expect_has_time self <|
+        simple_unary_op self "second"
+
+    ## Gets the date part of the date/time value.
+
+       Returns a column of `Integer` type.
+    @period Date_Time_Helpers.make_period_selector_for_column
+    date_part : Date_Period | Time_Period -> Column ! Invalid_Value_Type
+    date_part self period =
+        Date_Time_Helpers.make_date_part_function self period simple_unary_op self.naming_helpers
+
+    ## Computes a time difference between the two dates.
+
+       It returns a column of integers expressing how many periods fit between
+       the two dates/times.
+
+       The difference will be positive if `end` is greater than `self`.
+
+       Arguments:
+       - end: A date/time column or a date/time value to compute the difference
+         from. It should have the same type as the current column, i.e. a
+         `Date_Time` column cannot be compared to a `Date` - to do so you first
+         need to `cast`.
+       - period: The period to compute the difference in. For `Date` columns it
+         should be a `Date_Period` and for `Time` columns it should be a
+         `Time_Period`. For `Date_Time` columns it can be either.
+
+       ? Time Zone handling
+
+         Some backends may not preserve the timezone data in a `Date_Time`
+         (preserving the represented time instant). This may lead to slight
+         differences in time calculations between backends, especially around
+         unusual events like DST.
+    @period Date_Time_Helpers.make_period_selector_for_column
+    date_diff : (Column | Date | Date_Time | Time_Of_Day) -> Date_Period | Time_Period -> Column
+    date_diff self end (period : Date_Period | Time_Period) =
+        Value_Type.expect_type self .is_date_or_time "date/time" <|
+            my_type = self.inferred_precise_value_type
+            Value_Type.expect_type end (== my_type) my_type.to_display_text <|
+                Date_Time_Helpers.check_period_aligned_with_value_type my_type period <|
+                    new_name = self.naming_helpers.function_name "date_diff" [self, end, period.to_display_text]
+                    metadata = self.connection.dialect.prepare_metadata_for_period period my_type
+                    self.make_op "date_diff" [end] new_name metadata
+
+    ## Shifts the date/time by a specified period, returning a new date/time
+       column of the same type.
+
+       Arguments:
+       - amount: An integer or integer column specifying by how many periods to
+         shift each date.
+       - period: The period by which to shift. For `Date` columns it should be a
+         `Date_Period` and for `Time` columns it should be a `Time_Period`. For
+         `Date_Time` columns it can be either.
+
+       ? Time Zone handling
+
+         Some backends may not preserve the timezone data in a `Date_Time`
+         (preserving the represented time instant). This may lead to slight
+         differences in time calculations between backends, especially around
+         unusual events like DST.
+    @period Date_Time_Helpers.make_period_selector_for_column
+    date_add : (Column | Integer) -> Date_Period | Time_Period -> Column
+    date_add self amount (period : Date_Period | Time_Period) =
+        Value_Type.expect_type self .is_date_or_time "date/time" <|
+            my_type = self.inferred_precise_value_type
+            Value_Type.expect_integer amount <|
+                Date_Time_Helpers.check_period_aligned_with_value_type my_type period <|
+                    new_name = self.naming_helpers.function_name "date_add" [self, amount, period.to_display_text]
+                    metadata = self.connection.dialect.prepare_metadata_for_period period my_type
+                    self.make_op "date_add" [amount] new_name metadata
 
     ## Checks for each element of the column if it is contained within the
        provided vector or column.
@@ -1471,3 +1571,8 @@ adapt_unified_column column expected_type =
         SQL_Type_Reference.new column.connection column.context expression
     adapted = dialect.adapt_unified_column column.as_internal expected_type infer_return_type
     Column.Value name=column.name connection=column.connection sql_type_reference=adapted.sql_type_reference expression=adapted.expression context=column.context
+
+## PRIVATE
+   A shorthand to be able to share the implementations between in-memory and
+   database.
+simple_unary_op column op_kind = column.make_unary_op op_kind

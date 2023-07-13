@@ -1,6 +1,7 @@
-package org.enso.table.data.column.operation.map;
+package org.enso.table.data.column.operation.map.numeric;
 
 import java.util.BitSet;
+import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.graalvm.polyglot.Context;
