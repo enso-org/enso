@@ -261,7 +261,7 @@ postgres_specific_spec connection db_name setup =
             do_round 231 . should_be_a Decimal
             do_round 231 -1 . should_be_a Decimal
 
-    Test.group "replace: literal pattern and replacement" <|
+    Test.group "replace: literal pattern and replacementasdfasdf" <|
         col0 = table_builder [["x", ['hello Hello', 'hello hello', 'HELLO HELLO']]] . at "x"
         col1 = table_builder [["x", ['a[bcd] A[bCd] a[bcd]', 'abac ad Ab aCAd']]] . at "x"
 

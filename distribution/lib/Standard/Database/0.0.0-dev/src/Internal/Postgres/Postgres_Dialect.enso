@@ -12,6 +12,7 @@ from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
 from Standard.Table.Errors import Inexact_Type_Coercion
 
 import project.Connection.Connection.Connection
+import project.Data.Column.Column
 import project.Data.Dialect
 import project.Data.SQL.Builder
 import project.Data.SQL.SQL_Fragment
@@ -243,8 +244,7 @@ type Postgres_Dialect
 ## PRIVATE
 make_internal_generator_dialect =
     cases = [["LOWER", Base_Generator.make_function "LOWER"], ["UPPER", Base_Generator.make_function "UPPER"]]
-    text = [starts_with, contains, ends_with, agg_shortest, agg_longest, make_case_sensitive]+concat_ops+cases+trim_ops
-    text_replace = [replace_text_cs_all, replace_text_cs_only_first, replace_text_ci_all, replace_text_ci_only_first, replace_regex_cs_all, replace_regex_cs_only_first, replace_regex_ci_all, replace_regex_ci_only_first, replace_column_cs_all]
+    text = [starts_with, contains, ends_with, agg_shortest, agg_longest, make_case_sensitive, ["REPLACE", replace]]+concat_ops+cases+trim_ops
     counts = [agg_count_is_null, agg_count_empty, agg_count_not_empty, ["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null]]
     arith_extensions = [is_nan, is_inf, floating_point_div, mod_op, decimal_div, decimal_mod, ["ROW_MIN", Base_Generator.make_function "LEAST"], ["ROW_MAX", Base_Generator.make_function "GREATEST"]]
     bool = [bool_or]
@@ -254,7 +254,7 @@ make_internal_generator_dialect =
     stats = [agg_median, agg_mode, agg_percentile, stddev_pop, stddev_samp]
     date_ops = [make_extract_as_int "year", make_extract_as_int "quarter", make_extract_as_int "month", make_extract_as_int "week", make_extract_as_int "day", make_extract_as_int "hour", make_extract_as_int "minute", make_extract_fractional_as_int "second", make_extract_fractional_as_int "millisecond" modulus=1000, make_extract_fractional_as_int "microsecond" modulus=1000, ["date_add", make_date_add], ["date_diff", make_date_diff]]
     special_overrides = [is_null, is_empty]
-    my_mappings = text + text_replace + counts + stats + first_last_aggregators + arith_extensions + bool + date_ops + special_overrides
+    my_mappings = text + counts + stats + first_last_aggregators + arith_extensions + bool + date_ops + special_overrides
     Base_Generator.base_dialect . extend_with my_mappings
 
 ## PRIVATE
@@ -494,44 +494,57 @@ decimal_div = Base_Generator.lift_binary_op "DECIMAL_DIV" x-> y->
 decimal_mod = Base_Generator.lift_binary_op "DECIMAL_MOD" x-> y->
     x ++ " - FLOOR(CAST(" ++ x ++ " AS decimal) / CAST(" ++ y ++ " AS decimal)) * " ++ y
 
-replace_text_cs_all = Base_Generator.lift_ternary_op "REPLACE_TEXT_CS_ALL" t-> p-> r->
-    Builder.code "REPLACE(" ++ t ++ ", " ++ p ++ ", " ++ r ++ ")"
+replace : Vector Builder -> Any -> Builder
+replace args metadata =
+    input = args.at 0
+    pattern = args.at 1
+    replacement = args.at 2
 
-replace_text_cs_only_first = Base_Generator.lift_ternary_op "REPLACE_TEXT_CS_ONLY_FIRST" t-> p-> r->
-    escaped_pattern = escape_regex_param p
-    Builder.code "REGEXP_REPLACE(" ++ t ++ ", " ++ escaped_pattern ++ ", " ++ r ++ ", 1, 1)"
+    input_type = metadata.at 0
+    case_sensitivity = metadata.at 1
+    only_first = metadata.at 2
 
-replace_text_ci_all = Base_Generator.lift_ternary_op "REPLACE_TEXT_CI_ALL" t-> p-> r->
-    escaped_pattern = escape_regex_param p
-    Builder.code "REGEXP_REPLACE(" ++ t ++ ", " ++ escaped_pattern ++ ", " ++ r ++ ", 1, 0, 'i')"
-
-replace_text_ci_only_first = Base_Generator.lift_ternary_op "REPLACE_TEXT_CI_ONLY_FIRST" t-> p-> r->
-    escaped_pattern = escape_regex_param p
-    Builder.code "REGEXP_REPLACE(" ++ t ++ ", " ++ escaped_pattern ++ ", " ++ r ++ ", 1, 1, 'i')"
-
-replace_regex_cs_all = Base_Generator.lift_ternary_op "REPLACE_REGEX_CS_ALL" t-> p-> r->
-    pattern_string = transform_literal_param (_.pattern_string) p
-    Builder.code "REGEXP_REPLACE(" ++ t ++ ", " ++ pattern_string ++ ", " ++ r ++ ", 1, 0)"
-
-replace_regex_cs_only_first = Base_Generator.lift_ternary_op "REPLACE_REGEX_CS_ONLY_FIRST" t-> p-> r->
-    pattern_string = transform_literal_param (_.pattern_string) p
-    Builder.code "REGEXP_REPLACE(" ++ t ++ ", " ++ pattern_string ++ ", " ++ r ++ ", 1, 1)"
-
-replace_regex_ci_all = Base_Generator.lift_ternary_op "REPLACE_REGEX_CI_ALL" t-> p-> r->
-    pattern_string = transform_literal_param (_.pattern_string) p
-    Builder.code "REGEXP_REPLACE(" ++ t ++ ", " ++ pattern_string ++ ", " ++ r ++ ", 1, 0, 'i')"
-
-replace_regex_ci_only_first = Base_Generator.lift_ternary_op "REPLACE_REGEX_CI_ONLY_FIRST" t-> p-> r->
-    pattern_string = transform_literal_param (_.pattern_string) p
-    Builder.code "REGEXP_REPLACE(" ++ t ++ ", " ++ pattern_string ++ ", " ++ r ++ ", 1, 1, 'i')"
-
-replace_column_cs_all = Base_Generator.lift_ternary_op "REPLACE_COLUMN_CS_ALL" t-> p-> r->
-    Builder.code "REPLACE(" ++ t ++ ", " ++ p ++ ", " ++ r ++ ")"
-
-## PRIVATE
-   Escape a literal regex param
-escape_regex_param : Builder -> Builder
-escape_regex_param regex_param = transform_literal_param Regex.escape regex_param
+    expression = case input_type of
+        Text ->
+            ## To use REGEXP_REPLACE on a non-regex, we have to escape it.
+            escaped_pattern = transform_literal_param Regex.escape pattern
+            case only_first of
+                False -> case case_sensitivity of
+                    Case_Sensitivity.Insensitive _ ->
+                        Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ escaped_pattern ++ ", " ++ replacement ++ ", 1, 0, 'i')"
+                    _ ->
+                        Builder.code "REPLACE(" ++ input ++ ", " ++ pattern ++ ", " ++ replacement ++ ")"
+                True -> case case_sensitivity of
+                    Case_Sensitivity.Insensitive _ ->
+                        Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ escaped_pattern ++ ", " ++ replacement ++ ", 1, 1, 'i')"
+                    _ ->
+                        Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ escaped_pattern ++ ", " ++ replacement ++ ", 1, 1)"
+        Regex ->
+            pattern_string = transform_literal_param (_.pattern_string) pattern
+            case only_first of
+                False -> case case_sensitivity of
+                    Case_Sensitivity.Insensitive _ ->
+                        Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_string ++ ", " ++ replacement ++ ", 1, 0, 'i')"
+                    _ ->
+                        Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_string ++ ", " ++ replacement ++ ", 1, 0)"
+                True -> case case_sensitivity of
+                    Case_Sensitivity.Insensitive _ ->
+                        Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_string ++ ", " ++ replacement ++ ", 1, 1, 'i')"
+                    _ ->
+                        Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_string ++ ", " ++ replacement ++ ", 1, 1)"
+        Column ->
+            case only_first of
+                False -> case case_sensitivity of
+                    Case_Sensitivity.Insensitive _ ->
+                        Nothing
+                    _ ->
+                        Builder.code "REPLACE(" ++ input ++ ", " ++ pattern ++ ", " ++ replacement ++ ")"
+                True -> Nothing
+    case expression of
+        Nothing ->
+            msg = "The REPLACE operation is not supported on PostgreSQL for the following options: argument type " + input_type + ", case_sensitivity " + case_sensitivity.to_display_text + ", only_first " + only_first.to_text
+            Error.throw (Unsupported_Database_Operation.Error msg)
+        _ -> expression
 
 ## PRIVATE
    Transform the interpolation value within the Builder
