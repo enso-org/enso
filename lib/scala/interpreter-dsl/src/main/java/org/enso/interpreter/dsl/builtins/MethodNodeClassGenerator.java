@@ -88,7 +88,7 @@ public abstract class MethodNodeClassGenerator {
         out.println("public class " + builtinNode.jvmFriendlyName() + " extends Node {");
         out.println();
       }
-      for (String line : methodsGen().generate(processingEnv, ownerMethodName, ownerClazz.name())) {
+      for (String line : methodsGen().generate(ownerMethodName, ownerClazz.name())) {
         out.println("  " + line);
       }
       out.println();

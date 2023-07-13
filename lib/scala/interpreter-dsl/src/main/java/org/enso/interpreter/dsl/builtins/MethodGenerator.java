@@ -21,8 +21,9 @@ import org.enso.interpreter.dsl.Builtin;
 public abstract class MethodGenerator {
   protected final boolean isStatic;
   protected final boolean isConstructor;
-  private final boolean convertToGuestValue;
+  protected final boolean convertToGuestValue;
   protected final TypeWithKind returnTpe;
+  protected final ProcessingEnvironment processingEnvironment;
 
   private static final WrapExceptionExtractor wrapExceptionsExtractor =
       new WrapExceptionExtractor(Builtin.WrapException.class, Builtin.WrapExceptions.class);
@@ -33,18 +34,19 @@ public abstract class MethodGenerator {
   }
 
   public MethodGenerator(
+      ProcessingEnvironment processingEnvironment,
       boolean isStatic,
       boolean isConstructor,
       boolean convertToGuestValue,
       TypeWithKind returnTpe) {
+    this.processingEnvironment = processingEnvironment;
     this.isStatic = isStatic;
     this.isConstructor = isConstructor;
     this.convertToGuestValue = convertToGuestValue;
     this.returnTpe = returnTpe;
   }
 
-  public abstract List<String> generate(
-      ProcessingEnvironment processingEnv, String name, String owner);
+  public abstract List<String> generate(String name, String owner);
 
   /**
    * Generate node's `execute` method definition (return type and necessary parameters). '
@@ -92,10 +94,12 @@ public abstract class MethodGenerator {
             return tpe.baseType();
           } else {
             if (!convertToGuestValue) {
-              throw new RuntimeException(
-                  "If intended, automatic conversion of value of type "
+              processingEnvironment.getMessager().printMessage(
+                  Kind.ERROR,
+                  "Automatic conversion of value of type "
                       + tpe.baseType()
-                      + " to guest value requires explicit '@Builtin.ReturningGuestObject' annotation");
+                      + " to guest value requires explicit '@Builtin.ReturningGuestObject' annotation"
+              );
             }
             return "Object";
           }
