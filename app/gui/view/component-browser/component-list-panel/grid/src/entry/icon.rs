@@ -128,6 +128,7 @@ define_icons! {
 
                 let shape = bottom + middle + top;
                 let shape = shape.fill(VIVID_COLOR.glsl());
+                let shape = shape.shrink(SHRINK_AMOUNT.px());
                 shape.into()
             }
         }
@@ -154,6 +155,7 @@ define_icons! {
 
                 let shape = center + circle_tl + circle_tr + circle_bl + circle_br;
                 let shape = shape.fill(VIVID_COLOR.glsl());
+                let shape = shape.shrink(SHRINK_AMOUNT.px());
                 shape.into()
             }
         }
@@ -181,6 +183,7 @@ define_icons! {
                 let right = right.fill(VIVID_COLOR.glsl());
 
                 let shape = left + right;
+                let shape = shape.shrink(SHRINK_AMOUNT.px());
                 shape.into()
             }
         }
@@ -961,15 +964,61 @@ define_icons! {
             size = (SIZE, SIZE);
             alignment = center;
             (style: Style) {
-                let circle = Circle(7.75.px());
-                let circle = &circle - circle.shrink(1.0.px());
+                let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
+                let dull_color = &VIVID_COLOR * &dull_alpha;
+                let circle = Circle(8.0.px());
+                let circle = circle.fill(dull_color.glsl());
 
-                let big_hand = Segment((0.0.px(),0.0.px()),(3.0.px(),(-2.0).px()),1.5.px());
-                let small_hand = Segment((0.0.px(),0.0.px()),(0.0.px(),2.5.px()),1.5.px());
+                let big_hand = Rect((2.0.px(), 7.0.px())).corners_radius(1.0.px());
+                let big_hand = big_hand.translate_y(2.5.px()).pixel_snap();
+                let small_hand = Rect((2.0.px(), 5.5.px())).corners_radius(1.0.px());
+                let small_hand = small_hand.translate_y(-1.75.px());
+                let small_hand = small_hand.rotate((-PI / 3.0).radians());
+                let hands = big_hand + small_hand;
+                let hands = hands.fill(VIVID_COLOR.glsl());
 
-                let shape = circle + big_hand + small_hand;
-                let shape = shape.translate((0.25.px(),0.25.px()));
-                let shape = shape.fill(VIVID_COLOR.glsl());
+                let shape = circle + hands;
+                let shape = shape.shrink(SHRINK_AMOUNT.px());
+                shape.into()
+            }
+        }
+    }
+
+    /// A calendar.
+    pub mod calendar(Calendar) {
+        ensogl_core::cached_shape! {
+            size = (SIZE, SIZE);
+            alignment = center;
+            (style: Style) {
+                let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
+                let dull_color = &VIVID_COLOR * &dull_alpha;
+
+                let bg = Rect((15.0.px(), 12.0.px()));
+                let bg = bg.corners_radiuses(0.0.px(), 0.0.px(), 2.0.px(), 2.0.px());
+                let bg = bg.translate((-0.5.px(), -2.0.px()));
+                let bg = bg.fill(dull_color.glsl());
+
+                let top = Rect((15.0.px(), 2.0.px()));
+                let top = top.corners_radiuses(2.0.px(), 2.0.px(), 0.0.px(), 0.0.px());
+                let top = top.translate((-0.5.px(), 5.0.px()));
+                let handle = Rect((2.0.px(), 4.0.px())).corners_radius(1.0.px());
+                let handle = handle.translate_y(6.0.px());
+                let left_handle = handle.translate_x(-4.5.px());
+                let right_handle = handle.translate_x(3.5.px());
+                let top = top + left_handle + right_handle;
+                let top = top.fill(VIVID_COLOR.glsl());
+
+                let dot = Circle(1.0.px());
+                let dots = dot.repeat((3.0.px(), 3.0.px())).fill(VIVID_COLOR.glsl());
+                let dots = dots.translate((-5.0.px(), 1.0.px()));
+                let mask = Rect((11.0.px(), 8.0.px()));
+                let mask = mask.translate((-0.5.px(), -2.0.px()));
+                let bottom_left_corner = Rect((2.0.px(), 2.0.px()));
+                let bottom_left_corner = bottom_left_corner.translate((4.0.px(), -5.0.px()));
+                let mask = mask - bottom_left_corner;
+                let dots = dots.intersection(&mask);
+
+                let shape = bg + top + dots;
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
                 shape.into()
             }
