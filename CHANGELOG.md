@@ -517,6 +517,9 @@
   `Column`, and in-memory `Table` to take a `Regex` in addition to a `Text`.]
   [7223]
 - [Added `cross_join` support to database tables.][7234]
+- [Improving date/time support in Table - added `date_diff`, `date_add`,
+  `date_part` and some shorthands. Extended `Time_Period` with milli-, micro-
+  and nanosecond periods.][7221]
 - [Implemented `replace` on database columns.][7275]
 
 [debug-shortcuts]:
@@ -746,6 +749,7 @@
 [7174]: https://github.com/enso-org/enso/pull/7174
 [7223]: https://github.com/enso-org/enso/pull/7223
 [7234]: https://github.com/enso-org/enso/pull/7234
+[7221]: https://github.com/enso-org/enso/pull/7221
 [7275]: https://github.com/enso-org/enso/pull/7275
 
 #### Enso Compiler

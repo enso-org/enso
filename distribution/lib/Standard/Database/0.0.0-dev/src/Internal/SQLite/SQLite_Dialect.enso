@@ -257,6 +257,14 @@ type SQLite_Dialect
         v = info_table.filter "pk" (>0) . order_by "pk" . at "name" . to_vector
         if v.is_empty then Nothing else v
 
+    ## PRIVATE
+       Prepares metadata for an operation taking a date/time period and checks
+       if the given period is supported.
+    prepare_metadata_for_period : Date_Period | Time_Period -> Value_Type -> Any
+    prepare_metadata_for_period self period operation_input_type =
+        _ = [period, operation_input_type]
+        Error.throw (Unsupported_Database_Operation.Error "SQLite backend does not support date/time operations.")
+
 ## PRIVATE
 make_internal_generator_dialect =
     text = [starts_with, contains, ends_with, make_case_sensitive]+concat_ops+trim_ops
