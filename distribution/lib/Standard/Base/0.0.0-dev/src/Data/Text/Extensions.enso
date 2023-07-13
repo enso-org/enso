@@ -497,11 +497,7 @@ Text.replace self term:(Text | Regex) replacement:Text (case_sensitivity:Case_Se
                             Text_Utils.span_of_case_insensitive self term locale.java_locale False
             Text_Utils.replace_spans self spans_array replacement
         _ : Regex ->
-            updated_regex = case case_sensitivity of
-                Case_Sensitivity.Default -> term
-                _ ->
-                    case_insensitive = case_sensitivity.is_case_insensitive_in_memory
-                    term.recompile case_insensitive
+            updated_regex = term.recompile case_sensitivity
             updated_regex.replace self replacement only_first
 
 ## ALIAS Get Words
