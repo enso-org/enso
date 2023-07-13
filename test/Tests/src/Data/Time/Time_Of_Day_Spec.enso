@@ -13,7 +13,7 @@ spec =
     specWith "Time_Of_Day" enso_time Time_Of_Day.parse
     specWith "JavaLocalTime" java_time java_parse
 
-specWith name create_new_time parse_time =
+specWith name create_new_time parse_time nanoseconds_loss_in_precision=False =
     Test.group name <|
 
         Test.specify "should create local time" <|
@@ -123,6 +123,10 @@ specWith name create_new_time parse_time =
             time+Time_Period.Hour . should_equal <| create_new_time 1
             time+Time_Period.Minute . should_equal <| create_new_time 0 1
             time+Time_Period.Second . should_equal <| create_new_time 0 0 1
+            time+Time_Period.Millisecond . should_equal <| create_new_time 0 0 0 10^6
+            if nanoseconds_loss_in_precision.not then
+                time+Time_Period.Microsecond . should_equal <| create_new_time 0 0 0 10^3
+                time+Time_Period.Nanosecond . should_equal <| create_new_time 0 0 0 1
 
         Test.specify "should support subtraction of Time_Period" <|
             time = create_new_time 12
@@ -130,6 +134,11 @@ specWith name create_new_time parse_time =
             time-Time_Period.Hour . should_equal <| create_new_time 11
             time-Time_Period.Minute . should_equal <| create_new_time 11 59
             time-Time_Period.Second . should_equal <| create_new_time 11 59 59
+            second_in_nanos = 10^9
+            time-Time_Period.Millisecond . should_equal <| create_new_time 11 59 59 (second_in_nanos - 10^6)
+            if nanoseconds_loss_in_precision.not then
+                time-Time_Period.Microsecond . should_equal <| create_new_time 11 59 59 (second_in_nanos - 10^3)
+                time-Time_Period.Nanosecond . should_equal <| create_new_time 11 59 59 (second_in_nanos - 1)
 
         Test.specify "should support mixed addition and subtraction of Date_Period and Time_Period" <|
             time = create_new_time 0
@@ -164,6 +173,14 @@ specWith name create_new_time parse_time =
             d1.end_of Time_Period.Minute . should_equal (Time_Of_Day.new 15 37 59 nanosecond=max_nanos)
             d1.start_of Time_Period.Second . should_equal (Time_Of_Day.new 15 37 58 0)
             d1.end_of Time_Period.Second . should_equal (Time_Of_Day.new 15 37 58 nanosecond=max_nanos)
+            d1.start_of Time_Period.Millisecond . should_equal (Time_Of_Day.new 15 37 58 nanosecond=123000000)
+            d1.end_of Time_Period.Millisecond . should_equal (Time_Of_Day.new 15 37 58 nanosecond=123999999)
+
+            if nanoseconds_loss_in_precision.not then
+                d1.start_of Time_Period.Microsecond . should_equal (Time_Of_Day.new 15 37 58 nanosecond=123456000)
+                d1.end_of Time_Period.Microsecond . should_equal (Time_Of_Day.new 15 37 58 nanosecond=123456999)
+                d1.start_of Time_Period.Nanosecond . should_equal d1
+                d1.end_of Time_Period.Nanosecond . should_equal d1
 
             d2 = create_new_time 0 0 0
             d2.start_of Time_Period.Day . should_equal (Time_Of_Day.new)

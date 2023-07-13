@@ -271,6 +271,11 @@ export function AuthProvider(props: AuthProviderProps) {
                         await new Promise(resolve => setTimeout(resolve, REQUEST_DELAY_MS))
                     }
                 }
+                const url = new URL(location.href)
+                if (url.searchParams.get('authentication') === 'false') {
+                    url.searchParams.delete('authentication')
+                    history.replaceState(null, '', url.toString())
+                }
                 let newUserSession: UserSession
                 if (organization == null) {
                     newUserSession = {
@@ -308,10 +313,10 @@ export function AuthProvider(props: AuthProviderProps) {
         // `userSession` MUST NOT be a dependency as `setUserSession` is called every time
         // by this effect. Because it is an object literal, it will never be equal to the previous
         // value.
+        // `initialized` MUST NOT be a dependency as it breaks offline mode.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
         cognito,
-        initialized,
         logger,
         onAuthenticated,
         session,

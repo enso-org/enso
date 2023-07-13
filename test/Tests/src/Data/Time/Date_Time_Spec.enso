@@ -353,6 +353,10 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time+Time_Period.Hour . should_equal <| create_new_datetime 1970 1 1 1 (zone = Time_Zone.utc)
             time+Time_Period.Minute . should_equal <| create_new_datetime 1970 1 1 0 1 (zone = Time_Zone.utc)
             time+Time_Period.Second . should_equal <| create_new_datetime 1970 1 1 0 0 1 (zone = Time_Zone.utc)
+            time+Time_Period.Millisecond . should_equal <| create_new_datetime 1970 1 1 0 0 0 (10^6) (zone = Time_Zone.utc)
+            if nanoseconds_loss_in_precision.not then
+                time+Time_Period.Microsecond . should_equal <| create_new_datetime 1970 1 1 0 0 0 (10^3) (zone = Time_Zone.utc)
+                time+Time_Period.Nanosecond . should_equal <| create_new_datetime 1970 1 1 0 0 0 1 (zone = Time_Zone.utc)
 
         Test.specify "should support subtraction of Time_Period" <|
             time = create_new_datetime 1970 (zone = Time_Zone.utc)
@@ -360,6 +364,11 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time-Time_Period.Hour . should_equal <| create_new_datetime 1969 12 31 23 (zone = Time_Zone.utc)
             time-Time_Period.Minute . should_equal <| create_new_datetime 1969 12 31 23 59 (zone = Time_Zone.utc)
             time-Time_Period.Second . should_equal <| create_new_datetime 1969 12 31 23 59 59 (zone = Time_Zone.utc)
+            second_in_nanos = 10^9
+            time-Time_Period.Millisecond . should_equal <| create_new_datetime 1969 12 31 23 59 59 (second_in_nanos - 10^6) (zone = Time_Zone.utc)
+            if nanoseconds_loss_in_precision.not then
+                time-Time_Period.Microsecond . should_equal <| create_new_datetime 1969 12 31 23 59 59 (second_in_nanos - 10^3) (zone = Time_Zone.utc)
+                time-Time_Period.Nanosecond . should_equal <| create_new_datetime 1969 12 31 23 59 59 (second_in_nanos - 1) (zone = Time_Zone.utc)
 
         Test.specify "should support mixed addition and subtraction of Date_Period and Time_Period" <|
             time = create_new_datetime 1970 (zone = Time_Zone.utc)
@@ -502,6 +511,15 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             d1.end_of Time_Period.Minute . should_equal (Date_Time.new 2022 9 12 15 37 59 nanosecond=max_nanos)
             d1.start_of Time_Period.Second . should_equal (Date_Time.new 2022 9 12 15 37 58 0)
             d1.end_of Time_Period.Second . should_equal (Date_Time.new 2022 9 12 15 37 58 nanosecond=max_nanos)
+            d1.start_of Time_Period.Millisecond . should_equal (Date_Time.new 2022 9 12 15 37 58 nanosecond=123000000)
+            d1.end_of Time_Period.Millisecond . should_equal (Date_Time.new 2022 9 12 15 37 58 nanosecond=123999999)
+
+            if nanoseconds_loss_in_precision.not then
+                d1.start_of Time_Period.Microsecond . should_equal (Date_Time.new 2022 9 12 15 37 58 nanosecond=123456000)
+                d1.end_of Time_Period.Microsecond . should_equal (Date_Time.new 2022 9 12 15 37 58 nanosecond=123456999)
+                # No change on nanosecond
+                d1.start_of Time_Period.Nanosecond . should_equal d1
+                d1.end_of Time_Period.Nanosecond . should_equal d1
 
             d2 = create_new_datetime 1970 1 1 0 0 0
             d2.start_of Time_Period.Day . should_equal (Date_Time.new 1970)
@@ -535,6 +553,8 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             d1_plus . should_equal d2
 
             check_dates_spring date =
+                date.start_of Date_Period.Day . should_equal (Date_Time.new 2022 3 27 zone=tz)
+                date.end_of Date_Period.Day . should_equal (Date_Time.new 2022 3 27 23 59 59 nanosecond=max_nanos zone=tz)
                 date.start_of Time_Period.Day . should_equal (Date_Time.new 2022 3 27 zone=tz)
                 date.end_of Time_Period.Day . should_equal (Date_Time.new 2022 3 27 23 59 59 nanosecond=max_nanos zone=tz)
 
