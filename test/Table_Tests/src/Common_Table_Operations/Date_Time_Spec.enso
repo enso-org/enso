@@ -434,12 +434,12 @@ spec setup =
             x = t.at "X"
 
             # +24h will shift 1 day and 1 hour, because they 26th of March has only 23 hours within it
-            x.date_add 24 Time_Period.Hour . to_vector . should_equal_tz_agnostic [Date_Time.new 2023 03 27 01 30 00]
+            x.date_add 24 Time_Period.Hour . to_vector . should_equal_tz_agnostic [Date_Time.new 2023 03 27 01 30 00 zone=zone]
 
             # But 1 day date shift will shift 1 day, keeping the time, even if that particular day is only 23 hours.
-            x.date_add 1 Date_Period.Day . to_vector . should_equal_tz_agnostic [Date_Time.new 2023 03 27 00 30 00]
+            x.date_add 1 Date_Period.Day . to_vector . should_equal_tz_agnostic [Date_Time.new 2023 03 27 00 30 00 zone=zone]
             # Time_Period.Day will shift by 24 hours.
-            x.date_add 1 Time_Period.Day . to_vector . should_equal_tz_agnostic [Date_Time.new 2023 03 27 01 30 00]
+            x.date_add 1 Time_Period.Day . to_vector . should_equal_tz_agnostic [Date_Time.new 2023 03 27 01 30 00 zone=zone]
 
             dt2 = Date_Time.new 2023 03 27 00 30 00 zone=zone
             x.date_diff dt2 Time_Period.Hour . to_vector . should_equal [23]
