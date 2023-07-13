@@ -13,7 +13,6 @@ import project.Table.Performance_Research.Common_Setup.Common_Setup
 
 polyglot java import org.enso.table.data.column.builder.BoolBuilder
 polyglot java import org.enso.table.data.column.builder.NumericBuilder
-polyglot java import org.enso.table.data.column.builder.StringBuilder
 
 ## This tests an operation on a boxed value (e.g. ends_with on a String).
    It is the basic benchmark for comparing the performance between the vectorized Java op and approaches relying on Enso.

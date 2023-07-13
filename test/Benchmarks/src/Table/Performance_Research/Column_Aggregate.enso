@@ -11,10 +11,6 @@ from Standard.Test import Bench
 
 import project.Table.Performance_Research.Common_Setup.Common_Setup
 
-polyglot java import org.enso.table.data.column.builder.BoolBuilder
-polyglot java import org.enso.table.data.column.builder.NumericBuilder
-polyglot java import org.enso.table.data.column.builder.StringBuilder
-
 ## Computes the Longest text in the column - aggregate with no grouping.
    This is of interest, because in contrast to all benchmarks above, it can generally be done in O(1) memory.
 type Boxed_Total_Aggregate

@@ -1,0 +1,58 @@
+## NOTE
+   This file is _not_ automatically run when the benchmarks are run.
+from Standard.Base import all
+
+from Standard.Table import all
+
+from Standard.Test import Bench
+
+import project.Table.Performance_Research.Common_Setup.Common_Setup
+
+polyglot java import org.enso.table.data.column.builder.StringBuilder
+
+## This tests an operation that executes an Enso function on each element of a column.
+   It is meant to compare the cost of calling-back into Enso from Java vs staying in Enso.
+type Enso_Callback_Test
+    Instance text_column (fn : Text -> Text)
+
+    java_roundtrip self =
+        new_name = "result"
+        storage = self.text_column.java_column.getStorage
+        problem_builder = MapOperationProblemBuilder.new column.name
+        storage_type = Storage.from_value_type_strict Value_Type.Char
+        new_storage = storage.map Nothing self.fn Nothing storage_type problem_builder
+        Column.from_storage "result" new_storage
+
+    enso_map_as_vector self =
+        vector_proxy = self.text_column.to_vector
+        mapped = vector_proxy.map self.fn
+        new_column = Column.from_vector "result" mapped
+        new_column
+
+    enso_map_with_builder self =
+        suffix = self.suffix
+        n = self.text_column.length
+        fn = self.fn
+        builder = StringBuilder.new n
+        storage = self.text_column.java_column.getStorage
+        0.up_to n . each i->
+            case storage.getItemBoxed i of
+                Nothing ->
+                    builder.appendNulls 1
+                item ->
+                    builder.append (fn item)
+        Column.from_storage "result" builder.seal
+
+main = spec Common_Setup.Config
+
+spec setup =
+    t = setup.generate_input_table
+
+    iter_size = setup.iter_size
+    num_iterations = setup.num_iterations
+
+    fn x = "|" + x + "|"
+    callback_test = Enso_Callback_Test.Instance (t.at "text") fn
+    Bench.measure (callback_test.java_roundtrip) "Enso_Callback_Test.java_roundtrip" iter_size num_iterations run_gc_between_iterations=True
+    Bench.measure (callback_test.enso_map_as_vector) "Enso_Callback_Test.enso_map_as_vector" iter_size num_iterations run_gc_between_iterations=True
+    Bench.measure (callback_test.enso_map_with_builder) "Enso_Callback_Test.enso_map_with_builder" iter_size num_iterations run_gc_between_iterations=True

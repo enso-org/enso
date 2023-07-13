@@ -5,9 +5,11 @@ import project.Table.Performance_Research.Column_Aggregate
 import project.Table.Performance_Research.Column_Bi_Map
 import project.Table.Performance_Research.Column_Map
 import project.Table.Performance_Research.Common_Setup.Common_Setup
+import project.Table.Performance_Research.Enso_Callback
 
 main =
     setup = Common_Setup.Config
     Column_Map.spec setup
     Column_Bi_Map.spec setup
     Column_Aggregate.spec setup
+    Enso_Callback.spec setup
