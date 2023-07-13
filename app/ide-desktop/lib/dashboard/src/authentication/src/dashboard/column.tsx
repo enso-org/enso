@@ -102,13 +102,22 @@ interface InternalUserPermissionDisplayProps {
     emailsOfUsersWithPermission: Set<backend.EmailAddress>
     ownsThisAsset: boolean
     onDelete: () => void
+    onPermissionsChange: (permissions: backend.PermissionAction[]) => void
 }
 
 /** Displays permissions for a user on a specific asset. */
 function UserPermissionDisplay(props: InternalUserPermissionDisplayProps) {
-    const { user, item, emailsOfUsersWithPermission, ownsThisAsset, onDelete } = props
+    const {
+        user,
+        item,
+        emailsOfUsersWithPermission,
+        ownsThisAsset,
+        onDelete,
+        onPermissionsChange,
+    } = props
     const { setModal } = modalProvider.useSetModal()
     const [permissions, setPermissions] = React.useState(user.permissions)
+    const [oldPermissions, setOldPermissions] = React.useState(user.permissions)
     const [isHovered, setIsHovered] = React.useState(false)
     const [isDeleting, setIsDeleting] = React.useState(false)
 
@@ -138,13 +147,20 @@ function UserPermissionDisplay(props: InternalUserPermissionDisplayProps) {
                                 if (newPermissions.length === 0) {
                                     setIsDeleting(true)
                                 } else {
+                                    setOldPermissions(permissions)
                                     setPermissions(newPermissions)
+                                    onPermissionsChange(newPermissions)
                                 }
                             }}
-                            onSuccess={onDelete}
+                            onSuccess={(_users, newPermissions) => {
+                                if (newPermissions.length === 0) {
+                                    onDelete()
+                                }
+                            }}
                             onFailure={() => {
                                 setIsDeleting(false)
-                                setPermissions(user.permissions)
+                                setPermissions(oldPermissions)
+                                onPermissionsChange(oldPermissions)
                             }}
                         />
                     )
@@ -177,6 +193,7 @@ function SharedWithColumn(props: AnyAssetColumnProps) {
     const [permissions, setPermissions] = React.useState(() =>
         backend.groupPermissionsByUser(item.permissions ?? [])
     )
+    const [oldPermissions, setOldPermissions] = React.useState(permissions)
     const emailsOfUsersWithPermission = React.useMemo(
         () => new Set(permissions.map(permission => permission.user.user_email)),
         [permissions]
@@ -195,9 +212,18 @@ function SharedWithColumn(props: AnyAssetColumnProps) {
                     emailsOfUsersWithPermission={emailsOfUsersWithPermission}
                     ownsThisAsset={ownsThisAsset}
                     onDelete={() => {
-                        setPermissions(oldPermissions =>
-                            oldPermissions.filter(
+                        setPermissions(
+                            permissions.filter(
                                 permission => permission.user.user_email !== user.user.user_email
+                            )
+                        )
+                    }}
+                    onPermissionsChange={newPermissions => {
+                        setPermissions(
+                            permissions.map(permission =>
+                                permission.user.user_email === user.user.user_email
+                                    ? { user: user.user, permissions: newPermissions }
+                                    : permission
                             )
                         )
                     }}
@@ -215,8 +241,9 @@ function SharedWithColumn(props: AnyAssetColumnProps) {
                                 emailsOfUsersWithPermission={emailsOfUsersWithPermission}
                                 eventTarget={event.currentTarget}
                                 onSubmit={(users, newPermissions) => {
-                                    setPermissions(oldPermissions => [
-                                        ...oldPermissions,
+                                    setOldPermissions(permissions)
+                                    setPermissions([
+                                        ...permissions,
                                         ...users.map(user => {
                                             const userPermissions: backend.UserPermissions = {
                                                 user: {
@@ -239,10 +266,7 @@ function SharedWithColumn(props: AnyAssetColumnProps) {
                                     ])
                                 }}
                                 onFailure={() => {
-                                    // Set permissions to original permissions.
-                                    setPermissions(
-                                        backend.groupPermissionsByUser(item.permissions ?? [])
-                                    )
+                                    setPermissions(oldPermissions)
                                 }}
                             />
                         )

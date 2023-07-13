@@ -69,8 +69,14 @@ export interface ManagePermissionsModalProps {
         users: backendModule.SimpleUser[],
         permissions: backendModule.PermissionAction[]
     ) => void
-    onSuccess?: () => void
-    onFailure?: () => void
+    onSuccess?: (
+        users: backendModule.SimpleUser[],
+        permissions: backendModule.PermissionAction[]
+    ) => void
+    onFailure?: (
+        users: backendModule.SimpleUser[],
+        permissions: backendModule.PermissionAction[]
+    ) => void
     eventTarget: HTMLElement
 }
 
@@ -232,17 +238,17 @@ export function ManagePermissionsModal(props: ManagePermissionsModalProps) {
                     }
                 } else if (finalUsers.length !== 0) {
                     unsetModal()
+                    const permissionsArray = [...permissions]
                     try {
-                        const permissionsArray = [...permissions]
                         rawOnSubmit(finalUsers, permissionsArray)
                         await backend.createPermission({
                             userSubjects: finalUsers.map(finalUser => finalUser.id),
                             resourceId: asset.id,
                             actions: permissionsArray,
                         })
-                        onSuccess?.()
+                        onSuccess?.(finalUsers, permissionsArray)
                     } catch {
-                        onFailure?.()
+                        onFailure?.(finalUsers, permissionsArray)
                         const finalUserEmails = finalUsers.map(finalUser => `'${finalUser.email}'`)
                         toast.error(`Unable to set permissions of ${finalUserEmails.join(', ')}.`)
                     }
