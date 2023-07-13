@@ -139,7 +139,7 @@ class MainModule[
       timeoutConfig                   = config.timeout
     )
 
-  lazy val projectsEndpoint = new ProjectsEndpoint
+  lazy val projectsEndpoint = new ProjectsEndpoint(projectRepository)
   lazy val server =
     new JsonRpcServer(
       new JsonRpcProtocolFactory,
