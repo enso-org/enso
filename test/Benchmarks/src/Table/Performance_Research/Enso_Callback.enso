@@ -1,4 +1,8 @@
 ## NOTE
+   This benchmark assumes that the Table operations used here are implemented in Java.
+   This is a valid assumption as of 2023-07-12.
+   If we ever change these operations, we would need to add this benchmark to have custom implementations for the Java side as well if we still want to use it for comparisons.
+
    This file is _not_ automatically run when the benchmarks are run.
 from Standard.Base import all
 
@@ -10,11 +14,12 @@ from Standard.Test import Bench
 import project.Table.Performance_Research.Common_Setup.Common_Setup
 
 polyglot java import org.enso.table.data.column.builder.StringBuilder
+polyglot java import org.enso.table.data.column.builder.NumericBuilder
 polyglot java import org.enso.table.data.column.operation.map.MapOperationProblemBuilder
 
 ## This tests an operation that executes an Enso function on each element of a column.
    It is meant to compare the cost of calling-back into Enso from Java vs staying in Enso.
-type Enso_Callback_Test
+type Boxed_Enso_Callback_Test
     Instance text_column (fn : Text -> Text)
 
     java_roundtrip self =
@@ -43,6 +48,58 @@ type Enso_Callback_Test
                     builder.append (fn item)
         Column.from_storage "result" builder.seal
 
+## This variant checks how a primitive type column will behave.
+type Primitive_Enso_Callback_Test
+    Instance int_column (shift : Integer)
+
+    fn self =
+        shift = self.shift
+        x-> x + shift
+
+    # Vectorized counterpart for comparison - this will be much much faster than others obviously.
+    java_vectorized self =
+        self.int_column + self.shift
+
+    java_roundtrip self =
+        storage = self.int_column.java_column.getStorage
+        problem_builder = MapOperationProblemBuilder.new self.int_column.name
+        storage_type = Storage.from_value_type_strict Value_Type.Integer
+        new_storage = storage.map Nothing self.fn Nothing storage_type problem_builder
+        Column.from_storage "result" new_storage
+
+    enso_map_as_vector self =
+        vector_proxy = self.int_column.to_vector
+        mapped = vector_proxy.map self.fn
+        new_column = Column.from_vector "result" mapped
+        new_column
+
+    enso_map_with_builder_2_calls_unboxed self =
+        n = self.int_column.length
+        fn = self.fn
+        builder = NumericBuilder.createLongBuilder n
+        storage = self.int_column.java_column.getStorage
+        0.up_to n . each i->
+            case storage.isNa i of
+                True ->
+                    builder.appendNulls 1
+                False ->
+                    item = storage.getItem i
+                    builder.append (fn item)
+        Column.from_storage "result" builder.seal
+
+    enso_map_with_builder_1_call_boxed self =
+        n = self.int_column.length
+        fn = self.fn
+        builder = NumericBuilder.createLongBuilder n
+        storage = self.int_column.java_column.getStorage
+        0.up_to n . each i->
+            case storage.getItemBoxed i of
+                Nothing ->
+                    builder.appendNulls 1
+                item ->
+                    builder.append (fn item)
+        Column.from_storage "result" builder.seal
+
 main = spec Common_Setup.Config
 
 spec setup =
@@ -51,8 +108,15 @@ spec setup =
     iter_size = setup.iter_size
     num_iterations = setup.num_iterations
 
+    primitive_callback_test = Primitive_Enso_Callback_Test.Instance (t.at "ints") 42
+    Bench.measure (primitive_callback_test.java_vectorized) "Primitive_Enso_Callback_Test.java_vectorized" iter_size num_iterations run_gc_between_iterations=True
+    Bench.measure (primitive_callback_test.java_roundtrip) "Primitive_Enso_Callback_Test.java_roundtrip" iter_size num_iterations run_gc_between_iterations=True
+    Bench.measure (primitive_callback_test.enso_map_as_vector) "Primitive_Enso_Callback_Test.enso_map_as_vector" iter_size num_iterations run_gc_between_iterations=True
+    Bench.measure (primitive_callback_test.enso_map_with_builder_2_calls_unboxed) "Primitive_Enso_Callback_Test.enso_map_with_builder_2_calls_unboxed" iter_size num_iterations run_gc_between_iterations=True
+    Bench.measure (primitive_callback_test.enso_map_with_builder_1_call_boxed) "Primitive_Enso_Callback_Test.enso_map_with_builder_1_call_boxed" iter_size num_iterations run_gc_between_iterations=True
+
     fn x = "|" + x + "|"
-    callback_test = Enso_Callback_Test.Instance (t.at "text") fn
-    Bench.measure (callback_test.java_roundtrip) "Enso_Callback_Test.java_roundtrip" iter_size num_iterations run_gc_between_iterations=True
-    Bench.measure (callback_test.enso_map_as_vector) "Enso_Callback_Test.enso_map_as_vector" iter_size num_iterations run_gc_between_iterations=True
-    Bench.measure (callback_test.enso_map_with_builder) "Enso_Callback_Test.enso_map_with_builder" iter_size num_iterations run_gc_between_iterations=True
+    boxed_callback_test = Boxed_Enso_Callback_Test.Instance (t.at "text") fn
+    Bench.measure (boxed_callback_test.java_roundtrip) "Boxed_Enso_Callback_Test.java_roundtrip" iter_size num_iterations run_gc_between_iterations=True
+    Bench.measure (boxed_callback_test.enso_map_as_vector) "Boxed_Enso_Callback_Test.enso_map_as_vector" iter_size num_iterations run_gc_between_iterations=True
+    Bench.measure (boxed_callback_test.enso_map_with_builder) "Boxed_Enso_Callback_Test.enso_map_with_builder" iter_size num_iterations run_gc_between_iterations=True
