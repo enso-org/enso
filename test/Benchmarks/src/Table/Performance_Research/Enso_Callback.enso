@@ -3,12 +3,14 @@
 from Standard.Base import all
 
 from Standard.Table import all
+import Standard.Table.Data.Type.Storage
 
 from Standard.Test import Bench
 
 import project.Table.Performance_Research.Common_Setup.Common_Setup
 
 polyglot java import org.enso.table.data.column.builder.StringBuilder
+polyglot java import org.enso.table.data.column.operation.map.MapOperationProblemBuilder
 
 ## This tests an operation that executes an Enso function on each element of a column.
    It is meant to compare the cost of calling-back into Enso from Java vs staying in Enso.
@@ -16,9 +18,8 @@ type Enso_Callback_Test
     Instance text_column (fn : Text -> Text)
 
     java_roundtrip self =
-        new_name = "result"
         storage = self.text_column.java_column.getStorage
-        problem_builder = MapOperationProblemBuilder.new column.name
+        problem_builder = MapOperationProblemBuilder.new self.text_column.name
         storage_type = Storage.from_value_type_strict Value_Type.Char
         new_storage = storage.map Nothing self.fn Nothing storage_type problem_builder
         Column.from_storage "result" new_storage
@@ -30,7 +31,6 @@ type Enso_Callback_Test
         new_column
 
     enso_map_with_builder self =
-        suffix = self.suffix
         n = self.text_column.length
         fn = self.fn
         builder = StringBuilder.new n
