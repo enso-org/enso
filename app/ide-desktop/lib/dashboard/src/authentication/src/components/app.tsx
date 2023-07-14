@@ -129,7 +129,10 @@ function App(props: AppProps) {
     return (
         <>
             <toast.Toaster
-                toastOptions={{ style: { maxWidth: '100%' } }}
+                toastOptions={{
+                    className:
+                        'text-primary bg-primary-bg text-sm h-8 max-w-full rounded-full shadow-soft',
+                }}
                 position="top-center"
                 reverseOrder={false}
             />

@@ -79,13 +79,13 @@ export const TEMPLATES: [Template, ...Template[]] = [
         title: 'Geospatial analysis',
         id: 'Restaurants',
         description: 'Learn where to open a coffee shop to maximize your income.',
-        background: 'url("/geo.png") 50% 0% / 186.7768% no-repeat',
+        background: 'url("/geo.png") 50% 0% / 186.7768% no-repeat, #181818',
     },
     {
         title: 'Analyze GitHub stars',
         id: 'Stargazers',
         description: "Find out which of Enso's repositories are most popular over time.",
-        background: 'url("/visualize.png") center / cover',
+        background: 'url("/visualize.png") center / cover, #dddddd',
     },
 ]
 

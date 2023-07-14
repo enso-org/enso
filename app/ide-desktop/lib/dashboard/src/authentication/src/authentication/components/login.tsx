@@ -72,7 +72,9 @@ function Login() {
                     </button>
                     <div className="relative mt-4 h-px bg-gray-300">
                         <div className="absolute left-0 top-0 flex justify-center w-full -mt-2">
-                            <span className="px-4 text-xs text-gray-500">or login with email</span>
+                            <span className="bg-primary-bg px-4 text-xs text-gray-500">
+                                or login with email
+                            </span>
                         </div>
                     </div>
                 </>
