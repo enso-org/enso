@@ -124,7 +124,7 @@ define_icons! {
                 let bottom = Ellipse(x_radius.px(), y_radius.px());
                 let bottom_pos_y = -SIZE / 2.0 + y_radius;
                 let bottom = bottom.translate_y(bottom_pos_y.px());
-                let bottom_center = Ellipse(5.0.px(), 2.0.px()).translate_y(-3.0.px());
+                let bottom_center = Ellipse(5.0.px(), 2.0.px()).translate_y((-3.0).px());
                 let height = 12.5;
                 let y_offset = height / 2.0 - 3.0;
                 let bottom_triangle = Triangle(10.0.px(), height.px()).translate_y(y_offset.px());
@@ -172,15 +172,15 @@ define_icons! {
                 let center = Rect((6.0.px(), 6.0.px()));
                 let center = center - Rect((2.0.px(), 2.0.px()));
                 let circle_tl = Circle(3.0.px());
-                let hole = Circle(1.0.px()) + Rect((1.0.px(), 1.0.px())).translate((0.5.px(), -0.5.px()));
+                let hole = Circle(1.0.px()) + Rect((1.0.px(), 1.0.px())).translate((0.5.px(), (-0.5).px()));
                 let circle_tl = circle_tl - hole;
                 let circle_tr = circle_tl.rotate((PI/2.0).radians());
                 let circle_bl = circle_tl.flip_y();
                 let circle_br = circle_tr.flip_y();
-                let circle_tl = circle_tl.translate((-4.0.px(), 4.0.px()));
+                let circle_tl = circle_tl.translate(((-4.0).px(), 4.0.px()));
                 let circle_tr = circle_tr.translate((4.0.px(), 4.0.px()));
-                let circle_bl = circle_bl.translate((-4.0.px(), -4.0.px()));
-                let circle_br = circle_br.translate((4.0.px(), -4.0.px()));
+                let circle_bl = circle_bl.translate(((-4.0).px(), (-4.0).px()));
+                let circle_br = circle_br.translate((4.0.px(), (-4.0).px()));
 
                 let shape = center + circle_tl + circle_tr + circle_bl + circle_br;
                 let shape = shape.fill(VIVID_COLOR.glsl());
@@ -200,12 +200,12 @@ define_icons! {
                 let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
                 let dull_color = &VIVID_COLOR * &dull_alpha;
                 let left = Rect((8.0.px(), 16.0.px())).corners_radiuses(3.0.px(), 0.0.px(), 3.0.px(), 0.0.px());
-                let left = left.translate_x(-4.0.px());
+                let left = left.translate_x((-4.0).px());
                 let left = left.fill(dull_color.glsl());
 
                 let right = Rect((7.0.px(), 16.0.px())).corners_radiuses(0.0.px(), 3.0.px(), 0.0.px(), 3.0.px());
                 let right = right.translate_x(4.5.px());
-                let button = Rect((3.0.px(), 1.0.px())).translate((4.5.px(), -0.5.px()));
+                let button = Rect((3.0.px(), 1.0.px())).translate((4.5.px(), (-0.5).px()));
                 let button2 = button.translate_y(2.0.px());
                 let button3 = button2.translate_y(2.0.px());
                 let right = right - button - button2 - button3;
@@ -308,12 +308,12 @@ define_icons! {
                 let brackets = Rect((SIZE.px(), 11.0.px()));
                 let mask = Rect((8.0.px(), 11.0.px())) + Rect((12.0.px(), 7.0.px()));
                 let brackets = brackets - mask;
-                let brackets = brackets.translate_y(-0.5.px());
+                let brackets = brackets.translate_y((-0.5).px());
                 let brackets = brackets.fill(VIVID_COLOR.glsl());
 
                 let dot = Rect((3.0.px(), 3.0.px()));
-                let left = dot.translate((-2.5.px(), -0.5.px()));
-                let right = dot.translate((2.5.px(), -0.5.px()));
+                let left = dot.translate(((-2.5).px(), (-0.5).px()));
+                let right = dot.translate((2.5.px(), (-0.5).px()));
                 let dots = left + right;
                 let dots = dots.fill(dull_color.glsl());
 
@@ -1028,7 +1028,7 @@ define_icons! {
                 let big_hand = Rect((2.0.px(), 7.0.px())).corners_radius(1.0.px());
                 let big_hand = big_hand.translate_y(2.5.px()).pixel_snap();
                 let small_hand = Rect((2.0.px(), 5.5.px())).corners_radius(1.0.px());
-                let small_hand = small_hand.translate_y(-1.75.px());
+                let small_hand = small_hand.translate_y((-1.75).px());
                 let small_hand = small_hand.rotate((-PI / 3.0).radians());
                 let hands = big_hand + small_hand;
                 let hands = hands.fill(VIVID_COLOR.glsl());
@@ -1051,26 +1051,26 @@ define_icons! {
 
                 let bg = Rect((15.0.px(), 12.0.px()));
                 let bg = bg.corners_radiuses(0.0.px(), 0.0.px(), 2.0.px(), 2.0.px());
-                let bg = bg.translate((-0.5.px(), -2.0.px()));
+                let bg = bg.translate(((-0.5).px(), (-2.0).px()));
                 let bg = bg.fill(dull_color.glsl());
 
                 let top = Rect((15.0.px(), 2.0.px()));
                 let top = top.corners_radiuses(2.0.px(), 2.0.px(), 0.0.px(), 0.0.px());
-                let top = top.translate((-0.5.px(), 5.0.px()));
+                let top = top.translate(((-0.5).px(), 5.0.px()));
                 let handle = Rect((2.0.px(), 4.0.px())).corners_radius(1.0.px());
                 let handle = handle.translate_y(6.0.px());
-                let left_handle = handle.translate_x(-4.5.px());
+                let left_handle = handle.translate_x((-4.5).px());
                 let right_handle = handle.translate_x(3.5.px());
                 let top = top + left_handle + right_handle;
                 let top = top.fill(VIVID_COLOR.glsl());
 
                 let dot = Circle(1.0.px());
                 let dots = dot.repeat((3.0.px(), 3.0.px())).fill(VIVID_COLOR.glsl());
-                let dots = dots.translate((-5.0.px(), 1.0.px()));
+                let dots = dots.translate(((-5.0).px(), 1.0.px()));
                 let mask = Rect((11.0.px(), 8.0.px()));
-                let mask = mask.translate((-0.5.px(), -2.0.px()));
+                let mask = mask.translate(((-0.5).px(), (-2.0).px()));
                 let bottom_left_corner = Rect((2.0.px(), 2.0.px()));
-                let bottom_left_corner = bottom_left_corner.translate((4.0.px(), -5.0.px()));
+                let bottom_left_corner = bottom_left_corner.translate((4.0.px(), (-5.0).px()));
                 let mask = mask - bottom_left_corner;
                 let dots = dots.intersection(&mask);
 

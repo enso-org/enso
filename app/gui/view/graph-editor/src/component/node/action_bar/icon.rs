@@ -108,7 +108,7 @@ pub mod expand {
             let bottom = Rect((&unit*16.0,&unit*9.0));
             let bottom = bottom.corners_radiuses(0.0.px(), 0.0.px(), &unit*2.0, &unit*2.0);
             let bottom = bottom.translate_y(&unit * -2.5);
-            let bottom = bottom.fill(&dull_color);
+            let bottom = bottom.fill(dull_color);
             let top = Rect((&unit*16.0,&unit*4.0));
             let top = top.corners_radiuses(&unit*2.0, &unit*2.0, 0.0.px(), 0.0.px());
             let top = top.translate_y(&unit * 5.0);
