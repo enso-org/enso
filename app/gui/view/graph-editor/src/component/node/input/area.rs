@@ -213,9 +213,8 @@ impl Model {
 
             // A workaround to fix the cursor position calculation when clicking into the node:
             // Since the object is not updated immediately after `add_child`, we need to force
-            // update the label layout for it to be able to calculate cursor position properly.
-            self.edit_mode_label.display_object().update(&scene());
-
+            // update the node layout for label to be able to calculate cursor position properly.
+            self.display_object.update(&scene());
             self.edit_mode_label.set_cursor_at_mouse_position();
         } else {
             self.display_object.remove_child(&self.edit_mode_label);
@@ -393,6 +392,9 @@ ensogl::define_endpoints! {
         /// `set_expression` instead. In case the usage type is set to None, ports still may be
         /// colored if the definition type was present.
         set_expression_usage_type (ast::Id,Option<Type>),
+
+        /// Set the primary (background) and secondary (port) node colors.
+        set_node_colors ((color::Lcha, color::Lcha)),
     }
 
     Output {
@@ -560,6 +562,8 @@ impl Area {
             model.widget_tree.set_read_only <+ frp.set_read_only;
             model.widget_tree.set_view_mode <+ frp.set_view_mode;
             model.widget_tree.set_profiling_status <+ frp.set_profiling_status;
+            model.widget_tree.node_base_color <+ frp.set_node_colors._0();
+            model.widget_tree.node_port_color <+ frp.set_node_colors._1();
         }
 
         init.emit(());
@@ -587,8 +591,7 @@ impl Area {
 
     /// An the computed layout size of a specific port.
     pub fn port_size(&self, port: PortId) -> Vector2<f32> {
-        let object = self.model.widget_tree.get_port_display_object(port);
-        object.map_or_default(|object| object.computed_size())
+        self.model.port_hover_pointer_style(&Switch::On(port)).map_or_default(|s| s.get_size())
     }
 
     /// A type of the specified port.

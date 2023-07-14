@@ -130,13 +130,13 @@ impl grid_view::Entry for Entry {
         let style = EntryStyle::from_theme(network, &style_frp);
 
         frp::extend! { network
-            corners_radius <- style.update.map(|s| s.corners_radius);
-            hover_color <- style.update.map(|s| s.hover_color.into());
-            selection_color <- style.update.map(|s| s.selection_color.into());
-            text_padding_left <- style.update.map(|s| s.text_padding_left);
-            text_padding_bottom <- style.update.map(|s| s.text_padding_bottom);
-            text_size <- style.update.map(|s| s.text_size);
-            text_color <- style.update.map(|s| color::Lcha::from(s.text_color));
+            corners_radius <- style.map(|s| s.corners_radius);
+            hover_color <- style.map(|s| s.hover_color.into());
+            selection_color <- style.map(|s| s.selection_color.into());
+            text_padding_left <- style.map(|s| s.text_padding_left);
+            text_padding_bottom <- style.map(|s| s.text_padding_bottom);
+            text_size <- style.map(|s| s.text_size);
+            text_color <- style.map(|s| color::Lcha::from(s.text_color));
 
             eval input.set_model((text) data.set_text(text.clone_ref()));
             contour <- input.set_size.map(|s| grid_view::entry::Contour::rectangular(*s));
@@ -250,16 +250,16 @@ impl ProjectList {
 
         frp::extend! { network
             init <- source::<()>();
-            width <- style.update.map(|s| s.width);
-            height <- style.update.map(|s| s.height);
-            shadow_extent <- style.update.map(|s| s.shadow_extent);
-            bar_height <- style.update.map(|s| s.bar_height);
-            label_padding <- style.update.map(|s| s.label_padding);
-            label_color <- style.update.map(|s| s.bar_label_color);
-            label_size <- style.update.map(|s| s.bar_label_size);
-            corners_radius <- style.update.map(|s| s.corners_radius);
-            entry_height <- style.update.map(|s| s.entry_height);
-            paddings <- style.update.map(|s| s.paddings);
+            width <- style.map(|s| s.width);
+            height <- style.map(|s| s.height);
+            shadow_extent <- style.map(|s| s.shadow_extent);
+            bar_height <- style.map(|s| s.bar_height);
+            label_padding <- style.map(|s| s.label_padding);
+            label_color <- style.map(|s| s.bar_label_color);
+            label_size <- style.map(|s| s.bar_label_size);
+            corners_radius <- style.map(|s| s.corners_radius);
+            entry_height <- style.map(|s| s.entry_height);
+            paddings <- style.map(|s| s.paddings);
             content_size <- all_with3(&width, &height, &init, |w,h,()| Vector2(*w,*h));
             size <- all_with3(&width, &height, &shadow_extent, |w, h, s|
                 Vector2(w + s * 2.0, h + s * 2.0)

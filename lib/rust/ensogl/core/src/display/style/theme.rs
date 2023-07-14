@@ -351,23 +351,14 @@ impl AsRef<Manager> for Manager {
 ///     expected:  color::Rgba,
 /// }
 /// ```
-pub trait FromTheme: Clone + Debug + Default {
-    /// Create FRP endpoints used to obtain this style's FRP endpoints from a style sheet.
+pub trait FromTheme: Clone + Debug + Default + 'static {
+    /// Create FRP endpoints used to obtain this style's FRP endpoints from a style sheet. The
+    /// `update` stream is guaranteed to emit at least one event in the next microtask, which will
+    /// ensure that all FRP nodes dependant on this style will be initialized.
     fn from_theme(
         network: &enso_frp::Network,
         style: &crate::display::shape::StyleWatchFrp,
-    ) -> FromThemeFrp<Self>;
-}
-
-/// FRP endpoints for a style struct created with [`FromTheme`].
-#[derive(Debug, Clone, CloneRef)]
-pub struct FromThemeFrp<T: FromTheme> {
-    /// Event emitted each time the style will be updated.
-    pub update: enso_frp::Stream<T>,
-    /// Emit this event when you want to reinitialize all nodes dependant on the `update`
-    /// field. Note that the initialization of `update` will already automatically happen on
-    /// next microtask after calling [`FromTheme::from_theme`].
-    pub init:   enso_frp::Source,
+    ) -> enso_frp::Sampler<Self>;
 }
 
 // Reexport the derive here, so that importing the trait also allows it to be derived.

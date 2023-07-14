@@ -252,7 +252,7 @@ impl Navigator {
                 |(loc, max)| loc.as_ref().map(|loc| loc_to_section_id(loc, *max))
             );
 
-            model <- bottom_buttons.model_for_entry_needed.map3(&colors.update, &section_count, f!([]
+            model <- bottom_buttons.model_for_entry_needed.map3(&colors, &section_count, f!([]
                 ((row, col), colors, section_count) {
                     let section_id = loc_to_section_id(&(*row, *col), *section_count);
                     let icon_id = section_id_to_icon_id(section_id);
@@ -264,7 +264,7 @@ impl Navigator {
             ));
             bottom_buttons.model_for_entry <+ model;
 
-            model <- top_buttons.model_for_entry_needed.map2(&colors.update, f!([]
+            model <- top_buttons.model_for_entry_needed.map2(&colors, f!([]
                 ((row, col), colors) {
                     let icon_id = TOP_BUTTONS.get(*row).cloned().unwrap_or_default();
                     let model = entry::Model::new(icon_id, colors.inactive.into(), colors.inactive.into());

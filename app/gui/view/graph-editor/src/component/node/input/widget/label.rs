@@ -15,17 +15,21 @@ use ensogl_component::text;
 /// =============
 
 #[derive(Clone, Debug, Default, PartialEq, FromTheme)]
-#[base_path = "theme::code::syntax"]
+#[base_path = "theme::widget::label"]
 struct Style {
-    base:      color::Rgba,
-    selection: color::Rgba,
-    disabled:  color::Rgba,
-    expected:  color::Rgba,
+    base_color:         color::Rgba,
+    base_weight:        f32,
+    connected_color:    color::Rgba,
+    connected_weight:   f32,
+    disabled_color:     color::Rgba,
+    disabled_weight:    f32,
+    placeholder_color:  color::Rgba,
+    placeholder_weight: f32,
 }
 
-// =============
-// === Label ===
-// =============
+// ==============
+// === Widget ===
+// ==============
 
 /// Label widget configuration options.
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
@@ -35,7 +39,7 @@ ensogl::define_endpoints_2! {
     Input {
         content(ImString),
         text_color(ColorState),
-        text_weight(text::Weight),
+        text_weight(Option<text::Weight>),
         text_sdf_weight(f32),
     }
 }
@@ -82,11 +86,11 @@ impl SpanWidget for Widget {
         let weight_anim = ensogl::Animation::new(network);
         weight_anim.precision.emit(0.001);
 
-        let style = ctx.cached_style::<Style>();
+        let style = ctx.cached_style::<Style>(network);
         frp::extend! { network
             let id = ctx.info.identity;
             parent_port_hovered <- widgets_frp.hovered_port_children.map(move |h| h.contains(&id));
-            label_color <- frp.text_color.all_with3(&style.update, &parent_port_hovered,
+            label_color <- frp.text_color.all_with3(&style, &parent_port_hovered,
                 |state, style, hovered| state.to_color(*hovered, style)
             );
 
@@ -96,7 +100,9 @@ impl SpanWidget for Widget {
             weight_anim.target <+ frp.text_sdf_weight.on_change();
             eval weight_anim.value((weight) label.set_property_default(text::SdfWeight(*weight)));
 
-            label_weight <- frp.text_weight.on_change();
+            label_weight <- frp.text_color.all_with4(&frp.text_weight, &style, &parent_port_hovered,
+                |state, weight, style, hovered| state.to_weight(*hovered, *weight, style)
+            ).debounce().on_change();
             eval label_weight((weight) label.set_property_default(weight));
 
             content_change <- frp.content.on_change();
@@ -133,15 +139,12 @@ impl SpanWidget for Widget {
 
         let ext = ctx.get_extension_or_default::<Extension>();
         let bold = ext.bold || is_placeholder;
-        let text_weight = if bold { text::Weight::Bold } else { text::Weight::Normal };
-        // let text_weight = text::Weight::Normal;
-        // let sdf_weight = if ext.bold || is_placeholder { 0.03 } else { 0.0 };
+        let text_weight = bold.then_some(text::Weight::Bold);
 
         let input = &self.frp.public.input;
         input.content.emit(content);
         input.text_color.emit(color_state);
         input.text_weight(text_weight);
-        // input.text_sdf_weight(sdf_weight);
     }
 }
 
@@ -176,13 +179,30 @@ pub enum ColorState {
 }
 
 impl ColorState {
+    fn to_weight(
+        self,
+        is_hovered: bool,
+        weight_override: Option<text::Weight>,
+        style: &Style,
+    ) -> text::Weight {
+        weight_override.unwrap_or_else(|| {
+            let weight_num = match self {
+                _ if is_hovered => style.connected_weight,
+                ColorState::Base => style.base_weight,
+                ColorState::Connected => style.connected_weight,
+                ColorState::Disabled => style.disabled_weight,
+                ColorState::Placeholder => style.placeholder_weight,
+            };
+            text::Weight::from(weight_num as u16)
+        })
+    }
     fn to_color(self, is_hovered: bool, style: &Style) -> color::Lcha {
         match self {
-            _ if is_hovered => style.selection,
-            ColorState::Base => style.base,
-            ColorState::Connected => style.selection,
-            ColorState::Disabled => style.disabled,
-            ColorState::Placeholder => style.expected,
+            _ if is_hovered => style.connected_color,
+            ColorState::Base => style.base_color,
+            ColorState::Connected => style.connected_color,
+            ColorState::Disabled => style.disabled_color,
+            ColorState::Placeholder => style.placeholder_color,
         }
         .into()
     }

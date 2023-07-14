@@ -163,7 +163,7 @@ impl component::Frp<Model> for Frp {
         let style = Style::from_theme(network, style_watch);
 
         frp::extend! { network
-            eval style.update ((style) model.update_style(style));
+            eval style ((style) model.update_style(style));
 
             eval_ input.reset (model.set_playing(false));
 

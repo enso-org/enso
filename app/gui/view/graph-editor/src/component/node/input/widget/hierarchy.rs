@@ -20,9 +20,9 @@ pub type CollectedChildren = SmallVec<[object::Instance; 4]>;
 
 
 
-// =================
-// === Hierarchy ===
-// =================
+// ==============
+// === Widget ===
+// ==============
 
 /// Label widget configuration options.
 #[derive(Debug, Clone, Copy, PartialEq, Default)]

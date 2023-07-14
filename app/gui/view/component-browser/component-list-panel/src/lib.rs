@@ -363,7 +363,7 @@ impl component::Frp<Model> for Frp {
             let panel_style = Style::from_theme(network, style);
             let grid_style = grid::Style::from_theme(network, style);
             let navigator_style = navigator::Style::from_theme(network, style);
-            style <- all_with3(&panel_style.update, &grid_style.update, &navigator_style.update, |&panel, &grid, &navigator| AllStyles {panel, grid, navigator});
+            style <- all_with3(&panel_style, &grid_style, &navigator_style, |&panel, &grid, &navigator| AllStyles {panel, grid, navigator});
             model.section_navigator.style <+ style;
             eval style ((style) model.update_style(style));
             output.size <+ style.map(|style| style.size());

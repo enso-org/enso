@@ -680,29 +680,29 @@ impl component::Frp<Model> for Frp {
             // === Groups colors ===
 
             let group_colors_theme = GroupColorsTheme::from_theme(network, style_frp);
-            group_colors <- group_colors_theme.update.map(|t| GroupColors::from(*t));
+            group_colors <- group_colors_theme.map(|t| GroupColors::from(*t));
 
 
             // === Style and Entries Params ===
 
-            style_and_content_size <- all(&style.update, &grid.content_size);
+            style_and_content_size <- all(&style, &grid.content_size);
             dimmed_groups <- out.active_section.map(|opt_section| match opt_section {
                 Some(section) => entry::DimmedGroups::AllExceptSection(*section),
                 None => entry::DimmedGroups::None,
             });
             entries_style <-
-                all4(&style.update, &entry_style.update, &colors.update, &group_colors);
+                all4(&style, &entry_style, &colors, &group_colors);
             entries_params <-
                 all_with(&entries_style, &dimmed_groups, f!((s, d) model.entries_params(s, *d)));
-            selection_entries_style <- all(entries_params, selection_colors.update);
+            selection_entries_style <- all(entries_params, selection_colors);
             selection_entries_params <-
                 selection_entries_style.map(f!((input) model.selection_entries_params(input)));
             grid_scroll_frp.resize <+ style_and_content_size.map(Model::grid_size);
             grid_position <- style_and_content_size.map(Model::grid_position);
             eval grid_position ((pos) model.grid.set_xy(*pos));
-            grid_scroll_frp.set_corner_radius_bottom_right <+ style.update.map(|s| s.corners_radius);
-            grid.set_entries_size <+ style.update.map(|s| s.entry_size());
-            grid.set_column_width <+ style.update.map(|s| (column::CENTER, s.middle_column_width()));
+            grid_scroll_frp.set_corner_radius_bottom_right <+ style.map(|s| s.corners_radius);
+            grid.set_entries_size <+ style.map(|s| s.entry_size());
+            grid.set_column_width <+ style.map(|s| (column::CENTER, s.middle_column_width()));
             grid.set_entries_params <+ entries_params;
             grid_selection_frp.set_entries_params <+ selection_entries_params;
 
@@ -741,7 +741,7 @@ impl component::Frp<Model> for Frp {
 
             grid_extra_scroll_frp.set_preferred_margins_around_entry <+ all_with(
                 &out.active_section,
-                &style.update,
+                &style,
                 f!((section, style) model.navigation_scroll_margins(*section, style))
             );
 

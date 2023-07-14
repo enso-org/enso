@@ -38,7 +38,7 @@ fn build_frp(
         let field_name =
             field.ident.as_ref().expect("Encountered unnamed struct field. This cannot happen.");
         frp_content.extend(quote! {
-            layout_update_needed <+ #field_name;
+            layout_update_init_debounced <+ #field_name;
         });
         struct_init.extend(quote! {
             #field_name : #field_name.value(),
@@ -48,23 +48,26 @@ fn build_frp(
     quote! {
         frp::extend! { network
             layout_update_init <- source_();
-            layout_update_init_debounced <- source_();
+            layout_update_init_debounced <- any_(...);
             layout_update_needed <- any_(...);
             layout_update_needed <+ layout_update_init;
             layout_update_needed <+ layout_update_init_debounced.debounce();
             #frp_content
-            layout_update <- layout_update_needed.map(move |()| {
+            layout_sampler <- layout_update_needed.map(move |()| {
                 #struct_name {
                     #struct_init
                 }
-            });
+            }).sampler();
         }
         // In order to make sure that the style value is initialized on first access, we need to
-        // force an update immediately.
+        // force an update immediately. Then, in order to fire the update after FRP network
+        // initialization, we need to emit the init value in the next microtask.
         layout_update_init.emit(());
-        // Then, in order to fire the update after FRP network initialization, we need to emit the
-        // init value in the next microtask.
-        layout_update_init_debounced.emit(());
+        __ensogl_core::frp::stream::EventEmitter::emit_event(
+            &layout_update_init_debounced,
+            &default(),
+            &()
+        );
     }
 }
 
@@ -150,13 +153,11 @@ pub fn expand(input: DeriveInput) -> TokenStream {
             fn from_theme(
                 network: &#ensogl_core::frp::Network,
                 style: &#ensogl_core::display::shape::StyleWatchFrp,
-            ) -> #ensogl_core::display::style::FromThemeFrp<#st_name> {
+            ) -> #ensogl_core::frp::Sampler<#st_name> {
+                use #ensogl_core as __ensogl_core;
                 #theme_getters
                 #frp_network_description
-                #ensogl_core::display::style::FromThemeFrp {
-                    update: layout_update,
-                    init:   layout_update_init,
-                }
+                layout_sampler
             }
         }
     };

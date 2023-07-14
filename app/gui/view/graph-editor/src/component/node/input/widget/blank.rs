@@ -7,6 +7,12 @@ use crate::prelude::*;
 
 use ensogl::display::object;
 
+
+
+/// =============
+/// === Style ===
+/// =============
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, FromTheme)]
 #[base_path = "theme::widget::blank"]
 struct Style {
@@ -18,19 +24,20 @@ struct Style {
 }
 
 
-// ======================
-// === InsertionPoint ===
-// ======================
+
+// ==============
+// === Widget ===
+// ==============
 
 /// Blank widget configuration options.
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct Config;
 
-
 /// Blank widget. Displays a stylized underscore shape.
 #[derive(Clone, Debug)]
 pub struct Widget {
-    rect: Rectangle,
+    root:  object::Instance,
+    _rect: Rectangle,
 }
 
 impl SpanWidget for Widget {
@@ -46,24 +53,27 @@ impl SpanWidget for Widget {
     }
 
     fn root_object(&self) -> &object::Instance {
-        self.rect.display_object()
+        &self.root
     }
 
     fn new(_: &Config, ctx: &ConfigContext) -> Self {
+        let root = object::Instance::new_named("widget::Blank");
+        root.use_auto_layout();
         let rect = Rectangle();
+        root.add_child(&rect);
 
-        let network = &rect.display_object().network;
-        let style = ctx.cached_style::<Style>();
+        let network = &root.network;
+        let style = ctx.cached_style::<Style>(network);
 
         frp::extend! { network
-            eval style.update ((style)
+            eval style((style)
                 rect.set_color(style.color)
                     .set_size(style.size)
                     .set_corner_radius(style.corner_radius)
                     .set_margin_trbl(style.margin_top, style.margin_sides, 0.0, style.margin_sides);
             );
         }
-        Self { rect }
+        Self { root, _rect: rect }
     }
 
     fn configure(&mut self, _: &Config, _: ConfigContext) {}

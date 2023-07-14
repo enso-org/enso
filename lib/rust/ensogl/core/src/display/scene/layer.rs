@@ -622,7 +622,14 @@ impl LayerModel {
 
 
     /// Set the blend mode used during rendering of this layer. See [`BlendMode`] for more
-    /// information.
+    /// information. By default, the blend mode is set to [`BlendMode::PREMULTIPLIED_ALPHA_OVER`].
+    ///
+    /// NOTE: Due to a limitation of WebGL, the set blend mode is also applied to object ID buffer
+    /// for all objects on this layer. If you use a blend mode that is not preserving fully opaque
+    /// pixels unchanged (e.g. additive blending), the object ID buffer will contain invalid values.
+    /// In such cases, make sure to use that layer only for objects with pointer events disabled.
+    /// This limitation may be lifted in the future, since other rendering APIs allow setting the
+    /// blend mode for each render target separately.
     pub fn set_blend_mode(&self, blend_mode: BlendMode) {
         self.blend_mode.replace(blend_mode);
     }

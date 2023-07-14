@@ -7,7 +7,6 @@ use crate::component::node;
 use crate::component::node::input;
 use crate::component::node::output::port;
 use crate::tooltip;
-use crate::view;
 use crate::Type;
 
 use enso_config::ARGS;
@@ -113,7 +112,6 @@ ensogl::define_endpoints! {
         set_expression            (node::Expression),
         set_expression_visibility (bool),
         set_type_label_visibility (bool),
-        set_view_mode             (view::Mode),
         set_port_color            (color::Lcha),
 
         /// Set the expression USAGE type. This is not the definition type, which can be set with
@@ -131,7 +129,6 @@ ensogl::define_endpoints! {
         type_label_visibility       (bool),
         expression_label_visibility (bool),
         tooltip                     (tooltip::Style),
-        view_mode                   (view::Mode),
         size                        (Vector2),
     }
 }
@@ -401,10 +398,6 @@ impl Area {
             new_label_color          <- any(&label_color.value,&label_color_on_change);
             eval new_label_color ((color) model.label.set_property_default(color::Rgba::from(color)));
 
-
-            // === View Mode ===
-
-            frp.source.view_mode <+ frp.set_view_mode;
         }
 
         label_color.target_alpha(0.0);

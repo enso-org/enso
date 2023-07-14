@@ -9,14 +9,13 @@ use crate::component::node::input::widget::EdgeData;
 
 use enso_frp as frp;
 use ensogl::control::io::mouse;
-use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::scene::layer::LayerSymbolPartition;
 use ensogl::display::shape;
 use ensogl::display::shape::compound::rectangle;
 use ensogl::display::shape::Rectangle;
+use ensogl::display::world::with_context;
 use span_tree::PortId;
-
 
 
 // =================
@@ -72,7 +71,7 @@ impl Port {
         let hover_shape = Rectangle();
         port_shape.set_pointer_events(false).set_corner_radius_max();
         hover_shape.set_pointer_events(true).set_color(shape::INVISIBLE_HOVER_COLOR);
-        ctx.hover_layer.add(&hover_shape);
+        ctx.layers.hover.add(&hover_shape);
 
         port_root.add_child(&widget_root);
         widget_root.set_margin_left(0.0);
@@ -81,6 +80,7 @@ impl Port {
             .allow_grow()
             .set_margin_xy((-PORT_PADDING_X, 0.0))
             .set_alignment_left_center();
+        port_root.add_child(&port_shape);
         hover_shape.set_size_y(BASE_PORT_HOVER_HEIGHT).allow_grow().set_alignment_left_center();
 
         let mouse_enter = hover_shape.on_event::<mouse::Enter>();
@@ -162,11 +162,11 @@ impl Port {
     fn set_connected(&self, status: Option<EdgeData>) {
         match status {
             Some(data) => {
-                self.port_root.add_child(&self.port_shape);
-                self.port_shape.color.set(color::Rgba::from(data.color).into())
+                self.port_shape.set_color(data.color.into());
+                with_context(|ctx| ctx.layers.DETACHED.remove(&self.port_shape));
             }
             None => {
-                self.port_root.remove_child(&self.port_shape);
+                with_context(|ctx| ctx.layers.DETACHED.add(&self.port_shape));
             }
         };
     }
@@ -216,6 +216,11 @@ impl Port {
     /// Get the port's hover shape. Used for testing to simulate mouse events.
     pub fn hover_shape(&self) -> &Rectangle {
         &self.hover_shape
+    }
+
+    /// Get the port's visual shape.
+    pub fn visual_shape(&self) -> &Rectangle {
+        &self.port_shape
     }
 }
 

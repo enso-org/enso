@@ -10,9 +10,24 @@ use ensogl::display::object;
 use ensogl::display::shape::Rectangle;
 
 
-// =================
-// === Separator ===
-// =================
+
+/// =============
+/// === Style ===
+/// =============
+
+#[derive(Clone, Debug, Default, PartialEq, FromTheme)]
+#[base_path = "theme::widget::separator"]
+struct Style {
+    color:  color::Rgba,
+    margin: f32,
+    width:  f32,
+}
+
+
+
+// ==============
+// === Widget ===
+// ==============
 
 /// Insertion point widget configuration options.
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
@@ -32,7 +47,7 @@ impl SpanWidget for Widget {
     fn match_node(ctx: &ConfigContext) -> Score {
         let kind = &ctx.span_node.kind;
         let matches = ctx.info.nesting_level.is_primary()
-            && (kind.is_expected_argument() || kind.definition_index().is_some());
+            && (kind.is_expected_argument() || kind.is_prefix_argument());
         Score::only_if(matches)
     }
 
@@ -44,15 +59,23 @@ impl SpanWidget for Widget {
         &self.root
     }
 
-    fn new(_: &Config, _: &ConfigContext) -> Self {
+    fn new(_: &Config, ctx: &ConfigContext) -> Self {
         let root = object::Instance::new_named("widget::Separator");
         root.use_auto_layout()
             .set_row_flow()
             .set_children_alignment_left_center()
             .justify_content_center_y();
+
         let separator = Rectangle();
-        separator.set_size((1.0, NODE_HEIGHT)).set_margin_xy((7.5 + PORT_PADDING_X, 0.0));
-        separator.set_color(color::Rgba::new(0.0, 0.0, 0.0, 0.12));
+        let network = &root.network;
+        let style = ctx.cached_style::<Style>(network);
+        frp::extend! { network
+            eval style([separator] (style) {
+                separator.set_size((style.width, NODE_HEIGHT));
+                separator.set_margin_xy((style.margin + PORT_PADDING_X, -NODE_HEIGHT / 2.0));
+                separator.set_color(style.color);
+            });
+        }
         Self { root, separator }
     }
 

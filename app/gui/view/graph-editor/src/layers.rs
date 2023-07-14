@@ -168,7 +168,7 @@ impl MainNodeLayers {
 
 
 /// A combined set of layers with dedicated partitions for visual and interactive elements
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct CommonLayers {
     /// Layer partition used for visual shapes. Always rendered below the hover partition.
     pub visual: LayerSymbolPartition<rectangle::Shape>,

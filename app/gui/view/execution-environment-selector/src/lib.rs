@@ -235,19 +235,18 @@ impl component::Frp<Model> for Frp {
         let output = &frp.output;
 
         let style = Style::from_theme(network, style_watch);
-        let style_update = style.update;
 
         frp::extend! { network
 
             // == Layout ==
 
             let camera_changed = scene.frp.camera_changed.clone_ref();
-            update_position <- all(camera_changed, style_update)._1();
+            update_position <- all(camera_changed, style)._1();
             eval update_position ([model, camera] (style){
                 model.update_position(style, &camera);
             });
 
-            eval style_update((style) {
+            eval style((style) {
                model.update_dropdown_style(style);
                model.update_background_style(style);
                model.update_play_button_style(style);
@@ -277,8 +276,8 @@ impl component::Frp<Model> for Frp {
             // == Outputs ==
 
             output.play_press <+ play_button.pressed;
-            output.size <+ style_update.map(|style| {
-                Vector2::new(style.overall_width(),style.height)
+            output.size <+ style.map(|style| {
+                Vector2::new(style.overall_width(), style.height)
             }).on_change();
         }
     }

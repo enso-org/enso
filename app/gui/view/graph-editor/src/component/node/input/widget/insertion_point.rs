@@ -12,9 +12,9 @@ use ensogl::display::object;
 
 
 
-// ======================
-// === InsertionPoint ===
-// ======================
+// ==============
+// === Widget ===
+// ==============
 
 /// Insertion point widget configuration options.
 #[derive(Debug, Clone, Copy, PartialEq, Default)]

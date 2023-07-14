@@ -129,13 +129,13 @@ impl Background {
             is_hovered <- selection_is_hovered || node_is_hovered;
             hover_animation.target <+ is_hovered.switch_constant(INVISIBLE_HOVER_COLOR.alpha, 1.0);
             selection_colors <- color_animation.value.all_with3(
-                &hover_animation.value, &style.update,
+                &hover_animation.value, &style,
                 |color, hover, style| (
                     color.multiply_alpha(style.selection_opacity),
                     color.multiply_alpha(style.selection_hover_opacity * hover),
                 )
             );
-            selection_border <- selection_animation.value.all_with(&style.update,
+            selection_border <- selection_animation.value.all_with(&style,
                 |selection, style| style.selection_size * (1.0 - selection)
             );
 
@@ -147,7 +147,7 @@ impl Background {
                 shape.set_corner_radius(CORNER_RADIUS);
             });
 
-            size_and_selection <- size_and_center.all_with(&style.update,
+            size_and_selection <- size_and_center.all_with(&style,
                 |(size, _), style| (*size, style.selection_size)
             ).on_change();
 
@@ -392,7 +392,7 @@ pub struct NodeModel {
     pub vcs_indicator:       vcs::StatusIndicator,
     pub style:               StyleWatchFrp,
     pub comment:             text::Text,
-    pub interaction_state:   Rc<Cell<InteractionState>>,
+    pub interaction_state:   Cell<InteractionState>,
 }
 
 impl NodeModel {
@@ -707,7 +707,6 @@ impl Node {
             // === View Mode ===
 
             model.input.set_view_mode <+ input.set_view_mode;
-            model.output.set_view_mode <+ input.set_view_mode;
             model.input.set_edit_ready_mode <+ input.set_edit_ready_mode;
             model.profiling_label.set_view_mode <+ input.set_view_mode;
             model.vcs_indicator.set_visibility  <+ input.set_view_mode.map(|&mode| {
@@ -876,11 +875,14 @@ impl Node {
             // === Colors ===
 
             let port_color_tint = style_frp.get_color_lcha(theme::graph_editor::node::port_color_tint);
+            let editing_color = style_frp.get_color_lcha(theme::graph_editor::node::background);
             base_color_source <- source();
             out.base_color <+ base_color_source;
             out.port_color <+ out.base_color.all_with(&port_color_tint, |c, tint| tint.over(*c));
-            node_colors <- all(frp.base_color, frp.port_color);
+            background_color <- model.input.frp.editing.switch(&frp.base_color, &editing_color);
+            node_colors <- all(background_color, frp.port_color);
             eval node_colors(((base, port)) model.update_colors(*base, *port));
+            model.input.set_node_colors <+ node_colors;
         }
 
 

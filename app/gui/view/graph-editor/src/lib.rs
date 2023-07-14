@@ -121,6 +121,9 @@ pub const MACOS_TRAFFIC_LIGHTS_VERTICAL_CENTER: f32 =
 const MAX_ZOOM: f32 = 1.0;
 /// Space between items in the top bar.
 const TOP_BAR_ITEM_MARGIN: f32 = 10.0;
+/// The amount of pixels that the dragged target edge overlaps with the cursor.
+const CURSOR_EDGE_OVERLAP: f32 = 2.0;
+
 
 fn traffic_lights_gap_width() -> f32 {
     let platform_str = ARGS.groups.startup.options.platform.value.as_str();
@@ -2742,8 +2745,8 @@ impl GraphEditor {
 
             _eval <- refresh_cursor_data.map2(&detached_source_edge,
                 f!(((position, cursor_size), &edge_id) model.with_edge(edge_id?, |edge| {
-                    edge.view.target_position.emit(position.xy());
-                    edge.view.target_size.emit(cursor_size);
+                    let top_of_cursor = Vector2(0.0, cursor_size.y() / 2.0 - CURSOR_EDGE_OVERLAP);
+                    edge.view.target_position.emit(position.xy() + top_of_cursor);
                 }))
             );
             _eval <- refresh_source.map2(&detached_target_edge,

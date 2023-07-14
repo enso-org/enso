@@ -143,8 +143,8 @@ impl Shapes {
             ]);
         }
 
-        for (idx, shape) in new_sections.iter().enumerate() {
-            Self::set_layer(parent, is_attached || idx == 0, shape);
+        for shape in new_sections.iter() {
+            Self::set_layer(parent, is_attached, shape);
         }
 
         *self.sections.borrow_mut() = new_sections;
@@ -349,15 +349,10 @@ pub(super) fn draw_corner(
     color: color::Rgba,
     line_width: f32,
 ) -> Rectangle {
-    let size = corner.size(line_width);
-    let is_straight_line = size.x == line_width || size.y == line_width;
-    // Convert from a layout radius (in the center of the line) to a [`Rectangle`] inner radius (on
-    // the outside edge of the border).
-    let radius = if is_straight_line { 0.0 } else { corner.max_radius() + line_width / 2.0 };
-    shape.set_clip(corner.clip());
-    shape.set_size(size);
     shape.set_xy(corner.origin(line_width));
-    shape.set_corner_radius(radius);
+    shape.set_size(corner.size(line_width));
+    shape.set_clip(corner.clip());
+    shape.set_corner_radius(corner.radius(line_width));
     shape.set_border_color(color);
     shape
 }

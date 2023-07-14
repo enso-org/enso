@@ -605,6 +605,7 @@ fn generate_node_for_prefix_chain(
 
                     let mut arg_kind = node::Kind::from(
                         node::Kind::argument()
+                            .in_prefix_chain()
                             .with_removable(removable)
                             .with_name(arg_name.map(ToString::to_string)),
                     );

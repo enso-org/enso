@@ -9,7 +9,7 @@ use ensogl::display;
 use ide_view_component_list_panel_icons as icons;
 
 use icons::any::View as AnyIcon;
-use icons::component_icons::Id;
+use icons::component_icons::Id as IconId;
 use icons::SIZE;
 
 
@@ -37,7 +37,7 @@ pub struct Config {}
 pub struct Widget {
     display_object: display::object::Instance,
     icon_wrapper:   display::object::Instance,
-    icon_id:        Id,
+    icon_id:        IconId,
     icon:           AnyIcon,
 }
 
@@ -79,13 +79,9 @@ impl SpanWidget for Widget {
 
         let icon_wrapper = display::object::Instance::new_named("icon_wrapper");
         icon_wrapper.set_size((SIZE, SIZE));
-        let icon_id = Id::default();
-        let icon = icon_id.cached_view();
-        icon.set_size((SIZE, SIZE));
-        icon.set_xy((SIZE / 2.0, SIZE / 2.0));
-        icon_wrapper.add_child(icon.display_object());
-        icon.r_component.set(Vector4(1.0, 1.0, 1.0, 1.0));
-        Self { display_object, icon_id, icon, icon_wrapper }
+        let mut this = Self { display_object, icon_wrapper, icon_id: default(), icon: default() };
+        this.set_icon(IconId::default());
+        this
     }
 
     fn configure(&mut self, _: &Config, mut ctx: ConfigContext) {
@@ -95,18 +91,24 @@ impl SpanWidget for Widget {
             .application
             .as_ref()
             .and_then(|app| app.icon_name.as_ref())
-            .and_then(|name| name.parse::<Id>().ok())
-            .unwrap_or(Id::Method);
+            .and_then(|name| name.parse::<IconId>().ok())
+            .unwrap_or(IconId::Method);
         if icon_id != self.icon_id {
-            self.icon_id = icon_id;
-            self.icon = icon_id.cached_view();
-            self.icon.set_size((SIZE, SIZE));
-            self.icon.set_xy((SIZE / 2.0, SIZE / 2.0));
-            self.icon.r_component.set(Vector4(1.0, 1.0, 1.0, 1.0));
-            self.icon_wrapper.replace_children(&[self.icon.display_object()]);
+            self.set_icon(icon_id);
         }
 
         let child = ctx.builder.child_widget(ctx.span_node, ctx.info.nesting_level);
         self.display_object.replace_children(&[&self.icon_wrapper, &child.root_object]);
+    }
+}
+
+impl Widget {
+    fn set_icon(&mut self, icon_id: IconId) {
+        self.icon_id = icon_id;
+        self.icon = icon_id.cached_view();
+        self.icon.set_size((SIZE, SIZE));
+        self.icon.set_xy((SIZE / 2.0, SIZE / 2.0));
+        self.icon.r_component.set(Vector4(1.0, 1.0, 1.0, 1.0));
+        self.icon_wrapper.replace_children(&[self.icon.display_object()]);
     }
 }

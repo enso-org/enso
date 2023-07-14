@@ -49,19 +49,17 @@ use std::any::TypeId;
 use crate::component::node::input::area::NODE_HEIGHT;
 use crate::component::node::input::area::TEXT_OFFSET;
 use crate::component::node::input::port::Port;
-use crate::display::shape::compound::rectangle;
 use crate::display::shape::Rectangle;
 
+use crate::layers::CommonLayers;
 use enso_frp as frp;
 use enso_text as text;
 use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::scene;
-use ensogl::display::scene::layer::LayerSymbolPartition;
 use ensogl::display::shape::StyleWatchFrp;
 use ensogl::display::style::FromTheme;
-use ensogl::display::style::FromThemeFrp;
 use ensogl::display::Scene;
 use ensogl::gui::cursor;
 use ensogl_component::drop_down::DropdownValue;
@@ -119,6 +117,8 @@ ensogl::define_endpoints_2! {
         set_view_mode        (crate::view::Mode),
         set_profiling_status (crate::node::profiling::Status),
         set_disabled         (bool),
+        node_base_color      (color::Lcha),
+        node_port_color      (color::Lcha),
     }
     Output {
         value_changed    (span_tree::Crumbs, Option<ImString>),
@@ -507,6 +507,8 @@ impl DropdownValue for Choice {
 /// Widget FRP endpoints that can be used by widget views, and go straight to the root.
 #[derive(Debug, Clone, CloneRef)]
 pub struct WidgetsFrp {
+    pub(super) node_base_color:        frp::Sampler<color::Lcha>,
+    pub(super) node_port_color:        frp::Sampler<color::Lcha>,
     pub(super) set_ports_visible:      frp::Sampler<bool>,
     pub(super) set_edit_ready_mode:    frp::Sampler<bool>,
     pub(super) set_read_only:          frp::Sampler<bool>,
@@ -585,7 +587,8 @@ impl Tree {
             set_read_only <- frp.set_read_only.sampler();
             set_view_mode <- frp.set_view_mode.sampler();
             set_profiling_status <- frp.set_profiling_status.sampler();
-
+            node_base_color <- frp.node_base_color.sampler();
+            node_port_color <- frp.node_port_color.sampler();
             on_port_hover <- any(...);
             on_port_press <- any(...);
             frp.private.output.on_port_hover <+ on_port_hover;
@@ -603,6 +606,8 @@ impl Tree {
         let pointer_style = frp.private.output.pointer_style.clone_ref();
         let connected_port_updated = frp.private.output.connected_port_updated.clone_ref();
         let widgets_frp = WidgetsFrp {
+            node_base_color,
+            node_port_color,
             set_ports_visible,
             set_edit_ready_mode,
             set_read_only,
@@ -1111,9 +1116,11 @@ pub struct ConfigContext<'a, 'b> {
     /// Additional state associated with configured widget tree node, such as its depth, connection
     /// status or parent node information.
     pub(super) info:       NodeInfo,
-    /// The layer partition that should be used for most of the node's hover areas. This partition
-    /// needs to be manually applied to suitable display objects within the widget implementation.
-    pub hover_layer:       LayerSymbolPartition<rectangle::Shape>,
+    /// The layer partitions that should be used for all of the widget's visual and hover areas. By
+    /// default, the widget root object is automatically placed on the visual partition. The hover
+    /// partition needs to be manually assigned to suitable display objects within the widget
+    /// implementation.
+    pub layers:            CommonLayers,
     /// The length of tree extensions vector before the widget was configured. Used to determine
     /// which extensions were added by the widget parents, and which are new.
     parent_extensions_len: usize,
@@ -1145,11 +1152,24 @@ impl<'a, 'b> ConfigContext<'a, 'b> {
         self.builder.styles
     }
 
-    /// Get an instance of typed style object. This cached style object is shared across all widget
-    /// instances in the scene, therefore this method is preferred over manually using
-    /// [`ConfigContext::styles`] in combination with [`FromTheme::from_theme`].
-    pub fn cached_style<T: FromTheme + Any>(&self) -> FromThemeFrp<T> {
-        self.builder.shared.cached_style::<T>()
+    /// Get a style sampler of typed style object. The core FRP nodes of this style object are
+    /// shared across all widget instances in the scene. Using this method is preferred over
+    /// manually calling [`FromTheme::from_theme`] in combination with [`ConfigContext::styles`].
+    pub fn cached_style<T: FromTheme + Any>(&self, network: &frp::Network) -> frp::Stream<T> {
+        let sampler = self.builder.shared.cached_style::<T>();
+        // For each widget, create a dedicated FRP node that will be initialized after its FRP
+        // network has been fully connected.
+        let per_widget = network.any_mut("cached_style");
+        per_widget.attach(&sampler);
+
+        // Initialize and re-emit the last sampler value in the next tick. Using direct on_event and
+        // emit to avoid creating unnecessary additional FRP nodes.
+        use frp::stream::EventEmitter;
+        network.store(&frp::microtasks::next_microtask(
+            f!([sampler, per_widget] per_widget.emit_event(&default(), &sampler.value())),
+        ));
+
+        per_widget.into()
     }
 
     /// Set an extension object of specified type at the current tree position. Any descendant
@@ -1559,7 +1579,7 @@ impl<'a> TreeBuilder<'a> {
             span_node,
             info: info.clone(),
             parent_extensions_len,
-            hover_layer: layers.hover,
+            layers: layers.clone(),
         };
 
         let config_override = || {
@@ -1698,9 +1718,9 @@ struct Child {
 /// we can avoid a cost of creating dedicated style FRP nodes for each widget instance.
 #[derive(Debug)]
 struct SceneShared {
-    /// An `StyleWatchFrp` instance used by all cached style objects. Since the style objects are
-    /// reused between multiple nodes, it would be not correct to use the node-specific
-    /// [`TreeBuilder.styles`] object. Instead, a dedicated shared one is used.
+    /// An `StyleWatchFrp` instance used by all style objects inside all widget trees within the
+    /// scene. Using the same instance for all style objects allows it to cache all internal FRP
+    /// nodes, which would otherwise be created for each style object separately.
     cached_styles_frp: StyleWatchFrp,
     /// FRP Network shared by all cached style FRP nodes.
     ///
@@ -1732,7 +1752,10 @@ impl scene::Extension for SceneSharedExtension {
 impl SceneShared {
     /// Retrieve a shared style object that implements `FromTheme`. All calls using the same type
     /// will receive a `clone_ref` of the same object instance.
-    fn cached_style<T: FromTheme + Any>(&self) -> FromThemeFrp<T> {
+    ///
+    /// NOTE: When an existing style instance is returned, its `update` stream is not guaranteed
+    /// to emit an event in next microtask. The caller must not rely on it.
+    fn cached_style<T: FromTheme>(&self) -> frp::Sampler<T> {
         self.get_or_insert_with(|| T::from_theme(&self.network, &self.cached_styles_frp))
             .clone_ref()
     }

@@ -123,13 +123,14 @@ mod three_corner {
 
 /// Determine the positions and shapes of all the components of the edge.
 pub(super) fn layout(
-    source_size: Vector2,
     target: Vector2,
+    source_size: Vector2,
     target_size: Vector2,
+    source_attached: bool,
     target_attached: bool,
 ) -> Layout {
     let (junction_points, max_radius, target_attachment) =
-        junction_points(source_size, target, target_size, target_attached);
+        junction_points(target, source_size, target_size, source_attached, target_attached);
     let corners = corners(&junction_points, max_radius).collect_vec();
     let arrow = arrow(target, &junction_points);
     Layout { corners, arrow, target_attachment }
@@ -145,9 +146,10 @@ pub(super) fn layout(
 /// given offset. Return the points, the maximum radius that should be used to draw the corners
 /// connecting them, and the length of the target attachment bit.
 fn junction_points(
-    source_size: Vector2,
     target: Vector2,
+    source_size: Vector2,
     target_size: Vector2,
+    source_attached: bool,
     target_attached: bool,
 ) -> (Vec<Vector2>, f32, Option<TargetAttachment>) {
     let source_half_width = source_size.x() / 2.0;
@@ -197,8 +199,10 @@ fn junction_points(
             let circle_offset = arc_origin_x - source_arc_origin;
             let intersection = circle_intersection(circle_offset, NODE_CORNER_RADIUS, radius);
             -(radius - intersection).abs()
-        } else {
+        } else if source_attached {
             SOURCE_NODE_OVERLAP - source_half_height
+        } else {
+            source_half_height
         };
         let source = Vector2(source_x, source_y);
         // The target attachment will extend as far toward the edge of the node as it can without
@@ -210,7 +214,7 @@ fn junction_points(
     } else {
         use three_corner::*;
         // The edge originates from either side of the node.
-        let source_x = source_half_width.copysign(target.x());
+        let source_x = source_max_x_offset.copysign(target.x());
         let distance_x = (target.x() - source_x).abs();
         let (j0_x, j1_x, height_adjustment);
         if horizontal_room_for_3_corners {
@@ -353,6 +357,8 @@ pub(super) struct Corner {
     max_radius: f32,
 }
 
+const LINE_OVERLAP: f32 = 5.0;
+
 impl Corner {
     #[inline]
     pub fn clip(self) -> Vector2 {
@@ -362,26 +368,51 @@ impl Corner {
         Vector2(x_clip, y_clip)
     }
 
+    /// Calculate vertical and horizontal line overlap to avoid visible gaps between segments.
+    #[inline]
+    fn overlap_padding(self, line_width: f32) -> Vector2 {
+        let Corner { horizontal, vertical, .. } = self;
+        let offset = (horizontal - vertical).abs();
+        let radius = self.radius(line_width);
+        Vector2(
+            LINE_OVERLAP.min(offset.x() - radius).max(0.0),
+            LINE_OVERLAP.min(offset.y() - radius).max(0.0),
+        )
+    }
+
     #[inline]
     pub fn origin(self, line_width: f32) -> Vector2 {
         let Corner { horizontal, vertical, .. } = self;
-        let x = horizontal.x().min(vertical.x() - line_width / 2.0);
-        let y = vertical.y().min(horizontal.y() - line_width / 2.0);
+        let offset = horizontal - vertical;
+        let pad = self.overlap_padding(line_width);
+        let pad_x = if offset.x() < 0.0 { -pad.x() } else { 0.0 };
+        let pad_y = if offset.y() > 0.0 { -pad.y() } else { 0.0 };
+        let half_line_width_w = offset.y().abs().min(line_width / 2.0);
+        let half_line_width_h = offset.x().abs().min(line_width / 2.0);
+        let x = pad_x + (horizontal.x()).min(vertical.x() - half_line_width_w);
+        let y = pad_y + (vertical.y()).min(horizontal.y() - half_line_width_h);
         Vector2(x, y)
     }
 
     #[inline]
     pub fn size(self, line_width: f32) -> Vector2 {
         let Corner { horizontal, vertical, .. } = self;
-        let offset = horizontal - vertical;
-        let width = (offset.x().abs() + line_width / 2.0).max(line_width);
-        let height = (offset.y().abs() + line_width / 2.0).max(line_width);
+        let offset = (horizontal - vertical).abs();
+        let pad = self.overlap_padding(line_width);
+        let half_line_width_w = offset.y().min(line_width / 2.0);
+        let half_line_width_h = offset.x().min(line_width / 2.0);
+        let width = pad.x() + (offset.x() + half_line_width_w).max(half_line_width_w * 2.0);
+        let height = pad.y() + (offset.y() + half_line_width_h).max(half_line_width_h * 2.0);
         Vector2(width, height)
     }
 
     #[inline]
-    pub fn max_radius(self) -> f32 {
-        self.max_radius
+    pub fn radius(self, line_width: f32) -> f32 {
+        let Corner { horizontal, vertical, .. } = self;
+        let offset = (horizontal - vertical).abs();
+        let smaller_offset = offset.x().min(offset.y());
+        let piecewise_limit = (smaller_offset * 2.0).min(line_width).max(smaller_offset);
+        (self.max_radius + line_width / 2.0).min(piecewise_limit)
     }
 
     fn bounding_box(self, line_width: f32) -> BoundingBox {

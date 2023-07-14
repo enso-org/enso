@@ -4,6 +4,7 @@ use crate::display::shape::*;
 use crate::gui::style::*;
 use crate::prelude::*;
 
+use crate::animation::linear_interpolation;
 use crate::application::command::FrpNetworkProvider;
 use crate::control::io::mouse;
 use crate::data::color;
@@ -123,6 +124,15 @@ impl Style {
         self.size = Some(StyleValue::new_no_animation(size.abs() + def_size));
         self.pointer_events = Some(StyleValue::new_no_animation(true));
         self
+    }
+}
+
+// === Getters ===
+
+impl Style {
+    /// Get the computed cursor size given this style.
+    pub fn get_size(&self) -> Vector2<f32> {
+        self.size.as_ref().and_then(|s| s.value).unwrap_or(DEFAULT_SIZE())
     }
 }
 
@@ -324,6 +334,8 @@ impl Cursor {
 
         let on_up = scene.on_event::<mouse::Up>();
 
+        let cursor_camera = scene.layers.cursor.camera();
+
         frp::extend! { network
 
             // === Drag Target ===
@@ -455,13 +467,14 @@ impl Cursor {
                 *model.style.borrow_mut() = new_style.clone();
             });
 
+            host_instance <- frp.set_style.map(|style| style.host.clone()?.value).on_change();
             host_layer_to_use <- frp.set_style.map(|new_style| {
-                let use_layer = new_style.use_host_layer.as_ref().and_then(|t| t.value)? == true;
-                if !use_layer { return None };
+                let true = new_style.use_host_layer.clone()?.value? else { return None };
                 let host = new_style.host.as_ref()?.value.as_ref()?;
                 let host_layer = host.display_layer()?;
                 Some(host_layer.downgrade())
             });
+            host_camera <- host_layer_to_use.and_then(|layer| Some(layer.upgrade()?.camera()));
             set_host_layer <- host_layer_to_use.unwrap().on_change();
             eval set_host_layer([model] (layer) {
                 if let Some(layer) = layer.upgrade() {
@@ -473,59 +486,50 @@ impl Cursor {
             custom_layer_weight.skip <+ frp.set_style.filter(|new_style|
                 new_style.use_host_layer.as_ref().map_or(false, |t| !t.animate)
             ).constant(());
-
-            host_changed    <- any_(frp.set_style,scene.frp.camera_changed);
-            is_not_hosted   <- host_changed.map(f!((_) model.style.borrow().host.is_none()));
-            mouse_pos_rt    <- mouse.position.gate(&is_not_hosted);
-            host_moved      <- host_changed.flat_map(f!([model] (_) {
-                match model.style.borrow().host.as_ref().and_then(|t|t.value.as_ref()) {
-                    None       => frp::Source::<()>::new().into(),
-                    Some(host) => host.on_transformed.clone(),
+            show_host_layer_view <- custom_layer_weight.value.map(|w| *w >= 0.01).on_change();
+            eval show_host_layer_view([model] (show) {
+                if *show {
+                    model.host_layer_view.show();
+                } else {
+                    model.host_layer_view.hide();
                 }
-            }));
+            });
 
-            host_needs_update <- any(host_moved, host_changed);
-            transformed_host_position <- host_needs_update.filter_map(
-                f!([model, host_follow_weight] (_) {
-                    match model.style.borrow().host.as_ref().and_then(|t|t.value.as_ref()) {
-                        None => {
-                            host_follow_weight.target.emit(0.0);
-                            None
-                        }
-                        Some(host) => {
-                            host_follow_weight.target.emit(1.0);
-                            let host_layer = host.display_layer()?;
-                            let m1 = model.scene.layers.cursor.camera().inversed_view_matrix();
-                            let m2 = host_layer.camera().view_matrix();
-                            let position = host.global_position();
-                            let size = host.computed_size();
-                            let position = Vector4::new(
-                                position.x + size.x * 0.5,
-                                position.y + size.y * 0.5,
-                                position.z,
-                                1.0
-                            );
-                            let position = m2 * (m1 * position);
-                            Some(position.xyz())
-                        }
-                    }
+            is_not_hosted   <- host_instance.is_none();
+            mouse_pos_rt    <- mouse.position.gate(&is_not_hosted);
+            host_moved      <- host_instance.flat_map(|host| match host {
+                None => frp::Source::<()>::new().into(),
+                Some(host) => host.on_transformed.clone(),
+            });
+            last_known_host_camera <- host_camera.unwrap();
+            transformed_host_position <- all_with4(
+                &host_moved, &scene.frp.camera_changed,
+                &host_instance, &last_known_host_camera,
+                f!([cursor_camera] (_, _, host, host_camera) {
+                    let host = host.as_ref()?;
+                    let m1 = cursor_camera.inversed_view_matrix();
+                    let m2 = host_camera.view_matrix();
+                    let half_size = host.computed_size() * 0.5;
+                    let position = host.global_position() + half_size.push(0.0);
+                    let transformed = m2 * (m1 * position.push(1.0));
+                    Some(transformed.xyz())
                 })
-            );
+            ).unwrap();
 
+            host_follow_weight.target <+ host_camera.is_some().switch_constant(0.0, 1.0);
             host_position.target <+ transformed_host_position;
-            host_attached <- host_changed.all_with4(
-                    &host_attached_weight.value,
-                    &host_position.value,
-                    &transformed_host_position,
-                    |_, weight, pos_anim, host_pos| *host_pos * *weight + pos_anim * (1.0 - weight)
+            host_position.target <+ mouse_pos_rt.map(|t| Vector3(t.x,t.y,0.0));
+
+            host_attached <- all_with3(
+                &host_attached_weight.value, &host_position.value, &transformed_host_position,
+                |weight, animated, target| linear_interpolation(*animated, *target, *weight)
             );
 
-            position <- mouse.position.all_with4
-                (&host_attached,&host_follow_weight.value,&offset.value,
+            position <- mouse.position.all_with4(
+                &host_attached, &host_follow_weight.value, &offset.value,
                 |pos_rt,pos_attached,weight,offset| {
-                    let pos_rt = Vector2(pos_rt.x,pos_rt.y) + *offset;
-                    let pos_rt = Vector3(pos_rt.x,pos_rt.y,0.0);
-                    *pos_attached * *weight + pos_rt * (1.0 - weight)
+                    let pos_rt = pos_rt.xy() + *offset;
+                    linear_interpolation(pos_rt.push(0.0), *pos_attached, *weight)
                 }
             );
 
@@ -538,8 +542,8 @@ impl Cursor {
             //   ╲──┤ z = position.z
             //    ╲ │
             //     ╲│ z = camera.z
-            screen_position <- position.map(f!([model](position) {
-                let cam_pos = model.scene.layers.cursor.camera().position();
+            screen_position <- position.map(f!([cursor_camera] (position) {
+                let cam_pos = cursor_camera.position();
                 let z_diff = cam_pos.z - position.z;
                 if z_diff == 0.0 {
                     Vector3::zero()
@@ -569,23 +573,19 @@ impl Cursor {
                 }
             }));
 
-            position_in_host_camera <- position.filter_map(
-                f!([model] (position) {
-                    let style = model.style.borrow();
-                    let host = style.host.as_ref()?.value.as_ref()?;
-                    let host_layer = host.display_layer()?;
-                    let m1 = model.scene.layers.cursor.camera().view_matrix();
-                    let m2 = host_layer.camera().inversed_view_matrix();
+            position_in_host_camera <- map2(&position, &last_known_host_camera,
+                f!([cursor_camera] (position, host_camera) {
+                    let m1 = cursor_camera.view_matrix();
+                    let m2 = host_camera.inversed_view_matrix();
                     let position = m2 * (m1 * position.push(1.0));
                     Some(position.xyz())
                 })
-            );
+            ).unwrap();
 
 
 
             // === Evals ===
 
-            eval mouse_pos_rt ((t) host_position.target.emit(Vector3(t.x,t.y,0.0)));
             eval position ((t) model.display_object.set_position(*t));
             eval position_in_host_camera ((t) model.host_layer_view.set_position(*t));
             eval front_color ((t) model.view.color.set(color::Rgba::from(t).into()));

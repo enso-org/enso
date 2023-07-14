@@ -177,7 +177,7 @@ impl Model {
         let style_frp = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
         let style = entry::Style::from_theme(&network, &style_frp);
         frp::extend! { network
-            params <- style.update.map(|s| entry::Params { style: s.clone(), greyed_out_start: None });
+            params <- style.map(|s| entry::Params { style: s.clone(), greyed_out_start: None });
             grid.set_entries_params <+ params;
         }
         Self { display_object, grid, entries, network, mask, show_ellipsis }

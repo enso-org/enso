@@ -97,6 +97,11 @@ impl Kind {
         matches!(self, Self::InsertionPoint(t) if t.kind.is_expected_argument())
     }
 
+    /// Match the value with `Kind::InsertionPoint(ExpectedArgument(_))`.
+    pub fn is_prefix_argument(&self) -> bool {
+        matches!(self, Self::Argument(a) if a.in_prefix_chain)
+    }
+
     /// If this kind is an expected argument, return its argument index.
     pub fn expected_argument_index(&self) -> Option<usize> {
         match self {
@@ -274,6 +279,7 @@ impl Default for Kind {
 #[allow(missing_docs)]
 pub struct Argument {
     pub removable:        bool,
+    pub in_prefix_chain:  bool,
     /// The index of the argument in the function definition.
     pub definition_index: Option<usize>,
     pub name:             Option<String>,
@@ -295,6 +301,10 @@ impl Argument {
     }
     pub fn removable(mut self) -> Self {
         self.removable = true;
+        self
+    }
+    pub fn in_prefix_chain(mut self) -> Self {
+        self.in_prefix_chain = true;
         self
     }
     pub fn with_removable(mut self, rm: bool) -> Self {

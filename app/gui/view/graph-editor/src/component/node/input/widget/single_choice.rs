@@ -11,7 +11,7 @@ use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::object::event;
 use ensogl::display::shape::SimpleTriangle;
-use ensogl::display::style::FromThemeFrp;
+use ensogl_component::button::prelude::INVISIBLE_HOVER_COLOR;
 use ensogl_component::drop_down::Dropdown;
 
 
@@ -115,11 +115,12 @@ ensogl::define_endpoints_2! {
 pub struct Widget {
     config_frp:       Frp,
     display_object:   display::object::Instance,
+    hover_area:       Rectangle,
     content_wrapper:  display::object::Instance,
     dropdown_wrapper: display::object::Instance,
     triangle_wrapper: display::object::Instance,
     dropdown:         Rc<RefCell<LazyDropdown>>,
-    activation_shape: SimpleTriangle,
+    triangle:         SimpleTriangle,
 }
 
 impl SpanWidget for Widget {
@@ -156,20 +157,16 @@ impl SpanWidget for Widget {
         //  │ ◎ dropdown_wrapper                │
         //  ╰───────────────────────────────────╯
 
-        let activation_shape = SimpleTriangle();
-        ctx.hover_layer.add(&activation_shape);
-
         let display_object = display::object::Instance::new_named("widget::SingleChoice");
-        let content_wrapper = display_object.new_child();
+        let hover_area = Rectangle();
+        hover_area.set_color(INVISIBLE_HOVER_COLOR);
+        hover_area.allow_grow().set_alignment_center();
+        display_object.add_child(&hover_area);
         let triangle_wrapper = display_object.new_child();
-        triangle_wrapper.add_child(&activation_shape);
+        let triangle = SimpleTriangle();
+        triangle_wrapper.add_child(&triangle);
         let dropdown_wrapper = display_object.new_child();
-
-        display_object
-            .use_auto_layout()
-            .set_column_flow()
-            .set_children_alignment_left_center()
-            .justify_content_center_y();
+        let content_wrapper = display_object.new_child();
 
         content_wrapper
             .use_auto_layout()
@@ -177,7 +174,7 @@ impl SpanWidget for Widget {
             .justify_content_center_y();
 
         triangle_wrapper.set_size((0.0, 0.0)).set_alignment_center_bottom();
-        dropdown_wrapper.set_size((0.0, 0.0)).set_alignment_left_bottom();
+        dropdown_wrapper.set_size((0.0, 0.0)).allow_grow_x().set_alignment_left_bottom();
 
         let config_frp = Frp::new();
         let dropdown = LazyDropdown::new(app, &config_frp.network);
@@ -186,22 +183,24 @@ impl SpanWidget for Widget {
         Self {
             config_frp,
             display_object,
+            hover_area,
             content_wrapper,
             triangle_wrapper,
             dropdown_wrapper,
             dropdown,
-            activation_shape,
+            triangle,
         }
         .init(ctx)
     }
 
     fn configure(&mut self, config: &Config, mut ctx: ConfigContext) {
         let input = &self.config_frp.public.input;
+        ctx.layers.hover.add(&self.hover_area);
 
         let has_value = !ctx.span_node.is_insertion_point();
         let current_value = has_value.then(|| ctx.span_expression());
         let (entry_idx, selected_entry) =
-            entry_for_current_value(&config.choices, current_value).unzip();
+            entry_for_current_value(&config.choices[..], current_value).unzip();
 
         input.current_crumbs(ctx.span_node.crumbs.clone());
         input.set_entries(config.choices.clone());
@@ -252,17 +251,17 @@ fn find_call_id(node: &span_tree::Node) -> Option<ast::Id> {
 
 impl Widget {
     fn init(self, ctx: &ConfigContext) -> Self {
-        let style = ctx.cached_style::<Style>();
+        let style = ctx.cached_style::<Style>(&self.config_frp.network);
         let is_open = self.init_dropdown_focus(ctx, &style);
         self.init_dropdown_values(ctx, is_open);
-        self.init_activation_shape(ctx, &style);
+        self.init_triangle(ctx, &style);
         self
     }
 
     fn init_dropdown_focus(
         &self,
         ctx: &ConfigContext,
-        style: &FromThemeFrp<Style>,
+        style: &frp::Stream<Style>,
     ) -> frp::Stream<bool> {
         let widgets_frp = ctx.frp();
         let focus_receiver = &self.dropdown_wrapper;
@@ -273,9 +272,9 @@ impl Widget {
         let dropdown_frp = &self.dropdown.borrow();
         let dropdown_wrapper = &self.dropdown_wrapper;
         frp::extend! { network
-            eval focus_in([dropdown, dropdown_wrapper, style](_) {
-                dropdown.borrow_mut().lazy_init(&dropdown_wrapper, &style);
-            });
+            _eval <- focus_in.map2(style, f!([dropdown, dropdown_wrapper, style] (_, style_value) {
+                dropdown.borrow_mut().lazy_init(&dropdown_wrapper, &style, style_value);
+            }));
             readonly_set <- widgets_frp.set_read_only.on_true();
             do_open <- focus_in.gate_not(&widgets_frp.set_read_only);
             do_close <- any_(focus_out, readonly_set);
@@ -321,43 +320,41 @@ impl Widget {
             widgets_frp.value_changed <+ dropdown_out_value.map2(&config_frp.current_crumbs,
                 move |t: &Option<ImString>, crumbs: &span_tree::Crumbs| (crumbs.clone(), t.clone())
             );
-
-        };
+        }
     }
 
-    fn init_activation_shape(&self, ctx: &ConfigContext, style: &FromThemeFrp<Style>) {
+    fn init_triangle(&self, ctx: &ConfigContext, style: &frp::Stream<Style>) {
         let network = &self.config_frp.network;
         let config_frp = &self.config_frp;
         let widgets_frp = ctx.frp();
-        let activation_shape = &self.activation_shape;
+        let triangle = &self.triangle;
+        let hover_area = &self.hover_area;
         let focus_receiver = &self.dropdown_wrapper;
-
 
         frp::extend! { network
             let id = ctx.info.identity;
             parent_port_hovered <- widgets_frp.hovered_port_children.map(move |h| h.contains(&id));
             is_connected_or_hovered <- config_frp.is_connected || parent_port_hovered;
-            activation_shape_color <- is_connected_or_hovered.all_with(&style.update,
-                |connected, style| if *connected { style.triangle_connected } else { style.triangle_base }
+            triangle_color <- is_connected_or_hovered.all_with(style,
+                |connected, s| if *connected { s.triangle_connected } else { s.triangle_base }
             ).on_change();
-            eval activation_shape_color((color)
-                activation_shape.set_color(color.into());
+            eval triangle_color((color)
+                triangle.set_color(color.into());
             );
-            eval style.update([activation_shape] (style) {
+            eval *style([triangle] (style) {
                 let size = style.triangle_size;
-                activation_shape.set_xy(style.triangle_offset - Vector2(size.x, 0.0));
-                activation_shape.set_base_and_altitude(size.x, -size.y);
+                triangle.set_xy(style.triangle_offset - Vector2(size.x * 0.5, -size.y));
+                triangle.set_base_and_altitude(size.x, -size.y);
             });
 
-            let dot_mouse_down = activation_shape.on_event::<mouse::Down>();
+            let dot_mouse_down = hover_area.on_event::<mouse::Down>();
             dot_clicked <- dot_mouse_down.filter(mouse::is_primary);
             set_focused <- dot_clicked.map(f!([focus_receiver](_) !focus_receiver.is_focused()));
             eval set_focused([focus_receiver](focus) match focus {
                 true => focus_receiver.focus(),
                 false => focus_receiver.blur(),
             });
-
-        };
+        }
     }
 }
 
@@ -406,6 +403,7 @@ struct LazyDropdown {
     sampled_set_open: frp::Sampler<bool>,
     selected_entries: frp::Any<HashSet<Choice>>,
     user_select_action: frp::Any<()>,
+    network: frp::Network,
     dropdown: Option<Dropdown<Choice>>,
 }
 
@@ -433,12 +431,18 @@ impl LazyDropdown {
             sampled_set_selected_entries,
             sampled_set_open,
             dropdown: None,
+            network: frp::Network::new("LazyDropdown"),
         }
     }
 
     /// Perform initialization that actually creates the dropdown. Should be done only once there is
     /// a request to open the dropdown.
-    fn lazy_init(&mut self, parent: &display::object::Instance, style: &FromThemeFrp<Style>) {
+    fn lazy_init(
+        &mut self,
+        parent: &display::object::Instance,
+        style: &frp::Stream<Style>,
+        current_style: &Style,
+    ) {
         if self.dropdown.is_some() {
             return;
         }
@@ -446,7 +450,7 @@ impl LazyDropdown {
         let dropdown = self.dropdown.insert(self.app.new_view::<Dropdown<Choice>>());
         parent.add_child(dropdown);
         self.app.display.default_scene.layers.above_nodes.add(&*dropdown);
-        let network = dropdown.network();
+        let network = &self.network;
 
         frp::extend! { network
             dropdown.set_all_entries <+ self.sampled_set_all_entries;
@@ -454,13 +458,18 @@ impl LazyDropdown {
             dropdown.set_open <+ self.sampled_set_open;
             self.selected_entries <+ dropdown.selected_entries;
             self.user_select_action <+ dropdown.user_select_action;
-            eval style.update([dropdown] (style) {
+            eval* style([dropdown] (style) {
                 dropdown.set_xy(style.dropdown_offset);
                 dropdown.set_max_open_size(style.dropdown_max_size);
             });
+            eval_ parent.on_transformed([dropdown, parent] {
+                dropdown.set_min_open_width(parent.computed_size().x())
+            });
         }
 
-
+        dropdown.set_xy(current_style.dropdown_offset);
+        dropdown.set_max_open_size(current_style.dropdown_max_size);
+        dropdown.set_min_open_width(parent.computed_size().x());
         dropdown.allow_deselect_all(true);
         dropdown.set_all_entries(self.sampled_set_all_entries.value());
         dropdown.set_selected_entries(self.sampled_set_selected_entries.value());

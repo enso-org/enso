@@ -217,7 +217,13 @@ impl EdgeModel {
         let source_attached = self.inputs.source_attached.get();
         let source_size = self.inputs.source_size.get();
         let target_size = self.inputs.target_size.get();
-        let layout = layout::layout(source_size, target_offset, target_size, target_attached);
+        let layout = layout::layout(
+            target_offset,
+            source_size,
+            target_size,
+            source_attached,
+            target_attached,
+        );
         let is_attached = target_attached && source_attached;
         let focus_split = is_attached
             .then(|| {
@@ -235,7 +241,7 @@ impl EdgeModel {
             .flatten();
         let styles = StyleWatch::new(&self.scene.style_sheet);
         let normal_color = if self.inputs.disabled.get() {
-            styles.get_color(theme::code::syntax::disabled)
+            styles.get_color(theme::graph_editor::edge::disabled_color)
         } else {
             self.inputs.color.get()
         };
