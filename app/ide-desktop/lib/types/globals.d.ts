@@ -19,6 +19,16 @@ interface Enso {
     main: (inputConfig?: StringConfig) => Promise<void>
 }
 
+// ===================
+// === Backend API ===
+// ===================
+
+/** `window.backendApi` is a context bridge to the main process, when we're running in an
+ * Electron context. It contains non-authentication-related functionality. */
+interface BackendApi {
+    importProjectFromPath: (openedPath: string) => Promise<string>
+}
+
 // ==========================
 // === Authentication API ===
 // ==========================
@@ -51,6 +61,7 @@ declare global {
     /** */
     interface Window {
         enso?: AppRunner & Enso
+        backendApi?: BackendApi
         authenticationApi: AuthenticationApi
     }
 

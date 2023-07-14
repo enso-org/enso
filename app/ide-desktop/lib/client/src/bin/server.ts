@@ -3,6 +3,7 @@
 import * as fs from 'node:fs'
 import * as http from 'node:http'
 import * as path from 'node:path'
+import * as stream from 'node:stream'
 
 import * as mime from 'mime-types'
 import * as portfinder from 'portfinder'
@@ -20,25 +21,34 @@ const logger = contentConfig.logger
 // =================
 
 const HTTP_STATUS_OK = 200
+const HTTP_STATUS_NOT_FOUND = 404
 
 // ==============
 // === Config ===
 // ==============
 
+/** External functions for a {@link Server}. */
+export interface ExternalFunctions {
+    uploadProjectBundle: (project: stream.Readable) => Promise<string>
+}
+
 /** Constructor parameter for the server configuration. */
 interface ConfigConfig {
     dir: string
     port: number
+    externalFunctions: ExternalFunctions
 }
 
 /** Server configuration. */
 export class Config {
     dir: string
     port: number
+    externalFunctions: ExternalFunctions
     /** Create a server configuration. */
     constructor(cfg: ConfigConfig) {
         this.dir = path.resolve(cfg.dir)
         this.port = cfg.port
+        this.externalFunctions = cfg.externalFunctions
     }
 }
 
@@ -100,6 +110,25 @@ export class Server {
         const requestUrl = request.url
         if (requestUrl == null) {
             logger.error('Request URL is null.')
+        } else if (request.method === 'POST') {
+            const requestPath = requestUrl.split('?')[0]?.split('#')[0]
+            switch (requestPath) {
+                // This endpoint should only be used when accessing the app from the browser.
+                // When accessing the app from Electron, the file input event will have the
+                // full system path.
+                case '/api/upload-project': {
+                    void this.config.externalFunctions.uploadProjectBundle(request).then(() => {
+                        response.writeHead(HTTP_STATUS_OK)
+                        response.end()
+                    })
+                    break
+                }
+                default: {
+                    response.writeHead(HTTP_STATUS_NOT_FOUND)
+                    response.end()
+                    break
+                }
+            }
         } else {
             const url = requestUrl.split('?')[0]
             const resource = url === '/' ? '/index.html' : requestUrl
@@ -116,6 +145,8 @@ export class Server {
             fs.readFile(resourceFile, (err, data) => {
                 if (err) {
                     logger.error(`Resource '${resource}' not found.`)
+                    response.writeHead(HTTP_STATUS_NOT_FOUND)
+                    response.end()
                 } else {
                     const contentType = mime.contentType(path.extname(resourceFile))
                     const contentLength = data.length

@@ -110,6 +110,8 @@ const DIRECTORY_STACK_KEY = `${common.PRODUCT_NAME.toLowerCase()}-dashboard-dire
 const DIRECTORY_NAME_REGEX = /^New_Directory_(?<directoryIndex>\d+)$/
 /** The default prefix of an automatically generated directory. */
 const DIRECTORY_NAME_DEFAULT_PREFIX = 'New_Directory_'
+/** The amount of time to wait after importing files before refreshing the directory list. */
+const PROJECT_IMPORT_DELAY_MS = 100
 
 /** English names for the name column. */
 const ASSET_TYPE_NAME: Record<backendModule.AssetType, string> = {
@@ -821,13 +823,66 @@ function Dashboard(props: DashboardProps) {
             : columnRenderer[column]
     }
 
+    const createDummyNewProject = React.useCallback(
+        (name: string): backendModule.Asset<backendModule.AssetType.project> => ({
+            type: backendModule.AssetType.project,
+            title: name,
+            // The ID must be unique in order to be updated correctly in the UI.
+            id: newtype.asNewtype<backendModule.ProjectId>(String(Number(new Date()))),
+            modifiedAt: dateTime.toRfc3339(new Date()),
+            // Falling back to the empty string is okay as this is what the local backend does.
+            parentId: directoryId ?? newtype.asNewtype<backendModule.AssetId>(''),
+            permissions: [],
+            projectState: { type: backendModule.ProjectState.new },
+        }),
+        [directoryId]
+    )
+
     const uploadFilesFromInput = async (event: React.FormEvent<HTMLInputElement>) => {
-        if (backend.type === backendModule.BackendType.local) {
-            // TODO[sb]: Allow uploading `.enso-project`s
-            // https://github.com/enso-org/cloud-v2/issues/510
-            toast.error('Cannot upload files to the local backend.')
-        } else if (event.currentTarget.files == null || event.currentTarget.files.length === 0) {
+        if (event.currentTarget.files == null || event.currentTarget.files.length === 0) {
             toast.success('No files selected to upload.')
+        } else if (backend.type === backendModule.BackendType.local) {
+            const filesArray = Array.from(event.currentTarget.files)
+            event.currentTarget.value = ''
+            if ('backendApi' in window) {
+                const backendApi = window.backendApi
+                // This non-standard property is defined in Electron.
+                await Promise.all(
+                    filesArray.map(async file =>
+                        'path' in file && typeof file.path === 'string'
+                            ? await backendApi.importProjectFromPath(file.path)
+                            : ''
+                    )
+                )
+            } else {
+                await Promise.all(
+                    filesArray.map(
+                        async file =>
+                            await fetch('./api/upload-project', {
+                                method: 'POST',
+                                // Ideally this would use `file.stream()`, to minimize RAM
+                                // requirements. for uploading large projects. Unfortunately,
+                                // this is not possible, as streaming the request body requires
+                                // HTTP/ 2, which is HTTPS-only, meaning it will not work on
+                                // `http://localhost`. Fortunately, accessing the application over
+                                // `localhost` instead of Electron is not the standard usecase.
+                                body: await file.arrayBuffer(),
+                            })
+                    )
+                )
+            }
+            setProjectAssets([
+                ...filesArray
+                    .reverse()
+                    .flatMap(file =>
+                        'path' in file && typeof file.path === 'string'
+                            ? [fileInfo.baseName(file.path)]
+                            : []
+                    )
+                    .map(createDummyNewProject),
+                ...projectAssets,
+            ])
+            window.setTimeout(doRefresh, PROJECT_IMPORT_DELAY_MS)
         } else if (directoryId == null) {
             // This should never happen, however display a nice
             // error message in case it somehow does.
@@ -1064,20 +1119,7 @@ function Dashboard(props: DashboardProps) {
             parentDirectoryId: directoryId,
         }
         const templateText = templateId != null ? ` from template '${templateId}'` : ''
-        setProjectAssets([
-            {
-                type: backendModule.AssetType.project,
-                title: projectName,
-                // The ID must be unique in order to be updated correctly in the UI.
-                id: newtype.asNewtype<backendModule.ProjectId>(String(Number(new Date()))),
-                modifiedAt: dateTime.toRfc3339(new Date()),
-                // Falling back to the empty string is okay as this is what the local backend does.
-                parentId: directoryId ?? newtype.asNewtype<backendModule.AssetId>(''),
-                permissions: [],
-                projectState: { type: backendModule.ProjectState.new },
-            },
-            ...projectAssets,
-        ])
+        setProjectAssets([createDummyNewProject(projectName), ...projectAssets])
         await toast.promise(backend.createProject(body), {
             loading: `Creating project '${projectName}'${templateText}...`,
             success: `Created project '${projectName}'${templateText}.`,
@@ -1206,20 +1248,15 @@ function Dashboard(props: DashboardProps) {
                                 <input
                                     type="file"
                                     multiple
-                                    disabled={backend.type === backendModule.BackendType.local}
                                     id="upload_files_input"
                                     name="upload_files_input"
                                     className="w-0 h-0"
                                     onInput={uploadFilesFromInput}
+                                    {...(backend.type !== backendModule.BackendType.local
+                                        ? {}
+                                        : { accept: '.enso-project' })}
                                 />
-                                <label
-                                    htmlFor="upload_files_input"
-                                    className={`mx-1 ${
-                                        backend.type === backendModule.BackendType.local
-                                            ? 'opacity-50'
-                                            : 'cursor-pointer'
-                                    }`}
-                                >
+                                <label htmlFor="upload_files_input" className="mx-1 cursor-pointer">
                                     <img src={UploadIcon} />
                                 </label>
                                 <button
@@ -1295,7 +1332,7 @@ function Dashboard(props: DashboardProps) {
                     <div className="flex-1 overflow-auto mx-2">
                         <table className="items-center self-start border-collapse mt-2 whitespace-nowrap">
                             <tbody>
-                                <tr className="h-10">
+                                <tr className="h-0">
                                     {columnsFor(columnDisplayMode, backend.type).map(column => (
                                         <td
                                             key={column}
