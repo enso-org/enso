@@ -165,8 +165,8 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
             switch (backend.type) {
                 case backendModule.BackendType.remote:
                     setToastId(toast.loading(LOADING_MESSAGE))
-                    await backend.openProject(project.id, null, project.title)
                     setRowState({ ...rowState, isRunning: true })
+                    await backend.openProject(project.id, null, project.title)
                     setCheckState(CheckState.checkingStatus)
                     break
                 case backendModule.BackendType.local:
@@ -241,10 +241,6 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
             }
             case projectEventModule.ProjectEventType.open: {
                 if (event.projectId !== project.id) {
-                    if (backend.type === backendModule.BackendType.local) {
-                        setState(backendModule.ProjectState.closed)
-                        setCheckState(CheckState.notChecking)
-                    }
                     setShouldOpenWhenReady(false)
                 } else {
                     setShouldOpenWhenReady(true)

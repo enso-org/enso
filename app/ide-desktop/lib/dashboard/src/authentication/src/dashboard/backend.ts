@@ -364,6 +364,23 @@ export const ASSET_TYPE_NAME: Record<AssetType, string> = {
     [AssetType.file]: 'file',
 } as const
 
+// ==============================
+// === detectVersionLifecycle ===
+// ==============================
+
+/** Extract the {@link VersionLifecycle} from a version string. */
+export function detectVersionLifecycle(version: string) {
+    if (/rc/i.test(version)) {
+        return VersionLifecycle.releaseCandidate
+    } else if (/\bnightly\b/i.test(version)) {
+        return VersionLifecycle.nightly
+    } else if (/\bdev\b|\balpha\b/i.test(version)) {
+        return VersionLifecycle.development
+    } else {
+        return VersionLifecycle.stable
+    }
+}
+
 // =================
 // === Endpoints ===
 // =================

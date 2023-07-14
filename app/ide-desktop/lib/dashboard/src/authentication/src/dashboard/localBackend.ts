@@ -20,17 +20,11 @@ function ipWithSocketToAddress(ipWithSocket: projectManager.IpWithSocket) {
 // === LocalBackend ===
 // ====================
 
-/** The currently open project and its ID. */
-interface CurrentlyOpenProjectInfo {
-    id: projectManager.ProjectId
-    project: projectManager.OpenProject
-}
-
 /** Class for sending requests to the Project Manager API endpoints.
  * This is used instead of the cloud backend API when managing local projects from the dashboard. */
 export class LocalBackend implements Partial<backend.Backend> {
     static currentlyOpeningProjectId: backend.ProjectId | null = null
-    static currentlyOpenProject: CurrentlyOpenProjectInfo | null = null
+    static currentlyOpenProjects = new Map<projectManager.ProjectId, projectManager.OpenProject>()
     readonly type = backend.BackendType.local
     private readonly projectManager = projectManager.ProjectManager.default()
 
@@ -56,14 +50,13 @@ export class LocalBackend implements Partial<backend.Backend> {
             parentId: backend.DirectoryId(''),
             permissions: [],
             projectState: {
-                type:
-                    project.id === LocalBackend.currentlyOpenProject?.id
-                        ? backend.ProjectState.opened
-                        : project.id === LocalBackend.currentlyOpeningProjectId
-                        ? backend.ProjectState.openInProgress
-                        : project.lastOpened != null
-                        ? backend.ProjectState.closed
-                        : backend.ProjectState.created,
+                type: LocalBackend.currentlyOpenProjects.has(project.id)
+                    ? backend.ProjectState.opened
+                    : project.id === LocalBackend.currentlyOpeningProjectId
+                    ? backend.ProjectState.openInProgress
+                    : project.lastOpened != null
+                    ? backend.ProjectState.closed
+                    : backend.ProjectState.created,
             },
         }))
     }
@@ -115,9 +108,7 @@ export class LocalBackend implements Partial<backend.Backend> {
         if (LocalBackend.currentlyOpeningProjectId === projectId) {
             LocalBackend.currentlyOpeningProjectId = null
         }
-        if (LocalBackend.currentlyOpenProject?.id === projectId) {
-            LocalBackend.currentlyOpenProject = null
-        }
+        LocalBackend.currentlyOpenProjects.delete(projectId)
         try {
             await this.projectManager.closeProject({ projectId })
             return
@@ -134,7 +125,8 @@ export class LocalBackend implements Partial<backend.Backend> {
      *
      * @throws An error if the JSON-RPC call fails. */
     async getProjectDetails(projectId: backend.ProjectId): Promise<backend.Project> {
-        if (projectId !== LocalBackend.currentlyOpenProject?.id) {
+        const cachedProject = LocalBackend.currentlyOpenProjects.get(projectId)
+        if (cachedProject == null) {
             const result = await this.projectManager.listProjects({})
             const project = result.projects.find(listedProject => listedProject.id === projectId)
             const engineVersion = project?.engineVersion
@@ -146,11 +138,11 @@ export class LocalBackend implements Partial<backend.Backend> {
                 return {
                     name: project.name,
                     engineVersion: {
-                        lifecycle: backend.VersionLifecycle.stable,
+                        lifecycle: backend.detectVersionLifecycle(engineVersion),
                         value: engineVersion,
                     },
                     ideVersion: {
-                        lifecycle: backend.VersionLifecycle.stable,
+                        lifecycle: backend.detectVersionLifecycle(engineVersion),
                         value: engineVersion,
                     },
                     jsonAddress: null,
@@ -169,21 +161,20 @@ export class LocalBackend implements Partial<backend.Backend> {
                 }
             }
         } else {
-            const project = LocalBackend.currentlyOpenProject.project
             return {
-                name: project.projectName,
+                name: cachedProject.projectName,
                 engineVersion: {
-                    lifecycle: backend.VersionLifecycle.stable,
-                    value: project.engineVersion,
+                    lifecycle: backend.detectVersionLifecycle(cachedProject.engineVersion),
+                    value: cachedProject.engineVersion,
                 },
                 ideVersion: {
-                    lifecycle: backend.VersionLifecycle.stable,
-                    value: project.engineVersion,
+                    lifecycle: backend.detectVersionLifecycle(cachedProject.engineVersion),
+                    value: cachedProject.engineVersion,
                 },
-                jsonAddress: ipWithSocketToAddress(project.languageServerJsonAddress),
-                binaryAddress: ipWithSocketToAddress(project.languageServerBinaryAddress),
+                jsonAddress: ipWithSocketToAddress(cachedProject.languageServerJsonAddress),
+                binaryAddress: ipWithSocketToAddress(cachedProject.languageServerBinaryAddress),
                 organizationId: '',
-                packageName: project.projectName,
+                packageName: cachedProject.projectName,
                 projectId,
                 state: {
                     type: backend.ProjectState.opened,
@@ -201,21 +192,21 @@ export class LocalBackend implements Partial<backend.Backend> {
         title: string | null
     ): Promise<void> {
         LocalBackend.currentlyOpeningProjectId = projectId
-        try {
-            const project = await this.projectManager.openProject({
-                projectId,
-                missingComponentAction: projectManager.MissingComponentAction.install,
-            })
-            if (LocalBackend.currentlyOpeningProjectId === projectId) {
-                LocalBackend.currentlyOpenProject = { id: projectId, project }
+        if (!LocalBackend.currentlyOpenProjects.has(projectId)) {
+            try {
+                const project = await this.projectManager.openProject({
+                    projectId,
+                    missingComponentAction: projectManager.MissingComponentAction.install,
+                })
+                LocalBackend.currentlyOpenProjects.set(projectId, project)
+                return
+            } catch (error) {
+                throw new Error(
+                    `Unable to open project ${
+                        title != null ? `'${title}'` : `with ID '${projectId}'`
+                    }: ${errorModule.tryGetMessage(error) ?? 'unknown error'}.`
+                )
             }
-            return
-        } catch (error) {
-            throw new Error(
-                `Unable to open project ${
-                    title != null ? `'${title}'` : `with ID '${projectId}'`
-                }: ${errorModule.tryGetMessage(error) ?? 'unknown error'}.`
-            )
         }
     }
 
@@ -268,9 +259,7 @@ export class LocalBackend implements Partial<backend.Backend> {
         if (LocalBackend.currentlyOpeningProjectId === projectId) {
             LocalBackend.currentlyOpeningProjectId = null
         }
-        if (LocalBackend.currentlyOpenProject?.id === projectId) {
-            LocalBackend.currentlyOpenProject = null
-        }
+        LocalBackend.currentlyOpenProjects.delete(projectId)
         try {
             await this.projectManager.deleteProject({ projectId })
             return
