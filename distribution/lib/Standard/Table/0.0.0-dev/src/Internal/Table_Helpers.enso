@@ -193,7 +193,7 @@ type Table_Column_Helper
 
     ## PRIVATE
        A helper method that gets the columns from the provided table that are
-       complete blank or have some blanks.
+       completely blank or have some blanks.
 
        Arguments:
        - when_any: By default, only columns consisting of all blank cells are
