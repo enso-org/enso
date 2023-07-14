@@ -3,6 +3,7 @@ import project.Data.Filter_Condition.Filter_Condition
 import project.Data.Map.Map
 import project.Data.Numbers.Integer
 import project.Data.Range.Range
+import project.Data.Text.Case_Sensitivity.Case_Sensitivity
 import project.Data.Text.Helpers
 import project.Data.Text.Prim_Text_Helper
 import project.Data.Text.Regex.Internal.Match_Iterator.Match_Iterator
@@ -370,11 +371,14 @@ type Regex
 
        Recompile the underlying regex string; used to change the
        case-sensitivity of a compiled Regex.
-    recompile : Boolean | Nothing -> Regex ! Regex_Syntax_Error | Illegal_Argument
-    recompile self case_insensitive=False =
-        should_recompile = self.case_insensitive != case_insensitive
-        if should_recompile.not then self else
-            Regex.compile self.internal_regex_object.pattern case_insensitive
+    recompile : Case_Sensitivity -> Regex ! Regex_Syntax_Error | Illegal_Argument
+    recompile self case_sensitivity:Case_Sensitivity = case case_sensitivity of
+        Case_Sensitivity.Default -> self
+        _ ->
+            case_insensitive = case_sensitivity.is_case_insensitive_in_memory
+            should_recompile = self.case_insensitive != case_insensitive
+            if should_recompile.not then self else
+                Regex.compile self.internal_regex_object.pattern case_insensitive
 
 ## PRIVATE
    Convert the polyglot map to a Map.

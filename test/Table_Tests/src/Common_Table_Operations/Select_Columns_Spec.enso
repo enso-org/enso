@@ -1,7 +1,6 @@
 from Standard.Base import all
 
 from Standard.Table import Position
-from Standard.Table.Data.Column_Selector.Column_Selector import By_Name
 from Standard.Table.Errors import all
 
 from Standard.Test import Test, Problems
@@ -28,7 +27,7 @@ spec setup =
     Test.group prefix+"Table.select_columns" <|
         Test.specify "should work as shown in the doc examples" <|
             expect_column_names ["foo", "bar"] <| table.select_columns ["bar", "foo"]
-            expect_column_names ["bar", "Baz", "foo 1", "foo 2"] <| table.select_columns [By_Name "foo.+" use_regex=True, By_Name "b.*" use_regex=True]
+            expect_column_names ["bar", "Baz", "foo 1", "foo 2"] <| table.select_columns ["foo.+".to_regex, "b.*".to_regex True]
             expect_column_names ["abcd123", "foo", "bar"] <| table.select_columns [-1, 0, 1] reorder=True
 
         Test.specify "should allow to reorder columns if asked to" <|
@@ -38,11 +37,11 @@ spec setup =
             table_2 . at "foo" . to_vector . should_equal [1,2,3]
 
         Test.specify "should correctly handle regex matching" <|
-            expect_column_names ["foo"] <| table.select_columns [By_Name "foo" Case_Sensitivity.Sensitive use_regex=True]
-            expect_column_names ["ab.+123", "abcd123"] <| table.select_columns [By_Name "a.*" Case_Sensitivity.Sensitive use_regex=True]
-            expect_column_names ["ab.+123", "abcd123"] <| table.select_columns [By_Name "ab.+123" Case_Sensitivity.Sensitive use_regex=True]
+            expect_column_names ["foo"] <| table.select_columns ["foo".to_regex]
+            expect_column_names ["ab.+123", "abcd123"] <| table.select_columns ["a.*".to_regex]
+            expect_column_names ["ab.+123", "abcd123"] <| table.select_columns ["ab.+123".to_regex]
             expect_column_names ["ab.+123"] <| table.select_columns ["ab.+123"]
-            expect_column_names ["abcd123"] <| table.select_columns [By_Name "abcd123" Case_Sensitivity.Sensitive use_regex=True]
+            expect_column_names ["abcd123"] <| table.select_columns ["abcd123".to_regex]
 
         Test.specify "should allow negative indices" <|
             expect_column_names ["foo", "bar", "foo 2"] <| table.select_columns [-3, 0, 1]
@@ -50,8 +49,8 @@ spec setup =
         Test.specify "should allow mixed names and indexes" <|
             expect_column_names ["foo", "bar", "foo 2"] <| table.select_columns [-3, "bar", 0]
             expect_column_names ["foo 2", "bar", "foo"] <| table.select_columns [-3, "bar", 0] reorder=True
-            expect_column_names ["foo", "bar", "foo 1", "foo 2", "abcd123"] <| table.select_columns [-1, "bar", By_Name "foo.*" Case_Sensitivity.Sensitive use_regex=True]
-            expect_column_names ["foo", "foo 1", "foo 2", "bar", "abcd123"] <| table.select_columns [By_Name "foo.*" Case_Sensitivity.Sensitive use_regex=True, "bar", "foo", -1] reorder=True
+            expect_column_names ["foo", "bar", "foo 1", "foo 2", "abcd123"] <| table.select_columns [-1, "bar", "foo.*".to_regex]
+            expect_column_names ["foo", "foo 1", "foo 2", "bar", "abcd123"] <| table.select_columns ["foo.*".to_regex, "bar", "foo", -1] reorder=True
 
         if test_selection.supports_case_sensitive_columns then
             Test.specify "should correctly handle exact matches matching multiple names due to case insensitivity" <|
@@ -60,11 +59,11 @@ spec setup =
                     col2 = ["bar", [4,5,6]]
                     col3 = ["Bar", [7,8,9]]
                     table_builder [col1, col2, col3]
-                expect_column_names ["bar", "Bar"] <| table.select_columns [By_Name "bar"]
+                expect_column_names ["bar", "Bar"] <| table.select_columns ["bar"] Case_Sensitivity.Insensitive
 
         Test.specify "should correctly handle regexes matching multiple names" <|
-            expect_column_names ["foo", "bar", "foo 1", "foo 2"] <| table.select_columns [By_Name "b.*" Case_Sensitivity.Sensitive use_regex=True, By_Name "f.+" Case_Sensitivity.Sensitive use_regex=True]
-            expect_column_names ["bar", "foo", "foo 1", "foo 2"] <| table.select_columns [By_Name "b.*" Case_Sensitivity.Sensitive use_regex=True, By_Name "f.+" Case_Sensitivity.Sensitive use_regex=True] reorder=True
+            expect_column_names ["foo", "bar", "foo 1", "foo 2"] <| table.select_columns ["b.*".to_regex, "f.+".to_regex]
+            expect_column_names ["bar", "foo", "foo 1", "foo 2"] <| table.select_columns ["b.*".to_regex, "f.+".to_regex] reorder=True
 
         Test.specify "should correctly handle problems: out of bounds indices" <|
             selector = [1, 0, 100, -200, 300]
@@ -104,12 +103,12 @@ spec setup =
                 table.select_columns ["bar", "foo", "foo", "bar"] reorder=False
 
         Test.specify "should correctly handle edge-cases: duplicate matches due to case insensitivity" <|
-            selector = [By_Name "FOO", By_Name "foo"]
-            t = table.select_columns selector on_problems=Problem_Behavior.Report_Error
+            selector = ["FOO", "foo"]
+            t = table.select_columns selector Case_Sensitivity.Insensitive on_problems=Problem_Behavior.Report_Error
             expect_column_names ["foo"] t
 
             expect_column_names ["bar", "foo"] <|
-                table.select_columns [By_Name "BAR", By_Name "foo", By_Name "bar"] reorder=True
+                table.select_columns ["BAR", "foo", "bar"] Case_Sensitivity.Insensitive reorder=True
 
         Test.specify "should correctly handle problems: unmatched names" <|
             weird_name = '.*?-!@#!"'
@@ -139,17 +138,17 @@ spec setup =
     Test.group prefix+"Table.remove_columns" <|
         Test.specify "should work as shown in the doc examples" <|
             expect_column_names ["Baz", "foo 1", "foo 2", "ab.+123", "abcd123"] <| table.remove_columns ["bar", "foo"]
-            expect_column_names ["foo", "ab.+123", "abcd123"] <| table.remove_columns [By_Name "foo.+" Case_Sensitivity.Insensitive use_regex=True, By_Name "b.*" Case_Sensitivity.Insensitive use_regex=True]
+            expect_column_names ["foo", "ab.+123", "abcd123"] <| table.remove_columns ["foo.+".to_regex, "b.*".to_regex] Case_Sensitivity.Insensitive
             expect_column_names ["Baz", "foo 1", "foo 2", "ab.+123"] <| table.remove_columns [-1, 0, 1]
 
         Test.specify "should correctly handle regex matching" <|
             last_ones = table.columns.drop 1 . map .name
-            expect_column_names last_ones <| table.remove_columns [By_Name "foo" Case_Sensitivity.Sensitive use_regex=True]
+            expect_column_names last_ones <| table.remove_columns ["foo".to_regex]
             first_ones = ["foo", "bar", "Baz", "foo 1", "foo 2"]
-            expect_column_names first_ones <| table.remove_columns [By_Name "a.*" Case_Sensitivity.Sensitive use_regex=True]
-            expect_column_names first_ones <| table.remove_columns [By_Name "ab.+123" Case_Sensitivity.Sensitive use_regex=True]
-            expect_column_names first_ones+["abcd123"] <| table.remove_columns [By_Name "ab.+123"]
-            expect_column_names first_ones+["ab.+123"] <| table.remove_columns [By_Name "abcd123" Case_Sensitivity.Sensitive use_regex=True]
+            expect_column_names first_ones <| table.remove_columns ["a.*".to_regex]
+            expect_column_names first_ones <| table.remove_columns ["ab.+123".to_regex]
+            expect_column_names first_ones+["abcd123"] <| table.remove_columns ["ab.+123"] Case_Sensitivity.Insensitive
+            expect_column_names first_ones+["ab.+123"] <| table.remove_columns ["abcd123".to_regex]
 
         Test.specify "should allow negative indices" <|
             expect_column_names ["Baz", "foo 1", "ab.+123"] <| table.remove_columns [-1, -3, 0, 1]
@@ -161,10 +160,10 @@ spec setup =
                     col2 = ["bar", [4,5,6]]
                     col3 = ["Bar", [7,8,9]]
                     table_builder [col1, col2, col3]
-                expect_column_names ["foo"] <| table.remove_columns (By_Name "bar")
+                expect_column_names ["foo"] <| table.remove_columns "bar" Case_Sensitivity.Insensitive
 
         Test.specify "should correctly handle regexes matching multiple names" <|
-            expect_column_names ["Baz", "ab.+123", "abcd123"] <| table.remove_columns [By_Name "f.+" Case_Sensitivity.Sensitive use_regex=True, By_Name "b.*" Case_Sensitivity.Sensitive use_regex=True]
+            expect_column_names ["Baz", "ab.+123", "abcd123"] <| table.remove_columns ["f.+".to_regex, "b.*".to_regex]
 
         Test.specify "should correctly handle problems: out of bounds indices" <|
             selector = [1, 0, 100, -200, 300]
@@ -192,8 +191,8 @@ spec setup =
             expect_column_names ["bar", "Baz", "foo 1", "foo 2", "ab.+123", "abcd123"] t
 
         Test.specify "should correctly handle edge-cases: duplicate matches due to case insensitivity" <|
-            selector = [By_Name "FOO", By_Name "foo"]
-            t = table.remove_columns selector on_problems=Problem_Behavior.Report_Error
+            selector = ["FOO", "foo"]
+            t = table.remove_columns selector Case_Sensitivity.Insensitive on_problems=Problem_Behavior.Report_Error
             expect_column_names ["bar", "Baz", "foo 1", "foo 2", "ab.+123", "abcd123"] t
 
         Test.specify "should correctly handle problems: unmatched names" <|
@@ -209,11 +208,11 @@ spec setup =
 
         Test.specify "should correctly handle problems: no columns in the output" <|
             [Problem_Behavior.Ignore, Problem_Behavior.Report_Warning, Problem_Behavior.Report_Error].each pb->
-                selector = [By_Name ".*" Case_Sensitivity.Sensitive use_regex=True]
+                selector = [".*".to_regex]
                 t = table.remove_columns selector on_problems=pb
                 t.should_fail_with No_Output_Columns
 
-            selector_2 = [By_Name ".*" Case_Sensitivity.Sensitive use_regex=True, By_Name "hmmm" Case_Sensitivity.Sensitive use_regex=True]
+            selector_2 = [".*".to_regex, "hmmm".to_regex]
             t1 = table.remove_columns selector_2
             t1.should_fail_with No_Output_Columns
 
@@ -221,17 +220,17 @@ spec setup =
         Test.specify "should work as shown in the doc examples" <|
             expect_column_names ["bar", "Baz", "foo 1", "foo 2", "ab.+123", "abcd123", "foo"] <| table.reorder_columns "foo" Position.After_Other_Columns
             expect_column_names ["Baz", "foo 1", "foo 2", "ab.+123", "abcd123", "foo", "bar"] <| table.reorder_columns ["foo", "bar"] Position.After_Other_Columns
-            expect_column_names ["foo 1", "foo 2", "bar", "Baz", "foo", "ab.+123", "abcd123"] <| table.reorder_columns [By_Name "foo.+" Case_Sensitivity.Insensitive use_regex=True, By_Name "b.*" Case_Sensitivity.Insensitive use_regex=True]
+            expect_column_names ["foo 1", "foo 2", "bar", "Baz", "foo", "ab.+123", "abcd123"] <| table.reorder_columns ["foo.+".to_regex, "b.*".to_regex] case_sensitivity=Case_Sensitivity.Insensitive
             expect_column_names ["bar", "foo", "Baz", "foo 1", "foo 2", "ab.+123", "abcd123"] <| table.reorder_columns [1, 0] Position.Before_Other_Columns
             expect_column_names ["bar", "Baz", "foo 1", "foo 2", "ab.+123", "abcd123", "foo"] <| table.reorder_columns [0] Position.After_Other_Columns
 
         Test.specify "should correctly handle regex matching" <|
-            expect_column_names ["bar", "Baz", "foo 1", "foo 2", "ab.+123", "abcd123", "foo"] <| table.reorder_columns [By_Name "foo" Case_Sensitivity.Sensitive use_regex=True] Position.After_Other_Columns
+            expect_column_names ["bar", "Baz", "foo 1", "foo 2", "ab.+123", "abcd123", "foo"] <| table.reorder_columns ["foo".to_regex] Position.After_Other_Columns
             rest = ["foo", "bar", "Baz", "foo 1", "foo 2"]
-            expect_column_names ["ab.+123", "abcd123"]+rest <| table.reorder_columns [By_Name "a.*" Case_Sensitivity.Sensitive use_regex=True]
-            expect_column_names ["ab.+123", "abcd123"]+rest <| table.reorder_columns [By_Name "ab.+123" Case_Sensitivity.Sensitive use_regex=True]
+            expect_column_names ["ab.+123", "abcd123"]+rest <| table.reorder_columns ["a.*".to_regex]
+            expect_column_names ["ab.+123", "abcd123"]+rest <| table.reorder_columns ["ab.+123".to_regex]
             expect_column_names ["ab.+123"]+rest+["abcd123"] <| table.reorder_columns ["ab.+123"]
-            expect_column_names ["abcd123"]+rest+["ab.+123"] <| table.reorder_columns [By_Name "abcd123" Case_Sensitivity.Sensitive use_regex=True]
+            expect_column_names ["abcd123"]+rest+["ab.+123"] <| table.reorder_columns ["abcd123".to_regex]
 
         Test.specify "should allow negative indices" <|
             expect_column_names ["abcd123", "foo 2", "foo", "bar", "Baz", "foo 1", "ab.+123"] <| table.reorder_columns [-1, -3, 0, 1]
@@ -243,10 +242,10 @@ spec setup =
                     col2 = ["bar", [4,5,6]]
                     col3 = ["Bar", [7,8,9]]
                     table_builder [col1, col2, col3]
-                expect_column_names ["bar", "Bar", "foo"] <| table.reorder_columns [By_Name "bar"]
+                expect_column_names ["bar", "Bar", "foo"] <| table.reorder_columns ["bar"] case_sensitivity=Case_Sensitivity.Insensitive
 
         Test.specify "should correctly handle regexes matching multiple names" <|
-            expect_column_names ["bar", "foo", "foo 1", "foo 2", "Baz", "ab.+123", "abcd123"] <| table.reorder_columns [By_Name "b.*" Case_Sensitivity.Sensitive use_regex=True, By_Name "f.+" Case_Sensitivity.Sensitive use_regex=True]
+            expect_column_names ["bar", "foo", "foo 1", "foo 2", "Baz", "ab.+123", "abcd123"] <| table.reorder_columns ["b.*".to_regex, "f.+".to_regex]
 
         Test.specify "should correctly handle problems: out of bounds indices" <|
             selector = [1, 0, 100, -200, 300]
@@ -329,7 +328,7 @@ spec setup =
 
             t1 = table_builder [["alpha", [1]], ["name=123", [2]], ["name= foo bar", [3]]]
             expect_column_names ["alpha", "key:123", "key: foo bar"] <|
-                t1.rename_columns (Map.from_vector [[By_Name "name=(.*)" Case_Sensitivity.Sensitive use_regex=True, "key:$1"]])
+                t1.rename_columns (Map.from_vector [["name=(.*)".to_regex, "key:$1"]])
 
         Test.specify "should work by index" <|
             map = Map.from_vector [[0, "FirstColumn"], [-2, "Another"]]
@@ -357,17 +356,17 @@ spec setup =
                 table.rename_columns map
 
         Test.specify "should work by name case-insensitively" <|
-            map = Map.from_vector [[By_Name "ALPHA", "FirstColumn"], [By_Name "DELTA", "Another"]]
+            map = Map.from_vector [["ALPHA", "FirstColumn"], ["DELTA", "Another"]]
             expect_column_names ["FirstColumn", "beta", "gamma", "Another"] <|
-                table.rename_columns map
+                table.rename_columns map Case_Sensitivity.Insensitive
 
         Test.specify "should work by name using regex" <|
-            map = Map.from_vector [[By_Name "a.*" Case_Sensitivity.Sensitive use_regex=True, "FirstColumn"]]
+            map = Map.from_vector [["a.*".to_regex, "FirstColumn"]]
             expect_column_names ["FirstColumn", "beta", "gamma", "delta"] <|
                 table.rename_columns map
 
         Test.specify "should work by name using regex substitution" <|
-            map = Map.from_vector [[By_Name "a(.*)" Case_Sensitivity.Sensitive use_regex=True, "$1"]]
+            map = Map.from_vector [["a(.*)".to_regex, "$1"]]
             expect_column_names ["lpha", "beta", "gamma", "delta"] <|
                 table.rename_columns map
 
@@ -411,12 +410,12 @@ spec setup =
 
         Test.specify "should correctly handle edge-cases: aliased selectors" <|
             t = table_builder [["alpha", [1,2,3]], ["bet", [4,5,6]]]
-            map1 = Map.from_vector [[By_Name "a.*" Case_Sensitivity.Sensitive use_regex=True, "AA"], [By_Name ".*a" Case_Sensitivity.Sensitive use_regex=True, "AA"]]
+            map1 = Map.from_vector [["a.*".to_regex, "AA"], [".*a".to_regex, "AA"]]
             t1 = t.rename_columns map1 on_problems=Problem_Behavior.Report_Error
             Problems.assume_no_problems t1
             expect_column_names ["AA", "bet"] t1
 
-            map2 = Map.from_vector [[By_Name "a.*" Case_Sensitivity.Sensitive use_regex=True, "StartsWithA"], [By_Name ".*a" Case_Sensitivity.Sensitive use_regex=True, "EndsWithA"]]
+            map2 = Map.from_vector [["a.*".to_regex, "StartsWithA"], [".*a".to_regex, "EndsWithA"]]
             t2 = t.rename_columns map2 on_problems=Problem_Behavior.Report_Error
             t2.should_fail_with Ambiguous_Column_Rename
             err = t2.catch
@@ -429,7 +428,7 @@ spec setup =
                This is to show that even if distinct rename patterns match the
                same column, if the resulting rename is unambiguous, no error is
                raised.
-            map3 = Map.from_vector [[By_Name "a(.*)" Case_Sensitivity.Sensitive use_regex=True, "$1A"], [By_Name "(.*)aa" Case_Sensitivity.Sensitive use_regex=True, "$1aA"]]
+            map3 = Map.from_vector [["a(.*)".to_regex, "$1A"], ["(.*)aa".to_regex, "$1aA"]]
             t4 = t3.rename_columns map3 on_problems=Problem_Behavior.Report_Error
             Problems.assume_no_problems t4
             expect_column_names ["aaA", "bbb"] t4
