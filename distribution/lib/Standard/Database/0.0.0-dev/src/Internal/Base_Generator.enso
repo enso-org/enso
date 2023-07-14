@@ -113,22 +113,6 @@ lift_binary_op name function =
 
 ## PRIVATE
 
-   A helper function to create a binary operation from a function.
-
-   Arguments:
-   - name: Name of the operation, used for error reporting.
-   - function: A function taking exactly two arguments: the generated SQL code
-     for the argument of the operation, and returning the generated SQL code for
-     the whole operation.
-lift_ternary_op : Text -> (Builder -> Builder -> Builder -> Builder) -> [Text, (Vector Builder -> Builder)]
-lift_ternary_op name function =
-    generator = arguments -> case arguments.length == 3 of
-        False -> Error.throw <| Illegal_State.Error ("Invalid amount of arguments for operation " + name + ".")
-        True -> function (arguments.at 0) (arguments.at 1) (arguments.at 2)
-    [name, generator]
-
-## PRIVATE
-
    A helper function to create a unary operator which is added to the right of
    the expression.
 
