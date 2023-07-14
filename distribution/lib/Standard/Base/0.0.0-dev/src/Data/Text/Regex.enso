@@ -372,7 +372,7 @@ type Regex
        Recompile the underlying regex string; used to change the
        case-sensitivity of a compiled Regex.
     recompile : Case_Sensitivity -> Regex ! Regex_Syntax_Error | Illegal_Argument
-    recompile self case_sensitivity = case case_sensitivity of
+    recompile self case_sensitivity:Case_Sensitivity = case case_sensitivity of
         Case_Sensitivity.Default -> self
         _ ->
             case_insensitive = case_sensitivity.is_case_insensitive_in_memory
