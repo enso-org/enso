@@ -78,12 +78,13 @@ function Dashboard(props: DashboardProps) {
 
     const switchToIdeTab = React.useCallback(() => {
         setTab(tabModule.Tab.ide)
+        unsetModal()
         const ideElement = document.getElementById(IDE_ELEMENT_ID)
         if (ideElement) {
             ideElement.style.top = ''
             ideElement.style.display = 'absolute'
         }
-    }, [])
+    }, [/* should never change */ unsetModal])
 
     const switchToDashboardTab = React.useCallback(() => {
         setTab(tabModule.Tab.dashboard)

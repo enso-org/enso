@@ -266,6 +266,8 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
                 if (event.placeholderId === project.id) {
                     setState(backendModule.ProjectState.openInProgress)
                     setOnSpinnerStateChange(() => event.onSpinnerStateChange)
+                } else if (event.onSpinnerStateChange === onSpinnerStateChange) {
+                    setOnSpinnerStateChange(null)
                 }
                 break
             }

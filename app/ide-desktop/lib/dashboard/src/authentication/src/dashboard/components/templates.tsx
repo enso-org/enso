@@ -158,6 +158,17 @@ interface InternalTemplateButtonProps {
 function TemplateButton(props: InternalTemplateButtonProps) {
     const { template, onTemplateClick } = props
     const [spinnerState, setSpinnerState] = React.useState<spinner.SpinnerState | null>(null)
+    const onSpinnerStateChange = React.useCallback(
+        (newSpinnerState: spinner.SpinnerState | null) => {
+            setSpinnerState(newSpinnerState)
+            if (newSpinnerState === spinner.SpinnerState.done) {
+                setTimeout(() => {
+                    setSpinnerState(null)
+                }, SPINNER_DONE_DURATION_MS)
+            }
+        },
+        []
+    )
 
     return (
         <button
@@ -165,14 +176,7 @@ function TemplateButton(props: InternalTemplateButtonProps) {
             className="h-40 cursor-pointer"
             onClick={() => {
                 setSpinnerState(spinner.SpinnerState.initial)
-                onTemplateClick(template.id, newSpinnerState => {
-                    setSpinnerState(newSpinnerState)
-                    if (newSpinnerState === spinner.SpinnerState.done) {
-                        setTimeout(() => {
-                            setSpinnerState(null)
-                        }, SPINNER_DONE_DURATION_MS)
-                    }
-                })
+                onTemplateClick(template.id, onSpinnerStateChange)
             }}
         >
             <div
