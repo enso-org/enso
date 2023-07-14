@@ -8,23 +8,21 @@ import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-import java.io.ByteArrayInputStream
-import java.nio.file.Path
+import java.io.{ByteArrayInputStream, File}
 
 class EnsoProjectArchiveSpec extends AnyWordSpec with Matchers {
 
   "EnsoProjectArchive" should {
 
     "build test project" in {
-      val pkgPath =
-        Path.of(
+      val pkgFile =
+        new File(
           getClass.getClassLoader
             .getResource("Enso_Project_Archive_Test")
             .getPath
         )
-      println(pkgPath)
 
-      val archive = EnsoProjectArchive.build(pkgPath)
+      val archive = EnsoProjectArchive.build(pkgFile.toPath)
       val entries = readTarGz(archive.bytes())
 
       entries.map(_.getName) should contain theSameElementsAs Seq(
