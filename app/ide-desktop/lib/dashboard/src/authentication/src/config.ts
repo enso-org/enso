@@ -46,6 +46,7 @@ const CONFIGS = {
     npekin: {
         cloudRedirect: CLOUD_REDIRECTS.development,
         apiUrl: API_URLS.npekin,
+        chatUrl: CHAT_URLS.development,
     } satisfies Config,
     pbuchu: {
         cloudRedirect: CLOUD_REDIRECTS.development,
