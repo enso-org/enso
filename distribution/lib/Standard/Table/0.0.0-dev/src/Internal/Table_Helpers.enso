@@ -385,7 +385,7 @@ is_index_valid length ix =
 
 ## PRIVATE
    A helper method to match columns by name
-match_columns : Text | Regex -> Case_Sensitivity -> Boolean -> Vector -> Vector
+match_columns : Text | Regex -> Case_Sensitivity -> Vector -> Vector
 match_columns (name : Text | Regex) (case_sensitivity : Case_Sensitivity) (columns : Vector) =
     match = case name of
         _ : Text -> case case_sensitivity of
