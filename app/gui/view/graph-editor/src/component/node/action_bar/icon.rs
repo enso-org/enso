@@ -23,16 +23,15 @@ pub mod visibility {
             let height       = Var::<Pixels>::from("input_size.y");
             let right_angle  = 90.0_f32.to_radians().radians();
             let unit         = &width/16.0;
-            let outer_radius = &unit*5.0;
-            let pupil        = Circle(&unit * 1.0);
+            let outer_radius = &unit*5.5;
             let inner_circle = Circle(&unit * 3.0);
             let outer_circle = Circle(outer_radius);
-            let right_edge   = Triangle(&unit * 7.9, &unit * 4.6);
+            let right_edge   = Triangle(&unit * 9.3, &unit * 5.0);
             let right_edge   = right_edge.rotate(right_angle);
-            let right_edge   = right_edge.translate_x(&unit * 5.3);
+            let right_edge   = right_edge.translate_x(&unit * 5.5);
             let left_edge    = right_edge.rotate(2.0 * right_angle);
             let eye_outer    = outer_circle + right_edge + left_edge;
-            let eye          = (eye_outer - inner_circle) + pupil;
+            let eye          = eye_outer - inner_circle;
             let eye_colored  = eye.fill(fill_color);
             let hover_area   = Rect((width,height)).fill(INVISIBLE_HOVER_COLOR);
 
