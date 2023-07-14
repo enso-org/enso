@@ -385,14 +385,14 @@ is_index_valid length ix =
 ## PRIVATE
    A helper method to match columns by name
 match_columns : Text | Regex -> Case_Sensitivity -> Boolean -> Vector -> Vector
-match_columns (name : Text | Regex) (case_sensitivity : Case_Sensitivity) columns =
+match_columns (name : Text | Regex) (case_sensitivity : Case_Sensitivity) (columns : Vector) =
     match = case name of
         _ : Text -> case case_sensitivity of
-            Case_Sensitivity.Default -> (==)
-            Case_Sensitivity.Sensitive -> (==)
+            Case_Sensitivity.Default -> (== name)
+            Case_Sensitivity.Sensitive -> (== name)
             Case_Sensitivity.Insensitive locale -> name.equals_ignore_case locale=locale
         _ : Regex -> name.recompile case_sensitivity . matches
-    columns.filter c-> match c.name name
+    columns.filter c-> match c.name
 
 ## PRIVATE
    A helper type used by transform helpers.
@@ -424,7 +424,8 @@ resolve_order_by internal_columns column_selectors problem_builder =
                 problem_builder.report_oob_indices [ix]
                 []
         Sort_Column.Select_By_Name name _ case_sensitivity use_regex ->
-            matches = match_columns name case_sensitivity use_regex internal_columns
+            selector = if use_regex then name.to_regex else name
+            matches = match_columns name case_sensitivity internal_columns
             if matches.is_empty then problem_builder.report_missing_input_columns [name]
             matches.map c-> Column_Transform_Element.Value c selector
     selectors_vec = case column_selectors of

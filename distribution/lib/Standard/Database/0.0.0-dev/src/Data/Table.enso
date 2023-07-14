@@ -244,7 +244,7 @@ type Table
     @columns Widget_Helpers.make_column_name_vector_selector
     remove_columns :  Vector (Integer | Text | Regex) | Text | Integer -> Regex -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns
     remove_columns self (columns = [self.columns.first.name]) (case_sensitivity=Case_Sensitivity.Default) (error_on_missing_columns:Boolean=False) (on_problems:Problem_Behavior=Report_Warning) =
-        new_columns = self.columns_helper.remove_columns columns case_sensitivity reorder=False error_on_missing_columns=error_on_missing_columns on_problems=on_problems
+        new_columns = self.columns_helper.remove_columns columns case_sensitivity error_on_missing_columns=error_on_missing_columns on_problems=on_problems
         self.updated_columns new_columns
 
     ## ALIAS select_na
@@ -999,7 +999,7 @@ type Table
     @columns Widget_Helpers.make_column_name_vector_selector
     distinct : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns | No_Input_Columns_Selected | Floating_Point_Equality
     distinct self columns=self.column_names case_sensitivity=Case_Sensitivity.Default error_on_missing_columns=True on_problems=Report_Warning =
-        key_columns = self.columns_helper.select_columns columns Case_Sensitivity.Case_Sensitive reorder=True error_on_missing_columns=error_on_missing_columns on_problems=on_problems . catch No_Output_Columns _->
+        key_columns = self.columns_helper.select_columns columns Case_Sensitivity.Default reorder=True error_on_missing_columns=error_on_missing_columns on_problems=on_problems . catch No_Output_Columns _->
             Error.throw No_Input_Columns_Selected
         problem_builder = Problem_Builder.new
         new_table = self.connection.dialect.prepare_distinct self key_columns case_sensitivity problem_builder
@@ -1665,7 +1665,7 @@ type Table
     @columns Widget_Helpers.make_column_name_vector_selector
     parse : Vector (Text | Integer | Regex) | Text | Integer | Regex -> Value_Type | Auto -> Text | Data_Formatter | Nothing -> Boolean -> Problem_Behavior -> Table
     parse self columns=(self.columns . filter (c-> c.value_type.is_text) . map .name) type format=Nothing error_on_missing_columns=True on_problems=Report_Warning =
-        selected = self.columns_helper.select_columns columns Case_Sensitivity.Case_Sensitive reorder=False error_on_missing_columns=error_on_missing_columns on_problems=on_problems error_on_empty=False
+        selected = self.columns_helper.select_columns columns Case_Sensitivity.Default reorder=False error_on_missing_columns=error_on_missing_columns on_problems=on_problems error_on_empty=False
         selected.fold self table-> column_to_parse->
             new_column = column_to_parse.parse type format on_problems
             table.set new_column new_name=column_to_parse.name set_mode=Set_Mode.Update

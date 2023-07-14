@@ -255,6 +255,6 @@ default_fetch_primary_key connection table_name =
         rs = metadata.getPrimaryKeys Nothing Nothing table_name
         keys_table = result_set_to_table rs connection.dialect.make_column_fetcher_for_type
         # The names of the columns are sometimes lowercase and sometimes uppercase, so we do a case insensitive select first.
-        selected = keys_table.select_columns ["COLUMN_NAME", "KEY_SEQ"] case_sensitivity=Case_Sensitivity.Case_Insensitive reorder=True
+        selected = keys_table.select_columns ["COLUMN_NAME", "KEY_SEQ"] case_sensitivity=Case_Sensitivity.Insensitive reorder=True
         key_column_names = selected.order_by 1 . at 0 . to_vector
         if key_column_names.is_empty then Nothing else key_column_names
