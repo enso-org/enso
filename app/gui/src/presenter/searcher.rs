@@ -18,8 +18,14 @@ use ide_view::graph_editor::NodeId;
 use ide_view::project::SearcherParams;
 use ide_view::project::SearcherType;
 
+
+// ==============
+// === Export ===
+// ==============
+
 pub mod ai;
 pub mod component_browser;
+
 
 
 /// Trait for the searcher.
