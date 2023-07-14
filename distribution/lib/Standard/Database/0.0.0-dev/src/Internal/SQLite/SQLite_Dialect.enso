@@ -65,8 +65,6 @@ type SQLite_Dialect
        according to the specific dialect.
     generate_sql : Query -> SQL_Statement
     generate_sql self query =
-        IO.println 'GENERATE sl'
-        IO.println query
         Base_Generator.generate_query self.internal_generator_dialect query . build
 
     ## PRIVATE
@@ -270,7 +268,7 @@ type SQLite_Dialect
 
 ## PRIVATE
 make_internal_generator_dialect =
-    text = [starts_with, contains, ends_with, make_case_sensitive, ["REPLACE", replaceq]]+concat_ops+trim_ops
+    text = [starts_with, contains, ends_with, make_case_sensitive, ["REPLACE", replace]]+concat_ops+trim_ops
     counts = [agg_count_is_null, agg_count_empty, agg_count_not_empty, ["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null]]
     stats = [agg_stddev_pop, agg_stddev_samp]
     arith_extensions = [is_inf, floating_point_div, mod_op]
@@ -408,16 +406,8 @@ floating_point_div = Base_Generator.lift_binary_op "/" x-> y->
 mod_op = Base_Generator.lift_binary_op "mod" x-> y->
     x ++ " - FLOOR(CAST(" ++ x ++ " AS REAL) / CAST(" ++ y ++ " AS REAL)) * " ++ y
 
-replaceq a b =
-    IO.println 'UMM'
-    Error.throw (Unsupported_Database_Operation.Error 'zxcv')
-
 replace : Vector Builder -> Any -> Builder
 replace args metadata =
-    IO.println 'BBB'
-    IO.println args
-    IO.println metadata
-
     input = args.at 0
     pattern = args.at 1
     replacement = args.at 2
@@ -440,29 +430,11 @@ replace args metadata =
                     _ ->
                         replace_only_first True input pattern replacement
         False -> Nothing
-    IO.println 'AAAA'
-    IO.println expression
-    IO.println args
-    IO.println metadata
     case expression of
         Nothing ->
-            msg = "The REPLACE operation is not supported on SQLite for the following options: argument type " + input_type + ", case_sensitivity " + case_sensitivity.to_display_text + ", only_first " + only_first.to_text
-            IO.println 'ERR sqlite'
-            IO.println msg
+            msg = "The REPLACE operation is not supported on SQLite for the following options: argument type " + input_type.to_text + ", case_sensitivity " + case_sensitivity.to_display_text + ", only_first " + only_first.to_text
             Error.throw (Unsupported_Database_Operation.Error msg)
         _ -> expression
-
-#replace_text_cs_all = Base_Generator.lift_ternary_op "REPLACE_TEXT_CS_ALL" t-> p-> r->
-#    Builder.code "REPLACE(" ++ t ++ ", " ++ p ++ ", " ++ r ++ ")"
-
-#replace_text_cs_only_first = Base_Generator.lift_ternary_op "REPLACE_TEXT_CS_ONLY_FIRST" <| replace_only_first True
-#replace_text_ci_only_first = Base_Generator.lift_ternary_op "REPLACE_TEXT_CI_ONLY_FIRST" <| replace_only_first False
-#
-#replace_column_cs_all = Base_Generator.lift_ternary_op "REPLACE_COLUMN_CS_ALL" t-> p-> r->
-#    Builder.code "REPLACE(" ++ t ++ ", " ++ p ++ ", " ++ r ++ ")"
-#
-#replace_column_cs_only_first = Base_Generator.lift_ternary_op "REPLACE_COLUMN_CS_ONLY_FIRST" <| replace_only_first True
-#replace_column_ci_only_first = Base_Generator.lift_ternary_op "REPLACE_COLUMN_CI_ONLY_FIRST" <| replace_only_first False
 
 replace_only_first case_sensitive t p r =
     search_string = if case_sensitive then t else

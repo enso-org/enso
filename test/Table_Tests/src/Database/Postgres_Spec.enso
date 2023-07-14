@@ -316,13 +316,13 @@ postgres_specific_spec connection db_name setup =
             col.replace patterns replacements case_sensitivity=Case_Sensitivity.Sensitive . to_vector . should_equal ['bye Hello', 'bye bye', 'HELLO HELLO', 'hey A[bCd] hey', 'abac ad Ab aCAd']
 
         Test.specify "case_sensitivity=sensitive/default use_regex=false only_first=true"
-            col.replace patterns replacements only_first=True . should_fail_with Unsupported_Database_Operation
+            col.replace patterns replacements only_first=True . to_vector . should_fail_with Unsupported_Database_Operation
 
         Test.specify "case_sensitivity=insensitive use_regex=false only_first=false"
-            col.replace patterns replacements case_sensitivity=Case_Sensitivity.Insensitive . should_fail_with Unsupported_Database_Operation
+            col.replace patterns replacements case_sensitivity=Case_Sensitivity.Insensitive . to_vector . should_fail_with Unsupported_Database_Operation
 
         Test.specify "case_sensitivity=insensitive use_regex=false only_first=true"
-            col.replace patterns replacements case_sensitivity=Case_Sensitivity.Insensitive only_first=True . should_fail_with Unsupported_Database_Operation
+            col.replace patterns replacements case_sensitivity=Case_Sensitivity.Insensitive only_first=True . to_vector . should_fail_with Unsupported_Database_Operation
 
 run_tests connection db_name =
     prefix = "[PostgreSQL] "
