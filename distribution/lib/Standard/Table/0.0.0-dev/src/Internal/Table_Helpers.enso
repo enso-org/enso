@@ -153,13 +153,14 @@ type Table_Column_Helper
     select_columns_helper : Text | Integer | Regex | Vector (Integer | Text | Regex) -> Case_Sensitivity -> Boolean -> Problem_Builder -> Vector
     select_columns_helper self selectors (case_sensitivity:Case_Sensitivity) (reorder:Boolean) (problem_builder:Problem_Builder) =
         resolve_selector selector =
-            matches = case selector of
+            case selector of
                 ix : Integer -> if is_index_valid self.internal_columns.length ix then [self.internal_columns.at ix] else
                     problem_builder.report_oob_indices [ix]
                     []
-                _ -> match_columns selector case_sensitivity self.internal_columns
-            if matches.is_empty then problem_builder.report_missing_input_columns [selector]
-            matches
+                _ ->
+                    matches = match_columns selector case_sensitivity self.internal_columns
+                    if matches.is_empty then problem_builder.report_missing_input_columns [selector]
+                    matches
 
         vector = case selectors of
             _ : Vector -> selectors
@@ -300,7 +301,7 @@ rename_columns (internal_columns:Vector) (mapping:Map|Vector) (case_sensitivity:
                                     problem_builder.report_missing_input_columns [selector]
                                     []
                                 False ->
-                                    if selector.is_a Regex then matches.map c-> Pair.new c replacement else
+                                    if selector.is_a Regex . not then matches.map c-> Pair.new c replacement else
                                         matches.map c-> Pair.new c (selector.replace c.name replacement)
                     builder = mapping.to_vector.fold Vector.new_builder builder-> pair-> builder.append_vector_range (resolve_rename pair.first pair.second)
                     builder.to_vector
@@ -424,8 +425,8 @@ resolve_order_by internal_columns column_selectors problem_builder =
                 problem_builder.report_oob_indices [ix]
                 []
         Sort_Column.Select_By_Name name _ case_sensitivity use_regex ->
-            selector = if use_regex then name.to_regex else name
-            matches = match_columns name case_sensitivity internal_columns
+            regex_or_text = if use_regex then name.to_regex else name
+            matches = match_columns regex_or_text case_sensitivity internal_columns
             if matches.is_empty then problem_builder.report_missing_input_columns [name]
             matches.map c-> Column_Transform_Element.Value c selector
     selectors_vec = case column_selectors of

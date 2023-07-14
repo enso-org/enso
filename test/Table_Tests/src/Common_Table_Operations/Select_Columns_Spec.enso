@@ -27,7 +27,7 @@ spec setup =
     Test.group prefix+"Table.select_columns" <|
         Test.specify "should work as shown in the doc examples" <|
             expect_column_names ["foo", "bar"] <| table.select_columns ["bar", "foo"]
-            expect_column_names ["bar", "Baz", "foo 1", "foo 2"] <| table.select_columns ["foo.+".to_regex, "b.*".to_regex Case_Sensitivity.Insensitive]
+            expect_column_names ["bar", "Baz", "foo 1", "foo 2"] <| table.select_columns ["foo.+".to_regex, "b.*".to_regex True]
             expect_column_names ["abcd123", "foo", "bar"] <| table.select_columns [-1, 0, 1] reorder=True
 
         Test.specify "should allow to reorder columns if asked to" <|
