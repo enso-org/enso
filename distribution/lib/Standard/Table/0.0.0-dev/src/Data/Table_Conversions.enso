@@ -103,7 +103,7 @@ Table.from_objects value fields=Nothing =
    regex).
 
    Arguments:
-   - pattern: The pattern used to search within the text.
+   - pattern: The regex string or `Regex` used to search within the text.
    - case_sensitivity: Specifies if the text values should be compared case
      sensitively.
    - parse_values: Parse any values using the default value parser.
