@@ -267,6 +267,33 @@ define_icons! {
         }
     }
 
+    /// Two dots inside square brackets.
+    pub mod array_new(ArrayNew) {
+        ensogl_core::cached_shape! {
+            size = (SIZE, SIZE);
+            alignment = center;
+            (style: Style) {
+                let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
+                let dull_color = &VIVID_COLOR * &dull_alpha;
+
+                let brackets = Rect((SIZE.px(), 11.0.px()));
+                let mask = Rect((8.0.px(), 11.0.px())) + Rect((12.0.px(), 7.0.px()));
+                let brackets = brackets - mask;
+                let brackets = brackets.translate_y(-0.5.px());
+                let brackets = brackets.fill(VIVID_COLOR.glsl());
+
+                let dot = Rect((3.0.px(), 3.0.px()));
+                let left = dot.translate((-2.5.px(), -0.5.px()));
+                let right = dot.translate((2.5.px(), -0.5.px()));
+                let dots = left + right;
+                let dots = dots.fill(dull_color.glsl());
+
+                let shape = dots + brackets;
+                shape.shrink(SHRINK_AMOUNT.px()).into()
+            }
+        }
+    }
+
     /// A rounded rectangle with an arrow pointing in from the left.
     pub mod data_input(DataInput) {
         ensogl_core::cached_shape! {
