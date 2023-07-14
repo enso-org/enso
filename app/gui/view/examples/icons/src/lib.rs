@@ -113,21 +113,25 @@ fn init() {
     visibility2_icon.color_rgba.set(dark_green.into());
     place_icon(&world, visibility2_icon, -20.0, y);
 
+    let expand_icon = action_bar::icon::expand::View::new();
+    expand_icon.color_rgba.set(dark_green.into());
+    place_icon(&world, expand_icon, 0.0, y);
+
     let freeze_icon = action_bar::icon::freeze::View::new();
     freeze_icon.color_rgba.set(dark_green.into());
-    place_icon(&world, freeze_icon, 0.0, y);
+    place_icon(&world, freeze_icon, 20.0, y);
 
     let skip_icon = action_bar::icon::skip::View::new();
     skip_icon.color_rgba.set(dark_green.into());
-    place_icon(&world, skip_icon, 20.0, y);
+    place_icon(&world, skip_icon, 40.0, y);
 
     let disable_output_context_icon = action_bar::icon::disable_output_context::View::new();
     disable_output_context_icon.color_rgba.set(dark_green.into());
-    place_icon(&world, disable_output_context_icon, 40.0, y);
+    place_icon(&world, disable_output_context_icon, 60.0, y);
 
     let enable_output_context_icon = action_bar::icon::enable_output_context::View::new();
     enable_output_context_icon.color_rgba.set(dark_green.into());
-    place_icon(&world, enable_output_context_icon, 60.0, y);
+    place_icon(&world, enable_output_context_icon, 80.0, y);
 
     mem::forget(app);
 }

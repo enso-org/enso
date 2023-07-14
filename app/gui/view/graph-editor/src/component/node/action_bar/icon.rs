@@ -5,6 +5,7 @@ use ensogl::display::shape::*;
 
 use ensogl::data::color;
 use ensogl_component::toggle_button::ColorableShape;
+use ensogl_hardcoded_theme::graph_editor::node::actions as theme;
 use std::f32::consts::FRAC_PI_2;
 use std::f32::consts::FRAC_PI_6;
 
@@ -89,6 +90,40 @@ fn make_ring<T: Into<Var<Pixels>>, U: Into<Var<Pixels>>>(
     let inner_circle = Circle(inner_radius.into());
     let ring = outer_circle - inner_circle;
     ring.into()
+}
+
+/// Icon for the node expand. Looks like two panels one on top of the other.
+pub mod expand {
+    use super::*;
+
+    ensogl::shape! {
+        alignment = center;
+        (style: Style, color_rgba: Vector4<f32>) {
+            let fill_color: Var<color::Rgba> = color_rgba.into();
+            let dull_alpha: Var<f32> = style.get_number(theme::dull_alpha).into();
+            let dull_color = fill_color.clone().multiply_alpha(&dull_alpha);
+            let width = Var::<Pixels>::from("input_size.x");
+            let height = Var::<Pixels>::from("input_size.y");
+            let unit = &width/16.0;
+            let bottom = Rect((&unit*16.0,&unit*9.0));
+            let bottom = bottom.corners_radiuses(0.0.px(), 0.0.px(), &unit*2.0, &unit*2.0);
+            let bottom = bottom.translate_y(&unit * -2.5);
+            let bottom = bottom.fill(&dull_color);
+            let top = Rect((&unit*16.0,&unit*4.0));
+            let top = top.corners_radiuses(&unit*2.0, &unit*2.0, 0.0.px(), 0.0.px());
+            let top = top.translate_y(&unit * 5.0);
+            let top = top.fill(&fill_color);
+            let icon = top + bottom;
+            let hover_area = Rect((width,height)).fill(INVISIBLE_HOVER_COLOR);
+            (icon + hover_area).pixel_snap().into()
+        }
+    }
+
+    impl ColorableShape for Shape {
+        fn set_color(&self, color: color::Rgba) {
+            self.color_rgba.set(Vector4::new(color.red, color.green, color.blue, color.alpha));
+        }
+    }
 }
 
 /// Icon for the freeze / lock button. Looks like a padlock.
