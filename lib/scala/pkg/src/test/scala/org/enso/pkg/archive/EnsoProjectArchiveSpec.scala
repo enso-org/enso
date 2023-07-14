@@ -25,7 +25,7 @@ class EnsoProjectArchiveSpec extends AnyWordSpec with Matchers {
       println(pkgPath)
 
       val archive = EnsoProjectArchive.build(pkgPath)
-      val entries = readTarGz(archive.outputStream().toByteArray)
+      val entries = readTarGz(archive.bytes())
 
       entries.map(_.getName) should contain theSameElementsAs Seq(
         "src/",
