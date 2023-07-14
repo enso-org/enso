@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Data.Array_Proxy.Array_Proxy
+import Standard.Base.Data.Filter_Condition as Filter_Condition_Module
 import Standard.Base.Errors.Common.Incomparable_Values
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Common.Type_Error
@@ -45,6 +46,7 @@ import project.Internal.Helpers
 import project.Internal.IR.Context.Context
 import project.Internal.IR.From_Spec.From_Spec
 import project.Internal.IR.Internal_Column.Internal_Column
+import project.Internal.IR.Operation_Metadata
 import project.Internal.IR.Order_Descriptor.Order_Descriptor
 import project.Internal.IR.Query.Query
 import project.Internal.IR.SQL_Expression.SQL_Expression
@@ -451,7 +453,7 @@ type Table
              people.filter "age" (age -> (age%10 == 0))
     @column Widget_Helpers.make_column_name_selector
     filter : (Column | Text | Integer) -> (Filter_Condition|(Any->Boolean)) -> Problem_Behavior -> Table ! No_Such_Column | Index_Out_Of_Bounds | Invalid_Value_Type
-    filter self column filter=(Filter_Condition.Equal True) on_problems=Report_Warning = case column of
+    filter self column (filter : Filter_Condition | Function = Filter_Condition.Equal True) on_problems=Report_Warning = case column of
        _ : Column ->
            mask filter_column = case Helpers.check_integrity self filter_column of
                False ->
@@ -462,7 +464,11 @@ type Table
                    self.updated_context new_ctx
            case filter of
                _ : Filter_Condition -> mask (make_filter_column column filter on_problems)
-               _ : Function -> Error.throw (Unsupported_Database_Operation.Error "Filtering with a custom predicate is not supported in the database.")
+               ## We check the `filter` predicate before reporting unsupported
+                  operation, because it may just be a Filter_Condition with
+                  missing arguments and then another error is more appropriate.
+               _ : Function -> Filter_Condition_Module.handle_constructor_missing_arguments filter <|
+                   Error.throw (Unsupported_Database_Operation.Error "Filtering with a custom predicate is not supported in the database.")
        _ ->
            table_at = self.at column
            self.filter table_at filter on_problems
@@ -580,11 +586,11 @@ type Table
                     descriptors -> descriptors
             grouping_expressions = grouping_columns.map .expression
 
-            separator = SQL_Expression.Literal Base_Generator.row_number_parameter_separator
             # The SQL row_number() counts from 1, so we adjust the offset.
             offset = from - step
-            params = [SQL_Expression.Constant offset, SQL_Expression.Constant step] + order_descriptors + [separator] + grouping_expressions
-            new_expr = SQL_Expression.Operation "ROW_NUMBER" params
+            params = [SQL_Expression.Constant offset, SQL_Expression.Constant step] + order_descriptors + grouping_expressions
+            metadata = Operation_Metadata.Row_Number_Metadata.Value grouping_expressions.length
+            new_expr = SQL_Expression.Operation "ROW_NUMBER" params metadata
 
             type_mapping = self.connection.dialect.get_type_mapping
             infer_from_database_callback expression =
