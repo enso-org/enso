@@ -232,4 +232,14 @@ public final class LongStorage extends AbstractLongStorage {
 
     return new LongStorage(newData, newSize, newMissing);
   }
+
+  public long sumAll() {
+    long sum = 0;
+    for (int i = 0; i < size; i++) {
+      if (!isMissing.get(i)) {
+        sum += data[i];
+      }
+    }
+    return sum;
+  }
 }

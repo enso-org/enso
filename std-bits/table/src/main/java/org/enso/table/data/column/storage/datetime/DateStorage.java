@@ -52,4 +52,14 @@ public final class DateStorage extends SpecializedStorage<LocalDate> {
   public Builder createDefaultBuilderOfSameType(int capacity) {
     return new DateBuilder(capacity);
   }
+
+  public long sumMonths() {
+    long sum = 0;
+    for (LocalDate date : data) {
+      if (date != null) {
+        sum += date.getMonthValue();
+      }
+    }
+    return sum;
+  }
 }
