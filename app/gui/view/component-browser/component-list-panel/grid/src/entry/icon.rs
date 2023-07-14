@@ -44,6 +44,35 @@ define_icons! {
         }
     }
 
+    /// A compass icon. Eight-pointed star.
+    /// NOTE: This icon is not used in the Component Browser, but rather in the visualization
+    /// container. It is placed here temporarily, to demonstrate it in the icons demo scene easily.
+    /// It will be moved when refactoring the visualization container.
+    pub mod compass(Compass) {
+        ensogl_core::cached_shape! {
+            size = (SIZE, SIZE);
+            alignment = center;
+            (style: Style) {
+                let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
+                let dull_color = &VIVID_COLOR * &dull_alpha;
+                let foreground = Rect((4.0.px(), 4.0.px()));
+                let triangle = Triangle(4.6.px(), 6.0.px());
+                let up = triangle.translate_y(5.0.px());
+                let right = up.rotate((PI / 2.0).radians());
+                let down = right.rotate((PI / 2.0).radians());
+                let left = down.rotate((PI / 2.0).radians());
+                let foreground = foreground + up + right + down + left;
+                let foreground = foreground.fill(VIVID_COLOR.glsl());
+                let background = foreground.rotate((PI / 4.0).radians()).scale(0.875);
+                let background = background.fill(dull_color.glsl());
+                let center = Circle(2.0.px());
+                let shape = background + foreground - center;
+                let shape = shape.shrink(SHRINK_AMOUNT.px());
+                shape.into()
+            }
+        }
+    }
+
     /// Local scope section button. A dot inside a circle.
     pub mod local_scope(LocalScope) {
         ensogl_core::cached_shape! {
