@@ -478,7 +478,7 @@ Text.tokenize self pattern="." case_sensitivity=Case_Sensitivity.Sensitive =
 
      '<a href="url">content</a>'.replace '<a href="(.*?)">(.*?)</a>'.to_regex '$2 is at $1'== 'content is at url'
 @term make_regex_text_widget
-Text.replace : Text | Regex  -> Text -> Case_Sensitivity -> Boolean -> Text ! Illegal_Argument
+Text.replace : Text | Regex -> Text -> Case_Sensitivity -> Boolean -> Text ! Illegal_Argument
 Text.replace self term:(Text | Regex) replacement:Text (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default) only_first:Boolean=False =
     case term of
         _ : Text -> if term.is_empty then self else
