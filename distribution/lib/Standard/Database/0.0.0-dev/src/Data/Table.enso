@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Data.Array_Proxy.Array_Proxy
+import Standard.Base.Data.Filter_Condition as Filter_Condition_Module
 import Standard.Base.Errors.Common.Incomparable_Values
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Common.Type_Error
@@ -452,7 +453,7 @@ type Table
              people.filter "age" (age -> (age%10 == 0))
     @column Widget_Helpers.make_column_name_selector
     filter : (Column | Text | Integer) -> (Filter_Condition|(Any->Boolean)) -> Problem_Behavior -> Table ! No_Such_Column | Index_Out_Of_Bounds | Invalid_Value_Type
-    filter self column filter=(Filter_Condition.Equal True) on_problems=Report_Warning = case column of
+    filter self column (filter : Filter_Condition | Function = Filter_Condition.Equal True) on_problems=Report_Warning = case column of
        _ : Column ->
            mask filter_column = case Helpers.check_integrity self filter_column of
                False ->
@@ -463,7 +464,11 @@ type Table
                    self.updated_context new_ctx
            case filter of
                _ : Filter_Condition -> mask (make_filter_column column filter on_problems)
-               _ : Function -> Error.throw (Unsupported_Database_Operation.Error "Filtering with a custom predicate is not supported in the database.")
+               ## We check the `filter` predicate before reporting unsupported
+                  operation, because it may just be a Filter_Condition with
+                  missing arguments and then another error is more appropriate.
+               _ : Function -> Filter_Condition_Module.handle_constructor_missing_arguments filter <|
+                   Error.throw (Unsupported_Database_Operation.Error "Filtering with a custom predicate is not supported in the database.")
        _ ->
            table_at = self.at column
            self.filter table_at filter on_problems
