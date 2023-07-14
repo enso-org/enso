@@ -621,9 +621,10 @@ lazy val pkg = (project in file("lib/scala/pkg"))
     frgaalJavaCompilerSetting,
     version := "0.1",
     libraryDependencies ++= circe ++ Seq(
-      "org.scalatest" %% "scalatest"  % scalatestVersion % Test,
-      "io.circe"      %% "circe-yaml" % circeYamlVersion, // separate from other circe deps because its independent project with its own versioning
-      "commons-io"     % "commons-io" % commonsIoVersion
+      "org.scalatest"     %% "scalatest"        % scalatestVersion % Test,
+      "io.circe"          %% "circe-yaml"       % circeYamlVersion,
+      "org.apache.commons" % "commons-compress" % commonsCompressVersion,
+      "commons-io"         % "commons-io"       % commonsIoVersion
     )
   )
   .dependsOn(editions)

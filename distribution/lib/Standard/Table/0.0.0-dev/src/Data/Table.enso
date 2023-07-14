@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Data.Array_Proxy.Array_Proxy
+import Standard.Base.Data.Filter_Condition as Filter_Condition_Module
 import Standard.Base.Data.Index_Sub_Range as Index_Sub_Range_Module
 import Standard.Base.Errors.Common.Incomparable_Values
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
@@ -1075,12 +1076,13 @@ type Table
              people.filter "age" (age -> (age%10 == 0))
     @column Widget_Helpers.make_column_name_selector
     filter : (Column | Text | Integer) -> (Filter_Condition|(Any->Boolean)) -> Problem_Behavior -> Table ! No_Such_Column | Index_Out_Of_Bounds | Invalid_Value_Type
-    filter self column filter=(Filter_Condition.Equal True) on_problems=Report_Warning = case column of
+    filter self column (filter : Filter_Condition | Function = Filter_Condition.Equal True) on_problems=Report_Warning = case column of
         _ : Column ->
             mask filter_column = Table.Value (self.java_table.mask filter_column.java_column)
             case filter of
                 _ : Filter_Condition -> mask (make_filter_column column filter on_problems)
-                _ : Function -> mask (column.map filter)
+                _ : Function -> Filter_Condition_Module.handle_constructor_missing_arguments filter <|
+                    mask (column.map filter)
         _ ->
             table_at = self.at column
             self.filter table_at filter on_problems
