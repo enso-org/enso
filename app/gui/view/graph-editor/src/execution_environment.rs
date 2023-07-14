@@ -36,7 +36,7 @@ pub fn init_frp(frp: &Frp, model: &Rc<GraphEditorModel>) {
         frp.set_read_only <+ selector.play_press.constant(true);
 
         // === Play Button ===
-        selector.reset_play_button_state <+ frp.execution_finished;
+        selector.reset_play_button_state <+ frp.execution_complete;
 
         // === Layout ===
 
