@@ -347,8 +347,8 @@ type Table
 
              table.reorder_columns [0] position=Position.After_Other_Columns
     @columns Widget_Helpers.make_column_name_vector_selector
-    reorder_columns : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Position -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns
-    reorder_columns self (columns = [self.columns.first.name]) (case_sensitivity=Case_Sensitivity.Default) (position:Position=Position.Before_Other_Columns) (error_on_missing_columns:Boolean=False) (on_problems:Problem_Behavior=Report_Warning) =
+    reorder_columns : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Position -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns
+    reorder_columns self (columns = [self.columns.first.name]) (position:Position=Position.Before_Other_Columns) (case_sensitivity=Case_Sensitivity.Default) (error_on_missing_columns:Boolean=False) (on_problems:Problem_Behavior=Report_Warning) =
         new_columns = self.columns_helper.reorder_columns columns case_sensitivity position error_on_missing_columns on_problems
         self.updated_columns new_columns
 

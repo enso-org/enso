@@ -321,9 +321,10 @@ spec =
             r1.should_fail_with Missing_Input_Columns
             r1.catch.criteria . should_equal ["B", "C", "E"]
 
-            r2 = t1.parse columns="A.*".to_regex
+            regex = "A.+".to_regex case_insensitive=True
+            r2 = t1.parse columns=regex
             r2.should_fail_with Missing_Input_Columns
-            r2.catch.criteria . should_equal ["A.+"]
+            r2.catch.criteria . should_equal [regex]
 
             action = t1.parse columns=["A", "B", "C", "E"] error_on_missing_columns=False on_problems=_
             tester table =
