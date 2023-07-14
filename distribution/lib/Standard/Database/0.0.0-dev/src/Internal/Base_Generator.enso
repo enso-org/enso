@@ -11,6 +11,7 @@ import project.Internal.IR.Query.Query
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 from project.Errors import Unsupported_Database_Operation
+from project.Internal.IR.Operation_Metadata import Row_Number_Metadata
 
 type Internal_Dialect
 
@@ -21,8 +22,9 @@ type Internal_Dialect
        Arguments:
        - operation_map: The mapping which maps operation names to their
          implementations; each implementation is a function which takes SQL
-         builders for the arguments and should return a builder yielding the
-         whole operation.
+         builders for the arguments, and optionally an additional metadata
+         argument, and should return a builder yielding code for the whole
+         operation.
        - wrap_identifier: A function that converts an arbitrary supported
          identifier name in such a way that it can be used in the query; that
          usually consists of wrapping the name in quotes and escaping any quotes
@@ -267,36 +269,17 @@ make_is_in_column arguments = case arguments.length of
 
 ## PRIVATE
 make_row_number : Vector Builder -> Builder
-make_row_number arguments = if arguments.length < 4 then Error.throw (Illegal_State.Error "Wrong amount of parameters in ROW_NUMBER IR. This is a bug in the Database library.") else
+make_row_number arguments (metadata : Row_Number_Metadata) = if arguments.length < 3 then Error.throw (Illegal_State.Error "Wrong amount of parameters in ROW_NUMBER IR. This is a bug in the Database library.") else
     offset = arguments.at 0
     step = arguments.at 1
 
-    separator_ix = arguments.index_of code->
-        code.build.prepare.first == row_number_parameter_separator
-    ordering = arguments.take (Range.new 2 separator_ix)
-    grouping = arguments.drop (separator_ix+1)
+    ordering_and_grouping = arguments.drop 2
+    ordering = ordering_and_grouping.drop (Last metadata.groupings_count)
+    grouping = ordering_and_grouping.take (Last metadata.groupings_count)
 
     group_part = if grouping.length == 0 then "" else
         Builder.code "PARTITION BY " ++ Builder.join ", " grouping
     Builder.code "(row_number() OVER (" ++ group_part ++ " ORDER BY " ++ Builder.join ", " ordering ++ ") * " ++ step.paren ++ " + " ++ offset.paren ++ ")"
-
-## PRIVATE
-   This is a terrible hack, but I could not figure a decent way to have an
-   operation take a variable number of arguments of multiple kinds (here both
-   groups and orders are varying).
-
-   Currently, the IR just allows to put a list of parameters for the operation
-   and they are all converted into SQL code before being passed to the
-   particular operation builder. So at this stage there is no way to distinguish
-   the arguments.
-
-   So to distinguish different groups of arguments, we use this 'fake' parameter
-   to act as a separator. This parameter is not supposed to end up in the
-   generated SQL code.
-
-   This is yet another argument for the IR redesign.
-row_number_parameter_separator =
-    "--<!PARAMETER_SEPARATOR!>--"
 
 ## PRIVATE
 
@@ -311,10 +294,14 @@ generate_expression dialect expr = case expr of
         dialect.wrap_identifier origin ++ '.' ++ dialect.wrap_identifier name
     SQL_Expression.Constant value -> Builder.interpolation value
     SQL_Expression.Literal value -> Builder.code value
-    SQL_Expression.Operation kind arguments ->
+    SQL_Expression.Operation kind arguments metadata ->
         op = dialect.operation_map.get kind (Error.throw <| Unsupported_Database_Operation.Error kind)
         parsed_args = arguments.map (generate_expression dialect)
-        op parsed_args
+        result = op parsed_args
+        # If the function expects more arguments, we pass the metadata as the last argument.
+        case result of
+            _ : Function -> result metadata
+            _ -> result
     query : Query -> generate_query dialect query
     descriptor : Order_Descriptor -> generate_order dialect descriptor
 

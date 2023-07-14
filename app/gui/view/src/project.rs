@@ -105,6 +105,10 @@ ensogl::define_endpoints! {
         hide_project_list(),
         /// Close the searcher without taking any actions
         close_searcher(),
+        /// Show the graph editor.
+        show_graph_editor(),
+        /// Hide the graph editor.
+        hide_graph_editor(),
         /// Simulates a style toggle press event.
         toggle_style(),
         /// Toggles the visibility of private components in the component browser.
@@ -296,6 +300,14 @@ impl Model {
     fn hide_project_list(&self) {
         self.display_object.remove_child(&*self.project_list);
     }
+
+    fn show_graph_editor(&self) {
+        self.display_object.add_child(&*self.graph_editor);
+    }
+
+    fn hide_graph_editor(&self) {
+        self.display_object.remove_child(&*self.graph_editor);
+    }
 }
 
 
@@ -428,6 +440,9 @@ impl View {
         let documentation = &searcher.model().documentation;
 
         frp::extend! { network
+            eval_ frp.show_graph_editor(model.show_graph_editor());
+            eval_ frp.hide_graph_editor(model.hide_graph_editor());
+
             // We block graph navigator if it interferes with other panels (searcher, documentation,
             // etc.)
             searcher_active <- searcher.is_hovered || documentation.frp.is_selected;
@@ -657,7 +672,7 @@ impl View {
         let project_list = &model.project_list;
         frp::extend! { network
             eval_ frp.show_project_list  (model.show_project_list());
-            project_chosen <- project_list.frp.selected_project.constant(());
+            project_chosen <- project_list.grid.entry_selected.constant(());
             mouse_down <- scene.mouse.frp_deprecated.down.constant(());
             clicked_on_bg <- mouse_down.filter(f_!(scene.mouse.target.get().is_background()));
             should_be_closed <- any(frp.hide_project_list,project_chosen,clicked_on_bg);

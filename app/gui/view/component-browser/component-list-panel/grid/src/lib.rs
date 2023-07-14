@@ -33,6 +33,7 @@
 use crate::prelude::*;
 
 use crate::entry::icon;
+use crate::entry::DimmedGroups;
 use crate::layout::Layout;
 
 use enso_frp as frp;
@@ -91,13 +92,13 @@ pub mod column {
 
     /// The priority telling which column will be selected first when switching to section having
     /// many lowest elements (with maximum row index).
-    pub const SECTION_SELECTION_PRIORITY: [Col; COUNT] = [CENTER, LEFT, RIGHT];
+    pub const SECTION_SELECTION_PRIORITY: [Col; COUNT] = [LEFT];
 
     // The constants below plays informative role, and should not be easily changed, as the
     // layouter algorithm rely strongly on assumption that there are 3 columns.
 
     /// Number of columns in Component List Panel Grid.
-    pub const COUNT: usize = 3;
+    pub const COUNT: usize = 1;
     /// The index of left column.
     pub const LEFT: Col = 0;
     /// The index of center column.
@@ -249,6 +250,7 @@ pub struct Model {
     grid:                   Grid,
     grid_layer:             Layer,
     selection_layer:        Layer,
+    scroll_bars_layer:      Layer,
     layout:                 Rc<RefCell<Layout>>,
     enterable_elements:     Rc<RefCell<HashSet<ElementId>>>,
     colors:                 Rc<RefCell<HashMap<GroupId, entry::MainColor>>>,
@@ -273,9 +275,11 @@ impl component::Model for Model {
         let base_layer = &app.display.default_scene.layers.node_searcher;
         let grid_layer = base_layer.create_sublayer("grid_layer");
         let selection_layer = base_layer.create_sublayer("selection_layer");
+        let scroll_bars_layer = base_layer.create_sublayer("scrollbars_layer");
         display_object.add_child(&grid);
         grid_layer.add(&grid);
         grid.selection_highlight_frp().setup_masked_layer(selection_layer.downgrade());
+        grid.set_scrollbars_layer(&scroll_bars_layer);
         Self {
             display_object,
             grid,
@@ -284,6 +288,7 @@ impl component::Model for Model {
             colors,
             grid_layer,
             selection_layer,
+            scroll_bars_layer,
             requested_section_info,
         }
     }
@@ -295,8 +300,23 @@ impl component::Model for Model {
 impl Model {
     /// The grid is resetting: remove all data regarding existing entries and return new grid size.
     fn reset(&self, content: &content::Info) -> (Row, Col) {
-        let layouter = layouting::Layouter::new(content.groups.iter().copied());
-        let layout = layouter.create_layout(content.local_scope_entry_count);
+        let row_count = content.groups.iter().map(|group| group.height).sum::<usize>()
+            + content.local_scope_entry_count;
+        let mut layout = Layout::<0>::new(row_count, 1, 0);
+        for group in content.groups.iter().filter(|g| g.height > 0) {
+            layout.push_group(0, *group);
+        }
+        if content.local_scope_entry_count > 0 {
+            layout.push_group(0, content::Group {
+                id:               GroupId::local_scope_group(),
+                height:           content.local_scope_entry_count,
+                original_height:  content.local_scope_entry_count,
+                color:            None,
+                best_match_score: 0.0,
+            });
+        }
+        console_log!("{layout:?}");
+
         let rows_and_cols = (layout.row_count(), layout.column_count());
         *self.layout.borrow_mut() = layout;
         *self.colors.borrow_mut() = Self::collect_colors(content);
@@ -404,7 +424,9 @@ impl Model {
 impl Model {
     fn section_info_requested(&self, &(row, col): &(Row, Col)) -> Option<GroupId> {
         *self.requested_section_info.borrow_mut().get_mut(col)? = row;
-        Some(self.layout.borrow().group_at_location(row, col)?.group.id)
+        let layout = self.layout.borrow();
+        let group = layout.group_at_location(row, col)?;
+        group.has_header().as_some(group.group.id)
     }
 
     fn is_requested_section(&self, (rows, col, _): &(Range<Row>, Col, entry::Model)) -> bool {
@@ -442,8 +464,10 @@ impl Model {
         let kind = if entry.group.section == SectionId::LocalScope {
             let first_line = row == self.layout.borrow().local_scope_rows().start;
             entry::Kind::LocalScopeEntry { first_line }
+        } else if let Some((group_rows, _)) = self.layout.borrow().location_of_group(entry.group) {
+            entry::Kind::Entry { first_line: row == group_rows.start }
         } else {
-            entry::Kind::Entry
+            default()
         };
         let entry_model = entry::Model {
             kind,
@@ -551,14 +575,13 @@ impl Model {
             entry::style::Colors,
             GroupColors,
         ),
-        dimmed_groups: entry::DimmedGroups,
     ) -> entry::Params {
         entry::Params {
-            style: entry_style.clone(),
-            grid_style: *style,
-            group_colors: *group_colors,
-            colors: *colors,
-            dimmed_groups,
+            style:         entry_style.clone(),
+            grid_style:    *style,
+            group_colors:  *group_colors,
+            colors:        *colors,
+            dimmed_groups: DimmedGroups::None,
         }
     }
 
@@ -667,14 +690,9 @@ impl component::Frp<Model> for Frp {
             // === Style and Entries Params ===
 
             style_and_content_size <- all(&style.update, &grid.content_size);
-            dimmed_groups <- out.active_section.map(|opt_section| match opt_section {
-                Some(section) => entry::DimmedGroups::AllExceptSection(*section),
-                None => entry::DimmedGroups::None,
-            });
             entries_style <-
                 all4(&style.update, &entry_style.update, &colors.update, &group_colors);
-            entries_params <-
-                all_with(&entries_style, &dimmed_groups, f!((s, d) model.entries_params(s, *d)));
+            entries_params <- entries_style.map(f!((s) model.entries_params(s)));
             selection_entries_style <- all(entries_params, selection_colors.update);
             selection_entries_params <-
                 selection_entries_style.map(f!((input) model.selection_entries_params(input)));

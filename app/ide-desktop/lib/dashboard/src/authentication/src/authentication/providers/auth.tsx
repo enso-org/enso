@@ -166,7 +166,7 @@ export interface AuthProviderProps {
     supportsLocalBackend: boolean
     authService: authServiceModule.AuthService
     /** Callback to execute once the user has authenticated successfully. */
-    onAuthenticated: () => void
+    onAuthenticated: (accessToken?: string) => void
     children: React.ReactNode
 }
 
@@ -271,6 +271,11 @@ export function AuthProvider(props: AuthProviderProps) {
                         await new Promise(resolve => setTimeout(resolve, REQUEST_DELAY_MS))
                     }
                 }
+                const url = new URL(location.href)
+                if (url.searchParams.get('authentication') === 'false') {
+                    url.searchParams.delete('authentication')
+                    history.replaceState(null, '', url.toString())
+                }
                 let newUserSession: UserSession
                 const sharedSessionData = { email, accessToken }
                 if (!organization) {
@@ -290,7 +295,7 @@ export function AuthProvider(props: AuthProviderProps) {
 
                     /** Execute the callback that should inform the Electron app that the user has logged in.
                      * This is done to transition the app from the authentication/dashboard view to the IDE. */
-                    onAuthenticated()
+                    onAuthenticated(accessToken)
                 }
 
                 setUserSession(newUserSession)
@@ -307,10 +312,10 @@ export function AuthProvider(props: AuthProviderProps) {
         })
         // `userSession` MUST NOT be a dependency as this effect always does a `setUserSession`,
         // which would result in an infinite loop.
+        // `initialized` MUST NOT be a dependency as it breaks offline mode.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
         cognito,
-        initialized,
         logger,
         onAuthenticated,
         session,
