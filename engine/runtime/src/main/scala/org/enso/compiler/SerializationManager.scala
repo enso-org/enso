@@ -1,6 +1,5 @@
 package org.enso.compiler
 
-import com.oracle.truffle.api.TruffleLogger
 import com.oracle.truffle.api.source.Source
 import org.enso.compiler.context.{ExportsBuilder, ExportsMap, SuggestionBuilder}
 import org.enso.compiler.core.IR
@@ -34,10 +33,6 @@ final class SerializationManager(
 
   /** The debug logging level. */
   private val debugLogLevel = Level.FINE
-
-  /** A logger for messages regarding serialization. */
-  private val logger: TruffleLogger =
-    compiler.context.getLogger(classOf[SerializationManager])
 
   /** A set of the modules that are currently being serialized.
     *
@@ -100,7 +95,7 @@ final class SerializationManager(
     useGlobalCacheLocations: Boolean,
     useThreadPool: Boolean = true
   ): Future[Boolean] = {
-    logger.log(
+    compiler.context.logSerializationManager(
       debugLogLevel,
       "Requesting serialization for module [{0}].",
       module.getName
@@ -130,7 +125,7 @@ final class SerializationManager(
         CompletableFuture.completedFuture(task.call())
       } catch {
         case e: Throwable =>
-          logger.log(
+          compiler.context.logSerializationManager(
             debugLogLevel,
             s"Serialization task failed in module [${module.getName}].",
             e
@@ -144,7 +139,7 @@ final class SerializationManager(
     libraryName: LibraryName,
     useGlobalCacheLocations: Boolean
   ): Future[Boolean] = {
-    logger.log(
+    compiler.context.logSerializationManager(
       Level.INFO,
       "Requesting serialization for library [{0}].",
       libraryName
@@ -163,7 +158,7 @@ final class SerializationManager(
         CompletableFuture.completedFuture(task.call())
       } catch {
         case e: Throwable =>
-          logger.log(
+          compiler.context.logSerializationManager(
             debugLogLevel,
             s"Serialization task failed for library [$libraryName].",
             e
@@ -181,7 +176,7 @@ final class SerializationManager(
       Thread.sleep(100)
     }
 
-    logger.log(
+    compiler.context.logSerializationManager(
       debugLogLevel,
       "Running serialization for bindings [{0}].",
       libraryName
@@ -219,14 +214,14 @@ final class SerializationManager(
           file.isPresent
         } catch {
           case e: NotSerializableException =>
-            logger.log(
+            compiler.context.logSerializationManager(
               Level.SEVERE,
               s"Could not serialize bindings [$libraryName].",
               e
             )
             throw e
           case e: Throwable =>
-            logger.log(
+            compiler.context.logSerializationManager(
               Level.SEVERE,
               s"Serialization of bindings `$libraryName` failed: ${e.getMessage}`",
               e
@@ -285,14 +280,14 @@ final class SerializationManager(
       file.isPresent
     } catch {
       case e: NotSerializableException =>
-        logger.log(
+        compiler.context.logSerializationManager(
           Level.SEVERE,
           s"Could not serialize suggestions [$libraryName].",
           e
         )
         throw e
       case e: Throwable =>
-        logger.log(
+        compiler.context.logSerializationManager(
           Level.SEVERE,
           s"Serialization of suggestions `$libraryName` failed: ${e.getMessage}`",
           e
@@ -314,14 +309,14 @@ final class SerializationManager(
       val cache = new SuggestionsCache(libraryName)
       compiler.context.loadCache(cache).toScala match {
         case result @ Some(_: SuggestionsCache.CachedSuggestions) =>
-          logger.log(
+          compiler.context.logSerializationManager(
             Level.FINE,
             "Restored suggestions for library [{0}].",
             libraryName
           )
           result
         case _ =>
-          logger.log(
+          compiler.context.logSerializationManager(
             Level.FINEST,
             "Unable to load suggestions for library [{0}].",
             libraryName
@@ -344,14 +339,14 @@ final class SerializationManager(
       val cache = new ImportExportCache(libraryName)
       compiler.context.loadCache(cache).toScala match {
         case result @ Some(_: ImportExportCache.CachedBindings) =>
-          logger.log(
+          compiler.context.logSerializationManager(
             Level.FINE,
             "Restored bindings for library [{0}].",
             libraryName
           )
           result
         case _ =>
-          logger.log(
+          compiler.context.logSerializationManager(
             Level.FINEST,
             "Unable to load bindings for library [{0}].",
             libraryName
@@ -393,7 +388,7 @@ final class SerializationManager(
           module.unsafeSetIr(loadedCache.moduleIR())
           module.unsafeSetCompilationStage(loadedCache.compilationStage())
           module.setLoadedFromCache(true)
-          logger.log(
+          compiler.context.logSerializationManager(
             debugLogLevel,
             "Restored IR from cache for module [{0}] at stage [{1}].",
             Array[Object](module.getName, loadedCache.compilationStage())
@@ -401,14 +396,14 @@ final class SerializationManager(
 
           if (!relinkedIrChecks.contains(false)) {
             module.setHasCrossModuleLinks(true)
-            logger.log(
+            compiler.context.logSerializationManager(
               debugLogLevel,
               "Restored links (early phase) in module [{0}].",
               module.getName
             )
             Some(true)
           } else {
-            logger.log(
+            compiler.context.logSerializationManager(
               debugLogLevel,
               "Could not restore links (early phase) in module [{0}].",
               module.getName
@@ -417,7 +412,7 @@ final class SerializationManager(
             Some(false)
           }
         case None =>
-          logger.log(
+          compiler.context.logSerializationManager(
             debugLogLevel,
             "Unable to load a cache for module [{0}].",
             module.getName
@@ -514,7 +509,7 @@ final class SerializationManager(
           isWaitingForSerialization.size
         }
         val jobCount = waitingCount + isSerializing.size
-        logger.log(
+        compiler.context.logSerializationManager(
           debugLogLevel,
           "Waiting for #{0} serialization jobs to complete.",
           jobCount
@@ -541,7 +536,10 @@ final class SerializationManager(
 
       pool.shutdownNow()
       Thread.sleep(100)
-      logger.log(debugLogLevel, "Serialization manager has been shut down.")
+      compiler.context.logSerializationManager(
+        debugLogLevel,
+        "Serialization manager has been shut down."
+      )
     }
   }
 
@@ -578,7 +576,7 @@ final class SerializationManager(
       Thread.sleep(100)
     }
 
-    logger.log(
+    compiler.context.logSerializationManager(
       debugLogLevel,
       "Running serialization for module [{0}].",
       name
@@ -599,14 +597,14 @@ final class SerializationManager(
         .orElse(false)
     } catch {
       case e: NotSerializableException =>
-        logger.log(
+        compiler.context.logSerializationManager(
           Level.SEVERE,
           s"Could not serialize module [$name].",
           e
         )
         throw e
       case e: Throwable =>
-        logger.log(
+        compiler.context.logSerializationManager(
           Level.SEVERE,
           s"Serialization of module `$name` failed: ${e.getMessage}`",
           e

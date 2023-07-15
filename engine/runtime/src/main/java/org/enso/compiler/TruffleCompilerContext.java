@@ -5,6 +5,7 @@ import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.source.Source;
 import java.io.PrintStream;
 import java.util.Optional;
+import java.util.logging.Level;
 import org.enso.compiler.codegen.IrToTruffle;
 import org.enso.compiler.context.InlineContext;
 import org.enso.compiler.core.IR;
@@ -20,9 +21,13 @@ import org.enso.polyglot.RuntimeOptions;
 
 final class TruffleCompilerContext implements CompilerContext {
   private final EnsoContext context;
+  private final TruffleLogger compiler;
+  private final TruffleLogger serializationManager;
 
   TruffleCompilerContext(EnsoContext context) {
     this.context = context;
+    this.compiler = context.getLogger(Compiler.class);
+    this.serializationManager = context.getLogger(SerializationManager.class);
   }
 
   @Override
@@ -59,8 +64,13 @@ final class TruffleCompilerContext implements CompilerContext {
   }
 
   @Override
-  public TruffleLogger getLogger(Class<?> clazz) {
-    return context.getLogger(clazz);
+  public void log(Level level, String msg, Object... args) {
+    compiler.log(level, msg, args);
+  }
+
+  @Override
+  public void logSerializationManager(Level level, String msg, Object... args) {
+    serializationManager.log(level, msg, args);
   }
 
   @Override

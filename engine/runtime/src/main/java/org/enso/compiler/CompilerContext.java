@@ -1,10 +1,10 @@
 package org.enso.compiler;
 
 import com.oracle.truffle.api.TruffleFile;
-import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.source.Source;
 import java.io.PrintStream;
 import java.util.Optional;
+import java.util.logging.Level;
 import org.enso.compiler.context.InlineContext;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.data.CompilerConfig;
@@ -27,7 +27,9 @@ interface CompilerContext {
 
   PrintStream getOut();
 
-  TruffleLogger getLogger(Class<?> clazz);
+  void log(Level level, String msg, Object... args);
+
+  void logSerializationManager(Level level, String msg, Object... args);
 
   void notifySerializeModule(QualifiedName moduleName);
 

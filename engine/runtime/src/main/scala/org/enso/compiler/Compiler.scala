@@ -1,6 +1,5 @@
 package org.enso.compiler
 
-import com.oracle.truffle.api.TruffleLogger
 import com.oracle.truffle.api.source.{Source, SourceSection}
 import org.enso.compiler.codegen.RuntimeStubsGenerator
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
@@ -61,7 +60,6 @@ class Compiler(
   private val isInteractiveMode       = context.isInteractiveMode()
   private val serializationManager: SerializationManager =
     new SerializationManager(this)
-  private val logger: TruffleLogger = context.getLogger(getClass)
   private val output: PrintStream =
     if (config.outputRedirect.isDefined)
       new PrintStream(config.outputRedirect.get)
@@ -103,7 +101,7 @@ class Compiler(
   /** Lazy-initializes the IR for the builtins module. */
   private def initializeBuiltinsIr(): Unit = {
     if (!builtins.isIrInitialized) {
-      logger.log(
+      context.log(
         Compiler.defaultLogLevel,
         "Initialising IR for [{0}].",
         builtins.getModule.getName
@@ -174,7 +172,7 @@ class Compiler(
   ): Future[Boolean] = {
     getPackageRepository().getMainProjectPackage match {
       case None =>
-        logger.log(
+        context.log(
           Level.SEVERE,
           "No package found in the compiler environment. Aborting."
         )
@@ -185,14 +183,14 @@ class Compiler(
         )
         packageModule match {
           case None =>
-            logger.log(
+            context.log(
               Level.SEVERE,
               "Could not find entry point for compilation in package [{0}.{1}]",
               Array(pkg.namespace, pkg.name)
             )
             CompletableFuture.completedFuture(false)
           case Some(m) =>
-            logger.log(
+            context.log(
               Compiler.defaultLogLevel,
               s"Compiling the package [${pkg.namespace}.${pkg.name}] " +
               s"starting at the root [${m.getName}]."
@@ -279,7 +277,7 @@ class Compiler(
         val importedModulesLoadedFromSource = importedModules
           .filter(isLoadedFromSource)
           .map(_.getName)
-        logger.log(
+        context.log(
           Compiler.defaultLogLevel,
           "{0} imported module caches were invalided, forcing invalidation of {1}. [{2}]",
           Array(
@@ -304,14 +302,14 @@ class Compiler(
             module.getIr.preorder.map(_.passData.restoreFromSerialization(this))
 
           if (!flags.contains(false)) {
-            logger.log(
+            context.log(
               Compiler.defaultLogLevel,
               "Restored links (late phase) for module [{0}].",
               module.getName
             )
           } else {
             hasInvalidModuleRelink = true
-            logger.log(
+            context.log(
               Compiler.defaultLogLevel,
               "Failed to restore links (late phase) for module [{0}].",
               module.getName
@@ -323,7 +321,7 @@ class Compiler(
     }
 
     if (hasInvalidModuleRelink) {
-      logger.log(
+      context.log(
         Compiler.defaultLogLevel,
         s"Some modules failed to relink. Re-running import and " +
         s"export resolution."
@@ -395,7 +393,7 @@ class Compiler(
       ) {
 
         if (generateCode) {
-          logger.log(
+          context.log(
             Compiler.defaultLogLevel,
             "Generating code for module [{0}].",
             module.getName
@@ -419,7 +417,7 @@ class Compiler(
             }
           }
         } else {
-          logger.log(
+          context.log(
             Compiler.defaultLogLevel,
             "Skipping serialization for [{0}].",
             module.getName
@@ -544,7 +542,7 @@ class Compiler(
     module: Module,
     isGenDocs: Boolean = false
   ): Unit = {
-    logger.log(
+    context.log(
       Compiler.defaultLogLevel,
       "Parsing module [{0}].",
       module.getName
@@ -577,7 +575,7 @@ class Compiler(
   }
 
   private def uncachedParseModule(module: Module, isGenDocs: Boolean): Unit = {
-    logger.log(
+    context.log(
       Compiler.defaultLogLevel,
       "Loading module [{0}] from source.",
       module.getName
