@@ -552,7 +552,7 @@ class Compiler(
       "Parsing module [{0}].",
       module.getName
     )
-    module.ensureScopeExists(context)
+    module.ensureScopeExists()
     module.getScope.reset()
 
     if (irCachingEnabled && !module.isInteractive) {
@@ -585,7 +585,7 @@ class Compiler(
       "Loading module [{0}] from source.",
       module.getName
     )
-    module.ensureScopeExists(context)
+    module.ensureScopeExists()
     module.getScope.reset()
 
     val moduleContext = ModuleContext(
