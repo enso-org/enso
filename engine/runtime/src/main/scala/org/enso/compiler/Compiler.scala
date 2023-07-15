@@ -410,7 +410,7 @@ class Compiler(
             irCachingEnabled && !module.wasLoadedFromCache()
           if (shouldStoreCache && !hasErrors(module) && !module.isInteractive) {
             if (isInteractiveMode) {
-              context.getNotificationHandler.serializeModule(module.getName)
+              context.notifySerializeModule(module.getName)
             } else {
               serializationManager.serializeModule(
                 module,

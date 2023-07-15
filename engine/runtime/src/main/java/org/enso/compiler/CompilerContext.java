@@ -8,11 +8,11 @@ import java.util.Optional;
 import org.enso.compiler.context.InlineContext;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.data.CompilerConfig;
-import org.enso.interpreter.instrument.NotificationHandler;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.scope.TopLevelScope;
+import org.enso.pkg.QualifiedName;
 
 interface CompilerContext {
   boolean isIrCachingDisabled();
@@ -29,7 +29,7 @@ interface CompilerContext {
 
   TruffleLogger getLogger(Class<?> clazz);
 
-  NotificationHandler getNotificationHandler();
+  void notifySerializeModule(QualifiedName moduleName);
 
   TopLevelScope getTopScope();
 

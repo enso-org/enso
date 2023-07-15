@@ -9,13 +9,13 @@ import org.enso.compiler.codegen.IrToTruffle;
 import org.enso.compiler.context.InlineContext;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.data.CompilerConfig;
-import org.enso.interpreter.instrument.NotificationHandler;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.scope.TopLevelScope;
+import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.RuntimeOptions;
 
 final class TruffleCompilerContext implements CompilerContext {
@@ -64,8 +64,8 @@ final class TruffleCompilerContext implements CompilerContext {
   }
 
   @Override
-  public NotificationHandler getNotificationHandler() {
-    return context.getNotificationHandler();
+  public void notifySerializeModule(QualifiedName moduleName) {
+    context.getNotificationHandler().serializeModule(moduleName);
   }
 
   @Override
