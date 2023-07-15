@@ -436,7 +436,9 @@ class Compiler(
 
   private def isModuleInRootPackage(module: Module): Boolean = {
     if (!module.isInteractive) {
-      val pkg = context.getPackageOf(module.getSourceFile).toScala
+      val pkg = PackageRepositoryUtils
+        .getPackageOf(context.getPackageRepository, module.getSourceFile)
+        .toScala
       pkg.contains(context.getPackageRepository.getMainProjectPackage.get)
     } else false
   }

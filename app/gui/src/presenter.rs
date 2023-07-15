@@ -4,16 +4,13 @@
 
 use crate::prelude::*;
 
-use crate::config::ProjectToOpen;
 use crate::controller::ide::StatusNotification;
 use crate::executor::global::spawn_stream_handler;
 use crate::presenter;
 
 use enso_frp as frp;
-use ensogl::system::js;
 use ide_view as view;
 use ide_view::graph_editor::SharedHashMap;
-use std::time::Duration;
 
 
 // ==============
@@ -29,19 +26,6 @@ pub use code::Code;
 pub use graph::Graph;
 pub use project::Project;
 pub use searcher::component_browser::ComponentBrowserSearcher;
-
-
-
-// =================
-// === Constants ===
-// =================
-
-/// We don't know how long opening the project will take, but we still want to show a fake
-/// progress indicator for the user. This constant represents how long the spinner will run for in
-/// milliseconds.
-const OPEN_PROJECT_SPINNER_TIME_MS: u64 = 5_000;
-/// The interval in milliseconds at which we should increase the spinner
-const OPEN_PROJECT_SPINNER_UPDATE_PERIOD_MS: u64 = 10;
 
 
 
@@ -110,15 +94,15 @@ impl Model {
     #[profile(Task)]
     pub fn open_project(&self, project_name: String) {
         let controller = self.controller.clone_ref();
-        crate::executor::global::spawn(with_progress_indicator(|| async move {
+        crate::executor::global::spawn(async move {
             if let Ok(managing_api) = controller.manage_projects() {
                 if let Err(err) = managing_api.open_project_by_name(project_name).await {
                     error!("Cannot open project by name: {err}.");
                 }
             } else {
-                warn!("Project Manager API not available, cannot open project.");
+                warn!("Project opening failed: no ProjectManagingAPI available.");
             }
-        }));
+        });
     }
 
     /// Create a new project. `template` is an optional name of the project template passed to the
@@ -129,10 +113,9 @@ impl Model {
         if let Ok(template) =
             template.map(double_representation::name::project::Template::from_text).transpose()
         {
-            crate::executor::global::spawn(with_progress_indicator(|| async move {
+            crate::executor::global::spawn(async move {
                 if let Ok(managing_api) = controller.manage_projects() {
-                    if let Err(err) = managing_api.create_new_project(None, template.clone()).await
-                    {
+                    if let Err(err) = managing_api.create_new_project(template.clone()).await {
                         if let Some(template) = template {
                             error!("Could not create new project from template {template}: {err}.");
                         } else {
@@ -140,66 +123,13 @@ impl Model {
                         }
                     }
                 } else {
-                    warn!("Project Manager API not available, cannot create project.");
+                    warn!("Project creation failed: no ProjectManagingAPI available.");
                 }
-            }))
+            })
         } else if let Some(template) = template {
             error!("Invalid project template name: {template}");
         };
     }
-
-    /// Open a project by name or ID. If no project with the given name exists, it will be created.
-    #[profile(Task)]
-    fn open_or_create_project(&self, project: ProjectToOpen) {
-        let controller = self.controller.clone_ref();
-        crate::executor::global::spawn(with_progress_indicator(|| async move {
-            if let Ok(managing_api) = controller.manage_projects() {
-                if let Err(error) = managing_api.open_or_create_project(project).await {
-                    error!("Cannot open or create project. {error}");
-                }
-            } else {
-                warn!("Project Manager API not available, cannot open or create project.");
-            }
-        }));
-    }
-}
-
-/// Show a full-screen spinner for the exact duration of the specified function.
-async fn with_progress_indicator<F, T>(f: F)
-where
-    F: FnOnce() -> T,
-    T: Future<Output = ()>, {
-    // TODO[ss]: Use a safer variant of getting the JS app. This one gets a variable from JS, casts
-    // it to a type, etc. Somewhere in EnsoGL we might already have some logic for getting the JS
-    // app and throwing an error if it's not defined.
-    let Ok(app) = js::app() else { return error!("Failed to get JavaScript EnsoGL app.") };
-    app.show_progress_indicator(0.0);
-
-    let (finished_tx, finished_rx) = futures::channel::oneshot::channel();
-    let spinner_progress = futures::stream::unfold(0, |time| async move {
-        enso_web::sleep(Duration::from_millis(OPEN_PROJECT_SPINNER_UPDATE_PERIOD_MS)).await;
-        let new_time = time + OPEN_PROJECT_SPINNER_UPDATE_PERIOD_MS;
-        if new_time < OPEN_PROJECT_SPINNER_TIME_MS {
-            let progress = new_time as f32 / OPEN_PROJECT_SPINNER_TIME_MS as f32;
-            Some((progress, new_time))
-        } else {
-            None
-        }
-    })
-    .take_until(finished_rx);
-    executor::global::spawn(spinner_progress.for_each(|progress| async move {
-        let Ok(app) = js::app() else { return error!("Failed to get JavaScript EnsoGL app.") };
-        app.show_progress_indicator(progress);
-    }));
-
-    f().await;
-
-    // This fails when the spinner progressed until the end before the function got completed
-    // and therefore the receiver got dropped, so we'll ignore the result.
-    let _ = finished_tx.send(());
-
-    let Ok(app) = js::app() else { return error!("Failed to get JavaScript EnsoGL app.") };
-    app.hide_progress_indicator();
 }
 
 
@@ -235,13 +165,6 @@ impl Presenter {
             let root_frp = &model.view.frp;
             root_frp.switch_view_to_project <+ welcome_view_frp.create_project.constant(());
             root_frp.switch_view_to_project <+ welcome_view_frp.open_project.constant(());
-
-            eval root_frp.selected_project ([model] (project) {
-                if let Some(project) = project {
-                    model.close_project();
-                    model.open_project(project.name.to_string());
-                }
-            });
         }
 
         Self { model, network }.init()
@@ -251,8 +174,8 @@ impl Presenter {
     fn init(self) -> Self {
         self.setup_status_bar_notification_handler();
         self.setup_controller_notification_handler();
-        executor::global::spawn(self.clone_ref().set_projects_list_on_welcome_screen());
         self.model.clone_ref().setup_and_display_new_project();
+        executor::global::spawn(self.clone_ref().set_projects_list_on_welcome_screen());
         self
     }
 
@@ -291,7 +214,8 @@ impl Presenter {
         let weak = Rc::downgrade(&self.model);
         spawn_stream_handler(weak, stream, move |notification, model| {
             match notification {
-                controller::ide::Notification::ProjectOpened =>
+                controller::ide::Notification::NewProjectCreated
+                | controller::ide::Notification::ProjectOpened =>
                     model.setup_and_display_new_project(),
                 controller::ide::Notification::ProjectClosed => {
                     model.close_project();
@@ -314,11 +238,6 @@ impl Presenter {
                 }
             }
         }
-    }
-
-    /// Open a project by name or ID. If no project with the given name exists, it will be created.
-    pub fn open_or_create_project(&self, project: ProjectToOpen) {
-        self.model.open_or_create_project(project)
     }
 }
 

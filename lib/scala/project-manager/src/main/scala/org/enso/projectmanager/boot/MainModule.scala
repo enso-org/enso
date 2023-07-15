@@ -12,6 +12,7 @@ import org.enso.projectmanager.boot.configuration.{
 import org.enso.projectmanager.control.core.{Applicative, CovariantFlatMap}
 import org.enso.projectmanager.control.effect.{Async, ErrorChannel, Exec, Sync}
 import org.enso.projectmanager.infrastructure.file.BlockingFileSystem
+import org.enso.projectmanager.infrastructure.http.ProjectsEndpoint
 import org.enso.projectmanager.infrastructure.languageserver.{
   ExecutorWithUnlimitedPool,
   LanguageServerGatewayImpl,
@@ -138,6 +139,11 @@ class MainModule[
       timeoutConfig                   = config.timeout
     )
 
+  lazy val projectsEndpoint = new ProjectsEndpoint(projectRepository)
   lazy val server =
-    new JsonRpcServer(new JsonRpcProtocolFactory, clientControllerFactory)
+    new JsonRpcServer(
+      new JsonRpcProtocolFactory,
+      clientControllerFactory,
+      optionalEndpoints = List(projectsEndpoint)
+    )
 }

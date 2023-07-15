@@ -428,9 +428,10 @@ export class App {
 
     /** Show a spinner. The displayed progress is constant. */
     showProgressIndicator(progress: number) {
-        if (this.progressIndicator == null) {
-            this.progressIndicator = new wasm.ProgressIndicator(this.config)
+        if (this.progressIndicator) {
+            this.hideProgressIndicator()
         }
+        this.progressIndicator = new wasm.ProgressIndicator(this.config)
         this.progressIndicator.set(progress)
     }
 
