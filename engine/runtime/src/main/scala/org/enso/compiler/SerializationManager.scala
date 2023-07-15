@@ -8,6 +8,7 @@ import org.enso.editions.LibraryName
 import org.enso.interpreter.runtime.Module
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.Suggestion
+import org.enso.polyglot.CompilationStage
 
 import java.io.NotSerializableException
 import java.util
@@ -567,7 +568,7 @@ final class SerializationManager(
   private def doSerializeModule(
     cache: ModuleCache,
     ir: IR.Module,
-    stage: Module.CompilationStage,
+    stage: CompilationStage,
     name: QualifiedName,
     source: Source,
     useGlobalCacheLocations: Boolean
@@ -584,8 +585,8 @@ final class SerializationManager(
     startSerializing(name)
     try {
       val fixedStage =
-        if (stage.isAtLeast(Module.CompilationStage.AFTER_STATIC_PASSES)) {
-          Module.CompilationStage.AFTER_STATIC_PASSES
+        if (stage.isAtLeast(CompilationStage.AFTER_STATIC_PASSES)) {
+          CompilationStage.AFTER_STATIC_PASSES
         } else stage
       compiler.context
         .saveCache(

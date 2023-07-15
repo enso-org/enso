@@ -23,6 +23,7 @@ import org.enso.interpreter.runtime.scope.ModuleScope
 import org.enso.interpreter.runtime.Module
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.LanguageInfo
+import org.enso.polyglot.CompilationStage
 import org.enso.syntax2.Tree
 
 import java.io.{PrintStream, StringReader}
@@ -114,7 +115,7 @@ class Compiler(
           case Some(true) =>
             // Ensure that builtins doesn't try and have codegen run on it.
             builtins.getModule.unsafeSetCompilationStage(
-              Module.CompilationStage.AFTER_CODEGEN
+              CompilationStage.AFTER_CODEGEN
             )
           case _ =>
             builtins.initializeBuiltinsIr(freshNameSupply, passes)
@@ -334,7 +335,7 @@ class Compiler(
     requiredModules.foreach { module =>
       if (
         !module.getCompilationStage.isAtLeast(
-          Module.CompilationStage.AFTER_GLOBAL_TYPES
+          CompilationStage.AFTER_GLOBAL_TYPES
         )
       ) {
 
@@ -346,14 +347,14 @@ class Compiler(
         val compilerOutput = runGlobalTypingPasses(module.getIr, moduleContext)
         module.unsafeSetIr(compilerOutput)
         module.unsafeSetCompilationStage(
-          Module.CompilationStage.AFTER_GLOBAL_TYPES
+          CompilationStage.AFTER_GLOBAL_TYPES
         )
       }
     }
     requiredModules.foreach { module =>
       if (
         !module.getCompilationStage.isAtLeast(
-          Module.CompilationStage.AFTER_STATIC_PASSES
+          CompilationStage.AFTER_STATIC_PASSES
         )
       ) {
 
@@ -366,7 +367,7 @@ class Compiler(
         val compilerOutput = runMethodBodyPasses(module.getIr, moduleContext)
         module.unsafeSetIr(compilerOutput)
         module.unsafeSetCompilationStage(
-          Module.CompilationStage.AFTER_STATIC_PASSES
+          CompilationStage.AFTER_STATIC_PASSES
         )
       }
     }
@@ -376,19 +377,19 @@ class Compiler(
     requiredModules.foreach { module =>
       if (
         !module.getCompilationStage.isAtLeast(
-          Module.CompilationStage.AFTER_RUNTIME_STUBS
+          CompilationStage.AFTER_RUNTIME_STUBS
         )
       ) {
         stubsGenerator.run(module)
         module.unsafeSetCompilationStage(
-          Module.CompilationStage.AFTER_RUNTIME_STUBS
+          CompilationStage.AFTER_RUNTIME_STUBS
         )
       }
     }
     requiredModules.foreach { module =>
       if (
         !module.getCompilationStage.isAtLeast(
-          Module.CompilationStage.AFTER_CODEGEN
+          CompilationStage.AFTER_CODEGEN
         )
       ) {
 
@@ -401,7 +402,7 @@ class Compiler(
 
           truffleCodegen(module.getIr, module.getSource, module.getScope)
         }
-        module.unsafeSetCompilationStage(Module.CompilationStage.AFTER_CODEGEN)
+        module.unsafeSetCompilationStage(CompilationStage.AFTER_CODEGEN)
 
         if (shouldCompileDependencies || isModuleInRootPackage(module)) {
           val shouldStoreCache =
@@ -602,7 +603,7 @@ class Compiler(
     val discoveredModule =
       recognizeBindings(exprWithModuleExports, moduleContext)
     module.unsafeSetIr(discoveredModule)
-    module.unsafeSetCompilationStage(Module.CompilationStage.AFTER_PARSING)
+    module.unsafeSetCompilationStage(CompilationStage.AFTER_PARSING)
     module.setLoadedFromCache(false)
     module.setHasCrossModuleLinks(true)
   }
@@ -636,7 +637,7 @@ class Compiler(
   def ensureParsed(module: Module): Unit = {
     if (
       !module.getCompilationStage.isAtLeast(
-        Module.CompilationStage.AFTER_PARSING
+        CompilationStage.AFTER_PARSING
       )
     ) {
       parseModule(module)
@@ -698,7 +699,7 @@ class Compiler(
       }
     if (
       !module.getCompilationStage.isAtLeast(
-        Module.CompilationStage.AFTER_RUNTIME_STUBS
+        CompilationStage.AFTER_RUNTIME_STUBS
       )
     ) {
       throw new CompilerError(

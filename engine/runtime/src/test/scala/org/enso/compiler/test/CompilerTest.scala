@@ -13,6 +13,7 @@ import org.scalatest.wordspec.AnyWordSpecLike
 import org.enso.interpreter.runtime.Module
 import org.enso.interpreter.runtime.scope.LocalScope
 import org.enso.pkg.QualifiedName
+import org.enso.polyglot.CompilationStage
 
 trait CompilerTest extends AnyWordSpecLike with Matchers with CompilerRunner
 trait CompilerRunner {
@@ -236,7 +237,7 @@ trait CompilerRunner {
           )
         )
     )
-    mod.unsafeSetCompilationStage(Module.CompilationStage.AFTER_CODEGEN)
+    mod.unsafeSetCompilationStage(CompilationStage.AFTER_CODEGEN)
     InlineContext(
       module            = mod,
       freshNameSupply   = freshNameSupply,

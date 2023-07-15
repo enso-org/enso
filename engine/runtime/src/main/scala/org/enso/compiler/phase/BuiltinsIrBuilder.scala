@@ -5,7 +5,7 @@ import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, ModuleContext}
 import org.enso.compiler.data.CompilerConfig
 import org.enso.interpreter.runtime.Module
-import org.enso.interpreter.runtime.Module.CompilationStage
+import org.enso.polyglot.CompilationStage
 import scala.util.Using
 
 /** A phase responsible for initializing the builtins' IR from the provided
@@ -47,7 +47,7 @@ object BuiltinsIrBuilder {
       passes.moduleDiscoveryPasses
     )
     module.unsafeSetIr(irAfterModDiscovery)
-    module.unsafeSetCompilationStage(Module.CompilationStage.AFTER_PARSING)
+    module.unsafeSetCompilationStage(CompilationStage.AFTER_PARSING)
 
     new ExportsResolution().run(List(module))
     val irAfterTypes = passManager.runPassesOnModule(
