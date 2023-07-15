@@ -46,7 +46,7 @@
 use crate::prelude::*;
 use ensogl_core::display::shape::*;
 
-use crate::navigator::Navigator as SectionNavigator;
+use crate::navigator::View as SectionNavigator;
 
 use enso_frp as frp;
 use ensogl_core::application::frp::API;
@@ -143,7 +143,7 @@ impl AllStyles {
 
     fn breadcrumbs_pos(&self) -> Vector2 {
         let crop_left = self.panel.breadcrumbs_crop_left;
-        let x = -self.grid.width / 2.0 + self.navigator.width / 2.0 + crop_left;
+        let x = self.grid.width / 2.0 + self.navigator.width / 2.0 + crop_left;
         let y = self.size().y / 2.0;
         Vector2(x, y)
     }
@@ -199,30 +199,14 @@ pub mod background {
             let menu_height = style.get_number(theme::menu_height);
             let navigator_width = style.get_number(theme::navigator::width);
 
-            let width = grid_width + navigator_width;
+            let width = grid_width;
             let height = grid_height + menu_height;
-
-            let menu_divider_x_pos = navigator_width / 2.0;
-            let menu_divider_y_pos = height / 2.0 - menu_height + menu_divider_height;
-            let navigator_divider_x = -width / 2.0 + navigator_width - navigator_divider_width / 2.0;
-            let navigator_divider_y = 0.0;
-
-            let menu_divider = Rect((menu_divider_width.px(),menu_divider_height.px()));
-            let menu_divider = menu_divider.fill(menu_divider_color);
-            let menu_divider = menu_divider.translate_x(menu_divider_x_pos.px());
-            let menu_divider = menu_divider.translate_y(menu_divider_y_pos.px());
-
-            let navigator_divider = Rect((navigator_divider_width.px(), height.px()));
-            let navigator_divider = navigator_divider.fill(navigator_divider_color);
-            let navigator_divider = navigator_divider.translate_x(navigator_divider_x.px());
-            let navigator_divider = navigator_divider.translate_y(navigator_divider_y.px());
 
             let base_shape = Rect((width.px(), height.px()));
             let base_shape = base_shape.corners_radius(corners_radius.px());
             let background = base_shape.fill(bg_color);
-            let shadow     = shadow::from_shape_with_alpha(base_shape.into(),&alpha,style);
 
-            (shadow + background + menu_divider + navigator_divider).into()
+            background.into()
         }
     }
 }
@@ -280,7 +264,6 @@ impl Model {
     fn update_style(&self, style: &AllStyles) {
         self.background.bg_color.set(style.panel.background_color.into());
         self.background.set_size(style.background_sprite_size());
-        self.section_navigator.update_layout(style);
 
         self.breadcrumbs.set_xy(style.breadcrumbs_pos());
         self.breadcrumbs.frp().set_size(style.breadcrumbs_size());
@@ -347,12 +330,6 @@ impl component::Frp<Model> for Frp {
         let output = &frp_api.output;
 
         frp::extend! { network
-            // === Section navigator ===
-
-            model.grid.switch_section <+ model.section_navigator.chosen_section.filter_map(|s| *s);
-            model.section_navigator.select_section <+ model.grid.active_section.on_change();
-
-
             // === Breadcrumbs ===
 
             eval_ input.show(model.set_initial_breadcrumbs());
@@ -364,7 +341,6 @@ impl component::Frp<Model> for Frp {
             let grid_style = grid::Style::from_theme(network, style);
             let navigator_style = navigator::Style::from_theme(network, style);
             style <- all_with3(&panel_style.update, &grid_style.update, &navigator_style.update, |&panel, &grid, &navigator| AllStyles {panel, grid, navigator});
-            model.section_navigator.style <+ style;
             eval style ((style) model.update_style(style));
             output.size <+ style.map(|style| style.size());
 

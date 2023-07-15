@@ -4316,6 +4316,7 @@ dependencies = [
  "ensogl-selector",
  "ensogl-shadow",
  "ensogl-text",
+ "ensogl-toggle-button",
  "ensogl-tooltip",
  "ide-view-component-list-panel-breadcrumbs",
  "ide-view-component-list-panel-grid",

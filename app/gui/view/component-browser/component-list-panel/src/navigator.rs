@@ -11,6 +11,7 @@ use crate::AllStyles;
 
 use enso_frp as frp;
 use ensogl_core::animation::animation::delayed::DelayedAnimation;
+use ensogl_core::application;
 use ensogl_core::application::tooltip;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
@@ -18,6 +19,7 @@ use ensogl_core::display;
 use ensogl_derive_theme::FromTheme;
 use ensogl_grid_view as grid;
 use ensogl_hardcoded_theme::application::component_browser::component_list_panel as list_panel_theme;
+use ensogl_toggle_button::ToggleButton;
 use ensogl_tooltip::Tooltip;
 use grid::Col;
 use grid::Row;
@@ -182,6 +184,21 @@ fn get_bottom_buttons_pos((buttons_count, style): &(usize, AllStyles)) -> Vector
 }
 
 
+ensogl_core::define_endpoints_2! {
+    Input {
+        set_local_scope_mode(bool),
+        set_show_shortcuts(bool),
+        set_search_unstable(bool),
+        set_side_panel(bool),
+    }
+    Output {
+        local_scope_mode(bool),
+        show_shortcuts(bool),
+        search_unstable(bool),
+        side_panel(bool),
+    }
+}
+
 
 // =================
 // === Navigator ===
@@ -194,7 +211,7 @@ fn get_bottom_buttons_pos((buttons_count, style): &(usize, AllStyles)) -> Vector
 /// set on the bottom contains section navigation buttons used to quickly scroll to a specific
 /// section.
 #[derive(Debug, Clone, CloneRef)]
-pub struct Navigator {
+struct Navigator {
     display_object: display::object::Instance,
     network: frp::Network,
     bottom_buttons: Grid,
@@ -334,8 +351,23 @@ impl Navigator {
     }
 }
 
-impl display::Object for Navigator {
+#[derive(Debug, Clone, CloneRef, Deref)]
+pub struct View {
+    model: Navigator,
+    #[deref]
+    frp:   Frp,
+}
+
+impl View {
+    pub fn new(app: &Application) -> Self {
+        let model = Navigator::new(app);
+        let frp = Frp::new();
+        Self { model, frp }
+    }
+}
+
+impl display::Object for View {
     fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
+        &self.model.display_object
     }
 }
