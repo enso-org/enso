@@ -54,9 +54,6 @@ final class SerializationManager(
   private val isWaitingForSerialization =
     collection.concurrent.TrieMap[QualifiedName, Future[Boolean]]()
 
-  /** The runtime's environment. */
-  private val env = compiler.context.getEnvironment
-
   /** The thread pool that handles serialization. */
   private val pool: ThreadPoolExecutor = new ThreadPoolExecutor(
     SerializationManager.startingThreadCount,
@@ -65,13 +62,13 @@ final class SerializationManager(
     TimeUnit.SECONDS,
     new LinkedBlockingDeque[Runnable](),
     (runnable: Runnable) => {
-      env.createSystemThread(runnable)
+      compiler.context.createSystemThread(runnable)
     }
   )
 
   // Make sure it is started to avoid races with language shutdown with low job
   // count.
-  if (compiler.context.getEnvironment.isCreateThreadAllowed) {
+  if (compiler.context.isCreateThreadAllowed) {
     pool.prestartAllCoreThreads()
   }
 
@@ -155,7 +152,7 @@ final class SerializationManager(
 
     val task: Callable[Boolean] =
       doSerializeLibrary(libraryName, useGlobalCacheLocations)
-    if (compiler.context.getEnvironment.isCreateThreadAllowed) {
+    if (compiler.context.isCreateThreadAllowed) {
       isWaitingForSerialization.synchronized {
         val future = pool.submit(task)
         isWaitingForSerialization.put(libraryName.toQualifiedName, future)
@@ -213,9 +210,13 @@ final class SerializationManager(
     try {
       val result =
         try {
-          new ImportExportCache(libraryName)
-            .save(bindingsCache, compiler.context, useGlobalCacheLocations)
-            .isPresent
+          val cache = new ImportExportCache(libraryName)
+          val file = compiler.context.saveCache(
+            cache,
+            bindingsCache,
+            useGlobalCacheLocations
+          )
+          file.isPresent
         } catch {
           case e: NotSerializableException =>
             logger.log(
@@ -275,9 +276,13 @@ final class SerializationManager(
             .getPackageForLibraryJava(libraryName)
             .map(_.listSourcesJava())
         )
-      new SuggestionsCache(libraryName)
-        .save(cachedSuggestions, compiler.context, useGlobalCacheLocations)
-        .isPresent
+      val cache = new SuggestionsCache(libraryName)
+      val file = compiler.context.saveCache(
+        cache,
+        cachedSuggestions,
+        useGlobalCacheLocations
+      )
+      file.isPresent
     } catch {
       case e: NotSerializableException =>
         logger.log(
@@ -306,7 +311,8 @@ final class SerializationManager(
       while (isSerializingLibrary(libraryName)) {
         Thread.sleep(100)
       }
-      new SuggestionsCache(libraryName).load(compiler.context).toScala match {
+      val cache = new SuggestionsCache(libraryName)
+      compiler.context.loadCache(cache).toScala match {
         case result @ Some(_: SuggestionsCache.CachedSuggestions) =>
           logger.log(
             Level.FINE,
@@ -335,7 +341,8 @@ final class SerializationManager(
       while (isSerializingLibrary(libraryName)) {
         Thread.sleep(100)
       }
-      new ImportExportCache(libraryName).load(compiler.context).toScala match {
+      val cache = new ImportExportCache(libraryName)
+      compiler.context.loadCache(cache).toScala match {
         case result @ Some(_: ImportExportCache.CachedBindings) =>
           logger.log(
             Level.FINE,
@@ -376,7 +383,7 @@ final class SerializationManager(
         Thread.sleep(100)
       }
 
-      module.getCache.load(compiler.context).toScala match {
+      compiler.context.loadCache(module.getCache).toScala match {
         case Some(loadedCache) =>
           val relinkedIrChecks =
             loadedCache
@@ -582,10 +589,10 @@ final class SerializationManager(
         if (stage.isAtLeast(Module.CompilationStage.AFTER_STATIC_PASSES)) {
           Module.CompilationStage.AFTER_STATIC_PASSES
         } else stage
-      cache
-        .save(
+      compiler.context
+        .saveCache(
+          cache,
           new ModuleCache.CachedModule(ir, fixedStage, source),
-          compiler.context,
           useGlobalCacheLocations
         )
         .map(_ => true)

@@ -2,7 +2,7 @@ package org.enso.compiler
 
 import com.oracle.truffle.api.TruffleLogger
 import com.oracle.truffle.api.source.{Source, SourceSection}
-import org.enso.compiler.codegen.{IrToTruffle, RuntimeStubsGenerator}
+import org.enso.compiler.codegen.RuntimeStubsGenerator
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.CompilerStub
@@ -20,12 +20,10 @@ import org.enso.compiler.phase.{
 import org.enso.editions.LibraryName
 import org.enso.interpreter.node.{ExpressionNode => RuntimeExpression}
 import org.enso.interpreter.runtime.builtin.Builtins
-import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
-import org.enso.interpreter.runtime.{EnsoContext, Module}
+import org.enso.interpreter.runtime.scope.ModuleScope
+import org.enso.interpreter.runtime.Module
 import org.enso.pkg.QualifiedName
-import org.enso.polyglot.{LanguageInfo, RuntimeOptions}
-//import org.enso.syntax.text.Parser
-//import org.enso.syntax.text.Parser.IDMap
+import org.enso.polyglot.LanguageInfo
 import org.enso.syntax2.Tree
 
 import java.io.{PrintStream, StringReader}
@@ -47,7 +45,7 @@ import scala.jdk.OptionConverters._
   * @param context the language context
   */
 class Compiler(
-  val context: EnsoContext,
+  val context: CompilerContext,
   val builtins: Builtins,
   val packageRepository: PackageRepository,
   config: CompilerConfig
@@ -58,12 +56,9 @@ class Compiler(
   private val importResolver: ImportResolver   = new ImportResolver(this)
   private val stubsGenerator: RuntimeStubsGenerator =
     new RuntimeStubsGenerator(builtins)
-  private val irCachingEnabled = !context.isIrCachingDisabled
-  private val useGlobalCacheLocations = context.getEnvironment.getOptions.get(
-    RuntimeOptions.USE_GLOBAL_IR_CACHE_LOCATION_KEY
-  )
-  private val isInteractiveMode =
-    context.getEnvironment.getOptions.get(RuntimeOptions.INTERACTIVE_MODE_KEY)
+  private val irCachingEnabled        = !context.isIrCachingDisabled
+  private val useGlobalCacheLocations = context.isUseGlobalCacheLocations
+  private val isInteractiveMode       = context.isInteractiveMode()
   private val serializationManager: SerializationManager =
     new SerializationManager(this)
   private val logger: TruffleLogger = context.getLogger(getClass)
@@ -82,7 +77,7 @@ class Compiler(
       TimeUnit.SECONDS,
       new LinkedBlockingDeque[Runnable](),
       (runnable: Runnable) => {
-        context.getEnvironment.createThread(runnable)
+        context.createThread(runnable)
       }
     )
   } else null
@@ -146,6 +141,10 @@ class Compiler(
   def getSerializationManager: SerializationManager =
     serializationManager
 
+  /** @return the package repository instance. */
+  def getPackageRepository(): PackageRepository =
+    context.getPackageRepository
+
   /** Processes the provided language sources, registering any bindings in the
     * given scope.
     *
@@ -173,9 +172,7 @@ class Compiler(
     shouldCompileDependencies: Boolean,
     useGlobalCacheLocations: Boolean
   ): Future[Boolean] = {
-    val packageRepository = context.getPackageRepository
-
-    packageRepository.getMainProjectPackage match {
+    getPackageRepository().getMainProjectPackage match {
       case None =>
         logger.log(
           Level.SEVERE,
@@ -291,7 +288,7 @@ class Compiler(
             importedModulesLoadedFromSource.take(10).mkString("", ",", "...")
           )
         )
-        module.getCache.invalidate(context)
+        context.invalidateModuleCache(module)
         parseModule(module)
         runImportsAndExportsResolution(module, generateCode)
       } else {
@@ -437,9 +434,9 @@ class Compiler(
   private def isModuleInRootPackage(module: Module): Boolean = {
     if (!module.isInteractive) {
       val pkg = PackageRepositoryUtils
-        .getPackageOf(context.getPackageRepository, module.getSourceFile)
+        .getPackageOf(getPackageRepository(), module.getSourceFile)
         .toScala
-      pkg.contains(context.getPackageRepository.getMainProjectPackage.get)
+      pkg.contains(getPackageRepository().getMainProjectPackage.get)
     } else false
   }
 
@@ -1212,7 +1209,7 @@ class Compiler(
     source: Source,
     scope: ModuleScope
   ): Unit = {
-    new IrToTruffle(context, source, scope, config).run(ir)
+    context.truffleRunCodegen(source, scope, config, ir)
   }
 
   /** Generates code for the truffle interpreter in an inline context.
@@ -1228,16 +1225,7 @@ class Compiler(
     source: Source,
     inlineContext: InlineContext
   ): RuntimeExpression = {
-    new IrToTruffle(
-      context,
-      source,
-      inlineContext.module.getScope,
-      config
-    ).runInline(
-      ir,
-      inlineContext.localScope.getOrElse(LocalScope.root),
-      "<inline_source>"
-    )
+    context.truffleRunInline(source, inlineContext, config, ir);
   }
 
   /** Performs shutdown actions for the compiler.
@@ -1303,4 +1291,9 @@ object Compiler {
 
   /** The thread keep-alive time in seconds. */
   val threadKeepalive: Long = 2
+
+  /** Wraps Enso context into appripriate compiler context */
+  def createContext(
+    ctx: org.enso.interpreter.runtime.EnsoContext
+  ): CompilerContext = new TruffleCompilerContext(ctx)
 }
