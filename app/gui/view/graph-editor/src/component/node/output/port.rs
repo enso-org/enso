@@ -7,7 +7,6 @@ use crate::application::tooltip;
 use crate::application::tooltip::Placement;
 use crate::component::node;
 use crate::component::type_coloring;
-use crate::view;
 use crate::Type;
 
 use enso_frp as frp;
@@ -22,7 +21,6 @@ use ensogl::display::shape::PixelDistance;
 use ensogl::display::shape::Pixels;
 use ensogl::display::shape::Rect;
 use ensogl::display::shape::StyleWatch;
-use ensogl::display::shape::StyleWatchFrp;
 use ensogl::display::shape::Var;
 use ensogl::gui::text;
 use ensogl::Animation;
@@ -432,7 +430,6 @@ ensogl::define_endpoints! {
         set_usage_type            (Option<Type>),
         set_type_label_visibility (bool),
         set_size                  (Vector2),
-        set_view_mode             (view::Mode),
     }
 
     Output {
@@ -463,7 +460,6 @@ impl Model {
         &mut self,
         app: &Application,
         styles: &StyleWatch,
-        styles_frp: &StyleWatchFrp,
         port_index: usize,
         port_count: usize,
     ) -> (display::object::Instance, Frp) {
@@ -493,17 +489,11 @@ impl Model {
         self.port_count = max(port_count, 1);
         self.port_index = port_index;
 
-        self.init_frp(&shape, &type_label, styles, styles_frp);
+        self.init_frp(&shape, &type_label, styles);
         (display_object, self.frp.as_ref().unwrap().clone_ref())
     }
 
-    fn init_frp(
-        &mut self,
-        shape: &PortShapeView,
-        type_label: &text::Text,
-        styles: &StyleWatch,
-        styles_frp: &StyleWatchFrp,
-    ) {
+    fn init_frp(&mut self, shape: &PortShapeView, type_label: &text::Text, styles: &StyleWatch) {
         let frp = Frp::new();
         let network = &frp.network;
         let opacity = Animation::<f32>::new(network);
@@ -560,14 +550,8 @@ impl Model {
                 |usage_tp,def_tp| usage_tp.clone().or_else(|| def_tp.clone())
             );
 
-            normal_color        <- frp.tp.map(f!([styles](t)
+            color.target <+ frp.tp.map(f!([styles](t)
                 type_coloring::compute_for_selection(t.as_ref(),&styles)));
-            init_color          <- source::<()>();
-            let profiling_color  = styles_frp.get_color(ensogl_hardcoded_theme::code::types::any::selection);
-            profiling_color     <- all_with(&profiling_color,&init_color,|c,_|color::Lcha::from(c));
-            in_profiling_mode   <- frp.set_view_mode.map(|mode| mode.is_profiling());
-            color_tgt           <- in_profiling_mode.switch(&normal_color,&profiling_color);
-            color.target        <+ color_tgt;
             eval color.value ((t) shape.set_color(t.into()));
 
             full_type_timer.start <+ frp.on_hover.on_true();
@@ -579,7 +563,6 @@ impl Model {
                 })
             });
         }
-        init_color.emit(());
 
         if SHOW_TYPE_AS_LABEL {
             frp::extend! { network

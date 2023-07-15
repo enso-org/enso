@@ -436,7 +436,9 @@ class Compiler(
 
   private def isModuleInRootPackage(module: Module): Boolean = {
     if (!module.isInteractive) {
-      val pkg = context.getPackageOf(module.getSourceFile).toScala
+      val pkg = PackageRepositoryUtils
+        .getPackageOf(context.getPackageRepository, module.getSourceFile)
+        .toScala
       pkg.contains(context.getPackageRepository.getMainProjectPackage.get)
     } else false
   }
@@ -550,7 +552,7 @@ class Compiler(
       "Parsing module [{0}].",
       module.getName
     )
-    module.ensureScopeExists(context)
+    module.ensureScopeExists()
     module.getScope.reset()
 
     if (irCachingEnabled && !module.isInteractive) {
@@ -583,7 +585,7 @@ class Compiler(
       "Loading module [{0}] from source.",
       module.getName
     )
-    module.ensureScopeExists(context)
+    module.ensureScopeExists()
     module.getScope.reset()
 
     val moduleContext = ModuleContext(

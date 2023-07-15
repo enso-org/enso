@@ -348,8 +348,7 @@ object PackageRepository {
             Module.synthetic(
               qName,
               pkg,
-              Rope(source),
-              context
+              Rope(source)
             ),
             modulesWithSources.map(_._1)
           )

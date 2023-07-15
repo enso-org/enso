@@ -173,15 +173,11 @@ public final class Module implements TruffleObject {
    *     belong to a package.
    */
   private Module(
-      QualifiedName name,
-      Package<TruffleFile> pkg,
-      boolean synthetic,
-      Rope literalSource,
-      EnsoContext context) {
+      QualifiedName name, Package<TruffleFile> pkg, boolean synthetic, Rope literalSource) {
     this.sources =
         literalSource == null ? ModuleSources.NONE : ModuleSources.NONE.newWith(literalSource);
     this.name = name;
-    this.scope = new ModuleScope(this, context);
+    this.scope = new ModuleScope(this);
     this.pkg = pkg;
     this.compilationStage = synthetic ? CompilationStage.INITIAL : CompilationStage.AFTER_CODEGEN;
     this.cache = new ModuleCache(this);
@@ -198,8 +194,8 @@ public final class Module implements TruffleObject {
    *     belong to a package.
    * @return the module with empty scope.
    */
-  public static Module empty(QualifiedName name, Package<TruffleFile> pkg, EnsoContext context) {
-    return new Module(name, pkg, false, null, context);
+  public static Module empty(QualifiedName name, Package<TruffleFile> pkg) {
+    return new Module(name, pkg, false, null);
   }
 
   /**
@@ -211,9 +207,8 @@ public final class Module implements TruffleObject {
    * @param source source of the module declaring exports of the desired modules
    * @return the synthetic module
    */
-  public static Module synthetic(
-      QualifiedName name, Package<TruffleFile> pkg, Rope source, EnsoContext context) {
-    return new Module(name, pkg, true, source, context);
+  public static Module synthetic(QualifiedName name, Package<TruffleFile> pkg, Rope source) {
+    return new Module(name, pkg, true, source);
   }
 
   /** Clears any literal source set for this module. */
@@ -333,7 +328,7 @@ public final class Module implements TruffleObject {
    * @return the scope defined by this module
    */
   public ModuleScope compileScope(EnsoContext context) {
-    ensureScopeExists(context);
+    ensureScopeExists();
     if (!compilationStage.isAtLeast(CompilationStage.AFTER_CODEGEN)) {
       try {
         compile(context);
@@ -344,9 +339,9 @@ public final class Module implements TruffleObject {
   }
 
   /** Create scope if it does not exist. */
-  public void ensureScopeExists(EnsoContext context) {
+  public void ensureScopeExists() {
     if (scope == null) {
-      scope = new ModuleScope(this, context);
+      scope = new ModuleScope(this);
       compilationStage = CompilationStage.INITIAL;
     }
   }
@@ -404,7 +399,7 @@ public final class Module implements TruffleObject {
   }
 
   private void compile(EnsoContext context) throws IOException {
-    ensureScopeExists(context);
+    ensureScopeExists();
     Source source = getSource();
     if (source == null) return;
     scope.reset();
