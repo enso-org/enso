@@ -100,8 +100,6 @@ impl DummyTypeGenerator {
 // ========================
 
 fn init(app: &Application) {
-    let _bg = app.display.default_scene.style_sheet.var(theme::application::background);
-
     let world = &app.display;
     let scene = &world.default_scene;
 

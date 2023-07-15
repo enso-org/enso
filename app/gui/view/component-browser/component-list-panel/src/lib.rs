@@ -56,6 +56,7 @@ use ensogl_core::data::color;
 use ensogl_core::define_endpoints_2;
 use ensogl_core::display;
 use ensogl_core::display::object::ObjectOps;
+use ensogl_core::display::shape::compound::rectangle::Rectangle;
 use ensogl_core::display::shape::StyleWatchFrp;
 use ensogl_derive_theme::FromTheme;
 use ensogl_grid_view as grid_view;
@@ -131,6 +132,10 @@ impl AllStyles {
         let width = self.grid.width + self.navigator.width;
         let height = self.grid.height + self.panel.menu_height;
         Vector2::new(width, height)
+    }
+
+    fn grid_size(&self) -> Vector2 {
+        Vector2(self.grid.width, self.grid.height)
     }
 
     fn background_sprite_size(&self) -> Vector2 {
@@ -222,7 +227,8 @@ pub mod background {
 #[derive(Clone, CloneRef, Debug)]
 pub struct Model {
     display_object:        display::object::Instance,
-    background:            background::View,
+    grid_adapter:          display::object::Instance,
+    background:            Rectangle,
     pub grid:              grid::View,
     pub section_navigator: SectionNavigator,
     pub breadcrumbs:       breadcrumbs::Breadcrumbs,
@@ -232,15 +238,18 @@ impl Model {
     fn new(app: &Application) -> Self {
         let scene = &app.display.default_scene;
         let display_object = display::object::Instance::new();
+        let grid_adapter = display::object::Instance::new();
 
-        let background = background::View::new();
+        let background = Rectangle::new();
         display_object.add_child(&background);
+        background.use_auto_layout().set_column_flow();
 
         let grid = app.new_view::<grid::View>();
-        display_object.add_child(&grid);
+        // background.add_child(&grid_adapter);
+        grid_adapter.add_child(&grid);
 
         let section_navigator = SectionNavigator::new(app);
-        display_object.add_child(&section_navigator);
+        background.add_child(&section_navigator);
 
         let breadcrumbs = app.new_view::<breadcrumbs::Breadcrumbs>();
         breadcrumbs.set_base_layer(&app.display.default_scene.layers.node_searcher);
@@ -252,7 +261,7 @@ impl Model {
             }
         }
 
-        Self { display_object, background, grid, section_navigator, breadcrumbs }
+        Self { display_object, background, grid, grid_adapter, section_navigator, breadcrumbs }
     }
 
     fn set_initial_breadcrumbs(&self) {
@@ -262,12 +271,14 @@ impl Model {
     }
 
     fn update_style(&self, style: &AllStyles) {
-        self.background.bg_color.set(style.panel.background_color.into());
+        // self.background.set_color(style.panel.background_color.into());
+        self.background.set_color(color::Rgba::transparent());
         self.background.set_size(style.background_sprite_size());
 
         self.breadcrumbs.set_xy(style.breadcrumbs_pos());
         self.breadcrumbs.frp().set_size(style.breadcrumbs_size());
-        self.grid.set_xy(style.grid_pos());
+        self.grid_adapter.set_size(style.grid_size());
+        self.grid.set_y(style.grid_size().y);
     }
 
     // We need to know if the mouse is over the panel, but cannot do it via a shape, as

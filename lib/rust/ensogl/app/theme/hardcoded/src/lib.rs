@@ -180,9 +180,7 @@ impl Default for Theme {
 
 define_themes! { [light:0, dark:1]
     application {
-        // Original RGB values (for reference after fixing color-conversion issues)
-        // light: rgb(231,235,238), old-dark: Lcha(0.13,0.014,0.18,1.0), dark: rgb(32,34,36)
-        background = Rgb::from_base_255(231.0, 235.0, 238.0) , Rgba(0.125,0.133,0.141,1.0);
+        background = Rgb::from_base_255(229.0, 207.0, 203.0) , Rgba(0.125,0.133,0.141,1.0);
         tooltip {
             show_delay_duration_ms = 500.0, 500.0;
             hide_delay_duration_ms = 0.0, 0.0;
