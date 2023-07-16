@@ -127,7 +127,7 @@ class Compiler(
         builtins.getModule.setHasCrossModuleLinks(true)
       }
 
-      if (irCachingEnabled && !builtins.getModule.wasLoadedFromCache()) {
+      if (irCachingEnabled && !context.wasLoadedFromCache(builtins.getModule)) {
         serializationManager.serializeModule(
           builtins.getModule,
           useGlobalCacheLocations = true // Builtins can't have a local cache.
@@ -269,21 +269,21 @@ class Compiler(
     var requiredModules = modules.flatMap { module =>
       val importedModules = runImportsAndExportsResolution(module, generateCode)
       val isLoadedFromSource =
-        (m: Module) => !m.wasLoadedFromCache() && !m.isSynthetic
+        (m: Module) => !context.wasLoadedFromCache(m) && !context.isSynthetic(m)
       if (
         shouldCompileDependencies &&
-        module.wasLoadedFromCache() &&
+        context.wasLoadedFromCache(module) &&
         importedModules.exists(isLoadedFromSource)
       ) {
         val importedModulesLoadedFromSource = importedModules
           .filter(isLoadedFromSource)
-          .map(_.getName)
+          .map(context.getModuleName(_))
         context.log(
           Compiler.defaultLogLevel,
           "{0} imported module caches were invalided, forcing invalidation of {1}. [{2}]",
           Array(
             importedModulesLoadedFromSource.length,
-            module.getName.toString,
+            context.getModuleName(module).toString,
             importedModulesLoadedFromSource.take(10).mkString("", ",", "...")
           )
         )
@@ -298,22 +298,25 @@ class Compiler(
     var hasInvalidModuleRelink = false
     if (irCachingEnabled) {
       requiredModules.foreach { module =>
-        if (!module.hasCrossModuleLinks) {
+        if (!context.hasCrossModuleLinks(module)) {
           val flags =
-            module.getIr.preorder.map(_.passData.restoreFromSerialization(this))
+            context
+              .getIr(module)
+              .preorder
+              .map(_.passData.restoreFromSerialization(this))
 
           if (!flags.contains(false)) {
             context.log(
               Compiler.defaultLogLevel,
               "Restored links (late phase) for module [{0}].",
-              module.getName
+              context.getModuleName(module)
             )
           } else {
             hasInvalidModuleRelink = true
             context.log(
               Compiler.defaultLogLevel,
               "Failed to restore links (late phase) for module [{0}].",
-              module.getName
+              context.getModuleName(module)
             )
             uncachedParseModule(module, isGenDocs = false)
           }
@@ -334,9 +337,11 @@ class Compiler(
 
     requiredModules.foreach { module =>
       if (
-        !module.getCompilationStage.isAtLeast(
-          CompilationStage.AFTER_GLOBAL_TYPES
-        )
+        !context
+          .getCompilationStage(module)
+          .isAtLeast(
+            CompilationStage.AFTER_GLOBAL_TYPES
+          )
       ) {
 
         val moduleContext = ModuleContext(
@@ -344,7 +349,8 @@ class Compiler(
           freshNameSupply = Some(freshNameSupply),
           compilerConfig  = config
         )
-        val compilerOutput = runGlobalTypingPasses(module.getIr, moduleContext)
+        val compilerOutput =
+          runGlobalTypingPasses(context.getIr(module), moduleContext)
         module.unsafeSetIr(compilerOutput)
         module.unsafeSetCompilationStage(
           CompilationStage.AFTER_GLOBAL_TYPES
@@ -353,9 +359,11 @@ class Compiler(
     }
     requiredModules.foreach { module =>
       if (
-        !module.getCompilationStage.isAtLeast(
-          CompilationStage.AFTER_STATIC_PASSES
-        )
+        !context
+          .getCompilationStage(module)
+          .isAtLeast(
+            CompilationStage.AFTER_STATIC_PASSES
+          )
       ) {
 
         val moduleContext = ModuleContext(
@@ -364,7 +372,8 @@ class Compiler(
           compilerConfig  = config,
           pkgRepo         = Some(packageRepository)
         )
-        val compilerOutput = runMethodBodyPasses(module.getIr, moduleContext)
+        val compilerOutput =
+          runMethodBodyPasses(context.getIr(module), moduleContext)
         module.unsafeSetIr(compilerOutput)
         module.unsafeSetCompilationStage(
           CompilationStage.AFTER_STATIC_PASSES
@@ -376,9 +385,11 @@ class Compiler(
 
     requiredModules.foreach { module =>
       if (
-        !module.getCompilationStage.isAtLeast(
-          CompilationStage.AFTER_RUNTIME_STUBS
-        )
+        !context
+          .getCompilationStage(module)
+          .isAtLeast(
+            CompilationStage.AFTER_RUNTIME_STUBS
+          )
       ) {
         stubsGenerator.run(module)
         module.unsafeSetCompilationStage(
@@ -388,28 +399,30 @@ class Compiler(
     }
     requiredModules.foreach { module =>
       if (
-        !module.getCompilationStage.isAtLeast(
-          CompilationStage.AFTER_CODEGEN
-        )
+        !context
+          .getCompilationStage(module)
+          .isAtLeast(
+            CompilationStage.AFTER_CODEGEN
+          )
       ) {
 
         if (generateCode) {
           context.log(
             Compiler.defaultLogLevel,
             "Generating code for module [{0}].",
-            module.getName
+            context.getModuleName(module)
           )
 
-          truffleCodegen(module.getIr, module.getSource, module.getScope)
+          context.truffleRunCodegen(module, config)
         }
         module.unsafeSetCompilationStage(CompilationStage.AFTER_CODEGEN)
 
         if (shouldCompileDependencies || isModuleInRootPackage(module)) {
           val shouldStoreCache =
-            irCachingEnabled && !module.wasLoadedFromCache()
+            irCachingEnabled && !context.wasLoadedFromCache(module)
           if (shouldStoreCache && !hasErrors(module) && !module.isInteractive) {
             if (isInteractiveMode) {
-              context.notifySerializeModule(module.getName)
+              context.notifySerializeModule(context.getModuleName(module))
             } else {
               serializationManager.serializeModule(
                 module,
@@ -421,7 +434,7 @@ class Compiler(
           context.log(
             Compiler.defaultLogLevel,
             "Skipping serialization for [{0}].",
-            module.getName
+            context.getModuleName(module)
           )
         }
       }
@@ -431,7 +444,7 @@ class Compiler(
   }
 
   private def isModuleInRootPackage(module: Module): Boolean = {
-    if (!module.isInteractive) {
+    if (!context.isInteractive(module)) {
       val pkg = PackageRepositoryUtils
         .getPackageOf(getPackageRepository(), module.getSourceFile)
         .toScala
@@ -479,7 +492,7 @@ class Compiler(
 
   private def ensureParsedAndAnalyzed(module: Module): Unit = {
     ensureParsed(module)
-    if (module.isSynthetic) {
+    if (context.isSynthetic(module)) {
       // Synthetic modules need to be import-analyzed
       // i.e. we need to fill in resolved{Imports/Exports} and exportedSymbols in bindings
       // because we do not generate (and deserialize) IR for them
@@ -491,7 +504,7 @@ class Compiler(
             .map { concreteBindings =>
               concreteBindings
             }
-          val ir = module.getIr
+          val ir = context.getIr(module)
           val currentLocal = ir.unsafeGetMetadata(
             BindingAnalysis,
             "Synthetic parsed module missing bindings"
@@ -520,7 +533,7 @@ class Compiler(
     */
   def gatherImportStatements(module: Module): Array[String] = {
     ensureParsed(module)
-    val importedModules = module.getIr.imports.flatMap {
+    val importedModules = context.getIr(module).imports.flatMap {
       case imp: IR.Module.Scope.Import.Module =>
         imp.name.parts.take(2).map(_.name) match {
           case List(namespace, name) => List(LibraryName(namespace, name))
@@ -533,7 +546,8 @@ class Compiler(
         Nil
       case other =>
         throw new CompilerError(
-          s"Unexpected import type after processing ${module.getName}: [$other]."
+          s"Unexpected import type after processing ${context
+            .getModuleName(module)}: [$other]."
         )
     }
     importedModules.distinct.map(_.qualifiedName).toArray
@@ -546,12 +560,11 @@ class Compiler(
     context.log(
       Compiler.defaultLogLevel,
       "Parsing module [{0}].",
-      module.getName
+      context.getModuleName(module)
     )
-    module.ensureScopeExists()
-    module.getScope.reset()
+    context.resetScope(module)
 
-    if (irCachingEnabled && !module.isInteractive) {
+    if (irCachingEnabled && !context.isInteractive(module)) {
       serializationManager.deserialize(module) match {
         case Some(_) => return
         case _       =>
@@ -567,7 +580,7 @@ class Compiler(
     * @return module's bindings, if available in libraries' bindings cache
     */
   def importExportBindings(module: Module): Option[BindingsMap] = {
-    if (irCachingEnabled && !module.isInteractive) {
+    if (irCachingEnabled && !context.isInteractive(module)) {
       val libraryName = Option(module.getPackage).map(_.libraryName)
       libraryName
         .flatMap(packageRepository.getLibraryBindings(_, serializationManager))
@@ -579,10 +592,9 @@ class Compiler(
     context.log(
       Compiler.defaultLogLevel,
       "Loading module [{0}] from source.",
-      module.getName
+      context.getModuleName(module)
     )
-    module.ensureScopeExists()
-    module.getScope.reset()
+    context.resetScope(module)
 
     val moduleContext = ModuleContext(
       module           = module,
@@ -591,12 +603,12 @@ class Compiler(
       isGeneratingDocs = isGenDocs
     )
 
-    val src  = module.getSource
-    val tree = ensoCompiler.parse(src.getCharacters)
+    val src  = context.getCharacters(module)
+    val tree = ensoCompiler.parse(src)
     val expr = ensoCompiler.generateIR(tree)
 
     val exprWithModuleExports =
-      if (module.isSynthetic)
+      if (context.isSynthetic(module))
         expr
       else
         injectSyntheticModuleExports(expr, module.getDirectModulesRefs)
@@ -636,9 +648,11 @@ class Compiler(
     */
   def ensureParsed(module: Module): Unit = {
     if (
-      !module.getCompilationStage.isAtLeast(
-        CompilationStage.AFTER_PARSING
-      )
+      !context
+        .getCompilationStage(module)
+        .isAtLeast(
+          CompilationStage.AFTER_PARSING
+        )
     ) {
       parseModule(module)
     }
@@ -899,7 +913,7 @@ class Compiler(
   def gatherDiagnostics(module: Module): List[IR.Diagnostic] = {
     GatherDiagnostics
       .runModule(
-        module.getIr,
+        context.getIr(module),
         ModuleContext(module, compilerConfig = config)
       )
       .unsafeGetMetadata(

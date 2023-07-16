@@ -3,6 +3,7 @@ package org.enso.compiler;
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.source.Source;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -17,6 +18,7 @@ import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.scope.TopLevelScope;
 import org.enso.pkg.QualifiedName;
+import org.enso.polyglot.CompilationStage;
 import org.enso.polyglot.RuntimeOptions;
 
 final class TruffleCompilerContext implements CompilerContext {
@@ -99,6 +101,11 @@ final class TruffleCompilerContext implements CompilerContext {
   }
 
   @Override
+  public void truffleRunCodegen(Module module, CompilerConfig config) throws IOException {
+    truffleRunCodegen(module.getSource(), module.getScope(), config, module.getIr());
+  }
+
+  @Override
   public void truffleRunCodegen(
       Source source, ModuleScope scope, CompilerConfig config, IR.Module ir) {
     new IrToTruffle(context, source, scope, config).run(ir);
@@ -116,6 +123,51 @@ final class TruffleCompilerContext implements CompilerContext {
   }
 
   // module related
+  @Override
+  public QualifiedName getModuleName(Module module) {
+    return module.getName();
+  }
+
+  @Override
+  public CharSequence getCharacters(Module module) throws IOException {
+    return module.getSource().getCharacters();
+  }
+
+  @Override
+  public void resetScope(Module module) {
+    module.ensureScopeExists();
+    module.getScope().reset();
+  }
+
+  @Override
+  public boolean isSynthetic(Module module) {
+    return module.isSynthetic();
+  }
+
+  @Override
+  public boolean isInteractive(Module module) {
+    return module.isInteractive();
+  }
+
+  @Override
+  public boolean wasLoadedFromCache(Module module) {
+    return module.wasLoadedFromCache();
+  }
+
+  @Override
+  public boolean hasCrossModuleLinks(Module module) {
+    return module.hasCrossModuleLinks();
+  }
+
+  @Override
+  public IR.Module getIr(Module module) {
+    return module.getIr();
+  }
+
+  @Override
+  public CompilationStage getCompilationStage(Module module) {
+    return module.getCompilationStage();
+  }
 
   @Override
   public void invalidateModuleCache(Module module) {
