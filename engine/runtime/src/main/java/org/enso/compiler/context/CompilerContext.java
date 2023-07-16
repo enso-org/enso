@@ -1,4 +1,4 @@
-package org.enso.compiler;
+package org.enso.compiler.context;
 
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.source.Source;
@@ -7,7 +7,9 @@ import java.io.PrintStream;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.logging.Level;
-import org.enso.compiler.context.InlineContext;
+import org.enso.compiler.Cache;
+import org.enso.compiler.Compiler;
+import org.enso.compiler.PackageRepository;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.data.CompilerConfig;
 import org.enso.interpreter.node.ExpressionNode;
@@ -17,6 +19,9 @@ import org.enso.interpreter.runtime.scope.TopLevelScope;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.CompilationStage;
 
+/**
+ * Interface that encapsulate all services {@link Compiler} needs from Truffle or other environment.
+ */
 public interface CompilerContext {
   boolean isIrCachingDisabled();
 

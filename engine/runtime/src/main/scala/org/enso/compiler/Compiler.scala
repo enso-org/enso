@@ -2,7 +2,12 @@ package org.enso.compiler
 
 import com.oracle.truffle.api.source.{Source, SourceSection}
 import org.enso.compiler.codegen.RuntimeStubsGenerator
-import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
+import org.enso.compiler.context.{
+  CompilerContext,
+  FreshNameSupply,
+  InlineContext,
+  ModuleContext
+}
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.CompilerStub
 import org.enso.compiler.core.IR

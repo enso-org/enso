@@ -1,9 +1,12 @@
 package org.enso.compiler.phase
 
 import org.enso.compiler.core.EnsoParser
-import org.enso.compiler.CompilerContext
 import org.enso.compiler.Passes
-import org.enso.compiler.context.{FreshNameSupply, ModuleContext}
+import org.enso.compiler.context.{
+  CompilerContext,
+  FreshNameSupply,
+  ModuleContext
+}
 import org.enso.compiler.data.CompilerConfig
 import org.enso.interpreter.runtime.Module
 import org.enso.polyglot.CompilationStage
