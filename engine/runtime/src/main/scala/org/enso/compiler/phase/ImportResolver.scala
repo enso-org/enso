@@ -42,14 +42,16 @@ class ImportResolver(compiler: Compiler) {
   ): (List[Module], List[Module]) = {
 
     def analyzeModule(current: Module): List[Module] = {
-      val ir = current.getIr
+      val context = compiler.context
+      val ir      = context.getIr(current)
       val currentLocal = ir.unsafeGetMetadata(
         BindingAnalysis,
         "Non-parsed module used in ImportResolver"
       )
       // put the list of resolved imports in the module metadata
       if (
-        current.getCompilationStage
+        context
+          .getCompilationStage(current)
           .isBefore(
             CompilationStage.AFTER_IMPORT_RESOLUTION
           ) || !current.hasCrossModuleLinks
@@ -64,12 +66,17 @@ class ImportResolver(compiler: Compiler) {
           }
         currentLocal.resolvedImports = importedModules.flatMap(_._2)
         val newIr = ir.copy(imports = importedModules.map(_._1))
-        current.unsafeSetIr(newIr)
-        if (!current.wasLoadedFromCache()) {
-          current.unsafeSetCompilationStage(
-            CompilationStage.AFTER_IMPORT_RESOLUTION
-          )
-        }
+        context.updateModule(
+          current,
+          { u =>
+            u.ir(newIr)
+            if (!context.wasLoadedFromCache(current)) {
+              u.compilationStage(
+                CompilationStage.AFTER_IMPORT_RESOLUTION
+              )
+            }
+          }
+        )
       }
       currentLocal.resolvedImports
         .map(_.target.module.unsafeAsModule())

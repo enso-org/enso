@@ -17,7 +17,7 @@ import org.enso.interpreter.runtime.scope.TopLevelScope;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.CompilationStage;
 
-interface CompilerContext {
+public interface CompilerContext {
   boolean isIrCachingDisabled();
 
   boolean isUseGlobalCacheLocations();

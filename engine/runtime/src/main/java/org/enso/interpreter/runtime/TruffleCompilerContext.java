@@ -1,4 +1,4 @@
-package org.enso.compiler;
+package org.enso.interpreter.runtime;
 
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLogger;
@@ -8,13 +8,16 @@ import java.io.PrintStream;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.logging.Level;
+import org.enso.compiler.Cache;
+import org.enso.compiler.Compiler;
+import org.enso.compiler.CompilerContext;
+import org.enso.compiler.PackageRepository;
+import org.enso.compiler.SerializationManager;
 import org.enso.compiler.codegen.IrToTruffle;
 import org.enso.compiler.context.InlineContext;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.data.CompilerConfig;
 import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.scope.TopLevelScope;

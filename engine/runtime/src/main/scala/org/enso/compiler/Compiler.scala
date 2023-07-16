@@ -121,13 +121,18 @@ class Compiler(
               }
             )
           case _ =>
-            builtins.initializeBuiltinsIr(freshNameSupply, passes)
-            builtins.getModule.setHasCrossModuleLinks(true)
-
+            builtins.initializeBuiltinsIr(context, freshNameSupply, passes)
+            context.updateModule(
+              builtins.getModule,
+              u => u.hasCrossModuleLinks(true)
+            )
         }
       } else {
-        builtins.initializeBuiltinsIr(freshNameSupply, passes)
-        builtins.getModule.setHasCrossModuleLinks(true)
+        builtins.initializeBuiltinsIr(context, freshNameSupply, passes)
+        context.updateModule(
+          builtins.getModule,
+          u => u.hasCrossModuleLinks(true)
+        )
       }
 
       if (irCachingEnabled && !context.wasLoadedFromCache(builtins.getModule)) {
@@ -1327,9 +1332,4 @@ object Compiler {
 
   /** The thread keep-alive time in seconds. */
   val threadKeepalive: Long = 2
-
-  /** Wraps Enso context into appripriate compiler context */
-  def createContext(
-    ctx: org.enso.interpreter.runtime.EnsoContext
-  ): CompilerContext = new TruffleCompilerContext(ctx)
 }

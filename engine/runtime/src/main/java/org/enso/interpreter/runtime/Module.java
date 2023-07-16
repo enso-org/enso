@@ -409,7 +409,7 @@ public final class Module implements TruffleObject {
    *
    * @param compilationStage the new compilation stage for the module.
    */
-  public void unsafeSetCompilationStage(CompilationStage compilationStage) {
+  void unsafeSetCompilationStage(CompilationStage compilationStage) {
     this.compilationStage = compilationStage;
   }
 
@@ -422,7 +422,7 @@ public final class Module implements TruffleObject {
    *
    * @param ir the new IR for the module.
    */
-  public void unsafeSetIr(IR.Module ir) {
+  void unsafeSetIr(IR.Module ir) {
     this.ir = ir;
     this.uuidsMap = null;
   }
@@ -495,7 +495,7 @@ public final class Module implements TruffleObject {
   }
 
   /** @param wasLoadedFromCache whether or not the module was loaded from the cache */
-  public void setLoadedFromCache(boolean wasLoadedFromCache) {
+  void setLoadedFromCache(boolean wasLoadedFromCache) {
     this.wasLoadedFromCache = wasLoadedFromCache;
   }
 
@@ -508,7 +508,7 @@ public final class Module implements TruffleObject {
   }
 
   /** @param hasCrossModuleLinks whether or not the module has cross-module links restored */
-  public void setHasCrossModuleLinks(boolean hasCrossModuleLinks) {
+  void setHasCrossModuleLinks(boolean hasCrossModuleLinks) {
     this.hasCrossModuleLinks = hasCrossModuleLinks;
   }
 

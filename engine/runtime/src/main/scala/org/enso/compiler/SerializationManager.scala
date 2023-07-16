@@ -386,9 +386,14 @@ final class SerializationManager(
               .moduleIR()
               .preorder
               .map(_.passData.restoreFromSerialization(this.compiler))
-          module.unsafeSetIr(loadedCache.moduleIR())
-          module.unsafeSetCompilationStage(loadedCache.compilationStage())
-          module.setLoadedFromCache(true)
+          compiler.context.updateModule(
+            module,
+            { u =>
+              u.ir(loadedCache.moduleIR())
+              u.compilationStage(loadedCache.compilationStage())
+              u.loadedFromCache(true)
+            }
+          )
           compiler.context.logSerializationManager(
             debugLogLevel,
             "Restored IR from cache for module [{0}] at stage [{1}].",
@@ -396,7 +401,7 @@ final class SerializationManager(
           )
 
           if (!relinkedIrChecks.contains(false)) {
-            module.setHasCrossModuleLinks(true)
+            compiler.context.updateModule(module, _.hasCrossModuleLinks(true))
             compiler.context.logSerializationManager(
               debugLogLevel,
               "Restored links (early phase) in module [{0}].",
@@ -409,7 +414,7 @@ final class SerializationManager(
               "Could not restore links (early phase) in module [{0}].",
               module.getName
             )
-            module.setHasCrossModuleLinks(false)
+            compiler.context.updateModule(module, _.hasCrossModuleLinks(false))
             Some(false)
           }
         case None =>

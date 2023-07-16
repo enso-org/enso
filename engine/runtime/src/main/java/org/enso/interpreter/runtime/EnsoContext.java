@@ -167,7 +167,7 @@ public class EnsoContext {
             notificationHandler);
     topScope = new TopLevelScope(builtins, packageRepository);
     this.compiler =
-        new Compiler(Compiler.createContext(this), builtins, packageRepository, compilerConfig);
+        new Compiler(new TruffleCompilerContext(this), builtins, packageRepository, compilerConfig);
 
     projectPackage.ifPresent(
         pkg -> packageRepository.registerMainProjectPackage(pkg.libraryName(), pkg));

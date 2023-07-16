@@ -1,6 +1,7 @@
 package org.enso.compiler.phase
 
 import org.enso.compiler.core.EnsoParser
+import org.enso.compiler.CompilerContext
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, ModuleContext}
 import org.enso.compiler.data.CompilerConfig
@@ -28,6 +29,7 @@ object BuiltinsIrBuilder {
     * @param passes the compiler's pass manager
     */
   def build(
+    context: CompilerContext,
     module: Module,
     freshNameSupply: FreshNameSupply,
     passes: Passes
@@ -46,8 +48,13 @@ object BuiltinsIrBuilder {
       moduleContext,
       passes.moduleDiscoveryPasses
     )
-    module.unsafeSetIr(irAfterModDiscovery)
-    module.unsafeSetCompilationStage(CompilationStage.AFTER_PARSING)
+    context.updateModule(
+      module,
+      { u =>
+        u.ir(irAfterModDiscovery)
+        u.compilationStage(CompilationStage.AFTER_PARSING)
+      }
+    )
 
     new ExportsResolution().run(List(module))
     val irAfterTypes = passManager.runPassesOnModule(
@@ -60,7 +67,12 @@ object BuiltinsIrBuilder {
       moduleContext,
       passes.functionBodyPasses
     )
-    module.unsafeSetIr(irAfterCompilation)
-    module.unsafeSetCompilationStage(CompilationStage.AFTER_CODEGEN)
+    context.updateModule(
+      module,
+      { u =>
+        u.ir(irAfterCompilation)
+        u.compilationStage(CompilationStage.AFTER_CODEGEN)
+      }
+    )
   }
 }
