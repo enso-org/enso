@@ -114,8 +114,11 @@ class Compiler(
         serializationManager.deserialize(builtins.getModule) match {
           case Some(true) =>
             // Ensure that builtins doesn't try and have codegen run on it.
-            builtins.getModule.unsafeSetCompilationStage(
-              CompilationStage.AFTER_CODEGEN
+            context.updateModule(
+              builtins.getModule,
+              { u =>
+                u.compilationStage(CompilationStage.AFTER_CODEGEN)
+              }
             )
           case _ =>
             builtins.initializeBuiltinsIr(freshNameSupply, passes)
@@ -287,7 +290,7 @@ class Compiler(
             importedModulesLoadedFromSource.take(10).mkString("", ",", "...")
           )
         )
-        context.invalidateModuleCache(module)
+        context.updateModule(module, _.invalidateCache)
         parseModule(module)
         runImportsAndExportsResolution(module, generateCode)
       } else {
@@ -351,9 +354,13 @@ class Compiler(
         )
         val compilerOutput =
           runGlobalTypingPasses(context.getIr(module), moduleContext)
-        module.unsafeSetIr(compilerOutput)
-        module.unsafeSetCompilationStage(
-          CompilationStage.AFTER_GLOBAL_TYPES
+
+        context.updateModule(
+          module,
+          { u =>
+            u.ir(compilerOutput)
+            u.compilationStage(CompilationStage.AFTER_GLOBAL_TYPES)
+          }
         )
       }
     }
@@ -374,9 +381,12 @@ class Compiler(
         )
         val compilerOutput =
           runMethodBodyPasses(context.getIr(module), moduleContext)
-        module.unsafeSetIr(compilerOutput)
-        module.unsafeSetCompilationStage(
-          CompilationStage.AFTER_STATIC_PASSES
+        context.updateModule(
+          module,
+          { u =>
+            u.ir(compilerOutput)
+            u.compilationStage(CompilationStage.AFTER_STATIC_PASSES)
+          }
         )
       }
     }
@@ -392,8 +402,11 @@ class Compiler(
           )
       ) {
         stubsGenerator.run(module)
-        module.unsafeSetCompilationStage(
-          CompilationStage.AFTER_RUNTIME_STUBS
+        context.updateModule(
+          module,
+          { u =>
+            u.compilationStage(CompilationStage.AFTER_RUNTIME_STUBS)
+          }
         )
       }
     }
@@ -415,7 +428,12 @@ class Compiler(
 
           context.truffleRunCodegen(module, config)
         }
-        module.unsafeSetCompilationStage(CompilationStage.AFTER_CODEGEN)
+        context.updateModule(
+          module,
+          { u =>
+            u.compilationStage(CompilationStage.AFTER_CODEGEN)
+          }
+        )
 
         if (shouldCompileDependencies || isModuleInRootPackage(module)) {
           val shouldStoreCache =
@@ -562,7 +580,7 @@ class Compiler(
       "Parsing module [{0}].",
       context.getModuleName(module)
     )
-    context.resetScope(module)
+    context.updateModule(module, _.resetScope)
 
     if (irCachingEnabled && !context.isInteractive(module)) {
       serializationManager.deserialize(module) match {
@@ -594,7 +612,7 @@ class Compiler(
       "Loading module [{0}] from source.",
       context.getModuleName(module)
     )
-    context.resetScope(module)
+    context.updateModule(module, _.resetScope)
 
     val moduleContext = ModuleContext(
       module           = module,
@@ -614,10 +632,15 @@ class Compiler(
         injectSyntheticModuleExports(expr, module.getDirectModulesRefs)
     val discoveredModule =
       recognizeBindings(exprWithModuleExports, moduleContext)
-    module.unsafeSetIr(discoveredModule)
-    module.unsafeSetCompilationStage(CompilationStage.AFTER_PARSING)
-    module.setLoadedFromCache(false)
-    module.setHasCrossModuleLinks(true)
+    context.updateModule(
+      module,
+      { u =>
+        u.ir(discoveredModule)
+        u.compilationStage(CompilationStage.AFTER_PARSING)
+        u.loadedFromCache(false)
+        u.hasCrossModuleLinks(true)
+      }
+    )
   }
 
   /* Note [Polyglot Imports In Dependency Gathering]

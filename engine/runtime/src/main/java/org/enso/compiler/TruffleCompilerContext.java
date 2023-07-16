@@ -6,6 +6,7 @@ import com.oracle.truffle.api.source.Source;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.logging.Level;
 import org.enso.compiler.codegen.IrToTruffle;
 import org.enso.compiler.context.InlineContext;
@@ -134,12 +135,6 @@ final class TruffleCompilerContext implements CompilerContext {
   }
 
   @Override
-  public void resetScope(Module module) {
-    module.ensureScopeExists();
-    module.getScope().reset();
-  }
-
-  @Override
   public boolean isSynthetic(Module module) {
     return module.isSynthetic();
   }
@@ -170,8 +165,10 @@ final class TruffleCompilerContext implements CompilerContext {
   }
 
   @Override
-  public void invalidateModuleCache(Module module) {
-    module.getCache().invalidate(context);
+  public void updateModule(Module module, Consumer<Updater> callback) {
+    try (var u = new ModuleUpdater(module)) {
+      callback.accept(u);
+    }
   }
 
   @Override
@@ -183,5 +180,64 @@ final class TruffleCompilerContext implements CompilerContext {
   public <T> Optional<TruffleFile> saveCache(
       Cache<T, ?> cache, T entry, boolean useGlobalCacheLocations) {
     return cache.save(entry, context, useGlobalCacheLocations);
+  }
+
+  private final class ModuleUpdater implements Updater, AutoCloseable {
+    private final Module module;
+    private IR.Module ir;
+    private CompilationStage stage;
+    private Boolean loadedFromCache;
+    private Boolean hasCrossModuleLinks;
+    private boolean resetScope;
+    private boolean invalidateCache;
+
+    private ModuleUpdater(org.enso.interpreter.runtime.Module module) {
+      this.module = module;
+    }
+
+    @Override
+    public void ir(IR.Module ir) {
+      this.ir = ir;
+    }
+
+    @Override
+    public void compilationStage(CompilationStage stage) {
+      this.stage = stage;
+    }
+
+    @Override
+    public void loadedFromCache(boolean b) {
+      this.loadedFromCache = b;
+    }
+
+    @Override
+    public void hasCrossModuleLinks(boolean b) {
+      this.hasCrossModuleLinks = b;
+    }
+
+    @Override
+    public void resetScope() {
+      this.resetScope = true;
+    }
+
+    @Override
+    public void invalidateCache() {
+      this.invalidateCache = true;
+    }
+
+    @Override
+    public void close() {
+      if (ir != null) module.unsafeSetIr(ir);
+      if (stage != null) module.unsafeSetCompilationStage(stage);
+      if (loadedFromCache != null) module.setLoadedFromCache(loadedFromCache);
+      if (hasCrossModuleLinks != null) module.setHasCrossModuleLinks(hasCrossModuleLinks);
+      if (resetScope) {
+        module.ensureScopeExists();
+        module.getScope().reset();
+      }
+      if (invalidateCache) {
+        module.getCache().invalidate(context);
+      }
+    }
   }
 }

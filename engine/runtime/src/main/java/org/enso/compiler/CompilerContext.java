@@ -5,6 +5,7 @@ import com.oracle.truffle.api.source.Source;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.logging.Level;
 import org.enso.compiler.context.InlineContext;
 import org.enso.compiler.core.IR;
@@ -58,12 +59,7 @@ interface CompilerContext {
 
   CharSequence getCharacters(Module module) throws IOException;
 
-  void invalidateModuleCache(Module module);
-  /*
-      context.ensureScopeExists(module)
-    module.getScope.reset()
-  */
-  void resetScope(Module module);
+  void updateModule(Module module, Consumer<Updater> callback);
 
   boolean isSynthetic(Module module);
 
@@ -80,4 +76,18 @@ interface CompilerContext {
   <T> Optional<T> loadCache(Cache<T, ?> cache);
 
   <T> Optional<TruffleFile> saveCache(Cache<T, ?> cache, T entry, boolean useGlobalCacheLocations);
+
+  public static interface Updater {
+    void ir(IR.Module ir);
+
+    void compilationStage(CompilationStage stage);
+
+    void loadedFromCache(boolean b);
+
+    void hasCrossModuleLinks(boolean b);
+
+    void resetScope();
+
+    void invalidateCache();
+  }
 }
