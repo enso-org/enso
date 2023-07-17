@@ -16,7 +16,8 @@ use model::suggestion_database::Entry;
 
 /// A controller that keeps the path of entered modules in the Searcher and provides the
 /// functionality of the breadcrumbs panel. The integration between the
-/// controller and the view is done by the [searcher presenter](crate::presenter::searcher).
+/// controller and the view is done by the [searcher
+/// presenter](crate::presenter::component_browser_searcher).
 #[derive(Debug, Clone, CloneRef, Default)]
 pub struct Breadcrumbs {
     list:     Rc<RefCell<Vec<BreadcrumbEntry>>>,

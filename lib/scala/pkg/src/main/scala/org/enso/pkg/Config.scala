@@ -13,6 +13,7 @@ import org.enso.editions.{
   SemVerEnsoVersion
 }
 
+import java.io.Reader
 import scala.util.Try
 
 /** An extra project dependency.
@@ -248,6 +249,11 @@ object Config {
   /** Tries to parse the [[Config]] from a YAML string. */
   def fromYaml(yamlString: String): Try[Config] = {
     yaml.parser.parse(yamlString).flatMap(_.as[Config]).toTry
+  }
+
+  /** Tries to parse the [[Config]] directly from the Reader */
+  def fromYaml(reader: Reader): Try[Config] = {
+    yaml.parser.parse(reader).flatMap(_.as[Config]).toTry
   }
 
   /** Creates a simple edition that just defines the provided engine version.

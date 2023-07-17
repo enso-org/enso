@@ -1,7 +1,6 @@
 //! This module consists of all structures describing Execution Context.
 
 use crate::prelude::*;
-use std::collections::hash_map::Entry;
 
 use double_representation::identifier::Identifier;
 use double_representation::name::project;
@@ -18,6 +17,7 @@ use mockall::automock;
 use notification::Publisher;
 use serde::Deserialize;
 use serde::Serialize;
+use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use uuid::Uuid;
 

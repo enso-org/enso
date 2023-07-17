@@ -36,6 +36,8 @@ const CONFIRM_REGISTRATION_PATHNAME = '//auth/confirmation'
 /** Pathname of the {@link URL} for deep links to the login page, after a redirect from a reset
  * password email. */
 const LOGIN_PATHNAME = '//auth/login'
+/** Pathname of the {@link URL} for deep links to the registration page. */
+const REGISTRATION_PATHNAME = '//auth/registration'
 
 /** URI used as the OAuth redirect when deep links are supported. */
 const DEEP_LINK_REDIRECT = newtype.asNewtype<auth.OAuthRedirect>(
@@ -60,6 +62,17 @@ const BASE_AMPLIFY_CONFIG = {
 
 /** Collection of configuration details for Amplify user pools, sorted by deployment environment. */
 const AMPLIFY_CONFIGS = {
+    /** Configuration for @indiv0's Cognito user pool. */
+    npekin: {
+        userPoolId: newtype.asNewtype<auth.UserPoolId>('eu-west-1_AXX1gMvpx'),
+        userPoolWebClientId: newtype.asNewtype<auth.UserPoolWebClientId>(
+            '1rpnb2n1ijn6o5529a7ob017o'
+        ),
+        domain: newtype.asNewtype<auth.OAuthDomain>(
+            'npekin-enso-domain.auth.eu-west-1.amazoncognito.com'
+        ),
+        ...BASE_AMPLIFY_CONFIG,
+    } satisfies Partial<auth.AmplifyConfig>,
     /** Configuration for @pbuchu's Cognito user pool. */
     pbuchu: {
         userPoolId: newtype.asNewtype<auth.UserPoolId>('eu-west-1_jSF1RbgPK'),
@@ -228,6 +241,9 @@ function setDeepLinkHandler(logger: loggerProvider.Logger, navigate: (url: strin
              * be for the login page. */
             case LOGIN_PATHNAME:
                 navigate(app.LOGIN_PATH)
+                break
+            case REGISTRATION_PATHNAME:
+                navigate(app.REGISTRATION_PATH + parsedUrl.search)
                 break
             /** If the user is being redirected from a password reset email, then we need to navigate to
              * the password reset page, with the verification code and email passed in the URL s-o they can

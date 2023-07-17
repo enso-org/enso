@@ -6,6 +6,7 @@ import org.enso.table.data.column.storage.Storage;
 import org.enso.table.parsing.problems.ProblemAggregator;
 import org.enso.table.parsing.problems.ProblemAggregatorImpl;
 import org.enso.table.problems.WithProblems;
+import org.graalvm.polyglot.Context;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -215,6 +216,7 @@ public class NumberParser extends IncrementalDatatypeParser {
     }
 
     private int parseColumnWithPattern(Pattern pattern, Storage<String> sourceStorage, Builder builder, ProblemAggregator aggregator) {
+        Context context = Context.getCurrent();
         for (int i = 0; i < sourceStorage.size(); i++) {
             var text = sourceStorage.getItemBoxed(i);
             if (text == null) {
@@ -232,6 +234,8 @@ public class NumberParser extends IncrementalDatatypeParser {
                     builder.appendNulls(1);
                 }
             }
+
+            context.safepoint();
         }
         return -1;
     }

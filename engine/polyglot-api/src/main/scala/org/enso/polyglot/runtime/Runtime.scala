@@ -339,6 +339,18 @@ object Runtime {
         MethodCall(methodPointer, Vector())
     }
 
+    /** Contains a method pointer with information on the partially applied
+      * arguments positions.
+      *
+      * @param methodPointer the method pointer
+      * @param notAppliedArguments indexes of arguments that have not been applied
+      * to this method
+      */
+    case class FunctionSchema(
+      methodPointer: MethodPointer,
+      notAppliedArguments: Vector[Int]
+    )
+
     /** A representation of an executable position in code.
       */
     @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
@@ -434,9 +446,12 @@ object Runtime {
         /** Indicates that the expression was computed to a value.
           *
           * @param warnings information about attached warnings.
+          * @param functionSchema if the value represents a function, the function schema of that function, empty option otherwise
           */
-        case class Value(warnings: Option[Value.Warnings] = None)
-            extends Payload
+        case class Value(
+          warnings: Option[Value.Warnings]       = None,
+          functionSchema: Option[FunctionSchema] = None
+        ) extends Payload
 
         object Value {
 

@@ -227,9 +227,9 @@ public abstract class EqualsNode extends Node {
   boolean equalsAtoms(
       Atom self,
       Atom other,
-      @Cached EqualsAtomNode equalsNode,
+      @Cached EqualsAtomNode equalsAtomNode,
       @Cached IsSameObjectNode isSameObjectNode) {
-    return isSameObjectNode.execute(self, other) || equalsNode.execute(self, other);
+    return isSameObjectNode.execute(self, other) || equalsAtomNode.execute(self, other);
   }
 
   @Specialization(guards = "isNotPrimitive(self, other, interop, warnings)")

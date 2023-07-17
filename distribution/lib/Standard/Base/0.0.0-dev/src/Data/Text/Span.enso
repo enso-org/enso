@@ -1,29 +1,17 @@
-## A `Span` represents a range of characters in a piece of `Text`.
-
-   > Example
-     Creating a span over the first three characters of the text "hello!".
-
-         import Standard.Base.Data.Text.Span
-
-         example_span =
-             text = "Hello!"
-             Span.Value (Range.new 0 3) text
-
 import project.Data.Numbers.Integer
 import project.Data.Pair.Pair
-from project.Data.Range.Extensions import all
 import project.Data.Range.Range
 import project.Data.Text.Text
-import project.Errors.Common.Index_Out_Of_Bounds
 import project.Error.Error
+import project.Errors.Common.Index_Out_Of_Bounds
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Illegal_State.Illegal_State
 import project.Nothing.Nothing
+from project.Data.Boolean import Boolean, False, True
+from project.Data.Range.Extensions import all
 
-from project.Data.Boolean import Boolean, True, False
-
-polyglot java import org.enso.base.Text_Utils
 polyglot java import com.ibm.icu.text.BreakIterator
+polyglot java import org.enso.base.Text_Utils
 
 type Span
 
@@ -161,7 +149,7 @@ type Utf_16_Span
                     grapheme_ix = Text_Utils.utf16_index_to_grapheme_index self.parent self.start
                     Span.Value (grapheme_ix.up_to grapheme_ix) self.parent
                 False ->
-                    grapheme_ixes = Text_Utils.utf16_indices_to_grapheme_indices self.parent [self.start, self.end - 1].to_array
+                    grapheme_ixes = Text_Utils.utf16_indices_to_grapheme_indices self.parent [self.start, self.end - 1]
                     grapheme_first = grapheme_ixes.at 0
                     grapheme_last = grapheme_ixes.at 1
                     ## We find the grapheme index of the last code unit actually contained within our span and set the

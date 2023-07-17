@@ -1,9 +1,8 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_State.Illegal_State
-
-from Standard.Base.Metadata.Widget import Single_Choice
-from Standard.Base.Metadata.Choice import Option
 import Standard.Base.Metadata.Display
+from Standard.Base.Metadata.Choice import Option
+from Standard.Base.Metadata.Widget import Single_Choice
 
 import Standard.Table.Data.Table.Table as Materialized_Table
 import Standard.Table.Data.Type.Value_Type.Value_Type
@@ -18,9 +17,8 @@ import project.Data.Table.Table as Database_Table
 import project.Internal.IR.Query.Query
 import project.Internal.JDBC_Connection
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
-
-from project.Connection.Connection import make_table_types_selector, make_schema_selector, make_table_name_selector, make_structure_creator
-from project.Errors import SQL_Error, Table_Not_Found, Table_Already_Exists
+from project.Connection.Connection import make_schema_selector, make_structure_creator, make_table_name_selector, make_table_types_selector
+from project.Errors import SQL_Error, Table_Already_Exists, Table_Not_Found
 from project.Internal.Result_Set import read_column
 from project.Internal.Upload_Table import first_column_name_in_structure
 

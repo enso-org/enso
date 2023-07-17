@@ -1,30 +1,31 @@
 from Standard.Base import all
-
 import Standard.Base.Data.Array_Proxy.Array_Proxy
+import Standard.Base.Data.Index_Sub_Range as Index_Sub_Range_Module
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
-
-import Standard.Base.Data.Index_Sub_Range as Index_Sub_Range_Module
+import Standard.Base.Internal.Rounding_Helpers
+from Standard.Base.Widget_Helpers import make_regex_text_widget
 
 import project.Data.Data_Formatter.Data_Formatter
+import project.Data.Table.Table
 import project.Data.Type.Enso_Types
 import project.Data.Type.Storage
 import project.Data.Type.Value_Type_Helpers
-import project.Data.Table.Table
 import project.Internal.Cast_Helpers
 import project.Internal.Column_Ops
+import project.Internal.Date_Time_Helpers
 import project.Internal.Java_Problems
 import project.Internal.Naming_Helpers.Naming_Helpers
 import project.Internal.Parse_Values_Helper
 import project.Internal.Widget_Helpers
-
-from project.Internal.Column_Format import all
 from project.Data.Table import print_table
-from project.Data.Type.Value_Type import Value_Type, Auto
-from project.Errors import No_Index_Set_Error, Floating_Point_Equality, Invalid_Value_Type, Inexact_Type_Coercion, Conversion_Failure
-from project.Internal.Java_Exports import make_string_builder, make_double_builder, make_long_builder, make_date_builder_adapter
+from project.Data.Type.Value_Type import Auto, Value_Type
+from project.Errors import Conversion_Failure, Floating_Point_Equality, Inexact_Type_Coercion, Invalid_Value_Type, No_Index_Set_Error
+from project.Internal.Column_Format import all
+from project.Internal.Java_Exports import make_date_builder_adapter, make_double_builder, make_long_builder, make_string_builder
 
+polyglot java import org.enso.base.Time_Utils
 polyglot java import org.enso.table.data.column.operation.map.MapOperationProblemBuilder
 polyglot java import org.enso.table.data.column.storage.Storage as Java_Storage
 polyglot java import org.enso.table.data.table.Column as Java_Column
@@ -47,7 +48,7 @@ type Column
     from_vector : Text -> Vector -> Column
     from_vector name items =
         Illegal_Argument.handle_java_exception <|
-            Column.Value (Java_Column.fromItems name items.to_array)
+            Column.Value (Java_Column.fromItems name items)
 
     ## PRIVATE
        Creates a new column given a name and an internal Java storage.
@@ -67,7 +68,7 @@ type Column
     from_vector_repeated : Text -> Vector -> Integer -> Column
     from_vector_repeated name items repeats =
         Illegal_Argument.handle_java_exception <|
-            Column.Value (Java_Column.fromRepeatedItems name items.to_array repeats)
+            Column.Value (Java_Column.fromRepeatedItems name items repeats)
 
     ## PRIVATE
 
@@ -360,7 +361,7 @@ type Column
                 result.rename new_name
 
     ## ALIAS Add, Plus, Concatenate
-       Element-wise addition.
+       Element-wise addition. Works on numeric types or text.
 
        Arguments:
        - other: The value to add to `self`. If `other` is a column, the addition
@@ -389,7 +390,8 @@ type Column
             run_vectorized_binary_op self '+' fallback_fn=Nothing other
 
     ## ALIAS Subtract, Minus
-       Element-wise subtraction.
+       Element-wise subtraction. Allows to subtract numeric types or compute a
+       difference between two date/time values.
 
        Arguments:
        - other: The value to subtract from `self`. If `other` is a column, the
@@ -414,8 +416,22 @@ type Column
              example_minus = Examples.integer_column - 10
     - : Column | Any -> Column
     - self other =
-        Value_Type_Helpers.check_binary_numeric_op self other <|
-            run_vectorized_binary_op self '-' fallback_fn=Nothing other
+        case Value_Type_Helpers.resolve_subtraction_kind self other of
+            Value_Type_Helpers.Subtraction_Kind.Numeric_Subtract ->
+                run_vectorized_binary_op self '-' fallback_fn=Nothing other
+            Value_Type_Helpers.Subtraction_Kind.Date_Time_Difference ->
+                case self.inferred_precise_value_type of
+                    Value_Type.Date ->
+                        ## Special handling for `Period` since it is hard to
+                           vectorize as there is no polyglot handling of it - we
+                           _wrap_ a Java object and the Java wrapper will always
+                           be an Enso callback, at which point its better to do
+                           the whole operation in pure Enso.
+                        fn = x-> y-> Period.between y x
+                        new_name = Naming_Helpers.binary_operation_name "-" self other
+                        run_binary_op self other fn new_name
+                    _ ->
+                        run_vectorized_binary_op self '-' fallback_fn=Nothing other
 
     ## ALIAS Multiply, Times, Product
        Element-wise multiplication.
@@ -657,6 +673,24 @@ type Column
                 rs = s.iif true_val false_val storage_type
                 Column.Value (Java_Column.new new_name rs)
 
+    ## PRIVATE
+
+       Creates a column from a single constant value.
+
+       This method is not static; it must be called on an existing column. That
+       existing column is only used for its internal state; the contents of the
+       column are not used.
+
+       Arguments:
+       - value: the constant value to use for the entire column.
+
+       > Example
+         Create a column of the value 42
+
+         column.const 42
+    const : Any -> Column
+    const self value = self.to_table.make_constant_column value
+
     ## Round the values in a numeric column to a specified number of decimal
        places.
 
@@ -689,6 +723,16 @@ type Column
          If `decimal_places` is outside the range -15..15 (inclusive), an
          `Illegal_Argument` error is thrown.
 
+       ! Precision
+         As floating-point numbers are inexact, rounding can have unexpected
+         results near the precision limit (about 15 decimal places), especially
+         when rounding mid-point values. For example:
+
+         Postgres: rounding 1.2222222222222235 to 15 decimal places returns:
+             1.222222222222224
+         SQLite: rounding 1.2222222222222235 to 15 decimal places returns:
+             1.222222222222223
+
        ? Negative decimal place counts
          Rounding to `n` digits can be thought of as "rounding to the nearest
          multiple of 10^(-n)". For negative decimal counts, this results in
@@ -698,14 +742,40 @@ type Column
          Round a column of `Decimal` values`.
 
              Column.from_vector "foo" [1.2, 2.3, 3.6] . round == (Column.from_vector "foo" [1, 2, 4])
-    round : Integer -> Boolean -> Problem_Behavior -> Column | Illegal_Argument | Invalid_Value_Type
-    round self decimal_places=0 use_bankers=False on_problems=Report_Warning = Value_Type.expect_numeric self <|
-        # If it's an integer column and decimal_places >=0 then it's a no-op.
-        if self.value_type.is_integer && decimal_places >= 0 then self else
-            returns_double = decimal_places > 0
-            builder = if returns_double then make_double_builder else make_long_builder
-            fun = _.round decimal_places use_bankers
-            Column_Ops.map_over_storage self fun builder skip_nothing=True on_problems=on_problems
+    round : Integer -> Boolean -> Column | Illegal_Argument | Invalid_Value_Type
+    round self decimal_places=0 use_bankers=False =
+        Rounding_Helpers.check_decimal_places decimal_places <| Value_Type.expect_numeric self <|
+            # If it's an integer column and decimal_places >=0 then it's a no-op.
+            new_name = Naming_Helpers.function_name "round" [self]
+            if self.value_type.is_integer && decimal_places >= 0 then self.rename new_name else
+                should_cast_to_integer = decimal_places <= 0 || self.value_type.is_integer
+                target_value_type = if should_cast_to_integer then Value_Type.Integer else self.value_type
+                result = self.check_round_input col->
+                    scale = 10 ^ decimal_places
+                    scaled = col * scale
+                    round_base = scaled.floor
+                    round_midpoint = (round_base + 0.5) / scale
+                    even_is_up = (col >= 0).iif ((scaled.truncate % 2) != 0) ((scaled.truncate % 2) == 0)
+                    half_goes_up = if use_bankers then even_is_up else col >= 0
+                    do_round_up = half_goes_up.iif (col >= round_midpoint) (col > round_midpoint)
+                    result_float = do_round_up.iif ((round_base + 1.0) / scale) (round_base / scale)
+                    cast_if_needed result_float target_value_type
+                result.rename new_name
+
+    ## PRIVATE
+       Restrict allowed range of input to rounding methods.
+    check_round_input : (Column -> Column) -> Any ! Illegal_Argument
+    check_round_input self action =
+        min = Rounding_Helpers.round_min_long
+        max = Rounding_Helpers.round_max_long
+        within_range = if self.value_type.is_floating_point.not then self.between min max else
+            self.is_nan || self.is_infinite || self.between min max
+
+        any_issues = within_range.to_vector . any (== False)
+        if any_issues.not then action self else
+            warning = Illegal_Argument.Error <| "Error: `round` can only accept values between " + min.to_text + " and " + max.to_text + " (inclusive)"
+            result = action (within_range.iif self Nothing)
+            Warning.attach warning result
 
     ## ALIAS int
 
@@ -728,7 +798,12 @@ type Column
     truncate self =
         case self.value_type.is_numeric of
             True ->
-                simple_unary_op self "truncate"
+                case self.value_type.is_integer of
+                    True ->
+                        new_name = Naming_Helpers.function_name "truncate" [self]
+                        self.rename new_name
+                    False ->
+                        simple_unary_op self "truncate"
             False -> case self.value_type == Value_Type.Date_Time of
                 True ->
                     fun = _.date
@@ -746,7 +821,12 @@ type Column
              Column.from_vector "foo" [1.25, 2.33, 3.57] . ceil == (Column.from_vector "foo" [2, 3, 4])
     ceil : Column ! Invalid_Value_Type
     ceil self = Value_Type.expect_numeric self <|
-        simple_unary_op self "ceil"
+        case self.value_type.is_integer of
+            True ->
+                new_name = Naming_Helpers.function_name "ceil" [self]
+                self.rename new_name
+            False ->
+                simple_unary_op self "ceil"
 
     ## Computes the nearest integer below this number for values in a numeric
        column.
@@ -759,7 +839,12 @@ type Column
              Column.from_vector "foo" [1.25, 2.33, 3.57] . floor == (Column.from_vector "foo" [1, 2, 3])
     floor : Column ! Invalid_Value_Type
     floor self = Value_Type.expect_numeric self <|
-        simple_unary_op self "floor"
+        case self.value_type.is_integer of
+            True ->
+                new_name = Naming_Helpers.function_name "floor" [self]
+                self.rename new_name
+            False ->
+                simple_unary_op self "floor"
 
     ## Returns a column of first non-`Nothing` value on each row of `self` and
        `values` list.
@@ -835,9 +920,8 @@ type Column
     ## Returns a column of booleans, with `True` items at the positions where
        this column contains a NaN. This is only applicable to double columns.
     is_nan : Column
-    is_nan self =
-        Value_Type.expect_floating_point self <|
-            self.internal_is_nan on_missing=Nothing
+    is_nan self = Value_Type.expect_numeric self <|
+        self.internal_is_nan on_missing=Nothing
 
     ## PRIVATE
     internal_is_nan : Any -> Column
@@ -845,8 +929,21 @@ type Column
         new_name = Naming_Helpers.function_name "is_nan" [self]
         fallback x = case x of
             _ : Decimal -> x.is_nan
+            Nothing     -> on_missing
             _           -> False
         run_vectorized_unary_op self "is_nan" fallback expected_result_type=Value_Type.Boolean new_name on_missing=on_missing
+
+    ## Returns a column of booleans, with `True` items at the positions where
+       this column contains a +Inf/-Inf. This is only applicable to double
+       columns.
+    is_infinite : Column
+    is_infinite self = Value_Type.expect_numeric self <|
+        new_name = Naming_Helpers.function_name "is_infinite" [self]
+        fallback x = case x of
+            _ : Decimal -> x.is_infinite
+            Nothing     -> Nothing
+            _           -> False
+        run_vectorized_unary_op self "is_infinite" fallback expected_result_type=Value_Type.Boolean new_name on_missing=Nothing
 
     ## PRIVATE
        Returns a column of booleans, with `True` items at the positions where
@@ -891,9 +988,9 @@ type Column
         result = case self.value_type of
             Value_Type.Char _ _ -> self.is_empty
             Value_Type.Float _ ->
-                if treat_nans_as_blank then self.is_nothing || (self.internal_is_nan on_missing=False) else self.is_nothing
+                if treat_nans_as_blank then self.is_nothing.iif True (self.internal_is_nan on_missing=False) else self.is_nothing
             Value_Type.Mixed ->
-                self.internal_is_empty || (if treat_nans_as_blank then self.is_nothing || (self.internal_is_nan on_missing=False) else self.is_nothing)
+                self.internal_is_empty || (if treat_nans_as_blank then self.is_nothing.iif True (self.internal_is_nan on_missing=False) else self.is_nothing)
             _ -> self.is_nothing
         result.rename new_name
 
@@ -912,12 +1009,11 @@ type Column
 
              import Standard.Examples
 
-             example_fill_missing = Examples.decimal_column.fill_nothing 20.5
+             example_fill_nothing = Examples.decimal_column.fill_nothing 20.5
     fill_nothing : Column | Any -> Column
     fill_nothing self default =
         common_type = Value_Type_Helpers.find_common_type_for_arguments [self, default]
         common_type.if_not_error <|
-            new_name = Naming_Helpers.function_name "fill_nothing" [self, default]
             storage = self.java_column.getStorage
             storage_type = Storage.from_value_type_strict common_type
             new_st = case default of
@@ -926,7 +1022,7 @@ type Column
                     storage.fillMissingFrom other_storage storage_type
                 _ ->
                     storage.fillMissing default
-            col = Java_Column.new new_name new_st
+            col = Java_Column.new self.name new_st
             Column.Value col
 
     ## ALIAS Fill Empty, if_empty
@@ -935,16 +1031,22 @@ type Column
        provided default.
 
        Arguments:
-       - default: The value to replace missing values with. If this argument
+       - default: The value to replace empty values with. If this argument
          is a column, the value from `default` at the corresponding position
          will be used.
+
+       > Example
+         Fill empty values in a column with the value "hello".
+
+             import Standard.Examples
+
+             example_fill_empty = Examples.text_column_1.fill_empty "hello"
     fill_empty : Column | Any -> Column
     fill_empty self default =
         Value_Type.expect_text self <|
             Value_Type.expect_text default <|
-                new_name = Naming_Helpers.function_name "fill_empty" [self, default]
                 result = self.is_empty.iif default self
-                result.rename new_name
+                result.rename self.name
 
     ## Checks for each element of the column if it starts with `other`.
 
@@ -1084,18 +1186,18 @@ type Column
             Column.from_vector new_name mapped
 
     ## Replaces the first, or all occurrences of `term` with `new_text` in each
-       row. If `term` is empty, the function returns the table unchanged.
+       row. If `term` is empty, the function returns the column unchanged.
 
        This method follows the exact replacement semantics of the
        `Text.replace` method.
 
        Arguments:
-       - term: The term to find.
+       - term: The term to find. Can be `Text`, `Regex`, or a `Column` of
+         strings.
        - replacement: The text to replace matches with.
        - case_sensitivity: Specifies if the text values should be compared case
          sensitively.
        - only_first: If True, only replace the first match.
-       - use_regex: If true, the term is used as a regular expression.
 
        > Example
          Replace dashes with underscores.
@@ -1105,26 +1207,27 @@ type Column
        > Example
          Remove leading and trailing spaces from cells.
 
-             column.replace "^\s*(.*?)\s*$" "$1" use_regex=True
+             column.replace "^\s*(.*?)\s*$".to_regex "$1"
 
        > Example
          Replace texts in quotes with parentheses.
 
-             column.replace '"(.*?)"' '($1)' use_regex=True
-    replace : Text | Column -> Text | Column -> Case_Sensitivity -> Boolean -> Boolean -> Column
-    replace self term="" new_text="" case_sensitivity=Case_Sensitivity.Sensitive only_first=False use_regex=False =
+             column.replace '"(.*?)"'.to_regex '($1)'
+    @term make_regex_text_widget
+    replace : Text | Regex | Column -> Text | Column -> Case_Sensitivity -> Boolean -> Column
+    replace self term="" new_text="" case_sensitivity=Case_Sensitivity.Sensitive only_first=False =
         Value_Type.expect_text self <|
-            term_fn = wrap_text_argument_as_value_provider term
+            term_fn = wrap_text_or_regex_argument_as_value_provider term
             new_text_fn = wrap_text_argument_as_value_provider new_text
 
             term_fn.if_not_error <| new_text_fn.if_not_error <|
-                new_name = Naming_Helpers.function_name "replace" [self, term, new_text]
+                new_name = Naming_Helpers.function_name "replace" [self, term.to_text, new_text]
 
                 do_replace index input =
                     term = term_fn index
-                    if term.is_nothing || term.is_empty then input else
+                    if term.is_nothing || (term.is_a Text && term.is_empty) then input else
                         replace = new_text_fn index
-                        input.replace term replace case_sensitivity only_first use_regex
+                        input.replace term replace case_sensitivity only_first
 
                 self_vec = self.to_vector
                 mapped = self_vec.map_with_index do_replace
@@ -1154,6 +1257,112 @@ type Column
     day : Column ! Invalid_Value_Type
     day self = Value_Type.expect_has_date self <|
         simple_unary_op self "day"
+
+    ## Gets the hour as a number (0-23) from the time stored in the column.
+
+       Applies only to columns that hold the `Time_Of_Day` or `Date_Time` types.
+       Returns a column of `Integer` type.
+    hour : Column ! Invalid_Value_Type
+    hour self = Value_Type.expect_has_time self <|
+        simple_unary_op self "hour"
+
+    ## Gets the minute as a number (0-59) from the time stored in the column.
+
+       Applies only to columns that hold the `Time_Of_Day` or `Date_Time` types.
+       Returns a column of `Integer` type.
+    minute : Column ! Invalid_Value_Type
+    minute self = Value_Type.expect_has_time self <|
+        simple_unary_op self "minute"
+
+    ## Gets the second as an integer (0-60) from the time stored in the column.
+
+       Applies only to columns that hold the `Time_Of_Day` or `Date_Time` types.
+       Returns a column of `Integer` type.
+    second : Column ! Invalid_Value_Type
+    second self = Value_Type.expect_has_time self <|
+        simple_unary_op self "second"
+
+    ## Gets the date part of the date/time value.
+
+       Returns a column of `Integer` type.
+    @period Date_Time_Helpers.make_period_selector_for_column
+    date_part : Date_Period | Time_Period -> Column ! Invalid_Value_Type | Illegal_Argument
+    date_part self period =
+        Date_Time_Helpers.make_date_part_function self period simple_unary_op Naming_Helpers
+
+    ## Computes a time difference between the two dates.
+
+       It returns a column of integers expressing how many periods fit between
+       the two dates/times.
+
+       The difference will be positive if `end` is greater than `self`.
+
+       Arguments:
+       - end: A date/time column or a date/time value to compute the difference
+         from. It should have the same type as the current column, i.e. a
+         `Date_Time` column cannot be compared to a `Date` - to do so you first
+         need to `cast`.
+       - period: The period to compute the difference in. For `Date` columns it
+         should be a `Date_Period` and for `Time` columns it should be a
+         `Time_Period`. For `Date_Time` columns it can be either.
+
+       ? Time Zone handling
+
+         Some backends may not preserve the timezone data in a `Date_Time`
+         (preserving the represented time instant). This may lead to slight
+         differences in time calculations between backends, especially around
+         unusual events like DST.
+    @period Date_Time_Helpers.make_period_selector_for_column
+    date_diff : (Column | Date | Date_Time | Time_Of_Day) -> Date_Period | Time_Period -> Column ! Invalid_Value_Type | Illegal_Argument
+    date_diff self end (period : Date_Period | Time_Period) =
+        Value_Type.expect_type self .is_date_or_time "date/time" <|
+            my_type = self.inferred_precise_value_type
+            Value_Type.expect_type end (== my_type) my_type.to_display_text <|
+                Date_Time_Helpers.check_period_aligned_with_value_type my_type period <|
+                    new_name = Naming_Helpers.function_name "date_diff" [self, end, period.to_display_text]
+                    java_unit = period.to_java_unit
+                    fn = case my_type of
+                        Value_Type.Date_Time _ ->
+                            start-> end-> Time_Utils.unit_datetime_difference java_unit start end
+                        Value_Type.Date ->
+                            start-> end-> Time_Utils.unit_date_difference java_unit start end
+                        Value_Type.Time ->
+                            start-> end-> Time_Utils.unit_time_difference java_unit start end
+                    run_binary_op self end fn new_name
+
+
+    ## Shifts the date/time by a specified period, returning a new date/time
+       column of the same type.
+
+       Arguments:
+       - amount: An integer or integer column specifying by how many periods to
+         shift each date.
+       - period: The period by which to shift. For `Date` columns it should be a
+         `Date_Period` and for `Time` columns it should be a `Time_Period`. For
+         `Date_Time` columns it can be either.
+
+       ? Time Zone handling
+
+         Some backends may not preserve the timezone data in a `Date_Time`
+         (preserving the represented time instant). This may lead to slight
+         differences in time calculations between backends, especially around
+         unusual events like DST.
+    @period Date_Time_Helpers.make_period_selector_for_column
+    date_add : (Column | Integer) -> Date_Period | Time_Period -> Column ! Invalid_Value_Type | Illegal_Argument
+    date_add self amount (period : Date_Period | Time_Period) =
+        Value_Type.expect_type self .is_date_or_time "date/time" <|
+            my_type = self.inferred_precise_value_type
+            Value_Type.expect_integer amount <|
+                Date_Time_Helpers.check_period_aligned_with_value_type my_type period <|
+                    new_name = Naming_Helpers.function_name "date_add" [self, amount, period.to_display_text]
+                    java_unit = period.to_java_unit
+                    ## Here we do not need a Time_Utils helper like in scalar
+                       implementations of `date_add`, because the date coming
+                       from the column will always be already converted into a
+                       Java instance.
+                    fn date amount =
+                        java_unit.addTo date amount
+                    run_binary_op self amount fn new_name
 
     ## Checks for each element of the column if it is contained within the
        provided vector or column.
@@ -1714,7 +1923,7 @@ type Column
                 Sort_Direction.Ascending -> True
                 Sort_Direction.Descending -> False
             rule = OrderBuilder.OrderRule.new self.java_column order_bool missing_last
-            mask = OrderBuilder.buildOrderMask [rule].to_array
+            mask = OrderBuilder.buildOrderMask [rule]
             new_col = self.java_column.applyMask mask
             Column.Value new_col
         _ ->
@@ -1888,6 +2097,15 @@ run_vectorized_binary_op column name fallback_fn operand expected_result_type=No
         Java_Problems.parse_aggregated_problems problem_builder.getProblems
 
 ## PRIVATE
+   Runs a binary operation over the provided column and operand which may be
+   another column or a scalar value.
+run_binary_op column operand function new_name =
+    new_column = case operand of
+        _ : Column -> column.zip operand function
+        _ -> column.map (function _ operand)
+    new_column.rename new_name
+
+## PRIVATE
 
    Executes a vectorized binary operation over the provided column.
 
@@ -1977,7 +2195,7 @@ normalize_string_for_display string =
    A helper to create a new table consisting of slices of the original table.
 slice_ranges column ranges =
     normalized = Index_Sub_Range_Module.normalize_ranges ranges
-    Column.Value (column.java_column.slice normalized.to_array)
+    Column.Value (column.java_column.slice normalized)
 
 ## PRIVATE
    Creates a storage builder suitable for building a column for the provided
@@ -2030,3 +2248,12 @@ wrap_text_argument_as_value_provider val =
         col : Column ->
             storage = col.java_column.getStorage
             i-> storage.getItemBoxed i
+
+## PRIVATE
+wrap_text_or_regex_argument_as_value_provider val =
+    if val.is_a Regex then (_-> val) else wrap_text_argument_as_value_provider val
+
+## PRIVATE
+   Cast a column to a `Value_Type`, unless it already has that type.
+cast_if_needed : Column -> Value_Type -> Column
+cast_if_needed column value_type = if column.value_type == value_type then column else column.cast value_type
