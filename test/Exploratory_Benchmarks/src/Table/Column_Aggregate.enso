@@ -9,7 +9,7 @@ from Standard.Table import all
 
 from Standard.Test import Bench
 
-import project.Table.Performance_Research.Common_Setup.Common_Setup
+import project.Table.Common_Setup.Common_Setup
 
 polyglot java import org.enso.exploratory_benchmark_helpers.SimpleStorageAggregateHelpers
 

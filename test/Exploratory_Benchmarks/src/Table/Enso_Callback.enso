@@ -11,8 +11,8 @@ import Standard.Table.Data.Type.Storage
 
 from Standard.Test import Bench
 
-import project.Table.Performance_Research.Common_Setup.Common_Setup
-import project.Table.Performance_Research.Helpers
+import project.Table.Common_Setup.Common_Setup
+import project.Table.Helpers
 
 polyglot java import org.enso.table.data.column.builder.StringBuilder
 polyglot java import org.enso.table.data.column.builder.NumericBuilder
