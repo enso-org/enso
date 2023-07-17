@@ -2,7 +2,7 @@ from Standard.Base import all
 from Standard.Table import all
 
 type Common_Setup
-    Config (n : Integer = 10^6) (iter_size : Integer = 1) (num_iterations : Integer = 100) (force_gc : Boolean = True)
+    Config (n : Integer = 10^6) (iter_size : Integer = 1) (num_iterations : Integer = 100) (force_gc : Boolean = False)
 
     generate_input_table : Table
     generate_input_table self =
