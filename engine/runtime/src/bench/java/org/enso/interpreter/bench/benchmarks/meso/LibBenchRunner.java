@@ -1,10 +1,21 @@
 package org.enso.interpreter.bench.benchmarks.meso;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import org.enso.polyglot.MethodNames;
+import org.enso.polyglot.MethodNames.Module;
 import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.Source;
+import org.graalvm.polyglot.Value;
 import org.openjdk.jmh.results.RunResult;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
@@ -23,6 +34,13 @@ public class LibBenchRunner {
       System.err.println("Error parsing command line args:");
       System.err.println("  " + e.getMessage());
       System.exit(1);
+    }
+
+    Set<BenchSuite> benchSpecs = collectAllBenchSpecs();
+    for (BenchSuite benchSpec : benchSpecs) {
+      for (BenchGroup group : benchSpec.groups()) {
+        System.out.println("Discovered group: " + group.name());
+      }
     }
 
     // Merge cmdOpts with chainedOptsBuilder
@@ -47,10 +65,16 @@ public class LibBenchRunner {
       .include("^" + label + "$");
   }
 
-  private void collectBenchSpecs() {
+  private static Set<BenchSuite> collectAllBenchSpecs() {
     String benchmarksProjectRootDir = "test/Benchmarks/src";
-    String singleFile = "/home/pavel/dev/enso/engine/runtime/src/bench/resources/org.enso.interpreter.bench.benchmarks.meso/simple.enso";
-    var ctx = Context.newBuilder()
+    File singleFile = new File("/home/pavel/dev/enso/engine/runtime/src/bench/resources/org.enso.interpreter.bench.benchmarks.meso/simple.enso");
+    return Set.of(collectBenchSpecsFromSingleFile(singleFile));
+  }
+
+  private static BenchSuite collectBenchSpecsFromSingleFile(File benchFile) {
+    assert benchFile.exists();
+    assert benchFile.canRead();
+    try (var ctx = Context.newBuilder()
         .allowExperimentalOptions(true)
         .allowIO(true)
         .allowAllAccess(true)
@@ -58,8 +82,18 @@ public class LibBenchRunner {
         .option(
             "enso.languageHomeOverride",
             Paths.get("../../distribution/component").toFile().getAbsolutePath()
-        ).build();
-
-    // ctx.eval()...
+        ).build()) {
+      Source source;
+      try {
+        source = Source.newBuilder("enso", benchFile).build();
+      } catch (IOException e) {
+        throw new IllegalStateException("Unreachable", e);
+      }
+      Value module = ctx.eval(source);
+      var benchSuite = module
+          .invokeMember(Module.EVAL_EXPRESSION, "all")
+          .as(BenchSuite.class);
+      return benchSuite;
+    }
   }
 }
