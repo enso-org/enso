@@ -1177,7 +1177,7 @@ type Column
     replace self term="" new_text="" case_sensitivity=Case_Sensitivity.Default only_first=False =
         Value_Type.expect_text self <| case_sensitivity.disallow_non_default_locale <|
             input_type = Meta.type_of term
-            self.make_op "REPLACE" [term, new_text] "new name" [input_type, case_sensitivity, only_first]
+            self.make_op "REPLACE" [term, new_text] "new name" [term, input_type, case_sensitivity, only_first]
 
     ## Gets the year as a number from the date stored in the column.
 

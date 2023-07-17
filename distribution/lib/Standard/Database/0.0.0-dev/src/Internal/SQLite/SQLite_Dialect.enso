@@ -412,9 +412,9 @@ replace args metadata =
     pattern = args.at 1
     replacement = args.at 2
 
-    input_type = metadata.at 0
-    case_sensitivity = metadata.at 1
-    only_first = metadata.at 2
+    input_type = metadata.at 1
+    case_sensitivity = metadata.at 2
+    only_first = metadata.at 3
 
     expression = case input_type == Text || input_type == Column of
         True ->
