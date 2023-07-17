@@ -252,6 +252,39 @@ public class SignatureTest extends TestBase {
     }
   }
 
+  @Test
+  public void automaticConversionToAType() throws Exception {
+    final URI uri = new URI("memory://convert.enso");
+    final Source src = Source.newBuilder("enso", """
+    from Standard.Base import Integer
+
+    type V
+        Val (a : Integer)
+
+        # mul accepts V as the other parameter
+        mul self (other : V) = V.Val self.a*other.a
+
+    V.from (that : Integer) = V.Val that
+
+    create x:Integer = V.from x
+
+    # invokes V.mul with Integer parameter, not V!
+    mix a:V b:Integer = a.mul b
+    """, uri.getHost())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+    var factory = module.invokeMember("eval_expression", "create");
+    var mix = module.invokeMember("eval_expression", "mix");
+
+    var six = factory.execute(6);
+    var fourtyTwoAsV = mix.execute(six, 7);
+
+    assertEquals("V", fourtyTwoAsV.getMetaObject().getMetaSimpleName());
+    assertEquals(42, fourtyTwoAsV.getMember("a").asInt());
+  }
+
   private Value exampleWithBinary() throws URISyntaxException {
     var uri = new URI("memory://binary.enso");
     var src = Source.newBuilder("enso", """

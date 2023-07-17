@@ -96,11 +96,15 @@ pub mod background {
 // === Kind ===
 
 /// The kind of entry:
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Kind {
     /// A standard entry with icon and caption.
-    #[default]
-    Entry,
+    Entry {
+        /// Entries in the first line will not add an (overlap)[ENTRIES_OVERLAP_PX].
+        ///
+        /// This flag is false if there is header present.
+        first_line: bool,
+    },
     /// A group header; there is no icon, the text id stronger and there is a gap above header
     /// being a group separator.
     Header,
@@ -110,6 +114,12 @@ pub enum Kind {
         /// Entries in the first line will not add an (overlap)[ENTRIES_OVERLAP_PX].
         first_line: bool,
     },
+}
+
+impl Default for Kind {
+    fn default() -> Self {
+        Self::Entry { first_line: false }
+    }
 }
 
 
@@ -255,7 +265,8 @@ impl Data {
             _ => 0.0,
         };
         let overlap = match kind {
-            Kind::Entry | Kind::LocalScopeEntry { first_line: false } => ENTRIES_OVERLAP_PX,
+            Kind::Entry { first_line } | Kind::LocalScopeEntry { first_line } if !first_line =>
+                ENTRIES_OVERLAP_PX,
             _ => 0.0,
         };
         let gap_over_header = match kind {

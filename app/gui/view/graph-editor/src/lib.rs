@@ -600,7 +600,7 @@ ensogl::define_endpoints_2! {
         set_available_execution_environments          (Rc<Vec<ExecutionEnvironment>>),
         switch_to_design_execution_environment(),
         switch_to_live_execution_environment(),
-        execution_finished(),
+        execution_complete(),
 
 
         // === Debug ===

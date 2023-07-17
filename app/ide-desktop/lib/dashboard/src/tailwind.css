@@ -107,10 +107,28 @@ body {
       background-image: url("enso-assets/dashed_border.svg");
     }
 
+    .blink-background {
+      /** The duration MUST be synced with the corresponding value in `sharedWithModal.tsx`. */
+      animation: blink 0.5s ease-in-out;
+    }
+
+    @keyframes blink {
+      0% {
+        background: #f0f1f3;
+      }
+      33% {
+        background: #e2e4e9;
+      }
+      100% {
+        background: #f0f1f3;
+      }
+    }
+
     .scroll-hidden {
       -ms-overflow-style: none; /* Internet Explorer 10+ */
       scrollbar-width: none; /* Firefox */
     }
+
     .scroll-hidden::-webkit-scrollbar {
       display: none; /* Safari and Chrome */
     }

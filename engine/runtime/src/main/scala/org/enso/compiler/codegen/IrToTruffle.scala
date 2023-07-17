@@ -660,6 +660,8 @@ class IrToTruffle(
     def extractAscribedType(t: IR.Expression): List[Type] = t match {
       case u: IR.Type.Set.Union     => u.operands.flatMap(extractAscribedType)
       case p: IR.Application.Prefix => extractAscribedType(p.function)
+      case _: IR.Type.Function =>
+        List(context.getTopScope().getBuiltins().function())
       case t => {
         t.getMetadata(TypeNames) match {
           case Some(

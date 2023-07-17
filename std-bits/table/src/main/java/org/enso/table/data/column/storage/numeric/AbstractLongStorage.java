@@ -5,11 +5,11 @@ import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.NumericBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
-import org.enso.table.data.column.operation.map.UnaryLongToLongOp;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.operation.map.numeric.LongBooleanOp;
 import org.enso.table.data.column.operation.map.numeric.LongIsInOp;
 import org.enso.table.data.column.operation.map.numeric.LongNumericOp;
+import org.enso.table.data.column.operation.map.numeric.UnaryLongToLongOp;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.graalvm.polyglot.Context;
@@ -277,6 +277,22 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
               @Override
               public BoolStorage run(AbstractLongStorage storage) {
                 return new BoolStorage(storage.getIsMissing(), new BitSet(), storage.size(), false);
+              }
+            })
+        .add(
+            new UnaryMapOperation<>(Storage.Maps.IS_NAN) {
+              @Override
+              public BoolStorage run(AbstractLongStorage storage) {
+                BitSet isNaN = new BitSet();
+                return new BoolStorage(isNaN, storage.getIsMissing(), storage.size(), false);
+              }
+            })
+        .add(
+            new UnaryMapOperation<>(Storage.Maps.IS_INFINITE) {
+              @Override
+              public BoolStorage run(AbstractLongStorage storage) {
+                BitSet isInfinite = new BitSet();
+                return new BoolStorage(isInfinite, storage.getIsMissing(), storage.size(), false);
               }
             })
         .add(new LongIsInOp());

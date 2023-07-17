@@ -4,12 +4,12 @@ import java.util.BitSet;
 import java.util.List;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.NumericBuilder;
-import org.enso.table.data.column.operation.map.DoubleLongMapOpWithSpecialNumericHandling;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.operation.map.numeric.DoubleBooleanOp;
 import org.enso.table.data.column.operation.map.numeric.DoubleIsInOp;
+import org.enso.table.data.column.operation.map.numeric.DoubleLongMapOpWithSpecialNumericHandling;
 import org.enso.table.data.column.operation.map.numeric.DoubleNumericOp;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
@@ -358,7 +358,23 @@ public final class DoubleStorage extends NumericStorage<Double> {
 
                   context.safepoint();
                 }
-                return new BoolStorage(nans, new BitSet(), storage.size, false);
+                return new BoolStorage(nans, storage.isMissing, storage.size, false);
+              }
+            })
+        .add(
+            new UnaryMapOperation<>(Maps.IS_INFINITE) {
+              @Override
+              public BoolStorage run(DoubleStorage storage) {
+                BitSet infintes = new BitSet();
+                Context context = Context.getCurrent();
+                for (int i = 0; i < storage.size; i++) {
+                  if (!storage.isNa(i) && Double.isInfinite(storage.getItem(i))) {
+                    infintes.set(i);
+                  }
+
+                  context.safepoint();
+                }
+                return new BoolStorage(infintes, storage.isMissing, storage.size, false);
               }
             })
         .add(new DoubleIsInOp());

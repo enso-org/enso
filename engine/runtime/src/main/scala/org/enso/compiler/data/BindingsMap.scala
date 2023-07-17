@@ -56,7 +56,7 @@ case class BindingsMap(
   override def restoreFromSerialization(
     compiler: Compiler
   ): Option[BindingsMap] = {
-    val packageRepository = compiler.context.getPackageRepository
+    val packageRepository = compiler.getPackageRepository()
     this.toConcrete(packageRepository.getModuleMap)
   }
 
@@ -992,7 +992,7 @@ object BindingsMap {
     override def restoreFromSerialization(
       compiler: Compiler
     ): Option[Resolution] = {
-      val moduleMap = compiler.context.getPackageRepository.getModuleMap
+      val moduleMap = compiler.getPackageRepository().getModuleMap
       this.target.toConcrete(moduleMap).map(t => this.copy(target = t))
     }
 

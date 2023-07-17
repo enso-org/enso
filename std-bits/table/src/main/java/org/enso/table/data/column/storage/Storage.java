@@ -75,6 +75,7 @@ public abstract class Storage<T> {
     public static final String OR = "||";
     public static final String IS_NOTHING = "is_nothing";
     public static final String IS_NAN = "is_nan";
+    public static final String IS_INFINITE = "is_infinite";
     public static final String IS_EMPTY = "is_empty";
     public static final String STARTS_WITH = "starts_with";
     public static final String ENDS_WITH = "ends_with";
