@@ -48,6 +48,7 @@ define_icons! {
     /// NOTE: This icon is not used in the Component Browser, but rather in the visualization
     /// container. It is placed here temporarily, to demonstrate it in the icons demo scene easily.
     /// It will be moved when refactoring the visualization container.
+    /// See https://github.com/enso-org/enso/issues/7315.
     pub mod compass(Compass) {
         ensogl_core::cached_shape! {
             size = (SIZE, SIZE);
