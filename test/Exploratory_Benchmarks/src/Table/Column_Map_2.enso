@@ -1,9 +1,3 @@
-## NOTE
-   This benchmark assumes that the Table operations used here are implemented in Java.
-   This is a valid assumption as of 2023-07-12.
-   If we ever change these operations, we would need to add this benchmark to have custom implementations for the Java side as well if we still want to use it for comparisons.
-
-   This file is _not_ automatically run when the benchmarks are run.
 from Standard.Base import all
 from Standard.Table import all
 
@@ -12,6 +6,7 @@ from Standard.Test import Bench
 import project.Table.Common_Setup.Common_Setup
 import project.Table.Helpers
 
+polyglot java import org.enso.exploratory_benchmark_helpers.MapHelpers
 polyglot java import org.enso.table.data.column.builder.NumericBuilder
 
 ## A second variant of Boxed_Map_Test.
@@ -20,8 +15,11 @@ polyglot java import org.enso.table.data.column.builder.NumericBuilder
 type Boxed_Map_Test_2
     Instance date_column
 
-    java_map self =
+    current_implementation self =
         self.date_column.year
+
+    java_map self =
+        MapHelpers.getYear self.date_column.java_column.getStorage
 
     ## We can still opt-out of `convert_polyglot_dates`, because this is applied
        at output which is Integer. If our output was another Date, we could not
@@ -67,6 +65,7 @@ spec setup =
     should_run_gc = setup.force_gc
 
     boxed_map = Boxed_Map_Test_2.Instance (t.at "dates")
+    Bench.measure (boxed_map.current_implementation) "Boxed_Map_Test_2.current_implementation" iter_size num_iterations run_gc_between_iterations=should_run_gc
     Bench.measure (boxed_map.java_map) "Boxed_Map_Test_2.java_map" iter_size num_iterations run_gc_between_iterations=should_run_gc
     Bench.measure (boxed_map.enso_map_as_vector convert_polyglot_dates=True) "Boxed_Map_Test_2.enso_map_as_vector+convert_dates" iter_size num_iterations run_gc_between_iterations=should_run_gc
     Bench.measure (boxed_map.enso_map_as_vector convert_polyglot_dates=False) "Boxed_Map_Test_2.enso_map_as_vector" iter_size num_iterations run_gc_between_iterations=should_run_gc

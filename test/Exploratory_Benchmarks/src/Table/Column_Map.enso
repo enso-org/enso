@@ -1,9 +1,3 @@
-## NOTE
-   This benchmark assumes that the Table operations used here are implemented in Java.
-   This is a valid assumption as of 2023-07-12.
-   If we ever change these operations, we would need to add this benchmark to have custom implementations for the Java side as well if we still want to use it for comparisons.
-
-   This file is _not_ automatically run when the benchmarks are run.
 from Standard.Base import all
 from Standard.Table import all
 
@@ -12,6 +6,7 @@ from Standard.Test import Bench
 import project.Table.Common_Setup.Common_Setup
 import project.Table.Helpers
 
+polyglot java import org.enso.exploratory_benchmark_helpers.MapHelpers
 polyglot java import org.enso.table.data.column.builder.BoolBuilder
 polyglot java import org.enso.table.data.column.builder.NumericBuilder
 
@@ -21,8 +16,11 @@ polyglot java import org.enso.table.data.column.builder.NumericBuilder
 type Boxed_Map_Test
     Instance text_column (suffix : Text)
 
-    java_map self =
+    current_implementation self =
         self.text_column.ends_with self.suffix
+
+    java_map self =
+        MapHelpers.textEndsWith self.text_column.java_column.getStorage self.suffix
 
     enso_map_as_vector self convert_polyglot_dates =
         suffix = self.suffix
@@ -51,8 +49,11 @@ type Boxed_Map_Test
 type Primitive_Map_Test
     Instance int_column (shift : Integer)
 
-    java_map self =
+    current_implementation self =
         self.int_column + self.shift
+
+    java_map self =
+        MapHelpers.longAdd self.int_column.java_column.getStorage self.shift
 
     enso_map_as_vector self convert_polyglot_dates =
         shift = self.shift
@@ -85,6 +86,7 @@ spec setup =
     should_run_gc = setup.force_gc
 
     primitive_map = Primitive_Map_Test.Instance (t.at "ints") 42
+    Bench.measure (primitive_map.current_implementation) "Primitive_Map_Test.current_implementation" iter_size num_iterations run_gc_between_iterations=should_run_gc
     Bench.measure (primitive_map.java_map) "Primitive_Map_Test.java_map" iter_size num_iterations run_gc_between_iterations=should_run_gc
     Bench.measure (primitive_map.enso_map_as_vector convert_polyglot_dates=True) "Primitive_Map_Test.enso_map_as_vector+convert_dates" iter_size num_iterations run_gc_between_iterations=should_run_gc
     Bench.measure (primitive_map.enso_map_as_vector convert_polyglot_dates=False) "Primitive_Map_Test.enso_map_as_vector" iter_size num_iterations run_gc_between_iterations=should_run_gc
@@ -92,6 +94,7 @@ spec setup =
 
     # This one seems slowest so I put it at the end.
     boxed_map = Boxed_Map_Test.Instance (t.at "text") "5"
+    Bench.measure (boxed_map.current_implementation) "Boxed_Map_Test.current_implementation" iter_size num_iterations run_gc_between_iterations=should_run_gc
     Bench.measure (boxed_map.java_map) "Boxed_Map_Test.java_map" iter_size num_iterations run_gc_between_iterations=should_run_gc
     Bench.measure (boxed_map.enso_map_as_vector convert_polyglot_dates=True) "Boxed_Map_Test.enso_map_as_vector+convert_dates" iter_size num_iterations run_gc_between_iterations=should_run_gc
     Bench.measure (boxed_map.enso_map_as_vector convert_polyglot_dates=False) "Boxed_Map_Test.enso_map_as_vector" iter_size num_iterations run_gc_between_iterations=should_run_gc
