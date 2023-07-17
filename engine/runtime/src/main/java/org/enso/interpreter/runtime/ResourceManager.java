@@ -142,9 +142,8 @@ public class ResourceManager {
       workerThread = context.getEnvironment().createSystemThread(worker);
       workerThread.start();
     }
-    ManagedResource resource = new ManagedResource(object);
-    PhantomReference<ManagedResource> ref = new PhantomReference<>(resource, referenceQueue);
-    resource.setPhantomReference(ref);
+    var resource = new ManagedResource(object, r -> new PhantomReference<>(r, referenceQueue));
+    PhantomReference<ManagedResource> ref = resource.getPhantomReference();
     items.put(ref, new Item(object, function, ref));
     return resource;
   }
