@@ -1,4 +1,4 @@
-package org.enso.interpreter.bench.benchmarks.meso;
+package org.enso.benchmarks.libs;
 
 import org.graalvm.polyglot.Value;
 

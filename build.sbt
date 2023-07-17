@@ -1722,6 +1722,38 @@ lazy val `distribution-manager` = project
   .dependsOn(pkg)
   .dependsOn(`logging-utils`)
 
+lazy val `bench-libs` = (project in file("tools/bench-libs"))
+  .configs(Benchmark)
+  .settings(
+    frgaalJavaCompilerSetting,
+    assembly / mainClass := (Compile / run / mainClass).value,
+    libraryDependencies ++= jmh ++ Seq(
+      "org.openjdk.jmh" % "jmh-core"                  % jmhVersion,
+      "org.openjdk.jmh" % "jmh-generator-annprocess"  % jmhVersion,
+      "org.graalvm.sdk"     % "graal-sdk"             % graalVersion      % "provided",
+    ),
+    commands += WithDebugCommand.withDebug,
+    (Compile / mainClass) := Some("org.enso.benchmarks.libs.LibBenchRunner"),
+    (Compile / run / fork) := true,
+    (Compile / run / connectInput) := true,
+    (Compile / javaOptions) ++= {
+      val runtimeClasspath =
+        (LocalProject("runtime") / Compile / fullClasspath).value
+      val runtimeInstrumentsClasspath =
+        (LocalProject(
+          "runtime-with-instruments"
+        ) / Compile / fullClasspath).value
+      val appendClasspath =
+        (runtimeClasspath ++ runtimeInstrumentsClasspath)
+          .map(_.data)
+          .mkString(File.pathSeparator)
+      Seq(
+        s"-Dtruffle.class.path.append=$appendClasspath",
+      )
+    },
+  )
+  .dependsOn(runtime)
+
 lazy val editions = project
   .in(file("lib/scala/editions"))
   .configs(Test)

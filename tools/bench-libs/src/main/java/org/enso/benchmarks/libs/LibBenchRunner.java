@@ -1,17 +1,12 @@
-package org.enso.interpreter.bench.benchmarks.meso;
+package org.enso.benchmarks.libs;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
 import java.util.Set;
-import org.enso.polyglot.MethodNames;
 import org.enso.polyglot.MethodNames.Module;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
@@ -24,8 +19,9 @@ import org.openjdk.jmh.runner.options.CommandLineOptionException;
 import org.openjdk.jmh.runner.options.CommandLineOptions;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
-// TODO: Move to different project?
 public class LibBenchRunner {
+  private static Context ctx;
+
   public static void main(String[] args) {
     CommandLineOptions cmdOpts = null;
     try {
@@ -36,6 +32,7 @@ public class LibBenchRunner {
       System.exit(1);
     }
 
+    initCtx();
     Set<BenchSuite> benchSpecs = collectAllBenchSpecs();
     for (BenchSuite benchSpec : benchSpecs) {
       for (BenchGroup group : benchSpec.groups()) {
@@ -56,7 +53,23 @@ public class LibBenchRunner {
     }
 
     // TODO: Collect all the results
+    closeCtx();
+  }
 
+  private static void initCtx() {
+    ctx = Context.newBuilder()
+        .allowExperimentalOptions(true)
+        .allowIO(true)
+        .allowAllAccess(true)
+        .logHandler(new ByteArrayOutputStream())
+        .option(
+            "enso.languageHomeOverride",
+            Paths.get("../../distribution/component").toFile().getAbsolutePath()
+        ).build();
+  }
+
+  private static void closeCtx() {
+    ctx.close();
   }
 
   public void run(String label) {
@@ -74,26 +87,16 @@ public class LibBenchRunner {
   private static BenchSuite collectBenchSpecsFromSingleFile(File benchFile) {
     assert benchFile.exists();
     assert benchFile.canRead();
-    try (var ctx = Context.newBuilder()
-        .allowExperimentalOptions(true)
-        .allowIO(true)
-        .allowAllAccess(true)
-        .logHandler(new ByteArrayOutputStream())
-        .option(
-            "enso.languageHomeOverride",
-            Paths.get("../../distribution/component").toFile().getAbsolutePath()
-        ).build()) {
-      Source source;
-      try {
-        source = Source.newBuilder("enso", benchFile).build();
-      } catch (IOException e) {
-        throw new IllegalStateException("Unreachable", e);
-      }
-      Value module = ctx.eval(source);
-      var benchSuite = module
-          .invokeMember(Module.EVAL_EXPRESSION, "all")
-          .as(BenchSuite.class);
-      return benchSuite;
+    Source source;
+    try {
+      source = Source.newBuilder("enso", benchFile).build();
+    } catch (IOException e) {
+      throw new IllegalStateException("Unreachable", e);
     }
+    Value module = ctx.eval(source);
+    var benchSuite = module
+        .invokeMember(Module.EVAL_EXPRESSION, "all")
+        .as(BenchSuite.class);
+    return benchSuite;
   }
 }
