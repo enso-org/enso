@@ -37,7 +37,7 @@ public class ResourceManagerTest extends TestBase {
     assertNotNull("Callback invoked when thread closed", fn.args);
     assertNotNull("Callback invoked with one argument", fn.args.length);
     assertEquals("Called by our thread", fn.thread, Thread.currentThread());
-    assertEquals("Callback called for SomeObject", obj, fn.args[0]);
+    assertEquals("Callback called for the registered `obj`", obj, fn.args[0]);
   }
 
   final class ResourceToGc implements TruffleObject {}
