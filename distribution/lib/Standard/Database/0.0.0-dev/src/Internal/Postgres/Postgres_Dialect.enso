@@ -511,27 +511,27 @@ replace args metadata =
             case only_first of
                 False -> case case_sensitivity of
                     Case_Sensitivity.Insensitive _ ->
-                        Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ escaped_pattern ++ ", " ++ replacement ++ ", 1, 0, 'i')"
+                        Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ escaped_pattern ++ ", " ++ replacement ++ ", 'ig')"
                     _ ->
                         Builder.code "REPLACE(" ++ input ++ ", " ++ pattern ++ ", " ++ replacement ++ ")"
                 True -> case case_sensitivity of
                     Case_Sensitivity.Insensitive _ ->
-                        Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ escaped_pattern ++ ", " ++ replacement ++ ", 1, 1, 'i')"
+                        Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ escaped_pattern ++ ", " ++ replacement ++ ", 'i')"
                     _ ->
-                        Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ escaped_pattern ++ ", " ++ replacement ++ ", 1, 1)"
+                        Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ escaped_pattern ++ ", " ++ replacement ++ ")"
         Regex ->
             pattern_string = transform_literal_param (_.pattern_string) pattern
             case only_first of
                 False -> case case_sensitivity of
                     Case_Sensitivity.Insensitive _ ->
-                        Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_string ++ ", " ++ replacement ++ ", 1, 0, 'i')"
+                        Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_string ++ ", " ++ replacement ++ ", 'ig')"
                     _ ->
-                        Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_string ++ ", " ++ replacement ++ ", 1, 0)"
+                        Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_string ++ ", " ++ replacement ++ ", 'g')"
                 True -> case case_sensitivity of
                     Case_Sensitivity.Insensitive _ ->
-                        Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_string ++ ", " ++ replacement ++ ", 1, 1, 'i')"
+                        Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_string ++ ", " ++ replacement ++ ", 'i')"
                     _ ->
-                        Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_string ++ ", " ++ replacement ++ ", 1, 1)"
+                        Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_string ++ ", " ++ replacement ++ ")"
         Column ->
             case only_first of
                 False -> case case_sensitivity of
