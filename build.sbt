@@ -959,6 +959,15 @@ lazy val `interpreter-dsl-test` =
         "-Dgraalvm.locatorDisabled=true",
         s"--upgrade-module-path=${file("engine/runtime/build-cache/truffle-api.jar").absolutePath}"
       ),
+      Test / javacOptions ++= Seq(
+        "-s",
+        (Test / sourceManaged).value.getAbsolutePath
+      ),
+      Compile / logManager :=
+        sbt.internal.util.CustomLogManager.excludeMsg(
+          "Could not determine source for class ",
+          Level.Warn
+        ),
       commands += WithDebugCommand.withDebug,
       libraryDependencies ++= Seq(
         "org.graalvm.truffle" % "truffle-api"           % graalVersion   % "provided",
