@@ -10,7 +10,7 @@ import org.enso.languageserver.capability.CapabilityProtocol.{
   ReleaseCapability
 }
 import org.enso.languageserver.data.{CanEdit, CapabilityRegistration, ClientId}
-import org.enso.languageserver.filemanager.Path
+import org.enso.languageserver.filemanager.{FileEvent, FileEventKind, Path}
 import org.enso.languageserver.monitoring.MonitoringProtocol.{Ping, Pong}
 import org.enso.languageserver.session.JsonSession
 import org.enso.languageserver.text.BufferRegistry.{
@@ -97,6 +97,12 @@ class BufferRegistry(
     with UnhandledLogging {
 
   import context.dispatcher
+
+  override def preStart(): Unit = {
+    super.preStart()
+
+    context.system.eventStream.subscribe(self, classOf[FileEvent])
+  }
 
   override def receive: Receive = running(Map.empty)
 
@@ -199,6 +205,9 @@ class BufferRegistry(
         path,
         registry
       )
+
+    case msg @ FileEvent(path, FileEventKind.Modified) =>
+      registry.get(path).foreach(_ ! msg)
   }
 
   private def forwardMessageToVCS(

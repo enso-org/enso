@@ -13,6 +13,7 @@ import org.enso.languageserver.event.{
 }
 import org.enso.languageserver.filemanager.{
   FileAttributes,
+  FileEvent,
   FileEventKind,
   FileManagerProtocol,
   FileNotFound,
@@ -292,6 +293,74 @@ class CollaborativeBuffer(
         )
       )
 
+    case FileEvent(path, FileEventKind.Modified) =>
+      fileManager ! FileManagerProtocol.ReadFileWithAttributes(path)
+      val timeoutCancellable = context.system.scheduler.scheduleOnce(
+        timingsConfig.requestTimeout,
+        self,
+        IOTimeout
+      )
+      context.become(
+        waitingOnFileEventContent(
+          path,
+          buffer,
+          timeoutCancellable,
+          clients,
+          lockHolder
+        )
+      )
+
+  }
+
+  private def waitingOnFileEventContent(
+    path: Path,
+    buffer: Buffer,
+    timeoutCancellable: Cancellable,
+    clients: Map[ClientId, JsonSession],
+    lockHolder: Option[JsonSession]
+  ): Receive = {
+    case FileManagerProtocol.InfoFileResult(Right(attrs)) =>
+      timeoutCancellable.cancel()
+      buffer.fileWithMetadata.lastModifiedTime.foreach {
+        bufferLastModifiedTime =>
+          if (attrs.lastModifiedTime.isAfter(bufferLastModifiedTime)) {
+            clients.values.foreach {
+              _.rpcController ! FileModifiedOnDisk(path)
+            }
+          }
+      }
+      unstashAll()
+      context.become(
+        collaborativeEditing(
+          buffer,
+          clients,
+          lockHolder,
+          Map.empty
+        )
+      )
+
+    case FileManagerProtocol.InfoFileResult(Left(err)) =>
+      timeoutCancellable.cancel()
+      logger.error("Failed to read file attributes for [{}]. {}", path, err)
+      unstashAll()
+      context.become(
+        collaborativeEditing(buffer, clients, lockHolder, Map.empty)
+      )
+
+    case Status.Failure(ex) =>
+      logger.error("Failed to read file attributes for [{}].", path, ex)
+      unstashAll()
+      context.become(
+        collaborativeEditing(buffer, clients, lockHolder, Map.empty)
+      )
+
+    case IOTimeout =>
+      unstashAll()
+      context.become(
+        collaborativeEditing(buffer, clients, lockHolder, Map.empty)
+      )
+
+    case _ => stash()
   }
 
   private def waitingOnReloadedContent(
