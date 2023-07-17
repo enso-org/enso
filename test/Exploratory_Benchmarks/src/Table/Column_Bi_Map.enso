@@ -18,7 +18,8 @@ type Boxed_Bi_Map_Test
         self.text_column_1 + self.text_column_2
 
     java_map self =
-        MapHelpers.stringConcatBimap self.text_column_1.java_column.getStorage self.text_column_2.java_column.getStorage
+        Column.from_storage "result" <|
+            MapHelpers.stringConcatBimap self.text_column_1.java_column.getStorage self.text_column_2.java_column.getStorage
 
     enso_map_as_vector self convert_polyglot_dates =
         vector_proxy_1 = self.text_column_1.to_vector
@@ -40,6 +41,9 @@ type Boxed_Bi_Map_Test
                     builder.append res
             Column.from_storage "result" builder.seal
 
+    verify_correctness self =
+        Helpers.check_results [self.current_implementation, self.java_map, self.enso_map_as_vector convert_polyglot_dates=True, self.enso_map_as_vector convert_polyglot_dates=False, self.enso_map_with_builder]
+
 # Adding two Long columns
 type Primitive_Bi_Map_Test
     Instance int_column_1 int_column_2
@@ -48,7 +52,8 @@ type Primitive_Bi_Map_Test
         self.int_column_1 + self.int_column_2
 
     java_map self =
-        MapHelpers.longAddBimap self.int_column_1.java_column.getStorage self.int_column_2.java_column.getStorage
+        Column.from_storage "result" <|
+            MapHelpers.longAddBimap self.int_column_1.java_column.getStorage self.int_column_2.java_column.getStorage
 
     enso_map_as_vector self convert_polyglot_dates =
         vector_proxy_1 = self.int_column_1.to_vector
@@ -70,6 +75,9 @@ type Primitive_Bi_Map_Test
                     builder.appendLong res
             Column.from_storage "result" builder.seal
 
+    verify_correctness self =
+        Helpers.check_results [self.current_implementation, self.java_map, self.enso_map_as_vector convert_polyglot_dates=True, self.enso_map_as_vector convert_polyglot_dates=False, self.enso_map_with_builder]
+
 main = spec Common_Setup.Config
 
 spec setup =
@@ -80,6 +88,7 @@ spec setup =
     should_run_gc = setup.force_gc
 
     primitive_bimap = Primitive_Bi_Map_Test.Instance (t.at "ints") (t.at "ints2")
+    primitive_bimap.verify_correctness
     Bench.measure (primitive_bimap.current_implementation) "Primitive_Bi_Map_Test.current_implementation" iter_size num_iterations run_gc_between_iterations=should_run_gc
     Bench.measure (primitive_bimap.java_map) "Primitive_Bi_Map_Test.java_map" iter_size num_iterations run_gc_between_iterations=should_run_gc
     Bench.measure (primitive_bimap.enso_map_as_vector convert_polyglot_dates=True) "Primitive_Bi_Map_Test.enso_map_as_vector+date_conversion" iter_size num_iterations run_gc_between_iterations=should_run_gc
@@ -87,6 +96,7 @@ spec setup =
     Bench.measure (primitive_bimap.enso_map_with_builder) "Primitive_Bi_Map_Test.enso_map_with_builder" iter_size num_iterations run_gc_between_iterations=should_run_gc
 
     boxed_bimap = Boxed_Bi_Map_Test.Instance (t.at "text") (t.at "text2")
+    boxed_bimap.verify_correctness
     Bench.measure (boxed_bimap.current_implementation) "Boxed_Bi_Map_Test.current_implementation" iter_size num_iterations run_gc_between_iterations=should_run_gc
     Bench.measure (boxed_bimap.java_map) "Boxed_Bi_Map_Test.java_map" iter_size num_iterations run_gc_between_iterations=should_run_gc
     Bench.measure (boxed_bimap.enso_map_as_vector convert_polyglot_dates=True) "Boxed_Bi_Map_Test.enso_map_as_vector+date_conversion" iter_size num_iterations run_gc_between_iterations=should_run_gc

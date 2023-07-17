@@ -4,6 +4,7 @@ from Standard.Table import all
 from Standard.Test import Bench
 
 import project.Table.Common_Setup.Common_Setup
+import project.Table.Helpers
 
 polyglot java import org.enso.exploratory_benchmark_helpers.SimpleStorageAggregateHelpers
 
@@ -36,6 +37,9 @@ type Boxed_Total_Aggregate
                 if item.is_nothing then acc else
                     if item.length > acc.length then item else acc
 
+    verify_correctness self =
+        Helpers.check_results [self.current_aggregate_implementation, self.java_loop, self.enso_aggregate_vector_proxy, self.enso_aggregate_storage_get_item]
+
 ## Computes Sum of integers.
    We have to be careful with `n` because if we use too large values Enso will start using BigInts, while Java will overflow.
 type Primitive_Total_Aggregate
@@ -61,6 +65,9 @@ type Primitive_Total_Aggregate
             if storage.isNa ix then acc else
                 acc + storage.getItem ix
 
+    verify_correctness self =
+        Helpers.check_results [self.current_aggregate_implementation, self.java_loop, self.enso_aggregate_vector_proxy, self.enso_aggregate_storage_get_item]
+
 ## An alternative to Boxed_Total_Aggregate. Computing text length is complex due
    to ICU complexity. This is a simpler one - we get the month of each value and
    sum these.
@@ -85,6 +92,9 @@ type Boxed_Sum_Months
             if item.is_nothing then acc else
                 acc + item.month
 
+    verify_correctness self =
+        Helpers.check_results [self.java_loop, self.enso_aggregate_vector_proxy, self.enso_aggregate_storage_get_item]
+
 main = spec (Common_Setup.Config)
 
 spec setup =
@@ -96,6 +106,7 @@ spec setup =
 
     # Using ints2 to get smaller values to avoid integer overflow.
     primitive_total_aggregate = Primitive_Total_Aggregate.Instance (t.at "ints2")
+    primitive_total_aggregate.verify_correctness
     # GC not needed here as this should be O(1) memory.
     Bench.measure (primitive_total_aggregate.current_aggregate_implementation) "Primitive_Total_Aggregate.current_aggregate_implementation" iter_size num_iterations run_gc_between_iterations=False
     Bench.measure (primitive_total_aggregate.java_loop) "Primitive_Total_Aggregate.java_loop" iter_size num_iterations run_gc_between_iterations=False
@@ -103,11 +114,13 @@ spec setup =
     Bench.measure (primitive_total_aggregate.enso_aggregate_storage_get_item) "Primitive_Total_Aggregate.enso_aggregate_storage_get_item" iter_size num_iterations run_gc_between_iterations=False
 
     boxed_sum_months = Boxed_Sum_Months.Instance (t2.at "dates")
+    boxed_sum_months.verify_correctness
     Bench.measure (boxed_sum_months.java_loop) "Boxed_Sum_Months.java_loop" iter_size num_iterations run_gc_between_iterations=False
     Bench.measure (boxed_sum_months.enso_aggregate_vector_proxy) "Boxed_Sum_Months.enso_aggregate_vector_proxy" iter_size num_iterations run_gc_between_iterations=False
     Bench.measure (boxed_sum_months.enso_aggregate_storage_get_item) "Boxed_Sum_Months.enso_aggregate_storage_get_item" iter_size num_iterations run_gc_between_iterations=False
 
     boxed_total_aggregate = Boxed_Total_Aggregate.Instance (t.at "text")
+    boxed_total_aggregate.verify_correctness
     Bench.measure (boxed_total_aggregate.current_aggregate_implementation) "Boxed_Total_Aggregate.current_aggregate_implementation" iter_size num_iterations run_gc_between_iterations=False
     Bench.measure (boxed_total_aggregate.java_loop) "Boxed_Total_Aggregate.java_loop" iter_size num_iterations run_gc_between_iterations=False
     Bench.measure (boxed_total_aggregate.enso_aggregate_vector_proxy) "Boxed_Total_Aggregate.enso_aggregate_vector_proxy" iter_size num_iterations run_gc_between_iterations=False

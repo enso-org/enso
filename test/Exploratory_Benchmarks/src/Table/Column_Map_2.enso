@@ -19,7 +19,8 @@ type Boxed_Map_Test_2
         self.date_column.year
 
     java_map self =
-        MapHelpers.getYear self.date_column.java_column.getStorage
+        Column.from_storage "result" <|
+            MapHelpers.getYear self.date_column.java_column.getStorage
 
     ## We can still opt-out of `convert_polyglot_dates`, because this is applied
        at output which is Integer. If our output was another Date, we could not
@@ -54,6 +55,9 @@ type Boxed_Map_Test_2
                 date ->
                     builder.appendNoGrow date.year
         Column.from_storage "result" builder.seal
+
+    verify_correctness self =
+        Helpers.check_results [self.current_implementation, self.java_map, self.enso_map_as_vector convert_polyglot_dates=True, self.enso_map_as_vector convert_polyglot_dates=False, self.enso_map_with_builder_append_long, self.enso_map_with_builder_append_object]
 
 main = spec (Common_Setup.Config)
 

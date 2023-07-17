@@ -9,7 +9,7 @@ import project.Table.Common_Setup.Common_Setup
 import project.Table.Enso_Callback
 
 spec =
-    setup = (Common_Setup.Config)
+    setup = (Common_Setup.Config n=100 num_iterations=1)
     Column_Map.spec setup
     Column_Map_2.spec setup
     Column_Bi_Map.spec setup

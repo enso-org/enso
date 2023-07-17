@@ -20,7 +20,8 @@ type Boxed_Map_Test
         self.text_column.ends_with self.suffix
 
     java_map self =
-        MapHelpers.textEndsWith self.text_column.java_column.getStorage self.suffix
+        Column.from_storage "result" <|
+            MapHelpers.textEndsWith self.text_column.java_column.getStorage self.suffix
 
     enso_map_as_vector self convert_polyglot_dates =
         suffix = self.suffix
@@ -43,6 +44,9 @@ type Boxed_Map_Test
                     builder.appendBoolean b
         Column.from_storage "result" builder.seal
 
+    verify_correctness self =
+        Helpers.check_results [self.current_implementation, self.java_map, self.enso_map_as_vector convert_polyglot_dates=True, self.enso_map_as_vector convert_polyglot_dates=False, self.enso_map_with_builder]
+
 ## This tests an operation on a primitive value, that in Java is stored as unboxed (e.g. + on LongStorage).
    This is a more demanding benchmark, because the Java side has an advantage of easily using the unboxed values everywhere.
    Here it may be harder to achieve comparable performance, but we want to know what is the difference, and ideally we want to be getting closer here as well.
@@ -53,7 +57,8 @@ type Primitive_Map_Test
         self.int_column + self.shift
 
     java_map self =
-        MapHelpers.longAdd self.int_column.java_column.getStorage self.shift
+        Column.from_storage "result" <|
+            MapHelpers.longAdd self.int_column.java_column.getStorage self.shift
 
     enso_map_as_vector self convert_polyglot_dates =
         shift = self.shift
@@ -76,6 +81,9 @@ type Primitive_Map_Test
                     builder.appendLong x
         Column.from_storage "result" builder.seal
 
+    verify_correctness self =
+        Helpers.check_results [self.current_implementation, self.java_map, self.enso_map_as_vector convert_polyglot_dates=True, self.enso_map_as_vector convert_polyglot_dates=False, self.enso_map_with_builder]
+
 main = spec Common_Setup.Config
 
 spec setup =
@@ -86,6 +94,7 @@ spec setup =
     should_run_gc = setup.force_gc
 
     primitive_map = Primitive_Map_Test.Instance (t.at "ints") 42
+    primitive_map.verify_correctness
     Bench.measure (primitive_map.current_implementation) "Primitive_Map_Test.current_implementation" iter_size num_iterations run_gc_between_iterations=should_run_gc
     Bench.measure (primitive_map.java_map) "Primitive_Map_Test.java_map" iter_size num_iterations run_gc_between_iterations=should_run_gc
     Bench.measure (primitive_map.enso_map_as_vector convert_polyglot_dates=True) "Primitive_Map_Test.enso_map_as_vector+convert_dates" iter_size num_iterations run_gc_between_iterations=should_run_gc
@@ -94,6 +103,7 @@ spec setup =
 
     # This one seems slowest so I put it at the end.
     boxed_map = Boxed_Map_Test.Instance (t.at "text") "5"
+    boxed_map.verify_correctness
     Bench.measure (boxed_map.current_implementation) "Boxed_Map_Test.current_implementation" iter_size num_iterations run_gc_between_iterations=should_run_gc
     Bench.measure (boxed_map.java_map) "Boxed_Map_Test.java_map" iter_size num_iterations run_gc_between_iterations=should_run_gc
     Bench.measure (boxed_map.enso_map_as_vector convert_polyglot_dates=True) "Boxed_Map_Test.enso_map_as_vector+convert_dates" iter_size num_iterations run_gc_between_iterations=should_run_gc
