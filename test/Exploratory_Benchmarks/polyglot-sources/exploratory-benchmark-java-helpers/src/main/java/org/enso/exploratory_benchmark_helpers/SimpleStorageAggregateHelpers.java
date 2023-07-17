@@ -1,11 +1,10 @@
 package org.enso.exploratory_benchmark_helpers;
 
+import java.time.LocalDate;
 import org.enso.base.Text_Utils;
 import org.enso.table.data.column.storage.StringStorage;
 import org.enso.table.data.column.storage.datetime.DateStorage;
 import org.enso.table.data.column.storage.numeric.LongStorage;
-
-import java.time.LocalDate;
 
 public class SimpleStorageAggregateHelpers {
   public static long sumLongStorage(LongStorage storage) {

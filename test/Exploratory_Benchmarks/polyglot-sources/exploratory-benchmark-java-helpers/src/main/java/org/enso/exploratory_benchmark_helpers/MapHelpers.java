@@ -1,5 +1,7 @@
 package org.enso.exploratory_benchmark_helpers;
 
+import java.util.BitSet;
+import java.util.function.Function;
 import org.enso.base.Text_Utils;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.InferredBuilder;
@@ -9,9 +11,6 @@ import org.enso.table.data.column.storage.StringStorage;
 import org.enso.table.data.column.storage.datetime.DateStorage;
 import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.enso.table.data.column.storage.type.StorageType;
-
-import java.util.BitSet;
-import java.util.function.Function;
 
 public class MapHelpers {
   public static StringStorage stringConcatBimap(StringStorage storage1, StringStorage storage2) {
@@ -93,9 +92,11 @@ public class MapHelpers {
     return new LongStorage(result, n, missing);
   }
 
-  public static Storage<?> mapCallback(Storage<?> storage, Function<Object, Object> fn, StorageType expectedType) {
+  public static Storage<?> mapCallback(
+      Storage<?> storage, Function<Object, Object> fn, StorageType expectedType) {
     int n = storage.size();
-    Builder builder = expectedType == null ? new InferredBuilder(n) : Builder.getForType(expectedType, n);
+    Builder builder =
+        expectedType == null ? new InferredBuilder(n) : Builder.getForType(expectedType, n);
     for (int i = 0; i < n; i++) {
       if (!storage.isNa(i)) {
         builder.append(fn.apply(storage.getItemBoxed(i)));
