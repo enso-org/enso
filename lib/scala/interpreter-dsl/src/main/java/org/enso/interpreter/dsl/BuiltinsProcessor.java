@@ -178,7 +178,7 @@ public class BuiltinsProcessor extends AbstractProcessor {
                   try {
                     MethodNodeClassGenerator classGenerator =
                         new NoSpecializationClassGenerator(
-                            method, builtinMethodNode, ownerClass, stdLibOwnerClass, i);
+                            processingEnv, method, builtinMethodNode, ownerClass, stdLibOwnerClass, i);
                     classGenerator.generate(
                         processingEnv,
                         methodName,
@@ -232,7 +232,7 @@ public class BuiltinsProcessor extends AbstractProcessor {
           if (encountered.size() == expected) {
             MethodNodeClassGenerator classGenerator =
                 new SpecializationClassGenerator(
-                    encountered, builtinMethodNode, ownerClass, stdLibOwnerClass);
+                    processingEnv, encountered, builtinMethodNode, ownerClass, stdLibOwnerClass);
             classGenerator.generate(
                 processingEnv,
                 builtinMethodName,
@@ -243,7 +243,7 @@ public class BuiltinsProcessor extends AbstractProcessor {
         } else {
           MethodNodeClassGenerator classGenerator =
               new NoSpecializationClassGenerator(
-                  method, builtinMethodNode, ownerClass, stdLibOwnerClass);
+                  processingEnv, method, builtinMethodNode, ownerClass, stdLibOwnerClass);
           classGenerator.generate(
               processingEnv,
               builtinMethodName,
