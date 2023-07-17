@@ -521,6 +521,7 @@
   `date_part` and some shorthands. Extended `Time_Period` with milli-, micro-
   and nanosecond periods.][7221]
 - [Implemented `replace` on database columns.][7275]
+- [Retire `Column_Selector` and allow regex based selection of columns.][7295]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -751,6 +752,7 @@
 [7234]: https://github.com/enso-org/enso/pull/7234
 [7221]: https://github.com/enso-org/enso/pull/7221
 [7275]: https://github.com/enso-org/enso/pull/7275
+[7295]: https://github.com/enso-org/enso/pull/7295
 
 #### Enso Compiler
 

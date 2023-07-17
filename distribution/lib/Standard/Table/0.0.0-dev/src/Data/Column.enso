@@ -5,6 +5,7 @@ import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Internal.Rounding_Helpers
+from Standard.Base.Widget_Helpers import make_regex_text_widget
 
 import project.Data.Data_Formatter.Data_Formatter
 import project.Data.Table.Table
@@ -1212,7 +1213,8 @@ type Column
          Replace texts in quotes with parentheses.
 
              column.replace '"(.*?)"'.to_regex '($1)'
-    replace : Text | Column | Regex -> Text | Column -> Case_Sensitivity -> Boolean -> Column
+    @term make_regex_text_widget
+    replace : Text | Regex | Column -> Text | Column -> Case_Sensitivity -> Boolean -> Column
     replace self term="" new_text="" case_sensitivity=Case_Sensitivity.Sensitive only_first=False =
         Value_Type.expect_text self <|
             term_fn = wrap_text_or_regex_argument_as_value_provider term

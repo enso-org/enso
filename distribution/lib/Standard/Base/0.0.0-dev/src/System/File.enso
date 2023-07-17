@@ -36,6 +36,7 @@ polyglot java import java.io.OutputStream as Java_Output_Stream
 polyglot java import java.nio.file.FileSystems
 polyglot java import java.nio.file.Path
 polyglot java import java.nio.file.StandardCopyOption
+polyglot java import java.nio.file.StandardOpenOption
 polyglot java import java.time.ZonedDateTime
 polyglot java import org.enso.base.DryRunFileManager
 polyglot java import org.enso.base.encoding.ReportingStreamDecoder
@@ -145,9 +146,9 @@ type File
     with_output_stream self open_options action =
         new_output_stream : File -> Vector File_Access -> Output_Stream ! File_Error
         new_output_stream file open_options =
-            opts = open_options . map (_.to_java) . to_array
+            opts = open_options . map (_.to_java)
             stream = File_Error.handle_java_exceptions file <|
-                file.output_stream_builtin opts.to_array
+                file.output_stream_builtin opts
             ## We re-wrap the File Not Found error to return the parent directory
                instead of the file itself - because the file that is being written
                may not exist and it will not be an error, it is the parent directory
@@ -180,9 +181,10 @@ type File
        `File.with_input_stream` instead, which does resource management.
 
        Arguments:
-       - open_options: A vector of `File_Access` objects determining how to open
-         the stream. These options set the access properties of the stream.
-    input_stream : Vector File_Access -> Input_Stream
+       - open_options: A vector of `StandardOpenOption` polyglot objects
+         determining how to open the stream. These options set the access
+         properties of the stream.
+    input_stream : Vector StandardOpenOption -> Input_Stream
     input_stream self options = @Builtin_Method "File.input_stream"
 
     ## PRIVATE
@@ -564,8 +566,8 @@ type File
             File_Error.handle_java_exceptions self <| case replace_existing of
                 True ->
                   copy_options = [StandardCopyOption.REPLACE_EXISTING]
-                  self.copy_builtin destination copy_options.to_array
-                False -> self.copy_builtin destination [].to_array
+                  self.copy_builtin destination copy_options
+                False -> self.copy_builtin destination []
 
     ## Moves the file to the specified destination.
 
@@ -579,8 +581,8 @@ type File
             File_Error.handle_java_exceptions self <| case replace_existing of
                 True ->
                   copy_options = [StandardCopyOption.REPLACE_EXISTING]
-                  self.move_builtin destination copy_options.to_array
-                False -> self.move_builtin destination [].to_array
+                  self.move_builtin destination copy_options
+                False -> self.move_builtin destination []
 
     ## Deletes the file if it exists on disk.
 
@@ -609,8 +611,8 @@ type File
     new_input_stream : Vector File_Access -> Input_Stream ! File_Error
     new_input_stream self open_options =
         if self.is_directory then Error.throw (File_Error.IO_Error self "File '"+self.path+"' is a directory") else
-            opts = open_options . map (_.to_java) . to_array
-            stream = File_Error.handle_java_exceptions self (self.input_stream opts.to_array)
+            opts = open_options . map (_.to_java)
+            stream = File_Error.handle_java_exceptions self (self.input_stream opts)
             resource = Managed_Resource.register stream close_stream
             Input_Stream.Value self resource
 

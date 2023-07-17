@@ -13,6 +13,7 @@ import org.enso.compiler.core.IR;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.builtin.Builtins;
+import org.enso.polyglot.CompilationStage;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -49,7 +50,7 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
         try (var stream = new ObjectInputStream(new ByteArrayInputStream(data))) {
           if (stream.readObject() instanceof IR.Module ir) {
               try {
-                  return new CachedModule(ir, Module.CompilationStage.valueOf(meta.compilationStage()), module.getSource());
+                  return new CachedModule(ir,CompilationStage.valueOf(meta.compilationStage()), module.getSource());
               } catch (IOException ioe) {
                   throw new ClassNotFoundException(ioe.getMessage());
               }
@@ -178,9 +179,9 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
     // CachedModule is not a record **on purpose**. There appears to be a Frgaal bug leading to invalid compilation error.
     static class CachedModule {
         private final IR.Module _moduleIR;
-        private final Module.CompilationStage _compilationStage;
+        private final CompilationStage _compilationStage;
         private final Source _source;
-        public CachedModule(IR.Module moduleIR, Module.CompilationStage compilationStage, Source source) {
+        public CachedModule(IR.Module moduleIR, CompilationStage compilationStage, Source source) {
             this._moduleIR = moduleIR;
             this._compilationStage = compilationStage;
             this._source = source;
@@ -189,7 +190,7 @@ public final class ModuleCache extends Cache<ModuleCache.CachedModule, ModuleCac
         IR.Module moduleIR() {
             return _moduleIR;
         }
-        Module.CompilationStage compilationStage() {
+        CompilationStage compilationStage() {
             return _compilationStage;
         }
         Source source() {
