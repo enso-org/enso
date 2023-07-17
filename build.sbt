@@ -2223,12 +2223,28 @@ buildEngineDistributionNoIndex := {
 }
 
 lazy val runEngineDistribution =
-  inputKey[Unit]("Run the engine distribution with arguments")
+  inputKey[Unit]("Run or --debug the engine distribution with arguments")
 runEngineDistribution := {
   buildEngineDistribution.value
   val args: Seq[String] = spaceDelimited("<arg>").parsed
   DistributionPackage.runEnginePackage(
     engineDistributionRoot.value,
+    args,
+    streams.value.log
+  )
+}
+
+lazy val runProjectManagerDistribution =
+  inputKey[Unit](
+    "Run or --debug the project manager distribution with arguments"
+  )
+runProjectManagerDistribution := {
+  buildEngineDistribution.value
+  buildProjectManagerDistribution.value
+  val args: Seq[String] = spaceDelimited("<arg>").parsed
+  DistributionPackage.runProjectManagerPackage(
+    engineDistributionRoot.value,
+    projectManagerDistributionRoot.value,
     args,
     streams.value.log
   )
