@@ -300,6 +300,7 @@ ensogl_core::define_endpoints_2! {
 
         hover(),
         unhover(),
+        focus(),
         set_single_line_mode(bool),
         set_hover(bool),
 
@@ -391,6 +392,7 @@ impl Text {
     }
 
     fn init_focus(&self) {
+        let m = &self.data;
         let network = self.frp.network();
         let input = &self.frp.input;
 
@@ -402,6 +404,8 @@ impl Text {
             // here, the text component is compatible with either.
             input.deprecated_focus <+_ focus_in;
             input.deprecated_defocus <+_ focus_out;
+
+            eval_ input.focus (m.focus());
         }
     }
 
@@ -1997,7 +2001,7 @@ impl application::View for Text {
 
     fn global_shortcuts() -> Vec<shortcut::Shortcut> {
         use shortcut::ActionType::*;
-        ([
+        let focus_capturing_shortcuts = [
             (PressAndRepeat, "left", "cursor_move_left"),
             (PressAndRepeat, "right", "cursor_move_right"),
             (PressAndRepeat, "up", "cursor_move_up"),
@@ -2039,19 +2043,25 @@ impl application::View for Text {
             (Press, "cmd left-mouse-button", "start_newest_selection_end_follow_mouse"),
             (Release, "cmd left-mouse-button", "stop_newest_selection_end_follow_mouse"),
             (Press, "cmd a", "select_all"),
-            (Press, "cmd c", "copy"),
             (Press, "cmd x", "cut"),
             (Press, "cmd v", "paste"),
+        ];
+        let non_focus_capturing_shortcuts = [
+            (Press, "cmd c", "copy"),
             (Press, "cmd z", "undo"),
             (Press, "escape", "keep_oldest_cursor_only"),
-        ])
-        .iter()
-        .map(|(action, rule, command)| {
-            let only_hovered = *action != Release && rule.contains("left-mouse-button");
-            let condition = if only_hovered { "focused & hovered" } else { "focused" };
-            Self::self_shortcut_when(*action, *rule, *command, condition)
-        })
-        .collect()
+        ];
+        non_focus_capturing_shortcuts
+            .iter()
+            .copied()
+            .chain(focus_capturing_shortcuts.iter().copied())
+            .chain(focus_capturing_shortcuts.iter().map(|(a, r, _)| (*a, *r, "focus")))
+            .map(|(action, rule, command)| {
+                let only_hovered = action != Release && rule.contains("left-mouse-button");
+                let condition = if only_hovered { "focused & hovered" } else { "focused" };
+                Self::self_shortcut_when(action, rule, command, condition)
+            })
+            .collect()
     }
 }
 
