@@ -123,7 +123,7 @@ impl SpanWidget for Widget {
     fn configure(&mut self, _: &Config, ctx: ConfigContext) {
         let is_placeholder = ctx.span_node.is_expected_argument();
 
-        let content = if is_placeholder {
+        let content = if is_placeholder || ctx.info.connection.is_some() {
             ctx.span_node.kind.argument_name().unwrap_or_default()
         } else {
             ctx.span_expression()

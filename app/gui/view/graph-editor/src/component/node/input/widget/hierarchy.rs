@@ -8,18 +8,6 @@ use ensogl::display::object;
 
 
 
-// ===============
-// === Aliases ===
-// ===============
-
-/// A collection type used to collect a temporary list of node child widget roots, so that they can
-/// be passed to `replace_children` method in one go. Avoids allocation for small number of
-/// children, but also doesn't consume too much stack memory to avoid stack overflow in deep widget
-/// hierarchies.
-pub type CollectedChildren = SmallVec<[object::Instance; 4]>;
-
-
-
 // ==============
 // === Widget ===
 // ==============
@@ -32,6 +20,9 @@ pub struct Config;
 #[derive(Clone, Debug)]
 pub struct Widget {
     display_object: object::Instance,
+    /// A temporary list of display object children to insert. Reused across reconfigurations to
+    /// avoid allocations.
+    children_vec:   SmallVec<[object::Instance; 4]>,
 }
 
 impl SpanWidget for Widget {
@@ -57,14 +48,21 @@ impl SpanWidget for Widget {
         let display_object = object::Instance::new_named("widget::Hierarchy");
         display_object.use_auto_layout();
         display_object.set_children_alignment_left_center().justify_content_center_y();
-        Self { display_object }
+        Self { display_object, children_vec: default() }
     }
 
     fn configure(&mut self, _: &Config, ctx: ConfigContext) {
         let child_level = ctx.info.nesting_level.next_if(ctx.span_node.is_argument());
-        let children_iter = ctx.span_node.children_iter();
-        let children =
-            children_iter.map(|node| ctx.builder.child_widget(node, child_level).root_object);
-        self.display_object.replace_children(&children.collect::<CollectedChildren>());
+        let is_primary = ctx.info.nesting_level.is_primary();
+        let separator_config = Configuration::inert(super::separator::Config.into());
+        let child_config = is_primary.then_some(&separator_config);
+
+        self.children_vec.clear();
+        self.children_vec.extend(ctx.span_node.children_iter().map(|node| {
+            ctx.builder.child_widget_of_type(node, child_level, child_config).root_object
+        }));
+
+        self.display_object.replace_children(&self.children_vec);
+        self.children_vec.clear();
     }
 }

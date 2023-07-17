@@ -354,8 +354,6 @@ macro_rules! define_widget_modules(
 define_widget_modules! {
     /// A widget for top-level Enso method calls. Displays an icon.
     Method method,
-    /// Separating line between top-level argument widgets.
-    Separator separator,
     /// A widget for selecting a single value from a list of available options.
     SingleChoice single_choice,
     /// A widget for managing a list of values - adding, removing or reordering them.
@@ -368,6 +366,9 @@ define_widget_modules! {
     Blank blank,
     /// Default widget that only displays text.
     Label label,
+    /// Separating line between top-level argument widgets. Can only be assigned through override,
+    /// which is currently done in hierarchy widget.
+    Separator separator,
 }
 
 // =====================
@@ -1582,7 +1583,18 @@ impl<'a> TreeBuilder<'a> {
             layers: layers.clone(),
         };
 
-        let config_override = || {
+
+        let mut select_configuration_override = || {
+            let is_applicable = |ctx: &ConfigContext, cfg: &Configuration| {
+                let flag = cfg.kind.flag();
+                !disallowed_configs.contains(flag)
+                    && !matches!(flag.match_node(&ctx), Score::Mismatch)
+            };
+
+            if let Some(config) = configuration.filter(|c| is_applicable(&ctx, c)) {
+                return Some(Cow::Borrowed(config));
+            }
+
             let kind = &ctx.span_node.kind;
             let key = OverrideKey {
                 call_id:       kind.call_id()?,
@@ -1591,17 +1603,14 @@ impl<'a> TreeBuilder<'a> {
             let local_override = ctx.builder.local_overrides.remove(&key);
             let override_map = &ctx.builder.override_map;
 
-            let is_applicable = |cfg: &&Configuration| {
-                let flag = cfg.kind.flag();
-                !disallowed_configs.contains(flag)
-                    && !matches!(flag.match_node(&ctx), Score::Mismatch)
-            };
 
-            let local = local_override.filter(|c| is_applicable(&c)).map(Cow::Owned);
-            local.or_else(|| override_map.get(&key).filter(is_applicable).map(Cow::Borrowed))
+            let local = local_override.filter(|c| is_applicable(&ctx, c)).map(Cow::Owned);
+            local.or_else(|| {
+                override_map.get(&key).filter(|c| is_applicable(&ctx, c)).map(Cow::Borrowed)
+            })
         };
 
-        let configuration = match configuration.map(Cow::Borrowed).or_else(config_override) {
+        let configuration = match select_configuration_override() {
             Some(config) => config,
             None => Cow::Owned(Configuration::infer_from_context(&ctx, disallowed_configs)),
         };

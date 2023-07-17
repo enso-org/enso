@@ -256,3 +256,7 @@ body {
 #debug-root > .debug-layer .hidden {
   display: none;
 }
+
+#debug-root > .debug-layer[data-layer-name="DETACHED"] {
+  display: none;
+}

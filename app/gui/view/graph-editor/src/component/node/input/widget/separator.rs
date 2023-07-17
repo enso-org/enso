@@ -47,8 +47,14 @@ impl SpanWidget for Widget {
     fn match_node(ctx: &ConfigContext) -> Score {
         let kind = &ctx.span_node.kind;
         let matches = ctx.info.nesting_level.is_primary()
-            && (kind.is_expected_argument() || kind.is_prefix_argument());
-        Score::only_if(matches)
+            && (kind.is_expected_argument()
+                || kind.is_prefix_argument()
+                || kind.is_named_argument());
+        if matches {
+            Score::OnlyOverride
+        } else {
+            Score::Mismatch
+        }
     }
 
     fn default_config(_: &ConfigContext) -> Configuration<Self::Config> {
