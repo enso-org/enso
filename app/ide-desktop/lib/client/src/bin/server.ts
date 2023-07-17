@@ -14,6 +14,8 @@ import * as contentConfig from 'enso-content-config'
 
 import * as paths from '../paths'
 
+import GLOBAL_CONFIG from '../../../../../gui/config.yaml' assert { type: 'yaml' }
+
 const logger = contentConfig.logger
 
 // =================
@@ -110,6 +112,39 @@ export class Server {
         const requestUrl = request.url
         if (requestUrl == null) {
             logger.error('Request URL is null.')
+        } else if (requestUrl.startsWith('/api/project-manager/')) {
+            const actualUrl = new URL(
+                requestUrl.replace(
+                    /^\/api\/project-manager/,
+                    GLOBAL_CONFIG.projectManagerHttpEndpoint
+                )
+            )
+            request.pipe(
+                http.request(
+                    // `...actualUrl` does NOT work because `URL` properties are not enumerable.
+                    {
+                        headers: request.headers,
+                        host: actualUrl.host,
+                        hostname: actualUrl.hostname,
+                        method: request.method,
+                        path: actualUrl.pathname,
+                        port: actualUrl.port,
+                        protocol: actualUrl.protocol,
+                    },
+                    actualResponse => {
+                        response.writeHead(
+                            // This is SAFE. The documentation says:
+                            // Only valid for response obtained from ClientRequest.
+                            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                            actualResponse.statusCode!,
+                            actualResponse.statusMessage,
+                            actualResponse.headers
+                        )
+                        actualResponse.pipe(response, { end: true })
+                    }
+                ),
+                { end: true }
+            )
         } else if (request.method === 'POST') {
             const requestPath = requestUrl.split('?')[0]?.split('#')[0]
             switch (requestPath) {

@@ -1277,7 +1277,8 @@ function Dashboard(props: DashboardProps) {
                                             for (const asset of selectedAssets) {
                                                 // All local assets are projects.
                                                 download.download(
-                                                    `./projects/${asset.id}/enso-project`,
+                                                    './api/project-manager/' +
+                                                        `projects/${asset.id}/enso-project`,
                                                     `${asset.title}.enso-project`
                                                 )
                                             }
@@ -1425,7 +1426,8 @@ function Dashboard(props: DashboardProps) {
                                                         logger
                                                     )
                                                 const projectResponse = await fetch(
-                                                    `./projects/${projectAsset.id}/enso-project`
+                                                    './api/project-manager/' +
+                                                        `projects/${projectAsset.id}/enso-project`
                                                 )
                                                 await remoteBackend.uploadFile(
                                                     {

@@ -256,7 +256,7 @@ export function directoryWithinBundle(bundlePath: string): string | null {
     })
     // ESLint doesn't know that `commonPrefix` can be not `null` here due to the `onentry` callback.
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    return commonPrefix != null ? pathModule.basename(commonPrefix) : null
+    return commonPrefix != null && commonPrefix !== '' ? pathModule.basename(commonPrefix) : null
 }
 
 /** An object containing the name and path of a project. */
@@ -328,11 +328,9 @@ export function isProjectInstalled(projectRoot: string): boolean {
     return pathModule.resolve(projectRootParent) === pathModule.resolve(projectsDirectory)
 }
 
-const BUNDLE_METADATA_PATH = 'package.yaml'
-
 /** Update the name of the project in the bundle metadata (`package.yaml`). */
 export function updateName(projectRoot: string, newName: string) {
-    const metadataPath = pathModule.join(projectRoot, BUNDLE_METADATA_PATH)
+    const metadataPath = pathModule.join(projectRoot, paths.BUNDLE_METADATA_RELATIVE)
     const oldMetadata = fs.readFileSync(metadataPath, 'utf-8')
     const newMetadata = oldMetadata.replace(/^name: .+$/m, `name: ${newName}`)
     fs.writeFileSync(metadataPath, newMetadata)
@@ -340,9 +338,14 @@ export function updateName(projectRoot: string, newName: string) {
 
 /** Gets the name of a bundle from the bundle metadata (`package.yaml`). */
 export function tryGetName(projectRoot: string) {
-    const metadataPath = pathModule.join(projectRoot, BUNDLE_METADATA_PATH)
-    const metadata = fs.readFileSync(metadataPath, 'utf-8')
-    return metadata.match(/^name: (.+)$/m)?.[1] ?? null
+    const metadataPath = pathModule.join(projectRoot, paths.BUNDLE_METADATA_RELATIVE)
+    try {
+        const metadata = fs.readFileSync(metadataPath, 'utf-8')
+        return metadata.match(/^name: (.+)$/m)?.[1] ?? null
+    } catch {
+        /// The bundle metadata file was not found.
+        return null
+    }
 }
 
 // ==================
