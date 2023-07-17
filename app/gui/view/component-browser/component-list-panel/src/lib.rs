@@ -245,7 +245,7 @@ impl Model {
         background.use_auto_layout().set_column_flow();
 
         let grid = app.new_view::<grid::View>();
-        // background.add_child(&grid_adapter);
+        background.add_child(&grid_adapter);
         grid_adapter.add_child(&grid);
 
         let section_navigator = SectionNavigator::new(app);

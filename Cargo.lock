@@ -4348,6 +4348,7 @@ dependencies = [
  "ensogl-hardcoded-theme",
  "ensogl-shadow",
  "ensogl-text",
+ "ensogl-toggle-button",
  "failure",
  "ide-view-component-list-panel-icons",
  "num_enum",

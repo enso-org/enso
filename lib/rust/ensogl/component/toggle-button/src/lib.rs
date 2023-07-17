@@ -48,6 +48,30 @@ pub trait ColorableShape: ShapeWithDefaultableData {
     fn set_color(&self, color: color::Rgba);
 }
 
+impl ColorableShape for ensogl_core::display::shape::compound::from_cache::recolorized::Shape {
+    fn set_color(&self, color: color::Rgba) {
+        self.r_component.set(color.into());
+    }
+}
+
+pub mod any_cached {
+    use ensogl_core::display::shape::*;
+    ensogl_core::shape! {
+        alignment = left_bottom;
+        (style: Style, icon: AnyCachedShape, r_component: Vector4, g_component: Vector4, b_component: Vector4) {
+            let r: Var<color::Rgba> = r_component.into();
+            let g: Var<color::Rgba> = g_component.into();
+            let b: Var<color::Rgba> = b_component.into();
+            icon.recolorize(r, g, b).into()
+        }
+    }
+}
+
+impl ColorableShape for any_cached::Shape {
+    fn set_color(&self, color: color::Rgba) {
+        self.r_component.set(color.into());
+    }
+}
 
 
 // ===========
