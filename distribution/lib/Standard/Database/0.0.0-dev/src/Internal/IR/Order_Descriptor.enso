@@ -1,7 +1,7 @@
 from Standard.Base import all
 
-import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.Nulls_Order.Nulls_Order
+import project.Internal.IR.SQL_Expression.SQL_Expression
 
 ## PRIVATE
 type Order_Descriptor

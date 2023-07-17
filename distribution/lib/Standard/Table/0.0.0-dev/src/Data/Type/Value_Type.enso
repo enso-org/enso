@@ -188,6 +188,23 @@ type Value_Type
         Value_Type.Date_Time _ -> True
         _ -> False
 
+    ## Checks if the `Value_Type` represents a type that holds a time of day.
+
+       It will return true for both `Time_Of_Day` and `Date_Time` types.
+    has_time : Boolean
+    has_time self = case self of
+        Value_Type.Time -> True
+        Value_Type.Date_Time _ -> True
+        _ -> False
+
+    ## Checks if the `Value_Type` represents a date/time type.
+    is_date_or_time : Boolean
+    is_date_or_time self = case self of
+        Value_Type.Date -> True
+        Value_Type.Date_Time _ -> True
+        Value_Type.Time -> True
+        _ -> False
+
     ## PRIVATE
        Specifies if values of the given type can be compared for ordering.
     has_ordering : Boolean
@@ -283,7 +300,7 @@ type Value_Type
        a text type and runs the following action or reports a type error.
     expect_text : Any -> Any -> Any ! Invalid_Value_Type
     expect_text argument ~action =
-        expect_type argument .is_text "Char" action
+        Value_Type.expect_type argument .is_text "Char" action
 
     ## PRIVATE
        ADVANCED
@@ -291,7 +308,7 @@ type Value_Type
        a text type and runs the following action or reports a type error.
     expect_boolean : Any -> Any -> Any ! Invalid_Value_Type
     expect_boolean argument ~action =
-        expect_type argument .is_boolean Value_Type.Boolean action
+        Value_Type.expect_type argument .is_boolean Value_Type.Boolean action
 
     ## PRIVATE
        ADVANCED
@@ -299,7 +316,7 @@ type Value_Type
        a numeric type and runs the following action or reports a type error.
     expect_numeric : Any -> Any -> Any ! Invalid_Value_Type
     expect_numeric argument ~action =
-        expect_type argument .is_numeric "a numeric" action
+        Value_Type.expect_type argument .is_numeric "a numeric" action
 
     ## PRIVATE
        ADVANCED
@@ -308,15 +325,42 @@ type Value_Type
        error.
     expect_floating_point : Any -> Any -> Any ! Invalid_Value_Type
     expect_floating_point argument ~action =
-        expect_type argument .is_floating_point "Float" action
+        Value_Type.expect_type argument .is_floating_point "Float" action
 
     ## PRIVATE
        ADVANCED
-       Checks if the provided argument (which may be a value or a Column) is has
+       Checks if the provided argument (which may be a value or a Column) is of
+       an integer type and runs the following action or reports a type error.
+    expect_integer : Any -> Any -> Any ! Invalid_Value_Type
+    expect_integer argument ~action =
+        Value_Type.expect_type argument .is_integer "Integer" action
+
+    ## PRIVATE
+       ADVANCED
+       Checks if the provided argument (which may be a value or a Column) has
        type `Date` or `Date_Time`.
     expect_has_date : Any -> Any -> Any ! Invalid_Value_Type
     expect_has_date argument ~action =
-        expect_type argument .has_date "Date or Date_Time" action
+        Value_Type.expect_type argument .has_date "Date or Date_Time" action
+
+    ## PRIVATE
+       ADVANCED
+       Checks if the provided argument (which may be a value or a Column) has
+       type `Time_Of_Day` or `Date_Time`.
+    expect_has_time : Any -> Any -> Any ! Invalid_Value_Type
+    expect_has_time argument ~action =
+        Value_Type.expect_type argument .has_time "Time_Of_Day or Date_Time" action
+
+    ## PRIVATE
+       A helper for generating the `Value_Type.expect_` checks.
+    expect_type : Any -> (Value_Type -> Boolean) -> Text|Value_Type -> Any -> Any ! Invalid_Value_Type
+    expect_type value predicate type_kind ~action = case value of
+        # Special handling for `Nothing`. Likely, can be removed with #6281.
+        Nothing -> action
+        _ ->
+            typ = Value_Type_Helpers.find_argument_type value
+            if predicate typ then action else
+                Value_Type_Helpers.raise_unexpected_type type_kind value
 
     ## PRIVATE
        Provides a text representation of the `Value_Type` meant for
@@ -373,14 +417,3 @@ type Value_Type
    - otherwise, `Text` is chosen as a fallback and the column is kept as-is
      without parsing.
 type Auto
-
-## PRIVATE
-   A helper for generating the `Value_Type.expect_` checks.
-expect_type : Any -> (Value_Type -> Boolean) -> Text|Value_Type -> Any -> Any ! Invalid_Value_Type
-expect_type value predicate type_kind ~action = case value of
-    # Special handling for `Nothing`. Likely, can be removed with #6281.
-    Nothing -> action
-    _ ->
-        typ = Value_Type_Helpers.find_argument_type value
-        if predicate typ then action else
-            Value_Type_Helpers.raise_unexpected_type type_kind value

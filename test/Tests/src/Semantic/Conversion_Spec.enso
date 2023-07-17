@@ -2,6 +2,7 @@ from Standard.Base import all
 
 import project.Semantic.Conversion.Methods
 import project.Semantic.Conversion.Types
+import project.Semantic.Conversion_Use.Hello
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
@@ -114,5 +115,12 @@ spec =
 
         Test.specify "should not allow currying" <|
             Panic.recover Any (Foo.from) . catch Any .to_display_text . should_equal "Conversion currying without `that` argument is not supported."
+
+        Test.specify "Use conversions to in Conversion_Use module" <|
+            Hello.formulate [ Hello.Say "Proper", Hello.Say "Type" ] . should_equal "ProperType"
+            Hello.formulate [ Foo.Value "Perform", Bar.Value "Conversion" ] . should_equal "PERFORM conversion!"
+
+Hello.from (that:Foo) = Hello.Say <| (that.foo.to_case Case.Upper) + " "
+Hello.from (that:Bar) = Hello.Say <| (that.bar.to_case Case.Lower) + "!"
 
 main = Test_Suite.run_main spec

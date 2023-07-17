@@ -292,6 +292,17 @@ impl Model {
             || {
                 let ast_id = self.state.update_from_view().remove_node(id)?;
                 self.widget.remove_all_node_widgets(ast_id);
+
+                let connections = self.controller.connections();
+                let node_connections = connections.map(|c| c.with_node(ast_id));
+                let disconnect_result = node_connections.map(|c| self.controller.disconnect_all(c));
+                if let Err(e) = disconnect_result {
+                    warn!(
+                        "Failed to disconnect all connections from node {:?} because of {:?}",
+                        ast_id, e
+                    );
+                }
+
                 Some(self.controller.graph().remove_node(ast_id))
             },
             "remove node",
@@ -641,7 +652,7 @@ impl ViewUpdate {
 /// This presenter focuses on the graph structure: nodes, their expressions and types, and
 /// connections between them. It does not integrate Searcher nor Breadcrumbs (managed by
 /// [`presenter::Searcher`] and [`presenter::CallStack`] respectively).
-#[derive(Debug)]
+#[derive(Clone, CloneRef, Debug)]
 pub struct Graph {
     network: frp::Network,
     model:   Rc<Model>,

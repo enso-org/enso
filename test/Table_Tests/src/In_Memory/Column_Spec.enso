@@ -63,12 +63,6 @@ spec =
             test_column.reverse.to_vector . should_equal expected_1.to_vector
             empty_column.reverse.to_vector . should_equal empty_column.to_vector
 
-        Test.specify "should allow to fill missing values from another column" <|
-            nulled = Column.from_vector "col" [0, Nothing, 4, 5, Nothing, Nothing]
-            defaults = Column.from_vector "def" [1, 2, 10, 20, Nothing, 30]
-            r = nulled.fill_nothing defaults
-            r.to_vector . should_equal [0, 2, 4, 5, Nothing, 30]
-
         Test.specify "should allow to count duplicate value occurences" <|
             c_1 = Column.from_vector "c 1" [0, 1, 2, 2, 1, 0, 2]
             c_1.duplicate_count.to_vector.should_equal [0, 0, 0, 1, 1, 1, 2]
@@ -122,6 +116,9 @@ spec =
             Column.from_vector "foo" [12, 24, 25, 29] . round 1 . value_type . should_equal Value_Type.Integer
             Column.from_vector "foo" [12, 24, 25, 29] . round 0 . value_type . should_equal Value_Type.Integer
             Column.from_vector "foo" [12, 24, 25, 29] . round -1 . value_type . should_equal Value_Type.Integer
+
+        Test.specify "rounding should not attach a warning by default" <|
+            Problems.assume_no_problems <| Column.from_vector "foo" [12, 24, 25, 29] . round 1
 
         Test.specify "should report out-of-range values as warnings" <|
             col = Column.from_vector "foo" [12, 23, 99999999999999999]

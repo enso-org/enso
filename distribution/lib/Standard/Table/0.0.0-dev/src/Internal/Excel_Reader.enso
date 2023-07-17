@@ -6,15 +6,13 @@ import Standard.Base.System.File.Input_Stream
 import project.Data.Table.Table
 import project.Excel.Excel_Range.Excel_Range
 import project.Excel.Excel_Section.Excel_Section
+from project.Errors import Duplicate_Output_Column_Names, Empty_Sheet_Error, Invalid_Location, Invalid_Output_Column_Names
 
-from project.Errors import Invalid_Location, Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Empty_Sheet_Error
-
+polyglot java import org.apache.poi.poifs.filesystem.NotOLE2FileException
+polyglot java import org.apache.poi.UnsupportedFileFormatException
+polyglot java import org.enso.table.error.InvalidLocationException
 polyglot java import org.enso.table.excel.ExcelHeaders
 polyglot java import org.enso.table.read.ExcelReader
-polyglot java import org.enso.table.error.InvalidLocationException
-
-polyglot java import org.apache.poi.UnsupportedFileFormatException
-polyglot java import org.apache.poi.poifs.filesystem.NotOLE2FileException
 polyglot java import org.enso.table.util.problems.DuplicateNames
 polyglot java import org.enso.table.util.problems.InvalidNames
 

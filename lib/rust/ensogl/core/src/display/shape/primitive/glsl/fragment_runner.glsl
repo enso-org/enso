@@ -11,7 +11,7 @@
 // pixels when the sprite coordinates are not integers or if the scene is zoomed. See the docs
 // attached to the shape system's geometry material to learn more.
 
-vec2 position = input_local.xy ;
+vec2 position = input_local.xy;
 Shape view_box = debug_shape(rect(position, input_size));
 Shape shape = run(position);
 shape = intersection_no_blend(shape, view_box);

@@ -11,12 +11,15 @@ import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
 import org.enso.table.data.table.problems.FloatingPointGrouping;
+import org.enso.table.error.TooManyColumnsException;
 import org.enso.table.problems.AggregatedProblems;
 import org.enso.table.util.ConstantList;
 import org.enso.table.util.NameDeduplicator;
 import org.graalvm.polyglot.Context;
 
 public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
+  private static final int MAXIMUM_CROSS_TAB_COLUMN_COUNT = 10000;
+
   private final int keyColumnsLength;
   private final Map<KeyType, List<Integer>> locs;
   private final AggregatedProblems problems;
@@ -140,6 +143,16 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
             nameColumn.getSize(),
             TextFoldingStrategy.unicodeNormalizedFold);
     final int columnCount = groupingColumns.length + nameIndex.locs.size() * aggregates.length;
+    if (columnCount > MAXIMUM_CROSS_TAB_COLUMN_COUNT) {
+      throw new TooManyColumnsException(
+          "The cross_tab contained too many columns. Maximum allowed is "
+              + MAXIMUM_CROSS_TAB_COLUMN_COUNT
+              + " but was "
+              + columnCount
+              + ".",
+          columnCount,
+          MAXIMUM_CROSS_TAB_COLUMN_COUNT);
+    }
 
     // Create the storage
     Builder[] storage = new Builder[columnCount];

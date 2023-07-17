@@ -1,6 +1,5 @@
-## Methods for operating on `Text` in Enso.
-
 import project.Any.Any
+import project.Data.Index_Sub_Range as Index_Sub_Range_Module
 import project.Data.Index_Sub_Range.Index_Sub_Range
 import project.Data.Locale.Locale
 import project.Data.Range.Range
@@ -9,8 +8,8 @@ import project.Data.Text.Case_Sensitivity.Case_Sensitivity
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Location.Location
 import project.Data.Text.Matching_Mode.Matching_Mode
-import project.Data.Text.Regex.Regex
 import project.Data.Text.Regex.Match.Match
+import project.Data.Text.Regex.Regex
 import project.Data.Text.Regex.Regex_Syntax_Error
 import project.Data.Text.Span.Span
 import project.Data.Text.Span.Utf_16_Span
@@ -22,9 +21,9 @@ import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Time_Of_Day.Time_Of_Day
 import project.Data.Time.Time_Zone.Time_Zone
 import project.Data.Vector.Vector
+import project.Error.Error
 import project.Errors.Common.Index_Out_Of_Bounds
 import project.Errors.Common.Syntax_Error
-import project.Error.Error
 import project.Errors.Encoding_Error.Encoding_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
@@ -32,22 +31,18 @@ import project.Errors.Time_Error.Time_Error
 import project.Meta
 import project.Network.URI.URI
 import project.Nothing.Nothing
-
-from project.Data.Boolean import Boolean, True, False
-from project.Data.Json import Json, Invalid_JSON, JS_Object
+from project.Data.Boolean import Boolean, False, True
+from project.Data.Json import Invalid_JSON, JS_Object, Json
 from project.Data.Numbers import Decimal, Integer, Number, Number_Parse_Error
 from project.Data.Range.Extensions import all
-
-from project.Widget_Helpers import make_delimiter_selector, make_date_format_selector, make_date_time_format_selector, make_time_format_selector
-
-import project.Data.Index_Sub_Range as Index_Sub_Range_Module
+from project.Widget_Helpers import make_date_format_selector, make_date_time_format_selector, make_delimiter_selector, make_regex_text_widget, make_time_format_selector
 
 polyglot java import com.ibm.icu.lang.UCharacter
 polyglot java import com.ibm.icu.text.BreakIterator
 polyglot java import java.lang.StringBuilder
-polyglot java import org.enso.base.Text_Utils
 polyglot java import org.enso.base.Encoding_Utils
 polyglot java import org.enso.base.Regex_Utils
+polyglot java import org.enso.base.Text_Utils
 
 ## Returns a new `Text` object with the characters in the reverse order of the input.
 
@@ -226,9 +221,9 @@ Text.characters self =
    - case_sensitivity: Specifies if the text values should be compared case
      sensitively.
 
-   If an empty regex is used, `find` throws an Illegal_Argument error.
+   If an empty regex is used, `find` throws an `Illegal_Argument` error.
 
-   If a non-default locale is used, `find` throws an Illegal_Argument error.
+   If a non-default locale is used, `find` throws an `Illegal_Argument` error.
 
    > Example
      Find the first substring matching the regex.
@@ -253,9 +248,9 @@ Text.find self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
    - case_sensitivity: Specifies if the text values should be compared case
      sensitively.
 
-   If an empty regex is used, `find_all` throws an Illegal_Argument error.
+   If an empty regex is used, `find_all` throws an `Illegal_Argument` error.
 
-   If a non-default locale is used, `find_all` throws an Illegal_Argument error.
+   If a non-default locale is used, `find_all` throws an `Illegal_Argument` error.
 
    > Example
      Find the substring matching the regex.
@@ -281,9 +276,9 @@ Text.find_all self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
    - case_sensitivity: Specifies if the text values should be compared case
      sensitively.
 
-   If an empty regex is used, `match` throws an Illegal_Argument error.
+   If an empty regex is used, `match` throws an `Illegal_Argument` error.
 
-   If a non-default locale is used, `match` throws an Illegal_Argument error.
+   If a non-default locale is used, `match` throws an `Illegal_Argument` error.
 
    > Example
      Checks if whole text matches a basic email regex.
@@ -301,6 +296,23 @@ Text.match self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
     case_insensitive = case_sensitivity.is_case_insensitive_in_memory
     compiled_pattern = Regex.compile pattern case_insensitive=case_insensitive
     compiled_pattern.matches self
+
+## Compile the text into a regex pattern that can be used for matching.
+
+   Arguments
+   - case_insensitive: Enables or disables case-insensitive matching. Case
+     insensitive matching behaves as if it normalises the case of all input
+     text before matching on it.
+
+   If an empty regex is used, `compile` throws an `Illegal_Argument` error.
+
+   ? Why Compile?
+     While many regex engines are able to cache ad-hoc patterns, it is often
+     useful to be able to manually retain a pattern that you have computed. This
+     function exists so you can hold onto the resultant `Pattern` object,
+     instead of immediately proceeding to match using it.
+Text.to_regex : Boolean -> Regex ! Regex_Syntax_Error | Illegal_Argument
+Text.to_regex self case_insensitive=False = Regex.compile self case_insensitive
 
 ## ALIAS Split Text
 
@@ -410,14 +422,13 @@ Text.tokenize self pattern="." case_sensitivity=Case_Sensitivity.Sensitive =
        $<foo>: Named group `foo`
 
    Arguments:
-   - term: The string or regex to find.
+   - term: The `Text` or `Regex` to find.
    - replacement: The text to replace matches with.
    - case_sensitivity: Specifies if the text values should be compared case
      sensitively.
    - only_first: If True, only replace the first match.
-   - use_regex: If true, the term is used as a regular expression.
 
-   If an empty regex is used, `replace` throws an Illegal_Argument error.
+   If an empty regex is used, `replace` throws an `Illegal_Argument` error.
 
    If a non-default locale is used with a regex, `replace` throws an
    Illegal_Argument error.
@@ -430,7 +441,7 @@ Text.tokenize self pattern="." case_sensitivity=Case_Sensitivity.Sensitive =
    > Example
      Replace all occurrences of letters 'l' and 'o' with '#'.
 
-         "Hello World!".replace "[lo]" "#" use_regex=True == "He### W#r#d!"
+         "Hello World!".replace "[lo]".to_regex "#" == "He### W#r#d!"
 
    > Example
      Replace the first occurrence of letter 'l' with '#'.
@@ -440,7 +451,7 @@ Text.tokenize self pattern="." case_sensitivity=Case_Sensitivity.Sensitive =
    > Example
      Replace texts in quotes with parentheses.
 
-          '"abc" foo "bar" baz'.replace '"(.*?)"' '($1)' use_regex=True == '(abc) foo (bar) baz'
+          '"abc" foo "bar" baz'.replace '"(.*?)"'.to_regex '($1)' == '(abc) foo (bar) baz'
 
    ! Matching Grapheme Clusters
      In case-insensitive mode, a single character can match multiple characters,
@@ -465,16 +476,16 @@ Text.tokenize self pattern="." case_sensitivity=Case_Sensitivity.Sensitive =
    > Example
      Regexp replace.
 
-     '<a href="url">content</a>'.replace '<a href="(.*?)">(.*?)</a>' '$2 is at $1' use_regex=True == 'content is at url'
-
-Text.replace : Text -> Text -> Case_Sensitivity -> Boolean -> Boolean -> Text ! Illegal_Argument
-Text.replace self term replacement case_sensitivity=Case_Sensitivity.Sensitive only_first=False use_regex=False =
-    case use_regex of
-        False -> if term.is_empty then self else
+     '<a href="url">content</a>'.replace '<a href="(.*?)">(.*?)</a>'.to_regex '$2 is at $1'== 'content is at url'
+@term make_regex_text_widget
+Text.replace : Text | Regex -> Text -> Case_Sensitivity -> Boolean -> Text ! Illegal_Argument
+Text.replace self term:(Text | Regex) replacement:Text (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default) only_first:Boolean=False =
+    case term of
+        _ : Text -> if term.is_empty then self else
             array_from_single_result result = case result of
                 Nothing -> []
                 _ -> [result]
-            spans_array = case case_sensitivity of
+            spans_array = case case_sensitivity.to_explicit_sensitivity_in_memory of
                 Case_Sensitivity.Sensitive -> case only_first of
                     False -> Text_Utils.span_of_all self term
                     True -> array_from_single_result <| Text_Utils.span_of self term
@@ -485,10 +496,9 @@ Text.replace self term replacement case_sensitivity=Case_Sensitivity.Sensitive o
                         array_from_single_result <|
                             Text_Utils.span_of_case_insensitive self term locale.java_locale False
             Text_Utils.replace_spans self spans_array replacement
-        True ->
-            case_insensitive = case_sensitivity.is_case_insensitive_in_memory
-            compiled_pattern = Regex.compile term case_insensitive=case_insensitive
-            compiled_pattern.replace self replacement only_first
+        _ : Regex ->
+            updated_regex = term.recompile case_sensitivity
+            updated_regex.replace self replacement only_first
 
 ## ALIAS Get Words
 

@@ -117,6 +117,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`text/applyExpressionValue`](#textapplyexpressionvalue)
   - [`text/didChange`](#textdidchange)
   - [`text/autoSave`](#textautosave)
+  - [`text/fileModifiedOnDisk`](#textfilemodifiedondisk)
 - [Workspace Operations](#workspace-operations)
   - [`workspace/projectInfo`](#workspaceprojectinfo)
 - [Monitoring](#monitoring)
@@ -3135,6 +3136,30 @@ successful auto-save action.
 - **Visibility:** Public
 
 This notification must _only_ be sent for files that the client has open.
+
+#### Parameters
+
+```typescript
+{
+  path: Path;
+}
+```
+
+#### Errors
+
+```typescript
+null;
+```
+
+### `text/fileModifiedOnDisk`
+
+This is a notification sent from the server to the clients to inform them that
+the file was modified on disk by an external editor.
+
+- **Type:** Notification
+- **Direction:** Server -> Client
+- **Connection:** Protocol
+- **Visibility:** Public
 
 #### Parameters
 

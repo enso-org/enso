@@ -37,6 +37,10 @@ public abstract class TypeOfNode extends Node {
     return TypeOfNodeGen.create();
   }
 
+  public static TypeOfNode getUncached() {
+    return TypeOfNodeGen.getUncached();
+  }
+
   @Specialization
   Object doUnresolvedSymbol(UnresolvedSymbol value) {
     return EnsoContext.get(this).getBuiltins().function();

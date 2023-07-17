@@ -1,98 +1,29 @@
 import project.Any.Any
+import project.Data
 import project.Data.Array.Array
 import project.Data.Boolean
-import project.Data.List.List
-import project.Data.Numbers
-import project.Data.Map.Map
-import project.Data.Set.Set
-import project.Data.Text.Text
-import project.Data.Vector.Vector
-import project.Error.Error
-import project.Errors
-import project.Function
-import project.Internal.Rounding_Helpers
-import project.IO
-import project.Math
-import project.Meta
-import project.Meta.Enso_Project.Project_Description
-import project.Nothing.Nothing
-import project.Panic.Panic
-import project.Polyglot.Java
-import project.Polyglot.Polyglot
-import project.Runtime
-import project.System
-import project.System.Environment
-import project.System.File.File
-import project.System.File.Existing_File_Behavior.Existing_File_Behavior
-import project.System.File.File_Access.File_Access
-import project.System.File.File_Permissions.File_Permissions
-import project.System.File.File_Permissions.Permission
-import project.System.File.Write_Extensions
-import project.System.File_Format
-import project.System.Platform
-import project.System.Process
-import project.System.Process.Exit_Code.Exit_Code
-import project.Warning.Warning
-
-from project.Meta.Enso_Project import enso_project
-
-export project.Any.Any
-export project.Data.Array.Array
-export project.Data.List.List
-export project.Data.Map.Map
-export project.Data.Set.Set
-export project.Data.Text.Text
-export project.Data.Vector.Vector
-export project.Error.Error
-export project.Errors
-export project.Internal.Rounding_Helpers
-export project.IO
-export project.Math
-export project.Meta
-export project.Meta.Enso_Project.Project_Description
-export project.Nothing.Nothing
-export project.Panic.Panic
-export project.Polyglot.Java
-export project.Polyglot.Polyglot
-export project.Runtime
-export project.System
-export project.System.Environment
-export project.System.File.File
-export project.System.File.Existing_File_Behavior.Existing_File_Behavior
-export project.System.File.File_Access.File_Access
-export project.System.File.File_Permissions.File_Permissions
-export project.System.File.File_Permissions.Permission
-export project.System.File.Write_Extensions
-export project.System.Platform
-export project.System.Process
-export project.System.Process.Exit_Code.Exit_Code
-export project.Warning.Warning
-
-from project.Data.Boolean export Boolean, True, False
-from project.Function export all
-from project.Data.Numbers export Number, Integer, Decimal
-from project.Meta.Enso_Project export enso_project
-from project.System.File_Format export File_Format, Plain_Text_Format, Plain_Text, Bytes, Infer, Auto_Detect, JSON_Format
-
-import project.Data
 import project.Data.Filter_Condition.Filter_Condition
 import project.Data.Index_Sub_Range.Index_Sub_Range
 import project.Data.Interval.Bound
 import project.Data.Interval.Interval
 import project.Data.Interval.Interval_Type
-import project.Data.Json.Json
 import project.Data.Json.JS_Object
+import project.Data.Json.Json
+import project.Data.List.List
 import project.Data.Locale.Locale
+import project.Data.Map.Map
 import project.Data.Maybe.Maybe
 import project.Data.Noise
-import project.Data.Ordering.Natural_Order
-import project.Data.Ordering.Ordering
+import project.Data.Numbers
 import project.Data.Ordering.Comparable
 import project.Data.Ordering.Default_Comparator
-import project.Data.Sort_Direction.Sort_Direction
+import project.Data.Ordering.Natural_Order
+import project.Data.Ordering.Ordering
 import project.Data.Pair.Pair
 import project.Data.Range.Range
 import project.Data.Regression
+import project.Data.Set.Set
+import project.Data.Sort_Direction.Sort_Direction
 import project.Data.Statistics
 import project.Data.Text.Case.Case
 import project.Data.Text.Case_Sensitivity.Case_Sensitivity
@@ -101,6 +32,7 @@ import project.Data.Text.Line_Ending_Style.Line_Ending_Style
 import project.Data.Text.Location.Location
 import project.Data.Text.Matching_Mode.Matching_Mode
 import project.Data.Text.Regex.Regex
+import project.Data.Text.Text
 import project.Data.Text.Text_Ordering.Text_Ordering
 import project.Data.Text.Text_Sub_Range.Text_Sub_Range
 import project.Data.Time.Date.Date
@@ -114,37 +46,71 @@ import project.Data.Time.Period.Period
 import project.Data.Time.Time_Of_Day.Time_Of_Day
 import project.Data.Time.Time_Period.Time_Period
 import project.Data.Time.Time_Zone.Time_Zone
+import project.Data.Vector.Vector
+import project.Error.Error
+import project.Errors
 import project.Errors.Problem_Behavior.Problem_Behavior
+import project.Function
+import project.IO
+import project.Math
+import project.Meta
+import project.Meta.Enso_Project.Project_Description
 import project.Network.HTTP.Header.Header
 import project.Network.HTTP.HTTP
 import project.Network.HTTP.HTTP_Method.HTTP_Method
 import project.Network.HTTP.HTTP_Status_Code.HTTP_Status_Code
 import project.Network.HTTP.HTTP_Version.HTTP_Version
 import project.Network.URI.URI
+import project.Nothing.Nothing
+import project.Panic.Panic
+import project.Polyglot.Java
+import project.Polyglot.Polyglot
 import project.Random
-
+import project.Runtime
+import project.System
+import project.System.Environment
+import project.System.File.Existing_File_Behavior.Existing_File_Behavior
+import project.System.File.File
+import project.System.File.File_Access.File_Access
+import project.System.File.File_Permissions.File_Permissions
+import project.System.File.File_Permissions.Permission
+import project.System.File.Write_Extensions
+import project.System.File_Format
+import project.System.Platform
+import project.System.Process
+import project.System.Process.Exit_Code.Exit_Code
+import project.Warning.Warning
+from project.Data.Index_Sub_Range.Index_Sub_Range import First, Last
 from project.Data.Json.Extensions import all
 from project.Data.Range.Extensions import all
 from project.Data.Text.Extensions import all
+from project.Errors.Problem_Behavior.Problem_Behavior import all
+from project.Meta.Enso_Project import enso_project
 from project.Network.Extensions import all
+from project.System.File_Format.Plain_Text_Format import Plain_Text
 
+export project.Any.Any
 export project.Data
+export project.Data.Array.Array
 export project.Data.Filter_Condition.Filter_Condition
 export project.Data.Index_Sub_Range.Index_Sub_Range
 export project.Data.Interval.Bound
 export project.Data.Interval.Interval
 export project.Data.Interval.Interval_Type
-export project.Data.Json.Json
 export project.Data.Json.JS_Object
+export project.Data.Json.Json
+export project.Data.List.List
 export project.Data.Locale.Locale
+export project.Data.Map.Map
 export project.Data.Maybe.Maybe
-export project.Data.Ordering.Natural_Order
-export project.Data.Ordering.Ordering
 export project.Data.Ordering.Comparable
 export project.Data.Ordering.Default_Comparator
+export project.Data.Ordering.Natural_Order
+export project.Data.Ordering.Ordering
 export project.Data.Pair.Pair
 export project.Data.Range.Range
 export project.Data.Regression
+export project.Data.Set.Set
 export project.Data.Sort_Direction.Sort_Direction
 export project.Data.Text.Case.Case
 export project.Data.Text.Case_Sensitivity.Case_Sensitivity
@@ -153,6 +119,7 @@ export project.Data.Text.Line_Ending_Style.Line_Ending_Style
 export project.Data.Text.Location.Location
 export project.Data.Text.Matching_Mode.Matching_Mode
 export project.Data.Text.Regex.Regex
+export project.Data.Text.Text
 export project.Data.Text.Text_Ordering.Text_Ordering
 export project.Data.Text.Text_Sub_Range.Text_Sub_Range
 export project.Data.Time.Date.Date
@@ -166,27 +133,49 @@ export project.Data.Time.Period.Period
 export project.Data.Time.Time_Of_Day.Time_Of_Day
 export project.Data.Time.Time_Period.Time_Period
 export project.Data.Time.Time_Zone.Time_Zone
+export project.Data.Vector.Vector
+export project.Error.Error
+export project.Errors
 export project.Errors.Problem_Behavior.Problem_Behavior
+export project.IO
+export project.Math
+export project.Meta
+export project.Meta.Enso_Project.Project_Description
 export project.Network.HTTP.Header.Header
 export project.Network.HTTP.HTTP
 export project.Network.HTTP.HTTP_Method.HTTP_Method
 export project.Network.HTTP.HTTP_Status_Code.HTTP_Status_Code
 export project.Network.HTTP.HTTP_Version.HTTP_Version
 export project.Network.URI.URI
+export project.Nothing.Nothing
+export project.Panic.Panic
+export project.Polyglot.Java
+export project.Polyglot.Polyglot
 export project.Random
-
-from project.Data.Json.Extensions export all
-from project.Data.Range.Extensions export all
-from project.Data.Text.Extensions export all
-from project.Network.Extensions export all
-
-from project.Data.Noise export all hiding Noise, Generator, Deterministic_Random, Long, Random
-from project.Data.Statistics export all hiding to_moment_statistic, wrap_java_call, calculate_correlation_statistics, calculate_spearman_rank, calculate_correlation_statistics_matrix, compute_fold, empty_value, is_valid
-
-from project.Data.Index_Sub_Range.Index_Sub_Range import First, Last
-from project.Errors.Problem_Behavior.Problem_Behavior import all
-from project.System.File_Format.Plain_Text_Format import Plain_Text
-
+export project.Runtime
+export project.System
+export project.System.Environment
+export project.System.File.Existing_File_Behavior.Existing_File_Behavior
+export project.System.File.File
+export project.System.File.File_Access.File_Access
+export project.System.File.File_Permissions.File_Permissions
+export project.System.File.File_Permissions.Permission
+export project.System.File.Write_Extensions
+export project.System.Platform
+export project.System.Process
+export project.System.Process.Exit_Code.Exit_Code
+export project.Warning.Warning
+from project.Data.Boolean export Boolean, False, True
 from project.Data.Index_Sub_Range.Index_Sub_Range export First, Last
+from project.Data.Json.Extensions export all
+from project.Data.Noise export all hiding Noise, Generator, Deterministic_Random, Long, Random
+from project.Data.Numbers export Decimal, Integer, Number
+from project.Data.Range.Extensions export all
+from project.Data.Statistics export all hiding to_moment_statistic, wrap_java_call, calculate_correlation_statistics, calculate_spearman_rank, calculate_correlation_statistics_matrix, compute_fold, empty_value, is_valid
+from project.Data.Text.Extensions export all
 from project.Errors.Problem_Behavior.Problem_Behavior export all
+from project.Function export all
+from project.Meta.Enso_Project export enso_project
+from project.Network.Extensions export all
+from project.System.File_Format export Auto_Detect, Bytes, File_Format, Infer, JSON_Format, Plain_Text_Format
 from project.System.File_Format.Plain_Text_Format export Plain_Text

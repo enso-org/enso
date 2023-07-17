@@ -1,5 +1,5 @@
 /** @file An entry in a context menu. */
-import * as react from 'react'
+import * as React from 'react'
 
 // ========================
 // === ContextMenuEntry ===
@@ -9,13 +9,13 @@ import * as react from 'react'
 export interface ContextMenuEntryProps {
     disabled?: boolean
     title?: string
-    onClick: (event: react.MouseEvent<HTMLButtonElement>) => void
+    onClick: (event: React.MouseEvent<HTMLButtonElement>) => void
 }
 
 // This component MUST NOT use `useState` because it is not rendered directly.
 /** An item in a `ContextMenu`. */
-function ContextMenuEntry(props: react.PropsWithChildren<ContextMenuEntryProps>) {
-    const { children, disabled, title, onClick } = props
+function ContextMenuEntry(props: React.PropsWithChildren<ContextMenuEntryProps>) {
+    const { children, disabled = false, title, onClick } = props
     return (
         <button
             disabled={disabled}

@@ -5,7 +5,7 @@ import project.System.Process.Exit_Code.Exit_Code
 import project.System.Process.Process_Builder.Process_Builder
 import project.System.Process.Process_Builder.Process_Result
 
-from project.Data.Boolean import Boolean, True, False
+from project.Data.Boolean import Boolean, False, True
 
 ## ALIAS Run a Command
 

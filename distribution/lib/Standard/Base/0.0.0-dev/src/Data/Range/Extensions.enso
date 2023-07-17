@@ -2,8 +2,7 @@ import project.Data.Numbers.Integer
 import project.Data.Range.Range
 import project.Error.Error
 import project.Errors.Illegal_Argument.Illegal_Argument
-
-from project.Data.Boolean import Boolean, True, False
+from project.Data.Boolean import Boolean, False, True
 
 ## ALIAS Range
 
