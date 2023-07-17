@@ -114,19 +114,20 @@ spec setup =
 
     iter_size = setup.iter_size
     num_iterations = setup.num_iterations
+    should_run_gc = setup.force_gc
 
     primitive_callback_test = Primitive_Enso_Callback_Test.Instance (t.at "ints") 42
-    Bench.measure (primitive_callback_test.java_vectorized) "Primitive_Enso_Callback_Test.java_vectorized" iter_size num_iterations run_gc_between_iterations=True
-    Bench.measure (primitive_callback_test.java_roundtrip) "Primitive_Enso_Callback_Test.java_roundtrip" iter_size num_iterations run_gc_between_iterations=True
-    Bench.measure (primitive_callback_test.enso_map_as_vector_inferred_builder convert_polyglot_dates=False) "Primitive_Enso_Callback_Test.enso_map_as_vector_inferred_builder" iter_size num_iterations run_gc_between_iterations=True
-    Bench.measure (primitive_callback_test.enso_map_as_vector_inferred_builder convert_polyglot_dates=True) "Primitive_Enso_Callback_Test.enso_map_as_vector_inferred_builder_and_date_conversions" iter_size num_iterations run_gc_between_iterations=True
-    Bench.measure (primitive_callback_test.enso_map_as_vector_long_builder) "Primitive_Enso_Callback_Test.enso_map_as_vector_long_builder" iter_size num_iterations run_gc_between_iterations=True
-    Bench.measure (primitive_callback_test.enso_map_with_builder_2_calls_unboxed) "Primitive_Enso_Callback_Test.enso_map_with_builder_2_calls_unboxed" iter_size num_iterations run_gc_between_iterations=True
-    Bench.measure (primitive_callback_test.enso_map_with_builder_1_call_boxed) "Primitive_Enso_Callback_Test.enso_map_with_builder_1_call_boxed" iter_size num_iterations run_gc_between_iterations=True
+    Bench.measure (primitive_callback_test.java_vectorized) "Primitive_Enso_Callback_Test.java_vectorized" iter_size num_iterations run_gc_between_iterations=should_run_gc
+    Bench.measure (primitive_callback_test.java_roundtrip) "Primitive_Enso_Callback_Test.java_roundtrip" iter_size num_iterations run_gc_between_iterations=should_run_gc
+    Bench.measure (primitive_callback_test.enso_map_as_vector_inferred_builder convert_polyglot_dates=False) "Primitive_Enso_Callback_Test.enso_map_as_vector_inferred_builder" iter_size num_iterations run_gc_between_iterations=should_run_gc
+    Bench.measure (primitive_callback_test.enso_map_as_vector_inferred_builder convert_polyglot_dates=True) "Primitive_Enso_Callback_Test.enso_map_as_vector_inferred_builder_and_date_conversions" iter_size num_iterations run_gc_between_iterations=should_run_gc
+    Bench.measure (primitive_callback_test.enso_map_as_vector_long_builder) "Primitive_Enso_Callback_Test.enso_map_as_vector_long_builder" iter_size num_iterations run_gc_between_iterations=should_run_gc
+    Bench.measure (primitive_callback_test.enso_map_with_builder_2_calls_unboxed) "Primitive_Enso_Callback_Test.enso_map_with_builder_2_calls_unboxed" iter_size num_iterations run_gc_between_iterations=should_run_gc
+    Bench.measure (primitive_callback_test.enso_map_with_builder_1_call_boxed) "Primitive_Enso_Callback_Test.enso_map_with_builder_1_call_boxed" iter_size num_iterations run_gc_between_iterations=should_run_gc
 
     fn x = "|" + x + "|"
     boxed_callback_test = Boxed_Enso_Callback_Test.Instance (t.at "text") fn
-    Bench.measure (boxed_callback_test.java_roundtrip) "Boxed_Enso_Callback_Test.java_roundtrip" iter_size num_iterations run_gc_between_iterations=True
-    Bench.measure (boxed_callback_test.enso_map_as_vector convert_polyglot_dates=False) "Boxed_Enso_Callback_Test.enso_map_as_vector_without_date_conversion" iter_size num_iterations run_gc_between_iterations=True
-    Bench.measure (boxed_callback_test.enso_map_as_vector convert_polyglot_dates=True) "Boxed_Enso_Callback_Test.enso_map_as_vector_with_date_conversion" iter_size num_iterations run_gc_between_iterations=True
-    Bench.measure (boxed_callback_test.enso_map_with_builder) "Boxed_Enso_Callback_Test.enso_map_with_builder" iter_size num_iterations run_gc_between_iterations=True
+    Bench.measure (boxed_callback_test.java_roundtrip) "Boxed_Enso_Callback_Test.java_roundtrip" iter_size num_iterations run_gc_between_iterations=should_run_gc
+    Bench.measure (boxed_callback_test.enso_map_as_vector convert_polyglot_dates=False) "Boxed_Enso_Callback_Test.enso_map_as_vector_without_date_conversion" iter_size num_iterations run_gc_between_iterations=should_run_gc
+    Bench.measure (boxed_callback_test.enso_map_as_vector convert_polyglot_dates=True) "Boxed_Enso_Callback_Test.enso_map_as_vector_with_date_conversion" iter_size num_iterations run_gc_between_iterations=should_run_gc
+    Bench.measure (boxed_callback_test.enso_map_with_builder) "Boxed_Enso_Callback_Test.enso_map_with_builder" iter_size num_iterations run_gc_between_iterations=should_run_gc

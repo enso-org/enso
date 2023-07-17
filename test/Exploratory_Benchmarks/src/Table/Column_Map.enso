@@ -82,16 +82,17 @@ spec setup =
 
     iter_size = setup.iter_size
     num_iterations = setup.num_iterations
+    should_run_gc = setup.force_gc
 
     primitive_map = Primitive_Map_Test.Instance (t.at "ints") 42
-    Bench.measure (primitive_map.java_map) "Primitive_Map_Test.java_map" iter_size num_iterations run_gc_between_iterations=True
-    Bench.measure (primitive_map.enso_map_as_vector convert_polyglot_dates=True) "Primitive_Map_Test.enso_map_as_vector+convert_dates" iter_size num_iterations run_gc_between_iterations=True
-    Bench.measure (primitive_map.enso_map_as_vector convert_polyglot_dates=False) "Primitive_Map_Test.enso_map_as_vector" iter_size num_iterations run_gc_between_iterations=True
-    Bench.measure (primitive_map.enso_map_with_builder) "Primitive_Map_Test.enso_map_with_builder" iter_size num_iterations run_gc_between_iterations=True
+    Bench.measure (primitive_map.java_map) "Primitive_Map_Test.java_map" iter_size num_iterations run_gc_between_iterations=should_run_gc
+    Bench.measure (primitive_map.enso_map_as_vector convert_polyglot_dates=True) "Primitive_Map_Test.enso_map_as_vector+convert_dates" iter_size num_iterations run_gc_between_iterations=should_run_gc
+    Bench.measure (primitive_map.enso_map_as_vector convert_polyglot_dates=False) "Primitive_Map_Test.enso_map_as_vector" iter_size num_iterations run_gc_between_iterations=should_run_gc
+    Bench.measure (primitive_map.enso_map_with_builder) "Primitive_Map_Test.enso_map_with_builder" iter_size num_iterations run_gc_between_iterations=should_run_gc
 
     # This one seems slowest so I put it at the end.
     boxed_map = Boxed_Map_Test.Instance (t.at "text") "5"
-    Bench.measure (boxed_map.java_map) "Boxed_Map_Test.java_map" iter_size num_iterations run_gc_between_iterations=True
-    Bench.measure (boxed_map.enso_map_as_vector convert_polyglot_dates=True) "Boxed_Map_Test.enso_map_as_vector+convert_dates" iter_size num_iterations run_gc_between_iterations=True
-    Bench.measure (boxed_map.enso_map_as_vector convert_polyglot_dates=False) "Boxed_Map_Test.enso_map_as_vector" iter_size num_iterations run_gc_between_iterations=True
-    Bench.measure (boxed_map.enso_map_with_builder) "Boxed_Map_Test.enso_map_with_builder" iter_size num_iterations run_gc_between_iterations=True
+    Bench.measure (boxed_map.java_map) "Boxed_Map_Test.java_map" iter_size num_iterations run_gc_between_iterations=should_run_gc
+    Bench.measure (boxed_map.enso_map_as_vector convert_polyglot_dates=True) "Boxed_Map_Test.enso_map_as_vector+convert_dates" iter_size num_iterations run_gc_between_iterations=should_run_gc
+    Bench.measure (boxed_map.enso_map_as_vector convert_polyglot_dates=False) "Boxed_Map_Test.enso_map_as_vector" iter_size num_iterations run_gc_between_iterations=should_run_gc
+    Bench.measure (boxed_map.enso_map_with_builder) "Boxed_Map_Test.enso_map_with_builder" iter_size num_iterations run_gc_between_iterations=should_run_gc

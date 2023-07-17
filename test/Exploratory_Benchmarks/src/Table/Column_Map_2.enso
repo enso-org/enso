@@ -64,10 +64,11 @@ spec setup =
 
     iter_size = setup.iter_size
     num_iterations = setup.num_iterations
+    should_run_gc = setup.force_gc
 
     boxed_map = Boxed_Map_Test_2.Instance (t.at "dates")
-    Bench.measure (boxed_map.java_map) "Boxed_Map_Test_2.java_map" iter_size num_iterations run_gc_between_iterations=True
-    Bench.measure (boxed_map.enso_map_as_vector convert_polyglot_dates=True) "Boxed_Map_Test_2.enso_map_as_vector+convert_dates" iter_size num_iterations run_gc_between_iterations=True
-    Bench.measure (boxed_map.enso_map_as_vector convert_polyglot_dates=False) "Boxed_Map_Test_2.enso_map_as_vector" iter_size num_iterations run_gc_between_iterations=True
-    Bench.measure (boxed_map.enso_map_with_builder_append_long) "Boxed_Map_Test_2.enso_map_with_builder_append_long" iter_size num_iterations run_gc_between_iterations=True
-    Bench.measure (boxed_map.enso_map_with_builder_append_object) "Boxed_Map_Test_2.enso_map_with_builder_append_object" iter_size num_iterations run_gc_between_iterations=True
+    Bench.measure (boxed_map.java_map) "Boxed_Map_Test_2.java_map" iter_size num_iterations run_gc_between_iterations=should_run_gc
+    Bench.measure (boxed_map.enso_map_as_vector convert_polyglot_dates=True) "Boxed_Map_Test_2.enso_map_as_vector+convert_dates" iter_size num_iterations run_gc_between_iterations=should_run_gc
+    Bench.measure (boxed_map.enso_map_as_vector convert_polyglot_dates=False) "Boxed_Map_Test_2.enso_map_as_vector" iter_size num_iterations run_gc_between_iterations=should_run_gc
+    Bench.measure (boxed_map.enso_map_with_builder_append_long) "Boxed_Map_Test_2.enso_map_with_builder_append_long" iter_size num_iterations run_gc_between_iterations=should_run_gc
+    Bench.measure (boxed_map.enso_map_with_builder_append_object) "Boxed_Map_Test_2.enso_map_with_builder_append_object" iter_size num_iterations run_gc_between_iterations=should_run_gc

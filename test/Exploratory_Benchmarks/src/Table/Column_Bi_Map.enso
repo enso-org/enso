@@ -76,15 +76,16 @@ spec setup =
 
     iter_size = setup.iter_size
     num_iterations = setup.num_iterations
+    should_run_gc = setup.force_gc
 
     primitive_bimap = Primitive_Bi_Map_Test.Instance (t.at "ints") (t.at "ints2")
-    Bench.measure (primitive_bimap.java_map) "Primitive_Bi_Map_Test.java_map" iter_size num_iterations run_gc_between_iterations=True
-    Bench.measure (primitive_bimap.enso_map_as_vector convert_polyglot_dates=True) "Primitive_Bi_Map_Test.enso_map_as_vector+date_conversion" iter_size num_iterations run_gc_between_iterations=True
-    Bench.measure (primitive_bimap.enso_map_as_vector convert_polyglot_dates=False) "Primitive_Bi_Map_Test.enso_map_as_vector" iter_size num_iterations run_gc_between_iterations=True
-    Bench.measure (primitive_bimap.enso_map_with_builder) "Primitive_Bi_Map_Test.enso_map_with_builder" iter_size num_iterations run_gc_between_iterations=True
+    Bench.measure (primitive_bimap.java_map) "Primitive_Bi_Map_Test.java_map" iter_size num_iterations run_gc_between_iterations=should_run_gc
+    Bench.measure (primitive_bimap.enso_map_as_vector convert_polyglot_dates=True) "Primitive_Bi_Map_Test.enso_map_as_vector+date_conversion" iter_size num_iterations run_gc_between_iterations=should_run_gc
+    Bench.measure (primitive_bimap.enso_map_as_vector convert_polyglot_dates=False) "Primitive_Bi_Map_Test.enso_map_as_vector" iter_size num_iterations run_gc_between_iterations=should_run_gc
+    Bench.measure (primitive_bimap.enso_map_with_builder) "Primitive_Bi_Map_Test.enso_map_with_builder" iter_size num_iterations run_gc_between_iterations=should_run_gc
 
     boxed_bimap = Boxed_Bi_Map_Test.Instance (t.at "text") (t.at "text2")
-    Bench.measure (boxed_bimap.java_map) "Boxed_Bi_Map_Test.java_map" iter_size num_iterations run_gc_between_iterations=True
-    Bench.measure (boxed_bimap.enso_map_as_vector convert_polyglot_dates=True) "Boxed_Bi_Map_Test.enso_map_as_vector+date_conversion" iter_size num_iterations run_gc_between_iterations=True
-    Bench.measure (boxed_bimap.enso_map_as_vector convert_polyglot_dates=False) "Boxed_Bi_Map_Test.enso_map_as_vector" iter_size num_iterations run_gc_between_iterations=True
-    Bench.measure (boxed_bimap.enso_map_with_builder) "Boxed_Bi_Map_Test.enso_map_with_builder" iter_size num_iterations run_gc_between_iterations=True
+    Bench.measure (boxed_bimap.java_map) "Boxed_Bi_Map_Test.java_map" iter_size num_iterations run_gc_between_iterations=should_run_gc
+    Bench.measure (boxed_bimap.enso_map_as_vector convert_polyglot_dates=True) "Boxed_Bi_Map_Test.enso_map_as_vector+date_conversion" iter_size num_iterations run_gc_between_iterations=should_run_gc
+    Bench.measure (boxed_bimap.enso_map_as_vector convert_polyglot_dates=False) "Boxed_Bi_Map_Test.enso_map_as_vector" iter_size num_iterations run_gc_between_iterations=should_run_gc
+    Bench.measure (boxed_bimap.enso_map_with_builder) "Boxed_Bi_Map_Test.enso_map_with_builder" iter_size num_iterations run_gc_between_iterations=should_run_gc
