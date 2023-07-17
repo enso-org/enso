@@ -325,6 +325,48 @@ type Date
             ensure_in_epoch self <| ensure_in_epoch end <|
                 (Time_Utils.days_between self end) + if include_end_date then 1 else 0
 
+    ## Returns a requested date part as integer.
+
+       Produces a warning for a Date that is before epoch start.
+       See `Date_Time.enso_epoch_start`.
+    date_part : Date_Period -> Integer
+    date_part self (period : Date_Period) =
+        case period of
+            Date_Period.Year    -> self.year
+            Date_Period.Quarter -> self.quarter
+            Date_Period.Month   -> self.month
+            Date_Period.Week _  -> self.week_of_year locale=Nothing
+            Date_Period.Day     -> self.day
+
+    ## Computes a time difference between the two dates.
+
+       It returns an integer expressing how many periods fit between the two
+       dates.
+
+       The difference will be positive if `end` is greater than `self`.
+
+       Produces a warning for a Date that is before epoch start.
+       See `Date_Time.enso_epoch_start`.
+
+       Arguments:
+       - end: A date to compute the difference from.
+       - period: The period to compute the difference in.
+    date_diff : Date -> Date_Period -> Integer
+    date_diff self (end : Date) (period : Date_Period) = ensure_in_epoch self <|
+        Time_Utils.unit_date_difference period.to_java_unit self end
+
+    ## Shifts the date by a specified period.
+
+       Produces a warning for a Date that is before epoch start.
+       See `Date_Time.enso_epoch_start`.
+
+       Arguments:
+       - amount: An integer specifying by how many periods to shift the date.
+       - period: The period by which to shift.
+    date_add : Integer -> Date_Period -> Date
+    date_add self (amount : Integer) (period : Date_Period) = ensure_in_epoch self <|
+        Time_Utils.unit_date_add period.to_java_unit self amount
+
     ## Counts workdays between self (inclusive) and the provided end date
        (exclusive).
 

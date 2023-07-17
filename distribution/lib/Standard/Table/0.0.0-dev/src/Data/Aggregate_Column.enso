@@ -1,7 +1,6 @@
 from Standard.Base import all
 
 import project.Data.Column.Column
-import project.Data.Column_Selector.Column_Selector
 import project.Data.Sort_Column.Sort_Column
 
 ## Defines an Aggregate Column
@@ -32,7 +31,7 @@ type Aggregate_Column
          multiple selection.
        - new_name: name of new column.
        - ignore_nothing: if all values are Nothing won't be included.
-    Count_Distinct (columns:(Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector | Column))=0) (new_name:Text="") (ignore_nothing:Boolean=False) # Column needed because of 6866
+    Count_Distinct (columns:(Text | Integer | Regex | Vector (Integer | Text | Regex | Column))=0) (new_name:Text="") (ignore_nothing:Boolean=False) # Column needed because of 6866
 
     ## ALIAS Count_Not_Null
 

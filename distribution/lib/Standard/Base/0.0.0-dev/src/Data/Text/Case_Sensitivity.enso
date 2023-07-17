@@ -60,13 +60,3 @@ type Case_Sensitivity
     to_explicit_sensitivity_in_memory self = case self of
         Case_Sensitivity.Default -> Case_Sensitivity.Sensitive
         _ -> self
-
-    ## PRIVATE
-       Create matcher function
-    create_match_function : Boolean -> (Text -> Text -> Boolean)
-    create_match_function self use_regex=False = case use_regex of
-        True -> (name-> pattern-> Regex.compile pattern case_insensitive=self.is_case_insensitive_in_memory . matches name)
-        False -> case self of
-            Case_Sensitivity.Default -> (==)
-            Case_Sensitivity.Sensitive -> (==)
-            Case_Sensitivity.Insensitive locale -> (name-> criterion-> name.equals_ignore_case criterion locale)
