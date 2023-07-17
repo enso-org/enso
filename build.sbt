@@ -24,8 +24,8 @@ val scalacVersion         = "2.13.11"
 // Note that it is important to keep the build metadata (the part after +) in this version.
 val graalVersion          = "17.0.7+7.1"
 // Version used for the Graal/Truffle related Maven packages
-val graalMavenVersion     = "23.0.0"
-val javaLangVersion       = graalVersion.split("\\.")(0)
+val graalMavenPackagesVersion     = "23.0.0"
+val targetJavaVersion     = graalVersion.split("\\.")(0)
 val defaultDevEnsoVersion = "0.0.0-dev"
 val ensoVersion = sys.env.getOrElse(
   "ENSO_VERSION",
@@ -157,8 +157,8 @@ analyzeDependency := GatherLicenses.analyzeDependency.evaluated
 
 val packageBuilder = new DistributionPackage.Builder(
   ensoVersion      = ensoVersion,
-  graalVersion     = graalMavenVersion,
-  graalJavaVersion = javaLangVersion,
+  graalVersion     = graalMavenPackagesVersion,
+  graalJavaVersion = graalVersion,
   artifactRoot     = file("built-distribution")
 )
 
@@ -643,7 +643,7 @@ lazy val `akka-native` = project
       akkaActor
     ),
     // Note [Native Image Workaround for GraalVM 20.2]
-    libraryDependencies += "org.graalvm.nativeimage" % "svm" % graalMavenVersion % "provided"
+    libraryDependencies += "org.graalvm.nativeimage" % "svm" % graalMavenPackagesVersion % "provided"
   )
 
 lazy val `profiling-utils` = project
@@ -697,7 +697,7 @@ lazy val `logging-service` = project
       "junit"                   % "junit"           % junitVersion     % Test,
       "com.novocode"            % "junit-interface" % junitIfVersion   % Test exclude ("junit", "junit-dep"),
       "org.scalatest"          %% "scalatest"       % scalatestVersion % Test,
-      "org.graalvm.nativeimage" % "svm"             % graalMavenVersion     % "provided"
+      "org.graalvm.nativeimage" % "svm"             % graalMavenPackagesVersion     % "provided"
     )
   )
   .settings(
@@ -716,7 +716,7 @@ lazy val `logging-truffle-connector` = project
     version := "0.1",
     libraryDependencies ++= Seq(
       "org.slf4j"           % "slf4j-api"   % slf4jVersion,
-      "org.graalvm.truffle" % "truffle-api" % graalMavenVersion % "provided"
+      "org.graalvm.truffle" % "truffle-api" % graalMavenPackagesVersion % "provided"
     )
   )
   .dependsOn(`logging-utils`)
@@ -765,7 +765,7 @@ lazy val `version-output` = (project in file("lib/scala/version-output"))
           defaultDevEnsoVersion = defaultDevEnsoVersion,
           ensoVersion           = ensoVersion,
           scalacVersion         = scalacVersion,
-          graalVersion          = graalMavenVersion,
+          graalVersion          = graalVersion,
           currentEdition        = currentEdition
         )
     }.taskValue
@@ -974,8 +974,8 @@ lazy val `interpreter-dsl-test` =
         ),
       commands += WithDebugCommand.withDebug,
       libraryDependencies ++= Seq(
-        "org.graalvm.truffle" % "truffle-api"           % graalMavenVersion   % "provided",
-        "org.graalvm.truffle" % "truffle-dsl-processor" % graalMavenVersion   % "provided",
+        "org.graalvm.truffle" % "truffle-api"           % graalMavenPackagesVersion   % "provided",
+        "org.graalvm.truffle" % "truffle-dsl-processor" % graalMavenPackagesVersion   % "provided",
         "junit"               % "junit"                 % junitVersion   % Test,
         "com.novocode"        % "junit-interface"       % junitIfVersion % Test exclude ("junit", "junit-dep")
       )
@@ -1028,8 +1028,8 @@ lazy val `polyglot-api` = project
       Seq(s"-Dtruffle.class.path.append=$runtimeClasspath")
     },
     libraryDependencies ++= Seq(
-      "org.graalvm.sdk"        % "polyglot-tck"     % graalMavenVersion      % "provided",
-      "org.graalvm.truffle"    % "truffle-api"      % graalMavenVersion      % "provided",
+      "org.graalvm.sdk"        % "polyglot-tck"     % graalMavenPackagesVersion      % "provided",
+      "org.graalvm.truffle"    % "truffle-api"      % graalMavenPackagesVersion      % "provided",
       "com.google.flatbuffers" % "flatbuffers-java" % flatbuffersVersion,
       "org.scalatest"         %% "scalatest"        % scalatestVersion  % Test,
       "org.scalacheck"        %% "scalacheck"       % scalacheckVersion % Test
@@ -1060,7 +1060,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
       "com.typesafe.akka"          %% "akka-http-testkit"    % akkaHTTPVersion   % Test,
       "org.scalatest"              %% "scalatest"            % scalatestVersion  % Test,
       "org.scalacheck"             %% "scalacheck"           % scalacheckVersion % Test,
-      "org.graalvm.sdk"             % "polyglot-tck"         % graalMavenVersion      % "provided",
+      "org.graalvm.sdk"             % "polyglot-tck"         % graalMavenPackagesVersion      % "provided",
       "org.eclipse.jgit"            % "org.eclipse.jgit"     % jgitVersion
     ),
     Test / testOptions += Tests
@@ -1154,7 +1154,7 @@ lazy val frgaalJavaCompilerSetting = Seq(
   Compile / compile / compilers := FrgaalJavaCompiler.compilers(
     (Compile / dependencyClasspath).value,
     compilers.value,
-    javaLangVersion
+    targetJavaVersion
   ),
   // This dependency is needed only so that developers don't download Frgaal manually.
   // Sadly it cannot be placed under plugins either because meta dependencies are not easily
@@ -1180,8 +1180,8 @@ lazy val instrumentationSettings = frgaalJavaCompilerSetting ++ Seq(
     "--enable-preview"
   ),
   libraryDependencies ++= Seq(
-    "org.graalvm.truffle" % "truffle-api"           % graalMavenVersion % "provided",
-    "org.graalvm.truffle" % "truffle-dsl-processor" % graalMavenVersion % "provided"
+    "org.graalvm.truffle" % "truffle-api"           % graalMavenPackagesVersion % "provided",
+    "org.graalvm.truffle" % "truffle-dsl-processor" % graalMavenPackagesVersion % "provided"
   ),
   (Compile / javacOptions) ++= Seq(
     "-s",
@@ -1299,16 +1299,16 @@ lazy val runtime = (project in file("engine/runtime"))
     libraryDependencies ++= jmh ++ jaxb ++ circe ++ Seq(
       "org.apache.commons"  % "commons-lang3"         % commonsLangVersion,
       "org.apache.tika"     % "tika-core"             % tikaVersion,
-      "org.graalvm.sdk"     % "graal-sdk"             % graalMavenVersion      % "provided",
-      "org.graalvm.sdk"     % "polyglot-tck"          % graalMavenVersion      % "provided",
-      "org.graalvm.truffle" % "truffle-api"           % graalMavenVersion      % "provided",
-      "org.graalvm.truffle" % "truffle-dsl-processor" % graalMavenVersion      % "provided",
-      "org.graalvm.truffle" % "truffle-tck"           % graalMavenVersion      % "provided",
-      "org.graalvm.truffle" % "truffle-tck-common"    % graalMavenVersion      % "provided",
+      "org.graalvm.sdk"     % "graal-sdk"             % graalMavenPackagesVersion      % "provided",
+      "org.graalvm.sdk"     % "polyglot-tck"          % graalMavenPackagesVersion      % "provided",
+      "org.graalvm.truffle" % "truffle-api"           % graalMavenPackagesVersion      % "provided",
+      "org.graalvm.truffle" % "truffle-dsl-processor" % graalMavenPackagesVersion      % "provided",
+      "org.graalvm.truffle" % "truffle-tck"           % graalMavenPackagesVersion      % "provided",
+      "org.graalvm.truffle" % "truffle-tck-common"    % graalMavenPackagesVersion      % "provided",
       "org.scalacheck"     %% "scalacheck"            % scalacheckVersion % Test,
       "org.scalactic"      %% "scalactic"             % scalacticVersion  % Test,
       "org.scalatest"      %% "scalatest"             % scalatestVersion  % Test,
-      "org.graalvm.truffle" % "truffle-api"           % graalMavenVersion      % Benchmark,
+      "org.graalvm.truffle" % "truffle-api"           % graalMavenPackagesVersion      % Benchmark,
       "org.typelevel"      %% "cats-core"             % catsVersion,
       "junit"               % "junit"                 % junitVersion      % Test,
       "com.novocode"        % "junit-interface"       % junitIfVersion    % Test exclude ("junit", "junit-dep"),
@@ -1469,8 +1469,8 @@ lazy val `runtime-with-instruments` =
       ),
       libraryDependencies ++= Seq(
         "org.scalatest"      %% "scalatest"             % scalatestVersion % Test,
-        "org.graalvm.truffle" % "truffle-api"           % graalMavenVersion     % Test,
-        "org.graalvm.truffle" % "truffle-dsl-processor" % graalMavenVersion     % Test
+        "org.graalvm.truffle" % "truffle-api"           % graalMavenPackagesVersion     % Test,
+        "org.graalvm.truffle" % "truffle-dsl-processor" % graalMavenPackagesVersion     % Test
       ),
       // Note [Unmanaged Classpath]
       Test / unmanagedClasspath += (baseDirectory.value / ".." / ".." / "app" / "gui" / "view" / "graph-editor" / "src" / "builtin" / "visualization" / "native" / "inc"),
@@ -1539,7 +1539,7 @@ lazy val `runtime-with-polyglot` =
         "ENSO_TEST_DISABLE_IR_CACHE" -> "false"
       ),
       libraryDependencies ++= Seq(
-        "org.graalvm.sdk" % "graal-sdk" % graalMavenVersion     % "provided",
+        "org.graalvm.sdk" % "graal-sdk" % graalMavenPackagesVersion     % "provided",
         "org.scalatest"  %% "scalatest" % scalatestVersion % Test
       )
     )
@@ -1601,8 +1601,8 @@ lazy val `engine-runner` = project
     commands += WithDebugCommand.withDebug,
     inConfig(Compile)(truffleRunOptionsSettings),
     libraryDependencies ++= Seq(
-      "org.graalvm.sdk"     % "polyglot-tck" % graalMavenVersion % "provided",
-      "org.graalvm.truffle" % "truffle-api"  % graalMavenVersion % "provided",
+      "org.graalvm.sdk"     % "polyglot-tck" % graalMavenPackagesVersion % "provided",
+      "org.graalvm.truffle" % "truffle-api"  % graalMavenPackagesVersion % "provided",
       "commons-cli"         % "commons-cli"  % commonsCliVersion,
       "com.monovore"       %% "decline"      % declineVersion,
       "org.jline"           % "jline"        % jlineVersion,
@@ -1946,7 +1946,7 @@ lazy val `std-base` = project
     Compile / packageBin / artifactPath :=
       `base-polyglot-root` / "std-base.jar",
     libraryDependencies ++= Seq(
-      "org.graalvm.sdk"  % "graal-sdk"               % graalMavenVersion       % "provided",
+      "org.graalvm.sdk"  % "graal-sdk"               % graalMavenPackagesVersion       % "provided",
       "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided"
     ),
     Compile / packageBin := Def.task {
@@ -1974,7 +1974,7 @@ lazy val `common-polyglot-core-utils` = project
       `base-polyglot-root` / "common-polyglot-core-utils.jar",
     libraryDependencies ++= Seq(
       "com.ibm.icu"     % "icu4j"     % icuVersion,
-      "org.graalvm.sdk" % "graal-sdk" % graalMavenVersion % "provided"
+      "org.graalvm.sdk" % "graal-sdk" % graalMavenPackagesVersion % "provided"
     )
   )
 
@@ -1986,7 +1986,7 @@ lazy val `enso-test-java-helpers` = project
     Compile / packageBin / artifactPath :=
       file("test/Tests/polyglot/java/helpers.jar"),
     libraryDependencies ++= Seq(
-      "org.graalvm.sdk" % "graal-sdk" % graalMavenVersion % "provided"
+      "org.graalvm.sdk" % "graal-sdk" % graalMavenPackagesVersion % "provided"
     ),
     Compile / packageBin := Def.task {
       val result          = (Compile / packageBin).value
@@ -2019,7 +2019,7 @@ lazy val `std-table` = project
       (Antlr4 / sourceManaged).value / "main" / "antlr4"
     },
     libraryDependencies ++= Seq(
-      "org.graalvm.sdk"     % "graal-sdk"               % graalMavenVersion       % "provided",
+      "org.graalvm.sdk"     % "graal-sdk"               % graalMavenPackagesVersion       % "provided",
       "org.netbeans.api"    % "org-openide-util-lookup" % netbeansApiVersion % "provided",
       "com.univocity"       % "univocity-parsers"       % univocityParsersVersion,
       "org.apache.poi"      % "poi-ooxml"               % poiOoxmlVersion,
@@ -2048,7 +2048,7 @@ lazy val `std-image` = project
     Compile / packageBin / artifactPath :=
       `image-polyglot-root` / "std-image.jar",
     libraryDependencies ++= Seq(
-      "org.graalvm.sdk"  % "graal-sdk"               % graalMavenVersion  % "provided",
+      "org.graalvm.sdk"  % "graal-sdk"               % graalMavenPackagesVersion  % "provided",
       "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided",
       "org.openpnp"      % "opencv"                  % "4.7.0-0"
     ),
@@ -2098,7 +2098,7 @@ lazy val `std-database` = project
     Compile / packageBin / artifactPath :=
       `database-polyglot-root` / "std-database.jar",
     libraryDependencies ++= Seq(
-      "org.graalvm.sdk"  % "graal-sdk"               % graalMavenVersion       % "provided",
+      "org.graalvm.sdk"  % "graal-sdk"               % graalMavenPackagesVersion       % "provided",
       "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided",
       "org.xerial"       % "sqlite-jdbc"             % sqliteVersion,
       "org.postgresql"   % "postgresql"              % "42.4.0"
@@ -2204,8 +2204,8 @@ buildEngineDistribution := {
     distributionRoot    = root,
     cacheFactory        = cacheFactory,
     log                 = log,
-    graalVersion        = graalMavenVersion,
-    javaVersion         = javaLangVersion,
+    graalVersion        = graalMavenPackagesVersion,
+    javaVersion         = graalVersion,
     ensoVersion         = ensoVersion,
     editionName         = currentEdition,
     sourceStdlibVersion = stdLibVersion,
@@ -2228,8 +2228,8 @@ buildEngineDistributionNoIndex := {
     distributionRoot    = root,
     cacheFactory        = cacheFactory,
     log                 = log,
-    graalVersion        = graalMavenVersion,
-    javaVersion         = javaLangVersion,
+    graalVersion        = graalMavenPackagesVersion,
+    javaVersion         = graalVersion,
     ensoVersion         = ensoVersion,
     editionName         = currentEdition,
     sourceStdlibVersion = stdLibVersion,

@@ -43,7 +43,7 @@ object Resources {
     */
   case class Runtime(version: GraalVMVersion) extends Resource {
     override def name: String =
-      s"runtime-${version.graalVersion}-${version.java}"
+      s"runtime-${version.graalVersion}-${version.javaVersion}"
     override def waitMessage: String =
       s"Another process is using $version, " +
       "the current process must wait until other processes complete."

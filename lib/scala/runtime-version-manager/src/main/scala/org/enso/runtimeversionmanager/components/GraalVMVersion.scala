@@ -4,11 +4,21 @@ package org.enso.runtimeversionmanager.components
   * release.
   *
   * @param graalVersion version of the GraalVM
-  * @param java Java version of the GraalVM flavour that should be used
+  * @param javaVersion Java version of the GraalVM flavour that should be used
   */
-case class GraalVMVersion(graalVersion: String, java: String) {
+case class GraalVMVersion(graalVersion: String, javaVersion: String) {
 
   /** @inheritdoc
     */
-  override def toString: String = s"GraalVM $graalVersion Java $java"
+  override def toString: String = s"GraalVM $graalVersion Java $javaVersion"
+
+  def graalMajorVersion: Int = graalVersion.split("\\.").head.toInt
+
+  def javaMajorVersion: Int = {
+    if (javaVersion.contains(".")) {
+      javaVersion.split("\\.").head.toInt
+    } else {
+      javaVersion.toInt
+    }
+  }
 }
