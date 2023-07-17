@@ -272,7 +272,7 @@ impl EdgeModel {
             ))
             .or(any4(layout, colors, focus_split, is_attached).changed(
                 |(
-                    Layout { corners, arrow, .. },
+                    Layout { corners, arrow, source_size, .. },
                     Colors { source_color, target_color, .. },
                     FocusSplit { focus_split, .. },
                     IsAttached { is_attached, .. },
@@ -291,6 +291,7 @@ impl EdgeModel {
                         focus_split:  *focus_split,
                         is_attached:  *is_attached,
                     });
+                    self.shapes.redraw_cutout(self, *is_attached, *source_size);
                 },
             ))
             .or(any(layout, colors).changed(

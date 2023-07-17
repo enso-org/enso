@@ -31,7 +31,7 @@ const SEGMENT_GAP_WIDTH: f32 = 2.0;
 const HOVER_AREA_PADDING: f32 = 20.0;
 const FULL_TYPE_ONSET_DELAY_MS: f32 = 2000.0;
 const LABEL_OFFSET: f32 = 10.0;
-const END_CAP_CLIP: f32 = 0.45;
+const END_CAP_CLIP: f32 = 0.42;
 
 
 const TOOLTIP_LOCATION: Placement = Placement::Bottom;
@@ -153,11 +153,12 @@ impl ShapeView {
         // The center of coordinate space is at the center of the node's left border, but it is more
         // convenient to use bottom left corner of the node as reference during layout below.
         let origin_offset = Vector2(0.0, -size.y / 2.0);
+        let corner_radius = node::CORNER_RADIUS.min(min(size.x, size.y) / 2.0);
         self.root.set_xy(origin_offset);
 
         // The straight line part of the shape is divided equally between all ports, taking gaps
         // into account.
-        let straight_line_width = size.x - node::CORNER_RADIUS * 2.0;
+        let straight_line_width = size.x - corner_radius * 2.0;
         let number_of_gaps = self.number_of_ports - 1;
         let total_gap_space =
             (number_of_gaps as f32 * SEGMENT_GAP_WIDTH).min(straight_line_width * 0.5);
@@ -170,7 +171,7 @@ impl ShapeView {
 
         // Ports at either end receive additional space to fill the rounded corners. This space
         // also includes the width of the port line.
-        let corner_space = PORT_LINE_WIDTH + node::CORNER_RADIUS - NODE_OVERLAP;
+        let corner_space = PORT_LINE_WIDTH + corner_radius - NODE_OVERLAP;
         let is_first = self.port_index == 0;
         let is_last = self.port_index == self.number_of_ports - 1;
         let left_corner = if is_first { corner_space } else { 0.0 };

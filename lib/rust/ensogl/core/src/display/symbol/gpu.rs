@@ -778,6 +778,11 @@ impl RenderGroup {
         self.ids = symbols;
         self.symbols.borrow_mut().take();
     }
+
+    /// Check if this render group has no symbols to render.
+    pub fn is_empty(&self) -> bool {
+        self.ids.is_empty()
+    }
 }
 
 

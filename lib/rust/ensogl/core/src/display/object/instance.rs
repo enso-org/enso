@@ -1817,7 +1817,6 @@ impl Model {
         self.visible.get()
     }
 
-    /// Hide the object. This is a helper API. Used by tests and the [`Root`] object.
     fn hide(&self) {
         self.set_vis_false(None)
     }
@@ -2481,14 +2480,13 @@ impl InstanceDef {
         }
 
         let style_string = RefCell::new(String::new());
-        let display = Rc::new(Cell::new(""));
         let last_parent_node = RefCell::new(None);
         let weak = self.downgrade();
         let network = &self.network;
         frp::extend! { network
-            eval_ self.on_show (display.set(""));
-            eval_ self.on_hide (display.set("display:none;"));
-            eval_ self.on_transformed ([display] {
+            is_visible <- bool(&self.on_hide, &self.on_show);
+            class <- is_visible.switch_constant("hidden", "");
+            _eval <- all_with(&self.on_transformed, &class, move |_, class| {
                 let Some(object) = weak.upgrade() else { return };
                 let Some(dom) = object.debug_dom.as_ref() else { return };
                 let mut parent_node = last_parent_node.borrow_mut();
@@ -2523,16 +2521,15 @@ impl InstanceDef {
                 let size = object.computed_size();
                 let x = size.x();
                 let y = size.y();
-                let display = display.get();
                 let transform = transformation::CssTransformFormatter(&transform);
                 let mut style_string = style_string.borrow_mut();
                 write!(style_string, "\
-                    {display}\
                     width:{x}px;\
                     height:{y}px;\
                     transform:{transform};"
                 ).unwrap();
                 dom.set_attribute_or_warn("style", &*style_string);
+                dom.set_attribute_or_warn("class", class);
                 style_string.clear();
             });
         }

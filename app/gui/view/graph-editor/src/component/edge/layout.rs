@@ -88,6 +88,8 @@ mod shared {
     pub(super) const NODE_CORNER_RADIUS: f32 = crate::component::node::CORNER_RADIUS;
     /// The preferred arc radius.
     pub(super) const RADIUS_BASE: f32 = 20.0;
+    /// The maximum size in pixels of overdraw between edge segments. Prevents visible gaps.
+    pub(super) const SEGMENT_OVERLAP: f32 = 0.5;
 }
 use shared::*;
 
@@ -133,7 +135,7 @@ pub(super) fn layout(
         junction_points(target, source_size, target_size, source_attached, target_attached);
     let corners = corners(&junction_points, max_radius).collect_vec();
     let arrow = arrow(target, &junction_points);
-    Layout { corners, arrow, target_attachment }
+    Layout { corners, arrow, target_attachment, source_size }
 }
 
 
@@ -357,7 +359,6 @@ pub(super) struct Corner {
     max_radius: f32,
 }
 
-const LINE_OVERLAP: f32 = 5.0;
 
 impl Corner {
     #[inline]
@@ -373,24 +374,46 @@ impl Corner {
     fn overlap_padding(self, line_width: f32) -> Vector2 {
         let Corner { horizontal, vertical, .. } = self;
         let offset = (horizontal - vertical).abs();
-        let radius = self.radius(line_width);
         Vector2(
-            LINE_OVERLAP.min(offset.x() - radius).max(0.0),
-            LINE_OVERLAP.min(offset.y() - radius).max(0.0),
+            SEGMENT_OVERLAP.min(offset.x() - line_width * 0.5).max(0.0),
+            SEGMENT_OVERLAP.min(offset.y() - line_width * 0.5).max(0.0),
         )
+    }
+
+    /// Calculate origin offset caused by overlap padding.
+    #[inline]
+    fn overlap_offset(self, line_width: f32) -> Vector2 {
+        let Corner { horizontal, vertical, .. } = self;
+        let offset = horizontal - vertical;
+        let pad = self.overlap_padding(line_width);
+        // Position the overlap according to clip direction. For straight lines, the overlap is
+        // centered on the line.
+        let x = if offset.x() < 0.0 {
+            -1.0
+        } else if offset.y() == 0.0 {
+            -0.5
+        } else {
+            0.0
+        };
+        let y = if offset.y() > 0.0 {
+            -1.0
+        } else if offset.x() == 0.0 {
+            -0.5 * -1.0
+        } else {
+            0.0
+        };
+        Vector2(x * pad.x(), y * pad.y())
     }
 
     #[inline]
     pub fn origin(self, line_width: f32) -> Vector2 {
         let Corner { horizontal, vertical, .. } = self;
         let offset = horizontal - vertical;
-        let pad = self.overlap_padding(line_width);
-        let pad_x = if offset.x() < 0.0 { -pad.x() } else { 0.0 };
-        let pad_y = if offset.y() > 0.0 { -pad.y() } else { 0.0 };
+        let pad_offset = self.overlap_offset(line_width);
         let half_line_width_w = offset.y().abs().min(line_width / 2.0);
         let half_line_width_h = offset.x().abs().min(line_width / 2.0);
-        let x = pad_x + (horizontal.x()).min(vertical.x() - half_line_width_w);
-        let y = pad_y + (vertical.y()).min(horizontal.y() - half_line_width_h);
+        let x = pad_offset.x() + (horizontal.x()).min(vertical.x() - half_line_width_w);
+        let y = pad_offset.y() + (vertical.y()).min(horizontal.y() - half_line_width_h);
         Vector2(x, y)
     }
 
@@ -411,7 +434,9 @@ impl Corner {
         let Corner { horizontal, vertical, .. } = self;
         let offset = (horizontal - vertical).abs();
         let smaller_offset = offset.x().min(offset.y());
-        let piecewise_limit = (smaller_offset * 2.0).min(line_width).max(smaller_offset);
+        let piecewise_limit = (smaller_offset * 2.0)
+            .min(line_width)
+            .max(smaller_offset + smaller_offset.min(line_width / 2.0));
         (self.max_radius + line_width / 2.0).min(piecewise_limit)
     }
 

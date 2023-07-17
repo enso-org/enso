@@ -64,6 +64,9 @@ pub(super) struct Shapes {
     target_attachment: RefCell<Option<Rectangle>>,
     /// Arrow drawn on long backward edges to indicate data flow direction.
     dataflow_arrow:    RefCell<Option<Rectangle>>,
+    /// An rectangle representing the source node shape when the edge is in detached state. Used
+    /// to mask out the edge fragment that would otherwise be drawn over the source node.
+    source_cutout:     RefCell<Option<Rectangle>>,
 }
 
 impl Shapes {
@@ -86,7 +89,7 @@ impl Shapes {
             let shape = shape.unwrap_or_else(|| parent.new_dataflow_arrow());
             shape.set_xy(arrow_center - arrow::SIZE / 2.0);
             shape.set_color(color);
-            Self::set_layer(parent, is_attached, &shape);
+            Self::set_layer(parent, &shape, is_attached, false);
             self.dataflow_arrow.replace(Some(shape));
         }
     }
@@ -143,11 +146,25 @@ impl Shapes {
             ]);
         }
 
-        for shape in new_sections.iter() {
-            Self::set_layer(parent, is_attached, shape);
+        for (i, shape) in new_sections.iter().enumerate() {
+            Self::set_layer(parent, shape, is_attached, i == 0);
         }
-
         *self.sections.borrow_mut() = new_sections;
+    }
+
+    pub(crate) fn redraw_cutout(
+        &self,
+        parent: &impl ShapeParent,
+        is_attached: bool,
+        source_size: Vector2,
+    ) {
+        let cutout = self.source_cutout.take();
+        if !is_attached {
+            let cutout = cutout.unwrap_or_else(|| parent.new_cutout());
+            cutout.set_xy(-source_size / 2.0);
+            cutout.set_size(source_size);
+            self.source_cutout.replace(Some(cutout));
+        }
     }
 
     /// Redraw the sections that aren't split by the focus position.
@@ -197,9 +214,20 @@ impl Shapes {
     }
 
     /// Add the given shape to the appropriate layer depending on whether it is attached.
-    fn set_layer(parent: &impl ShapeParent, below_nodes: bool, shape: &Rectangle) {
+    fn set_layer(
+        parent: &impl ShapeParent,
+        shape: &Rectangle,
+        below_nodes: bool,
+        near_source: bool,
+    ) {
         let layers = parent.layers();
-        let layer = if below_nodes { &layers.edge_below_nodes } else { &layers.edge_above_nodes };
+        let layer = if below_nodes {
+            &layers.edge_below_nodes
+        } else if near_source {
+            &layers.masked_edge_above_nodes
+        } else {
+            &layers.edge_above_nodes
+        };
         layer.add(shape);
     }
 }
@@ -329,6 +357,20 @@ pub(super) trait ShapeParent: display::Object {
         new.set_pointer_events(false);
         self.display_object().add_child(&new);
         new.into()
+    }
+
+    /// Create a shape object to render the cutout mask for the edge nearby the source node.
+    fn new_cutout(&self) -> Rectangle {
+        let cutout = Rectangle::new();
+        self.display_object().add_child(&cutout);
+        // FIXME (temporary assumption): Currently we assume that the node background is a rectangle
+        // with always rounded corners. Ideally we would somehow use actual source node's background
+        // shape for this.
+        cutout.set_corner_radius(crate::component::node::CORNER_RADIUS);
+        self.layers().edge_above_nodes_cutout.add(&cutout);
+        // Pointer events must be enabled, so that the hover area is masked out as well.
+        cutout.set_pointer_events(true);
+        cutout
     }
 }
 

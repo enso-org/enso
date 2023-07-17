@@ -35,7 +35,12 @@ pub struct GraphLayersData {
     pub main_nodes: MainNodeLayers,
 
     /// The layer that is used for for all edge shapes that needs to be above nodes.
-    pub edge_above_nodes: Layer,
+    pub edge_above_nodes:        Layer,
+    /// An dedicated edge layer that will be masked out with the edge source shape. Sublayer of
+    /// `edge_above_nodes`.
+    pub masked_edge_above_nodes: Layer,
+    /// A cutout layer that removes parts of drawn edge shapes. Mask for `masked_edge_above_nodes`.
+    pub edge_above_nodes_cutout: Layer,
 
     // == Edited node  camera layers ==
     /// A set of layers used for all edited shapes, with a dedicated camera.
@@ -99,13 +104,28 @@ impl GraphLayers {
 
         let edit_camera = Camera2d::new();
 
+        let main_backdrop = NodeBackdropLayers::new(base, None);
+        let edge_below_nodes = base.create_sublayer("edge_below_nodes");
+        let main_nodes = MainNodeLayers::new(base, None);
+        let edge_above_nodes = base.create_sublayer("edge_above_nodes");
+
+        let masked_edge_above_nodes = edge_above_nodes.create_sublayer("masked_edge_above_nodes");
+        let edge_above_nodes_cutout =
+            edge_above_nodes.create_mask_sublayer("edge_above_nodes_cutout");
+        masked_edge_above_nodes.set_inverted_mask(&edge_above_nodes_cutout);
+
+        let edited_backdrop = NodeBackdropLayers::new(base, Some(&edit_camera));
+        let edited_nodes = MainNodeLayers::new(searcher, Some(&edit_camera));
+
         let data = GraphLayersData {
-            main_backdrop:    NodeBackdropLayers::new(base, None),
-            edge_below_nodes: base.create_sublayer("inactive_edges"),
-            main_nodes:       MainNodeLayers::new(base, None),
-            edge_above_nodes: base.create_sublayer("inactive_edges"),
-            edited_backdrop:  NodeBackdropLayers::new(base, Some(&edit_camera)),
-            edited_nodes:     MainNodeLayers::new(searcher, Some(&edit_camera)),
+            main_backdrop,
+            edge_below_nodes,
+            main_nodes,
+            edge_above_nodes,
+            masked_edge_above_nodes,
+            edge_above_nodes_cutout,
+            edited_backdrop,
+            edited_nodes,
         };
         Self { data: Rc::new(data) }
     }
@@ -114,15 +134,8 @@ impl GraphLayers {
 impl NodeBackdropLayers {
     fn new(layer: &Layer, camera: Option<&Camera2d>) -> Self {
         let backdrop_base = layer.create_sublayer_with_optional_camera("backdrop_base", camera);
-        backdrop_base.set_blend_mode(layer::BlendMode {
-            equation_color: layer::BlendEquation::Add,
-            equation_alpha: layer::BlendEquation::Max,
-            src_color: layer::BlendFactor::SrcAlpha,
-            src_alpha: layer::BlendFactor::One,
-            dst_color: layer::BlendFactor::OneMinusSrcAlpha,
-            dst_alpha: layer::BlendFactor::One,
-            ..default()
-        });
+        backdrop_base.set_blend_mode(layer::BlendMode::MAX);
+
         Self { backdrop: backdrop_base.create_symbol_partition("backdrop"), backdrop_base }
     }
 }
@@ -131,6 +144,7 @@ impl MainNodeLayers {
     fn new(layer: &Layer, camera: Option<&Camera2d>) -> Self {
         let node_base = layer.create_sublayer_with_optional_camera("node_base", camera);
         let above_base = layer.create_sublayer_with_optional_camera("above", camera);
+
         Self {
             body: node_base.create_symbol_partition("body"),
             body_hover: node_base.create_symbol_partition("body_hover"),

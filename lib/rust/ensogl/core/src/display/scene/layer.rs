@@ -323,10 +323,8 @@ impl Layer {
 
     fn iter_sublayers_and_masks_nested_internal(&self, f: &mut impl FnMut(&Layer)) {
         f(self);
-        if let Some(mask) = &*self.mask.borrow() {
-            if let Some(layer) = mask.upgrade() {
-                layer.iter_sublayers_and_masks_nested_internal(f)
-            }
+        if let Some(mask) = self.mask() {
+            mask.layer.iter_sublayers_and_masks_nested_internal(f)
         }
         self.for_each_sublayer(|layer| layer.iter_sublayers_and_masks_nested_internal(f));
     }
@@ -439,9 +437,9 @@ pub struct LayerModel {
     global_element_depth_order: RefCell<DependencyGraph<LayerOrderItem>>,
     sublayers: Sublayers,
     symbol_buffer_partitions: RefCell<HashMap<ShapeSystemId, usize>>,
-    mask: RefCell<Option<WeakLayer>>,
+    mask: Cell<Option<Mask<WeakLayer>>>,
     scissor_box: RefCell<Option<ScissorBox>>,
-    blend_mode: RefCell<BlendMode>,
+    blend_mode: Cell<BlendMode>,
     mem_mark: Rc<()>,
     pub flags: LayerFlags,
     /// When [`display::object::ENABLE_DOM_DEBUG`] is enabled all display objects on this layer
@@ -545,6 +543,19 @@ impl LayerModel {
         self.symbols_renderable.borrow()
     }
 
+    /// Check if this layer has any symbols to render.
+    pub fn has_symbols(&self) -> bool {
+        !self.symbols_renderable.borrow().is_empty()
+    }
+
+    /// Check if this layer has any sublayers that are renderable in the main pass.
+    pub fn has_main_pass_sublayers(&self) -> bool {
+        self.sublayers
+            .borrow()
+            .iter_all()
+            .any(|sublayer| sublayer.flags.contains(LayerFlags::MAIN_PASS_VISIBLE))
+    }
+
     /// Add depth-order dependency between two [`LayerOrderItem`]s in this layer.
     pub fn add_elements_order_dependency(
         &self,
@@ -634,6 +645,12 @@ impl LayerModel {
         self.blend_mode.replace(blend_mode);
     }
 
+    /// Get the blend mode used during rendering of this layer. See [`Self::set_blend_mode`] for
+    /// more information.
+    pub fn blend_mode(&self) -> BlendMode {
+        self.blend_mode.get()
+    }
+
     /// Add the symbol to this layer.
     pub fn add_symbol(&self, symbol_id: impl Into<SymbolId>) {
         self.add_element(symbol_id.into(), None)
@@ -718,11 +735,9 @@ impl LayerModel {
                 let global_order = self.global_element_depth_order.borrow();
                 layer.update_internal(Some(&*global_order), true);
             });
-            if let Some(layer) = &*self.mask.borrow() {
-                if let Some(layer) = layer.upgrade() {
-                    let global_order = self.global_element_depth_order.borrow();
-                    layer.update_internal(Some(&*global_order), true);
-                }
+            if let Some(mask) = self.mask() {
+                let global_order = self.global_element_depth_order.borrow();
+                mask.layer.update_internal(Some(&*global_order), true);
             }
         }
 
@@ -920,10 +935,6 @@ impl LayerModel {
         }
     }
 
-    fn remove_mask(&self) {
-        mem::take(&mut *self.mask.borrow_mut());
-    }
-
     /// Set all sublayers layer of this layer. Old sublayers layers will be unregistered.
     pub fn set_sublayers(&self, layers: &[&Layer]) {
         self.remove_all_sublayers();
@@ -996,14 +1007,31 @@ impl LayerModel {
     }
 
     /// The layer's mask, if any.
-    pub fn mask(&self) -> Option<Layer> {
-        self.mask.borrow().as_ref().and_then(|t| t.upgrade())
+    pub fn mask(&self) -> Option<Mask> {
+        let weak_mask = self.mask.take()?;
+        let layer = weak_mask.layer.upgrade()?;
+        let inverted = weak_mask.inverted;
+        self.mask.set(Some(weak_mask));
+        Some(Mask { layer, inverted })
     }
 
     /// Set a mask layer of this layer. Old mask layer will be unregistered.
     pub fn set_mask(&self, mask: &Layer) {
-        self.remove_mask();
-        *self.mask.borrow_mut() = Some(mask.downgrade());
+        self.mask.set(Some(Mask { layer: mask.downgrade(), inverted: false }))
+    }
+
+    /// Set an inverted mask layer of this layer. Old mask layer will be unregistered.
+    ///
+    /// NOTE: When using an inverted mask, the mask layer's own blend mode is ignored. Instead,
+    /// the mask layer is always rendered with the blend mode [`BlendMode::ALPHA_CUTOUT`], carving
+    /// out the shape of the mask from the layer it masks.
+    pub fn set_inverted_mask(&self, mask: &Layer) {
+        self.mask.set(Some(Mask { layer: mask.downgrade(), inverted: true }))
+    }
+
+    /// Remove a previously set mask from this layer.
+    pub fn remove_mask(&self) {
+        self.mask.take();
     }
 
     /// The layer's [`ScissorBox`], if any.
@@ -1563,6 +1591,24 @@ impl ShapeSystemRegistryData {
     }
 }
 
+// ============
+// === Mask ===
+// ============
+
+/// A definition of mask operation to perform on a layer. The mask is another layer, which is used
+/// to filter out parts of the layer it is assigned to it. When mask is not inverted, the parts of
+/// the layer that are covered by the mask are kept, and the rest is discarded. When mask is
+/// inverted, the parts covered by mask are discarded. Only the alpha channel of the mask is used.
+#[derive(Debug, Clone)]
+pub struct Mask<L = Layer> {
+    /// The alpha channel of this layer is used as a mask.
+    pub layer:    L,
+    /// Whether the mask should be inverted. For non-inverted mask, the mask's alpha will multiply
+    /// the alpha of the layer it is assigned to. For inverted mask, the mask's alpha will be
+    /// subtracted from 1.0, and then multiplied by the alpha of the layer it is assigned to.
+    pub inverted: bool,
+}
+
 
 
 // =======================
@@ -1828,11 +1874,20 @@ pub enum BlendFactor {
 }
 
 impl BlendMode {
-    const PREMULTIPLIED_ALPHA_OVER: BlendMode =
+    /// Alpha over blending, assuming premultiplied alpha in shader output.
+    pub const PREMULTIPLIED_ALPHA_OVER: BlendMode =
         BlendMode::simple(BlendEquation::Add, BlendFactor::One, BlendFactor::OneMinusSrcAlpha);
-    const ADDITIVE: BlendMode =
-        BlendMode::simple(BlendEquation::Add, BlendFactor::One, BlendFactor::One);
 
+    /// Pick maximum value for each color component.
+    pub const MAX: BlendMode =
+        BlendMode::simple(BlendEquation::Max, BlendFactor::One, BlendFactor::One);
+
+    /// Wherever the source alpha is non-zero, it will cut out the destination color and alpha
+    /// proportionally to its value.
+    pub const ALPHA_CUTOUT: BlendMode =
+        BlendMode::simple(BlendEquation::Add, BlendFactor::Zero, BlendFactor::OneMinusSrcAlpha);
+
+    /// Create a blend mode with the same settings for color and alpha channels.
     const fn simple(equation: BlendEquation, src: BlendFactor, dst: BlendFactor) -> Self {
         BlendMode {
             equation_color: equation,
@@ -1845,12 +1900,13 @@ impl BlendMode {
         }
     }
 
-    fn apply_to_context(&self, context: &Context) {
+    /// Apply this blend mode settings to the rendering context.
+    pub fn apply_to_context(&self, context: &Context) {
         context.blend_equation_separate(self.equation_color as _, self.equation_alpha as _);
         context.blend_func_separate(
             self.src_color as _,
-            self.src_alpha as _,
             self.dst_color as _,
+            self.src_alpha as _,
             self.dst_alpha as _,
         );
         context.blend_color(

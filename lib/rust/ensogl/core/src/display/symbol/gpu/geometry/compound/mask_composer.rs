@@ -51,3 +51,36 @@ impl MaskComposer {
         material
     }
 }
+
+
+/// A geometry which always covers the whole screen which renders its two input textures without
+/// modification: color and id. Useful in combination with different blend modes.
+#[derive(Clone, CloneRef, Debug, Deref)]
+pub struct OverlayComposer {
+    screen: Screen,
+}
+
+impl OverlayComposer {
+    /// Constructor.
+    pub fn new(color: impl AsRef<str>, id: impl AsRef<str>) -> Self {
+        let screen = Screen::new(Self::surface_material(color, id));
+        Self { screen }
+    }
+
+    fn surface_material(color: impl AsRef<str>, id: impl AsRef<str>) -> Material {
+        let color = color.as_ref();
+        let id = id.as_ref();
+        let mut material = Material::new();
+        let shader = format!(
+            "
+            output_color = texelFetch(input_{color},ivec2(gl_FragCoord.xy), 0);
+            output_id = texelFetch(input_{id},ivec2(gl_FragCoord.xy), 0);
+            "
+        );
+        material.add_input_def::<texture::FloatSampler>(color);
+        material.add_input_def::<texture::FloatSampler>(id);
+        material.add_output("id", Vector4::<f32>::new(0.0, 0.0, 0.0, 0.0));
+        material.set_main(shader);
+        material
+    }
+}
