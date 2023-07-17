@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import org.enso.compiler.context.CompilerContext;
 import org.enso.compiler.Passes;
 import org.enso.compiler.context.FreshNameSupply;
 import org.enso.compiler.core.CompilerError;
@@ -216,12 +217,12 @@ public final class Builtins {
    * @param passes the passes manager for the compiler
    */
   @CompilerDirectives.TruffleBoundary
-  public void initializeBuiltinsIr(FreshNameSupply freshNameSupply, Passes passes) {
+  public void initializeBuiltinsIr(CompilerContext context, FreshNameSupply freshNameSupply, Passes passes) {
     try {
       if (module.getSource() == null) {
         initializeBuiltinsSource();
       }
-      BuiltinsIrBuilder.build(module, freshNameSupply, passes);
+      BuiltinsIrBuilder.build(context, module, freshNameSupply, passes);
     } catch (IOException e) {
       e.printStackTrace();
     }
