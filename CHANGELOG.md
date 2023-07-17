@@ -191,8 +191,8 @@
 - [Fixed cursor position when ctrl-clicking the node][7014]. Sometimes
   ctrl-clicking to edit the node placed the mouse cursor in the wrong position
   in the text. This is fixed now.
-- [Added prototype AI Searcher that can be used to create new nodes from  
-  natural language input][7146]
+- [Added prototype AI Searcher that can be used to create new nodes from natural
+  language input][7146]
 - [Allow visualization resizing][7164]. Now the user can adjust the
   visualization size by dragging its right and bottom borders. Visualization
   width also follows the node's width, and visualizations are aligned to the
@@ -520,6 +520,7 @@
 - [Improving date/time support in Table - added `date_diff`, `date_add`,
   `date_part` and some shorthands. Extended `Time_Period` with milli-, micro-
   and nanosecond periods.][7221]
+- [Retire `Column_Selector` and allow regex based selection of columns.][7295]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -749,6 +750,7 @@
 [7223]: https://github.com/enso-org/enso/pull/7223
 [7234]: https://github.com/enso-org/enso/pull/7234
 [7221]: https://github.com/enso-org/enso/pull/7221
+[7295]: https://github.com/enso-org/enso/pull/7295
 
 #### Enso Compiler
 
@@ -875,6 +877,7 @@
 - [`executionComplete` response is sent on successful execution only][7143]
 - [Send info about function values][7168]
 - [Cache dataflow errors][7193]
+- [Add endpoint for downloading a project][7291]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -1001,6 +1004,7 @@
 [7143]: https://github.com/enso-org/enso/pull/7143
 [7168]: https://github.com/enso-org/enso/pull/7168
 [7193]: https://github.com/enso-org/enso/pull/7193
+[7291]: https://github.com/enso-org/enso/pull/7291
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

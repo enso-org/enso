@@ -28,7 +28,7 @@ import Standard.Table.Internal.Table_Helpers
 import Standard.Table.Internal.Table_Helpers.Table_Column_Helper
 import Standard.Table.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 import Standard.Table.Internal.Widget_Helpers
-from Standard.Table import Aggregate_Column, Auto, Column_Selector, Data_Formatter, Match_Columns, Position, Set_Mode, Sort_Column, Value_Type
+from Standard.Table import Aggregate_Column, Auto, Data_Formatter, Match_Columns, Position, Set_Mode, Sort_Column, Value_Type
 from Standard.Table.Data.Column import get_item_string, normalize_string_for_display
 from Standard.Table.Data.Table import print_table
 from Standard.Table.Errors import all
@@ -147,8 +147,10 @@ type Table
        dropped from the output.
 
        Arguments:
-       - columns: Column selection criteria - a single instance or Vector of
-         names, indexes or `Column_Selector`.
+       - columns: Specifies columns by a single instance or Vector of names,
+         indexes or regular expressions to match names.
+       - case_sensitivity: Controls whether to be case sensitive when matching
+         column names.
        - reorder: By default, or if set to `False`, columns in the output will
          be in the same order as in the input table. If `True`, the order in the
          output table will match the order in the columns list. If a column is
@@ -182,16 +184,16 @@ type Table
        > Example
          Select columns matching a regular expression.
 
-             table.select_columns [Column_Selector.By_Name "foo.+" Case_Sensitivity.Insensitive use_regex=True]
+             table.select_columns "foo.+".to_regex case_sensitivity=Case_Sensitivity.Insensitive
 
        > Example
          Select the first two columns and the last column, moving the last one to front.
 
              table.select_columns [-1, 0, 1] reorder=True
     @columns Widget_Helpers.make_column_name_vector_selector
-    select_columns :  Vector (Integer | Text | Column_Selector) | Text | Integer -> Boolean -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns
-    select_columns self (columns = [self.columns.first.name]) (reorder = False) (error_on_missing_columns = True) (on_problems = Report_Warning) =
-        new_columns = self.columns_helper.select_columns selectors=columns reorder=reorder error_on_missing_columns=error_on_missing_columns on_problems=on_problems
+    select_columns :  Vector (Integer | Text | Regex) | Text | Integer | Regex -> Case_Sensitivity -> Boolean -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns
+    select_columns self (columns : (Vector | Text | Integer | Regex) = [self.columns.first.name]) (case_sensitivity=Case_Sensitivity.Default) (reorder:Boolean=False) (error_on_missing_columns:Boolean=True) (on_problems:Problem_Behavior=Report_Warning) =
+        new_columns = self.columns_helper.select_columns columns case_sensitivity reorder error_on_missing_columns on_problems
         self.updated_columns new_columns
 
     ## ALIAS drop_columns
@@ -201,8 +203,10 @@ type Table
        input.
 
        Arguments:
-       - columns: Column selection criteria - a single instance or Vector of
-         names, indexes or `Column_Selector`, which are to be removed.
+       - columns: Specifies columns by a name, index or regular expression to
+         match names, or a Vector of these.
+       - case_sensitivity: Controls whether to be case sensitive when matching
+         column names.
        - error_on_missing_columns: Specifies if a missing input column should
          result in an error regardless of the `on_problems` settings. Defaults
          to `False`.
@@ -232,27 +236,80 @@ type Table
        > Example
          Remove columns matching a regular expression.
 
-             table.remove_columns [Column_Selector.By_Name "foo.+" Case_Sensitivity.Insensitive use_regex=True]
+             table.remove_columns "foo.+".to_regex Case_Sensitivity.Insensitive
 
        > Example
          Remove the first two columns and the last column.
 
              table.remove_columns [-1, 0, 1]
     @columns Widget_Helpers.make_column_name_vector_selector
-    remove_columns :  Vector (Integer | Text | Column_Selector) | Text | Integer -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns
-    remove_columns self (columns = [self.columns.first.name]) (error_on_missing_columns = False) (on_problems = Report_Warning) =
-        new_columns = self.columns_helper.remove_columns selectors=columns error_on_missing_columns=error_on_missing_columns on_problems=on_problems
+    remove_columns :  Vector (Integer | Text | Regex) | Text | Integer | Regex -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns
+    remove_columns self (columns : (Vector | Text | Integer | Regex) = [self.columns.first.name]) (case_sensitivity=Case_Sensitivity.Default) (error_on_missing_columns:Boolean=False) (on_problems:Problem_Behavior=Report_Warning) =
+        new_columns = self.columns_helper.remove_columns columns case_sensitivity error_on_missing_columns=error_on_missing_columns on_problems=on_problems
         self.updated_columns new_columns
+
+    ## ALIAS select_na
+       ALIAS select_missing_columns
+
+       Select columns which are either all blank or contain blank values. If no
+       rows are present, all columns are considered blank.
+
+       Arguments:
+       - when_any: By default, only columns consisting of all blank cells are
+         selected. If set to `True`, columns with one or more blank values are
+         selected.
+       - treat_nans_as_blank: specified whether `Number.nan` is considered as
+         blank. By default, it is not.
+
+       ? Blank values
+         Blank values are `Nothing`, `""` and depending on setting `Number.nan`.
+
+       > Example
+         Select completely blank columns from a table.
+
+             table.select_blank_columns
+    select_blank_columns : Boolean -> Boolean -> Table
+    select_blank_columns self (when_any : Boolean = False) (treat_nans_as_blank : Boolean = False) =
+        new_columns = self.columns_helper.select_blank_columns_helper when_any treat_nans_as_blank
+        if new_columns.length == 0 then Error.throw (No_Output_Columns) else
+            self.updated_columns new_columns
+
+    ## ALIAS drop_na
+       ALIAS drop_missing_columns
+
+       Remove columns which are either all blank or contain blank values. If no
+       rows are present, all columns are considered blank.
+
+       Arguments:
+       - when_any: By default, only columns consisting of all blank cells are
+         selected. If set to `True`, columns with one or more blank values are
+         selected.
+       - treat_nans_as_blank: specified whether `Number.nan` is considered as
+         blank. By default, it is not.
+
+       ? Blank values
+         Blank values are `Nothing`, `""` and depending on setting `Number.nan`.
+
+       > Example
+         Remove completely blank columns from a table.
+
+             table.remove_blank_columns
+    remove_blank_columns : Boolean -> Boolean -> Table
+    remove_blank_columns self (when_any : Boolean = False) (treat_nans_as_blank : Boolean = False) =
+        new_columns = self.columns_helper.select_blank_columns_helper when_any treat_nans_as_blank invert_selection=True
+        if new_columns.length == 0 then Error.throw (No_Output_Columns) else
+            self.updated_columns new_columns
 
     ## Returns a new table with the specified selection of columns moved to
        either the start or the end in the specified order.
 
        Arguments:
-       - columns: Column selection criteria - a single instance or Vector of
-         names, indexes or `Column_Selector`, which should be reordered and
-         specifying their order.
+       - columns: Specifies columns by a name, index or regular expression to
+         match names, or a Vector of these.
        - position: Specifies how to place the selected columns in relation to
          the remaining columns which were not matched by `columns` (if any).
+       - case_sensitivity: Controls whether to be case sensitive when matching
+         column names.
        - error_on_missing_columns: Specifies if a missing input column should
          result in an error regardless of the `on_problems` settings. Defaults
          to `False`.
@@ -279,7 +336,7 @@ type Table
        > Example
          Move columns matching a regular expression to front, keeping columns matching "foo.+" before columns matching "b.*".
 
-             table.reorder_columns [Column_Selector.By_Name "foo.+" Case_Sensitivity.Insensitive use_regex=True]
+             table.reorder_columns "foo.+".to_regex case_sensitivity=Case_Sensitivity.Insensitive
 
        > Example
          Swap the first two columns.
@@ -291,9 +348,9 @@ type Table
 
              table.reorder_columns [0] position=Position.After_Other_Columns
     @columns Widget_Helpers.make_column_name_vector_selector
-    reorder_columns : Vector (Integer | Text | Column_Selector) | Text | Integer -> Position -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns
-    reorder_columns self (columns = [self.columns.first.name]) (position = Position.Before_Other_Columns) (error_on_missing_columns = False) (on_problems = Report_Warning) =
-        new_columns = self.columns_helper.reorder_columns selectors=columns position=position error_on_missing_columns on_problems=on_problems
+    reorder_columns : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Position -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns
+    reorder_columns self (columns : (Vector | Text | Integer | Regex) = [self.columns.first.name]) (position:Position=Position.Before_Other_Columns) (case_sensitivity=Case_Sensitivity.Default) (error_on_missing_columns:Boolean=False) (on_problems:Problem_Behavior=Report_Warning) =
+        new_columns = self.columns_helper.reorder_columns columns position case_sensitivity error_on_missing_columns on_problems
         self.updated_columns new_columns
 
     ## Returns a new table with the columns sorted by name according to the
@@ -328,7 +385,10 @@ type Table
 
        Arguments:
        - column_map: Mapping from old column names to new or a vector of new
-         column names to apply by position.
+         column names to apply by position. `Regex` objects can be used
+         within the mapping to do pattern based renaming.
+       - case_sensitivity: Controls whether to be case sensitive when matching
+         column names.
        - error_on_missing_columns: Specifies if a missing input column should
          result in an error regardless of the `on_problems` settings. Defaults
          to `True`.
@@ -379,12 +439,11 @@ type Table
        > Example
          For all columns starting with the prefix `name=`, replace it with `key:`.
 
-              by_name = Column_Selector.By_Name "name=(.*)" Case_Sensitivity.Sensitive use_regex=True
-              table.rename_columns (Map.from_vector [[by_name, "key:$1"]])
+              table.rename_columns (Map.from_vector [["name=(.*)".to_regex, "key:$1"]])
     @column_map Widget_Helpers.make_rename_name_vector_selector
-    rename_columns : Map (Text | Integer | Column_Selector) Text | Vector Text | Vector Vector -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Ambiguous_Column_Rename | Too_Many_Column_Names_Provided | Invalid_Output_Column_Names | Duplicate_Output_Column_Names
-    rename_columns self column_map=["Column"] (error_on_missing_columns=True) (on_problems=Report_Warning) =
-        new_names = Table_Helpers.rename_columns internal_columns=self.internal_columns mapping=column_map error_on_missing_columns=error_on_missing_columns on_problems=on_problems
+    rename_columns : Map (Text | Integer | Regex) Text | Vector Text | Vector Vector -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Ambiguous_Column_Rename | Too_Many_Column_Names_Provided | Invalid_Output_Column_Names | Duplicate_Output_Column_Names
+    rename_columns self (column_map:(Map | Vector)=["Column"]) (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default) (error_on_missing_columns:Boolean=True) (on_problems:Problem_Behavior=Report_Warning) =
+        new_names = Table_Helpers.rename_columns self.internal_columns column_map case_sensitivity error_on_missing_columns on_problems
         Warning.with_suspended new_names names->
             self.updated_columns (self.internal_columns.map c-> c.rename (names.at c.name))
 
@@ -566,10 +625,10 @@ type Table
            problem is reported.
     @group_by Widget_Helpers.make_column_name_vector_selector
     @order_by Widget_Helpers.make_order_by_selector
-    add_row_number : Text -> Integer -> Integer -> Vector (Text | Integer | Column_Selector) | Text | Integer -> Vector (Text | Sort_Column) | Text -> Problem_Behavior -> Table
-    add_row_number self (name:Text = "Row") (from:Integer = 1) (step:Integer = 1) group_by=[] order_by=[] on_problems=Problem_Behavior.Report_Warning =
+    add_row_number : Text -> Integer -> Integer -> Vector (Text | Integer | Regex) | Text | Integer | Regex -> Vector (Text | Sort_Column) | Text -> Problem_Behavior -> Table
+    add_row_number self (name:Text="Row") (from:Integer=1) (step:Integer=1) (group_by:(Vector | Text | Integer | Regex)=[]) (order_by:(Vector | Text)=[]) (on_problems:Problem_Behavior=Problem_Behavior.Report_Warning) =
         problem_builder = Problem_Builder.new error_on_missing_columns=True
-        grouping_columns = self.columns_helper.select_columns_helper group_by True problem_builder
+        grouping_columns = self.columns_helper.select_columns_helper group_by Case_Sensitivity.Default True problem_builder
         grouping_columns.each internal_column->
             column = self.make_column internal_column
             if column.value_type.is_floating_point then
@@ -944,9 +1003,9 @@ type Table
            `Floating_Point_Equality` is reported according to the `on_problems`
            setting.
     @columns Widget_Helpers.make_column_name_vector_selector
-    distinct : Vector (Integer | Text | Column_Selector) | Text | Integer -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns | No_Input_Columns_Selected | Floating_Point_Equality
+    distinct : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns | No_Input_Columns_Selected | Floating_Point_Equality
     distinct self columns=self.column_names case_sensitivity=Case_Sensitivity.Default error_on_missing_columns=True on_problems=Report_Warning =
-        key_columns = self.columns_helper.select_columns selectors=columns reorder=True error_on_missing_columns=error_on_missing_columns on_problems=on_problems . catch No_Output_Columns _->
+        key_columns = self.columns_helper.select_columns columns Case_Sensitivity.Default reorder=True error_on_missing_columns=error_on_missing_columns on_problems=on_problems . catch No_Output_Columns _->
             Error.throw No_Input_Columns_Selected
         problem_builder = Problem_Builder.new
         new_table = self.connection.dialect.prepare_distinct self key_columns case_sensitivity problem_builder
@@ -1494,7 +1553,7 @@ type Table
             B  | Name      | Another
             B  | Country   | Germany
     @key_columns Widget_Helpers.make_column_name_vector_selector
-    transpose : Vector (Integer | Text | Column_Selector) | Text | Integer -> Text -> Text -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns | Duplicate_Output_Column_Names
+    transpose : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Text -> Text -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns | Duplicate_Output_Column_Names
     transpose self key_columns=[] (attribute_column_name="Name") (value_column_name="Value") (error_on_missing_columns=True) (on_problems = Report_Warning) =
         ## Avoid unused arguments warning. We cannot rename arguments to `_`,
            because we need to keep the API consistent with the in-memory table.
@@ -1552,7 +1611,7 @@ type Table
     @group_by Widget_Helpers.make_column_name_vector_selector
     @name_column Widget_Helpers.make_column_name_selector
     @values (Widget_Helpers.make_aggregate_column_selector include_group_by=False)
-    cross_tab : Vector (Integer | Text | Column_Selector | Aggregate_Column) | Text | Integer -> (Text | Integer) -> Aggregate_Column | Vector Aggregate_Column -> Problem_Behavior -> Table ! Missing_Input_Columns | Invalid_Aggregate_Column | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings
+    cross_tab : Vector (Integer | Text | Regex | Aggregate_Column) | Text | Integer | Regex -> (Text | Integer) -> Aggregate_Column | Vector Aggregate_Column -> Problem_Behavior -> Table ! Missing_Input_Columns | Invalid_Aggregate_Column | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings
     cross_tab self group_by name_column values=Aggregate_Column.Count (on_problems=Report_Warning) =
         ## Avoid unused arguments warning. We cannot rename arguments to `_`,
            because we need to keep the API consistent with the in-memory table.
@@ -1610,9 +1669,9 @@ type Table
              table.parse "birthday" Value_Type.Date
     @type (Widget_Helpers.parse_type_selector include_auto=False)
     @columns Widget_Helpers.make_column_name_vector_selector
-    parse : Vector (Text | Integer | Column_Selector) | Text | Integer -> Value_Type | Auto -> Text | Data_Formatter | Nothing -> Boolean -> Problem_Behavior -> Table
+    parse : Vector (Text | Integer | Regex) | Text | Integer | Regex -> Value_Type | Auto -> Text | Data_Formatter | Nothing -> Boolean -> Problem_Behavior -> Table
     parse self columns=(self.columns . filter (c-> c.value_type.is_text) . map .name) type format=Nothing error_on_missing_columns=True on_problems=Report_Warning =
-        selected = self.columns_helper.resolve_columns columns error_on_missing_columns=error_on_missing_columns on_problems=on_problems
+        selected = self.columns_helper.select_columns columns Case_Sensitivity.Default reorder=False error_on_missing_columns=error_on_missing_columns on_problems=on_problems error_on_empty=False . map self.make_column
         selected.fold self table-> column_to_parse->
             new_column = column_to_parse.parse type format on_problems
             table.set new_column new_name=column_to_parse.name set_mode=Set_Mode.Update
@@ -1779,9 +1838,9 @@ type Table
          types. Due to this, a Mixed column containing values `[2, "3"]` will
          actually be converted into `[2, Nothing]` when casting to Integer type.
     @columns Widget_Helpers.make_column_name_vector_selector
-    cast : Vector (Text | Integer | Column_Selector) | Text | Integer -> Value_Type -> Boolean -> Problem_Behavior -> Table ! Illegal_Argument | Inexact_Type_Coercion | Conversion_Failure
+    cast : Vector (Text | Integer | Regex) | Text | Integer | Regex -> Value_Type -> Boolean -> Problem_Behavior -> Table ! Illegal_Argument | Inexact_Type_Coercion | Conversion_Failure
     cast self columns=[0] value_type error_on_missing_columns=True on_problems=Problem_Behavior.Report_Warning =
-        selected = self.columns_helper.resolve_columns columns error_on_missing_columns=error_on_missing_columns on_problems=on_problems
+        selected = self.columns_helper.select_columns columns Case_Sensitivity.Default reorder=False error_on_missing_columns=error_on_missing_columns on_problems=on_problems error_on_empty=False . map self.make_column
         selected.fold self table-> column_to_cast->
             new_column = column_to_cast.cast value_type on_problems
             table.set new_column new_name=column_to_cast.name set_mode=Set_Mode.Update
@@ -2022,7 +2081,8 @@ type Table
        been replaced with the provided default(s).
 
        Arguments:
-       - columns: The column(s) to fill missing values of.
+       - columns: Specifies columns by a name, index or regular expression to
+         match names, or a Vector of these.
        - default: The value to replace missing values with. If this argument
          is a column, the value from `default` at the corresponding position
          will be used.
@@ -2032,7 +2092,7 @@ type Table
 
              fill_nothing = table.fill_nothing ["col0", "col1"] 20.5
     @columns Widget_Helpers.make_column_name_vector_selector
-    fill_nothing : Vector (Integer | Text | Column_Selector) | Text | Integer -> Column | Any -> Table
+    fill_nothing : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Column | Any -> Table
     fill_nothing self columns default =
         transformer col = col.fill_nothing default
         Table_Helpers.replace_columns_with_transformed_columns self columns transformer
@@ -2040,10 +2100,11 @@ type Table
     ## ALIAS Fill Empty, if_empty
 
        Returns a new column where empty Text values have been replaced with the
-       provided default(s).
+       provided default.
 
        Arguments:
-       - columns: The column(s) to fill empty values.
+       - columns: Specifies columns by a name, index or regular expression to
+         match names, or a Vector of these.
        - default: The value to replace empty values with. If this argument
          is a column, the value from `default` at the corresponding position
          will be used.
@@ -2053,7 +2114,7 @@ type Table
 
              fill_empty = table.fill_empty ["col0", "col1"] "hello"
     @columns Widget_Helpers.make_column_name_vector_selector
-    fill_empty : Vector (Integer | Text | Column_Selector) | Text | Integer -> Column | Any -> Table
+    fill_empty : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Column | Any -> Table
     fill_empty self columns default =
         transformer col = col.fill_empty default
         Table_Helpers.replace_columns_with_transformed_columns self columns transformer
@@ -2062,11 +2123,11 @@ type Table
        row of the specified column. If `term` is empty, the function returns the
        table unchanged.
 
-       This method follows the exact replacement semantics of the
-       `Text.replace` method.
+       This method follows the exact replacement semantics of `Text.replace`.
 
        Arguments:
-       - columns: The column(s) to replace values on.
+       - columns: Specifies columns by a name, index or regular expression to
+         match names, or a Vector of these.
        - term: The term to find. Can be `Text`, `Regex`, or a `Column` of
          strings.
        - replacement: The text to replace matches with.
@@ -2077,19 +2138,19 @@ type Table
        > Example
          Replace dashes with underscores.
 
-             table.replace "-" "_"
+             table.replace ["col0", "col1"] "-" "_"
 
        > Example
          Remove leading and trailing spaces from cells.
 
-             column.replace "^\s*(.*?)\s*$".to_regex "$1"
+             table.replace ["col.*".to_regex] "^\s*(.*?)\s*$".to_regex "$1"
 
        > Example
          Replace texts in quotes with parentheses.
 
-             column.replace '"(.*?)"'.to_regex '($1)'
+             column.replace ["col0"] '"(.*?)"'.to_regex '($1)'
     @columns Widget_Helpers.make_column_name_vector_selector
-    replace : Vector (Integer | Text | Column_Selector) | Text | Integer -> Text | Column | Regex -> Text | Column -> Case_Sensitivity -> Boolean -> Column
+    replace : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Text | Column | Regex -> Text | Column -> Case_Sensitivity -> Boolean -> Column
     replace self columns term="" new_text="" case_sensitivity=Case_Sensitivity.Sensitive only_first=False =
         _ = [columns, term, new_text, case_sensitivity, only_first]
         Error.throw (Unsupported_Database_Operation.Error "Text replace is currently not supported in the database backend.")
@@ -2101,7 +2162,8 @@ type Table
    Arguments:
    - connection: The connection to a database.
    - table_name: The name of the table to get.
-   - columns: List of columns to fetch. Each column is represented by a pair of column name and its expected SQL Type.
+   - columns: List of columns to fetch. Each column is represented by a pair of
+     column name and its expected SQL Type.
    - ctx: The context to use for the table.
 make_table : Connection -> Text -> Vector -> Context -> Table
 make_table connection table_name columns ctx =

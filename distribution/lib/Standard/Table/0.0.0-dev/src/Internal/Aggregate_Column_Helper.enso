@@ -2,7 +2,6 @@ from Standard.Base import all hiding First, Last
 
 import project.Data.Aggregate_Column.Aggregate_Column
 import project.Data.Column.Column
-import project.Data.Column_Selector.Column_Selector
 import project.Data.Sort_Column.Sort_Column
 import project.Data.Table.Table
 import project.Data.Type.Value_Type.Value_Type
@@ -149,9 +148,9 @@ resolve_aggregate table problem_builder aggregate_column =
         res = columns_helper.resolve_column_or_expression c problem_builder
         res.if_nothing (Error.throw Internal_Missing_Column_Error)
 
-    resolve_selector_to_vector : Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector) -> Vector Column ! Internal_Missing_Column_Error
+    resolve_selector_to_vector : Text | Integer | Vector (Integer | Text) -> Vector Column ! Internal_Missing_Column_Error
     resolve_selector_to_vector selector =
-        resolved = columns_helper.select_columns_helper selector reorder=True problem_builder
+        resolved = columns_helper.select_columns_helper selector Case_Sensitivity.Default True problem_builder
         if resolved.is_empty then Error.throw Internal_Missing_Column_Error else resolved
 
     resolve_order_by selector = case selector of

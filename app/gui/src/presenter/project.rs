@@ -11,14 +11,24 @@ use crate::presenter::searcher::SearcherPresenter;
 use crate::presenter::ComponentBrowserSearcher;
 
 use engine_protocol::language_server::ExecutionEnvironment;
-use engine_protocol::project_manager::ProjectMetadata;
 use enso_frp as frp;
+use ensogl::system::js;
 use ide_view as view;
 use ide_view::project::SearcherParams;
 use ide_view::project::SearcherType;
 use model::module::NotificationKind;
 use model::project::Notification;
 use model::project::VcsStatus;
+
+
+
+// =================
+// === Constants ===
+// =================
+
+/// We don't know how long the project opening will take, but we still want to show a fake progress
+/// indicator for the user. This constant represents a progress percentage that will be displayed.
+const OPEN_PROJECT_SPINNER_PROGRESS: f32 = 0.8;
 
 
 
@@ -30,17 +40,18 @@ use model::project::VcsStatus;
 #[allow(unused)]
 #[derive(Debug)]
 struct Model {
-    controller:           controller::Project,
-    module_model:         model::Module,
-    graph_controller:     controller::ExecutedGraph,
-    ide_controller:       controller::Ide,
-    view:                 view::project::View,
-    status_bar:           view::status_bar::View,
-    graph:                presenter::Graph,
-    code:                 presenter::Code,
-    searcher:             RefCell<Option<Box<dyn SearcherPresenter>>>,
-    available_projects:   Rc<RefCell<Vec<ProjectMetadata>>>,
+    controller: controller::Project,
+    module_model: model::Module,
+    graph_controller: controller::ExecutedGraph,
+    ide_controller: controller::Ide,
+    view: view::project::View,
+    status_bar: view::status_bar::View,
+    graph: presenter::Graph,
+    code: presenter::Code,
+    searcher: RefCell<Option<Box<dyn SearcherPresenter>>>,
+    available_projects: Rc<RefCell<Vec<(ImString, Uuid)>>>,
     shortcut_transaction: RefCell<Option<Rc<model::undo_redo::Transaction>>>,
+    execution_failed_process_id: Rc<Cell<Option<view::status_bar::process::Id>>>,
 }
 
 impl Model {
@@ -64,6 +75,7 @@ impl Model {
         let searcher = default();
         let available_projects = default();
         let shortcut_transaction = default();
+        let execution_failed_process_id = default();
         Model {
             controller,
             module_model,
@@ -76,6 +88,7 @@ impl Model {
             searcher,
             available_projects,
             shortcut_transaction,
+            execution_failed_process_id,
         }
     }
 
@@ -230,15 +243,20 @@ impl Model {
         self.view.graph().model.breadcrumbs.set_project_changed(changed);
     }
 
-    fn execution_finished(&self) {
+    fn execution_complete(&self) {
         self.view.graph().frp.set_read_only(false);
-        self.view.graph().frp.execution_finished.emit(());
+        self.view.graph().frp.execution_complete.emit(());
+        if let Some(id) = self.execution_failed_process_id.get() {
+            self.status_bar.finish_process(id);
+        }
     }
 
     fn execution_failed(&self) {
         let message = crate::EXECUTION_FAILED_MESSAGE;
-        let message = view::status_bar::event::Label::from(message);
-        self.status_bar.add_event(message);
+        let message = view::status_bar::process::Label::from(message);
+        self.status_bar.add_process(message);
+        let id = self.status_bar.last_process.value();
+        self.execution_failed_process_id.set(Some(id));
     }
 
     fn execution_context_interrupt(&self) {
@@ -275,10 +293,42 @@ impl Model {
         executor::global::spawn(async move {
             if let Ok(api) = controller.manage_projects() {
                 if let Ok(projects) = api.list_projects().await {
+                    let projects = projects.into_iter();
+                    let projects = projects.map(|p| (p.name.clone().into(), p.id)).collect_vec();
                     *projects_list.borrow_mut() = projects;
                     project_list_ready.emit(());
                 }
             }
+        })
+    }
+
+    /// User clicked a project in the Open Project dialog. Open it.
+    fn open_project(&self, id_in_list: &usize) {
+        let controller = self.ide_controller.clone_ref();
+        let projects_list = self.available_projects.clone_ref();
+        let view = self.view.clone_ref();
+        let status_bar = self.status_bar.clone_ref();
+        let id = *id_in_list;
+        executor::global::spawn(async move {
+            let app = js::app_or_panic();
+            app.show_progress_indicator(OPEN_PROJECT_SPINNER_PROGRESS);
+            view.hide_graph_editor();
+            if let Ok(api) = controller.manage_projects() {
+                api.close_project();
+                let uuid = projects_list.borrow().get(id).map(|(_name, uuid)| *uuid);
+                if let Some(uuid) = uuid {
+                    if let Err(error) = api.open_project(uuid).await {
+                        error!("Error opening project: {error}.");
+                        status_bar.add_event(format!("Error opening project: {error}."));
+                    }
+                } else {
+                    error!("Project with id {id} not found.");
+                }
+            } else {
+                error!("Project Manager API not available, cannot open project.");
+            }
+            app.hide_progress_indicator();
+            view.show_graph_editor();
         })
     }
 
@@ -355,15 +405,28 @@ impl Project {
         let view = &model.view.frp;
         let breadcrumbs = &model.view.graph().model.breadcrumbs;
         let graph_view = &model.view.graph().frp;
-        let project_list = &model.view.project_list().frp;
+        let project_list = &model.view.project_list();
 
         frp::extend! { network
             project_list_ready <- source_();
-            project_list.project_list <+ project_list_ready.map(
-                f_!(model.available_projects.borrow().clone())
-            );
+
+            project_list.grid.reset_entries <+ project_list_ready.map(f_!([model]{
+                let cols = 1;
+                let rows = model.available_projects.borrow().len();
+                (rows, cols)
+            }));
+            entry_model <- project_list.grid.model_for_entry_needed.map(f!([model]((row, col)) {
+                let projects = model.available_projects.borrow();
+                let project = projects.get(*row);
+                project.map(|(name, _)| (*row, *col, name.clone_ref()))
+            })).filter_map(|t| t.clone());
+            project_list.grid.model_for_entry <+ entry_model;
+
             open_project_list <- view.project_list_shown.on_true();
-            eval_ open_project_list (model.project_list_opened(project_list_ready.clone_ref()));
+            eval_ open_project_list(model.project_list_opened(project_list_ready.clone_ref()));
+            selected_project <- project_list.grid.entry_selected.filter_map(|e| *e);
+            eval selected_project(((row, _col)) model.open_project(row));
+            project_list.grid.select_entry <+ selected_project.constant(None);
 
             eval view.searcher ([model](params) {
                 if let Some(params) = params {
@@ -456,8 +519,8 @@ impl Project {
                 Notification::VcsStatusChanged(VcsStatus::Clean) => {
                     model.set_project_changed(false);
                 }
-                Notification::ExecutionFinished => {
-                    model.execution_finished();
+                Notification::ExecutionComplete => {
+                    model.execution_complete();
                 }
                 Notification::ExecutionFailed => {
                     model.execution_failed();

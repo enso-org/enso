@@ -1,7 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-from Standard.Table import Table, Data_Formatter, Column, Column_Selector
+from Standard.Table import Table, Data_Formatter, Column
 from Standard.Table.Data.Type.Value_Type import Value_Type, Auto
 from Standard.Table.Errors import all
 
@@ -309,7 +309,7 @@ spec =
 
         Test.specify "should allow selecting columns by regex" <|
             t1 = Table.new [["An", ["1", "2", "3"]], ["Am", ["4", "5", "6"]], ["C", ["7", "8", "9"]], ["D", ["10", "11", "12"]]]
-            r1 = t1.parse columns=[Column_Selector.By_Name "A.*" use_regex=True]
+            r1 = t1.parse columns="A.*".to_regex
             r1.at "An" . to_vector . should_equal [1, 2, 3]
             r1.at "Am" . to_vector . should_equal [4, 5, 6]
             r1.at "C" . to_vector . should_equal ["7", "8", "9"]
@@ -321,9 +321,10 @@ spec =
             r1.should_fail_with Missing_Input_Columns
             r1.catch.criteria . should_equal ["B", "C", "E"]
 
-            r2 = t1.parse columns=[Column_Selector.By_Name "A.+" use_regex=True]
+            regex = "A.+".to_regex case_insensitive=True
+            r2 = t1.parse columns=regex
             r2.should_fail_with Missing_Input_Columns
-            r2.catch.criteria . should_equal ["A.+"]
+            r2.catch.criteria . should_equal [regex]
 
             action = t1.parse columns=["A", "B", "C", "E"] error_on_missing_columns=False on_problems=_
             tester table =
@@ -345,7 +346,7 @@ spec =
 
         Test.specify "should allow mixed column selectors" <|
             t1 = Table.new [["Am", ["1", "2", "3"]], ["B", ["4", "5", "6"]], ["C", ["7", "8", "9"]], ["D", ["10", "11", "12"]]]
-            r1 = t1.parse columns=[(Column_Selector.By_Name "A.*" use_regex=True), -2, "D"]
+            r1 = t1.parse columns=["A.*".to_regex, -2, "D"]
             r1.at "Am" . to_vector . should_equal [1, 2, 3]
             r1.at "B" . to_vector . should_equal ["4", "5", "6"]
             r1.at "C" . to_vector . should_equal [7, 8, 9]
@@ -353,7 +354,7 @@ spec =
 
         Test.specify "should handle edge-cases: overlapping selectors" <|
             t1 = Table.new [["Am", ["1", "2", "3"]], ["B", ["4", "5", "6"]], ["C", ["7", "8", "9"]], ["D", ["10", "11", "12"]]]
-            r1 = t1.parse columns=[(Column_Selector.By_Name "A.*" use_regex=True), 0, "D", -1, -1, 0, 3]
+            r1 = t1.parse columns=["A.*".to_regex, 0, "D", -1, -1, 0, 3]
             r1.at "Am" . to_vector . should_equal [1, 2, 3]
             r1.at "B" . to_vector . should_equal ["4", "5", "6"]
             r1.at "C" . to_vector . should_equal ["7", "8", "9"]
