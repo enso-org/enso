@@ -15,6 +15,7 @@ import * as common from 'enso-common'
 
 import * as backendModule from '../backend'
 import * as dateTime from '../dateTime'
+import * as download from '../../download'
 import * as fileInfo from '../../fileInfo'
 import * as hooks from '../../hooks'
 import * as http from '../../http'
@@ -23,6 +24,7 @@ import * as newtype from '../../newtype'
 import * as projectManager from '../projectManager'
 import * as remoteBackendModule from '../remoteBackend'
 import * as spinner from './spinner'
+import * as uniqueString from '../../uniqueString'
 import * as uploadMultipleFiles from '../../uploadMultipleFiles'
 
 import * as authProvider from '../../authentication/providers/auth'
@@ -828,7 +830,7 @@ function Dashboard(props: DashboardProps) {
             type: backendModule.AssetType.project,
             title: name,
             // The ID must be unique in order to be updated correctly in the UI.
-            id: newtype.asNewtype<backendModule.ProjectId>(String(Number(new Date()))),
+            id: newtype.asNewtype<backendModule.ProjectId>(uniqueString.uniqueString()),
             modifiedAt: dateTime.toRfc3339(new Date()),
             // Falling back to the empty string is okay as this is what the local backend does.
             parentId: directoryId ?? newtype.asNewtype<backendModule.AssetId>(''),
@@ -871,17 +873,15 @@ function Dashboard(props: DashboardProps) {
                     )
                 )
             }
-            setProjectAssets([
-                ...filesArray
-                    .reverse()
-                    .flatMap(file =>
-                        'path' in file && typeof file.path === 'string'
-                            ? [fileInfo.baseName(file.path)]
-                            : []
-                    )
-                    .map(createDummyNewProject),
-                ...projectAssets,
-            ])
+            const placeholderProjects = filesArray
+                .reverse()
+                .flatMap(file =>
+                    'path' in file && typeof file.path === 'string'
+                        ? [fileInfo.baseName(file.path)]
+                        : []
+                )
+                .map(createDummyNewProject)
+            setProjectAssets([...placeholderProjects, ...projectAssets])
             window.setTimeout(doRefresh, PROJECT_IMPORT_DELAY_MS)
         } else if (directoryId == null) {
             // This should never happen, however display a nice
@@ -1260,12 +1260,29 @@ function Dashboard(props: DashboardProps) {
                                     <img src={UploadIcon} />
                                 </label>
                                 <button
-                                    className={`mx-1 opacity-50`}
-                                    disabled={true}
+                                    className={`mx-1 ${
+                                        backend.type !== backendModule.BackendType.local ||
+                                        selectedAssets.length === 0
+                                            ? 'cursor-default opacity-50'
+                                            : ''
+                                    }`}
+                                    disabled={
+                                        backend.type !== backendModule.BackendType.local ||
+                                        selectedAssets.length === 0
+                                    }
                                     onClick={event => {
                                         event.stopPropagation()
                                         unsetModal()
-                                        /* TODO */
+                                        if (backend.type === backendModule.BackendType.local) {
+                                            for (const asset of selectedAssets) {
+                                                // All local assets are projects.
+                                                download.download(
+                                                    `./projects/${asset.id}/enso-project`,
+                                                    `${asset.title}.enso-project`
+                                                )
+                                            }
+                                        }
+                                        /* TODO[sb]:  */
                                     }}
                                 >
                                     <img src={DownloadIcon} />
@@ -1390,6 +1407,34 @@ function Dashboard(props: DashboardProps) {
                                             // since `ProjectId`s are not `DirectoryId`s.
                                             // enterDirectory(projectAsset)
                                         }
+                                        const doUploadToCloud = async () => {
+                                            const accessToken = session.accessToken
+                                            if (accessToken == null) {
+                                                const message =
+                                                    'Unable to upload to cloud in offline mode.'
+                                                logger.error(message)
+                                                toast.error(message)
+                                            } else {
+                                                const headers = new Headers([
+                                                    ['Authorization', `Bearer ${accessToken}`],
+                                                ])
+                                                const client = new http.Client(headers)
+                                                const remoteBackend =
+                                                    new remoteBackendModule.RemoteBackend(
+                                                        client,
+                                                        logger
+                                                    )
+                                                const projectResponse = await fetch(
+                                                    `./projects/${projectAsset.id}/enso-project`
+                                                )
+                                                await remoteBackend.uploadFile(
+                                                    {
+                                                        fileName: `${projectAsset.title}.enso-project`,
+                                                    },
+                                                    await projectResponse.blob()
+                                                )
+                                            }
+                                        }
                                         // This is not a React component even though it contains JSX.
                                         // eslint-disable-next-line no-restricted-syntax
                                         const doRename = () => {
@@ -1467,6 +1512,9 @@ function Dashboard(props: DashboardProps) {
                                                         Open as folder
                                                     </ContextMenuEntry>
                                                 )}
+                                                <ContextMenuEntry onClick={doUploadToCloud}>
+                                                    Upload to cloud
+                                                </ContextMenuEntry>
                                                 <ContextMenuEntry onClick={doRename}>
                                                     Rename
                                                 </ContextMenuEntry>

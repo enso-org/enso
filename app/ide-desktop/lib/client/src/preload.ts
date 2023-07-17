@@ -36,7 +36,6 @@ electron.contextBridge.exposeInMainWorld(BACKEND_API_KEY, {
 electron.ipcRenderer.on(
     ipc.Channel.importProjectFromPath,
     (_event, projectPath: string, projectId: string) => {
-        console.log(projectPath, IMPORT_PROJECT_RESOLVE_FUNCTIONS)
         const resolveFunction = IMPORT_PROJECT_RESOLVE_FUNCTIONS.get(projectPath)
         IMPORT_PROJECT_RESOLVE_FUNCTIONS.delete(projectPath)
         resolveFunction?.(projectId)

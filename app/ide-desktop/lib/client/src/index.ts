@@ -339,13 +339,9 @@ class App {
         electron.ipcMain.on(ipc.Channel.quit, () => {
             electron.app.quit()
         })
-        electron.ipcMain.on(ipc.Channel.importProjectFromPath, (_event, path: string) => {
+        electron.ipcMain.on(ipc.Channel.importProjectFromPath, (event, path: string) => {
             const id = projectManagement.importProjectFromPath(path)
-            electron.BrowserWindow.getFocusedWindow()?.webContents.send(
-                ipc.Channel.importProjectFromPath,
-                path,
-                id
-            )
+            event.reply(ipc.Channel.importProjectFromPath, path, id)
         })
     }
 

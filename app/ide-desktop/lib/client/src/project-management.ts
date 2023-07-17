@@ -66,10 +66,11 @@ export function importProjectFromPath(openedPath: string): string {
  *
  * @returns Project ID (from Project Manager's metadata) identifying the imported project. */
 export function importBundle(bundlePath: string): string {
-    logger.log(`Importing project from bundle: '${bundlePath}'.`)
+    logger.log(`Importing project '${bundlePath}' from bundle.`)
     // The bundle is a tarball, so we just need to extract it to the right location.
     const bundleRoot = directoryWithinBundle(bundlePath)
     const target = generateDirectoryName(bundleRoot ?? bundlePath)
+    logger.log(`Importing project as '${target.name}'.`)
     fs.mkdirSync(target.path, { recursive: true })
     // To be more resilient against different ways that user might attempt to create a bundle,
     // we try to support both archives that:
@@ -95,7 +96,7 @@ export function importBundle(bundlePath: string): string {
  * @returns Project ID (from Project Manager's metadata) identifying the imported project. */
 export async function uploadBundle(bundle: stream.Readable): Promise<string> {
     logger.log(`Uploading project from bundle.`)
-    const target = generateDirectoryName('Project')
+    let target = generateDirectoryName('Project')
     fs.mkdirSync(target.path, { recursive: true })
     await new Promise<void>(resolve => {
         bundle.pipe(tar.x({ cwd: target.path })).on('finish', resolve)
@@ -111,6 +112,14 @@ export async function uploadBundle(bundle: stream.Readable): Promise<string> {
             fs.renameSync(target.path, temporaryDirectoryName)
             fs.renameSync(pathModule.join(temporaryDirectoryName, firstEntry), target.path)
             fs.rmdirSync(temporaryDirectoryName)
+        }
+    }
+    const projectName = tryGetName(target.path)
+    if (projectName != null) {
+        const oldPath = target.path
+        target = generateDirectoryName(projectName)
+        if (target.path !== oldPath) {
+            fs.renameSync(oldPath, target.path)
         }
     }
     updateName(target.path, target.name)
@@ -327,6 +336,13 @@ export function updateName(projectRoot: string, newName: string) {
     const oldMetadata = fs.readFileSync(metadataPath, 'utf-8')
     const newMetadata = oldMetadata.replace(/^name: .+$/m, `name: ${newName}`)
     fs.writeFileSync(metadataPath, newMetadata)
+}
+
+/** Gets the name of a bundle from the bundle metadata (`package.yaml`). */
+export function tryGetName(projectRoot: string) {
+    const metadataPath = pathModule.join(projectRoot, BUNDLE_METADATA_PATH)
+    const metadata = fs.readFileSync(metadataPath, 'utf-8')
+    return metadata.match(/^name: (.+)$/m)?.[1] ?? null
 }
 
 // ==================
