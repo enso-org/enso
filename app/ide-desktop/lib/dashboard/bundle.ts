@@ -31,7 +31,7 @@ async function bundle() {
         })
         opts.entryPoints.push(
             path.resolve(THIS_PATH, 'src', 'index.html'),
-            path.resolve(THIS_PATH, 'src', 'index.tsx')
+            path.resolve(THIS_PATH, 'src', 'index.tsx'),
         )
         opts.loader['.html'] = 'copy'
         await esbuild.build(opts)

@@ -1,7 +1,7 @@
 /** @file Main dashboard component, responsible for listing user's projects as well as other
  * interactive components. */
 import * as React from 'react'
-import toast from 'react-hot-toast'
+import * as toastify from 'react-toastify'
 
 import ArrowRightSmallIcon from 'enso-assets/arrow_right_small.svg'
 import DefaultUserIcon from 'enso-assets/default_user.svg'
@@ -15,6 +15,7 @@ import * as common from 'enso-common'
 
 import * as backendModule from '../backend'
 import * as dateTime from '../dateTime'
+import * as error from '../../error'
 import * as fileInfo from '../../fileInfo'
 import * as hooks from '../../hooks'
 import * as http from '../../http'
@@ -274,7 +275,7 @@ function Dashboard(props: DashboardProps) {
                       )
                   ) {
                       const errorMessage = `No project named '${initialProjectName}' was found.`
-                      toast.error(errorMessage)
+                      toastify.toast.error(errorMessage)
                       logger.error(`Error opening project on startup: ${errorMessage}`)
                   }
               }
@@ -825,13 +826,13 @@ function Dashboard(props: DashboardProps) {
         if (backend.type === backendModule.BackendType.local) {
             // TODO[sb]: Allow uploading `.enso-project`s
             // https://github.com/enso-org/cloud-v2/issues/510
-            toast.error('Cannot upload files to the local backend.')
+            toastify.toast.error('Cannot upload files to the local backend.')
         } else if (event.currentTarget.files == null || event.currentTarget.files.length === 0) {
-            toast.success('No files selected to upload.')
+            toastify.toast.success('No files selected to upload.')
         } else if (directoryId == null) {
-            // This should never happen, however display a nice
-            // error message in case it somehow does.
-            toast.error('You cannot upload files while offline.')
+            // This situation should never occur, but in the unlikely event that it does,
+            // display a user-friendly error message.
+            toastify.toast.error('You cannot upload files while offline.')
         } else {
             await uploadMultipleFiles.uploadMultipleFiles(
                 backend,
@@ -872,22 +873,16 @@ function Dashboard(props: DashboardProps) {
                                 // eslint-disable-next-line no-restricted-syntax
                                 (event.target as HTMLButtonElement).getBoundingClientRect()
                             if (assetType === backendModule.AssetType.project) {
-                                void toast.promise(handleCreateProject(null), {
-                                    loading: 'Creating new empty project...',
+                                void toastify.toast.promise(handleCreateProject(null), {
+                                    pending: 'Creating new empty project...',
                                     success: 'Created new empty project.',
-                                    // This is UNSAFE, as the original function's parameter is of type
-                                    // `any`.
-                                    error: (promiseError: Error) =>
-                                        `Error creating new empty project: ${promiseError.message}`,
+                                    error: error.render(message => `Error creating new empty project: ${message}`)
                                 })
                             } else if (assetType === backendModule.AssetType.directory) {
-                                void toast.promise(handleCreateDirectory(), {
-                                    loading: 'Creating new directory...',
+                                void toastify.toast.promise(handleCreateDirectory(), {
+                                    pending: 'Creating new directory...',
                                     success: 'Created new directory.',
-                                    // This is UNSAFE, as the original function's parameter is of type
-                                    // `any`.
-                                    error: (promiseError: Error) =>
-                                        `Error creating new directory: ${promiseError.message}`,
+                                    error: error.render(message => `Error creating new directory: ${message}`)
                                 })
                             } else {
                                 // This is a React component even though it doesn't contain JSX.
@@ -1078,12 +1073,10 @@ function Dashboard(props: DashboardProps) {
             },
             ...projectAssets,
         ])
-        await toast.promise(backend.createProject(body), {
-            loading: `Creating project '${projectName}'${templateText}...`,
+        await toastify.toast.promise(backend.createProject(body), {
+            pending: `Creating project '${projectName}'${templateText}...`,
             success: `Created project '${projectName}'${templateText}.`,
-            // This is UNSAFE, as the original function's parameter is of type `any`.
-            error: (promiseError: Error) =>
-                `Error creating '${projectName}'${templateText}: ${promiseError.message}`,
+            error: error.render((message) => `Error creating '${projectName}'${templateText}: ${message}`)
         })
         // `newProject.projectId` cannot be used directly in a `ProjectEvent` as the project
         // does not yet exist in the project list. Opening the project would work, but the project

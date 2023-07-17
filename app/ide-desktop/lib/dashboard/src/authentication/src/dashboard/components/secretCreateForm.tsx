@@ -1,6 +1,6 @@
 /** @file Form to create a project. */
 import * as React from 'react'
-import toast from 'react-hot-toast'
+import * as toastify from 'react-toastify'
 
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
@@ -33,13 +33,13 @@ function SecretCreateForm(props: SecretCreateFormProps) {
         const onSubmit = async (event: React.FormEvent) => {
             event.preventDefault()
             if (name == null || name === '') {
-                toast.error('Please provide a secret name.')
+                toastify.toast.error('Please provide a secret name.')
             } else if (value == null) {
                 // Secret value explicitly can be empty.
-                toast.error('Please provide a secret value.')
+                toastify.toast.error('Please provide a secret value.')
             } else {
                 unsetModal()
-                await toast
+                await toastify.toast
                     .promise(
                         backend.createSecret({
                             parentDirectoryId: directoryId,
@@ -47,9 +47,9 @@ function SecretCreateForm(props: SecretCreateFormProps) {
                             secretValue: value,
                         }),
                         {
-                            loading: 'Creating secret...',
-                            success: 'Sucessfully created secret.',
-                            error: error.unsafeIntoErrorMessage,
+                            pending: 'Creating secret...',
+                            success: 'Successfully created secret.',
+                            error: error.render((message) => `Failed to create secret: ${message}`),
                         }
                     )
                     .then(onSuccess)

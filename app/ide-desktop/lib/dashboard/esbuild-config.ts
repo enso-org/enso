@@ -96,6 +96,35 @@ function esbuildPluginGenerateTailwind(): esbuild.Plugin {
     }
 }
 
+/** aaaaaaa */
+export function esbuildPluginAddReactifyCSS(): esbuild.Plugin {
+    return {
+        name: 'enso-generate-reactify',
+        setup: build => {
+            build.onLoad({filter: /ReactToastify\.css$/}, async loadArgs => {
+                // Go from THIS_PATH like
+                const sourcePath = path.resolve('..', '..', 'src', 'ReactToastify.css')
+                const lastModified = (await fs.stat(loadArgs.path)).mtimeMs
+                let output = cachedOutput[loadArgs.path]
+                if (!output || output.lastModified !== lastModified || tailwindConfigWasModified) {
+                    console.log(`Processing CSS file '${loadArgs.path}'.`)
+                    const content = await fs.readFile(loadArgs.path, 'utf8')
+                    const result = await cssProcessor.process(content, {from: loadArgs.path})
+                    console.log(`Processed CSS file '${loadArgs.path}'.`)
+                    output = {contents: result.css, lastModified}
+                    cachedOutput[loadArgs.path] = output
+                }
+                return {
+                    contents: output.contents,
+                    loader: 'css',
+                    watchFiles: [loadArgs.path, TAILWIND_CONFIG_PATH],
+                }
+            })
+        }
+    }
+}
+
+
 // ================
 // === Bundling ===
 // ================
@@ -129,6 +158,7 @@ export function bundlerOptions(args: Arguments) {
             // the Project Manager, however it is very difficult to conditionally exclude a module.
             esbuildPluginYaml.yamlPlugin({}),
             esbuildPluginGenerateTailwind(),
+
         ],
         define: {
             // We are defining constants, so it should be `CONSTANT_CASE`.

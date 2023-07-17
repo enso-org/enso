@@ -1,6 +1,6 @@
 /** @file An interactive button displaying the status of a project. */
 import * as React from 'react'
-import toast from 'react-hot-toast'
+import * as toastify from 'react-toastify'
 
 import ArrowUpIcon from 'enso-assets/arrow_up.svg'
 import PlayIcon from 'enso-assets/play.svg'
@@ -136,12 +136,12 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         ((state: spinner.SpinnerState | null) => void) | null
     >(null)
     const [shouldOpenWhenReady, setShouldOpenWhenReady] = React.useState(false)
-    const [toastId, setToastId] = React.useState<string | null>(null)
+    const [toastId, setToastId] = React.useState<toastify.Id | null>(null)
 
     React.useEffect(() => {
         if (toastId != null) {
             return () => {
-                toast.dismiss(toastId)
+                toastify.toast.dismiss(toastId)
             }
         } else {
             return
@@ -168,7 +168,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
 
     React.useEffect(() => {
         if (toastId != null && state !== backendModule.ProjectState.openInProgress) {
-            toast.dismiss(toastId)
+            toastify.toast.dismiss(toastId)
         }
     }, [state, toastId])
 
@@ -184,7 +184,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         try {
             switch (backend.type) {
                 case backendModule.BackendType.remote:
-                    setToastId(toast.loading(LOADING_MESSAGE))
+                    setToastId(toastify.toast.loading(LOADING_MESSAGE))
                     await backend.openProject(project.id)
                     setProjectData(oldProjectData => ({ ...oldProjectData, isRunning: true }))
                     doRefresh()
@@ -208,7 +208,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         } catch {
             setIsCheckingStatus(false)
             setIsCheckingResources(false)
-            toast.error(`Error opening project '${project.title}'.`)
+            toastify.toast.error(`Error opening project '${project.title}'.`)
             setState(backendModule.ProjectState.closed)
         }
     }, [backend, doRefresh, project.id, project.title, setProjectData])

@@ -1,9 +1,10 @@
 /** @file Modal for confirming delete of any type of asset. */
 import * as React from 'react'
-import toast from 'react-hot-toast'
+import * as toastify from 'react-toastify'
 
 import CloseIcon from 'enso-assets/close.svg'
 
+import * as error from '../../error'
 import * as modalProvider from '../../providers/modal'
 
 import Input from './input'
@@ -33,16 +34,14 @@ function RenameModal(props: RenameModalProps) {
     const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault()
         if (newName == null) {
-            toast.error('Please provide a new name.')
+            toastify.toast.error('Please provide a new name.')
         } else {
             unsetModal()
             try {
-                await toast.promise(doRename(newName), {
-                    loading: `Renaming ${assetType} '${name}' to '${newName}'...`,
+                await toastify.toast.promise(doRename(newName), {
+                    pending: `Renaming ${assetType} '${name}' to '${newName}'...`,
                     success: `Renamed ${assetType} '${name}' to '${newName}'.`,
-                    // This is UNSAFE, as the original function's parameter is of type `any`.
-                    error: (promiseError: Error) =>
-                        `Error renaming ${assetType} '${name}' to '${newName}': ${promiseError.message}`,
+                    error: error.render(message => `Error renaming ${assetType} '${name}' to '${newName}': ${message}`),
                 })
             } finally {
                 onComplete()

@@ -1,6 +1,6 @@
 /** @file Form to create a project. */
 import * as React from 'react'
-import toast from 'react-hot-toast'
+import * as toastify from 'react-toastify'
 
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
@@ -33,10 +33,10 @@ function FileCreateForm(props: FileCreateFormProps) {
             event.preventDefault()
             if (file == null) {
                 // TODO[sb]: Uploading a file may be a mistake when creating a new file.
-                toast.error('Please select a file to upload.')
+                toastify.toast.error('Please select a file to upload.')
             } else {
                 unsetModal()
-                await toast
+                await toastify.toast
                     .promise(
                         backend.uploadFile(
                             {
@@ -46,9 +46,9 @@ function FileCreateForm(props: FileCreateFormProps) {
                             file
                         ),
                         {
-                            loading: 'Uploading file...',
-                            success: 'Sucessfully uploaded file.',
-                            error: error.unsafeIntoErrorMessage,
+                            pending: 'Uploading file...',
+                            success: 'Successfully uploaded file.',
+                            error: error.render((message) => `Failed to upload file: ${message}`),
                         }
                     )
                     .then(onSuccess)

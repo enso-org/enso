@@ -1,9 +1,10 @@
 /** @file Modal for confirming delete of any type of asset. */
 import * as React from 'react'
-import toast from 'react-hot-toast'
+import * as toastify from 'react-toastify'
 
 import CloseIcon from 'enso-assets/close.svg'
 
+import * as error from '../../error'
 import * as modalProvider from '../../providers/modal'
 
 import Modal from './modal'
@@ -28,12 +29,10 @@ function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
     const onSubmit = async () => {
         unsetModal()
         try {
-            await toast.promise(doDelete(), {
-                loading: `Deleting ${assetType} '${name}'...`,
+            await toastify.toast.promise(doDelete(), {
+                pending: `Deleting ${assetType} '${name}'...`,
                 success: `Deleted ${assetType} '${name}'.`,
-                // This is UNSAFE, as the original function's parameter is of type `any`.
-                error: (promiseError: Error) =>
-                    `Error deleting ${assetType} '${name}': ${promiseError.message}`,
+                error: error.render(message => `Error deleting ${assetType} '${name}': ${message}`),
             })
         } finally {
             onComplete()

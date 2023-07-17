@@ -23,7 +23,7 @@ octocrab = { workspace = true }
 serde = { version = "1.0.130", features = ["derive"] }
 serde_json = { workspace = true }
 serde_yaml = { workspace = true }
-strum = { version = "0.24.0", features = ["derive"] }
+strum = { workspace = true }
 tempfile = "3.2.0"
 tokio = { workspace = true }
 toml = "0.5.9"

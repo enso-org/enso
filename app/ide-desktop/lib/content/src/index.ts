@@ -3,6 +3,7 @@
  * allowing to choose a debug rendering test from. */
 
 import * as semver from 'semver'
+import * as toastify from 'react-toastify'
 
 import * as common from 'enso-common'
 import * as contentConfig from 'enso-content-config'
@@ -152,6 +153,7 @@ interface AuthenticationConfig {
 /** Contains the entrypoint into the IDE. */
 class Main implements AppRunner {
     app: app.App | null = null
+    toast = toastify.toast
 
     /** Stop an app instance, if one is running. */
     stopApp() {

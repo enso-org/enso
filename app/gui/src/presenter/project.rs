@@ -13,6 +13,7 @@ use crate::presenter::ComponentBrowserSearcher;
 use engine_protocol::language_server::ExecutionEnvironment;
 use engine_protocol::project_manager::ProjectMetadata;
 use enso_frp as frp;
+use enso_web::JsValue;
 use ide_view as view;
 use ide_view::project::SearcherParams;
 use ide_view::project::SearcherType;
@@ -164,7 +165,24 @@ impl Model {
     }
 
     fn undo(&self) {
-        debug!("Undo triggered in UI.");
+        warn!("Undo triggered in UI.");
+        let sth = crate::view::toast::info("Undo triggered in UI.", &None).handle_err(|e| {
+            error!("Toast failed: {e:?}");
+        });
+        let sth = crate::view::toast::info(
+            "Undo triggered in UI.",
+            &Some(crate::view::toast::Options {
+                theme: Some(crate::view::toast::Theme::Dark),
+                auto_close: Some(crate::view::toast::AutoClose::Never()),
+                draggable: Some(false),
+                close_on_click: Some(false),
+                ..Default::default()
+            }),
+        )
+        .handle_err(|e| {
+            error!("Toast failed: {e:?}");
+        });
+        warn!("Toeasted {:?}", sth);
         if let Err(e) = self.controller.model.urm().undo() {
             error!("Undo failed: {e}");
         }
