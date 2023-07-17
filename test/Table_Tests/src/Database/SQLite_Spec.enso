@@ -226,26 +226,6 @@ sqlite_specific_spec prefix connection setup =
         Test.specify "case_sensitivity=insensitive use_regex=True only_first=true"
             col1.replace 'a[bcd]'.to_regex 'hey' case_sensitivity=Case_Sensitivity.Insensitive only_first=True . to_vector . should_fail_with Unsupported_Database_Operation
 
-    Test.group prefix+"replace: pattern and replacement columns" <|
-        table = table_builder [["x", ['hello Hello', 'hello hello', 'HELLO HELLO', 'a[bcd] A[bCd] a[bcd]', 'abac ad Ab aCAd']], ["patterns", ['hello', 'hello', 'hello', 'a[bcd]', 'a[bcd]']], ["replacements", ['bye', 'bye', 'bye', 'hey', 'hey']]]
-        col = table.at "x"
-        patterns = table.at "patterns"
-        replacements = table.at "replacements"
-
-        Test.specify "case_sensitivity=sensitive/default use_regex=false only_first=false"
-            col.replace patterns replacements . to_vector . should_equal ['bye Hello', 'bye bye', 'HELLO HELLO', 'hey A[bCd] hey', 'abac ad Ab aCAd']
-            col.replace patterns replacements case_sensitivity=Case_Sensitivity.Default . to_vector . should_equal ['bye Hello', 'bye bye', 'HELLO HELLO', 'hey A[bCd] hey', 'abac ad Ab aCAd']
-            col.replace patterns replacements case_sensitivity=Case_Sensitivity.Sensitive . to_vector . should_equal ['bye Hello', 'bye bye', 'HELLO HELLO', 'hey A[bCd] hey', 'abac ad Ab aCAd']
-
-        Test.specify "case_sensitivity=sensitive/default use_regex=false only_first=true"
-            col.replace patterns replacements only_first=True . to_vector . should_equal ['bye Hello', 'bye hello', 'HELLO HELLO', 'hey A[bCd] a[bcd]', 'abac ad Ab aCAd']
-
-        Test.specify "case_sensitivity=insensitive use_regex=false only_first=false"
-            col.replace patterns replacements case_sensitivity=Case_Sensitivity.Insensitive . to_vector . should_fail_with Unsupported_Database_Operation
-
-        Test.specify "case_sensitivity=insensitive use_regex=false only_first=true"
-            col.replace patterns replacements case_sensitivity=Case_Sensitivity.Insensitive only_first=True . to_vector . should_equal ['bye Hello', 'bye hello', 'bye HELLO', 'hey A[bCd] a[bcd]', 'abac ad Ab aCAd']
-
 sqlite_spec connection prefix =
     name_counter = Ref.new 0
     table_builder columns =

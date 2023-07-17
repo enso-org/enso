@@ -23,6 +23,7 @@ import project.Internal.IR.Context.Context
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.Query.Query
 import project.Internal.IR.SQL_Expression.SQL_Expression
+import project.Internal.Replace_Params.Replace_Params
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 from project.Data.Table import freshen_columns, Table
 from project.Errors import Integrity_Error, Unsupported_Database_Operation, Unsupported_Name
@@ -1174,11 +1175,18 @@ type Column
 
              column.replace '"(.*?)"'.to_regex '($1)'
     @term make_regex_text_widget
-    replace : Text | Regex | Column -> Text | Column -> Case_Sensitivity -> Boolean -> Column
+    replace : Text | Regex | Column -> Text | Column -> Case_Sensitivity -> Boolean -> Column ! Unsupported_Database_Operation
     replace self term="" new_text="" case_sensitivity=Case_Sensitivity.Default only_first=False =
         Value_Type.expect_text self <| case_sensitivity.disallow_non_default_locale <|
             input_type = Meta.type_of term
-            self.make_op "REPLACE" [term, new_text] "new name" [term, input_type, case_sensitivity, only_first]
+            params = Replace_Params.Value input_type case_sensitivity only_first
+            case self.connection.dialect.are_replace_params_supported params of
+                False -> params.throw_unsupported
+                True ->
+                    raw_term = case term of
+                        _ : Regex -> term.pattern_string
+                        _ -> term
+                    self.make_op "REPLACE" [raw_term, new_text] "new name" [term, params]
 
     ## Gets the year as a number from the date stored in the column.
 

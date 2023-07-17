@@ -29,6 +29,7 @@ import project.Internal.IR.Order_Descriptor.Order_Descriptor
 import project.Internal.IR.Query.Query
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
+import project.Internal.Replace_Params.Replace_Params
 import project.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.Internal.SQLite.SQLite_Error_Mapper.SQLite_Error_Mapper
@@ -266,6 +267,11 @@ type SQLite_Dialect
         _ = [period, operation_input_type]
         Error.throw (Unsupported_Database_Operation.Error "SQLite backend does not support date/time operations.")
 
+    ## PRVIATE
+       Returns true if the `replace` parameters are suppoerted by this backend.
+    are_replace_params_supported : Replace_Params -> Boolean
+    are_replace_params_supported self replace_params = supported_replace_params.contains replace_params
+
 ## PRIVATE
 make_internal_generator_dialect =
     text = [starts_with, contains, ends_with, make_case_sensitive, ["REPLACE", replace]]+concat_ops+trim_ops
@@ -406,34 +412,36 @@ floating_point_div = Base_Generator.lift_binary_op "/" x-> y->
 mod_op = Base_Generator.lift_binary_op "mod" x-> y->
     x ++ " - FLOOR(CAST(" ++ x ++ " AS REAL) / CAST(" ++ y ++ " AS REAL)) * " ++ y
 
+## PRIVATE
+supported_replace_params : Set Replace_Params
+supported_replace_params =
+  e = [Replace_Params.Value Text Case_Sensitivity.Default False, Replace_Params.Value Text Case_Sensitivity.Sensitive False, Replace_Params.Value Text Case_Sensitivity.Default True, Replace_Params.Value Text Case_Sensitivity.Sensitive True, Replace_Params.Value Text Case_Sensitivity.Insensitive True]
+  Set.from_vector <| e.map x-> [x, 0]
+
 replace : Vector Builder -> Any -> Builder
 replace args metadata =
     input = args.at 0
     pattern = args.at 1
     replacement = args.at 2
 
-    input_type = metadata.at 1
-    case_sensitivity = metadata.at 2
-    only_first = metadata.at 3
+    replace_params = metadata.at 1
 
-    expression = case input_type == Text || input_type == Column of
+    expression = case replace_params.input_type == Text || replace_params.input_type == Column of
         True ->
             ## To use REGEXP_REPLACE on a non-regex, we have to escape it.
-            case only_first of
-                False -> case case_sensitivity of
+            case replace_params.only_first of
+                False -> case replace_params.case_sensitivity of
                     Case_Sensitivity.Insensitive _ -> Nothing
                     _ ->
                         Builder.code "REPLACE(" ++ input ++ ", " ++ pattern ++ ", " ++ replacement ++ ")"
-                True -> case case_sensitivity of
+                True -> case replace_params.case_sensitivity of
                     Case_Sensitivity.Insensitive _ ->
                         replace_only_first False input pattern replacement
                     _ ->
                         replace_only_first True input pattern replacement
         False -> Nothing
     case expression of
-        Nothing ->
-            msg = "The REPLACE operation is not supported on SQLite for the following options: argument type " + input_type.to_text + ", case_sensitivity " + case_sensitivity.to_display_text + ", only_first " + only_first.to_text
-            Error.throw (Unsupported_Database_Operation.Error msg)
+        Nothing -> replace_params.throw_unsupported
         _ -> expression
 
 replace_only_first case_sensitive t p r =
