@@ -1,8 +1,8 @@
 from Standard.Base import all
-
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Internal.Rounding_Helpers
+from Standard.Base.Widget_Helpers import make_regex_text_widget
 
 import Standard.Table.Data.Column.Column as Materialized_Column
 import Standard.Table.Data.Type.Enso_Types
@@ -1124,7 +1124,6 @@ type Column
        - case_sensitivity: Specifies if the text values should be compared case
          sensitively.
        - only_first: If True, only replace the first match.
-       - use_regex: If true, the term is used as a regular expression.
 
        > Example
          Replace dashes with underscores.
@@ -1140,7 +1139,8 @@ type Column
          Replace texts in quotes with parentheses.
 
              column.replace '"(.*?)"'.to_regex '($1)'
-    replace : Text | Column | Regex -> Text | Column -> Case_Sensitivity -> Boolean -> Column
+    @term make_regex_text_widget
+    replace : Text | Regex | Column -> Text | Column -> Case_Sensitivity -> Boolean -> Column
     replace self term="" new_text="" case_sensitivity=Case_Sensitivity.Sensitive only_first=False =
         _ = [term, new_text, case_sensitivity, only_first]
         msg = "`Column.replace` is not yet implemented."

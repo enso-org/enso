@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=M+PLUS+1:wght@500;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=M+PLUS+1:wght@500;600;700&display=swap");
 
 body {
   margin: 0;
@@ -6,7 +6,8 @@ body {
 
 /* These styles MUST still be copied
  * as `.enso-dashboard body` and `.enso-dashboard html` make no sense. */
-.enso-dashboard {
+.enso-dashboard,
+.enso-chat {
   line-height: 1.5;
   -webkit-text-size-adjust: 100%;
   -moz-tab-size: 4;
@@ -16,7 +17,8 @@ body {
   font-feature-settings: normal;
 }
 
-.enso-dashboard *:focus {
+.enso-dashboard *:focus,
+.enso-chat *:focus {
   outline: none !important;
 }
 
@@ -48,7 +50,8 @@ body {
   background: rgba(0, 0, 0, 0);
 }
 
-.enso-dashboard {
+.enso-dashboard,
+.enso-chat {
   @tailwind base;
   @tailwind components;
   @tailwind utilities;
@@ -87,6 +90,15 @@ body {
         100% calc(50% + 2px),
         100% 100%,
         calc(50% + 2px) 100%
+      );
+    }
+
+    .clip-path-bottom-shadow {
+      clip-path: polygon(
+        0 0,
+        100% 0,
+        100% calc(100% + 100vh),
+        0 calc(100% + 100vh)
       );
     }
 

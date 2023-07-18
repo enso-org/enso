@@ -4,7 +4,6 @@
 use crate::prelude::*;
 
 use crate::executor::global::spawn_stream_handler;
-use crate::model::project::synchronized::ProjectNameInvalid;
 use crate::presenter;
 use crate::presenter::searcher::ai::AISearcher;
 use crate::presenter::searcher::SearcherPresenter;
@@ -40,17 +39,18 @@ const OPEN_PROJECT_SPINNER_PROGRESS: f32 = 0.8;
 #[allow(unused)]
 #[derive(Debug)]
 struct Model {
-    controller:           controller::Project,
-    module_model:         model::Module,
-    graph_controller:     controller::ExecutedGraph,
-    ide_controller:       controller::Ide,
-    view:                 view::project::View,
-    status_bar:           view::status_bar::View,
-    graph:                presenter::Graph,
-    code:                 presenter::Code,
-    searcher:             RefCell<Option<Box<dyn SearcherPresenter>>>,
-    available_projects:   Rc<RefCell<Vec<(ImString, Uuid)>>>,
+    controller: controller::Project,
+    module_model: model::Module,
+    graph_controller: controller::ExecutedGraph,
+    ide_controller: controller::Ide,
+    view: view::project::View,
+    status_bar: view::status_bar::View,
+    graph: presenter::Graph,
+    code: presenter::Code,
+    searcher: RefCell<Option<Box<dyn SearcherPresenter>>>,
+    available_projects: Rc<RefCell<Vec<(ImString, Uuid)>>>,
     shortcut_transaction: RefCell<Option<Rc<model::undo_redo::Transaction>>>,
+    execution_failed_process_id: Rc<Cell<Option<view::status_bar::process::Id>>>,
 }
 
 impl Model {
@@ -74,6 +74,7 @@ impl Model {
         let searcher = default();
         let available_projects = default();
         let shortcut_transaction = default();
+        let execution_failed_process_id = default();
         Model {
             controller,
             module_model,
@@ -86,6 +87,7 @@ impl Model {
             searcher,
             available_projects,
             shortcut_transaction,
+            execution_failed_process_id,
         }
     }
 
@@ -147,32 +149,6 @@ impl Model {
         }
     }
 
-    fn rename_project(&self, name: impl Str) {
-        if self.controller.model.name() != name.as_ref() {
-            let project = self.controller.model.clone_ref();
-            let breadcrumbs = self.view.graph().model.breadcrumbs.clone_ref();
-            let popup = self.view.popup().clone_ref();
-            let name = name.into();
-            executor::global::spawn(async move {
-                if let Err(error) = project.rename_project(name).await {
-                    let error_message = match error.downcast::<ProjectNameInvalid>() {
-                        Ok(error) => error.to_string(),
-                        Err(error) => {
-                            // Other errors aren't geared towards users, so display a generic
-                            // message.
-                            let prefix = "The project couldn't be renamed".to_string();
-                            error!("{prefix}: {error}");
-                            prefix
-                        }
-                    };
-                    popup.set_label.emit(error_message);
-                    // Reset name to old, valid value
-                    breadcrumbs.input.project_name.emit(project.name());
-                }
-            });
-        }
-    }
-
     fn undo(&self) {
         debug!("Undo triggered in UI.");
         if let Err(e) = self.controller.model.urm().undo() {
@@ -189,12 +165,12 @@ impl Model {
 
     fn save_project_snapshot(&self) {
         let controller = self.controller.clone_ref();
-        let breadcrumbs = self.view.graph().model.breadcrumbs.clone_ref();
+        let project_name = self.view.top_bar().project_name().clone_ref();
         executor::global::spawn(async move {
             if let Err(err) = controller.save_project_snapshot().await {
                 error!("Error while saving project snapshot: {err}");
             } else {
-                breadcrumbs.set_project_changed(false);
+                project_name.set_project_changed(false);
             }
         })
     }
@@ -226,29 +202,35 @@ impl Model {
 
     fn restore_project_snapshot(&self) {
         let controller = self.controller.clone_ref();
-        let breadcrumbs = self.view.graph().model.breadcrumbs.clone_ref();
+        let top_bar = self.view.top_bar();
+        let project_name = top_bar.project_name().clone_ref();
         executor::global::spawn(async move {
             if let Err(err) = controller.restore_project_snapshot().await {
                 error!("Error while restoring project snapshot: {err}");
             } else {
-                breadcrumbs.set_project_changed(false);
+                project_name.set_project_changed(false);
             }
         })
     }
 
     fn set_project_changed(&self, changed: bool) {
-        self.view.graph().model.breadcrumbs.set_project_changed(changed);
+        self.view.top_bar().project_name().set_project_changed(changed);
     }
 
-    fn execution_finished(&self) {
+    fn execution_complete(&self) {
         self.view.graph().frp.set_read_only(false);
-        self.view.graph().frp.execution_finished.emit(());
+        self.view.graph().frp.execution_complete.emit(());
+        if let Some(id) = self.execution_failed_process_id.get() {
+            self.status_bar.finish_process(id);
+        }
     }
 
     fn execution_failed(&self) {
         let message = crate::EXECUTION_FAILED_MESSAGE;
-        let message = view::status_bar::event::Label::from(message);
-        self.status_bar.add_event(message);
+        let message = view::status_bar::process::Label::from(message);
+        self.status_bar.add_process(message);
+        let id = self.status_bar.last_process.value();
+        self.execution_failed_process_id.set(Some(id));
     }
 
     fn execution_context_interrupt(&self) {
@@ -395,7 +377,6 @@ impl Project {
         let network = &self.network;
 
         let view = &model.view.frp;
-        let breadcrumbs = &model.view.graph().model.breadcrumbs;
         let graph_view = &model.view.graph().frp;
         let project_list = &model.view.project_list();
 
@@ -430,8 +411,6 @@ impl Project {
                 model.editing_committed(*node_view,*entry).as_some(*node_view)
             }));
             eval_ view.editing_aborted(model.editing_aborted());
-
-            eval breadcrumbs.output.project_name((name) {model.rename_project(name);});
 
             eval_ view.undo (model.undo());
             eval_ view.redo (model.redo());
@@ -511,8 +490,8 @@ impl Project {
                 Notification::VcsStatusChanged(VcsStatus::Clean) => {
                     model.set_project_changed(false);
                 }
-                Notification::ExecutionFinished => {
-                    model.execution_finished();
+                Notification::ExecutionComplete => {
+                    model.execution_complete();
                 }
                 Notification::ExecutionFailed => {
                     model.execution_failed();

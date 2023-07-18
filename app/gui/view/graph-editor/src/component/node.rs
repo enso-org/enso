@@ -545,8 +545,14 @@ impl NodeModel {
             .set_x(x_offset_to_node_center + width / 2.0 + CORNER_RADIUS + action_bar_width / 2.0);
         self.action_bar.frp.set_size(Vector2::new(action_bar_width, ACTION_BAR_HEIGHT));
 
-        self.error_visualization.set_xy(VISUALIZATION_OFFSET);
         self.visualization.set_xy(VISUALIZATION_OFFSET);
+        // Error visualization has origin in the center, while regular visualization has it at the
+        // top left corner.
+        let error_vis_offset_y = -ERROR_VISUALIZATION_SIZE.y / 2.0;
+        let error_vis_offset_x = ERROR_VISUALIZATION_SIZE.x / 2.0;
+        let error_vis_offset = Vector2(error_vis_offset_x, error_vis_offset_y);
+        let error_vis_pos = VISUALIZATION_OFFSET + error_vis_offset;
+        self.error_visualization.set_xy(error_vis_pos);
         self.visualization.frp.set_width(width);
 
         size

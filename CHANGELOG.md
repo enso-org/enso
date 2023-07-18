@@ -197,6 +197,9 @@
   visualization size by dragging its right and bottom borders. Visualization
   width also follows the node's width, and visualizations are aligned to the
   left side of the node.
+- [Help chat][7151]. The link to the Discord server is replaced with a chat
+  bridge to the Discord server. This is intended to have the chat visible at the
+  same time as the IDE, so that help can be much more interactive.
 
 [5910]: https://github.com/enso-org/enso/pull/5910
 [6279]: https://github.com/enso-org/enso/pull/6279
@@ -215,6 +218,7 @@
 [7028]: https://github.com/enso-org/enso/pull/7028
 [7014]: https://github.com/enso-org/enso/pull/7014
 [7146]: https://github.com/enso-org/enso/pull/7146
+[7151]: https://github.com/enso-org/enso/pull/7151
 [7164]: https://github.com/enso-org/enso/pull/7164
 
 #### EnsoGL (rendering engine)
@@ -520,6 +524,7 @@
 - [Improving date/time support in Table - added `date_diff`, `date_add`,
   `date_part` and some shorthands. Extended `Time_Period` with milli-, micro-
   and nanosecond periods.][7221]
+- [Retire `Column_Selector` and allow regex based selection of columns.][7295]
 - [`Text.parse_to_table` can take a `Regex`.][7297]
 
 [debug-shortcuts]:
@@ -750,6 +755,7 @@
 [7223]: https://github.com/enso-org/enso/pull/7223
 [7234]: https://github.com/enso-org/enso/pull/7234
 [7221]: https://github.com/enso-org/enso/pull/7221
+[7295]: https://github.com/enso-org/enso/pull/7295
 [7297]: https://github.com/enso-org/enso/pull/7297
 
 #### Enso Compiler
