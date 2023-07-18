@@ -328,24 +328,14 @@ define_themes! { [light:0, dark:1]
                     }
                 }
                 navigator {
-                    width = 41.0, 41.0;
-                    button_size = 32.0, 32.0;
-                    top_padding = 8.0, 8.0;
-                    bottom_padding = 4.0, 4.0;
-                    hover_color = Rgba::transparent(), Rgba::transparent();
-                    highlight {
-                        color = Rgb(0.96,0.85,0.725) , Rgb(0.96,0.85,0.725); // rgb(245,217,185)
-                        size = 29.0, 29.0;
-                        corners_radius = 12.0, 12.0;
-                    }
-                    buttons {
-                        active {
-                            local_scope = Rgb::from_base_255(250.0, 149.0, 31.0), Rgb::from_base_255(250.0, 149.0, 31.0);
-                            submodules = Rgb::from_base_255(250.0, 149.0, 31.0), Rgb::from_base_255(250.0, 149.0, 31.0);
-                            popular = Rgb::from_base_255(250.0, 149.0, 31.0), Rgb::from_base_255(250.0, 149.0, 31.0);
-                        }
-                        inactive = Rgba(0.0, 0.0, 0.0, 0.15), Rgba(0.0, 0.0, 0.0, 0.15);
-                    }
+                    width = 182.0, 182.0;
+                    height = 32.0, 32.0;
+                    corner_radius = 16.0, 16.0;
+                    border_width = 0.5, 0.5;
+                    border_color = Rgba(0.76, 0.76, 0.76, 1.0), Rgba(0.76, 0.76, 0.76, 1.0);
+                    padding = 8.0, 8.0;
+                    gap = 12.0, 12.0;
+                    right_side_margin = 38.0, 38.0;
                 }
             }
         }
