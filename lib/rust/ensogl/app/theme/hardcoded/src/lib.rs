@@ -180,7 +180,7 @@ impl Default for Theme {
 
 define_themes! { [light:0, dark:1]
     application {
-        background = Rgb::from_base_255(229.0, 207.0, 203.0) , Rgba(0.125,0.133,0.141,1.0);
+        background = Rgb::from_base_255(210.0, 206.0, 203.0) , Rgba(0.125,0.133,0.141,1.0);
         tooltip {
             show_delay_duration_ms = 500.0, 500.0;
             hide_delay_duration_ms = 0.0, 0.0;
@@ -190,13 +190,13 @@ define_themes! { [light:0, dark:1]
             documentation {
                 width = 400.0, 400.0;
                 height = 459.0, 459.0;
-                background = graph_editor::node::background, graph_editor::node::background;
+                background = application::component_browser::component_list_panel::background_color, application::component_browser::component_list_panel::background_color;
                 caption_height = 30.0, 30.0;
                 caption_animation_spring_multiplier = 1.5, 1.5;
                 corner_radius = 14.0, 14.0;
             }
             component_list_panel {
-                background_color = Rgb::from_base_255(236.0, 240.0, 242.0),Rgb::from_base_255(236.0, 240.0, 242.0);
+                background_color = Rgb::from_base_255(234.0, 234.0, 234.0),Rgb::from_base_255(236.0, 240.0, 242.0);
                 corners_radius = 16.0, 16.0;
                 grid {
                     width = 196.0, 196.0;

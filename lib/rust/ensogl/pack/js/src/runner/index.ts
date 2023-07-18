@@ -263,7 +263,7 @@ export class App {
     styleRoot() {
         const root = document.getElementById('root')
         if (root != null) {
-            root.style.backgroundColor = 'rgb(229,207,203)'
+            root.style.backgroundColor = 'rgb(255,255,255)'
         }
     }
 
