@@ -525,6 +525,7 @@
   `date_part` and some shorthands. Extended `Time_Period` with milli-, micro-
   and nanosecond periods.][7221]
 - [Retire `Column_Selector` and allow regex based selection of columns.][7295]
+- [`Text.parse_to_table` can take a `Regex`.][7297]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -755,6 +756,7 @@
 [7234]: https://github.com/enso-org/enso/pull/7234
 [7221]: https://github.com/enso-org/enso/pull/7221
 [7295]: https://github.com/enso-org/enso/pull/7295
+[7297]: https://github.com/enso-org/enso/pull/7297
 
 #### Enso Compiler
 
