@@ -20,6 +20,7 @@ import org.enso.table.problems.AggregatedProblems;
 import org.enso.table.error.UnexpectedColumnTypeException;
 import org.enso.table.operations.Distinct;
 import org.enso.table.util.NameDeduplicator;
+import org.graalvm.polyglot.Context;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -236,6 +237,7 @@ public class Table {
    * {@code rightColumnsToDrop} allows to drop columns from the right table that are redundant when joining on equality of equally named columns.
    */
   public Table join(Table right, List<JoinCondition> conditions, boolean keepLeftUnmatched, boolean keepMatched, boolean keepRightUnmatched, boolean includeLeftColumns, boolean includeRightColumns, List<String> rightColumnsToDrop, String right_prefix) {
+    Context context = Context.getCurrent();
     NameDeduplicator nameDeduplicator = new NameDeduplicator();
     if (!keepLeftUnmatched && !keepMatched && !keepRightUnmatched) {
       throw new IllegalArgumentException("At least one of keepLeftUnmatched, keepMatched or keepRightUnmatched must be true.");
@@ -257,6 +259,8 @@ public class Table {
         if (!matchedLeftRows.contains(i)) {
           leftUnmatchedBuilder.addRow(i, Index.NOT_FOUND);
         }
+
+        context.safepoint();
       }
 
       resultsToKeep.add(leftUnmatchedBuilder.build(AggregatedProblems.of()));
@@ -269,6 +273,8 @@ public class Table {
         if (!matchedRightRows.contains(i)) {
           rightUnmatchedBuilder.addRow(Index.NOT_FOUND, i);
         }
+
+        context.safepoint();
       }
 
       resultsToKeep.add(rightUnmatchedBuilder.build(AggregatedProblems.of()));
@@ -429,6 +435,7 @@ public class Table {
     storage[id_columns.length + 1] = new InferredBuilder(new_count);
 
     // Load Data
+    Context context = Context.getCurrent();
     for (int row = 0; row < size; row++) {
       for (Column column : to_transpose) {
         for (int i = 0; i < id_columns.length; i++) {
@@ -438,6 +445,8 @@ public class Table {
         storage[id_columns.length].append(column.getName());
         storage[id_columns.length + 1].append(column.getStorage().getItemBoxed(row));
       }
+
+      context.safepoint();
     }
 
     // Create Table
@@ -456,6 +465,7 @@ public class Table {
    * @return a table result from concatenating both tables
    */
   public static Table concat(List<Table> tables) {
+    Context context = Context.getCurrent();
     int resultSize = tables.stream().mapToInt(Table::rowCount).sum();
 
     List<NamedBuilder> builders = new ArrayList<>();
@@ -475,7 +485,10 @@ public class Table {
         var storage = column.getStorage();
         for (int i = 0; i < storage.size(); i++) {
           builder.builder.appendNoGrow(storage.getItemBoxed(i));
+          context.safepoint();
         }
+
+        context.safepoint();
       }
       for (var builder : builders) {
         var columnExists =
@@ -483,6 +496,8 @@ public class Table {
         if (!columnExists) {
           builder.builder.appendNulls(table.rowCount());
         }
+
+        context.safepoint();
       }
       completedRows += table.rowCount();
     }

@@ -336,6 +336,9 @@ impl Rectangle {
         set_property!(path style
             corner_radius: number
             color: color
+            border_color: color
+            inset: number
+            border: number
         );
     }
 }

@@ -29,14 +29,14 @@ use ensogl_component::text;
 use ensogl_component::text::selection::Selection;
 use ensogl_hardcoded_theme::Theme;
 use ide_view_graph_editor::NodeSource;
-use project_view_top_bar::ProjectViewTopBar;
+use ide_view_project_view_top_bar::window_control_buttons;
+use ide_view_project_view_top_bar::ProjectViewTopBar;
+
 
 
 // ==============
 // === Export ===
 // ==============
-
-pub mod project_view_top_bar;
 
 
 
@@ -55,6 +55,16 @@ const INPUT_CHANGE_DELAY_MS: i32 = 200;
 // === FRP ===
 // ===========
 
+/// The searcher that should be displayed.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub enum SearcherType {
+    /// The Searcher with Component Browser.
+    #[default]
+    ComponentBrowser,
+    /// The Searcher with AI completion.
+    AiCompletion,
+}
+
 /// The parameters of the displayed searcher.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct SearcherParams {
@@ -65,15 +75,25 @@ pub struct SearcherParams {
     pub source_node:     Option<NodeSource>,
     /// A position of the cursor in the input node.
     pub cursor_position: text::Byte,
+    /// The type of the searcher.
+    pub searcher_type:   SearcherType,
 }
 
 impl SearcherParams {
-    fn new_for_new_node(node_id: NodeId, source_node: Option<NodeSource>) -> Self {
-        Self { input: node_id, source_node, cursor_position: default() }
+    fn new_for_new_node(
+        node_id: NodeId,
+        source_node: Option<NodeSource>,
+        searcher_type: SearcherType,
+    ) -> Self {
+        Self { input: node_id, source_node, cursor_position: default(), searcher_type }
     }
 
-    fn new_for_edited_node(node_id: NodeId, cursor_position: text::Byte) -> Self {
-        Self { input: node_id, source_node: None, cursor_position }
+    fn new_for_edited_node(
+        node_id: NodeId,
+        cursor_position: text::Byte,
+        searcher_type: SearcherType,
+    ) -> Self {
+        Self { input: node_id, source_node: None, cursor_position, searcher_type }
     }
 }
 
@@ -85,6 +105,10 @@ ensogl::define_endpoints! {
         hide_project_list(),
         /// Close the searcher without taking any actions
         close_searcher(),
+        /// Show the graph editor.
+        show_graph_editor(),
+        /// Hide the graph editor.
+        hide_graph_editor(),
         /// Simulates a style toggle press event.
         toggle_style(),
         /// Toggles the visibility of private components in the component browser.
@@ -107,11 +131,25 @@ ensogl::define_endpoints! {
         execution_context_interrupt(),
         /// Restart the program execution.
         execution_context_restart(),
+        /// Reload the main module and restart the program execution.
+        execution_context_reload_and_restart(),
         toggle_read_only(),
         set_read_only(bool),
+        /// Push a hardcoded breadcrumb without notifying the controller.
+        debug_push_breadcrumb(),
+        /// Pop a breadcrumb without notifying the controller.
+        debug_pop_breadcrumb(),
+        /// Started creation of a new node using the AI searcher.
+        start_node_creation_with_ai_searcher(),
+        /// Started creation of a new node using the Component Browser.
+        start_node_creation_with_component_browser(),
+        /// Accepts the currently selected input of the searcher.
+        accept_searcher_input(),
     }
 
     Output {
+        /// The type of the searcher currently in use.
+        searcher_type                  (SearcherType),
         searcher                       (Option<SearcherParams>),
         /// The searcher input has changed and the Component Browser content should be refreshed.
         /// Is **not** emitted with every graph's node expression change, only when
@@ -122,6 +160,9 @@ ensogl::define_endpoints! {
         adding_new_node                (bool),
         old_expression_of_edited_node  (Expression),
         editing_aborted                (NodeId),
+        // TODO[MM]: this should not contain the group entry id as that is component browser
+        // specific. It should be refactored to be an implementation detail of the component
+        // browser.
         editing_committed              (NodeId, Option<component_list_panel::grid::GroupEntryId>),
         project_list_shown             (bool),
         code_editor_shown              (bool),
@@ -143,15 +184,15 @@ ensogl::define_endpoints! {
 
 #[derive(Clone, CloneRef, Debug)]
 struct Model {
-    display_object:       display::object::Instance,
-    project_view_top_bar: ProjectViewTopBar,
-    graph_editor:         Rc<GraphEditor>,
-    searcher:             component_browser::View,
-    code_editor:          code_editor::View,
-    fullscreen_vis:       Rc<RefCell<Option<visualization::fullscreen::Panel>>>,
-    project_list:         Rc<ProjectList>,
-    debug_mode_popup:     debug_mode_popup::View,
-    popup:                popup::View,
+    display_object:   display::object::Instance,
+    top_bar:          ProjectViewTopBar,
+    graph_editor:     Rc<GraphEditor>,
+    searcher:         component_browser::View,
+    code_editor:      code_editor::View,
+    fullscreen_vis:   Rc<RefCell<Option<visualization::fullscreen::Panel>>>,
+    project_list:     Rc<ProjectList>,
+    debug_mode_popup: debug_mode_popup::View,
+    popup:            popup::View,
 }
 
 impl Model {
@@ -177,7 +218,7 @@ impl Model {
         let graph_editor = Rc::new(graph_editor);
         Self {
             display_object,
-            project_view_top_bar,
+            top_bar: project_view_top_bar,
             graph_editor,
             searcher,
             code_editor,
@@ -220,7 +261,7 @@ impl Model {
             let visualization =
                 node.view.model().visualization.fullscreen_visualization().clone_ref();
             self.display_object.remove_child(&*self.graph_editor);
-            self.display_object.remove_child(&self.project_view_top_bar);
+            self.display_object.remove_child(&self.top_bar);
             self.display_object.add_child(&visualization);
             *self.fullscreen_vis.borrow_mut() = Some(visualization);
         });
@@ -230,7 +271,7 @@ impl Model {
         if let Some(visualization) = std::mem::take(&mut *self.fullscreen_vis.borrow_mut()) {
             self.display_object.remove_child(&visualization);
             self.display_object.add_child(&*self.graph_editor);
-            self.display_object.add_child(&self.project_view_top_bar);
+            self.display_object.add_child(&self.top_bar);
         }
     }
 
@@ -240,12 +281,10 @@ impl Model {
         project_view_top_bar_size: Vector2,
     ) {
         let top_left = Vector2(-scene_shape.width, scene_shape.height) / 2.0;
-        let project_view_top_bar_origin = Vector2(
-            0.0,
-            crate::graph_editor::MACOS_TRAFFIC_LIGHTS_VERTICAL_CENTER
-                - project_view_top_bar_size.y / 2.0,
-        );
-        self.project_view_top_bar.set_xy(top_left + project_view_top_bar_origin);
+        let buttons_y = window_control_buttons::MACOS_TRAFFIC_LIGHTS_VERTICAL_CENTER;
+        let y = buttons_y - project_view_top_bar_size.y / 2.0;
+        let project_view_top_bar_origin = Vector2(0.0, y);
+        self.top_bar.set_xy(top_left + project_view_top_bar_origin);
     }
 
     fn on_close_clicked(&self) {
@@ -262,6 +301,14 @@ impl Model {
 
     fn hide_project_list(&self) {
         self.display_object.remove_child(&*self.project_list);
+    }
+
+    fn show_graph_editor(&self) {
+        self.display_object.add_child(&*self.graph_editor);
+    }
+
+    fn hide_graph_editor(&self) {
+        self.display_object.remove_child(&*self.graph_editor);
     }
 }
 
@@ -341,6 +388,7 @@ impl View {
         model.set_style(theme);
 
         Self { model, frp }
+            .init_start_node_edit_frp()
             .init_top_bar_frp(scene)
             .init_graph_editor_frp()
             .init_code_editor_frp()
@@ -352,13 +400,23 @@ impl View {
             .init_fullscreen_visualization_frp()
             .init_debug_mode_frp()
             .init_shortcut_observer(app)
+            .init_execution_environment_selector_frp()
+    }
+
+    fn init_execution_environment_selector_frp(self) -> Self {
+        crate::graph_editor::execution_environment::init_frp(
+            &self.model.graph_editor.frp,
+            &self.model.top_bar.project_name_with_environment_selector.selector,
+        );
+
+        self
     }
 
     fn init_top_bar_frp(self, scene: &Scene) -> Self {
         let frp = &self.frp;
         let network = &frp.network;
         let model = &self.model;
-        let project_view_top_bar = &model.project_view_top_bar;
+        let project_view_top_bar = &model.top_bar;
         frp::extend! { network
             init <- source_();
             let window_control_buttons = &project_view_top_bar.window_control_buttons;
@@ -380,6 +438,9 @@ impl View {
             project_view_top_bar_width <-
                 project_view_top_bar_display_object.on_resized.map(|new_size| new_size.x);
             self.model.graph_editor.graph_editor_top_bar_offset_x <+ project_view_top_bar_width;
+
+            project_view_top_bar.breadcrumbs.debug_push_breadcrumb <+ frp.debug_push_breadcrumb.constant(None);
+            project_view_top_bar.breadcrumbs.debug_pop_breadcrumb <+ frp.debug_pop_breadcrumb;
         }
         init.emit(());
         self
@@ -394,13 +455,15 @@ impl View {
         let documentation = &searcher.model().documentation;
 
         frp::extend! { network
+            eval_ frp.show_graph_editor(model.show_graph_editor());
+            eval_ frp.hide_graph_editor(model.hide_graph_editor());
+
             // We block graph navigator if it interferes with other panels (searcher, documentation,
             // etc.)
             searcher_active <- searcher.is_hovered || documentation.frp.is_selected;
             disable_navigation <- searcher_active || frp.project_list_shown;
             graph.set_navigator_disabled <+ disable_navigation;
 
-            model.popup.set_label <+ graph.model.breadcrumbs.project_name_error;
             model.popup.set_label <+ graph.visualization_update_error._1();
             graph.set_read_only <+ frp.set_read_only;
             graph.set_debug_mode <+ frp.source.debug_mode;
@@ -472,7 +535,8 @@ impl View {
             eval position ((pos) model.searcher.set_xy(*pos));
 
             // Showing searcher.
-            searcher.show <+ frp.searcher.is_some().on_true().constant(());
+            searcher.show <+ frp.searcher.unwrap().map(|params|
+                matches!(params.searcher_type, SearcherType::ComponentBrowser)).on_true();
             searcher.hide <+ frp.searcher.is_none().on_true().constant(());
             eval searcher.is_visible ([model](is_visible) {
                 let is_attached = model.searcher.has_parent();
@@ -493,8 +557,8 @@ impl View {
 
         frp::extend! { network
             node_added_by_user <- graph.node_added.filter(|(_, _, should_edit)| *should_edit);
-            searcher_for_adding <- node_added_by_user.map(
-                |&(node, src, _)| SearcherParams::new_for_new_node(node, src)
+            searcher_for_adding <- node_added_by_user.map2(&frp.searcher_type,
+                |&(node, src, _), searcher_type| SearcherParams::new_for_new_node(node, src, *searcher_type)
             );
             frp.source.adding_new_node <+ searcher_for_adding.to_true();
             new_node_edited <- graph.node_editing_started.gate(&frp.adding_new_node);
@@ -502,9 +566,10 @@ impl View {
 
             edit_which_opens_searcher <-
                 graph.node_expression_edited.gate_not(&frp.is_searcher_opened).debounce();
-            frp.source.searcher <+ edit_which_opens_searcher.map(|(node_id, _, selections)| {
+            frp.source.searcher <+ edit_which_opens_searcher.map2(&frp.searcher_type,
+                |(node_id, _, selections), searcher_type| {
                 let cursor_position = selections.last().map(|sel| sel.end).unwrap_or_default();
-                Some(SearcherParams::new_for_edited_node(*node_id, cursor_position))
+                Some(SearcherParams::new_for_edited_node(*node_id, cursor_position, *searcher_type))
             });
             frp.source.is_searcher_opened <+ frp.searcher.map(|s| s.is_some());
         }
@@ -522,13 +587,19 @@ impl View {
         frp::extend! { network
 
             last_searcher <- frp.searcher.filter_map(|&s| s);
-            // The searcher will be closed due to accepting the input (e.g., pressing enter).
-            committed_in_searcher <-
-                grid.expression_accepted.map2(&last_searcher, |&entry, &s| (s.input, entry));
-
 
             // === Handling Inputs to the Searcher and Committing Edit ===
 
+            ai_searcher_active <- frp.searcher_type.map(|t| *t == SearcherType::AiCompletion);
+            // Note: the "enter" event for the CB searcher is handled in its own view.
+            committed_in_ai_searcher <- frp.accept_searcher_input.gate(&ai_searcher_active);
+            committed_in_ai_searcher <- committed_in_ai_searcher.map2(&last_searcher, |_, &s| (s.input, None));
+
+            // The searcher will be closed due to accepting the input (e.g., pressing enter).
+            committed_in_cb_searcher <-
+                grid.expression_accepted.map2(&last_searcher, |&entry, &s| (s.input, entry));
+
+            committed_in_searcher <- any(committed_in_ai_searcher, committed_in_cb_searcher);
             searcher_input_change_opt <- graph.node_expression_edited.map2(&frp.searcher,
                 |(node_id, expr, selections), searcher| {
                     let input_change = || (*node_id, expr.clone_ref(), selections.clone());
@@ -602,6 +673,7 @@ impl View {
             );
             graph.stop_editing <+ any(&committed_in_searcher_event, &aborted_in_searcher_event);
             frp.source.searcher <+ searcher_should_close.constant(None);
+            frp.source.searcher_type <+ searcher_should_close.constant(SearcherType::default());
             frp.source.adding_new_node <+ searcher_should_close.constant(false);
         }
         self
@@ -614,7 +686,7 @@ impl View {
         let project_list = &model.project_list;
         frp::extend! { network
             eval_ frp.show_project_list  (model.show_project_list());
-            project_chosen <- project_list.frp.selected_project.constant(());
+            project_chosen <- project_list.grid.entry_selected.constant(());
             mouse_down <- scene.mouse.frp_deprecated.down.constant(());
             clicked_on_bg <- mouse_down.filter(f_!(scene.mouse.target.get().is_background()));
             should_be_closed <- any(frp.hide_project_list,project_chosen,clicked_on_bg);
@@ -681,6 +753,26 @@ impl View {
         self
     }
 
+    fn init_start_node_edit_frp(self) -> Self {
+        let frp = &self.frp;
+        let network = &frp.network;
+        let graph_editor = &self.model.graph_editor.frp;
+        frp::extend! { network
+            // Searcher type to use for node creation
+            ai_searcher <- frp.start_node_creation_with_ai_searcher.constant(SearcherType::AiCompletion);
+            component_browser_searcher <- frp.start_node_creation_with_component_browser.constant(SearcherType::ComponentBrowser);
+            searcher_type <- any(&ai_searcher, &component_browser_searcher);
+
+            frp.source.searcher_type <+ searcher_type;
+
+            should_not_create_node <- graph_editor.node_editing || graph_editor.read_only;
+            should_not_create_node <- should_not_create_node || graph_editor.is_fs_visualization_displayed;
+            start_node_creation <- searcher_type.gate_not(&should_not_create_node);
+            graph_editor.start_node_creation <+ start_node_creation.constant(());
+        }
+        self
+    }
+
     fn init_shortcut_observer(self, app: &Application) -> Self {
         let frp = &self.frp;
         frp::extend! { network
@@ -688,6 +780,11 @@ impl View {
         }
 
         self
+    }
+
+    /// Top Bar View.
+    pub fn top_bar(&self) -> &ProjectViewTopBar {
+        &self.model.top_bar
     }
 
     /// Graph Editor View.
@@ -759,8 +856,14 @@ impl application::View for View {
             (Press, "debug_mode", DEBUG_MODE_SHORTCUT, "disable_debug_mode"),
             (Press, "", "cmd alt t", "execution_context_interrupt"),
             (Press, "", "cmd alt r", "execution_context_restart"),
-            // TODO(#6179): Remove this temporary shortcut when Play button is ready.
-            (Press, "", "ctrl shift b", "toggle_read_only"),
+            // TODO(#7178): Remove this temporary shortcut when the modified-on-disk notification
+            // is ready.
+            (Press, "", "cmd alt y", "execution_context_reload_and_restart"),
+            (Press, "!is_searcher_opened", "cmd tab", "start_node_creation_with_ai_searcher"),
+            (Press, "!is_searcher_opened", "tab", "start_node_creation_with_component_browser"),
+            (Press, "is_searcher_opened", "enter", "accept_searcher_input"),
+            (Press, "debug_mode", "ctrl shift enter", "debug_push_breadcrumb"),
+            (Press, "debug_mode", "ctrl shift b", "debug_pop_breadcrumb"),
         ]
         .iter()
         .map(|(a, b, c, d)| Self::self_shortcut_when(*a, *c, *d, *b))

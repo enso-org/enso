@@ -206,8 +206,8 @@ impl Widget {
                 &init,
                 |ports, edit, read_only, _| !ports && !edit && !read_only
             );
-            let list_enter = list.on_event::<mouse::Over>();
-            let list_leave = list.on_event::<mouse::Out>();
+            let list_enter = list.on_event::<mouse::Enter>();
+            let list_leave = list.on_event::<mouse::Leave>();
             is_hovered <- bool(&list_leave, &list_enter).debounce().on_change();
             enable_insertion <- enable_interaction && is_hovered;
             list.enable_all_insertion_points <+ enable_insertion;

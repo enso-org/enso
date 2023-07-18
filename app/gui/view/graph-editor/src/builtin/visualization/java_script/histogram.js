@@ -731,9 +731,9 @@ class Histogram extends Visualization {
         const darkBtnHoverColor = `rgba(255,255,255,0.5)`
         const darkSelectionFill = `#efefef`
 
-        addStyleToElem('.selection', 'rx: 4px;stroke: transparent;')
+        addStyleToElem('.vis-histogram .selection', 'rx: 4px;stroke: transparent;')
         addStyleToElem(
-            'button',
+            '.vis-histogram button',
             `
             margin-left: 5px;
             margin-bottom: 5px;
@@ -751,7 +751,7 @@ class Histogram extends Visualization {
         `
         )
         addStyleToElem(
-            'button:hover',
+            '.vis-histogram button:hover',
             `
             background-color: ${buttonLightColor};
             color: ${darkSelectionFill};
@@ -759,22 +759,22 @@ class Histogram extends Visualization {
         )
 
         addStyleToElem(
-            '.dark-theme button',
+            '.dark-theme .vis-histogram button',
             `
             border: 0;
             background-color: ${darkStrokeColor};
         `
         )
         addStyleToElem(
-            '.dark-theme button:hover',
+            '.dark-theme .vis-histogram button:hover',
             `
             background-color: ${darkBtnHoverColor};
         `
         )
-        addStyleToElem('.dark-theme .selection', `fill: ${darkSelectionFill}`)
-        addStyleToElem('.dark-theme line', `stroke: ${darkStrokeColor};`)
-        addStyleToElem('.dark-theme .domain', `stroke: ${darkStrokeColor};`)
-        addStyleToElem('.dark-theme text', `fill: ${darkStrokeColor};`)
+        addStyleToElem('.dark-theme .vis-histogram .selection', `fill: ${darkSelectionFill}`)
+        addStyleToElem('.dark-theme .vis-histogram line', `stroke: ${darkStrokeColor};`)
+        addStyleToElem('.dark-theme .vis-histogram .domain', `stroke: ${darkStrokeColor};`)
+        addStyleToElem('.dark-theme .vis-histogram text', `fill: ${darkStrokeColor};`)
 
         return divElem
     }

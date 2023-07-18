@@ -5,8 +5,6 @@
 
 use crate::prelude::*;
 
-use crate::config::ProjectToOpen;
-
 use double_representation::name::project;
 use mockall::automock;
 use parser::Parser;
@@ -104,7 +102,9 @@ impl StatusNotificationPublisher {
 /// used internally in code.
 #[derive(Copy, Clone, Debug)]
 pub enum Notification {
-    /// User opened a new or existing project.
+    /// User created a new project. The new project is opened in IDE.
+    NewProjectCreated,
+    /// User opened an existing project.
     ProjectOpened,
     /// User closed the project.
     ProjectClosed,
@@ -118,12 +118,10 @@ pub enum Notification {
 
 // === Errors ===
 
-/// Error raised when a project with given name or ID was not found.
+#[allow(missing_docs)]
 #[derive(Clone, Debug, Fail)]
-#[fail(display = "Project '{}' was not found.", project)]
-pub struct ProjectNotFound {
-    project: ProjectToOpen,
-}
+#[fail(display = "Project with name \"{}\" not found.", 0)]
+struct ProjectNotFound(String);
 
 
 // === Managing API ===
@@ -133,16 +131,11 @@ pub struct ProjectNotFound {
 /// It is a separate trait, because those methods  are not supported in some environments (see also
 /// [`API::manage_projects`]).
 pub trait ManagingProjectAPI {
-    /// Create a new project and open it in the IDE.
+    /// Create a new unnamed project and open it in the IDE.
     ///
-    /// `name` is an optional project name. It overrides the name of the template if given.
     /// `template` is an optional project template name. Available template names are defined in
     /// `lib/scala/pkg/src/main/scala/org/enso/pkg/Template.scala`.
-    fn create_new_project(
-        &self,
-        name: Option<String>,
-        template: Option<project::Template>,
-    ) -> BoxFuture<FallibleResult>;
+    fn create_new_project(&self, template: Option<project::Template>) -> BoxFuture<FallibleResult>;
 
     /// Return a list of existing projects.
     fn list_projects(&self) -> BoxFuture<FallibleResult<Vec<ProjectMetadata>>>;
@@ -157,41 +150,15 @@ pub trait ManagingProjectAPI {
     /// and then for the project opening.
     fn open_project_by_name(&self, name: String) -> BoxFuture<FallibleResult> {
         async move {
-            let project_id = self.find_project(&ProjectToOpen::Name(name.into())).await?;
-            self.open_project(project_id).await
-        }
-        .boxed_local()
-    }
-
-    /// Open a project by name or ID. If no project with the given name exists, it will be created.
-    fn open_or_create_project(&self, project_to_open: ProjectToOpen) -> BoxFuture<FallibleResult> {
-        async move {
-            match self.find_project(&project_to_open).await {
-                Ok(project_id) => self.open_project(project_id).await,
-                Err(error) =>
-                    if let ProjectToOpen::Name(name) = project_to_open {
-                        info!("Attempting to create project with name '{name}'.");
-                        self.create_new_project(Some(name.to_string()), None).await
-                    } else {
-                        Err(error)
-                    },
+            let projects = self.list_projects().await?;
+            let mut projects = projects.into_iter();
+            let project = projects.find(|project| project.name.as_ref() == name);
+            let uuid = project.map(|project| project.id);
+            if let Some(uuid) = uuid {
+                self.open_project(uuid).await
+            } else {
+                Err(ProjectNotFound(name).into())
             }
-        }
-        .boxed_local()
-    }
-
-    /// Find a project by name or ID.
-    fn find_project<'a: 'c, 'b: 'c, 'c>(
-        &'a self,
-        project_to_open: &'b ProjectToOpen,
-    ) -> BoxFuture<'c, FallibleResult<Uuid>> {
-        async move {
-            self.list_projects()
-                .await?
-                .into_iter()
-                .find(|project_metadata| project_to_open.matches(project_metadata))
-                .map(|metadata| metadata.id)
-                .ok_or_else(|| ProjectNotFound { project: project_to_open.clone() }.into())
         }
         .boxed_local()
     }
@@ -225,11 +192,6 @@ pub trait API: Debug {
     // Automock macro does not work without explicit lifetimes here.
     #[allow(clippy::needless_lifetimes)]
     fn manage_projects<'a>(&'a self) -> FallibleResult<&'a dyn ManagingProjectAPI>;
-
-    /// Returns whether the Managing Project API is available.
-    fn can_manage_projects(&self) -> bool {
-        self.manage_projects().is_ok()
-    }
 
     /// Return whether private entries should be visible in the component browser.
     fn are_component_browser_private_entries_visible(&self) -> bool;

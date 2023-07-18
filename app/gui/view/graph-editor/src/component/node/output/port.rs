@@ -37,7 +37,7 @@ const END_CAP_CLIP: f32 = 0.42;
 const TOOLTIP_LOCATION: Placement = Placement::Bottom;
 
 // We have currently implemented two possible ways to display the output types of ports on hover:
-// as a tooltip next to the mouse coursor or as a label that is fixed right next to the port itself.
+// as a tooltip next to the mouse cursor or as a label that is fixed right next to the port itself.
 // Right now, there is no final decision, which one we will keep. Therefore, we have the following
 // two constants which can be used to turn those methods on or off.
 const SHOW_TYPE_AS_TOOLTIP: bool = false;

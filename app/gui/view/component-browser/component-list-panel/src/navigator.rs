@@ -292,6 +292,7 @@ impl Navigator {
         }
         tooltip_hide_timer.reset();
         top_buttons.reset_entries(TOP_BUTTONS_COUNT, 1);
+        set_namespace_section_count.emit(0);
 
         Self {
             display_object,

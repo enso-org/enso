@@ -1,5 +1,5 @@
 /** @file Managing the logic and displaying the UI for the password change function. */
-import * as react from 'react'
+import * as React from 'react'
 import toast from 'react-hot-toast'
 
 import ArrowRightIcon from 'enso-assets/arrow_right.svg'
@@ -23,9 +23,9 @@ function ChangePasswordModal() {
     const { changePassword } = auth.useAuth()
     const { unsetModal } = modalProvider.useSetModal()
 
-    const [oldPassword, setOldPassword] = react.useState('')
-    const [newPassword, setNewPassword] = react.useState('')
-    const [confirmNewPassword, setConfirmNewPassword] = react.useState('')
+    const [oldPassword, setOldPassword] = React.useState('')
+    const [newPassword, setNewPassword] = React.useState('')
+    const [confirmNewPassword, setConfirmNewPassword] = React.useState('')
 
     const onSubmit = async () => {
         if (newPassword !== confirmNewPassword) {

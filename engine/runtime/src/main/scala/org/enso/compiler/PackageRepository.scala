@@ -29,6 +29,7 @@ import org.enso.pkg.{
   SourceFile
 }
 import org.enso.text.buffer.Rope
+import org.enso.polyglot.CompilationStage
 
 import java.nio.file.Path
 import scala.collection.immutable.ListSet
@@ -292,7 +293,7 @@ object PackageRepository {
           module <- getComponentModules
           isCompiled =
             module.getCompilationStage.isAtLeast(
-              Module.CompilationStage.AFTER_CODEGEN
+              CompilationStage.AFTER_CODEGEN
             )
           if !isCompiled
         } yield module
@@ -348,8 +349,7 @@ object PackageRepository {
             Module.synthetic(
               qName,
               pkg,
-              Rope(source),
-              context
+              Rope(source)
             ),
             modulesWithSources.map(_._1)
           )

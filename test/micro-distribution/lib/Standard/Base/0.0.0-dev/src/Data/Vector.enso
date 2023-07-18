@@ -1,3 +1,4 @@
 @Builtin_Type
 type Vector a
     from_array array = @Builtin_Method "Vector.from_array"
+    at self index = @Builtin_Method "Vector.at"

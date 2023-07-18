@@ -104,7 +104,7 @@ mod four_arrow_icon {
             let arrow_head_size   = (ARROW_LINE_WIDTH * 3.0).floor();
             let arrow_head_offset = &horizontal_bar_height / 2.0;
             let arrow_head        = Rect((arrow_head_size.px(),&arrow_head_size.px())).rotate((PI/4.0).radians());
-            let split_plane       = HalfPlane();
+            let split_plane       = BottomHalfPlane();
             let arrow_head        = arrow_head.difference(split_plane);
             let arrow_head        = arrow_head.translate_y(arrow_head_offset);
 

@@ -107,6 +107,15 @@ object TextApi {
       }
   }
 
+  case object FileModifiedOnDisk extends Method("text/fileModifiedOnDisk") {
+    case class Params(path: Path)
+    implicit
+    val hasParams: HasParams.Aux[this.type, FileModifiedOnDisk.Params] =
+      new HasParams[this.type] {
+        type Params = FileModifiedOnDisk.Params
+      }
+  }
+
   case object SaveFile extends Method("text/save") {
     case class Params(path: Path, currentVersion: Version)
     implicit val hasParams: HasParams.Aux[this.type, SaveFile.Params] =

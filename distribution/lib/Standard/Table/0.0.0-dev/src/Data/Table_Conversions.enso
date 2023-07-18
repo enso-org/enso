@@ -3,8 +3,9 @@ import Standard.Base.Data.Text.Regex.Regex_Syntax_Error
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Unimplemented.Unimplemented
-import project.Data.Table.Table
+
 import project.Data.Match_Columns.Match_Columns
+import project.Data.Table.Table
 import project.Delimited.Delimited_Format.Delimited_Format
 import project.Errors.Invalid_JSON_Format
 import project.Internal.Delimited_Reader
@@ -102,7 +103,7 @@ Table.from_objects value fields=Nothing =
    regex).
 
    Arguments:
-   - pattern: The pattern used to search within the text.
+   - pattern: The regular expression as either `Text` or `Regex` to search within the text.
    - case_sensitivity: Specifies if the text values should be compared case
      sensitively.
    - parse_values: Parse any values using the default value parser.
@@ -113,8 +114,8 @@ Table.from_objects value fields=Nothing =
    If the marked groups are named, the names will be used otherwise the column
    will be named `Column <N>` where `N` is the number of the marked group.
    (Group 0 is not included.)
-Text.parse_to_table : Text -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table ! Type_Error | Regex_Syntax_Error | Illegal_Argument
-Text.parse_to_table self pattern case_sensitivity=Case_Sensitivity.Sensitive parse_values=True on_problems=Report_Warning =
+Text.parse_to_table : Text | Regex -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table ! Type_Error | Regex_Syntax_Error | Illegal_Argument
+Text.parse_to_table self (pattern : Text | Regex) case_sensitivity=Case_Sensitivity.Sensitive parse_values=True on_problems=Report_Warning =
     Parse_To_Table.parse_text_to_table self pattern case_sensitivity parse_values on_problems
 
 ## PRIVATE

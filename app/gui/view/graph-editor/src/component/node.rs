@@ -70,9 +70,10 @@ pub const CORNER_RADIUS: f32 = HEIGHT / 2.0;
 /// Space between the documentation comment and the node.
 pub const COMMENT_MARGIN: f32 = 10.0;
 
-const ERROR_VISUALIZATION_SIZE: (f32, f32) = visualization::container::DEFAULT_SIZE;
+const ERROR_VISUALIZATION_SIZE: Vector2 = visualization::container::DEFAULT_SIZE;
 
-const VISUALIZATION_OFFSET_Y: f32 = -120.0;
+const VISUALIZATION_OFFSET_Y: f32 = -20.0;
+const VISUALIZATION_OFFSET: Vector2 = Vector2(0.0, VISUALIZATION_OFFSET_Y);
 
 const ENABLE_VIS_PREVIEW: bool = false;
 const VIS_PREVIEW_ONSET_MS: f32 = 4000.0;
@@ -423,8 +424,7 @@ impl NodeModel {
         display_object.add_child(&input);
 
         let error_visualization = error::Container::new(app);
-        let (x, y) = ERROR_VISUALIZATION_SIZE;
-        error_visualization.frp.set_size.emit(Vector2(x, y));
+        error_visualization.frp.set_size.emit(ERROR_VISUALIZATION_SIZE);
 
         let action_bar = action_bar::ActionBar::new(app);
         let action_bar_wrapper = display::object::Instance::new_named("action_bar_wrapper");
@@ -528,9 +528,16 @@ impl NodeModel {
         self.error_indicator.set_xy((-error_padding, -height / 2.0 - error_padding));
         self.vcs_indicator.set_x(x_offset_to_node_center);
 
-        let visualization_offset = visualization_offset(width);
-        self.error_visualization.set_xy(visualization_offset);
-        self.visualization.set_xy(visualization_offset);
+        self.visualization.set_xy(VISUALIZATION_OFFSET);
+        // Error visualization has origin in the center, while regular visualization has it at the
+        // top left corner.
+        let error_vis_offset_y = -ERROR_VISUALIZATION_SIZE.y / 2.0;
+        let error_vis_offset_x = ERROR_VISUALIZATION_SIZE.x / 2.0;
+        let error_vis_offset = Vector2(error_vis_offset_x, error_vis_offset_y);
+        let error_vis_pos = VISUALIZATION_OFFSET + error_vis_offset;
+        self.error_visualization.set_xy(error_vis_pos);
+        self.visualization.frp.set_width(width);
+
         size
     }
 
@@ -606,8 +613,8 @@ impl Node {
             let background_enter = model.background.on_event::<mouse::Enter>();
             let background_leave = model.background.on_event::<mouse::Leave>();
             background_hover <- bool(&background_leave, &background_enter);
-            let input_enter = model.input.on_event::<mouse::Over>();
-            let input_leave = model.input.on_event::<mouse::Out>();
+            let input_enter = model.input.on_event::<mouse::Enter>();
+            let input_leave = model.input.on_event::<mouse::Leave>();
             input_hover <- bool(&input_leave, &input_enter);
             node_hover <- background_hover || input_hover;
             node_hover <- node_hover.debounce().on_change();
@@ -946,12 +953,6 @@ fn x_offset_to_node_center(node_width: f32) -> f32 {
     node_width / 2.0
 }
 
-/// Calculate a position where to render the [`visualization::Container`] of a node, relative to
-/// the node's origin.
-fn visualization_offset(node_width: f32) -> Vector2 {
-    Vector2(x_offset_to_node_center(node_width), VISUALIZATION_OFFSET_Y)
-}
-
 #[profile(Debug)]
 fn bounding_box(
     node_position: Vector2,
@@ -962,8 +963,7 @@ fn bounding_box(
     let node_bbox_pos = node_position + Vector2(x_offset_to_node_center, 0.0) - node_size / 2.0;
     let node_bbox = BoundingBox::from_position_and_size(node_bbox_pos, node_size);
     if let Some(visualization_size) = visualization_size {
-        let visualization_offset = visualization_offset(node_size.x);
-        let visualization_pos = node_position + visualization_offset;
+        let visualization_pos = node_position + VISUALIZATION_OFFSET;
         let visualization_bbox_pos = visualization_pos - visualization_size / 2.0;
         let visualization_bbox =
             BoundingBox::from_position_and_size(visualization_bbox_pos, visualization_size);
