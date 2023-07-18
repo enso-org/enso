@@ -37,8 +37,12 @@ spec setup =
             Panic.throw (Illegal_Argument.Error "with_mixed_columns_if_supported: Too many columns.")
         if table_structure.length == 0 then
             Panic.throw (Illegal_Argument.Error "with_mixed_columns_if_supported: No columns provided.")
+        callback_with_clue table =
+            clue = table.columns.map (c-> c.name + "->" + c.value_type.to_display_text) . join ", " "{Table: " "} "
+            Test.with_clue clue <|
+                callback table
         case setup.test_selection.supports_mixed_columns of
-            False -> callback (table_builder table_structure)
+            False -> callback_with_clue (table_builder table_structure)
             True ->
                 all_combinations (Vector.fill table_structure.length [Nothing, Mixed_Type_Object.Value]) . each combination->
                     amended_table_structure = table_structure.zip combination column_definition-> prefix->
@@ -47,7 +51,7 @@ spec setup =
                         [name, [prefix]+values]
                     mixed_table = table_builder amended_table_structure
                     aligned_table = mixed_table.drop 1
-                    callback aligned_table
+                    callback_with_clue aligned_table
 
     Test.group prefix+"Boolean Column Operations" <|
         Test.specify "iif" <|
@@ -125,7 +129,7 @@ spec setup =
                 y = t.at "Y"
                 (x || False).to_vector . should_equal [True, False, True]
                 (x || True).to_vector . should_equal [True, True, True]
-                (x || y).to_vector . should_equal [True, True, True]
+                (x || y).to_vector . should_equal [True, False, True]
                 (x && False).to_vector . should_equal [False, False, False]
                 (x && True).to_vector . should_equal [True, False, True]
                 (x && y).to_vector . should_equal [True, False, False]
@@ -328,8 +332,8 @@ spec setup =
             with_mixed_columns_if_supported [["x", [1, 4, 5, Nothing]], ["y", [2.0, 3.25, 5.0, Nothing]]] t2->
                 x = t2.at "x"
                 y = t2.at "y"
-                x.value_type . is_integer . should_be_true
-                y.value_type . is_floating_point . should_be_true
+                x.inferred_precise_value_type . is_integer . should_be_true
+                y.inferred_precise_value_type . is_floating_point . should_be_true
 
                 (x < y).to_vector . should_equal [True, False, False, Nothing]
                 (x <= y).to_vector . should_equal [True, False, True, Nothing]
@@ -384,13 +388,13 @@ spec setup =
         if setup.test_selection.supports_mixed_columns then
             Test.specify "should allow comparing Mixed columns" <|
                 t1 = table_builder [["X", ['a', 23]], ["Y", ['b', 1]]]
-                (t1.at "X") == (t1.at "Y") . to_vector . should_equal [False, False]
-                (t1.at "X") <= (t1.at "Y") . to_vector . should_equal [True, False]
-                (t1.at "X") > (t1.at "Y") . to_vector . should_equal [False, True]
+                ((t1.at "X") == (t1.at "Y")) . to_vector . should_equal [False, False]
+                ((t1.at "X") <= (t1.at "Y")) . to_vector . should_equal [True, False]
+                ((t1.at "X") > (t1.at "Y")) . to_vector . should_equal [False, True]
 
                 t2 = table_builder [["X", [1, 2]], ["Y", ['b', 1]]]
-                (t2.at "X") == (t2.at "Y") . to_vector . should_equal [False, True]
-                (t2.at "X") <= (t2.at "Y") . to_vector . should_fail_with Incomparable_Values
+                ((t2.at "X") == (t2.at "Y")) . to_vector . should_equal [False, False]
+                ((t2.at "X") <= (t2.at "Y")) . to_vector . should_fail_with Incomparable_Values
 
         Test.specify "Between should return null if any of the values are null" pending="TODO" <|
             a = [2, 3, Nothing, 7,       5,       Nothing]
