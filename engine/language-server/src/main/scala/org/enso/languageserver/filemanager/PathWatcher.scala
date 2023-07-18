@@ -115,6 +115,7 @@ final class PathWatcher(
     case e: WatcherAdapter.WatcherEvent =>
       restartCounter.reset()
       val event = FileEvent.fromWatcherEvent(root, base, e)
+      clients.foreach(_ ! FileEventResult(event))
       context.system.eventStream.publish(event)
 
     case WatcherAdapter.WatcherError(e) =>
