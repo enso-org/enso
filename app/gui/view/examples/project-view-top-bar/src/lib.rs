@@ -1,4 +1,4 @@
-//! This is a visualization example scene which creates a sinusoidal graph.
+//! This is a debug scene for project view top bar component.
 
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
@@ -16,11 +16,11 @@
 
 use ensogl::prelude::*;
 
-use ensogl::animation;
 use ensogl::application::Application;
+use ensogl::display::navigation::navigator::Navigator;
 use ensogl_text_msdf::run_once_initialized;
-use execution_environment_selector::make_dummy_execution_environments;
 use ide_view_execution_environment_selector as execution_environment_selector;
+use ide_view_project_view_top_bar as project_view_top_bar;
 
 
 
@@ -32,21 +32,22 @@ use ide_view_execution_environment_selector as execution_environment_selector;
 fn init(app: &Application) {
     let app = app.clone_ref();
     let world = &app.display;
-    let _scene = &world.default_scene;
+    let scene = &world.default_scene;
+    let camera = scene.layers.panel.camera().clone_ref();
+    let navigator = Navigator::new(scene, &camera);
+    navigator.enable();
 
-    let execution_environment_selector =
-        execution_environment_selector::ExecutionEnvironmentSelector::new(&app);
-    world.add_child(&execution_environment_selector);
-    execution_environment_selector
-        .set_available_execution_environments(make_dummy_execution_environments());
+    let top_bar = project_view_top_bar::ProjectViewTopBar::new(&app);
 
-    world
-        .on
-        .before_frame
-        .add(move |_time_info: animation::TimeInfo| {
-            let _keep_alive = &execution_environment_selector;
-        })
-        .forget();
+    world.add_child(&top_bar);
+
+    top_bar.breadcrumbs.debug_push_breadcrumb(None);
+    top_bar.project_name_with_environment_selector.selector.set_available_execution_environments(
+        execution_environment_selector::make_dummy_execution_environments(),
+    );
+
+    mem::forget(top_bar);
+    mem::forget(navigator);
 }
 
 

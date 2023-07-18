@@ -187,6 +187,47 @@ define_themes! { [light:0, dark:1]
             show_delay_duration_ms = 500.0, 500.0;
             hide_delay_duration_ms = 0.0, 0.0;
         }
+
+        top_bar {
+            padding_left = 19.0, 19.0;
+            gap = 16.0, 16.0;
+            background {
+                color = Rgba(1.0, 1.0, 1.0, 0.44), Rgba(0.0, 0.0, 0.0, 0.44);
+                corner_radius = 24.0, 24.0;
+            }
+            project_name_with_environment_selector {
+                background {
+                    height = 32.0, 32.0;
+                    padding_left = 10.0, 10.0;
+                    padding_right = 4.0, 4.0;
+                }
+                gap = 8.0, 8.0;
+                project_name {
+                    // Rgb(118, 118, 118)
+                    color = Lcha(0.49, 0.0, 0.75, 1.0), Lcha(0.49, 0.0, 0.75, 1.0);
+                    color_unsaved = Lcha(0.49, 0.0, 0.75, 0.6), Lcha(0.49, 0.0, 0.75, 0.6);
+                    text_size = 11.5, 11.5;
+                }
+            }
+            breadcrumbs {
+                full        = Lcha(0.0,0.0,0.0,0.7) , Lcha(1.0,0.0,0.0,0.7);
+                transparent = Lcha(0.0,0.0,0.0,0.4) , Lcha(1.0,0.0,0.0,0.4);
+                selected    = Lcha(0.0,0.0,0.0,0.7) , Lcha(1.0,0.0,0.0,0.7);
+                hover       = Lcha(0.0,0.0,0.0,0.6) , Lcha(1.0,0.0,0.0,0.6);
+                deselected  {
+                    left  = Lcha(0.0,0.0,0.0,0.4) , Lcha(1.0,0.0,0.0,0.4);
+                    right = Lcha(0.0,0.0,0.0,0.2) , Lcha(1.0,0.0,0.0,0.2);
+                }
+                unsaved {
+                    selected    = Lcha(0.0,0.0,0.0,1.0) , Lcha(1.0,0.0,0.0,1.0);
+                    hover       = Lcha(0.0,0.0,0.0,1.0) , Lcha(1.0,0.0,0.0,1.0);
+                    deselected  {
+                        left  = Lcha(0.0,0.0,0.0,0.8) , Lcha(1.0,0.0,0.0,0.8);
+                        right = Lcha(0.0,0.0,0.0,0.6) , Lcha(1.0,0.0,0.0,0.6);
+                    }
+                }
+            }
+        }
         component_browser {
             panels_gap = 3.0, 3.0;
             documentation {
@@ -579,28 +620,6 @@ define_themes! { [light:0, dark:1]
                 font = "DejaVu Sans Mono" , "DejaVu Sans Mono";
                 font_size = 12.0 , 12.0;
 
-            }
-        }
-        breadcrumbs {
-            full        = Lcha(0.0,0.0,0.0,0.7) , Lcha(1.0,0.0,0.0,0.7);
-            transparent = Lcha(0.0,0.0,0.0,0.4) , Lcha(1.0,0.0,0.0,0.4);
-            selected    = Lcha(0.0,0.0,0.0,0.7) , Lcha(1.0,0.0,0.0,0.7);
-            hover       = Lcha(0.0,0.0,0.0,0.6) , Lcha(1.0,0.0,0.0,0.6);
-            deselected  {
-                left  = Lcha(0.0,0.0,0.0,0.4) , Lcha(1.0,0.0,0.0,0.4);
-                right = Lcha(0.0,0.0,0.0,0.2) , Lcha(1.0,0.0,0.0,0.2);
-            }
-            unsaved {
-                selected    = Lcha(0.0,0.0,0.0,1.0) , Lcha(1.0,0.0,0.0,1.0);
-                hover       = Lcha(0.0,0.0,0.0,1.0) , Lcha(1.0,0.0,0.0,1.0);
-                deselected  {
-                    left  = Lcha(0.0,0.0,0.0,0.8) , Lcha(1.0,0.0,0.0,0.8);
-                    right = Lcha(0.0,0.0,0.0,0.6) , Lcha(1.0,0.0,0.0,0.6);
-                }
-            }
-            background {
-                color = application::background , application::background;
-                corner_radius = 8.0 , 8.0;
             }
         }
         edge {
