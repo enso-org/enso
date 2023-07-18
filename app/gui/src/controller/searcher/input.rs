@@ -5,7 +5,7 @@ use crate::prelude::*;
 use crate::controller::searcher::Filter;
 use crate::controller::searcher::RequiredImport;
 
-use crate::controller::searcher::component2::Suggestion;
+use crate::controller::searcher::component::Suggestion;
 use ast::HasTokens;
 use double_representation::name::QualifiedName;
 use double_representation::name::QualifiedNameRef;

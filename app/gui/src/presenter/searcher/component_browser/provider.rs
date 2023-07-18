@@ -2,8 +2,8 @@
 
 use crate::prelude::*;
 
-use crate::controller::searcher::component2;
-use crate::controller::searcher::component2::MatchInfo;
+use crate::controller::searcher::component;
+use crate::controller::searcher::component::MatchInfo;
 
 use enso_frp as frp;
 use enso_suggestion_database::entry::for_each_kind_variant;
@@ -33,7 +33,7 @@ pub trait ControllerComponentsProvider {
 
 // === Implementation ===
 
-impl ControllerComponentsProvider for component2::List {
+impl ControllerComponentsProvider for component::List {
     fn create_grid_content_info(&self) -> component_grid::content::Info {
         component_list_panel::grid::content::Info {
             entry_count: self.len(),
@@ -71,19 +71,19 @@ macro_rules! kind_to_icon {
     }
 }
 
-fn component_to_entry_model(component: &component2::Component) -> component_grid::EntryModel {
+fn component_to_entry_model(component: &component::Component) -> component_grid::EntryModel {
     let can_be_entered = component.can_be_entered();
     let match_info = &component.match_info;
     let caption = component.label();
     let highlighted = bytes_of_matched_letters(match_info, &caption);
     let icon = match &component.suggestion {
-        component2::Suggestion::FromDatabase { entry, .. } => {
+        component::Suggestion::FromDatabase { entry, .. } => {
             let kind = entry.kind;
             let icon_name = entry.icon_name.as_ref();
             let icon = icon_name.and_then(|n| n.to_pascal_case().parse().ok());
             icon.unwrap_or_else(|| for_each_kind_variant!(kind_to_icon(kind)))
         }
-        component2::Suggestion::Virtual { snippet } => snippet.icon,
+        component::Suggestion::Virtual { snippet } => snippet.icon,
     };
     component_grid::EntryModel {
         caption: caption.into(),
@@ -139,7 +139,7 @@ impl Component {
     /// Initialize the [`Component`] provider, setting up proper connections to feed
     /// [grid](component_list_panel::grid::View) with entries and headers models.
     pub fn provide_new_list(
-        list: &Rc<component2::List>,
+        list: &Rc<component::List>,
         grid: &component_list_panel::grid::View,
     ) -> Self {
         let network = frp::Network::new("presenter::searcher::provider::Component");

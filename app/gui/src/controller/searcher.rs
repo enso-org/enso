@@ -29,13 +29,9 @@ use flo_stream::Subscriber;
 // === Export ===
 // ==============
 
-pub mod action;
 pub mod breadcrumbs;
 pub mod component;
-pub mod component2;
 pub mod input;
-
-pub use action::Action;
 
 
 // =================
@@ -184,7 +180,7 @@ impl Mode {
 #[derive(Clone, Debug)]
 #[allow(missing_docs)]
 pub struct PickedSuggestion {
-    pub suggestion:    component2::Suggestion,
+    pub suggestion:    component::Suggestion,
     pub inserted_code: String,
     pub import:        Option<RequiredImport>,
 }
@@ -206,7 +202,7 @@ pub struct Data {
     /// The current searcher's input.
     pub input:              input::Input,
     /// The component list which should be displayed.
-    pub components:         Rc<component2::List>,
+    pub components:         Rc<component::List>,
     /// All picked suggestions. If the user changes the generated code, it will be removed from
     /// this list.
     pub picked_suggestions: Vec<PickedSuggestion>,
@@ -336,7 +332,7 @@ impl Searcher {
     }
 
     /// Get the current component list.
-    pub fn components(&self) -> Rc<component2::List> {
+    pub fn components(&self) -> Rc<component::List> {
         self.data.borrow().components.clone_ref()
     }
 
@@ -346,9 +342,9 @@ impl Searcher {
         let component = data.components.get(index);
         if let Some(component) = component {
             match &component.suggestion {
-                component2::Suggestion::FromDatabase { id, .. } =>
+                component::Suggestion::FromDatabase { id, .. } =>
                     self.database.documentation_for_entry(*id),
-                component2::Suggestion::Virtual { snippet } =>
+                component::Suggestion::Virtual { snippet } =>
                     snippet.documentation.clone().unwrap_or_default(),
             }
         } else {
@@ -424,7 +420,7 @@ impl Searcher {
     #[profile(Debug)]
     pub fn use_suggestion(
         &self,
-        suggestion: component2::Suggestion,
+        suggestion: component::Suggestion,
     ) -> FallibleResult<text::Change<Byte, String>> {
         debug!("Picking suggestion: {suggestion:?}.");
         let change = {
@@ -484,7 +480,7 @@ impl Searcher {
     ///
     /// If `suggestion` is specified, the preview will contains code after applying it.
     /// Otherwise it will be just the current searcher input.
-    pub fn preview(&self, suggestion: Option<&component2::Suggestion>) -> FallibleResult {
+    pub fn preview(&self, suggestion: Option<&component::Suggestion>) -> FallibleResult {
         let transaction_name = "Previewing Component Browser suggestion.";
         let _skip = self
             .graph
@@ -669,14 +665,14 @@ impl Searcher {
         &self,
         entry_ids: impl IntoIterator<Item = suggestion_database::entry::Id>,
         this_type: &Option<String>,
-    ) -> Rc<component2::List> {
+    ) -> Rc<component::List> {
         let db = &*self.database;
         let groups = self.graph.component_groups();
         let mut builder = match (this_type, self.breadcrumbs.selected()) {
-            (Some(tp), _) => component2::Builder::new_with_this_type(db, tp),
-            (None, Some(module)) => component2::Builder::new_inside_module(db, module),
+            (Some(tp), _) => component::Builder::new_with_this_type(db, tp),
+            (None, Some(module)) => component::Builder::new_inside_module(db, module),
             _ => {
-                let mut builder = component2::Builder::new_static(db, Rc::unwrap_or_clone(groups));
+                let mut builder = component::Builder::new_static(db, Rc::unwrap_or_clone(groups));
                 add_virtual_entries_to_builder(&mut builder);
                 builder
             }
@@ -719,7 +715,7 @@ impl Searcher {
 
 // === Searcher helpers ===
 
-fn add_virtual_entries_to_builder(builder: &mut component2::Builder) {
+fn add_virtual_entries_to_builder(builder: &mut component::Builder) {
     let snippets = component::hardcoded::INPUT_SNIPPETS.with(|s| s.clone());
     let group_name = component::hardcoded::INPUT_GROUP_NAME;
     let project = project::QualifiedName::standard_base_library();
@@ -866,8 +862,8 @@ impl Drop for EditGuard {
 fn component_list_for_literal(
     literal: &input::Literal,
     db: &enso_suggestion_database::SuggestionDatabase,
-) -> component2::List {
-    let mut builder = component2::builder::Builder::new_empty(db);
+) -> component::List {
+    let mut builder = component::builder::Builder::new_empty(db);
     let project = project::QualifiedName::standard_base_library();
     let snippet = component::hardcoded::Snippet::from_literal(literal, db).into();
     builder.add_virtual_entries_to_group("Literals", project, vec![snippet]);
@@ -1017,33 +1013,33 @@ pub mod test {
             Self::new_custom(|_| default(), |_, _| {})
         }
 
-        fn lookup_suggestion(&self, name: &QualifiedName) -> component2::Suggestion {
+        fn lookup_suggestion(&self, name: &QualifiedName) -> component::Suggestion {
             let (id, entry) =
                 self.database.lookup_by_qualified_name(name).expect("Database lookup failed.");
-            component2::Suggestion::FromDatabase { id, entry }
+            component::Suggestion::FromDatabase { id, entry }
         }
 
-        fn test_function_1_suggestion(&self) -> component2::Suggestion {
+        fn test_function_1_suggestion(&self) -> component::Suggestion {
             let name = crate::test::mock::data::module_qualified_name().new_child("testFunction1");
             self.lookup_suggestion(&name)
         }
 
-        fn test_function_2_suggestion(&self) -> component2::Suggestion {
+        fn test_function_2_suggestion(&self) -> component::Suggestion {
             let name = crate::test::mock::data::module_qualified_name().new_child("testFunction2");
             self.lookup_suggestion(&name)
         }
-        fn test_method_suggestion(&self) -> component2::Suggestion {
+        fn test_method_suggestion(&self) -> component::Suggestion {
             let name = crate::test::mock::data::module_qualified_name().new_child("test_method");
             self.lookup_suggestion(&name)
         }
-        fn test_method_3_suggestion(&self) -> component2::Suggestion {
+        fn test_method_3_suggestion(&self) -> component::Suggestion {
             self.lookup_suggestion(&"test.Test.Test.test_method3".try_into().unwrap())
         }
-        fn test_var_1_suggestion(&self) -> component2::Suggestion {
+        fn test_var_1_suggestion(&self) -> component::Suggestion {
             let name = crate::test::mock::data::module_qualified_name().new_child("test_var_1");
             self.lookup_suggestion(&name)
         }
-        fn test_module_suggestion(&self) -> component2::Suggestion {
+        fn test_module_suggestion(&self) -> component::Suggestion {
             let name = QualifiedName::from_text("test.Test.Test").unwrap();
             self.lookup_suggestion(&name)
         }
@@ -1325,7 +1321,7 @@ pub mod test {
             line:              &'static str,
             result:            String,
             expect_completion: bool,
-            run:               Box<dyn FnOnce(&mut Fixture, component2::Suggestion)>,
+            run:               Box<dyn FnOnce(&mut Fixture, component::Suggestion)>,
         }
 
         impl Case {
@@ -1333,7 +1329,7 @@ pub mod test {
                 line: &'static str,
                 result: &[&str],
                 expect_completion: bool,
-                run: impl FnOnce(&mut Fixture, component2::Suggestion) + 'static,
+                run: impl FnOnce(&mut Fixture, component::Suggestion) + 'static,
             ) -> Self {
                 Case {
                     line,
@@ -1418,7 +1414,7 @@ pub mod test {
     #[test]
     fn adding_imports_with_nodes() {
         fn expect_inserted_import_for(
-            suggestion: component2::Suggestion,
+            suggestion: component::Suggestion,
             expected_import: Vec<&QualifiedName>,
         ) {
             let Fixture { test: _test, mut searcher, .. } =
