@@ -31,7 +31,6 @@ use list_panel_theme::navigator as theme;
 
 
 mod entry;
-mod icons;
 
 type Grid = grid::selectable::GridView<entry::View>;
 
@@ -132,66 +131,6 @@ ensogl_core::define_endpoints_2! {
     }
 }
 
-struct ColorableShapeAdapter<T>(T);
-
-impl<T: display::shape::primitive::system::Shape> AsRef<T::InstanceParams>
-    for ColorableShapeAdapter<T>
-{
-    fn as_ref(&self) -> &T::InstanceParams {
-        AsRef::as_ref(&self.0)
-    }
-}
-
-impl display::shape::primitive::system::Shape
-    for ColorableShapeAdapter<crate::grid::entry::icon::any::Shape>
-{
-    type InstanceParams = <crate::grid::entry::icon::any::Shape as display::shape::primitive::system::Shape>::InstanceParams;
-
-    type GpuParams = <crate::grid::entry::icon::any::Shape as display::shape::primitive::system::Shape>::GpuParams;
-
-    type SystemData = <crate::grid::entry::icon::any::Shape as display::shape::primitive::system::Shape>::SystemData;
-
-    type ShapeData = <crate::grid::entry::icon::any::Shape as display::shape::primitive::system::Shape>::ShapeData;
-
-    fn definition_path() -> &'static str {
-        crate::grid::entry::icon::any::Shape::definition_path()
-    }
-
-    fn pointer_events() -> PointerEvents {
-        crate::grid::entry::icon::any::Shape::pointer_events()
-    }
-
-    fn always_above() -> Vec<ShapeSystemId> {
-        crate::grid::entry::icon::any::Shape::always_above()
-    }
-
-    fn always_below() -> Vec<ShapeSystemId> {
-        crate::grid::entry::icon::any::Shape::always_below()
-    }
-
-    fn new_instance_params(
-        gpu_params: &Self::GpuParams,
-        id: display::attribute::InstanceId,
-    ) -> Self {
-        Self(crate::grid::entry::icon::any::Shape::new_instance_params(gpu_params, id))
-    }
-
-    fn new_gpu_params(shape_system: &ShapeSystemModel) -> Self::GpuParams {
-        crate::grid::entry::icon::any::Shape::new_gpu_params(shape_system)
-    }
-
-    fn shape_def(style_watch: &display::shape::StyleWatch) -> def::AnyShape {
-        crate::grid::entry::icon::any::Shape::shape_def(style_watch)
-    }
-}
-
-impl ensogl_toggle_button::ColorableShape
-    for ColorableShapeAdapter<crate::grid::entry::icon::any::Shape>
-{
-    fn set_color(&self, color: color::Rgba) {
-        self.0.r_component.set(Vector4(color.red, color.green, color.blue, color.alpha));
-    }
-}
 
 
 // =================
@@ -212,10 +151,10 @@ struct Navigator {
     top_buttons: Grid,
     tooltip: Tooltip,
     local_scope: ToggleButton<ensogl_toggle_button::any_cached::Shape>,
-    shortcuts: ToggleButton<icons::command_key::Shape>,
-    unstable: ToggleButton<icons::unstable::Shape>,
-    marketplace: ToggleButton<icons::marketplace::Shape>,
-    doc_panel: ToggleButton<icons::right_side_panel::Shape>,
+    shortcuts: ToggleButton<ensogl_toggle_button::any_cached::Shape>,
+    unstable: ToggleButton<ensogl_toggle_button::any_cached::Shape>,
+    marketplace: ToggleButton<ensogl_toggle_button::any_cached::Shape>,
+    doc_panel: ToggleButton<ensogl_toggle_button::any_cached::Shape>,
     pub set_namespace_section_count: frp::Any<usize>,
     pub style: frp::Any<AllStyles>,
 }
@@ -239,25 +178,20 @@ impl Navigator {
         let tooltip = Tooltip::new(app);
         app.display.default_scene.add_child(&tooltip);
         let style_sheet = &app.display.default_scene.style_sheet;
-        let local_scope: ToggleButton<ensogl_toggle_button::any_cached::Shape> =
-            ToggleButton::new(app, default());
-        local_scope
-            .view()
-            .params
-            .icon
-            .set(crate::grid::entry::icon::local_scope::Shape::any_cached_shape_parameter());
+        let local_scope = ToggleButton::new_from_cached::<icon::local_scope::Shape>(app, default());
         local_scope.set_size(Vector2(16.0, 16.0));
         background.add_child(&local_scope);
-        let shortcuts = ToggleButton::new(app, default());
+        let shortcuts = ToggleButton::new_from_cached::<icon::command_key::Shape>(app, default());
         shortcuts.set_size(Vector2(16.0, 16.0));
         background.add_child(&shortcuts);
-        let unstable = ToggleButton::new(app, default());
+        let unstable = ToggleButton::new_from_cached::<icon::unstable::Shape>(app, default());
         unstable.set_size(Vector2(16.0, 16.0));
         background.add_child(&unstable);
-        let marketplace = ToggleButton::new(app, default());
+        let marketplace = ToggleButton::new_from_cached::<icon::marketplace::Shape>(app, default());
         marketplace.set_size(Vector2(16.0, 16.0));
         background.add_child(&marketplace);
-        let doc_panel = ToggleButton::new(app, default());
+        let doc_panel =
+            ToggleButton::new_from_cached::<icon::right_side_panel::Shape>(app, default());
         doc_panel.set_size(Vector2(16.0, 16.0));
         background.add_child(&doc_panel);
         doc_panel.set_margin_left(38.0);

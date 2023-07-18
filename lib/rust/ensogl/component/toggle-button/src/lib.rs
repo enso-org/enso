@@ -62,7 +62,11 @@ pub mod any_cached {
             let r: Var<color::Rgba> = r_component.into();
             let g: Var<color::Rgba> = g_component.into();
             let b: Var<color::Rgba> = b_component.into();
-            icon.recolorize(r, g, b).into()
+            let width = Var::<Pixels>::from("input_size.x");
+            let height = Var::<Pixels>::from("input_size.y");
+            let icon = icon.recolorize(r, g, b);
+            let overlay = Rect((width, height)).fill(INVISIBLE_HOVER_COLOR);
+            (icon + overlay).into()
         }
     }
 }
@@ -339,6 +343,18 @@ impl<Shape: ColorableShape + 'static> ToggleButton<Shape> {
     /// overwritten regularly by internals of the `ToggleButton` mechanics.
     pub fn view(&self) -> ShapeView<Shape> {
         self.model.icon.clone_ref()
+    }
+}
+
+impl ToggleButton<any_cached::Shape> {
+    /// Construct a ToggleButton from [`CachedShape`].
+    pub fn new_from_cached<S: CachedShape>(
+        app: &Application,
+        tooltip_style: tooltip::Style,
+    ) -> ToggleButton<any_cached::Shape> {
+        let button = ToggleButton::<any_cached::Shape>::new(app, tooltip_style);
+        button.view().params.icon.set(S::any_cached_shape_parameter());
+        button
     }
 }
 
