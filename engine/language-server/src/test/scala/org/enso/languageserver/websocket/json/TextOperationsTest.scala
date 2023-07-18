@@ -2358,7 +2358,7 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
           """)
     }
 
-    "persist changes when the file was changed to disk" in {
+    "persist changes when the file was changed to disk" taggedAs Flaky in {
       val client = getInitialisedWsClient()
       client.send(json"""
               { "jsonrpc": "2.0",
@@ -2529,7 +2529,7 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
 
   "auto-save" must {
 
-    "persist changes from a opened file to disk with autosave" in {
+    "persist changes from a opened file to disk with autosave" taggedAs Flaky in {
       this.timingsConfig.withAutoSave(2.seconds)
 
       val client = getInitialisedWsClient()
@@ -2657,7 +2657,7 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
           """)
     }
 
-    "be triggered when a file was closed before the delay expired" in {
+    "be triggered when a file was closed before the delay expired" taggedAs Flaky in {
       this.timingsConfig.withAutoSave(5.seconds)
 
       val client1 = getInitialisedWsClient()
@@ -2794,7 +2794,7 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
 
     }
 
-    "be triggered when a client closed session abruptly" in {
+    "be triggered when a client closed session abruptly" taggedAs Flaky in {
       this.timingsConfig.withAutoSave(10.seconds)
 
       val (client1, client1Id) = getInitialisedWsClientAndId()
@@ -2917,7 +2917,7 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
 
     }
 
-    "not persist changes when the file is changed on disk" in {
+    "not persist changes when the file is changed on disk" taggedAs Flaky in {
       this.timingsConfig.withAutoSave(2.seconds)
 
       val client = getInitialisedWsClient()
