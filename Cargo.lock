@@ -1556,6 +1556,7 @@ dependencies = [
  "ensogl-selector",
  "ensogl-text",
  "ensogl-text-msdf",
+ "ensogl-tooltip",
  "ide-view-component-list-panel",
  "js-sys",
  "wasm-bindgen",

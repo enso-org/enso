@@ -44,6 +44,7 @@ use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_core::frp;
 use ensogl_text as text;
+use ensogl_tooltip::Tooltip;
 use ide_view_component_list_panel::grid;
 use ide_view_component_list_panel::grid::entry::icon;
 
@@ -191,6 +192,7 @@ fn snap_to_pixel_offset(size: Vector2, scene_shape: &display::scene::Shape) -> V
 pub fn main() {
     ensogl_text_msdf::run_once_initialized(|| {
         let app = Application::new("root");
+        let tooltip = Tooltip::new(&app);
 
         let world = &app.display;
         let scene = &world.default_scene;
@@ -213,13 +215,20 @@ pub fn main() {
             // === Disable navigator on hover ===
 
             navigator.frp.set_enabled <+ panel.is_hovered.not();
+
+
+            // === Tooltip ===
+
+            tooltip.frp.set_style <+ app.frp.tooltip;
         }
         init.emit(());
 
         grid.reset(content_info());
         scene.add_child(&panel);
+        scene.add_child(&tooltip);
         panel.show();
         mem::forget(app);
+        mem::forget(tooltip);
         mem::forget(panel);
         mem::forget(network);
         mem::forget(navigator);

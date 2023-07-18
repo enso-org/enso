@@ -5,6 +5,7 @@
 
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
+use ensogl_tooltip::tooltip::Placement;
 
 use crate::grid::entry::icon;
 use crate::AllStyles;
@@ -40,8 +41,11 @@ type Grid = grid::selectable::GridView<entry::View>;
 // === Constants ===
 // =================
 
-const MARKETPLACE_BUTTON_INDEX: usize = 1;
-const MARKETPLACE_TOOLTIP_TEXT: &str = "Marketplace will be available soon.";
+const MARKETPLACE_TOOLTIP: &str = "Marketplace will be available soon.";
+const LOCAL_SCOPE_TOOLTIP: &str = "Search local scope";
+const SHOW_SHORTCUTS_TOOLTIP: &str = "Show shortcuts";
+const UNSTABLE_TOOLTIP: &str = "Search unstable/advanced components";
+const DOC_PANEL_TOOLTIP: &str = "Show/hide documentation";
 const MARKETPLACE_TOOLTIP_HIDE_DELAY_MS: f32 = 3000.0;
 const MARKETPLACE_TOOLTIP_PLACEMENT: tooltip::Placement = tooltip::Placement::Bottom;
 const TOP_BUTTONS: [icon::Id; 2] = [icon::Id::Libraries, icon::Id::Marketplace];
@@ -178,21 +182,36 @@ impl Navigator {
         let tooltip = Tooltip::new(app);
         app.display.default_scene.add_child(&tooltip);
         let style_sheet = &app.display.default_scene.style_sheet;
-        let local_scope = ToggleButton::new_from_cached::<icon::local_scope::Shape>(app, default());
-        local_scope.set_size(Vector2(16.0, 16.0));
-        background.add_child(&local_scope);
-        let shortcuts = ToggleButton::new_from_cached::<icon::command_key::Shape>(app, default());
-        shortcuts.set_size(Vector2(16.0, 16.0));
-        background.add_child(&shortcuts);
-        let unstable = ToggleButton::new_from_cached::<icon::unstable::Shape>(app, default());
-        unstable.set_size(Vector2(16.0, 16.0));
-        background.add_child(&unstable);
-        let marketplace = ToggleButton::new_from_cached::<icon::marketplace::Shape>(app, default());
-        marketplace.set_size(Vector2(16.0, 16.0));
-        background.add_child(&marketplace);
+        let local_scope_tooltip =
+            tooltip::Style::set_label(LOCAL_SCOPE_TOOLTIP).with_placement(Placement::Top);
+        let local_scope =
+            ToggleButton::new_from_cached::<icon::local_scope::Shape>(app, local_scope_tooltip);
+        let shortcuts_tooltip =
+            tooltip::Style::set_label(SHOW_SHORTCUTS_TOOLTIP).with_placement(Placement::Top);
+        let shortcuts =
+            ToggleButton::new_from_cached::<icon::command_key::Shape>(app, shortcuts_tooltip);
+        let unstable_tooltip =
+            tooltip::Style::set_label(UNSTABLE_TOOLTIP).with_placement(Placement::Top);
+        let unstable =
+            ToggleButton::new_from_cached::<icon::unstable::Shape>(app, unstable_tooltip);
+        let marketplace_tooltip =
+            tooltip::Style::set_label(MARKETPLACE_TOOLTIP).with_placement(Placement::Top);
+        let marketplace =
+            ToggleButton::new_from_cached::<icon::marketplace::Shape>(app, marketplace_tooltip);
+        let doc_panel_tooltip =
+            tooltip::Style::set_label(DOC_PANEL_TOOLTIP).with_placement(Placement::Top);
         let doc_panel =
-            ToggleButton::new_from_cached::<icon::right_side_panel::Shape>(app, default());
-        doc_panel.set_size(Vector2(16.0, 16.0));
+            ToggleButton::new_from_cached::<icon::right_side_panel::Shape>(app, doc_panel_tooltip);
+        let size = Vector2(icon::SIZE, icon::SIZE);
+        local_scope.set_size(size);
+        shortcuts.set_size(size);
+        unstable.set_size(size);
+        marketplace.set_size(size);
+        doc_panel.set_size(size);
+        background.add_child(&local_scope);
+        background.add_child(&shortcuts);
+        background.add_child(&unstable);
+        background.add_child(&marketplace);
         background.add_child(&doc_panel);
         doc_panel.set_margin_left(38.0);
 
@@ -217,24 +236,6 @@ impl Navigator {
             bottom_buttons.reset_entries <+ bottom_buttons_shape;
             bottom_buttons.set_viewport <+ bottom_buttons_viewport;
             eval bottom_buttons_pos ((pos) bottom_buttons.set_xy(*pos));
-
-
-            // === Show tooltip when hovering the Marketplace button
-
-            let idx_of_marketplace_btn = |loc: &Option<(Row, Col)>| matches!(loc, Some((row, _)) if *row == MARKETPLACE_BUTTON_INDEX);
-            marketplace_button_hovered <- top_buttons.entry_hovered.map(idx_of_marketplace_btn);
-            marketplace_button_hovered <- marketplace_button_hovered.on_change();
-            tooltip_hide_timer.start <+ marketplace_button_hovered.on_true();
-            tooltip_hide_timer.reset <+ marketplace_button_hovered.on_false();
-            tooltip_not_hidden <- bool(&tooltip_hide_timer.on_end, &tooltip_hide_timer.on_reset);
-            showing_tooltip <- marketplace_button_hovered && tooltip_not_hidden;
-            tooltip.frp.set_style <+ showing_tooltip.map(|showing| if *showing {
-                    let style = tooltip::Style::set_label(MARKETPLACE_TOOLTIP_TEXT.into());
-                    style.with_placement(MARKETPLACE_TOOLTIP_PLACEMENT)
-                } else {
-                    tooltip::Style::unset_label()
-                }
-            );
         }
         tooltip_hide_timer.reset();
         top_buttons.reset_entries(TOP_BUTTONS_COUNT, 1);
