@@ -12,8 +12,8 @@ import nl.gn0s1s.bump.SemVer
  *                    semantic version
   */
 case class GraalVMVersion(graalVersion: String, javaVersion: String) {
-  require(isCorrectVersionFormat(graalVersion))
-  require(isCorrectVersionFormat(javaVersion))
+  require(GraalVMVersion.isCorrectVersionFormat(graalVersion))
+  require(GraalVMVersion.isCorrectVersionFormat(javaVersion))
 
   /** @inheritdoc
     */
@@ -28,8 +28,10 @@ case class GraalVMVersion(graalVersion: String, javaVersion: String) {
       javaVersion.toInt
     }
   }
+}
 
-  private def isCorrectVersionFormat(version: String): Boolean = {
+object GraalVMVersion {
+  def isCorrectVersionFormat(version: String): Boolean = {
     version.toIntOption match {
       case Some(_) => true
       case None =>
