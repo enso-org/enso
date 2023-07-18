@@ -5,6 +5,8 @@ import Standard.Base.Errors.File_Error.File_Error
 import Standard.Table.Data.Type.Value_Type.Bits
 from Standard.Table import Table, Value_Type
 
+import Standard.Database.Data.Column.Column
+import Standard.Database.Internal.Replace_Params.Replace_Params
 from Standard.Database import all
 from Standard.Database.Errors import SQL_Error, Unsupported_Database_Operation
 
@@ -190,42 +192,6 @@ sqlite_specific_spec prefix connection setup =
             do_round 231 . should_be_a Decimal
             do_round 231 -1 . should_be_a Decimal
 
-    Test.group prefix+"replace: literal pattern and replacement" <|
-        col0 = table_builder [["x", ['hello Hello', 'hello hello', 'HELLO HELLO']]] . at "x"
-        col1 = table_builder [["x", ['a[bcd] A[bCd] a[bcd]', 'abac ad Ab aCAd']]] . at "x"
-
-        Test.specify "case_sensitivity=sensitive/default use_regex=false only_first=false"
-            col0.replace 'hello' 'bye' . to_vector . should_equal ['bye Hello', 'bye bye', 'HELLO HELLO']
-            col0.replace 'hello' 'bye' case_sensitivity=Case_Sensitivity.Default . to_vector . should_equal ['bye Hello', 'bye bye', 'HELLO HELLO']
-            col0.replace 'hello' 'bye' case_sensitivity=Case_Sensitivity.Sensitive . to_vector . should_equal ['bye Hello', 'bye bye', 'HELLO HELLO']
-
-            col1.replace 'a[bcd]' 'hey' . to_vector . should_equal ['hey A[bCd] hey', 'abac ad Ab aCAd']
-
-        Test.specify "case_sensitivity=sensitive/default use_regex=false only_first=true"
-            col0.replace 'hello' 'bye' only_first=True . to_vector . should_equal ['bye Hello', 'bye hello', 'HELLO HELLO']
-
-            col1.replace 'a[bcd]' 'hey' only_first=True . to_vector . should_equal ['hey A[bCd] a[bcd]', 'abac ad Ab aCAd']
-
-        Test.specify "case_sensitivity=insensitive use_regex=false only_first=false"
-            col0.replace 'hello' 'bye' case_sensitivity=Case_Sensitivity.Insensitive . to_vector . should_fail_with Unsupported_Database_Operation
-
-        Test.specify "case_sensitivity=insensitive use_regex=false only_first=true"
-            col0.replace 'hello' 'bye' case_sensitivity=Case_Sensitivity.Insensitive only_first=True . to_vector . should_equal ['bye Hello', 'bye hello', 'bye HELLO']
-
-            col1.replace 'a[bcd]' 'hey' case_sensitivity=Case_Sensitivity.Insensitive only_first=True . to_vector . should_equal ['hey A[bCd] a[bcd]', 'abac ad Ab aCAd']
-
-        Test.specify "case_sensitivity=sensitive/default use_regex=True only_first=false"
-            col1.replace 'a[bcd]'.to_regex 'hey' . to_vector . should_fail_with Unsupported_Database_Operation
-
-        Test.specify "case_sensitivity=sensitive/default use_regex=True only_first=true"
-            col1.replace 'a[bcd]'.to_regex 'hey' only_first=True . to_vector . should_fail_with Unsupported_Database_Operation
-
-        Test.specify "case_sensitivity=insensitive use_regex=True only_first=false"
-            col1.replace 'a[bcd]'.to_regex 'hey' case_sensitivity=Case_Sensitivity.Insensitive . to_vector . should_fail_with Unsupported_Database_Operation
-
-        Test.specify "case_sensitivity=insensitive use_regex=True only_first=true"
-            col1.replace 'a[bcd]'.to_regex 'hey' case_sensitivity=Case_Sensitivity.Insensitive only_first=True . to_vector . should_fail_with Unsupported_Database_Operation
-
 sqlite_spec connection prefix =
     name_counter = Ref.new 0
     table_builder columns =
@@ -239,7 +205,7 @@ sqlite_spec connection prefix =
 
     Common_Spec.spec prefix connection
 
-    common_selection = Common_Table_Operations.Main.Test_Selection.Config supports_case_sensitive_columns=False order_by=True natural_ordering=False case_insensitive_ordering=True case_insensitive_ascii_only=True take_drop=False is_nan_and_nothing_distinct=False date_time=False
+    common_selection = Common_Table_Operations.Main.Test_Selection.Config supports_case_sensitive_columns=False order_by=True natural_ordering=False case_insensitive_ordering=True case_insensitive_ascii_only=True take_drop=False is_nan_and_nothing_distinct=False date_time=False supported_replace_params=supported_replace_params
 
     ## For now `advanced_stats`, `first_last`, `text_shortest_longest` and
        `multi_distinct` remain disabled, because SQLite does not provide the
@@ -259,6 +225,12 @@ sqlite_spec connection prefix =
     Common_Table_Operations.Main.spec setup
 
     connection.close
+
+## PRIVATE
+supported_replace_params : Set Replace_Params
+supported_replace_params =
+  e = [Replace_Params.Value Text Case_Sensitivity.Default False, Replace_Params.Value Text Case_Sensitivity.Sensitive False, Replace_Params.Value Text Case_Sensitivity.Default True, Replace_Params.Value Text Case_Sensitivity.Sensitive True, Replace_Params.Value Text Case_Sensitivity.Insensitive True]
+  Set.from_vector e
 
 spec =
     enso_project.data.create_directory

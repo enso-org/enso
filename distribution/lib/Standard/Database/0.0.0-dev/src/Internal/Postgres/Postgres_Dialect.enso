@@ -507,9 +507,8 @@ supported_replace_params =
   e1 = [Replace_Params.Value Text Case_Sensitivity.Sensitive True, Replace_Params.Value Text Case_Sensitivity.Insensitive False, Replace_Params.Value Text Case_Sensitivity.Insensitive True]
   e2 = [Replace_Params.Value Regex Case_Sensitivity.Default False, Replace_Params.Value Regex Case_Sensitivity.Default True, Replace_Params.Value Regex Case_Sensitivity.Sensitive False]
   e3 = [Replace_Params.Value Regex Case_Sensitivity.Sensitive True, Replace_Params.Value Regex Case_Sensitivity.Insensitive False, Replace_Params.Value Regex Case_Sensitivity.Insensitive True]
-  e4 = [Replace_Params.Value Column Case_Sensitivity.Default False, Replace_Params.Value Column Case_Sensitivity.Default True, Replace_Params.Value Column Case_Sensitivity.Sensitive False]
-  e5 = [Replace_Params.Value Column Case_Sensitivity.Sensitive True, Replace_Params.Value Column Case_Sensitivity.Insensitive False, Replace_Params.Value Column Case_Sensitivity.Insensitive True]
-  Set.from_vector <| (e0 + e1 + e2 + e3 + e4 + e5).map x-> [x, 0]
+  e4 = [Replace_Params.Value Column Case_Sensitivity.Default False, Replace_Params.Value Column Case_Sensitivity.Sensitive False]
+  Set.from_vector <| e0 + e1 + e2 + e3 + e4
 
 replace : Vector Builder -> Any -> Builder
 replace args metadata =
