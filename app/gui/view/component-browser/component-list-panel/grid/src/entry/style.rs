@@ -201,11 +201,11 @@ impl ResolvedColors {
         frp::extend! { network
             init <- source_();
 
-            // FIXME[ao] update the explanation.
-            // We do not support the semi-transparent background of entries. Because headers share
+            // We do not support the semi-transparent background of entries. This was needed in
+            // times when the group headers could be displayed over entries (and the headers shared
             // the same background color; therefore, the semi-transparent header's background
-            // reveals the underlying entries. Instead, we mix the color of the component browser's
-            // background and the main color of the component group.
+            // would reveal the underlying entries). It's keept for case we would return to
+            // displaying headers some day.
             panel_bg <- all_with(&panel_background, &init, |col, ()| color::Lcha::from(col));
             panel_bg_and_main <- all(&panel_bg, main_color);
             bg_intensity <- colors.map(|c| c.background_intensity);

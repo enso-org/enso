@@ -249,15 +249,11 @@ pub struct Filter {
     module_name: Rc<QualifiedName>,
 }
 
-//FIXME[ao]: update docs.
-/// Searcher Controller.
+/// Component Browser Controller.
 ///
-/// This is an object providing all required functionalities for Searcher View: mainly it is the
-/// action list to display depending on the searcher input, and actions of apply suggestion and
-/// executing entry.
-///
-/// Additionally user can accept the current searcher input as a new node (or new expression of
-/// existing node).
+/// This controller provides list of suggestions for given searcher input and controls how Component
+/// Browser interacts with the code (applying suggestion, comitting/aborting editing, updating code
+/// for preview).
 #[derive(Clone, CloneRef, Debug)]
 pub struct Searcher {
     data:             Rc<RefCell<Data>>,

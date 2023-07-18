@@ -262,8 +262,6 @@ mod tests {
                 }
             }
         }
-
-        // FIXME[ao]: Add support for local scope entries.
     }
 
     fn mock_groups() -> Vec<execution_context::ComponentGroup> {
