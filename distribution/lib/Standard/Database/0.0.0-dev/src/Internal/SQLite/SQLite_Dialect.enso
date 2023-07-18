@@ -415,8 +415,8 @@ mod_op = Base_Generator.lift_binary_op "mod" x-> y->
 ## PRIVATE
 supported_replace_params : Set Replace_Params
 supported_replace_params =
-  e = [Replace_Params.Value Text Case_Sensitivity.Default False, Replace_Params.Value Text Case_Sensitivity.Sensitive False, Replace_Params.Value Text Case_Sensitivity.Default True, Replace_Params.Value Text Case_Sensitivity.Sensitive True, Replace_Params.Value Text Case_Sensitivity.Insensitive True]
-  Set.from_vector e
+    e = [Replace_Params.Value Text Case_Sensitivity.Default False, Replace_Params.Value Text Case_Sensitivity.Sensitive False, Replace_Params.Value Text Case_Sensitivity.Default True, Replace_Params.Value Text Case_Sensitivity.Sensitive True, Replace_Params.Value Text Case_Sensitivity.Insensitive True]
+    Set.from_vector e
 
 replace : Vector Builder -> Any -> Builder
 replace args metadata =
