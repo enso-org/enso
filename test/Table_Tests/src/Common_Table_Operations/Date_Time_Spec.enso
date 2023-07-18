@@ -235,7 +235,6 @@ spec setup =
             ((t.at "Z") - (Date.new 2021 11 3)) . should_fail_with Invalid_Value_Type
 
         Test.specify "should allow computing a SQL-like difference" <|
-            zone = Time_Zone.parse "Europe/Warsaw"
             t1 = table_builder [["X", [Date.new 2021 11 3]], ["Y", [Date.new 2021 12 5]]]
 
             (t1.at "X").date_diff (t1.at "Y") Date_Period.Day . to_vector . should_equal [32]
@@ -265,6 +264,7 @@ spec setup =
             (t1.at "X").date_diff (t1.at "Y") Time_Period.Day . to_vector . should_equal [32]
             (t1.at "X").date_diff (t1.at "Y") Time_Period.Hour . should_fail_with Illegal_Argument
 
+            zone = Time_Zone.parse "Europe/Warsaw"
             t2 = table_builder [["X", [Date_Time.new 2021 11 3 10 15 0 zone=zone]], ["Y", [Date_Time.new 2021 12 5 12 30 20 zone=zone]]]
 
             (t2.at "X").date_diff (t2.at "Y") Date_Period.Day . to_vector . should_equal [32]
