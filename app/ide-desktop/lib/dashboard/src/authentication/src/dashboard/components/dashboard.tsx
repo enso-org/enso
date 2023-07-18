@@ -24,6 +24,7 @@ import * as projectManager from '../projectManager'
 import * as remoteBackendModule from '../remoteBackend'
 import * as spinner from './spinner'
 import * as uploadMultipleFiles from '../../uploadMultipleFiles'
+import * as useRefresh from '../../useRefresh'
 
 import * as authProvider from '../../authentication/providers/auth'
 import * as backendProvider from '../../providers/backend'
@@ -259,7 +260,7 @@ function Dashboard(props: DashboardProps) {
     const { modal } = modalProvider.useModal()
     const { setModal, unsetModal } = modalProvider.useSetModal()
 
-    const [refresh, doRefresh] = hooks.useRefresh()
+    const [refresh, doRefresh] = useRefresh.useRefresh()
 
     const [onDirectoryNextLoaded, setOnDirectoryNextLoaded] = React.useState<
         ((assets: backendModule.Asset[]) => void) | null

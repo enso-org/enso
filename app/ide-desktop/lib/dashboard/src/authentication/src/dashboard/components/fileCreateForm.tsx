@@ -48,7 +48,7 @@ function FileCreateForm(props: FileCreateFormProps) {
                         {
                             loading: 'Uploading file...',
                             success: 'Sucessfully uploaded file.',
-                            error: error.unsafeIntoErrorMessage,
+                            error: error.tryGetMessage,
                         }
                     )
                     .then(onSuccess)

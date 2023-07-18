@@ -49,7 +49,7 @@ function SecretCreateForm(props: SecretCreateFormProps) {
                         {
                             loading: 'Creating secret...',
                             success: 'Sucessfully created secret.',
-                            error: error.unsafeIntoErrorMessage,
+                            error: error.tryGetMessage,
                         }
                     )
                     .then(onSuccess)

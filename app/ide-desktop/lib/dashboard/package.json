@@ -8,7 +8,10 @@
     "lint": "npx --yes eslint src",
     "build": "tsx bundle.ts",
     "watch": "tsx watch.ts",
-    "start": "tsx start.ts"
+    "start": "tsx start.ts",
+    "test": "playwright test",
+    "test-component": "playwright test -c playwright-component.config.ts",
+    "test-e2e": "playwright test -c playwright-e2e.config.ts"
   },
   "dependencies": {
     "@heroicons/react": "^2.0.15",
@@ -23,6 +26,9 @@
   },
   "devDependencies": {
     "@esbuild-plugins/node-modules-polyfill": "^0.2.2",
+    "@modyfi/vite-plugin-yaml": "^1.0.4",
+    "@playwright/experimental-ct-react": "^1.36.1",
+    "@playwright/test": "^1.36.1",
     "@typescript-eslint/eslint-plugin": "^5.49.0",
     "@typescript-eslint/parser": "^5.49.0",
     "enso-authentication": "^1.0.0",

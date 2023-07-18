@@ -8,6 +8,7 @@ import * as cognito from '../cognito'
 import * as error from '../../error'
 import * as hooks from '../../hooks'
 import * as listen from '../listen'
+import * as useRefresh from '../../useRefresh'
 
 // ======================
 // === SessionContext ===
@@ -53,7 +54,7 @@ export interface SessionProviderProps {
 export function SessionProvider(props: SessionProviderProps) {
     const { mainPageUrl, children, userSession, registerAuthEventListener } = props
 
-    const [refresh, doRefresh] = hooks.useRefresh()
+    const [refresh, doRefresh] = useRefresh.useRefresh()
 
     /** Flag used to avoid rendering child components until we've fetched the user's session at least
      * once. Avoids flash of the login screen when the user is already logged in. */

@@ -30,7 +30,9 @@ const NAME = 'enso'
  * `yargs` and `react-hot-toast` are modules we explicitly want the default imports of.
  * `node:process` is here because `process.on` does not exist on the namespace import. */
 const DEFAULT_IMPORT_ONLY_MODULES =
-    'node:process|chalk|string-length|yargs|yargs\\u002Fyargs|sharp|to-ico|connect|morgan|serve-static|create-servers|electron-is-dev|fast-glob|esbuild-plugin-.+|opener|tailwindcss.*|enso-assets.*'
+    'node:process|chalk|string-length|yargs|yargs\\u002Fyargs|sharp|to-ico|connect|morgan|' +
+    'serve-static|create-servers|electron-is-dev|fast-glob|esbuild-plugin-.+|opener|' +
+    'tailwindcss.*|enso-assets.*|@modyfi\\u002Fvite-plugin-yaml'
 const ALLOWED_DEFAULT_IMPORT_MODULES = `${DEFAULT_IMPORT_ONLY_MODULES}|postcss|react-hot-toast`
 const OUR_MODULES =
     'enso-authentication|enso-content-config|enso-common|enso-common\\u002Fsrc\\u002Fdetect'
@@ -239,6 +241,10 @@ const RESTRICTED_SYNTAXES = [
 export default [
     eslintJs.configs.recommended,
     {
+        // Playwright build cache.
+        ignores: ['**/.cache/**'],
+    },
+    {
         settings: {
             react: {
                 version: '18.2',
@@ -389,46 +395,46 @@ export default [
             // Important to warn on accidental duplicated `interface`s e.g. when writing API wrappers.
             '@typescript-eslint/no-redeclare': ['error', { ignoreDeclarationMerge: false }],
             'no-shadow': 'off',
-            '@typescript-eslint/no-shadow': 'warn',
+            '@typescript-eslint/no-shadow': 'error',
             'no-unused-expressions': 'off',
             '@typescript-eslint/no-unused-expressions': 'error',
             'jsdoc/require-param-type': 'off',
-            'jsdoc/check-access': 'warn',
-            'jsdoc/check-alignment': 'warn',
-            'jsdoc/check-indentation': 'warn',
-            'jsdoc/check-line-alignment': 'warn',
-            'jsdoc/check-param-names': 'warn',
-            'jsdoc/check-property-names': 'warn',
-            'jsdoc/check-syntax': 'warn',
-            'jsdoc/check-tag-names': 'warn',
-            'jsdoc/check-types': 'warn',
-            'jsdoc/check-values': 'warn',
-            'jsdoc/empty-tags': 'warn',
-            'jsdoc/implements-on-classes': 'warn',
-            'jsdoc/no-bad-blocks': 'warn',
-            'jsdoc/no-defaults': 'warn',
-            'jsdoc/no-multi-asterisks': 'warn',
-            'jsdoc/no-types': 'warn',
-            'jsdoc/no-undefined-types': 'warn',
-            'jsdoc/require-asterisk-prefix': 'warn',
-            'jsdoc/require-description': 'warn',
+            'jsdoc/check-access': 'error',
+            'jsdoc/check-alignment': 'error',
+            'jsdoc/check-indentation': 'error',
+            'jsdoc/check-line-alignment': 'error',
+            'jsdoc/check-param-names': 'error',
+            'jsdoc/check-property-names': 'error',
+            'jsdoc/check-syntax': 'error',
+            'jsdoc/check-tag-names': 'error',
+            'jsdoc/check-types': 'error',
+            'jsdoc/check-values': 'error',
+            'jsdoc/empty-tags': 'error',
+            'jsdoc/implements-on-classes': 'error',
+            'jsdoc/no-bad-blocks': 'error',
+            'jsdoc/no-defaults': 'error',
+            'jsdoc/no-multi-asterisks': 'error',
+            'jsdoc/no-types': 'error',
+            'jsdoc/no-undefined-types': 'error',
+            'jsdoc/require-asterisk-prefix': 'error',
+            'jsdoc/require-description': 'error',
             // This rule does not handle `# Heading`s and "etc.", "e.g.", "vs." etc.
-            // 'jsdoc/require-description-complete-sentence': 'warn',
-            'jsdoc/require-file-overview': 'warn',
-            'jsdoc/require-hyphen-before-param-description': 'warn',
-            'jsdoc/require-param-description': 'warn',
-            'jsdoc/require-param-name': 'warn',
-            'jsdoc/require-property': 'warn',
-            'jsdoc/require-property-description': 'warn',
-            'jsdoc/require-property-name': 'warn',
-            'jsdoc/require-property-type': 'warn',
-            'jsdoc/require-returns-check': 'warn',
-            'jsdoc/require-returns-description': 'warn',
-            'jsdoc/require-throws': 'warn',
-            'jsdoc/require-yields': 'warn',
-            'jsdoc/require-yields-check': 'warn',
-            'jsdoc/tag-lines': 'warn',
-            'jsdoc/valid-types': 'warn',
+            // 'jsdoc/require-description-complete-sentence': 'error',
+            'jsdoc/require-file-overview': 'error',
+            'jsdoc/require-hyphen-before-param-description': 'error',
+            'jsdoc/require-param-description': 'error',
+            'jsdoc/require-param-name': 'error',
+            'jsdoc/require-property': 'error',
+            'jsdoc/require-property-description': 'error',
+            'jsdoc/require-property-name': 'error',
+            'jsdoc/require-property-type': 'error',
+            'jsdoc/require-returns-check': 'error',
+            'jsdoc/require-returns-description': 'error',
+            'jsdoc/require-throws': 'error',
+            'jsdoc/require-yields': 'error',
+            'jsdoc/require-yields-check': 'error',
+            'jsdoc/tag-lines': 'error',
+            'jsdoc/valid-types': 'error',
         },
     },
     {
