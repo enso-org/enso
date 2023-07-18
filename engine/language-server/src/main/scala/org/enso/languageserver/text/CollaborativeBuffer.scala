@@ -243,16 +243,20 @@ class CollaborativeBuffer(
       )
 
     case AutoSave(clientId, clientVersion) =>
-      saveFile(
-        buffer,
-        clients,
-        lockHolder,
-        clientId,
-        clientVersion,
-        autoSave.removed(clientId),
-        isAutoSave = true,
-        onClose    = None
-      )
+      if (buffer.fileWithMetadata.isModifiedOnDisk) {
+        clients.foreach(_._2.rpcController ! FileModifiedOnDisk(bufferPath))
+      } else {
+        saveFile(
+          buffer,
+          clients,
+          lockHolder,
+          clientId,
+          clientVersion,
+          autoSave.removed(clientId),
+          isAutoSave = true,
+          onClose    = None
+        )
+      }
 
     case ForceSave(clientId) =>
       autoSave.get(clientId) match {
@@ -327,7 +331,9 @@ class CollaborativeBuffer(
             clients.values.foreach {
               _.rpcController ! FileModifiedOnDisk(path)
             }
-            buffer.withLastModifiedTime(attrs.lastModifiedTime)
+            buffer
+              .withLastModifiedTime(attrs.lastModifiedTime)
+              .withModifiedOnDisk()
           } else {
             buffer
           }

@@ -2455,6 +2455,17 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
       // Change file on disk
       val fooTxt = testContentRoot.file.toPath.resolve("foo1.txt")
       Files.write(fooTxt, "abcdef".getBytes(StandardCharsets.UTF_8))
+      client.expectJson(json"""
+        { "jsonrpc": "2.0",
+          "method":"text/fileModifiedOnDisk",
+          "params": {
+            "path": {
+              "rootId": $testContentRootId,
+              "segments": [ "foo1.txt" ]
+            }
+          }
+        }
+        """)
 
       client.send(json"""
               { "jsonrpc": "2.0",
@@ -2884,6 +2895,7 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
       system.eventStream.publish(
         JsonSessionTerminated(JsonSession(client1Id, client1.actorRef()))
       )
+
       client2.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/read",
@@ -2966,6 +2978,17 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
       Thread.sleep(1.seconds.toMillis)
       val fooTxt = testContentRoot.file.toPath.resolve("foo.txt")
       Files.write(fooTxt, "abcdef".getBytes(StandardCharsets.UTF_8))
+      client.expectJson(json"""
+              { "jsonrpc": "2.0",
+                "method":"text/fileModifiedOnDisk",
+                "params": {
+                  "path": {
+                    "rootId": $testContentRootId,
+                    "segments": [ "foo.txt" ]
+                  }
+                }
+              }
+              """)
 
       client.send(json"""
                 { "jsonrpc": "2.0",
