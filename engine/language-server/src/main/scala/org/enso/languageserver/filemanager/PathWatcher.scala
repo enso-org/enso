@@ -4,6 +4,7 @@ import akka.actor.{Actor, ActorRef, Props}
 import akka.pattern.pipe
 import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
+import org.enso.filewatcher.WatcherAdapter
 import org.enso.languageserver.capability.CapabilityProtocol.{
   CapabilityAcquired,
   CapabilityAcquisitionFileSystemFailure,
@@ -21,6 +22,7 @@ import org.enso.languageserver.util.UnhandledLogging
 import zio._
 
 import java.io.File
+
 import scala.concurrent.Await
 import scala.util.{Failure, Success}
 
@@ -170,7 +172,7 @@ final class PathWatcher(
     Either
       .catchNonFatal {
         fileWatcher = Some(watcher)
-        exec.exec_(watcher.start())
+        exec.exec_(ZIO.attempt(watcher.start()))
       }
       .leftMap(errorHandler)
 
@@ -178,7 +180,7 @@ final class PathWatcher(
     Either
       .catchNonFatal {
         fileWatcher.foreach { watcher =>
-          Await.ready(exec.exec(watcher.stop()), config.timeout)
+          Await.ready(exec.exec(ZIO.attempt(watcher.stop())), config.timeout)
         }
       }
       .leftMap(errorHandler)
