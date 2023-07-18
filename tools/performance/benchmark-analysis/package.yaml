@@ -1,7 +1,7 @@
 name: Vectorized_Benchmarks
 namespace: local
 version: 0.0.1
-license: ''
+license: ""
 authors: []
 maintainers: []
 edition: 0.0.0-dev
