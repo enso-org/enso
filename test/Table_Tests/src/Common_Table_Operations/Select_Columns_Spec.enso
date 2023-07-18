@@ -345,6 +345,12 @@ spec setup =
             expect_column_names ["one", "two", "three", "delta"] <|
                 table.rename_columns vec
 
+        Test.specify "should work by Vector of Pairs" <|
+            vec = [["beta", "one"], ["delta", "two"], ["alpha", "three"]]
+            expect_column_names ["three", "one", "gamma", "two"] <|
+                table.rename_columns vec
+
+
         Test.specify "should work by name" <|
             map = Map.from_vector [["alpha", "FirstColumn"], ["delta", "Another"]]
             expect_column_names ["FirstColumn", "beta", "gamma", "Another"] <|
