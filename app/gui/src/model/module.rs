@@ -673,6 +673,9 @@ pub trait API: Debug + model::undo_redo::Aware {
 
     /// Reopen file in language server.
     fn reopen_file_in_language_server(&self) -> BoxFuture<FallibleResult>;
+
+    /// Reopen externally changed file.
+    fn reopen_externally_changed_file(&self) -> BoxFuture<FallibleResult>;
 }
 
 /// Trait for methods that cannot be defined in `API` because it is a trait object.

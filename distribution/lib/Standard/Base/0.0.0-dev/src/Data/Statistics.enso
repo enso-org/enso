@@ -3,30 +3,28 @@ import project.Data.Array.Array
 import project.Data.Numbers.Decimal
 import project.Data.Numbers.Integer
 import project.Data.Numbers.Number
-import project.Data.Ordering.Ordering
 import project.Data.Ordering.Comparable
-from project.Data.Range.Extensions import all
+import project.Data.Ordering.Ordering
 import project.Data.Vector.Vector
-import project.Errors.Common.Incomparable_Values
 import project.Error.Error
+import project.Errors.Common.Incomparable_Values
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Meta
 import project.Nothing.Nothing
-import project.Runtime.Ref.Ref
 import project.Panic.Panic
-
-from project.Data.Boolean import Boolean, True, False
+import project.Runtime.Ref.Ref
+from project.Data.Boolean import Boolean, False, True
+from project.Data.Range.Extensions import all
 from project.Data.Vector import Empty_Error
 from project.Errors.Common import Unsupported_Argument_Types
 
+polyglot java import java.lang.NullPointerException
 polyglot java import org.enso.base.CompareException
+polyglot java import org.enso.base.statistics.CorrelationStatistics
+polyglot java import org.enso.base.statistics.CountMinMax
 polyglot java import org.enso.base.statistics.Moments
 polyglot java import org.enso.base.statistics.MomentStatistic
-polyglot java import org.enso.base.statistics.CountMinMax
-polyglot java import org.enso.base.statistics.CorrelationStatistics
 polyglot java import org.enso.base.statistics.Rank
-
-polyglot java import java.lang.NullPointerException
 
 ## Specifies how to handle ranking of equal values.
 type Rank_Method

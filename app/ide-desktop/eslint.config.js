@@ -10,6 +10,8 @@ import * as url from 'node:url'
 import eslintJs from '@eslint/js'
 import globals from 'globals'
 import jsdoc from 'eslint-plugin-jsdoc'
+import react from 'eslint-plugin-react'
+import reactHooks from 'eslint-plugin-react-hooks'
 import tsEslint from '@typescript-eslint/eslint-plugin'
 import tsEslintParser from '@typescript-eslint/parser'
 /* eslint-enable no-restricted-syntax */
@@ -38,7 +40,7 @@ const STRING_LITERAL = ':matches(Literal[raw=/^["\']/], TemplateLiteral)'
 const JSX = ':matches(JSXElement, JSXFragment)'
 const NOT_PASCAL_CASE = '/^(?!_?([A-Z][a-z0-9]*)+$)/'
 const NOT_CAMEL_CASE = '/^(?!_?[a-z][a-z0-9*]*([A-Z0-9][a-z0-9]*)*$)(?!React$)/'
-const WHITELISTED_CONSTANTS = 'logger|.+Context'
+const WHITELISTED_CONSTANTS = 'logger|.+Context|interpolationFunction.+'
 const NOT_CONSTANT_CASE = `/^(?!${WHITELISTED_CONSTANTS}$|_?[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$)/`
 
 // =======================================
@@ -223,6 +225,10 @@ const RESTRICTED_SYNTAXES = [
         selector: 'IfStatement > ExpressionStatement',
         message: 'Wrap `if` branches in `{}`',
     },
+    {
+        selector: 'VariableDeclarator[id.name=ENVIRONMENT][init.value!=production]',
+        message: "Environment must be 'production' when committing",
+    },
 ]
 
 // ============================
@@ -241,6 +247,8 @@ export default [
         plugins: {
             jsdoc: jsdoc,
             '@typescript-eslint': tsEslint,
+            react: react,
+            'react-hooks': reactHooks,
         },
         languageOptions: {
             parser: tsEslintParser,
@@ -259,6 +267,7 @@ export default [
             ...tsEslint.configs.recommended?.rules,
             ...tsEslint.configs['recommended-requiring-type-checking']?.rules,
             ...tsEslint.configs.strict?.rules,
+            ...react.configs.recommended.rules,
             eqeqeq: ['error', 'always', { null: 'never' }],
             'jsdoc/require-jsdoc': [
                 'error',
@@ -292,6 +301,10 @@ export default [
             'no-restricted-syntax': ['error', ...RESTRICTED_SYNTAXES],
             'prefer-arrow-callback': 'error',
             'prefer-const': 'error',
+            // Not relevant because TypeScript checks types.
+            'react/prop-types': 'off',
+            'react-hooks/rules-of-hooks': 'error',
+            'react-hooks/exhaustive-deps': 'error',
             // Prefer `interface` over `type`.
             '@typescript-eslint/consistent-type-definitions': 'error',
             '@typescript-eslint/consistent-type-imports': ['error', { prefer: 'no-type-imports' }],
@@ -355,7 +368,7 @@ export default [
             ],
             '@typescript-eslint/restrict-template-expressions': 'error',
             '@typescript-eslint/sort-type-constituents': 'error',
-            // '@typescript-eslint/strict-boolean-expressions': 'error',
+            '@typescript-eslint/strict-boolean-expressions': 'error',
             '@typescript-eslint/switch-exhaustiveness-check': 'error',
             'default-param-last': 'off',
             '@typescript-eslint/default-param-last': 'error',

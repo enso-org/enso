@@ -9,6 +9,7 @@ import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.enso.table.data.column.storage.numeric.NumericStorage;
 import org.enso.table.error.UnexpectedTypeException;
 import org.enso.table.util.BitSets;
+import org.graalvm.polyglot.Context;
 
 import java.util.BitSet;
 
@@ -33,6 +34,7 @@ public abstract class LongNumericOp extends MapOperation<Long, AbstractLongStora
 
   @Override
   public NumericStorage<?> runMap(AbstractLongStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
+    Context context = Context.getCurrent();
     if (arg == null) {
       if (alwaysCastToDouble) {
         return DoubleStorage.makeEmpty(storage.size());
@@ -51,6 +53,8 @@ public abstract class LongNumericOp extends MapOperation<Long, AbstractLongStora
             newVals[i] = newVal;
           }
         }
+
+        context.safepoint();
       }
       return new LongStorage(newVals, newVals.length, newMissing);
     } else if (arg instanceof Double || arg instanceof Long) {
@@ -60,6 +64,8 @@ public abstract class LongNumericOp extends MapOperation<Long, AbstractLongStora
         if (!storage.isNa(i)) {
           newVals[i] = Double.doubleToRawLongBits(doDouble(storage.getItem(i), x, i, problemBuilder));
         }
+
+        context.safepoint();
       }
       return new DoubleStorage(newVals, newVals.length, storage.getIsMissing());
     }
@@ -68,6 +74,7 @@ public abstract class LongNumericOp extends MapOperation<Long, AbstractLongStora
 
   @Override
   public NumericStorage<?> runZip(AbstractLongStorage storage, Storage<?> arg, MapOperationProblemBuilder problemBuilder) {
+    Context context = Context.getCurrent();
     if (arg instanceof AbstractLongStorage v) {
       long[] out = new long[storage.size()];
       BitSet newMissing = new BitSet();
@@ -86,6 +93,8 @@ public abstract class LongNumericOp extends MapOperation<Long, AbstractLongStora
         } else {
           newMissing.set(i);
         }
+
+        context.safepoint();
       }
       return alwaysCastToDouble ? new DoubleStorage(out, storage.size(), newMissing) : new LongStorage(out, storage.size(), newMissing);
     } else if (arg instanceof DoubleStorage v) {
@@ -97,6 +106,8 @@ public abstract class LongNumericOp extends MapOperation<Long, AbstractLongStora
         } else {
           newMissing.set(i);
         }
+
+        context.safepoint();
       }
       return new DoubleStorage(out, storage.size(), newMissing);
     } else {

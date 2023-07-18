@@ -111,7 +111,7 @@ interface AmplifyError extends Error {
 
 /** Hint to TypeScript if we can safely cast an `unknown` error to an {@link AmplifyError}. */
 function isAmplifyError(error: unknown): error is AmplifyError {
-    if (error && typeof error === 'object') {
+    if (error != null && typeof error === 'object') {
         return 'code' in error && 'message' in error && 'name' in error
     } else {
         return false
@@ -141,7 +141,7 @@ interface AuthError {
 
 /** Hint to TypeScript if we can safely cast an `unknown` error to an `AuthError`. */
 function isAuthError(error: unknown): error is AuthError {
-    if (error && typeof error === 'object') {
+    if (error != null && typeof error === 'object') {
         return 'name' in error && 'log' in error
     } else {
         return false
@@ -409,9 +409,9 @@ function intoSignUpParams(
              * It is necessary to disable the naming convention rule here, because the key is
              * expected to appear exactly as-is in Cognito, so we must match it. */
             // eslint-disable-next-line @typescript-eslint/naming-convention
-            'custom:fromDesktop': supportsDeepLinks ? JSON.stringify(true) : null,
+            ...(supportsDeepLinks ? { 'custom:fromDesktop': JSON.stringify(true) } : {}),
             // eslint-disable-next-line @typescript-eslint/naming-convention
-            'custom:organizationId': organizationId,
+            ...(organizationId != null ? { 'custom:organizationId': organizationId } : {}),
         },
     }
 }
@@ -523,7 +523,7 @@ async function signInWithGoogle(customState: string | null) {
     const provider = amplify.CognitoHostedUIIdentityProvider.Google
     const options = {
         provider,
-        ...(customState ? { customState } : {}),
+        ...(customState != null ? { customState } : {}),
     }
     await amplify.Auth.federatedSignIn(options)
 }

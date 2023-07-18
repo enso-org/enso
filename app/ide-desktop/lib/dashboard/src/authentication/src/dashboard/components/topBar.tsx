@@ -1,5 +1,5 @@
 /** @file The top-bar of dashboard. */
-import * as react from 'react'
+import * as React from 'react'
 
 import BarsIcon from 'enso-assets/bars.svg'
 import CloudIcon from 'enso-assets/cloud.svg'
@@ -28,6 +28,8 @@ export interface TopBarProps {
     tab: dashboard.Tab
     toggleTab: () => void
     setBackendType: (backendType: backendModule.BackendType) => void
+    isHelpChatOpen: boolean
+    setIsHelpChatOpen: (isHelpChatOpen: boolean) => void
     query: string
     setQuery: (value: string) => void
 }
@@ -35,26 +37,35 @@ export interface TopBarProps {
 /** The {@link TopBarProps.setQuery} parameter is used to communicate with the parent component,
  * because `searchVal` may change parent component's project list. */
 function TopBar(props: TopBarProps) {
-    const { supportsLocalBackend, projectName, tab, toggleTab, setBackendType, query, setQuery } =
-        props
-    const [isUserMenuVisible, setIsUserMenuVisible] = react.useState(false)
+    const {
+        supportsLocalBackend,
+        projectName,
+        tab,
+        toggleTab,
+        setBackendType,
+        isHelpChatOpen,
+        setIsHelpChatOpen,
+        query,
+        setQuery,
+    } = props
+    const [isUserMenuVisible, setIsUserMenuVisible] = React.useState(false)
     const { modal } = modalProvider.useModal()
     const { setModal, unsetModal } = modalProvider.useSetModal()
     const { backend } = backendProvider.useBackend()
 
-    react.useEffect(() => {
+    React.useEffect(() => {
         if (!modal) {
             setIsUserMenuVisible(false)
         }
     }, [modal])
 
-    react.useEffect(() => {
+    React.useEffect(() => {
         if (isUserMenuVisible) {
             setModal(() => <UserMenu />)
         } else {
             unsetModal()
         }
-    }, [isUserMenuVisible])
+    }, [isUserMenuVisible, setModal, unsetModal])
 
     return (
         <div className="flex mx-2 h-8">
@@ -87,8 +98,9 @@ function TopBar(props: TopBarProps) {
                 </div>
             )}
             <div
-                className={`flex items-center bg-label rounded-full pl-1
-                                pr-2.5 mx-2 ${projectName ? 'cursor-pointer' : 'opacity-50'}`}
+                className={`flex items-center bg-label rounded-full pl-1 pr-2.5 mx-2 ${
+                    projectName != null ? 'cursor-pointer' : 'opacity-50'
+                }`}
                 onClick={toggleTab}
             >
                 <span
@@ -124,16 +136,20 @@ function TopBar(props: TopBarProps) {
                     className="flex-1 mx-2 bg-transparent"
                 />
             </div>
-            <a
-                href="https://discord.gg/enso"
-                target="_blank"
-                className="flex items-center bg-help rounded-full px-2.5 text-white mx-2"
-            >
-                <span className="whitespace-nowrap">help chat</span>
-                <div className="ml-2">
-                    <img src={SpeechBubbleIcon} />
+            <div className="grow" />
+            {!isHelpChatOpen && (
+                <div
+                    className="flex cursor-pointer items-center bg-help rounded-full px-2.5 text-white mx-2"
+                    onClick={() => {
+                        setIsHelpChatOpen(true)
+                    }}
+                >
+                    <span className="whitespace-nowrap">help chat</span>
+                    <div className="ml-2">
+                        <img src={SpeechBubbleIcon} />
+                    </div>
                 </div>
-            </a>
+            )}
             {/* User profile and menu. */}
             <div className="transform w-8">
                 <div

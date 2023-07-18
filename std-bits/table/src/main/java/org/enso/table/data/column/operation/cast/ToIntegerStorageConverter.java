@@ -10,6 +10,7 @@ import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.Bits;
 import org.enso.table.data.column.storage.type.IntegerType;
+import org.graalvm.polyglot.Context;
 
 public class ToIntegerStorageConverter implements StorageConverter<Long> {
   private final double min;
@@ -39,6 +40,7 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
   }
 
   public Storage<Long> castFromMixed(Storage<?> mixedStorage, CastProblemBuilder problemBuilder) {
+    Context context = Context.getCurrent();
     LongBuilder builder = NumericBuilder.createLongBuilder(mixedStorage.size());
     for (int i = 0; i < mixedStorage.size(); i++) {
       Object o = mixedStorage.getItemBoxed(i);
@@ -62,6 +64,8 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
         problemBuilder.reportConversionFailure(o);
         builder.appendNulls(1);
       }
+
+      context.safepoint();
     }
 
     return builder.seal();
@@ -72,6 +76,7 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
   }
 
   private Storage<Long> convertBoolStorage(BoolStorage boolStorage) {
+    Context context = Context.getCurrent();
     int n = boolStorage.size();
     LongBuilder builder = NumericBuilder.createLongBuilder(n);
     for (int i = 0; i < n; i++) {
@@ -81,11 +86,14 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
         boolean value = boolStorage.getItem(i);
         builder.appendLong(booleanAsLong(value));
       }
+
+      context.safepoint();
     }
     return builder.seal();
   }
 
   private Storage<Long> convertDoubleStorage(CastProblemBuilder problemBuilder, DoubleStorage doubleStorage) {
+    Context context = Context.getCurrent();
     int n = doubleStorage.size();
     LongBuilder builder = NumericBuilder.createLongBuilder(n);
     for (int i = 0; i < n; i++) {
@@ -101,6 +109,8 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
           problemBuilder.reportConversionFailure(value);
         }
       }
+
+      context.safepoint();
     }
     return builder.seal();
   }

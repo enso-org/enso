@@ -11,6 +11,7 @@ import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.TextType;
+import org.graalvm.polyglot.Context;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -62,6 +63,7 @@ public class ToTextStorageConverter implements StorageConverter<String> {
   }
 
   public Storage<String> castFromMixed(Storage<?> mixedStorage, CastProblemBuilder problemBuilder) {
+    Context context = Context.getCurrent();
     StringBuilder builder = new StringBuilder(mixedStorage.size());
     for (int i = 0; i < mixedStorage.size(); i++) {
       Object o = mixedStorage.getItemBoxed(i);
@@ -73,6 +75,8 @@ public class ToTextStorageConverter implements StorageConverter<String> {
         case Boolean b -> builder.append(adapt(convertBoolean(b), problemBuilder));
         default -> builder.append(adapt(o.toString(), problemBuilder));
       }
+
+      context.safepoint();
     }
 
     return builder.seal();
@@ -100,6 +104,7 @@ public class ToTextStorageConverter implements StorageConverter<String> {
   }
 
   private Storage<String> castLongStorage(LongStorage longStorage, CastProblemBuilder problemBuilder) {
+    Context context = Context.getCurrent();
     StringBuilder builder = new StringBuilder(longStorage.size());
     for (int i = 0; i < longStorage.size(); i++) {
       if (longStorage.isNa(i)) {
@@ -108,11 +113,14 @@ public class ToTextStorageConverter implements StorageConverter<String> {
         long value = longStorage.getItem(i);
         builder.append(adapt(Long.toString(value), problemBuilder));
       }
+
+      context.safepoint();
     }
     return builder.seal();
   }
 
   private Storage<String> castBoolStorage(BoolStorage boolStorage, CastProblemBuilder problemBuilder) {
+    Context context = Context.getCurrent();
     StringBuilder builder = new StringBuilder(boolStorage.size());
     for (int i = 0; i < boolStorage.size(); i++) {
       if (boolStorage.isNa(i)) {
@@ -121,11 +129,14 @@ public class ToTextStorageConverter implements StorageConverter<String> {
         boolean value = boolStorage.getItem(i);
         builder.append(adapt(convertBoolean(value), problemBuilder));
       }
+
+      context.safepoint();
     }
     return builder.seal();
   }
 
   private Storage<String> castDoubleStorage(DoubleStorage doubleStorage, CastProblemBuilder problemBuilder) {
+    Context context = Context.getCurrent();
     StringBuilder builder = new StringBuilder(doubleStorage.size());
     for (int i = 0; i < doubleStorage.size(); i++) {
       if (doubleStorage.isNa(i)) {
@@ -134,11 +145,14 @@ public class ToTextStorageConverter implements StorageConverter<String> {
         double value = doubleStorage.getItem(i);
         builder.append(adapt(Double.toString(value), problemBuilder));
       }
+
+      context.safepoint();
     }
     return builder.seal();
   }
 
   private <T> Storage<String> castDateTimeStorage(Storage<T> storage, Function<T, String> converter, CastProblemBuilder problemBuilder) {
+    Context context = Context.getCurrent();
     StringBuilder builder = new StringBuilder(storage.size());
     for (int i = 0; i < storage.size(); i++) {
       if (storage.isNa(i)) {
@@ -148,6 +162,8 @@ public class ToTextStorageConverter implements StorageConverter<String> {
         String converted = converter.apply(value);
         builder.append(adapt(converted, problemBuilder));
       }
+
+      context.safepoint();
     }
     return builder.seal();
   }
@@ -180,6 +196,7 @@ public class ToTextStorageConverter implements StorageConverter<String> {
   }
 
   private Storage<String> adaptStringStorage(StringStorage stringStorage) {
+    Context context = Context.getCurrent();
     StringBuilder builder = new StringBuilder(stringStorage.size());
     for (int i = 0; i < stringStorage.size(); i++) {
       if (stringStorage.isNa(i)) {
@@ -189,6 +206,8 @@ public class ToTextStorageConverter implements StorageConverter<String> {
         // Adapting an existing string storage into a new type is done without warnings.
         builder.append(adaptWithoutWarning(value));
       }
+
+      context.safepoint();
     }
     return builder.seal();
   }

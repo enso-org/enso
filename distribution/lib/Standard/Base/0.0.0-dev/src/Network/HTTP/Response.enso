@@ -3,23 +3,21 @@ import project.Data.Boolean.Boolean
 import project.Data.Json.JS_Object
 import project.Data.Numbers.Number
 import project.Data.Text.Encoding.Encoding
-from project.Data.Text.Extensions import all
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Meta
-import project.Nothing.Nothing
+import project.Metadata.Display
+import project.Metadata.Widget
 import project.Network.HTTP.Header.Header
 import project.Network.HTTP.HTTP_Status_Code.HTTP_Status_Code
 import project.Network.HTTP.Response_Body.Response_Body
-
-from project.System.File_Format import Auto_Detect, File_Format, format_types
-
-import project.Metadata.Widget
-from project.Metadata.Widget import Single_Choice
+import project.Nothing.Nothing
+from project.Data.Text.Extensions import all
 from project.Metadata.Choice import Option
-import project.Metadata.Display
+from project.Metadata.Widget import Single_Choice
+from project.System.File_Format import Auto_Detect, File_Format, format_types
 
 polyglot java import org.enso.base.Http_Utils
 

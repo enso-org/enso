@@ -14,12 +14,12 @@ import java.util.UUID
 
 /** An actor responsible for supervising the [[MessageHandler]].
   *
-  * @param protocol a protocol supported be the server
+  * @param protocolFactory a factory used to create a protocol supported be the server
   * @param clientControllerFactory a factory used to create a client controller
   */
 final class MessageHandlerSupervisor(
   clientControllerFactory: ClientControllerFactory,
-  protocol: Protocol
+  protocolFactory: ProtocolFactory
 ) extends Actor
     with LazyLogging
     with Stash {
@@ -55,7 +55,7 @@ final class MessageHandlerSupervisor(
 
       val messageHandler =
         context.actorOf(
-          Props(new MessageHandler(protocol, clientActor)),
+          Props(new MessageHandler(protocolFactory, clientActor)),
           s"message-handler-$clientId"
         )
       clientActor ! JsonRpcServer.WebConnect(messageHandler)

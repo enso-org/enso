@@ -669,125 +669,82 @@ Hello, World!
 You can start [IDE](https://github.com/enso-org/enso/tree/develop/gui) with a
 development version of the language server. IDE executable has
 `--external-backend` flag that switches off the bundled backend. That requires
-you to run the project manager process yourself. You can either get a project
-manager from one of the latest releases on
-[GitHub](https://github.com/enso-org/enso/releases), or build one using SBT
-`buildProjectManagerDistribution` command.
-
-Running development version of the IDE is possible via the `./run` script in the
-root of the repository:
+you to run the project manager process yourself. Running development version of
+the IDE is also possible via the `./run` script in the root of the repository:
 
 ```bash
-$ ./run ide start --wasm-profile dev --external-backend
+enso$ ./run gui watch --skip-wasm-opt
 ```
 
-##### Bash
+To build the `project-manager` one needs to launch `sbt` - one way to do it is
+to execute `./run backend sbt`. When in the _sbt prompt_ one can request
+compilation of the `project-manager`:
 
 ```bash
-sbt buildProjectManagerDistribution
-```
-
-##### PowerShell
-
-```powershell
-sbt.bat buildProjectManagerDistribution
+sbt:enso> buildProjectManagerDistribution
 ```
 
 When the command is completed, a development version of the project manager will
 have appeared in the `built-distribution` directory.
 
-The IDE will connect to the running project manager to look up the project and
-start the language server. The required version of the language server is
-specified in the `edition` field of the `package.yaml` project description. Enso
-projects are located in the `~/enso` directory on Unix and `%userprofile%\enso`
-on Windows systems by default.
+Project manager is there to wait for the IDE to connect to it and then launch
+the engine with its embedded language server. To build the engine issue
+following command in the _sbt prompt_:
 
 ```bash
-cat ~/enso/projects/Unnamed/package.yaml
+sbt:enso> buildEngineDistribution
 ```
 
-```yaml
-name: Unnamed
-namespace: local
-version: 0.0.1
-license: ""
-authors: []
-maintainers: []
-edition: "2021.20-SNAPSHOT"
-prefer-local-libraries: true
-```
+Once all the components are assembled, it is time to execute them in
+orchestration. One can pass following environment variables to
+`project-manager`:
 
-We need to set `edition` to a value that will represent the development version.
-It should be different from any Enso versions that have already been released.
-In this case, we chose the `2021.20-SNAPSHOT` (the current development edition).
-The project manager will look for the appropriate subdirectory in the _engines_
-directory of the distribution folder. Distribution paths are printed when you
-run project manager with `-v` verbose logging.
+- `ENSO_JVM_OPTS` to for example turn
+  [debugging of the Engine runtime](debugger/README.md) on
+- `ENSO_JVM_PATH` to force a fixed GraalVM to execute the engine/language server
+  process on
+- `ENSO_ENGINE_PATH` the path to engine/language server as created by
+  `buildEngineDistribution`, usually
+  `<repository-root>/built-distribution/enso-engine-0.0.0-dev-<os>-<arch>/enso-0.0.0-dev/`
 
-Btw. you can specify `ENSO_JVM_OPTS` to turn
-[debugging of the Engine runtime](debugger/README.md) on:
+One doesn't need to deal with these options directly, there is an _sbt command_
+to orchestrate them all:
 
 ```bash
-$ export ENSO_JVM_OPTS=-agentlib:jdwp=transport=dt_socket,address=5005
-$ ./built-distribution/enso-project-manager-0.0.0-dev-linux-amd64/enso/bin/project-manager --no-log-masking -v
-[info] [2021-06-16T11:49:33.639Z] [org.enso.projectmanager.boot.ProjectManager$] Starting Project Manager...
-[debug] [2021-06-16T11:49:33.639Z] [org.enso.runtimeversionmanager.distribution.DistributionManager] Detected paths: DistributionPaths(
-  dataRoot = /home/dbv/.local/share/enso,
-  runtimes = /home/dbv/.local/share/enso/runtime,
-  engines  = /home/dbv/.local/share/enso/dist,
-  bundle   = None,
-  config   = /home/dbv/.config/enso,
-  locks    = /run/user/1000/enso/lock,
-  tmp      = /home/dbv/.local/share/enso/tmp
-)
+sbt:enso> runProjectManagerDistribution
 ```
 
-On Linux it looks for the `~/.local/share/enso/dist/0.2.32-SNAPSHOT/` directory.
+The above command invokes `buildProjectManagerDistribution`,
+`buildEngineDistribution` and then defines `ENSO_ENGINE_PATH` to connect them
+together and also specifies the `ENSO_JVM_PATH` to the JVM `sbt` process runs
+on.
 
-We can build an engine distribution using the `buildEngineDistribution` command
-in SBT.
-
-##### Bash
+There also is a simple way to [debug](debugger/README.md). When adding `--debug`
+option to the _sbt command_:
 
 ```bash
-sbt buildEngineDistribution
+sbt:enso> runProjectManagerDistribution --debug
 ```
 
-##### PowerShell
-
-```powershell
-sbt.bat buildEngineDistribution
-```
-
-And copy the result to the `0.2.32-SNAPSHOT` engines directory of the
-distribution folder.
-
-##### Bash
-
-```bash
-cp -r built-distribution/enso-engine-0.2.32-SNAPSHOT-linux-amd64/enso-0.2.32-SNAPSHOT ~/.local/share/enso/dist/0.2.32-SNAPSHOT
-```
-
-##### PowerShell
-
-```powershell
-cp -r built-distribution/enso-engine-0.2.32-SNAPSHOT-linux-amd64/enso-0.2.32-SNAPSHOT ~/.local/share/enso/dist/0.2.32-SNAPSHOT
-```
-
-Now, when the project manager is running and the engines directory contains the
-required engine version, you can start IDE with the `--no-backend` flag. It will
-pick up the development version of the language server we just prepared.
+the system also sets
+`ENSO_JVM_OPTS=-agentlib:jdwp=transport=dt_socket,address=5005`. Just
+[configure your Java IDE](debugger/README.md) to listen on port 5005 before
+invoking the command and you'll be able to debug the engine launched by the
+project manager.
 
 To summarize, these are the steps required to run IDE with the development
-version of the language server.
+version of the language server:
 
-1. Run the project manager process.
-2. Copy or symlink the development version of the engine created with SBT's
-   `buildEnginedistribution` command to the engines directory of the Enso
-   distribution folder.
-3. Set the `edition` field of the `package.yaml` project definition to the
-   version that you created in the previous step.
-4. Run the IDE with `--no-backend` flag.
+```bash
+enso$ ./run gui watch --skip-wasm-opt
+```
+
+together with that also (after launching `./run backend sbt`) following _sbt
+command_:
+
+```bash
+sbt:enso> runProjectManagerDistribution
+```
 
 #### Language Server Mode
 

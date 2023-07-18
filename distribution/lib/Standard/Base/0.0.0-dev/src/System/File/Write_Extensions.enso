@@ -1,6 +1,5 @@
-import project.Data.Text.Text
 import project.Data.Text.Encoding.Encoding
-from project.Data.Text.Extensions import all
+import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Common.Unsupported_Argument_Types
@@ -14,8 +13,8 @@ import project.Runtime.Context
 import project.System.File.Existing_File_Behavior.Existing_File_Behavior
 import project.System.File.File
 import project.Warning.Warning
-
-from project.Data.Boolean import Boolean, True, False
+from project.Data.Boolean import Boolean, False, True
+from project.Data.Text.Extensions import all
 
 polyglot java import org.enso.base.Array_Builder
 

@@ -5,13 +5,13 @@ import io.circe.literal._
 import nl.gn0s1s.bump.SemVer
 import org.apache.commons.io.FileUtils
 import org.enso.editions.SemVerJson._
+import org.enso.projectmanager.boot.configuration.TimeoutConfig
 import org.enso.projectmanager.{BaseServerSpec, ProjectManagementOps}
 import org.enso.testkit.FlakySpec
 
 import java.io.File
 import java.nio.file.{Files, Paths}
 import java.util.UUID
-
 import scala.concurrent.duration._
 import scala.io.Source
 
@@ -28,6 +28,10 @@ class ProjectManagementApiSpec
   override val engineToInstall = Some(SemVer(0, 0, 1))
 
   override val deleteProjectsRootAfterEachTest = false
+
+  override lazy val timeoutConfig: TimeoutConfig = {
+    config.timeout.copy(delayedShutdownTimeout = 1.nanosecond)
+  }
 
   "project/create" must {
 

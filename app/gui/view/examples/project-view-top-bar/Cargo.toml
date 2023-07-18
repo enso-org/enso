@@ -1,0 +1,15 @@
+[package]
+name = "debug-scene-project-view-top-bar"
+version = "0.1.0"
+authors = ["Enso Team <contact@enso.org>"]
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+ide-view-project-view-top-bar = { path = "../../project-view-top-bar" }
+ide-view-execution-environment-selector = { path = "../../execution-environment-selector" }
+ensogl = { path = "../../../../../lib/rust/ensogl" }
+ensogl-hardcoded-theme = { path = "../../../../../lib/rust/ensogl/app/theme/hardcoded" }
+ensogl-text-msdf = { path = "../../../../../lib/rust/ensogl/component/text/src/font/msdf" }

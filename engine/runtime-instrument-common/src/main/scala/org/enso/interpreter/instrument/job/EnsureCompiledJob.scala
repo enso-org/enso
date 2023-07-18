@@ -22,6 +22,7 @@ import org.enso.interpreter.instrument.{
 import org.enso.interpreter.runtime.Module
 import org.enso.interpreter.service.error.ModuleNotFoundForFileException
 import org.enso.pkg.QualifiedName
+import org.enso.polyglot.CompilationStage
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.StackItem
 import org.enso.text.buffer.Rope
@@ -217,7 +218,7 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
   )(implicit ctx: RuntimeContext): Either[Throwable, CompilerResult] =
     Either.catchNonFatal {
       val compilationStage = module.getCompilationStage
-      if (!compilationStage.isAtLeast(Module.CompilationStage.AFTER_CODEGEN)) {
+      if (!compilationStage.isAtLeast(CompilationStage.AFTER_CODEGEN)) {
         ctx.executionService.getLogger
           .log(Level.FINEST, s"Compiling ${module.getName}.")
         val result = ctx.executionService.getContext.getCompiler.run(module)

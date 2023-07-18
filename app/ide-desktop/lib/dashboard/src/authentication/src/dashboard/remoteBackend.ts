@@ -38,10 +38,14 @@ function responseIsSuccessful(response: Response) {
 // === Paths ===
 // =============
 
+/** Relative HTTP path to the "list users" endpoint of the Cloud backend API. */
+const LIST_USERS_PATH = 'users'
 /** Relative HTTP path to the "set username" endpoint of the Cloud backend API. */
 const CREATE_USER_PATH = 'users'
-/** Relative HTTP path to the "set username" endpoint of the Cloud backend API. */
+/** Relative HTTP path to the "invite user" endpoint of the Cloud backend API. */
 const INVITE_USER_PATH = 'users/invite'
+/** Relative HTTP path to the "create permission" endpoint of the Cloud backend API. */
+const CREATE_PERMISSION_PATH = 'permissions'
 /** Relative HTTP path to the "get user" endpoint of the Cloud backend API. */
 const USERS_ME_PATH = 'users/me'
 /** Relative HTTP path to the "list directory" endpoint of the Cloud backend API. */
@@ -111,6 +115,11 @@ function deleteTagPath(tagId: backend.TagId) {
 // === Types ===
 // =============
 
+/** HTTP response body for the "list users" endpoint. */
+interface ListUsersResponseBody {
+    users: backend.SimpleUser[]
+}
+
 /** HTTP response body for the "list projects" endpoint. */
 interface ListDirectoryResponseBody {
     assets: backend.BaseAsset[]
@@ -161,6 +170,11 @@ export class RemoteBackend implements backend.Backend {
         if (!this.client.defaultHeaders.has('Authorization')) {
             return this.throw('Authorization header not set.')
         } else {
+            if (IS_DEV_MODE) {
+                // @ts-expect-error This exists only for debugging purposes. It does not have types
+                // because it MUST NOT be used in this codebase.
+                window.remoteBackend = this
+            }
             return
         }
     }
@@ -170,6 +184,16 @@ export class RemoteBackend implements backend.Backend {
     throw(message: string): never {
         this.logger.error(message)
         throw new Error(message)
+    }
+
+    /** Return a list of all users in the same organization. */
+    async listUsers(): Promise<backend.SimpleUser[]> {
+        const response = await this.get<ListUsersResponseBody>(LIST_USERS_PATH)
+        if (!responseIsSuccessful(response)) {
+            return this.throw(`Unable to list users in the organization.`)
+        } else {
+            return (await response.json()).users
+        }
     }
 
     /** Set the username and parent organization of the current user. */
@@ -182,11 +206,21 @@ export class RemoteBackend implements backend.Backend {
         }
     }
 
-    /** Set the username of the current user. */
+    /** Invite a new user to the organization by email. */
     async inviteUser(body: backend.InviteUserRequestBody): Promise<void> {
         const response = await this.post(INVITE_USER_PATH, body)
         if (!responseIsSuccessful(response)) {
-            return this.throw(`Unable to invite user with email '${body.userEmail}'.`)
+            return this.throw(`Unable to invite user '${body.userEmail}'.`)
+        } else {
+            return
+        }
+    }
+
+    /** Adds a permission for a specific user on a specific asset. */
+    async createPermission(body: backend.CreatePermissionRequestBody): Promise<void> {
+        const response = await this.post<backend.UserOrOrganization>(CREATE_PERMISSION_PATH, body)
+        if (!responseIsSuccessful(response)) {
+            return this.throw(`Unable to set permissions.`)
         } else {
             return
         }
@@ -213,14 +247,14 @@ export class RemoteBackend implements backend.Backend {
                 '?' +
                 new URLSearchParams({
                     // eslint-disable-next-line @typescript-eslint/naming-convention
-                    ...(query.parentId ? { parent_id: query.parentId } : {}),
+                    ...(query.parentId != null ? { parent_id: query.parentId } : {}),
                 }).toString()
         )
         if (!responseIsSuccessful(response)) {
             if (response.status === STATUS_SERVER_ERROR) {
                 // The directory is probably empty.
                 return []
-            } else if (query.parentId) {
+            } else if (query.parentId != null) {
                 return this.throw(`Unable to list directory with ID '${query.parentId}'.`)
             } else {
                 return this.throw('Unable to list root directory.')
@@ -393,8 +427,8 @@ export class RemoteBackend implements backend.Backend {
                 '?' +
                 new URLSearchParams({
                     /* eslint-disable @typescript-eslint/naming-convention */
-                    ...(params.fileName ? { file_name: params.fileName } : {}),
-                    ...(params.fileId ? { file_id: params.fileId } : {}),
+                    ...(params.fileName != null ? { file_name: params.fileName } : {}),
+                    ...(params.fileId != null ? { file_id: params.fileId } : {}),
                     ...(params.parentDirectoryId
                         ? { parent_directory_id: params.parentDirectoryId }
                         : {}),
@@ -403,9 +437,9 @@ export class RemoteBackend implements backend.Backend {
             body
         )
         if (!responseIsSuccessful(response)) {
-            if (params.fileName) {
+            if (params.fileName != null) {
                 return this.throw(`Unable to upload file with name '${params.fileName}'.`)
-            } else if (params.fileId) {
+            } else if (params.fileId != null) {
                 return this.throw(`Unable to upload file with ID '${params.fileId}'.`)
             } else {
                 return this.throw('Unable to upload file.')

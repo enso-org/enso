@@ -2,6 +2,7 @@ package org.enso.image.data;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.graalvm.polyglot.Context;
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfFloat;
@@ -45,11 +46,13 @@ public class Histogram {
         images, new MatOfInt(channel), new Mat(), histogram, new MatOfInt(BINS), valuesRange);
     Core.normalize(histogram, histogram, 0, MAX_VALUE, Core.NORM_MINMAX);
 
+    Context context = Context.getCurrent();
     float[] histogramData = new float[(int) histogram.total() * histogram.channels()];
     histogram.get(0, 0, histogramData);
     int[] binData = new int[histogramData.length];
     for (int i = 0; i < binData.length; i++) {
       binData[i] = Math.round(histogramData[i]);
+      context.safepoint();
     }
 
     return new Histogram(binData, channel);

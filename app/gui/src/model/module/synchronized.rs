@@ -206,17 +206,24 @@ impl Module {
     /// Reopen file in the Language Server.
     ///
     /// After reopening we update the LS state with the model's current content.
-    pub async fn reopen_file(&self, new_file: SourceFile) -> FallibleResult {
-        let file_path = self.path();
-        info!("Reopening file {file_path}.");
-        if let Err(error) = self.language_server.client.close_text_file(file_path).await {
-            error!("Error while reopening file {file_path}: Closing operation failed: {error} Trying to open the file anyway.");
-        }
-        let opened = self.language_server.client.open_text_file(file_path).await?;
+    pub async fn reopen_file_and_invalidate(&self, new_file: SourceFile) -> FallibleResult {
+        let opened = self.reopen_file().await?;
         let content = opened.content.into();
         let summary = ContentSummary::new(&content);
 
         self.full_invalidation(summary, new_file).await;
+        Ok(())
+    }
+
+    /// Reopen file in the Language Server.
+    ///
+    /// After reopening we update the model's current content with the LS state.
+    pub async fn reopen_file_and_set_content(&self) -> FallibleResult {
+        let opened = self.reopen_file().await?;
+        let content = opened.content.into();
+
+        self.set_module_content_from_ls(content).await?;
+
         Ok(())
     }
 
@@ -259,6 +266,17 @@ impl Module {
         self.notify(notification);
         notify_ls.await;
         Ok(())
+    }
+
+    /// Reopen file in the Language Server.
+    async fn reopen_file(&self) -> FallibleResult<language_server::response::OpenTextFile> {
+        let file_path = self.path();
+        info!("Reopening file {file_path}.");
+        if let Err(error) = self.language_server.client.close_text_file(file_path).await {
+            error!("Error while reopening file {file_path}: Closing operation failed: {error} Trying to open the file anyway.");
+        }
+        let opened = self.language_server.client.open_text_file(file_path).await?;
+        Ok(opened)
     }
 }
 
@@ -357,7 +375,11 @@ impl API for Module {
 
     fn reopen_file_in_language_server(&self) -> BoxFuture<FallibleResult> {
         let file = self.model.content().borrow().serialize();
-        async { self.reopen_file(file?).await }.boxed_local()
+        async { self.reopen_file_and_invalidate(file?).await }.boxed_local()
+    }
+
+    fn reopen_externally_changed_file(&self) -> BoxFuture<FallibleResult> {
+        async { self.reopen_file_and_set_content().await }.boxed_local()
     }
 }
 
@@ -396,7 +418,9 @@ impl Module {
         debug!("Handling notification when known LS content is {current_ls_content:?}.");
         match current_ls_content {
             LanguageServerContent::Unknown => {
-                if let Err(error) = profiler::await_!(self.reopen_file(new_file), _profiler) {
+                if let Err(error) =
+                    profiler::await_!(self.reopen_file_and_invalidate(new_file), _profiler)
+                {
                     error!("Error while reloading module model: {error}");
                 }
             }

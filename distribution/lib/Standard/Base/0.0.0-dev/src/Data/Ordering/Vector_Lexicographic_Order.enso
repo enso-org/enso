@@ -1,8 +1,7 @@
 import project.Any.Any
 import project.Data.Ordering.Ordering
 import project.Data.Vector.Vector
-
-from project.Data.Boolean import True, False
+from project.Data.Boolean import Boolean, False, True
 
 ## PRIVATE
    ADVANCED

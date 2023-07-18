@@ -1,19 +1,18 @@
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error
-import project.Meta
-import project.Panic.Panic
 import project.Errors.Encoding_Error.Encoding_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
+import project.Meta
+import project.Metadata.Display
+import project.Metadata.Widget
+import project.Panic.Panic
+from project.Metadata.Choice import Option
+from project.Metadata.Widget import Single_Choice
 
 polyglot java import java.nio.charset.Charset
 polyglot java import java.nio.charset.UnsupportedCharsetException
 polyglot java import org.enso.base.Text_Utils
-
-import project.Metadata.Widget
-from project.Metadata.Widget import Single_Choice
-from project.Metadata.Choice import Option
-import project.Metadata.Display
 
 ## Represents a character encoding.
 type Encoding

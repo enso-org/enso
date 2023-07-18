@@ -4,6 +4,7 @@ import java.util.List;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.table.Column;
+import org.graalvm.polyglot.Context;
 
 /**
  * Aggregate Column counting the number of (not-)null entries in a group. If `isNothing` is true,
@@ -28,9 +29,11 @@ public class CountNothing extends Aggregator {
 
   @Override
   public Object aggregate(List<Integer> indexes) {
+    Context context = Context.getCurrent();
     long count = 0;
     for (int row : indexes) {
       count += ((storage.getItemBoxed(row) == null) == isNothing ? 1L : 0L);
+      context.safepoint();
     }
     return count;
   }
