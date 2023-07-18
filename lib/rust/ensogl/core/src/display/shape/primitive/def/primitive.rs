@@ -172,15 +172,11 @@ define_sdf_shapes! {
     }
 
     HalfPlane () {
-        return bound_sdf(position.y, bounding_box(0.0,0.0));
+        return bound_sdf(-position.y, bounding_box(0.0,0.0));
     }
 
-    /// Cuts the provided angle from a plane. The angle faces upwards, so the angle of PI is equal
-    /// to the upper half-plane. Negative values and values over 2*PI will cause the shape to flip
-    /// vertically. In case you want a more consistent behavior, use the slightly less efficient
-    /// `PlaneAngle` instead.
     BottomHalfPlane () {
-        return bound_sdf(-position.y, bounding_box(0.0,0.0));
+        return bound_sdf(position.y, bounding_box(0.0,0.0));
     }
 
     /// Cuts the provided angle from a plane. The angle faces upwards, so the angle of PI is equal
