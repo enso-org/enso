@@ -166,14 +166,14 @@ impl Model {
 
     fn undo(&self) {
         warn!("Undo triggered in UI.");
-        let sth = crate::view::toast::info("Undo triggered in UI.", &None).handle_err(|e| {
-            error!("Toast failed: {e:?}");
-        });
-        let sth = crate::view::toast::info(
+        // let sth = crate::view::notification::info("Undo triggered in UI.", &None).handle_err(|e|
+        // {     error!("Toast failed: {e:?}");
+        // });
+        let sth = crate::view::notification::info(
             "Undo triggered in UI.",
-            &Some(crate::view::toast::Options {
-                theme: Some(crate::view::toast::Theme::Dark),
-                auto_close: Some(crate::view::toast::AutoClose::Never()),
+            &Some(crate::view::notification::Options {
+                theme: Some(crate::view::notification::Theme::Dark),
+                auto_close: Some(crate::view::notification::AutoClose::Never()),
                 draggable: Some(false),
                 close_on_click: Some(false),
                 ..Default::default()
@@ -186,6 +186,24 @@ impl Model {
         if let Err(e) = self.controller.model.urm().undo() {
             error!("Undo failed: {e}");
         }
+
+        crate::executor::global::spawn(async move {
+            enso_web::sleep(std::time::Duration::from_secs(2)).await;
+            // Wait one second.
+            // if let Some(sth) = sth {
+            //     sth.update(
+            //         &crate::view::notification::UpdateOptions::default()
+            //             .render_string("Undo done."),
+            //     )
+            //     .handle_err(|e| {
+            //         error!("Toast failed: {e:?}");
+            //     });
+            // } else {
+            //     error!("Missing notification handle.");
+            // }
+            // enso_web::sleep(std::time::Duration::from_secs(2)).await;
+            // crate::view::notification::js::get_toast().unwrap().dismiss_all();
+        });
     }
 
     fn redo(&self) {

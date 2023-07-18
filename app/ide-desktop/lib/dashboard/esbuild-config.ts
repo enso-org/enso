@@ -28,6 +28,13 @@ import * as utils from '../../utils'
 const THIS_PATH = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)))
 const TAILWIND_CONFIG_PATH = path.resolve(THIS_PATH, 'tailwind.config.ts')
 
+const FAUX_REACTIFY_CSS_PATH = path.resolve(THIS_PATH, 'src', 'ReactToastify.css')
+
+// Match  the exact path above, including THIS_PATH
+const FAUX_REACTIFY_CSS_PATH_REGEX = new RegExp(FAUX_REACTIFY_CSS_PATH.replace(/\\/g, '\\\\').replace(/\./g, '\\.'))
+
+console.log('FAUX_REACTIFY_CSS_PATH_REGEX', FAUX_REACTIFY_CSS_PATH_REGEX)
+
 // =============================
 // === Environment variables ===
 // =============================
@@ -99,25 +106,17 @@ function esbuildPluginGenerateTailwind(): esbuild.Plugin {
 /** aaaaaaa */
 export function esbuildPluginAddReactifyCSS(): esbuild.Plugin {
     return {
-        name: 'enso-generate-reactify',
+        name: 'enso-place-reactify',
         setup: build => {
-            build.onLoad({filter: /ReactToastify\.css$/}, async loadArgs => {
-                // Go from THIS_PATH like
-                const sourcePath = path.resolve('..', '..', 'src', 'ReactToastify.css')
-                const lastModified = (await fs.stat(loadArgs.path)).mtimeMs
-                let output = cachedOutput[loadArgs.path]
-                if (!output || output.lastModified !== lastModified || tailwindConfigWasModified) {
-                    console.log(`Processing CSS file '${loadArgs.path}'.`)
-                    const content = await fs.readFile(loadArgs.path, 'utf8')
-                    const result = await cssProcessor.process(content, {from: loadArgs.path})
-                    console.log(`Processed CSS file '${loadArgs.path}'.`)
-                    output = {contents: result.css, lastModified}
-                    cachedOutput[loadArgs.path] = output
-                }
+            build.onResolve({filter: FAUX_REACTIFY_CSS_PATH_REGEX}, async args => {
+                return await build.resolve('react-toastify/dist/ReactToastify.css', {resolveDir: args.resolveDir, kind: "import-statement"})
+            })
+            build.onLoad({filter: /ReactToastify\.css$/}, async (args) => {
+                const contents =  await fs.readFile(args.path, 'utf8')
                 return {
-                    contents: output.contents,
-                    loader: 'css',
-                    watchFiles: [loadArgs.path, TAILWIND_CONFIG_PATH],
+                    contents,
+                    loader: 'copy',
+                    watchFiles: [args.path],
                 }
             })
         }
@@ -138,7 +137,7 @@ export function bundlerOptions(args: Arguments) {
     const buildOptions = {
         absWorkingDir: THIS_PATH,
         bundle: trueBoolean,
-        entryPoints: [path.resolve(THIS_PATH, 'src', 'tailwind.css')],
+        entryPoints: [path.resolve(THIS_PATH, 'src', 'tailwind.css'), FAUX_REACTIFY_CSS_PATH],
         outdir: outputPath,
         outbase: 'src',
         loader: {
@@ -157,6 +156,7 @@ export function bundlerOptions(args: Arguments) {
             // This is not strictly needed because the cloud frontend does not use
             // the Project Manager, however it is very difficult to conditionally exclude a module.
             esbuildPluginYaml.yamlPlugin({}),
+            esbuildPluginAddReactifyCSS(),
             esbuildPluginGenerateTailwind(),
 
         ],

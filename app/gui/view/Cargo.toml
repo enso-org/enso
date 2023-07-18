@@ -38,6 +38,7 @@ serde-wasm-bindgen = { workspace = true }
 strum = { workspace = true }
 uuid = { version = "0.8", features = ["serde", "v4", "wasm-bindgen"] }
 wasm-bindgen = { workspace = true }
+wasm-bindgen-test = { workspace = true }
 welcome-screen = { path = "welcome-screen" }
 
 [dependencies.web-sys]

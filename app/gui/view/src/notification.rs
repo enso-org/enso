@@ -5,18 +5,37 @@ use serde::Deserialize;
 use serde::Serialize;
 use wasm_bindgen::prelude::*;
 
+pub mod js;
 
-// use frp::web::JsValue;
+/// Macro that implements TryFrom for given `type` to/from JsValue using [`serde_wasm_bindgen`].
+///
+/// Implements:
+/// - `TryFrom<&type> for JsValue`
+/// - `TryFrom<JsValue> for type`
+macro_rules! impl_try_from_jsvalue {
+    ($type:ty) => {
+        impl TryFrom<&$type> for JsValue {
+            type Error = JsValue;
 
+            fn try_from(value: &$type) -> Result<Self, Self::Error> {
+                serde_wasm_bindgen::to_value(value).map_err(|e| e.into())
+            }
+        }
 
-/// Toastify library import within the application.
-const TOASTIFY_FIELD_NAME: &str = "toast";
+        impl TryFrom<JsValue> for $type {
+            type Error = JsValue;
 
+            fn try_from(js_value: JsValue) -> Result<Self, Self::Error> {
+                serde_wasm_bindgen::from_value(js_value).map_err(|e| e.into())
+            }
+        }
+    };
+}
 
 /// Helper structure for [`AutoClose`] so it serializes in a way compatible with the JS library.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[serde(untagged)]
-enum AutoCloseInner {
+pub enum AutoCloseInner {
     /// Auto close after a delay expressed in milliseconds.
     Delay(u32),
     /// Do not auto close. The boolean value must be `false`.
@@ -24,7 +43,7 @@ enum AutoCloseInner {
 }
 
 /// Represents the auto close delay of a toast notification.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Deref)]
 #[serde(transparent)]
 pub struct AutoClose(AutoCloseInner);
 
@@ -48,6 +67,7 @@ impl AutoClose {
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, strum::AsRefStr)]
 #[serde(rename_all = "kebab-case")]
 #[strum(serialize_all = "kebab-case")]
+#[allow(missing_docs)]
 pub enum Type {
     Info,
     Success,
@@ -80,10 +100,32 @@ pub enum DraggableDirection {
 /// Themes supported by the library.
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
+#[allow(missing_docs)]
 pub enum Theme {
     Light,
     Dark,
     Colored,
+}
+
+/// Identifies a [`ToastContainer`](https://fkhadra.github.io/react-toastify/api/toast-container)
+/// instance.
+///
+/// This is used to identify the container to which a toast should be added. Not needed when there
+/// is only one container.
+#[derive(Debug, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct ContainerId {
+    /// The `containerId` as set on the `<ToastContainer>` element.
+    pub container_id: Option<String>,
+}
+
+impl_try_from_jsvalue! {ContainerId}
+
+impl ContainerId {
+    /// Clear queue of notifications for this container (relevant if limit is set).
+    pub fn clear_waiting_queue(&self) -> Result<(), JsValue> {
+        js::get_toast()?.clear_waiting_queue_in(&self.try_into()?)
+    }
 }
 
 /// Customization options for Toast.
@@ -92,6 +134,7 @@ pub enum Theme {
 /// auto-filled with default values.
 #[derive(Debug, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
+#[allow(missing_docs)]
 pub struct Options {
     pub toast_id:            Option<String>,
     ///
@@ -132,7 +175,8 @@ pub struct Options {
     /// Specify in which direction should you swipe to dismiss the toast. `Default: "x"`.
     pub draggable_direction: Option<DraggableDirection>,
     /// Set id to handle multiple `ToastContainer` instances.
-    pub container_id:        Option<String>,
+    #[serde(flatten)]
+    pub container_id:        Option<ContainerId>,
     /// Define the [ARIA role](https://www.w3.org/WAI/PF/aria/roles) for the toast notification. `Default: "alert"`.
     pub role:                Option<String>,
     /// Add a delay in ms before the toast appear.
@@ -149,6 +193,34 @@ pub struct Options {
     pub icon:                Option<bool>,
     /// Any additional data to pass to the toast.
     pub data:                Option<SerializableJsValue>,
+}
+
+impl_try_from_jsvalue! {Options}
+
+/// Update options for a toast.
+#[derive(Debug, Serialize, Deserialize, Default, Deref, DerefMut)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateOptions {
+    #[deref]
+    #[deref_mut]
+    #[serde(flatten)]
+    pub options: Options,
+    /// Used to update a toast. Pass any valid ReactNode(string, number, component).
+    pub render:  Option<SerializableJsValue>,
+}
+
+impl_try_from_jsvalue! {UpdateOptions}
+
+impl UpdateOptions {
+    /// Allows set a new message in the notification.
+    ///
+    /// Useful only for update a toast.
+    pub fn render_string(mut self, render: impl AsRef<str>) -> Self {
+        let message = render.as_ref();
+        let value = JsValue::from_str(message);
+        self.render = Some(value.into());
+        self
+    }
 }
 
 /// A wrapper around a `JsValue` that implements the `Serialize` and `Deserialize` traits.
@@ -204,90 +276,16 @@ pub struct ToastStyle {
 }
 
 
-pub mod js {
-    use super::*;
-
-    pub fn get_toast() -> Result<JsValue, JsValue> {
-        // let window = &ensogl::system::web::window; // JSValue wrapper
-        let window = ensogl::system::web::binding::wasm::get_window();
-        let app_field_name = enso_config::CONFIG.window_app_scope_name;
-        // Hopefully, window contains a field with the name, so we can access it.
-        let app = js_sys::Reflect::get(window.as_ref(), &app_field_name.into())?;
-        let toastify = js_sys::Reflect::get(app.as_ref(), &TOASTIFY_FIELD_NAME.into())?;
-        Ok(toastify)
-    }
-
-
-    // Wrappers for [`toast`](https://react-hot-toast.com/docs/toast) API.
-    #[wasm_bindgen(inline_js = r#"
-                export function sendToast(toast, message, method, options) {
-                    const target = method ? toast[method] : toast;
-                    console.warn("toast", toast, "message", message, "method", method, "options", options);
-                    console.warn("target", target);
-                    return target(message, options);
-                }
-
-                export function dismissToast(toast, id) {
-                    return toast.dismiss(id);
-                }
-                "#)]
-    extern "C" {
-        /// The wrapper for the toast API.
-        pub type ToastAPI;
-
-        /// The unique identifier of a toast.
-        pub type Id;
-
-        /// Generalized wrapper for calling any kind of toast.
-        #[wasm_bindgen(catch)]
-        pub fn sendToast(
-            toast: &JsValue,
-            message: &str,
-            method: &JsValue,
-            options: &JsValue,
-        ) -> Result<Id, JsValue>;
-
-        /// Wrapper for dismissing a toast.
-        #[wasm_bindgen(catch)]
-        pub fn dismissToast(toast: &JsValue, id: &Id) -> Result<(), JsValue>;
-
-        /// Wrapper for dismissing a toast.
-        #[wasm_bindgen(catch, js_name = dismissToast)]
-        pub fn dismissAllToasts(toast: &JsValue) -> Result<(), JsValue>;
-
-    }
-
-    impl Debug for Id {
-        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-            let obj_as_js_value = JsValue::from(self);
-            write!(f, "{obj_as_js_value:?}")
-        }
-    }
-
-    impl Id {
-        /// Dismisses the toast.
-        pub fn dismiss(&self) -> Result<(), JsValue> {
-            dismissToast(&get_toast()?, self)
-        }
-    }
-
-    /// Wrapper for any toast.
-    pub fn toast(message: &str, r#type: Type, options: &JsValue) -> Result<Id, JsValue> {
-        let method: &str = r#type.as_ref();
-        let toast = get_toast()?;
-        warn!("toast: {:?}", toast);
-        warn!("message: {:?}", message);
-        sendToast(&get_toast()?, message, &method.into(), options)
-    }
-}
 
 pub use js::Id;
 
 pub fn toast_any(message: &str, r#type: Type, options: &Option<Options>) -> Result<Id, JsValue> {
+    warn!("options: {:?}", serde_json::to_string(options));
     let options = match options {
         Some(options) => serde_wasm_bindgen::to_value(options)?,
         None => JsValue::UNDEFINED,
     };
+    warn!("options: {:?}", js_sys::JSON::stringify(&options));
     js::toast(message, r#type, &options)
 }
 
@@ -306,6 +304,10 @@ pub fn success(message: &str, options: &Option<Options>) -> Result<Id, JsValue> 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use wasm_bindgen_test::wasm_bindgen_test;
+    use wasm_bindgen_test::wasm_bindgen_test_configure;
+
+    wasm_bindgen_test_configure!(run_in_browser);
 
     #[test]
     fn test_auto_close_delay() {
@@ -319,5 +321,20 @@ mod tests {
         let auto_close = AutoClose::Never();
         let serialized = serde_json::to_string(&auto_close).unwrap();
         assert_eq!(serialized, "false");
+    }
+
+    #[wasm_bindgen_test]
+    fn test_toast() {
+        let options = Options { auto_close: Some(AutoClose::After(5000)), ..Default::default() };
+        let js_value = serde_wasm_bindgen::to_value(&options).unwrap();
+        assert!(js_value.is_object());
+        let js_object = js_value.dyn_into::<js_sys::Object>().unwrap();
+        // JS autoclose field
+        assert_eq!("{..}", js_sys::JSON::stringify(&js_object).unwrap().as_string().unwrap());
+        let js_auto_close = js_sys::Reflect::get(&js_object, &"autoClose".into()).unwrap();
+        let js_auto_close_number = js_auto_close.as_f64().unwrap() as u32;
+        assert_eq!(5000, js_auto_close_number);
+        // assert_eq!(5000, js_object.get("autoClose").unwrap().as_f64().unwrap() as u32);
+        // assert_eq!(1, js_object.().length());
     }
 }
