@@ -268,8 +268,8 @@ make_is_in_column arguments = case arguments.length of
     _ -> Error.throw <| Illegal_State.Error ("The operation IS_IN_COLUMN requires at exactly 3 arguments: the expression, the IN subquery, the subquery checking for nulls.")
 
 ## PRIVATE
-make_row_number : Vector Builder -> Builder
-make_row_number arguments (metadata : Row_Number_Metadata) = if arguments.length < 3 then Error.throw (Illegal_State.Error "Wrong amount of parameters in ROW_NUMBER IR. This is a bug in the Database library.") else
+make_row_number : Vector Builder -> Row_Number_Metadata -> Builder
+make_row_number (arguments : Vector) (metadata : Row_Number_Metadata) = if arguments.length < 3 then Error.throw (Illegal_State.Error "Wrong amount of parameters in ROW_NUMBER IR. This is a bug in the Database library.") else
     offset = arguments.at 0
     step = arguments.at 1
 

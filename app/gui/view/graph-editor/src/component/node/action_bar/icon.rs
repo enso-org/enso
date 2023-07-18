@@ -5,6 +5,7 @@ use ensogl::display::shape::*;
 
 use ensogl::data::color;
 use ensogl_component::toggle_button::ColorableShape;
+use ensogl_hardcoded_theme::graph_editor::node::actions as theme;
 use std::f32::consts::FRAC_PI_2;
 use std::f32::consts::FRAC_PI_6;
 
@@ -23,16 +24,15 @@ pub mod visibility {
             let height       = Var::<Pixels>::from("input_size.y");
             let right_angle  = 90.0_f32.to_radians().radians();
             let unit         = &width/16.0;
-            let outer_radius = &unit*5.0;
-            let pupil        = Circle(&unit * 1.0);
+            let outer_radius = &unit*5.5;
             let inner_circle = Circle(&unit * 3.0);
             let outer_circle = Circle(outer_radius);
-            let right_edge   = Triangle(&unit * 7.9, &unit * 4.6);
+            let right_edge   = Triangle(&unit * 9.3, &unit * 5.0);
             let right_edge   = right_edge.rotate(right_angle);
-            let right_edge   = right_edge.translate_x(&unit * 5.3);
+            let right_edge   = right_edge.translate_x(&unit * 5.5);
             let left_edge    = right_edge.rotate(2.0 * right_angle);
             let eye_outer    = outer_circle + right_edge + left_edge;
-            let eye          = (eye_outer - inner_circle) + pupil;
+            let eye          = eye_outer - inner_circle;
             let eye_colored  = eye.fill(fill_color);
             let hover_area   = Rect((width,height)).fill(INVISIBLE_HOVER_COLOR);
 
@@ -92,6 +92,40 @@ fn make_ring<T: Into<Var<Pixels>>, U: Into<Var<Pixels>>>(
     ring.into()
 }
 
+/// Icon for the node expand. Looks like two panels one on top of the other.
+pub mod expand {
+    use super::*;
+
+    ensogl::shape! {
+        alignment = center;
+        (style: Style, color_rgba: Vector4<f32>) {
+            let fill_color: Var<color::Rgba> = color_rgba.into();
+            let dull_alpha: Var<f32> = style.get_number(theme::dull_alpha).into();
+            let dull_color = fill_color.clone().multiply_alpha(&dull_alpha);
+            let width = Var::<Pixels>::from("input_size.x");
+            let height = Var::<Pixels>::from("input_size.y");
+            let unit = &width/16.0;
+            let bottom = Rect((&unit*16.0,&unit*9.0));
+            let bottom = bottom.corners_radiuses(0.0.px(), 0.0.px(), &unit*2.0, &unit*2.0);
+            let bottom = bottom.translate_y(&unit * -2.5);
+            let bottom = bottom.fill(dull_color);
+            let top = Rect((&unit*16.0,&unit*4.0));
+            let top = top.corners_radiuses(&unit*2.0, &unit*2.0, 0.0.px(), 0.0.px());
+            let top = top.translate_y(&unit * 5.0);
+            let top = top.fill(&fill_color);
+            let icon = top + bottom;
+            let hover_area = Rect((width,height)).fill(INVISIBLE_HOVER_COLOR);
+            (icon + hover_area).pixel_snap().into()
+        }
+    }
+
+    impl ColorableShape for Shape {
+        fn set_color(&self, color: color::Rgba) {
+            self.color_rgba.set(Vector4::new(color.red, color.green, color.blue, color.alpha));
+        }
+    }
+}
+
 /// Icon for the freeze / lock button. Looks like a padlock.
 pub mod freeze {
     use super::*;
@@ -110,7 +144,7 @@ pub mod freeze {
             let lock_top_radius  = &unit * 4.0;
             let lock_top_width   = &unit * 2.0;
             let lock_top         = make_ring(&lock_top_radius,&lock_top_radius - &lock_top_width);
-            let lock_top         = lock_top.intersection(HalfPlane().rotate(right_angle*2.0));
+            let lock_top         = lock_top.intersection(BottomHalfPlane().rotate(right_angle*2.0));
             let lock_top         = lock_top.translate_y(lock_body_radius - &unit * 3.0);
             let vertical_bar     = Rect((&lock_top_width,&unit * 4.0));
             let left_bar         = vertical_bar.translate_x(&lock_top_radius-&lock_top_width/2.0);

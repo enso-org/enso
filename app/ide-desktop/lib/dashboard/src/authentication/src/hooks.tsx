@@ -167,6 +167,9 @@ export function useEventHandler<T extends KnownEvent>(
 
 // === useDebugState ===
 
+// `console.*` is allowed because this is for debugging purposes only.
+/* eslint-disable no-restricted-properties */
+
 /** A modified `useState` that logs the old and new values when `setState` is called. */
 export function useDebugState<T>(
     initialState: T | (() => T),
@@ -179,42 +182,23 @@ export function useDebugState<T>(
     const setState = React.useCallback(
         (valueOrUpdater: React.SetStateAction<T>, source?: string) => {
             const fullDescription = `${description}${source != null ? ` from '${source}'` : ''}`
-            if (typeof valueOrUpdater === 'function') {
-                // This is UNSAFE, however React makes the same assumption.
-                // eslint-disable-next-line no-restricted-syntax
-                const updater = valueOrUpdater as (prevState: T) => T
-                rawSetState(oldState => {
-                    const newState = updater(oldState)
-                    // This will not nest logs if states are nested.
-                    // However, this eliminates a lot of unnecessary noise.
-                    if (!Object.is(oldState, newState)) {
-                        console.group(description)
-                        console.log(`Old ${fullDescription}:`, oldState)
-                        console.log(`New ${fullDescription}:`, newState)
-                        console.groupEnd()
-                    }
-                    return newState
-                })
-            } else {
-                const value = valueOrUpdater
-                rawSetState(oldState => {
-                    if (!Object.is(oldState, value)) {
-                        console.group(description)
-                        console.log(`Old ${fullDescription}:`, oldState)
-                        console.log(`New ${fullDescription}:`, value)
-                        console.log(
-                            oldState,
-                            value,
-                            oldState === value,
-                            Object.is(oldState, value),
-                            typeof oldState,
-                            typeof value
-                        )
-                        console.groupEnd()
-                    }
-                    return valueOrUpdater
-                })
-            }
+            rawSetState(oldState => {
+                const newState =
+                    typeof valueOrUpdater === 'function'
+                        ? // This is UNSAFE when `T` is itself a function type,
+                          // however React makes the same assumption.
+                          // eslint-disable-next-line no-restricted-syntax
+                          (valueOrUpdater as (prevState: T) => T)(oldState)
+                        : valueOrUpdater
+                if (!Object.is(oldState, newState)) {
+                    console.group(description)
+                    console.trace(description)
+                    console.log(`Old ${fullDescription}:`, oldState)
+                    console.log(`New ${fullDescription}:`, newState)
+                    console.groupEnd()
+                }
+                return newState
+            })
         },
         [description]
     )
@@ -247,6 +231,8 @@ function useMonitorDependencies(
     }
     oldDependenciesRef.current = dependencies
 }
+
+/* eslint-enable no-restricted-properties */
 
 // === useDebugEffect ===
 

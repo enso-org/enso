@@ -294,4 +294,25 @@ public class Time_Utils {
   public static long unit_datetime_difference(TemporalUnit unit, ZonedDateTime start, ZonedDateTime end) {
     return unit.between(start, end);
   }
+
+  /**
+   * This wrapper function is needed to ensure that EnsoDateTime gets converted to LocalDate correctly.
+   */
+  public static LocalDate unit_date_add(TemporalUnit unit, LocalDate date, long amount) {
+    return date.plus(amount, unit);
+  }
+
+  /**
+   * This wrapper function is needed to ensure that EnsoDateTime gets converted to LocalTime correctly.
+   */
+  public static LocalTime unit_time_add(TemporalUnit unit, LocalTime time, long amount) {
+    return time.plus(amount, unit);
+  }
+
+  /**
+   * This wrapper function is needed to ensure that EnsoDateTime gets converted to ZonedDateTime correctly.
+   */
+  public static ZonedDateTime unit_datetime_add(TemporalUnit unit, ZonedDateTime datetime, long amount) {
+    return datetime.plus(amount, unit);
+  }
 }

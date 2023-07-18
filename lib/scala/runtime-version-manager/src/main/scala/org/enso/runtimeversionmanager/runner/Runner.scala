@@ -130,6 +130,7 @@ class Runner(
       )
     }
 
+  final private val JVM_PATH_ENV_VAR    = "ENSO_JVM_PATH"
   final private val JVM_OPTIONS_ENV_VAR = "ENSO_JVM_OPTS"
 
   /** Runs an action giving it a command that can be used to launch the
@@ -186,10 +187,19 @@ class Runner(
 
       val distributionSettings =
         distributionManager.getEnvironmentToInheritSettings
+
+      val javaHome: Option[String] = environment
+        .getEnvPath(JVM_PATH_ENV_VAR)
+        .map { p =>
+          Logger[Runner].info(
+            "Using explicit " + JVM_PATH_ENV_VAR + " JVM: " + p
+          )
+          p.toString()
+        }
+        .orElse(javaCommand.javaHomeOverride)
+
       val extraEnvironmentOverrides =
-        javaCommand.javaHomeOverride
-          .map("JAVA_HOME" -> _)
-          .toSeq ++ distributionSettings.toSeq
+        javaHome.map("JAVA_HOME" -> _).toSeq ++ distributionSettings.toSeq
 
       action(Command(command, extraEnvironmentOverrides))
     }

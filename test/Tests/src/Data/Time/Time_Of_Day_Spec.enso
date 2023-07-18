@@ -1,6 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Incomparable_Values
 import Standard.Base.Errors.Common.Type_Error
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Time_Error.Time_Error
 
 from Standard.Test import Test, Test_Suite
@@ -48,7 +49,7 @@ specWith name create_new_time parse_time nanoseconds_loss_in_precision=False =
         Test.specify "should convert to Json" <|
             time = create_new_time 1 2 3
             time.to_json.should_equal <|
-                time_pairs = [["hour", time.hour], ["minute", time.minute], ["second", time.second], ["nanosecond", time.nanosecond]]
+                time_pairs = [["hour", 1], ["minute", 2], ["second", 3], ["nanosecond", 0]]
                 JS_Object.from_pairs ([["type", "Time_Of_Day"], ["constructor", "new"]] + time_pairs) . to_text
 
         Test.specify "should parse default time format" <|
@@ -87,6 +88,8 @@ specWith name create_new_time parse_time nanoseconds_loss_in_precision=False =
             datetime . hour . should_equal 1
             datetime . minute . should_equal 0
             datetime . second . should_equal 0
+            datetime . millisecond . should_equal 0
+            datetime . microsecond . should_equal 0
             datetime . nanosecond . should_equal 0
             datetime . zone . zone_id . should_equal Time_Zone.utc.zone_id
 
@@ -202,6 +205,69 @@ specWith name create_new_time parse_time nanoseconds_loss_in_precision=False =
             d3.start_of Time_Period.Second . should_equal (Time_Of_Day.new 23 59 59 0)
             d3.end_of Time_Period.Second . should_equal (Time_Of_Day.new 23 59 59 nanosecond=max_nanos)
 
+        Test.specify "should allow extracting a date_part" <|
+            d1 = create_new_time 15 37 58 123456789
+            d1.date_part Time_Period.Hour . should_equal 15
+            d1.date_part Time_Period.Minute . should_equal 37
+            d1.date_part Time_Period.Second . should_equal 58
+            d1.date_part Time_Period.Millisecond . should_equal 123
+            if nanoseconds_loss_in_precision.not then
+                d1.date_part Time_Period.Microsecond . should_equal 456
+                d1.date_part Time_Period.Nanosecond . should_equal 789
+
+            d1.date_part Time_Period.Day . should_fail_with Illegal_Argument
+            Test.expect_panic_with (d1.date_part Date_Period.Day) Type_Error
+
+        Test.specify "should allow computing a date_diff" <|
+            t1 = create_new_time 10 15 0
+            t2 = create_new_time 12 30 20
+
+            # There is no default period:
+            t1.date_diff t2 . should_be_a Function
+            Test.expect_panic_with (t1.date_diff t2 Date_Period.Month) Type_Error
+            t1.date_diff t2 Time_Period.Day . should_fail_with Illegal_Argument
+
+            t1.date_diff t2 Time_Period.Hour . should_equal 2
+            t1.date_diff (Time_Of_Day.new 9 15 0) Time_Period.Hour . should_equal -1
+
+            t1.date_diff t2 Time_Period.Minute . should_equal 135
+            t1.date_diff (Time_Of_Day.new 10 04 0) Time_Period.Minute . should_equal -11
+
+            t1.date_diff t2 Time_Period.Second . should_equal 8120
+            t1.date_diff (Time_Of_Day.new 10 15 12) Time_Period.Second . should_equal 12
+
+            t1.date_diff t2 Time_Period.Millisecond . should_equal 8120*1000
+            t1.date_diff (Time_Of_Day.new 10 15 12 34) Time_Period.Millisecond . should_equal 12034
+
+            if nanoseconds_loss_in_precision.not then
+                t1.date_diff t2 Time_Period.Microsecond . should_equal 8120*1000*1000
+                t1.date_diff (Time_Of_Day.new 10 15 12 34 56) Time_Period.Microsecond . should_equal 12034056
+                t1.date_diff t2 Time_Period.Nanosecond . should_equal 8120*1000*1000*1000
+                t1.date_diff (Time_Of_Day.new 10 15 12 34 56 78) Time_Period.Nanosecond . should_equal 12034056078
+
+        Test.specify "should allow shifting with date_add" <|
+            t1 = create_new_time 23 45 0
+
+            t1.date_add -1 Time_Period.Hour . should_equal (Time_Of_Day.new 22 45 0)
+            t1.date_add 1 Time_Period.Hour . should_equal (Time_Of_Day.new 0 45 0)
+            t1.date_add -1 Time_Period.Minute . should_equal (Time_Of_Day.new 23 44 0)
+            t1.date_add 15 Time_Period.Minute . should_equal (Time_Of_Day.new 0 0 0)
+            t1.date_add -1 Time_Period.Second . should_equal (Time_Of_Day.new 23 44 59)
+            t1.date_add 5 Time_Period.Second . should_equal (Time_Of_Day.new 23 45 05)
+            t1.date_add 1 Time_Period.Millisecond . should_equal (Time_Of_Day.new 23 45 0 1)
+            if nanoseconds_loss_in_precision.not then
+                t1.date_add 123456 Time_Period.Microsecond . should_equal (Time_Of_Day.new 23 45 00 123 456)
+                t1.date_add -2 Time_Period.Nanosecond . should_equal (Time_Of_Day.new 23 44 59 999 999 998)
+
+            # No sense to shift Time_Of_Day by days
+            t1.date_add 1 Time_Period.Day . should_fail_with Illegal_Argument
+            Test.expect_panic_with (t1.date_add 1 Date_Period.Month) Type_Error
+
+            # There is no default period.
+            t1.date_add 10 . should_be_a Function
+
+            Test.expect_panic_with (t1.date_add 1.5 Time_Period.Hour) Type_Error
+            Test.expect_panic_with (t1.date_add 1.0 Time_Period.Hour) Type_Error
 
 enso_time hour minute=0 second=0 nanoOfSecond=0 =
     Time_Of_Day.new hour minute second nanosecond=nanoOfSecond

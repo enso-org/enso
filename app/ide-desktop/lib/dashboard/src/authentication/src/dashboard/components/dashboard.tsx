@@ -19,6 +19,7 @@ import * as backendProvider from '../../providers/backend'
 import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
 
+import Chat, * as chat from './chat'
 import DirectoryView from './directoryView'
 import Ide from './ide'
 import Templates from './templates'
@@ -59,6 +60,8 @@ function Dashboard(props: DashboardProps) {
         session.organization != null ? backendModule.rootDirectoryId(session.organization.id) : null
     )
     const [query, setQuery] = React.useState('')
+    const [isHelpChatOpen, setIsHelpChatOpen] = React.useState(false)
+    const [isHelpChatVisible, setIsHelpChatVisible] = React.useState(false)
     const [loadingProjectManagerDidFail, setLoadingProjectManagerDidFail] = React.useState(false)
     const [tab, setTab] = React.useState(tabModule.Tab.dashboard)
     const [project, setProject] = React.useState<backendModule.Project | null>(null)
@@ -124,6 +127,22 @@ function Dashboard(props: DashboardProps) {
             document.removeEventListener('show-dashboard', switchToDashboardTab)
         }
     }, [switchToDashboardTab])
+
+    React.useEffect(() => {
+        // The types come from a third-party API and cannot be changed.
+        // eslint-disable-next-line no-restricted-syntax
+        let handle: number | undefined
+        if (isHelpChatOpen) {
+            setIsHelpChatVisible(true)
+        } else {
+            handle = window.setTimeout(() => {
+                setIsHelpChatVisible(false)
+            }, chat.ANIMATION_DURATION_MS)
+        }
+        return () => {
+            clearTimeout(handle)
+        }
+    }, [isHelpChatOpen])
 
     React.useEffect(() => {
         const onProjectManagerLoadingFailed = () => {
@@ -224,6 +243,8 @@ function Dashboard(props: DashboardProps) {
                 supportsLocalBackend={supportsLocalBackend}
                 projectName={project?.name ?? null}
                 tab={tab}
+                isHelpChatOpen={isHelpChatOpen}
+                setIsHelpChatOpen={setIsHelpChatOpen}
                 toggleTab={toggleTab}
                 setBackendType={setBackendType}
                 query={query}
@@ -275,6 +296,15 @@ function Dashboard(props: DashboardProps) {
             )}
             <TheModal />
             {project && <Ide project={project} appRunner={appRunner} />}
+            {/* `session.accessToken` MUST be present in order for the `Chat` component to work. */}
+            {isHelpChatVisible && session.accessToken != null && (
+                <Chat
+                    isOpen={isHelpChatOpen}
+                    doClose={() => {
+                        setIsHelpChatOpen(false)
+                    }}
+                />
+            )}
         </div>
     )
 }
