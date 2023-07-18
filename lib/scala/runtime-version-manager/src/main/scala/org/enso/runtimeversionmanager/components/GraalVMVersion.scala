@@ -35,7 +35,8 @@ case class GraalVMVersion(graalVersion: String, javaVersion: String) {
       case None =>
         SemVer(version) match {
           case Some(_) => true
-          case None => false
+          case None =>
+            version.matches("^(\\d+\\.){3}\\d+$")
         }
     }
   }
