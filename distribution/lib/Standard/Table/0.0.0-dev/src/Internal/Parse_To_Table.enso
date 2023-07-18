@@ -19,7 +19,7 @@ parse_text_to_table : Text | Regex -> Text -> Case_Sensitivity -> Boolean -> Pro
 parse_text_to_table text regex_or_pattern_string="." case_sensitivity=Case_Sensitivity.Default parse_values=True on_problems=Report_Warning =
     case_insensitive = case_sensitivity.is_case_insensitive_in_memory
     pattern = case regex_or_pattern_string of
-        _ : Regex -> regex_or_pattern_string
+        _ : Regex -> regex_or_pattern_string.recompile case_sensitivity
         _ : Text -> Regex.compile regex_or_pattern_string case_insensitive=case_insensitive
     matches = pattern.match_all text
 
