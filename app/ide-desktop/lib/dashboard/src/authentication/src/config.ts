@@ -30,19 +30,33 @@ const API_URLS = {
     production: newtype.asNewtype<ApiUrl>('https://7aqkn3tnbc.execute-api.eu-west-1.amazonaws.com'),
 }
 
+/**
+ * All possible Help Chat endpoint URLs, sorted by environment.
+ *
+ * In development mode, the chat bot will need to be run locally:
+ * https://github.com/enso-org/enso-bot */
+const CHAT_URLS = {
+    development: newtype.asNewtype<ChatUrl>('ws://localhost:8082'),
+    // TODO[sb]: Insert the actual URL of the production chat bot here.
+    production: newtype.asNewtype<ChatUrl>('wss://chat.cloud.enso.org'),
+}
+
 /** All possible configuration options, sorted by environment. */
 const CONFIGS = {
     npekin: {
         cloudRedirect: CLOUD_REDIRECTS.development,
         apiUrl: API_URLS.npekin,
+        chatUrl: CHAT_URLS.development,
     } satisfies Config,
     pbuchu: {
         cloudRedirect: CLOUD_REDIRECTS.development,
         apiUrl: API_URLS.pbuchu,
+        chatUrl: CHAT_URLS.development,
     } satisfies Config,
     production: {
         cloudRedirect: CLOUD_REDIRECTS.production,
         apiUrl: API_URLS.production,
+        chatUrl: CHAT_URLS.production,
     } satisfies Config,
 }
 /** Export the configuration that is currently in use. */
@@ -54,10 +68,14 @@ export const ACTIVE_CONFIG: Config = CONFIGS[ENVIRONMENT]
 
 /** Interface defining the configuration options that we expect to provide for the Dashboard. */
 export interface Config {
-    /** URL used as the OAuth redirect when running in the cloud app. */
+    /** URL of the OAuth redirect when running in the cloud app.
+     *
+     * The desktop app redirects to a static deep link, so it does not have to be configured. */
     cloudRedirect: auth.OAuthRedirect
-    /** URL used as the base URL for requests to our Cloud API backend. */
+    /** Base URL for requests to our Cloud API backend. */
     apiUrl: ApiUrl
+    /** URL to the websocket endpoint of the Help Chat. */
+    chatUrl: ChatUrl
 }
 
 // ===================
@@ -73,4 +91,7 @@ export type Environment = 'npekin' | 'pbuchu' | 'production'
 // ===========
 
 /** Base URL for requests to our Cloud API backend. */
-type ApiUrl = newtype.Newtype<string, 'ApiUrl'>
+type ApiUrl = newtype.Newtype<`http://${string}` | `https://${string}`, 'ApiUrl'>
+
+/** URL to the websocket endpoint of the Help Chat. */
+type ChatUrl = newtype.Newtype<`ws://${string}` | `wss://${string}`, 'ChatUrl'>

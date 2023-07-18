@@ -197,6 +197,9 @@
   visualization size by dragging its right and bottom borders. Visualization
   width also follows the node's width, and visualizations are aligned to the
   left side of the node.
+- [Help chat][7151]. The link to the Discord server is replaced with a chat
+  bridge to the Discord server. This is intended to have the chat visible at the
+  same time as the IDE, so that help can be much more interactive.
 
 [5910]: https://github.com/enso-org/enso/pull/5910
 [6279]: https://github.com/enso-org/enso/pull/6279
@@ -215,6 +218,7 @@
 [7028]: https://github.com/enso-org/enso/pull/7028
 [7014]: https://github.com/enso-org/enso/pull/7014
 [7146]: https://github.com/enso-org/enso/pull/7146
+[7151]: https://github.com/enso-org/enso/pull/7151
 [7164]: https://github.com/enso-org/enso/pull/7164
 
 #### EnsoGL (rendering engine)

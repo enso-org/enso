@@ -30,6 +30,7 @@ import * as backendProvider from '../../providers/backend'
 import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
 
+import Chat, * as chat from './chat'
 import PermissionDisplay, * as permissionDisplay from './permissionDisplay'
 import ProjectActionButton, * as projectActionButton from './projectActionButton'
 import ContextMenu from './contextMenu'
@@ -289,6 +290,8 @@ function Dashboard(props: DashboardProps) {
         null
     )
     const [query, setQuery] = React.useState('')
+    const [isHelpChatOpen, setIsHelpChatOpen] = React.useState(false)
+    const [isHelpChatVisible, setIsHelpChatVisible] = React.useState(false)
     const [loadingProjectManagerDidFail, setLoadingProjectManagerDidFail] = React.useState(false)
     const [directoryId, setDirectoryId] = React.useState(
         session.organization != null ? rootDirectoryId(session.organization.id) : null
@@ -364,6 +367,22 @@ function Dashboard(props: DashboardProps) {
             ideElement.style.display = 'fixed'
         }
     }, [doRefresh])
+
+    React.useEffect(() => {
+        // The types come from a third-party API and cannot be changed.
+        // eslint-disable-next-line no-restricted-syntax
+        let handle: number | undefined
+        if (isHelpChatOpen) {
+            setIsHelpChatVisible(true)
+        } else {
+            handle = window.setTimeout(() => {
+                setIsHelpChatVisible(false)
+            }, chat.ANIMATION_DURATION_MS)
+        }
+        return () => {
+            clearTimeout(handle)
+        }
+    }, [isHelpChatOpen])
 
     React.useEffect(() => {
         const onProjectManagerLoadingFailed = () => {
@@ -1145,6 +1164,8 @@ function Dashboard(props: DashboardProps) {
                 supportsLocalBackend={supportsLocalBackend}
                 projectName={project?.name ?? null}
                 tab={tab}
+                isHelpChatOpen={isHelpChatOpen}
+                setIsHelpChatOpen={setIsHelpChatOpen}
                 toggleTab={() => {
                     if (project && tab === Tab.dashboard) {
                         switchToIdeTab()
@@ -1702,6 +1723,15 @@ function Dashboard(props: DashboardProps) {
             )}
             {/* This should be just `{modal}`, however TypeScript incorrectly throws an error. */}
             {project && <Ide project={project} appRunner={appRunner} />}
+            {/* `session.accessToken` MUST be present in order for the `Chat` component to work. */}
+            {isHelpChatVisible && session.accessToken != null && (
+                <Chat
+                    isOpen={isHelpChatOpen}
+                    doClose={() => {
+                        setIsHelpChatOpen(false)
+                    }}
+                />
+            )}
             {modal && <>{modal}</>}
         </div>
     )
