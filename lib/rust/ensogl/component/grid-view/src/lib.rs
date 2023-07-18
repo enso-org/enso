@@ -182,6 +182,7 @@ ensogl_core::define_endpoints_2! {
 
     Output {
         grid_size(Row, Col),
+        multicolumn(bool),
         viewport(Viewport),
         entries_size(Vector2),
         entries_params(EntryParams),
@@ -522,6 +523,7 @@ impl<E: Entry> GridView<E> {
         let model = Rc::new(Model::new(entry_creation_ctx));
         frp::extend! { network
             grid_size <- any(input.resize_grid, input.reset_entries);
+            out.multicolumn <+ grid_size.map(|(_, col)| *col > 1);
             // We want to update `properties` output first, as some could listen for specific
             // event (e.g. the `viewport` and expect the `properties` output is up-to-date.
             out.properties <+ all_with3(
@@ -689,14 +691,15 @@ impl<E: Entry> application::View for GridView<E> {
     fn focused_shortcuts() -> Vec<application::shortcut::Shortcut> {
         use application::shortcut::ActionType::*;
         [
-            (PressAndRepeat, "up", "move_selection_up"),
-            (PressAndRepeat, "down", "move_selection_down"),
-            (PressAndRepeat, "left", "move_selection_left"),
-            (PressAndRepeat, "right", "move_selection_right"),
-            (Press, "enter", "accept_selected_entry"),
+            (PressAndRepeat, "up", "move_selection_up", ""),
+            (PressAndRepeat, "down", "move_selection_down", ""),
+            (PressAndRepeat, "left", "move_selection_left", "multicolumn"),
+            (PressAndRepeat, "right", "move_selection_right", "multicolumn"),
+            (Press, "enter", "accept_selected_entry", ""),
         ]
         .iter()
-        .map(|(a, b, c)| Self::self_shortcut(*a, *b, *c))
+        .map(|(action, pattern, command, condition)|
+            Self::self_shortcut_when(*action, *pattern, *command, *condition))
         .collect()
     }
 }
