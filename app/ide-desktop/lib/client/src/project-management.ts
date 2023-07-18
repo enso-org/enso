@@ -81,7 +81,7 @@ export function importBundle(bundlePath: string): string {
     // We try to tell apart these two cases by looking at the common prefix of the paths
     // of the files in the archive. If there is any, everything is under a single directory,
     // and we need to strip it.
-    tar.x({
+    tar.extract({
         file: bundlePath,
         cwd: target.path,
         sync: true,
@@ -99,7 +99,7 @@ export async function uploadBundle(bundle: stream.Readable): Promise<string> {
     let target = generateDirectoryName('Project')
     fs.mkdirSync(target.path, { recursive: true })
     await new Promise<void>(resolve => {
-        bundle.pipe(tar.x({ cwd: target.path })).on('finish', resolve)
+        bundle.pipe(tar.extract({ cwd: target.path })).on('finish', resolve)
     })
     const entries = fs.readdirSync(target.path)
     const firstEntry = entries[0]
@@ -134,14 +134,18 @@ export async function uploadBundle(bundle: stream.Readable): Promise<string> {
 export function importDirectory(rootPath: string): string {
     if (isProjectInstalled(rootPath)) {
         // Project is already visible to Project Manager, so we can just return its ID.
-        logger.log(`Project already installed: '${rootPath}'.`)
-        return getProjectId(rootPath)
+        logger.log(`Project already installed at '${rootPath}'.`)
+        const id = getProjectId(rootPath)
+        if (id != null) {
+            return id
+        } else {
+            throw new Error(`Project already installed, but missing metadata.`)
+        }
     } else {
-        logger.log(`Importing a project copy from: '${rootPath}'.`)
+        logger.log(`Importing a project copy from '${rootPath}'.`)
         const target = generateDirectoryName(rootPath)
         if (fsSync.existsSync(target.path)) {
-            const message = `Project directory already exists: ${target.path}.`
-            throw new Error(message)
+            throw new Error(`Project directory '${target.path}' already exists.`)
         } else {
             logger.log(`Copying: '${rootPath}' -> '${target.path}'.`)
             fsSync.cpSync(rootPath, target.path, { recursive: true })
@@ -157,13 +161,15 @@ export function importDirectory(rootPath: string): string {
 // === Metadata ===
 // ================
 
-/** The Project Manager's metadata associated with a project.
- *
- * The property list is not exhaustive; it only contains the properties that we need. */
+/** The Project Manager's metadata associated with a project. */
 interface ProjectMetadata {
     /** The ID of the project. It is only used in communication with project manager;
      * it has no semantic meaning. */
     id: string
+    /** The project variant. This is currently always `UserProject`. */
+    kind: 'UserProject'
+    /** The date at which the project was created, in RFC3339 format. */
+    created: string
     /** The date at which the project was last opened, in RFC3339 format. */
     lastOpened: string
 }
@@ -184,27 +190,36 @@ function isProjectMetadata(value: unknown): value is ProjectMetadata {
 }
 
 /** Get the ID from the project metadata. */
-export function getProjectId(projectRoot: string): string {
-    return getMetadata(projectRoot).id
+export function getProjectId(projectRoot: string): string | null {
+    return getMetadata(projectRoot)?.id ?? null
 }
 
-/** Retrieve the project's metadata.
- *
- * @throws {Error} if the metadata file is missing or ill-formed. */
-export function getMetadata(projectRoot: string): ProjectMetadata {
+/** Create  */
+export function createMetadata(): ProjectMetadata {
+    return {
+        id: generateId(),
+        kind: 'UserProject',
+        created: new Date().toISOString(),
+        lastOpened: new Date().toISOString(),
+    }
+}
+
+/** Retrieve the project's metadata. */
+export function getMetadata(projectRoot: string): ProjectMetadata | null {
     const metadataPath = pathModule.join(projectRoot, paths.PROJECT_METADATA_RELATIVE)
-    const jsonText = fs.readFileSync(metadataPath, 'utf8')
-    const metadata: unknown = JSON.parse(jsonText)
-    if (isProjectMetadata(metadata)) {
-        return metadata
-    } else {
-        throw new Error('Invalid project metadata')
+    try {
+        const jsonText = fs.readFileSync(metadataPath, 'utf8')
+        const metadata: unknown = JSON.parse(jsonText)
+        return isProjectMetadata(metadata) ? metadata : null
+    } catch {
+        return null
     }
 }
 
 /** Write the project's metadata. */
 export function writeMetadata(projectRoot: string, metadata: ProjectMetadata): void {
     const metadataPath = pathModule.join(projectRoot, paths.PROJECT_METADATA_RELATIVE)
+    fs.mkdirSync(pathModule.dirname(metadataPath), { recursive: true })
     fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, utils.INDENT_SIZE))
 }
 
@@ -217,7 +232,7 @@ export function updateMetadata(
     updater: (initialMetadata: ProjectMetadata) => ProjectMetadata
 ): ProjectMetadata {
     const metadata = getMetadata(projectRoot)
-    const updatedMetadata = updater(metadata)
+    const updatedMetadata = updater(metadata ?? createMetadata())
     writeMetadata(projectRoot, updatedMetadata)
     return updatedMetadata
 }
@@ -229,13 +244,18 @@ export function updateMetadata(
 /** Check if the given path represents the root of an Enso project.
  * This is decided by the presence of the Project Manager's metadata. */
 export function isProjectRoot(candidatePath: string): boolean {
+    const packageYamlPath = pathModule.join(candidatePath, paths.BUNDLE_METADATA_RELATIVE)
     const projectJsonPath = pathModule.join(candidatePath, paths.PROJECT_METADATA_RELATIVE)
     let isRoot = false
     try {
-        fs.accessSync(projectJsonPath, fs.constants.R_OK)
-        isRoot = true
-    } catch (e) {
-        // No need to do anything, isRoot is already set to false
+        fs.accessSync(packageYamlPath, fs.constants.R_OK)
+    } catch {
+        try {
+            fs.accessSync(projectJsonPath, fs.constants.R_OK)
+            isRoot = true
+        } catch {
+            // No need to do anything, isRoot is already set to false
+        }
     }
     return isRoot
 }
