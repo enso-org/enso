@@ -249,10 +249,9 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
                 break
             }
             case projectEventModule.ProjectEventType.cancelOpeningAll: {
-                if (backend.type === backendModule.BackendType.local) {
-                    setState(backendModule.ProjectState.closed)
-                    setCheckState(CheckState.notChecking)
-                }
+                // `CheckState` should not be set to `notChecking`, as there is currently no way
+                // to actually cancel an open action. Instead, the project should not be opened
+                // automatically.
                 setShouldOpenWhenReady(false)
                 onSpinnerStateChange?.(null)
                 setOnSpinnerStateChange(null)
