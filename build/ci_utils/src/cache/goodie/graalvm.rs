@@ -11,7 +11,6 @@ use crate::programs::Java;
 
 
 const PACKAGE_PREFIX_URL: &str = "graalvm-community";
-const PACKAGE_PREFIX_UNZIPPED: &str = "graalvm-community-openjdk";
 
 pub const CE_BUILDS_REPOSITORY: RepoRef = RepoRef { owner: "graalvm", name: "graalvm-ce-builds" };
 
@@ -62,10 +61,24 @@ impl Goodie for GraalVM {
     }
 
     fn activation_env_changes(&self, package_path: &Path) -> Result<Vec<crate::env::Modification>> {
-        let package_path = package_path.join(self.root_directory_name());
+        let dir_entries = package_path
+            .read_dir()
+            .context("Failed to read GraalVM cache directory")
+            .unwrap()
+            .collect_vec();
+        assert_eq!(dir_entries.len(), 1, "GraalVM cache directory should contain exactly one directory");
+        let graalvm_dir  =  match dir_entries.get(0).unwrap() {
+            Ok(dir_entry) => dir_entry,
+            Err(err) => bail!("Failed to read GraalVM cache directory: {}", err),
+        };
+        let dir_name_tmp = graalvm_dir.file_name();
+        let dir_name = dir_name_tmp.as_str();
+        assert!(dir_name.contains("graalvm"));
+        let graal_version_str = format!("{}.{}.{}", self.graal_version.major, self.graal_version.minor, self.graal_version.patch);
+        assert!(dir_name.contains(&graal_version_str));
         let root = match TARGET_OS {
-            OS::MacOS => package_path.join_iter(["Contents", "Home"]),
-            _ => package_path,
+            OS::MacOS => graalvm_dir.path().join_iter(["Contents", "Home"]),
+            _ => graalvm_dir.path(),
         };
         Ok(vec![
             crate::env::Modification::set(&JAVA_HOME, &root)?,
@@ -106,12 +119,6 @@ impl GraalVM {
         };
         let java_version = format!("jdk-{}.{}.{}", _graal_version.major, _graal_version.minor, _graal_version.patch);
         format!("{PACKAGE_PREFIX_URL}-{java_version}_{os_name}-{arch_name}")
-    }
-
-    pub fn root_directory_name(&self) -> PathBuf {
-        assert!(!self.graal_version.build.is_empty());
-        let jdk_version = format!("{}.{}.{}+{}", self.graal_version.major, self.graal_version.minor, self.graal_version.patch, self.graal_version.build);
-        PathBuf::from(format!("{}-{}", PACKAGE_PREFIX_UNZIPPED, jdk_version))
     }
 }
 
