@@ -519,12 +519,6 @@ impl Area {
             model.edit_mode_label.set_hover <+ label_hovered && set_editing;
             hovered_body_pointer <- label_hovered.map(f!((t) model.body_hover_pointer_style(t)));
 
-            // === Edit Mode Focus ===
-
-            // Focus our display object to defocus anything else; this is important if the CB panel
-            // is visible.
-            eval_ frp.input.mouse_down (model.focus());
-
             // === Port Hover ===
 
             hovered_port_pointer <- model.widget_tree.on_port_hover.map(

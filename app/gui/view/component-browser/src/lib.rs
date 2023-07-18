@@ -1,8 +1,6 @@
 //! A crate with Component Browser View.
 //!
-//! Currently, this crate gathers the related panels. The Component Browser View itself is defined
-//! in `ide_view` crate, because the Documentation panel is used by old node searcher as well, and
-//! we need to avoid crates' circular dependencies.
+//! Currently, this crate gathers the related panels.
 
 #![recursion_limit = "256"]
 // === Standard Linter Configuration ===

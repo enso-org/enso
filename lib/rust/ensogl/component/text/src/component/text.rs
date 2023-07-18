@@ -396,15 +396,7 @@ impl Text {
         let network = self.frp.network();
         let input = &self.frp.input;
 
-        let focus_in = self.on_event::<ensogl_core::event::FocusIn>();
-        let focus_out = self.on_event::<ensogl_core::event::FocusOut>();
-
         frp::extend! { network
-            // The `shortcut` API uses the old focus API. By forwarding the new API to the old API
-            // here, the text component is compatible with either.
-            input.deprecated_focus <+_ focus_in;
-            input.deprecated_defocus <+_ focus_out;
-
             eval_ input.focus (m.focus());
         }
     }
@@ -2038,10 +2030,8 @@ impl application::View for Text {
             (DoublePress, "left-mouse-button", "select_word_at_cursor"),
             (Press, "left-mouse-button", "set_cursor_at_mouse_position"),
             (Press, "left-mouse-button", "start_newest_selection_end_follow_mouse"),
-            (Release, "left-mouse-button", "stop_newest_selection_end_follow_mouse"),
             (Press, "cmd left-mouse-button", "add_cursor_at_mouse_position"),
             (Press, "cmd left-mouse-button", "start_newest_selection_end_follow_mouse"),
-            (Release, "cmd left-mouse-button", "stop_newest_selection_end_follow_mouse"),
             (Press, "cmd a", "select_all"),
             (Press, "cmd x", "cut"),
             (Press, "cmd v", "paste"),
@@ -2050,6 +2040,8 @@ impl application::View for Text {
             (Press, "cmd c", "copy"),
             (Press, "cmd z", "undo"),
             (Press, "escape", "keep_oldest_cursor_only"),
+            (Release, "left-mouse-button", "stop_newest_selection_end_follow_mouse"),
+            (Release, "cmd left-mouse-button", "stop_newest_selection_end_follow_mouse"),
         ];
         non_focus_capturing_shortcuts
             .iter()
