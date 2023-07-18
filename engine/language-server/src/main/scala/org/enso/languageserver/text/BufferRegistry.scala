@@ -206,8 +206,12 @@ class BufferRegistry(
         registry
       )
 
-    case msg @ FileEvent(path, FileEventKind.Modified) =>
-      registry.get(path).foreach(_ ! msg)
+    case msg @ FileEvent(path, kind) =>
+      if (kind == FileEventKind.Added || kind == FileEventKind.Modified) {
+        registry.get(path).foreach { buffer =>
+          buffer ! msg
+        }
+      }
   }
 
   private def forwardMessageToVCS(

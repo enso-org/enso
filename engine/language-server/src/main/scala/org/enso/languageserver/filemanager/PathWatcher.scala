@@ -22,7 +22,7 @@ import zio._
 
 import java.io.File
 import scala.concurrent.Await
-import scala.util.Success
+import scala.util.{Failure, Success}
 
 /** Starts [[WatcherAdapter]], handles errors, converts and sends
   * events to the client.
@@ -84,8 +84,13 @@ final class PathWatcher(
 
     pathToWatchResult.onComplete {
       case Success(Right(root)) =>
+        logger.info("Initialized for [{}]", path)
         context.become(initializedStage(root, path, clients))
-      case _ =>
+      case Success(Left(err)) =>
+        logger.error("Failed to resolve the path [{}]. {}", path, err)
+        context.stop(self)
+      case Failure(err) =>
+        logger.error("Failed to resolve the path [{}]", path, err)
         context.stop(self)
     }
   }
@@ -110,7 +115,7 @@ final class PathWatcher(
     case e: WatcherAdapter.WatcherEvent =>
       restartCounter.reset()
       val event = FileEvent.fromWatcherEvent(root, base, e)
-      clients.foreach(_ ! FileEventResult(event))
+      context.system.eventStream.publish(event)
 
     case WatcherAdapter.WatcherError(e) =>
       stopWatcher()

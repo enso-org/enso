@@ -293,8 +293,8 @@ class CollaborativeBuffer(
         )
       )
 
-    case FileEvent(path, FileEventKind.Modified) =>
-      fileManager ! FileManagerProtocol.ReadFileWithAttributes(path)
+    case FileEvent(path, _) =>
+      fileManager ! FileManagerProtocol.InfoFile(path)
       val timeoutCancellable = context.system.scheduler.scheduleOnce(
         timingsConfig.requestTimeout,
         self,
@@ -321,18 +321,21 @@ class CollaborativeBuffer(
   ): Receive = {
     case FileManagerProtocol.InfoFileResult(Right(attrs)) =>
       timeoutCancellable.cancel()
-      buffer.fileWithMetadata.lastModifiedTime.foreach {
+      val newBuffer = buffer.fileWithMetadata.lastModifiedTime.map {
         bufferLastModifiedTime =>
           if (attrs.lastModifiedTime.isAfter(bufferLastModifiedTime)) {
             clients.values.foreach {
               _.rpcController ! FileModifiedOnDisk(path)
             }
+            buffer.withLastModifiedTime(attrs.lastModifiedTime)
+          } else {
+            buffer
           }
       }
       unstashAll()
       context.become(
         collaborativeEditing(
-          buffer,
+          newBuffer.getOrElse(buffer),
           clients,
           lockHolder,
           Map.empty
