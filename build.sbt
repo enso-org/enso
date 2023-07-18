@@ -1988,15 +1988,21 @@ lazy val `enso-test-java-helpers` = project
   .dependsOn(`std-table` % "provided")
 
 lazy val `exploratory-benchmark-java-helpers` = project
-  .in(file("test/Exploratory_Benchmarks/polyglot-sources/exploratory-benchmark-java-helpers"))
+  .in(
+    file(
+      "test/Exploratory_Benchmarks/polyglot-sources/exploratory-benchmark-java-helpers"
+    )
+  )
   .settings(
     frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
     Compile / packageBin / artifactPath :=
-      file("test/Exploratory_Benchmarks/polyglot/java/exploratory-benchmark-java-helpers.jar"),
+      file(
+        "test/Exploratory_Benchmarks/polyglot/java/exploratory-benchmark-java-helpers.jar"
+      ),
     libraryDependencies ++= Seq(
       "org.graalvm.sdk" % "graal-sdk" % graalVersion % "provided"
-    ),
+    )
   )
   .dependsOn(`std-base` % "provided")
   .dependsOn(`std-table` % "provided")
