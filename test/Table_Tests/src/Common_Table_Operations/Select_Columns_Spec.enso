@@ -59,7 +59,7 @@ spec setup =
                     col2 = ["bar", [4,5,6]]
                     col3 = ["Bar", [7,8,9]]
                     table_builder [col1, col2, col3]
-                expect_column_names ["bar", "Bar"] <| table.select_columns ["bar"] Case_Sensitivity.Insensitive
+                expect_column_names ["bar", "Bar"] <| table.select_columns ["bar"] case_sensitivity=Case_Sensitivity.Insensitive
 
         Test.specify "should correctly handle regexes matching multiple names" <|
             expect_column_names ["foo", "bar", "foo 1", "foo 2"] <| table.select_columns ["b.*".to_regex, "f.+".to_regex]
@@ -104,11 +104,11 @@ spec setup =
 
         Test.specify "should correctly handle edge-cases: duplicate matches due to case insensitivity" <|
             selector = ["FOO", "foo"]
-            t = table.select_columns selector Case_Sensitivity.Insensitive on_problems=Problem_Behavior.Report_Error
+            t = table.select_columns selector case_sensitivity=Case_Sensitivity.Insensitive on_problems=Problem_Behavior.Report_Error
             expect_column_names ["foo"] t
 
             expect_column_names ["bar", "foo"] <|
-                table.select_columns ["BAR", "foo", "bar"] Case_Sensitivity.Insensitive reorder=True
+                table.select_columns ["BAR", "foo", "bar"] reorder=True case_sensitivity=Case_Sensitivity.Insensitive
 
         Test.specify "should correctly handle problems: unmatched names" <|
             weird_name = '.*?-!@#!"'
@@ -343,6 +343,11 @@ spec setup =
         Test.specify "should work by Vector" <|
             vec = ["one", "two", "three"]
             expect_column_names ["one", "two", "three", "delta"] <|
+                table.rename_columns vec
+
+        Test.specify "should work by Vector of Pairs" <|
+            vec = [["beta", "one"], ["delta", "two"], ["alpha", "three"]]
+            expect_column_names ["three", "one", "gamma", "two"] <|
                 table.rename_columns vec
 
         Test.specify "should work by name" <|

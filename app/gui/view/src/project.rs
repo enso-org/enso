@@ -29,14 +29,14 @@ use ensogl_component::text;
 use ensogl_component::text::selection::Selection;
 use ensogl_hardcoded_theme::Theme;
 use ide_view_graph_editor::NodeSource;
-use project_view_top_bar::ProjectViewTopBar;
+use ide_view_project_view_top_bar::window_control_buttons;
+use ide_view_project_view_top_bar::ProjectViewTopBar;
+
 
 
 // ==============
 // === Export ===
 // ==============
-
-pub mod project_view_top_bar;
 
 
 
@@ -135,6 +135,10 @@ ensogl::define_endpoints! {
         execution_context_reload_and_restart(),
         toggle_read_only(),
         set_read_only(bool),
+        /// Push a hardcoded breadcrumb without notifying the controller.
+        debug_push_breadcrumb(),
+        /// Pop a breadcrumb without notifying the controller.
+        debug_pop_breadcrumb(),
         /// Started creation of a new node using the AI searcher.
         start_node_creation_with_ai_searcher(),
         /// Started creation of a new node using the Component Browser.
@@ -180,15 +184,15 @@ ensogl::define_endpoints! {
 
 #[derive(Clone, CloneRef, Debug)]
 struct Model {
-    display_object:       display::object::Instance,
-    project_view_top_bar: ProjectViewTopBar,
-    graph_editor:         Rc<GraphEditor>,
-    searcher:             component_browser::View,
-    code_editor:          code_editor::View,
-    fullscreen_vis:       Rc<RefCell<Option<visualization::fullscreen::Panel>>>,
-    project_list:         Rc<ProjectList>,
-    debug_mode_popup:     debug_mode_popup::View,
-    popup:                popup::View,
+    display_object:   display::object::Instance,
+    top_bar:          ProjectViewTopBar,
+    graph_editor:     Rc<GraphEditor>,
+    searcher:         component_browser::View,
+    code_editor:      code_editor::View,
+    fullscreen_vis:   Rc<RefCell<Option<visualization::fullscreen::Panel>>>,
+    project_list:     Rc<ProjectList>,
+    debug_mode_popup: debug_mode_popup::View,
+    popup:            popup::View,
 }
 
 impl Model {
@@ -214,7 +218,7 @@ impl Model {
         let graph_editor = Rc::new(graph_editor);
         Self {
             display_object,
-            project_view_top_bar,
+            top_bar: project_view_top_bar,
             graph_editor,
             searcher,
             code_editor,
@@ -257,7 +261,7 @@ impl Model {
             let visualization =
                 node.view.model().visualization.fullscreen_visualization().clone_ref();
             self.display_object.remove_child(&*self.graph_editor);
-            self.display_object.remove_child(&self.project_view_top_bar);
+            self.display_object.remove_child(&self.top_bar);
             self.display_object.add_child(&visualization);
             *self.fullscreen_vis.borrow_mut() = Some(visualization);
         });
@@ -267,7 +271,7 @@ impl Model {
         if let Some(visualization) = std::mem::take(&mut *self.fullscreen_vis.borrow_mut()) {
             self.display_object.remove_child(&visualization);
             self.display_object.add_child(&*self.graph_editor);
-            self.display_object.add_child(&self.project_view_top_bar);
+            self.display_object.add_child(&self.top_bar);
         }
     }
 
@@ -277,12 +281,10 @@ impl Model {
         project_view_top_bar_size: Vector2,
     ) {
         let top_left = Vector2(-scene_shape.width, scene_shape.height) / 2.0;
-        let project_view_top_bar_origin = Vector2(
-            0.0,
-            crate::graph_editor::MACOS_TRAFFIC_LIGHTS_VERTICAL_CENTER
-                - project_view_top_bar_size.y / 2.0,
-        );
-        self.project_view_top_bar.set_xy(top_left + project_view_top_bar_origin);
+        let buttons_y = window_control_buttons::MACOS_TRAFFIC_LIGHTS_VERTICAL_CENTER;
+        let y = buttons_y - project_view_top_bar_size.y / 2.0;
+        let project_view_top_bar_origin = Vector2(0.0, y);
+        self.top_bar.set_xy(top_left + project_view_top_bar_origin);
     }
 
     fn on_close_clicked(&self) {
@@ -398,13 +400,23 @@ impl View {
             .init_fullscreen_visualization_frp()
             .init_debug_mode_frp()
             .init_shortcut_observer(app)
+            .init_execution_environment_selector_frp()
+    }
+
+    fn init_execution_environment_selector_frp(self) -> Self {
+        crate::graph_editor::execution_environment::init_frp(
+            &self.model.graph_editor.frp,
+            &self.model.top_bar.project_name_with_environment_selector.selector,
+        );
+
+        self
     }
 
     fn init_top_bar_frp(self, scene: &Scene) -> Self {
         let frp = &self.frp;
         let network = &frp.network;
         let model = &self.model;
-        let project_view_top_bar = &model.project_view_top_bar;
+        let project_view_top_bar = &model.top_bar;
         frp::extend! { network
             init <- source_();
             let window_control_buttons = &project_view_top_bar.window_control_buttons;
@@ -426,6 +438,9 @@ impl View {
             project_view_top_bar_width <-
                 project_view_top_bar_display_object.on_resized.map(|new_size| new_size.x);
             self.model.graph_editor.graph_editor_top_bar_offset_x <+ project_view_top_bar_width;
+
+            project_view_top_bar.breadcrumbs.debug_push_breadcrumb <+ frp.debug_push_breadcrumb.constant(None);
+            project_view_top_bar.breadcrumbs.debug_pop_breadcrumb <+ frp.debug_pop_breadcrumb;
         }
         init.emit(());
         self
@@ -449,7 +464,6 @@ impl View {
             disable_navigation <- searcher_active || frp.project_list_shown;
             graph.set_navigator_disabled <+ disable_navigation;
 
-            model.popup.set_label <+ graph.model.breadcrumbs.project_name_error;
             model.popup.set_label <+ graph.visualization_update_error._1();
             graph.set_read_only <+ frp.set_read_only;
             graph.set_debug_mode <+ frp.source.debug_mode;
@@ -768,6 +782,11 @@ impl View {
         self
     }
 
+    /// Top Bar View.
+    pub fn top_bar(&self) -> &ProjectViewTopBar {
+        &self.model.top_bar
+    }
+
     /// Graph Editor View.
     pub fn graph(&self) -> &GraphEditor {
         &self.model.graph_editor
@@ -843,6 +862,8 @@ impl application::View for View {
             (Press, "!is_searcher_opened", "cmd tab", "start_node_creation_with_ai_searcher"),
             (Press, "!is_searcher_opened", "tab", "start_node_creation_with_component_browser"),
             (Press, "is_searcher_opened", "enter", "accept_searcher_input"),
+            (Press, "debug_mode", "ctrl shift enter", "debug_push_breadcrumb"),
+            (Press, "debug_mode", "ctrl shift b", "debug_pop_breadcrumb"),
         ]
         .iter()
         .map(|(a, b, c, d)| Self::self_shortcut_when(*a, *c, *d, *b))
