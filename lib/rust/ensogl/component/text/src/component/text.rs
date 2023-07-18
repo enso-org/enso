@@ -1994,64 +1994,69 @@ impl application::View for Text {
     fn global_shortcuts() -> Vec<shortcut::Shortcut> {
         use shortcut::ActionType::*;
         let focus_capturing_shortcuts = [
-            (PressAndRepeat, "left", "cursor_move_left"),
-            (PressAndRepeat, "right", "cursor_move_right"),
-            (PressAndRepeat, "up", "cursor_move_up"),
-            (PressAndRepeat, "down", "cursor_move_down"),
-            (PressAndRepeat, "cmd left", "cursor_move_left_word"),
-            (PressAndRepeat, "cmd right", "cursor_move_right_word"),
-            (Press, "alt left", "cursor_move_left_of_line"),
-            (Press, "alt right", "cursor_move_right_of_line"),
-            (Press, "home", "cursor_move_left_of_line"),
-            (Press, "end", "cursor_move_right_of_line"),
-            (Press, "alt shift left", "cursor_select_left_of_line"),
-            (Press, "alt shift right", "cursor_select_right_of_line"),
-            (Press, "shift home", "cursor_select_left_of_line"),
-            (Press, "shift end", "cursor_select_right_of_line"),
-            (Press, "cmd up", "cursor_move_to_text_start"),
-            (Press, "cmd down", "cursor_move_to_text_end"),
-            (Press, "ctrl home", "cursor_move_to_text_start"),
-            (Press, "ctrl end", "cursor_move_to_text_end"),
-            (Press, "cmd shift up", "cursor_select_to_text_start"),
-            (Press, "cmd shift down", "cursor_select_to_text_end"),
-            (Press, "ctrl shift home", "cursor_select_to_text_start"),
-            (Press, "ctrl shift end", "cursor_select_to_text_end"),
-            (PressAndRepeat, "shift left", "cursor_select_left"),
-            (PressAndRepeat, "shift right", "cursor_select_right"),
-            (PressAndRepeat, "cmd shift left", "cursor_select_left_word"),
-            (PressAndRepeat, "cmd shift right", "cursor_select_right_word"),
-            (PressAndRepeat, "shift up", "cursor_select_up"),
-            (PressAndRepeat, "shift down", "cursor_select_down"),
-            (PressAndRepeat, "backspace", "delete_left"),
-            (PressAndRepeat, "delete", "delete_right"),
-            (PressAndRepeat, "cmd backspace", "delete_word_left"),
-            (PressAndRepeat, "cmd delete", "delete_word_right"),
-            (Press, "shift left-mouse-button", "set_newest_selection_end_to_mouse_position"),
-            (DoublePress, "left-mouse-button", "select_word_at_cursor"),
-            (Press, "left-mouse-button", "set_cursor_at_mouse_position"),
-            (Press, "left-mouse-button", "start_newest_selection_end_follow_mouse"),
-            (Press, "cmd left-mouse-button", "add_cursor_at_mouse_position"),
-            (Press, "cmd left-mouse-button", "start_newest_selection_end_follow_mouse"),
-            (Press, "cmd a", "select_all"),
-            (Press, "cmd x", "cut"),
-            (Press, "cmd v", "paste"),
+            (PressAndRepeat, "left", "cursor_move_left", ""),
+            (PressAndRepeat, "right", "cursor_move_right", ""),
+            (PressAndRepeat, "up", "cursor_move_up", "!single_line_mode"),
+            (PressAndRepeat, "down", "cursor_move_down", "!single_line_mode"),
+            (PressAndRepeat, "cmd left", "cursor_move_left_word", ""),
+            (PressAndRepeat, "cmd right", "cursor_move_right_word", ""),
+            (Press, "alt left", "cursor_move_left_of_line", ""),
+            (Press, "alt right", "cursor_move_right_of_line", ""),
+            (Press, "home", "cursor_move_left_of_line", ""),
+            (Press, "end", "cursor_move_right_of_line", ""),
+            (Press, "alt shift left", "cursor_select_left_of_line", ""),
+            (Press, "alt shift right", "cursor_select_right_of_line", ""),
+            (Press, "shift home", "cursor_select_left_of_line", ""),
+            (Press, "shift end", "cursor_select_right_of_line", ""),
+            (Press, "cmd up", "cursor_move_to_text_start", ""),
+            (Press, "cmd down", "cursor_move_to_text_end", ""),
+            (Press, "ctrl home", "cursor_move_to_text_start", ""),
+            (Press, "ctrl end", "cursor_move_to_text_end", ""),
+            (Press, "cmd shift up", "cursor_select_to_text_start", ""),
+            (Press, "cmd shift down", "cursor_select_to_text_end", ""),
+            (Press, "ctrl shift home", "cursor_select_to_text_start", ""),
+            (Press, "ctrl shift end", "cursor_select_to_text_end", ""),
+            (PressAndRepeat, "shift left", "cursor_select_left", ""),
+            (PressAndRepeat, "shift right", "cursor_select_right", ""),
+            (PressAndRepeat, "cmd shift left", "cursor_select_left_word", ""),
+            (PressAndRepeat, "cmd shift right", "cursor_select_right_word", ""),
+            (PressAndRepeat, "shift up", "cursor_select_up", "!single_line_mode"),
+            (PressAndRepeat, "shift down", "cursor_select_down", "!single_line_mode"),
+            (PressAndRepeat, "backspace", "delete_left", ""),
+            (PressAndRepeat, "delete", "delete_right", ""),
+            (PressAndRepeat, "cmd backspace", "delete_word_left", ""),
+            (PressAndRepeat, "cmd delete", "delete_word_right", ""),
+            (Press, "shift left-mouse-button", "set_newest_selection_end_to_mouse_position", ""),
+            (DoublePress, "left-mouse-button", "select_word_at_cursor", ""),
+            (Press, "left-mouse-button", "set_cursor_at_mouse_position", ""),
+            (Press, "left-mouse-button", "start_newest_selection_end_follow_mouse", ""),
+            (Press, "cmd left-mouse-button", "add_cursor_at_mouse_position", ""),
+            (Press, "cmd left-mouse-button", "start_newest_selection_end_follow_mouse", ""),
+            (Press, "cmd a", "select_all", ""),
+            (Press, "cmd x", "cut", ""),
+            (Press, "cmd v", "paste", ""),
         ];
         let non_focus_capturing_shortcuts = [
-            (Press, "cmd c", "copy"),
-            (Press, "cmd z", "undo"),
-            (Press, "escape", "keep_oldest_cursor_only"),
-            (Release, "left-mouse-button", "stop_newest_selection_end_follow_mouse"),
-            (Release, "cmd left-mouse-button", "stop_newest_selection_end_follow_mouse"),
+            (Press, "cmd c", "copy", ""),
+            (Press, "cmd z", "undo", ""),
+            (Press, "escape", "keep_oldest_cursor_only", ""),
+            (Release, "left-mouse-button", "stop_newest_selection_end_follow_mouse", ""),
+            (Release, "cmd left-mouse-button", "stop_newest_selection_end_follow_mouse", ""),
         ];
         non_focus_capturing_shortcuts
             .iter()
             .copied()
             .chain(focus_capturing_shortcuts.iter().copied())
-            .chain(focus_capturing_shortcuts.iter().map(|(a, r, _)| (*a, *r, "focus")))
-            .map(|(action, rule, command)| {
+            .chain(focus_capturing_shortcuts.iter().map(|(a, r, _, c)| (*a, *r, "focus", *c)))
+            .map(|(action, rule, command, condition)| {
                 let only_hovered = action != Release && rule.contains("left-mouse-button");
-                let condition = if only_hovered { "focused & hovered" } else { "focused" };
-                Self::self_shortcut_when(action, rule, command, condition)
+                let base_condition = if only_hovered { "focused & hovered" } else { "focused" };
+                let condition = if condition.is_empty() {
+                    Cow::from(base_condition)
+                } else {
+                    Cow::from(format!("{base_condition} & {condition}"))
+                };
+                Self::self_shortcut_when(action, rule, command, condition.as_ref())
             })
             .collect()
     }
