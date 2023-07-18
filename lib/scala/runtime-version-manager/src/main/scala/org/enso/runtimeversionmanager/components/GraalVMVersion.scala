@@ -6,10 +6,10 @@ import nl.gn0s1s.bump.SemVer
   * release.
   *
   * @param graalVersion version of the GraalVM. Can be specified as a semantic
- *                     version.
+  *                     version.
   * @param javaVersion Java version of the GraalVM flavour that should be used.
- *                    Can be specified either as a single integer or as a
- *                    semantic version
+  *                    Can be specified either as a single integer or as a
+  *                    semantic version
   */
 case class GraalVMVersion(graalVersion: String, javaVersion: String) {
   require(GraalVMVersion.isCorrectVersionFormat(graalVersion))
