@@ -89,7 +89,7 @@ pub struct CannotCommitExpression {
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum Notification {
     /// A new component list is available.
-    NewActionList,
+    NewComponentList,
 }
 
 
@@ -385,7 +385,7 @@ impl Searcher {
     /// updated.
     pub fn select_breadcrumb(&self, id: usize) {
         self.breadcrumbs.select(id);
-        self.notifier.notify(Notification::NewComponentList);
+        self.reload_list();
     }
 
     /// Set the Searcher Input.

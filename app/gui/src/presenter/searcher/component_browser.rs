@@ -3,8 +3,6 @@
 
 use crate::prelude::*;
 
-use crate::controller::searcher::action::Suggestion;
-use crate::controller::searcher::component;
 use crate::controller::searcher::Mode;
 use crate::controller::searcher::Notification;
 use crate::executor::global::spawn_stream_handler;
@@ -12,7 +10,6 @@ use crate::model::suggestion_database::entry::Kind;
 use crate::presenter;
 use crate::presenter::graph::AstNodeId;
 use crate::presenter::graph::ViewNodeId;
-use crate::presenter::searcher::component_browser::provider::ControllerComponentsProviderExt;
 use crate::presenter::searcher::SearcherPresenter;
 
 use enso_frp as frp;
@@ -43,7 +40,7 @@ pub mod provider;
 #[allow(missing_docs)]
 #[derive(Copy, Clone, Debug, Fail)]
 #[fail(display = "No component group with the index {:?}.", _0)]
-pub struct NoSuchComponent(component_grid::GroupEntryId);
+pub struct NoSuchComponent(component_grid::EntryId);
 
 
 
@@ -249,21 +246,21 @@ impl SearcherPresenter for ComponentBrowserSearcher {
 }
 
 impl ComponentBrowserSearcher {
-    /// Constructor. The returned structure works right away.
     #[profile(Task)]
-    pub fn new(
+    fn new(
         controller: controller::Searcher,
         view: view::project::View,
         input_view: ViewNodeId,
     ) -> Self {
-        let model = Rc::new(Model::new(controller, view, input_view));
+        let searcher_view = view.searcher().clone_ref();
+        let model = Rc::new(Model::new(controller, view, input_view, searcher_view));
         let network = frp::Network::new("presenter::Searcher");
 
-        let graph = &model.view.graph().frp;
-        let browser = model.view.searcher();
+        let graph = &model.project.graph().frp;
+        let browser = &model.view;
 
         frp::extend! { network
-            eval model.view.searcher_input_changed ([model]((expr, selections)) {
+            eval model.project.searcher_input_changed ([model]((expr, selections)) {
                 let cursor_position = selections.last().map(|sel| sel.end).unwrap_or_default();
                 model.input_changed(expr, cursor_position);
             });
@@ -274,9 +271,9 @@ impl ComponentBrowserSearcher {
             // which is delivered asynchronously). This is because the input may be accepted
             // before the asynchronous event is delivered and to accept the correct entry the list
             // must be up-to-date.
-            action_list_changed <+ model.view.searcher_input_changed.constant(());
+            action_list_changed <+ model.project.searcher_input_changed.constant(());
 
-            eval_ model.view.toggle_component_browser_private_entries_visibility (
+            eval_ model.project.toggle_component_browser_private_entries_visibility (
                 model.controller.reload_list());
         }
 
@@ -308,12 +305,9 @@ impl ComponentBrowserSearcher {
 
         let weak_model = Rc::downgrade(&model);
         let notifications = model.controller.subscribe();
-        let graph = model.view.graph().clone();
         spawn_stream_handler(weak_model, notifications, move |notification, _| {
             match notification {
                 Notification::NewComponentList => action_list_changed.emit(()),
-                Notification::AISuggestionUpdated(expr, range) =>
-                    graph.edit_node_expression((input_view, range, ImString::new(expr))),
             };
             std::future::ready(())
         });
