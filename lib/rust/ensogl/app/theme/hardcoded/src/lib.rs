@@ -199,8 +199,8 @@ define_themes! { [light:0, dark:1]
                 background_color = Rgb::from_base_255(234.0, 234.0, 234.0),Rgb::from_base_255(236.0, 240.0, 242.0);
                 corners_radius = 16.0, 16.0;
                 grid {
-                    width = 196.0, 196.0;
-                    height = 414.0, 414.0;
+                    width = 182.0, 182.0;
+                    height = 331.0, 331.0;
                     padding = 4.0, 4.0;
                     column_gap = 3.0, 3.0;
                     entry_height = 32.0, 32.0;
