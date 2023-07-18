@@ -4163,6 +4163,9 @@ pub trait Object {
     where Self: Sized + 'static {
         Any { wrapped: Rc::new(self) }
     }
+
+    /// If present, uniquely identifies the type implementing the trait for debug purposes.
+    fn object_type(&self) -> Option<&'static str> { None }
 }
 
 impl Object for Instance {
@@ -4175,6 +4178,10 @@ impl Object for Instance {
         // non-derivable [`Object`] implementation should use the same expression for both display
         // object and focus receiver.
         self
+    }
+
+    fn object_type(&self) -> Option<&'static str> {
+        Some("Instance")
     }
 }
 

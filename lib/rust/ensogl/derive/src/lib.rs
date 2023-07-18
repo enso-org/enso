@@ -3,6 +3,7 @@
 
 #![feature(let_chains)]
 #![feature(if_let_guard)]
+#![feature(proc_macro_span)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -70,9 +71,10 @@ pub fn derive_display_object(input: proc_macro::TokenStream) -> proc_macro::Toke
     let syn::Fields::Named(fields) = &data.fields else {
         panic!("Only named-field structs are supported.")
     };
-    let TraitData { display_object, focus_receiver } = TraitData::analyze(fields);
+    let FieldData { display_object, focus_receiver } = FieldData::analyze(fields);
     let display_object_ident = display_object.ident.as_ref().unwrap();
     let focus_receiver_ident = focus_receiver.ident.as_ref().unwrap();
+    let label = make_label(struct_ident);
     (quote::quote! {
         impl #impl_generics display::Object for #struct_ident #ty_generics #where_clause {
             fn display_object(&self) -> &display::object::Instance {
@@ -82,6 +84,10 @@ pub fn derive_display_object(input: proc_macro::TokenStream) -> proc_macro::Toke
             fn focus_receiver(&self) -> &display::object::Instance {
                 self.#focus_receiver_ident.focus_receiver()
             }
+
+            fn object_type(&self) -> Option<&'static str> {
+                Some(#label)
+            }
         }
     })
     .into()
@@ -89,16 +95,16 @@ pub fn derive_display_object(input: proc_macro::TokenStream) -> proc_macro::Toke
 
 
 
-// ==================
-// === Trait data ===
-// ==================
+// ================================================
+// === Trait data determined from struct fields ===
+// ================================================
 
-struct TraitData<'a> {
+struct FieldData<'a> {
     display_object: &'a syn::Field,
     focus_receiver: &'a syn::Field,
 }
 
-impl<'a> TraitData<'a> {
+impl<'a> FieldData<'a> {
     fn analyze(fields: &'a syn::FieldsNamed) -> Self {
         let mut display_object_field = vec![];
         let mut focus_receiver_field = vec![];
@@ -137,6 +143,20 @@ impl<'a> TraitData<'a> {
             [field] => field,
             _ => panic!("`{FOCUS_RECEIVER}` attribute must not be applied more than once."),
         };
-        TraitData { display_object, focus_receiver }
+        FieldData { display_object, focus_receiver }
     }
+}
+
+
+
+// ================================
+// === Trait data for debugging ===
+// ================================
+
+fn make_label<L: core::fmt::Display>(name: L) -> String {
+    let span = proc_macro::Span::call_site();
+    let file = span.source_file().path();
+    let path = file.as_path().to_string_lossy();
+    let line = span.start().line;
+    format!("{name} ({path}:{line})")
 }
