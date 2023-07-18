@@ -175,8 +175,7 @@ pub mod background {
 
     ensogl_core::shape! {
         below = [
-            //FIXME[ao] what about it?
-            // grid::entry::background,
+            grid::entry::background,
             grid::entry::icon::any,
             grid_view::entry::overlay,
             grid_view::selectable::highlight::shape

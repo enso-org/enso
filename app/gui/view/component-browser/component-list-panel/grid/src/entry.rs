@@ -50,37 +50,26 @@ const ENTRIES_OVERLAP_PX: f32 = 2.0;
 /// The background of the Component Browser Entry. It consists of a rectangle and an optional shadow
 /// underneath it. The shadow is shown under the group headers which are pushed down to be visible
 /// in the viewport.
-// pub mod background {
-//     use super::*;
-//
-//     // We don't use the usual padding of sprites, because we clip the shadow under the background
-//     // and clipping the shadow shape with `*` operator causes glitches.
-//     // See https://www.pivotaltracker.com/story/show/182593513
-//
-//     ensogl_core::shape! {
-//         below = [grid_view::entry::overlay, grid_view::selectable::highlight::shape, icon::any];
-//         pointer_events = false;
-//         alignment = center;
-//         (style:Style, color:Vector4, height: f32, shadow_height_multiplier: f32) {
-//             let color = Var::<color::Rgba>::from(color);
-//             let width: Var<Pixels> = "input_size.x".into();
-//             let height: Var<Pixels> = height.into();
-//             let bg = Rect((&width, &height)).fill(color);
-//             // We use wider and shorter rect for the shadow because of the visual artifacts that
-//             // will appear otherwise:
-//             // 1. Rounded corners of the shadow are visible if the rect is too narrow. By
-// widening             //    it we keep the shadow sharp and flat for the whole width of the
-// header.             // 2. Visual glitching similar to z-fighting occurs on the border of the
-// elements             //    when the shadow rect has the exact same size as the background. We
-// shrink the             //    height by 1 pixel to avoid it.
-//             let shadow_rect = Rect((width * 2.0, height - 1.0.px()));
-//             let mut shadow_parameters = shadow::parameters_from_style_path(style, theme::shadow);
-//             shadow_parameters.size = shadow_parameters.size * shadow_height_multiplier;
-//             let shadow = shadow::from_shape_with_parameters(shadow_rect.into(),
-// shadow_parameters);             (shadow + bg).into()
-//         }
-//     }
-// }
+pub mod background {
+    use super::*;
+
+    // We don't use the usual padding of sprites, because we clip the shadow under the background
+    // and clipping the shadow shape with `*` operator causes glitches.
+    // See https://www.pivotaltracker.com/story/show/182593513
+
+    ensogl_core::shape! {
+        below = [grid_view::entry::overlay, grid_view::selectable::highlight::shape, icon::any];
+        pointer_events = false;
+        // alignment = center;
+        (style:Style, color:Vector4) {
+            let color = Var::<color::Rgba>::from(color);
+            let width: Var<Pixels> = "input_size.x".into();
+            let height: Var<Pixels> = "input_size.y".into();
+            let bg = Rect((&width, &height)).fill(color);
+            bg.into()
+        }
+    }
+}
 
 // =============
 // === Model ===
@@ -162,7 +151,7 @@ pub struct Params {
 pub struct Data {
     display_object: display::object::Instance,
     label:          text::Text,
-    background:     Rectangle,
+    background:     background::View,
     icon:           icon::any::View,
     style:          StyleWatchFrp,
 }
@@ -171,7 +160,7 @@ impl Data {
     fn new(app: &Application, text_layer: Option<&Layer>) -> Self {
         let display_object = display::object::Instance::new();
         let label = app.new_view::<text::Text>();
-        let background = Rectangle::new();
+        let background = background::View::new();
         let icon = icon::any::View::new();
         let style = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
         display_object.add_child(&background);

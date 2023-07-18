@@ -222,6 +222,7 @@ impl component::Model for Model {
         display_object.add_child(&grid);
         grid_layer.add(&grid);
         grid.selection_highlight_frp().setup_masked_layer(selection_layer.downgrade());
+        grid.set_scrollbars_layer(&scroll_bars_layer);
         Self {
             display_object,
             grid,
