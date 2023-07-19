@@ -7,11 +7,11 @@ use super::prelude::*;
 use crate::prelude::*;
 
 use crate::component::node::input::area::TEXT_SIZE;
+use crate::layers::CommonLayers;
 
 use ensogl::control::io::mouse;
 use ensogl::display;
 use ensogl::display::object;
-use ensogl::display::world::with_context;
 use ensogl::Animation;
 use ensogl_component::list_editor::ListEditor;
 use span_tree::node::Kind;
@@ -117,14 +117,14 @@ impl display::Object for ListItem {
 }
 
 impl Element {
-    fn new() -> Self {
+    fn new(layers: &CommonLayers) -> Self {
         let display_object = object::Instance::new_named("Element");
         let content = object::Instance::new_named("Content");
         let background = Rectangle::new();
         background.set_color(display::shape::INVISIBLE_HOVER_COLOR);
         background.allow_grow().set_alignment_left_center();
         content.use_auto_layout().set_children_alignment_left_center();
-        with_context(|ctx| ctx.layers.label.add(&background));
+        layers.hover.add(&background);
         display_object.replace_children(&[background.display_object(), &content]);
         Self {
             display_object,
@@ -369,7 +369,7 @@ impl Model {
                             Some(new_items_range.map_or(i..i + 1, |r| r.start..i + 1));
                     }
 
-                    let element = entry.or_insert_with(Element::new);
+                    let element = entry.or_insert_with(|| Element::new(&ctx.layers));
                     set_margins(&insert, -INSERTION_OFFSET, INSERTION_OFFSET);
                     element.alive = Some(());
                     element.item_crumb = index;

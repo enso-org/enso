@@ -62,8 +62,11 @@ impl SpanWidget for Widget {
 
     fn default_config(ctx: &ConfigContext) -> Configuration<Self::Config> {
         use span_tree::node::Kind;
-        let has_port = !matches!(ctx.span_node.kind, Kind::Token | Kind::NamedArgument);
-        Configuration::maybe_with_port(default(), has_port)
+        let kind = &ctx.span_node.kind;
+        let expr = ctx.span_expression();
+        let is_inert = matches!(kind, Kind::Token | Kind::NamedArgument)
+            || matches!(kind, Kind::Operation if expr == ".");
+        Configuration::maybe_with_port(default(), !is_inert)
     }
 
     fn root_object(&self) -> &object::Instance {
@@ -123,10 +126,11 @@ impl SpanWidget for Widget {
     fn configure(&mut self, _: &Config, ctx: ConfigContext) {
         let is_placeholder = ctx.span_node.is_expected_argument();
 
+        let expr = ctx.span_expression();
         let content = if is_placeholder || ctx.info.connection.is_some() {
-            ctx.span_node.kind.argument_name().unwrap_or_default()
+            ctx.span_node.kind.argument_name().unwrap_or(expr)
         } else {
-            ctx.span_expression()
+            expr
         };
 
         let is_connected = ctx.info.subtree_connection.is_some();

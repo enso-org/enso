@@ -146,7 +146,7 @@ impl Style {
 pub mod shape {
     use super::*;
     crate::shape! {
-        above = [rectangle];
+        below = [rectangle];
         pointer_events_instanced = true;
         alignment = center; (
             style: Style,
@@ -250,7 +250,6 @@ impl CursorModel {
 
         display_object.add_child(&view);
         scene.add_child(&dragged_elem);
-        scene.add_child(&host_layer_view);
         scene.layers.cursor.add(&view);
         // host_layer_view is intentionally not assigned to any layer yet. Instead, it is assigned
         // on demand once a cursor is in host-attached mode.
@@ -487,11 +486,11 @@ impl Cursor {
                 new_style.use_host_layer.as_ref().map_or(false, |t| !t.animate)
             ).constant(());
             show_host_layer_view <- custom_layer_weight.value.map(|w| *w >= 0.01).on_change();
-            eval show_host_layer_view([model] (show) {
+            eval show_host_layer_view([model, scene] (show) {
                 if *show {
-                    model.host_layer_view.show();
+                    scene.add_child(&model.host_layer_view);
                 } else {
-                    model.host_layer_view.hide();
+                    scene.remove_child(&model.host_layer_view);
                 }
             });
 

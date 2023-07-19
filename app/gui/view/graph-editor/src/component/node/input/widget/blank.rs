@@ -44,8 +44,7 @@ impl SpanWidget for Widget {
     type Config = Config;
 
     fn match_node(ctx: &ConfigContext) -> Score {
-        let is_blank = ctx.span_node.is_argument() && ctx.span_expression() == "_";
-        Score::only_if(is_blank)
+        Score::only_if(ctx.span_expression() == "_")
     }
 
     fn default_config(_: &ConfigContext) -> Configuration<Self::Config> {

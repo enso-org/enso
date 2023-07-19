@@ -701,12 +701,20 @@ define_themes! { [light:0, dark:1]
             corner_radius = 4.0;
         }
         label {
+            /// Base label style, used when the label doesn't belong to any of the groups defined
+            /// below.
             base_color = Lcha(1.0,0.0,0.0,1.0), Lcha(1.0,0.0,0.0,0.7);
             base_weight = 400.0;
+            /// Label style when the node is disabled. For disabled nodes, all labels are rendered
+            /// with this style.
             disabled_color = Lcha(0.95,0.0,0.0,0.9);
             disabled_weight = 400.0;
+            /// Label style for placeholder argument names. Implies that the argument value is
+            /// using default value.
             placeholder_color = Lcha(1.0,0.0,0.0,0.7);
             placeholder_weight = 700.0;
+            /// Label style for connected ports. In connected ports, all labels are rendered with
+            /// this style.
             connected_color = Lcha(1.0,0.0,0.0,1.0);
             connected_weight = 400.0;
         }
@@ -714,6 +722,9 @@ define_themes! { [light:0, dark:1]
             color = Rgba(0.0, 0.0, 0.0, 0.12);
             margin = 7.5;
             width = 1.0;
+            /// Label style for argument names.
+            arg_name_color = Lcha(1.0,0.0,0.0,0.7);
+            arg_name_weight = 400.0;
         }
     }
     colors {

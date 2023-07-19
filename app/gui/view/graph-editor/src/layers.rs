@@ -76,6 +76,9 @@ pub struct MainNodeLayers {
     /// The layer used for interactive elements of the main node body, such as output port.
     pub body_hover: LayerSymbolPartition<rectangle::Shape>,
 
+    /// The layer used for all widget shapes, always above the node body.
+    pub widget_base: Layer,
+
     /// The stack of partitions used for all widget rectangle shapes. The widgets at given tree
     /// depth are rendered above the widgets at lower depths. Every depth has an allocation of two
     /// partitions, one for the widget visual elements and one for mouse interaction (hover
@@ -143,15 +146,17 @@ impl NodeBackdropLayers {
 impl MainNodeLayers {
     fn new(layer: &Layer, camera: Option<&Camera2d>) -> Self {
         let node_base = layer.create_sublayer_with_optional_camera("node_base", camera);
+        let widget_base = layer.create_sublayer_with_optional_camera("widget_base", camera);
         let above_base = layer.create_sublayer_with_optional_camera("above", camera);
 
         Self {
             body: node_base.create_symbol_partition("body"),
             body_hover: node_base.create_symbol_partition("body_hover"),
-            widget_rectangles: PartitionStack::new(&node_base),
+            widget_rectangles: PartitionStack::new(&widget_base),
             action_bar: above_base.create_symbol_partition("action_bar"),
             port_hover: PartitionStack::new(&above_base),
             node_base,
+            widget_base,
             above_base,
         }
     }

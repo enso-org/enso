@@ -1,6 +1,7 @@
 //! Definition of single choice widget.
 
 use super::prelude::*;
+use crate::component::node;
 use crate::prelude::*;
 
 use crate::component::node::input::widget::label;
@@ -159,8 +160,12 @@ impl SpanWidget for Widget {
 
         let display_object = display::object::Instance::new_named("widget::SingleChoice");
         let hover_area = Rectangle();
-        hover_area.set_color(INVISIBLE_HOVER_COLOR);
-        hover_area.allow_grow().set_alignment_center();
+        hover_area
+            .set_color(INVISIBLE_HOVER_COLOR)
+            .allow_grow_x()
+            .set_alignment_center()
+            .set_margin_xy((0.0, -node::HEIGHT / 2.0))
+            .set_size_y(node::HEIGHT);
         display_object.add_child(&hover_area);
         let triangle_wrapper = display_object.new_child();
         let triangle = SimpleTriangle();
@@ -327,29 +332,42 @@ impl Widget {
         let network = &self.config_frp.network;
         let config_frp = &self.config_frp;
         let widgets_frp = ctx.frp();
+        let display_object = &self.display_object;
         let triangle = &self.triangle;
-        let hover_area = &self.hover_area;
         let focus_receiver = &self.dropdown_wrapper;
 
         frp::extend! { network
             let id = ctx.info.identity;
             parent_port_hovered <- widgets_frp.hovered_port_children.map(move |h| h.contains(&id));
-            is_connected_or_hovered <- config_frp.is_connected || parent_port_hovered;
-            triangle_color <- is_connected_or_hovered.all_with(style,
-                |connected, s| if *connected { s.triangle_connected } else { s.triangle_base }
-            ).on_change();
-            eval triangle_color((color)
-                triangle.set_color(color.into());
-            );
+            is_connected <- config_frp.is_connected || parent_port_hovered;
             eval *style([triangle] (style) {
                 let size = style.triangle_size;
                 triangle.set_xy(style.triangle_offset - Vector2(size.x * 0.5, -size.y));
                 triangle.set_base_and_altitude(size.x, -size.y);
             });
 
-            let dot_mouse_down = hover_area.on_event::<mouse::Down>();
-            dot_clicked <- dot_mouse_down.filter(mouse::is_primary);
-            set_focused <- dot_clicked.map(f!([focus_receiver](_) !focus_receiver.is_focused()));
+            let mouse_down = display_object.on_event::<mouse::Down>();
+            let mouse_dropdown_down = focus_receiver.on_event::<mouse::Down>();
+            let mouse_enter = display_object.on_event::<mouse::Enter>();
+            let mouse_leave = display_object.on_event::<mouse::Leave>();
+
+            mouse_dropdown_down_delayed <- mouse_dropdown_down.debounce();
+            handling_dropdown_down <- bool(&mouse_dropdown_down_delayed, &mouse_dropdown_down);
+            clicked <- mouse_down.filter(mouse::is_primary);
+            eval clicked([] (event) event.stop_propagation());
+            clicked <- clicked.gate_not(&handling_dropdown_down);
+
+            is_hovered <- bool(&mouse_leave, &mouse_enter);
+
+            let triangle_color = color::Animation::new(network);
+            triangle_color.target <+ is_connected.all_with3(style, &is_hovered,
+                |connected, s, hovered| {
+                let color = if *connected { s.triangle_connected } else { s.triangle_base };
+                color.multiply_alpha(if *hovered { 1.0 } else { 0.0 })
+            }).on_change();
+            eval triangle_color.value((color) triangle.set_color(color.into()););
+
+            set_focused <- clicked.map(f!([focus_receiver](_) !focus_receiver.is_focused()));
             eval set_focused([focus_receiver](focus) match focus {
                 true => focus_receiver.focus(),
                 false => focus_receiver.blur(),
