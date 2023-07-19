@@ -19,6 +19,7 @@ use list_panel_theme::navigator as theme;
 // === Style ===
 // =============
 
+#[allow(missing_docs)]
 #[derive(Copy, Clone, Debug, Default, FromTheme)]
 #[base_path = "theme"]
 pub struct Style {

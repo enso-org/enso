@@ -1,6 +1,8 @@
+//! A module containing definition of [`Component`] and its [`List`]
+//!
+//! Component is a language entity displayed in the Component Browser.
 use crate::prelude::*;
 
-use convert_case::Casing;
 use enso_doc_parser::DocSection;
 use enso_doc_parser::Tag;
 use ensogl::data::color;
@@ -30,9 +32,28 @@ const ALIAS_MATCH_ATTENUATION_FACTOR: f32 = 0.75;
 
 
 
+// =============
+// === Group ===
+// =============
+
+/// A structure describing a component group.
+#[allow(missing_docs)]
+#[derive(Clone, Debug, Default)]
+pub struct Group {
+    /// The project where the group is defined.
+    pub project: project::QualifiedName,
+    pub name:    ImString,
+    /// Color as defined in project's `package.yaml` file.
+    pub color:   Option<color::Rgb>,
+}
+
+
+
 // =================
+// === Component ===
+// =================
+
 // === MatchInfo ===
-// =================
 
 /// Which part of the component browser entry was best matched to the searcher input.
 #[derive(Clone, Debug, Default)]
@@ -91,11 +112,12 @@ impl PartialEq for MatchInfo {
 impl Eq for MatchInfo {}
 
 
-
-// ==================
 // === Suggestion ===
-// ==================
 
+/// Code suggestion.
+///
+/// It's a part of [`Component`], containing the data required for generating code suggested by
+/// given component.
 #[derive(Clone, Debug, PartialEq)]
 pub enum Suggestion {
     /// A component from the [`suggestion_database`]. When this component is picked in the
@@ -127,6 +149,7 @@ impl Suggestion {
         }
     }
 
+    /// The import requiored by this suggestion.
     pub fn required_import(&self) -> Option<RequiredImport> {
         match self {
             Self::FromDatabase { entry, .. } => Some(RequiredImport::Entry(entry.clone_ref())),
@@ -136,28 +159,14 @@ impl Suggestion {
 }
 
 
-
-// =============
-// === Group ===
-// =============
-
-#[derive(Clone, Debug, Default)]
-pub struct Group {
-    pub project: project::QualifiedName,
-    pub name:    ImString,
-    pub color:   Option<color::Rgb>,
-}
-
-
-
-// =================
 // === Component ===
-// =================
 
+/// A single component entry to be displayed in the Component Browser.
 #[allow(missing_docs)]
 #[derive(Clone, Debug)]
 pub struct Component {
     pub suggestion: Suggestion,
+    /// A group id, being an index of `group` field of [`List`] structure.
     pub group_id:   Option<usize>,
     pub match_info: MatchInfo,
 }
@@ -330,31 +339,60 @@ impl Display for Component {
 // === List ===
 // ============
 
+/// The Component List.
+///
+/// The list is created using [`Builder`] for a specific Component Browser input context. Then the
+/// filtering may be applied with [`Self::update_filtering`] method. [`Self::displayed`] returns the
+/// list of components which ought to be displayed with current filtering.
+///
+/// Please note, that even without filtering [`Self::displayed`] may not return all components,
+/// depending on the mode the list was built: see [`Builder`] docs for details.
 #[derive(Clone, Debug, Default)]
 pub struct List {
-    pub(crate) filtered_in:           Option<RangeTo<usize>>,
-    pub(crate) components:            Vec<Component>,
-    pub(crate) filterable_components: Vec<Component>,
-    pub(crate) groups:                Vec<Group>,
+    pub(crate) filtered_in:          Option<RangeTo<usize>>,
+    pub(crate) components:           Vec<Component>,
+    pub(crate) displayed_by_default: Vec<Component>,
+    pub(crate) groups:               Vec<Group>,
 }
 
 impl List {
-    pub fn is_filtering(&self) -> bool {
+    /// Return a slice of the currently displayed component.
+    ///
+    /// The filtering applied with [`Self::update_filtering`] method will be taken into account.
+    pub fn displayed(&self) -> &[Component] {
+        if let Some(range) = self.filtered_in {
+            &self.components[range]
+        } else {
+            &self.displayed_by_default
+        }
+    }
+
+    /// Get description of all component groups.
+    pub fn groups(&self) -> &[Group] {
+        &self.groups
+    }
+    /// Returns true if the list is currently filtered.
+    pub fn is_filtered(&self) -> bool {
         self.filtered_in.is_some()
     }
 
+    /// Update list filtering.
+    ///
+    /// If the filtering pattern is not empty, the components will be sorted by match score (best
+    /// match first), and [`Self::displayed`] will return only matched entries. Otherwise
+    /// [`Self::displayed`] will return a "default" view, which depend on the context - see
+    /// [structure docs](List) for details.
     pub fn update_filtering(&mut self, filter: Filter) {
         if filter.pattern.trim().is_empty() {
             self.filtered_in = None;
         } else {
-            for component in &mut self.filterable_components {
+            for component in &mut self.components {
                 component.update_matching_info(filter.clone_ref());
             }
-            self.filterable_components
+            self.components
                 .sort_by(|lhs, rhs| Self::entry_match_ordering(&lhs.match_info, &rhs.match_info));
-            let first_non_matching = self
-                .filterable_components
-                .lower_bound_by_key(&true, |entry| entry.is_filtered_out());
+            let first_non_matching =
+                self.components.lower_bound_by_key(&true, |entry| entry.is_filtered_out());
             self.filtered_in = Some(..first_non_matching);
         }
     }
@@ -362,30 +400,6 @@ impl List {
     /// Return the entry match ordering when sorting by match. See [`component::Order::ByMatch`].
     fn entry_match_ordering(lhs: &MatchInfo, rhs: &MatchInfo) -> cmp::Ordering {
         lhs.cmp(rhs).reverse()
-    }
-
-    pub fn components(&self) -> &[Component] {
-        if let Some(range) = self.filtered_in {
-            &self.filterable_components[range]
-        } else {
-            &self.components
-        }
-    }
-
-    pub fn get(&self, index: usize) -> Option<&Component> {
-        self.components().get(index)
-    }
-
-    pub fn len(&self) -> usize {
-        self.components().len()
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.components().is_empty()
-    }
-
-    pub fn groups(&self) -> &[Group] {
-        &self.groups
     }
 }
 
@@ -398,17 +412,17 @@ impl List {
 #[cfg(test)]
 pub(crate) mod tests {
     use super::*;
-    use crate::model::execution_context;
+
     use double_representation::name::QualifiedName;
     use enso_suggestion_database::mock_suggestion_database;
 
-    pub fn check_components(list: &List, expected: Vec<&str>) {
-        let components = list.components().iter().map(|component| component.label()).collect_vec();
+    pub fn check_displayed_components(list: &List, expected: Vec<&str>) {
+        let components = list.displayed().iter().map(|component| component.label()).collect_vec();
         assert_eq!(components, expected);
     }
 
     pub fn check_groups(list: &List, expected: Vec<Option<usize>>) {
-        let groups = list.components().iter().map(|component| component.group_id).collect_vec();
+        let groups = list.displayed().iter().map(|component| component.group_id).collect_vec();
         assert_eq!(groups, expected);
     }
 
@@ -440,14 +454,14 @@ pub(crate) mod tests {
             context:     None,
             module_name: module_name.clone_ref(),
         };
-        check_components(&list, vec!["test.Test.TopModule1"]);
+        check_displayed_components(&list, vec!["test.Test.TopModule1"]);
         list.update_filtering(make_filter("main"));
-        check_components(&list, vec!["New_Project_1.main"]);
+        check_displayed_components(&list, vec!["New_Project_1.main"]);
         list.update_filtering(make_filter("fo"));
-        check_components(&list, vec!["TopModule1.foo"]);
+        check_displayed_components(&list, vec!["TopModule1.foo"]);
         list.update_filtering(make_filter("ba"));
-        check_components(&list, vec!["TopModule1.bar", "SubModule1.bazz"]);
+        check_displayed_components(&list, vec!["TopModule1.bar", "SubModule1.bazz"]);
         list.update_filtering(make_filter(""));
-        check_components(&list, vec!["test.Test.TopModule1"]);
+        check_displayed_components(&list, vec!["test.Test.TopModule1"]);
     }
 }

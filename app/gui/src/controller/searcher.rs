@@ -3,11 +3,8 @@
 use crate::model::traits::*;
 use crate::prelude::*;
 
-use crate::controller::graph::executed::Handle;
 use crate::controller::graph::ImportType;
 use crate::controller::graph::RequiredImport;
-use crate::model::execution_context::QualifiedMethodPointer;
-use crate::model::execution_context::Visualization;
 use crate::model::module::NodeEditStatus;
 use crate::model::suggestion_database;
 use crate::presenter::searcher;
@@ -15,7 +12,6 @@ use crate::presenter::searcher;
 use breadcrumbs::Breadcrumbs;
 use double_representation::name::project;
 use double_representation::name::QualifiedName;
-use double_representation::name::QualifiedNameRef;
 use engine_protocol::language_server;
 use enso_suggestion_database::documentation_ir::EntryDocumentation;
 use enso_text as text;
@@ -339,7 +335,7 @@ impl Searcher {
     /// Get the documentation for the entry.
     pub fn documentation_for_entry(&self, index: usize) -> EntryDocumentation {
         let data = self.data.borrow();
-        let component = data.components.get(index);
+        let component = data.components.displayed().get(index);
         if let Some(component) = component {
             match &component.suggestion {
                 component::Suggestion::FromDatabase { id, .. } =>
@@ -357,7 +353,7 @@ impl Searcher {
         let id = {
             let data = self.data.borrow();
             let error = || NoSuchComponent { index: entry };
-            let component = data.components.get(entry).ok_or_else(error)?;
+            let component = data.components.displayed().get(entry).ok_or_else(error)?;
             component.id().ok_or(NotEnterable { index: entry })?
         };
         let bc_builder = breadcrumbs::Builder::new(&self.database);
@@ -452,8 +448,10 @@ impl Searcher {
         index: usize,
     ) -> FallibleResult<enso_text::Change<Byte, String>> {
         let error = || NoSuchComponent { index };
-        let suggestion =
-            self.data.borrow().components.get(index).ok_or_else(error)?.suggestion.clone();
+        let suggestion = self.data.with_borrowed(|data| {
+            let component = data.components.displayed().get(index);
+            component.map(|c| c.suggestion.clone()).ok_or_else(error)
+        })?;
         self.use_suggestion(suggestion)
     }
 
@@ -464,7 +462,7 @@ impl Searcher {
         let suggestion = index
             .map(|index| {
                 let error = || NoSuchComponent { index };
-                data.components.get(index).map(|c| &c.suggestion).ok_or_else(error)
+                data.components.displayed().get(index).map(|c| &c.suggestion).ok_or_else(error)
             })
             .transpose()?;
         self.preview(suggestion)?;
@@ -669,10 +667,10 @@ impl Searcher {
         let db = &*self.database;
         let groups = self.graph.component_groups();
         let mut builder = match (this_type, self.breadcrumbs.selected()) {
-            (Some(tp), _) => component::Builder::new_with_this_type(db, tp),
-            (None, Some(module)) => component::Builder::new_inside_module(db, module),
+            (Some(tp), _) => component::Builder::new_with_this_type(db, &groups, tp),
+            (None, Some(module)) => component::Builder::new_inside_module(db, &groups, module),
             _ => {
-                let mut builder = component::Builder::new_static(db, Rc::unwrap_or_clone(groups));
+                let mut builder = component::Builder::new(db, &groups);
                 add_virtual_entries_to_builder(&mut builder);
                 builder
             }
@@ -879,12 +877,10 @@ fn component_list_for_literal(
 pub mod test {
     use super::*;
 
-    use crate::controller::graph::RequiredImport;
     use crate::controller::ide::plain::ProjectOperationsNotSupported;
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
     use crate::presenter::searcher::apply_this_argument;
-    use crate::test::mock::data::module_qualified_name;
-    use crate::test::mock::data::project_qualified_name;
+    use crate::test::mock;
     use crate::test::mock::data::MAIN_FINISH;
 
     use engine_protocol::language_server::types::test::value_update_with_type;
@@ -979,7 +975,7 @@ pub mod test {
             let this = data.selected_node.and_option(this);
             let mut ide = controller::ide::MockAPI::new();
             let mut project = model::project::MockAPI::new();
-            let project_qname = project_qualified_name();
+            let project_qname = mock::data::project_qualified_name();
             let project_name = project_qname.project.clone();
             project.expect_qualified_name().returning_st(move || project_qname.clone());
             project.expect_name().returning_st(move || project_name.clone());
@@ -1020,27 +1016,21 @@ pub mod test {
         }
 
         fn test_function_1_suggestion(&self) -> component::Suggestion {
-            let name = crate::test::mock::data::module_qualified_name().new_child("testFunction1");
+            let name = mock::data::module_qualified_name().new_child("testFunction1");
             self.lookup_suggestion(&name)
         }
 
         fn test_function_2_suggestion(&self) -> component::Suggestion {
-            let name = crate::test::mock::data::module_qualified_name().new_child("testFunction2");
+            let name = mock::data::module_qualified_name().new_child("testFunction2");
             self.lookup_suggestion(&name)
         }
-        fn test_method_suggestion(&self) -> component::Suggestion {
-            let name = crate::test::mock::data::module_qualified_name().new_child("test_method");
-            self.lookup_suggestion(&name)
-        }
+
         fn test_method_3_suggestion(&self) -> component::Suggestion {
             self.lookup_suggestion(&"test.Test.Test.test_method3".try_into().unwrap())
         }
+
         fn test_var_1_suggestion(&self) -> component::Suggestion {
-            let name = crate::test::mock::data::module_qualified_name().new_child("test_var_1");
-            self.lookup_suggestion(&name)
-        }
-        fn test_module_suggestion(&self) -> component::Suggestion {
-            let name = QualifiedName::from_text("test.Test.Test").unwrap();
+            let name = mock::data::module_qualified_name().new_child("test_var_1");
             self.lookup_suggestion(&name)
         }
     }
@@ -1143,19 +1133,19 @@ pub mod test {
 
             // The suggestion list should stall only if we actually use "this" argument.
             if case.sets_this {
-                assert!(searcher.components().is_empty());
+                assert!(searcher.components().displayed().is_empty());
                 fixture.test.run_until_stalled();
                 // Nothing appeared, because we wait for type information for this node.
-                assert!(searcher.components().is_empty());
+                assert!(searcher.components().displayed().is_empty());
 
                 let this_node_id = searcher.this_arg.deref().as_ref().unwrap().id;
                 let update = value_update_with_type(this_node_id, mock_type);
                 searcher.graph.computed_value_info_registry().apply_updates(vec![update]);
-                assert!(searcher.components().is_empty());
+                assert!(searcher.components().displayed().is_empty());
             }
 
             fixture.test.run_until_stalled();
-            assert!(!searcher.components().is_empty());
+            assert!(!searcher.components().displayed().is_empty());
             let suggestion2 = fixture.test_function_2_suggestion();
             let suggestion1 = fixture.test_function_1_suggestion();
             let expected_input = "testFunction2 testFunction1";
@@ -1167,10 +1157,9 @@ pub mod test {
 
     #[test]
     fn arguments_suggestions_for_function() {
-        let mut fixture =
-            Fixture::new_custom(suggestion_database_with_mock_entries, |data, client| {
-                data.expect_completion(client, None, &[]); // Function suggestion.
-            });
+        let fixture = Fixture::new_custom(suggestion_database_with_mock_entries, |data, client| {
+            data.expect_completion(client, None, &[]); // Function suggestion.
+        });
 
         let Fixture { searcher, .. } = &fixture;
         searcher.use_suggestion(fixture.test_function_2_suggestion()).unwrap();
@@ -1183,18 +1172,19 @@ pub mod test {
     fn loading_list() {
         let mut fixture =
             Fixture::new_custom(suggestion_database_with_mock_entries, |data, client| {
+                let module_name = mock::data::module_qualified_name();
                 data.graph.ctx.component_groups = vec![LibraryComponentGroup {
-                    library: project_qualified_name().to_string(),
+                    library: mock::data::project_qualified_name().to_string(),
                     name:    "Group".to_owned(),
                     color:   None,
                     icon:    None,
                     exports: vec![
                         LibraryComponent {
-                            name:     module_qualified_name().new_child("testFunction1").into(),
+                            name:     module_name.clone().new_child("testFunction1").into(),
                             shortcut: None,
                         },
                         LibraryComponent {
-                            name:     module_qualified_name().new_child("testFunction2").into(),
+                            name:     module_name.new_child("testFunction2").into(),
                             shortcut: None,
                         },
                     ],
@@ -1207,14 +1197,15 @@ pub mod test {
         let searcher = &fixture.searcher;
         let mut subscriber = searcher.subscribe();
         searcher.reload_list();
-        assert!(searcher.components().is_empty());
+        assert!(searcher.components().displayed().is_empty());
         fixture.test.run_until_stalled();
         let list = dbg!(searcher.components());
         // There are 4 entries, because: 2 were returned from `completion` method, and two are
         // virtual entries.
-        assert_eq!(list.filterable_components.len(), 4);
-        assert_eq!(list.get(0).unwrap().suggestion, fixture.test_function_1_suggestion());
-        assert_eq!(list.get(1).unwrap().suggestion, fixture.test_function_2_suggestion());
+        let components = list.displayed();
+        assert_eq!(components.len(), 4);
+        assert_eq!(components[0].suggestion, fixture.test_function_1_suggestion());
+        assert_eq!(components[1].suggestion, fixture.test_function_2_suggestion());
         let notification = subscriber.next().boxed_local().expect_ready();
         assert_eq!(notification, Some(Notification::NewComponentList));
     }
@@ -1231,14 +1222,14 @@ pub mod test {
         searcher.reload_list();
         fixture.test.run_until_stalled();
         // There are two virtual entries and two top-modules.
-        assert_eq!(dbg!(searcher.components().components()).len(), 4);
+        assert_eq!(dbg!(searcher.components().displayed()).len(), 4);
 
         let mut subscriber = searcher.subscribe();
         searcher.enter_entry(3).expect("Entering entry failed");
         fixture.test.run_until_stalled();
         let list = searcher.components();
-        assert_eq!(list.len(), 1);
-        assert_eq!(list.get(0).unwrap().suggestion, fixture.test_method_3_suggestion());
+        assert_eq!(list.displayed().len(), 1);
+        assert_eq!(list.displayed()[0].suggestion, fixture.test_method_3_suggestion());
         let notification = subscriber.next().boxed_local().expect_ready();
         assert_eq!(notification, Some(Notification::NewComponentList));
     }

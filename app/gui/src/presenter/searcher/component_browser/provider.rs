@@ -36,14 +36,14 @@ pub trait ControllerComponentsProvider {
 impl ControllerComponentsProvider for component::List {
     fn create_grid_content_info(&self) -> component_grid::content::Info {
         component_list_panel::grid::content::Info {
-            entry_count: self.len(),
+            entry_count: self.displayed().len(),
             groups:      self
                 .groups()
                 .iter()
                 .enumerate()
                 .map(|(id, group)| component_grid::content::Group { id, color: group.color })
                 .collect(),
-            is_filtered: self.is_filtering(),
+            is_filtered: self.is_filtered(),
         }
     }
 
@@ -51,7 +51,7 @@ impl ControllerComponentsProvider for component::List {
         &self,
         entry_id: component_grid::EntryId,
     ) -> Option<component_grid::EntryModel> {
-        let component = self.get(entry_id)?;
+        let component = self.displayed().get(entry_id)?;
         Some(component_to_entry_model(component))
     }
 }

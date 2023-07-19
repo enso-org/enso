@@ -38,10 +38,10 @@ pub struct Group {
 // === Info ===
 
 /// A information about Grid content allowing to compute groups' layout.
+#[allow(missing_docs)]
 #[derive(Clone, Debug, Default)]
 pub struct Info {
     pub entry_count: usize,
-    /// List of groups to be arranged in columns. Does not contain Local Scope Group.
     pub groups:      Vec<Group>,
     pub is_filtered: bool,
 }

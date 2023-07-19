@@ -11,9 +11,6 @@ use crate::presenter;
 use crate::presenter::graph::AstNodeId;
 use crate::presenter::graph::ViewNodeId;
 
-use enso_frp as frp;
-use enso_suggestion_database::documentation_ir::EntryDocumentation;
-use enso_text as text;
 use ide_view as view;
 use ide_view::component_browser::component_list_panel::grid as component_grid;
 use ide_view::graph_editor::GraphEditor;

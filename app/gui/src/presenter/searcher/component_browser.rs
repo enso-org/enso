@@ -6,7 +6,6 @@ use crate::prelude::*;
 use crate::controller::searcher::Mode;
 use crate::controller::searcher::Notification;
 use crate::executor::global::spawn_stream_handler;
-use crate::model::suggestion_database::entry::Kind;
 use crate::presenter;
 use crate::presenter::graph::AstNodeId;
 use crate::presenter::graph::ViewNodeId;
@@ -14,13 +13,11 @@ use crate::presenter::searcher::SearcherPresenter;
 
 use enso_frp as frp;
 use enso_suggestion_database::documentation_ir::EntryDocumentation;
-use enso_suggestion_database::documentation_ir::Placeholder;
 use enso_text as text;
 use ide_view as view;
 use ide_view::component_browser;
 use ide_view::component_browser::component_list_panel::grid as component_grid;
 use ide_view::component_browser::component_list_panel::BreadcrumbId;
-use ide_view::component_browser::component_list_panel::SECTION_NAME_CRUMB_INDEX;
 use ide_view::graph_editor::NodeId;
 use ide_view::project::SearcherParams;
 
@@ -42,31 +39,6 @@ pub mod provider;
 #[fail(display = "No component group with the index {:?}.", _0)]
 pub struct NoSuchComponent(component_grid::EntryId);
 
-
-
-// ========================
-// === Helper Functions ===
-// ========================
-
-fn title_for_docs(suggestion: &model::suggestion_database::Entry) -> String {
-    match suggestion.kind {
-        Kind::Type => format!("Type {}", suggestion.name),
-        Kind::Constructor => format!("Constructor {}", suggestion.name),
-        Kind::Function => format!("Function {}", suggestion.name),
-        Kind::Local => format!("Node {}", suggestion.name),
-        Kind::Method => {
-            let preposition = if suggestion.self_type.is_some() { " of " } else { "" };
-            let self_type = suggestion.self_type.as_ref().map_or("", |tp| tp.name());
-            format!("Method {}{}{}", suggestion.name, preposition, self_type)
-        }
-        Kind::Module => format!("Module {}", suggestion.name),
-    }
-}
-
-fn doc_placeholder_for(suggestion: &model::suggestion_database::Entry) -> String {
-    let title = title_for_docs(suggestion);
-    format!("<div class=\"enso docs summary\"><p />{title} <p />No documentation available</div>")
-}
 
 
 // =============

@@ -82,7 +82,9 @@ pub use content::GroupId;
 /// The number of color variants taken from the style sheet, used to coloring group without color
 /// specified by library author.
 pub const GROUP_COLOR_VARIANT_COUNT: usize = 6;
+/// The index of the column in the grid view where entries will be displayed.
 pub const COLUMN: usize = 0;
+/// The number of columns in components grid.
 pub const COLUMN_COUNT: usize = 1;
 
 
