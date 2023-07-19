@@ -263,6 +263,7 @@ lazy val enso = (project in file("."))
     `task-progress-notifications`,
     `profiling-utils`,
     `logging-utils`,
+    filewatcher,
     `logging-service`,
     `logging-truffle-connector`,
     `locking-test-helper`,
@@ -705,6 +706,20 @@ lazy val `logging-service` = project
   .dependsOn(`akka-native`)
   .dependsOn(`logging-utils`)
 
+lazy val filewatcher = project
+  .in(file("lib/scala/filewatcher"))
+  .configs(Test)
+  .settings(
+    frgaalJavaCompilerSetting,
+    version := "0.1",
+    libraryDependencies ++= Seq(
+      "io.methvin"     % "directory-watcher" % directoryWatcherVersion,
+      "commons-io"     % "commons-io"        % commonsIoVersion,
+      "org.scalatest" %% "scalatest"         % scalatestVersion % Test
+    )
+  )
+  .dependsOn(testkit % Test)
+
 lazy val `logging-truffle-connector` = project
   .in(file("lib/scala/logging-truffle-connector"))
   .settings(
@@ -1048,7 +1063,6 @@ lazy val `language-server` = (project in file("engine/language-server"))
       "io.circe"                   %% "circe-generic-extras" % circeGenericExtrasVersion,
       "io.circe"                   %% "circe-literal"        % circeVersion,
       "dev.zio"                    %% "zio"                  % zioVersion,
-      "io.methvin"                  % "directory-watcher"    % directoryWatcherVersion,
       "com.beachape"               %% "enumeratum-circe"     % enumeratumCirceVersion,
       "com.google.flatbuffers"      % "flatbuffers-java"     % flatbuffersVersion,
       "commons-io"                  % "commons-io"           % commonsIoVersion,
@@ -1109,6 +1123,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
   .dependsOn(`version-output`)
   .dependsOn(pkg)
   .dependsOn(`profiling-utils`)
+  .dependsOn(filewatcher)
   .dependsOn(testkit % Test)
   .dependsOn(`library-manager-test` % Test)
   .dependsOn(`runtime-version-manager-test` % Test)
