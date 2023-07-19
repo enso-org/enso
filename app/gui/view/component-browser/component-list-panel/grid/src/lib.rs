@@ -564,7 +564,7 @@ impl Model {
     fn grid_position(input: &(Style, Vector2)) -> Vector2 {
         let (style, _) = input;
         let y = -style.content_size().y + Self::grid_size(input).y;
-        Vector2(0.0, y)
+        Vector2(style.padding, y)
     }
 
     fn entries_params(

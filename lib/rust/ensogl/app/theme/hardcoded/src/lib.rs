@@ -201,7 +201,7 @@ define_themes! { [light:0, dark:1]
                 grid {
                     width = 182.0, 182.0;
                     height = 335.0, 335.0;
-                    padding = 0.0, 0.0;
+                    padding = 4.0, 4.0;
                     column_gap = 3.0, 3.0;
                     entry_height = 32.0, 32.0;
 
@@ -328,12 +328,14 @@ define_themes! { [light:0, dark:1]
                     }
                 }
                 navigator {
-                    width = 182.0, 182.0;
-                    height = 32.0, 32.0;
-                    corner_radius = 16.0, 16.0;
+                    width = 190.0, 190.0;
+                    height = 40.0, 40.0;
+                    corner_radius = 20.0, 20.0;
+                    inner_border_distance = 4.0, 4.0;
                     border_width = 0.5, 0.5;
+                    background_color = application::component_browser::component_list_panel::background_color, application::component_browser::component_list_panel::background_color;
                     border_color = Rgba(0.76, 0.76, 0.76, 1.0), Rgba(0.76, 0.76, 0.76, 1.0);
-                    padding = 8.0, 8.0;
+                    padding = 12.0, 12.0;
                     gap = 12.0, 12.0;
                     right_side_margin = 38.0, 38.0;
                 }

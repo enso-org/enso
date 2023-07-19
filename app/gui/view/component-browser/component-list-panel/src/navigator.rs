@@ -49,14 +49,16 @@ const MIN_BOTTOM_BUTTONS_COUNT: usize = 2;
 #[derive(Copy, Clone, Debug, Default, FromTheme)]
 #[base_path = "theme"]
 pub struct Style {
-    pub width:             f32,
-    pub height:            f32,
-    pub corner_radius:     f32,
-    pub border_width:      f32,
-    pub border_color:      color::Rgba,
-    pub padding:           f32,
-    pub gap:               f32,
-    pub right_side_margin: f32,
+    pub width:                 f32,
+    pub height:                f32,
+    pub corner_radius:         f32,
+    pub border_width:          f32,
+    pub inner_border_distance: f32,
+    pub border_color:          color::Rgba,
+    pub background_color:      color::Rgba,
+    pub padding:               f32,
+    pub gap:                   f32,
+    pub right_side_margin:     f32,
 }
 
 
@@ -144,8 +146,9 @@ impl Navigator {
     fn update_style(&self, style: &Style) {
         self.background.set_size(Vector2(style.width, style.height));
         self.background.set_corner_radius(style.corner_radius);
-        self.background.set_border_and_inset(style.border_width);
+        self.background.set_inner_border(style.border_width, style.inner_border_distance);
         self.background.set_border_color(style.border_color);
+        self.background.set_color(style.background_color);
         self.background.set_gap((style.gap, 0.0)).set_padding_all(style.padding);
         self.side_panel.set_margin_left(style.right_side_margin);
     }

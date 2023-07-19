@@ -233,11 +233,13 @@ impl Model {
 
         let background = Rectangle::new();
         display_object.add_child(&background);
-        background.use_auto_layout().set_column_flow();
+        background
+            .use_auto_layout()
+            .set_column_flow()
+            .set_children_alignment_center()
+            .justify_content_center();
         background.set_size(Vector2(190.0, 380.0));
         background.set_corner_radius(20.0);
-        background.set_padding_all(4.0);
-        background.set_gap((0.0, 5.0));
 
         let grid = app.new_view::<grid::View>();
         background.add_child(&grid_adapter);
