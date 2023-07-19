@@ -10,41 +10,10 @@ maintainers:
     email: contact@enso.org
 component-groups:
   new:
-    - Input:
-        exports:
-          - Standard.Base.System.File.File.new
-          - Standard.Base.Data.read
-          - Standard.Base.Data.read_text
-          - Standard.Base.Data.list_directory
-    - Web:
-        exports:
-          - Standard.Base.Network.HTTP.HTTP.new
-          - Standard.Base.Data.fetch
-    - Parse:
-        exports:
-          - Standard.Base.Data.Json.Json.parse
-          - Standard.Base.Data.Text.Regex.compile
-          - Standard.Base.Data.Text.Regex.escape
-    - Select:
-        exports:
-          - Standard.Base.Data.Vector.Vector.at
-          - Standard.Base.Data.Vector.Vector.get
-          - Standard.Base.Data.Vector.Vector.filter
-          - Standard.Base.Data.Vector.Vector.find
-          - Standard.Base.Data.Vector.Vector.take
-          - Standard.Base.Data.Vector.Vector.drop
-          - Standard.Base.Data.Vector.Vector.partition
-          - Standard.Base.Data.Vector.Vector.distinct
-    - Join:
-        exports:
-          - Standard.Base.Data.Vector.Vector.zip
-    - Transform:
-        exports:
-          - Standard.Base.Data.Vector.Vector.insert
-          - Standard.Base.Data.Vector.Vector.remove
-          - Standard.Base.Data.Vector.Vector.map
-          - Standard.Base.Data.Vector.Vector.sort
-          - Standard.Base.Data.Vector.Vector.distinct
-    - Output:
-        exports:
-          - Standard.Base.Data.Text.Text.write
+    - Input: {}
+    - Web: {}
+    - Parse: {}
+    - Select: {}
+    - Join: {}
+    - Transform: {}
+    - Output: {}

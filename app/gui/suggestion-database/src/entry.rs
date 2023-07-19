@@ -15,6 +15,7 @@ use double_representation::name::QualifiedNameRef;
 use engine_protocol::language_server;
 use engine_protocol::language_server::FieldUpdate;
 use engine_protocol::language_server::SuggestionsDatabaseModification;
+use enso_doc_parser::doc_sections::HtmlString;
 use enso_doc_parser::DocSection;
 use enso_doc_parser::Tag;
 use enso_text::Location;
@@ -237,6 +238,7 @@ pub struct Entry {
     pub scope:         Scope,
     /// A name of a custom icon to use when displaying the entry.
     pub icon_name:     Option<IconName>,
+    pub group_name:    Option<String>,
 }
 
 
@@ -265,6 +267,7 @@ impl Entry {
             self_type: None,
             scope: Scope::Everywhere,
             icon_name: None,
+            group_name: None,
         }
     }
 
@@ -633,6 +636,7 @@ impl Entry {
         };
         let doc_sections = enso_doc_parser::parse(documentation);
         let icon_name = find_icon_name_in_doc_sections(&doc_sections);
+        let group_name = find_group_name_in_doc_sections(&doc_sections);
         let reexported_in: Option<QualifiedName> = match &mut entry {
             Type { reexport: Some(reexport), .. }
             | Constructor { reexport: Some(reexport), .. }
@@ -672,6 +676,7 @@ impl Entry {
         };
         this.documentation = doc_sections;
         this.icon_name = icon_name;
+        this.group_name = group_name;
         this.reexported_in = reexported_in;
         this
     }
@@ -965,8 +970,18 @@ where
 
 fn find_icon_name_in_doc_sections<'a, I>(doc_sections: I) -> Option<IconName>
 where I: IntoIterator<Item = &'a DocSection> {
+    find_tag_in_doc_sections(Tag::Icon, doc_sections).map(|body| IconName::from_tag_body(body))
+}
+
+fn find_group_name_in_doc_sections<'a, I>(doc_sections: I) -> Option<String>
+where I: IntoIterator<Item = &'a DocSection> {
+    find_tag_in_doc_sections(Tag::Group, doc_sections).cloned()
+}
+
+fn find_tag_in_doc_sections<'a, I>(tag: Tag, doc_sections: I) -> Option<&'a HtmlString>
+where I: IntoIterator<Item = &'a DocSection> {
     doc_sections.into_iter().find_map(|section| match section {
-        DocSection::Tag { tag: Tag::Icon, body } => Some(IconName::from_tag_body(body)),
+        DocSection::Tag { tag: current_tag, body } if *current_tag == tag => Some(body),
         _ => None,
     })
 }
