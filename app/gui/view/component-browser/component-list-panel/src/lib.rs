@@ -199,10 +199,13 @@ impl Model {
 
         let section_navigator = SectionNavigator::new(app);
         background.add_child(&section_navigator);
+        section_navigator.set_margin_bottom(-5.0);
 
         let breadcrumbs = app.new_view::<breadcrumbs::Breadcrumbs>();
         breadcrumbs.set_base_layer(&app.display.default_scene.layers.node_searcher);
         display_object.add_child(&breadcrumbs);
+
+        app.display.default_scene.layers.node_searcher_button_panel.add(&section_navigator);
 
         shapes_order_dependencies! {
             scene => {

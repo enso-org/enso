@@ -744,6 +744,7 @@ pub struct HardcodedLayers {
     pub panel_text: Layer,
     pub node_searcher: Layer,
     pub node_searcher_text: Layer,
+    pub node_searcher_button_panel: Layer,
     pub edited_node: Layer,
     pub edited_node_text: Layer,
     pub tooltip: Layer,
@@ -800,6 +801,8 @@ impl HardcodedLayers {
         let node_searcher = root.create_sublayer_with_camera("node_searcher", &node_searcher_cam);
         let node_searcher_text =
             root.create_sublayer_with_camera("node_searcher_text", &node_searcher_cam);
+        let node_searcher_button_panel =
+            root.create_sublayer_with_camera("node_searcher_button_panel", &node_searcher_cam);
         let edited_node = root.create_sublayer_with_camera("edited_node", &edited_node_cam);
         let edited_node_text =
             root.create_sublayer_with_camera("edited_node_text", &edited_node_cam);
@@ -833,6 +836,7 @@ impl HardcodedLayers {
             panel_text,
             node_searcher,
             node_searcher_text,
+            node_searcher_button_panel,
             edited_node,
             edited_node_text,
             tooltip,

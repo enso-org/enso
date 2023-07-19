@@ -200,7 +200,7 @@ define_themes! { [light:0, dark:1]
                 corners_radius = 16.0, 16.0;
                 grid {
                     width = 190.0, 190.0;
-                    height = 335.0, 335.0;
+                    height = 340.0, 340.0;
                     padding_x = 4.0, 4.0;
                     padding_y = 0.0, 0.0;
                     column_gap = 3.0, 3.0;
