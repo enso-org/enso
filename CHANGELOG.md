@@ -197,6 +197,11 @@
   visualization size by dragging its right and bottom borders. Visualization
   width also follows the node's width, and visualizations are aligned to the
   left side of the node.
+- [Component Browser was redesigned][7372]. The three columns of groups turned
+  out to be non-practical, as they give too much information to comprehend.
+  Also, filtering results was kept in groups making second-best match not easily
+  available. Therefore, we introduced a new, impler CB design with single
+  column.
 
 [5910]: https://github.com/enso-org/enso/pull/5910
 [6279]: https://github.com/enso-org/enso/pull/6279
@@ -216,6 +221,7 @@
 [7014]: https://github.com/enso-org/enso/pull/7014
 [7146]: https://github.com/enso-org/enso/pull/7146
 [7164]: https://github.com/enso-org/enso/pull/7164
+[7372]: https://github.com/enso-org/enso/pull/7372
 
 #### EnsoGL (rendering engine)
 
