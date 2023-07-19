@@ -54,7 +54,7 @@ fn svg_icon(content: &'static str, class: &'static str) -> impl Render {
 // === Render ===
 // ==============
 
-/// Render entry documentation to HTML code with Tailwind CSS styles.
+/// Render entry documentation to HTML code.
 #[profile(Detail)]
 pub fn render(docs: &EntryDocumentation) -> String {
     let html = match docs {

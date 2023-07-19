@@ -30,7 +30,6 @@ use ensogl::animation::physics::inertia::Spring;
 use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display;
-use ensogl::display::scene::Scene;
 use ensogl::display::shape::primitive::StyleWatch;
 use ensogl::display::DomSymbol;
 use ensogl::system::web;
@@ -39,6 +38,7 @@ use ensogl_component::shadow;
 use ensogl_derive_theme::FromTheme;
 use ensogl_hardcoded_theme::application::component_browser::documentation as theme;
 use graph_editor::component::visualization;
+pub use ide_view_component_list_panel_breadcrumbs as breadcrumbs;
 use ide_view_graph_editor as graph_editor;
 
 
@@ -54,6 +54,9 @@ pub mod html;
 // === Constants ===
 // =================
 
+
+
+const INITIAL_SECTION_NAME: &str = "Popular";
 /// The caption is hidden if its height is less than this value.
 const MIN_CAPTION_HEIGHT: f32 = 1.0;
 /// Delay before updating the displayed documentation.
@@ -84,19 +87,21 @@ pub struct Style {
 #[derive(Clone, CloneRef, Debug)]
 #[allow(missing_docs)]
 pub struct Model {
-    outer_dom:      DomSymbol,
-    caption_dom:    DomSymbol,
-    inner_dom:      DomSymbol,
+    outer_dom:       DomSymbol,
+    caption_dom:     DomSymbol,
+    inner_dom:       DomSymbol,
+    pub breadcrumbs: breadcrumbs::Breadcrumbs,
     /// The purpose of this overlay is stop propagating mouse events under the documentation panel
     /// to EnsoGL shapes, and pass them to the DOM instead.
-    overlay:        Rectangle,
-    display_object: display::object::Instance,
-    event_handlers: Rc<RefCell<Vec<web::EventListenerHandle>>>,
+    overlay:         Rectangle,
+    display_object:  display::object::Instance,
+    event_handlers:  Rc<RefCell<Vec<web::EventListenerHandle>>>,
 }
 
 impl Model {
     /// Constructor.
-    fn new(scene: &Scene) -> Self {
+    fn new(app: &Application) -> Self {
+        let scene = &app.display.default_scene;
         let display_object = display::object::Instance::new();
         let outer_div = web::document.create_div_or_panic();
         let outer_dom = DomSymbol::new(&outer_div);
@@ -108,6 +113,10 @@ impl Model {
         let caption_div = web::document.create_div_or_panic();
         let caption_dom = DomSymbol::new(&caption_div);
         caption_dom.set_inner_html(&html::caption_html());
+
+        let breadcrumbs = app.new_view::<breadcrumbs::Breadcrumbs>();
+        breadcrumbs.set_base_layer(&app.display.default_scene.layers.node_searcher);
+        display_object.add_child(&breadcrumbs);
 
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
         // system (#795)
@@ -137,6 +146,7 @@ impl Model {
             outer_dom,
             inner_dom,
             caption_dom,
+            breadcrumbs,
             overlay,
             display_object,
             event_handlers: default(),
@@ -157,11 +167,21 @@ impl Model {
         self.outer_dom.append_or_warn(&element);
     }
 
+    fn set_initial_breadcrumbs(&self) {
+        let breadcrumb = breadcrumbs::Breadcrumb::new(INITIAL_SECTION_NAME);
+        self.breadcrumbs.set_entries_from((vec![breadcrumb], 0));
+        self.breadcrumbs.show_ellipsis(true);
+    }
+
     /// Set size of the documentation view.
     fn set_size(&self, size: Vector2) {
+        self.outer_dom.set_xy(size / 2.0);
         self.overlay.set_size(size);
         self.overlay.set_xy(Vector2(-size.x / 2.0, -size.y / 2.0));
         self.outer_dom.set_dom_size(Vector2(size.x, size.y));
+        self.inner_dom.set_dom_size(Vector2(size.x, size.y));
+        self.breadcrumbs.set_xy(Vector2(0.0, size.y + 36.0));
+        self.breadcrumbs.frp().set_size(Vector2(size.x, 32.0));
     }
 
     /// Display the documentation and scroll to the qualified name if needed.
@@ -237,6 +257,9 @@ ensogl::define_endpoints! {
         /// Display documentation of the specific entry from the suggestion database.
         display_documentation (EntryDocumentation),
         show_hovered_item_preview_caption(bool),
+        show(),
+        hide(),
+        skip_animation(),
     }
     Output {
         /// Indicates whether the documentation panel has been selected through clicking into
@@ -280,10 +303,9 @@ impl View {
 
     /// Constructor.
     pub fn new(app: &Application) -> Self {
-        let scene = &app.display.default_scene;
         let frp = Frp::new();
         let visualization_frp = visualization::instance::Frp::new(&frp.network);
-        let model = Model::new(scene);
+        let model = Model::new(app);
         model.load_waiting_screen();
         Self { model, visualization_frp, frp }.init(app)
     }
@@ -299,8 +321,15 @@ impl View {
         let caption_anim = Animation::<f32>::new(network);
         let style_frp = StyleWatchFrp::new(&scene.style_sheet);
         let style = Style::from_theme(network, &style_frp);
+        let width_anim = Animation::new(network);
         frp::extend! { network
             init <- source_();
+
+
+            // === Breadcrumbs ===
+
+            eval_ frp.show(model.set_initial_breadcrumbs());
+
 
             // === Displaying documentation ===
 
@@ -333,9 +362,18 @@ impl View {
             size <- style.update.map(|s| Vector2(s.width, s.height));
             eval size((size) model.set_size(*size));
 
+
             // === Style ===
 
             eval style.update((style) model.update_style(*style));
+
+
+            // === Show/hide animation ===
+
+            width_anim.target <+ frp.show.constant(1.0);
+            width_anim.target <+ frp.hide.constant(0.0);
+            width_anim.skip <+ frp.skip_animation;
+            _eval <- width_anim.value.all_with(&size, f!((v, s) model.set_size(Vector2(s.x * v, s.y))));
 
 
             // === Activation ===

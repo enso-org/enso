@@ -81,14 +81,6 @@ pub use ide_view_component_list_panel_grid::entry::icon;
 
 
 
-// =================
-// === Constants ===
-// =================
-
-const INITIAL_SECTION_NAME: &str = "Popular";
-
-
-
 // ==============
 // === Shapes ===
 // ==============
@@ -231,7 +223,6 @@ pub struct Model {
     background:            Rectangle,
     pub grid:              grid::View,
     pub section_navigator: SectionNavigator,
-    pub breadcrumbs:       breadcrumbs::Breadcrumbs,
 }
 
 impl Model {
@@ -265,13 +256,7 @@ impl Model {
             }
         }
 
-        Self { display_object, background, grid, grid_adapter, section_navigator, breadcrumbs }
-    }
-
-    fn set_initial_breadcrumbs(&self) {
-        let breadcrumb = breadcrumbs::Breadcrumb::new(INITIAL_SECTION_NAME);
-        self.breadcrumbs.set_entries_from((vec![breadcrumb], 0));
-        self.breadcrumbs.show_ellipsis(true);
+        Self { display_object, background, grid, grid_adapter, section_navigator }
     }
 
     fn update_style(&self, style: &AllStyles) {
@@ -279,8 +264,8 @@ impl Model {
         // self.background.set_color(color::Rgba::transparent());
         // self.background.set_size(style.background_sprite_size());
 
-        self.breadcrumbs.set_xy(style.breadcrumbs_pos());
-        self.breadcrumbs.frp().set_size(style.breadcrumbs_size());
+        // self.breadcrumbs.set_xy(style.breadcrumbs_pos());
+        // self.breadcrumbs.frp().set_size(style.breadcrumbs_size());
         self.grid_adapter.set_size(style.grid_size());
         self.grid.set_y(style.grid_size().y);
     }
@@ -345,11 +330,6 @@ impl component::Frp<Model> for Frp {
         let output = &frp_api.output;
 
         frp::extend! { network
-            // === Breadcrumbs ===
-
-            eval_ input.show(model.set_initial_breadcrumbs());
-
-
             // === Style ===
 
             let panel_style = Style::from_theme(network, style);

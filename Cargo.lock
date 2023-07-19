@@ -4379,6 +4379,7 @@ dependencies = [
  "ensogl-hardcoded-theme",
  "horrorshow",
  "ide-ci",
+ "ide-view-component-list-panel-breadcrumbs",
  "ide-view-graph-editor",
  "serde_json",
  "tokio",

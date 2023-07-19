@@ -54,6 +54,9 @@ impl ColorableShape for ensogl_core::display::shape::compound::from_cache::recol
     }
 }
 
+/// A shape that can be parametrized by any cached icon. Same as
+/// [`display::shape::compound::from_cache::recolorized`], but has an overlay for capturing mouse
+/// events and implements [`ColorableShape`].
 pub mod any_cached {
     use ensogl_core::display::shape::*;
     ensogl_core::shape! {
@@ -73,6 +76,8 @@ pub mod any_cached {
 
 impl ColorableShape for any_cached::Shape {
     fn set_color(&self, color: color::Rgba) {
+        // We set only red component, because it was historically used for Component Browser cached
+        // icons as the main color.
         self.r_component.set(color.into());
     }
 }

@@ -198,6 +198,22 @@ mod button_toggle_caption {
 }
 
 
+mod button_show_hide {
+    use super::*;
+    shape! {
+        alignment = center;
+        (style: Style) {
+            let background = Rect((BUTTON_SIZE.px(), BUTTON_SIZE.px()));
+            let background = background.corners_radius(10.0.px());
+            let background = background.fill(BUTTON_BACKGROUND_COLOR);
+            let icon = Circle(5.0.px());
+            let icon = icon.fill(color::Rgba::red());
+            let shape = background + icon;
+            shape.into()
+        }
+    }
+}
+
 
 // ===================
 // === Entry Point ===
@@ -217,6 +233,7 @@ pub fn main() {
         let scene = &world.default_scene;
         let navigator = Navigator::new(scene, &scene.layers.node_searcher.camera());
         let panel = documentation::View::new(&app);
+        panel.frp.show();
         scene.add_child(&panel);
         scene.layers.node_searcher.add(&panel);
 
@@ -239,6 +256,11 @@ pub fn main() {
         toggle_caption.set_size(Vector2(BUTTON_SIZE, BUTTON_SIZE));
         buttons.add_child(&toggle_caption);
         toggle_caption.set_y(-BUTTON_SIZE * 2.0);
+
+        let show_hide = button_show_hide::View::new();
+        show_hide.set_size(Vector2(BUTTON_SIZE, BUTTON_SIZE));
+        buttons.add_child(&show_hide);
+        show_hide.set_y(-BUTTON_SIZE * 4.0);
 
         let network = frp::Network::new("documentation");
         frp::extend! { network
@@ -274,6 +296,16 @@ pub fn main() {
             caption_visible <+ current_state.not();
             panel.frp.show_hovered_item_preview_caption <+ caption_visible.on_change();
 
+
+            // === Show/hide ===
+
+            panel_visible <- any(...);
+            panel_visible <+ init.constant(true);
+            current_state <- panel_visible.sample(&show_hide.events_deprecated.mouse_down);
+            panel_visible <+ current_state.not();
+            panel.frp.show <+ panel_visible.on_true();
+            panel.frp.hide <+ panel_visible.on_false();
+
             // === Disable navigator on hover ===
 
             navigator.frp.set_enabled <+ panel.frp.is_hovered.not();
@@ -289,6 +321,7 @@ pub fn main() {
         mem::forget(network);
         mem::forget(previous);
         mem::forget(toggle_caption);
+        mem::forget(show_hide);
         mem::forget(next);
         mem::forget(buttons);
     })

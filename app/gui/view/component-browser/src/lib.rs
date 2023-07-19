@@ -162,6 +162,8 @@ impl component::Frp<Model> for Frp {
 
             model.list.input.show <+ input.show;
             model.list.input.hide <+ input.hide;
+            model.documentation.input.show <+ input.show;
+            model.documentation.input.hide <+ input.hide;
             out.is_visible <+ bool(&input.hide, &input.show);
             out.size <+ size;
             out.expression_input_position <+ all_with3(
