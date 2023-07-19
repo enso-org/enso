@@ -254,9 +254,6 @@ impl Model {
         let text_color = self.styles.get_color(theme::graph_editor::node::text);
 
         self.edit_mode_label.set_single_line_mode(true);
-
-        app.commands.set_command_enabled(&self.edit_mode_label, "cursor_move_up", false);
-        app.commands.set_command_enabled(&self.edit_mode_label, "cursor_move_down", false);
         app.commands.set_command_enabled(
             &self.edit_mode_label,
             "add_cursor_at_mouse_position",

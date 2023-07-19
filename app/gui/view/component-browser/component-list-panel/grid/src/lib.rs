@@ -154,6 +154,7 @@ ensogl_core::define_endpoints_2! {
         jump_group_up(),
         jump_group_down(),
         unhover_element(),
+        focus(),
     }
     Output {
         active(Option<ElementId>),
@@ -760,6 +761,11 @@ impl component::Frp<Model> for Frp {
             grid_extra_scroll_frp.select_and_scroll_to_entry <+ entry_on_jump_up.filter_map(
                 f!((loc) model.selection_after_jump_group_down(loc.as_ref()?))
             );
+
+
+            // === Focus ===
+
+            eval_ input.focus (model.focus());
         }
 
         // Set the proper number of columns so we can set column widths.
@@ -781,6 +787,7 @@ impl component::Frp<Model> for Frp {
             (Press, "", "cmd up", "jump_group_up"),
             (Press, "", "cmd down", "jump_group_down"),
             (Press, "!is_active", "up", "select_first_entry"),
+            (Press, "!is_active", "up", "focus"),
         ]
         .iter()
         .map(|(a, b, c, d)| View::self_shortcut_when(*a, *c, *d, *b))
