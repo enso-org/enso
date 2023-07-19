@@ -27,15 +27,14 @@ import * as utils from '../../utils'
 
 const THIS_PATH = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)))
 const TAILWIND_CONFIG_PATH = path.resolve(THIS_PATH, 'tailwind.config.ts')
-
+/** Path to the ReactToastify.css used os an entry point. Needs to be in the same directory as
+ * `tailwind.css` so they end up side-by-side in the output. */
 const FAUX_REACTIFY_CSS_PATH = path.resolve(THIS_PATH, 'src', 'ReactToastify.css')
-
-// Match  the exact path above, including THIS_PATH
+/** Regex to match the {@link FAUX_REACTIFY_CSS_PATH} in the bundler. */
 const FAUX_REACTIFY_CSS_PATH_REGEX = new RegExp(
+    // Escape the path.
     FAUX_REACTIFY_CSS_PATH.replace(/\\/g, '\\\\').replace(/\./g, '\\.')
 )
-
-console.log('FAUX_REACTIFY_CSS_PATH_REGEX', FAUX_REACTIFY_CSS_PATH_REGEX)
 
 // =============================
 // === Environment variables ===
@@ -105,18 +104,20 @@ function esbuildPluginGenerateTailwind(): esbuild.Plugin {
     }
 }
 
-/** aaaaaaa */
+/** Plugin that packages the ReactToastify.css. */
 export function esbuildPluginAddReactifyCSS(): esbuild.Plugin {
     return {
         name: 'enso-place-reactify',
         setup: build => {
             build.onResolve({ filter: FAUX_REACTIFY_CSS_PATH_REGEX }, async args => {
+                // Use vanilla resolution mechanism to find the ReactToastify.css file.
                 return await build.resolve('react-toastify/dist/ReactToastify.css', {
                     resolveDir: args.resolveDir,
                     kind: 'import-statement',
                 })
             })
             build.onLoad({ filter: /ReactToastify\.css$/ }, async args => {
+                // Just copy the file to the output.
                 const contents = await fs.readFile(args.path, 'utf8')
                 return {
                     contents,

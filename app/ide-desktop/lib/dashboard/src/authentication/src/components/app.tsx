@@ -112,16 +112,10 @@ function App(props: AppProps) {
      * will redirect the user between the login/register pages and the dashboard. */
     return (
         <>
-            {/* eslint-disable-next-line @typescript-eslint/no-magic-numbers */}
+            <toastify.ToastContainer position="top-center" theme="light" />
             <Router>
                 <AppRouter {...props} />
             </Router>
-            <toastify.ToastContainer
-                // style={{ maxWidth: '10%' }}
-                position="top-center"
-                theme="light"
-                // reverseOrder={false}
-            />
         </>
     )
 }
