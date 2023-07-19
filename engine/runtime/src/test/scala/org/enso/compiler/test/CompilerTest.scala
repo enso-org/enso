@@ -1,7 +1,7 @@
 package org.enso.compiler.test
 
-import org.enso.compiler.EnsoCompiler
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
+import org.enso.compiler.core.EnsoParser
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.data.BindingsMap.ModuleReference
@@ -11,8 +11,10 @@ import org.enso.compiler.pass.{PassConfiguration, PassManager}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 import org.enso.interpreter.runtime.Module
+import org.enso.interpreter.runtime.ModuleTestUtils
 import org.enso.interpreter.runtime.scope.LocalScope
 import org.enso.pkg.QualifiedName
+import org.enso.polyglot.CompilationStage
 
 trait CompilerTest extends AnyWordSpecLike with Matchers with CompilerRunner
 trait CompilerRunner {
@@ -30,7 +32,7 @@ trait CompilerRunner {
       * @return the [[IR]] representing [[source]]
       */
     def toIrModule: IR.Module = {
-      val compiler = new EnsoCompiler()
+      val compiler = new EnsoParser()
       try compiler.compile(source)
       finally compiler.close()
     }
@@ -48,7 +50,7 @@ trait CompilerRunner {
       * @return the [[IR]] representing [[source]], if it is a valid expression
       */
     def toIrExpression: Option[IR.Expression] = {
-      val compiler = new EnsoCompiler()
+      val compiler = new EnsoParser()
       try compiler.generateIRInline(compiler.parse(source))
       finally compiler.close()
     }
@@ -202,7 +204,7 @@ trait CompilerRunner {
     isGeneratingDocs: Boolean                    = false
   ): ModuleContext = {
     ModuleContext(
-      module            = Module.empty(moduleName, null, null),
+      module            = Module.empty(moduleName, null),
       freshNameSupply   = freshNameSupply,
       passConfiguration = passConfiguration,
       compilerConfig    = compilerConfig,
@@ -226,8 +228,9 @@ trait CompilerRunner {
     passConfiguration: Option[PassConfiguration] = None,
     compilerConfig: CompilerConfig               = defaultConfig
   ): InlineContext = {
-    val mod = Module.empty(QualifiedName.simpleName("Test_Module"), null, null)
-    mod.unsafeSetIr(
+    val mod = Module.empty(QualifiedName.simpleName("Test_Module"), null)
+    ModuleTestUtils.unsafeSetIr(
+      mod,
       IR.Module(List(), List(), List(), None)
         .updateMetadata(
           BindingAnalysis -->> BindingsMap(
@@ -236,7 +239,10 @@ trait CompilerRunner {
           )
         )
     )
-    mod.unsafeSetCompilationStage(Module.CompilationStage.AFTER_CODEGEN)
+    ModuleTestUtils.unsafeSetCompilationStage(
+      mod,
+      CompilationStage.AFTER_CODEGEN
+    )
     InlineContext(
       module            = mod,
       freshNameSupply   = freshNameSupply,

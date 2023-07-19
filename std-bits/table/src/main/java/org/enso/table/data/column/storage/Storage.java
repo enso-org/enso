@@ -6,9 +6,9 @@ import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import org.enso.base.polyglot.Polyglot_Utils;
-import org.enso.table.data.column.builder.object.Builder;
-import org.enso.table.data.column.builder.object.InferredBuilder;
-import org.enso.table.data.column.builder.object.ObjectBuilder;
+import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.builder.InferredBuilder;
+import org.enso.table.data.column.builder.ObjectBuilder;
 import org.enso.table.data.column.operation.cast.CastProblemBuilder;
 import org.enso.table.data.column.operation.cast.StorageConverter;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
@@ -16,6 +16,7 @@ import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
+import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
 /** An abstract representation of a data column. */
@@ -74,6 +75,7 @@ public abstract class Storage<T> {
     public static final String OR = "||";
     public static final String IS_NOTHING = "is_nothing";
     public static final String IS_NAN = "is_nan";
+    public static final String IS_INFINITE = "is_infinite";
     public static final String IS_EMPTY = "is_empty";
     public static final String STARTS_WITH = "starts_with";
     public static final String ENDS_WITH = "ends_with";
@@ -118,7 +120,7 @@ public abstract class Storage<T> {
       boolean skipNulls,
       StorageType expectedResultType,
       MapOperationProblemBuilder problemBuilder) {
-    if (name != null && isOpVectorized(name)) {
+    if (isOpVectorized(name)) {
       return runVectorizedMap(name, argument, problemBuilder);
     }
 
@@ -130,6 +132,7 @@ public abstract class Storage<T> {
       return storageBuilder.seal();
     }
 
+    Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
       Object it = getItemBoxed(i);
       if (skipNulls && it == null) {
@@ -139,6 +142,8 @@ public abstract class Storage<T> {
         Object converted = Polyglot_Utils.convertPolyglotValue(result);
         storageBuilder.appendNoGrow(converted);
       }
+
+      context.safepoint();
     }
     return storageBuilder.seal();
   }
@@ -161,7 +166,7 @@ public abstract class Storage<T> {
       Value onMissing,
       StorageType expectedResultType,
       MapOperationProblemBuilder problemBuilder) {
-    if (name != null && isOpVectorized(name)) {
+    if (isOpVectorized(name)) {
       return runVectorizedMap(name, null, problemBuilder);
     }
 
@@ -170,6 +175,7 @@ public abstract class Storage<T> {
     Object missingValue = Polyglot_Utils.convertPolyglotValue(onMissing);
 
     Builder storageBuilder = Builder.getForType(expectedResultType, size());
+    Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
       Object it = getItemBoxed(i);
       if (it == null) {
@@ -179,6 +185,8 @@ public abstract class Storage<T> {
         Object converted = Polyglot_Utils.convertPolyglotValue(result);
         storageBuilder.appendNoGrow(converted);
       }
+
+      context.safepoint();
     }
     return storageBuilder.seal();
   }
@@ -209,6 +217,7 @@ public abstract class Storage<T> {
     checkFallback(function, expectedResultType, name);
 
     Builder storageBuilder = Builder.getForType(expectedResultType, size());
+    Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
       Object it1 = getItemBoxed(i);
       Object it2 = i < arg.size() ? arg.getItemBoxed(i) : null;
@@ -219,6 +228,8 @@ public abstract class Storage<T> {
         Object converted = Polyglot_Utils.convertPolyglotValue(result);
         storageBuilder.appendNoGrow(converted);
       }
+
+      context.safepoint();
     }
     return storageBuilder.seal();
   }
@@ -262,18 +273,22 @@ public abstract class Storage<T> {
    */
   public Storage<?> fillMissingFrom(Storage<?> other, StorageType commonType) {
     var builder = Builder.getForType(commonType, size());
+    Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
       if (isNa(i)) {
         builder.appendNoGrow(other.getItemBoxed(i));
       } else {
         builder.appendNoGrow(getItemBoxed(i));
       }
+
+      context.safepoint();
     }
     return builder.seal();
   }
 
   protected final Storage<?> fillMissingHelper(Value arg, Builder builder) {
     Object convertedFallback = Polyglot_Utils.convertPolyglotValue(arg);
+    Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
       Object it = getItemBoxed(i);
       if (it == null) {
@@ -281,6 +296,8 @@ public abstract class Storage<T> {
       } else {
         builder.appendNoGrow(it);
       }
+
+      context.safepoint();
     }
     return builder.seal();
   }
@@ -350,11 +367,13 @@ public abstract class Storage<T> {
   public Storage<?> duplicateCount() {
     long[] data = new long[size()];
     HashMap<Object, Integer> occurenceCount = new HashMap<>();
+    Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
       var value = getItemBoxed(i);
       var count = occurenceCount.getOrDefault(value, 0);
       data[i] = count;
       occurenceCount.put(value, count + 1);
+      context.safepoint();
     }
     return new LongStorage(data);
   }

@@ -1,6 +1,7 @@
 package org.enso.compiler.codegen
 
 import com.oracle.truffle.api.source.{Source, SourceSection}
+import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.Import
 import org.enso.compiler.core.IR.Name.Special
@@ -11,7 +12,7 @@ import org.enso.compiler.data.BindingsMap.{
   ResolvedModule
 }
 import org.enso.compiler.data.{BindingsMap, CompilerConfig}
-import org.enso.compiler.exception.{BadPatternMatch, CompilerError}
+import org.enso.compiler.exception.BadPatternMatch
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Scope => AliasScope}
 import org.enso.compiler.pass.analyse.AliasAnalysis.{Graph => AliasGraph}
 import org.enso.compiler.pass.analyse.{
@@ -47,6 +48,7 @@ import org.enso.interpreter.node.expression.atom.{
   ConstantNode,
   QualifiedAccessorNode
 }
+import org.enso.interpreter.node.expression.builtin.BuiltinRootNode
 import org.enso.interpreter.node.expression.constant._
 import org.enso.interpreter.node.expression.foreign.ForeignMethodCallNode
 import org.enso.interpreter.node.expression.literal.LiteralNode
@@ -82,6 +84,7 @@ import org.enso.interpreter.runtime.scope.{
 import org.enso.interpreter.{Constants, EnsoLanguage}
 
 import java.math.BigInteger
+
 import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
@@ -440,34 +443,47 @@ class IrToTruffle(
                 else Left(l)
               }
               .map(fOpt =>
-                // Register builtin iff it has not been automatically registered at an early stage
-                // of builtins initialization or if it is a static wrapper.
-                fOpt
-                  .filter(m => !m.isAutoRegister() || staticWrapper)
-                  .map { m =>
-                    if (staticWrapper) {
-                      // Static wrappers differ in the number of arguments by 1.
-                      // Therefore we cannot simply get the registered function.
-                      // BuiltinRootNode.execute will infer the right order of arguments.
-                      val bodyBuilder =
-                        new expressionProcessor.BuildFunctionBody(
-                          fn.arguments,
-                          fn.body,
-                          effectContext,
-                          true
-                        )
-                      new RuntimeFunction(
-                        m.getFunction.getCallTarget,
-                        null,
-                        new FunctionSchema(
-                          new Array[RuntimeAnnotation](0),
-                          bodyBuilder.args(): _*
-                        )
+                fOpt.map { m =>
+                  if (m.isAutoRegister) {
+                    val irFunctionArgumentsCount = fn.arguments.length
+                    val builtinArgumentsCount =
+                      m.getFunction.getSchema.getArgumentsCount
+                    if (irFunctionArgumentsCount != builtinArgumentsCount) {
+                      val irFunctionArguments =
+                        fn.arguments.map(_.name.name).mkString(",")
+                      val builtinArguments =
+                        m.getFunction.getSchema.getArgumentInfos
+                          .map(_.getName)
+                          .mkString(",")
+                      throw new CompilerError(
+                        s"Wrong number of arguments provided in the definition of builtin function ${cons.getName}.${methodDef.methodName.name}. " +
+                        s"[$irFunctionArguments] vs [$builtinArguments]"
                       )
-                    } else {
-                      m.getFunction
                     }
+                    val bodyBuilder =
+                      new expressionProcessor.BuildFunctionBody(
+                        fn.arguments,
+                        fn.body,
+                        effectContext,
+                        true
+                      )
+                    val builtinRootNode =
+                      m.getFunction.getCallTarget.getRootNode
+                        .asInstanceOf[BuiltinRootNode]
+                    builtinRootNode.setModuleName(moduleScope.getModule.getName)
+                    builtinRootNode.setTypeName(cons.getQualifiedName)
+                    new RuntimeFunction(
+                      m.getFunction.getCallTarget,
+                      null,
+                      new FunctionSchema(
+                        new Array[RuntimeAnnotation](0),
+                        bodyBuilder.args(): _*
+                      )
+                    )
+                  } else {
+                    m.getFunction
                   }
+                }
               )
           case fn: IR.Function =>
             val bodyBuilder =
@@ -644,6 +660,8 @@ class IrToTruffle(
     def extractAscribedType(t: IR.Expression): List[Type] = t match {
       case u: IR.Type.Set.Union     => u.operands.flatMap(extractAscribedType)
       case p: IR.Application.Prefix => extractAscribedType(p.function)
+      case _: IR.Type.Function =>
+        List(context.getTopScope().getBuiltins().function())
       case t => {
         t.getMetadata(TypeNames) match {
           case Some(
@@ -1663,7 +1681,7 @@ class IrToTruffle(
         val bodyExpr = body match {
           case IR.Foreign.Definition(lang, code, _, _, _) =>
             buildForeignBody(
-              lang,
+              EpbParser.ForeignLanguage.getBySyntacticTag(lang),
               code,
               arguments.map(_.name.name),
               argSlotIdxs
@@ -1749,13 +1767,13 @@ class IrToTruffle(
       * @param binding whether the function is right inside a binding
       * @return a truffle node representing the described function
       */
-    def processFunctionBody(
+    private def processFunctionBody(
       arguments: List[IR.DefinitionArgument],
       body: IR.Expression,
       location: Option[IdentifiedLocation],
       binding: Boolean = false
     ): CreateFunctionNode = {
-      val bodyBuilder = new BuildFunctionBody(arguments, body, None, binding)
+      val bodyBuilder = new BuildFunctionBody(arguments, body, None, false)
       val fnRootNode = ClosureRootNode.build(
         language,
         scope,

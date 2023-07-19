@@ -547,14 +547,6 @@ class RuntimeSuggestionUpdatesTest
                     "foo",
                     List(
                       Suggestion
-                        .Argument(
-                          "self",
-                          "Enso_Test.Test.Main",
-                          false,
-                          false,
-                          None
-                        ),
-                      Suggestion
                         .Argument("x", ConstantsGen.ANY, false, false, None)
                     ),
                     "Enso_Test.Test.Main",
@@ -608,14 +600,6 @@ class RuntimeSuggestionUpdatesTest
                     "foo",
                     List(
                       Suggestion
-                        .Argument(
-                          "self",
-                          "Enso_Test.Test.Main",
-                          false,
-                          false,
-                          None
-                        ),
-                      Suggestion
                         .Argument("x", ConstantsGen.ANY, false, false, None)
                     ),
                     "Enso_Test.Test.Main",
@@ -629,9 +613,9 @@ class RuntimeSuggestionUpdatesTest
                     Some(
                       List(
                         Api.SuggestionArgumentAction
-                          .Modify(1, Some("a"), None, None, None, None),
+                          .Modify(0, Some("a"), None, None, None, None),
                         Api.SuggestionArgumentAction.Add(
-                          2,
+                          1,
                           Suggestion
                             .Argument("b", ConstantsGen.ANY, false, false, None)
                         )
@@ -1134,15 +1118,7 @@ class RuntimeSuggestionUpdatesTest
                     None,
                     "Enso_Test.Test.A",
                     "hello",
-                    List(
-                      Suggestion.Argument(
-                        "self",
-                        "Enso_Test.Test.A",
-                        false,
-                        false,
-                        None
-                      )
-                    ),
+                    Seq(),
                     "Enso_Test.Test.A",
                     ConstantsGen.ANY,
                     true,

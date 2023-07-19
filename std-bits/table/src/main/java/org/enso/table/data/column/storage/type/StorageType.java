@@ -12,36 +12,6 @@ import java.time.ZonedDateTime;
  */
 public sealed interface StorageType permits AnyObjectType, BooleanType, DateType, DateTimeType, FloatType, IntegerType, TextType, TimeOfDayType {
   /**
-   * @return a common StorageType for the two types.
-   */
-  static StorageType findCommonType(StorageType firstType, StorageType secondType) {
-    if (firstType == null || firstType.equals(secondType)) {
-      return secondType;
-    }
-
-    return switch (firstType) {
-      case IntegerType i -> switch (secondType) {
-        case IntegerType i2 -> i.bits().toInteger() >= i2.bits().toInteger() ? i : i2;
-        case FloatType f -> FloatType.FLOAT_64;
-        case BooleanType b -> i;
-        default -> AnyObjectType.INSTANCE;
-      };
-      case FloatType f -> switch (secondType) {
-        case IntegerType i -> FloatType.FLOAT_64;
-        case FloatType f2 -> f.bits().toInteger() >= f2.bits().toInteger() ? f : f2;
-        case BooleanType b -> f;
-        default -> AnyObjectType.INSTANCE;
-      };
-      case BooleanType b -> switch (secondType) {
-        case IntegerType i -> i;
-        case FloatType f -> f;
-        default -> AnyObjectType.INSTANCE;
-      };
-      default -> AnyObjectType.INSTANCE;
-    };
-  }
-
-  /**
    * @return the StorageType that represents a given boxed item.
    */
   static StorageType forBoxedItem(Object item) {

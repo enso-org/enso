@@ -10,6 +10,8 @@ import * as url from 'node:url'
 import eslintJs from '@eslint/js'
 import globals from 'globals'
 import jsdoc from 'eslint-plugin-jsdoc'
+import react from 'eslint-plugin-react'
+import reactHooks from 'eslint-plugin-react-hooks'
 import tsEslint from '@typescript-eslint/eslint-plugin'
 import tsEslintParser from '@typescript-eslint/parser'
 /* eslint-enable no-restricted-syntax */
@@ -28,16 +30,17 @@ const NAME = 'enso'
  * `yargs` and `react-hot-toast` are modules we explicitly want the default imports of.
  * `node:process` is here because `process.on` does not exist on the namespace import. */
 const DEFAULT_IMPORT_ONLY_MODULES =
-    'node:process|chalk|string-length|yargs|yargs\\u002Fyargs|sharp|to-ico|connect|morgan|serve-static|create-servers|electron-is-dev|fast-glob|esbuild-plugin-.+|opener|tailwindcss.*'
+    'node:process|chalk|string-length|yargs|yargs\\u002Fyargs|sharp|to-ico|connect|morgan|serve-static|create-servers|electron-is-dev|fast-glob|esbuild-plugin-.+|opener|tailwindcss.*|enso-assets.*'
 const ALLOWED_DEFAULT_IMPORT_MODULES = `${DEFAULT_IMPORT_ONLY_MODULES}|postcss|react-hot-toast`
-const OUR_MODULES = 'enso-content-config|enso-common|enso-common\\u002Fsrc\\u002Fdetect'
+const OUR_MODULES =
+    'enso-authentication|enso-content-config|enso-common|enso-common\\u002Fsrc\\u002Fdetect'
 const RELATIVE_MODULES =
     'bin\\u002Fproject-manager|bin\\u002Fserver|config\\u002Fparser|authentication|config|debug|file-associations|index|ipc|log|naming|paths|preload|security|url-associations'
 const STRING_LITERAL = ':matches(Literal[raw=/^["\']/], TemplateLiteral)'
 const JSX = ':matches(JSXElement, JSXFragment)'
-const NOT_PASCAL_CASE = '/^(?!_?([A-Z][a-z0-9]*)+$)/'
+const NOT_PASCAL_CASE = '/^(?!do[A-Z])(?!_?([A-Z][a-z0-9]*)+$)/'
 const NOT_CAMEL_CASE = '/^(?!_?[a-z][a-z0-9*]*([A-Z0-9][a-z0-9]*)*$)(?!React$)/'
-const WHITELISTED_CONSTANTS = 'logger|.+Context'
+const WHITELISTED_CONSTANTS = 'logger|.+Context|interpolationFunction.+'
 const NOT_CONSTANT_CASE = `/^(?!${WHITELISTED_CONSTANTS}$|_?[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$)/`
 
 // =======================================
@@ -100,7 +103,8 @@ const RESTRICTED_SYNTAXES = [
         message: 'Use `for (const x of xs)`, not `for (let x of xs)`',
     },
     {
-        selector: 'TSTypeAliasDeclaration > TSTypeReference > Identifier',
+        selector:
+            'TSTypeAliasDeclaration > TSTypeReference:not(:has(.typeParameters)) > Identifier',
         message: 'No renamed types',
     },
     {
@@ -130,7 +134,7 @@ const RESTRICTED_SYNTAXES = [
     },
     {
         // Matches non-functions.
-        selector: `:matches(Program, ExportNamedDeclaration, TSModuleBlock) > VariableDeclaration[kind=const] > VariableDeclarator[id.name=${NOT_CONSTANT_CASE}]:not(:has(:matches(ArrowFunctionExpression)))`,
+        selector: `:matches(Program, ExportNamedDeclaration, TSModuleBlock) > VariableDeclaration[kind=const] > VariableDeclarator[id.name=${NOT_CONSTANT_CASE}]:not(:matches(:has(ArrowFunctionExpression), :has(CallExpression[callee.object.name=newtype][callee.property.name=newtypeConstructor])))`,
         message: 'Use `CONSTANT_CASE` for top-level constants that are not functions',
     },
     {
@@ -222,6 +226,14 @@ const RESTRICTED_SYNTAXES = [
         selector: 'IfStatement > ExpressionStatement',
         message: 'Wrap `if` branches in `{}`',
     },
+    {
+        selector: ':matches(ForStatement[test=null], ForStatement[test.value=true])',
+        message: 'Use `while (true)` instead of `for (;;)`',
+    },
+    {
+        selector: 'VariableDeclarator[id.name=ENVIRONMENT][init.value!=production]',
+        message: "Environment must be 'production' when committing",
+    },
 ]
 
 // ============================
@@ -240,6 +252,8 @@ export default [
         plugins: {
             jsdoc: jsdoc,
             '@typescript-eslint': tsEslint,
+            react: react,
+            'react-hooks': reactHooks,
         },
         languageOptions: {
             parser: tsEslintParser,
@@ -258,6 +272,7 @@ export default [
             ...tsEslint.configs.recommended?.rules,
             ...tsEslint.configs['recommended-requiring-type-checking']?.rules,
             ...tsEslint.configs.strict?.rules,
+            ...react.configs.recommended.rules,
             eqeqeq: ['error', 'always', { null: 'never' }],
             'jsdoc/require-jsdoc': [
                 'error',
@@ -280,6 +295,7 @@ export default [
                 },
             ],
             'sort-imports': ['error', { allowSeparatedGroups: true }],
+            'no-constant-condition': ['error', { checkLoops: false }],
             'no-restricted-properties': [
                 'error',
                 {
@@ -291,6 +307,10 @@ export default [
             'no-restricted-syntax': ['error', ...RESTRICTED_SYNTAXES],
             'prefer-arrow-callback': 'error',
             'prefer-const': 'error',
+            // Not relevant because TypeScript checks types.
+            'react/prop-types': 'off',
+            'react-hooks/rules-of-hooks': 'error',
+            'react-hooks/exhaustive-deps': 'error',
             // Prefer `interface` over `type`.
             '@typescript-eslint/consistent-type-definitions': 'error',
             '@typescript-eslint/consistent-type-imports': ['error', { prefer: 'no-type-imports' }],
@@ -343,7 +363,10 @@ export default [
                 { checksVoidReturn: { attributes: false } },
             ],
             '@typescript-eslint/no-redundant-type-constituents': 'error',
-            '@typescript-eslint/no-unnecessary-condition': 'error',
+            '@typescript-eslint/no-unnecessary-condition': [
+                'error',
+                { allowConstantLoopConditions: true },
+            ],
             '@typescript-eslint/no-useless-empty-export': 'error',
             '@typescript-eslint/parameter-properties': ['error', { prefer: 'parameter-property' }],
             '@typescript-eslint/prefer-enum-initializers': 'error',
@@ -354,7 +377,7 @@ export default [
             ],
             '@typescript-eslint/restrict-template-expressions': 'error',
             '@typescript-eslint/sort-type-constituents': 'error',
-            // '@typescript-eslint/strict-boolean-expressions': 'error',
+            '@typescript-eslint/strict-boolean-expressions': 'error',
             '@typescript-eslint/switch-exhaustiveness-check': 'error',
             'default-param-last': 'off',
             '@typescript-eslint/default-param-last': 'error',

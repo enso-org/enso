@@ -55,13 +55,14 @@ pub struct TagWithDescription<'a, L> {
 }
 
 /// Indicator placed at the beginning of a documentation section, e.g. `PRIVATE`.
-#[derive(Debug, Copy, Clone)]
+#[derive(Hash, Debug, Clone, Copy, PartialEq, Eq)]
 #[allow(missing_docs)]
 pub enum Tag {
     Added,
     Advanced,
     Alias,
     Deprecated,
+    Icon,
     Modified,
     Private,
     Removed,
@@ -90,6 +91,7 @@ impl Tag {
             "ADVANCED" => Some(Advanced),
             "ALIAS" => Some(Alias),
             "DEPRECATED" => Some(Deprecated),
+            "ICON" => Some(Icon),
             "MODIFIED" => Some(Modified),
             "PRIVATE" => Some(Private),
             "REMOVED" => Some(Removed),
@@ -107,6 +109,7 @@ impl Tag {
             Tag::Advanced => "ADVANCED",
             Tag::Alias => "ALIAS",
             Tag::Deprecated => "DEPRECATED",
+            Tag::Icon => "ICON",
             Tag::Modified => "MODIFIED",
             Tag::Private => "PRIVATE",
             Tag::Removed => "REMOVED",

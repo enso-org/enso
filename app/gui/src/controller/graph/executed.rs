@@ -2,7 +2,7 @@
 //!
 //! This controller provides operations on a specific graph with some execution context - these
 //! operations usually involves retrieving values on nodes: that's are i.e. operations on
-//! visualisations, retrieving types on ports, etc.
+//! visualizations, retrieving types on ports, etc.
 
 use crate::prelude::*;
 
@@ -380,6 +380,21 @@ impl Handle {
         }
     }
 
+    /// Reload the main file and restart the program execution.
+    ///
+    /// ### Errors
+    /// - Fails if the project is in read-only mode.
+    pub async fn reload_and_restart(&self) -> FallibleResult {
+        if self.project.read_only() {
+            Err(ReadOnly.into())
+        } else {
+            let model = self.project.main_module_model().await?;
+            model.reopen_externally_changed_file().await?;
+            self.execution_ctx.restart().await?;
+            Ok(())
+        }
+    }
+
     /// Get the current call stack frames.
     pub fn call_stack(&self) -> Vec<LocalCall> {
         self.execution_ctx.stack_items().collect()
@@ -403,10 +418,19 @@ impl Handle {
     }
 
 
+    /// Get a fully qualified name of the module in the [`graph`]. The name is obtained from the
+    /// module's path and the `project` name.
+    pub fn module_qualified_name_with_project(
+        &self,
+        project: &dyn model::project::API,
+    ) -> QualifiedName {
+        self.graph().module.path().qualified_module_name(project.qualified_name())
+    }
+
     /// Get a full qualified name of the module in the [`graph`]. The name is obtained from the
     /// module's path and the `project` name.
-    pub fn module_qualified_name(&self, project: &dyn model::project::API) -> QualifiedName {
-        self.graph().module.path().qualified_module_name(project.qualified_name())
+    pub fn module_qualified_name(&self) -> QualifiedName {
+        self.graph().module.path().qualified_module_name(self.project.qualified_name())
     }
 
     /// Returns information about all the connections between graph's nodes.
@@ -430,17 +454,30 @@ impl Handle {
         }
     }
 
-    /// Remove the connections from the graph. Returns an updated edge destination endpoint for
-    /// disconnected edge, in case it is still used as destination-only edge. When `None` is
-    /// returned, no update is necessary.
+    /// Remove the connections from the graph.
     ///
     /// ### Errors
     /// - Fails if the project is in read-only mode.
-    pub fn disconnect(&self, connection: &Connection) -> FallibleResult<Option<span_tree::Crumbs>> {
+    pub fn disconnect(&self, connection: &Connection) -> FallibleResult {
         if self.project.read_only() {
             Err(ReadOnly.into())
         } else {
             self.graph.borrow().disconnect(connection, self)
+        }
+    }
+
+    /// Remove all the connections from the graph. This is a convenience method that calls
+    /// [`disconnect`] for each connection. If any of the calls fails, the first error is
+    /// propagated, but all the connections are attempted to be disconnected.
+    pub fn disconnect_all(&self, connections: impl Iterator<Item = Connection>) -> FallibleResult {
+        let errors =
+            connections.map(|c| self.disconnect(&c)).filter_map(|r| r.err()).collect::<Vec<_>>();
+        // Failure has no good way to propagate multiple errors with `Failure`. So we propagate
+        // only the first one.
+        if let Some(error) = errors.into_iter().next() {
+            Err(error)
+        } else {
+            Ok(())
         }
     }
 
@@ -515,7 +552,8 @@ pub mod tests {
     use crate::test;
 
     use crate::test::mock::Fixture;
-    use controller::graph::SpanTree;
+    use ast::crumbs::InfixCrumb;
+    use controller::graph::Endpoint;
     use engine_protocol::language_server::types::test::value_update_with_type;
     use wasm_bindgen_test::wasm_bindgen_test_configure;
 
@@ -532,6 +570,11 @@ pub mod tests {
 
     impl MockData {
         pub fn controller(&self) -> Handle {
+            let db = self.graph.suggestion_db();
+            self.controller_with_db(db)
+        }
+
+        pub fn controller_with_db(&self, suggestion_db: Rc<model::SuggestionDatabase>) -> Handle {
             let parser = parser::Parser::new();
             let repository = Rc::new(model::undo_redo::Repository::new());
             let module = self.module.plain(&parser, repository);
@@ -547,7 +590,6 @@ pub mod tests {
             // Root ID is needed to generate module path used to get the module.
             model::project::test::expect_root_id(&mut project, crate::test::mock::data::ROOT_ID);
             // Both graph controllers need suggestion DB to provide context to their span trees.
-            let suggestion_db = self.graph.suggestion_db();
             model::project::test::expect_suggestion_db(&mut project, suggestion_db);
             let project = Rc::new(project);
             Handle::new(project.clone_ref(), method).boxed_local().expect_ok()
@@ -681,15 +723,10 @@ main =
             assert_eq!(sum_node.expression().to_string(), "2 + 2");
             assert_eq!(product_node.expression().to_string(), "5 * 5");
 
-            let context = &span_tree::generate::context::Empty;
-            let sum_tree = SpanTree::new(&sum_node.expression(), context).unwrap();
-            let sum_input =
-                sum_tree.root_ref().leaf_iter().find(|n| n.is_argument()).unwrap().crumbs;
             let connection = Connection {
-                source:      controller::graph::Endpoint::new(product_node.id(), []),
-                destination: controller::graph::Endpoint::new(sum_node.id(), sum_input),
+                source: Endpoint::root(product_node.id()),
+                target: Endpoint::target_at(sum_node, [InfixCrumb::LeftOperand]).unwrap(),
             };
-
             assert!(executed.connect(&connection).is_err());
         });
     }

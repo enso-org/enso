@@ -12,8 +12,8 @@ import org.apache.poi.ss.usermodel.Name;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.util.CellReference;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.enso.table.data.column.builder.object.Builder;
-import org.enso.table.data.column.builder.object.InferredBuilder;
+import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.builder.InferredBuilder;
 import org.enso.table.data.column.storage.ObjectStorage;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
@@ -24,6 +24,7 @@ import org.enso.table.excel.ExcelRange;
 import org.enso.table.excel.ExcelRow;
 import org.enso.table.excel.ExcelSheet;
 import org.enso.table.problems.WithProblems;
+import org.graalvm.polyglot.Context;
 
 /** A table reader for MS Excel files. */
 public class ExcelReader {
@@ -61,8 +62,10 @@ public class ExcelReader {
   public static String[] readSheetNames(Workbook workbook) {
     int sheetCount = workbook.getNumberOfSheets();
     var output = new String[sheetCount];
+    Context context = Context.getCurrent();
     for (int i = 0; i < sheetCount; i++) {
       output[i] = workbook.getSheetName(i);
+      context.safepoint();
     }
     return output;
   }

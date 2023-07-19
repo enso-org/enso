@@ -6,8 +6,8 @@ import Standard.Base.Runtime.Ref.Ref
 import Standard.Table.Data.Aggregate_Column.Aggregate_Column
 import Standard.Table.Internal.Naming_Helpers.Naming_Helpers
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
-from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
 from Standard.Table import Value_Type
+from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
 
 import project.Connection.Connection.Connection
 import project.Data.Dialect
@@ -16,24 +16,24 @@ import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
 import project.Data.Table.Table
 import project.Internal.Base_Generator
-import project.Internal.Column_Fetcher.Column_Fetcher
 import project.Internal.Column_Fetcher as Column_Fetcher_Module
-import project.Internal.IR.Context.Context
+import project.Internal.Column_Fetcher.Column_Fetcher
+import project.Internal.Common.Database_Distinct_Helper
+import project.Internal.Common.Database_Join_Helper
 import project.Internal.Error_Mapper.Error_Mapper
+import project.Internal.IR.Context.Context
 import project.Internal.IR.From_Spec.From_Spec
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.Order_Descriptor.Order_Descriptor
 import project.Internal.IR.Query.Query
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
-import project.Internal.Common.Database_Distinct_Helper
-import project.Internal.Common.Database_Join_Helper
 import project.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
-import project.Internal.SQLite.SQLite_Type_Mapping.SQLite_Type_Mapping
 import project.Internal.SQLite.SQLite_Error_Mapper.SQLite_Error_Mapper
+import project.Internal.SQLite.SQLite_Type_Mapping.SQLite_Type_Mapping
 import project.Internal.Statement_Setter.Statement_Setter
-from project.Errors import Unsupported_Database_Operation
+from project.Errors import SQL_Error, Unsupported_Database_Operation
 
 ## PRIVATE
 
@@ -144,7 +144,8 @@ type SQLite_Dialect
 
     ## PRIVATE
     make_cast : Internal_Column -> SQL_Type -> (SQL_Expression -> SQL_Type_Reference) -> Internal_Column
-    make_cast self column target_type _ =
+    make_cast self column target_type infer_result_type_from_database_callback =
+        _ = [infer_result_type_from_database_callback]
         mapping = self.get_type_mapping
         target_value_type = mapping.sql_type_to_value_type target_type
         custom_cast = make_custom_cast column target_value_type mapping
@@ -166,6 +167,14 @@ type SQLite_Dialect
     ## PRIVATE
     supports_separate_nan : Boolean
     supports_separate_nan self = False
+
+    ## PRIVATE
+    supports_negative_round_decimal_places : Boolean
+    supports_negative_round_decimal_places self = False
+
+    ## PRIVATE
+    rounding_decimal_places_not_allowed_for_floats : Boolean
+    rounding_decimal_places_not_allowed_for_floats self = False
 
     ## PRIVATE
        SQLite allows mixed type columns, but we want our columns to be uniform.
@@ -230,12 +239,38 @@ type SQLite_Dialect
     get_error_mapper : Error_Mapper
     get_error_mapper self = SQLite_Error_Mapper
 
+    ## PRIVATE
+       The dialect-dependent strategy to get the Primary Key for a given table.
+
+       Returns `Nothing` if the key is not defined.
+
+       Custom handling is required, because the default DatabaseMetaData
+       implementation does not correctly handle temporary tables.
+    fetch_primary_key : Connection -> Text -> Vector Text ! Nothing
+    fetch_primary_key self connection table_name =
+        wrapped_name = self.internal_generator_dialect.wrap_identifier table_name
+        query = Builder.code "pragma table_info(" ++ wrapped_name ++ ")"
+        info_table = connection.read_statement query.build
+        ## The `pk` field is non-zero if the columns is part of the primary key.
+           The column value indicates the position in the key.
+           See: https://www.sqlite.org/pragma.html#pragma_table_info
+        v = info_table.filter "pk" (>0) . order_by "pk" . at "name" . to_vector
+        if v.is_empty then Nothing else v
+
+    ## PRIVATE
+       Prepares metadata for an operation taking a date/time period and checks
+       if the given period is supported.
+    prepare_metadata_for_period : Date_Period | Time_Period -> Value_Type -> Any
+    prepare_metadata_for_period self period operation_input_type =
+        _ = [period, operation_input_type]
+        Error.throw (Unsupported_Database_Operation.Error "SQLite backend does not support date/time operations.")
+
 ## PRIVATE
 make_internal_generator_dialect =
     text = [starts_with, contains, ends_with, make_case_sensitive]+concat_ops+trim_ops
     counts = [agg_count_is_null, agg_count_empty, agg_count_not_empty, ["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null]]
     stats = [agg_stddev_pop, agg_stddev_samp]
-    arith_extensions = [decimal_div, mod_op]
+    arith_extensions = [is_inf, floating_point_div, mod_op]
 
     bool = [bool_or]
     my_mappings = text + counts + stats + arith_extensions + bool
@@ -318,6 +353,11 @@ trim_ops =
                         Builder.code "CASE WHEN " ++ chars ++ " IS NULL OR " ++ chars ++ " == '' THEN " ++ fn_name ++ "(" ++ input ++ ") ELSE " ++ fn_name ++ "(" ++ input ++ ", " ++ chars ++ ") END"
     [make_fn "TRIM", make_fn "LTRIM", make_fn "RTRIM"]
 
+
+## PRIVATE
+is_inf = Base_Generator.lift_unary_op "IS_INF" arg->
+    (arg ++ " in (9e999, -9e999)").paren
+
 ## PRIVATE
 agg_count_distinct args = case args.length == 1 of
     True -> Builder.code "COUNT(DISTINCT (" ++ args.first ++ "))"
@@ -358,7 +398,7 @@ bool_or = Base_Generator.lift_unary_op "BOOL_OR" arg->
     Builder.code "max(" ++ arg ++ ")"
 
 ## PRIVATE
-decimal_div = Base_Generator.lift_binary_op "/" x-> y->
+floating_point_div = Base_Generator.lift_binary_op "/" x-> y->
     Builder.code "CAST(" ++ x ++ " AS REAL) / CAST(" ++ y ++ " AS REAL)"
 
 ## PRIVATE

@@ -82,7 +82,7 @@ export class Client {
         mimetype?: string
     ) {
         const headers = new Headers(this.defaultHeaders)
-        if (payload) {
+        if (payload != null) {
             const contentType = mimetype ?? 'application/json'
             headers.set('Content-Type', contentType)
         }
@@ -98,7 +98,7 @@ export class Client {
         return fetch(url, {
             method,
             headers,
-            ...(payload ? { body: payload } : {}),
+            ...(payload != null ? { body: payload } : {}),
         }) as Promise<ResponseWithTypedJson<T>>
     }
 }

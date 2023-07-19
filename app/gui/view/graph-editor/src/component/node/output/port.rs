@@ -7,23 +7,21 @@ use crate::application::tooltip;
 use crate::application::tooltip::Placement;
 use crate::component::node;
 use crate::component::type_coloring;
-use crate::view;
 use crate::Type;
 
 use enso_frp as frp;
+use ensogl::control::io::mouse;
 use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::shape::primitive::def::class::ShapeOps;
 use ensogl::display::shape::AnyShape;
-use ensogl::display::shape::BottomHalfPlane;
 use ensogl::display::shape::Circle;
+use ensogl::display::shape::HalfPlane;
 use ensogl::display::shape::PixelDistance;
 use ensogl::display::shape::Pixels;
 use ensogl::display::shape::Rect;
 use ensogl::display::shape::StyleWatch;
-use ensogl::display::shape::StyleWatchFrp;
 use ensogl::display::shape::Var;
-use ensogl::gui::component;
 use ensogl::gui::text;
 use ensogl::Animation;
 
@@ -91,7 +89,7 @@ impl AllPortsShape {
         let inner_width = canvas_width - HOVER_AREA_PADDING.px() * 2.0;
         let inner_height = canvas_height - HOVER_AREA_PADDING.px() * 2.0;
         let inner_radius = node::RADIUS.px();
-        let top_mask = BottomHalfPlane();
+        let top_mask = HalfPlane();
 
 
         // === Main Shape ===
@@ -262,8 +260,8 @@ pub mod multi_port {
     /// Compute the crop plane at the location of the given port index. Also takes into account an
     /// `position_offset` that is given as an offset along the shape boundary.
     ///
-    /// The crop plane is a `HalfPlane` that is perpendicular to the border of the shape and can be
-    /// used to crop the shape at the specified port index.
+    /// The crop plane is a `BottomHalfPlane` that is perpendicular to the border of the shape and
+    /// can be used to crop the shape at the specified port index.
     fn compute_crop_plane(
         index: &Var<f32>,
         port_num: &Var<f32>,
@@ -293,7 +291,7 @@ pub mod multi_port {
         );
         let plane_shape_offset = Var::<Pixels>::from(&crop_plane_pos - width * 0.5);
 
-        let crop_shape = HalfPlane();
+        let crop_shape = BottomHalfPlane();
         let crop_shape = crop_shape.rotate(plane_rotation_angle);
         let crop_shape = crop_shape.translate_x(plane_shape_offset);
 
@@ -408,13 +406,6 @@ impl PortShapeView {
         set_padding_left  (this,t:f32)   { this.padding_left.set(t) }
         set_padding_right (this,t:f32)   { this.padding_right.set(t) }
     }
-
-    fn events(&self) -> &component::PointerTarget_DEPRECATED {
-        match self {
-            Self::Single(t) => &t.events_deprecated,
-            Self::Multi(t) => &t.events_deprecated,
-        }
-    }
 }
 
 impl display::Object for PortShapeView {
@@ -439,7 +430,6 @@ ensogl::define_endpoints! {
         set_usage_type            (Option<Type>),
         set_type_label_visibility (bool),
         set_size                  (Vector2),
-        set_view_mode             (view::Mode),
     }
 
     Output {
@@ -470,7 +460,6 @@ impl Model {
         &mut self,
         app: &Application,
         styles: &StyleWatch,
-        styles_frp: &StyleWatchFrp,
         port_index: usize,
         port_count: usize,
     ) -> (display::object::Instance, Frp) {
@@ -500,20 +489,13 @@ impl Model {
         self.port_count = max(port_count, 1);
         self.port_index = port_index;
 
-        self.init_frp(&shape, &type_label, styles, styles_frp);
+        self.init_frp(&shape, &type_label, styles);
         (display_object, self.frp.as_ref().unwrap().clone_ref())
     }
 
-    fn init_frp(
-        &mut self,
-        shape: &PortShapeView,
-        type_label: &text::Text,
-        styles: &StyleWatch,
-        styles_frp: &StyleWatchFrp,
-    ) {
+    fn init_frp(&mut self, shape: &PortShapeView, type_label: &text::Text, styles: &StyleWatch) {
         let frp = Frp::new();
         let network = &frp.network;
-        let events = shape.events();
         let opacity = Animation::<f32>::new(network);
         let color = color::Animation::new(network);
         let type_label_opacity = Animation::<f32>::new(network);
@@ -527,14 +509,19 @@ impl Model {
 
             // === Mouse Event Handling ===
 
-            frp.source.on_hover <+ bool(&events.mouse_out,&events.mouse_over);
-            frp.source.on_press <+ events.mouse_down_primary;
+            let mouse_down = shape.on_event::<mouse::Down>();
+            let mouse_enter = shape.on_event::<mouse::Enter>();
+            let mouse_leave = shape.on_event::<mouse::Leave>();
+            mouse_down_primary <- mouse_down.filter(mouse::is_primary);
+
+            frp.source.on_hover <+ bool(&mouse_leave, &mouse_enter);
+            frp.source.on_press <+ mouse_down_primary.constant(());
 
 
             // === Opacity ===
 
-            opacity.target <+ events.mouse_over.constant(PORT_OPACITY_HOVERED);
-            opacity.target <+ events.mouse_out.constant(PORT_OPACITY_NOT_HOVERED);
+            opacity.target <+ mouse_enter.constant(PORT_OPACITY_HOVERED);
+            opacity.target <+ mouse_leave.constant(PORT_OPACITY_NOT_HOVERED);
             eval opacity.value ((t) shape.set_opacity(*t));
 
 
@@ -563,14 +550,8 @@ impl Model {
                 |usage_tp,def_tp| usage_tp.clone().or_else(|| def_tp.clone())
             );
 
-            normal_color        <- frp.tp.map(f!([styles](t)
+            color.target <+ frp.tp.map(f!([styles](t)
                 type_coloring::compute_for_selection(t.as_ref(),&styles)));
-            init_color          <- source::<()>();
-            let profiling_color  = styles_frp.get_color(ensogl_hardcoded_theme::code::types::any::selection);
-            profiling_color     <- all_with(&profiling_color,&init_color,|c,_|color::Lcha::from(c));
-            in_profiling_mode   <- frp.set_view_mode.map(|mode| mode.is_profiling());
-            color_tgt           <- in_profiling_mode.switch(&normal_color,&profiling_color);
-            color.target        <+ color_tgt;
             eval color.value ((t) shape.set_color(t.into()));
 
             full_type_timer.start <+ frp.on_hover.on_true();
@@ -582,7 +563,6 @@ impl Model {
                 })
             });
         }
-        init_color.emit(());
 
         if SHOW_TYPE_AS_LABEL {
             frp::extend! { network

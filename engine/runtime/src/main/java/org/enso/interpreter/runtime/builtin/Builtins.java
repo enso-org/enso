@@ -17,9 +17,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import org.enso.compiler.context.CompilerContext;
 import org.enso.compiler.Passes;
 import org.enso.compiler.context.FreshNameSupply;
-import org.enso.compiler.exception.CompilerError;
+import org.enso.compiler.core.CompilerError;
 import org.enso.compiler.phase.BuiltinsIrBuilder;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.dsl.TypeProcessor;
@@ -124,7 +125,7 @@ public final class Builtins {
    */
   public Builtins(EnsoContext context) {
     EnsoLanguage language = context.getLanguage();
-    module = Module.empty(QualifiedName.fromString(MODULE_NAME), null, null);
+    module = Module.empty(QualifiedName.fromString(MODULE_NAME), null);
     scope = module.compileScope(context);
 
     builtins = initializeBuiltinTypes(loadedBuiltinConstructors, language, scope);
@@ -216,12 +217,12 @@ public final class Builtins {
    * @param passes the passes manager for the compiler
    */
   @CompilerDirectives.TruffleBoundary
-  public void initializeBuiltinsIr(FreshNameSupply freshNameSupply, Passes passes) {
+  public void initializeBuiltinsIr(CompilerContext context, FreshNameSupply freshNameSupply, Passes passes) {
     try {
       if (module.getSource() == null) {
         initializeBuiltinsSource();
       }
-      BuiltinsIrBuilder.build(module, freshNameSupply, passes);
+      BuiltinsIrBuilder.build(context, module, freshNameSupply, passes);
     } catch (IOException e) {
       e.printStackTrace();
     }
@@ -230,7 +231,7 @@ public final class Builtins {
   /**
    * Returns a list of supported builtins.
    *
-   * <p>Builtin types are marked via @BuiltinType annotation. THe metdata file represents a single
+   * <p>Builtin types are marked via @BuiltinType annotation. The metadata file represents a single
    * builtin type per row. The format of the row is as follows: <Enso name of the builtin
    * type>:<Name of the class representing it>:[<field1>,<field2>,...] where the last column gives a
    * list of optional type's fields.

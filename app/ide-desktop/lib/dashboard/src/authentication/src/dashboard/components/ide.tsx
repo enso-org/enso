@@ -1,6 +1,7 @@
 /** @file Container that launches the IDE. */
-import * as react from 'react'
+import * as React from 'react'
 
+import * as auth from '../../authentication/providers/auth'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 
@@ -10,7 +11,7 @@ import GLOBAL_CONFIG from '../../../../../../../../gui/config.yaml' assert { typ
 // === Constants ===
 // =================
 
-const IDE_CDN_URL = 'https://ensocdn.s3.us-west-1.amazonaws.com/ide'
+const IDE_CDN_URL = 'https://cdn.enso.org/ide'
 const JS_EXTENSION: Record<backendModule.BackendType, string> = {
     [backendModule.BackendType.remote]: '.js.gz',
     [backendModule.BackendType.local]: '.js',
@@ -26,16 +27,28 @@ export interface IdeProps {
     appRunner: AppRunner
 }
 
-/** The ontainer that launches the IDE. */
+/** The container that launches the IDE. */
 function Ide(props: IdeProps) {
     const { project, appRunner } = props
     const { backend } = backendProvider.useBackend()
+    const { accessToken } = auth.useNonPartialUserSession()
 
-    react.useEffect(() => {
+    let hasEffectRun = false
+
+    React.useEffect(() => {
+        // This is a hack to work around the IDE WASM not playing nicely with React Strict Mode.
+        // This is unavoidable as the WASM must fully set up to be able to properly drop its assets,
+        // but React re-executes this side-effect faster tha the WASM can do so.
+        if (hasEffectRun) {
+            // eslint-disable-next-line no-restricted-syntax
+            return
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        hasEffectRun = true
         void (async () => {
             const ideVersion =
                 project.ideVersion?.value ??
-                ('listVersions' in backend
+                (backend.type === backendModule.BackendType.remote
                     ? await backend.listVersions({
                           versionType: backendModule.VersionType.ide,
                           default: true,
@@ -43,7 +56,7 @@ function Ide(props: IdeProps) {
                     : null)?.[0].number.value
             const engineVersion =
                 project.engineVersion?.value ??
-                ('listVersions' in backend
+                (backend.type === backendModule.BackendType.remote
                     ? await backend.listVersions({
                           versionType: backendModule.VersionType.backend,
                           default: true,
@@ -60,14 +73,17 @@ function Ide(props: IdeProps) {
             } else if (binaryAddress == null) {
                 throw new Error("Could not get the address of the project's binary endpoint.")
             } else {
-                const assetsRoot = (() => {
-                    switch (backend.type) {
-                        case backendModule.BackendType.remote:
-                            return `${IDE_CDN_URL}/${ideVersion}/`
-                        case backendModule.BackendType.local:
-                            return ''
+                let assetsRoot: string
+                switch (backend.type) {
+                    case backendModule.BackendType.remote: {
+                        assetsRoot = `${IDE_CDN_URL}/${ideVersion}/`
+                        break
                     }
-                })()
+                    case backendModule.BackendType.local: {
+                        assetsRoot = ''
+                        break
+                    }
+                }
                 const runNewProject = async () => {
                     const engineConfig =
                         backend.type === backendModule.BackendType.remote
@@ -78,20 +94,25 @@ function Ide(props: IdeProps) {
                             : {
                                   projectManagerUrl: GLOBAL_CONFIG.projectManagerEndpoint,
                               }
-                    await appRunner.runApp({
-                        loader: {
-                            assetsUrl: `${assetsRoot}dynamic-assets`,
-                            wasmUrl: `${assetsRoot}pkg-opt.wasm`,
-                            jsUrl: `${assetsRoot}pkg${JS_EXTENSION[backend.type]}`,
+                    await appRunner.runApp(
+                        {
+                            loader: {
+                                assetsUrl: `${assetsRoot}dynamic-assets`,
+                                wasmUrl: `${assetsRoot}pkg-opt.wasm`,
+                                jsUrl: `${assetsRoot}pkg${JS_EXTENSION[backend.type]}`,
+                            },
+                            engine: {
+                                ...engineConfig,
+                                preferredVersion: engineVersion,
+                            },
+                            startup: {
+                                project: project.packageName,
+                            },
                         },
-                        engine: {
-                            ...engineConfig,
-                            preferredVersion: engineVersion,
-                        },
-                        startup: {
-                            project: project.packageName,
-                        },
-                    })
+                        // Here we actually need explicit undefined.
+                        // eslint-disable-next-line no-restricted-syntax
+                        accessToken ?? undefined
+                    )
                 }
                 if (backend.type === backendModule.BackendType.local) {
                     await runNewProject()
@@ -122,7 +143,10 @@ function Ide(props: IdeProps) {
                 }
             }
         })()
-    }, [project])
+        // The backend MUST NOT be a dependency, since the IDE should only be recreated when a new
+        // project is opened, and a local project does not exist on the cloud and vice versa.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [project, /* should never change */ appRunner])
 
     return <></>
 }

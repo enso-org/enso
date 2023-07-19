@@ -2,21 +2,20 @@ from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
-import project.Data.Table.Table
 import project.Data.Match_Columns.Match_Columns
+import project.Data.Table.Table
 import project.Excel.Excel_Range.Excel_Range
 import project.Excel.Excel_Section.Excel_Section
 import project.Internal.Excel_Reader
-from project.Errors import Invalid_Location, Range_Exceeded, Existing_Data, Column_Count_Mismatch, Column_Name_Mismatch
+from project.Errors import Column_Count_Mismatch, Column_Name_Mismatch, Existing_Data, Invalid_Location, Range_Exceeded
 
+polyglot java import java.lang.IllegalStateException
+polyglot java import org.enso.table.error.ExistingDataException
+polyglot java import org.enso.table.error.InvalidLocationException
+polyglot java import org.enso.table.error.RangeExceededException
 polyglot java import org.enso.table.read.ExcelReader
 polyglot java import org.enso.table.write.ExcelWriter
 polyglot java import org.enso.table.write.ExistingDataMode
-polyglot java import org.enso.table.error.ExistingDataException
-polyglot java import org.enso.table.error.RangeExceededException
-polyglot java import org.enso.table.error.InvalidLocationException
-
-polyglot java import java.lang.IllegalStateException
 
 ## PRIVATE
 make_java_existing_data_mode : Existing_File_Behavior -> Match_Columns -> ExistingDataMode
@@ -33,7 +32,8 @@ make_java_existing_data_mode on_existing_file match_columns = case on_existing_f
 
    Arguments:
 write_file : File -> Table -> Existing_File_Behavior -> Excel_Section -> (Boolean|Infer) -> Match_Columns -> Problem_Behavior -> Boolean -> File
-write_file file table on_existing_file section headers match_columns _ xls_format=False =
+write_file file table on_existing_file section headers match_columns on_problems xls_format=False =
+    _ = [on_problems]
     workbook = if file.exists.not then ExcelWriter.createWorkbook xls_format else
         Excel_Reader.handle_reader file stream->(ExcelReader.getWorkbook stream xls_format)
 

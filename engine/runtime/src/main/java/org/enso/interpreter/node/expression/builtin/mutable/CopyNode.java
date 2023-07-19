@@ -8,25 +8,19 @@ import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
-import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.error.PanicException;
 
-@BuiltinMethod(
-    type = "Array",
-    name = "copy",
-    description = "Copies one array to another.",
-    autoRegister = false)
 public abstract class CopyNode extends Node {
-
-  static CopyNode build() {
+  public static CopyNode build() {
     return CopyNodeGen.create();
   }
 
-  abstract Object execute(Object src, long source_index, Array dest, long dest_index, long count);
+  public abstract Object execute(
+      Object src, long source_index, Array dest, long dest_index, long count);
 
   @Specialization
   Object doArray(Array src, long source_index, Array dest, long dest_index, long count) {

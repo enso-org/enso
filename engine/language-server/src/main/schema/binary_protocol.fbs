@@ -26,7 +26,7 @@ table InboundMessage {
 union OutboundPayload {
   ERROR: Error,
   SUCCESS: Success,
-  VISUALISATION_UPDATE: VisualisationUpdate,
+  VISUALIZATION_UPDATE: VisualizationUpdate,
   FILE_CONTENTS_REPLY: FileContentsReply,
   WRITE_BYTES_REPLY: WriteBytesReply,
   READ_BYTES_REPLY: ReadBytesReply,
@@ -94,10 +94,10 @@ table InitSessionCommand {
 
 root_type InitSessionCommand;
 
-// A visualisation context identifying a concrete visualisation.
-table VisualisationContext {
-  // A visualisation identifier.
-  visualisationId: EnsoUUID (required);
+// A visualization context identifying a concrete visualization.
+table VisualizationContext {
+  // A visualization identifier.
+  visualizationId: EnsoUUID (required);
 
   // A context identifier.
   contextId: EnsoUUID (required);
@@ -107,12 +107,12 @@ table VisualisationContext {
 
 }
 
-// An event signaling visualisation update.
-table VisualisationUpdate {
-  // A visualisation context identifying a concrete visualisation.
-  visualisationContext: VisualisationContext (required);
+// An event signaling visualization update.
+table VisualizationUpdate {
+  // A visualization context identifying a concrete visualization.
+  visualizationContext: VisualizationContext (required);
 
-  // A visualisation data.
+  // A visualization data.
   data: [ubyte] (required);
 
 }

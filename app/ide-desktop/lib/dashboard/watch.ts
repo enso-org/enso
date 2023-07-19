@@ -1,4 +1,5 @@
 /** @file File watch and compile service. */
+import * as module from 'node:module'
 import * as path from 'node:path'
 import * as url from 'node:url'
 
@@ -29,16 +30,16 @@ OPTS.entryPoints.push(
 )
 OPTS.minify = false
 OPTS.write = false
-// eslint-disable-next-line @typescript-eslint/naming-convention
-OPTS.loader = { '.html': 'copy' }
+OPTS.loader['.html'] = 'copy'
 OPTS.pure.splice(OPTS.pure.indexOf('assert'), 1)
 ;(OPTS.inject = OPTS.inject ?? []).push(path.resolve(THIS_PATH, '..', '..', 'debugGlobals.ts'))
+const REQUIRE = module.default.createRequire(import.meta.url)
 OPTS.plugins.push({
     name: 'react-dom-profiling',
     setup: build => {
         build.onResolve({ filter: /^react-dom$/ }, args => {
             if (args.kind === 'import-statement') {
-                return { path: 'react-dom/profiling' }
+                return { path: REQUIRE.resolve('react-dom/profiling') }
             } else {
                 return
             }

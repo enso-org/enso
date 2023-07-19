@@ -6,7 +6,7 @@ import org.enso.compiler.core.IR.DefinitionArgument
 import org.enso.compiler.core.IR.Module.Scope.Definition
 import org.enso.compiler.core.IR.Module.Scope.Definition.Method
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
-import org.enso.compiler.exception.CompilerError
+import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{
   AliasAnalysis,
@@ -77,12 +77,6 @@ case object FunctionBinding extends IRPass {
     ir: IR.Expression,
     inlineContext: InlineContext
   ): IR.Expression = desugarExpression(ir)
-
-  /** @inheritdoc */
-  override def updateMetadataInDuplicate[T <: IR](
-    sourceIr: T,
-    copyOfIr: T
-  ): T = copyOfIr
 
   // === Pass Internals =======================================================
 

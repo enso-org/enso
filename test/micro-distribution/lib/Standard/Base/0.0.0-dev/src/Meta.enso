@@ -1,3 +1,5 @@
+from Standard.Base.Nothing import Nothing
+
 type Unresolved_Symbol
     Value value
 
@@ -19,11 +21,15 @@ meta value =
 is_unresolved_symbol value = @Builtin_Method "Meta.is_unresolved_symbol"
 get_unresolved_symbol_name symbol = @Builtin_Method "Meta.get_unresolved_symbol_name"
 get_unresolved_symbol_scope symbol = @Builtin_Method "Meta.get_unresolved_symbol_scope"
+get_atom_constructor atom = @Builtin_Method "Meta.get_atom_constructor"
+get_constructor_name atom_constructor = @Builtin_Method "Meta.get_constructor_name"
 
 @Builtin_Type
 type Project_Description
+    new module = Project_Description.enso_project_builtin module
+
     Value prim_root_file prim_config
 
     name self = self.prim_config.name
 
-enso_project module = Project_Description.enso_project_builtin module
+enso_project = Project_Description.enso_project_builtin Nothing

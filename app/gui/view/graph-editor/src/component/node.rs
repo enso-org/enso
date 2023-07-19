@@ -71,9 +71,10 @@ pub const RADIUS: f32 = 14.0;
 pub const COMMENT_MARGIN: f32 = 10.0;
 
 const INFINITE: f32 = 99999.0;
-const ERROR_VISUALIZATION_SIZE: (f32, f32) = visualization::container::DEFAULT_SIZE;
+const ERROR_VISUALIZATION_SIZE: Vector2 = visualization::container::DEFAULT_SIZE;
 
-const VISUALIZATION_OFFSET_Y: f32 = -120.0;
+const VISUALIZATION_OFFSET_Y: f32 = -20.0;
+const VISUALIZATION_OFFSET: Vector2 = Vector2(0.0, VISUALIZATION_OFFSET_Y);
 
 const ENABLE_VIS_PREVIEW: bool = false;
 const VIS_PREVIEW_ONSET_MS: f32 = 4000.0;
@@ -119,7 +120,7 @@ impl Background {
         let inset = selection_size + selection_offset;
         let shape = Rectangle();
         shape.set_corner_radius(RADIUS);
-        shape.set_border(selection_size);
+        shape.set_frame_border(selection_size);
         shape.set_border_color(color::Rgba::transparent());
         shape.set_inset(inset);
         Self { shape, inset: Immutable(inset), selection_color: Immutable(selection_color) }
@@ -188,47 +189,6 @@ pub mod error_shape {
 }
 
 
-
-// ==============
-// === Crumbs ===
-// ==============
-
-#[derive(Clone, Copy, Debug)]
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
-pub enum Endpoint {
-    Input,
-    Output,
-}
-
-#[derive(Clone, Debug)]
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
-pub struct Crumbs {
-    pub endpoint: Endpoint,
-    pub crumbs:   span_tree::Crumbs,
-}
-
-impl Crumbs {
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
-    pub fn input(crumbs: span_tree::Crumbs) -> Self {
-        let endpoint = Endpoint::Input;
-        Self { endpoint, crumbs }
-    }
-
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
-    pub fn output(crumbs: span_tree::Crumbs) -> Self {
-        let endpoint = Endpoint::Output;
-        Self { endpoint, crumbs }
-    }
-}
-
-impl Default for Crumbs {
-    fn default() -> Self {
-        Self::output(default())
-    }
-}
-
-
-
 // ============
 // === Node ===
 // ============
@@ -242,7 +202,7 @@ ensogl::define_endpoints_2! {
         disable_visualization (),
         set_visualization     (Option<visualization::Definition>),
         set_disabled          (bool),
-        set_input_connected   (span_tree::Crumbs,Option<color::Lcha>),
+        set_connections       (HashMap<span_tree::PortId, color::Lcha>),
         set_expression        (Expression),
         edit_expression       (text::Range<text::Byte>, ImString),
         set_skip_macro        (bool),
@@ -263,7 +223,7 @@ ensogl::define_endpoints_2! {
         /// visualization state is explicitly changed by the user. The preview looks the same as
         /// normal visualization, but its state is not persisted in the node's metadata.
         show_preview                      (),
-        /// Indicate whether preview visualisations should be delayed or immediate.
+        /// Indicate whether preview visualizations should be delayed or immediate.
         quick_preview_vis                 (bool),
         set_view_mode                     (view::Mode),
         set_profiling_min_global_duration (f32),
@@ -451,8 +411,7 @@ impl NodeModel {
         display_object.add_child(&input);
 
         let error_visualization = error::Container::new(app);
-        let (x, y) = ERROR_VISUALIZATION_SIZE;
-        error_visualization.frp.set_size.emit(Vector2(x, y));
+        error_visualization.frp.set_size.emit(ERROR_VISUALIZATION_SIZE);
 
         let action_bar = action_bar::ActionBar::new(app);
         display_object.add_child(&action_bar);
@@ -586,9 +545,15 @@ impl NodeModel {
             .set_x(x_offset_to_node_center + width / 2.0 + CORNER_RADIUS + action_bar_width / 2.0);
         self.action_bar.frp.set_size(Vector2::new(action_bar_width, ACTION_BAR_HEIGHT));
 
-        let visualization_offset = visualization_offset(width);
-        self.error_visualization.set_xy(visualization_offset);
-        self.visualization.set_xy(visualization_offset);
+        self.visualization.set_xy(VISUALIZATION_OFFSET);
+        // Error visualization has origin in the center, while regular visualization has it at the
+        // top left corner.
+        let error_vis_offset_y = -ERROR_VISUALIZATION_SIZE.y / 2.0;
+        let error_vis_offset_x = ERROR_VISUALIZATION_SIZE.x / 2.0;
+        let error_vis_offset = Vector2(error_vis_offset_x, error_vis_offset_y);
+        let error_vis_pos = VISUALIZATION_OFFSET + error_vis_offset;
+        self.error_visualization.set_xy(error_vis_pos);
+        self.visualization.frp.set_width(width);
 
         size
     }
@@ -658,8 +623,8 @@ impl Node {
             let background_enter = model.background.on_event::<mouse::Enter>();
             let background_leave = model.background.on_event::<mouse::Leave>();
             background_hover <- bool(&background_leave, &background_enter);
-            let input_enter = model.input.on_event::<mouse::Over>();
-            let input_leave = model.input.on_event::<mouse::Out>();
+            let input_enter = model.input.on_event::<mouse::Enter>();
+            let input_leave = model.input.on_event::<mouse::Leave>();
             input_hover <- bool(&input_leave, &input_enter);
             node_hover <- background_hover || input_hover;
             node_hover <- node_hover.debounce().on_change();
@@ -692,16 +657,16 @@ impl Node {
             filtered_usage_type <- input.set_expression_usage_type.filter(
                 move |(_,tp)| *tp != unresolved_symbol_type
             );
-            eval filtered_usage_type   (((a,b)) model.set_expression_usage_type(*a,b));
-            eval input.set_expression  ((a)     model.set_expression(a));
+            eval filtered_usage_type(((a,b)) model.set_expression_usage_type(*a,b));
+            eval input.set_expression((a) model.set_expression(a));
             model.input.edit_expression <+ input.edit_expression;
-            out.on_expression_modified  <+ model.input.frp.on_port_code_update;
-            out.requested_widgets       <+ model.input.frp.requested_widgets;
-            out.request_import          <+ model.input.frp.request_import;
+            out.on_expression_modified <+ model.input.frp.on_port_code_update;
+            out.requested_widgets <+ model.input.frp.requested_widgets;
+            out.request_import <+ model.input.frp.request_import;
 
-            model.input.set_connected              <+ input.set_input_connected;
-            model.input.set_disabled               <+ input.set_disabled;
-            model.input.update_widgets             <+ input.update_widgets;
+            model.input.set_connections <+ input.set_connections;
+            model.input.set_disabled <+ input.set_disabled;
+            model.input.update_widgets <+ input.update_widgets;
             model.output.set_expression_visibility <+ input.set_output_expression_visibility;
 
 
@@ -752,7 +717,6 @@ impl Node {
             // === View Mode ===
 
             model.input.set_view_mode <+ input.set_view_mode;
-            model.output.set_view_mode <+ input.set_view_mode;
             model.input.set_edit_ready_mode <+ input.set_edit_ready_mode;
             model.profiling_label.set_view_mode <+ input.set_view_mode;
             model.vcs_indicator.set_visibility  <+ input.set_view_mode.map(|&mode| {
@@ -810,7 +774,7 @@ impl Node {
 
             visualization.set_view_state <+ action_bar.user_action_visibility.on_false().constant(visualization::ViewState::Disabled);
 
-            // Show preview visualisation after some delay, depending on whether we show an error
+            // Show preview visualization after some delay, depending on whether we show an error
             // or are in quick preview mode. Also, omit the preview if we don't have an
             // expression.
             has_tooltip    <- model.output.frp.tooltip.map(|tt| tt.has_content());
@@ -827,9 +791,16 @@ impl Node {
             hover_onset_delay.set_delay <+ preview_show_delay;
             hide_tooltip                <- preview_show_delay.map(|&delay| delay <= f32::EPSILON);
 
-            output_hover            <- model.output.on_port_hover.map(|s| s.is_on());
-            hover_onset_delay.start <+ output_hover.on_true();
-            hover_onset_delay.reset <+ output_hover.on_false();
+            output_hover <- model.output.on_port_hover.map(|s| s.is_on());
+            visualization_hover <- bool(&model.visualization.on_event::<mouse::Out>(), &model.visualization.on_event::<mouse::Over>());
+            hovered_for_preview <- output_hover || visualization_hover;
+            // The debounce is needed for a case where user moves mouse cursor from output port to
+            // visualization preview. Moving out of the port make `output_hover` emit `false`,
+            // making `hovered_for_preview` false for a brief moment - and that moment would cause
+            // preview to be hidden, if not debounced.
+            hovered_for_preview <- hovered_for_preview.debounce();
+            hover_onset_delay.start <+ hovered_for_preview.on_true();
+            hover_onset_delay.reset <+ hovered_for_preview.on_false();
             hover_onset_active <- bool(&hover_onset_delay.on_reset, &hover_onset_delay.on_end);
             hover_preview_visible <- has_expression && hover_onset_active;
             hover_preview_visible <- hover_preview_visible.on_change();
@@ -989,12 +960,6 @@ fn x_offset_to_node_center(node_width: f32) -> f32 {
     node_width / 2.0
 }
 
-/// Calculate a position where to render the [`visualization::Container`] of a node, relative to
-/// the node's origin.
-fn visualization_offset(node_width: f32) -> Vector2 {
-    Vector2(x_offset_to_node_center(node_width), VISUALIZATION_OFFSET_Y)
-}
-
 #[profile(Debug)]
 fn bounding_box(
     node_position: Vector2,
@@ -1005,8 +970,7 @@ fn bounding_box(
     let node_bbox_pos = node_position + Vector2(x_offset_to_node_center, 0.0) - node_size / 2.0;
     let node_bbox = BoundingBox::from_position_and_size(node_bbox_pos, node_size);
     if let Some(visualization_size) = visualization_size {
-        let visualization_offset = visualization_offset(node_size.x);
-        let visualization_pos = node_position + visualization_offset;
+        let visualization_pos = node_position + VISUALIZATION_OFFSET;
         let visualization_bbox_pos = visualization_pos - visualization_size / 2.0;
         let visualization_bbox =
             BoundingBox::from_position_and_size(visualization_bbox_pos, visualization_size);

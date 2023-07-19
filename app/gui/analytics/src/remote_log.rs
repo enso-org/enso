@@ -18,17 +18,15 @@ mod js {
 
     #[wasm_bindgen(inline_js = "
 export function remote_log(msg, value) {
-    try {
-        window.ensoglApp.remoteLog(msg,value)
-    } catch (error) {
-        console.error(\"Error while logging message. \" + error );
-    }
+    window.ensoglApp.remoteLog(msg, value).catch((error) => {
+        console.error(`Error while logging message. ${error}`)
+    })
 }
 
 export function remote_log_value(msg, field_name, value) {
     const data = {}
     data[field_name] = value
-    remote_log(msg,data)
+    remote_log(msg, data)
 }
 ")]
     extern "C" {

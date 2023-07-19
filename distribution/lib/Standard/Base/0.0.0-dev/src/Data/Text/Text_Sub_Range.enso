@@ -1,28 +1,25 @@
+import project.Data.Index_Sub_Range as Index_Sub_Range_Module
 import project.Data.Index_Sub_Range.Index_Sub_Range
 import project.Data.Numbers.Integer
 import project.Data.Pair.Pair
-from project.Data.Range.Extensions import all
 import project.Data.Range.Range
+import project.Data.Text.Span as Span_Module
 import project.Data.Text.Text
 import project.Data.Vector.Vector
+import project.Error.Error
 import project.Errors.Common.Index_Out_Of_Bounds
 import project.Errors.Common.Type_Error
-import project.Error.Error
 import project.Errors.Illegal_Argument.Illegal_Argument
+import project.Metadata.Display
+import project.Metadata.Widget
 import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Random
-
-from project.Data.Boolean import Boolean, True, False
-
-import project.Data.Index_Sub_Range as Index_Sub_Range_Module
-import project.Data.Text.Span as Span_Module
+from project.Data.Boolean import Boolean, False, True
 from project.Data.Index_Sub_Range import handle_unmatched_type
-
-import project.Metadata.Widget
-from project.Metadata.Widget import Single_Choice
+from project.Data.Range.Extensions import all
 from project.Metadata.Choice import Option
-import project.Metadata.Display
+from project.Metadata.Widget import Single_Choice
 
 polyglot java import com.ibm.icu.text.BreakIterator
 polyglot java import org.enso.base.Text_Utils

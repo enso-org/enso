@@ -2,7 +2,6 @@ from Standard.Base import all hiding First, Last
 
 import project.Data.Aggregate_Column.Aggregate_Column
 import project.Data.Column.Column
-import project.Data.Column_Selector.Column_Selector
 import project.Data.Sort_Column.Sort_Column
 import project.Data.Table.Table
 import project.Data.Type.Value_Type.Value_Type
@@ -10,7 +9,7 @@ import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Table_Helpers
 import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 from project.Data.Aggregate_Column.Aggregate_Column import all
-from project.Errors import No_Output_Columns, Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Invalid_Aggregation
+from project.Errors import Duplicate_Output_Column_Names, Invalid_Aggregation, Invalid_Output_Column_Names, No_Output_Columns
 
 polyglot java import org.enso.table.aggregations.Aggregator
 polyglot java import org.enso.table.aggregations.Concatenate as ConcatenateAggregator
@@ -70,10 +69,10 @@ prepare_aggregate_columns aggregates table error_on_missing_columns =
            The second pass resolves the default names, ensuring that they do not
            clash with the user-specified names (ensuring that user-specified names
            take precedence).
-        pass_1 = valid_resolved_aggregate_columns.map c->(if c.new_name.is_nothing then Nothing else unique.make_unique c.new_name)
+        pass_1 = valid_resolved_aggregate_columns.map c-> if c.new_name == "" then "" else unique.make_unique c.new_name
         renamed_columns = pass_1.map_with_index i->name->
             agg = valid_resolved_aggregate_columns.at i
-            new_name = name.if_nothing (unique.make_unique (default_aggregate_column_name agg))
+            new_name = if name != "" then name else unique.make_unique (default_aggregate_column_name agg)
             Pair.new new_name agg
 
         # Build Problems Output
@@ -149,9 +148,9 @@ resolve_aggregate table problem_builder aggregate_column =
         res = columns_helper.resolve_column_or_expression c problem_builder
         res.if_nothing (Error.throw Internal_Missing_Column_Error)
 
-    resolve_selector_to_vector : Text | Integer | Column_Selector | Vector (Integer | Text | Column_Selector) -> Vector Column ! Internal_Missing_Column_Error
+    resolve_selector_to_vector : Text | Integer | Vector (Integer | Text) -> Vector Column ! Internal_Missing_Column_Error
     resolve_selector_to_vector selector =
-        resolved = columns_helper.select_columns_helper selector reorder=True problem_builder
+        resolved = columns_helper.select_columns_helper selector Case_Sensitivity.Default True problem_builder
         if resolved.is_empty then Error.throw Internal_Missing_Column_Error else resolved
 
     resolve_order_by selector = case selector of
@@ -220,7 +219,7 @@ java_aggregator name column =
         Count _ -> CountAggregator.new name
         Count_Distinct columns _ ignore_nothing ->
             resolved = columns.map .java_column
-            CountDistinctAggregator.new name resolved.to_array ignore_nothing
+            CountDistinctAggregator.new name resolved ignore_nothing
         Count_Not_Nothing c _ -> CountNothingAggregator.new name c.java_column False
         Count_Nothing c _ -> CountNothingAggregator.new name c.java_column True
         Count_Not_Empty c _ -> CountEmptyAggregator.new name c.java_column False
@@ -235,12 +234,12 @@ java_aggregator name column =
             if ordering.is_nothing then FirstAggregator.new name c.java_column ignore_nothing else
                 order_columns = ordering.map c->c.column.java_column
                 order_directions = ordering.map c->c.direction.to_sign
-                FirstAggregator.new name c.java_column ignore_nothing order_columns.to_array order_directions.to_array
+                FirstAggregator.new name c.java_column ignore_nothing order_columns order_directions
         Last c _ ignore_nothing ordering ->
             if ordering.is_nothing then LastAggregator.new name c.java_column ignore_nothing else
                 order_columns = ordering.map c->c.column.java_column
                 order_direction = ordering.map c->c.direction.to_sign
-                LastAggregator.new name c.java_column ignore_nothing order_columns.to_array order_direction.to_array
+                LastAggregator.new name c.java_column ignore_nothing order_columns order_direction
         Maximum c _ -> MinOrMaxAggregator.new name c.java_column MinOrMaxAggregator.MAX
         Minimum c _ -> MinOrMaxAggregator.new name c.java_column MinOrMaxAggregator.MIN
         Shortest c _ -> ShortestOrLongestAggregator.new name c.java_column ShortestOrLongestAggregator.SHORTEST

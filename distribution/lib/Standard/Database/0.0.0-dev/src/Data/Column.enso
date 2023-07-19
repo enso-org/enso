@@ -1,15 +1,18 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
+import Standard.Base.Internal.Rounding_Helpers
+from Standard.Base.Widget_Helpers import make_regex_text_widget
 
+import Standard.Table.Data.Column.Column as Materialized_Column
 import Standard.Table.Data.Type.Enso_Types
 import Standard.Table.Data.Type.Value_Type_Helpers
-import Standard.Table.Data.Column.Column as Materialized_Column
+import Standard.Table.Internal.Date_Time_Helpers
 import Standard.Table.Internal.Java_Problems
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 import Standard.Table.Internal.Widget_Helpers
-from Standard.Table import Sort_Column, Data_Formatter, Value_Type, Auto
-from Standard.Table.Errors import Floating_Point_Equality, Inexact_Type_Coercion, Invalid_Value_Type, Conversion_Failure
+from Standard.Table import Auto, Data_Formatter, Sort_Column, Value_Type
+from Standard.Table.Errors import Conversion_Failure, Floating_Point_Equality, Inexact_Type_Coercion, Invalid_Value_Type
 from Standard.Table.Internal.Cast_Helpers import check_cast_compatibility
 
 import project.Connection.Connection.Connection
@@ -17,14 +20,12 @@ import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
 import project.Internal.Helpers
 import project.Internal.IR.Context.Context
-import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.Query.Query
+import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
-
-from project.Data.Table import Table, freshen_columns
-
-from project.Errors import Unsupported_Database_Operation, Integrity_Error, Unsupported_Name
+from project.Data.Table import freshen_columns, Table
+from project.Errors import Integrity_Error, Unsupported_Database_Operation, Unsupported_Name
 
 polyglot java import org.enso.table.data.column.operation.map.MapOperationProblemBuilder
 
@@ -99,7 +100,7 @@ type Column
     ## Returns a vector containing all the elements in this column.
     to_vector : Vector Any
     to_vector self =
-        self.to_table.read . at self.name . to_vector
+        self.to_table.read . at 0 . to_vector
 
     ## Returns the `Value_Type` associated with that column.
 
@@ -133,7 +134,9 @@ type Column
        - operands: A vector of additional operation arguments (the column itself
          is always passed as the first argument).
        - new_name: The name of the resulting column.
-    make_op self op_kind operands new_name =
+       - metadata: Optional metadata for the `SQL_Expression.Operation`.
+    make_op : Text -> Vector Text -> (Text | Nothing) -> (Any | Nothing) -> Column
+    make_op self op_kind operands new_name metadata=Nothing =
         checked_support = if self.connection.dialect.is_supported op_kind then True else
             Error.throw (Unsupported_Database_Operation.Error "The operation "+op_kind+" is not supported by this backend.")
         checked_support.if_not_error <|
@@ -142,11 +145,13 @@ type Column
                 other_column : Column ->
                     if Helpers.check_integrity self other_column then other_column.expression else
                         Error.throw <| Unsupported_Database_Operation.Error "Cannot use columns coming from different contexts in one expression without a join."
+                sql_expression : SQL_Expression ->
+                    sql_expression
                 constant ->
                     SQL_Expression.Constant constant
 
             expressions = operands.map prepare_operand
-            new_expr = SQL_Expression.Operation op_kind ([self.expression] + expressions)
+            new_expr = SQL_Expression.Operation op_kind ([self.expression] + expressions) metadata
 
             infer_from_database_callback expression =
                 SQL_Type_Reference.new self.connection self.context expression
@@ -181,22 +186,16 @@ type Column
             self.naming_helpers.function_name op_kind [self]
         self.make_op op_kind [] effective_new_name
 
-    ## UNSTABLE
-
-       Returns the length of this column.
+    ## Returns the length of this column.
     length : Integer
     length self = self.to_table.row_count
 
-    ## UNSTABLE
-
-       Returns the number of missing items in this column.
+    ## Returns the number of missing items in this column.
     count_nothing : Integer
     count_nothing self =
         self.to_table.filter 0 Filter_Condition.Is_Nothing . row_count
 
-    ## UNSTABLE
-
-       Returns the number of non-null items in this column.
+    ## Returns the number of non-null items in this column.
     count : Integer
     count self =
         self.to_table.filter 0 Filter_Condition.Not_Nothing . row_count
@@ -359,7 +358,7 @@ type Column
                 self.make_op "BETWEEN" [lower, upper] new_name
 
     ## ALIAS Add, Plus, Concatenate
-       Element-wise addition.
+       Element-wise addition. Works on numeric types or text.
 
        Arguments:
        - other: The other column to add to this column.
@@ -369,13 +368,16 @@ type Column
        between corresponding elements of `self` and `other`.
     + : Column | Any -> Column
     + self other =
-        op = Value_Type_Helpers.resolve_addition_kind self other
+        op = case Value_Type_Helpers.resolve_addition_kind self other of
+            Value_Type_Helpers.Addition_Kind.Numeric_Add -> "ADD_NUMBER"
+            Value_Type_Helpers.Addition_Kind.Text_Concat -> "ADD_TEXT"
         op.if_not_error <|
             new_name = self.naming_helpers.binary_operation_name "+" self other
             self.make_binary_op op other new_name
 
-    ## ALIAS Subtract, Minus
-       Element-wise subtraction.
+    ## ALIAS Subtract, Minus, Time Difference
+       Element-wise subtraction. Allows to subtract numeric types or compute a
+       difference between two date/time values.
 
        Arguments:
        - other: The other column to subtract from this column.
@@ -385,8 +387,11 @@ type Column
        pairwise between corresponding elements of `self` and `other`.
     - : Column | Any -> Column
     - self other =
-        Value_Type_Helpers.check_binary_numeric_op self other <|
-            self.make_binary_op "-" other
+        case Value_Type_Helpers.resolve_subtraction_kind self other of
+            Value_Type_Helpers.Subtraction_Kind.Numeric_Subtract ->
+                self.make_binary_op "-" other
+            Value_Type_Helpers.Subtraction_Kind.Date_Time_Difference ->
+                Error.throw (Unsupported_Database_Operation.Error "Subtracting date/time values is not supported in this database.")
 
     ## ALIAS Multiply, Times, Product
        Element-wise multiplication.
@@ -535,9 +540,7 @@ type Column
             new_name = self.naming_helpers.binary_operation_name "||" self other
             self.make_binary_op "OR" other new_name
 
-    ## UNSTABLE
-
-       Boolean negation of each element in this column.
+    ## Boolean negation of each element in this column.
     not : Column
     not self =
         Value_Type.expect_boolean self <|
@@ -561,26 +564,230 @@ type Column
                 op_result = self.make_op "IIF" [when_true, when_false] new_name
                 adapt_unified_column op_result common_type
 
-    ## Rounding values is not supported in database columns.
-    round : Integer -> Boolean -> Problem_Behavior -> Column | Illegal_Argument | Invalid_Value_Type
-    round self decimal_places=0 use_bankers=False on_problems=Report_Warning =
-        _ = [decimal_places, use_bankers, on_problems]
-        Error.throw <| Unsupported_Database_Operation.Error "`Column.round` is not implemented yet for the Database backends."
+    ## PRIVATE
 
-    ## Truncating values is not supported in database columns.
+       Creates a column from a single constant value. The value must be of a
+       type supported by the database back-end.
+
+       This method is not static; it must be called on an existing column. That
+       existing column is only used for its internal state; the contents of the
+       column are not used.
+
+       Arguments:
+       - value: the constant value to use for the entire column. The value must
+         be of a type supported by the database back-end.
+
+       > Example
+         Create a column of the value 42
+
+         column.const 42
+    const : Any -> Column
+    const self value = self.to_table.make_constant_column value
+
+    ## Round to a specified number of decimal places.
+
+       `round` is only valid for `Value_Type.Decimal`, `Value_Type.Float`, and
+       `Value_Type.Integer` columns.
+
+       By default, rounding uses "symmetric round-half-up", also known as
+       "round towards 0." If use_bankers=True, then it uses "round-half-even",
+       also known as "banker's rounding".
+
+       The return type depends on the backend.
+
+       Arguments:
+       - decimal_places: The number of decimal places to round to. Can be
+         negative, which results in rounding to positive integer powers of 10.
+         Must be between -15 and 15 (inclusive).
+       - use_bankers: Rounds mid-point to nearest even number.
+
+       ! NaN/Inf
+         If a `NaN` or `Inf` value is passed to `round`, it immediately returns
+         the same value.
+
+       ! Error Conditions
+
+         If `decimal_places` is outside the range -15..15 (inclusive), an
+         `Illegal_Argument` error is thrown.
+
+       ? Negative decimal place counts
+         Rounding to `n` digits can be thought of as "rounding to the nearest
+         multiple of 10^(-n)". For negative decimal counts, this results in
+         rounding to the nearest positive integer power of 10.
+
+       > Example
+         Round a column to two decimal places.
+
+             import Standard.Examples
+
+             example_round = Examples.decimal_column.round 2
+    round : Integer -> Boolean -> Column | Illegal_Argument | Invalid_Value_Type
+    round self decimal_places=0 use_bankers=False =
+        Rounding_Helpers.check_decimal_places decimal_places <| Value_Type.expect_numeric self <|
+            if self.should_use_builtin_round decimal_places use_bankers then self.round_builtin decimal_places else
+                self.short_circuit_special_floating_point <|
+                    case self.value_type of
+                        Value_Type.Integer _ -> self.round_integer decimal_places use_bankers
+                        Value_Type.Float _ -> self.round_float decimal_places use_bankers
+                        Value_Type.Decimal _ _ -> self.round_decimal decimal_places use_bankers
+                        _ ->
+                            expected = "Decimal, Float, or Integer"
+                            Error.throw (Invalid_Value_Type.Column expected self.value_type self.name)
+
+    ## PRIVATE
+       Determine whether to use built-in rounding. We use built-in rounding if:
+       - It's not banker's rounding, and
+       - If decimal_places is negative, the builtin `ROUND` supports that, and
+       - We are not passing a floating point value to round with a non-zero decimal_places param (prohibited by postgres)
+         (Note that Postgres is fine with a `numeric` value here, just not `double precision`.)
+    should_use_builtin_round : Integer -> Boolean -> Boolean
+    should_use_builtin_round self decimal_places use_bankers =
+        # Don't use for banker's rounding
+        not_bankers = use_bankers.not
+        # Don't use for negative decimal places, if the backend doesn't support it
+        negative_dp_ok = decimal_places >= 0 || self.connection.dialect.supports_negative_round_decimal_places
+        # Don't use for floating-point inputs if deciaml_places != 0, for Postgres
+        dp_param_ok = (self.connection.dialect.rounding_decimal_places_not_allowed_for_floats && self.value_type.is_floating_point && decimal_places != 0).not
+        not_bankers && negative_dp_ok && dp_param_ok
+
+    ## PRIVATE
+       Round a float-like column using the backend's builtin ROUND function.
+    round_builtin : Integer -> Column
+    round_builtin self decimal_places =
+        new_name = self.naming_helpers.function_name "round" [self]
+        case decimal_places == 0 of
+            True ->
+                self.make_unary_op "ROUND" new_name
+            False ->
+                self.make_binary_op "ROUND" (SQL_Expression.Literal decimal_places.to_text) new_name
+
+    ## PRIVATE
+       Round a float-like column.
+    round_float : Integer -> Boolean -> Column
+    round_float self decimal_places use_bankers =
+        new_name = self.naming_helpers.function_name "round" [self]
+        scale = 10 ^ decimal_places
+        scaled = self * scale
+        round_base = scaled.floor . rename "rb"
+        round_midpoint = (round_base + 0.5) / scale
+        even_is_up = (self >= 0).iif ((scaled.truncate % 2) != 0) ((scaled.truncate % 2) == 0)
+        half_goes_up = if use_bankers then even_is_up else self >= 0
+        do_round_up = half_goes_up.iif (self >= round_midpoint) (self > round_midpoint)
+        result = do_round_up.iif ((round_base + 1.0) / scale) (round_base / scale)
+        result.rename new_name
+
+    ## PRIVATE
+       Round a float-like column.
+    round_decimal : Integer -> Boolean -> Column
+    round_decimal self decimal_places use_bankers =
+        # Construct a constant Decimal column.
+        k x = self.const x . cast Value_Type.Decimal
+        new_name = self.naming_helpers.function_name "round" [self]
+        scale = k 10 ^ decimal_places
+        scaled = self * scale
+        round_base = scaled.floor . rename "rb"
+        round_midpoint = (round_base + k 0.5).decimal_div scale
+        even_is_up = (self >= k 0).iif ((scaled.truncate.decimal_mod (k 2)) != k 0) ((scaled.truncate.decimal_mod (k 2)) == k 0)
+        half_goes_up = if use_bankers then even_is_up else self >= k 0
+        do_round_up = half_goes_up.iif (self >= round_midpoint) (self > round_midpoint)
+        result = do_round_up.iif ((round_base + k 1).decimal_div scale) (round_base.decimal_div scale)
+        result.rename new_name
+
+    ## PRIVATE
+       Round an integer column.
+    round_integer : Integer -> Boolean -> Column
+    round_integer self decimal_places use_bankers =
+        new_name = self.naming_helpers.function_name "round" [self]
+        scale = 10 ^ -decimal_places
+        halfway = scale.div 2
+        remainder = self % scale
+        scaled_down = (self / scale).truncate . cast Value_Type.Integer
+        result_unnudged = scaled_down * scale
+
+        if_non_neg =
+            half_goes_up = if use_bankers then (scaled_down % 2) != 0 else self >= 0
+            round_up = half_goes_up.iif (remainder >= halfway) (remainder > halfway)
+            round_up.iif (result_unnudged + scale) result_unnudged
+        if_neg =
+            half_goes_up = if use_bankers then (scaled_down % 2) == 0 else self >= 0
+            round_up = half_goes_up.iif (remainder < -halfway) (remainder <= -halfway)
+            round_up.iif (result_unnudged - scale) result_unnudged
+
+        result = (self >= 0).iif if_non_neg if_neg
+        result.cast Value_Type.Float . rename new_name
+
+    ## ALIAS int
+
+       Truncate the floating-point values to an integer by dropping the
+       fractional part. This is equivalent to "round-toward-zero".
+
+       ! NaN/Inf
+         If a `NaN` or `Inf` value is passed to `truncate`, it immediately returns
+         the same value.
+
+       > Example
+         Truncate a column of floating-point values.
+
+             import Standard.Examples
+
+             example_truncate = Examples.decimal_column.truncate
     truncate : Column ! Invalid_Value_Type
     truncate self =
-        Error.throw <| Unsupported_Database_Operation.Error "`Column.truncate` is not implemented yet for the Database backends."
+        Value_Type.expect_numeric self <| self.short_circuit_special_floating_point <|
+            new_name = self.naming_helpers.function_name "truncate" [self]
+            self.make_unary_op "TRUNCATE" new_name
 
-    ## Taking the ceiling of values is not supported in database columns.
+    ## Takes the ceiling of floating-point values, returning integer values.
+
+       ! NaN/Inf
+         If a `NaN` or `Inf` value is passed to `ceil`, it immediately returns
+         the same value.
+
+       > Example
+         Take the ceiling of a column of floating-point values.
+
+             import Standard.Examples
+
+             example_truncate = Examples.decimal_column.ceil
     ceil : Column ! Invalid_Value_Type
     ceil self =
-        Error.throw <| Unsupported_Database_Operation.Error "`Column.ceil` is not implemented yet for the Database backends."
+        Value_Type.expect_numeric self <| self.short_circuit_special_floating_point <|
+            new_name = self.naming_helpers.function_name "ceil" [self]
+            self.make_unary_op "CEIL" new_name
 
-    ## Taking the floor of values is not supported in database columns.
+    ## Takes the floor of floating-point values, returning integer values.
+
+       ! NaN/Inf
+         If a `NaN` or `Inf` value is passed to `floor`, it immediately returns
+         the same value.
+
+       > Example
+         Take the floor of a column of floating-point values.
+
+             import Standard.Examples
+
+             example_truncate = Examples.decimal_column.floor
     floor : Column ! Invalid_Value_Type
     floor self =
-        Error.throw <| Unsupported_Database_Operation.Error "`Column.floor` is not implemented yet for the Database backends."
+        Value_Type.expect_numeric self <| self.short_circuit_special_floating_point <|
+            new_name = self.naming_helpers.function_name "floor" [self]
+            self.make_unary_op "FLOOR" new_name
+
+    ## PRIVATE
+       `/` for decimals.
+    decimal_div : Column -> Column ! Invalid_Value_Type
+    decimal_div self other =
+        Value_Type.expect_numeric self <| Value_Type.expect_numeric other <|
+            new_name = self.naming_helpers.function_name "decimal_div" [self, other]
+            self.make_binary_op "DECIMAL_DIV" other new_name
+
+    ## PRIVATE
+       `mod` for decimals.
+    decimal_mod : Column -> Column ! Invalid_Value_Type
+    decimal_mod self other =
+        Value_Type.expect_numeric self <| Value_Type.expect_numeric other <|
+            new_name = self.naming_helpers.function_name "decimal_mod" [self, other]
+            self.make_binary_op "DECIMAL_MOD" other new_name
 
     ## Returns a column of first non-`Nothing` value on each row of `self` and
        `values` list.
@@ -642,22 +849,27 @@ type Column
             new_name = self.naming_helpers.function_name "max" [self]+args
             self.make_op "ROW_MAX" args new_name
 
-    ## UNSTABLE
-
-       Returns a column of booleans, with `True` items at the positions where
+    ## Returns a column of booleans, with `True` items at the positions where
        this column contains a `Nothing`.
     is_nothing : Column
     is_nothing self =
         new_name = self.naming_helpers.to_expression_text self + " is null"
         self.make_unary_op "IS_NULL" new_name
 
-    ## UNSTABLE
-       Returns a column of booleans, with `True` items at the positions where
+    ## Returns a column of booleans, with `True` items at the positions where
        this column contains a NaN. This is only applicable to double columns.
     is_nan : Column
-    is_nan self = Value_Type.expect_floating_point self <|
+    is_nan self = Value_Type.expect_numeric self <|
         new_name = self.naming_helpers.function_name "is_nan" [self]
         self.make_unary_op "IS_NAN" new_name
+
+    ## Returns a column of booleans, with `True` items at the positions where
+       this column contains a +Inf/-Inf. This is only applicable to double
+       columns.
+    is_infinite : Column
+    is_infinite self = Value_Type.expect_numeric self <|
+        new_name = self.naming_helpers.function_name "is_infinite" [self]
+        self.make_unary_op "IS_INF" new_name
 
     ## PRIVATE
        Returns a column of booleans, with `True` items at the positions where
@@ -703,32 +915,51 @@ type Column
             False -> is_blank
         result.rename new_name
 
-    ## ALIAS if_nothing
-       Returns a new column where missing values have been replaced with the
-       provided default.
-    fill_nothing : Column | Any -> Column
-    fill_nothing self default =
-        common_type = Value_Type_Helpers.find_common_type_for_arguments [self, default]
-        common_type.if_not_error <|
-            new_name = self.naming_helpers.function_name "fill_nothing" [self, default]
-            op_result = self.make_binary_op "FILL_NULL" default new_name
-            adapt_unified_column op_result common_type
+    ## ALIAS Fill Missing, if_nothing
 
-    ## ALIAS if_empty
-       Returns a new column where empty Text values have been replaced with the
+       Returns a new column where missing values have been replaced with the
        provided default.
 
        Arguments:
        - default: The value to replace missing values with. If this argument
          is a column, the value from `default` at the corresponding position
          will be used.
+
+       > Example
+         Fill missing values in a column with the value 20.5.
+
+             import Standard.Examples
+
+             example_fill_nothing = Examples.decimal_column.fill_nothing 20.5
+    fill_nothing : Column | Any -> Column
+    fill_nothing self default =
+        common_type = Value_Type_Helpers.find_common_type_for_arguments [self, default]
+        common_type.if_not_error <|
+            op_result = self.make_binary_op "FILL_NULL" default self.name
+            adapt_unified_column op_result common_type
+
+    ## ALIAS Fill Empty, if_empty
+
+       Returns a new column where empty Text values have been replaced with the
+       provided default.
+
+       Arguments:
+       - default: The value to replace empty values with. If this argument
+         is a column, the value from `default` at the corresponding position
+         will be used.
+
+       > Example
+         Fill empty values in a column with the value "hello".
+
+             import Standard.Examples
+
+             example_fill_empty = Examples.text_column_1.fill_empty "hello"
     fill_empty : Column | Any -> Column
     fill_empty self default =
         Value_Type.expect_text self <|
             Value_Type.expect_text default <|
-                new_name = self.naming_helpers.function_name "fill_empty" [self, default]
                 result = self.is_empty.iif default self
-                result.rename new_name
+                result.rename self.name
 
     ## Returns a new column, containing the same elements as `self`, but with
        the given name.
@@ -767,8 +998,7 @@ type Column
     sort self order=Sort_Direction.Ascending =
         self.to_table.order_by [Sort_Column.Index 0 order] . at 0
 
-    ## UNSTABLE
-       Creates a new Column with the specified range of rows from the input
+    ## Creates a new Column with the specified range of rows from the input
        Column.
 
        Arguments:
@@ -780,8 +1010,7 @@ type Column
         msg = "`Column.take` is not yet implemented."
         Error.throw (Unsupported_Database_Operation.Error msg)
 
-    ## UNSTABLE
-       Creates a new Column from the input with the specified range of rows
+    ## Creates a new Column from the input with the specified range of rows
        removed.
 
        Arguments:
@@ -793,9 +1022,7 @@ type Column
         msg = "`Column.drop` is not yet implemented."
         Error.throw (Unsupported_Database_Operation.Error msg)
 
-    ## UNSTABLE
-
-       Checks for each element of the column if it starts with `other`.
+    ## Checks for each element of the column if it starts with `other`.
 
        Arguments:
        - other: A column or text to check for each item in `self`.
@@ -811,9 +1038,7 @@ type Column
         new_name = self.naming_helpers.function_name "starts_with" [self, other]
         make_text_case_op self "starts_with" other case_sensitivity new_name
 
-    ## UNSTABLE
-
-       Checks for each element of the column if it ends with `other`.
+    ## Checks for each element of the column if it ends with `other`.
 
        Arguments:
        - other: A column ot text to check for each item in `self`.
@@ -829,9 +1054,7 @@ type Column
         new_name = self.naming_helpers.function_name "ends_with" [self, other]
         make_text_case_op self "ends_with" other case_sensitivity new_name
 
-    ## UNSTABLE
-
-       Checks for each element of the column if it contains `other`.
+    ## Checks for each element of the column if it contains `other`.
 
        Arguments:
        - other: A column ot text to check for each item in `self`.
@@ -901,7 +1124,6 @@ type Column
        - case_sensitivity: Specifies if the text values should be compared case
          sensitively.
        - only_first: If True, only replace the first match.
-       - use_regex: If true, the term is used as a regular expression.
 
        > Example
          Replace dashes with underscores.
@@ -911,15 +1133,16 @@ type Column
        > Example
          Remove leading and trailing spaces from cells.
 
-             column.replace "^\s*(.*?)\s*$" "$1" use_regex=True
+             column.replace "^\s*(.*?)\s*$".to_regex "$1"
 
        > Example
          Replace texts in quotes with parentheses.
 
-             column.replace '"(.*?)"' '($1)' use_regex=True
-    replace : Text | Column -> Text | Column -> Case_Sensitivity -> Boolean -> Boolean -> Column
-    replace self term="" new_text="" case_sensitivity=Case_Sensitivity.Sensitive only_first=False use_regex=False =
-        _ = [term, new_text, case_sensitivity, only_first, use_regex]
+             column.replace '"(.*?)"'.to_regex '($1)'
+    @term make_regex_text_widget
+    replace : Text | Regex | Column -> Text | Column -> Case_Sensitivity -> Boolean -> Column
+    replace self term="" new_text="" case_sensitivity=Case_Sensitivity.Sensitive only_first=False =
+        _ = [term, new_text, case_sensitivity, only_first]
         msg = "`Column.replace` is not yet implemented."
         Error.throw (Unsupported_Database_Operation.Error msg)
 
@@ -929,7 +1152,7 @@ type Column
        Returns a column of `Integer` type.
     year : Column ! Invalid_Value_Type
     year self = Value_Type.expect_has_date self <|
-        self.make_unary_op "year"
+        simple_unary_op self "year"
 
     ## Gets the month as a number (1-12) from the date stored in the column.
 
@@ -937,7 +1160,7 @@ type Column
        Returns a column of `Integer` type.
     month : Column ! Invalid_Value_Type
     month self = Value_Type.expect_has_date self <|
-        self.make_unary_op "month"
+        simple_unary_op self "month"
 
     ## Gets the day of the month as a number (1-31) from the date stored in the
        column.
@@ -946,7 +1169,99 @@ type Column
        Returns a column of `Integer` type.
     day : Column ! Invalid_Value_Type
     day self = Value_Type.expect_has_date self <|
-        self.make_unary_op "day"
+        simple_unary_op self "day"
+
+    ## Gets the hour as a number (0-23) from the time stored in the column.
+
+       Applies only to columns that hold the `Time_Of_Day` or `Date_Time` types.
+       Returns a column of `Integer` type.
+    hour : Column ! Invalid_Value_Type
+    hour self = Value_Type.expect_has_time self <|
+        simple_unary_op self "hour"
+
+    ## Gets the minute as a number (0-59) from the time stored in the column.
+
+       Applies only to columns that hold the `Time_Of_Day` or `Date_Time` types.
+       Returns a column of `Integer` type.
+    minute : Column ! Invalid_Value_Type
+    minute self = Value_Type.expect_has_time self <|
+        simple_unary_op self "minute"
+
+    ## Gets the second as an integer (0-60) from the time stored in the column.
+
+       Applies only to columns that hold the `Time_Of_Day` or `Date_Time` types.
+       Returns a column of `Integer` type.
+    second : Column ! Invalid_Value_Type
+    second self = Value_Type.expect_has_time self <|
+        simple_unary_op self "second"
+
+    ## Gets the date part of the date/time value.
+
+       Returns a column of `Integer` type.
+    @period Date_Time_Helpers.make_period_selector_for_column
+    date_part : Date_Period | Time_Period -> Column ! Invalid_Value_Type | Illegal_Argument
+    date_part self period =
+        Date_Time_Helpers.make_date_part_function self period simple_unary_op self.naming_helpers
+
+    ## Computes a time difference between the two dates.
+
+       It returns a column of integers expressing how many periods fit between
+       the two dates/times.
+
+       The difference will be positive if `end` is greater than `self`.
+
+       Arguments:
+       - end: A date/time column or a date/time value to compute the difference
+         from. It should have the same type as the current column, i.e. a
+         `Date_Time` column cannot be compared to a `Date` - to do so you first
+         need to `cast`.
+       - period: The period to compute the difference in. For `Date` columns it
+         should be a `Date_Period` and for `Time` columns it should be a
+         `Time_Period`. For `Date_Time` columns it can be either.
+
+       ? Time Zone handling
+
+         Some backends may not preserve the timezone data in a `Date_Time`
+         (preserving the represented time instant). This may lead to slight
+         differences in time calculations between backends, especially around
+         unusual events like DST.
+    @period Date_Time_Helpers.make_period_selector_for_column
+    date_diff : (Column | Date | Date_Time | Time_Of_Day) -> Date_Period | Time_Period -> Column ! Invalid_Value_Type | Illegal_Argument
+    date_diff self end (period : Date_Period | Time_Period) =
+        Value_Type.expect_type self .is_date_or_time "date/time" <|
+            my_type = self.inferred_precise_value_type
+            Value_Type.expect_type end (== my_type) my_type.to_display_text <|
+                Date_Time_Helpers.check_period_aligned_with_value_type my_type period <|
+                    new_name = self.naming_helpers.function_name "date_diff" [self, end, period.to_display_text]
+                    metadata = self.connection.dialect.prepare_metadata_for_period period my_type
+                    self.make_op "date_diff" [end] new_name metadata
+
+    ## Shifts the date/time by a specified period, returning a new date/time
+       column of the same type.
+
+       Arguments:
+       - amount: An integer or integer column specifying by how many periods to
+         shift each date.
+       - period: The period by which to shift. For `Date` columns it should be a
+         `Date_Period` and for `Time` columns it should be a `Time_Period`. For
+         `Date_Time` columns it can be either.
+
+       ? Time Zone handling
+
+         Some backends may not preserve the timezone data in a `Date_Time`
+         (preserving the represented time instant). This may lead to slight
+         differences in time calculations between backends, especially around
+         unusual events like DST.
+    @period Date_Time_Helpers.make_period_selector_for_column
+    date_add : (Column | Integer) -> Date_Period | Time_Period -> Column ! Invalid_Value_Type | Illegal_Argument
+    date_add self amount (period : Date_Period | Time_Period) =
+        Value_Type.expect_type self .is_date_or_time "date/time" <|
+            my_type = self.inferred_precise_value_type
+            Value_Type.expect_integer amount <|
+                Date_Time_Helpers.check_period_aligned_with_value_type my_type period <|
+                    new_name = self.naming_helpers.function_name "date_add" [self, amount, period.to_display_text]
+                    metadata = self.connection.dialect.prepare_metadata_for_period period my_type
+                    self.make_op "date_add" [amount] new_name metadata
 
     ## Checks for each element of the column if it is contained within the
        provided vector or column.
@@ -1202,6 +1517,15 @@ type Column
     var_args_functions : Array
     var_args_functions = ['is_in', 'coalesce', 'min', 'max']
 
+    ## PRVIATE
+       If the column is NaN/Inf, return it immediately as the value; otherwise
+       return the expression. If returning immediately, rename to the expression's
+       name. If the column is not floating point, just return the expression.
+    short_circuit_special_floating_point : Column -> Column
+    short_circuit_special_floating_point self exp =
+        self_is_nan = if self.connection.dialect.supports_separate_nan then self.is_nan else self.is_nothing
+        if self.value_type.is_floating_point.not then exp else
+            ((self_is_nan || self.is_infinite).iif self exp).rename exp.name
 ## PRIVATE
    Helper for case case_sensitivity based text operations
 make_text_case_op left op other case_sensitivity new_name =
@@ -1247,3 +1571,8 @@ adapt_unified_column column expected_type =
         SQL_Type_Reference.new column.connection column.context expression
     adapted = dialect.adapt_unified_column column.as_internal expected_type infer_return_type
     Column.Value name=column.name connection=column.connection sql_type_reference=adapted.sql_type_reference expression=adapted.expression context=column.context
+
+## PRIVATE
+   A shorthand to be able to share the implementations between in-memory and
+   database.
+simple_unary_op column op_kind = column.make_unary_op op_kind

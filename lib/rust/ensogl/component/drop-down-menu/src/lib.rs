@@ -220,10 +220,10 @@ impl display::Object for Model {
 
 
 // ============================
-// === VisualisationChooser ===
+// === VisualizationChooser ===
 // ============================
 
-/// UI entity that shows a button that opens a list of visualisations that can be selected from.
+/// UI entity that shows a button that opens a list of visualizations that can be selected from.
 #[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug)]
 pub struct DropDownMenu {
@@ -422,9 +422,14 @@ impl DropDownMenu {
         self
     }
 
-    /// Set the label of the dropdown menu.
+    /// Set the label's color.
     pub fn set_label_color(&self, color: color::Rgba) {
         self.model.label.set_property_default(color);
+    }
+
+    /// Set the label's font weight.
+    pub fn set_label_weight(&self, weight: text::Weight) {
+        self.model.label.set_property_default(weight);
     }
 
     /// Set the layer of all text labels.

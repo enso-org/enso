@@ -34,14 +34,15 @@
  * {@link router.Route}s require fully authenticated users (c.f.
  * {@link authProvider.FullUserSession}). */
 
-import * as react from 'react'
+import * as React from 'react'
 import * as router from 'react-router-dom'
 import * as toast from 'react-hot-toast'
 
 import * as detect from 'enso-common/src/detect'
 
-import * as authService from '../authentication/service'
+import * as authServiceModule from '../authentication/service'
 import * as hooks from '../hooks'
+import * as localBackend from '../dashboard/localBackend'
 
 import * as authProvider from '../authentication/providers/auth'
 import * as backendProvider from '../providers/backend'
@@ -75,6 +76,22 @@ export const FORGOT_PASSWORD_PATH = '/forgot-password'
 export const RESET_PASSWORD_PATH = '/password-reset'
 /** Path to the set username page. */
 export const SET_USERNAME_PATH = '/set-username'
+/** A {@link RegExp} matching all paths. */
+export const ALL_PATHS_REGEX = new RegExp(
+    `(?:${DASHBOARD_PATH}|${LOGIN_PATH}|${REGISTRATION_PATH}|${CONFIRM_REGISTRATION_PATH}|` +
+        `${FORGOT_PASSWORD_PATH}|${RESET_PASSWORD_PATH}|${SET_USERNAME_PATH})$`
+)
+
+// ======================
+// === getMainPageUrl ===
+// ======================
+
+/** Returns the URL to the main page. This is the current URL, with the current route removed. */
+function getMainPageUrl() {
+    const mainPageUrl = new URL(window.location.href)
+    mainPageUrl.pathname = mainPageUrl.pathname.replace(ALL_PATHS_REGEX, '')
+    return mainPageUrl
+}
 
 // ===========
 // === App ===
@@ -85,11 +102,13 @@ export interface AppProps {
     logger: loggerProvider.Logger
     /** Whether the application may have the local backend running. */
     supportsLocalBackend: boolean
+    /** If true, the app can only be used in offline mode. */
+    isAuthenticationDisabled: boolean
     /** Whether the application supports deep links. This is only true when using
      * the installed app on macOS and Windows. */
     supportsDeepLinks: boolean
     /** Whether the dashboard should be rendered. */
-    showDashboard: boolean
+    shouldShowDashboard: boolean
     /** The name of the project to open on startup, if any. */
     initialProjectName: string | null
     onAuthenticated: () => void
@@ -109,8 +128,8 @@ function App(props: AppProps) {
      * will redirect the user between the login/register pages and the dashboard. */
     return (
         <>
-            <toast.Toaster position="top-center" reverseOrder={false} />
-            <Router>
+            <toast.Toaster toastOptions={{ style: { maxWidth: '100%' } }} position="top-center" />
+            <Router basename={getMainPageUrl().pathname}>
                 <AppRouter {...props} />
             </Router>
         </>
@@ -127,24 +146,33 @@ function App(props: AppProps) {
  * because the {@link AppRouter} relies on React hooks, which can't be used in the same React
  * component as the component that defines the provider. */
 function AppRouter(props: AppProps) {
-    const { logger, showDashboard, onAuthenticated } = props
+    const {
+        logger,
+        supportsLocalBackend,
+        isAuthenticationDisabled,
+        shouldShowDashboard,
+        onAuthenticated,
+    } = props
     const navigate = hooks.useNavigate()
-    // FIXME[sb]: After platform detection for Electron is merged in, `IS_DEV_MODE` should be
-    // set to true on `ide watch`.
     if (IS_DEV_MODE) {
         // @ts-expect-error This is used exclusively for debugging.
         window.navigate = navigate
     }
-    const mainPageUrl = new URL(window.location.href)
-    const memoizedAuthService = react.useMemo(() => {
+    const mainPageUrl = getMainPageUrl()
+    const authService = React.useMemo(() => {
         const authConfig = { navigate, ...props }
-        return authService.initAuthService(authConfig)
+        return authServiceModule.initAuthService(authConfig)
     }, [navigate, props])
-    const userSession = memoizedAuthService.cognito.userSession.bind(memoizedAuthService.cognito)
-    const registerAuthEventListener = memoizedAuthService.registerAuthEventListener
+    const userSession = authService.cognito.userSession.bind(authService.cognito)
+    const registerAuthEventListener = authService.registerAuthEventListener
+    const initialBackend: backendProvider.AnyBackendAPI = isAuthenticationDisabled
+        ? new localBackend.LocalBackend()
+        : // This is safe, because the backend is always set by the authentication flow.
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          null!
     const routes = (
         <router.Routes>
-            <react.Fragment>
+            <React.Fragment>
                 {/* Login & registration pages are visible to unauthenticated users. */}
                 <router.Route element={<authProvider.GuestLayout />}>
                     <router.Route path={REGISTRATION_PATH} element={<Registration />} />
@@ -154,7 +182,7 @@ function AppRouter(props: AppProps) {
                 <router.Route element={<authProvider.ProtectedLayout />}>
                     <router.Route
                         path={DASHBOARD_PATH}
-                        element={showDashboard && <Dashboard {...props} />}
+                        element={shouldShowDashboard && <Dashboard {...props} />}
                     />
                 </router.Route>
                 {/* Semi-protected pages are visible to users currently registering. */}
@@ -165,7 +193,7 @@ function AppRouter(props: AppProps) {
                 <router.Route path={CONFIRM_REGISTRATION_PATH} element={<ConfirmRegistration />} />
                 <router.Route path={FORGOT_PASSWORD_PATH} element={<ForgotPassword />} />
                 <router.Route path={RESET_PASSWORD_PATH} element={<ResetPassword />} />
-            </react.Fragment>
+            </React.Fragment>
         </router.Routes>
     )
     return (
@@ -175,11 +203,11 @@ function AppRouter(props: AppProps) {
                 userSession={userSession}
                 registerAuthEventListener={registerAuthEventListener}
             >
-                {/* This is safe, because the backend is always set by the authentication flow. */}
-                {/* eslint-disable-next-line @typescript-eslint/no-non-null-assertion */}
-                <backendProvider.BackendProvider initialBackend={null!}>
+                <backendProvider.BackendProvider initialBackend={initialBackend}>
                     <authProvider.AuthProvider
-                        authService={memoizedAuthService}
+                        shouldStartInOfflineMode={isAuthenticationDisabled}
+                        supportsLocalBackend={supportsLocalBackend}
+                        authService={authService}
                         onAuthenticated={onAuthenticated}
                     >
                         <modalProvider.ModalProvider>{routes}</modalProvider.ModalProvider>

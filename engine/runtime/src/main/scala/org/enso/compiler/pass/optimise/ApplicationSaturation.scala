@@ -1,18 +1,15 @@
 package org.enso.compiler.pass.optimise
 
-import org.enso.compiler.Compiler
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.MetadataStorage._
-import org.enso.compiler.exception.CompilerError
+import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.AliasAnalysis
 import org.enso.compiler.pass.desugar._
 import org.enso.interpreter.node.{ExpressionNode => RuntimeExpression}
 import org.enso.interpreter.runtime.callable.argument.CallArgument
 import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
-
-import scala.annotation.unused
 
 /** This optimisation pass recognises fully-saturated applications of known
   * functions and writes analysis data that allows optimisation of them to
@@ -181,12 +178,6 @@ case object ApplicationSaturation extends IRPass {
     }
   }
 
-  /** @inheritdoc */
-  override def updateMetadataInDuplicate[T <: IR](
-    @unused sourceIr: T,
-    copyOfIr: T
-  ): T = copyOfIr
-
   /** Configuration for this pass
     *
     * @param knownFunctions the mapping of known functions
@@ -209,8 +200,8 @@ case object ApplicationSaturation extends IRPass {
   type KnownFunctionsMapping = Map[String, FunctionSpec]
 
   /** Describes the saturation state of a function application. */
-  sealed trait CallSaturation extends IRPass.Metadata {
-    override def duplicate(): Option[IRPass.Metadata] = Some(this)
+  sealed trait CallSaturation extends IRPass.IRMetadata {
+    override def duplicate(): Option[IRPass.IRMetadata] = Some(this)
   }
   object CallSaturation {
     sealed case class Over(additionalArgCount: Int) extends CallSaturation {

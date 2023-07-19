@@ -1,5 +1,5 @@
 /** @file The UserMenu component provides a dropdown menu of user actions and settings. */
-import * as react from 'react'
+import * as React from 'react'
 
 import * as app from '../../components/app'
 import * as auth from '../../authentication/providers/auth'
@@ -20,14 +20,14 @@ export interface UserMenuItemProps {
 }
 
 /** User menu item. */
-function UserMenuItem(props: react.PropsWithChildren<UserMenuItemProps>) {
-    const { children, disabled, onClick } = props
+function UserMenuItem(props: React.PropsWithChildren<UserMenuItemProps>) {
+    const { children, disabled = false, onClick } = props
 
     return (
         <div
             className={`whitespace-nowrap px-4 py-2 ${disabled ? 'opacity-50' : ''} ${
                 onClick ? 'hover:bg-blue-500 hover:text-white' : ''
-            } ${onClick && !disabled ? 'cursor-pointer' : ''}`}
+            } ${onClick != null && !disabled ? 'cursor-pointer' : ''}`}
             onClick={onClick}
         >
             {children}
@@ -56,7 +56,7 @@ function UserMenu() {
     const username: string | null =
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-non-null-assertion
         accessToken != null ? JSON.parse(atob(accessToken.split('.')[1]!)).username : null
-    const canChangePassword = username != null ? !/^Github_|^Google_/.test(username) : null
+    const canChangePassword = username != null ? !/^Github_|^Google_/.test(username) : false
 
     return (
         <div
@@ -76,7 +76,7 @@ function UserMenu() {
                     {canChangePassword && (
                         <UserMenuItem
                             onClick={() => {
-                                setModal(() => <ChangePasswordModal />)
+                                setModal(<ChangePasswordModal />)
                             }}
                         >
                             Change your password

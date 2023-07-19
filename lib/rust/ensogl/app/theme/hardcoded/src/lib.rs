@@ -187,6 +187,47 @@ define_themes! { [light:0, dark:1]
             show_delay_duration_ms = 500.0, 500.0;
             hide_delay_duration_ms = 0.0, 0.0;
         }
+
+        top_bar {
+            padding_left = 19.0, 19.0;
+            gap = 16.0, 16.0;
+            background {
+                color = Rgba(1.0, 1.0, 1.0, 0.44), Rgba(0.0, 0.0, 0.0, 0.44);
+                corner_radius = 24.0, 24.0;
+            }
+            project_name_with_environment_selector {
+                background {
+                    height = 32.0, 32.0;
+                    padding_left = 10.0, 10.0;
+                    padding_right = 4.0, 4.0;
+                }
+                gap = 8.0, 8.0;
+                project_name {
+                    // Rgb(118, 118, 118)
+                    color = Lcha(0.49, 0.0, 0.75, 1.0), Lcha(0.49, 0.0, 0.75, 1.0);
+                    color_unsaved = Lcha(0.49, 0.0, 0.75, 0.6), Lcha(0.49, 0.0, 0.75, 0.6);
+                    text_size = 11.5, 11.5;
+                }
+            }
+            breadcrumbs {
+                full        = Lcha(0.0,0.0,0.0,0.7) , Lcha(1.0,0.0,0.0,0.7);
+                transparent = Lcha(0.0,0.0,0.0,0.4) , Lcha(1.0,0.0,0.0,0.4);
+                selected    = Lcha(0.0,0.0,0.0,0.7) , Lcha(1.0,0.0,0.0,0.7);
+                hover       = Lcha(0.0,0.0,0.0,0.6) , Lcha(1.0,0.0,0.0,0.6);
+                deselected  {
+                    left  = Lcha(0.0,0.0,0.0,0.4) , Lcha(1.0,0.0,0.0,0.4);
+                    right = Lcha(0.0,0.0,0.0,0.2) , Lcha(1.0,0.0,0.0,0.2);
+                }
+                unsaved {
+                    selected    = Lcha(0.0,0.0,0.0,1.0) , Lcha(1.0,0.0,0.0,1.0);
+                    hover       = Lcha(0.0,0.0,0.0,1.0) , Lcha(1.0,0.0,0.0,1.0);
+                    deselected  {
+                        left  = Lcha(0.0,0.0,0.0,0.8) , Lcha(1.0,0.0,0.0,0.8);
+                        right = Lcha(0.0,0.0,0.0,0.6) , Lcha(1.0,0.0,0.0,0.6);
+                    }
+                }
+            }
+        }
         component_browser {
             panels_gap = 3.0, 3.0;
             documentation {
@@ -201,11 +242,11 @@ define_themes! { [light:0, dark:1]
                 background_color = Rgb::from_base_255(236.0, 240.0, 242.0),Rgb::from_base_255(236.0, 240.0, 242.0);
                 corners_radius = 16.0, 16.0;
                 grid {
-                    width = 413.0, 413.0;
+                    width = 196.0, 196.0;
                     height = 414.0, 414.0;
                     padding = 4.0, 4.0;
                     column_gap = 3.0, 3.0;
-                    entry_height = 30.0, 30.0;
+                    entry_height = 32.0, 32.0;
 
                     // The `color` values support color types (like `color::Rgba`)
                     // and floating-point numbers. This is possible due to a custom stylesheet
@@ -214,16 +255,16 @@ define_themes! { [light:0, dark:1]
                     // Floating-point numbers mean the alpha multiplier for the "main" color of the
                     // component group.
                     entry {
-                        background.intensity = 0.08, 0.08;
+                        background.intensity = 0.0, 0.0;
                         dimmed = Rgb::from_base_255(160.0, 163.0, 165.0), Rgb::from_base_255(160.0, 163.0, 165.0);
-                        padding = 16.0, 16.0;
+                        padding = 8.0, 8.0;
                         text {
                             font = DEFAULT_FONT, DEFAULT_FONT;
                             y_offset = 8.0, 8.0;
                             y_offset_header = 5.0, 5.0;
                             x_offset_header = 0.0, 0.0;
                             size = 11.5, 11.5;
-                            color = 1.0, 1.0;
+                            color = Rgba(0.0, 0.0, 0.0, 0.6), Rgba(0.0, 0.0, 0.0, 0.6);
                             highlight_bold = 0.01, 0.01;
                         }
                         icon {
@@ -253,7 +294,7 @@ define_themes! { [light:0, dark:1]
                             }
                         }
                         highlight {
-                            corners_radius = 12.0, 12.0;
+                            corners_radius = 16.0, 16.0;
                             hover.color = 0.4, 0.4;
                             selection {
                                 background.intensity = 0.75, 0.75;
@@ -273,16 +314,16 @@ define_themes! { [light:0, dark:1]
                     }
 
                     group_colors {
-                        // Yellow
-                        group_0 = Rgb::from_base_255(134.0, 135.0, 43.0), Rgb::from_base_255(134.0, 135.0, 43.0);
                         // Green
-                        group_1 = Rgb::from_base_255(63.0, 139.0, 41.0), Rgb::from_base_255(63.0, 139.0, 41.0);
-                        // Light Blue
-                        group_2 = Rgb::from_base_255(54.0, 122.0, 185.0), Rgb::from_base_255(54.0, 122.0, 185.0);
+                        group_0 = Rgb::from_base_255(77.0, 154.0, 41.0), Rgb::from_base_255(77.0, 154.0, 41.0);
+                        // Yellow
+                        group_1 = Rgb::from_base_255(178.0, 121.0, 35.0), Rgb::from_base_255(178.0, 121.0, 35.0);
+                        // Purple
+                        group_2 = Rgb::from_base_255(151.0, 53.0, 185.0), Rgb::from_base_255(151.0, 53.0, 185.0);
                         // Pink
                         group_3 = Rgb::from_base_255(193.0, 71.0, 171.0), Rgb::from_base_255(193.0, 71.0, 171.0);
                         // Blue
-                        group_4 = Rgb::from_base_255(43.0, 117.0, 239.0), Rgb::from_base_255(43.0, 117.0, 239.0);
+                        group_4 = Rgb::from_base_255(42.0, 103.0, 223.0), Rgb::from_base_255(42.0, 103.0, 223.0);
                         // Orange
                         group_5 = Rgb::from_base_255(181.0, 97.0, 35.0), Rgb::from_base_255(181.0, 97.0, 35.0);
                         local_scope_group = Rgba::new(0.0, 0.42, 0.64, 1.0),Rgba::new(0.0, 0.42, 0.64, 1.0);
@@ -509,6 +550,7 @@ define_themes! { [light:0, dark:1]
             background         = Rgba(0.992,0.996,1.0,1.0), Rgba(0.182,0.188,0.196,1.0);
             background.skipped = graph_editor::node::background , graph_editor::node::background;
             selection          = selection, selection;
+            corner_radius = 14.0, 14.0;
             selection {
                 size = 3.5 , 3.5;
                 offset = 3.75 , 3.75;
@@ -523,6 +565,7 @@ define_themes! { [light:0, dark:1]
                 context_switch {
                     toggled     = Lcha(0.58, 0.67, 0.0825, 1.0), Lcha(0.58, 0.67, 0.0825, 1.0);
                 }
+                dull_alpha = 0.25, 0.25;
             }
             vcs {
                 unchanged = Lcha::transparent(), Lcha::transparent();
@@ -550,7 +593,8 @@ define_themes! { [light:0, dark:1]
             }
         }
         visualization {
-            background = graph_editor::node::background , graph_editor::node::background;
+            background = graph_editor::node::background, graph_editor::node::background;
+            corner_radius = graph_editor::node::corner_radius, graph_editor::node::corner_radius;
             text           = Lcha(0.0,0.0,0.0,0.7)   , Lcha(1.0,0.0,0.0,0.7);
             text.selection = Lcha(0.7,0.0,0.125,0.7) , Lcha(0.7,0.0,0.125,0.7);
             error {
@@ -565,39 +609,18 @@ define_themes! { [light:0, dark:1]
                 icon       = Lcha(0.0,0.0,0.0,0.7) , Lcha(1.0,0.0,0.0,0.7);
                 text       = Lcha(0.0,0.0,0.0,0.7) , Lcha(1.0,0.0,0.0,0.7);
             }
-            // Original RGB values (for reference after fixing color-conversion issues)
-            // ... , rgb(35 41 47)
-            selection = Rgba(0.306,0.647,0.992,0.14) , Rgba(0.137,0.16,0.184,1.0);
             selection {
-                size = 8.0 , 8.0;
-                offset = 0.0 , 0.0;
+                color = Rgba(0.306,0.647,0.992,0.14) , Rgba(0.137,0.16,0.184,1.0);
+                width = 7.0, 7.0;
+            }
+            resize_grip {
+                offset_x = 10.0, 10.0;
+                offset_y = -10.0, -10.0;
             }
             text_grid {
                 font = "DejaVu Sans Mono" , "DejaVu Sans Mono";
                 font_size = 12.0 , 12.0;
 
-            }
-        }
-        breadcrumbs {
-            full        = Lcha(0.0,0.0,0.0,0.7) , Lcha(1.0,0.0,0.0,0.7);
-            transparent = Lcha(0.0,0.0,0.0,0.4) , Lcha(1.0,0.0,0.0,0.4);
-            selected    = Lcha(0.0,0.0,0.0,0.7) , Lcha(1.0,0.0,0.0,0.7);
-            hover       = Lcha(0.0,0.0,0.0,0.6) , Lcha(1.0,0.0,0.0,0.6);
-            deselected  {
-                left  = Lcha(0.0,0.0,0.0,0.4) , Lcha(1.0,0.0,0.0,0.4);
-                right = Lcha(0.0,0.0,0.0,0.2) , Lcha(1.0,0.0,0.0,0.2);
-            }
-            unsaved {
-                selected    = Lcha(0.0,0.0,0.0,1.0) , Lcha(1.0,0.0,0.0,1.0);
-                hover       = Lcha(0.0,0.0,0.0,1.0) , Lcha(1.0,0.0,0.0,1.0);
-                deselected  {
-                    left  = Lcha(0.0,0.0,0.0,0.8) , Lcha(1.0,0.0,0.0,0.8);
-                    right = Lcha(0.0,0.0,0.0,0.6) , Lcha(1.0,0.0,0.0,0.6);
-                }
-            }
-            background {
-                color = application::background , application::background;
-                corner_radius = 8.0 , 8.0;
             }
         }
         edge {
