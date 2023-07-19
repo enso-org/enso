@@ -44,34 +44,32 @@ pub use js::Id;
 // ===================
 
 /// Send any kind of notification.
-pub fn toast_any(message: &str, r#type: Type, options: &Option<Options>) -> Result<Id, JsValue> {
-    warn!("options: {:?}", serde_json::to_string(options));
+pub fn send_any(message: &str, r#type: Type, options: &Option<Options>) -> Result<Id, JsValue> {
     let options = match options {
         Some(options) => options.try_into()?,
         None => JsValue::UNDEFINED,
     };
-    warn!("options: {:?}", js_sys::JSON::stringify(&options));
     js::toast(message, r#type, &options)
 }
 
 /// Send an info notification.
 pub fn info(message: &str, options: &Option<Options>) -> Result<Id, JsValue> {
-    toast_any(message, Type::Info, options)
+    send_any(message, Type::Info, options)
 }
 
 /// Send a warning notification.
 pub fn warning(message: &str, options: &Option<Options>) -> Result<Id, JsValue> {
-    toast_any(message, Type::Warning, options)
+    send_any(message, Type::Warning, options)
 }
 
 /// Send a error notification.
 pub fn error(message: &str, options: &Option<Options>) -> Result<Id, JsValue> {
-    toast_any(message, Type::Error, options)
+    send_any(message, Type::Error, options)
 }
 
 /// Send a success notification.
 pub fn success(message: &str, options: &Option<Options>) -> Result<Id, JsValue> {
-    toast_any(message, Type::Success, options)
+    send_any(message, Type::Success, options)
 }
 
 
@@ -159,7 +157,7 @@ pub enum AutoCloseInner {
     ShouldEver(bool),
 }
 
-/// Represents the auto close delay of a toast notification.
+/// Represents the auto-close delay of a notification.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Deref)]
 #[serde(transparent)]
 pub struct AutoClose(AutoCloseInner);
@@ -178,9 +176,10 @@ impl AutoClose {
     }
 }
 
+
 // === Type ===
 
-/// Represents the type of a toast notification.
+/// Represents the type of a notification.
 ///
 /// Affects styling and icon.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, strum::AsRefStr)]
@@ -198,7 +197,7 @@ pub enum Type {
 
 // === Position ===
 
-/// Represents the position of a toast notification on the screen.
+/// Represents the position of a notification on the screen.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 #[allow(missing_docs)]
@@ -214,7 +213,7 @@ pub enum Position {
 
 // === DraggableDirection ===
 
-/// Direction that the toast can be dragged (swiped) to dismiss it.
+/// Direction that the notification can be dragged (swiped) to dismiss it.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 #[allow(missing_docs)]
@@ -240,7 +239,7 @@ pub enum Theme {
 
 // === Options ===
 
-/// Customization options for Toast.
+/// Customization options for the notification.
 ///
 /// Note that it is not necessary to set any of these. All options marked as `None` will be
 /// auto-filled with default values.
@@ -248,8 +247,9 @@ pub enum Theme {
 #[serde(rename_all = "camelCase")]
 #[allow(missing_docs)]
 pub struct Options {
+    /// Unique notification identifier.
     pub toast_id:            Option<String>,
-    ///
+    /// Type of the notification, affecting styling and icon. Default: `Type::Default`.
     pub r#type:              Option<Type>,
     /// The position where the toast should appear. Default: `bottom-right`.
     pub position:            Option<Position>,
@@ -288,7 +288,7 @@ pub struct Options {
     pub draggable_direction: Option<DraggableDirection>,
     /// Set id to handle multiple `ToastContainer` instances.
     pub container_id:        Option<String>,
-    /// Define the [ARIA role](https://www.w3.org/WAI/PF/aria/roles) for the toast notification. `Default: "alert"`.
+    /// Define the [ARIA role](https://www.w3.org/WAI/PF/aria/roles) for the notification. `Default: "alert"`.
     pub role:                Option<String>,
     /// Add a delay in ms before the toast appear.
     pub delay:               Option<u32>,

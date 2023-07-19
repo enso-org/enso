@@ -9,9 +9,19 @@ use crate::notification::UpdateOptions;
 
 
 
+// ==================
+// === Constants ===
+// =================
+
 /// Toastify's [`toast API`](https://fkhadra.github.io/react-toastify/api/toast) field name within
 /// our application JS object.
 const TOAST_FIELD_NAME: &str = "toast";
+
+
+
+// ========================
+// === Toast API Handle ===
+// ========================
 
 /// Get the global (set in JS app object) toast API handle.
 pub fn get_toast() -> Result<ToastAPI, JsValue> {
@@ -21,17 +31,19 @@ pub fn get_toast() -> Result<ToastAPI, JsValue> {
     // Hopefully, window contains a field with the name, so we can access it.
     let app = js_sys::Reflect::get(window.as_ref(), &app_field_name.into())?;
     let toastify = js_sys::Reflect::get(app.as_ref(), &TOAST_FIELD_NAME.into())?;
-    warn!("toastify: {:?}", toastify);
     Ok(toastify.into())
 }
+
+
+
+// ===================
+// === JS bindings ===
+// ===================
 
 // Wrappers for [`toast`](https://react-hot-toast.com/docs/toast) API.
 #[wasm_bindgen(inline_js = r#"
     export function sendToast(toast, message, method, options) {
         const target = toast[method];
-        console.warn(`target: ${JSON.stringify(target)}`);
-        console.warn(`message: ${JSON.stringify(message)}`);
-        console.warn(`options: ${JSON.stringify(options)}`);
         return target(message, options);
     }
     "#)]
@@ -109,10 +121,15 @@ extern "C" {
     pub fn done(this: &ToastAPI, id: &Id) -> Result<(), JsValue>;
 }
 
+
+
+// ===========================
+// === JS-types extensions ===
+// ===========================
+
 impl ToastAPI {
     /// Send the toast notification.
     pub fn send(&self, message: &str, method: &str, options: &JsValue) -> Result<Id, JsValue> {
-        warn!("Options as JSON: {:?}", js_sys::JSON::stringify(options));
         sendToast(self, message, method, options)
     }
 }
@@ -135,7 +152,6 @@ impl Id {
 
     /// Update a toast.
     pub fn update(&self, options: &UpdateOptions) -> Result<(), JsValue> {
-        warn!("Updating {self:?} with {}", serde_json::to_string(options).unwrap());
         get_toast()?.update(self, &options.try_into()?)
     }
 }
@@ -151,8 +167,5 @@ impl ContainerId {
 /// Wrapper for sending arbitrary kind of toast.
 pub fn toast(message: &str, r#type: Type, options: &JsValue) -> Result<Id, JsValue> {
     let method: &str = r#type.as_ref();
-    let toast = get_toast()?;
-    warn!("toast: {:?}", toast);
-    warn!("message: {:?}", message);
     get_toast()?.send(message, method, options)
 }
