@@ -21,6 +21,9 @@ export const theme = {
             // Should be `#3e515fe5`, but `bg-opacity` does not work with RGBA.
             /** The default color of all text. */
             primary: '#52636f',
+            chat: '#484848',
+            'ide-bg': '#ebeef1',
+            'ide-bg-dark': '#d0d3d6',
             // Should be `#3e515f14`, but `bg-opacity` does not work with RGBA.
             label: '#f0f1f3',
             help: '#3f68ce',
@@ -34,14 +37,19 @@ export const theme = {
             'perm-docs-write': '#2db1c3',
             // Should be `#3e515f14`, but `bg-opacity` does not work with RGBA.
             'perm-none': '#f0f1f3',
+            'call-to-action': '#fa6c08',
+            'gray-350': '#b7bcc5',
         },
         flexGrow: {
             2: '2',
         },
         fontSize: {
+            'xs-mini': '0.71875rem',
             vs: '0.8125rem',
         },
         spacing: {
+            '83.5': '20.875rem',
+            '70': '17.5rem',
             '10lh': '10lh',
             '140': '35rem',
         },
@@ -81,10 +89,15 @@ inset 0 -36px 51px -51px #00000014`,
         transitionProperty: {
             width: 'width',
             'stroke-dasharray': 'stroke-dasharray',
+            'grid-template-rows': 'grid-template-rows',
         },
         transitionDuration: {
             '5000': '5000ms',
             '90000': '90000ms',
+        },
+        gridTemplateRows: {
+            '0fr': '0fr',
+            '1fr': '1fr',
         },
         gridTemplateColumns: {
             'fill-60': 'repeat(auto-fill, minmax(15rem, 1fr))',

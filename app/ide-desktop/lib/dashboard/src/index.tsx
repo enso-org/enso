@@ -6,12 +6,12 @@ import * as authentication from 'enso-authentication'
 // =================
 
 /** Path to the SSE endpoint over which esbuild sends events. */
-const ESBUILD_PATH = '/esbuild'
+const ESBUILD_PATH = './esbuild'
 /** SSE event indicating a build has finished. */
 const ESBUILD_EVENT_NAME = 'change'
 /** Path to the service worker that resolves all extensionless paths to `/index.html`.
  * This service worker is required for client-side routing to work when doing local development. */
-const SERVICE_WORKER_PATH = '/serviceWorker.js'
+const SERVICE_WORKER_PATH = './serviceWorker.js'
 
 // ===================
 // === Live reload ===

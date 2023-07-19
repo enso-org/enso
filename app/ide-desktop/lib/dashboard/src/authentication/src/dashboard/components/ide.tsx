@@ -33,11 +33,22 @@ function Ide(props: IdeProps) {
     const { backend } = backendProvider.useBackend()
     const { accessToken } = auth.useNonPartialUserSession()
 
+    let hasEffectRun = false
+
     React.useEffect(() => {
+        // This is a hack to work around the IDE WASM not playing nicely with React Strict Mode.
+        // This is unavoidable as the WASM must fully set up to be able to properly drop its assets,
+        // but React re-executes this side-effect faster tha the WASM can do so.
+        if (hasEffectRun) {
+            // eslint-disable-next-line no-restricted-syntax
+            return
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        hasEffectRun = true
         void (async () => {
             const ideVersion =
                 project.ideVersion?.value ??
-                ('listVersions' in backend
+                (backend.type === backendModule.BackendType.remote
                     ? await backend.listVersions({
                           versionType: backendModule.VersionType.ide,
                           default: true,
@@ -45,7 +56,7 @@ function Ide(props: IdeProps) {
                     : null)?.[0].number.value
             const engineVersion =
                 project.engineVersion?.value ??
-                ('listVersions' in backend
+                (backend.type === backendModule.BackendType.remote
                     ? await backend.listVersions({
                           versionType: backendModule.VersionType.backend,
                           default: true,
@@ -62,14 +73,17 @@ function Ide(props: IdeProps) {
             } else if (binaryAddress == null) {
                 throw new Error("Could not get the address of the project's binary endpoint.")
             } else {
-                const assetsRoot = (() => {
-                    switch (backend.type) {
-                        case backendModule.BackendType.remote:
-                            return `${IDE_CDN_URL}/${ideVersion}/`
-                        case backendModule.BackendType.local:
-                            return ''
+                let assetsRoot: string
+                switch (backend.type) {
+                    case backendModule.BackendType.remote: {
+                        assetsRoot = `${IDE_CDN_URL}/${ideVersion}/`
+                        break
                     }
-                })()
+                    case backendModule.BackendType.local: {
+                        assetsRoot = ''
+                        break
+                    }
+                }
                 const runNewProject = async () => {
                     const engineConfig =
                         backend.type === backendModule.BackendType.remote
@@ -130,9 +144,9 @@ function Ide(props: IdeProps) {
             }
         })()
         // The backend MUST NOT be a dependency, since the IDE should only be recreated when a new
-        // project is opened.
+        // project is opened, and a local project does not exist on the cloud and vice versa.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [appRunner, project])
+    }, [project, /* should never change */ appRunner])
 
     return <></>
 }

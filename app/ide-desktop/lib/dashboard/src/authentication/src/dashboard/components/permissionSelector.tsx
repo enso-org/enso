@@ -30,7 +30,7 @@ const PERMISSIONS = [
 /** Props for a {@link PermissionSelector}. */
 export interface PermissionSelectorProps {
     /** If this prop changes, the internal state will be updated too. */
-    initialPermissions?: Set<backend.PermissionAction> | null
+    initialPermissions?: backend.PermissionAction[] | null
     className?: string
     permissionClassName?: string
     onChange: (permissions: Set<backend.PermissionAction>) => void
@@ -38,22 +38,18 @@ export interface PermissionSelectorProps {
 
 /** A horizontal selector for all possible permissions. */
 function PermissionSelector(props: PermissionSelectorProps) {
-    const {
-        initialPermissions: rawInitialPermissions,
-        className,
-        permissionClassName,
-        onChange,
-    } = props
+    const { initialPermissions, className, permissionClassName, onChange } = props
     const [permissions, setPermissions] = React.useState(() => new Set<backend.PermissionAction>())
 
     React.useEffect(() => {
-        if (rawInitialPermissions != null) {
-            setPermissions(rawInitialPermissions)
-            onChange(rawInitialPermissions)
+        if (initialPermissions != null) {
+            const initialPermissionsSet = new Set(initialPermissions)
+            setPermissions(initialPermissionsSet)
+            onChange(initialPermissionsSet)
         }
         // `onChange` is NOT a dependency.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [rawInitialPermissions])
+    }, [initialPermissions])
 
     return (
         <div className={`flex justify-items-center ${className ?? ''}`}>

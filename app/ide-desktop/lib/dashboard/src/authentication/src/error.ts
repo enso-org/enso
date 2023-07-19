@@ -29,24 +29,6 @@ export function tryGetMessage(error: unknown): string | null {
         : null
 }
 
-// ================================
-// === Type assertions (unsafe) ===
-// ================================
-
-/** Assumes an unknown value is an {@link Error}. */
-export function unsafeAsError<T>(error: MustBeAny<T>) {
-    // This is UNSAFE - errors can be any value.
-    // Usually they *do* extend `Error`,
-    // however great care must be taken when deciding to use this.
-    // eslint-disable-next-line no-restricted-syntax
-    return error as Error
-}
-
-/** Extracts the `message` property of a value, by first assuming it is an {@link Error}. */
-export function unsafeIntoErrorMessage<T>(error: MustBeAny<T>) {
-    return unsafeAsError(error).message
-}
-
 // ============================
 // === UnreachableCaseError ===
 // ============================
@@ -63,4 +45,11 @@ export class UnreachableCaseError extends Error {
     constructor(value: never) {
         super(`Unreachable case: ${JSON.stringify(value)}`)
     }
+}
+
+/** A function that throws an {@link UnreachableCaseError} so that it can be used
+ * in an expresison.
+ * @throws {UnreachableCaseError} Always. */
+export function unreachable(value: never): never {
+    throw new UnreachableCaseError(value)
 }
