@@ -66,15 +66,22 @@ impl Goodie for GraalVM {
             .context("Failed to read GraalVM cache directory")
             .unwrap()
             .collect_vec();
-        assert_eq!(dir_entries.len(), 1, "GraalVM cache directory should contain exactly one directory");
-        let graalvm_dir  =  match dir_entries.get(0).unwrap() {
+        assert_eq!(
+            dir_entries.len(),
+            1,
+            "GraalVM cache directory should contain exactly one directory"
+        );
+        let graalvm_dir = match dir_entries.get(0).unwrap() {
             Ok(dir_entry) => dir_entry,
             Err(err) => bail!("Failed to read GraalVM cache directory: {}", err),
         };
         let dir_name_tmp = graalvm_dir.file_name();
         let dir_name = dir_name_tmp.as_str();
         assert!(dir_name.contains("graalvm"));
-        let graal_version_str = format!("{}.{}.{}", self.graal_version.major, self.graal_version.minor, self.graal_version.patch);
+        let graal_version_str = format!(
+            "{}.{}.{}",
+            self.graal_version.major, self.graal_version.minor, self.graal_version.patch
+        );
         assert!(dir_name.contains(&graal_version_str));
         let root = match TARGET_OS {
             OS::MacOS => graalvm_dir.path().join_iter(["Contents", "Home"]),
@@ -92,7 +99,8 @@ impl GraalVM {
     pub fn url(&self) -> BoxFuture<'static, Result<Url>> {
         let platform_string = self.platform_string();
         let graal_version = self.graal_version.clone();
-        let graal_version_tag = format!("{}.{}.{}", graal_version.major, graal_version.minor, graal_version.patch);
+        let graal_version_tag =
+            format!("{}.{}.{}", graal_version.major, graal_version.minor, graal_version.patch);
         let client = self.client.clone();
         async move {
             let repo = CE_BUILDS_REPOSITORY.handle(&client);
@@ -117,7 +125,10 @@ impl GraalVM {
             Arch::AArch64 => "aarch64",
             other_arch => unimplemented!("Architecture `{}` is not supported!", other_arch),
         };
-        let java_version = format!("jdk-{}.{}.{}", _graal_version.major, _graal_version.minor, _graal_version.patch);
+        let java_version = format!(
+            "jdk-{}.{}.{}",
+            _graal_version.major, _graal_version.minor, _graal_version.patch
+        );
         format!("{PACKAGE_PREFIX_URL}-{java_version}_{os_name}-{arch_name}")
     }
 }
@@ -138,12 +149,13 @@ pub fn locate_graal() -> Result<PathBuf> {
 
 #[cfg(test)]
 mod tests {
-    use semver::{BuildMetadata, Prerelease};
     use super::*;
     use crate::cache;
     use crate::log::setup_logging;
     use crate::programs::graal::Gu;
     use crate::programs::Java;
+    use semver::BuildMetadata;
+    use semver::Prerelease;
 
     #[tokio::test]
     #[ignore]
@@ -176,8 +188,8 @@ OpenJDK 64-Bit Server VM GraalVM CE 17.0.7+7.1 (build 17.0.7+7-jvmci-23.0-b12, m
             major: 17,
             minor: 0,
             patch: 7,
-            pre: Prerelease::EMPTY,
-            build: BuildMetadata::new("7.1").unwrap()
+            pre:   Prerelease::EMPTY,
+            build: BuildMetadata::new("7.1").unwrap(),
         };
         assert_eq!(found_graal, expected_graal_version);
 
@@ -187,14 +199,15 @@ OpenJDK 64-Bit Server VM GraalVM CE 17.0.7+7.1 (build 17.0.7+7-jvmci-23.0-b12, m
 
     #[test]
     fn recognize_oneline_version() {
-        let version_line = "OpenJDK Runtime Environment GraalVM CE 17.0.7+7.1 (build 17.0.7+7-jvmci-23.0-b12)";
+        let version_line =
+            "OpenJDK Runtime Environment GraalVM CE 17.0.7+7.1 (build 17.0.7+7-jvmci-23.0-b12)";
         let graal_version = Version::find_in_text(version_line).unwrap();
         let expected_graal_version = Version {
             major: 17,
             minor: 0,
             patch: 7,
-            pre: Prerelease::EMPTY,
-            build: BuildMetadata::new("7.1").unwrap()
+            pre:   Prerelease::EMPTY,
+            build: BuildMetadata::new("7.1").unwrap(),
         };
         assert_eq!(graal_version, expected_graal_version);
     }
@@ -205,11 +218,16 @@ OpenJDK 64-Bit Server VM GraalVM CE 17.0.7+7.1 (build 17.0.7+7-jvmci-23.0-b12, m
             major: 17,
             minor: 0,
             patch: 7,
-            pre: Prerelease::EMPTY,
-            build: BuildMetadata::new("7.1").unwrap()
+            pre:   Prerelease::EMPTY,
+            build: BuildMetadata::new("7.1").unwrap(),
         };
-        let version_str = format!("{}.{}.{}+{}", version_with_build_metadata.major, version_with_build_metadata.minor,
-            version_with_build_metadata.patch, version_with_build_metadata.build);
+        let version_str = format!(
+            "{}.{}.{}+{}",
+            version_with_build_metadata.major,
+            version_with_build_metadata.minor,
+            version_with_build_metadata.patch,
+            version_with_build_metadata.build
+        );
         assert_eq!(version_str, "17.0.7+7.1");
     }
 }
