@@ -1,6 +1,6 @@
 //! Provides a button to switch back from the project view to the dashboard.
 
-use crate::prelude::*;
+use ensogl::prelude::*;
 
 use ensogl::application::tooltip;
 use ensogl::application::Application;

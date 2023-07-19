@@ -251,7 +251,7 @@ impl WithProjectManager {
 pub fn register_views(app: &Application) {
     app.views.register::<ide_view::root::View>();
     app.views.register::<ide_view::graph_editor::GraphEditor>();
-    app.views.register::<ide_view::graph_editor::component::breadcrumbs::ProjectName>();
+    app.views.register::<ide_view::project_view_top_bar::project_name::ProjectName>();
     app.views.register::<ide_view::code_editor::View>();
     app.views.register::<ide_view::project::View>();
     app.views.register::<ide_view::searcher::View>();
@@ -272,8 +272,7 @@ pub fn register_views(app: &Application) {
     app.views.register::<ensogl_component::list_view::ListView<PlaceholderEntryType>>();
 
     if enso_config::ARGS.groups.startup.options.platform.value == "web" {
-        app.views
-            .register::<ide_view::project::project_view_top_bar::window_control_buttons::View>();
+        app.views.register::<ide_view::project_view_top_bar::window_control_buttons::View>();
     }
 }
 
