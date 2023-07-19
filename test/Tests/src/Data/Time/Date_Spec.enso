@@ -45,7 +45,7 @@ spec_with name create_new_date parse_date =
         Test.specify "should format local date using provided pattern and locale" <|
             d = create_new_date 2020 6 21
             d.format "d. MMMM yyyy" (Locale.new "gb") . should_equal "21. Jun 2020"
-            d.format "d. MMMM yyyy" (Locale.new "fr") . should_equal "21. juin 2020
+            d.format "d. MMMM yyyy" (Locale.new "fr") . should_equal "21. juin 2020"
 
         Test.specify "should format local date using default pattern" <|
             text = create_new_date 2020 12 21 . to_text
@@ -488,6 +488,63 @@ spec_with name create_new_date parse_date =
 
                     (date.add_work_days -n).work_days_until date . should_equal n
                     (date.add_work_days -n holidays).work_days_until date holidays . should_equal n
+
+        Test.specify "should allow extracting a date_part" <|
+            d1 = create_new_date 2023 12 30
+            d1.date_part Date_Period.Year . should_equal 2023
+            d1.date_part Date_Period.Quarter . should_equal 4
+            d1.date_part Date_Period.Month . should_equal 12
+            d1.date_part Date_Period.Week . should_equal 52
+            d1.date_part Date_Period.Day . should_equal 30
+
+            Test.expect_panic_with (d1.date_part Time_Period.Day) Type_Error
+            
+        Test.specify "should allow computing date_diff" <|
+            d1 = create_new_date 2021 11 3
+            d2 = create_new_date 2021 12 5
+
+            d1.date_diff d2 Date_Period.Day . should_equal 32
+            d2.date_diff d1 Date_Period.Day . should_equal -32
+            d1.date_diff (Date.new 2021 11 3) Date_Period.Day . should_equal 0
+
+            d1.date_diff d2 Date_Period.Month . should_equal 1
+            d1.date_diff (Date.new 2021 12 1) Date_Period.Month . should_equal 0
+            d1.date_diff (Date.new 2020 12 1) Date_Period.Month . should_equal -11
+
+            d1.date_diff d2 Date_Period.Quarter . should_equal 0
+            d1.date_diff (Date.new 2021 5 1) Date_Period.Quarter . should_equal -2
+            d1.date_diff (Date.new 2023 7 1) Date_Period.Quarter . should_equal 6
+
+            d1.date_diff d2 Date_Period.Year . should_equal 0
+            d1.date_diff (Date.new 2021 12 1) Date_Period.Year . should_equal 0
+            d1.date_diff (Date.new 2020 10 1) Date_Period.Year . should_equal -1
+
+            # Ensure months of varying length (e.g. February) are still counted right.
+            d3 = create_new_date 2021 01 02
+            d3.date_diff (Date.new 2021 03 02) Date_Period.Day . should_equal 59
+            d3.date_diff (Date.new 2021 03 02) Date_Period.Month . should_equal 2
+            d3.date_diff (Date.new 2021 03 01) Date_Period.Day . should_equal 58
+            d3.date_diff (Date.new 2021 03 01) Date_Period.Month . should_equal 1
+
+            Test.expect_panic_with (d1.date_diff d2 Time_Period.Day) Type_Error
+            Test.expect_panic_with (d1.date_diff d2 Time_Period.Hour) Type_Error
+
+        Test.specify "should allow shifting with date_add" <|
+            d1 = create_new_date 2021 01 31
+            d1.date_add 5 Date_Period.Day . should_equal (Date.new 2021 02 05)
+            d1.date_add -1 Date_Period.Day . should_equal (Date.new 2021 01 30)
+            d1.date_add 1 Date_Period.Month . should_equal (Date.new 2021 02 28)
+            d1.date_add 2 Date_Period.Month . should_equal (Date.new 2021 03 31)
+            d1.date_add 3 Date_Period.Year . should_equal (Date.new 2024 01 31)
+            d1.date_add -1 Date_Period.Year . should_equal (Date.new 2020 01 31)
+
+            d1.date_add 1 Date_Period.Week . should_equal (Date.new 2021 02 07)
+            d1.date_add 2 Date_Period.Quarter . should_equal (Date.new 2021 07 31)
+
+            Test.expect_panic_with (d1.date_add 1 Time_Period.Hour) Type_Error
+            Test.expect_panic_with (d1.date_add 1 Time_Period.Day) Type_Error
+            Test.expect_panic_with (d1.date_add 1.5 Date_Period.Day) Type_Error
+            Test.expect_panic_with (d1.date_add 1.0 Date_Period.Day) Type_Error
 
     Date_Part_Spec.spec name create_new_date
 

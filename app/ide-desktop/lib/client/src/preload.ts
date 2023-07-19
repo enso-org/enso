@@ -77,6 +77,8 @@ electron.contextBridge.exposeInMainWorld('enso_console', {
 // === Authentication API ===
 // ==========================
 
+let currentDeepLinkHandler: ((event: Electron.IpcRendererEvent, url: string) => void) | null = null
+
 /** Object exposed on the Electron main window; provides proxy functions to:
  * - open OAuth flows in the system browser, and
  * - handle deep links from the system browser or email client to the dashboard.
@@ -102,10 +104,15 @@ const AUTHENTICATION_API = {
      * `enso://authentication/register?code=...&state=...` from external sources like the user's
      * system browser or email client. Handling the links involves resuming whatever flow was in
      * progress when the link was opened (e.g., an OAuth registration flow). */
-    setDeepLinkHandler: (callback: (url: string) => void) =>
-        electron.ipcRenderer.on(ipc.Channel.openDeepLink, (_event, url: string) => {
+    setDeepLinkHandler: (callback: (url: string) => void) => {
+        if (currentDeepLinkHandler != null) {
+            electron.ipcRenderer.off(ipc.Channel.openDeepLink, currentDeepLinkHandler)
+        }
+        currentDeepLinkHandler = (_event, url: string) => {
             callback(url)
-        }),
+        }
+        electron.ipcRenderer.on(ipc.Channel.openDeepLink, currentDeepLinkHandler)
+    },
     /** Save the access token to a credentials file.
      *
      * The backend doesn't have access to Electron's `localStorage` so we need to save access token

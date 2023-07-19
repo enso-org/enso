@@ -126,6 +126,11 @@ pub enum Notification {
     #[serde(rename = "text/didChange")]
     TextDidChange(FileEditList),
 
+    /// This is a notification sent from the server to the clients to inform them that a file
+    /// was modified on disk by external editor.
+    #[serde(rename = "text/fileModifiedOnDisk")]
+    TextFileModifiedOnDisk(TextFileModifiedOnDisk),
+
     /// Sent from the server to the client to inform about new information for certain expressions
     /// becoming available. This notification is superseded by executionContext/expressionUpdates.
     #[serde(rename = "executionContext/expressionValuesComputed")]
@@ -364,6 +369,14 @@ pub enum FileEventKind {
 #[derive(Serialize, Deserialize)]
 #[allow(missing_docs)]
 pub struct TextAutoSave {
+    pub path: Path,
+}
+
+/// The `text/fileModifiedOnDisk` notification parameters.
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize)]
+#[allow(missing_docs)]
+pub struct TextFileModifiedOnDisk {
     pub path: Path,
 }
 

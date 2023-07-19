@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=M+PLUS+1:wght@500;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=M+PLUS+1:wght@500;600;700&display=swap");
 
 body {
   margin: 0;
@@ -6,7 +6,8 @@ body {
 
 /* These styles MUST still be copied
  * as `.enso-dashboard body` and `.enso-dashboard html` make no sense. */
-.enso-dashboard {
+.enso-dashboard,
+.enso-chat {
   line-height: 1.5;
   -webkit-text-size-adjust: 100%;
   -moz-tab-size: 4;
@@ -16,7 +17,8 @@ body {
   font-feature-settings: normal;
 }
 
-.enso-dashboard *:focus {
+.enso-dashboard *:focus,
+.enso-chat *:focus {
   outline: none !important;
 }
 
@@ -48,7 +50,8 @@ body {
   background: rgba(0, 0, 0, 0);
 }
 
-.enso-dashboard {
+.enso-dashboard,
+.enso-chat {
   @tailwind base;
   @tailwind components;
   @tailwind utilities;
@@ -90,6 +93,15 @@ body {
       );
     }
 
+    .clip-path-bottom-shadow {
+      clip-path: polygon(
+        0 0,
+        100% 0,
+        100% calc(100% + 100vh),
+        0 calc(100% + 100vh)
+      );
+    }
+
     .dasharray-5 {
       stroke-dasharray: calc(12 * 0.05 * 6.2832) calc(12 * 6.2832);
     }
@@ -107,10 +119,28 @@ body {
       background-image: url("enso-assets/dashed_border.svg");
     }
 
+    .blink-background {
+      /** The duration MUST be synced with the corresponding value in `sharedWithModal.tsx`. */
+      animation: blink 0.5s ease-in-out;
+    }
+
+    @keyframes blink {
+      0% {
+        background: #f0f1f3;
+      }
+      33% {
+        background: #e2e4e9;
+      }
+      100% {
+        background: #f0f1f3;
+      }
+    }
+
     .scroll-hidden {
       -ms-overflow-style: none; /* Internet Explorer 10+ */
       scrollbar-width: none; /* Firefox */
     }
+
     .scroll-hidden::-webkit-scrollbar {
       display: none; /* Safari and Chrome */
     }
@@ -122,5 +152,10 @@ body {
         height: 11rem;
       }
     }
+  }
+
+  .pointer-events-none-recursive,
+  .pointer-events-none-recursive * {
+    pointer-events: none;
   }
 }

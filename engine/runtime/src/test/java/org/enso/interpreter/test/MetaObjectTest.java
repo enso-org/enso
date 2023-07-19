@@ -19,6 +19,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import org.junit.AfterClass;
+import static org.junit.Assert.assertNotEquals;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -150,6 +151,30 @@ public class MetaObjectTest extends TestBase {
       var isVector = v.getMetaObject().equals(g.typeVector());
       var isArray = v.getMetaObject().equals(g.typeArray());
       assertTrue("Value " + v + " of type " + v.getMetaObject() + " should either be array or vector (" + isVector + ")", isArray ^ isVector);
+    }
+  }
+
+  @Test
+  public void errorsAreWeird() {
+    var g = ValuesGenerator.create(ctx, ValuesGenerator.Language.ENSO);
+    for (var v : g.errors()) {
+      Value vMeta = v.getMetaObject();
+      var isError = vMeta.equals(g.typeError());
+      var isPanic = vMeta.equals(g.typePanic());
+
+      assertTrue("either error or panic: " + v, isError || isPanic);
+      assertNotEquals("never both: " + v, isError, isPanic);
+
+      if (isError) {
+        assertFalse("No meta parents for errors: " + vMeta, vMeta.hasMetaParents());
+      } else {
+        assertTrue("There are meta parents for panics: " + vMeta, vMeta.hasMetaParents());
+        var arr = vMeta.getMetaParents();
+        for (long i = 0; i < arr.getArraySize(); i++) {
+          var p = arr.getArrayElement(i);
+          assertEquals(g.typeAny(), p);
+        }
+      }
     }
   }
 

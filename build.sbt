@@ -621,9 +621,10 @@ lazy val pkg = (project in file("lib/scala/pkg"))
     frgaalJavaCompilerSetting,
     version := "0.1",
     libraryDependencies ++= circe ++ Seq(
-      "org.scalatest" %% "scalatest"  % scalatestVersion % Test,
-      "io.circe"      %% "circe-yaml" % circeYamlVersion, // separate from other circe deps because its independent project with its own versioning
-      "commons-io"     % "commons-io" % commonsIoVersion
+      "org.scalatest"     %% "scalatest"        % scalatestVersion % Test,
+      "io.circe"          %% "circe-yaml"       % circeYamlVersion,
+      "org.apache.commons" % "commons-compress" % commonsCompressVersion,
+      "commons-io"         % "commons-io"       % commonsIoVersion
     )
   )
   .dependsOn(editions)
@@ -958,6 +959,15 @@ lazy val `interpreter-dsl-test` =
         "-Dgraalvm.locatorDisabled=true",
         s"--upgrade-module-path=${file("engine/runtime/build-cache/truffle-api.jar").absolutePath}"
       ),
+      Test / javacOptions ++= Seq(
+        "-s",
+        (Test / sourceManaged).value.getAbsolutePath
+      ),
+      Compile / logManager :=
+        sbt.internal.util.CustomLogManager.excludeMsg(
+          "Could not determine source for class ",
+          Level.Warn
+        ),
       commands += WithDebugCommand.withDebug,
       libraryDependencies ++= Seq(
         "org.graalvm.truffle" % "truffle-api"           % graalVersion   % "provided",
@@ -2245,12 +2255,28 @@ buildEngineDistributionNoIndex := {
 }
 
 lazy val runEngineDistribution =
-  inputKey[Unit]("Run the engine distribution with arguments")
+  inputKey[Unit]("Run or --debug the engine distribution with arguments")
 runEngineDistribution := {
   buildEngineDistribution.value
   val args: Seq[String] = spaceDelimited("<arg>").parsed
   DistributionPackage.runEnginePackage(
     engineDistributionRoot.value,
+    args,
+    streams.value.log
+  )
+}
+
+lazy val runProjectManagerDistribution =
+  inputKey[Unit](
+    "Run or --debug the project manager distribution with arguments"
+  )
+runProjectManagerDistribution := {
+  buildEngineDistribution.value
+  buildProjectManagerDistribution.value
+  val args: Seq[String] = spaceDelimited("<arg>").parsed
+  DistributionPackage.runProjectManagerPackage(
+    engineDistributionRoot.value,
+    projectManagerDistributionRoot.value,
     args,
     streams.value.log
   )

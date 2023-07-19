@@ -1,39 +1,36 @@
 from Standard.Base import all
 import Standard.Base.Runtime.Ref.Ref
-import Standard.Base.Data.Vector.Builder as Vector_Builder
 
 
 type Bench_Options
     ## PRIVATE
-    Impl (iter_size:Integer) (num_iters:Integer)
+    Impl iter_size num_iters
 
     size : Integer -> Bench_Options
-    size self s = Bench_Options.Impl s self.num_iters
+    size self v = Bench_Options.Impl v self.num_iters
 
     iter : Integer -> Bench_Options
-    iter self i = Bench_Options.Impl self.iter_size i
+    iter self v = Bench_Options.Impl self.iter_size v
 
     to_text self = "[iter_size=" + self.iter_size.to_text + ", num_iters=" + self.num_iters.to_text + "]"
 
 type Bench_Builder
     ## PRIVATE
-    Impl (builder : Vector_Builder)
+    Impl builder
 
-    group : Text -> Bench_Options -> (Group_Builder -> Any) -> Bench_Builder
+    group : Text -> Bench_Options -> (Group_Builder -> Any) -> Any
     group self (name:Text) (configuration:Bench_Options) fn =
         b = Vector.new_builder
         fn (Group_Builder.Impl b)
         self.builder.append <| Bench.Group name configuration b.to_vector
-        self
 
 type Group_Builder
     ## PRIVATE
     Impl builder
 
-    specify : Text -> Any -> Group_Builder
+    specify : Text -> Any -> Bench
     specify self (name:Text) ~benchmark =
         self.builder.append <| Bench.Spec name (_ -> benchmark)
-        self
 
 
 type Bench
@@ -57,17 +54,14 @@ type Bench
         Bench.Spec _ _ -> fn value self self
 
     run_main self =
-        count = self.fold 0 v-> g-> s->
-            IO.println <| "Found group: " + g.name + " with config: " + g.configuration.to_text + " and spec: " + s.name
-            v+1
-
+        count = self.fold 0 v-> _-> _-> v+1
         IO.println <| "Found " + count.to_text + " cases to execute"
 
         self.fold Nothing _-> g-> s->
             c = g.configuration
             IO.println <| "Benchmarking  " + s.name + " configuration: " + c.to_text
             Bench.measure (s.code 0) s.name c.iter_size c.num_iters
-            IO.println <| "Done bench of " + s.name
+            IO.println <| "Benchmarking of " + s.name + " finished"
 
     ## Measure the amount of time it takes to execute a given computation.
 

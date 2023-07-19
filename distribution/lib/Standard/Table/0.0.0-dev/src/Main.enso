@@ -2,7 +2,6 @@ from Standard.Base import all
 
 import project.Data.Aggregate_Column.Aggregate_Column
 import project.Data.Column.Column
-import project.Data.Column_Selector.Column_Selector
 import project.Data.Column_Vector_Extensions
 import project.Data.Data_Formatter.Data_Formatter
 import project.Data.Join_Condition.Join_Condition
@@ -28,7 +27,6 @@ from project.Excel.Excel_Section.Excel_Section import Cell_Range, Range_Names, S
 
 export project.Data.Aggregate_Column.Aggregate_Column
 export project.Data.Column.Column
-export project.Data.Column_Selector.Column_Selector
 export project.Data.Column_Vector_Extensions
 export project.Data.Data_Formatter.Data_Formatter
 export project.Data.Join_Condition.Join_Condition

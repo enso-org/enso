@@ -5,6 +5,7 @@ import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Internal.Rounding_Helpers
+from Standard.Base.Widget_Helpers import make_regex_text_widget
 
 import project.Data.Data_Formatter.Data_Formatter
 import project.Data.Table.Table
@@ -13,6 +14,7 @@ import project.Data.Type.Storage
 import project.Data.Type.Value_Type_Helpers
 import project.Internal.Cast_Helpers
 import project.Internal.Column_Ops
+import project.Internal.Date_Time_Helpers
 import project.Internal.Java_Problems
 import project.Internal.Naming_Helpers.Naming_Helpers
 import project.Internal.Parse_Values_Helper
@@ -23,6 +25,7 @@ from project.Errors import Conversion_Failure, Floating_Point_Equality, Inexact_
 from project.Internal.Column_Format import all
 from project.Internal.Java_Exports import make_date_builder_adapter, make_double_builder, make_long_builder, make_string_builder
 
+polyglot java import org.enso.base.Time_Utils
 polyglot java import org.enso.table.data.column.operation.map.MapOperationProblemBuilder
 polyglot java import org.enso.table.data.column.storage.Storage as Java_Storage
 polyglot java import org.enso.table.data.table.Column as Java_Column
@@ -358,7 +361,7 @@ type Column
                 result.rename new_name
 
     ## ALIAS Add, Plus, Concatenate
-       Element-wise addition.
+       Element-wise addition. Works on numeric types or text.
 
        Arguments:
        - other: The value to add to `self`. If `other` is a column, the addition
@@ -387,7 +390,8 @@ type Column
             run_vectorized_binary_op self '+' fallback_fn=Nothing other
 
     ## ALIAS Subtract, Minus
-       Element-wise subtraction.
+       Element-wise subtraction. Allows to subtract numeric types or compute a
+       difference between two date/time values.
 
        Arguments:
        - other: The value to subtract from `self`. If `other` is a column, the
@@ -412,8 +416,22 @@ type Column
              example_minus = Examples.integer_column - 10
     - : Column | Any -> Column
     - self other =
-        Value_Type_Helpers.check_binary_numeric_op self other <|
-            run_vectorized_binary_op self '-' fallback_fn=Nothing other
+        case Value_Type_Helpers.resolve_subtraction_kind self other of
+            Value_Type_Helpers.Subtraction_Kind.Numeric_Subtract ->
+                run_vectorized_binary_op self '-' fallback_fn=Nothing other
+            Value_Type_Helpers.Subtraction_Kind.Date_Time_Difference ->
+                case self.inferred_precise_value_type of
+                    Value_Type.Date ->
+                        ## Special handling for `Period` since it is hard to
+                           vectorize as there is no polyglot handling of it - we
+                           _wrap_ a Java object and the Java wrapper will always
+                           be an Enso callback, at which point its better to do
+                           the whole operation in pure Enso.
+                        fn = x-> y-> Period.between y x
+                        new_name = Naming_Helpers.binary_operation_name "-" self other
+                        run_binary_op self other fn new_name
+                    _ ->
+                        run_vectorized_binary_op self '-' fallback_fn=Nothing other
 
     ## ALIAS Multiply, Times, Product
        Element-wise multiplication.
@@ -732,32 +750,32 @@ type Column
             if self.value_type.is_integer && decimal_places >= 0 then self.rename new_name else
                 should_cast_to_integer = decimal_places <= 0 || self.value_type.is_integer
                 target_value_type = if should_cast_to_integer then Value_Type.Integer else self.value_type
-                result = self.check_round_input target_value_type <|
+                result = self.check_round_input col->
                     scale = 10 ^ decimal_places
-                    scaled = self * scale
+                    scaled = col * scale
                     round_base = scaled.floor
                     round_midpoint = (round_base + 0.5) / scale
-                    even_is_up = (self >= 0).iif ((scaled.truncate % 2) != 0) ((scaled.truncate % 2) == 0)
-                    half_goes_up = if use_bankers then even_is_up else self >= 0
-                    do_round_up = half_goes_up.iif (self >= round_midpoint) (self > round_midpoint)
+                    even_is_up = (col >= 0).iif ((scaled.truncate % 2) != 0) ((scaled.truncate % 2) == 0)
+                    half_goes_up = if use_bankers then even_is_up else col >= 0
+                    do_round_up = half_goes_up.iif (col >= round_midpoint) (col > round_midpoint)
                     result_float = do_round_up.iif ((round_base + 1.0) / scale) (round_base / scale)
                     cast_if_needed result_float target_value_type
                 result.rename new_name
 
     ## PRIVATE
        Restrict allowed range of input to rounding methods.
-    check_round_input : Column -> Value_Type -> Any ! Illegal_Argument
-    check_round_input self target_value_type column =
+    check_round_input : (Column -> Column) -> Any ! Illegal_Argument
+    check_round_input self action =
         min = Rounding_Helpers.round_min_long
         max = Rounding_Helpers.round_max_long
-        within_range = self >= self.const min && self <= self.const max
-        warning = Illegal_Argument.Error <| "Error: `round` can only accept values between " + min.to_text + " and " + max.to_text + " (inclusive)"
-        nothing_with_problem = Warning.attach warning Nothing
-        ## TODO: This should be cast to NULL when that type is available,
-           see https://github.com/enso-org/enso/issues/6281.
-        nothings = self.const nothing_with_problem . cast target_value_type
-        result = within_range.iif column nothings
-        result.rename column.name
+        within_range = if self.value_type.is_floating_point.not then self.between min max else
+            self.is_nan || self.is_infinite || self.between min max
+
+        any_issues = within_range.to_vector . any (== False)
+        if any_issues.not then action self else
+            warning = Illegal_Argument.Error <| "Error: `round` can only accept values between " + min.to_text + " and " + max.to_text + " (inclusive)"
+            result = action (within_range.iif self Nothing)
+            Warning.attach warning result
 
     ## ALIAS int
 
@@ -902,9 +920,8 @@ type Column
     ## Returns a column of booleans, with `True` items at the positions where
        this column contains a NaN. This is only applicable to double columns.
     is_nan : Column
-    is_nan self =
-        Value_Type.expect_floating_point self <|
-            self.internal_is_nan on_missing=Nothing
+    is_nan self = Value_Type.expect_numeric self <|
+        self.internal_is_nan on_missing=Nothing
 
     ## PRIVATE
     internal_is_nan : Any -> Column
@@ -912,8 +929,21 @@ type Column
         new_name = Naming_Helpers.function_name "is_nan" [self]
         fallback x = case x of
             _ : Decimal -> x.is_nan
+            Nothing     -> on_missing
             _           -> False
         run_vectorized_unary_op self "is_nan" fallback expected_result_type=Value_Type.Boolean new_name on_missing=on_missing
+
+    ## Returns a column of booleans, with `True` items at the positions where
+       this column contains a +Inf/-Inf. This is only applicable to double
+       columns.
+    is_infinite : Column
+    is_infinite self = Value_Type.expect_numeric self <|
+        new_name = Naming_Helpers.function_name "is_infinite" [self]
+        fallback x = case x of
+            _ : Decimal -> x.is_infinite
+            Nothing     -> Nothing
+            _           -> False
+        run_vectorized_unary_op self "is_infinite" fallback expected_result_type=Value_Type.Boolean new_name on_missing=Nothing
 
     ## PRIVATE
        Returns a column of booleans, with `True` items at the positions where
@@ -958,9 +988,9 @@ type Column
         result = case self.value_type of
             Value_Type.Char _ _ -> self.is_empty
             Value_Type.Float _ ->
-                if treat_nans_as_blank then self.is_nothing || (self.internal_is_nan on_missing=False) else self.is_nothing
+                if treat_nans_as_blank then self.is_nothing.iif True (self.internal_is_nan on_missing=False) else self.is_nothing
             Value_Type.Mixed ->
-                self.internal_is_empty || (if treat_nans_as_blank then self.is_nothing || (self.internal_is_nan on_missing=False) else self.is_nothing)
+                self.internal_is_empty || (if treat_nans_as_blank then self.is_nothing.iif True (self.internal_is_nan on_missing=False) else self.is_nothing)
             _ -> self.is_nothing
         result.rename new_name
 
@@ -1183,7 +1213,8 @@ type Column
          Replace texts in quotes with parentheses.
 
              column.replace '"(.*?)"'.to_regex '($1)'
-    replace : Text | Column | Regex -> Text | Column -> Case_Sensitivity -> Boolean -> Column
+    @term make_regex_text_widget
+    replace : Text | Regex | Column -> Text | Column -> Case_Sensitivity -> Boolean -> Column
     replace self term="" new_text="" case_sensitivity=Case_Sensitivity.Sensitive only_first=False =
         Value_Type.expect_text self <|
             term_fn = wrap_text_or_regex_argument_as_value_provider term
@@ -1226,6 +1257,112 @@ type Column
     day : Column ! Invalid_Value_Type
     day self = Value_Type.expect_has_date self <|
         simple_unary_op self "day"
+
+    ## Gets the hour as a number (0-23) from the time stored in the column.
+
+       Applies only to columns that hold the `Time_Of_Day` or `Date_Time` types.
+       Returns a column of `Integer` type.
+    hour : Column ! Invalid_Value_Type
+    hour self = Value_Type.expect_has_time self <|
+        simple_unary_op self "hour"
+
+    ## Gets the minute as a number (0-59) from the time stored in the column.
+
+       Applies only to columns that hold the `Time_Of_Day` or `Date_Time` types.
+       Returns a column of `Integer` type.
+    minute : Column ! Invalid_Value_Type
+    minute self = Value_Type.expect_has_time self <|
+        simple_unary_op self "minute"
+
+    ## Gets the second as an integer (0-60) from the time stored in the column.
+
+       Applies only to columns that hold the `Time_Of_Day` or `Date_Time` types.
+       Returns a column of `Integer` type.
+    second : Column ! Invalid_Value_Type
+    second self = Value_Type.expect_has_time self <|
+        simple_unary_op self "second"
+
+    ## Gets the date part of the date/time value.
+
+       Returns a column of `Integer` type.
+    @period Date_Time_Helpers.make_period_selector_for_column
+    date_part : Date_Period | Time_Period -> Column ! Invalid_Value_Type | Illegal_Argument
+    date_part self period =
+        Date_Time_Helpers.make_date_part_function self period simple_unary_op Naming_Helpers
+
+    ## Computes a time difference between the two dates.
+
+       It returns a column of integers expressing how many periods fit between
+       the two dates/times.
+
+       The difference will be positive if `end` is greater than `self`.
+
+       Arguments:
+       - end: A date/time column or a date/time value to compute the difference
+         from. It should have the same type as the current column, i.e. a
+         `Date_Time` column cannot be compared to a `Date` - to do so you first
+         need to `cast`.
+       - period: The period to compute the difference in. For `Date` columns it
+         should be a `Date_Period` and for `Time` columns it should be a
+         `Time_Period`. For `Date_Time` columns it can be either.
+
+       ? Time Zone handling
+
+         Some backends may not preserve the timezone data in a `Date_Time`
+         (preserving the represented time instant). This may lead to slight
+         differences in time calculations between backends, especially around
+         unusual events like DST.
+    @period Date_Time_Helpers.make_period_selector_for_column
+    date_diff : (Column | Date | Date_Time | Time_Of_Day) -> Date_Period | Time_Period -> Column ! Invalid_Value_Type | Illegal_Argument
+    date_diff self end (period : Date_Period | Time_Period) =
+        Value_Type.expect_type self .is_date_or_time "date/time" <|
+            my_type = self.inferred_precise_value_type
+            Value_Type.expect_type end (== my_type) my_type.to_display_text <|
+                Date_Time_Helpers.check_period_aligned_with_value_type my_type period <|
+                    new_name = Naming_Helpers.function_name "date_diff" [self, end, period.to_display_text]
+                    java_unit = period.to_java_unit
+                    fn = case my_type of
+                        Value_Type.Date_Time _ ->
+                            start-> end-> Time_Utils.unit_datetime_difference java_unit start end
+                        Value_Type.Date ->
+                            start-> end-> Time_Utils.unit_date_difference java_unit start end
+                        Value_Type.Time ->
+                            start-> end-> Time_Utils.unit_time_difference java_unit start end
+                    run_binary_op self end fn new_name
+
+
+    ## Shifts the date/time by a specified period, returning a new date/time
+       column of the same type.
+
+       Arguments:
+       - amount: An integer or integer column specifying by how many periods to
+         shift each date.
+       - period: The period by which to shift. For `Date` columns it should be a
+         `Date_Period` and for `Time` columns it should be a `Time_Period`. For
+         `Date_Time` columns it can be either.
+
+       ? Time Zone handling
+
+         Some backends may not preserve the timezone data in a `Date_Time`
+         (preserving the represented time instant). This may lead to slight
+         differences in time calculations between backends, especially around
+         unusual events like DST.
+    @period Date_Time_Helpers.make_period_selector_for_column
+    date_add : (Column | Integer) -> Date_Period | Time_Period -> Column ! Invalid_Value_Type | Illegal_Argument
+    date_add self amount (period : Date_Period | Time_Period) =
+        Value_Type.expect_type self .is_date_or_time "date/time" <|
+            my_type = self.inferred_precise_value_type
+            Value_Type.expect_integer amount <|
+                Date_Time_Helpers.check_period_aligned_with_value_type my_type period <|
+                    new_name = Naming_Helpers.function_name "date_add" [self, amount, period.to_display_text]
+                    java_unit = period.to_java_unit
+                    ## Here we do not need a Time_Utils helper like in scalar
+                       implementations of `date_add`, because the date coming
+                       from the column will always be already converted into a
+                       Java instance.
+                    fn date amount =
+                        java_unit.addTo date amount
+                    run_binary_op self amount fn new_name
 
     ## Checks for each element of the column if it is contained within the
        provided vector or column.
@@ -1958,6 +2095,15 @@ run_vectorized_binary_op column name fallback_fn operand expected_result_type=No
             Column.Value (Java_Column.new effective_new_name rs)
     Problem_Behavior.Report_Warning.attach_problems_after result <|
         Java_Problems.parse_aggregated_problems problem_builder.getProblems
+
+## PRIVATE
+   Runs a binary operation over the provided column and operand which may be
+   another column or a scalar value.
+run_binary_op column operand function new_name =
+    new_column = case operand of
+        _ : Column -> column.zip operand function
+        _ -> column.map (function _ operand)
+    new_column.rename new_name
 
 ## PRIVATE
 
