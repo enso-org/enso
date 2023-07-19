@@ -290,13 +290,13 @@ class RuntimeVersionManagerSpec
 
     "cope with semantic versioning of Java" in {
       val engineVersion = SemVer(0, 0, 3)
-      val graalVersion = GraalVMVersion("23.0.0", "17.0.7")
+      val graalVersion  = GraalVMVersion("23.0.0", "17.0.7")
       prepareBundle(
-        engineVersion = engineVersion,
+        engineVersion  = engineVersion,
         runtimeVersion = graalVersion
       )
       val manager = makeRuntimeVersionManager()
-      val engine = manager.findEngine(engineVersion).value
+      val engine  = manager.findEngine(engineVersion).value
       engine.version shouldEqual engineVersion
       engine.ensureValid()
 
@@ -323,9 +323,9 @@ class RuntimeVersionManagerSpec
     runtimeVersion: GraalVMVersion
   ): Unit = {
     val manifest = s"""minimum-launcher-version: 0.0.0-dev
-                     |minimum-project-manager-version: 0.0.0-dev
-                     |graal-vm-version: ${runtimeVersion.graalVersion}
-                     |graal-java-version: ${runtimeVersion.javaVersion}""".stripMargin
+                      |minimum-project-manager-version: 0.0.0-dev
+                      |graal-vm-version: ${runtimeVersion.graalVersion}
+                      |graal-java-version: ${runtimeVersion.javaVersion}""".stripMargin
     val root     = searchPath / engineVersion.toString
     Files.createDirectories(root)
     FileSystem.writeTextFile(root / "manifest.yaml", manifest)
