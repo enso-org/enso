@@ -26,7 +26,6 @@ use ensogl::system::web::traits::*;
 use enso_frp as frp;
 use enso_suggestion_database::documentation_ir::EntryDocumentation;
 use enso_suggestion_database::documentation_ir::LinkedDocPage;
-use ensogl::animation::physics::inertia::Spring;
 use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display;
@@ -57,8 +56,6 @@ pub mod html;
 
 
 const INITIAL_SECTION_NAME: &str = "Popular";
-/// The caption is hidden if its height is less than this value.
-const MIN_CAPTION_HEIGHT: f32 = 1.0;
 /// Delay before updating the displayed documentation.
 const DISPLAY_DELAY_MS: i32 = 0;
 
@@ -69,11 +66,9 @@ const DISPLAY_DELAY_MS: i32 = 0;
 #[base_path = "theme"]
 #[allow(missing_docs)]
 pub struct Style {
-    width: f32,
-    height: f32,
-    background: color::Rgba,
-    caption_height: f32,
-    caption_animation_spring_multiplier: f32,
+    width:         f32,
+    height:        f32,
+    background:    color::Rgba,
     corner_radius: f32,
 }
 
@@ -88,7 +83,6 @@ pub struct Style {
 #[allow(missing_docs)]
 pub struct Model {
     outer_dom:       DomSymbol,
-    caption_dom:     DomSymbol,
     inner_dom:       DomSymbol,
     pub breadcrumbs: breadcrumbs::Breadcrumbs,
     /// The purpose of this overlay is stop propagating mouse events under the documentation panel
@@ -110,9 +104,6 @@ impl Model {
         let overlay = Rectangle::new().build(|r| {
             r.set_color(INVISIBLE_HOVER_COLOR);
         });
-        let caption_div = web::document.create_div_or_panic();
-        let caption_dom = DomSymbol::new(&caption_div);
-        caption_dom.set_inner_html(&html::caption_html());
 
         let breadcrumbs = app.new_view::<breadcrumbs::Breadcrumbs>();
         breadcrumbs.set_base_layer(&app.display.default_scene.layers.node_searcher);
@@ -126,7 +117,6 @@ impl Model {
         outer_dom.dom().set_style_or_warn("overflow-y", "auto");
         outer_dom.dom().set_style_or_warn("overflow-x", "auto");
         outer_dom.dom().set_style_or_warn("pointer-events", "auto");
-        shadow::add_to_dom_element(&outer_dom, &styles);
 
         inner_dom.dom().set_attribute_or_warn("class", "scrollable");
         inner_dom.dom().set_style_or_warn("white-space", "normal");
@@ -135,17 +125,14 @@ impl Model {
         inner_dom.dom().set_style_or_warn("pointer-events", "auto");
 
         display_object.add_child(&outer_dom);
-        outer_dom.add_child(&caption_dom);
         outer_dom.add_child(&inner_dom);
         display_object.add_child(&overlay);
         scene.dom.layers.node_searcher.manage(&outer_dom);
         scene.dom.layers.node_searcher.manage(&inner_dom);
-        scene.dom.layers.node_searcher.manage(&caption_dom);
 
         Model {
             outer_dom,
             inner_dom,
-            caption_dom,
             breadcrumbs,
             overlay,
             display_object,
@@ -177,7 +164,6 @@ impl Model {
     fn set_size(&self, size: Vector2) {
         self.outer_dom.set_xy(size / 2.0);
         self.overlay.set_size(size);
-        self.overlay.set_xy(Vector2(-size.x / 2.0, -size.y / 2.0));
         self.outer_dom.set_dom_size(Vector2(size.x, size.y));
         self.inner_dom.set_dom_size(Vector2(size.x, size.y));
         self.breadcrumbs.set_xy(Vector2(0.0, size.y + 36.0));
@@ -229,20 +215,6 @@ impl Model {
         self.inner_dom.set_style_or_warn("border-radius", format!("{}px", style.corner_radius));
         let bg_color = style.background.to_javascript_string();
         self.outer_dom.set_style_or_warn("background-color", bg_color);
-        self.set_caption_height(0.0, &style);
-    }
-
-    fn set_caption_height(&self, height: f32, style: &Style) {
-        let panel_size = Vector2(style.width, style.height);
-        self.inner_dom.set_dom_size(Vector2(panel_size.x, panel_size.y - height));
-        self.inner_dom.set_xy(Vector2(0.0, -height / 2.0));
-        self.caption_dom.set_dom_size(Vector2(panel_size.x, height));
-        self.caption_dom.set_xy(Vector2(0.0, panel_size.y / 2.0 - height / 2.0));
-        if height < MIN_CAPTION_HEIGHT {
-            self.outer_dom.remove_child(&self.caption_dom);
-        } else {
-            self.outer_dom.add_child(&self.caption_dom);
-        }
     }
 }
 
@@ -256,9 +228,11 @@ ensogl::define_endpoints! {
     Input {
         /// Display documentation of the specific entry from the suggestion database.
         display_documentation (EntryDocumentation),
-        show_hovered_item_preview_caption(bool),
+        /// Open documentation panel with animation.
         show(),
+        /// Close documentation panel with animation.
         hide(),
+        /// Skip show/hide animation.
         skip_animation(),
     }
     Output {
@@ -318,7 +292,6 @@ impl View {
         let visualization = &self.visualization_frp;
         let frp = &self.frp;
         let display_delay = frp::io::timer::Timeout::new(network);
-        let caption_anim = Animation::<f32>::new(network);
         let style_frp = StyleWatchFrp::new(&scene.style_sheet);
         let style = Style::from_theme(network, &style_frp);
         let width_anim = Animation::new(network);
@@ -342,19 +315,6 @@ impl View {
             eval display_docs([model, display_docs_callback]
                 (docs) model.display_doc(docs.clone_ref(), &display_docs_callback)
             );
-
-
-            // === Hovered item preview caption ===
-
-            spring_muliplier <- style.update.map(|s| s.caption_animation_spring_multiplier);
-            caption_anim.set_spring <+ spring_muliplier.map(|m| Spring::default() * m);
-            show_caption <- frp.show_hovered_item_preview_caption.on_true();
-            hide_caption <- frp.show_hovered_item_preview_caption.on_false();
-            caption_anim.target <+ show_caption.constant(1.0);
-            caption_anim.target <+ hide_caption.constant(0.0);
-            _eval <- all_with(&caption_anim.value, &style.update, f!((value, style) {
-                model.set_caption_height(value * style.caption_height, style)
-            }));
 
 
             // === Size ===

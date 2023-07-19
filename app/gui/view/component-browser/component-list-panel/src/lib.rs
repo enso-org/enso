@@ -99,6 +99,8 @@ const INFINITE: f32 = 999999.0;
 #[derive(Copy, Clone, Debug, Default, FromTheme)]
 #[base_path = "theme"]
 pub struct Style {
+    pub width:                  f32,
+    pub height:                 f32,
     pub background_color:       color::Rgba,
     pub corners_radius:         f32,
     #[theme_path = "theme::menu::breadcrumbs::crop_left"]
@@ -121,9 +123,7 @@ pub struct AllStyles {
 
 impl AllStyles {
     fn size(&self) -> Vector2 {
-        let width = self.grid.width + self.navigator.width;
-        let height = self.grid.height + self.panel.menu_height;
-        Vector2::new(width, height)
+        Vector2(self.panel.width, self.panel.height)
     }
 
     fn grid_size(&self) -> Vector2 {
@@ -131,7 +131,7 @@ impl AllStyles {
     }
 
     fn background_sprite_size(&self) -> Vector2 {
-        self.size().map(|value| value + 2.0 * SHADOW_PADDING)
+        self.size()
     }
 
     fn menu_divider_y_pos(&self) -> f32 {
