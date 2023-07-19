@@ -259,6 +259,11 @@ impl Model {
         Self { display_object, background, grid, grid_adapter, section_navigator }
     }
 
+    /// Access to FRP of the buttons.
+    pub fn buttons(&self) -> &navigator::Frp {
+        &self.section_navigator
+    }
+
     fn update_style(&self, style: &AllStyles) {
         self.background.set_color(style.panel.background_color.into());
         // self.background.set_color(color::Rgba::transparent());

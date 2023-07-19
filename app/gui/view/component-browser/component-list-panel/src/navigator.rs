@@ -8,25 +8,16 @@ use ensogl_core::prelude::*;
 use ensogl_tooltip::tooltip::Placement;
 
 use crate::grid::entry::icon;
-use crate::AllStyles;
 
 use enso_frp as frp;
-use ensogl_core::animation::animation::delayed::DelayedAnimation;
-use ensogl_core::application;
 use ensogl_core::application::tooltip;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::shape::compound::rectangle::Rectangle;
 use ensogl_derive_theme::FromTheme;
-use ensogl_grid_view as grid;
 use ensogl_hardcoded_theme::application::component_browser::component_list_panel as list_panel_theme;
-use ensogl_toggle_button::ColorableShape;
 use ensogl_toggle_button::ToggleButton;
-use ensogl_tooltip::Tooltip;
-use grid::Col;
-use grid::Row;
-use ide_view_component_list_panel_grid::SectionId;
 use list_panel_theme::navigator as theme;
 
 
@@ -43,9 +34,8 @@ const MARKETPLACE_TOOLTIP: &str = "Marketplace will be available soon.";
 const LOCAL_SCOPE_TOOLTIP: &str = "Search local scope";
 const SHOW_SHORTCUTS_TOOLTIP: &str = "Show shortcuts";
 const UNSTABLE_TOOLTIP: &str = "Search unstable/advanced components";
-const DOC_PANEL_TOOLTIP: &str = "Show/hide documentation";
+const SIDE_PANEL_TOOLTIP: &str = "Show/hide documentation";
 const MARKETPLACE_TOOLTIP_HIDE_DELAY_MS: f32 = 3000.0;
-const MARKETPLACE_TOOLTIP_PLACEMENT: tooltip::Placement = tooltip::Placement::Bottom;
 const TOP_BUTTONS: [icon::Id; 2] = [icon::Id::Libraries, icon::Id::Marketplace];
 const TOP_BUTTONS_COUNT: usize = TOP_BUTTONS.len();
 /// This is the minmum number of bottom buttons available, when no namespace sections are present.
@@ -109,7 +99,7 @@ struct Navigator {
     shortcuts:   ToggleButton<ensogl_toggle_button::any_cached::Shape>,
     unstable:    ToggleButton<ensogl_toggle_button::any_cached::Shape>,
     marketplace: ToggleButton<ensogl_toggle_button::any_cached::Shape>,
-    doc_panel:   ToggleButton<ensogl_toggle_button::any_cached::Shape>,
+    side_panel:  ToggleButton<ensogl_toggle_button::any_cached::Shape>,
 }
 
 impl Navigator {
@@ -120,39 +110,35 @@ impl Navigator {
             .set_color(color::Rgba::transparent())
             .set_children_alignment_left_center()
             .justify_content_center_y();
-        let local_scope_tooltip =
-            tooltip::Style::set_label(LOCAL_SCOPE_TOOLTIP).with_placement(Placement::Top);
+        let tooltip = |label: &str| tooltip::Style::set_label(label).with_placement(Placement::Top);
+        let local_scope_tooltip = tooltip(LOCAL_SCOPE_TOOLTIP);
         let local_scope =
             ToggleButton::new_from_cached::<icon::local_scope::Shape>(app, local_scope_tooltip);
-        let shortcuts_tooltip =
-            tooltip::Style::set_label(SHOW_SHORTCUTS_TOOLTIP).with_placement(Placement::Top);
+        let shortcuts_tooltip = tooltip(SHOW_SHORTCUTS_TOOLTIP);
         let shortcuts =
             ToggleButton::new_from_cached::<icon::command_key::Shape>(app, shortcuts_tooltip);
-        let unstable_tooltip =
-            tooltip::Style::set_label(UNSTABLE_TOOLTIP).with_placement(Placement::Top);
+        let unstable_tooltip = tooltip(UNSTABLE_TOOLTIP);
         let unstable =
             ToggleButton::new_from_cached::<icon::unstable::Shape>(app, unstable_tooltip);
-        let marketplace_tooltip =
-            tooltip::Style::set_label(MARKETPLACE_TOOLTIP).with_placement(Placement::Top);
+        let marketplace_tooltip = tooltip(MARKETPLACE_TOOLTIP);
         let marketplace =
             ToggleButton::new_from_cached::<icon::marketplace::Shape>(app, marketplace_tooltip);
-        let doc_panel_tooltip =
-            tooltip::Style::set_label(DOC_PANEL_TOOLTIP).with_placement(Placement::Top);
-        let doc_panel =
-            ToggleButton::new_from_cached::<icon::right_side_panel::Shape>(app, doc_panel_tooltip);
+        let side_panel_tooltip = tooltip(SIDE_PANEL_TOOLTIP);
+        let side_panel =
+            ToggleButton::new_from_cached::<icon::right_side_panel::Shape>(app, side_panel_tooltip);
         let size = Vector2(icon::SIZE, icon::SIZE);
         local_scope.set_size(size);
         shortcuts.set_size(size);
         unstable.set_size(size);
         marketplace.set_size(size);
-        doc_panel.set_size(size);
+        side_panel.set_size(size);
         background.add_child(&local_scope);
         background.add_child(&shortcuts);
         background.add_child(&unstable);
         background.add_child(&marketplace);
-        background.add_child(&doc_panel);
+        background.add_child(&side_panel);
 
-        Self { background, local_scope, shortcuts, unstable, marketplace, doc_panel }
+        Self { background, local_scope, shortcuts, unstable, marketplace, side_panel }
     }
 
     fn update_style(&self, style: &Style) {
@@ -161,7 +147,7 @@ impl Navigator {
         self.background.set_border_and_inset(style.border_width);
         self.background.set_border_color(style.border_color);
         self.background.set_gap((style.gap, 0.0)).set_padding_all(style.padding);
-        self.doc_panel.set_margin_left(style.right_side_margin);
+        self.side_panel.set_margin_left(style.right_side_margin);
     }
 }
 
@@ -178,12 +164,32 @@ impl View {
         let frp = Frp::new();
 
         let network = frp.network();
+        let out = &frp.private.output;
 
         let styles = StyleWatchFrp::new(&scene().style_sheet);
         let style = Style::from_theme(network, &styles);
         frp::extend! { network
+            init <- source_();
             eval style.update((style) model.update_style(style));
+
+
+            // === Initial state ===
+
+            model.side_panel.set_state <+ init.constant(true);
+
+
+            // === Buttons ===
+
+            model.local_scope.set_state <+ frp.set_local_scope_mode;
+            model.unstable.set_state <+ frp.set_search_unstable;
+            model.shortcuts.set_state <+ frp.set_show_shortcuts;
+            model.side_panel.set_state <+ frp.set_side_panel;
+            out.local_scope_mode <+ model.local_scope.state;
+            out.search_unstable <+ model.unstable.state;
+            out.show_shortcuts <+ model.shortcuts.state;
+            out.side_panel <+ model.side_panel.state;
         }
+        init.emit(());
         style.init.emit(());
 
         Self { model, frp }

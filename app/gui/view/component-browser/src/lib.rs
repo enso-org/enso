@@ -127,6 +127,7 @@ impl component::Frp<Model> for Frp {
         let input = &frp_api.input;
         let out = &frp_api.output;
         let list_panel = &model.list.output;
+        let buttons = model.list.model().buttons();
         let documentation = &model.documentation;
         let grid = &model.list.model().grid;
 
@@ -153,8 +154,8 @@ impl component::Frp<Model> for Frp {
 
             model.list.input.show <+ input.show;
             model.list.input.hide <+ input.hide;
-            model.documentation.frp.show <+ input.show;
-            model.documentation.frp.hide <+ input.hide;
+            model.documentation.frp.show <+ buttons.side_panel.on_true();
+            model.documentation.frp.hide <+ buttons.side_panel.on_false();
             out.is_visible <+ bool(&input.hide, &input.show);
             out.size <+ size;
             out.expression_input_position <+ all_with3(

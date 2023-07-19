@@ -29,11 +29,9 @@ use enso_suggestion_database::documentation_ir::LinkedDocPage;
 use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display;
-use ensogl::display::shape::primitive::StyleWatch;
 use ensogl::display::DomSymbol;
 use ensogl::system::web;
 use ensogl::Animation;
-use ensogl_component::shadow;
 use ensogl_derive_theme::FromTheme;
 use ensogl_hardcoded_theme::application::component_browser::documentation as theme;
 use graph_editor::component::visualization;
@@ -108,10 +106,6 @@ impl Model {
         let breadcrumbs = app.new_view::<breadcrumbs::Breadcrumbs>();
         breadcrumbs.set_base_layer(&app.display.default_scene.layers.node_searcher);
         display_object.add_child(&breadcrumbs);
-
-        // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
-        // system (#795)
-        let styles = StyleWatch::new(&scene.style_sheet);
 
         outer_dom.dom().set_style_or_warn("white-space", "normal");
         outer_dom.dom().set_style_or_warn("overflow-y", "auto");
@@ -333,7 +327,8 @@ impl View {
             width_anim.target <+ frp.show.constant(1.0);
             width_anim.target <+ frp.hide.constant(0.0);
             width_anim.skip <+ frp.skip_animation;
-            _eval <- width_anim.value.all_with(&size, f!((v, s) model.set_size(Vector2(s.x * v, s.y))));
+            width_anim.target <+ init.constant(1.0);
+            _eval <- width_anim.value.all_with(&size, f!((f, s) model.set_size(Vector2(s.x * f, s.y))));
 
 
             // === Activation ===
