@@ -310,7 +310,8 @@ class CollaborativeBuffer(
           buffer,
           timeoutCancellable,
           clients,
-          lockHolder
+          lockHolder,
+          autoSave
         )
       )
 
@@ -321,7 +322,8 @@ class CollaborativeBuffer(
     buffer: Buffer,
     timeoutCancellable: Cancellable,
     clients: Map[ClientId, JsonSession],
-    lockHolder: Option[JsonSession]
+    lockHolder: Option[JsonSession],
+    autoSave: Map[ClientId, (ContentVersion, Cancellable)]
   ): Receive = {
     case FileManagerProtocol.InfoFileResult(Right(attrs)) =>
       timeoutCancellable.cancel()
@@ -344,7 +346,7 @@ class CollaborativeBuffer(
           newBuffer.getOrElse(buffer),
           clients,
           lockHolder,
-          Map.empty
+          autoSave
         )
       )
 
@@ -353,20 +355,20 @@ class CollaborativeBuffer(
       logger.error("Failed to read file attributes for [{}]. {}", path, err)
       unstashAll()
       context.become(
-        collaborativeEditing(buffer, clients, lockHolder, Map.empty)
+        collaborativeEditing(buffer, clients, lockHolder, autoSave)
       )
 
     case Status.Failure(ex) =>
       logger.error("Failed to read file attributes for [{}].", path, ex)
       unstashAll()
       context.become(
-        collaborativeEditing(buffer, clients, lockHolder, Map.empty)
+        collaborativeEditing(buffer, clients, lockHolder, autoSave)
       )
 
     case IOTimeout =>
       unstashAll()
       context.become(
-        collaborativeEditing(buffer, clients, lockHolder, Map.empty)
+        collaborativeEditing(buffer, clients, lockHolder, autoSave)
       )
 
     case _ => stash()
