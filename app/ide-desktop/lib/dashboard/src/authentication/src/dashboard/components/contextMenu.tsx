@@ -14,7 +14,8 @@ const SCROLL_MARGIN = 12
 // ===================
 
 /** Props for a {@link ContextMenu}. */
-export interface ContextMenuProps {
+export interface ContextMenuProps extends React.PropsWithChildren {
+    key: string
     // `left: number` and `top: number` may be more correct,
     // however passing an event eliminates the chance
     // of passing the wrong coordinates from the event.
@@ -22,7 +23,7 @@ export interface ContextMenuProps {
 }
 
 /** A context menu that opens at the current mouse position. */
-function ContextMenu(props: React.PropsWithChildren<ContextMenuProps>) {
+function ContextMenu(props: ContextMenuProps) {
     const { children, event } = props
     const contextMenuRef = React.useRef<HTMLDivElement>(null)
     const [top, setTop] = React.useState(event.pageY)
@@ -46,6 +47,9 @@ function ContextMenu(props: React.PropsWithChildren<ContextMenuProps>) {
             // The location must be offset by -0.5rem to balance out the `m-2`.
             style={{ left: `calc(${event.pageX}px - 0.5rem)`, top: `calc(${top}px - 0.5rem)` }}
             className="absolute bg-white rounded-lg shadow-soft flex flex-col flex-nowrap m-2"
+            onClick={clickEvent => {
+                clickEvent.stopPropagation()
+            }}
         >
             {children}
         </div>
