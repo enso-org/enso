@@ -206,8 +206,8 @@ class RuntimeVersionManagerSpec
       val engineVersion  = SemVer(0, 1, 0)
       val runtimeVersion = GraalVMVersion("1.0.0", "11")
       prepareBundle(
-        engines  = Seq(engineVersion),
-        runtimes = Seq(runtimeVersion)
+        engineVersion  = engineVersion,
+        runtimeVersion = runtimeVersion
       )
       val manager = makeRuntimeVersionManager()
 
@@ -224,8 +224,8 @@ class RuntimeVersionManagerSpec
       val engineVersion  = SemVer(0, 1, 0)
       val runtimeVersion = GraalVMVersion("1.0.0", "11")
       prepareBundle(
-        engines  = Seq(engineVersion),
-        runtimes = Seq(runtimeVersion)
+        engineVersion  = engineVersion,
+        runtimeVersion = runtimeVersion
       )
       val manager          = makeRuntimeVersionManager()
       def installedEngines = manager.listInstalledEngines().map(_.version)
@@ -267,8 +267,8 @@ class RuntimeVersionManagerSpec
 
     "include both bundled and installed components in list" in {
       prepareBundle(
-        engines  = Seq(SemVer(0, 0, 1)),
-        runtimes = Seq(GraalVMVersion("1.0.0", "11"))
+        engineVersion  = SemVer(0, 0, 1),
+        runtimeVersion = GraalVMVersion("1.0.0", "11")
       )
       val manager = makeRuntimeVersionManager()
       manager.findOrInstallEngine(SemVer(0, 1, 0))
@@ -287,30 +287,46 @@ class RuntimeVersionManagerSpec
       )
       runtimeVersions.map(_.javaVersion).toSet shouldEqual Set("11")
     }
+
+    "cope with semantic versioning of Java" in {
+      val engineVersion = SemVer(0, 0, 3)
+      val graalVersion = GraalVMVersion("23.0.0", "17.0.7")
+      prepareBundle(
+        engineVersion = engineVersion,
+        runtimeVersion = graalVersion
+      )
+      val manager = makeRuntimeVersionManager()
+      val engine = manager.findEngine(engineVersion).value
+      engine.version shouldEqual engineVersion
+      engine.ensureValid()
+
+      manager.findGraalRuntime(engine).value.version shouldEqual graalVersion
+      manager.findGraalRuntime(graalVersion).value.ensureValid()
+    }
   }
 
   private def prepareBundle(
-    engines: Seq[SemVer],
-    runtimes: Seq[GraalVMVersion]
+    engineVersion: SemVer,
+    runtimeVersion: GraalVMVersion
   ): Unit = {
     FileSystem.writeTextFile(
       getTestDirectory / ".enso.bundle",
       "Enso Bundle Marker"
     )
-    for (engineVersion <- engines) {
-      fakeInstallEngine(getTestDirectory / "dist", engineVersion)
-    }
-    for (runtimeVersion <- runtimes) {
-      fakeInstallRuntime(getTestDirectory / "runtime", runtimeVersion)
-    }
+    fakeInstallEngine(getTestDirectory / "dist", engineVersion, runtimeVersion)
+    fakeInstallRuntime(getTestDirectory / "runtime", runtimeVersion)
   }
 
-  private def fakeInstallEngine(searchPath: Path, version: SemVer): Unit = {
-    val manifest = """minimum-launcher-version: 0.0.0-dev
+  private def fakeInstallEngine(
+    searchPath: Path,
+    engineVersion: SemVer,
+    runtimeVersion: GraalVMVersion
+  ): Unit = {
+    val manifest = s"""minimum-launcher-version: 0.0.0-dev
                      |minimum-project-manager-version: 0.0.0-dev
-                     |graal-vm-version: 1.0.0
-                     |graal-java-version: 11""".stripMargin
-    val root     = searchPath / version.toString
+                     |graal-vm-version: ${runtimeVersion.graalVersion}
+                     |graal-java-version: ${runtimeVersion.javaVersion}""".stripMargin
+    val root     = searchPath / engineVersion.toString
     Files.createDirectories(root)
     FileSystem.writeTextFile(root / "manifest.yaml", manifest)
     val components = root / "component"
