@@ -30,7 +30,7 @@ export interface SpinnerProps {
 }
 
 /** A spinning arc that animates using the `dasharray-<percentage>` custom Tailwind classes. */
-function Spinner(props: SpinnerProps) {
+export default function Spinner(props: SpinnerProps) {
     const { size, state } = props
     return (
         <svg
@@ -57,5 +57,3 @@ function Spinner(props: SpinnerProps) {
         </svg>
     )
 }
-
-export default Spinner

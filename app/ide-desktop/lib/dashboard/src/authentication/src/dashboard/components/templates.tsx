@@ -244,7 +244,7 @@ export interface TemplatesProps {
 }
 
 /** A container for a {@link TemplatesRender} which passes it a list of templates. */
-function Templates(props: TemplatesProps) {
+export default function Templates(props: TemplatesProps) {
     const { onTemplateClick } = props
 
     const [shadowClass, setShadowClass] = React.useState(
@@ -339,4 +339,3 @@ function Templates(props: TemplatesProps) {
         </div>
     )
 }
-export default Templates

@@ -162,7 +162,7 @@ interface ListVersionsResponseBody {
 // =====================
 
 /** Class for sending requests to the Cloud backend API endpoints. */
-export class RemoteBackend implements backend.Backend {
+export class RemoteBackend extends backend.Backend {
     readonly type = backend.BackendType.remote
 
     /** Create a new instance of the {@link RemoteBackend} API client.
@@ -172,6 +172,7 @@ export class RemoteBackend implements backend.Backend {
         private readonly client: http.Client,
         private readonly logger: loggerProvider.Logger
     ) {
+        super()
         // All of our API endpoints are authenticated, so we expect the `Authorization` header to be
         // set.
         if (!this.client.defaultHeaders.has('Authorization')) {

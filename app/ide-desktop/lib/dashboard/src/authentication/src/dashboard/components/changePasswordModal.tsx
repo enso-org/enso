@@ -19,7 +19,7 @@ import SvgIcon from './svgIcon'
 // ==========================
 
 /** A modal for changing the user's password. */
-function ChangePasswordModal() {
+export default function ChangePasswordModal() {
     const { changePassword } = auth.useAuth()
     const { unsetModal } = modalProvider.useSetModal()
 
@@ -147,5 +147,3 @@ function ChangePasswordModal() {
         </Modal>
     )
 }
-
-export default ChangePasswordModal

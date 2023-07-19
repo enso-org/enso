@@ -220,7 +220,7 @@ const RESTRICTED_SYNTAXES = [
     },
     {
         selector: 'FunctionDeclaration:has(:matches(ObjectPattern.params, ArrayPattern.params))',
-        message: 'Destructure function parameters in the body instead of in the parameter list',
+        message: 'Destructure function parameters in the body, instead of in the parameter list',
     },
     {
         selector: 'IfStatement > ExpressionStatement',
@@ -233,6 +233,10 @@ const RESTRICTED_SYNTAXES = [
     {
         selector: 'VariableDeclarator[id.name=ENVIRONMENT][init.value!=production]',
         message: "Environment must be 'production' when committing",
+    },
+    {
+        selector: 'ExportDefaultDeclaration:has(Identifier.declaration)',
+        message: 'Use `export default` on the declaration, instead of as a separate statement',
     },
 ]
 

@@ -338,17 +338,20 @@ export interface Asset<Type extends AssetType = AssetType> extends BaseAsset {
     projectState: Type extends AssetType.project ? ProjectStateType : null
 }
 
+/** A convenience alias for {@link Asset}<{@link AssetType.directory}>. */
+export interface DirectoryAsset extends Asset<AssetType.directory> {}
+
 /** A convenience alias for {@link Asset}<{@link AssetType.project}>. */
 export interface ProjectAsset extends Asset<AssetType.project> {}
 
-/** A convenience alias for {@link Asset}<{@link AssetType.directory}>. */
-export interface DirectoryAsset extends Asset<AssetType.directory> {}
+/** A convenience alias for {@link Asset}<{@link AssetType.file}>. */
+export interface FileAsset extends Asset<AssetType.file> {}
 
 /** A convenience alias for {@link Asset}<{@link AssetType.secret}>. */
 export interface SecretAsset extends Asset<AssetType.secret> {}
 
-/** A convenience alias for {@link Asset}<{@link AssetType.file}>. */
-export interface FileAsset extends Asset<AssetType.file> {}
+/** A union of all possible {@link Asset} variants. */
+export type AnyAsset = DirectoryAsset | FileAsset | ProjectAsset | SecretAsset
 
 /** The type returned from the "create directory" endpoint. */
 export interface Directory extends DirectoryAsset {}
@@ -543,74 +546,98 @@ export function groupPermissionsByUser(permissions: UserPermission[]) {
 // ===============
 
 /** Interface for sending requests to a backend that manages assets and runs projects. */
-export interface Backend {
-    readonly type: BackendType
+export abstract class Backend {
+    abstract readonly type: BackendType
 
+    /** Delete an asset of any type. */
+    async deleteAsset(asset: AnyAsset) {
+        switch (asset.type) {
+            case AssetType.directory: {
+                await this.deleteDirectory(asset.id, asset.title)
+                break
+            }
+            case AssetType.project: {
+                await this.deleteProject(asset.id, asset.title)
+                break
+            }
+            case AssetType.file: {
+                await this.deleteFile(asset.id, asset.title)
+                break
+            }
+            case AssetType.secret: {
+                await this.deleteSecret(asset.id, asset.title)
+                break
+            }
+        }
+    }
     /** Return a list of all users in the same organization. */
-    listUsers: () => Promise<SimpleUser[]>
+    abstract listUsers(): Promise<SimpleUser[]>
     /** Set the username of the current user. */
-    createUser: (body: CreateUserRequestBody) => Promise<UserOrOrganization>
+    abstract createUser(body: CreateUserRequestBody): Promise<UserOrOrganization>
     /** Invite a new user to the organization by email. */
-    inviteUser: (body: InviteUserRequestBody) => Promise<void>
+    abstract inviteUser(body: InviteUserRequestBody): Promise<void>
     /** Adds a permission for a specific user on a specific asset. */
-    createPermission: (body: CreatePermissionRequestBody) => Promise<void>
+    abstract createPermission(body: CreatePermissionRequestBody): Promise<void>
     /** Return user details for the current user. */
-    usersMe: () => Promise<UserOrOrganization | null>
+    abstract usersMe(): Promise<UserOrOrganization | null>
     /** Return a list of assets in a directory. */
-    listDirectory: (query: ListDirectoryRequestParams, title: string | null) => Promise<Asset[]>
+    abstract listDirectory(
+        query: ListDirectoryRequestParams,
+        title: string | null
+    ): Promise<Asset[]>
     /** Create a directory. */
-    createDirectory: (body: CreateDirectoryRequestBody) => Promise<CreatedDirectory>
+    abstract createDirectory(body: CreateDirectoryRequestBody): Promise<CreatedDirectory>
     /** Change the name of a directory. */
-    updateDirectory: (
+    abstract updateDirectory(
         directoryId: DirectoryId,
         body: UpdateDirectoryRequestBody,
         title: string | null
-    ) => Promise<UpdatedDirectory>
+    ): Promise<UpdatedDirectory>
     /** Delete a directory. */
-    deleteDirectory: (directoryId: DirectoryId, title: string | null) => Promise<void>
+    abstract deleteDirectory(directoryId: DirectoryId, title: string | null): Promise<void>
     /** Return a list of projects belonging to the current user. */
-    listProjects: () => Promise<ListedProject[]>
+    abstract listProjects(): Promise<ListedProject[]>
     /** Create a project for the current user. */
-    createProject: (body: CreateProjectRequestBody) => Promise<CreatedProject>
+    abstract createProject(body: CreateProjectRequestBody): Promise<CreatedProject>
     /** Close the project identified by the given project ID. */
-    closeProject: (projectId: ProjectId, title: string | null) => Promise<void>
+    abstract closeProject(projectId: ProjectId, title: string | null): Promise<void>
     /** Return project details for the specified project ID. */
-    getProjectDetails: (projectId: ProjectId, title: string | null) => Promise<Project>
+    abstract getProjectDetails(projectId: ProjectId, title: string | null): Promise<Project>
     /** Set a project to an open state. */
-    openProject: (
+    abstract openProject(
         projectId: ProjectId,
         body: OpenProjectRequestBody | null,
         title: string | null
-    ) => Promise<void>
-    projectUpdate: (
+    ): Promise<void>
+    abstract projectUpdate(
         projectId: ProjectId,
         body: ProjectUpdateRequestBody,
         title: string | null
-    ) => Promise<UpdatedProject>
+    ): Promise<UpdatedProject>
     /** Delete a project. */
-    deleteProject: (projectId: ProjectId, title: string | null) => Promise<void>
+    abstract deleteProject(projectId: ProjectId, title: string | null): Promise<void>
     /** Return project memory, processor and storage usage. */
-    checkResources: (projectId: ProjectId, title: string | null) => Promise<ResourceUsage>
+    abstract checkResources(projectId: ProjectId, title: string | null): Promise<ResourceUsage>
     /** Return a list of files accessible by the current user. */
-    listFiles: () => Promise<File[]>
+    abstract listFiles(): Promise<File[]>
     /** Upload a file. */
-    uploadFile: (params: UploadFileRequestParams, body: Blob) => Promise<FileInfo>
+    abstract uploadFile(params: UploadFileRequestParams, body: Blob): Promise<FileInfo>
     /** Delete a file. */
-    deleteFile: (fileId: FileId, title: string | null) => Promise<void>
+    abstract deleteFile(fileId: FileId, title: string | null): Promise<void>
     /** Create a secret environment variable. */
-    createSecret: (body: CreateSecretRequestBody) => Promise<SecretAndInfo>
+    abstract createSecret(body: CreateSecretRequestBody): Promise<SecretAndInfo>
     /** Return a secret environment variable. */
-    getSecret: (secretId: SecretId, title: string | null) => Promise<Secret>
+    abstract getSecret(secretId: SecretId, title: string | null): Promise<Secret>
     /** Return the secret environment variables accessible by the user. */
-    listSecrets: () => Promise<SecretInfo[]>
+    abstract listSecrets(): Promise<SecretInfo[]>
     /** Delete a secret environment variable. */
-    deleteSecret: (secretId: SecretId, title: string | null) => Promise<void>
+    abstract deleteSecret(secretId: SecretId, title: string | null): Promise<void>
     /** Create a file tag or project tag. */
-    createTag: (body: CreateTagRequestBody) => Promise<TagInfo>
+    abstract createTag(body: CreateTagRequestBody): Promise<TagInfo>
     /** Return file tags or project tags accessible by the user. */
-    listTags: (params: ListTagsRequestParams) => Promise<Tag[]>
+    abstract listTags(params: ListTagsRequestParams): Promise<Tag[]>
     /** Delete a file tag or project tag. */
-    deleteTag: (tagId: TagId) => Promise<void>
+    abstract deleteTag(tagId: TagId): Promise<void>
     /** Return a list of backend or IDE versions. */
-    listVersions: (params: ListVersionsRequestParams) => Promise<[Version, ...Version[]]>
+    abstract listVersions(params: ListVersionsRequestParams): Promise<[Version, ...Version[]]>
 }

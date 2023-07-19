@@ -34,15 +34,20 @@ export enum ColumnDisplayMode {
 /** Column type. */
 export enum Column {
     name = 'name',
-    lastModified = 'last-modified',
+    modified = 'modified',
     sharedWith = 'shared-with',
+    tags = 'tags',
+    accessedByProjects = 'accessed-by-projects',
+    accessedData = 'accessed-data',
     docs = 'docs',
-    labels = 'labels',
-    dataAccess = 'data-access',
-    usagePlan = 'usage-plan',
-    engine = 'engine',
-    ide = 'ide',
 }
+
+/** Columns that can be toggled between visible and hidden. */
+export type ExtraColumn =
+    | Column.accessedByProjects
+    | Column.accessedData
+    | Column.docs
+    | Column.tags
 
 // =================
 // === Constants ===
@@ -53,27 +58,23 @@ const EMPTY_ARRAY: never[] = []
 
 /** English names for every column except for the name column. */
 export const COLUMN_NAME: Record<Exclude<Column, Column.name>, string> = {
-    [Column.lastModified]: 'Last modified',
+    [Column.modified]: 'Modified',
     [Column.sharedWith]: 'Shared with',
+    [Column.tags]: 'Tags',
+    [Column.accessedByProjects]: 'Accessed by projects',
+    [Column.accessedData]: 'Accessed data',
     [Column.docs]: 'Docs',
-    [Column.labels]: 'Labels',
-    [Column.dataAccess]: 'Data access',
-    [Column.usagePlan]: 'Usage plan',
-    [Column.engine]: 'Engine',
-    [Column.ide]: 'IDE',
 } as const
 
 /** CSS classes for every column. Currently only used to set the widths. */
 export const COLUMN_CSS_CLASS: Record<Column, string> = {
     [Column.name]: 'w-60',
-    [Column.lastModified]: 'w-40',
+    [Column.modified]: 'w-40',
     [Column.sharedWith]: 'w-36',
+    [Column.tags]: 'w-80',
+    [Column.accessedByProjects]: 'w-96',
+    [Column.accessedData]: 'w-96',
     [Column.docs]: 'w-96',
-    [Column.labels]: 'w-80',
-    [Column.dataAccess]: 'w-96',
-    [Column.usagePlan]: 'w-40',
-    [Column.engine]: 'w-20',
-    [Column.ide]: 'w-20',
 } as const
 
 /** A list of column display modes and names, in order. */
@@ -291,54 +292,10 @@ export const COLUMN_RENDERER: Record<
     Exclude<Column, Column.name>,
     (props: AnyAssetColumnProps) => JSX.Element
 > = {
-    [Column.lastModified]: LastModifiedColumn,
+    [Column.modified]: LastModifiedColumn,
     [Column.sharedWith]: SharedWithColumn,
+    [Column.tags]: PlaceholderColumn,
+    [Column.accessedByProjects]: PlaceholderColumn,
+    [Column.accessedData]: PlaceholderColumn,
     [Column.docs]: PlaceholderColumn,
-    [Column.labels]: PlaceholderColumn,
-    [Column.dataAccess]: PlaceholderColumn,
-    [Column.usagePlan]: PlaceholderColumn,
-    [Column.engine]: PlaceholderColumn,
-    [Column.ide]: PlaceholderColumn,
-}
-
-// ========================
-// === Helper functions ===
-// ========================
-
-/** The list of columns displayed on each `ColumnDisplayMode`. */
-const COLUMNS_FOR: Record<ColumnDisplayMode, Column[]> = {
-    [ColumnDisplayMode.release]: [Column.name, Column.lastModified, Column.sharedWith],
-    [ColumnDisplayMode.all]: [
-        Column.name,
-        Column.lastModified,
-        Column.sharedWith,
-        Column.labels,
-        Column.dataAccess,
-        Column.usagePlan,
-        Column.engine,
-        Column.ide,
-    ],
-    [ColumnDisplayMode.compact]: [
-        Column.name,
-        Column.lastModified,
-        Column.sharedWith,
-        Column.labels,
-        Column.dataAccess,
-    ],
-    [ColumnDisplayMode.docs]: [Column.name, Column.lastModified, Column.docs],
-    [ColumnDisplayMode.settings]: [
-        Column.name,
-        Column.lastModified,
-        Column.usagePlan,
-        Column.engine,
-        Column.ide,
-    ],
-}
-
-/** Returns the list of columns to be displayed. */
-export function columnsFor(displayMode: ColumnDisplayMode, backendType: backend.BackendType) {
-    const columns = COLUMNS_FOR[displayMode]
-    return backendType === backend.BackendType.local
-        ? columns.filter(column => column !== Column.sharedWith)
-        : columns
 }

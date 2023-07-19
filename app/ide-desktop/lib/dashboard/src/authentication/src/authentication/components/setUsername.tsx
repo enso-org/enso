@@ -17,7 +17,7 @@ import SvgIcon from './svgIcon'
 // ===================
 
 /** A form for users to set their username upon registration. */
-function SetUsername() {
+export default function SetUsername() {
     const { setUsername: authSetUsername } = auth.useAuth()
     const { email } = auth.usePartialUserSession()
     const { backend } = backendProvider.useBackend()
@@ -79,5 +79,3 @@ function SetUsername() {
         </div>
     )
 }
-
-export default SetUsername

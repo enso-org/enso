@@ -49,7 +49,9 @@ interface InternalMultipleAutocompleteProps extends BaseAutocompleteProps {
 export type AutocompleteProps = InternalMultipleAutocompleteProps | InternalSingleAutocompleteProps
 
 /** A select menu with a dropdown. */
-function Autocomplete(props: InternalMultipleAutocompleteProps | InternalSingleAutocompleteProps) {
+export default function Autocomplete(
+    props: InternalMultipleAutocompleteProps | InternalSingleAutocompleteProps
+) {
     const {
         type = 'text',
         itemNamePlural = 'items',
@@ -273,5 +275,3 @@ function Autocomplete(props: InternalMultipleAutocompleteProps | InternalSingleA
         </div>
     )
 }
-
-export default Autocomplete

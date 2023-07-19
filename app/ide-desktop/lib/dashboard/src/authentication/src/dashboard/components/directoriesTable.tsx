@@ -2,7 +2,6 @@
 import * as React from 'react'
 import toast from 'react-hot-toast'
 
-import DirectoryIcon from 'enso-assets/directory.svg'
 import PlusIcon from 'enso-assets/plus.svg'
 
 import * as backendModule from '../backend'
@@ -11,11 +10,9 @@ import * as dateTime from '../dateTime'
 import * as directoryEventModule from '../events/directoryEvent'
 import * as directoryListEventModule from '../events/directoryListEvent'
 import * as errorModule from '../../error'
-import * as eventModule from '../event'
 import * as hooks from '../../hooks'
 import * as permissions from '../permissions'
 import * as presence from '../presence'
-import * as shortcuts from '../shortcuts'
 import * as string from '../../string'
 import * as uniqueString from '../../uniqueString'
 
@@ -24,13 +21,12 @@ import * as backendProvider from '../../providers/backend'
 import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
 
-import * as tableColumn from './tableColumn'
 import TableRow, * as tableRow from './tableRow'
 import ConfirmDeleteModal from './confirmDeleteModal'
 import ContextMenu from './contextMenu'
 import ContextMenuEntry from './contextMenuEntry'
-import EditableSpan from './editableSpan'
 import Table from './table'
+import { DirectoryName } from './directoryName'
 
 // =================
 // === Constants ===
@@ -41,7 +37,7 @@ const DIRECTORY_NAME_REGEX = /^New_Folder_(?<directoryIndex>\d+)$/
 /** The default prefix of an automatically generated directory. */
 const DIRECTORY_NAME_DEFAULT_PREFIX = 'New_Folder_'
 /** The user-facing name of this asset type. */
-const ASSET_TYPE_NAME = 'folder'
+export const ASSET_TYPE_NAME = 'folder'
 /** The user-facing plural name of this asset type. */
 const ASSET_TYPE_NAME_PLURAL = 'folders'
 // This is a function, even though it is not syntactically a function.
@@ -59,179 +55,6 @@ const PLACEHOLDER_WITHOUT_FILTER = (
         This folder does not contain any sub{ASSET_TYPE_NAME_PLURAL}.
     </span>
 )
-
-// ============================
-// === DirectoryNameHeading ===
-// ============================
-
-/** Props for a {@link DirectoryNameHeading}. */
-interface InternalDirectoryNameHeadingProps {
-    doCreateDirectory: () => void
-}
-
-/** The column header for the "name" column for the table of directory assets. */
-function DirectoryNameHeading(props: InternalDirectoryNameHeadingProps) {
-    const { doCreateDirectory } = props
-
-    return (
-        <div className="inline-flex">
-            {string.capitalizeFirst(ASSET_TYPE_NAME_PLURAL)}
-            <button
-                className="mx-1"
-                onClick={event => {
-                    event.stopPropagation()
-                    doCreateDirectory()
-                }}
-            >
-                <img src={PlusIcon} />
-            </button>
-        </div>
-    )
-}
-
-// =====================
-// === DirectoryName ===
-// =====================
-
-/** Props for a {@link DirectoryName}. */
-interface InternalDirectoryNameProps
-    extends tableColumn.TableColumnProps<
-        backendModule.DirectoryAsset,
-        DirectoriesTableState,
-        DirectoryRowState
-    > {}
-
-/** The icon and name of a specific directory asset. */
-function DirectoryName(props: InternalDirectoryNameProps) {
-    const {
-        item,
-        setItem,
-        selected,
-        state: { enterDirectory },
-        rowState,
-        setRowState,
-    } = props
-    const logger = loggerProvider.useLogger()
-    const { backend } = backendProvider.useBackend()
-
-    const doRename = async (newName: string) => {
-        if (backend.type !== backendModule.BackendType.local) {
-            try {
-                await backend.updateDirectory(item.id, { title: newName }, item.title)
-                return
-            } catch (error) {
-                const message = `Error renaming folder: ${
-                    errorModule.tryGetMessage(error) ?? 'unknown error'
-                }`
-                toast.error(message)
-                logger.error(message)
-                throw error
-            }
-        }
-    }
-
-    return (
-        <div
-            className="flex text-left items-center align-middle whitespace-nowrap"
-            onClick={event => {
-                if (
-                    eventModule.isSingleClick(event) &&
-                    (selected ||
-                        shortcuts.SHORTCUT_REGISTRY.matchesMouseAction(
-                            shortcuts.MouseAction.editName,
-                            event
-                        ))
-                ) {
-                    setRowState(oldRowState => ({
-                        ...oldRowState,
-                        isEditingName: true,
-                    }))
-                } else if (eventModule.isDoubleClick(event)) {
-                    enterDirectory(item)
-                }
-            }}
-        >
-            <img src={DirectoryIcon} />
-            <EditableSpan
-                editable={rowState.isEditingName}
-                onSubmit={async newTitle => {
-                    setRowState(oldRowState => ({
-                        ...oldRowState,
-                        isEditingName: false,
-                    }))
-                    if (newTitle !== item.title) {
-                        const oldTitle = item.title
-                        setItem(oldItem => ({ ...oldItem, title: newTitle }))
-                        try {
-                            await doRename(newTitle)
-                        } catch {
-                            setItem(oldItem => ({ ...oldItem, title: oldTitle }))
-                        }
-                    }
-                }}
-                onCancel={() => {
-                    setRowState(oldRowState => ({
-                        ...oldRowState,
-                        isEditingName: false,
-                    }))
-                }}
-                className="cursor-pointer bg-transparent grow px-2"
-            >
-                {item.title}
-            </EditableSpan>
-        </div>
-    )
-}
-
-// ===============================
-// === DirectoryRowContextMenu ===
-// ===============================
-
-/** Props for a {@link DirectoryRowContextMenu}. */
-interface InternalDirectoryRowContextMenuProps {
-    innerProps: tableRow.TableRowInnerProps<
-        backendModule.DirectoryAsset,
-        backendModule.DirectoryId,
-        DirectoryRowState
-    >
-    event: React.MouseEvent
-    doDelete: () => Promise<void>
-}
-
-/** The context menu for a row of a {@link DirectorysTable}. */
-function DirectoryRowContextMenu(props: InternalDirectoryRowContextMenuProps) {
-    const {
-        innerProps: { item, setRowState },
-        event,
-        doDelete,
-    } = props
-    const { setModal, unsetModal } = modalProvider.useSetModal()
-
-    const doRename = () => {
-        setRowState(oldRowState => ({
-            ...oldRowState,
-            isEditingName: true,
-        }))
-        unsetModal()
-    }
-    return (
-        <ContextMenu key={item.id} event={event}>
-            <ContextMenuEntry onClick={doRename}>Rename</ContextMenuEntry>
-            <ContextMenuEntry
-                onClick={() => {
-                    setModal(
-                        <ConfirmDeleteModal
-                            description={`the ${ASSET_TYPE_NAME} '${item.title}'`}
-                            doDelete={doDelete}
-                        />
-                    )
-                }}
-            >
-                <span className="text-red-700">Delete</span>
-            </ContextMenuEntry>
-        </ContextMenu>
-    )
-}
 
 // ====================
 // === DirectoryRow ===
@@ -336,7 +159,7 @@ function DirectoryRow(
                 event.preventDefault()
                 event.stopPropagation()
                 setModal(
-                    <DirectoryRowContextMenu
+                    <DirectoryContextMenu
                         innerProps={innerProps}
                         event={event}
                         doDelete={doDelete}
@@ -353,7 +176,7 @@ function DirectoryRow(
 // ========================
 
 /** State passed through from a {@link DirectoriesTable} to every cell. */
-interface DirectoriesTableState {
+export interface DirectoriesTableState {
     directoryEvent: directoryEventModule.DirectoryEvent | null
     enterDirectory: (directory: backendModule.DirectoryAsset) => void
     dispatchDirectoryListEvent: (event: directoryListEventModule.DirectoryListEvent) => void
@@ -382,7 +205,7 @@ export interface DirectoriesTableProps {
 }
 
 /** The table of directory assets. */
-function DirectoriesTable(props: DirectoriesTableProps) {
+export default function DirectoriesTable(props: DirectoriesTableProps) {
     const {
         directoryId,
         items: rawItems,
@@ -574,5 +397,3 @@ function DirectoriesTable(props: DirectoriesTableProps) {
         )
     }
 }
-
-export default DirectoriesTable

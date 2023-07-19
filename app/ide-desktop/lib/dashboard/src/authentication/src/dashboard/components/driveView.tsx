@@ -12,15 +12,11 @@ import * as hooks from '../../hooks'
 import * as loggerProvider from '../../providers/logger'
 import * as tabModule from '../tab'
 
-import * as fileListEventModule from '../events/fileListEvent'
+import * as assetListEventModule from '../events/assetListEvent'
 import * as projectEventModule from '../events/projectEvent'
-import * as projectListEventModule from '../events/projectListEvent'
 
-import DirectoriesTable from './directoriesTable'
 import DriveBar from './driveBar'
-import FilesTable from './filesTable'
-import ProjectsTable from './projectsTable'
-import SecretsTable from './secretsTable'
+import Table from './table'
 
 // =================
 // === Constants ===
@@ -50,8 +46,8 @@ export interface DirectoryViewProps {
     setNameOfProjectToImmediatelyOpen: (nameOfProjectToImmediatelyOpen: string | null) => void
     directoryId: backendModule.DirectoryId | null
     setDirectoryId: (directoryId: backendModule.DirectoryId | null) => void
-    projectListEvent: projectListEventModule.ProjectListEvent | null
-    dispatchProjectListEvent: (directoryEvent: projectListEventModule.ProjectListEvent) => void
+    assetListEvent: assetListEventModule.AssetListEvent | null
+    dispatchAssetListEvent: (directoryEvent: assetListEventModule.AssetListEvent) => void
     query: string
     onOpenIde: (project: backendModule.ProjectAsset) => void
     onCloseIde: () => void
@@ -72,8 +68,8 @@ function DirectoryView(props: DirectoryViewProps) {
         directoryId,
         setDirectoryId,
         query,
-        projectListEvent,
-        dispatchProjectListEvent,
+        assetListEvent,
+        dispatchAssetListEvent,
         onOpenIde,
         onCloseIde,
         appRunner,
@@ -87,23 +83,10 @@ function DirectoryView(props: DirectoryViewProps) {
     const { backend } = backendProvider.useBackend()
 
     const [initialized, setInitialized] = React.useState(false)
+    const [assets, setAssets] = React.useState<backendModule.Asset[]>([])
     const [isLoadingAssets, setIsLoadingAssets] = React.useState(true)
     const [directoryStack, setDirectoryStack] = React.useState<backendModule.DirectoryAsset[]>([])
-    // Defined by the spec as `compact` by default, however some columns lack an implementation
-    // in the remote (cloud) backend and will therefore be empty.
-    const [columnDisplayMode, setColumnDisplayMode] = React.useState(
-        columnModule.ColumnDisplayMode.release
-    )
     const [isFileBeingDragged, setIsFileBeingDragged] = React.useState(false)
-
-    const [projectAssets, setProjectAssets] = React.useState<backendModule.ProjectAsset[]>([])
-    const [directoryAssets, setDirectoryAssets] = React.useState<backendModule.DirectoryAsset[]>([])
-    const [secretAssets, setSecretAssets] = React.useState<backendModule.SecretAsset[]>([])
-    const [fileAssets, setFileAssets] = React.useState<backendModule.FileAsset[]>([])
-    const [projectEvent, dispatchProjectEvent] =
-        React.useState<projectEventModule.ProjectEvent | null>(null)
-    const [fileListEvent, dispatchFileListEvent] =
-        React.useState<fileListEventModule.FileListEvent | null>(null)
 
     const assetFilter = React.useMemo(() => {
         if (query === '') {
@@ -113,9 +96,6 @@ function DirectoryView(props: DirectoryViewProps) {
             return (asset: backendModule.Asset) => regex.test(asset.title)
         }
     }, [query])
-
-    const directory = directoryStack[directoryStack.length - 1] ?? null
-    const parentDirectory = directoryStack[directoryStack.length - 2] ?? null
 
     React.useEffect(() => {
         const onBlur = () => {
@@ -129,10 +109,6 @@ function DirectoryView(props: DirectoryViewProps) {
 
     React.useEffect(() => {
         setIsLoadingAssets(true)
-        setProjectAssets([])
-        setDirectoryAssets([])
-        setSecretAssets([])
-        setFileAssets([])
     }, [backend, directoryId])
 
     React.useEffect(() => {
@@ -167,8 +143,8 @@ function DirectoryView(props: DirectoryViewProps) {
         }
     }, [directoryStack, directoryId, organization])
 
-    const assets = hooks.useAsyncEffect(
-        [],
+    hooks.useAsyncEffect(
+        null,
         async signal => {
             switch (backend.type) {
                 case backendModule.BackendType.local: {
@@ -176,11 +152,10 @@ function DirectoryView(props: DirectoryViewProps) {
                         const newAssets = await backend.listDirectory()
                         if (!signal.aborted) {
                             setIsLoadingAssets(false)
+                            setAssets(newAssets)
                         }
-                        return newAssets
-                    } else {
-                        return []
                     }
+                    break
                 }
                 case backendModule.BackendType.remote: {
                     if (
@@ -194,12 +169,12 @@ function DirectoryView(props: DirectoryViewProps) {
                         )
                         if (!signal.aborted) {
                             setIsLoadingAssets(false)
+                            setAssets(newAssets)
                         }
-                        return newAssets
                     } else {
                         setIsLoadingAssets(false)
-                        return []
                     }
+                    break
                 }
             }
         },
@@ -207,13 +182,8 @@ function DirectoryView(props: DirectoryViewProps) {
     )
 
     React.useEffect(() => {
-        const newProjectAssets = assets.filter(backendModule.assetIsProject)
-        setProjectAssets(newProjectAssets)
-        setDirectoryAssets(assets.filter(backendModule.assetIsDirectory))
-        setSecretAssets(assets.filter(backendModule.assetIsSecret))
-        setFileAssets(assets.filter(backendModule.assetIsFile))
         if (nameOfProjectToImmediatelyOpen != null) {
-            const projectToLoad = newProjectAssets.find(
+            const projectToLoad = assets.find(
                 projectAsset => projectAsset.title === nameOfProjectToImmediatelyOpen
             )
             if (projectToLoad != null) {
@@ -226,7 +196,7 @@ function DirectoryView(props: DirectoryViewProps) {
         }
         if (!initialized && initialProjectName != null) {
             setInitialized(true)
-            if (!newProjectAssets.some(asset => asset.title === initialProjectName)) {
+            if (!assets.some(asset => asset.title === initialProjectName)) {
                 const errorMessage = `No project named '${initialProjectName}' was found.`
                 toast.error(errorMessage)
                 logger.error(`Error opening project on startup: ${errorMessage}`)
@@ -244,31 +214,40 @@ function DirectoryView(props: DirectoryViewProps) {
     ])
 
     const doCreateProject = React.useCallback(() => {
-        dispatchProjectListEvent({
-            type: projectListEventModule.ProjectListEventType.create,
+        dispatchAssetListEvent({
+            type: assetListEventModule.AssetListEventType.createProject,
             templateId: null,
-            onSpinnerStateChange: null,
         })
-    }, [/* should never change */ dispatchProjectListEvent])
+    }, [/* should never change */ dispatchAssetListEvent])
 
-    const enterDirectory = React.useCallback(
-        (directoryAsset: backendModule.DirectoryAsset) => {
-            setDirectoryId(directoryAsset.id)
-            setDirectoryStack([...directoryStack, directoryAsset])
+    const doUploadFiles = React.useCallback(
+        (files: FileList) => {
+            if (backend.type === backendModule.BackendType.local) {
+                // TODO[sb]: Allow uploading `.enso-project`s
+                // https://github.com/enso-org/cloud-v2/issues/510
+                const message = 'Files cannot be uploaded to the local backend.'
+                toast.error(message)
+                logger.error(message)
+            } else if (directoryId == null) {
+                // This should never happen, however display a nice error message in case
+                // it somehow does.
+                const message = 'Files cannot be uploaded while offline.'
+                toast.error(message)
+                logger.error(message)
+            } else {
+                dispatchAssetListEvent({
+                    type: assetListEventModule.AssetListEventType.uploadFiles,
+                    files,
+                })
+            }
         },
-        [directoryStack, setDirectoryId]
+        [
+            backend.type,
+            directoryId,
+            /* should never change */ logger,
+            /* should never change */ dispatchAssetListEvent,
+        ]
     )
-
-    const exitDirectory = React.useCallback(() => {
-        setDirectoryId(
-            parentDirectory?.id ??
-                (organization != null ? backendModule.rootDirectoryId(organization.id) : null)
-        )
-        setDirectoryStack(
-            // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-            directoryStack.slice(0, -1)
-        )
-    }, [directoryStack, organization, parentDirectory?.id, setDirectoryId])
 
     React.useEffect(() => {
         const onDragEnter = (event: DragEvent) => {
@@ -287,64 +266,11 @@ function DirectoryView(props: DirectoryViewProps) {
 
     return (
         <>
-            <DriveBar
-                directoryId={directoryId}
-                directory={directory}
-                parentDirectory={parentDirectory}
-                columnDisplayMode={columnDisplayMode}
-                setColumnDisplayMode={setColumnDisplayMode}
-                exitDirectory={exitDirectory}
-                dispatchFileListEvent={dispatchFileListEvent}
-            />
-            {/* Padding. */}
-            <div className="h-6 mx-2" />
-            <div className="flex-1 overflow-auto mx-2">
-                <ProjectsTable
-                    appRunner={appRunner}
-                    directoryId={directoryId}
-                    items={projectAssets}
-                    filter={assetFilter}
-                    isLoading={isLoadingAssets}
-                    columnDisplayMode={columnDisplayMode}
-                    projectEvent={projectEvent}
-                    dispatchProjectEvent={dispatchProjectEvent}
-                    projectListEvent={projectListEvent}
-                    dispatchProjectListEvent={dispatchProjectListEvent}
-                    doCreateProject={doCreateProject}
-                    doOpenIde={onOpenIde}
-                    doCloseIde={onCloseIde}
-                />
-                {/* Padding. */}
-                <div className="h-10" />
-                <DirectoriesTable
-                    directoryId={directoryId}
-                    items={directoryAssets}
-                    filter={assetFilter}
-                    isLoading={isLoadingAssets}
-                    columnDisplayMode={columnDisplayMode}
-                    enterDirectory={enterDirectory}
-                />
-                {/* Padding. */}
-                <div className="h-10" />
-                <SecretsTable
-                    directoryId={directoryId}
-                    items={secretAssets}
-                    filter={assetFilter}
-                    isLoading={isLoadingAssets}
-                    columnDisplayMode={columnDisplayMode}
-                />
-                {/* Padding. */}
-                <div className="h-10" />
-                <FilesTable
-                    directoryId={directoryId}
-                    items={fileAssets}
-                    filter={assetFilter}
-                    isLoading={isLoadingAssets}
-                    columnDisplayMode={columnDisplayMode}
-                    fileListEvent={fileListEvent}
-                    dispatchFileListEvent={dispatchFileListEvent}
-                />
-            </div>
+            <h1 className="text-xl font-bold mx-4">
+                {backend.type === backendModule.BackendType.remote ? 'Cloud Drive' : 'Local Drive'}
+            </h1>
+            <DriveBar doCreateProject={doCreateProject} doUploadFiles={doUploadFiles} />
+            <AssetTable items={assets} query={query} />
             {isFileBeingDragged &&
             directoryId != null &&
             backend.type === backendModule.BackendType.remote ? (
@@ -359,8 +285,8 @@ function DirectoryView(props: DirectoryViewProps) {
                     onDrop={event => {
                         event.preventDefault()
                         setIsFileBeingDragged(false)
-                        dispatchFileListEvent({
-                            type: fileListEventModule.FileListEventType.uploadMultiple,
+                        dispatchAssetListEvent({
+                            type: assetListEventModule.AssetListEventType.uploadFiles,
                             files: event.dataTransfer.files,
                         })
                     }}

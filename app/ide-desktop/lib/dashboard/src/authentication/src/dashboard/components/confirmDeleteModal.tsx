@@ -22,7 +22,7 @@ export interface ConfirmDeleteModalProps {
 }
 
 /** A modal for confirming the deletion of an asset. */
-function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
+export default function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
     const { description, doDelete } = props
     const logger = loggerProvider.useLogger()
     const { unsetModal } = modalProvider.useSetModal()
@@ -85,5 +85,3 @@ function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
         </Modal>
     )
 }
-
-export default ConfirmDeleteModal

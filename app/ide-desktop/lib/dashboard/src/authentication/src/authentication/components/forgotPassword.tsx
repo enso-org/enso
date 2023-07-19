@@ -19,7 +19,7 @@ import SvgIcon from './svgIcon'
 // ======================
 
 /** A form for users to request for their password to be reset. */
-function ForgotPassword() {
+export default function ForgotPassword() {
     const { forgotPassword } = auth.useAuth()
 
     const [email, setEmail] = React.useState('')
@@ -98,5 +98,3 @@ function ForgotPassword() {
         </div>
     )
 }
-
-export default ForgotPassword

@@ -76,7 +76,7 @@ export type TableRowProps<
     ([TableRowState] extends [never] ? unknown : InitialRowStateProp<TableRowState>)
 
 /** A row of a table. This is required because each row may store its own state. */
-function TableRow<T, Key extends string = string, State = never, RowState = never>(
+export default function TableRow<T, Key extends string = string, State = never, RowState = never>(
     props: TableRowProps<T, Key, State, RowState>
 ) {
     const {
@@ -161,5 +161,3 @@ function TableRow<T, Key extends string = string, State = never, RowState = neve
         </tr>
     )
 }
-
-export default TableRow

@@ -1,20 +1,12 @@
 /** @file Header menubar for the directory listing, containing information about
  * the current directory and some configuration options. */
 import * as React from 'react'
-import toast from 'react-hot-toast'
 
-import ArrowRightSmallIcon from 'enso-assets/arrow_right_small.svg'
 import DownloadIcon from 'enso-assets/download.svg'
 import UploadIcon from 'enso-assets/upload.svg'
 
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
-import * as column from '../column'
-import * as featureFlags from '../featureFlags'
-import * as fileListEventModule from '../events/fileListEvent'
-import * as loggerProvider from '../../providers/logger'
-
-import ColumnDisplayModeSwitcher from './columnDisplayModeSwitcher'
 
 // ================
 // === DriveBar ===
@@ -22,83 +14,34 @@ import ColumnDisplayModeSwitcher from './columnDisplayModeSwitcher'
 
 /** Props for a {@link DriveBar}. */
 export interface DriveBarProps {
-    directoryId: backendModule.DirectoryId | null
-    directory: backendModule.DirectoryAsset | null
-    parentDirectory: backendModule.DirectoryAsset | null
-    columnDisplayMode: column.ColumnDisplayMode
-    setColumnDisplayMode: (columnDisplayMode: column.ColumnDisplayMode) => void
-    dispatchFileListEvent: (fileListEvent: fileListEventModule.FileListEvent) => void
-    exitDirectory: () => void
+    doUploadFiles: (files: FileList) => void
+    doCreateProject: () => void
 }
 
 /** Displays the current directory path and permissions, upload and download buttons,
  * and a column display mode switcher. */
-function DriveBar(props: DriveBarProps) {
-    const {
-        directoryId,
-        directory,
-        parentDirectory,
-        columnDisplayMode,
-        setColumnDisplayMode,
-        dispatchFileListEvent,
-        exitDirectory,
-    } = props
-    const logger = loggerProvider.useLogger()
+export default function DriveBar(props: DriveBarProps) {
+    const { doUploadFiles: doUploadFilesRaw, doCreateProject } = props
     const { backend } = backendProvider.useBackend()
 
-    const uploadFiles = React.useCallback(
+    const doUploadFiles = React.useCallback(
         (event: React.FormEvent<HTMLInputElement>) => {
-            if (backend.type === backendModule.BackendType.local) {
-                // TODO[sb]: Allow uploading `.enso-project`s
-                // https://github.com/enso-org/cloud-v2/issues/510
-                const message = 'Files cannot be uploaded to the local backend.'
-                toast.error(message)
-                logger.error(message)
-            } else if (
-                event.currentTarget.files == null ||
-                event.currentTarget.files.length === 0
-            ) {
-                toast.success('No files selected to upload.')
-            } else if (directoryId == null) {
-                // This should never happen, however display a nice error message in case
-                // it somehow does.
-                const message = 'Files cannot be uploaded while offline.'
-                toast.error(message)
-                logger.error(message)
-            } else {
-                dispatchFileListEvent({
-                    type: fileListEventModule.FileListEventType.uploadMultiple,
-                    files: event.currentTarget.files,
-                })
+            if (event.currentTarget.files != null) {
+                doUploadFilesRaw(event.currentTarget.files)
             }
         },
-        [
-            backend.type,
-            directoryId,
-            /* should not change */ logger,
-            /* should never change */ dispatchFileListEvent,
-        ]
+        [/* should never change */ doUploadFilesRaw]
     )
 
     return (
         <div className="flex flex-row flex-nowrap my-2">
-            <h1 className="text-xl font-bold mx-4 self-center">Drive</h1>
             <div className="flex flex-row flex-nowrap mx-4">
-                <div className="bg-gray-100 rounded-l-full flex flex-row flex-nowrap items-center p-1 mx-0.5">
-                    {directory && (
-                        <>
-                            <button className="mx-2" onClick={exitDirectory}>
-                                {parentDirectory?.title ?? '/'}
-                            </button>
-                            <img src={ArrowRightSmallIcon} />
-                        </>
-                    )}
-                    <span className="mx-2">{directory?.title ?? '/'}</span>
-                </div>
-                <div className="bg-gray-100 rounded-r-full flex flex-row flex-nowrap items-center mx-0.5">
-                    <div className="m-2">Shared with</div>
-                    <div></div>
-                </div>
+                <button
+                    className="flex items-center bg-white rounded-full h-8 px-2.5"
+                    onClick={doCreateProject}
+                >
+                    <span className="h-6 py-px">New Project</span>
+                </button>
                 <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap px-1.5 py-1 mx-4">
                     <input
                         type="file"
@@ -107,7 +50,7 @@ function DriveBar(props: DriveBarProps) {
                         id="upload_files_input"
                         name="upload_files_input"
                         className="w-0 h-0"
-                        onInput={uploadFiles}
+                        onInput={doUploadFiles}
                     />
                     <label
                         htmlFor="upload_files_input"
@@ -130,15 +73,7 @@ function DriveBar(props: DriveBarProps) {
                         <img src={DownloadIcon} />
                     </button>
                 </div>
-                {featureFlags.FEATURE_FLAGS.columnDisplayModeSwitcher && (
-                    <ColumnDisplayModeSwitcher
-                        columnDisplayMode={columnDisplayMode}
-                        setColumnDisplayMode={setColumnDisplayMode}
-                    />
-                )}
             </div>
         </div>
     )
 }
-
-export default DriveBar

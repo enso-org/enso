@@ -130,7 +130,7 @@ export interface PermissionDisplayProps extends React.PropsWithChildren {
 }
 
 /** Colored border around icons and text indicating permissions. */
-function PermissionDisplay(props: PermissionDisplayProps) {
+export default function PermissionDisplay(props: PermissionDisplayProps) {
     const { permissions, className, onClick, onMouseEnter, onMouseLeave, children } = props
     let permissionBorder
     switch (permissions.type) {
@@ -187,5 +187,3 @@ function PermissionDisplay(props: PermissionDisplayProps) {
         </div>
     )
 }
-
-export default PermissionDisplay

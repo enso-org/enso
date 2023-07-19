@@ -29,7 +29,7 @@ const REGISTRATION_QUERY_PARAMS = {
 // ====================
 
 /** A form for users to register an account. */
-function Registration() {
+export default function Registration() {
     const auth = authModule.useAuth()
     const location = router.useLocation()
     const [email, setEmail] = React.useState('')
@@ -175,5 +175,3 @@ function parseUrlSearchParams(search: string) {
     const organizationId = query.get(REGISTRATION_QUERY_PARAMS.organizationId)
     return { organizationId }
 }
-
-export default Registration

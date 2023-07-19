@@ -3,19 +3,16 @@ import * as React from 'react'
 import toast from 'react-hot-toast'
 
 import PlusIcon from 'enso-assets/plus.svg'
-import SecretIcon from 'enso-assets/secret.svg'
 
 import * as backendModule from '../backend'
 import * as columnModule from '../column'
 import * as dateTime from '../dateTime'
 import * as errorModule from '../../error'
-import * as eventModule from '../event'
 import * as hooks from '../../hooks'
 import * as permissions from '../permissions'
 import * as presence from '../presence'
 import * as secretEventModule from '../events/secretEvent'
 import * as secretListEventModule from '../events/secretListEvent'
-import * as shortcuts from '../shortcuts'
 import * as string from '../../string'
 import * as uniqueString from '../../uniqueString'
 
@@ -24,13 +21,10 @@ import * as backendProvider from '../../providers/backend'
 import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
 
-import * as tableColumn from './tableColumn'
-import CreateForm, * as createForm from './createForm'
 import TableRow, * as tableRow from './tableRow'
 import ConfirmDeleteModal from './confirmDeleteModal'
 import ContextMenu from './contextMenu'
 import ContextMenuEntry from './contextMenuEntry'
-import EditableSpan from './editableSpan'
 import Table from './table'
 
 // =================
@@ -38,7 +32,7 @@ import Table from './table'
 // =================
 
 /** The user-facing name of this asset type. */
-const ASSET_TYPE_NAME = 'secret'
+export const ASSET_TYPE_NAME = 'secret'
 /** The user-facing plural name of this asset type. */
 const ASSET_TYPE_NAME_PLURAL = 'secrets'
 // This is a function, even though it is not syntactically a function.
@@ -54,232 +48,6 @@ const PLACEHOLDER_WITH_QUERY = (
 const PLACEHOLDER_WITHOUT_QUERY = (
     <span className="opacity-75">This folder does not contain any secrets.</span>
 )
-
-// ========================
-// === SecretCreateForm ===
-// ========================
-
-/** Props for a {@link SecretCreateForm}. */
-interface InternalSecretCreateFormProps extends createForm.CreateFormPassthroughProps {
-    dispatchSecretListEvent: (event: secretListEventModule.SecretListEvent) => void
-}
-
-/** A form to create a new secret asset. */
-function SecretCreateForm(props: InternalSecretCreateFormProps) {
-    const { dispatchSecretListEvent, ...passThrough } = props
-    const { backend } = backendProvider.useBackend()
-    const { unsetModal } = modalProvider.useSetModal()
-
-    const [name, setName] = React.useState<string | null>(null)
-    const [value, setValue] = React.useState<string | null>(null)
-
-    if (backend.type === backendModule.BackendType.local) {
-        return <></>
-    } else {
-        const onSubmit = (event: React.FormEvent) => {
-            event.preventDefault()
-            if (name == null) {
-                toast.error('Please provide a secret name.')
-            } else if (value == null) {
-                // Secret value explicitly can be empty.
-                toast.error('Please provide a secret value.')
-            } else {
-                unsetModal()
-                dispatchSecretListEvent({
-                    type: secretListEventModule.SecretListEventType.create,
-                    name: name,
-                    value: value,
-                })
-            }
-        }
-
-        return (
-            <CreateForm title="New Secret" onSubmit={onSubmit} {...passThrough}>
-                <div className="flex flex-row flex-nowrap m-1">
-                    <label className="inline-block flex-1 grow m-1" htmlFor="project_name">
-                        Name
-                    </label>
-                    <input
-                        id="project_name"
-                        type="text"
-                        size={1}
-                        className="bg-gray-200 rounded-full flex-1 grow-2 px-2 m-1"
-                        onChange={event => {
-                            setName(event.target.value)
-                        }}
-                    />
-                </div>
-                <div className="flex flex-row flex-nowrap m-1">
-                    <label className="inline-block flex-1 grow m-1" htmlFor="secret_value">
-                        Value
-                    </label>
-                    <input
-                        id="secret_value"
-                        type="text"
-                        size={1}
-                        className="bg-gray-200 rounded-full flex-1 grow-2 px-2 m-1"
-                        onChange={event => {
-                            setValue(event.target.value)
-                        }}
-                    />
-                </div>
-            </CreateForm>
-        )
-    }
-}
-
-// =========================
-// === SecretNameHeading ===
-// =========================
-
-/** Props for a {@link SecretNameHeading}. */
-interface InternalSecretNameHeadingProps {
-    dispatchSecretListEvent: (event: secretListEventModule.SecretListEvent) => void
-}
-
-/** The column header for the "name" column for the table of secret assets. */
-function SecretNameHeading(props: InternalSecretNameHeadingProps) {
-    const { dispatchSecretListEvent } = props
-    const { setModal } = modalProvider.useSetModal()
-
-    return (
-        <div className="inline-flex">
-            {string.capitalizeFirst(ASSET_TYPE_NAME_PLURAL)}
-            <button
-                className="mx-1"
-                onClick={event => {
-                    event.stopPropagation()
-                    const buttonPosition = event.currentTarget.getBoundingClientRect()
-                    setModal(
-                        <SecretCreateForm
-                            left={buttonPosition.left + window.scrollX}
-                            top={buttonPosition.top + window.scrollY}
-                            dispatchSecretListEvent={dispatchSecretListEvent}
-                        />
-                    )
-                }}
-            >
-                <img src={PlusIcon} />
-            </button>
-        </div>
-    )
-}
-
-// ==================
-// === SecretName ===
-// ==================
-
-/** Props for a {@link SecretName}. */
-interface InternalSecretNameProps
-    extends tableColumn.TableColumnProps<
-        backendModule.SecretAsset,
-        SecretsTableState,
-        SecretRowState
-    > {}
-
-/** The icon and name of a specific secret asset. */
-function SecretName(props: InternalSecretNameProps) {
-    const { item, setItem, selected, setRowState } = props
-
-    // TODO[sb]: Wait for backend implementation. `editable` should also be re-enabled, and the
-    // context menu entry should be re-added.
-    // Backend implementation is tracked here: https://github.com/enso-org/cloud-v2/issues/505.
-    const doRename = async (/* _newName: string */) => {
-        await Promise.resolve(null)
-    }
-
-    return (
-        <div
-            className="flex text-left items-center align-middle whitespace-nowrap"
-            onClick={event => {
-                if (
-                    eventModule.isSingleClick(event) &&
-                    (selected ||
-                        shortcuts.SHORTCUT_REGISTRY.matchesMouseAction(
-                            shortcuts.MouseAction.editName,
-                            event
-                        ))
-                ) {
-                    setRowState(oldRowState => ({
-                        ...oldRowState,
-                        isEditingName: true,
-                    }))
-                }
-            }}
-        >
-            <img src={SecretIcon} />{' '}
-            <EditableSpan
-                editable={false}
-                onSubmit={async newTitle => {
-                    setRowState(oldRowState => ({
-                        ...oldRowState,
-                        isEditingName: false,
-                    }))
-                    if (newTitle !== item.title) {
-                        const oldTitle = item.title
-                        setItem(oldItem => ({ ...oldItem, title: newTitle }))
-                        try {
-                            await doRename(/* newTitle */)
-                        } catch {
-                            setItem(oldItem => ({ ...oldItem, title: oldTitle }))
-                        }
-                    }
-                }}
-                onCancel={() => {
-                    setRowState(oldRowState => ({
-                        ...oldRowState,
-                        isEditingName: false,
-                    }))
-                }}
-                className="bg-transparent grow px-2"
-            >
-                {item.title}
-            </EditableSpan>
-        </div>
-    )
-}
-
-// ============================
-// === SecretRowContextMenu ===
-// ============================
-
-/** Props for a {@link SecretRowContextMenu}. */
-interface InternalDirectoryRowContextMenuProps {
-    innerProps: tableRow.TableRowInnerProps<
-        backendModule.SecretAsset,
-        backendModule.SecretId,
-        SecretRowState
-    >
-    event: React.MouseEvent
-    doDelete: () => Promise<void>
-}
-
-/** The context menu for a row of a {@link SecretsTable}. */
-function SecretRowContextMenu(props: InternalDirectoryRowContextMenuProps) {
-    const {
-        innerProps: { item },
-        event,
-        doDelete,
-    } = props
-    const { setModal } = modalProvider.useSetModal()
-
-    return (
-        <ContextMenu key={item.id} event={event}>
-            <ContextMenuEntry
-                onClick={() => {
-                    setModal(
-                        <ConfirmDeleteModal
-                            description={`the ${ASSET_TYPE_NAME} '${item.title}'`}
-                            doDelete={doDelete}
-                        />
-                    )
-                }}
-            >
-                <span className="text-red-700">Delete</span>
-            </ContextMenuEntry>
-        </ContextMenu>
-    )
-}
 
 // =================
 // === SecretRow ===
@@ -402,7 +170,7 @@ function SecretRow(
 // ====================
 
 /** State passed through from a {@link SecretsTable} to every cell. */
-interface SecretsTableState {
+export interface SecretsTableState {
     secretEvent: secretEventModule.SecretEvent | null
     dispatchSecretListEvent: (event: secretListEventModule.SecretListEvent) => void
     markItemAsHidden: (key: string) => void

@@ -30,7 +30,7 @@ const LOGIN_QUERY_PARAMS = {
 // =============
 
 /** A form for users to log in. */
-function Login() {
+export default function Login() {
     const { search } = router.useLocation()
     const { signInWithGoogle, signInWithGitHub, signInWithPassword } = auth.useAuth()
 
@@ -182,5 +182,3 @@ function parseUrlSearchParams(search: string) {
     const email = query.get(LOGIN_QUERY_PARAMS.email)
     return email
 }
-
-export default Login

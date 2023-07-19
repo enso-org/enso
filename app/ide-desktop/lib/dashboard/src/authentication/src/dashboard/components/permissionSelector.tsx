@@ -37,7 +37,7 @@ export interface PermissionSelectorProps {
 }
 
 /** A horizontal selector for all possible permissions. */
-function PermissionSelector(props: PermissionSelectorProps) {
+export default function PermissionSelector(props: PermissionSelectorProps) {
     const { initialPermissions, className, permissionClassName, onChange } = props
     const [permissions, setPermissions] = React.useState(() => new Set<backend.PermissionAction>())
 
@@ -100,5 +100,3 @@ function PermissionSelector(props: PermissionSelectorProps) {
         </div>
     )
 }
-
-export default PermissionSelector

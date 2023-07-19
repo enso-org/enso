@@ -83,7 +83,7 @@ export interface ManagePermissionsModalProps {
 /** A modal with inputs for user email and permission level.
  * @throws {Error} when the current backend is the local backend, or when the user is offline.
  * This should never happen, as this modal should not be accessible in either case. */
-export function ManagePermissionsModal(props: ManagePermissionsModalProps) {
+export default function ManagePermissionsModal(props: ManagePermissionsModalProps) {
     const {
         asset,
         initialPermissions,
@@ -340,5 +340,3 @@ export function ManagePermissionsModal(props: ManagePermissionsModalProps) {
         )
     }
 }
-
-export default ManagePermissionsModal

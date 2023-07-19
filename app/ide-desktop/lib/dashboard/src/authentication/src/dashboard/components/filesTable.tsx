@@ -8,14 +8,11 @@ import * as backendModule from '../backend'
 import * as columnModule from '../column'
 import * as dateTime from '../dateTime'
 import * as errorModule from '../../error'
-import * as eventModule from '../event'
 import * as fileEventModule from '../events/fileEvent'
-import * as fileInfo from '../../fileInfo'
 import * as fileListEventModule from '../events/fileListEvent'
 import * as hooks from '../../hooks'
 import * as permissions from '../permissions'
 import * as presence from '../presence'
-import * as shortcuts from '../shortcuts'
 import * as string from '../../string'
 import * as uniqueString from '../../uniqueString'
 
@@ -24,12 +21,10 @@ import * as backendProvider from '../../providers/backend'
 import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
 
-import * as tableColumn from './tableColumn'
 import TableRow, * as tableRow from './tableRow'
 import ConfirmDeleteModal from './confirmDeleteModal'
 import ContextMenu from './contextMenu'
 import ContextMenuEntry from './contextMenuEntry'
-import EditableSpan from './editableSpan'
 import Table from './table'
 
 // =================
@@ -37,7 +32,7 @@ import Table from './table'
 // =================
 
 /** The user-facing name of this asset type. */
-const ASSET_TYPE_NAME = 'file'
+export const ASSET_TYPE_NAME = 'file'
 /** The user-facing plural name of this asset type. */
 const ASSET_TYPE_NAME_PLURAL = 'files'
 // This is a function, even though it is not syntactically a function.
@@ -53,195 +48,6 @@ const PLACEHOLDER_WITH_QUERY = (
 const PLACEHOLDER_WITHOUT_QUERY = (
     <span className="opacity-75">This folder does not contain any {ASSET_TYPE_NAME_PLURAL}.</span>
 )
-
-// =======================
-// === FileNameHeading ===
-// =======================
-
-/** Props for a {@link FileNameHeading}. */
-interface InternalFileNameHeadingProps {
-    directoryId: backendModule.DirectoryId | null
-    dispatchFileListEvent: (fileListEvent: fileListEventModule.FileListEvent) => void
-}
-
-/** The column header for the "name" column for the table of file assets. */
-function FileNameHeading(props: InternalFileNameHeadingProps) {
-    const { directoryId, dispatchFileListEvent } = props
-    const logger = loggerProvider.useLogger()
-    const { backend } = backendProvider.useBackend()
-
-    const uploadFiles = React.useCallback(
-        (event: React.FormEvent<HTMLInputElement>) => {
-            if (backend.type === backendModule.BackendType.local) {
-                // TODO[sb]: Allow uploading `.enso-project`s
-                // https://github.com/enso-org/cloud-v2/issues/510
-                const message = 'Files cannot be uploaded to the local backend.'
-                toast.error(message)
-                logger.error(message)
-            } else if (
-                event.currentTarget.files == null ||
-                event.currentTarget.files.length === 0
-            ) {
-                toast.success('No files selected to upload.')
-            } else if (directoryId == null) {
-                // This should never happen, however display a nice error message in case
-                // it somehow does.
-                const message = 'Files cannot be uploaded while offline.'
-                toast.error(message)
-                logger.error(message)
-            } else {
-                dispatchFileListEvent({
-                    type: fileListEventModule.FileListEventType.uploadMultiple,
-                    files: event.currentTarget.files,
-                })
-            }
-        },
-        [
-            backend.type,
-            directoryId,
-            /* should not change */ logger,
-            /* should never change */ dispatchFileListEvent,
-        ]
-    )
-
-    return (
-        <div className="inline-flex">
-            {string.capitalizeFirst(ASSET_TYPE_NAME_PLURAL)}
-            <input
-                type="file"
-                id="files_table_upload_files_input"
-                name="files_table_upload_files_input"
-                multiple
-                className="w-0 h-0"
-                onInput={uploadFiles}
-            />
-            <label htmlFor="files_table_upload_files_input" className="cursor-pointer mx-1">
-                <img src={PlusIcon} />
-            </label>
-        </div>
-    )
-}
-
-// ================
-// === FileName ===
-// ================
-
-/** Props for a {@link FileName}. */
-interface InternalFileNameProps
-    extends tableColumn.TableColumnProps<backendModule.FileAsset, FilesTableState, FileRowState> {}
-
-/** The icon and name of a specific file asset. */
-function FileName(props: InternalFileNameProps) {
-    const { item, setItem, selected, setRowState } = props
-
-    // TODO[sb]: Wait for backend implementation. `editable` should also be re-enabled, and the
-    // context menu entry should be re-added.
-    // Backend implementation is tracked here: https://github.com/enso-org/cloud-v2/issues/505.
-    const doRename = async () => {
-        return await Promise.resolve(null)
-    }
-
-    return (
-        <div
-            className="flex text-left items-center align-middle whitespace-nowrap"
-            onClick={event => {
-                if (
-                    eventModule.isSingleClick(event) &&
-                    (selected ||
-                        shortcuts.SHORTCUT_REGISTRY.matchesMouseAction(
-                            shortcuts.MouseAction.editName,
-                            event
-                        ))
-                ) {
-                    setRowState(oldRowState => ({
-                        ...oldRowState,
-                        isEditingName: true,
-                    }))
-                }
-            }}
-        >
-            <img src={fileInfo.fileIcon()} />
-            <EditableSpan
-                editable={false}
-                onSubmit={async newTitle => {
-                    setRowState(oldRowState => ({
-                        ...oldRowState,
-                        isEditingName: false,
-                    }))
-                    if (newTitle !== item.title) {
-                        const oldTitle = item.title
-                        setItem(oldItem => ({ ...oldItem, title: newTitle }))
-                        try {
-                            await doRename(/* newTitle */)
-                        } catch {
-                            setItem(oldItem => ({ ...oldItem, title: oldTitle }))
-                        }
-                    }
-                }}
-                onCancel={() => {
-                    setRowState(oldRowState => ({
-                        ...oldRowState,
-                        isEditingName: false,
-                    }))
-                }}
-                className="bg-transparent grow px-2"
-            >
-                {item.title}
-            </EditableSpan>
-        </div>
-    )
-}
-
-// ==========================
-// === FileRowContextMenu ===
-// ==========================
-
-/** Props for a {@link FileRowContextMenu}. */
-interface InternalDirectoryRowContextMenuProps {
-    innerProps: tableRow.TableRowInnerProps<
-        backendModule.FileAsset,
-        backendModule.FileId,
-        FileRowState
-    >
-    event: React.MouseEvent
-    doDelete: () => Promise<void>
-}
-
-/** The context menu for a row of a {@link FilesTable}. */
-function FileRowContextMenu(props: InternalDirectoryRowContextMenuProps) {
-    const {
-        innerProps: { item },
-        event,
-        doDelete,
-    } = props
-    const { setModal } = modalProvider.useSetModal()
-
-    return (
-        <ContextMenu key={item.id} event={event}>
-            {/*<ContextMenuEntry disabled onClick={doCopy}>
-                                Copy
-                            </ContextMenuEntry>
-                            <ContextMenuEntry disabled onClick={doCut}>
-                                Cut
-                            </ContextMenuEntry>*/}
-            <ContextMenuEntry
-                onClick={() => {
-                    setModal(
-                        <ConfirmDeleteModal
-                            description={`the ${ASSET_TYPE_NAME} '${item.title}'`}
-                            doDelete={doDelete}
-                        />
-                    )
-                }}
-            >
-                <span className="text-red-700">Delete</span>
-            </ContextMenuEntry>
-            {/*<ContextMenuEntry disabled onClick={doDownload}>
-                                Download
-                            </ContextMenuEntry>*/}
-        </ContextMenu>
-    )
-}
 
 // ===============
 // === FileRow ===
@@ -351,7 +157,7 @@ function FileRow(
                 event.preventDefault()
                 event.stopPropagation()
                 setModal(
-                    <FileRowContextMenu innerProps={innerProps} event={event} doDelete={doDelete} />
+                    <FileContextMenu innerProps={innerProps} event={event} doDelete={doDelete} />
                 )
             }}
             item={item}
@@ -364,7 +170,7 @@ function FileRow(
 // ==================
 
 /** State passed through from a {@link FilesTable} to every cell. */
-interface FilesTableState {
+export interface FilesTableState {
     fileEvent: fileEventModule.FileEvent | null
     dispatchFileListEvent: (event: fileListEventModule.FileListEvent) => void
     markItemAsHidden: (key: string) => void
@@ -372,7 +178,7 @@ interface FilesTableState {
 }
 
 /** Data associated with a {@link FileRow}, used for rendering. */
-interface FileRowState {
+export interface FileRowState {
     isEditingName: boolean
 }
 

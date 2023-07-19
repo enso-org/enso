@@ -31,7 +31,7 @@ const RESET_PASSWORD_QUERY_PARAMS = {
 // =====================
 
 /** A form for users to reset their password. */
-function ResetPassword() {
+export default function ResetPassword() {
     const { resetPassword } = auth.useAuth()
     const { search } = router.useLocation()
 
@@ -198,5 +198,3 @@ function parseUrlSearchParams(search: string) {
     const email = query.get(RESET_PASSWORD_QUERY_PARAMS.email)
     return { verificationCode, email }
 }
-
-export default ResetPassword

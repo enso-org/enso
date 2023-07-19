@@ -63,7 +63,7 @@ export type TableProps<
     ([State] extends [never] ? unknown : StateProp<State>)
 
 /** Table that projects an object into each column. */
-function Table<T, Key extends string = string, State = never, RowState = never>(
+export default function Table<T, Key extends string = string, State = never, RowState = never>(
     props: TableProps<T, Key, State, RowState>
 ) {
     const {
@@ -242,5 +242,3 @@ function Table<T, Key extends string = string, State = never, RowState = never>(
         </table>
     )
 }
-
-export default Table

@@ -20,7 +20,7 @@ import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
 
 import Chat, * as chat from './chat'
-import DirectoryView from './directoryView'
+import DirectoryView from './driveView'
 import Ide from './ide'
 import Templates from './templates'
 import TheModal from './theModal'
@@ -45,11 +45,8 @@ export interface DashboardProps {
     initialProjectName: string | null
 }
 
-// TODO[sb]: Implement rename when clicking name of a selected row.
-// There is currently no way to tell whether a row is selected from a column.
-
 /** The component that contains the entire UI. */
-function Dashboard(props: DashboardProps) {
+export default function Dashboard(props: DashboardProps) {
     const { supportsLocalBackend, appRunner, initialProjectName } = props
     const logger = loggerProvider.useLogger()
     const session = authProvider.useNonPartialUserSession()
@@ -308,5 +305,3 @@ function Dashboard(props: DashboardProps) {
         </div>
     )
 }
-
-export default Dashboard
