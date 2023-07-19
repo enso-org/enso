@@ -133,6 +133,13 @@ impl Concurrency {
     }
 }
 
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum Access {
+    Read,
+    Write,
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Workflow {
@@ -140,6 +147,8 @@ pub struct Workflow {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
     pub on:          Event,
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    pub permissions: BTreeMap<String, Access>,
     pub jobs:        BTreeMap<String, Job>,
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub env:         BTreeMap<String, String>,
@@ -151,6 +160,7 @@ impl Default for Workflow {
     fn default() -> Self {
         let mut ret = Self {
             name:        default(),
+            permissions: default(),
             description: default(),
             on:          default(),
             jobs:        default(),

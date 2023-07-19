@@ -212,6 +212,7 @@ function Autocomplete(props: InternalMultipleAutocompleteProps | InternalSingleA
                         ref={inputRef}
                         autoFocus={autoFocus}
                         disabled={disabled}
+                        size={1}
                         className={`grow bg-gray-200 rounded-xl px-2 py-1 ${
                             disabled ? 'pointer-events-none opacity-70' : ''
                         } ${className ?? ''}`}

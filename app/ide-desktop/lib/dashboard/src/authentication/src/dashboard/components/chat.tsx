@@ -18,6 +18,13 @@ import * as newtype from '../../newtype'
 
 import Twemoji from './twemoji'
 
+// ================
+// === Newtypes ===
+// ================
+
+/** Create a {@link chat.MessageId} */
+const MessageId = newtype.newtypeConstructor<chat.MessageId>()
+
 // =================
 // === Constants ===
 // =================
@@ -628,7 +635,7 @@ function Chat(props: ChatProps) {
                 element.style.height = `${element.scrollHeight}px`
                 const newMessage: ChatDisplayMessage = {
                     // This MUST be unique.
-                    id: newtype.asNewtype<chat.MessageId>(String(Number(new Date()))),
+                    id: MessageId(String(Number(new Date()))),
                     isStaffMessage: false,
                     avatar: null,
                     name: 'Me',

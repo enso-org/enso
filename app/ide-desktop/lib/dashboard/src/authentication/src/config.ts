@@ -3,6 +3,24 @@
 import * as auth from './authentication/config'
 import * as newtype from './newtype'
 
+// =============
+// === Types ===
+// =============
+
+/** Base URL for requests to our Cloud API backend. */
+type ApiUrl = newtype.Newtype<`http://${string}` | `https://${string}`, 'ApiUrl'>
+/** Create an {@link ApiUrl}. */
+// This is a constructor function that constructs values of the type after which it is named.
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const ApiUrl = newtype.newtypeConstructor<ApiUrl>()
+
+/** URL to the websocket endpoint of the Help Chat. */
+type ChatUrl = newtype.Newtype<`ws://${string}` | `wss://${string}`, 'ChatUrl'>
+
+// This is a constructor function that constructs values of the type after which it is named.
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const ChatUrl = newtype.newtypeConstructor<ChatUrl>()
+
 // =================
 // === Constants ===
 // =================
@@ -19,15 +37,15 @@ const CLOUD_REDIRECTS = {
      * The redirect URL must be known ahead of time because it is registered with the OAuth provider
      * when it is created. In the native app, the port is unpredictable, but this is not a problem
      * because the native app does not use port-based redirects, but deep links. */
-    development: newtype.asNewtype<auth.OAuthRedirect>('http://localhost:8080'),
-    production: newtype.asNewtype<auth.OAuthRedirect>(REDIRECT_OVERRIDE ?? CLOUD_DOMAIN),
+    development: auth.OAuthRedirect('http://localhost:8080'),
+    production: auth.OAuthRedirect(REDIRECT_OVERRIDE ?? CLOUD_DOMAIN),
 }
 
 /** All possible API URLs, sorted by environment. */
 const API_URLS = {
-    pbuchu: newtype.asNewtype<ApiUrl>('https://xw0g8j3tsb.execute-api.eu-west-1.amazonaws.com'),
-    npekin: newtype.asNewtype<ApiUrl>('https://s02ejyepk1.execute-api.eu-west-1.amazonaws.com'),
-    production: newtype.asNewtype<ApiUrl>('https://7aqkn3tnbc.execute-api.eu-west-1.amazonaws.com'),
+    pbuchu: ApiUrl('https://xw0g8j3tsb.execute-api.eu-west-1.amazonaws.com'),
+    npekin: ApiUrl('https://s02ejyepk1.execute-api.eu-west-1.amazonaws.com'),
+    production: ApiUrl('https://7aqkn3tnbc.execute-api.eu-west-1.amazonaws.com'),
 }
 
 /**
@@ -36,9 +54,8 @@ const API_URLS = {
  * In development mode, the chat bot will need to be run locally:
  * https://github.com/enso-org/enso-bot */
 const CHAT_URLS = {
-    development: newtype.asNewtype<ChatUrl>('ws://localhost:8082'),
-    // TODO[sb]: Insert the actual URL of the production chat bot here.
-    production: newtype.asNewtype<ChatUrl>('wss://chat.cloud.enso.org'),
+    development: ChatUrl('ws://localhost:8082'),
+    production: ChatUrl('wss://chat.cloud.enso.org'),
 }
 
 /** All possible configuration options, sorted by environment. */
@@ -89,9 +106,3 @@ export type Environment = 'npekin' | 'pbuchu' | 'production'
 // ===========
 // === API ===
 // ===========
-
-/** Base URL for requests to our Cloud API backend. */
-type ApiUrl = newtype.Newtype<`http://${string}` | `https://${string}`, 'ApiUrl'>
-
-/** URL to the websocket endpoint of the Help Chat. */
-type ChatUrl = newtype.Newtype<`ws://${string}` | `wss://${string}`, 'ChatUrl'>
