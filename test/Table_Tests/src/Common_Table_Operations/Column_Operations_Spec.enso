@@ -3,6 +3,7 @@ from Standard.Base import all
 import Standard.Base.Errors.Common.Arithmetic_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Meta.Type
+import Standard.Database.Data.Column.Column
 import Standard.Database.Internal.Replace_Params.Replace_Params
 
 from Standard.Table import Value_Type
@@ -1122,6 +1123,20 @@ spec setup =
             Test.specify "should not allow Case_Sensitivity.Insensitive with a non-default locale" <|
                 locale = Locale.new "en" "GB" "UTF-8"
                 col.replace 'asdf' 'zxcv' case_sensitivity=(Case_Sensitivity.Insensitive locale) . should_fail_with Illegal_Argument
+
+            Test.specify "column name" <|
+                table = table_builder [["x", ['hello Hello', 'hello hello', 'HELLO HELLO', 'a[bcd] A[bCd] a[bcd]', 'abac ad Ab aCAd']], ["patterns", ['hello', 'hello', 'hello', 'a[bcd]', 'a[bcd]']], ["replacements", ['bye', 'bye', 'bye', 'hey', 'hey']]]
+                col = table.at "x"
+                patterns = table.at "patterns"
+                replacements = table.at "replacements"
+
+                supported_replace_params = setup.test_selection.supported_replace_params
+                if supported_replace_params.contains (Replace_Params.Value Text Case_Sensitivity.Default False) then
+                    col.replace 'hello' 'bye' . name . should_equal 'replace([x], \'hello\', \'bye\')'
+                if supported_replace_params.contains (Replace_Params.Value Regex Case_Sensitivity.Default False) then
+                    col.replace 'a[bcd]'.to_regex 'hey' . name . should_equal 'replace([x], \'a[bcd]\', \'hey\')'
+                if supported_replace_params.contains (Replace_Params.Value Column Case_Sensitivity.Default False) then
+                    col.replace patterns replacements . name . should_equal 'replace([x], [patterns], [replacements])'
 
     Test.group prefix+"Column Operations - Text Replace (in-memory only)" <|
         if setup.is_database.not then

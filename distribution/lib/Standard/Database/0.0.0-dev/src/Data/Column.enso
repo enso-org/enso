@@ -1186,7 +1186,8 @@ type Column
                     raw_term = case term of
                         _ : Regex -> term.pattern_string
                         _ -> term
-                    self.make_op "REPLACE" [raw_term, new_text] "new name" [term, params]
+                    new_name = self.naming_helpers.function_name "replace" [self, raw_term, new_text]
+                    self.make_op "REPLACE" [raw_term, new_text] new_name [term, params]
 
     ## Gets the year as a number from the date stored in the column.
 
