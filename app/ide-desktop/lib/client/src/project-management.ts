@@ -231,7 +231,8 @@ export function generateDirectoryName(name: string): string {
 
     // If the name already consists a suffix, reuse it.
     const matches = name.match(/^(.*)_(\d+)$/)
-    let suffix = 0
+    const initialSuffix = -1
+    let suffix = initialSuffix
     // Matches start with the whole match, so we need to skip it. Then come our two capture groups.
     const [matchedName, matchedSuffix] = matches?.slice(1) ?? []
     if (typeof matchedName !== 'undefined' && typeof matchedSuffix !== 'undefined') {
@@ -240,7 +241,8 @@ export function generateDirectoryName(name: string): string {
     }
 
     const projectsDirectory = getProjectsDirectory()
-    for (; ; suffix++) {
+    while (true) {
+        suffix++
         const candidatePath = pathModule.join(
             projectsDirectory,
             `${name}${suffix === 0 ? '' : `_${suffix}`}`
