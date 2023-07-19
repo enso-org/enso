@@ -7,23 +7,23 @@ CHANGELOG.md
 /build @mwu-tow
 
 # Rust Libraries and Related Files
-rust-toolchain.toml @MichaelMauderer @mwu-tow @farmaazon
-rustfmt.toml @MichaelMauderer @mwu-tow @farmaazon
+rust-toolchain.toml @MichaelMauderer @vitvakatu @Frizi @kazcw @farmaazon @mwu-tow
+rustfmt.toml @MichaelMauderer @mwu-tow @farmaazon @vitvakatu @Frizi @kazcw 
 Cargo.lock
 Cargo.toml
-/lib/rust/ @MichaelMauderer @mwu-tow @farmaazon @wdanilo @kazcw
-/lib/rust/ensogl/ @MichaelMauderer @wdanilo @farmaazon @kazcw
+/lib/rust/ @MichaelMauderer @mwu-tow @farmaazon @wdanilo @kazcw @vitvakatu @Frizi
+/lib/rust/ensogl/ @MichaelMauderer @wdanilo @farmaazon @kazcw @vitvakatu @Frizi
 /lib/rust/parser/ @kazcw @wdanilo @jaroslavtulach
-/integration-test/ @MichaelMauderer @wdanilo @farmaazon @kazcw
+/integration-test/ @MichaelMauderer @wdanilo @farmaazon @kazcw @vitvakatu @Frizi
 /tools/build-performance/ @kazcw @mwu-tow @wdanilo @Akirathan
 
 # Scala Libraries
 /lib/scala/ @4e6 @jaroslavtulach @hubertp
 
 # GUI
-/app/gui/ @MichaelMauderer @wdanilo @farmaazon @mwu-tow @kazcw
-/app/gui/view/ @MichaelMauderer @wdanilo @farmaazon @kazcw
-/app/gui/view/graph-editor/src/builtin/visualization/java_script/ @MichaelMauderer @wdanilo @farmaazon @kazcw @jdunkerley
+/app/gui/ @MichaelMauderer @wdanilo @farmaazon @mwu-tow @kazcw @vitvakatu @Frizi
+/app/gui/view/ @MichaelMauderer @wdanilo @farmaazon @kazcw @vitvakatu @Frizi
+/app/gui/view/graph-editor/src/builtin/visualization/java_script/ @MichaelMauderer @wdanilo @farmaazon @kazcw @jdunkerley @vitvakatu @Frizi
 
 # Engine (old)
 # This section should be removed once the engine moves to /app/engine
