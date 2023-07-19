@@ -161,55 +161,6 @@ impl AllStyles {
 
 
 
-// ========================
-// === Shape Definition ===
-// ========================
-
-
-// === Background ===
-
-#[allow(missing_docs)]
-pub mod background {
-    use super::*;
-
-    ensogl_core::shape! {
-        below = [
-            grid::entry::background,
-            grid::entry::icon::any,
-            grid_view::entry::overlay,
-            grid_view::selectable::highlight::shape
-        ];
-        alignment = center;
-        (style:Style,bg_color:Vector4) {
-            let alpha = Var::<f32>::from(format!("({bg_color}.w)"));
-            let bg_color = &Var::<color::Rgba>::from(bg_color.clone());
-
-            let grid_padding = style.get_number(theme::grid::padding);
-            let grid_width = style.get_number(theme::grid::width);
-            let grid_height = style.get_number(theme::grid::height);
-            let corners_radius = style.get_number(theme::corners_radius);
-            let menu_divider_color = style.get_color(theme::menu_divider_color);
-            let navigator_divider_color = style.get_color(theme::navigator_divider_color);
-            let menu_divider_width = grid_width - grid_padding * 2.0;
-            let menu_divider_height = style.get_number(theme::menu_divider_height);
-            let navigator_divider_width = style.get_number(theme::navigator_divider_width);
-            let menu_height = style.get_number(theme::menu_height);
-            let navigator_width = style.get_number(theme::navigator::width);
-
-            let width = grid_width;
-            let height = grid_height + menu_height;
-
-            let base_shape = Rect((width.px(), height.px()));
-            let base_shape = base_shape.corners_radius(corners_radius.px());
-            let background = base_shape.fill(bg_color);
-
-            background.into()
-        }
-    }
-}
-
-
-
 // =============
 // === Model ===
 // =============
@@ -240,6 +191,7 @@ impl Model {
             .justify_content_center();
         background.set_size(Vector2(190.0, 380.0));
         background.set_corner_radius(20.0);
+        background.set_padding_bottom(4.0);
 
         let grid = app.new_view::<grid::View>();
         background.add_child(&grid_adapter);

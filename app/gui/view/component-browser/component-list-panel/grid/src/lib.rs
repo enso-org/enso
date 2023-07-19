@@ -204,7 +204,8 @@ pub struct GroupColors {
 pub struct Style {
     pub width:        f32,
     pub height:       f32,
-    pub padding:      f32,
+    pub padding_x:    f32,
+    pub padding_y:    f32,
     pub column_gap:   f32,
     pub entry_height: f32,
 }
@@ -213,7 +214,7 @@ impl Style {
     /// Compute the size of grid without external paddings.
     pub fn content_size(&self) -> Vector2 {
         let size = Vector2(self.width, self.height);
-        let padding = Vector2(self.padding, self.padding) * 2.0;
+        let padding = Vector2(self.padding_x, self.padding_y) * 2.0;
         size - padding
     }
 
@@ -564,7 +565,7 @@ impl Model {
     fn grid_position(input: &(Style, Vector2)) -> Vector2 {
         let (style, _) = input;
         let y = -style.content_size().y + Self::grid_size(input).y;
-        Vector2(style.padding, y)
+        Vector2(style.padding_x, y)
     }
 
     fn entries_params(
