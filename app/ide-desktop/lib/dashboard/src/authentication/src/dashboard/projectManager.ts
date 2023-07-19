@@ -53,14 +53,25 @@ interface JSONRPCErrorResponse extends JSONRPCBaseResponse {
 /** The return value of a JSON-RPC call. */
 type JSONRPCResponse<T> = JSONRPCErrorResponse | JSONRPCSuccessResponse<T>
 
+// These are constructor functions that construct values of the type they are named after.
+/* eslint-disable @typescript-eslint/no-redeclare */
+
 // This intentionally has the same brand as in the cloud backend API.
 /** An ID of a project. */
 export type ProjectId = newtype.Newtype<string, 'ProjectId'>
+/** Create a {@link ProjectId}. */
+export const ProjectId = newtype.newtypeConstructor<ProjectId>()
 /** A name of a project. */
 export type ProjectName = newtype.Newtype<string, 'ProjectName'>
+/** Create a {@link ProjectName}. */
+export const ProjectName = newtype.newtypeConstructor<ProjectName>()
 /** The newtype's `TypeName` is intentionally different from the name of this type alias,
  * to match the backend's newtype. */
 export type UTCDateTime = dateTime.Rfc3339DateTime
+/** Create a {@link UTCDateTime}. */
+export const UTCDateTime = newtype.newtypeConstructor<UTCDateTime>()
+
+/* eslint-enable @typescript-eslint/no-redeclare */
 
 /** Details for a project. */
 export interface ProjectMetadata {
