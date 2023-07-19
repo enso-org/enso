@@ -46,7 +46,7 @@
 use crate::prelude::*;
 use ensogl_core::display::shape::*;
 
-use crate::button_panel::View as SectionNavigator;
+use crate::button_panel::View as ButtonPanel;
 
 use enso_frp as frp;
 use ensogl_core::application::frp::API;
@@ -62,6 +62,7 @@ use ensogl_derive_theme::FromTheme;
 use ensogl_grid_view as grid_view;
 use ensogl_gui_component::component;
 use ensogl_hardcoded_theme::application::component_browser::component_list_panel as theme;
+use theme::button_panel as button_panel_theme;
 
 
 
@@ -71,10 +72,7 @@ use ensogl_hardcoded_theme::application::component_browser::component_list_panel
 
 mod button_panel;
 
-pub use breadcrumbs::BreadcrumbId;
-pub use breadcrumbs::SECTION_NAME_CRUMB_INDEX;
 pub use ensogl_core::prelude;
-pub use ide_view_component_list_panel_breadcrumbs as breadcrumbs;
 pub use ide_view_component_list_panel_grid as grid;
 pub use ide_view_component_list_panel_grid::entry::icon;
 
@@ -98,17 +96,13 @@ const INFINITE: f32 = 999999.0;
 #[derive(Copy, Clone, Debug, Default, FromTheme)]
 #[base_path = "theme"]
 pub struct Style {
-    pub width:                  f32,
-    pub height:                 f32,
-    pub background_color:       color::Rgba,
-    pub corners_radius:         f32,
-    #[theme_path = "theme::menu::breadcrumbs::crop_left"]
-    pub breadcrumbs_crop_left:  f32,
-    #[theme_path = "theme::menu::breadcrumbs::crop_right"]
-    pub breadcrumbs_crop_right: f32,
-    pub menu_height:            f32,
-    pub menu_divider_color:     color::Rgba,
-    pub menu_divider_height:    f32,
+    pub width: f32,
+    pub height: f32,
+    pub background_color: color::Rgba,
+    pub corners_radius: f32,
+    pub padding_bottom: f32,
+    #[theme_path = "button_panel_theme::margin_bottom"]
+    pub button_panel_margin_bottom: f32,
 }
 
 /// The combined style values for Component List Panel and its content.
@@ -139,11 +133,13 @@ impl AllStyles {
 #[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug)]
 pub struct Model {
-    display_object:        display::object::Instance,
-    grid_adapter:          display::object::Instance,
-    background:            Rectangle,
-    pub grid:              grid::View,
-    pub section_navigator: SectionNavigator,
+    display_object:   display::object::Instance,
+    /// This display object moves the origin of the grid to the bottom left corner, to support
+    /// auto-layout system.
+    grid_adapter:     display::object::Instance,
+    background:       Rectangle,
+    pub grid:         grid::View,
+    pub button_panel: ButtonPanel,
 }
 
 impl Model {
@@ -159,23 +155,15 @@ impl Model {
             .set_column_flow()
             .set_children_alignment_center()
             .justify_content_center();
-        background.set_size(Vector2(190.0, 380.0));
-        background.set_corner_radius(20.0);
-        background.set_padding_bottom(4.0);
 
         let grid = app.new_view::<grid::View>();
         background.add_child(&grid_adapter);
         grid_adapter.add_child(&grid);
 
-        let section_navigator = SectionNavigator::new(app);
-        background.add_child(&section_navigator);
-        section_navigator.set_margin_bottom(-5.0);
+        let button_panel = ButtonPanel::new(app);
+        background.add_child(&button_panel);
 
-        let breadcrumbs = app.new_view::<breadcrumbs::Breadcrumbs>();
-        breadcrumbs.set_base_layer(&app.display.default_scene.layers.node_searcher);
-        display_object.add_child(&breadcrumbs);
-
-        app.display.default_scene.layers.node_searcher_button_panel.add(&section_navigator);
+        app.display.default_scene.layers.node_searcher_button_panel.add(&button_panel);
 
         shapes_order_dependencies! {
             scene => {
@@ -183,23 +171,23 @@ impl Model {
             }
         }
 
-        Self { display_object, background, grid, grid_adapter, section_navigator }
+        Self { display_object, background, grid, grid_adapter, button_panel }
     }
 
     /// Access to FRP of the buttons.
     pub fn buttons(&self) -> &button_panel::Frp {
-        &self.section_navigator
+        &self.button_panel
     }
 
     fn update_style(&self, style: &AllStyles) {
-        self.background.set_color(style.panel.background_color.into());
-        // self.background.set_color(color::Rgba::transparent());
-        // self.background.set_size(style.background_sprite_size());
-
-        // self.breadcrumbs.set_xy(style.breadcrumbs_pos());
-        // self.breadcrumbs.frp().set_size(style.breadcrumbs_size());
         self.grid_adapter.set_size(style.grid_size());
         self.grid.set_y(style.grid_size().y);
+        let style = &style.panel;
+        self.background.set_color(style.background_color.into());
+        self.background.set_size(Vector2(style.width, style.height));
+        self.background.set_corner_radius(style.corners_radius);
+        self.background.set_padding_bottom(style.padding_bottom);
+        self.button_panel.set_margin_bottom(style.button_panel_margin_bottom);
     }
 
     // We need to know if the mouse is over the panel, but cannot do it via a shape, as
