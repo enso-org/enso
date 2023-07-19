@@ -277,7 +277,7 @@ impl Model {
     // the panel).
     fn is_hovered(&self, pos: Vector2, style: &AllStyles) -> bool {
         let size = style.size();
-        let viewport = BoundingBox::from_center_and_size(default(), size);
+        let viewport = BoundingBox::from_center_and_size(size / 2.0, size);
         viewport.contains(pos)
     }
 }
