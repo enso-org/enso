@@ -471,6 +471,14 @@ impl Network {
         self.all_with(label, t1, t2, |a, b| *a && *b)
     }
 
+    /// On every input event, sample all input streams and output `t1 && !t2`.
+    pub fn and_not<T1, T2>(&self, label: Label, t1: &T1, t2: &T2) -> Stream<bool>
+    where
+        T1: EventOutput<Output = bool>,
+        T2: EventOutput<Output = bool>, {
+        self.all_with(label, t1, t2, |a, b| *a && !*b)
+    }
+
     pub fn is_some<T, X>(&self, label: Label, src: &T) -> Stream<bool>
     where T: EventOutput<Output = Option<X>> {
         self.map(label, src, |t| t.is_some())

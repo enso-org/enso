@@ -33,30 +33,7 @@ struct Style {
     /// Maximum allowed size of the dropdown list. If the list needs to be longer or wider than
     /// allowed by these values, it will receive a scroll bar.
     dropdown_max_size:  Vector2,
-}
-
-
-
-// ======================
-// === Triangle Shape ===
-// ======================
-
-/// Temporary dropdown activation shape definition.
-pub mod triangle {
-    use super::*;
-    ensogl::shape! {
-        above = [display::shape::compound::rectangle::shape];
-        alignment = left_bottom;
-        (style:Style, color:Vector4) {
-            let size   = Var::canvas_size();
-            let radius = 1.0.px();
-            let shrink = &radius * 2.0;
-            let shape  = Triangle(size.x() - &shrink, size.y() - &shrink)
-                .flip_y()
-                .grow(radius);
-            shape.fill(color).into()
-        }
-    }
+    dropdown_tint:      color::Lcha,
 }
 
 
@@ -285,6 +262,9 @@ impl Widget {
             do_close <- any_(focus_out, readonly_set);
             is_open <- bool(&do_close, &do_open);
             dropdown_frp.set_open <+ is_open.on_change();
+            dropdown_frp.set_color <+ all_with(style, &widgets_frp.node_base_color,
+                |style, color| style.dropdown_tint.over(*color)
+            );
 
             // Close the dropdown after a short delay after selection. Because the dropdown
             // value application triggers operations that can introduce a few dropped frames,
@@ -353,11 +333,13 @@ impl Widget {
 
             mouse_dropdown_down_delayed <- mouse_dropdown_down.debounce();
             handling_dropdown_down <- bool(&mouse_dropdown_down_delayed, &mouse_dropdown_down);
+            mouse_down <- mouse_down.gate_not(&widgets_frp.set_edit_ready_mode);
             clicked <- mouse_down.filter(mouse::is_primary);
             eval clicked([] (event) event.stop_propagation());
             clicked <- clicked.gate_not(&handling_dropdown_down);
 
             is_hovered <- bool(&mouse_leave, &mouse_enter);
+            is_hovered <- is_hovered.and_not(&widgets_frp.set_edit_ready_mode);
 
             let triangle_color = color::Animation::new(network);
             triangle_color.target <+ is_connected.all_with3(style, &is_hovered,
@@ -416,9 +398,11 @@ struct LazyDropdown {
     set_all_entries: frp::Any<Vec<Choice>>,
     set_selected_entries: frp::Any<HashSet<Choice>>,
     set_open: frp::Any<bool>,
+    set_color: frp::Any<color::Lcha>,
     sampled_set_all_entries: frp::Sampler<Vec<Choice>>,
     sampled_set_selected_entries: frp::Sampler<HashSet<Choice>>,
     sampled_set_open: frp::Sampler<bool>,
+    sampled_set_color: frp::Sampler<color::Lcha>,
     selected_entries: frp::Any<HashSet<Choice>>,
     user_select_action: frp::Any<()>,
     network: frp::Network,
@@ -431,11 +415,13 @@ impl LazyDropdown {
             set_all_entries <- any(...);
             set_selected_entries <- any(...);
             set_open <- any(...);
+            set_color <- any(...);
             selected_entries <- any(...);
             user_select_action <- any(...);
             sampled_set_all_entries <- set_all_entries.sampler();
             sampled_set_selected_entries <- set_selected_entries.sampler();
             sampled_set_open <- set_open.sampler();
+            sampled_set_color <- set_color.sampler();
         }
 
         Self {
@@ -443,11 +429,13 @@ impl LazyDropdown {
             set_all_entries,
             set_selected_entries,
             set_open,
+            set_color,
             selected_entries,
             user_select_action,
             sampled_set_all_entries,
             sampled_set_selected_entries,
             sampled_set_open,
+            sampled_set_color,
             dropdown: None,
             network: frp::Network::new("LazyDropdown"),
         }
@@ -474,6 +462,7 @@ impl LazyDropdown {
             dropdown.set_all_entries <+ self.sampled_set_all_entries;
             dropdown.set_selected_entries <+ self.sampled_set_selected_entries;
             dropdown.set_open <+ self.sampled_set_open;
+            dropdown.set_color <+ self.sampled_set_color;
             self.selected_entries <+ dropdown.selected_entries;
             self.user_select_action <+ dropdown.user_select_action;
             eval* style([dropdown] (style) {
@@ -492,5 +481,6 @@ impl LazyDropdown {
         dropdown.set_all_entries(self.sampled_set_all_entries.value());
         dropdown.set_selected_entries(self.sampled_set_selected_entries.value());
         dropdown.set_open(self.sampled_set_open.value());
+        dropdown.set_color(self.sampled_set_color.value());
     }
 }

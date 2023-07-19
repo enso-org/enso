@@ -552,7 +552,9 @@ impl Cursor {
                 }
             }));
 
-            scene_position       <- screen_position.map(f!((p) scene.screen_to_scene_coordinates(*p)));
+            scene_position <- screen_position.all_with(&scene.frp.camera_changed,
+                f!((p, _) scene.screen_to_scene_coordinates(*p))
+            ).on_change();
             scene_position_prev  <- scene_position.previous();
             scene_position_delta <- scene_position.map2(&scene_position_prev, |p1,p2| p2 - p1);
 
