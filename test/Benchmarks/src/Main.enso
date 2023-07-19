@@ -4,7 +4,7 @@ import project.Equality
 import project.Json_Bench
 import project.Natural_Order_Sort
 import project.Number_Parse
-import project.Numberic
+import project.Numeric
 import project.Sum
 
 import project.Statistics
@@ -23,6 +23,7 @@ main =
     Json_Bench.bench
     Natural_Order_Sort.bench
     Number_Parse.bench
+    Numeric.bench
     Numeric_Parse.bench
     Sum.bench
     Statistics.Main.bench
