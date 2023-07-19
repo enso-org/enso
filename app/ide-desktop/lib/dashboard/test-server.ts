@@ -1,9 +1,9 @@
 /** @file File watch and compile service. */
+import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 import * as url from 'node:url'
 
 import * as esbuild from 'esbuild'
-import chalk from 'chalk'
 
 import * as bundler from './esbuild-config'
 
@@ -15,7 +15,6 @@ import * as bundler from './esbuild-config'
 const THIS_PATH = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)))
 /** This must be port `8080` because it is defined as such in AWS. */
 const PORT = 8080
-const HTTP_STATUS_OK = 200
 // `outputPath` does not have to be a real directory because `write` is `false`,
 // meaning that files will not be written to the filesystem.
 // However, the path should still be non-empty in order for `esbuild.serve` to work properly.
@@ -26,19 +25,22 @@ OPTS.entryPoints.push(
     path.resolve(THIS_PATH, 'src', 'index.tsx'),
     path.resolve(THIS_PATH, 'src', 'serviceWorker.ts')
 )
-OPTS.minify = false
 OPTS.write = false
 OPTS.loader['.html'] = 'copy'
-OPTS.pure.splice(OPTS.pure.indexOf('assert'), 1)
-;(OPTS.inject = OPTS.inject ?? []).push(path.resolve(THIS_PATH, '..', '..', 'debugGlobals.ts'))
 OPTS.plugins.push({
-    name: 'react-dom-profiling',
+    name: 'inject-mock-modules',
     setup: build => {
-        build.onResolve({ filter: /^react-dom$/ }, args => {
-            if (args.kind === 'import-statement') {
-                return { path: 'react-dom/profiling' }
-            } else {
-                return
+        build.onResolve({ filter: /(?:)/ }, async args => {
+            if (/^\.\.?\//.test(args.path)) {
+                const mockPath = path
+                    .resolve(args.importer, args.path)
+                    .replace('/lib/dashboard/src/', '/lib/dashboard/mock/')
+                try {
+                    await fs.access(mockPath, fs.constants.R_OK)
+                    return { path: mockPath }
+                } catch {
+                    return
+                }
             }
         })
     },
@@ -49,22 +51,12 @@ OPTS.plugins.push({
 // ===============
 
 /** Start the esbuild watcher. */
-async function watch() {
+async function serve() {
     const builder = await esbuild.context(OPTS)
-    await builder.watch()
     await builder.serve({
         port: PORT,
         servedir: OPTS.outdir,
-        /** This function is called on every request.
-         * It is used here to show an error if the file to serve was not found. */
-        onRequest(args) {
-            if (args.status !== HTTP_STATUS_OK) {
-                console.error(
-                    chalk.red(`HTTP error ${args.status} when serving path '${args.path}'.`)
-                )
-            }
-        },
     })
 }
 
-void watch()
+void serve()

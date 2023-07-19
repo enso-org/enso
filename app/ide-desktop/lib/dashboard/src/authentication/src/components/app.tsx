@@ -113,7 +113,7 @@ function App(props: AppProps) {
     return (
         <>
             <toast.Toaster
-                toastOptions={{ style: { maxWidth: '100%' } }}
+                toastOptions={{ className: 'react-hot-toast', style: { maxWidth: '100%' } }}
                 position="top-center"
                 reverseOrder={false}
             />
