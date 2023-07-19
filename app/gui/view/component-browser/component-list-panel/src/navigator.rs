@@ -114,20 +114,15 @@ impl Navigator {
             .justify_content_center_y();
         let tooltip = |label: &str| tooltip::Style::set_label(label).with_placement(Placement::Top);
         let local_scope_tooltip = tooltip(LOCAL_SCOPE_TOOLTIP);
-        let local_scope =
-            ToggleButton::new_from_cached::<icon::local_scope::Shape>(app, local_scope_tooltip);
+        let local_scope = new_button::<icon::local_scope::Shape>(app, local_scope_tooltip);
         let shortcuts_tooltip = tooltip(SHOW_SHORTCUTS_TOOLTIP);
-        let shortcuts =
-            ToggleButton::new_from_cached::<icon::command_key::Shape>(app, shortcuts_tooltip);
+        let shortcuts = new_button::<icon::command_key::Shape>(app, shortcuts_tooltip);
         let unstable_tooltip = tooltip(UNSTABLE_TOOLTIP);
-        let unstable =
-            ToggleButton::new_from_cached::<icon::unstable::Shape>(app, unstable_tooltip);
+        let unstable = new_button::<icon::unstable::Shape>(app, unstable_tooltip);
         let marketplace_tooltip = tooltip(MARKETPLACE_TOOLTIP);
-        let marketplace =
-            ToggleButton::new_from_cached::<icon::marketplace::Shape>(app, marketplace_tooltip);
+        let marketplace = new_button::<icon::marketplace::Shape>(app, marketplace_tooltip);
         let side_panel_tooltip = tooltip(SIDE_PANEL_TOOLTIP);
-        let side_panel =
-            ToggleButton::new_from_cached::<icon::right_side_panel::Shape>(app, side_panel_tooltip);
+        let side_panel = new_button::<icon::right_side_panel::Shape>(app, side_panel_tooltip);
         let size = Vector2(icon::SIZE, icon::SIZE);
         local_scope.set_size(size);
         shortcuts.set_size(size);
@@ -179,13 +174,18 @@ impl View {
             // === Initial state ===
 
             model.side_panel.set_state <+ init.constant(true);
+            // Buttons below are not implemented.
+            model.local_scope.set_read_only <+ init.constant(true);
+            model.shortcuts.set_read_only <+ init.constant(true);
+            model.unstable.set_read_only <+ init.constant(true);
+            model.marketplace.set_read_only <+ init.constant(true);
 
 
             // === Buttons ===
 
             model.local_scope.set_state <+ frp.set_local_scope_mode;
-            model.unstable.set_state <+ frp.set_search_unstable;
             model.shortcuts.set_state <+ frp.set_show_shortcuts;
+            model.unstable.set_state <+ frp.set_search_unstable;
             model.side_panel.set_state <+ frp.set_side_panel;
             out.local_scope_mode <+ model.local_scope.state;
             out.search_unstable <+ model.unstable.state;
@@ -203,4 +203,18 @@ impl display::Object for View {
     fn display_object(&self) -> &display::object::Instance {
         self.model.background.display_object()
     }
+}
+
+
+
+// ===============
+// === Helpers ===
+// ===============
+
+/// Create new ToggleButton with cached icon. A call site becomes a bit shorter.
+fn new_button<T: CachedShape>(
+    app: &Application,
+    tooltip: tooltip::Style,
+) -> ToggleButton<ensogl_toggle_button::any_cached::Shape> {
+    ToggleButton::new_from_cached::<T>(app, tooltip)
 }
