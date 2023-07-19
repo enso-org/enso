@@ -691,7 +691,7 @@ lazy val `logging-service` = project
       "io.circe"               %% "circe-core"      % circeVersion,
       "io.circe"               %% "circe-parser"    % circeVersion,
       "junit"                   % "junit"           % junitVersion     % Test,
-      "com.github.sbt"          % "junit-interface" % junitIfVersion   % Test exclude ("junit", "junit-dep"),
+      "com.github.sbt"          % "junit-interface" % junitIfVersion   % Test,
       "org.scalatest"          %% "scalatest"       % scalatestVersion % Test,
       "org.graalvm.nativeimage" % "svm"             % graalVersion     % "provided"
     )
@@ -973,7 +973,7 @@ lazy val `interpreter-dsl-test` =
         "org.graalvm.truffle" % "truffle-api"           % graalVersion   % "provided",
         "org.graalvm.truffle" % "truffle-dsl-processor" % graalVersion   % "provided",
         "junit"               % "junit"                 % junitVersion   % Test,
-        "com.github.sbt"      % "junit-interface"       % junitIfVersion % Test exclude ("junit", "junit-dep")
+        "com.github.sbt"      % "junit-interface"       % junitIfVersion % Test
       )
     )
     .dependsOn(`interpreter-dsl`)
@@ -1299,7 +1299,7 @@ lazy val runtime = (project in file("engine/runtime"))
       "org.graalvm.truffle" % "truffle-api"           % graalVersion      % Benchmark,
       "org.typelevel"      %% "cats-core"             % catsVersion,
       "junit"               % "junit"                 % junitVersion      % Test,
-      "com.github.sbt"      % "junit-interface"       % junitIfVersion    % Test exclude ("junit", "junit-dep"),
+      "com.github.sbt"      % "junit-interface"       % junitIfVersion    % Test,
       "com.lihaoyi"        %% "fansi"                 % fansiVersion
     ),
     Compile / compile / compileInputs := (Compile / compile / compileInputs)
@@ -1380,7 +1380,7 @@ lazy val `runtime-parser` =
       instrumentationSettings,
       libraryDependencies ++= Seq(
         "junit"          % "junit"           % junitVersion     % Test,
-        "com.github.sbt" % "junit-interface" % junitIfVersion   % Test exclude ("junit", "junit-dep"),
+        "com.github.sbt" % "junit-interface" % junitIfVersion   % Test,
         "org.scalatest" %% "scalatest"       % scalatestVersion % Test
       )
     )
