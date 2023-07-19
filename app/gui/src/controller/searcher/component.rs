@@ -1,25 +1,32 @@
 //! A module containing definition of [`Component`] and its [`List`]
 //!
 //! Component is a language entity displayed in the Component Browser.
+
 use crate::prelude::*;
 
+use crate::controller::graph::RequiredImport;
+use crate::controller::searcher::Filter;
+use crate::model::suggestion_database;
+
+use double_representation::name::project;
 use enso_doc_parser::DocSection;
 use enso_doc_parser::Tag;
+use enso_suggestion_database::entry;
 use ensogl::data::color;
 use ordered_float::OrderedFloat;
 use std::cmp;
 use superslice::Ext;
 
-use crate::controller::searcher::Filter;
-use crate::model::suggestion_database;
+
+// ==============
+// === Export ===
+// ==============
 
 pub mod builder;
 pub mod hardcoded;
 
-use crate::controller::graph::RequiredImport;
 pub use builder::Builder;
-use double_representation::name::project;
-use enso_suggestion_database::entry;
+
 
 
 // =================

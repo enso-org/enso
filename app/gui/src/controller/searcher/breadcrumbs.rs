@@ -3,9 +3,11 @@
 use crate::prelude::*;
 
 use crate::model::suggestion_database;
+
 use double_representation::name::QualifiedName;
 use double_representation::name::QualifiedNameRef;
 use model::suggestion_database::Entry;
+
 
 
 // ===================

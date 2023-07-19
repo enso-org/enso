@@ -1,17 +1,20 @@
 //! A module containing logic for constructing [`component::List`]. The main structure is
 //! [`Builder`].
 
+use crate::prelude::*;
+
 use crate::controller::searcher::component;
 use crate::controller::searcher::component::hardcoded;
 use crate::controller::searcher::component::Component;
 use crate::model::execution_context;
 use crate::model::suggestion_database;
-use crate::prelude::*;
+
 use double_representation::name::project;
 use double_representation::name::project::STANDARD_NAMESPACE;
 use double_representation::name::QualifiedName;
 use double_representation::name::QualifiedNameRef;
 use enso_suggestion_database::SuggestionDatabase;
+
 
 
 // ===============================

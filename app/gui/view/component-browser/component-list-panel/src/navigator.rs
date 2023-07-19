@@ -5,7 +5,6 @@
 
 use ensogl_core::prelude::*;
 
-
 use enso_frp as frp;
 use ensogl_core::data::color;
 use ensogl_core::display::shape::StyleWatchFrp;
