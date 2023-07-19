@@ -49,7 +49,7 @@ function SecretCreateForm(props: SecretCreateFormProps) {
                         {
                             pending: 'Creating secret...',
                             success: 'Successfully created secret.',
-                            error: error.render((message) => `Failed to create secret: ${message}`),
+                            error: error.render(message => `Failed to create secret: ${message}`),
                         }
                     )
                     .then(onSuccess)

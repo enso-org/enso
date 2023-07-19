@@ -41,7 +41,10 @@ function RenameModal(props: RenameModalProps) {
                 await toastify.toast.promise(doRename(newName), {
                     pending: `Renaming ${assetType} '${name}' to '${newName}'...`,
                     success: `Renamed ${assetType} '${name}' to '${newName}'.`,
-                    error: error.render(message => `Error renaming ${assetType} '${name}' to '${newName}': ${message}`),
+                    error: error.render(
+                        message =>
+                            `Error renaming ${assetType} '${name}' to '${newName}': ${message}`
+                    ),
                 })
             } finally {
                 onComplete()

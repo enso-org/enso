@@ -3767,6 +3767,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "gloo-utils"
+version = "0.1.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "037fcb07216cb3a30f7292bd0176b050b7b9a052ba830ef7d5d65f6dc64ba58e"
+dependencies = [
+ "js-sys",
+ "serde",
+ "serde_json",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
 name = "graphql-introspection-query"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4267,6 +4280,7 @@ dependencies = [
  "ensogl-hardcoded-theme",
  "ensogl-text",
  "ensogl-text-msdf",
+ "gloo-utils",
  "ide-view-component-browser",
  "ide-view-documentation",
  "ide-view-execution-environment-selector",
@@ -4277,8 +4291,6 @@ dependencies = [
  "ordered-float",
  "parser",
  "serde",
- "serde-transcode",
- "serde-wasm-bindgen",
  "serde_json",
  "span-tree",
  "strum",
@@ -6199,15 +6211,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "serde-transcode"
-version = "1.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "590c0e25c2a5bb6e85bf5c1bce768ceb86b316e7a01bdf07d2cb4ec2271990e2"
-dependencies = [
- "serde",
-]
-
-[[package]]
 name = "serde-wasm-bindgen"
 version = "0.4.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7375,8 +7378,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "31f8dcbc21f30d9b8f2ea926ecb58f6b91192c17e9d33594b3df58b2007ca53b"
 dependencies = [
  "cfg-if 1.0.0",
- "serde",
- "serde_json",
  "wasm-bindgen-macro",
 ]
 

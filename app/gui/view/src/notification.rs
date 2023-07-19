@@ -1,13 +1,98 @@
 //! This is Rust wrapper for the [`react-toastify`](https://fkhadra.github.io/react-toastify) library.
+//!
+//! # Example
+//!
+//! ```no_run
+//! use ide_view::notification;
+//! # fn main() -> Result<(), wasm_bindgen::JsValue> {
+//! use ide_view::notification::UpdateOptions;
+//! let handle = notification::info(
+//!     "Undo triggered in UI.",
+//!     &Some(notification::Options {
+//!         theme: Some(notification::Theme::Dark),
+//!         auto_close: Some(notification::AutoClose::Never()),
+//!         draggable: Some(false),
+//!         close_on_click: Some(false),
+//!         ..Default::default()
+//!     }),
+//! )?;
+//! handle.update(&UpdateOptions::default().render_string("Undo done."))?;
+//! # Ok(())
+//! # }
+//! ```
 
 use crate::prelude::*;
+use wasm_bindgen::prelude::*;
+
+use gloo_utils::format::JsValueSerdeExt;
 use serde::Deserialize;
 use serde::Serialize;
-use wasm_bindgen::prelude::*;
+
+
+// ==============
+// === Export ===
+// ==============
 
 pub mod js;
 
-/// Macro that implements TryFrom for given `type` to/from JsValue using [`serde_wasm_bindgen`].
+pub use js::Id;
+
+
+
+// ===================
+// === Primary API ===
+// ===================
+
+/// Send any kind of notification.
+pub fn toast_any(message: &str, r#type: Type, options: &Option<Options>) -> Result<Id, JsValue> {
+    warn!("options: {:?}", serde_json::to_string(options));
+    let options = match options {
+        Some(options) => options.try_into()?,
+        None => JsValue::UNDEFINED,
+    };
+    warn!("options: {:?}", js_sys::JSON::stringify(&options));
+    js::toast(message, r#type, &options)
+}
+
+/// Send an info notification.
+pub fn info(message: &str, options: &Option<Options>) -> Result<Id, JsValue> {
+    toast_any(message, Type::Info, options)
+}
+
+/// Send a warning notification.
+pub fn warning(message: &str, options: &Option<Options>) -> Result<Id, JsValue> {
+    toast_any(message, Type::Warning, options)
+}
+
+/// Send a error notification.
+pub fn error(message: &str, options: &Option<Options>) -> Result<Id, JsValue> {
+    toast_any(message, Type::Error, options)
+}
+
+/// Send a success notification.
+pub fn success(message: &str, options: &Option<Options>) -> Result<Id, JsValue> {
+    toast_any(message, Type::Success, options)
+}
+
+
+
+// =============================
+// === JS-conversion helpers ===
+// =============================
+
+
+// === Rust->JS error ===
+
+/// Convert arbitrary Rust error value into JsValue-based error.
+pub fn to_js_error(error: impl std::error::Error) -> JsValue {
+    js_sys::Error::new(&error.to_string()).into()
+}
+
+
+// === Rust->JS conversion ===
+
+/// Macro that implements TryFrom for given `type` to/from JsValue using
+/// [`gloo-utils::format::JsValueSerdeExt`].
 ///
 /// Implements:
 /// - `TryFrom<&type> for JsValue`
@@ -18,7 +103,7 @@ macro_rules! impl_try_from_jsvalue {
             type Error = JsValue;
 
             fn try_from(value: &$type) -> Result<Self, Self::Error> {
-                serde_wasm_bindgen::to_value(value).map_err(|e| e.into())
+                JsValue::from_serde(value).map_err($crate::notification::to_js_error)
             }
         }
 
@@ -26,11 +111,43 @@ macro_rules! impl_try_from_jsvalue {
             type Error = JsValue;
 
             fn try_from(js_value: JsValue) -> Result<Self, Self::Error> {
-                serde_wasm_bindgen::from_value(js_value).map_err(|e| e.into())
+                js_value.into_serde().map_err($crate::notification::to_js_error)
             }
         }
     };
 }
+
+
+// === SerializableJsValue ===
+
+/// A wrapper around a `JsValue` that implements the `Serialize` and `Deserialize` traits.
+#[derive(Clone, Debug, Deref, DerefMut, AsRef, From)]
+pub struct SerializableJsValue(pub JsValue);
+
+impl Serialize for SerializableJsValue {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        let value = js_sys::JSON::stringify(self).map(String::from).map_err(|e| {
+            serde::ser::Error::custom(format!("Failed to stringify JsValue: {e:?}"))
+        })?;
+        let value = serde_json::from_str::<serde_json::Value>(&value)
+            .map_err(|e| serde::ser::Error::custom(format!("Failed to parse JSON: {e:?}")))?;
+        value.serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for SerializableJsValue {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let value = serde_json::Value::deserialize(deserializer)?;
+        JsValue::from_serde(&value).map(SerializableJsValue).map_err(serde::de::Error::custom)
+    }
+}
+
+
+// ===============
+// === Options ===
+// ===============
+
+// === AutoClose ===
 
 /// Helper structure for [`AutoClose`] so it serializes in a way compatible with the JS library.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -61,6 +178,8 @@ impl AutoClose {
     }
 }
 
+// === Type ===
+
 /// Represents the type of a toast notification.
 ///
 /// Affects styling and icon.
@@ -76,6 +195,9 @@ pub enum Type {
     Default,
 }
 
+
+// === Position ===
+
 /// Represents the position of a toast notification on the screen.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
@@ -89,16 +211,24 @@ pub enum Position {
     BottomLeft,
 }
 
+
+// === DraggableDirection ===
+
 /// Direction that the toast can be dragged (swiped) to dismiss it.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
+#[allow(missing_docs)]
 pub enum DraggableDirection {
     X,
     Y,
 }
 
+
+
+// === Theme ===
+
 /// Themes supported by the library.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 #[allow(missing_docs)]
 pub enum Theme {
@@ -107,26 +237,8 @@ pub enum Theme {
     Colored,
 }
 
-/// Identifies a [`ToastContainer`](https://fkhadra.github.io/react-toastify/api/toast-container)
-/// instance.
-///
-/// This is used to identify the container to which a toast should be added. Not needed when there
-/// is only one container.
-#[derive(Debug, Serialize, Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
-pub struct ContainerId {
-    /// The `containerId` as set on the `<ToastContainer>` element.
-    pub container_id: Option<String>,
-}
 
-impl_try_from_jsvalue! {ContainerId}
-
-impl ContainerId {
-    /// Clear queue of notifications for this container (relevant if limit is set).
-    pub fn clear_waiting_queue(&self) -> Result<(), JsValue> {
-        js::get_toast()?.clear_waiting_queue_in(&self.try_into()?)
-    }
-}
+// === Options ===
 
 /// Customization options for Toast.
 ///
@@ -175,8 +287,7 @@ pub struct Options {
     /// Specify in which direction should you swipe to dismiss the toast. `Default: "x"`.
     pub draggable_direction: Option<DraggableDirection>,
     /// Set id to handle multiple `ToastContainer` instances.
-    #[serde(flatten)]
-    pub container_id:        Option<ContainerId>,
+    pub container_id:        Option<String>,
     /// Define the [ARIA role](https://www.w3.org/WAI/PF/aria/roles) for the toast notification. `Default: "alert"`.
     pub role:                Option<String>,
     /// Add a delay in ms before the toast appear.
@@ -197,10 +308,17 @@ pub struct Options {
 
 impl_try_from_jsvalue! {Options}
 
+
+// === Update ===
+
 /// Update options for a toast.
+///
+/// Just like [`Options`], but also includes a `render` field that allows to update the
+/// notification message.
 #[derive(Debug, Serialize, Deserialize, Default, Deref, DerefMut)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateOptions {
+    /// New state of the toast.
     #[deref]
     #[deref_mut]
     #[serde(flatten)]
@@ -209,7 +327,7 @@ pub struct UpdateOptions {
     pub render:  Option<SerializableJsValue>,
 }
 
-impl_try_from_jsvalue! {UpdateOptions}
+impl_try_from_jsvalue! { UpdateOptions }
 
 impl UpdateOptions {
     /// Allows set a new message in the notification.
@@ -223,83 +341,11 @@ impl UpdateOptions {
     }
 }
 
-/// A wrapper around a `JsValue` that implements the `Serialize` and `Deserialize` traits.
-#[derive(Clone, Debug)]
-pub struct SerializableJsValue(pub JsValue);
-
-impl Deref for SerializableJsValue {
-    type Target = JsValue;
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-impl DerefMut for SerializableJsValue {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
-}
-
-impl AsRef<JsValue> for SerializableJsValue {
-    fn as_ref(&self) -> &JsValue {
-        &self.0
-    }
-}
-
-impl From<JsValue> for SerializableJsValue {
-    fn from(js_value: JsValue) -> Self {
-        SerializableJsValue(js_value)
-    }
-}
-
-impl Serialize for SerializableJsValue {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let de = serde_wasm_bindgen::Deserializer::from(self.0.clone());
-        serde_transcode::transcode(de, serializer)
-    }
-}
-
-impl<'de> Deserialize<'de> for SerializableJsValue {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let ser = serde_wasm_bindgen::Serializer::new();
-        let js_value =
-            serde_transcode::transcode(deserializer, &ser).map_err(serde::de::Error::custom)?;
-        Ok(SerializableJsValue(js_value))
-    }
-}
 
 
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ToastStyle {
-    background: Option<String>,
-    color:      Option<String>,
-}
-
-
-
-pub use js::Id;
-
-pub fn toast_any(message: &str, r#type: Type, options: &Option<Options>) -> Result<Id, JsValue> {
-    warn!("options: {:?}", serde_json::to_string(options));
-    let options = match options {
-        Some(options) => serde_wasm_bindgen::to_value(options)?,
-        None => JsValue::UNDEFINED,
-    };
-    warn!("options: {:?}", js_sys::JSON::stringify(&options));
-    js::toast(message, r#type, &options)
-}
-
-pub fn info(message: &str, options: &Option<Options>) -> Result<Id, JsValue> {
-    toast_any(message, Type::Info, options)
-}
-
-pub fn error(message: &str, options: &Option<Options>) -> Result<Id, JsValue> {
-    toast_any(message, Type::Error, options)
-}
-
-pub fn success(message: &str, options: &Option<Options>) -> Result<Id, JsValue> {
-    toast_any(message, Type::Success, options)
-}
+// =============
+// === Tests ===
+// =============
 
 #[cfg(test)]
 mod tests {
@@ -324,17 +370,19 @@ mod tests {
     }
 
     #[wasm_bindgen_test]
-    fn test_toast() {
-        let options = Options { auto_close: Some(AutoClose::After(5000)), ..Default::default() };
-        let js_value = serde_wasm_bindgen::to_value(&options).unwrap();
+    fn test_options_marshalling() {
+        let options = Options { theme: Some(Theme::Dark), ..default() };
+        let js_value = JsValue::try_from(&options).unwrap();
+        // Make sure that `js_value` is a valid JS object.
         assert!(js_value.is_object());
         let js_object = js_value.dyn_into::<js_sys::Object>().unwrap();
-        // JS autoclose field
-        assert_eq!("{..}", js_sys::JSON::stringify(&js_object).unwrap().as_string().unwrap());
-        let js_auto_close = js_sys::Reflect::get(&js_object, &"autoClose".into()).unwrap();
-        let js_auto_close_number = js_auto_close.as_f64().unwrap() as u32;
-        assert_eq!(5000, js_auto_close_number);
-        // assert_eq!(5000, js_object.get("autoClose").unwrap().as_f64().unwrap() as u32);
-        // assert_eq!(1, js_object.().length());
+        // Make sure that `js_object` has a `theme` property.
+        assert!(js_object.has_own_property(&"theme".into()));
+        // Make sure that `js_object.theme` is a string.
+        let theme = js_sys::Reflect::get(&js_object, &"theme".into()).unwrap();
+        assert!(theme.is_string());
+        // Make sure that `js_object.theme` is equal to "dark".
+        let theme = theme.as_string().unwrap();
+        assert_eq!(theme, "dark");
     }
 }

@@ -4,7 +4,7 @@
 // === tryGetMessage ===
 // =====================
 
-import * as toastify from "react-toastify";
+import * as toastify from 'react-toastify'
 
 /** Evaluates the given type only if it the exact same type as {@link Expected}. */
 type MustBe<T, Expected> = (<U>() => U extends T ? 1 : 2) extends <U>() => U extends Expected
@@ -43,7 +43,7 @@ export function getMessageOrToString(error: unknown) {
 /** Returns a toastify option that renders an error message. */
 // eslint-disable-next-line no-restricted-syntax
 export function render(f: (message: string) => string): toastify.UpdateOptions {
-    return {render: ({data}) => f(getMessageOrToString(data))}
+    return { render: ({ data }) => f(getMessageOrToString(data)) }
 }
 
 // ================================

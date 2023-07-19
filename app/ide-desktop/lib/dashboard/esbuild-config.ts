@@ -31,7 +31,9 @@ const TAILWIND_CONFIG_PATH = path.resolve(THIS_PATH, 'tailwind.config.ts')
 const FAUX_REACTIFY_CSS_PATH = path.resolve(THIS_PATH, 'src', 'ReactToastify.css')
 
 // Match  the exact path above, including THIS_PATH
-const FAUX_REACTIFY_CSS_PATH_REGEX = new RegExp(FAUX_REACTIFY_CSS_PATH.replace(/\\/g, '\\\\').replace(/\./g, '\\.'))
+const FAUX_REACTIFY_CSS_PATH_REGEX = new RegExp(
+    FAUX_REACTIFY_CSS_PATH.replace(/\\/g, '\\\\').replace(/\./g, '\\.')
+)
 
 console.log('FAUX_REACTIFY_CSS_PATH_REGEX', FAUX_REACTIFY_CSS_PATH_REGEX)
 
@@ -108,21 +110,23 @@ export function esbuildPluginAddReactifyCSS(): esbuild.Plugin {
     return {
         name: 'enso-place-reactify',
         setup: build => {
-            build.onResolve({filter: FAUX_REACTIFY_CSS_PATH_REGEX}, async args => {
-                return await build.resolve('react-toastify/dist/ReactToastify.css', {resolveDir: args.resolveDir, kind: "import-statement"})
+            build.onResolve({ filter: FAUX_REACTIFY_CSS_PATH_REGEX }, async args => {
+                return await build.resolve('react-toastify/dist/ReactToastify.css', {
+                    resolveDir: args.resolveDir,
+                    kind: 'import-statement',
+                })
             })
-            build.onLoad({filter: /ReactToastify\.css$/}, async (args) => {
-                const contents =  await fs.readFile(args.path, 'utf8')
+            build.onLoad({ filter: /ReactToastify\.css$/ }, async args => {
+                const contents = await fs.readFile(args.path, 'utf8')
                 return {
                     contents,
                     loader: 'copy',
                     watchFiles: [args.path],
                 }
             })
-        }
+        },
     }
 }
-
 
 // ================
 // === Bundling ===
@@ -158,7 +162,6 @@ export function bundlerOptions(args: Arguments) {
             esbuildPluginYaml.yamlPlugin({}),
             esbuildPluginAddReactifyCSS(),
             esbuildPluginGenerateTailwind(),
-
         ],
         define: {
             // We are defining constants, so it should be `CONSTANT_CASE`.

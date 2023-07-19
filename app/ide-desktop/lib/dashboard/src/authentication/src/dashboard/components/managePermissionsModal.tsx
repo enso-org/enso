@@ -251,7 +251,9 @@ export function ManagePermissionsModal(props: ManagePermissionsModalProps) {
                         onSuccess()
                     } catch {
                         const finalUserEmails = finalUsers.map(finalUser => `'${finalUser.email}'`)
-                        toastify.toast.error(`Unable to set permissions of ${finalUserEmails.join(', ')}.`)
+                        toastify.toast.error(
+                            `Unable to set permissions of ${finalUserEmails.join(', ')}.`
+                        )
                     }
                 }
             },

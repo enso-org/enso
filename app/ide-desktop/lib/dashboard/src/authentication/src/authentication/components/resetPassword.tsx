@@ -4,7 +4,6 @@ import * as React from 'react'
 import * as router from 'react-router-dom'
 import * as toastify from 'react-toastify'
 
-
 import ArrowRightIcon from 'enso-assets/arrow_right.svg'
 import AtIcon from 'enso-assets/at.svg'
 import GoBackIcon from 'enso-assets/go_back.svg'

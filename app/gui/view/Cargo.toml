@@ -27,14 +27,15 @@ ide-view-execution-environment-selector = { path = "execution-environment-select
 ide-view-documentation = { path = "documentation" }
 ide-view-graph-editor = { path = "graph-editor" }
 span-tree = { path = "../language/span-tree" }
+gloo-utils = { workspace = true }
 js-sys = { workspace = true }
 multi-map = { workspace = true }
 nalgebra = { workspace = true }
 ordered-float = { workspace = true }
 serde_json = { workspace = true }
 serde = { version = "1.0", features = ["derive"] }
-serde-transcode = { workspace = true }
-serde-wasm-bindgen = { workspace = true }
+#serde-transcode = { workspace = true }
+#serde-wasm-bindgen = { workspace = true }
 strum = { workspace = true }
 uuid = { version = "0.8", features = ["serde", "v4", "wasm-bindgen"] }
 wasm-bindgen = { workspace = true }

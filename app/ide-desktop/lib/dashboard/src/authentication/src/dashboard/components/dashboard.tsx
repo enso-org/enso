@@ -876,13 +876,17 @@ function Dashboard(props: DashboardProps) {
                                 void toastify.toast.promise(handleCreateProject(null), {
                                     pending: 'Creating new empty project...',
                                     success: 'Created new empty project.',
-                                    error: error.render(message => `Error creating new empty project: ${message}`)
+                                    error: error.render(
+                                        message => `Error creating new empty project: ${message}`
+                                    ),
                                 })
                             } else if (assetType === backendModule.AssetType.directory) {
                                 void toastify.toast.promise(handleCreateDirectory(), {
                                     pending: 'Creating new directory...',
                                     success: 'Created new directory.',
-                                    error: error.render(message => `Error creating new directory: ${message}`)
+                                    error: error.render(
+                                        message => `Error creating new directory: ${message}`
+                                    ),
                                 })
                             } else {
                                 // This is a React component even though it doesn't contain JSX.
@@ -1076,7 +1080,9 @@ function Dashboard(props: DashboardProps) {
         await toastify.toast.promise(backend.createProject(body), {
             pending: `Creating project '${projectName}'${templateText}...`,
             success: `Created project '${projectName}'${templateText}.`,
-            error: error.render((message) => `Error creating '${projectName}'${templateText}: ${message}`)
+            error: error.render(
+                message => `Error creating '${projectName}'${templateText}: ${message}`
+            ),
         })
         // `newProject.projectId` cannot be used directly in a `ProjectEvent` as the project
         // does not yet exist in the project list. Opening the project would work, but the project

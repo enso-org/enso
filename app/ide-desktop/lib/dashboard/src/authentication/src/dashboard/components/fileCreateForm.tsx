@@ -48,7 +48,7 @@ function FileCreateForm(props: FileCreateFormProps) {
                         {
                             pending: 'Uploading file...',
                             success: 'Successfully uploaded file.',
-                            error: error.render((message) => `Failed to upload file: ${message}`),
+                            error: error.render(message => `Failed to upload file: ${message}`),
                         }
                     )
                     .then(onSuccess)

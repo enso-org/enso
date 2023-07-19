@@ -50,7 +50,7 @@ export async function uploadMultipleFiles(
                                     : `${successfulUploadCount}/${fileCount}`
                             toastify.toast.update(toastId, {
                                 render: `${progress} ${filesWord} uploaded.`,
-                                type: "success",
+                                type: 'success',
                                 progress: 1.0,
                             })
                         } else {
