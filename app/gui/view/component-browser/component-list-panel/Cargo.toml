@@ -17,7 +17,6 @@ ensogl-derive-theme = { path = "../../../../../lib/rust/ensogl/app/theme/derive"
 ensogl-scroll-area = { path = "../../../../../lib/rust/ensogl/component/scroll-area" }
 ensogl-selector = { path = "../../../../../lib/rust/ensogl/component/selector" }
 ensogl-toggle-button = { path = "../../../../../lib/rust/ensogl/component/toggle-button" }
-ensogl-shadow = { path = "../../../../../lib/rust/ensogl/component/shadow" }
 ensogl-text = { path = "../../../../../lib/rust/ensogl/component/text" }
 ensogl-tooltip = { path = "../../../../../lib/rust/ensogl/component/tooltip/" }
 ide-view-component-list-panel-breadcrumbs = { path = "breadcrumbs" }

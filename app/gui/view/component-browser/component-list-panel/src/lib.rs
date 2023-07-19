@@ -46,7 +46,7 @@
 use crate::prelude::*;
 use ensogl_core::display::shape::*;
 
-use crate::navigator::View as SectionNavigator;
+use crate::button_panel::View as SectionNavigator;
 
 use enso_frp as frp;
 use ensogl_core::application::frp::API;
@@ -62,7 +62,6 @@ use ensogl_derive_theme::FromTheme;
 use ensogl_grid_view as grid_view;
 use ensogl_gui_component::component;
 use ensogl_hardcoded_theme::application::component_browser::component_list_panel as theme;
-use ensogl_shadow as shadow;
 
 
 
@@ -70,7 +69,7 @@ use ensogl_shadow as shadow;
 // === Export ===
 // ==============
 
-mod navigator;
+mod button_panel;
 
 pub use breadcrumbs::BreadcrumbId;
 pub use breadcrumbs::SECTION_NAME_CRUMB_INDEX;
@@ -116,9 +115,8 @@ pub struct Style {
 #[allow(missing_docs)]
 #[derive(Clone, Copy, Debug, Default)]
 pub struct AllStyles {
-    pub panel:     Style,
-    pub grid:      grid::Style,
-    pub navigator: navigator::Style,
+    pub panel: Style,
+    pub grid:  grid::Style,
 }
 
 impl AllStyles {
@@ -128,34 +126,6 @@ impl AllStyles {
 
     fn grid_size(&self) -> Vector2 {
         Vector2(self.grid.width, self.grid.height)
-    }
-
-    fn background_sprite_size(&self) -> Vector2 {
-        self.size()
-    }
-
-    fn menu_divider_y_pos(&self) -> f32 {
-        self.size().y / 2.0 - self.panel.menu_height
-    }
-
-    fn breadcrumbs_pos(&self) -> Vector2 {
-        let crop_left = self.panel.breadcrumbs_crop_left;
-        let x = self.grid.width / 2.0 + self.navigator.width / 2.0 + crop_left;
-        let y = self.size().y / 2.0;
-        Vector2(x, y)
-    }
-
-    fn breadcrumbs_size(&self) -> Vector2 {
-        let crop_left = self.panel.breadcrumbs_crop_left;
-        let crop_right = self.panel.breadcrumbs_crop_right;
-        let width = self.grid.width - crop_left - crop_right;
-        Vector2(width, self.panel.menu_height)
-    }
-
-    fn grid_pos(&self) -> Vector2 {
-        let grid_x = -self.grid.content_size().x / 2.0 + self.navigator.width / 2.0;
-        let grid_y = self.grid.content_size().y / 2.0 - self.panel.menu_height / 2.0;
-        Vector2(grid_x, grid_y)
     }
 }
 
@@ -217,7 +187,7 @@ impl Model {
     }
 
     /// Access to FRP of the buttons.
-    pub fn buttons(&self) -> &navigator::Frp {
+    pub fn buttons(&self) -> &button_panel::Frp {
         &self.section_navigator
     }
 
@@ -296,8 +266,7 @@ impl component::Frp<Model> for Frp {
 
             let panel_style = Style::from_theme(network, style);
             let grid_style = grid::Style::from_theme(network, style);
-            let navigator_style = navigator::Style::from_theme(network, style);
-            style <- all_with3(&panel_style.update, &grid_style.update, &navigator_style.update, |&panel, &grid, &navigator| AllStyles {panel, grid, navigator});
+            style <- all_with(&panel_style.update, &grid_style.update, |&panel, &grid| AllStyles {panel, grid});
             eval style ((style) model.update_style(style));
             output.size <+ style.map(|style| style.size());
 
@@ -320,7 +289,6 @@ impl component::Frp<Model> for Frp {
         }
         panel_style.init.emit(());
         grid_style.init.emit(());
-        navigator_style.init.emit(());
     }
 }
 

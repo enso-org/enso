@@ -4315,7 +4315,6 @@ dependencies = [
  "ensogl-hardcoded-theme",
  "ensogl-scroll-area",
  "ensogl-selector",
- "ensogl-shadow",
  "ensogl-text",
  "ensogl-toggle-button",
  "ensogl-tooltip",

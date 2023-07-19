@@ -22,10 +22,6 @@ use list_panel_theme::navigator as theme;
 
 
 
-mod entry;
-
-
-
 // =================
 // === Constants ===
 // =================
@@ -35,11 +31,6 @@ const LOCAL_SCOPE_TOOLTIP: &str = "Search local scope";
 const SHOW_SHORTCUTS_TOOLTIP: &str = "Show shortcuts";
 const UNSTABLE_TOOLTIP: &str = "Search unstable/advanced components";
 const SIDE_PANEL_TOOLTIP: &str = "Show/hide documentation";
-const MARKETPLACE_TOOLTIP_HIDE_DELAY_MS: f32 = 3000.0;
-const TOP_BUTTONS: [icon::Id; 2] = [icon::Id::Libraries, icon::Id::Marketplace];
-const TOP_BUTTONS_COUNT: usize = TOP_BUTTONS.len();
-/// This is the minmum number of bottom buttons available, when no namespace sections are present.
-const MIN_BOTTOM_BUTTONS_COUNT: usize = 2;
 
 
 // =============
