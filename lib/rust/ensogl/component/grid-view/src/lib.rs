@@ -698,8 +698,9 @@ impl<E: Entry> application::View for GridView<E> {
             (Press, "enter", "accept_selected_entry", ""),
         ]
         .iter()
-        .map(|(action, pattern, command, condition)|
-            Self::self_shortcut_when(*action, *pattern, *command, *condition))
+        .map(|(action, pattern, command, condition)| {
+            Self::self_shortcut_when(*action, *pattern, *command, *condition)
+        })
         .collect()
     }
 }

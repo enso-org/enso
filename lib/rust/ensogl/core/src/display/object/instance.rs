@@ -4165,7 +4165,9 @@ pub trait Object {
     }
 
     /// If present, uniquely identifies the type implementing the trait for debug purposes.
-    fn object_type(&self) -> Option<&'static str> { None }
+    fn object_type(&self) -> Option<&'static str> {
+        None
+    }
 }
 
 impl Object for Instance {
