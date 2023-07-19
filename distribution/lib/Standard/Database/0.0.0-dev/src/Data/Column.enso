@@ -1180,14 +1180,12 @@ type Column
         Value_Type.expect_text self <| case_sensitivity.disallow_non_default_locale <|
             input_type = Meta.type_of term
             params = Replace_Params.Value input_type case_sensitivity only_first
-            case self.connection.dialect.are_replace_params_supported params of
-                False -> params.throw_unsupported
-                True ->
-                    raw_term = case term of
-                        _ : Regex -> term.pattern_string
-                        _ -> term
-                    new_name = self.naming_helpers.function_name "replace" [self, raw_term, new_text]
-                    self.make_op "REPLACE" [raw_term, new_text] new_name [term, params]
+            self.connection.dialect.if_replace_params_supports params <|
+                raw_term = case term of
+                    _ : Regex -> term.pattern_string
+                    _ -> term
+                new_name = self.naming_helpers.function_name "replace" [self, raw_term, new_text]
+                self.make_op "REPLACE" [raw_term, new_text] new_name [term, params]
 
     ## Gets the year as a number from the date stored in the column.
 

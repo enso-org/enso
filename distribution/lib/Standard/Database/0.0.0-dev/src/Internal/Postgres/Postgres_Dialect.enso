@@ -244,8 +244,9 @@ type Postgres_Dialect
 
     ## PRVIATE
        Returns true if the `replace` parameters are supported by this backend.
-    are_replace_params_supported : Replace_Params -> Boolean
-    are_replace_params_supported self replace_params = supported_replace_params.contains replace_params
+    if_replace_params_supports : Replace_Params -> Any -> Any
+    if_replace_params_supports self replace_params ~action =
+        if supported_replace_params.contains replace_params then action else replace_params.throw_unsupported
 
 ## PRIVATE
 make_internal_generator_dialect =
