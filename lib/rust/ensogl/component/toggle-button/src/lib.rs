@@ -48,12 +48,6 @@ pub trait ColorableShape: ShapeWithDefaultableData {
     fn set_color(&self, color: color::Rgba);
 }
 
-impl ColorableShape for ensogl_core::display::shape::compound::from_cache::recolorized::Shape {
-    fn set_color(&self, color: color::Rgba) {
-        self.r_component.set(color.into());
-    }
-}
-
 /// A shape that can be parametrized by any cached icon. Same as
 /// [`display::shape::compound::from_cache::recolorized`], but has an overlay for capturing mouse
 /// events and implements [`ColorableShape`].

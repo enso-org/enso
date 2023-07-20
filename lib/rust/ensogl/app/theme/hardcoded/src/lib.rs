@@ -242,6 +242,16 @@ define_themes! { [light:0, dark:1]
                 padding_bottom = 4.0, 4.0;
                 button_panel {
                     margin_bottom = -22.0, -22.0;
+                    width = 190.0, 190.0;
+                    height = 40.0, 40.0;
+                    corner_radius = 20.0, 20.0;
+                    inner_border_distance = 4.0, 4.0;
+                    border_width = 0.5, 0.5;
+                    background_color = application::component_browser::component_list_panel::background_color, application::component_browser::component_list_panel::background_color;
+                    border_color = Rgba(0.76, 0.76, 0.76, 1.0), Rgba(0.76, 0.76, 0.76, 1.0);
+                    padding = 12.0, 12.0;
+                    gap = 12.0, 12.0;
+                    right_side_margin = 38.0, 38.0;
                 }
                 grid {
                     width = 190.0, 190.0;
@@ -332,11 +342,6 @@ define_themes! { [light:0, dark:1]
                         local_scope_group = Rgba::new(0.0, 0.42, 0.64, 1.0),Rgba::new(0.0, 0.42, 0.64, 1.0);
                     }
                 }
-                menu_height = 45.0, 45.0;
-                menu_divider_color = Rgb(0.7804, 0.7804, 0.7804), Rgb(0.7804, 0.7804, 0.7804);
-                navigator_divider_color = Rgb(0.7804, 0.7804, 0.7804), Rgb(0.7804, 0.7804, 0.7804);
-                menu_divider_height = 0.5,0.5;
-                navigator_divider_width = 0.5,0.5;
                 menu {
                     breadcrumbs {
                         crop_left = 8.0, 8.0;
@@ -372,18 +377,6 @@ define_themes! { [light:0, dark:1]
                             greyed_out_color = Rgba(0.0, 0.0, 0.0, 0.15), Rgba(0.0, 0.0, 0.0, 0.15);
                         }
                     }
-                }
-                navigator {
-                    width = 190.0, 190.0;
-                    height = 40.0, 40.0;
-                    corner_radius = 20.0, 20.0;
-                    inner_border_distance = 4.0, 4.0;
-                    border_width = 0.5, 0.5;
-                    background_color = application::component_browser::component_list_panel::background_color, application::component_browser::component_list_panel::background_color;
-                    border_color = Rgba(0.76, 0.76, 0.76, 1.0), Rgba(0.76, 0.76, 0.76, 1.0);
-                    padding = 12.0, 12.0;
-                    gap = 12.0, 12.0;
-                    right_side_margin = 38.0, 38.0;
                 }
             }
         }

@@ -1,7 +1,5 @@
-//! The [section navigator bar](Navigator). This is a narrow bar on the left of the Searcher List
-//! Panel that contains two sets of navigation buttons.
-//!
-//! See the [Component Browser Design Document](https://github.com/enso-org/design/blob/e6cffec2dd6d16688164f04a4ef0d9dff998c3e7/epics/component-browser/design.md).
+//! The [button panel](Model). This is a narrow bar on the top of the Component List Panel
+//! that contains various buttons for controlling the Component Browser.
 
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
@@ -18,7 +16,7 @@ use ensogl_core::display::shape::compound::rectangle::Rectangle;
 use ensogl_derive_theme::FromTheme;
 use ensogl_hardcoded_theme::application::component_browser::component_list_panel as list_panel_theme;
 use ensogl_toggle_button::ToggleButton;
-use list_panel_theme::navigator as theme;
+use list_panel_theme::button_panel as theme;
 
 
 
@@ -75,18 +73,12 @@ ensogl_core::define_endpoints_2! {
 
 
 
-// =================
-// === Navigator ===
-// =================
+// =============
+// === Model ===
+// =============
 
-/// A section navigator bar. Contains two sets of buttons placed on the left of the Searcher List
-/// Panel.
-///
-/// The first set on top of the bar contains "Libraries" and "Marketplace" buttons. The second
-/// set on the bottom contains section navigation buttons used to quickly scroll to a specific
-/// section.
 #[derive(Debug, Clone, CloneRef)]
-struct Navigator {
+struct Model {
     background:  Rectangle,
     local_scope: ToggleButton<ensogl_toggle_button::any_cached::Shape>,
     shortcuts:   ToggleButton<ensogl_toggle_button::any_cached::Shape>,
@@ -95,7 +87,7 @@ struct Navigator {
     side_panel:  ToggleButton<ensogl_toggle_button::any_cached::Shape>,
 }
 
-impl Navigator {
+impl Model {
     pub fn new(app: &Application) -> Self {
         let background = Rectangle::new();
         background
@@ -140,16 +132,24 @@ impl Navigator {
     }
 }
 
+
+
+// ============
+// === View ===
+// ============
+
+/// A narrow bar on the top of the Component List Panel that contains various buttons for
+/// controlling the Component Browser.
 #[derive(Debug, Clone, CloneRef, Deref)]
 pub struct View {
-    model: Navigator,
+    model: Model,
     #[deref]
     frp:   Frp,
 }
 
 impl View {
     pub fn new(app: &Application) -> Self {
-        let model = Navigator::new(app);
+        let model = Model::new(app);
         let frp = Frp::new();
 
         let network = frp.network();
