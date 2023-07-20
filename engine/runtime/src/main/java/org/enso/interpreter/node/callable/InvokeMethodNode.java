@@ -188,7 +188,6 @@ public abstract class InvokeMethodNode extends BaseNode {
         && warning.getEigentype() != methodOwnerType;
   }
 
-  @NonIdempotent
   @Specialization(
       replaces = "doFunctionalDispatchCachedSymbol",
       guards = {"typesLibrary.hasType(self)", "!typesLibrary.hasSpecialDispatch(self)"})
@@ -355,7 +354,6 @@ public abstract class InvokeMethodNode extends BaseNode {
         invokeFunctionNode.getArgumentsExecutionMode());
   }
 
-  @NonIdempotent
   @Specialization(
       guards = {
         "warnings.hasWarnings(self)",
@@ -382,7 +380,6 @@ public abstract class InvokeMethodNode extends BaseNode {
     return warningFunctionNode.execute(resolvedFunction, frame, state, arguments1);
   }
 
-  @NonIdempotent
   @Specialization(guards = "warnings.hasWarnings(self)")
   Object doWarning(
       VirtualFrame frame,
@@ -434,7 +431,6 @@ public abstract class InvokeMethodNode extends BaseNode {
     }
   }
 
-  @NonIdempotent
   @ExplodeLoop
   @Specialization(
       guards = {
@@ -489,7 +485,6 @@ public abstract class InvokeMethodNode extends BaseNode {
     return res;
   }
 
-  @NonIdempotent
   @Specialization(
       guards = {
         "!warnings.hasWarnings(self)",
@@ -520,7 +515,6 @@ public abstract class InvokeMethodNode extends BaseNode {
     }
   }
 
-  @NonIdempotent
   @Specialization(
       guards = {
         "!warnings.hasWarnings(self)",
@@ -545,7 +539,6 @@ public abstract class InvokeMethodNode extends BaseNode {
     return invokeFunctionNode.execute(function, frame, state, arguments);
   }
 
-  @NonIdempotent
   @Specialization(
       guards = {
         "!warnings.hasWarnings(self)",
@@ -570,7 +563,6 @@ public abstract class InvokeMethodNode extends BaseNode {
     return invokeFunctionNode.execute(function, frame, state, arguments);
   }
 
-  @NonIdempotent
   @Specialization(
       guards = {
         "!warnings.hasWarnings(self)",
@@ -601,7 +593,6 @@ public abstract class InvokeMethodNode extends BaseNode {
     }
   }
 
-  @NonIdempotent
   @Specialization(
       guards = {
         "!warnings.hasWarnings(self)",
@@ -674,7 +665,6 @@ public abstract class InvokeMethodNode extends BaseNode {
     return date.atTime(time).atZone(zone);
   }
 
-  @NonIdempotent
   @Specialization(
       guards = {
         "!warnings.hasWarnings(self)",
@@ -707,7 +697,6 @@ public abstract class InvokeMethodNode extends BaseNode {
     }
   }
 
-  @NonIdempotent
   @Specialization(
       guards = {
         "!warnings.hasWarnings(self)",
@@ -738,7 +727,6 @@ public abstract class InvokeMethodNode extends BaseNode {
     }
   }
 
-  @NonIdempotent
   @Specialization(
       guards = {
         "!warnings.hasWarnings(self)",
@@ -769,7 +757,6 @@ public abstract class InvokeMethodNode extends BaseNode {
     }
   }
 
-  @NonIdempotent
   @Specialization(
       guards = {
         "!warnings.hasWarnings(self)",
