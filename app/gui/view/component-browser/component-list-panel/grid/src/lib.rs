@@ -347,7 +347,6 @@ impl Model {
                 best_match_score: 0.0,
             });
         }
-        console_log!("{layout:?}");
 
         let rows_and_cols = (layout.row_count(), layout.column_count());
         *self.layout.borrow_mut() = layout;
