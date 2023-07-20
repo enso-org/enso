@@ -118,7 +118,7 @@ fn init(app: &Application) {
     code_editor.text_area().set_content(STUB_MODULE.to_owned());
 
     root_view.status_bar().add_event(status_bar::event::Label::new("This is a status message."));
-    graph_editor.debug_push_breadcrumb();
+    project_view.debug_push_breadcrumb();
 
     root_view.switch_view_to_project();
 

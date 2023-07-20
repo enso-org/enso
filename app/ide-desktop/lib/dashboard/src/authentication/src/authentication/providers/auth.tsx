@@ -15,7 +15,6 @@ import * as errorModule from '../../error'
 import * as http from '../../http'
 import * as localBackend from '../../dashboard/localBackend'
 import * as loggerProvider from '../../providers/logger'
-import * as newtype from '../../newtype'
 import * as remoteBackend from '../../dashboard/remoteBackend'
 import * as sessionProvider from './session'
 
@@ -37,7 +36,7 @@ const MESSAGES = {
     resetPasswordSuccess: 'Successfully reset password!',
     signOutLoading: 'Logging out...',
     signOutSuccess: 'Successfully logged out!',
-    signOutError: 'Error logging out, please try again.',
+    signOutError: 'Could not log out, please try again.',
     pleaseWait: 'Please wait...',
 } as const
 
@@ -194,6 +193,7 @@ export function AuthProvider(props: AuthProviderProps) {
     const goOfflineInternal = React.useCallback(() => {
         setInitialized(true)
         setUserSession(OFFLINE_USER_SESSION)
+        setBackendWithoutSavingType(new localBackend.LocalBackend())
         if (supportsLocalBackend) {
             setBackendWithoutSavingType(new localBackend.LocalBackend())
         } else {
@@ -218,8 +218,9 @@ export function AuthProvider(props: AuthProviderProps) {
     // This is identical to `hooks.useOnlineCheck`, however it is inline here to avoid any possible
     // circular dependency.
     React.useEffect(() => {
-        // `navigator.onLine` is not a dependency so that the app doesn't make the remote backend
-        // completely unusable on unreliable connections.
+        // `navigator.onLine` is not a dependency of this `useEffect` (so this effect is not called
+        // when `navigator.onLine` changes) - the internet being down should not immediately disable
+        // the remote backend.
         if (!navigator.onLine) {
             void goOffline()
         }
@@ -235,12 +236,11 @@ export function AuthProvider(props: AuthProviderProps) {
             if (!navigator.onLine || forceOfflineMode) {
                 goOfflineInternal()
                 setForceOfflineMode(false)
-            } else if (session.none) {
+            } else if (session == null) {
                 setInitialized(true)
                 setUserSession(null)
             } else {
-                const { accessToken, email } = session.val
-                const headers = new Headers([['Authorization', `Bearer ${accessToken}`]])
+                const headers = new Headers([['Authorization', `Bearer ${session.accessToken}`]])
                 const client = new http.Client(headers)
                 const backend = new remoteBackend.RemoteBackend(client, logger)
                 // The backend MUST be the remote backend before login is finished.
@@ -252,11 +252,11 @@ export function AuthProvider(props: AuthProviderProps) {
                 ) {
                     setBackendWithoutSavingType(backend)
                 }
-                let organization
-                // eslint-disable-next-line no-restricted-syntax
-                while (organization === undefined) {
+                let organization: backendModule.UserOrOrganization | null
+                while (true) {
                     try {
                         organization = await backend.usersMe()
+                        break
                     } catch {
                         // The value may have changed after the `await`.
                         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
@@ -277,25 +277,24 @@ export function AuthProvider(props: AuthProviderProps) {
                     history.replaceState(null, '', url.toString())
                 }
                 let newUserSession: UserSession
-                const sharedSessionData = { email, accessToken }
-                if (!organization) {
+                if (organization == null) {
                     newUserSession = {
                         type: UserSessionType.partial,
-                        ...sharedSessionData,
+                        ...session,
                     }
                 } else {
                     newUserSession = {
                         type: UserSessionType.full,
-                        ...sharedSessionData,
+                        ...session,
                         organization,
                     }
 
                     /** Save access token so can be reused by Enso backend. */
-                    cognito.saveAccessToken(accessToken)
+                    cognito.saveAccessToken(session.accessToken)
 
                     /** Execute the callback that should inform the Electron app that the user has logged in.
                      * This is done to transition the app from the authentication/dashboard view to the IDE. */
-                    onAuthenticated(accessToken)
+                    onAuthenticated(session.accessToken)
                 }
 
                 setUserSession(newUserSession)
@@ -306,12 +305,14 @@ export function AuthProvider(props: AuthProviderProps) {
         fetchSession().catch(error => {
             if (isUserFacingError(error)) {
                 toast.error(error.message)
+                logger.error(error.message)
             } else {
                 logger.error(error)
             }
         })
-        // `userSession` MUST NOT be a dependency as this effect always does a `setUserSession`,
-        // which would result in an infinite loop.
+        // `userSession` MUST NOT be a dependency as `setUserSession` is called every time
+        // by this effect. Because it is an object literal, it will never be equal to the previous
+        // value.
         // `initialized` MUST NOT be a dependency as it breaks offline mode.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
@@ -390,15 +391,15 @@ export function AuthProvider(props: AuthProviderProps) {
         } else {
             try {
                 const organizationId = await authService.cognito.organizationId()
+                // This should not omit success and error toasts as it is not possible
+                // to render this optimistically.
                 await toast.promise(
                     backend.createUser({
                         userName: username,
-                        userEmail: newtype.asNewtype<backendModule.EmailAddress>(email),
+                        userEmail: backendModule.EmailAddress(email),
                         organizationId:
                             organizationId != null
-                                ? newtype.asNewtype<backendModule.UserOrOrganizationId>(
-                                      organizationId
-                                  )
+                                ? backendModule.UserOrOrganizationId(organizationId)
                                 : null,
                     }),
                     {
@@ -451,6 +452,8 @@ export function AuthProvider(props: AuthProviderProps) {
         deinitializeSession()
         setInitialized(false)
         setUserSession(null)
+        // This should not omit success and error toasts as it is not possible
+        // to render this optimistically.
         await toast.promise(cognito.signOut(), {
             success: MESSAGES.signOutSuccess,
             error: MESSAGES.signOutError,
@@ -535,7 +538,7 @@ export function ProtectedLayout() {
     const { session } = useAuth()
     const shouldPreventNavigation = getShouldPreventNavigation()
 
-    if (!shouldPreventNavigation && !session) {
+    if (!shouldPreventNavigation && session == null) {
         return <router.Navigate to={app.LOGIN_PATH} />
     } else if (!shouldPreventNavigation && session?.type === UserSessionType.partial) {
         return <router.Navigate to={app.SET_USERNAME_PATH} />

@@ -15,8 +15,8 @@ use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::shape::primitive::def::class::ShapeOps;
 use ensogl::display::shape::AnyShape;
-use ensogl::display::shape::BottomHalfPlane;
 use ensogl::display::shape::Circle;
+use ensogl::display::shape::HalfPlane;
 use ensogl::display::shape::PixelDistance;
 use ensogl::display::shape::Pixels;
 use ensogl::display::shape::Rect;
@@ -89,7 +89,7 @@ impl AllPortsShape {
         let inner_width = canvas_width - HOVER_AREA_PADDING.px() * 2.0;
         let inner_height = canvas_height - HOVER_AREA_PADDING.px() * 2.0;
         let inner_radius = node::RADIUS.px();
-        let top_mask = BottomHalfPlane();
+        let top_mask = HalfPlane();
 
 
         // === Main Shape ===
@@ -260,8 +260,8 @@ pub mod multi_port {
     /// Compute the crop plane at the location of the given port index. Also takes into account an
     /// `position_offset` that is given as an offset along the shape boundary.
     ///
-    /// The crop plane is a `HalfPlane` that is perpendicular to the border of the shape and can be
-    /// used to crop the shape at the specified port index.
+    /// The crop plane is a `BottomHalfPlane` that is perpendicular to the border of the shape and
+    /// can be used to crop the shape at the specified port index.
     fn compute_crop_plane(
         index: &Var<f32>,
         port_num: &Var<f32>,
@@ -291,7 +291,7 @@ pub mod multi_port {
         );
         let plane_shape_offset = Var::<Pixels>::from(&crop_plane_pos - width * 0.5);
 
-        let crop_shape = HalfPlane();
+        let crop_shape = BottomHalfPlane();
         let crop_shape = crop_shape.rotate(plane_rotation_angle);
         let crop_shape = crop_shape.translate_x(plane_shape_offset);
 

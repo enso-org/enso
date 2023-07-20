@@ -278,6 +278,36 @@ object DistributionPackage {
     exitCode == 0
   }
 
+  def runProjectManagerPackage(
+    engineRoot: File,
+    distributionRoot: File,
+    args: Seq[String],
+    log: Logger
+  ): Boolean = {
+    import scala.collection.JavaConverters._
+
+    val enso = distributionRoot / "bin" / "project-manager"
+    log.info(s"Executing $enso ${args.mkString(" ")}")
+    val pb  = new java.lang.ProcessBuilder()
+    val all = new java.util.ArrayList[String]()
+    all.add(enso.getAbsolutePath())
+    all.addAll(args.asJava)
+    pb.command(all)
+    pb.environment().put("ENSO_ENGINE_PATH", engineRoot.toString())
+    pb.environment().put("ENSO_JVM_PATH", System.getProperty("java.home"))
+    if (args.contains("--debug")) {
+      all.remove("--debug")
+      pb.environment().put("ENSO_JVM_OPTS", WithDebugCommand.DEBUG_OPTION)
+    }
+    pb.inheritIO()
+    val p        = pb.start()
+    val exitCode = p.waitFor()
+    if (exitCode != 0) {
+      log.warn(enso + " finished with exit code " + exitCode)
+    }
+    exitCode == 0
+  }
+
   def fixLibraryManifest(
     packageRoot: File,
     targetVersion: String,

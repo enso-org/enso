@@ -2,8 +2,6 @@
  * currently authenticated user's session. */
 import * as React from 'react'
 
-import * as results from 'ts-results'
-
 import * as cognito from '../cognito'
 import * as error from '../../error'
 import * as hooks from '../../hooks'
@@ -15,12 +13,12 @@ import * as listen from '../listen'
 
 /** State contained in a {@link SessionContext}. */
 interface SessionContextType {
-    session: results.Option<cognito.UserSession>
+    session: cognito.UserSession | null
     /** Set `initialized` to false. Must be called when logging out. */
     deinitializeSession: () => void
 }
 
-/** See `AuthContext` for safety details. */
+/** See {@link AuthContext} for safety details. */
 const SessionContext = React.createContext<SessionContextType>(
     // eslint-disable-next-line no-restricted-syntax
     {} as SessionContextType
@@ -45,7 +43,7 @@ export interface SessionProviderProps {
      * is initially served. */
     mainPageUrl: URL
     registerAuthEventListener: listen.ListenFunction
-    userSession: () => Promise<results.Option<cognito.UserSession>>
+    userSession: () => Promise<cognito.UserSession | null>
     children: React.ReactNode
 }
 
@@ -63,13 +61,13 @@ export function SessionProvider(props: SessionProviderProps) {
      * set. This is useful when a user has just logged in (as their cached credentials are
      * out of date, so this will update them). */
     const session = hooks.useAsyncEffect(
-        results.None,
+        null,
         async () => {
             const innerSession = await userSession()
             setInitialized(true)
             return innerSession
         },
-        [userSession, refresh]
+        [refresh]
     )
 
     /** Register an effect that will listen for authentication events. When the event occurs, we
@@ -79,8 +77,6 @@ export function SessionProvider(props: SessionProviderProps) {
      * For example, if a user clicks the signout button, this will clear the user's session, which
      * means we want the login screen to render (which is a child of this provider). */
     React.useEffect(() => {
-        /** Handle Cognito authentication events
-         * @throws {error.UnreachableCaseError} Never. */
         const listener: listen.ListenerCallback = event => {
             switch (event) {
                 case listen.AuthEvent.signIn:
@@ -112,7 +108,7 @@ export function SessionProvider(props: SessionProviderProps) {
          * cleaned up between renders. This must be done because the `useEffect` will be called
          * multiple times during the lifetime of the component. */
         return cancel
-    }, [doRefresh, mainPageUrl, registerAuthEventListener])
+    }, [doRefresh, registerAuthEventListener, mainPageUrl])
 
     const deinitializeSession = () => {
         setInitialized(false)
