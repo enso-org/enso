@@ -147,7 +147,7 @@ impl<'a> Builder<'a> {
                 let main_module_entry =
                     main_module.map(|entry: (suggestion_database::entry::Id, Rc<Entry>)| {
                         BreadcrumbEntry {
-                            displayed_name: String::from(project_name.project.clone_ref()).into(),
+                            displayed_name: project_name.project.clone_ref(),
                             ..entry.into()
                         }
                     });
