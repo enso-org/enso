@@ -200,11 +200,11 @@ define_themes! { [light:0, dark:1]
                 corners_radius = 20.0, 20.0;
                 padding_bottom = 4.0, 4.0;
                 button_panel {
-                    margin_bottom = -4.0, -4.0;
+                    margin_bottom = -22.0, -22.0;
                 }
                 grid {
                     width = 190.0, 190.0;
-                    height = 340.0, 340.0;
+                    height = 358.0, 358.0;
                     padding_x = 4.0, 4.0;
                     padding_y = 0.0, 0.0;
                     column_gap = 3.0, 3.0;
