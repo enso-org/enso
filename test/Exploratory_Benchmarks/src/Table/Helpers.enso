@@ -18,7 +18,7 @@ column_from_vector name items convert_polyglot_dates =
             True ->
                 Java_Column.fromItems name items expected_storage_type
             False ->
-                Java_Column.fromItemsRaw name items expected_storage_type
+                Java_Column.fromItemsNoDateConversion name items expected_storage_type
         Column.Value java_column
 
 check_results results =

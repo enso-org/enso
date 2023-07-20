@@ -140,7 +140,7 @@ public class Column {
   }
 
   /** Creates a column from an Enso array. No polyglot conversion happens. This is unsafe */
-  public static Column fromItemsRaw(String name, List<Object> items, StorageType expectedType) throws ClassCastException {
+  public static Column fromItemsNoDateConversion(String name, List<Object> items, StorageType expectedType) throws ClassCastException {
     Context context = Context.getCurrent();
     int n = items.size();
     Builder builder = expectedType == null ? new InferredBuilder(n) : Builder.getForType(expectedType, n);
