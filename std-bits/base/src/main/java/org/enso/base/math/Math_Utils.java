@@ -86,7 +86,7 @@ public class Math_Utils {
      * @throws IllegalArgumentException if `decimalPlaces` is outside the
      *   allowed range.
      */
-    public static double roundLong(long n, int decimalPlaces, boolean useBankers) {
+    public static long roundLong(long n, int decimalPlaces, boolean useBankers) {
         if (decimalPlaces < ROUND_MIN_DECIMAL_PLACES || decimalPlaces > ROUND_MAX_DECIMAL_PLACES) {
             String msg = "round: decimalPlaces must be between " + ROUND_MIN_DECIMAL_PLACES + " and " + ROUND_MAX_DECIMAL_PLACES + " (inclusive), but was " + decimalPlaces;
             throw new IllegalArgumentException(msg);
