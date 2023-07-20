@@ -20,17 +20,22 @@ class GraalCEReleaseProvider(releaseProvider: SimpleReleaseProvider)
     extends GraalVMRuntimeReleaseProvider {
 
   /** @inheritdoc */
-  override def packageFileName(version: GraalVMVersion): String =
+  override def packageFileName(version: GraalVMVersion): String = {
     GraalCEReleaseProvider.packageFileNameForCurrentOS(version)
+  }
 
   /** @inheritdoc */
   override def downloadPackage(
     version: GraalVMVersion,
     destination: Path
   ): TaskProgress[Unit] = {
-    val tagName     = s"vm-${version.graalVersion}"
     val packageName = packageFileName(version)
-    val release     = releaseProvider.releaseForTag(tagName)
+    val tagName = if (version.graalMajorVersion < 23) {
+      s"vm-${version.graalVersion}"
+    } else {
+      s"jdk-${version.javaVersion}"
+    }
+    val release = releaseProvider.releaseForTag(tagName)
     release match {
       case Failure(exception) =>
         TaskProgress.immediateFailure(exception)
@@ -67,13 +72,22 @@ object GraalCEReleaseProvider {
       case OS.MacOS   => "darwin"
       case OS.Windows => "windows"
     }
-    val arch = OS.architecture
     val extension = OS.operatingSystem match {
       case OS.Linux   => ".tar.gz"
       case OS.MacOS   => ".tar.gz"
       case OS.Windows => ".zip"
     }
-    s"graalvm-ce-" +
-    s"java${version.java}-$os-$arch-${version.graalVersion}$extension"
+    if (version.graalMajorVersion < 23) {
+      val arch = OS.architecture
+      "graalvm-ce-" +
+      s"java${version.javaVersion}-$os-$arch-${version.graalVersion}$extension"
+    } else {
+      val arch = OS.architecture match {
+        case "amd64" => "x64"
+        case arch    => arch
+      }
+      "graalvm-community-jdk-" +
+      s"${version.javaVersion}_${os}-${arch}_bin$extension"
+    }
   }
 }

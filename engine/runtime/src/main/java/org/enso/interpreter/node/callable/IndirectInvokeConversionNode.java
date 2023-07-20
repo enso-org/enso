@@ -1,6 +1,7 @@
 package org.enso.interpreter.node.callable;
 
 import com.oracle.truffle.api.dsl.*;
+import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
@@ -42,7 +43,7 @@ public abstract class IndirectInvokeConversionNode extends Node {
       BaseNode.TailStatus isTail,
       int thatArgumentPosition);
 
-  @Specialization(guards = {"dispatch.hasType(that)", "!dispatch.hasSpecialDispatch(that)"})
+  @Specialization(guards = {"typesLib.hasType(that)", "!typesLib.hasSpecialDispatch(that)"})
   Object doConvertFrom(
       MaterializedFrame frame,
       Object state,
@@ -55,14 +56,15 @@ public abstract class IndirectInvokeConversionNode extends Node {
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       BaseNode.TailStatus isTail,
       int thatArgumentPosition,
-      @CachedLibrary(limit = "10") TypesLibrary dispatch,
-      @Cached ConversionResolverNode conversionResolverNode,
-      @Cached IndirectInvokeFunctionNode indirectInvokeFunctionNode) {
+      @Shared("typesLib") @CachedLibrary(limit = "10") TypesLibrary typesLib,
+      @Shared("conversionResolverNode") @Cached ConversionResolverNode conversionResolverNode,
+      @Shared("indirectInvokeFunctionNode") @Cached
+          IndirectInvokeFunctionNode indirectInvokeFunctionNode) {
     Function function =
         conversionResolverNode.expectNonNull(
             that,
             InvokeConversionNode.extractConstructor(this, self),
-            dispatch.getType(that),
+            typesLib.getType(that),
             conversion);
     return indirectInvokeFunctionNode.execute(
         function,
@@ -88,9 +90,9 @@ public abstract class IndirectInvokeConversionNode extends Node {
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       BaseNode.TailStatus isTail,
       int thatArgumentPosition,
-      @CachedLibrary(limit = "10") TypesLibrary dispatch,
-      @Cached IndirectInvokeFunctionNode indirectInvokeFunctionNode,
-      @Cached ConversionResolverNode conversionResolverNode) {
+      @Shared("indirectInvokeFunctionNode") @Cached
+          IndirectInvokeFunctionNode indirectInvokeFunctionNode,
+      @Shared("conversionResolverNode") @Cached ConversionResolverNode conversionResolverNode) {
     Function function =
         conversionResolverNode.execute(
             InvokeConversionNode.extractConstructor(this, self),
@@ -172,10 +174,10 @@ public abstract class IndirectInvokeConversionNode extends Node {
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       BaseNode.TailStatus isTail,
       int thatArgumentPosition,
-      @CachedLibrary(limit = "10") TypesLibrary methods,
-      @CachedLibrary(limit = "10") InteropLibrary interop,
-      @Cached ConversionResolverNode conversionResolverNode,
-      @Cached IndirectInvokeFunctionNode indirectInvokeFunctionNode) {
+      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
+      @Shared("conversionResolverNode") @Cached ConversionResolverNode conversionResolverNode,
+      @Shared("indirectInvokeFunctionNode") @Cached
+          IndirectInvokeFunctionNode indirectInvokeFunctionNode) {
     try {
       String str = interop.asString(that);
       Text txt = Text.create(str);
@@ -218,8 +220,8 @@ public abstract class IndirectInvokeConversionNode extends Node {
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       BaseNode.TailStatus isTail,
       int thatArgumentPosition,
-      @CachedLibrary(limit = "10") TypesLibrary methods,
-      @CachedLibrary(limit = "10") InteropLibrary interop) {
+      @Shared("typesLib") @CachedLibrary(limit = "10") TypesLibrary methods,
+      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
     throw new PanicException(
         EnsoContext.get(this).getBuiltins().error().makeNoSuchConversion(self, that, conversion),
         this);

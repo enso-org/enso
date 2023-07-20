@@ -4,6 +4,7 @@ import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.library.CachedLibrary;
@@ -54,7 +55,7 @@ public abstract class EqualsAtomNode extends Node {
           int fieldsLenCached,
       @Cached(value = "createEqualsNodes(fieldsLenCached)", allowUncached = true)
           EqualsNode[] fieldEqualsNodes,
-      @Cached CustomComparatorNode customComparatorNode,
+      @Shared("customComparatorNode") @Cached CustomComparatorNode customComparatorNode,
       @Cached ConditionProfile constructorsNotEqualProfile,
       @CachedLibrary(limit = "5") StructsLibrary structsLib) {
     if (constructorsNotEqualProfile.profile(self.getConstructor() != other.getConstructor())) {
@@ -85,7 +86,7 @@ public abstract class EqualsAtomNode extends Node {
       Atom self,
       Atom other,
       @Cached("self.getConstructor()") AtomConstructor selfCtorCached,
-      @Cached CustomComparatorNode customComparatorNode,
+      @Shared("customComparatorNode") @Cached CustomComparatorNode customComparatorNode,
       @Cached(value = "customComparatorNode.execute(self)") Type cachedComparator,
       @Cached(value = "findCompareMethod(cachedComparator)", allowUncached = true)
           Function compareFn,

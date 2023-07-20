@@ -2,9 +2,10 @@ package org.enso.interpreter.node.expression.builtin.number.smallInteger;
 
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.ImportStatic;
+import com.oracle.truffle.api.dsl.NeverDefault;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
-import com.oracle.truffle.api.profiles.ConditionProfile;
+import com.oracle.truffle.api.profiles.CountingConditionProfile;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
 import org.enso.interpreter.node.expression.builtin.number.utils.ToEnsoNumberNode;
@@ -22,15 +23,16 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
     aliases = "bit_shift_l")
 public abstract class BitShiftNode extends Node {
   private @Child ToEnsoNumberNode toEnsoNumberNode = ToEnsoNumberNode.build();
-  private final ConditionProfile canShiftLeftInLongProfile =
-      ConditionProfile.createCountingProfile();
-  private final ConditionProfile positiveFitsInInt = ConditionProfile.createCountingProfile();
-  private final ConditionProfile negativeFitsInInt = ConditionProfile.createCountingProfile();
-  private final ConditionProfile rightShiftExceedsLongWidth =
-      ConditionProfile.createCountingProfile();
+  private final CountingConditionProfile canShiftLeftInLongProfile =
+      CountingConditionProfile.create();
+  private final CountingConditionProfile positiveFitsInInt = CountingConditionProfile.create();
+  private final CountingConditionProfile negativeFitsInInt = CountingConditionProfile.create();
+  private final CountingConditionProfile rightShiftExceedsLongWidth =
+      CountingConditionProfile.create();
 
   abstract Object execute(long self, Object that);
 
+  @NeverDefault
   static BitShiftNode build() {
     return BitShiftNodeGen.create();
   }

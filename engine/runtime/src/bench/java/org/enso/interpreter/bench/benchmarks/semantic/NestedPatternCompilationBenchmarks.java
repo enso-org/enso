@@ -8,6 +8,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
+import org.graalvm.polyglot.io.IOAccess;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -38,7 +39,7 @@ public class NestedPatternCompilationBenchmarks {
     public void initializeBenchmark(BenchmarkParams params) throws Exception {
         ctx = Context.newBuilder()
                 .allowExperimentalOptions(true)
-                .allowIO(true)
+                .allowIO(IOAccess.ALL)
                 .allowAllAccess(true)
                 .logHandler(new ByteArrayOutputStream())
                 .option(

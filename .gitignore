@@ -60,7 +60,8 @@ node_modules/
 !.idea
 .idea/*
 !.idea/runConfigurations/
-.vscode/
+!.vscode
+.vscode/*
 .metals/
 *.swp
 .projections.json

@@ -2,6 +2,7 @@ package org.enso.interpreter.runtime.data;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
@@ -66,7 +67,8 @@ public final class ArraySlice implements TruffleObject {
   }
 
   @ExportMessage
-  public long getArraySize(@CachedLibrary(limit = "3") InteropLibrary interop)
+  public long getArraySize(
+      @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary interop)
       throws UnsupportedMessageException {
     long storageSize = interop.getArraySize(storage);
     return Math.max(0, Math.min(storageSize, end) - start);
@@ -82,7 +84,7 @@ public final class ArraySlice implements TruffleObject {
   @ExportMessage
   public Object readArrayElement(
       long index,
-      @CachedLibrary(limit = "3") InteropLibrary interop,
+      @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary interop,
       @CachedLibrary(limit = "3") WarningsLibrary warnings,
       @Cached HostValueToEnsoNode toEnso)
       throws InvalidArrayIndexException, UnsupportedMessageException {
@@ -108,7 +110,9 @@ public final class ArraySlice implements TruffleObject {
    * @return {@code true} if the index is valid, {@code false} otherwise.
    */
   @ExportMessage
-  boolean isArrayElementReadable(long index, @CachedLibrary(limit = "3") InteropLibrary interop) {
+  boolean isArrayElementReadable(
+      long index,
+      @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary interop) {
     try {
       return index >= 0 && index < getArraySize(interop);
     } catch (UnsupportedMessageException e) {
@@ -143,23 +147,23 @@ public final class ArraySlice implements TruffleObject {
   }
 
   @ExportMessage
-  boolean hasWarnings(@CachedLibrary(limit = "3") WarningsLibrary warnings) {
+  boolean hasWarnings(@Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings) {
     return warnings.hasWarnings(this.storage);
   }
 
   @ExportMessage
-  Warning[] getWarnings(Node location, @CachedLibrary(limit = "3") WarningsLibrary warnings) throws UnsupportedMessageException {
+  Warning[] getWarnings(Node location, @Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings) throws UnsupportedMessageException {
     return warnings.getWarnings(this.storage, location);
   }
 
   @ExportMessage
-  Object removeWarnings(@CachedLibrary(limit = "3") WarningsLibrary warnings) throws UnsupportedMessageException {
+  Object removeWarnings(@Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings) throws UnsupportedMessageException {
     Object newStorage = warnings.removeWarnings(this.storage);
     return new ArraySlice(newStorage, start, end);
   }
 
   @ExportMessage
-  boolean isLimitReached(@CachedLibrary(limit = "3") WarningsLibrary warnings) {
+  boolean isLimitReached(@Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings) {
     return warnings.isLimitReached(this.storage);
   }
 
