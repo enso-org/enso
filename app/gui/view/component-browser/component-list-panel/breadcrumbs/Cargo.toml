@@ -11,3 +11,5 @@ ensogl-derive-theme = { path = "../../../../../../lib/rust/ensogl/app/theme/deri
 ensogl-hardcoded-theme = { path = "../../../../../../lib/rust/ensogl/app/theme/hardcoded" }
 ensogl-text = { path = "../../../../../../lib/rust/ensogl/component/text" }
 ensogl-grid-view = { path = "../../../../../../lib/rust/ensogl/component/grid-view" }
+ide-view-component-list-panel-grid = { path = "../grid" }
+ide-view-component-list-panel-icons = { path = "../icons" }
