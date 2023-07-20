@@ -2,6 +2,7 @@ package org.enso.interpreter.node.callable.resolver;
 
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.GenerateUncached;
+import com.oracle.truffle.api.dsl.NonIdempotent;
 import com.oracle.truffle.api.dsl.ReportPolymorphism;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
@@ -16,6 +17,7 @@ import org.enso.interpreter.runtime.error.PanicException;
 public abstract class MethodResolverNode extends Node {
   protected static final int CACHE_SIZE = 10;
 
+  @NonIdempotent
   EnsoContext getContext() {
     return EnsoContext.get(this);
   }

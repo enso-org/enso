@@ -11,6 +11,8 @@ import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Language;
 import org.graalvm.polyglot.Source;
 import static org.junit.Assert.assertEquals;
+
+import org.graalvm.polyglot.io.IOAccess;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -35,7 +37,7 @@ public class WarningInstrumentationTest {
                 )
                 .logHandler(OutputStream.nullOutputStream())
                 .allowExperimentalOptions(true)
-                .allowIO(true)
+                .allowIO(IOAccess.ALL)
                 .allowAllAccess(true)
                 .build();
 

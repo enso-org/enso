@@ -2,6 +2,7 @@ package org.enso.interpreter.node.expression.builtin.immutable;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -31,7 +32,9 @@ public abstract class FlattenVectorNode extends Node {
 
   @Specialization
   Vector fromVector(
-      Vector self, @Cached CopyNode copyNode, @CachedLibrary(limit = "3") InteropLibrary interop) {
+      Vector self,
+      @Shared("copyNode") @Cached CopyNode copyNode,
+      @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary interop) {
     try {
       return flatten(self.toArray(), copyNode, interop);
     } catch (UnsupportedMessageException e) {
@@ -44,7 +47,9 @@ public abstract class FlattenVectorNode extends Node {
 
   @Specialization
   Vector fromArray(
-      Array self, @Cached CopyNode copyNode, @CachedLibrary(limit = "3") InteropLibrary interop) {
+      Array self,
+      @Shared("copyNode") @Cached CopyNode copyNode,
+      @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary interop) {
     try {
       return flatten(self, copyNode, interop);
     } catch (UnsupportedMessageException e) {
@@ -54,7 +59,9 @@ public abstract class FlattenVectorNode extends Node {
 
   @Specialization(guards = "interop.hasArrayElements(self)")
   Vector fromArrayLike(
-      Object self, @Cached CopyNode copyNode, @CachedLibrary(limit = "3") InteropLibrary interop) {
+      Object self,
+      @Shared("copyNode") @Cached CopyNode copyNode,
+      @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary interop) {
     try {
       return flatten(self, copyNode, interop);
     } catch (UnsupportedMessageException e) {

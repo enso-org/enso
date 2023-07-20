@@ -2,7 +2,7 @@ package org.enso.interpreter.node.callable.argument;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import com.oracle.truffle.api.profiles.ConditionProfile;
+import com.oracle.truffle.api.profiles.CountingConditionProfile;
 import java.util.List;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.callable.function.Function;
@@ -17,7 +17,7 @@ public final class ReadArgumentNode extends ExpressionNode {
   private final int index;
   @Child ExpressionNode defaultValue;
   @Child ReadArgumentCheckNode checkType;
-  private final ConditionProfile defaultingProfile = ConditionProfile.createCountingProfile();
+  private final CountingConditionProfile defaultingProfile = CountingConditionProfile.create();
 
   private ReadArgumentNode(
       String name, int position, ExpressionNode defaultValue, Type[] expectedTypes) {

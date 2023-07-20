@@ -2,7 +2,9 @@ package org.enso.interpreter.node.callable;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.GenerateUncached;
+import com.oracle.truffle.api.dsl.NonIdempotent;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
@@ -46,6 +48,7 @@ public abstract class InteropConversionCallNode extends Node {
         args, DefaultsExecutionMode.EXECUTE, ArgumentsExecutionMode.PRE_EXECUTED, 1);
   }
 
+  @NonIdempotent
   EnsoContext getContext() {
     return EnsoContext.get(this);
   }
@@ -60,7 +63,7 @@ public abstract class InteropConversionCallNode extends Node {
       Object[] arguments,
       @Cached("arguments.length") int cachedArgsLength,
       @Cached("buildInvoker(cachedArgsLength)") InvokeConversionNode invokerNode,
-      @Cached("build()") HostValueToEnsoNode hostValueToEnsoNode)
+      @Shared @Cached("build()") HostValueToEnsoNode hostValueToEnsoNode)
       throws ArityException {
     Object[] args = new Object[cachedArgsLength];
     for (int i = 0; i < cachedArgsLength; i++) {
@@ -76,7 +79,7 @@ public abstract class InteropConversionCallNode extends Node {
       State state,
       Object[] arguments,
       @Cached IndirectInvokeConversionNode indirectInvokeConversionNode,
-      @Cached("build()") HostValueToEnsoNode hostValueToEnsoNode)
+      @Shared @Cached("build()") HostValueToEnsoNode hostValueToEnsoNode)
       throws ArityException {
     Object[] args = new Object[arguments.length];
     for (int i = 0; i < arguments.length; i++) {

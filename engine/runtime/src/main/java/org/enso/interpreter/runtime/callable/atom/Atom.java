@@ -188,7 +188,8 @@ public abstract class Atom implements TruffleObject {
     }
 
     @Specialization(
-        guards = {"receiver.getConstructor() == cachedConstructor", "member.equals(cachedMember)"})
+        guards = {"receiver.getConstructor() == cachedConstructor", "member.equals(cachedMember)"},
+    limit = "3")
     static Object doCached(
         Atom receiver,
         String member,
