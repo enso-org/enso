@@ -893,11 +893,8 @@ type Integer
        - use_bankers: Rounds mid-point to nearest even number.
 
        ! Error Conditions
-         Throws `Illegal_Argument` if the number is 15 or more decimal places.
-         Above 14 digits, it is possible that the underlying long, converted to
-         double in the rounding process, would lose precision in the least
-         significant bits.
-         (See https://en.wikipedia.org/wiki/Double-precision_floating-point_format.)
+         If `self` is outside the range -99999999999999..99999999999999
+         (inclusive), an `Illegal_Argument` error is thrown.
 
          If `decimal_places` is outside the range -15..15 (inclusive), an
          `Illegal_Argument` error is thrown.
@@ -926,21 +923,9 @@ type Integer
         ## It's already an integer so unless decimal_places is
            negative, the value is unchanged.
         if decimal_places >= 0 then self else
-            Rounding_Helpers.check_decimal_places decimal_places <| Rounding_Helpers.check_round_input self <|
-                scale = 10 ^ -decimal_places
-                halfway = scale.div 2
-                remainder = self % scale
-                scaled_down = self.div scale
-                result_unnudged = scaled_down * scale
-                case self >= 0 of
-                    True ->
-                        half_goes_up = if use_bankers then (scaled_down % 2) != 0 else self >= 0
-                        round_up = if half_goes_up then remainder >= halfway else remainder > halfway
-                        if round_up  then result_unnudged + scale else result_unnudged
-                    False ->
-                        half_goes_up = if use_bankers then (scaled_down % 2) == 0 else self >= 0
-                        round_up = if half_goes_up then remainder < -halfway else remainder <= -halfway
-                        if round_up then result_unnudged - scale else result_unnudged
+            # Don't check decimal_places here, it's checked in the Java.
+            Rounding_Helpers.check_round_input self <|
+                Math_Utils.roundLong self decimal_places use_bankers
 
     ## Compute the negation of this.
 

@@ -14,12 +14,12 @@ public class Math_Utils {
     /**
      * Minimum value for the `n` parameter to `roundDouble`.
      */
-    private static final double ROUND_MIN_LONG = -99999999999999.0;
+    private static final double ROUND_MIN_DOUBLE = -99999999999999.0;
 
     /**
      * Minimum value for the `n` parameter to `roundDouble`.
      */
-    private static final double ROUND_MAX_LONG = 99999999999999.0;
+    private static final double ROUND_MAX_DOUBLE = 99999999999999.0;
 
     /**
      * Round to a specified number of decimal places.
@@ -31,7 +31,7 @@ public class Math_Utils {
      * If the argument is `NaN` or `+/-Inf`, an `Arithmetic_Error` error is
      * thrown.
      *
-     * Arguments:
+     * @param n the number to round.
      * @param decimalPlaces the number of decimal places to round to. Can be
      *   negative, which results in rounding to positive integer powers of 10.
      *   Must be between -15 and 15 (inclusive).
@@ -51,8 +51,8 @@ public class Math_Utils {
             String msg = "round cannot accept " + n;
             throw new ArithmeticException(msg);
         }
-        if (n < ROUND_MIN_LONG || n > ROUND_MAX_LONG) {
-            String msg = "Error: `round` can only accept values between " + ROUND_MIN_LONG + " and " + ROUND_MAX_LONG + " (inclusive), but was " + n;
+        if (n < ROUND_MIN_DOUBLE || n > ROUND_MAX_DOUBLE) {
+            String msg = "Error: `round` can only accept values between " + ROUND_MIN_DOUBLE + " and " + ROUND_MAX_DOUBLE + " (inclusive), but was " + n;
             throw new IllegalArgumentException(msg);
         }
 
@@ -65,5 +65,51 @@ public class Math_Utils {
         boolean halfGoesUp = useBankers ? evenIsUp : n >= 0;
         boolean doRoundUp = halfGoesUp ? n >= roundMidpoint : n > roundMidpoint;
         return doRoundUp ? ((roundBase + 1.0) / scale) : (roundBase / scale);
+    }
+
+    /**
+     * Round to a specified number of decimal places.
+     *
+     * For integers, rounding to 0 or more decimal places simply returns the
+     * argument.
+     *
+     * By default, rounding uses "asymmetric round-half-up", also known as
+     * "round towards positive infinity." If use_bankers=True, then it uses
+     * "round-half-even", also known as "banker's rounding".
+     *
+     * @param n the number to round.
+     * @param decimalPlaces the number of decimal places to round to. Can be
+     *   negative, which results in rounding to positive integer powers of 10.
+     *   Must be between -15 and 15 (inclusive).
+     * @param useBankers: Rounds mid-point to nearest even number.
+     * @return the rounded number.
+     * @throws IllegalArgumentException if `decimalPlaces` is outside the
+     *   allowed range.
+     */
+    public static double roundLong(long n, int decimalPlaces, boolean useBankers) {
+        if (decimalPlaces < ROUND_MIN_DECIMAL_PLACES || decimalPlaces > ROUND_MAX_DECIMAL_PLACES) {
+            String msg = "round: decimalPlaces must be between " + ROUND_MIN_DECIMAL_PLACES + " and " + ROUND_MAX_DECIMAL_PLACES + " (inclusive), but was " + decimalPlaces;
+            throw new IllegalArgumentException(msg);
+        }
+
+        if (decimalPlaces >= 0) {
+            return n;
+        }
+
+        long scale = (long) Math.pow(10, -decimalPlaces);
+        long halfway = scale / 2;
+        long remainder = n % scale;
+        long scaledDown = n / scale;
+        long resultUnnudged = scaledDown * scale;
+
+        if (n >= 0) {
+            boolean halfGoesUp = useBankers ? (scaledDown % 2) != 0 : n >= 0;
+            boolean roundUp = halfGoesUp ? remainder >= halfway : remainder > halfway;
+            return roundUp ? resultUnnudged + scale : resultUnnudged;
+        } else {
+            boolean halfGoesUp = useBankers ? (scaledDown % 2) == 0 : n >= 0;
+            boolean roundUp = halfGoesUp ? remainder < -halfway : remainder <= -halfway;
+            return roundUp ? resultUnnudged - scale : resultUnnudged;
+        }
     }
 }
