@@ -145,7 +145,7 @@ impl Component {
         let network = frp::Network::new("presenter::searcher::provider::Component");
 
         // We capture weak reference to list, because searcher controllers sometimes calls
-        // [`Rc::get_mut`] on it and we want to keep it from cloning entire list.
+        // [`Rc::make_mut`] on it and we want to keep it from cloning entire list.
         let weak_list = Rc::downgrade(list);
 
         frp::extend! { network
