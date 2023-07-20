@@ -27,9 +27,9 @@ pub fn arrow(length: f32, width: f32, head_length: f32, head_width: f32) -> AnyS
 /// are both given by `cell_size`. The origin is at the intersection of a horizontal and a vertical
 /// line, touching the horizontal line from the top and the vertical line from the left.
 pub fn grid(stroke_width: f32, cell_size: f32) -> AnyShape {
-    let horizontal = HalfPlane();
+    let horizontal = BottomHalfPlane();
     let horizontal = horizontal.translate_y(stroke_width.px()) - horizontal;
-    let vertical = HalfPlane().rotate((PI / 2.0).radians());
+    let vertical = BottomHalfPlane().rotate((PI / 2.0).radians());
     let vertical = vertical.translate_x(stroke_width.px()) - vertical;
     (horizontal + vertical).repeat((cell_size.px(), cell_size.px())).into()
 }

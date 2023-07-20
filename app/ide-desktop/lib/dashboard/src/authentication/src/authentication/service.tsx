@@ -11,7 +11,6 @@ import * as cognito from './cognito'
 import * as config from '../config'
 import * as listen from './listen'
 import * as loggerProvider from '../providers/logger'
-import * as newtype from '../newtype'
 
 // =============
 // === Types ===
@@ -40,9 +39,7 @@ const LOGIN_PATHNAME = '//auth/login'
 const REGISTRATION_PATHNAME = '//auth/registration'
 
 /** URI used as the OAuth redirect when deep links are supported. */
-const DEEP_LINK_REDIRECT = newtype.asNewtype<auth.OAuthRedirect>(
-    `${common.DEEP_LINK_SCHEME}://auth`
-)
+const DEEP_LINK_REDIRECT = auth.OAuthRedirect(`${common.DEEP_LINK_SCHEME}://auth`)
 /** OAuth redirect URLs for the electron app. */
 const DEEP_LINK_REDIRECTS: AmplifyRedirects = {
     redirectSignIn: DEEP_LINK_REDIRECT,
@@ -64,35 +61,23 @@ const BASE_AMPLIFY_CONFIG = {
 const AMPLIFY_CONFIGS = {
     /** Configuration for @indiv0's Cognito user pool. */
     npekin: {
-        userPoolId: newtype.asNewtype<auth.UserPoolId>('eu-west-1_AXX1gMvpx'),
-        userPoolWebClientId: newtype.asNewtype<auth.UserPoolWebClientId>(
-            '1rpnb2n1ijn6o5529a7ob017o'
-        ),
-        domain: newtype.asNewtype<auth.OAuthDomain>(
-            'npekin-enso-domain.auth.eu-west-1.amazoncognito.com'
-        ),
+        userPoolId: auth.UserPoolId('eu-west-1_AXX1gMvpx'),
+        userPoolWebClientId: auth.UserPoolWebClientId('1rpnb2n1ijn6o5529a7ob017o'),
+        domain: auth.OAuthDomain('npekin-enso-domain.auth.eu-west-1.amazoncognito.com'),
         ...BASE_AMPLIFY_CONFIG,
     } satisfies Partial<auth.AmplifyConfig>,
     /** Configuration for @pbuchu's Cognito user pool. */
     pbuchu: {
-        userPoolId: newtype.asNewtype<auth.UserPoolId>('eu-west-1_jSF1RbgPK'),
-        userPoolWebClientId: newtype.asNewtype<auth.UserPoolWebClientId>(
-            '1bnib0jfon3aqc5g3lkia2infr'
-        ),
-        domain: newtype.asNewtype<auth.OAuthDomain>(
-            'pb-enso-domain.auth.eu-west-1.amazoncognito.com'
-        ),
+        userPoolId: auth.UserPoolId('eu-west-1_jSF1RbgPK'),
+        userPoolWebClientId: auth.UserPoolWebClientId('1bnib0jfon3aqc5g3lkia2infr'),
+        domain: auth.OAuthDomain('pb-enso-domain.auth.eu-west-1.amazoncognito.com'),
         ...BASE_AMPLIFY_CONFIG,
     } satisfies Partial<auth.AmplifyConfig>,
     /** Configuration for the production Cognito user pool. */
     production: {
-        userPoolId: newtype.asNewtype<auth.UserPoolId>('eu-west-1_9Kycu2SbD'),
-        userPoolWebClientId: newtype.asNewtype<auth.UserPoolWebClientId>(
-            '4j9bfs8e7415erf82l129v0qhe'
-        ),
-        domain: newtype.asNewtype<auth.OAuthDomain>(
-            'production-enso-domain.auth.eu-west-1.amazoncognito.com'
-        ),
+        userPoolId: auth.UserPoolId('eu-west-1_9Kycu2SbD'),
+        userPoolWebClientId: auth.UserPoolWebClientId('4j9bfs8e7415erf82l129v0qhe'),
+        domain: auth.OAuthDomain('production-enso-domain.auth.eu-west-1.amazoncognito.com'),
         ...BASE_AMPLIFY_CONFIG,
     } satisfies Partial<auth.AmplifyConfig>,
 }

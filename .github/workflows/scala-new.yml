@@ -8,6 +8,8 @@ on:
       - develop
   pull_request: {}
   workflow_dispatch: {}
+permissions:
+  checks: write
 jobs:
   enso-build-ci-gen-job-cancel-workflow-linux:
     name: Cancel Previous Runs

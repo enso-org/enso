@@ -142,7 +142,7 @@ process.on('SIGINT', () => {
     process.exit(0)
 })
 
-for (;;) {
+while (true) {
     console.log('Spawning Electron process.')
     const electronProcess = childProcess.spawn('electron', ELECTRON_ARGS, {
         stdio: 'inherit',

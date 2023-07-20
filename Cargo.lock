@@ -1576,18 +1576,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "debug-scene-execution-environment-dropdown"
-version = "0.1.0"
-dependencies = [
- "ensogl",
- "ensogl-drop-down-menu",
- "ensogl-hardcoded-theme",
- "ensogl-list-view",
- "ensogl-text-msdf",
- "ide-view-execution-environment-selector",
-]
-
-[[package]]
 name = "debug-scene-graph-editor-edges"
 version = "0.1.0"
 dependencies = [
@@ -1629,6 +1617,17 @@ dependencies = [
  "span-tree",
  "uuid 0.8.2",
  "wasm-bindgen",
+]
+
+[[package]]
+name = "debug-scene-project-view-top-bar"
+version = "0.1.0"
+dependencies = [
+ "ensogl",
+ "ensogl-hardcoded-theme",
+ "ensogl-text-msdf",
+ "ide-view-execution-environment-selector",
+ "ide-view-project-view-top-bar",
 ]
 
 [[package]]
@@ -2089,10 +2088,10 @@ version = "0.1.0"
 dependencies = [
  "debug-scene-component-list-panel-view",
  "debug-scene-documentation",
- "debug-scene-execution-environment-dropdown",
  "debug-scene-graph-editor-edges",
  "debug-scene-icons",
  "debug-scene-interface",
+ "debug-scene-project-view-top-bar",
  "debug-scene-text-grid-visualization",
  "debug-scene-visualization",
 ]
@@ -4271,6 +4270,7 @@ dependencies = [
  "ide-view-documentation",
  "ide-view-execution-environment-selector",
  "ide-view-graph-editor",
+ "ide-view-project-view-top-bar",
  "js-sys",
  "multi-map",
  "nalgebra",
@@ -4436,6 +4436,23 @@ dependencies = [
  "wasm-bindgen",
  "wasm-bindgen-test",
  "web-sys",
+]
+
+[[package]]
+name = "ide-view-project-view-top-bar"
+version = "0.1.0"
+dependencies = [
+ "ast",
+ "engine-protocol",
+ "enso-config",
+ "enso-frp",
+ "enso-prelude",
+ "ensogl",
+ "ensogl-component",
+ "ensogl-hardcoded-theme",
+ "ide-view-execution-environment-selector",
+ "parser",
+ "uuid 0.8.2",
 ]
 
 [[package]]
