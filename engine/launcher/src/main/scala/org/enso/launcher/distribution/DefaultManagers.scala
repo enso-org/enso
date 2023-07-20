@@ -49,6 +49,7 @@ object DefaultManagers {
     alwaysInstallMissing: Boolean
   ): RuntimeVersionManager =
     new RuntimeVersionManager(
+      LauncherEnvironment,
       new CLIRuntimeVersionManagementUserInterface(
         globalCLIOptions,
         alwaysInstallMissing

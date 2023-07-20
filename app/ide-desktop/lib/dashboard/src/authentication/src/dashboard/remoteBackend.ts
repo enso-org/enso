@@ -7,7 +7,6 @@ import * as backend from './backend'
 import * as config from '../config'
 import * as http from '../http'
 import * as loggerProvider from '../providers/logger'
-import * as newtype from '../newtype'
 
 // =================
 // === Constants ===
@@ -70,6 +69,14 @@ const CREATE_TAG_PATH = 'tags'
 const LIST_TAGS_PATH = 'tags'
 /** Relative HTTP path to the "list versions" endpoint of the Cloud backend API. */
 const LIST_VERSIONS_PATH = 'versions'
+/** Relative HTTP path to the "update directory" endpoint of the Cloud backend API. */
+function updateDirectoryPath(directoryId: backend.DirectoryId) {
+    return `directories/${directoryId}`
+}
+/** Relative HTTP path to the "delete directory" endpoint of the Cloud backend API. */
+function deleteDirectoryPath(directoryId: backend.DirectoryId) {
+    return `directories/${directoryId}`
+}
 /** Relative HTTP path to the "close project" endpoint of the Cloud backend API. */
 function closeProjectPath(projectId: backend.ProjectId) {
     return `projects/${projectId}/close`
@@ -228,7 +235,7 @@ export class RemoteBackend implements backend.Backend {
 
     /** Return organization info for the current user.
      *
-     * @returns `null` if any status code other than 200 OK was received. */
+     * @returns `null` if a non-successful status code (not 200-299) was received. */
     async usersMe(): Promise<backend.UserOrOrganization | null> {
         const response = await this.get<backend.UserOrOrganization>(USERS_ME_PATH)
         if (!responseIsSuccessful(response)) {
@@ -240,8 +247,11 @@ export class RemoteBackend implements backend.Backend {
 
     /** Return a list of assets in a directory.
      *
-     * @throws An error if any status code other than 200 OK was received. */
-    async listDirectory(query: backend.ListDirectoryRequestParams): Promise<backend.Asset[]> {
+     * @throws An error if a non-successful status code (not 200-299) was received. */
+    async listDirectory(
+        query: backend.ListDirectoryRequestParams,
+        title: string | null
+    ): Promise<backend.Asset[]> {
         const response = await this.get<ListDirectoryResponseBody>(
             LIST_DIRECTORY_PATH +
                 '?' +
@@ -255,7 +265,11 @@ export class RemoteBackend implements backend.Backend {
                 // The directory is probably empty.
                 return []
             } else if (query.parentId != null) {
-                return this.throw(`Unable to list directory with ID '${query.parentId}'.`)
+                return this.throw(
+                    `Unable to list directory ${
+                        title != null ? `'${title}'` : `with ID '${query.parentId}'`
+                    }.`
+                )
             } else {
                 return this.throw('Unable to list root directory.')
             }
@@ -270,9 +284,11 @@ export class RemoteBackend implements backend.Backend {
 
     /** Create a directory.
      *
-     * @throws An error if any status code other than 200 OK was received. */
-    async createDirectory(body: backend.CreateDirectoryRequestBody): Promise<backend.Directory> {
-        const response = await this.post<backend.Directory>(CREATE_DIRECTORY_PATH, body)
+     * @throws An error if a non-successful status code (not 200-299) was received. */
+    async createDirectory(
+        body: backend.CreateDirectoryRequestBody
+    ): Promise<backend.CreatedDirectory> {
+        const response = await this.post<backend.CreatedDirectory>(CREATE_DIRECTORY_PATH, body)
         if (!responseIsSuccessful(response)) {
             return this.throw(`Unable to create directory with name '${body.title}'.`)
         } else {
@@ -280,9 +296,48 @@ export class RemoteBackend implements backend.Backend {
         }
     }
 
+    /** Change the name of a directory.
+     *
+     * @throws An error if a non-successful status code (not 200-299) was received. */
+    async updateDirectory(
+        directoryId: backend.DirectoryId,
+        body: backend.UpdateDirectoryRequestBody,
+        title: string | null
+    ) {
+        const response = await this.put<backend.UpdatedDirectory>(
+            updateDirectoryPath(directoryId),
+            body
+        )
+        if (!responseIsSuccessful(response)) {
+            return this.throw(
+                `Unable to update directory ${
+                    title != null ? `'${title}'` : `with ID '${directoryId}'`
+                }.`
+            )
+        } else {
+            return await response.json()
+        }
+    }
+
+    /** Change the name of a directory.
+     *
+     * @throws An error if a non-successful status code (not 200-299) was received. */
+    async deleteDirectory(directoryId: backend.DirectoryId, title: string | null) {
+        const response = await this.delete(deleteDirectoryPath(directoryId))
+        if (!responseIsSuccessful(response)) {
+            return this.throw(
+                `Unable to delete directory ${
+                    title != null ? `'${title}'` : `with ID '${directoryId}'`
+                }.`
+            )
+        } else {
+            return
+        }
+    }
+
     /** Return a list of projects belonging to the current user.
      *
-     * @throws An error if any status code other than 200 OK was received. */
+     * @throws An error if a non-successful status code (not 200-299) was received. */
     async listProjects(): Promise<backend.ListedProject[]> {
         const response = await this.get<ListProjectsResponseBody>(LIST_PROJECTS_PATH)
         if (!responseIsSuccessful(response)) {
@@ -291,20 +346,16 @@ export class RemoteBackend implements backend.Backend {
             return (await response.json()).projects.map(project => ({
                 ...project,
                 jsonAddress:
-                    project.address != null
-                        ? newtype.asNewtype<backend.Address>(`${project.address}json`)
-                        : null,
+                    project.address != null ? backend.Address(`${project.address}json`) : null,
                 binaryAddress:
-                    project.address != null
-                        ? newtype.asNewtype<backend.Address>(`${project.address}binary`)
-                        : null,
+                    project.address != null ? backend.Address(`${project.address}binary`) : null,
             }))
         }
     }
 
     /** Create a project.
      *
-     * @throws An error if any status code other than 200 OK was received. */
+     * @throws An error if a non-successful status code (not 200-299) was received. */
     async createProject(body: backend.CreateProjectRequestBody): Promise<backend.CreatedProject> {
         const response = await this.post<backend.CreatedProject>(CREATE_PROJECT_PATH, body)
         if (!responseIsSuccessful(response)) {
@@ -316,11 +367,15 @@ export class RemoteBackend implements backend.Backend {
 
     /** Close a project.
      *
-     * @throws An error if any status code other than 200 OK was received. */
-    async closeProject(projectId: backend.ProjectId): Promise<void> {
+     * @throws An error if a non-successful status code (not 200-299) was received. */
+    async closeProject(projectId: backend.ProjectId, title: string | null): Promise<void> {
         const response = await this.post(closeProjectPath(projectId), {})
         if (!responseIsSuccessful(response)) {
-            return this.throw(`Unable to close project with ID '${projectId}'.`)
+            return this.throw(
+                `Unable to close project ${
+                    title != null ? `'${title}'` : `with ID '${projectId}'`
+                }.`
+            )
         } else {
             return
         }
@@ -328,37 +383,46 @@ export class RemoteBackend implements backend.Backend {
 
     /** Return details for a project.
      *
-     * @throws An error if any status code other than 200 OK was received. */
-    async getProjectDetails(projectId: backend.ProjectId): Promise<backend.Project> {
+     * @throws An error if a non-successful status code (not 200-299) was received. */
+    async getProjectDetails(
+        projectId: backend.ProjectId,
+        title: string | null
+    ): Promise<backend.Project> {
         const response = await this.get<backend.ProjectRaw>(getProjectDetailsPath(projectId))
         if (!responseIsSuccessful(response)) {
-            return this.throw(`Unable to get details of project with ID '${projectId}'.`)
+            return this.throw(
+                `Unable to get details of project ${
+                    title != null ? `'${title}'` : `with ID '${projectId}'`
+                }.`
+            )
         } else {
             const project = await response.json()
             return {
                 ...project,
                 jsonAddress:
-                    project.address != null
-                        ? newtype.asNewtype<backend.Address>(`${project.address}json`)
-                        : null,
+                    project.address != null ? backend.Address(`${project.address}json`) : null,
                 binaryAddress:
-                    project.address != null
-                        ? newtype.asNewtype<backend.Address>(`${project.address}binary`)
-                        : null,
+                    project.address != null ? backend.Address(`${project.address}binary`) : null,
             }
         }
     }
 
     /** Prepare a project for execution.
      *
-     * @throws An error if any status code other than 200 OK was received. */
+     * @throws An error if a non-successful status code (not 200-299) was received. */
     async openProject(
         projectId: backend.ProjectId,
-        body: backend.OpenProjectRequestBody = DEFAULT_OPEN_PROJECT_BODY
+        body: backend.OpenProjectRequestBody | null,
+        title: string | null
     ): Promise<void> {
-        const response = await this.post(openProjectPath(projectId), body)
+        const response = await this.post(
+            openProjectPath(projectId),
+            body ?? DEFAULT_OPEN_PROJECT_BODY
+        )
         if (!responseIsSuccessful(response)) {
-            return this.throw(`Unable to open project with ID '${projectId}'.`)
+            return this.throw(
+                `Unable to open project ${title != null ? `'${title}'` : `with ID '${projectId}'`}.`
+            )
         } else {
             return
         }
@@ -366,14 +430,19 @@ export class RemoteBackend implements backend.Backend {
 
     /** Update the name or AMI of a project.
      *
-     * @throws An error if any status code other than 200 OK was received. */
+     * @throws An error if a non-successful status code (not 200-299) was received. */
     async projectUpdate(
         projectId: backend.ProjectId,
-        body: backend.ProjectUpdateRequestBody
+        body: backend.ProjectUpdateRequestBody,
+        title: string | null
     ): Promise<backend.UpdatedProject> {
         const response = await this.put<backend.UpdatedProject>(projectUpdatePath(projectId), body)
         if (!responseIsSuccessful(response)) {
-            return this.throw(`Unable to update project with ID '${projectId}'.`)
+            return this.throw(
+                `Unable to update project ${
+                    title != null ? `'${title}'` : `with ID '${projectId}'`
+                }.`
+            )
         } else {
             return await response.json()
         }
@@ -381,11 +450,15 @@ export class RemoteBackend implements backend.Backend {
 
     /** Delete a project.
      *
-     * @throws An error if any status code other than 200 OK was received. */
-    async deleteProject(projectId: backend.ProjectId): Promise<void> {
+     * @throws An error if a non-successful status code (not 200-299) was received. */
+    async deleteProject(projectId: backend.ProjectId, title: string | null): Promise<void> {
         const response = await this.delete(deleteProjectPath(projectId))
         if (!responseIsSuccessful(response)) {
-            return this.throw(`Unable to delete project with ID '${projectId}'.`)
+            return this.throw(
+                `Unable to delete project ${
+                    title != null ? `'${title}'` : `with ID '${projectId}'`
+                }.`
+            )
         } else {
             return
         }
@@ -393,11 +466,18 @@ export class RemoteBackend implements backend.Backend {
 
     /** Return the resource usage of a project.
      *
-     * @throws An error if any status code other than 200 OK was received. */
-    async checkResources(projectId: backend.ProjectId): Promise<backend.ResourceUsage> {
+     * @throws An error if a non-successful status code (not 200-299) was received. */
+    async checkResources(
+        projectId: backend.ProjectId,
+        title: string | null
+    ): Promise<backend.ResourceUsage> {
         const response = await this.get<backend.ResourceUsage>(checkResourcesPath(projectId))
         if (!responseIsSuccessful(response)) {
-            return this.throw(`Unable to get resource usage for project with ID '${projectId}'.`)
+            return this.throw(
+                `Unable to get resource usage for project ${
+                    title != null ? `'${title}'` : `with ID '${projectId}'`
+                }.`
+            )
         } else {
             return await response.json()
         }
@@ -405,7 +485,7 @@ export class RemoteBackend implements backend.Backend {
 
     /** Return a list of files accessible by the current user.
      *
-     * @throws An error if any status code other than 200 OK was received. */
+     * @throws An error if a non-successful status code (not 200-299) was received. */
     async listFiles(): Promise<backend.File[]> {
         const response = await this.get<ListFilesResponseBody>(LIST_FILES_PATH)
         if (!responseIsSuccessful(response)) {
@@ -417,7 +497,7 @@ export class RemoteBackend implements backend.Backend {
 
     /** Upload a file.
      *
-     * @throws An error if any status code other than 200 OK was received. */
+     * @throws An error if a non-successful status code (not 200-299) was received. */
     async uploadFile(
         params: backend.UploadFileRequestParams,
         body: Blob
@@ -451,11 +531,13 @@ export class RemoteBackend implements backend.Backend {
 
     /** Delete a file.
      *
-     * @throws An error if any status code other than 200 OK was received. */
-    async deleteFile(fileId: backend.FileId): Promise<void> {
+     * @throws An error if a non-successful status code (not 200-299) was received. */
+    async deleteFile(fileId: backend.FileId, title: string | null): Promise<void> {
         const response = await this.delete(deleteFilePath(fileId))
         if (!responseIsSuccessful(response)) {
-            return this.throw(`Unable to delete file with ID '${fileId}'.`)
+            return this.throw(
+                `Unable to delete file ${title != null ? `'${title}'` : `with ID '${fileId}'`}.`
+            )
         } else {
             return
         }
@@ -463,7 +545,7 @@ export class RemoteBackend implements backend.Backend {
 
     /** Create a secret environment variable.
      *
-     * @throws An error if any status code other than 200 OK was received. */
+     * @throws An error if a non-successful status code (not 200-299) was received. */
     async createSecret(body: backend.CreateSecretRequestBody): Promise<backend.SecretAndInfo> {
         const response = await this.post<backend.SecretAndInfo>(CREATE_SECRET_PATH, body)
         if (!responseIsSuccessful(response)) {
@@ -475,11 +557,13 @@ export class RemoteBackend implements backend.Backend {
 
     /** Return a secret environment variable.
      *
-     * @throws An error if any status code other than 200 OK was received. */
-    async getSecret(secretId: backend.SecretId): Promise<backend.Secret> {
+     * @throws An error if a non-successful status code (not 200-299) was received. */
+    async getSecret(secretId: backend.SecretId, title: string | null): Promise<backend.Secret> {
         const response = await this.get<backend.Secret>(getSecretPath(secretId))
         if (!responseIsSuccessful(response)) {
-            return this.throw(`Unable to get secret with ID '${secretId}'.`)
+            return this.throw(
+                `Unable to get secret ${title != null ? `'${title}'` : `with ID '${secretId}'`}.`
+            )
         } else {
             return await response.json()
         }
@@ -487,7 +571,7 @@ export class RemoteBackend implements backend.Backend {
 
     /** Return the secret environment variables accessible by the user.
      *
-     * @throws An error if any status code other than 200 OK was received. */
+     * @throws An error if a non-successful status code (not 200-299) was received. */
     async listSecrets(): Promise<backend.SecretInfo[]> {
         const response = await this.get<ListSecretsResponseBody>(LIST_SECRETS_PATH)
         if (!responseIsSuccessful(response)) {
@@ -499,11 +583,13 @@ export class RemoteBackend implements backend.Backend {
 
     /** Delete a secret environment variable.
      *
-     * @throws An error if any status code other than 200 OK was received. */
-    async deleteSecret(secretId: backend.SecretId): Promise<void> {
+     * @throws An error if a non-successful status code (not 200-299) was received. */
+    async deleteSecret(secretId: backend.SecretId, title: string | null): Promise<void> {
         const response = await this.delete(deleteSecretPath(secretId))
         if (!responseIsSuccessful(response)) {
-            return this.throw(`Unable to delete secret with ID '${secretId}'.`)
+            return this.throw(
+                `Unable to delete secret ${title != null ? `'${title}'` : `with ID '${secretId}'`}.`
+            )
         } else {
             return
         }
@@ -511,7 +597,7 @@ export class RemoteBackend implements backend.Backend {
 
     /** Create a file tag or project tag.
      *
-     * @throws An error if any status code other than 200 OK was received. */
+     * @throws An error if a non-successful status code (not 200-299) was received. */
     async createTag(body: backend.CreateTagRequestBody): Promise<backend.TagInfo> {
         const response = await this.post<backend.TagInfo>(CREATE_TAG_PATH, {
             /* eslint-disable @typescript-eslint/naming-convention */
@@ -530,7 +616,7 @@ export class RemoteBackend implements backend.Backend {
 
     /** Return file tags or project tags accessible by the user.
      *
-     * @throws An error if any status code other than 200 OK was received. */
+     * @throws An error if a non-successful status code (not 200-299) was received. */
     async listTags(params: backend.ListTagsRequestParams): Promise<backend.Tag[]> {
         const response = await this.get<ListTagsResponseBody>(
             LIST_TAGS_PATH +
@@ -549,7 +635,7 @@ export class RemoteBackend implements backend.Backend {
 
     /** Delete a secret environment variable.
      *
-     * @throws An error if any status code other than 200 OK was received. */
+     * @throws An error if a non-successful status code (not 200-299) was received. */
     async deleteTag(tagId: backend.TagId): Promise<void> {
         const response = await this.delete(deleteTagPath(tagId))
         if (!responseIsSuccessful(response)) {
@@ -561,7 +647,7 @@ export class RemoteBackend implements backend.Backend {
 
     /** Return list of backend or IDE versions.
      *
-     * @throws An error if any status code other than 200 OK was received. */
+     * @throws An error if a non-successful status code (not 200-299) was received. */
     async listVersions(
         params: backend.ListVersionsRequestParams
     ): Promise<[backend.Version, ...backend.Version[]]> {

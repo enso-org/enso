@@ -60,7 +60,6 @@ pub use crate::node::profiling::Status as NodeProfilingStatus;
 use engine_protocol::language_server::ExecutionEnvironment;
 
 use application::tooltip;
-use enso_config::ARGS;
 use enso_frp as frp;
 use ensogl::application;
 use ensogl::application::Application;
@@ -82,8 +81,6 @@ use ensogl_component::text;
 use ensogl_component::text::buffer::selection::Selection;
 use ensogl_component::tooltip::Tooltip;
 use ensogl_hardcoded_theme as theme;
-use ide_view_execution_environment_selector as execution_environment_selector;
-use ide_view_execution_environment_selector::ExecutionEnvironmentSelector;
 use span_tree::PortId;
 
 // ===============
@@ -110,27 +107,7 @@ const VIZ_PREVIEW_MODE_TOGGLE_TIME_MS: f32 = 300.0;
 /// Assumes 60fps. We use this value to check against dropped frames during the interval.
 const VIZ_PREVIEW_MODE_TOGGLE_FRAMES: i32 =
     (VIZ_PREVIEW_MODE_TOGGLE_TIME_MS / 1000.0 * 60.0) as i32;
-const MACOS_TRAFFIC_LIGHTS_CONTENT_WIDTH: f32 = 52.0;
-const MACOS_TRAFFIC_LIGHTS_CONTENT_HEIGHT: f32 = 12.0;
-/// Horizontal and vertical offset between traffic lights and window border
-const MACOS_TRAFFIC_LIGHTS_SIDE_OFFSET: f32 = 13.0;
-/// The vertical center of the traffic lights, relative to the window border.
-pub const MACOS_TRAFFIC_LIGHTS_VERTICAL_CENTER: f32 =
-    -MACOS_TRAFFIC_LIGHTS_SIDE_OFFSET - MACOS_TRAFFIC_LIGHTS_CONTENT_HEIGHT / 2.0;
 const MAX_ZOOM: f32 = 1.0;
-/// Space between items in the top bar.
-const TOP_BAR_ITEM_MARGIN: f32 = 10.0;
-
-fn traffic_lights_gap_width() -> f32 {
-    let platform_str = ARGS.groups.startup.options.platform.value.as_str();
-    let platform = web::platform::Platform::try_from(platform_str);
-    let is_macos = platform.map(|p| p.is_macos()).ok() == Some(true);
-    if is_macos && !ARGS.groups.window.options.frame.value {
-        MACOS_TRAFFIC_LIGHTS_CONTENT_WIDTH + MACOS_TRAFFIC_LIGHTS_SIDE_OFFSET
-    } else {
-        0.0
-    }
-}
 
 
 
@@ -608,10 +585,6 @@ ensogl::define_endpoints_2! {
         /// Enable or disable debug-only features.
         set_debug_mode(bool),
 
-        /// Push a hardcoded breadcrumb without notifying the controller.
-        debug_push_breadcrumb(),
-        /// Pop a breadcrumb without notifying the controller.
-        debug_pop_breadcrumb(),
         /// Set a test visualization data for the selected nodes. Useful for testing visualizations
         /// during their development.
         debug_set_test_visualization_data_for_selected_node(),
@@ -1008,43 +981,6 @@ impl Display for Type {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.0)
     }
-}
-
-
-
-// =============================
-// === OptionalMethodPointer ===
-// =============================
-
-/// Information about target definition for node entering.
-// TODO [mwu]
-//  As currently there is no good place to wrap Rc into a newtype that can be easily depended on
-//  both by `ide-view` and `ide` crates, we put this as-is. Refactoring should be considered in the
-//  future, once code organization and emerging patterns are more clear.
-#[derive(Clone, Debug, Deref, PartialEq, Eq)]
-pub struct MethodPointer(pub Rc<engine_protocol::language_server::MethodPointer>);
-
-impl From<engine_protocol::language_server::MethodPointer> for MethodPointer {
-    fn from(method_pointer: engine_protocol::language_server::MethodPointer) -> Self {
-        Self(Rc::new(method_pointer))
-    }
-}
-
-
-
-// =================
-// === LocalCall ===
-// =================
-
-/// A specific function call occurring within another function's definition body.
-/// It's closely related to the `LocalCall` type defined in `Language Server` types, but uses the
-/// new type `MethodPointer` defined in `GraphEditor`.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct LocalCall {
-    /// An expression being a call to a method.
-    pub call:       engine_protocol::language_server::ExpressionId,
-    /// A pointer to the called method.
-    pub definition: MethodPointer,
 }
 
 
@@ -1854,27 +1790,25 @@ impl GraphEditorModel {
 #[derive(Debug)]
 #[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub struct GraphEditorModel {
-    pub display_object: display::object::Instance,
+    pub display_object:   display::object::Instance,
     // Required for dynamically creating nodes and edges.
-    pub app: Application,
-    pub breadcrumbs: component::Breadcrumbs,
-    pub nodes: Nodes,
-    edges: RefCell<Edges>,
-    pub vis_registry: visualization::Registry,
-    pub drop_manager: ensogl_drop_manager::Manager,
-    pub navigator: Navigator,
-    pub add_node_button: Rc<component::add_node_button::AddNodeButton>,
-    tooltip: Tooltip,
-    touch_state: TouchState,
-    visualizations: Visualizations,
-    frp: api::Private,
-    frp_public: api::Public,
-    profiling_statuses: profiling::Statuses,
-    styles_frp: StyleWatchFrp,
+    pub app:              Application,
+    pub nodes:            Nodes,
+    edges:                RefCell<Edges>,
+    pub vis_registry:     visualization::Registry,
+    pub drop_manager:     ensogl_drop_manager::Manager,
+    pub navigator:        Navigator,
+    pub add_node_button:  Rc<component::add_node_button::AddNodeButton>,
+    tooltip:              Tooltip,
+    touch_state:          TouchState,
+    visualizations:       Visualizations,
+    frp:                  api::Private,
+    frp_public:           api::Public,
+    profiling_statuses:   profiling::Statuses,
+    styles_frp:           StyleWatchFrp,
     #[deprecated = "StyleWatch was designed as an internal tool for shape system (#795)"]
-    styles: StyleWatch,
+    styles:               StyleWatch,
     selection_controller: selection::Controller,
-    execution_environment_selector: ExecutionEnvironmentSelector,
 }
 
 
@@ -1891,9 +1825,6 @@ impl GraphEditorModel {
         let vis_registry = visualization::Registry::with_default_visualizations();
         let visualizations = default();
         let touch_state = TouchState::new(network, scene);
-        let breadcrumbs = component::Breadcrumbs::new(app.clone_ref());
-        let execution_environment_selector =
-            execution_environment_selector::ExecutionEnvironmentSelector::new(app);
         let app = app.clone_ref();
         let navigator = Navigator::new(scene, &scene.camera());
         let tooltip = Tooltip::new(&app);
@@ -1915,7 +1846,6 @@ impl GraphEditorModel {
         Self {
             display_object,
             app,
-            breadcrumbs,
             nodes,
             edges,
             vis_registry,
@@ -1931,19 +1861,11 @@ impl GraphEditorModel {
             styles_frp,
             styles,
             selection_controller,
-            execution_environment_selector,
         }
         .init()
     }
 
     fn init(self) -> Self {
-        let x_offset = MACOS_TRAFFIC_LIGHTS_SIDE_OFFSET;
-
-        self.add_child(&self.execution_environment_selector);
-
-        self.add_child(&self.breadcrumbs);
-        self.breadcrumbs.set_x(x_offset);
-
         self.scene().add_child(&self.tooltip);
         self.add_child(&*self.add_node_button);
         self
@@ -2903,7 +2825,6 @@ fn init_remaining_graph_editor_frp(
 
     frp::extend! { network
         out.read_only <+ inputs.set_read_only;
-        model.breadcrumbs.set_read_only <+ inputs.set_read_only;
     }
 
     // ========================
@@ -2914,20 +2835,6 @@ fn init_remaining_graph_editor_frp(
         navigator_disabled <- out.some_visualization_selected.or(&inputs.set_navigator_disabled);
         model.navigator.frp.set_enabled <+ navigator_disabled.not();
         out.navigator_active <+ model.navigator.frp.enabled;
-    }
-
-
-
-    // ===================
-    // === Breadcrumbs ===
-    // ===================
-
-    frp::extend! { network
-
-        // === Debugging ===
-
-        eval_ inputs.debug_push_breadcrumb(model.breadcrumbs.debug_push_breadcrumb.emit(None));
-        eval_ inputs.debug_pop_breadcrumb (model.breadcrumbs.debug_pop_breadcrumb.emit(()));
     }
 
 
@@ -2951,31 +2858,6 @@ fn init_remaining_graph_editor_frp(
         node_switch_to_enter <- out.node_hovered.sample(&enter_node);
         node_to_enter <- node_switch_to_enter.filter_map(|switch| switch.into_on());
         out.node_entered <+ node_to_enter;
-    }
-
-
-
-    // ============================
-    // === Project Name Editing ===
-    // ============================
-
-
-    // === Start project name edit ===
-    frp::extend! { network
-        edit_mode <- bool(&inputs.edit_mode_off,&inputs.edit_mode_on);
-        eval edit_mode ((edit_mode_on) model.breadcrumbs.ide_text_edit_mode.emit(edit_mode_on));
-        // Deselect nodes when the project name is edited.
-        frp.deselect_all_nodes <+ model.breadcrumbs.project_mouse_down;
-    }
-
-
-    // === Commit project name edit ===
-
-    frp::extend! { network
-        deactivate_breadcrumbs <- any3_(&touch.background.down,
-                                        &out.node_editing_started,
-                                        &out.node_entered);
-        eval_ deactivate_breadcrumbs(model.breadcrumbs.outside_press());
     }
 
 
@@ -3452,16 +3334,13 @@ fn init_remaining_graph_editor_frp(
         })
     );
 
-    let breadcrumb_style = model.breadcrumbs.pointer_style.clone_ref();
     let selection_style  = selection_controller.cursor_style.clone_ref();
-
 
     cursor.set_style <+ all
         [ pointer_on_drag
         , selection_style
         , node_pointer_style
         , detached_edge_style
-        , breadcrumb_style
         ].fold();
     }
 
@@ -3547,12 +3426,6 @@ fn init_remaining_graph_editor_frp(
     frp.private.output.default_y_gap_between_nodes.emit(default_y_gap.value());
     frp.private.output.min_x_spacing_for_new_nodes.emit(min_x_spacing.value());
 
-
-    // ================================
-    // === Execution Mode Selection ===
-    // ================================
-
-    execution_environment::init_frp(frp, model);
 
 
     // ==================

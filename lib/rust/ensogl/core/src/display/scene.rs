@@ -742,6 +742,7 @@ pub struct HardcodedLayers {
     pub panel_background: Layer,
     pub panel: Layer,
     pub panel_text: Layer,
+    pub panel_overlay: RectLayerPartition,
     pub node_searcher: Layer,
     pub node_searcher_text: Layer,
     pub node_searcher_button_panel: Layer,
@@ -798,6 +799,7 @@ impl HardcodedLayers {
         let panel_background_rect_level_1 = partition_layer(&panel_background, "top");
         let panel = root.create_sublayer_with_camera("panel", &panel_cam);
         let panel_text = root.create_sublayer_with_camera("panel_text", &panel_cam);
+        let panel_overlay = partition_layer(&panel_text, "overlay");
         let node_searcher = root.create_sublayer_with_camera("node_searcher", &node_searcher_cam);
         let node_searcher_text =
             root.create_sublayer_with_camera("node_searcher_text", &node_searcher_cam);
@@ -834,6 +836,7 @@ impl HardcodedLayers {
             panel_background,
             panel,
             panel_text,
+            panel_overlay,
             node_searcher,
             node_searcher_text,
             node_searcher_button_panel,

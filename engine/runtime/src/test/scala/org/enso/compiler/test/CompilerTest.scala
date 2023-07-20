@@ -11,8 +11,10 @@ import org.enso.compiler.pass.{PassConfiguration, PassManager}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 import org.enso.interpreter.runtime.Module
+import org.enso.interpreter.runtime.ModuleTestUtils
 import org.enso.interpreter.runtime.scope.LocalScope
 import org.enso.pkg.QualifiedName
+import org.enso.polyglot.CompilationStage
 
 trait CompilerTest extends AnyWordSpecLike with Matchers with CompilerRunner
 trait CompilerRunner {
@@ -227,7 +229,8 @@ trait CompilerRunner {
     compilerConfig: CompilerConfig               = defaultConfig
   ): InlineContext = {
     val mod = Module.empty(QualifiedName.simpleName("Test_Module"), null)
-    mod.unsafeSetIr(
+    ModuleTestUtils.unsafeSetIr(
+      mod,
       IR.Module(List(), List(), List(), None)
         .updateMetadata(
           BindingAnalysis -->> BindingsMap(
@@ -236,7 +239,10 @@ trait CompilerRunner {
           )
         )
     )
-    mod.unsafeSetCompilationStage(Module.CompilationStage.AFTER_CODEGEN)
+    ModuleTestUtils.unsafeSetCompilationStage(
+      mod,
+      CompilationStage.AFTER_CODEGEN
+    )
     InlineContext(
       module            = mod,
       freshNameSupply   = freshNameSupply,

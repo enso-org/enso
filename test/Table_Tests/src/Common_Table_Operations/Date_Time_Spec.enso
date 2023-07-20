@@ -264,42 +264,43 @@ spec setup =
             (t1.at "X").date_diff (t1.at "Y") Time_Period.Day . to_vector . should_equal [32]
             (t1.at "X").date_diff (t1.at "Y") Time_Period.Hour . should_fail_with Illegal_Argument
 
-            t2 = table_builder [["X", [Date_Time.new 2021 11 3 10 15 0]], ["Y", [Date_Time.new 2021 12 5 12 30 20]]]
+            zone = Time_Zone.parse "Europe/Warsaw"
+            t2 = table_builder [["X", [Date_Time.new 2021 11 3 10 15 0 zone=zone]], ["Y", [Date_Time.new 2021 12 5 12 30 20 zone=zone]]]
 
             (t2.at "X").date_diff (t2.at "Y") Date_Period.Day . to_vector . should_equal [32]
             (t2.at "Y").date_diff (t2.at "X") Date_Period.Day . to_vector . should_equal [-32]
-            (t2.at "X").date_diff (Date_Time.new 2021 11 3 10 15 0) Date_Period.Day . to_vector . should_equal [0]
+            (t2.at "X").date_diff (Date_Time.new 2021 11 3 10 15 0 zone=zone) Date_Period.Day . to_vector . should_equal [0]
 
             (t2.at "X").date_diff (t2.at "Y") Date_Period.Month . to_vector . should_equal [1]
-            (t2.at "X").date_diff (Date_Time.new 2021 12 1 10 15 0) Date_Period.Month . to_vector . should_equal [0]
+            (t2.at "X").date_diff (Date_Time.new 2021 12 1 10 15 0 zone=zone) Date_Period.Month . to_vector . should_equal [0]
 
             (t2.at "X").date_diff (t2.at "Y") Date_Period.Year . to_vector . should_equal [0]
-            (t2.at "X").date_diff (Date_Time.new 2031 12 1 10 15 0) Date_Period.Year . to_vector . should_equal [10]
+            (t2.at "X").date_diff (Date_Time.new 2031 12 1 10 15 0 zone=zone) Date_Period.Year . to_vector . should_equal [10]
 
             (t2.at "X").date_diff (t2.at "Y") Time_Period.Day . to_vector . should_equal [32]
 
             (t2.at "X").date_diff (t2.at "Y") Time_Period.Hour . to_vector . should_equal [770]
-            (t2.at "X").date_diff (Date_Time.new 2021 11 3 12 15 0) Time_Period.Hour . to_vector . should_equal [2]
+            (t2.at "X").date_diff (Date_Time.new 2021 11 3 12 15 0 zone=zone) Time_Period.Hour . to_vector . should_equal [2]
 
             (t2.at "X").date_diff (t2.at "Y") Time_Period.Minute . to_vector . should_equal [46215]
-            (t2.at "X").date_diff (Date_Time.new 2021 11 3 10 45 0) Time_Period.Minute . to_vector . should_equal [30]
+            (t2.at "X").date_diff (Date_Time.new 2021 11 3 10 45 0 zone=zone) Time_Period.Minute . to_vector . should_equal [30]
 
             (t2.at "X").date_diff (t2.at "Y") Time_Period.Second . to_vector . should_equal [2772920]
-            (t2.at "X").date_diff (Date_Time.new 2021 11 3 10 15 30) Time_Period.Second . to_vector . should_equal [30]
+            (t2.at "X").date_diff (Date_Time.new 2021 11 3 10 15 30 zone=zone) Time_Period.Second . to_vector . should_equal [30]
 
             (t2.at "X").date_diff (t2.at "Y") Time_Period.Millisecond . to_vector . should_equal [2772920000]
-            (t2.at "X").date_diff (Date_Time.new 2021 11 3 10 15 30 123) Time_Period.Millisecond . to_vector . should_equal [30123]
+            (t2.at "X").date_diff (Date_Time.new 2021 11 3 10 15 30 123 zone=zone) Time_Period.Millisecond . to_vector . should_equal [30123]
 
             (t2.at "X").date_diff (t2.at "Y") Time_Period.Microsecond . to_vector . should_equal [2772920000000]
-            (t2.at "X").date_diff (Date_Time.new 2021 11 3 10 15 30 123 456) Time_Period.Microsecond . to_vector . should_equal [30123456]
+            (t2.at "X").date_diff (Date_Time.new 2021 11 3 10 15 30 123 456 zone=zone) Time_Period.Microsecond . to_vector . should_equal [30123456]
 
             case setup.test_selection.supports_nanoseconds_in_time of
                 True ->
                     (t2.at "X").date_diff (t2.at "Y") Time_Period.Nanosecond . to_vector . should_equal [2772920000000000]
-                    (t2.at "X").date_diff (Date_Time.new 2021 11 3 10 15 30 123 456 789) Time_Period.Nanosecond . to_vector . should_equal [30123456789]
+                    (t2.at "X").date_diff (Date_Time.new 2021 11 3 10 15 30 123 456 789 zone=zone) Time_Period.Nanosecond . to_vector . should_equal [30123456789]
                 False ->
                     (t2.at "X").date_diff (t2.at "Y") Time_Period.Nanosecond . should_fail_with Unsupported_Database_Operation
-                    (t2.at "X").date_diff (Date_Time.new 2021 11 3 10 15 30 123 456 789) Time_Period.Nanosecond . should_fail_with Unsupported_Database_Operation
+                    (t2.at "X").date_diff (Date_Time.new 2021 11 3 10 15 30 123 456 789 zone=zone) Time_Period.Nanosecond . should_fail_with Unsupported_Database_Operation
 
             t3 = table_builder [["X", [Time_Of_Day.new 10 15 0]], ["Y", [Time_Of_Day.new 12 30 20]]]
 
