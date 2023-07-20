@@ -205,23 +205,4 @@ OpenJDK 64-Bit Server VM GraalVM CE 17.0.7+7.1 (build 17.0.7+7-jvmci-23.0-b12, m
         };
         assert_eq!(graal_version, expected_graal_version);
     }
-
-    #[test]
-    fn version_to_string() {
-        let version_with_build_metadata = Version {
-            major: 17,
-            minor: 0,
-            patch: 7,
-            pre:   Prerelease::EMPTY,
-            build: BuildMetadata::new("7.1").unwrap(),
-        };
-        let version_str = format!(
-            "{}.{}.{}+{}",
-            version_with_build_metadata.major,
-            version_with_build_metadata.minor,
-            version_with_build_metadata.patch,
-            version_with_build_metadata.build
-        );
-        assert_eq!(version_str, "17.0.7+7.1");
-    }
 }
