@@ -63,22 +63,19 @@ impl Goodie for GraalVM {
     fn activation_env_changes(&self, package_path: &Path) -> Result<Vec<crate::env::Modification>> {
         let dir_entries = package_path
             .read_dir()
-            .context("Failed to read GraalVM cache directory")
-            .unwrap()
+            .context("Failed to read GraalVM cache directory")?
             .collect_vec();
-        assert_eq!(
-            dir_entries.len(),
-            1,
-            "GraalVM cache directory should contain exactly one directory"
-        );
-        let graalvm_dir = match dir_entries.get(0).unwrap() {
+        let [graalvm_dir] = dir_entries.as_slice() else {
+            bail!("GraalVM cache directory should contain exactly one directory");
+        };
+        let graalvm_dir = match graalvm_dir {
             Ok(dir_entry) => dir_entry,
             Err(err) => bail!("Failed to read GraalVM cache directory: {}", err),
         };
         let dir_name = graalvm_dir.file_name();
         let dir_name = dir_name.as_str();
-        assert!(dir_name.contains("graalvm"));
-        assert!(dir_name.contains(self.graal_version.to_string_core().as_str()));
+        ensure!(dir_name.contains("graalvm"));
+        ensure!(dir_name.contains(self.graal_version.to_string_core().as_str()));
         let root = match TARGET_OS {
             OS::MacOS => graalvm_dir.path().join_iter(["Contents", "Home"]),
             _ => graalvm_dir.path(),
@@ -119,10 +116,7 @@ impl GraalVM {
             Arch::AArch64 => "aarch64",
             other_arch => unimplemented!("Architecture `{}` is not supported!", other_arch),
         };
-        let java_version = format!(
-            "jdk-{}",
-            _graal_version.to_string_core()
-        );
+        let java_version = format!("jdk-{}", _graal_version.to_string_core());
         format!("{PACKAGE_PREFIX_URL}-{java_version}_{os_name}-{arch_name}")
     }
 }
