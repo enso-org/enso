@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+
 import javax.annotation.processing.Filer;
 import javax.annotation.processing.Processor;
 import javax.annotation.processing.RoundEnvironment;
@@ -474,7 +475,7 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
     out.println("      var builtins = EnsoContext.get(bodyNode).getBuiltins();");
     out.println("      var ensoTypeName = org.enso.interpreter.runtime.type.ConstantsGen.getEnsoTypeName(\"" + builtinName + "\");");
     out.println("      var error = (ensoTypeName != null)");
-    out.println("        ? builtins.error().makeTypeError(builtins.fromTypeSystem(ensoTypeName), arguments[arg"
+    out.println("        ? builtins.error().makeTypeError(ensoTypeName, arguments[arg"
                       + arg.getPosition()
                       + "Idx], \""
                       + varName
