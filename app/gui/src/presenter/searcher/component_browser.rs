@@ -22,8 +22,8 @@ use enso_text as text;
 use ide_view as view;
 use ide_view::component_browser;
 use ide_view::component_browser::component_list_panel::grid as component_grid;
-use ide_view::component_browser::component_list_panel::BreadcrumbId;
-use ide_view::component_browser::component_list_panel::SECTION_NAME_CRUMB_INDEX;
+use ide_view::documentation::breadcrumbs::BreadcrumbId;
+use ide_view::documentation::breadcrumbs::SECTION_NAME_CRUMB_INDEX;
 use ide_view::graph_editor::NodeId;
 use ide_view::project::SearcherParams;
 
@@ -174,17 +174,17 @@ impl Model {
         // one is reserved as a section name.
         let from = 1;
         let breadcrumbs_from = (names.map(Into::into).collect(), from);
-        browser.model().list.model().breadcrumbs.set_entries_from(breadcrumbs_from);
+        browser.model().documentation.breadcrumbs.set_entries_from(breadcrumbs_from);
     }
 
     fn show_breadcrumbs_ellipsis(&self, show: bool) {
         let browser = &self.view;
-        browser.model().list.model().breadcrumbs.show_ellipsis(show);
+        browser.model().documentation.breadcrumbs.show_ellipsis(show);
     }
 
     fn set_section_name_crumb(&self, text: ImString) {
         let browser = &self.view;
-        let breadcrumbs = &browser.model().list.model().breadcrumbs;
+        let breadcrumbs = &browser.model().documentation.breadcrumbs;
         breadcrumbs.set_entry((SECTION_NAME_CRUMB_INDEX, text.into()));
     }
 
@@ -382,15 +382,12 @@ impl ComponentBrowserSearcher {
         }
 
         let grid = &browser.model().list.model().grid;
-        let navigator = &browser.model().list.model().section_navigator;
-        let breadcrumbs = &browser.model().list.model().breadcrumbs;
+        let breadcrumbs = &browser.model().documentation.breadcrumbs;
         let documentation = &browser.model().documentation;
         frp::extend! { network
-            eval_ action_list_changed ([model, grid, navigator] {
+            eval_ action_list_changed ([model, grid] {
                 model.provider.take();
                 let controller_provider = model.controller.provider();
-                let namespace_section_count = controller_provider.namespace_section_count();
-                navigator.set_namespace_section_count.emit(namespace_section_count);
                 let provider = provider::Component::provide_new_list(controller_provider, &grid);
                 *model.provider.borrow_mut() = Some(provider);
             });
@@ -404,13 +401,6 @@ impl ComponentBrowserSearcher {
                 &selected_entry_changed,
                 &model.project.toggle_component_browser_private_entries_visibility,
             );
-            hovered_not_selected <- all_with(&grid.hovered, &grid.active, |h, s| {
-                match (h, s) {
-                    (Some(h), Some(s)) => h != s,
-                    _ => false,
-                }
-            });
-            documentation.frp.show_hovered_item_preview_caption <+ hovered_not_selected;
             docs_params <- all3(&action_list_changed, &grid.active, &grid.hovered);
             docs <- docs_params.filter_map(f!([model]((_, selected, hovered)) {
                 let entry = hovered.as_ref().or(selected.as_ref());
