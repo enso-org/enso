@@ -103,11 +103,11 @@ public class Math_Utils {
         long resultUnnudged = scaledDown * scale;
 
         if (n >= 0) {
-            boolean halfGoesUp = useBankers ? (scaledDown % 2) != 0 : n >= 0;
+            boolean halfGoesUp = useBankers ? (scaledDown % 2) != 0 : true;
             boolean roundUp = halfGoesUp ? remainder >= halfway : remainder > halfway;
             return roundUp ? resultUnnudged + scale : resultUnnudged;
         } else {
-            boolean halfGoesUp = useBankers ? (scaledDown % 2) == 0 : n >= 0;
+            boolean halfGoesUp = useBankers ? (scaledDown % 2) == 0 : false;
             boolean roundUp = halfGoesUp ? remainder < -halfway : remainder <= -halfway;
             return roundUp ? resultUnnudged - scale : resultUnnudged;
         }
