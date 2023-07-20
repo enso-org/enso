@@ -8,7 +8,7 @@ import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import com.oracle.truffle.api.profiles.ConditionProfile;
+import com.oracle.truffle.api.profiles.CountingConditionProfile;
 import org.enso.interpreter.node.expression.builtin.text.util.ToJavaStringNode;
 import org.enso.interpreter.runtime.data.text.Text;
 
@@ -16,7 +16,7 @@ import org.enso.interpreter.runtime.data.text.Text;
 public abstract class StringLiteralBranchNode extends BranchNode {
   private final String literal;
 
-  private final ConditionProfile textProfile = ConditionProfile.createCountingProfile();
+  private final CountingConditionProfile textProfile = CountingConditionProfile.create();
 
   StringLiteralBranchNode(String literal, RootCallTarget branch, boolean terminalBranch) {
     super(branch, terminalBranch);

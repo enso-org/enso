@@ -6,7 +6,7 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import com.oracle.truffle.api.profiles.ConditionProfile;
+import com.oracle.truffle.api.profiles.CountingConditionProfile;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.atom.StructsLibrary;
@@ -15,7 +15,7 @@ import org.enso.interpreter.runtime.callable.atom.StructsLibrary;
 @NodeInfo(shortName = "ConstructorMatch")
 public abstract class ConstructorBranchNode extends BranchNode {
   private final AtomConstructor matcher;
-  private final ConditionProfile profile = ConditionProfile.createCountingProfile();
+  private final CountingConditionProfile profile = CountingConditionProfile.create();
 
   ConstructorBranchNode(AtomConstructor matcher, RootCallTarget branch, boolean terminalBranch) {
     super(branch, terminalBranch);

@@ -3,6 +3,7 @@ package org.enso.interpreter.node.callable.argument;
 import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
@@ -65,7 +66,7 @@ public abstract class ReadArgumentCheckNode extends Node {
   })
   Object doWithConversionCached(
     VirtualFrame frame, Object v,
-    @Cached TypeOfNode typeOfNode,
+    @Shared("typeOfNode") @Cached TypeOfNode typeOfNode,
     @Cached("findType(typeOfNode, v)") Type cachedType,
     @Cached("findConversionNode(cachedType)") ApplicationNode convertNode
   ) {
@@ -75,7 +76,7 @@ public abstract class ReadArgumentCheckNode extends Node {
   @Specialization(replaces = "doWithConversionCached")
   Object doWithConversionUncached(
     VirtualFrame frame, Object v,
-    @Cached TypeOfNode typeOfNode
+    @Shared("typeOfNode") @Cached TypeOfNode typeOfNode
   ) {
     var type = findType(typeOfNode, v);
     return doWithConversionUncachedBoundary(frame.materialize(), v, type);

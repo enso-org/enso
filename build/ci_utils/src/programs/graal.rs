@@ -111,9 +111,6 @@ pub enum ComponentId {
     NodeJs,
     /// Graal.Python
     Python,
-    /// FastR
-    #[strum(serialize = "R")]
-    R,
     /// TruffleRuby
     Ruby,
     #[strum(serialize = "visualvm")]
@@ -121,6 +118,10 @@ pub enum ComponentId {
     VisualVm,
     /// GraalWasm
     Wasm,
+    #[strum(serialize = "icu4j")]
+    Icu4J,
+    Regex,
+    Jipher,
     #[strum(disabled)]
     Unrecognized(String),
 }

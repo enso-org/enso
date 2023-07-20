@@ -2,6 +2,7 @@ package org.enso.interpreter.runtime.data;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.TruffleObject;
@@ -187,7 +188,7 @@ public final class Array implements TruffleObject {
   }
 
   @ExportMessage
-  boolean hasWarnings(@CachedLibrary(limit = "3") WarningsLibrary warnings) {
+  boolean hasWarnings(@Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings) {
     if (withWarnings == null) {
       withWarnings = hasWarningElements(items, warnings);
     }
@@ -195,7 +196,8 @@ public final class Array implements TruffleObject {
   }
 
   @ExportMessage
-  Warning[] getWarnings(Node location, @CachedLibrary(limit = "3") WarningsLibrary warnings)
+  Warning[] getWarnings(
+      Node location, @Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings)
       throws UnsupportedMessageException {
     if (cachedWarnings == null) {
       cachedWarnings = Warning.fromSetToArray(collectAllWarnings(warnings, location));
@@ -216,7 +218,7 @@ public final class Array implements TruffleObject {
   }
 
   @ExportMessage
-  Array removeWarnings(@CachedLibrary(limit = "3") WarningsLibrary warnings)
+  Array removeWarnings(@Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings)
       throws UnsupportedMessageException {
     Object[] items = new Object[this.items.length];
     for (int i = 0; i < this.items.length; i++) {
@@ -230,7 +232,7 @@ public final class Array implements TruffleObject {
   }
 
   @ExportMessage
-  boolean isLimitReached(@CachedLibrary(limit = "3") WarningsLibrary warnings) {
+  boolean isLimitReached(@Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings) {
     try {
       int limit = EnsoContext.get(warnings).getWarningsLimit();
       return getWarnings(null, warnings).length >= limit;
