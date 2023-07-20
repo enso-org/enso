@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.expression.builtin.meta;
 
+import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -50,7 +51,9 @@ public abstract class IsSameObjectNode extends Node {
    */
   @Specialization(guards = {"interop.isMetaObject(metaLeft)", "interop.isMetaObject(metaRight)"})
   boolean isSameMetaObjects(
-      Object metaLeft, Object metaRight, @CachedLibrary(limit = "2") InteropLibrary interop) {
+      Object metaLeft,
+      Object metaRight,
+      @Shared("interop") @CachedLibrary(limit = "2") InteropLibrary interop) {
     try {
       Object metaLeftName = interop.getMetaQualifiedName(metaLeft);
       Object metaRightName = interop.getMetaQualifiedName(metaRight);
@@ -62,7 +65,9 @@ public abstract class IsSameObjectNode extends Node {
 
   @Fallback
   boolean isIdenticalObjects(
-      Object left, Object right, @CachedLibrary(limit = "2") InteropLibrary interop) {
+      Object left,
+      Object right,
+      @Shared("interop") @CachedLibrary(limit = "2") InteropLibrary interop) {
     if (left == right) {
       return true;
     }

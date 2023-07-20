@@ -125,7 +125,7 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
           "com.oracle.truffle.api.nodes.RootNode",
           "com.oracle.truffle.api.nodes.UnexpectedResultException",
           "com.oracle.truffle.api.profiles.BranchProfile",
-          "com.oracle.truffle.api.profiles.ConditionProfile",
+          "com.oracle.truffle.api.profiles.CountingConditionProfile",
           "java.nio.file.OpenOption",
           "org.enso.interpreter.EnsoLanguage",
           "org.enso.interpreter.node.InlineableNode",
@@ -180,9 +180,9 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
         if (arg.shouldCheckErrors()) {
           String condName = mkArgumentInternalVarName(arg) + DATAFLOW_ERROR_PROFILE;
           out.println(
-              "    private final ConditionProfile "
+              "    private final CountingConditionProfile "
                   + condName
-                  + " = ConditionProfile.createCountingProfile();");
+                  + " = CountingConditionProfile.create();");
         }
 
         if (arg.isPositional() && !arg.isSelf()) {

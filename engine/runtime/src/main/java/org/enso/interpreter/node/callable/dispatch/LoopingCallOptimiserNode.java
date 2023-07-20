@@ -3,7 +3,9 @@ package org.enso.interpreter.node.callable.dispatch;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.GenerateUncached;
+import com.oracle.truffle.api.dsl.NeverDefault;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.FrameSlotKind;
@@ -64,7 +66,7 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
       State state,
       Object[] arguments,
       Warning[] warnings,
-      @Cached(value = "createLoopNode()") LoopNode loopNode) {
+      @Shared("loopNode") @Cached(value = "createLoopNode()") LoopNode loopNode) {
     return dispatch(function, callerInfo, state, arguments, loopNode);
   }
 
@@ -75,7 +77,7 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
       State state,
       Object[] arguments,
       Warning[] warnings,
-      @Cached(value = "createLoopNode()") LoopNode loopNode) {
+      @Shared("loopNode") @Cached(value = "createLoopNode()") LoopNode loopNode) {
     Object result = dispatch(function, callerInfo, state, arguments, loopNode);
     return WithWarnings.appendTo(EnsoContext.get(this), result, warnings);
   }
@@ -103,7 +105,7 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
       State state,
       Object[] arguments,
       Warning[] warnings,
-      @Cached ExecuteCallNode executeCallNode) {
+      @Shared("executeCallNode") @Cached ExecuteCallNode executeCallNode) {
     return loopUntilCompletion(frame, function, callerInfo, state, arguments, executeCallNode);
   }
 
@@ -116,7 +118,7 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
       State state,
       Object[] arguments,
       Warning[] warnings,
-      @Cached ExecuteCallNode executeCallNode) {
+      @Shared("executeCallNode") @Cached ExecuteCallNode executeCallNode) {
     Object result =
         loopUntilCompletion(frame, function, callerInfo, state, arguments, executeCallNode);
     return WithWarnings.appendTo(EnsoContext.get(this), result, warnings);
@@ -145,6 +147,7 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
    *
    * @return a loop node
    */
+  @NeverDefault
   static LoopNode createLoopNode() {
     return Truffle.getRuntime().createLoopNode(new RepeatedCallNode());
   }

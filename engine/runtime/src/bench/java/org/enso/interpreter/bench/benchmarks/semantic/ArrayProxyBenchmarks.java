@@ -7,6 +7,7 @@ import java.util.function.Function;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Engine;
 import org.graalvm.polyglot.Value;
+import org.graalvm.polyglot.io.IOAccess;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.BenchmarkParams;
 import org.openjdk.jmh.infra.Blackhole;
@@ -39,7 +40,7 @@ public class ArrayProxyBenchmarks {
                 "enso.languageHomeOverride",
                 Paths.get("../../distribution/component").toFile().getAbsolutePath())
             .build();
-    var ctx = Context.newBuilder().engine(eng).allowIO(true).allowAllAccess(true).build();
+    var ctx = Context.newBuilder().engine(eng).allowIO(IOAccess.ALL).allowAllAccess(true).build();
     var code = """
         import Standard.Base.Data.Vector.Vector
         import Standard.Base.Data.Array_Proxy.Array_Proxy
