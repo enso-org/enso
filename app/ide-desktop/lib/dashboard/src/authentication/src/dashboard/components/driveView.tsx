@@ -47,6 +47,7 @@ export interface DirectoryViewProps {
     assetListEvent: assetListEventModule.AssetListEvent | null
     dispatchAssetListEvent: (directoryEvent: assetListEventModule.AssetListEvent) => void
     query: string
+    doCreateProject: (templateId?: string) => void
     doOpenIde: (project: backendModule.ProjectAsset) => void
     doCloseIde: () => void
     appRunner: AppRunner | null
@@ -68,6 +69,7 @@ export default function DirectoryView(props: DirectoryViewProps) {
         query,
         assetListEvent,
         dispatchAssetListEvent,
+        doCreateProject,
         doOpenIde,
         doCloseIde,
         appRunner,
@@ -212,13 +214,6 @@ export default function DirectoryView(props: DirectoryViewProps) {
         /* should never change */ dispatchAssetEvent,
     ])
 
-    const doCreateProject = React.useCallback(() => {
-        dispatchAssetListEvent({
-            type: assetListEventModule.AssetListEventType.createProject,
-            templateId: null,
-        })
-    }, [/* should never change */ dispatchAssetListEvent])
-
     const doUploadFiles = React.useCallback(
         (files: FileList) => {
             if (backend.type === backendModule.BackendType.local) {
@@ -236,6 +231,7 @@ export default function DirectoryView(props: DirectoryViewProps) {
             } else {
                 dispatchAssetListEvent({
                     type: assetListEventModule.AssetListEventType.uploadFiles,
+                    parentId: directoryId,
                     files,
                 })
             }
@@ -272,14 +268,12 @@ export default function DirectoryView(props: DirectoryViewProps) {
             <AssetsTable
                 items={assets}
                 filter={assetFilter}
-                directoryId={directoryId}
                 isLoading={isLoadingAssets}
                 appRunner={appRunner}
                 assetEvent={assetEvent}
                 dispatchAssetEvent={dispatchAssetEvent}
                 assetListEvent={assetListEvent}
                 dispatchAssetListEvent={dispatchAssetListEvent}
-                doCreateProject={doCreateProject}
                 doOpenIde={doOpenIde}
                 doCloseIde={doCloseIde}
             />
@@ -299,6 +293,7 @@ export default function DirectoryView(props: DirectoryViewProps) {
                         setIsFileBeingDragged(false)
                         dispatchAssetListEvent({
                             type: assetListEventModule.AssetListEventType.uploadFiles,
+                            parentId: directoryId,
                             files: event.dataTransfer.files,
                         })
                     }}

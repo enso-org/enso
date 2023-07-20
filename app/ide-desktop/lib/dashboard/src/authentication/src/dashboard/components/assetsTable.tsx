@@ -2,6 +2,7 @@
 import * as React from 'react'
 import toast from 'react-hot-toast'
 
+import * as array from '../array'
 import * as assetEventModule from '../events/assetEvent'
 import * as assetListEventModule from '../events/assetListEvent'
 import * as authProvider from '../../authentication/providers/auth'
@@ -181,7 +182,6 @@ export const INITIAL_ROW_STATE: AssetRowState = Object.freeze({
 /** Props for a {@link AssetsTable}. */
 export interface AssetsTableProps {
     appRunner: AppRunner | null
-    directoryId: backendModule.DirectoryId | null
     items: backendModule.AnyAsset[]
     filter: ((item: backendModule.AnyAsset) => boolean) | null
     isLoading: boolean
@@ -197,7 +197,6 @@ export interface AssetsTableProps {
 export default function AssetsTable(props: AssetsTableProps) {
     const {
         appRunner,
-        directoryId,
         items: rawItems,
         filter,
         isLoading,
@@ -305,12 +304,23 @@ export default function AssetsTable(props: AssetsTableProps) {
                     id: backendModule.DirectoryId(uniqueString.uniqueString()),
                     title,
                     modifiedAt: dateTime.toRfc3339(new Date()),
-                    parentId: directoryId ?? backendModule.DirectoryId(''),
+                    parentId: event.parentId ?? backendModule.DirectoryId(''),
                     permissions: permissions.tryGetSingletonOwnerPermission(organization),
                     projectState: null,
                     type: backendModule.AssetType.directory,
                 }
-                setItems(oldItems => [placeholderItem, ...oldItems])
+                const typeOrder = backendModule.ASSET_TYPE_ORDER[placeholderItem.type]
+                // FIXME: `array.withItemsInsertedAtBoundary` fails when there are no children in
+                // a directory yet, as `item.parentId === event.parentId` will never be true.
+                setItems(oldItems =>
+                    array.withItemsInsertedAtBoundary(
+                        oldItems,
+                        [placeholderItem],
+                        item =>
+                            item.parentId === event.parentId &&
+                            backendModule.ASSET_TYPE_ORDER[item.type] >= typeOrder
+                    )
+                )
                 dispatchAssetEvent({
                     type: assetEventModule.AssetEventType.createDirectory,
                     placeholderId: placeholderItem.id,
@@ -324,12 +334,21 @@ export default function AssetsTable(props: AssetsTableProps) {
                     id: dummyId,
                     title: projectName,
                     modifiedAt: dateTime.toRfc3339(new Date()),
-                    parentId: directoryId ?? backendModule.DirectoryId(''),
+                    parentId: event.parentId ?? backendModule.DirectoryId(''),
                     permissions: permissions.tryGetSingletonOwnerPermission(organization),
                     projectState: { type: backendModule.ProjectState.new },
                     type: backendModule.AssetType.project,
                 }
-                setItems(oldProjectAssets => [placeholderItem, ...oldProjectAssets])
+                const typeOrder = backendModule.ASSET_TYPE_ORDER[placeholderItem.type]
+                setItems(oldItems =>
+                    array.withItemsInsertedAtBoundary(
+                        oldItems,
+                        [placeholderItem],
+                        item =>
+                            item.parentId === event.parentId &&
+                            backendModule.ASSET_TYPE_ORDER[item.type] >= typeOrder
+                    )
+                )
                 dispatchAssetEvent({
                     type: assetEventModule.AssetEventType.createProject,
                     placeholderId: dummyId,
@@ -344,12 +363,21 @@ export default function AssetsTable(props: AssetsTableProps) {
                         type: backendModule.AssetType.file,
                         id: backendModule.FileId(uniqueString.uniqueString()),
                         title: file.name,
-                        parentId: directoryId ?? backendModule.DirectoryId(''),
+                        parentId: event.parentId ?? backendModule.DirectoryId(''),
                         permissions: permissions.tryGetSingletonOwnerPermission(organization),
                         modifiedAt: dateTime.toRfc3339(new Date()),
                         projectState: null,
                     }))
-                setItems(oldItems => [...placeholderItems, ...oldItems])
+                const fileTypeOrder = backendModule.ASSET_TYPE_ORDER[backendModule.AssetType.file]
+                setItems(oldItems =>
+                    array.withItemsInsertedAtBoundary(
+                        oldItems,
+                        placeholderItems,
+                        item =>
+                            item.parentId === event.parentId &&
+                            backendModule.ASSET_TYPE_ORDER[item.type] >= fileTypeOrder
+                    )
+                )
                 dispatchAssetEvent({
                     type: assetEventModule.AssetEventType.uploadFiles,
                     files: new Map(
@@ -369,12 +397,21 @@ export default function AssetsTable(props: AssetsTableProps) {
                     id: backendModule.SecretId(uniqueString.uniqueString()),
                     title: event.name,
                     modifiedAt: dateTime.toRfc3339(new Date()),
-                    parentId: directoryId ?? backendModule.DirectoryId(''),
+                    parentId: event.parentId ?? backendModule.DirectoryId(''),
                     permissions: permissions.tryGetSingletonOwnerPermission(organization),
                     projectState: null,
                     type: backendModule.AssetType.secret,
                 }
-                setItems(oldItems => [placeholderItem, ...oldItems])
+                const typeOrder = backendModule.ASSET_TYPE_ORDER[placeholderItem.type]
+                setItems(oldItems =>
+                    array.withItemsInsertedAtBoundary(
+                        oldItems,
+                        [placeholderItem],
+                        item =>
+                            item.parentId === event.parentId &&
+                            backendModule.ASSET_TYPE_ORDER[item.type] >= typeOrder
+                    )
+                )
                 dispatchAssetEvent({
                     type: assetEventModule.AssetEventType.createSecret,
                     placeholderId: placeholderItem.id,

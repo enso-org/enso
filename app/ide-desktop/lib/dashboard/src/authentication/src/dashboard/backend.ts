@@ -302,17 +302,12 @@ export interface UpdatedDirectory {
     title: string
 }
 
-/** Metadata uniquely identifying a directory entry.
- * These can be Projects, Files, Secrets, or other directories. */
-export interface BaseAsset {
-    id: AssetId
-    title: string
-    modifiedAt: dateTime.Rfc3339DateTime | null
-    /** This is defined as a generic {@link AssetId} in the backend, however it is more convenient
-     * (and currently safe) to assume it is always a {@link DirectoryId}. */
-    parentId: DirectoryId
-    permissions: UserPermission[] | null
-}
+/** The type returned from the "create directory" endpoint. */
+export interface Directory extends DirectoryAsset {}
+
+// =================
+// === AssetType ===
+// =================
 
 /** All possible types of directory entries. */
 export enum AssetType {
@@ -328,6 +323,33 @@ export interface IdType {
     [AssetType.file]: FileId
     [AssetType.secret]: SecretId
     [AssetType.directory]: DirectoryId
+}
+
+/** Integers (starting from 0) corresponding to the order in which each asset type should appear
+ * in a directory listing. */
+export const ASSET_TYPE_ORDER: Record<AssetType, number> = {
+    [AssetType.directory]: 0,
+    [AssetType.project]: 1,
+    [AssetType.file]: 2,
+    // This is not a magic constant; `3` is simply the next number after `2`.
+    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+    [AssetType.secret]: 3,
+}
+
+// =============
+// === Asset ===
+// =============
+
+/** Metadata uniquely identifying a directory entry.
+ * These can be Projects, Files, Secrets, or other directories. */
+export interface BaseAsset {
+    id: AssetId
+    title: string
+    modifiedAt: dateTime.Rfc3339DateTime | null
+    /** This is defined as a generic {@link AssetId} in the backend, however it is more convenient
+     * (and currently safe) to assume it is always a {@link DirectoryId}. */
+    parentId: DirectoryId
+    permissions: UserPermission[] | null
 }
 
 /** Metadata uniquely identifying a directory entry.
@@ -353,36 +375,22 @@ export interface SecretAsset extends Asset<AssetType.secret> {}
 /** A union of all possible {@link Asset} variants. */
 export type AnyAsset = DirectoryAsset | FileAsset | ProjectAsset | SecretAsset
 
-/** The type returned from the "create directory" endpoint. */
-export interface Directory extends DirectoryAsset {}
-
-// =================
-// === Constants ===
-// =================
-
-export const ASSET_TYPE_NAME: Record<AssetType, string> = {
-    [AssetType.project]: 'project',
-    [AssetType.directory]: 'folder',
-    [AssetType.secret]: 'secret',
-    [AssetType.file]: 'file',
-} as const
-
-// ==============================
-// === detectVersionLifecycle ===
-// ==============================
-
-/** Extract the {@link VersionLifecycle} from a version string. */
-export function detectVersionLifecycle(version: string) {
-    if (/rc/i.test(version)) {
-        return VersionLifecycle.releaseCandidate
-    } else if (/\bnightly\b/i.test(version)) {
-        return VersionLifecycle.nightly
-    } else if (/\bdev\b|\balpha\b/i.test(version)) {
-        return VersionLifecycle.development
-    } else {
-        return VersionLifecycle.stable
-    }
+/** A type guard that returns whether an {@link Asset} is a specific type of asset. */
+export function assetIsType<Type extends AssetType>(type: Type) {
+    return (asset: AnyAsset): asset is Extract<AnyAsset, Asset<Type>> => asset.type === type
 }
+
+// These are functions, and so their names should be camelCase.
+/* eslint-disable no-restricted-syntax */
+/** A type guard that returns whether an {@link Asset} is a {@link ProjectAsset}. */
+export const assetIsProject = assetIsType(AssetType.project)
+/** A type guard that returns whether an {@link Asset} is a {@link DirectoryAsset}. */
+export const assetIsDirectory = assetIsType(AssetType.directory)
+/** A type guard that returns whether an {@link Asset} is a {@link SecretAsset}. */
+export const assetIsSecret = assetIsType(AssetType.secret)
+/** A type guard that returns whether an {@link Asset} is a {@link FileAsset}. */
+export const assetIsFile = assetIsType(AssetType.file)
+/* eslint-disable no-restricted-syntax */
 
 // =================
 // === Endpoints ===
@@ -477,26 +485,22 @@ export interface ListVersionsRequestParams {
     default: boolean
 }
 
-// ===================
-// === Type guards ===
-// ===================
+// ==============================
+// === detectVersionLifecycle ===
+// ==============================
 
-/** A type guard that returns whether an {@link Asset} is a specific type of asset. */
-export function assetIsType<Type extends AssetType>(type: Type) {
-    return (asset: AnyAsset): asset is Extract<AnyAsset, Asset<Type>> => asset.type === type
+/** Extract the {@link VersionLifecycle} from a version string. */
+export function detectVersionLifecycle(version: string) {
+    if (/rc/i.test(version)) {
+        return VersionLifecycle.releaseCandidate
+    } else if (/\bnightly\b/i.test(version)) {
+        return VersionLifecycle.nightly
+    } else if (/\bdev\b|\balpha\b/i.test(version)) {
+        return VersionLifecycle.development
+    } else {
+        return VersionLifecycle.stable
+    }
 }
-
-// These are functions, and so their names should be camelCase.
-/* eslint-disable no-restricted-syntax */
-/** A type guard that returns whether an {@link Asset} is a {@link ProjectAsset}. */
-export const assetIsProject = assetIsType(AssetType.project)
-/** A type guard that returns whether an {@link Asset} is a {@link DirectoryAsset}. */
-export const assetIsDirectory = assetIsType(AssetType.directory)
-/** A type guard that returns whether an {@link Asset} is a {@link SecretAsset}. */
-export const assetIsSecret = assetIsType(AssetType.secret)
-/** A type guard that returns whether an {@link Asset} is a {@link FileAsset}. */
-export const assetIsFile = assetIsType(AssetType.file)
-/* eslint-disable no-restricted-syntax */
 
 // =======================
 // === rootDirectoryId ===

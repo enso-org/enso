@@ -196,13 +196,14 @@ export default function Dashboard(props: DashboardProps) {
     )
 
     const doCreateProject = React.useCallback(
-        (templateId: string | null) => {
+        (templateId?: string) => {
             dispatchAssetListEvent({
                 type: assetListEventModule.AssetListEventType.createProject,
+                parentId: directoryId,
                 templateId: templateId ?? null,
             })
         },
-        [/* should never change */ dispatchAssetListEvent]
+        [directoryId, /* should never change */ dispatchAssetListEvent]
     )
 
     const doOpenIde = React.useCallback(
@@ -230,6 +231,10 @@ export default function Dashboard(props: DashboardProps) {
             className={`flex flex-col gap-2 relative select-none text-primary text-xs h-screen py-2 ${
                 tab === tabModule.Tab.dashboard ? '' : 'hidden'
             }`}
+            onContextMenu={event => {
+                event.preventDefault()
+                unsetModal()
+            }}
             onClick={closeModalIfExists}
         >
             <TopBar
@@ -277,6 +282,7 @@ export default function Dashboard(props: DashboardProps) {
                         assetListEvent={assetListEvent}
                         dispatchAssetListEvent={dispatchAssetListEvent}
                         query={query}
+                        doCreateProject={doCreateProject}
                         doOpenIde={doOpenIde}
                         doCloseIde={doCloseIde}
                         appRunner={appRunner}

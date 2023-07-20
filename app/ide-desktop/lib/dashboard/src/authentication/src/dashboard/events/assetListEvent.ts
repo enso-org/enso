@@ -47,25 +47,30 @@ type SanityCheck<
 
 /** A signal to create a new directory. */
 interface AssetListCreateDirectoryEvent
-    extends AssetListBaseEvent<AssetListEventType.createDirectory> {}
+    extends AssetListBaseEvent<AssetListEventType.createDirectory> {
+    parentId: backend.DirectoryId | null
+}
 
 /** A signal to create a new project. */
 interface AssetListCreateProjectEvent extends AssetListBaseEvent<AssetListEventType.createProject> {
+    parentId: backend.DirectoryId | null
     templateId: string | null
 }
 
 /** A signal to upload files. */
 interface AssetListUploadFilesEvent extends AssetListBaseEvent<AssetListEventType.uploadFiles> {
+    parentId: backend.DirectoryId | null
     files: FileList
 }
 
 /** A signal to create a new secret. */
 interface AssetListCreateSecretEvent extends AssetListBaseEvent<AssetListEventType.createSecret> {
+    parentId: backend.DirectoryId | null
     name: string
     value: string
 }
 
-/** A signal to upload multiple files. */
+/** A signal to delete a file. */
 interface AssetListDeleteEvent extends AssetListBaseEvent<AssetListEventType.delete> {
     id: backend.AssetId
 }
