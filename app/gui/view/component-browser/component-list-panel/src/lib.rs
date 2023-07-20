@@ -183,7 +183,7 @@ impl Model {
         self.grid_adapter.set_size(style.grid_size());
         self.grid.set_y(style.grid_size().y);
         let style = &style.panel;
-        self.background.set_color(style.background_color.into());
+        self.background.set_color(style.background_color);
         self.background.set_size(Vector2(style.width, style.height));
         self.background.set_corner_radius(style.corners_radius);
         self.background.set_padding_bottom(style.padding_bottom);

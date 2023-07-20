@@ -3,7 +3,6 @@
 
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
-use ensogl_tooltip::tooltip::Placement;
 
 use crate::grid::entry::icon;
 
@@ -16,6 +15,7 @@ use ensogl_core::display::shape::compound::rectangle::Rectangle;
 use ensogl_derive_theme::FromTheme;
 use ensogl_hardcoded_theme::application::component_browser::component_list_panel as list_panel_theme;
 use ensogl_toggle_button::ToggleButton;
+use ensogl_tooltip::tooltip::Placement;
 use list_panel_theme::button_panel as theme;
 
 

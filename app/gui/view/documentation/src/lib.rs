@@ -35,7 +35,6 @@ use ensogl::Animation;
 use ensogl_derive_theme::FromTheme;
 use ensogl_hardcoded_theme::application::component_browser::documentation as theme;
 use graph_editor::component::visualization;
-pub use ide_view_component_list_panel_breadcrumbs as breadcrumbs;
 use ide_view_graph_editor as graph_editor;
 
 
@@ -44,6 +43,8 @@ use ide_view_graph_editor as graph_editor;
 // ==============
 
 pub mod html;
+
+pub use ide_view_component_list_panel_breadcrumbs as breadcrumbs;
 
 
 
