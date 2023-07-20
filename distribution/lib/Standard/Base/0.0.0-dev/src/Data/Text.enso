@@ -18,6 +18,20 @@ polyglot java import org.enso.base.Text_Utils
      users with efficient concatenation operations.
 @Builtin_Type
 type Text
+    ## ALIAS Count
+       Computes the number of characters in the text.
+
+       ! What is a Character?
+          A character is defined as an Extended Grapheme Cluster, see Unicode
+          Standard Annex 29. This is the smallest unit that still has semantic
+          meaning in most text-processing applications.
+
+       > Example
+          Getting the length of the string "건반(Korean)".
+
+              "건반(Korean)".length
+    length : Integer
+    length self = @Builtin_Method "Text.length"
 
     ## ALIAS Concatenate
        Concatenates the text that to the right side of this.
