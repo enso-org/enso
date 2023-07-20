@@ -736,7 +736,7 @@ object PackageRepository {
     * language home (if it is provided).
     *
     * @param projectPackage      the package of the current project (if ran inside of a project)
-    * @param languageHome        the language home (if set)
+    * @param languageHome        the language home (if set). The path does not have to exist.
     * @param distributionManager the distribution manager
     * @param resourceManager     the resource manager instance
     * @param context             the context reference, needed to add polyglot libraries to

@@ -1772,7 +1772,7 @@ lazy val `bench-libs` = (project in file("tools/bench-libs"))
     libraryDependencies ++= jmh ++ Seq(
       "org.openjdk.jmh" % "jmh-core"                  % jmhVersion,
       "org.openjdk.jmh" % "jmh-generator-annprocess"  % jmhVersion,
-      "org.graalvm.sdk"     % "graal-sdk"             % graalVersion      % "provided",
+      "org.graalvm.sdk" % "graal-sdk"                 % graalMavenPackagesVersion   % "provided",
     ),
     commands += WithDebugCommand.withDebug,
     (Compile / mainClass) := Some("org.enso.benchmarks.libs.LibBenchRunner"),
@@ -1790,6 +1790,7 @@ lazy val `bench-libs` = (project in file("tools/bench-libs"))
           .map(_.data)
           .mkString(File.pathSeparator)
       Seq(
+        "-ea",
         s"-Dtruffle.class.path.append=$appendClasspath",
       )
     },

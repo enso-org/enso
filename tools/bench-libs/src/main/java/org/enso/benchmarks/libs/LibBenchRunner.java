@@ -1,17 +1,11 @@
 package org.enso.benchmarks.libs;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
-import org.enso.polyglot.MethodNames.Module;
-import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.Source;
-import org.graalvm.polyglot.Value;
 import org.openjdk.jmh.results.RunResult;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
@@ -21,7 +15,6 @@ import org.openjdk.jmh.runner.options.CommandLineOptions;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
 public class LibBenchRunner {
-  private static Context ctx;
 
   public static void main(String[] args) {
     CommandLineOptions cmdOpts = null;
@@ -32,8 +25,8 @@ public class LibBenchRunner {
       System.err.println("  " + e.getMessage());
       System.exit(1);
     }
+
     if (cmdOpts.shouldHelp()) {
-      // TODO: Print help
       System.err.println("Enso libs benchmark runner: A modified JMH runner for Enso benchmarks.");
       System.err.println();
       System.err.println("Usage: runner [options] [benchmark-regex]..");
@@ -52,30 +45,45 @@ public class LibBenchRunner {
       }
       System.exit(0);
     }
-    if (cmdOpts.shouldList()) {
-      // TODO: List benchmarks
-      System.exit(0);
-    }
-    List<String> includes = cmdOpts.getIncludes();
 
-
-    File benchRootDir = Paths.get("../../distribution/component/test/Benchmarks").toFile();
-
-    initCtx();
-    var specCollector = new SpecCollector(ctx, rootDir);
-    specCollector.collectBenchSpecsFromSingleFile()
-    Set<BenchSuite> benchSpecs = collectAllBenchSpecs();
-    for (BenchSuite benchSpec : benchSpecs) {
-      for (BenchGroup group : benchSpec.groups()) {
-        System.out.println("Discovered group: " + group.name());
+    File ensoRootDir = Paths.get(System.getProperty("user.dir")).toFile();
+    for (; ensoRootDir != null; ensoRootDir = ensoRootDir.getParentFile()) {
+      if (ensoRootDir.getName().equals("enso")) {
+        break;
       }
     }
+    if (ensoRootDir == null) {
+      throw new IllegalStateException("Unreachable: Could not find Enso root directory");
+    }
+    File benchRootDir = ensoRootDir.toPath()
+        .resolve("test")
+        .resolve("Benchmarks")
+        .toFile();
+    if (!benchRootDir.isDirectory() || !benchRootDir.canRead()) {
+      throw new IllegalStateException("Unreachable: Could not find Enso benchmarks directory");
+    }
+    // Note that ensoHomeOverride does not have to exist, only its parent directory
+    File ensoHomeOverride = ensoRootDir.toPath()
+        .resolve("distribution")
+        .resolve("component")
+        .toFile();
+    var specCollector = new SpecCollector(benchRootDir, ensoHomeOverride);
+    Collection<BenchSuite> benchSuites = specCollector.collectAllBenchSpecs();
 
-    // Merge cmdOpts with chainedOptsBuilder
-    ChainedOptionsBuilder optsBuilder = new OptionsBuilder()
-        .include(cmdOpts.getIncludes().get(0));
+    if (cmdOpts.shouldList()) {
+      for (BenchSuite benchSuite : benchSuites) {
+        for (BenchGroup group : benchSuite.groups()) {
+          System.out.println("Group \"" + group.name() + "\": ");
+          group.specs().forEach(
+              spec -> System.out.println("  - " + spec.name())
+          );
+        }
+      }
+      System.exit(0);
+    }
 
-    Runner jmhRunner = new Runner(optsBuilder.build());
+    List<String> includes = cmdOpts.getIncludes();
+    Runner jmhRunner = new Runner(cmdOpts);
     Collection<RunResult> results = Collections.emptyList();
     try {
       results = jmhRunner.run();
@@ -84,50 +92,11 @@ public class LibBenchRunner {
     }
 
     // TODO: Collect all the results
-    closeCtx();
-  }
-
-  private static void initCtx() {
-    ctx = Context.newBuilder()
-        .allowExperimentalOptions(true)
-        .allowIO(true)
-        .allowAllAccess(true)
-        .logHandler(new ByteArrayOutputStream())
-        .option(
-            "enso.languageHomeOverride",
-            Paths.get("../../distribution/component").toFile().getAbsolutePath()
-        ).build();
-  }
-
-  private static void closeCtx() {
-    ctx.close();
   }
 
   public void run(String label) {
     ChainedOptionsBuilder builder = new OptionsBuilder()
       .jvmArgsAppend("-Xss16M", "-Dpolyglot.engine.MultiTier=false")
       .include("^" + label + "$");
-  }
-
-  private static Set<BenchSuite> collectAllBenchSpecs() {
-    String benchmarksProjectRootDir = "test/Benchmarks/src";
-    File singleFile = new File("/home/pavel/dev/enso/engine/runtime/src/bench/resources/org.enso.interpreter.bench.benchmarks.meso/simple.enso");
-    return Set.of(collectBenchSpecsFromSingleFile(singleFile));
-  }
-
-  private static BenchSuite collectBenchSpecsFromSingleFile(File benchFile) {
-    assert benchFile.exists();
-    assert benchFile.canRead();
-    Source source;
-    try {
-      source = Source.newBuilder("enso", benchFile).build();
-    } catch (IOException e) {
-      throw new IllegalStateException("Unreachable", e);
-    }
-    Value module = ctx.eval(source);
-    var benchSuite = module
-        .invokeMember(Module.EVAL_EXPRESSION, "all")
-        .as(BenchSuite.class);
-    return benchSuite;
   }
 }
