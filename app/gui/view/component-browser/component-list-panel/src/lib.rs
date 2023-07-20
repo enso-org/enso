@@ -72,9 +72,9 @@ pub mod navigator;
 pub use breadcrumbs::BreadcrumbId;
 pub use breadcrumbs::SECTION_NAME_CRUMB_INDEX;
 pub use ensogl_core::prelude;
+pub use ensogl_icons::icon;
 pub use ide_view_component_list_panel_breadcrumbs as breadcrumbs;
 pub use ide_view_component_list_panel_grid as grid;
-pub use ide_view_component_list_panel_grid::entry::icon;
 
 
 
@@ -176,7 +176,7 @@ pub mod background {
     ensogl_core::shape! {
         below = [
             grid::entry::background,
-            grid::entry::icon::any,
+            ensogl_icons::icon::any,
             grid_view::entry::overlay,
             grid_view::selectable::highlight::shape
         ];
@@ -259,7 +259,7 @@ impl Model {
 
         shapes_order_dependencies! {
             scene => {
-                grid_view::selectable::highlight::shape -> grid::entry::icon::any;
+                grid_view::selectable::highlight::shape -> ensogl_icons::icon::any;
             }
         }
 
@@ -267,7 +267,7 @@ impl Model {
     }
 
     fn set_initial_breadcrumbs(&self) {
-        let breadcrumb = breadcrumbs::Breadcrumb::new(INITIAL_SECTION_NAME);
+        let breadcrumb = breadcrumbs::Breadcrumb::new_without_icon(INITIAL_SECTION_NAME);
         self.breadcrumbs.set_entries_from((vec![breadcrumb], 0));
         self.breadcrumbs.show_ellipsis(true);
     }

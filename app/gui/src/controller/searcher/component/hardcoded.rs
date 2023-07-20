@@ -12,7 +12,7 @@ use crate::controller::searcher::input;
 use double_representation::name::QualifiedName;
 use enso_suggestion_database::documentation_ir::EntryDocumentation;
 use enso_suggestion_database::SuggestionDatabase;
-use ide_view::component_browser::component_list_panel::grid::entry::icon::Id as IconId;
+use ensogl_icons::icon::Id as IconId;
 
 
 

@@ -32,7 +32,7 @@
 
 use crate::prelude::*;
 
-use crate::entry::icon;
+use ensogl_icons::icon;
 
 use enso_frp as frp;
 use ensogl_core::application::frp::API;
