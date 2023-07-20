@@ -78,11 +78,7 @@ impl Goodie for GraalVM {
         let dir_name = graalvm_dir.file_name();
         let dir_name = dir_name.as_str();
         assert!(dir_name.contains("graalvm"));
-        let graal_version_str = format!(
-            "{}.{}.{}",
-            self.graal_version.major, self.graal_version.minor, self.graal_version.patch
-        );
-        assert!(dir_name.contains(&graal_version_str));
+        assert!(dir_name.contains(self.graal_version.to_string_core().as_str()));
         let root = match TARGET_OS {
             OS::MacOS => graalvm_dir.path().join_iter(["Contents", "Home"]),
             _ => graalvm_dir.path(),
@@ -98,9 +94,7 @@ impl Goodie for GraalVM {
 impl GraalVM {
     pub fn url(&self) -> BoxFuture<'static, Result<Url>> {
         let platform_string = self.platform_string();
-        let graal_version = self.graal_version.clone();
-        let graal_version_tag =
-            format!("{}.{}.{}", graal_version.major, graal_version.minor, graal_version.patch);
+        let graal_version_tag = self.graal_version.to_string_core();
         let client = self.client.clone();
         async move {
             let repo = CE_BUILDS_REPOSITORY.handle(&client);
@@ -126,8 +120,8 @@ impl GraalVM {
             other_arch => unimplemented!("Architecture `{}` is not supported!", other_arch),
         };
         let java_version = format!(
-            "jdk-{}.{}.{}",
-            _graal_version.major, _graal_version.minor, _graal_version.patch
+            "jdk-{}",
+            _graal_version.to_string_core()
         );
         format!("{PACKAGE_PREFIX_URL}-{java_version}_{os_name}-{arch_name}")
     }
