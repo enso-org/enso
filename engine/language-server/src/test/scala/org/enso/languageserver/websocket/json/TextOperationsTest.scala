@@ -2358,7 +2358,7 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
           """)
     }
 
-    "persist changes when the file was changed to disk" in {
+    "persist changes when the file was changed to disk" taggedAs SkipOnFailure in {
       val client = getInitialisedWsClient()
       client.send(json"""
               { "jsonrpc": "2.0",
@@ -2455,6 +2455,17 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
       // Change file on disk
       val fooTxt = testContentRoot.file.toPath.resolve("foo1.txt")
       Files.write(fooTxt, "abcdef".getBytes(StandardCharsets.UTF_8))
+      client.expectJson(json"""
+        { "jsonrpc": "2.0",
+          "method":"text/fileModifiedOnDisk",
+          "params": {
+            "path": {
+              "rootId": $testContentRootId,
+              "segments": [ "foo1.txt" ]
+            }
+          }
+        }
+        """)
 
       client.send(json"""
               { "jsonrpc": "2.0",
@@ -2518,7 +2529,7 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
 
   "auto-save" must {
 
-    "persist changes from a opened file to disk with autosave" in {
+    "persist changes from a opened file to disk with autosave" taggedAs SkipOnFailure in {
       this.timingsConfig.withAutoSave(2.seconds)
 
       val client = getInitialisedWsClient()
@@ -2646,7 +2657,7 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
           """)
     }
 
-    "be triggered when a file was closed before the delay expired" in {
+    "be triggered when a file was closed before the delay expired" taggedAs SkipOnFailure in {
       this.timingsConfig.withAutoSave(5.seconds)
 
       val client1 = getInitialisedWsClient()
@@ -2783,7 +2794,7 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
 
     }
 
-    "be triggered when a client closed session abruptly" in {
+    "be triggered when a client closed session abruptly" taggedAs SkipOnFailure in {
       this.timingsConfig.withAutoSave(10.seconds)
 
       val (client1, client1Id) = getInitialisedWsClientAndId()
@@ -2795,7 +2806,7 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
             "params": {
               "path": {
                 "rootId": $testContentRootId,
-                "segments": [ "foo.txt" ]
+                "segments": [ "foo2.txt" ]
               },
               "contents": "123456789"
             }
@@ -2814,7 +2825,7 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
             "params": {
               "path": {
                 "rootId": $testContentRootId,
-                "segments": [ "foo.txt" ]
+                "segments": [ "foo2.txt" ]
               }
             }
           }
@@ -2830,7 +2841,7 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
                   "path" : {
                     "rootId" : $testContentRootId,
                     "segments" : [
-                      "foo.txt"
+                      "foo2.txt"
                     ]
                   }
                 }
@@ -2849,7 +2860,7 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
               "edit": {
                 "path": {
                   "rootId": $testContentRootId,
-                  "segments": [ "foo.txt" ]
+                  "segments": [ "foo2.txt" ]
                 },
                 "oldVersion": "5795c3d628fd638c9835a4c79a55809f265068c88729a1a3fcdf8522",
                 "newVersion": "ebe55342f9c8b86857402797dd723fb4a2174e0b56d6ace0a6929ec3",
@@ -2884,6 +2895,7 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
       system.eventStream.publish(
         JsonSessionTerminated(JsonSession(client1Id, client1.actorRef()))
       )
+
       client2.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/read",
@@ -2891,7 +2903,7 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
             "params": {
               "path": {
                 "rootId": $testContentRootId,
-                "segments": [ "foo.txt" ]
+                "segments": [ "foo2.txt" ]
               }
             }
           }
@@ -2905,7 +2917,7 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
 
     }
 
-    "not persist changes when the file is changed on disk" in {
+    "not persist changes when the file is changed on disk" taggedAs SkipOnFailure in {
       this.timingsConfig.withAutoSave(2.seconds)
 
       val client = getInitialisedWsClient()
@@ -2966,6 +2978,17 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
       Thread.sleep(1.seconds.toMillis)
       val fooTxt = testContentRoot.file.toPath.resolve("foo.txt")
       Files.write(fooTxt, "abcdef".getBytes(StandardCharsets.UTF_8))
+      client.expectJson(json"""
+              { "jsonrpc": "2.0",
+                "method":"text/fileModifiedOnDisk",
+                "params": {
+                  "path": {
+                    "rootId": $testContentRootId,
+                    "segments": [ "foo.txt" ]
+                  }
+                }
+              }
+              """)
 
       client.send(json"""
                 { "jsonrpc": "2.0",

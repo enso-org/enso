@@ -12,6 +12,7 @@ import project.Data.Time.Time_Period.Time_Period
 import project.Data.Time.Time_Zone.Time_Zone
 import project.Error.Error
 import project.Errors.Common.Type_Error
+import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Time_Error.Time_Error
 import project.Meta
 import project.Nothing.Nothing
@@ -201,7 +202,34 @@ type Time_Of_Day
     second : Integer
     second self = @Builtin_Method "Time_Of_Day.second"
 
+    ## Get the millisecond portion of the time of day.
+
+       > Example
+         Get the current millisecond.
+
+             from Standard.Base import Time_Of_Day
+
+             example_millisecond = Time_Of_Day.now.millisecond
+    millisecond : Integer
+    millisecond self = @Builtin_Method "Time_Of_Day.millisecond"
+
+    ## Get the microsecond portion of the time of day.
+
+       > Example
+         Get the current microsecond.
+
+             from Standard.Base import Time_Of_Day
+
+             example_microsecond = Time_Of_Day.now.microsecond
+    microsecond : Integer
+    microsecond self = @Builtin_Method "Time_Of_Day.microsecond"
+
     ## Get the nanosecond portion of the time of day.
+
+       Arguments:
+       - include_milliseconds: Specifies if the whole fractional part of the
+         second should be returned as nanoseconds. Defaults to `False`, meaning
+         it will only return the nanosecond part in the range 0-999.
 
        > Example
          Get the current nanosecond.
@@ -209,8 +237,9 @@ type Time_Of_Day
              from Standard.Base import Time_Of_Day
 
              example_nanosecond = Time_Of_Day.now.nanosecond
-    nanosecond : Integer
-    nanosecond self = @Builtin_Method "Time_Of_Day.nanosecond"
+    nanosecond : Boolean -> Integer
+    nanosecond self include_milliseconds=False =
+        self.nanosecond_builtin include_milliseconds
 
     ## Returns the first time within the `Time_Period` containing self.
     start_of : Time_Period -> Time_Of_Day
@@ -246,6 +275,48 @@ type Time_Of_Day
     to_date_time : Date -> Time_Zone -> Date_Time
     to_date_time self date (zone=Time_Zone.system) =
         Time_Utils.make_zoned_date_time date self zone
+
+
+    ## Returns a requested time part as integer.
+    date_part : Time_Period -> Integer
+    date_part self (period : Time_Period) =
+        case period of
+            Time_Period.Day         -> Error.throw (Illegal_Argument.Error "The Time_Of_Day does not have a day part.")
+            Time_Period.Hour        -> self.hour
+            Time_Period.Minute      -> self.minute
+            Time_Period.Second      -> self.second
+            Time_Period.Millisecond -> self.millisecond
+            Time_Period.Microsecond -> self.microsecond
+            Time_Period.Nanosecond  -> self.nanosecond
+
+    ## Computes a time difference between the two times of day.
+
+       It returns an integer expressing how many periods fit between the two
+       times of day.
+
+       The difference will be positive if `end` is greater than `self`.
+
+       Arguments:
+       - end: A time of day to compute the difference from.
+       - period: The period to compute the difference in.
+    date_diff : Time_Of_Day -> Time_Period -> Integer
+    date_diff self (end : Time_Of_Day) (period : Time_Period) = case period of
+        Time_Period.Day ->
+            Error.throw (Illegal_Argument.Error "The Time_Of_Day does not have a day part to compute a difference in days.")
+        _ ->
+            Time_Utils.unit_time_difference period.to_java_unit self end
+
+    ## Shifts the time of day by a specified period.
+
+       Arguments:
+       - amount: An integer specifying by how many periods to shift the time.
+       - period: The period by which to shift.
+    date_add : Integer -> Time_Period -> Time_Of_Day
+    date_add self (amount : Integer) (period : Time_Period) = case period of
+        Time_Period.Day ->
+            Error.throw (Illegal_Argument.Error "The Time_Of_Day does not have a day part to add days to.")
+        _ ->
+            Time_Utils.unit_time_add period.to_java_unit self amount
 
     ## ALIAS Add Duration
        Add the specified amount of time to this instant to get a new instant.
@@ -313,13 +384,13 @@ type Time_Of_Day
     to_js_object self =
         type_pair = ["type", "Time_Of_Day"]
         cons_pair = ["constructor", "new"]
-        JS_Object.from_pairs [type_pair, cons_pair, ["hour", self.hour], ["minute", self.minute], ["second", self.second], ["nanosecond", self.nanosecond]]
+        JS_Object.from_pairs [type_pair, cons_pair, ["hour", self.hour], ["minute", self.minute], ["second", self.second], ["nanosecond", self.nanosecond include_milliseconds=True]]
 
     ## PRIVATE
        Convert to a display representation of this Time_Of_Day.
     to_display_text : Text
     to_display_text self =
-        if self.nanosecond == 0 then self.format "HH:mm:ss" else
+        if self.nanosecond include_milliseconds=True == 0 then self.format "HH:mm:ss" else
             self.format "HH:mm:ss.n"
 
     ## Format this time of day using the provided formatter pattern.

@@ -6,6 +6,7 @@ import nl.gn0s1s.bump.SemVer
 import org.enso.cli.OS
 import org.enso.distribution.{
   DistributionManager,
+  Environment,
   FileSystem,
   TemporaryDirectoryManager
 }
@@ -38,6 +39,7 @@ import scala.util.{Failure, Success, Try, Using}
   * @param componentUpdaterFactory the runtime component updater factory
   */
 class RuntimeVersionManager(
+  environment: Environment,
   userInterface: RuntimeVersionManagementUserInterface,
   distributionManager: DistributionManager,
   temporaryDirectoryManager: TemporaryDirectoryManager,
@@ -63,10 +65,16 @@ class RuntimeVersionManager(
     * Returns None if that version is not installed.
     */
   def findGraalRuntime(version: GraalVMVersion): Option[GraalRuntime] = {
-    val name = graalRuntimeNameForVersion(version)
-    val graalRuntimeOpt =
-      firstExisting(distributionManager.paths.runtimeSearchPaths.map(_ / name))
-        .map { path =>
+    val explicitPathOpt = this.environment.getEnvPath("ENSO_JVM_PATH")
+    val graalRuntimeOpt = explicitPathOpt
+      .map(path => {
+        val runtime = GraalRuntime(version, path)
+        runtime.ensureValid()
+        runtime
+      })
+      .orElse {
+        val pathOpt = findGraalRuntimeOnSearchPath(version)
+        pathOpt.map { path =>
           // TODO [RW] for now an exception is thrown if the installation is
           //  corrupted, in #1052 offer to repair the broken installation
           loadGraalRuntime(path).recoverWith { case e: Exception =>
@@ -82,6 +90,7 @@ class RuntimeVersionManager(
             )
           }.get
         }
+      }
     graalRuntimeOpt match {
       case Some(graalRuntime) =>
         logger.info("Found GraalVM runtime [{}].", graalRuntime)
@@ -89,6 +98,13 @@ class RuntimeVersionManager(
         logger.info("GraalVM runtime [{}] not found.", version)
     }
     graalRuntimeOpt
+  }
+
+  private def findGraalRuntimeOnSearchPath(
+    version: GraalVMVersion
+  ): Option[Path] = {
+    val name = graalRuntimeNameForVersion(version)
+    firstExisting(distributionManager.paths.runtimeSearchPaths.map(_ / name))
   }
 
   /** Executes the provided action with a requested engine version.
@@ -206,8 +222,20 @@ class RuntimeVersionManager(
     */
   private def getEngine(version: SemVer): Try[Engine] = {
     val name = engineNameForVersion(version)
-    firstExisting(distributionManager.paths.engineSearchPaths.map(_ / name))
-      .map(loadEngine)
+    this.environment
+      .getEnvPath("ENSO_ENGINE_PATH")
+      .map { p =>
+        logger.info("Using explicit ENSO_ENGINE_PATH: " + p)
+        val manifest = loadAndCheckEngineManifest(p)
+        val engine   = Engine(version, p, manifest.get)
+        Success(engine)
+      }
+      .orElse {
+        val f = firstExisting(
+          distributionManager.paths.engineSearchPaths.map(_ / name)
+        )
+        f.map(loadEngine)
+      }
       .getOrElse {
         Failure(ComponentMissingError(s"Engine $version is not installed."))
       }

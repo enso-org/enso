@@ -11,3 +11,29 @@
 export function isRunningInElectron() {
     return /electron/i.test(navigator.userAgent)
 }
+
+// ================
+// === Platform ===
+// ================
+
+/** Possible platforms that the app may run on. */
+export enum Platform {
+    unknown = 'Unknown platform',
+    windows = 'Windows',
+    macOS = 'macOS',
+    linux = 'Linux',
+}
+
+/** Returns the platform the app is currently running on.
+ * This is used to determine whether `metaKey` or `ctrlKey` is used in shortcuts. */
+export function platform(): Platform {
+    if (/windows/i.test(navigator.userAgent)) {
+        return Platform.windows
+    } else if (/mac os/i.test(navigator.userAgent)) {
+        return Platform.macOS
+    } else if (/linux/i.test(navigator.userAgent)) {
+        return Platform.linux
+    } else {
+        return Platform.unknown
+    }
+}

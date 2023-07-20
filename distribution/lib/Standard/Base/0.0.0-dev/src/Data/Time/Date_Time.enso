@@ -312,7 +312,34 @@ type Date_Time
     second : Integer
     second self = @Builtin_Method "Date_Time.second"
 
+    ## Get the millisecond portion of the time.
+
+       > Example
+         Get the current millisecond.
+
+             from Standard.Base import Date_Time
+
+             example_millisecond = Date_Time.now.millisecond
+    millisecond : Integer
+    millisecond self = @Builtin_Method "Date_Time.millisecond"
+
+    ## Get the microsecond portion of the time.
+
+       > Example
+         Get the current microsecond.
+
+             from Standard.Base import Date_Time
+
+             example_microsecond = Date_Time.now.microsecond
+    microsecond : Integer
+    microsecond self = @Builtin_Method "Date_Time.microsecond"
+
     ## Get the nanosecond portion of the time.
+
+       Arguments:
+       - include_milliseconds: Specifies if the whole fractional part of the
+         second should be returned as nanoseconds. Defaults to `False`, meaning
+         it will only return the nanosecond part in the range 0-999.
 
        > Example
          Get the current nanosecond.
@@ -320,8 +347,9 @@ type Date_Time
              from Standard.Base import Date_Time
 
              example_nanosecond = Date_Time.now.nanosecond
-    nanosecond : Integer
-    nanosecond self = @Builtin_Method "Date_Time.nanosecond"
+    nanosecond : Boolean -> Integer
+    nanosecond self include_milliseconds=False =
+        self.nanosecond_builtin include_milliseconds
 
     ## Get the timezone for the time.
 
@@ -495,6 +523,56 @@ type Date_Time
     at_zone self zone =
         Time_Utils.with_zone_same_instant self zone
 
+    ## Returns a requested date-time part as integer.
+
+       Produces a warning for a Date_Time that is before epoch start.
+       See `Date_Time.enso_epoch_start`.
+    date_part : Date_Period | Time_Period -> Integer
+    date_part self (period : Date_Period | Time_Period) =
+        case period of
+            Date_Period.Year        -> self.year
+            Date_Period.Quarter     -> self.quarter
+            Date_Period.Month       -> self.month
+            Date_Period.Week _      -> self.week_of_year locale=Nothing
+            Date_Period.Day         -> self.day
+            Time_Period.Day         -> self.day
+            Time_Period.Hour        -> self.hour
+            Time_Period.Minute      -> self.minute
+            Time_Period.Second      -> self.second
+            Time_Period.Millisecond -> self.millisecond
+            Time_Period.Microsecond -> self.microsecond
+            Time_Period.Nanosecond  -> self.nanosecond
+
+    ## Computes a time difference between the two date-times.
+
+       It returns an integer expressing how many periods fit between the two
+       date-times.
+
+       The difference will be positive if `end` is greater than `self`.
+
+       Produces a warning for a Date_Time that is before epoch start.
+       See `Date_Time.enso_epoch_start`.
+
+       Arguments:
+       - end: A date-time to compute the difference from.
+       - period: The period to compute the difference in.
+    date_diff : Date_Time -> Date_Period | Time_Period -> Integer
+    date_diff self (end : Date_Time) (period : Date_Period | Time_Period) = ensure_in_epoch self <|
+        Time_Utils.unit_datetime_difference period.to_java_unit self end
+
+    ## Shifts the date-time by a specified period.
+
+       Produces a warning for a Date_Time that is before epoch start.
+       See `Date_Time.enso_epoch_start`.
+
+       Arguments:
+       - amount: An integer specifying by how many periods to shift the
+         date-time.
+       - period: The period by which to shift.
+    date_add : Integer -> Date_Period | Time_Period -> Date_Time
+    date_add self (amount : Integer) (period : Date_Period | Time_Period) = ensure_in_epoch self <|
+        Time_Utils.unit_datetime_add period.to_java_unit self amount
+
     ## ALIAS Add Period, Add Duration
        Add the specified amount of time to this instant to produce a new instant.
 
@@ -610,7 +688,7 @@ type Date_Time
        Convert to a display representation of this Date_Time.
     to_display_text : Text
     to_display_text self =
-        time_format = if self.nanosecond == 0 then "HH:mm:ss" else "HH:mm:ss.n"
+        time_format = if self.nanosecond include_milliseconds=True == 0 then "HH:mm:ss" else "HH:mm:ss.n"
         self.format "yyyy-MM-dd "+time_format+" VV"
 
     ## PRIVATE
@@ -624,7 +702,7 @@ type Date_Time
     to_js_object self =
         type_pair = ["type", "Date_Time"]
         cons_pair = ["constructor", "new"]
-        JS_Object.from_pairs [type_pair, cons_pair, ["year", self.year], ["month", self.month], ["day", self.day], ["hour", self.hour], ["minute", self.minute], ["second", self.second], ["nanosecond", self.nanosecond], ["zone", self.zone]]
+        JS_Object.from_pairs [type_pair, cons_pair, ["year", self.year], ["month", self.month], ["day", self.day], ["hour", self.hour], ["minute", self.minute], ["second", self.second], ["nanosecond", self.nanosecond include_milliseconds=True], ["zone", self.zone]]
 
     ## Format this time as text using the specified format specifier.
 

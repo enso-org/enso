@@ -27,7 +27,7 @@ function UserMenuItem(props: React.PropsWithChildren<UserMenuItemProps>) {
         <div
             className={`whitespace-nowrap px-4 py-2 ${disabled ? 'opacity-50' : ''} ${
                 onClick ? 'hover:bg-blue-500 hover:text-white' : ''
-            } ${onClick && !disabled ? 'cursor-pointer' : ''}`}
+            } ${onClick != null && !disabled ? 'cursor-pointer' : ''}`}
             onClick={onClick}
         >
             {children}
@@ -76,7 +76,7 @@ function UserMenu() {
                     {canChangePassword && (
                         <UserMenuItem
                             onClick={() => {
-                                setModal(() => <ChangePasswordModal />)
+                                setModal(<ChangePasswordModal />)
                             }}
                         >
                             Change your password

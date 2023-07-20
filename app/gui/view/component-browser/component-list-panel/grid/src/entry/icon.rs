@@ -44,16 +44,49 @@ define_icons! {
         }
     }
 
+    /// A compass icon. Eight-pointed star.
+    /// NOTE: This icon is not used in the Component Browser, but rather in the visualization
+    /// container. It is placed here temporarily, to demonstrate it in the icons demo scene easily.
+    /// It will be moved when refactoring the visualization container.
+    /// See https://github.com/enso-org/enso/issues/7315.
+    pub mod compass(Compass) {
+        ensogl_core::cached_shape! {
+            size = (SIZE, SIZE);
+            alignment = center;
+            (style: Style) {
+                let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
+                let dull_color = &VIVID_COLOR * &dull_alpha;
+                let foreground = Rect((4.0.px(), 4.0.px()));
+                let triangle = Triangle(4.6.px(), 6.0.px());
+                let up = triangle.translate_y(5.0.px());
+                let right = up.rotate((PI / 2.0).radians());
+                let down = right.rotate((PI / 2.0).radians());
+                let left = down.rotate((PI / 2.0).radians());
+                let foreground = foreground + up + right + down + left;
+                let foreground = foreground.fill(VIVID_COLOR.glsl());
+                let background = foreground.rotate((PI / 4.0).radians()).scale(0.875);
+                let background = background.fill(dull_color.glsl());
+                let center = Circle(2.0.px());
+                let shape = background + foreground - center;
+                let shape = shape.shrink(SHRINK_AMOUNT.px());
+                shape.into()
+            }
+        }
+    }
+
     /// Local scope section button. A dot inside a circle.
     pub mod local_scope(LocalScope) {
         ensogl_core::cached_shape! {
             size = (SIZE, SIZE);
             alignment = center;
             (style: Style) {
+                let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
+                let dull_color = &VIVID_COLOR * &dull_alpha;
                 let dot = Circle(3.0.px());
-                let outer = Circle(8.0.px()) - Circle(7.0.px());
-                let shape = dot + outer;
-                let shape = shape.fill(VIVID_COLOR.glsl());
+                let dot = dot.fill(VIVID_COLOR.glsl());
+                let outer = Circle(8.0.px()) - Circle(5.0.px());
+                let outer = outer.fill(dull_color.glsl());
+                let shape = outer + dot;
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
                 shape.into()
             }
@@ -75,6 +108,111 @@ define_icons! {
                 let bottom = bottom.corners_radius(corners_radius.px()).translate_y((-2.5).px());
                 let shape = top + middle + bottom;
                 let shape = shape.fill(VIVID_COLOR.glsl());
+                let shape = shape.shrink(SHRINK_AMOUNT.px());
+                shape.into()
+            }
+        }
+    }
+
+    /// A road cone.
+    pub mod unstable(Unsable) {
+        ensogl_core::cached_shape! {
+            size = (SIZE, SIZE);
+            alignment = center;
+            (style: Style) {
+                let x_radius = 8.0;
+                let y_radius = x_radius * 0.465;
+                let bottom = Ellipse(x_radius.px(), y_radius.px());
+                let bottom_pos_y = -SIZE / 2.0 + y_radius;
+                let bottom = bottom.translate_y(bottom_pos_y.px());
+                let bottom_center = Ellipse(5.0.px(), 2.0.px()).translate_y((-3.0).px());
+                let height = 12.5;
+                let y_offset = height / 2.0 - 3.0;
+                let bottom_triangle = Triangle(10.0.px(), height.px()).translate_y(y_offset.px());
+                let bottom_mask = bottom_center + bottom_triangle;
+                let bottom = bottom - bottom_mask;
+
+                let x_radius = 4.0;
+                let y_radius = 1.5;
+                let middle = Ellipse(x_radius.px(), y_radius.px());
+                let middle_pos_y = -0.5;
+                let middle = middle.translate_y(middle_pos_y.px());
+                let height = 10.0;
+                let y_offset = middle_pos_y + height / 2.0;
+                let middle_triangle = Triangle(8.0.px(), height.px()).translate_y(y_offset.px());
+                let middle = middle + middle_triangle;
+                let mask_y = middle_pos_y + 2.5;
+                let mask = HalfPlane().translate_y(mask_y.px());
+                let mask_ellipse = Ellipse(3.0.px(), 1.0.px()).translate_y(mask_y.px());
+                let mask = mask + mask_ellipse;
+                let middle = middle - mask;
+
+                let height = 5.5;
+                let top_pos_y = middle_pos_y + 4.5;
+                let y_offset = top_pos_y + height / 2.0;
+                let top_triangle = Triangle(4.4.px(), height.px()).translate_y(y_offset.px());
+                let triangle_mask = HalfPlane().translate_y((SIZE / 2.0 - 1.0).px());
+                let top_triangle = top_triangle - triangle_mask;
+                let top_ellipse = Ellipse(2.2.px(), 0.4.px()).translate_y(top_pos_y.px());
+                let top = top_triangle + top_ellipse;
+
+                let shape = bottom + middle + top;
+                let shape = shape.fill(VIVID_COLOR.glsl());
+                let shape = shape.shrink(SHRINK_AMOUNT.px());
+                shape.into()
+            }
+        }
+    }
+
+    /// Command key icon from Mac's keyboard.
+    pub mod command_key(CommandKey) {
+        ensogl_core::cached_shape! {
+            size = (SIZE, SIZE);
+            alignment = center;
+            (style: Style) {
+                let center = Rect((6.0.px(), 6.0.px()));
+                let center = center - Rect((2.0.px(), 2.0.px()));
+                let circle_tl = Circle(3.0.px());
+                let hole = Circle(1.0.px()) + Rect((1.0.px(), 1.0.px())).translate((0.5.px(), (-0.5).px()));
+                let circle_tl = circle_tl - hole;
+                let circle_tr = circle_tl.rotate((PI/2.0).radians());
+                let circle_bl = circle_tl.flip_y();
+                let circle_br = circle_tr.flip_y();
+                let circle_tl = circle_tl.translate(((-4.0).px(), 4.0.px()));
+                let circle_tr = circle_tr.translate((4.0.px(), 4.0.px()));
+                let circle_bl = circle_bl.translate(((-4.0).px(), (-4.0).px()));
+                let circle_br = circle_br.translate((4.0.px(), (-4.0).px()));
+
+                let shape = center + circle_tl + circle_tr + circle_bl + circle_br;
+                let shape = shape.fill(VIVID_COLOR.glsl());
+                let shape = shape.shrink(SHRINK_AMOUNT.px());
+                shape.into()
+            }
+        }
+    }
+
+    /// Two rectangles with a gap between them, the right one is vivid and represents a side panel
+    /// with buttons.
+    pub mod right_side_panel(RightSidePanel) {
+        ensogl_core::cached_shape! {
+            size = (SIZE, SIZE);
+            alignment = center;
+            (style: Style) {
+                let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
+                let dull_color = &VIVID_COLOR * &dull_alpha;
+                let left = Rect((8.0.px(), 16.0.px())).corners_radiuses(3.0.px(), 0.0.px(), 3.0.px(), 0.0.px());
+                let left = left.translate_x((-4.0).px());
+                let left = left.fill(dull_color.glsl());
+
+                let right = Rect((7.0.px(), 16.0.px())).corners_radiuses(0.0.px(), 3.0.px(), 0.0.px(), 3.0.px());
+                let right = right.translate_x(4.5.px());
+                let button = Rect((3.0.px(), 1.0.px())).translate((4.5.px(), (-0.5).px()));
+                let button2 = button.translate_y(2.0.px());
+                let button3 = button2.translate_y(2.0.px());
+                let right = right - button - button2 - button3;
+                let right = right.fill(VIVID_COLOR.glsl());
+
+                let shape = left + right;
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
                 shape.into()
             }
@@ -155,6 +293,33 @@ define_icons! {
                 let shape = plus + rect1 + rect2 + rect3;
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
                 shape.into()
+            }
+        }
+    }
+
+    /// Two dots inside square brackets.
+    pub mod array_new(ArrayNew) {
+        ensogl_core::cached_shape! {
+            size = (SIZE, SIZE);
+            alignment = center;
+            (style: Style) {
+                let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
+                let dull_color = &VIVID_COLOR * &dull_alpha;
+
+                let brackets = Rect((SIZE.px(), 11.0.px()));
+                let mask = Rect((8.0.px(), 11.0.px())) + Rect((12.0.px(), 7.0.px()));
+                let brackets = brackets - mask;
+                let brackets = brackets.translate_y((-0.5).px());
+                let brackets = brackets.fill(VIVID_COLOR.glsl());
+
+                let dot = Rect((3.0.px(), 3.0.px()));
+                let left = dot.translate(((-2.5).px(), (-0.5).px()));
+                let right = dot.translate((2.5.px(), (-0.5).px()));
+                let dots = left + right;
+                let dots = dots.fill(dull_color.glsl());
+
+                let shape = dots + brackets;
+                shape.shrink(SHRINK_AMOUNT.px()).into()
             }
         }
     }
@@ -731,7 +896,7 @@ define_icons! {
             (style: Style) {
                 let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
                 let dull_color = &VIVID_COLOR * &dull_alpha;
-                let half_arrow = arrow(14.0,5.0,7.0,11.0).rotate((PI/2.0).radians()) - HalfPlane();
+                let half_arrow = arrow(14.0,5.0,7.0,11.0).rotate((PI/2.0).radians()) - BottomHalfPlane();
                 let upper = half_arrow.translate((7.0.px(),0.5.px()));
                 let lower = half_arrow.rotate(PI.radians()).translate(((-7.0).px(),(-1.0).px()));
 
@@ -856,15 +1021,61 @@ define_icons! {
             size = (SIZE, SIZE);
             alignment = center;
             (style: Style) {
-                let circle = Circle(7.75.px());
-                let circle = &circle - circle.shrink(1.0.px());
+                let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
+                let dull_color = &VIVID_COLOR * &dull_alpha;
+                let circle = Circle(8.0.px());
+                let circle = circle.fill(dull_color.glsl());
 
-                let big_hand = Segment((0.0.px(),0.0.px()),(3.0.px(),(-2.0).px()),1.5.px());
-                let small_hand = Segment((0.0.px(),0.0.px()),(0.0.px(),2.5.px()),1.5.px());
+                let big_hand = Rect((2.0.px(), 7.0.px())).corners_radius(1.0.px());
+                let big_hand = big_hand.translate_y(2.5.px()).pixel_snap();
+                let small_hand = Rect((2.0.px(), 5.5.px())).corners_radius(1.0.px());
+                let small_hand = small_hand.translate_y((-1.75).px());
+                let small_hand = small_hand.rotate((-PI / 3.0).radians());
+                let hands = big_hand + small_hand;
+                let hands = hands.fill(VIVID_COLOR.glsl());
 
-                let shape = circle + big_hand + small_hand;
-                let shape = shape.translate((0.25.px(),0.25.px()));
-                let shape = shape.fill(VIVID_COLOR.glsl());
+                let shape = circle + hands;
+                let shape = shape.shrink(SHRINK_AMOUNT.px());
+                shape.into()
+            }
+        }
+    }
+
+    /// A calendar.
+    pub mod calendar(Calendar) {
+        ensogl_core::cached_shape! {
+            size = (SIZE, SIZE);
+            alignment = center;
+            (style: Style) {
+                let dull_alpha: Var<f32> = style.get_number(dull_color_alpha).into();
+                let dull_color = &VIVID_COLOR * &dull_alpha;
+
+                let bg = Rect((15.0.px(), 12.0.px()));
+                let bg = bg.corners_radiuses(0.0.px(), 0.0.px(), 2.0.px(), 2.0.px());
+                let bg = bg.translate(((-0.5).px(), (-2.0).px()));
+                let bg = bg.fill(dull_color.glsl());
+
+                let top = Rect((15.0.px(), 2.0.px()));
+                let top = top.corners_radiuses(2.0.px(), 2.0.px(), 0.0.px(), 0.0.px());
+                let top = top.translate(((-0.5).px(), 5.0.px()));
+                let handle = Rect((2.0.px(), 4.0.px())).corners_radius(1.0.px());
+                let handle = handle.translate_y(6.0.px());
+                let left_handle = handle.translate_x((-4.5).px());
+                let right_handle = handle.translate_x(3.5.px());
+                let top = top + left_handle + right_handle;
+                let top = top.fill(VIVID_COLOR.glsl());
+
+                let dot = Circle(1.0.px());
+                let dots = dot.repeat((3.0.px(), 3.0.px())).fill(VIVID_COLOR.glsl());
+                let dots = dots.translate(((-5.0).px(), 1.0.px()));
+                let mask = Rect((11.0.px(), 8.0.px()));
+                let mask = mask.translate(((-0.5).px(), (-2.0).px()));
+                let bottom_left_corner = Rect((2.0.px(), 2.0.px()));
+                let bottom_left_corner = bottom_left_corner.translate((4.0.px(), (-5.0).px()));
+                let mask = mask - bottom_left_corner;
+                let dots = dots.intersection(&mask);
+
+                let shape = bg + top + dots;
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
                 shape.into()
             }
@@ -887,7 +1098,7 @@ define_icons! {
                 let ellipse = &ellipse - ellipse.shrink(1.0.px());
                 // If we used just the triangle for the gap then it would also cut into the lower
                 // part of the ellipse.
-                let ellipse_gap = triangle.grow(1.5.px()) - HalfPlane().translate_y((-5.0).px());
+                let ellipse_gap = triangle.grow(1.5.px()) - BottomHalfPlane().translate_y((-5.0).px());
                 let ellipse = ellipse - ellipse_gap;
 
                 let shape = marker + ellipse;
@@ -966,7 +1177,7 @@ define_icons! {
                 let outline = outline.fill(VIVID_COLOR.glsl());
 
                 let base = Circle(7.0.px());
-                let base = base.translate_y(6.0.px()) * HalfPlane();
+                let base = base.translate_y(6.0.px()) * BottomHalfPlane();
                 let base = base.translate_y(7.0.px());
                 let base = base + Rect((14.0.px(),2.0.px())).translate_y(7.0.px());
                 let base = base - Circle(5.5.px());

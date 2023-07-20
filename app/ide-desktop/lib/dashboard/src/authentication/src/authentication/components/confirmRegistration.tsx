@@ -31,8 +31,8 @@ function ConfirmRegistration() {
 
     const { verificationCode, email } = parseUrlSearchParams(location.search)
 
-    // No dependencies means this runs on every render, however this component should immediately
-    // navigate away so it shouldn't exist for more than a few renders.
+    // No dependencies means this runs on every render, however this component immediately
+    // navigates away so it should not exist for more than a few renders.
     React.useEffect(() => {
         if (email == null || verificationCode == null) {
             navigate(app.LOGIN_PATH)

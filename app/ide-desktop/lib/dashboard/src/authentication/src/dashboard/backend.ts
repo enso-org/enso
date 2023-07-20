@@ -13,41 +13,68 @@ export enum BackendType {
     remote = 'remote',
 }
 
+// These are constructor functions that construct values of the type they are named after.
+/* eslint-disable @typescript-eslint/no-redeclare */
+
 /** Unique identifier for a user/organization. */
 export type UserOrOrganizationId = newtype.Newtype<string, 'UserOrOrganizationId'>
+/** Create a {@link UserOrOrganizationId}. */
+export const UserOrOrganizationId = newtype.newtypeConstructor<UserOrOrganizationId>()
 
 /** Unique identifier for a directory. */
 export type DirectoryId = newtype.Newtype<string, 'DirectoryId'>
+/** Create a {@link DirectoryId}. */
+export const DirectoryId = newtype.newtypeConstructor<DirectoryId>()
 
 /** Unique identifier for a user's project. */
 export type ProjectId = newtype.Newtype<string, 'ProjectId'>
+/** Create a {@link ProjectId}. */
+export const ProjectId = newtype.newtypeConstructor<ProjectId>()
 
 /** Unique identifier for an uploaded file. */
 export type FileId = newtype.Newtype<string, 'FileId'>
+/** Create a {@link FileId}. */
+export const FileId = newtype.newtypeConstructor<FileId>()
 
 /** Unique identifier for a secret environment variable. */
 export type SecretId = newtype.Newtype<string, 'SecretId'>
+/** Create a {@link SecretId}. */
+export const SecretId = newtype.newtypeConstructor<SecretId>()
 
 /** Unique identifier for an arbitrary asset */
 export type AssetId = DirectoryId | FileId | ProjectId | SecretId
 
 /** Unique identifier for a file tag or project tag. */
 export type TagId = newtype.Newtype<string, 'TagId'>
+/** Create a {@link TagId}. */
+export const TagId = newtype.newtypeConstructor<TagId>()
 
 /** A URL. */
 export type Address = newtype.Newtype<string, 'Address'>
+/** Create an {@link Address}. */
+export const Address = newtype.newtypeConstructor<Address>()
 
 /** An email address. */
 export type EmailAddress = newtype.Newtype<string, 'EmailAddress'>
+/** Create an {@link EmailAddress}. */
+export const EmailAddress = newtype.newtypeConstructor<EmailAddress>()
 
 /** An AWS S3 file path. */
 export type S3FilePath = newtype.Newtype<string, 'S3FilePath'>
+/** Create an {@link S3FilePath}. */
+export const S3FilePath = newtype.newtypeConstructor<S3FilePath>()
 
 /** An AWS machine configuration. */
 export type Ami = newtype.Newtype<string, 'Ami'>
+/** Create an {@link Ami}. */
+export const Ami = newtype.newtypeConstructor<Ami>()
 
 /** An AWS user ID. */
 export type Subject = newtype.Newtype<string, 'Subject'>
+/** Create a {@link Subject}. */
+export const Subject = newtype.newtypeConstructor<Subject>()
+
+/* eslint-enable @typescript-eslint/no-redeclare */
 
 /** A user/organization in the application. These are the primary owners of a project. */
 export interface UserOrOrganization {
@@ -57,6 +84,13 @@ export interface UserOrOrganization {
     /** If `false`, this account is awaiting acceptance from an admin, and endpoints other than
      * `usersMe` will not work. */
     isEnabled: boolean
+}
+
+/** A `Directory` returned by `createDirectory`. */
+export interface CreatedDirectory {
+    id: DirectoryId
+    parentId: DirectoryId
+    title: string
 }
 
 /** Possible states that a project can be in. */
@@ -261,13 +295,22 @@ export interface UserPermissions {
     permissions: PermissionAction[]
 }
 
+/** The type returned from the "update directory" endpoint. */
+export interface UpdatedDirectory {
+    id: DirectoryId
+    parentId: DirectoryId
+    title: string
+}
+
 /** Metadata uniquely identifying a directory entry.
  * These can be Projects, Files, Secrets, or other directories. */
 export interface BaseAsset {
     id: AssetId
     title: string
     modifiedAt: dateTime.Rfc3339DateTime | null
-    parentId: AssetId
+    /** This is defined as a generic {@link AssetId} in the backend, however it is more convenient
+     * (and currently safe) to assume it is always a {@link DirectoryId}. */
+    parentId: DirectoryId
     permissions: UserPermission[] | null
 }
 
@@ -295,8 +338,20 @@ export interface Asset<Type extends AssetType = AssetType> extends BaseAsset {
     projectState: Type extends AssetType.project ? ProjectStateType : null
 }
 
+/** A convenience alias for {@link Asset}<{@link AssetType.project}>. */
+export interface ProjectAsset extends Asset<AssetType.project> {}
+
+/** A convenience alias for {@link Asset}<{@link AssetType.directory}>. */
+export interface DirectoryAsset extends Asset<AssetType.directory> {}
+
+/** A convenience alias for {@link Asset}<{@link AssetType.secret}>. */
+export interface SecretAsset extends Asset<AssetType.secret> {}
+
+/** A convenience alias for {@link Asset}<{@link AssetType.file}>. */
+export interface FileAsset extends Asset<AssetType.file> {}
+
 /** The type returned from the "create directory" endpoint. */
-export interface Directory extends Asset<AssetType.directory> {}
+export interface Directory extends DirectoryAsset {}
 
 // =================
 // === Constants ===
@@ -308,6 +363,23 @@ export const ASSET_TYPE_NAME: Record<AssetType, string> = {
     [AssetType.secret]: 'secret',
     [AssetType.file]: 'file',
 } as const
+
+// ==============================
+// === detectVersionLifecycle ===
+// ==============================
+
+/** Extract the {@link VersionLifecycle} from a version string. */
+export function detectVersionLifecycle(version: string) {
+    if (/rc/i.test(version)) {
+        return VersionLifecycle.releaseCandidate
+    } else if (/\bnightly\b/i.test(version)) {
+        return VersionLifecycle.nightly
+    } else if (/\bdev\b|\balpha\b/i.test(version)) {
+        return VersionLifecycle.development
+    } else {
+        return VersionLifecycle.stable
+    }
+}
 
 // =================
 // === Endpoints ===
@@ -337,6 +409,11 @@ export interface CreatePermissionRequestBody {
 export interface CreateDirectoryRequestBody {
     title: string
     parentId: DirectoryId | null
+}
+
+/** HTTP request body for the "update directory" endpoint. */
+export interface UpdateDirectoryRequestBody {
+    title: string
 }
 
 /** HTTP request body for the "create project" endpoint. */
@@ -376,14 +453,14 @@ export interface CreateTagRequestBody {
 
 /** URL query string parameters for the "list directory" endpoint. */
 export interface ListDirectoryRequestParams {
-    parentId?: string
+    parentId: string | null
 }
 
 /** URL query string parameters for the "upload file" endpoint. */
 export interface UploadFileRequestParams {
-    fileId?: string
-    fileName?: string
-    parentDirectoryId?: DirectoryId
+    fileId: string | null
+    fileName: string | null
+    parentDirectoryId: DirectoryId | null
 }
 
 /** URL query string parameters for the "list tags" endpoint. */
@@ -404,6 +481,37 @@ export interface ListVersionsRequestParams {
 /** A type guard that returns whether an {@link Asset} is a specific type of asset. */
 export function assetIsType<Type extends AssetType>(type: Type) {
     return (asset: Asset): asset is Asset<Type> => asset.type === type
+}
+
+// These are functions, and so their names should be camelCase.
+/* eslint-disable no-restricted-syntax */
+/** A type guard that returns whether an {@link Asset} is a {@link ProjectAsset}. */
+export const assetIsProject = assetIsType(AssetType.project)
+/** A type guard that returns whether an {@link Asset} is a {@link DirectoryAsset}. */
+export const assetIsDirectory = assetIsType(AssetType.directory)
+/** A type guard that returns whether an {@link Asset} is a {@link SecretAsset}. */
+export const assetIsSecret = assetIsType(AssetType.secret)
+/** A type guard that returns whether an {@link Asset} is a {@link FileAsset}. */
+export const assetIsFile = assetIsType(AssetType.file)
+/* eslint-disable no-restricted-syntax */
+
+// =======================
+// === rootDirectoryId ===
+// =======================
+
+/** Return the id of the root directory for a user or organization. */
+export function rootDirectoryId(userOrOrganizationId: UserOrOrganizationId) {
+    return DirectoryId(userOrOrganizationId.replace(/^organization-/, `${AssetType.directory}-`))
+}
+
+// ==================
+// === getAssetId ===
+// ==================
+
+/** A convenience function to get the `id` of an {@link Asset}.
+ * This is useful to avoid React re-renders as it is not re-created on each function call. */
+export function getAssetId<Type extends AssetType>(asset: Asset<Type>) {
+    return asset.id
 }
 
 // ==============================
@@ -449,38 +557,54 @@ export interface Backend {
     /** Return user details for the current user. */
     usersMe: () => Promise<UserOrOrganization | null>
     /** Return a list of assets in a directory. */
-    listDirectory: (query: ListDirectoryRequestParams) => Promise<Asset[]>
+    listDirectory: (query: ListDirectoryRequestParams, title: string | null) => Promise<Asset[]>
     /** Create a directory. */
-    createDirectory: (body: CreateDirectoryRequestBody) => Promise<Directory>
+    createDirectory: (body: CreateDirectoryRequestBody) => Promise<CreatedDirectory>
+    /** Change the name of a directory. */
+    updateDirectory: (
+        directoryId: DirectoryId,
+        body: UpdateDirectoryRequestBody,
+        title: string | null
+    ) => Promise<UpdatedDirectory>
+    /** Delete a directory. */
+    deleteDirectory: (directoryId: DirectoryId, title: string | null) => Promise<void>
     /** Return a list of projects belonging to the current user. */
     listProjects: () => Promise<ListedProject[]>
     /** Create a project for the current user. */
     createProject: (body: CreateProjectRequestBody) => Promise<CreatedProject>
     /** Close the project identified by the given project ID. */
-    closeProject: (projectId: ProjectId) => Promise<void>
+    closeProject: (projectId: ProjectId, title: string | null) => Promise<void>
     /** Return project details for the specified project ID. */
-    getProjectDetails: (projectId: ProjectId) => Promise<Project>
+    getProjectDetails: (projectId: ProjectId, title: string | null) => Promise<Project>
     /** Set a project to an open state. */
-    openProject: (projectId: ProjectId, body: OpenProjectRequestBody) => Promise<void>
-    projectUpdate: (projectId: ProjectId, body: ProjectUpdateRequestBody) => Promise<UpdatedProject>
+    openProject: (
+        projectId: ProjectId,
+        body: OpenProjectRequestBody | null,
+        title: string | null
+    ) => Promise<void>
+    projectUpdate: (
+        projectId: ProjectId,
+        body: ProjectUpdateRequestBody,
+        title: string | null
+    ) => Promise<UpdatedProject>
     /** Delete a project. */
-    deleteProject: (projectId: ProjectId) => Promise<void>
+    deleteProject: (projectId: ProjectId, title: string | null) => Promise<void>
     /** Return project memory, processor and storage usage. */
-    checkResources: (projectId: ProjectId) => Promise<ResourceUsage>
+    checkResources: (projectId: ProjectId, title: string | null) => Promise<ResourceUsage>
     /** Return a list of files accessible by the current user. */
     listFiles: () => Promise<File[]>
     /** Upload a file. */
     uploadFile: (params: UploadFileRequestParams, body: Blob) => Promise<FileInfo>
     /** Delete a file. */
-    deleteFile: (fileId: FileId) => Promise<void>
+    deleteFile: (fileId: FileId, title: string | null) => Promise<void>
     /** Create a secret environment variable. */
     createSecret: (body: CreateSecretRequestBody) => Promise<SecretAndInfo>
     /** Return a secret environment variable. */
-    getSecret: (secretId: SecretId) => Promise<Secret>
+    getSecret: (secretId: SecretId, title: string | null) => Promise<Secret>
     /** Return the secret environment variables accessible by the user. */
     listSecrets: () => Promise<SecretInfo[]>
     /** Delete a secret environment variable. */
-    deleteSecret: (secretId: SecretId) => Promise<void>
+    deleteSecret: (secretId: SecretId, title: string | null) => Promise<void>
     /** Create a file tag or project tag. */
     createTag: (body: CreateTagRequestBody) => Promise<TagInfo>
     /** Return file tags or project tags accessible by the user. */

@@ -1,10 +1,11 @@
 use super::prelude::*;
 
-use crate::controller::ide;
-use crate::controller::ide::ManagingProjectAPI;
+use crate::config::ProjectToOpen;
+use crate::ide;
 use crate::transport::test_utils::TestWithMockedTransport;
 
 use engine_protocol::project_manager;
+use engine_protocol::project_manager::ProjectName;
 use json_rpc::test_util::transport::mock::MockTransport;
 use serde_json::json;
 use wasm_bindgen_test::wasm_bindgen_test;
@@ -27,8 +28,11 @@ fn failure_to_open_project_is_reported() {
     fixture.run_test(async move {
         let project_manager = Rc::new(project_manager::Client::new(transport));
         executor::global::spawn(project_manager.runner());
-        let ide_controller = ide::Desktop::new(project_manager).unwrap();
-        let result = ide_controller.create_new_project(None, None).await;
+        let name = ProjectName::new_unchecked(crate::constants::DEFAULT_PROJECT_NAME.to_owned());
+        let project_to_open = ProjectToOpen::Name(name);
+        let initializer =
+            ide::initializer::WithProjectManager::new(project_manager, project_to_open);
+        let result = initializer.initialize_project_model().await;
         result.expect_err("Error should have been reported.");
     });
     fixture.when_stalled_send_response(json!({
