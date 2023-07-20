@@ -1,9 +1,8 @@
-package org.enso.languageserver.filemanager
-
-import java.nio.file.Path
+package org.enso.filewatcher
 
 import io.methvin.watcher._
-import zio._
+
+import java.nio.file.Path
 
 /** Watches the root with subdirectories and executes callback on file event.
   *
@@ -25,14 +24,13 @@ final class WatcherAdapter(
     .listener(this)
     .build()
 
-  /** Start watcher. */
-  def start(): IO[Throwable, Unit] = {
-    ZIO.attempt(watcher.watch())
+  def start(): Unit = {
+    watcher.watch()
   }
 
-  /** Stop watcher. */
-  def stop(): IO[Throwable, Unit] =
-    ZIO.attempt(watcher.close())
+  def stop(): Unit = {
+    watcher.close()
+  }
 
   /** A callback executed by `DirectoryWatcher` on file system event. */
   override def onEvent(event: DirectoryChangeEvent): Unit = {
