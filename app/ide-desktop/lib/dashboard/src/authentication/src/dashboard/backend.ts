@@ -483,7 +483,7 @@ export interface ListVersionsRequestParams {
 
 /** A type guard that returns whether an {@link Asset} is a specific type of asset. */
 export function assetIsType<Type extends AssetType>(type: Type) {
-    return (asset: Asset): asset is Asset<Type> => asset.type === type
+    return (asset: AnyAsset): asset is Extract<AnyAsset, Asset<Type>> => asset.type === type
 }
 
 // These are functions, and so their names should be camelCase.
@@ -584,7 +584,7 @@ export abstract class Backend {
     abstract listDirectory(
         query: ListDirectoryRequestParams,
         title: string | null
-    ): Promise<Asset[]>
+    ): Promise<AnyAsset[]>
     /** Create a directory. */
     abstract createDirectory(body: CreateDirectoryRequestBody): Promise<CreatedDirectory>
     /** Change the name of a directory. */

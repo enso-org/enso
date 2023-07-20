@@ -42,7 +42,7 @@ export class LocalBackend extends backend.Backend {
     /** Return a list of assets in a directory.
      *
      * @throws An error if the JSON-RPC call fails. */
-    async listDirectory(): Promise<backend.Asset[]> {
+    async listDirectory(): Promise<backend.AnyAsset[]> {
         const result = await this.projectManager.listProjects({})
         return result.projects.map(project => ({
             type: backend.AssetType.project,

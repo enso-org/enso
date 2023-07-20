@@ -35,13 +35,13 @@ interface InitialRowStateProp<RowState> {
 // =============
 
 /** Props for a {@link Table}. */
-interface InternalTableProps<T, Key extends string = string, State = never, RowState = never> {
-    rowComponent?: (props: tableRow.TableRowProps<T, Key, State, RowState>) => JSX.Element
+interface InternalTableProps<T, State = never, RowState = never, Key extends string = string> {
+    rowComponent?: (props: tableRow.TableRowProps<T, State, RowState, Key>) => JSX.Element
     items: T[]
     state?: State
     initialRowState?: RowState
     getKey: (item: T) => Key
-    columns: tableColumn.TableColumn<T, State, RowState>[]
+    columns: tableColumn.TableColumn<T, State, RowState, Key>[]
     isLoading: boolean
     placeholder: JSX.Element
     forceShowPlaceholder?: boolean
@@ -55,16 +55,16 @@ interface InternalTableProps<T, Key extends string = string, State = never, RowS
 /** Props for a {@link Table}. */
 export type TableProps<
     T,
-    Key extends string = string,
     State = never,
-    RowState = never
-> = InternalTableProps<T, Key, State, RowState> &
+    RowState = never,
+    Key extends string = string
+> = InternalTableProps<T, State, RowState, Key> &
     ([RowState] extends [never] ? unknown : InitialRowStateProp<RowState>) &
     ([State] extends [never] ? unknown : StateProp<State>)
 
 /** Table that projects an object into each column. */
-export default function Table<T, Key extends string = string, State = never, RowState = never>(
-    props: TableProps<T, Key, State, RowState>
+export default function Table<T, State = never, RowState = never, Key extends string = string>(
+    props: TableProps<T, State, RowState, Key>
 ) {
     const {
         rowComponent: RowComponent = TableRow,
@@ -119,7 +119,7 @@ export default function Table<T, Key extends string = string, State = never, Row
     }, [isLoading])
 
     const onRowClick = React.useCallback(
-        (innerRowProps: tableRow.TableRowInnerProps<T, Key, RowState>, event: React.MouseEvent) => {
+        (innerRowProps: tableRow.TableRowInnerProps<T, RowState, Key>, event: React.MouseEvent) => {
             const { key } = innerRowProps
             event.stopPropagation()
             const getNewlySelectedKeys = () => {

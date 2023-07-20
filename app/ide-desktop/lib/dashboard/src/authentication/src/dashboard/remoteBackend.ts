@@ -129,7 +129,7 @@ interface ListUsersResponseBody {
 
 /** HTTP response body for the "list projects" endpoint. */
 interface ListDirectoryResponseBody {
-    assets: backend.BaseAsset[]
+    assets: backend.AnyAsset[]
 }
 
 /** HTTP response body for the "list projects" endpoint. */
@@ -252,7 +252,7 @@ export class RemoteBackend extends backend.Backend {
     async listDirectory(
         query: backend.ListDirectoryRequestParams,
         title: string | null
-    ): Promise<backend.Asset[]> {
+    ): Promise<backend.AnyAsset[]> {
         const response = await this.get<ListDirectoryResponseBody>(
             LIST_DIRECTORY_PATH +
                 '?' +
@@ -278,7 +278,7 @@ export class RemoteBackend extends backend.Backend {
             return (await response.json()).assets.map(
                 // This type assertion is safe; it is only needed to convert `type` to a newtype.
                 // eslint-disable-next-line no-restricted-syntax
-                asset => ({ ...asset, type: asset.id.match(/^(.+?)-/)?.[1] } as backend.Asset)
+                asset => ({ ...asset, type: asset.id.match(/^(.+?)-/)?.[1] } as backend.AnyAsset)
             )
         }
     }

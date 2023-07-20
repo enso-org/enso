@@ -12,8 +12,10 @@ declare module '../../hooks' {
 
 /** Possible changes to the file list. */
 export enum AssetListEventType {
+    createDirectory = 'create-directory',
     createProject = 'create-project',
     uploadFiles = 'upload-files',
+    createSecret = 'create-secret',
     delete = 'delete',
 }
 
@@ -22,14 +24,45 @@ interface AssetListBaseEvent<Type extends AssetListEventType> {
     type: Type
 }
 
+/** All possible events. */
+interface AssetListEvents {
+    createDirectory: AssetListCreateDirectoryEvent
+    createProject: AssetListCreateProjectEvent
+    uploadFiles: AssetListUploadFilesEvent
+    createSecret: AssetListCreateSecretEvent
+    delete: AssetListDeleteEvent
+}
+
+/** A type to ensure that {@link AssetListEvents} contains every {@link AssetListEventType}. */
+// This is meant only as a sanity check, so it is allowed to break lint rules.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type SanityCheck<
+    T extends {
+        [Type in keyof typeof AssetListEventType]: AssetListBaseEvent<
+            (typeof AssetListEventType)[Type]
+        >
+    } = AssetListEvents
+    // eslint-disable-next-line no-restricted-syntax
+> = T
+
+/** A signal to create a new directory. */
+interface AssetListCreateDirectoryEvent
+    extends AssetListBaseEvent<AssetListEventType.createDirectory> {}
+
 /** A signal to create a new project. */
 interface AssetListCreateProjectEvent extends AssetListBaseEvent<AssetListEventType.createProject> {
     templateId: string | null
 }
 
-/** A signal to upload multiple files. */
+/** A signal to upload files. */
 interface AssetListUploadFilesEvent extends AssetListBaseEvent<AssetListEventType.uploadFiles> {
     files: FileList
+}
+
+/** A signal to create a new secret. */
+interface AssetListCreateSecretEvent extends AssetListBaseEvent<AssetListEventType.createSecret> {
+    name: string
+    value: string
 }
 
 /** A signal to upload multiple files. */
@@ -38,7 +71,4 @@ interface AssetListDeleteEvent extends AssetListBaseEvent<AssetListEventType.del
 }
 
 /** Every possible type of asset list event. */
-export type AssetListEvent =
-    | AssetListCreateProjectEvent
-    | AssetListDeleteEvent
-    | AssetListUploadFilesEvent
+export type AssetListEvent = AssetListEvents[keyof AssetListEvents]

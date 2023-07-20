@@ -2,8 +2,6 @@
 import * as React from 'react'
 import toast from 'react-hot-toast'
 
-import PlusIcon from 'enso-assets/plus.svg'
-
 import * as assetEventModule from '../events/assetEvent'
 import * as assetListEventModule from '../events/assetListEvent'
 import * as authProvider from '../../authentication/providers/auth'
@@ -16,13 +14,13 @@ import * as hooks from '../../hooks'
 import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
 import * as permissions from '../permissions'
-import * as presence from '../presence'
+import * as presenceModule from '../presence'
 import * as string from '../../string'
 import * as uniqueString from '../../uniqueString'
 
 import TableRow, * as tableRow from './tableRow'
 import AssetContextMenu from './assetContextMenu'
-import AssetName from './assetName'
+import Button from './button'
 import ConfirmDeleteModal from './confirmDeleteModal'
 import ContextMenu from './contextMenu'
 import ContextMenuEntry from './contextMenuEntry'
@@ -47,50 +45,10 @@ const PLACEHOLDER = (
     </span>
 )
 
-// ===========================
-// === ProjectActionButton ===
-// ===========================
-
-/** Props for a {@link ProjectActionButton}. */
-export interface ProjectActionButtonProps {
-    project: backendModule.ProjectAsset
-    rowState: AssetRowState
-    setRowState: React.Dispatch<React.SetStateAction<AssetRowState>>
-    assetEvent: assetEventModule.AssetEvent | null
-    /** Called when the project is opened via the {@link ProjectActionButton}. */
-    doOpenManually: (projectId: backendModule.ProjectId) => void
-    onClose: () => void
-    appRunner: AppRunner | null
-    openIde: () => void
-}
-
-// ==========================
-// === ProjectNameHeading ===
-// ==========================
-
-/** Props for a {@link ProjectNameHeading}. */
-interface InternalProjectNameHeadingProps {
-    doCreateProject: () => void
-}
-
-/** The column header for the "name" column for the table of project assets. */
-function ProjectNameHeading(props: InternalProjectNameHeadingProps) {
-    const { doCreateProject } = props
-
-    const onClick = (event: React.MouseEvent) => {
-        event.stopPropagation()
-        doCreateProject()
-    }
-
-    return (
-        <div className="inline-flex">
-            {string.capitalizeFirst(ASSET_TYPE_NAME_PLURAL)}
-            <button className="mx-1" onClick={onClick}>
-                <img src={PlusIcon} />
-            </button>
-        </div>
-    )
-}
+/** The {@link RegExp} matching a directory name following the default naming convention. */
+const DIRECTORY_NAME_REGEX = /^New_Folder_(?<directoryIndex>\d+)$/
+/** The default prefix of an automatically generated directory. */
+const DIRECTORY_NAME_DEFAULT_PREFIX = 'New_Folder_'
 
 // ================
 // === AssetRow ===
@@ -98,7 +56,7 @@ function ProjectNameHeading(props: InternalProjectNameHeadingProps) {
 
 /** Props for an {@link AssetRow}. */
 export interface AssetRowProps<T extends backendModule.AnyAsset>
-    extends tableRow.TableRowProps<T, T['id'], AssetsTableState, AssetRowState> {}
+    extends tableRow.TableRowProps<T, AssetsTableState, AssetRowState, T['id']> {}
 
 /** A row containing a {@link backendModule.ProjectAsset}.
  * @throws {Error} when `item` is not a {@link backendModule.ProjectAsset}. */
@@ -106,6 +64,7 @@ function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
     const {
         keyProp: key,
         item: rawItem,
+        initialRowState,
         state: {
             assetEvent,
             dispatchAssetEvent,
@@ -118,19 +77,14 @@ function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
     const { backend } = backendProvider.useBackend()
     const { setModal } = modalProvider.useSetModal()
     const [item, setItem] = React.useState(rawItem)
-    const [status, setStatus] = React.useState(presence.Presence.present)
-
-    if (item.type !== backendModule.AssetType.project) {
-        // eslint-disable-next-line no-restricted-syntax
-        throw new Error('This component should only be rendered when the item is a project.')
-    }
+    const [presence, setPresence] = React.useState(presenceModule.Presence.present)
 
     React.useEffect(() => {
         setItem(rawItem)
     }, [rawItem])
 
     const doDelete = async () => {
-        setStatus(presence.Presence.deleting)
+        setPresence(presenceModule.Presence.deleting)
         markItemAsHidden(key)
         try {
             await backend.deleteAsset(item)
@@ -139,7 +93,7 @@ function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
                 id: key,
             })
         } catch (error) {
-            setStatus(presence.Presence.present)
+            setPresence(presenceModule.Presence.present)
             markItemAsVisible(key)
             const message = errorModule.tryGetMessage(error) ?? 'Unable to delete project.'
             toast.error(message)
@@ -147,9 +101,29 @@ function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
         }
     }
 
+    hooks.useEventHandler(assetEvent, async event => {
+        switch (event.type) {
+            // These events are handled in the specific NameColumn files.
+            case assetEventModule.AssetEventType.createProject:
+            case assetEventModule.AssetEventType.createDirectory:
+            case assetEventModule.AssetEventType.uploadFiles:
+            case assetEventModule.AssetEventType.createSecret:
+            case assetEventModule.AssetEventType.openProject:
+            case assetEventModule.AssetEventType.cancelOpeningAllProjects: {
+                break
+            }
+            case assetEventModule.AssetEventType.deleteMultiple: {
+                if (event.ids.has(key)) {
+                    await doDelete()
+                }
+                break
+            }
+        }
+    })
+
     return (
         <TableRow
-            className={presence.CLASS_NAME[status]}
+            className={presenceModule.CLASS_NAME[presence]}
             {...props}
             onContextMenu={(innerProps, event) => {
                 event.preventDefault()
@@ -164,6 +138,7 @@ function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
                 )
             }}
             item={item}
+            initialRowState={{ ...initialRowState, setPresence }}
         />
     )
 }
@@ -180,7 +155,7 @@ export interface AssetsTableState {
     dispatchAssetListEvent: (event: assetListEventModule.AssetListEvent) => void
     markItemAsHidden: (key: string) => void
     markItemAsVisible: (key: string) => void
-    toggleDirectoryExpansion: (directory: backendModule.DirectoryAsset) => void
+    doToggleDirectoryExpansion: (id: backendModule.DirectoryId) => void
     /** Called when the project is opened via the {@link ProjectActionButton}. */
     doOpenManually: (projectId: backendModule.ProjectId) => void
     doOpenIde: (project: backendModule.ProjectAsset) => void
@@ -189,12 +164,16 @@ export interface AssetsTableState {
 
 /** Data associated with a {@link AssetRow}, used for rendering. */
 export interface AssetRowState {
+    setPresence: (presence: presenceModule.Presence) => void
     isRunning: boolean
     isEditingName: boolean
 }
 
 /** The default {@link AssetRowState} associated with a {@link AssetRow}. */
 export const INITIAL_ROW_STATE: AssetRowState = Object.freeze({
+    setPresence: () => {
+        // Ignored. This MUST be replaced by the row component. It should also update `presence`.
+    },
     isRunning: false,
     isEditingName: false,
 })
@@ -204,9 +183,8 @@ export interface AssetsTableProps {
     appRunner: AppRunner | null
     directoryId: backendModule.DirectoryId | null
     items: backendModule.AnyAsset[]
-    filter: ((item: backendModule.Asset) => boolean) | null
+    filter: ((item: backendModule.AnyAsset) => boolean) | null
     isLoading: boolean
-    columnDisplayMode: columnModule.ColumnDisplayMode
     assetEvent: assetEventModule.AssetEvent | null
     dispatchAssetEvent: (event: assetEventModule.AssetEvent) => void
     assetListEvent: assetListEventModule.AssetListEvent | null
@@ -233,11 +211,14 @@ export default function AssetsTable(props: AssetsTableProps) {
         doCloseIde: rawDoCloseIde,
     } = props
     const { organization } = authProvider.useNonPartialUserSession()
+    const { backend } = backendProvider.useBackend()
     const { setModal } = modalProvider.useSetModal()
     const [items, setItems] = React.useState(rawItems)
+    const [extraColumns, setExtraColumns] = React.useState(
+        () => new Set<columnModule.ExtraColumn>()
+    )
     // Items in the root directory have a depth of 0.
     const itemDepthsRef = React.useRef(new WeakMap<backendModule.Asset, number>())
-    const expandedDirectoriesRef = React.useRef(new Set<backendModule.DirectoryId>())
 
     React.useEffect(() => {
         setItems(rawItems)
@@ -289,6 +270,17 @@ export default function AssetsTable(props: AssetsTableProps) {
 
     // === End tracking number of visually hidden items ===
 
+    const expandedDirectoriesRef = React.useRef(new Set<backendModule.DirectoryId>())
+    const doToggleDirectoryExpansion = React.useCallback((id: backendModule.DirectoryId) => {
+        const set = expandedDirectoriesRef.current
+        // FIXME: update assets list. deletes (and adds?) should happen via events
+        if (set.has(id)) {
+            set.delete(id)
+        } else {
+            set.add(id)
+        }
+    }, [])
+
     const getNewProjectName = React.useCallback(
         (templateId?: string | null) => {
             const prefix = `${templateId ?? 'New_Project'}_`
@@ -303,6 +295,30 @@ export default function AssetsTable(props: AssetsTableProps) {
 
     hooks.useEventHandler(assetListEvent, event => {
         switch (event.type) {
+            case assetListEventModule.AssetListEventType.createDirectory: {
+                const directoryIndices = items
+                    .map(item => DIRECTORY_NAME_REGEX.exec(item.title))
+                    .map(match => match?.groups?.directoryIndex)
+                    .map(maybeIndex => (maybeIndex != null ? parseInt(maybeIndex, 10) : 0))
+                const title = `${DIRECTORY_NAME_DEFAULT_PREFIX}${
+                    Math.max(0, ...directoryIndices) + 1
+                }`
+                const placeholderItem: backendModule.DirectoryAsset = {
+                    id: backendModule.DirectoryId(uniqueString.uniqueString()),
+                    title,
+                    modifiedAt: dateTime.toRfc3339(new Date()),
+                    parentId: directoryId ?? backendModule.DirectoryId(''),
+                    permissions: permissions.tryGetSingletonOwnerPermission(organization),
+                    projectState: null,
+                    type: backendModule.AssetType.directory,
+                }
+                setItems(oldItems => [placeholderItem, ...oldItems])
+                dispatchAssetEvent({
+                    type: assetEventModule.AssetEventType.createDirectory,
+                    placeholderId: placeholderItem.id,
+                })
+                break
+            }
             case assetListEventModule.AssetListEventType.createProject: {
                 const projectName = getNewProjectName(event.templateId)
                 const dummyId = backendModule.ProjectId(uniqueString.uniqueString())
@@ -350,6 +366,24 @@ export default function AssetsTable(props: AssetsTableProps) {
                 })
                 break
             }
+            case assetListEventModule.AssetListEventType.createSecret: {
+                const placeholderItem: backendModule.SecretAsset = {
+                    id: backendModule.SecretId(uniqueString.uniqueString()),
+                    title: event.name,
+                    modifiedAt: dateTime.toRfc3339(new Date()),
+                    parentId: directoryId ?? backendModule.DirectoryId(''),
+                    permissions: permissions.tryGetSingletonOwnerPermission(organization),
+                    projectState: null,
+                    type: backendModule.AssetType.secret,
+                }
+                setItems(oldItems => [placeholderItem, ...oldItems])
+                dispatchAssetEvent({
+                    type: assetEventModule.AssetEventType.createSecret,
+                    placeholderId: placeholderItem.id,
+                    value: event.value,
+                })
+                break
+            }
             case assetListEventModule.AssetListEventType.delete: {
                 setItems(oldItems => oldItems.filter(item => item.id !== event.id))
                 break
@@ -383,7 +417,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             dispatchAssetListEvent,
             markItemAsHidden,
             markItemAsVisible,
-            toggleDirectoryExpansion,
+            doToggleDirectoryExpansion,
             doOpenManually,
             doOpenIde,
             doCloseIde,
@@ -396,68 +430,81 @@ export default function AssetsTable(props: AssetsTableProps) {
             doCloseIde,
             markItemAsHidden,
             markItemAsVisible,
-            toggleDirectoryExpansion,
+            doToggleDirectoryExpansion,
             /* should never change */ dispatchAssetEvent,
             /* should never change */ dispatchAssetListEvent,
         ]
     )
 
     return (
-        <Table<backendModule.AnyAsset, backendModule.AssetId, AssetsTableState, AssetRowState>
-            rowComponent={AssetRow}
-            items={visibleItems}
-            isLoading={isLoading}
-            state={state}
-            initialRowState={INITIAL_ROW_STATE}
-            getKey={backendModule.getAssetId}
-            placeholder={PLACEHOLDER}
-            forceShowPlaceholder={shouldForceShowPlaceholder}
-            columns={columns.map(column =>
-                column === columnModule.Column.name
-                    ? {
-                          id: column,
-                          className: columnModule.COLUMN_CSS_CLASS[column],
-                          heading: <ProjectNameHeading doCreateProject={doCreateProject} />,
-                          render: AssetName,
-                      }
-                    : {
-                          id: column,
-                          className: columnModule.COLUMN_CSS_CLASS[column],
-                          heading: <>{columnModule.COLUMN_NAME[column]}</>,
-                          render: columnModule.COLUMN_RENDERER[column],
-                      }
-            )}
-            onContextMenu={(selectedKeys, event, setSelectedKeys) => {
-                event.preventDefault()
-                event.stopPropagation()
-                // This is not a React component even though it contains JSX.
-                // eslint-disable-next-line no-restricted-syntax
-                const doDeleteAll = () => {
+        <>
+            {/* FIXME: This element should cover elements below it but still have a transparent background.
+             ** Unfortunately, this does not seem to be possible. */}
+            <div className="absolute right-0">
+                {columnModule.EXTRA_COLUMNS.map(column => (
+                    <Button
+                        key={column}
+                        active={extraColumns.has(column)}
+                        image={columnModule.EXTRA_COLUMN_IMAGES[column]}
+                        onClick={() => {
+                            const newExtraColumns = new Set(extraColumns)
+                            if (extraColumns.has(column)) {
+                                newExtraColumns.delete(column)
+                            } else {
+                                newExtraColumns.add(column)
+                            }
+                            setExtraColumns(newExtraColumns)
+                        }}
+                    />
+                ))}
+            </div>
+            <Table<backendModule.AnyAsset, AssetsTableState, AssetRowState, backendModule.AssetId>
+                rowComponent={AssetRow}
+                items={visibleItems}
+                isLoading={isLoading}
+                state={state}
+                initialRowState={INITIAL_ROW_STATE}
+                getKey={backendModule.getAssetId}
+                placeholder={PLACEHOLDER}
+                forceShowPlaceholder={shouldForceShowPlaceholder}
+                columns={columnModule.getColumnList(backend.type, extraColumns).map(column => ({
+                    id: column,
+                    className: columnModule.COLUMN_CSS_CLASS[column],
+                    heading: columnModule.COLUMN_HEADING[column],
+                    render: columnModule.COLUMN_RENDERER[column],
+                }))}
+                onContextMenu={(selectedKeys, event, setSelectedKeys) => {
+                    event.preventDefault()
+                    event.stopPropagation()
+                    const pluralized = pluralize(selectedKeys.size)
+                    // This is not a React component even though it contains JSX.
+                    // eslint-disable-next-line no-restricted-syntax
+                    const doDeleteAll = () => {
+                        setModal(
+                            <ConfirmDeleteModal
+                                description={`${selectedKeys.size} selected ${pluralized}`}
+                                doDelete={() => {
+                                    setSelectedKeys(new Set())
+                                    dispatchAssetEvent({
+                                        type: assetEventModule.AssetEventType.deleteMultiple,
+                                        ids: selectedKeys,
+                                    })
+                                    return Promise.resolve()
+                                }}
+                            />
+                        )
+                    }
                     setModal(
-                        <ConfirmDeleteModal
-                            description={`${selectedKeys.size} selected projects`}
-                            doDelete={() => {
-                                setSelectedKeys(new Set())
-                                dispatchAssetEvent({
-                                    type: assetEventModule.AssetEventType.deleteMultiple,
-                                    ids: selectedKeys,
-                                })
-                                return Promise.resolve()
-                            }}
-                        />
+                        <ContextMenu key={uniqueString.uniqueString()} event={event}>
+                            <ContextMenuEntry onClick={doDeleteAll}>
+                                <span className="text-red-700">
+                                    Delete {selectedKeys.size} {pluralized}
+                                </span>
+                            </ContextMenuEntry>
+                        </ContextMenu>
                     )
-                }
-                const pluralized = pluralize(selectedKeys.size)
-                setModal(
-                    <ContextMenu key={uniqueString.uniqueString()} event={event}>
-                        <ContextMenuEntry onClick={doDeleteAll}>
-                            <span className="text-red-700">
-                                Delete {selectedKeys.size} {pluralized}
-                            </span>
-                        </ContextMenuEntry>
-                    </ContextMenu>
-                )
-            }}
-        />
+                }}
+            />
+        </>
     )
 }

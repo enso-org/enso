@@ -4,14 +4,14 @@ import * as React from 'react'
 
 import * as common from 'enso-common'
 
+import * as assetListEventModule from '../events/assetListEvent'
 import * as backendModule from '../backend'
+import * as hooks from '../../hooks'
 import * as http from '../../http'
 import * as localBackend from '../localBackend'
-import * as projectListEventModule from '../events/projectListEvent'
 import * as projectManager from '../projectManager'
 import * as remoteBackendModule from '../remoteBackend'
 import * as shortcuts from '../shortcuts'
-import * as spinner from './spinner'
 import * as tabModule from '../tab'
 
 import * as authProvider from '../../authentication/providers/auth'
@@ -64,8 +64,8 @@ export default function Dashboard(props: DashboardProps) {
     const [project, setProject] = React.useState<backendModule.Project | null>(null)
     const [nameOfProjectToImmediatelyOpen, setNameOfProjectToImmediatelyOpen] =
         React.useState(initialProjectName)
-    const [projectListEvent, dispatchProjectListEvent] =
-        React.useState<projectListEventModule.ProjectListEvent | null>(null)
+    const [assetListEvent, dispatchAssetListEvent] =
+        hooks.useEvent<assetListEventModule.AssetListEvent>()
 
     const isListingLocalDirectoryAndWillFail =
         backend.type === backendModule.BackendType.local && loadingProjectManagerDidFail
@@ -196,20 +196,16 @@ export default function Dashboard(props: DashboardProps) {
     )
 
     const doCreateProject = React.useCallback(
-        (
-            templateId: string | null,
-            onSpinnerStateChange: ((state: spinner.SpinnerState) => void) | null
-        ) => {
-            dispatchProjectListEvent({
-                type: projectListEventModule.ProjectListEventType.create,
+        (templateId: string | null) => {
+            dispatchAssetListEvent({
+                type: assetListEventModule.AssetListEventType.createProject,
                 templateId: templateId ?? null,
-                onSpinnerStateChange: onSpinnerStateChange,
             })
         },
-        [/* should never change */ dispatchProjectListEvent]
+        [/* should never change */ dispatchAssetListEvent]
     )
 
-    const openIde = React.useCallback(
+    const doOpenIde = React.useCallback(
         async (newProject: backendModule.ProjectAsset) => {
             switchToIdeTab()
             if (project?.projectId !== newProject.id) {
@@ -219,7 +215,7 @@ export default function Dashboard(props: DashboardProps) {
         [backend, project?.projectId, switchToIdeTab]
     )
 
-    const closeIde = React.useCallback(() => {
+    const doCloseIde = React.useCallback(() => {
         setProject(null)
     }, [])
 
@@ -278,11 +274,11 @@ export default function Dashboard(props: DashboardProps) {
                         setNameOfProjectToImmediatelyOpen={setNameOfProjectToImmediatelyOpen}
                         directoryId={directoryId}
                         setDirectoryId={setDirectoryId}
-                        projectListEvent={projectListEvent}
-                        dispatchProjectListEvent={dispatchProjectListEvent}
+                        assetListEvent={assetListEvent}
+                        dispatchAssetListEvent={dispatchAssetListEvent}
                         query={query}
-                        onOpenIde={openIde}
-                        onCloseIde={closeIde}
+                        doOpenIde={doOpenIde}
+                        doCloseIde={doCloseIde}
                         appRunner={appRunner}
                         loadingProjectManagerDidFail={loadingProjectManagerDidFail}
                         isListingRemoteDirectoryWhileOffline={isListingRemoteDirectoryWhileOffline}

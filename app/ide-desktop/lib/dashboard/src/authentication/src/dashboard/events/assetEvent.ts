@@ -17,7 +17,9 @@ declare module '../../hooks' {
 /** Possible types of asset state change. */
 export enum AssetEventType {
     createProject = 'create-project',
+    createDirectory = 'create-directory',
     uploadFiles = 'upload-files',
+    createSecret = 'create-secret',
     openProject = 'open-project',
     cancelOpeningAllProjects = 'cancel-opening-all-projects',
     deleteMultiple = 'delete-multiple',
@@ -28,15 +30,47 @@ interface AssetBaseEvent<Type extends AssetEventType> {
     type: Type
 }
 
+/** All possible events. */
+interface AssetEvents {
+    createProject: AssetCreateProjectEvent
+    createDirectory: AssetCreateDirectoryEvent
+    uploadFiles: AssetUploadFilesEvent
+    createSecret: AssetCreateSecretEvent
+    openProject: AssetOpenProjectEvent
+    cancelOpeningAllProjects: AssetCancelOpeningAllProjectsEvent
+    deleteMultiple: AssetDeleteMultipleEvent
+}
+
+/** A type to ensure that {@link AssetEvents} contains every {@link AssetLEventType}. */
+// This is meant only as a sanity check, so it is allowed to break lint rules.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type SanityCheck<
+    T extends {
+        [Type in keyof typeof AssetEventType]: AssetBaseEvent<(typeof AssetEventType)[Type]>
+    } = AssetEvents
+    // eslint-disable-next-line no-restricted-syntax
+> = T
+
 /** A signal to create a project. */
 export interface AssetCreateProjectEvent extends AssetBaseEvent<AssetEventType.createProject> {
-    placeholderId: backendModule.AssetId
+    placeholderId: backendModule.ProjectId
     templateId: string | null
 }
 
-/** A signal to create multiple files. */
+/** A signal to create a directory. */
+export interface AssetCreateDirectoryEvent extends AssetBaseEvent<AssetEventType.createDirectory> {
+    placeholderId: backendModule.DirectoryId
+}
+
+/** A signal to upload files. */
 export interface AssetUploadFilesEvent extends AssetBaseEvent<AssetEventType.uploadFiles> {
     files: Map<backendModule.FileId, File>
+}
+
+/** A signal to create a secret. */
+export interface AssetCreateSecretEvent extends AssetBaseEvent<AssetEventType.createSecret> {
+    placeholderId: backendModule.SecretId
+    value: string
 }
 
 /** A signal to open the specified project. */
@@ -54,9 +88,4 @@ export interface AssetDeleteMultipleEvent extends AssetBaseEvent<AssetEventType.
 }
 
 /** Every possible type of asset event. */
-export type AssetEvent =
-    | AssetCancelOpeningAllProjectsEvent
-    | AssetCreateProjectEvent
-    | AssetDeleteMultipleEvent
-    | AssetOpenProjectEvent
-    | AssetUploadFilesEvent
+export type AssetEvent = AssetEvents[keyof AssetEvents]

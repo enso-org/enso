@@ -1,8 +1,12 @@
 /** @file Column types and column display modes. */
 import * as React from 'react'
 
+import AccessedByProjectsIcon from 'enso-assets/accessed_by_projects.svg'
+import AccessedDataIcon from 'enso-assets/accessed_data.svg'
 import DefaultUserIcon from 'enso-assets/default_user.svg'
+import DocsIcon from 'enso-assets/docs.svg'
 import PlusIcon from 'enso-assets/plus.svg'
+import TagIcon from 'enso-assets/tag.svg'
 
 import * as authProvider from '../authentication/providers/auth'
 import * as backend from './backend'
@@ -10,7 +14,9 @@ import * as dateTime from './dateTime'
 import * as modalProvider from '../providers/modal'
 import * as tableColumn from './components/tableColumn'
 
+import * as assetsTable from './components/assetsTable'
 import PermissionDisplay, * as permissionDisplay from './components/permissionDisplay'
+import AssetNameColumn from './components/assetNameColumn'
 import ManagePermissionsModal from './components/managePermissionsModal'
 
 // =============
@@ -43,11 +49,7 @@ export enum Column {
 }
 
 /** Columns that can be toggled between visible and hidden. */
-export type ExtraColumn =
-    | Column.accessedByProjects
-    | Column.accessedData
-    | Column.docs
-    | Column.tags
+export type ExtraColumn = (typeof EXTRA_COLUMNS)[number]
 
 // =================
 // === Constants ===
@@ -55,6 +57,23 @@ export type ExtraColumn =
 
 /** An immutable empty array, useful as a React prop. */
 const EMPTY_ARRAY: never[] = []
+
+/** The list of extra columns, in order. */
+// This MUST be `as const`, to generate the `ExtraColumn` type above.
+// eslint-disable-next-line no-restricted-syntax
+export const EXTRA_COLUMNS = [
+    Column.tags,
+    Column.accessedByProjects,
+    Column.accessedData,
+    Column.docs,
+] as const
+
+export const EXTRA_COLUMN_IMAGES: Record<ExtraColumn, string> = {
+    [Column.tags]: TagIcon,
+    [Column.accessedByProjects]: AccessedByProjectsIcon,
+    [Column.accessedData]: AccessedDataIcon,
+    [Column.docs]: DocsIcon,
+}
 
 /** English names for every column except for the name column. */
 export const COLUMN_NAME: Record<Exclude<Column, Column.name>, string> = {
@@ -77,22 +96,41 @@ export const COLUMN_CSS_CLASS: Record<Column, string> = {
     [Column.docs]: 'w-96',
 } as const
 
-/** A list of column display modes and names, in order. */
-export const COLUMN_DISPLAY_MODES_AND_NAMES: [ColumnDisplayMode, string][] = [
-    [ColumnDisplayMode.all, 'All'],
-    [ColumnDisplayMode.compact, 'Compact'],
-    [ColumnDisplayMode.docs, 'Docs'],
-    [ColumnDisplayMode.settings, 'Settings'],
-]
-
 /** {@link table.ColumnProps} for an unknown variant of {@link backend.Asset}. */
-type AnyAssetColumnProps = Omit<
-    tableColumn.TableColumnProps<backend.Asset>,
-    'rowState' | 'setItem' | 'setRowState' | 'state'
+export type AssetColumnProps<T extends backend.AnyAsset> = tableColumn.TableColumnProps<
+    T,
+    assetsTable.AssetsTableState,
+    assetsTable.AssetRowState,
+    T['id']
 >
 
+// =====================
+// === getColumnList ===
+// =====================
+
+/** Return the full list of columns given the relevant current state. */
+export function getColumnList(backendType: backend.BackendType, extraColumns: Set<ExtraColumn>) {
+    switch (backendType) {
+        case backend.BackendType.local: {
+            return [Column.name, Column.modified]
+        }
+        case backend.BackendType.remote: {
+            return [
+                Column.name,
+                Column.modified,
+                Column.sharedWith,
+                ...EXTRA_COLUMNS.filter(column => extraColumns.has(column)),
+            ]
+        }
+    }
+}
+
+// ==========================
+// === LastModifiedColumn ===
+// ==========================
+
 /** A column displaying the time at which the asset was last modified. */
-function LastModifiedColumn(props: AnyAssetColumnProps) {
+function LastModifiedColumn(props: AssetColumnProps<backend.AnyAsset>) {
     return <>{props.item.modifiedAt && dateTime.formatDateTime(new Date(props.item.modifiedAt))}</>
 }
 
@@ -105,6 +143,10 @@ interface InternalUserPermissionDisplayProps {
     onDelete: () => void
     onPermissionsChange: (permissions: backend.PermissionAction[]) => void
 }
+
+// =============================
+// === UserPermissionDisplay ===
+// =============================
 
 /** Displays permissions for a user on a specific asset. */
 function UserPermissionDisplay(props: InternalUserPermissionDisplayProps) {
@@ -186,8 +228,12 @@ function UserPermissionDisplay(props: InternalUserPermissionDisplayProps) {
     )
 }
 
+// ========================
+// === SharedWithColumn ===
+// ========================
+
 /** A column listing the users with which this asset is shared. */
-function SharedWithColumn(props: AnyAssetColumnProps) {
+function SharedWithColumn(props: AssetColumnProps<backend.AnyAsset>) {
     const { item } = props
     const session = authProvider.useNonPartialUserSession()
     const { setModal } = modalProvider.useSetModal()
@@ -280,6 +326,10 @@ function SharedWithColumn(props: AnyAssetColumnProps) {
     )
 }
 
+// =========================
+// === PlaceholderColumn ===
+// =========================
+
 /** A placeholder component for columns which do not yet have corresponding data to display. */
 function PlaceholderColumn() {
     return <></>
@@ -289,9 +339,10 @@ function PlaceholderColumn() {
 // This is not a React component even though it contains JSX.
 // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unused-vars
 export const COLUMN_RENDERER: Record<
-    Exclude<Column, Column.name>,
-    (props: AnyAssetColumnProps) => JSX.Element
+    Column,
+    (props: AssetColumnProps<backend.AnyAsset>) => JSX.Element
 > = {
+    [Column.name]: AssetNameColumn,
     [Column.modified]: LastModifiedColumn,
     [Column.sharedWith]: SharedWithColumn,
     [Column.tags]: PlaceholderColumn,

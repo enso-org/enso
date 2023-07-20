@@ -4,32 +4,37 @@ import toast from 'react-hot-toast'
 
 import DirectoryIcon from 'enso-assets/directory.svg'
 
+import * as assetEventModule from '../events/assetEvent'
+import * as assetListEventModule from '../events/assetListEvent'
 import * as backendModule from '../backend'
+import * as column from '../column'
 import * as errorModule from '../../error'
 import * as eventModule from '../event'
+import * as hooks from '../../hooks'
+import * as presence from '../presence'
 import * as shortcuts from '../shortcuts'
 
 import * as backendProvider from '../../providers/backend'
 import * as loggerProvider from '../../providers/logger'
 
-import * as assetName from './assetName'
 import EditableSpan from './editableSpan'
 
 // =====================
 // === DirectoryName ===
 // =====================
 
-/** Props for a {@link DirectoryName}. */
-export interface DirectoryNameProps
-    extends assetName.AssetNameProps<backendModule.DirectoryAsset> {}
+/** Props for a {@link DirectoryNameColumn}. */
+export interface DirectoryNameColumnProps
+    extends column.AssetColumnProps<backendModule.DirectoryAsset> {}
 
 /** The icon and name of a {@link backendModule.DirectoryAsset}. */
-export default function DirectoryName(props: DirectoryNameProps) {
+export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
     const {
+        keyProp: key,
         item,
         setItem,
         selected,
-        state: { toggleDirectoryExpansion },
+        state: { assetEvent, dispatchAssetListEvent, doToggleDirectoryExpansion },
         rowState,
         setRowState,
     } = props
@@ -52,6 +57,54 @@ export default function DirectoryName(props: DirectoryNameProps) {
         }
     }
 
+    hooks.useEventHandler(assetEvent, async event => {
+        switch (event.type) {
+            case assetEventModule.AssetEventType.createProject:
+            case assetEventModule.AssetEventType.uploadFiles:
+            case assetEventModule.AssetEventType.createSecret:
+            case assetEventModule.AssetEventType.openProject:
+            case assetEventModule.AssetEventType.cancelOpeningAllProjects:
+            case assetEventModule.AssetEventType.deleteMultiple: {
+                // Ignored. These events should all be unrelated to directories.
+                break
+            }
+            case assetEventModule.AssetEventType.createDirectory: {
+                if (key === event.placeholderId) {
+                    if (backend.type !== backendModule.BackendType.remote) {
+                        const message = 'Folders cannot be created on the local backend.'
+                        toast.error(message)
+                        logger.error(message)
+                    } else {
+                        rowState.setPresence(presence.Presence.inserting)
+                        try {
+                            const createdDirectory = await backend.createDirectory({
+                                parentId: item.parentId,
+                                title: item.title,
+                            })
+                            rowState.setPresence(presence.Presence.present)
+                            const newItem: backendModule.DirectoryAsset = {
+                                ...item,
+                                ...createdDirectory,
+                            }
+                            setItem(newItem)
+                        } catch (error) {
+                            dispatchAssetListEvent({
+                                type: assetListEventModule.AssetListEventType.delete,
+                                id: key,
+                            })
+                            const message = `Error creating new folder: ${
+                                errorModule.tryGetMessage(error) ?? 'unknown error.'
+                            }`
+                            toast.error(message)
+                            logger.error(message)
+                        }
+                    }
+                }
+                break
+            }
+        }
+    })
+
     return (
         <div
             className="flex text-left items-center align-middle whitespace-nowrap"
@@ -69,7 +122,7 @@ export default function DirectoryName(props: DirectoryNameProps) {
                         isEditingName: true,
                     }))
                 } else if (eventModule.isDoubleClick(event)) {
-                    toggleDirectoryExpansion(item)
+                    doToggleDirectoryExpansion(item.id)
                 }
             }}
         >

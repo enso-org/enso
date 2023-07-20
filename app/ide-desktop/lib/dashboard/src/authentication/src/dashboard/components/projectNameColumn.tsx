@@ -3,16 +3,18 @@ import * as React from 'react'
 import toast from 'react-hot-toast'
 
 import * as assetEventModule from '../events/assetEvent'
+import * as assetListEventModule from '../events/assetListEvent'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as errorModule from '../../error'
 import * as eventModule from '../event'
+import * as hooks from '../../hooks'
 import * as loggerProvider from '../../providers/logger'
+import * as presence from '../presence'
 import * as shortcuts from '../shortcuts'
 import * as validation from '../validation'
 
-import * as assetsTable from './assetsTable'
-import * as tableColumn from './tableColumn'
+import * as column from '../column'
 import EditableSpan from './editableSpan'
 import ProjectIcon from './projectIcon'
 
@@ -20,23 +22,28 @@ import ProjectIcon from './projectIcon'
 // === ProjectName ===
 // ===================
 
-/** Props for a {@link ProjectName}. */
-interface InternalProjectNameProps
-    extends tableColumn.TableColumnProps<
-        backendModule.ProjectAsset,
-        assetsTable.AssetsTableState,
-        assetsTable.AssetRowState
-    > {}
+/** Props for a {@link ProjectNameColumn}. */
+export interface ProjectNameColumnProps
+    extends column.AssetColumnProps<backendModule.ProjectAsset> {}
 
 /** The icon and name of a {@link backendModule.ProjectAsset}. */
-export default function ProjectName(props: InternalProjectNameProps) {
+export default function ProjectNameColumn(props: ProjectNameColumnProps) {
     const {
+        keyProp: key,
         item,
         setItem,
         selected,
         rowState,
         setRowState,
-        state: { appRunner, assetEvent, dispatchAssetEvent, doOpenManually, doOpenIde, doCloseIde },
+        state: {
+            appRunner,
+            assetEvent,
+            dispatchAssetEvent,
+            dispatchAssetListEvent,
+            doOpenManually,
+            doOpenIde,
+            doCloseIde,
+        },
     } = props
     const logger = loggerProvider.useLogger()
     const { backend } = backendProvider.useBackend()
@@ -62,6 +69,59 @@ export default function ProjectName(props: InternalProjectNameProps) {
             throw error
         }
     }
+
+    hooks.useEventHandler(assetEvent, async event => {
+        switch (event.type) {
+            case assetEventModule.AssetEventType.createDirectory:
+            case assetEventModule.AssetEventType.uploadFiles:
+            case assetEventModule.AssetEventType.createSecret:
+            case assetEventModule.AssetEventType.openProject:
+            case assetEventModule.AssetEventType.cancelOpeningAllProjects:
+            case assetEventModule.AssetEventType.deleteMultiple: {
+                // Ignored. Any missing project-related events should be handled by
+                // `ProjectIcon`. `deleteMultiple` is handled in `AssetRow`.
+                break
+            }
+            case assetEventModule.AssetEventType.createProject: {
+                if (key === event.placeholderId) {
+                    rowState.setPresence(presence.Presence.inserting)
+                    try {
+                        const createdProject = await backend.createProject({
+                            parentDirectoryId: item.parentId,
+                            projectName: item.title,
+                            projectTemplateName: event.templateId,
+                        })
+                        rowState.setPresence(presence.Presence.present)
+                        const newItem: backendModule.ProjectAsset = {
+                            ...item,
+                            id: createdProject.projectId,
+                            projectState: createdProject.state,
+                        }
+                        setItem(newItem)
+                        // This MUST be delayed, otherwise the `ProjectActionButton` does not yet
+                        // have the correct `Project`.
+                        setTimeout(() => {
+                            dispatchAssetEvent({
+                                type: assetEventModule.AssetEventType.openProject,
+                                id: createdProject.projectId,
+                            })
+                        }, 0)
+                    } catch (error) {
+                        dispatchAssetListEvent({
+                            type: assetListEventModule.AssetListEventType.delete,
+                            id: key,
+                        })
+                        const message = `Error creating new project: ${
+                            errorModule.tryGetMessage(error) ?? 'unknown error.'
+                        }`
+                        toast.error(message)
+                        logger.error(message)
+                    }
+                }
+                break
+            }
+        }
+    })
 
     return (
         <div

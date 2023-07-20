@@ -13,7 +13,7 @@ import SecretContextMenu from './secretContextMenu'
 
 /** Props for a {@link AssetContextMenu}. */
 export interface AssetContextMenuProps<T extends backendModule.AnyAsset> {
-    innerProps: tableRow.TableRowInnerProps<T, T['id'], assetsTable.AssetRowState>
+    innerProps: tableRow.TableRowInnerProps<T, assetsTable.AssetRowState, T['id']>
     event: React.MouseEvent
     dispatchAssetEvent: (assetEvent: assetEventModule.AssetEvent) => void
     doDelete: () => Promise<void>

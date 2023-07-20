@@ -4,19 +4,17 @@ import toast from 'react-hot-toast'
 
 import * as common from 'enso-common'
 
+import * as assetEventModule from '../events/assetEvent'
+import * as assetListEventModule from '../events/assetListEvent'
 import * as authProvider from '../../authentication/providers/auth'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
-import * as columnModule from '../column'
 import * as hooks from '../../hooks'
 import * as loggerProvider from '../../providers/logger'
 import * as tabModule from '../tab'
 
-import * as assetListEventModule from '../events/assetListEvent'
-import * as projectEventModule from '../events/projectEvent'
-
+import AssetsTable from './assetsTable'
 import DriveBar from './driveBar'
-import Table from './table'
 
 // =================
 // === Constants ===
@@ -49,8 +47,8 @@ export interface DirectoryViewProps {
     assetListEvent: assetListEventModule.AssetListEvent | null
     dispatchAssetListEvent: (directoryEvent: assetListEventModule.AssetListEvent) => void
     query: string
-    onOpenIde: (project: backendModule.ProjectAsset) => void
-    onCloseIde: () => void
+    doOpenIde: (project: backendModule.ProjectAsset) => void
+    doCloseIde: () => void
     appRunner: AppRunner | null
     loadingProjectManagerDidFail: boolean
     isListingRemoteDirectoryWhileOffline: boolean
@@ -59,7 +57,7 @@ export interface DirectoryViewProps {
 }
 
 /** Contains directory path and directory contents (projects, folders, secrets and files). */
-function DirectoryView(props: DirectoryViewProps) {
+export default function DirectoryView(props: DirectoryViewProps) {
     const {
         tab,
         initialProjectName,
@@ -70,8 +68,8 @@ function DirectoryView(props: DirectoryViewProps) {
         query,
         assetListEvent,
         dispatchAssetListEvent,
-        onOpenIde,
-        onCloseIde,
+        doOpenIde,
+        doCloseIde,
         appRunner,
         loadingProjectManagerDidFail,
         isListingRemoteDirectoryWhileOffline,
@@ -83,17 +81,18 @@ function DirectoryView(props: DirectoryViewProps) {
     const { backend } = backendProvider.useBackend()
 
     const [initialized, setInitialized] = React.useState(false)
-    const [assets, setAssets] = React.useState<backendModule.Asset[]>([])
+    const [assets, setAssets] = React.useState<backendModule.AnyAsset[]>([])
     const [isLoadingAssets, setIsLoadingAssets] = React.useState(true)
     const [directoryStack, setDirectoryStack] = React.useState<backendModule.DirectoryAsset[]>([])
     const [isFileBeingDragged, setIsFileBeingDragged] = React.useState(false)
+    const [assetEvent, dispatchAssetEvent] = hooks.useEvent<assetEventModule.AssetEvent>()
 
     const assetFilter = React.useMemo(() => {
         if (query === '') {
             return null
         } else {
             const regex = new RegExp(regexEscape(query), 'i')
-            return (asset: backendModule.Asset) => regex.test(asset.title)
+            return (asset: backendModule.AnyAsset) => regex.test(asset.title)
         }
     }, [query])
 
@@ -149,7 +148,7 @@ function DirectoryView(props: DirectoryViewProps) {
             switch (backend.type) {
                 case backendModule.BackendType.local: {
                     if (!isListingLocalDirectoryAndWillFail) {
-                        const newAssets = await backend.listDirectory()
+                        const newAssets = await backend.listDirectory({ parentId: null }, null)
                         if (!signal.aborted) {
                             setIsLoadingAssets(false)
                             setAssets(newAssets)
@@ -165,7 +164,7 @@ function DirectoryView(props: DirectoryViewProps) {
                     ) {
                         const newAssets = await backend.listDirectory(
                             { parentId: directoryId },
-                            directory?.title ?? null
+                            directoryStack[0]?.title ?? null
                         )
                         if (!signal.aborted) {
                             setIsLoadingAssets(false)
@@ -187,9 +186,9 @@ function DirectoryView(props: DirectoryViewProps) {
                 projectAsset => projectAsset.title === nameOfProjectToImmediatelyOpen
             )
             if (projectToLoad != null) {
-                dispatchProjectEvent({
-                    type: projectEventModule.ProjectEventType.open,
-                    projectId: projectToLoad.id,
+                dispatchAssetEvent({
+                    type: assetEventModule.AssetEventType.openProject,
+                    id: projectToLoad.id,
                 })
             }
             setNameOfProjectToImmediatelyOpen(null)
@@ -210,7 +209,7 @@ function DirectoryView(props: DirectoryViewProps) {
         initialProjectName,
         logger,
         /* should never change */ setNameOfProjectToImmediatelyOpen,
-        /* should never change */ dispatchProjectEvent,
+        /* should never change */ dispatchAssetEvent,
     ])
 
     const doCreateProject = React.useCallback(() => {
@@ -270,7 +269,20 @@ function DirectoryView(props: DirectoryViewProps) {
                 {backend.type === backendModule.BackendType.remote ? 'Cloud Drive' : 'Local Drive'}
             </h1>
             <DriveBar doCreateProject={doCreateProject} doUploadFiles={doUploadFiles} />
-            <AssetTable items={assets} query={query} />
+            <AssetsTable
+                items={assets}
+                filter={assetFilter}
+                directoryId={directoryId}
+                isLoading={isLoadingAssets}
+                appRunner={appRunner}
+                assetEvent={assetEvent}
+                dispatchAssetEvent={dispatchAssetEvent}
+                assetListEvent={assetListEvent}
+                dispatchAssetListEvent={dispatchAssetListEvent}
+                doCreateProject={doCreateProject}
+                doOpenIde={doOpenIde}
+                doCloseIde={doCloseIde}
+            />
             {isFileBeingDragged &&
             directoryId != null &&
             backend.type === backendModule.BackendType.remote ? (
@@ -297,5 +309,3 @@ function DirectoryView(props: DirectoryViewProps) {
         </>
     )
 }
-
-export default DirectoryView

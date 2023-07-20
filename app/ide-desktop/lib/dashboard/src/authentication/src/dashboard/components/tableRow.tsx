@@ -39,28 +39,28 @@ interface InternalTableRowInnerProps<T, Key extends string = string> {
 /** State and setters passed to event handlers on a {@link TableRow}. */
 export type TableRowInnerProps<
     T,
-    Key extends string = string,
-    TableRowState = never
+    TableRowState = never,
+    Key extends string = string
 > = InternalTableRowInnerProps<T, Key> &
     ([TableRowState] extends never ? unknown : InternalTableRowStateProps<TableRowState>)
 
 /** Props for a {@link TableRow}. */
 interface InternalBaseTableRowProps<
     T,
-    Key extends string = string,
     State = never,
-    TableRowState = never
+    TableRowState = never,
+    Key extends string = string
 > extends Omit<JSX.IntrinsicElements['tr'], 'onClick' | 'onContextMenu'> {
     keyProp: Key
     item: T
     state?: State
     initialRowState?: TableRowState
-    columns: tableColumn.TableColumn<T, State, TableRowState>[]
+    columns: tableColumn.TableColumn<T, State, TableRowState, Key>[]
     selected: boolean
     allowContextMenu: boolean
-    onClick: (props: TableRowInnerProps<T, Key, TableRowState>, event: React.MouseEvent) => void
+    onClick: (props: TableRowInnerProps<T, TableRowState, Key>, event: React.MouseEvent) => void
     onContextMenu?: (
-        props: TableRowInnerProps<T, Key, TableRowState>,
+        props: TableRowInnerProps<T, TableRowState, Key>,
         event: React.MouseEvent<HTMLTableRowElement>
     ) => void
 }
@@ -68,16 +68,16 @@ interface InternalBaseTableRowProps<
 /** Props for a {@link TableRow}. */
 export type TableRowProps<
     T,
-    Key extends string = string,
     State = never,
-    TableRowState = never
-> = InternalBaseTableRowProps<T, Key, State, TableRowState> &
+    TableRowState = never,
+    Key extends string = string
+> = InternalBaseTableRowProps<T, State, TableRowState, Key> &
     ([State] extends [never] ? unknown : StateProp<State>) &
     ([TableRowState] extends [never] ? unknown : InitialRowStateProp<TableRowState>)
 
 /** A row of a table. This is required because each row may store its own state. */
-export default function TableRow<T, Key extends string = string, State = never, RowState = never>(
-    props: TableRowProps<T, Key, State, RowState>
+export default function TableRow<T, State = never, RowState = never, Key extends string = string>(
+    props: TableRowProps<T, State, RowState, Key>
 ) {
     const {
         keyProp: key,
@@ -106,7 +106,7 @@ export default function TableRow<T, Key extends string = string, State = never, 
         setItem(rawItem)
     }, [rawItem])
 
-    const innerProps: TableRowInnerProps<T, Key, RowState> = {
+    const innerProps: TableRowInnerProps<T, RowState, Key> = {
         key,
         item,
         setItem,
@@ -143,6 +143,7 @@ export default function TableRow<T, Key extends string = string, State = never, 
                         }`}
                     >
                         <Render
+                            keyProp={key}
                             item={item}
                             setItem={setItem}
                             selected={selected}
