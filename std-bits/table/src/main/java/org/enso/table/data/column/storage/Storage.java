@@ -155,7 +155,7 @@ public abstract class Storage<T> {
     for (int i = 0; i < size(); i++) {
       Object it = getItemBoxed(i);
       if (skipNulls && it == null) {
-        storageBuilder.appendNoGrow(null);
+        storageBuilder.appendNulls(1);
       } else {
         Object result = function.apply(it, argument);
         // TODO convert only conditionally
@@ -184,7 +184,7 @@ public abstract class Storage<T> {
       Object it1 = getItemBoxed(i);
       Object it2 = i < arg.size() ? arg.getItemBoxed(i) : null;
       if (skipNa && (it1 == null || it2 == null)) {
-        storageBuilder.appendNoGrow(null);
+        storageBuilder.appendNulls(1);
       } else {
         Object result = function.apply(it1, it2);
         Object converted = Polyglot_Utils.convertPolyglotValue(result);
@@ -194,6 +194,92 @@ public abstract class Storage<T> {
       context.safepoint();
     }
     return storageBuilder.seal();
+  }
+
+  /**
+   * Runs a unary operation.
+   * <p>
+   * If a vectorized implementation is available, it is used, otherwise the fallback is used.
+   *
+   * @param name the name of the vectorized operation
+   * @param problemBuilder the problem builder to use for the vectorized implementation
+   * @param fallback the fallback Enso function to run if vectorized implementation is not available
+   * @param onMissing the value to place for missing cells, usually just null
+   * @param expectedResultType the expected type for the result storage; it is ignored if the
+   *     operation is vectorized
+   * @return the result of running the operation on each row
+   */
+  public final Storage<?> vectorizedOrFallbackUnaryMap(String name, MapOperationProblemBuilder problemBuilder, Function<Object, Value> fallback, Value onMissing, StorageType expectedResultType) {
+    if (isUnaryOpVectorized(name)) {
+      return runVectorizedUnaryMap(name, problemBuilder);
+    } else {
+      checkFallback(fallback, expectedResultType, name);
+      return unaryMap(fallback, onMissing, expectedResultType);
+    }
+  }
+
+  /** Runs a binary operation with a scalar argument.
+   * <p>
+   * If a vectorized implementation is available, it is used, otherwise the fallback is used.
+   *
+   * @param name the name of the vectorized operation
+   * @param problemBuilder the problem builder to use for the vectorized implementation
+   * @param fallback the fallback Enso function to run if vectorized implementation is not available
+   * @param argument the argument to pass to each run of the function
+   * @param skipNulls specifies whether null values on the input should result in a null result
+   * @param expectedResultType the expected type for the result storage; it is ignored if the
+   *                    operation is vectorized
+   * @return the result of running the operation on each row
+   */
+  public final Storage<?> vectorizedOrFallbackBiMap(String name, MapOperationProblemBuilder problemBuilder, BiFunction<Object, Object, Object> fallback, Object argument, boolean skipNulls, StorageType expectedResultType) {
+    if (isBinaryOpVectorized(name)) {
+      return runVectorizedBiMap(name, argument, problemBuilder);
+    } else {
+      checkFallback(fallback, expectedResultType, name);
+      return biMap(fallback, argument, skipNulls, expectedResultType);
+    }
+  }
+
+  /** Runs a binary operation with a storage argument.
+   * <p>
+   * If a vectorized implementation is available, it is used, otherwise the fallback is used.
+   *
+   * @param name the name of the vectorized operation
+   * @param problemBuilder the problem builder to use for the vectorized implementation
+   * @param fallback the fallback Enso function to run if vectorized implementation is not available
+   * @param other the other storage to zip with this one
+   * @param skipNulls specifies whether null values on the input should result in a null result
+   * @param expectedResultType the expected type for the result storage; it is ignored if the
+   *                    operation is vectorized
+   * @return the result of running the operation on each row
+   */
+  public final Storage<?> vectorizedOrFallbackZip(String name, MapOperationProblemBuilder problemBuilder, BiFunction<Object, Object, Object> fallback, Storage<?> other, boolean skipNulls, StorageType expectedResultType) {
+    if (isBinaryOpVectorized(name)) {
+      return runVectorizedZip(name, other, problemBuilder);
+    } else {
+      checkFallback(fallback, expectedResultType, name);
+      return zip(fallback, other, skipNulls, expectedResultType);
+    }
+  }
+
+  private static void checkFallback(Object fallback, StorageType storageType, String operationName)
+      throws IllegalArgumentException {
+    if (fallback == null) {
+      if (operationName == null) {
+        throw new IllegalArgumentException(
+            "A function or name of vectorized operation must be specified. This is a bug in the Table library.");
+      } else {
+        throw new IllegalArgumentException(
+            "The operation "
+                + operationName
+                + " has no vectorized implementation for this storage type, but no fallback function was provided. This is a bug in the Table library.");
+      }
+    }
+
+    if (storageType == null) {
+      throw new IllegalArgumentException(
+          "The expected result type must be specified if a fallback function is used. This is a bug in the Table library.");
+    }
   }
 
   /**
