@@ -51,13 +51,13 @@ public class Math_Utils {
             String msg = "round cannot accept " + n;
             throw new ArithmeticException(msg);
         }
-        if (decimalPlaces < ROUND_MIN_LONG || decimalPlaces > ROUND_MAX_LONG) {
+        if (n < ROUND_MIN_LONG || n > ROUND_MAX_LONG) {
             String msg = "Error: `round` can only accept values between " + ROUND_MIN_LONG + " and " + ROUND_MAX_LONG + " (inclusive), but was " + n;
             throw new IllegalArgumentException(msg);
         }
 
         // Algorithm taken from https://stackoverflow.com/a/7211688.
-        double scale = 10 ^ decimalPlaces;
+        double scale = Math.pow(10.0, decimalPlaces);
         double scaled = n * scale;
         double roundBase = Math.floor(scaled);
         double roundMidpoint = (roundBase + 0.5) / scale;
