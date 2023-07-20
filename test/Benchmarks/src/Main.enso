@@ -24,7 +24,6 @@ main =
     Natural_Order_Sort.bench
     Number_Parse.bench
     Numeric.bench
-    Numeric_Parse.bench
     Sum.bench
     Statistics.Main.bench
     Table.Main.bench
