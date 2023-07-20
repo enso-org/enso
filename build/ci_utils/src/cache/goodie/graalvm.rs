@@ -75,8 +75,8 @@ impl Goodie for GraalVM {
             Ok(dir_entry) => dir_entry,
             Err(err) => bail!("Failed to read GraalVM cache directory: {}", err),
         };
-        let dir_name_tmp = graalvm_dir.file_name();
-        let dir_name = dir_name_tmp.as_str();
+        let dir_name = graalvm_dir.file_name();
+        let dir_name = dir_name.as_str();
         assert!(dir_name.contains("graalvm"));
         let graal_version_str = format!(
             "{}.{}.{}",
