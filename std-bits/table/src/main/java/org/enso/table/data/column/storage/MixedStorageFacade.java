@@ -53,18 +53,27 @@ public class MixedStorageFacade extends Storage<Object> {
   }
 
   @Override
-  public boolean isOpVectorized(String name) {
-    return underlyingStorage.isOpVectorized(name);
+  public boolean isUnaryOpVectorized(String name) {
+    return underlyingStorage.isUnaryOpVectorized(name);
   }
 
   @Override
-  protected Storage<?> runVectorizedMap(
-      String name, Object argument, MapOperationProblemBuilder problemBuilder) {
-    return underlyingStorage.runVectorizedMap(name, argument, problemBuilder);
+  public Storage<?> runVectorizedUnaryMap(String name, MapOperationProblemBuilder problemBuilder) {
+    return underlyingStorage.runVectorizedUnaryMap(name, problemBuilder);
   }
 
   @Override
-  protected Storage<?> runVectorizedZip(
+  public boolean isBinaryOpVectorized(String name) {
+    return underlyingStorage.isBinaryOpVectorized(name);
+  }
+
+  @Override
+  public Storage<?> runVectorizedBiMap(String name, Object argument, MapOperationProblemBuilder problemBuilder) {
+    return underlyingStorage.runVectorizedBiMap(name, argument, problemBuilder);
+  }
+
+  @Override
+  public Storage<?> runVectorizedZip(
       String name, Storage<?> argument, MapOperationProblemBuilder problemBuilder) {
     return underlyingStorage.runVectorizedZip(name, argument, problemBuilder);
   }

@@ -20,10 +20,8 @@ public final class TimeOfDayStorage extends SpecializedStorage<LocalTime> {
    * @param size the number of items stored
    */
   public TimeOfDayStorage(LocalTime[] data, int size) {
-    super(data, size, ops);
+    super(data, size, buildOps());
   }
-
-  private static final MapOpStorage<LocalTime, SpecializedStorage<LocalTime>> ops = buildOps();
 
   private static MapOpStorage<LocalTime, SpecializedStorage<LocalTime>> buildOps() {
     MapOpStorage<LocalTime, SpecializedStorage<LocalTime>> t = ObjectStorage.buildObjectOps();

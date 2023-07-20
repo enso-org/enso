@@ -7,7 +7,7 @@ import org.enso.table.data.column.storage.Storage;
  *
  * @param <I> the supported storage type.
  */
-public abstract class MapOperation<T, I extends Storage<? super T>> {
+public abstract class BinaryMapOperation<T, I extends Storage<? super T>> {
   private final String name;
 
   /**
@@ -15,7 +15,7 @@ public abstract class MapOperation<T, I extends Storage<? super T>> {
    *
    * @param name the operation name
    */
-  public MapOperation(String name) {
+  public BinaryMapOperation(String name) {
     this.name = name;
   }
 
@@ -27,7 +27,7 @@ public abstract class MapOperation<T, I extends Storage<? super T>> {
    * @param problemBuilder the builder allowing to report computation problems
    * @return the result of running the operation
    */
-  public abstract Storage<?> runMap(
+  public abstract Storage<?> runBiMap(
       I storage, Object arg, MapOperationProblemBuilder problemBuilder);
 
   /**

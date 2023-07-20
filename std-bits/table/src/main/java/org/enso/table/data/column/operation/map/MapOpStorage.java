@@ -11,25 +11,47 @@ import org.enso.table.data.column.storage.Storage;
  * @param <S> the storage type handled by these operations.
  */
 public class MapOpStorage<T, S extends Storage<? super T>> {
-  private final Map<String, MapOperation<T, S>> ops = new HashMap<>();
-
-  protected MapOperation<? super T, ? super S> getOp(String name) {
-    return ops.get(name);
-  }
+  private final Map<String, BinaryMapOperation<T, S>> binaryOps = new HashMap<>();
+  private final Map<String, UnaryMapOperation<T, S>> unaryOps = new HashMap<>();
 
   /**
-   * Checks if an operation is supported by this set.
+   * Checks if a unary operation is supported by this set.
    *
    * @param n the operation name
    * @return whether the operation is supported
    */
-  public boolean isSupported(String n) {
-    return n != null && ops.get(n) != null;
+  public boolean isSupportedUnary(String n) {
+    return n != null && unaryOps.get(n) != null;
   }
 
   /**
-   * Runs the specified operation in map node. This can only be called if {@link
-   * #isSupported(String)} returns true, the behavior is unspecified otherwise.
+   * Runs the specified unary operation in map node.
+   *
+   * @param n the operation name
+   * @param storage the storage to run operation on
+   * @param problemBuilder the builder allowing to report computation problems
+   * @return the result of running the operation
+   */
+  public Storage<?> runUnaryMap(String n, S storage, MapOperationProblemBuilder problemBuilder) {
+    if (!isSupportedUnary(n)) {
+      throw new IllegalStateException("Requested vectorized unary operation " + n + ", but no such operation is known.");
+    }
+    return unaryOps.get(n).run(storage, problemBuilder);
+  }
+
+
+  /**
+   * Checks if a binary operation is supported by this set.
+   *
+   * @param n the operation name
+   * @return whether the operation is supported
+   */
+  public boolean isSupportedBinary(String n) {
+    return n != null && binaryOps.get(n) != null;
+  }
+
+  /**
+   * Runs the specified operation in map node.
    *
    * @param n the operation name
    * @param storage the storage to run operation on
@@ -37,14 +59,16 @@ public class MapOpStorage<T, S extends Storage<? super T>> {
    * @param problemBuilder the builder allowing to report computation problems
    * @return the result of running the operation
    */
-  public Storage<?> runMap(
+  public Storage<?> runBiMap(
       String n, S storage, Object arg, MapOperationProblemBuilder problemBuilder) {
-    return ops.get(n).runMap(storage, arg, problemBuilder);
+    if (!isSupportedBinary(n)) {
+      throw new IllegalStateException("Requested vectorized binary operation " + n + ", but no such operation is known.");
+    }
+    return binaryOps.get(n).runBiMap(storage, arg, problemBuilder);
   }
 
   /**
-   * Runs the specified operation in zip node. This can only be called if {@link
-   * #isSupported(String)} returns true, the behavior is unspecified otherwise.
+   * Runs the specified operation in zip node.
    *
    * @param n the operation name
    * @param storage the storage to run operation on
@@ -54,7 +78,10 @@ public class MapOpStorage<T, S extends Storage<? super T>> {
    */
   public Storage<?> runZip(
       String n, S storage, Storage<?> arg, MapOperationProblemBuilder problemBuilder) {
-    return ops.get(n).runZip(storage, arg, problemBuilder);
+    if (!isSupportedBinary(n)) {
+      throw new IllegalStateException("Requested vectorized binary operation " + n + ", but no such operation is known.");
+    }
+    return binaryOps.get(n).runZip(storage, arg, problemBuilder);
   }
 
   /**
@@ -63,51 +90,19 @@ public class MapOpStorage<T, S extends Storage<? super T>> {
    * @param op the operation to add
    * @return this operation set
    */
-  public MapOpStorage<T, S> add(MapOperation<T, S> op) {
-    ops.put(op.getName(), op);
+  public MapOpStorage<T, S> add(BinaryMapOperation<T, S> op) {
+    binaryOps.put(op.getName(), op);
     return this;
   }
 
   /**
-   * Creates a child set, containing all the operations defined in this, that can be extended
-   * independently.
+   * Adds a new operation to this set.
    *
-   * @param <U> the desired result type
-   * @return a child of this storage
+   * @param op the operation to add
+   * @return this operation set
    */
-  public <U extends T> MapOpStorage<U, S> makeChild() {
-    return new ChildStorage<>(this);
-  }
-
-  private static class ChildStorage<T, S extends Storage<? super T>> extends MapOpStorage<T, S> {
-    private final MapOpStorage<? super T, ? super S> parent;
-
-    private ChildStorage(MapOpStorage<? super T, ? super S> parent) {
-      this.parent = parent;
-    }
-
-    @Override
-    protected MapOperation<? super T, ? super S> getOp(String name) {
-      MapOperation<? super T, ? super S> local = super.getOp(name);
-      if (local == null) return parent.getOp(name);
-      return local;
-    }
-
-    @Override
-    public boolean isSupported(String n) {
-      return super.isSupported(n) || parent.isSupported(n);
-    }
-
-    @Override
-    public Storage<?> runMap(
-        String n, S storage, Object arg, MapOperationProblemBuilder problemBuilder) {
-      return getOp(n).runMap(storage, arg, problemBuilder);
-    }
-
-    @Override
-    public Storage<?> runZip(
-        String n, S storage, Storage<?> arg, MapOperationProblemBuilder problemBuilder) {
-      return getOp(n).runZip(storage, arg, problemBuilder);
-    }
+  public MapOpStorage<T, S> add(UnaryMapOperation<T, S> op) {
+    unaryOps.put(op.getName(), op);
+    return this;
   }
 }

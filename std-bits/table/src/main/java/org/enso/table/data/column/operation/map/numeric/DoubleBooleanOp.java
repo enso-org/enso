@@ -1,6 +1,6 @@
 package org.enso.table.data.column.operation.map.numeric;
 
-import org.enso.table.data.column.operation.map.MapOperation;
+import org.enso.table.data.column.operation.map.BinaryMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
@@ -12,7 +12,7 @@ import org.graalvm.polyglot.Context;
 import java.util.BitSet;
 
 /** An operation expecting a numeric argument and returning a boolean. */
-public abstract class DoubleBooleanOp extends MapOperation<Double, DoubleStorage> {
+public abstract class DoubleBooleanOp extends BinaryMapOperation<Double, DoubleStorage> {
   public DoubleBooleanOp(String name) {
     super(name);
   }
@@ -34,7 +34,7 @@ public abstract class DoubleBooleanOp extends MapOperation<Double, DoubleStorage
   }
 
   @Override
-  public BoolStorage runMap(DoubleStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
+  public BoolStorage runBiMap(DoubleStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
     Context context = Context.getCurrent();
     Double v = tryCast(arg);
     if (v != null) {

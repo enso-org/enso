@@ -20,11 +20,8 @@ public final class DateTimeStorage extends SpecializedStorage<ZonedDateTime> {
    * @param size the number of items stored
    */
   public DateTimeStorage(ZonedDateTime[] data, int size) {
-    super(data, size, ops);
+    super(data, size, buildOps());
   }
-
-  private static final MapOpStorage<ZonedDateTime, SpecializedStorage<ZonedDateTime>> ops =
-      buildOps();
 
   private static MapOpStorage<ZonedDateTime, SpecializedStorage<ZonedDateTime>> buildOps() {
     MapOpStorage<ZonedDateTime, SpecializedStorage<ZonedDateTime>> t =

@@ -4,6 +4,7 @@ import java.util.BitSet;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.ObjectBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
+import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.FloatType;
@@ -20,7 +21,7 @@ public final class ObjectStorage extends SpecializedStorage<Object> {
    * @param size the number of items stored
    */
   public ObjectStorage(Object[] data, int size) {
-    super(data, size, ops);
+    super(data, size, buildObjectOps());
     inferredType = null;
   }
 
@@ -82,14 +83,12 @@ public final class ObjectStorage extends SpecializedStorage<Object> {
     return new ObjectBuilder(capacity);
   }
 
-  private static final MapOpStorage<Object, SpecializedStorage<Object>> ops = buildObjectOps();
-
   public static <T, S extends SpecializedStorage<T>> MapOpStorage<T, S> buildObjectOps() {
     MapOpStorage<T, S> ops = new MapOpStorage<>();
     ops.add(
         new UnaryMapOperation<>(Maps.IS_NOTHING) {
           @Override
-          protected BoolStorage run(S storage) {
+          protected BoolStorage run(S storage, MapOperationProblemBuilder problemBuilder) {
             Context context = Context.getCurrent();
             BitSet r = new BitSet();
             for (int i = 0; i < storage.size; i++) {

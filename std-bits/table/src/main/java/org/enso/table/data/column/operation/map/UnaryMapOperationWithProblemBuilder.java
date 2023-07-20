@@ -8,7 +8,7 @@ import org.enso.table.data.column.storage.Storage;
  * @param <I> the supported storage type
  */
 public abstract class UnaryMapOperationWithProblemBuilder<T, I extends Storage<T>>
-    extends MapOperation<T, I> {
+    extends BinaryMapOperation<T, I> {
   public UnaryMapOperationWithProblemBuilder(String name) {
     super(name);
   }
@@ -17,7 +17,7 @@ public abstract class UnaryMapOperationWithProblemBuilder<T, I extends Storage<T
       I storage, Object arg, MapOperationProblemBuilder problemBuilder);
 
   @Override
-  public Storage<?> runMap(I storage, Object arg, MapOperationProblemBuilder problemBuilder) {
+  public Storage<?> runBiMap(I storage, Object arg, MapOperationProblemBuilder problemBuilder) {
     return run(storage, arg, problemBuilder);
   }
 

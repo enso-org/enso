@@ -17,10 +17,8 @@ public final class DateStorage extends SpecializedStorage<LocalDate> {
    * @param size the number of items stored
    */
   public DateStorage(LocalDate[] data, int size) {
-    super(data, size, ops);
+    super(data, size, buildOps());
   }
-
-  private static final MapOpStorage<LocalDate, SpecializedStorage<LocalDate>> ops = buildOps();
 
   private static MapOpStorage<LocalDate, SpecializedStorage<LocalDate>> buildOps() {
     MapOpStorage<LocalDate, SpecializedStorage<LocalDate>> t = ObjectStorage.buildObjectOps();
