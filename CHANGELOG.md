@@ -200,6 +200,9 @@
 - [Help chat][7151]. The link to the Discord server is replaced with a chat
   bridge to the Discord server. This is intended to have the chat visible at the
   same time as the IDE, so that help can be much more interactive.
+- [New breadcrumbs design][7362]. Breadcrumbs now optionally show the icon of
+  the item they represent. They also follow the new design of the component
+  browser.
 
 [5910]: https://github.com/enso-org/enso/pull/5910
 [6279]: https://github.com/enso-org/enso/pull/6279
@@ -220,6 +223,7 @@
 [7146]: https://github.com/enso-org/enso/pull/7146
 [7151]: https://github.com/enso-org/enso/pull/7151
 [7164]: https://github.com/enso-org/enso/pull/7164
+[7362]: https://github.com/enso-org/enso/pull/7362
 
 #### EnsoGL (rendering engine)
 
