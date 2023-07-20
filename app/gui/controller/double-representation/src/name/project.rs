@@ -165,7 +165,7 @@ impl QualifiedName {
         match all_segments.as_slice() {
             [namespace, project] => Ok(Self::new(namespace, project)),
             [] => Err(InvalidQualifiedName::EmptyName.into()),
-            [_] => Err(InvalidQualifiedName::NoNamespace.into()),
+            [_] => Err(InvalidQualifiedName::TooFewSegments.into()),
             _ => Err(InvalidQualifiedName::TooManySegments.into()),
         }
     }

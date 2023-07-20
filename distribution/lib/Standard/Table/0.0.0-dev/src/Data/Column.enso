@@ -32,7 +32,8 @@ polyglot java import org.enso.table.data.table.Column as Java_Column
 polyglot java import org.enso.table.operations.OrderBuilder
 
 type Column
-    ## Creates a new column given a name and a vector of elements.
+    ## GROUP Standard.Base.Input
+       Creates a new column given a name and a vector of elements.
 
        Arguments:
        - name: The name of the column to create.

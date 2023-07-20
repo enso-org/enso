@@ -238,6 +238,7 @@ pub struct Entry {
     pub scope:         Scope,
     /// A name of a custom icon to use when displaying the entry.
     pub icon_name:     Option<IconName>,
+    /// A name of a group this entry belongs to.
     pub group_name:    Option<String>,
 }
 
@@ -396,6 +397,12 @@ impl Entry {
     /// Takes self and returns it with new [`icon_name`] value.
     pub fn with_icon(mut self, icon_name: IconName) -> Self {
         self.icon_name = Some(icon_name);
+        self
+    }
+
+    /// Takes self and returns it with new `group_name` value.
+    pub fn in_group(mut self, group_name: impl Into<String>) -> Self {
+        self.group_name = Some(group_name.into());
         self
     }
 }

@@ -2,7 +2,9 @@
 
 use crate::prelude::*;
 
+use ast::opr::predefined::ACCESS;
 use double_representation::identifier::Identifier;
+use double_representation::name;
 use double_representation::name::project;
 use double_representation::name::QualifiedName;
 use engine_protocol::language_server;
@@ -380,6 +382,42 @@ pub struct AttachedVisualization {
 // === ComponentGroup ===
 // ======================
 
+// === GroupQualifiedName ===
+
+/// A Component Group name containing project name part.
+#[derive(Clone, CloneRef, Debug, Default, Eq, Hash, PartialEq)]
+pub struct GroupQualifiedName {
+    /// The fully qualified name of the library project.
+    pub project: project::QualifiedName,
+    /// The group name without the library project name prefix. E.g. given the `Standard.Base.Group
+    /// 1` group reference, the `name` field contains `Group 1`.
+    pub name:    ImString,
+}
+
+impl GroupQualifiedName {
+    /// Contructor.
+    pub fn new(project: project::QualifiedName, name: impl Into<ImString>) -> Self {
+        Self { project, name: name.into() }
+    }
+}
+
+impl TryFrom<&str> for GroupQualifiedName {
+    type Error = failure::Error;
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        if let Some((namespace, project, group)) = value.splitn(3, ACCESS).collect_tuple() {
+            Ok(Self {
+                project: project::QualifiedName::new(namespace, project),
+                name:    group.into(),
+            })
+        } else {
+            Err(name::InvalidQualifiedName::TooFewSegments.into())
+        }
+    }
+}
+
+
+// === ComponentGroup ===
+
 /// A named group of components which is defined in a library imported into an execution context.
 ///
 /// Components are language elements displayed by the Component Browser. The Component Browser
@@ -389,11 +427,7 @@ pub struct AttachedVisualization {
 #[allow(missing_docs)]
 #[derive(Clone, Debug, PartialEq)]
 pub struct ComponentGroup {
-    /// The fully qualified name of the library project.
-    pub project:    project::QualifiedName,
-    /// The group name without the library project name prefix. E.g. given the `Standard.Base.Group
-    /// 1` group reference, the `name` field contains `Group 1`.
-    pub name:       ImString,
+    pub name:       GroupQualifiedName,
     /// An optional color to use when displaying the component group.
     pub color:      Option<color::Rgb>,
     pub components: Vec<QualifiedName>,
@@ -404,12 +438,12 @@ impl ComponentGroup {
     pub fn from_language_server_protocol_struct(
         group: language_server::LibraryComponentGroup,
     ) -> FallibleResult<Self> {
-        let project = group.library.try_into()?;
-        let name = group.name.into();
+        let name =
+            GroupQualifiedName { project: group.library.try_into()?, name: group.name.into() };
         let color = group.color.as_ref().and_then(|c| color::Rgb::from_css_hex(c));
         let components: FallibleResult<Vec<_>> =
             group.exports.into_iter().map(|e| e.name.try_into()).collect();
-        Ok(ComponentGroup { project, name, color, components: components? })
+        Ok(ComponentGroup { name, color, components: components? })
     }
 }
 
