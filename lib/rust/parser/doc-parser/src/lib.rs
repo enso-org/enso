@@ -93,6 +93,7 @@ impl Tag {
             "ALIAS" => Some(Alias),
             "DEPRECATED" => Some(Deprecated),
             "ICON" => Some(Icon),
+            "GROUP" => Some(Group),
             "MODIFIED" => Some(Modified),
             "PRIVATE" => Some(Private),
             "REMOVED" => Some(Removed),
