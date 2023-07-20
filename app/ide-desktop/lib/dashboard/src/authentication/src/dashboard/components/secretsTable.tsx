@@ -1,6 +1,6 @@
 /** @file Table displaying a list of secrets. */
 import * as React from 'react'
-import toast from 'react-hot-toast'
+import * as toastify from 'react-toastify'
 
 import PlusIcon from 'enso-assets/plus.svg'
 import SecretIcon from 'enso-assets/secret.svg'
@@ -79,10 +79,10 @@ function SecretCreateForm(props: InternalSecretCreateFormProps) {
         const onSubmit = (event: React.FormEvent) => {
             event.preventDefault()
             if (name == null) {
-                toast.error('Please provide a secret name.')
+                toastify.toast.error('Please provide a secret name.')
             } else if (value == null) {
                 // Secret value explicitly can be empty.
-                toast.error('Please provide a secret value.')
+                toastify.toast.error('Please provide a secret value.')
             } else {
                 unsetModal()
                 dispatchSecretListEvent({
@@ -322,11 +322,7 @@ function SecretRow(
             } catch (error) {
                 setStatus(presence.Presence.present)
                 markItemAsVisible(key)
-                const message = `Unable to delete secret: ${
-                    errorModule.tryGetMessage(error) ?? 'unknown error.'
-                }`
-                toast.error(message)
-                logger.error(message)
+                errorModule.toastAndLog('Unable to delete secret', error)
             }
         }
     }
@@ -337,7 +333,7 @@ function SecretRow(
                 if (key === event.placeholderId) {
                     if (backend.type !== backendModule.BackendType.remote) {
                         const message = 'Secrets cannot be created on the local backend.'
-                        toast.error(message)
+                        toastify.toast.error(message)
                         logger.error(message)
                     } else {
                         setStatus(presence.Presence.inserting)
@@ -358,11 +354,7 @@ function SecretRow(
                                 type: secretListEventModule.SecretListEventType.delete,
                                 secretId: key,
                             })
-                            const message = `Error creating new secret: ${
-                                errorModule.tryGetMessage(error) ?? 'unknown error.'
-                            }`
-                            toast.error(message)
-                            logger.error(message)
+                            errorModule.toastAndLog('Error creating new secret', error)
                         }
                     }
                 }
@@ -492,7 +484,7 @@ function SecretsTable(props: SecretsTableProps) {
             case secretListEventModule.SecretListEventType.create: {
                 if (backend.type !== backendModule.BackendType.remote) {
                     const message = 'Secrets cannot be created on the local backend.'
-                    toast.error(message)
+                    toastify.toast.error(message)
                     logger.error(message)
                 } else {
                     const placeholderItem: backendModule.SecretAsset = {

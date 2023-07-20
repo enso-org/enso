@@ -1,12 +1,10 @@
 /** @file Main dashboard component, responsible for listing user's projects as well as other
  * interactive components. */
 import * as React from 'react'
-import * as toastify from 'react-toastify'
 
 import * as common from 'enso-common'
 
 import * as backendModule from '../backend'
-import * as error from '../../error'
 import * as http from '../../http'
 import * as localBackend from '../localBackend'
 import * as projectListEventModule from '../events/projectListEvent'
