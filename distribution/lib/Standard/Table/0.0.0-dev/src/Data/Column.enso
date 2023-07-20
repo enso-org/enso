@@ -49,7 +49,7 @@ type Column
     from_vector name items =
         expected_storage_type = Nothing
         Illegal_Argument.handle_java_exception <|
-            Column.Value (Java_Column.fromItemsConvertPolyglot name items expected_storage_type)
+            Column.Value (Java_Column.fromItems name items expected_storage_type)
 
     ## PRIVATE
        Creates a new column given a name and an internal Java storage.

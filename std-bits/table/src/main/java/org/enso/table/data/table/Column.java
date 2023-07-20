@@ -4,11 +4,8 @@ import org.enso.base.Text_Utils;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.InferredBuilder;
-import org.enso.table.data.column.builder.LongBuilder;
-import org.enso.table.data.column.builder.NumericBuilder;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.index.DefaultIndex;
 import org.enso.table.data.index.Index;
@@ -122,7 +119,7 @@ public class Column {
   }
 
   /** Creates a column from an Enso array, ensuring Enso dates are converted to Java dates. */
-  public static Column fromItemsConvertPolyglot(String name, List<Value> items, StorageType expectedType) throws ClassCastException {
+  public static Column fromItems(String name, List<Value> items, StorageType expectedType) throws ClassCastException {
     Context context = Context.getCurrent();
     int n = items.size();
     Builder builder = expectedType == null ? new InferredBuilder(n) : Builder.getForType(expectedType, n);
@@ -169,7 +166,7 @@ public class Column {
     }
 
     if (repeat == 1) {
-      return fromItemsConvertPolyglot(name, items, null);
+      return fromItems(name, items, null);
     }
 
     Context context = Context.getCurrent();
