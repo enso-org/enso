@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 import org.enso.polyglot.MethodNames.Module;
 import org.graalvm.polyglot.Context;
@@ -31,8 +32,38 @@ public class LibBenchRunner {
       System.err.println("  " + e.getMessage());
       System.exit(1);
     }
+    if (cmdOpts.shouldHelp()) {
+      // TODO: Print help
+      System.err.println("Enso libs benchmark runner: A modified JMH runner for Enso benchmarks.");
+      System.err.println();
+      System.err.println("Usage: runner [options] [benchmark-regex]..");
+      System.err.println("  [benchmark-regex].. - regexes of benchmarks to run");
+      System.err.println("  [options] - options passed to JMH runner.");
+      System.err.println();
+      System.err.println("Benchmark regex format: <group-regex/label-regex>");
+      System.err.println("  - note the slash between regexes");
+      System.err.println("  - `group-regex` or `label-regex` can be omitted, in such case, it is treated as `.*`");
+      System.err.println();
+      System.err.println("Options from JMH Runner:");
+      try {
+        cmdOpts.showHelp();
+      } catch (IOException e) {
+        throw new IllegalStateException("Unreachable", e);
+      }
+      System.exit(0);
+    }
+    if (cmdOpts.shouldList()) {
+      // TODO: List benchmarks
+      System.exit(0);
+    }
+    List<String> includes = cmdOpts.getIncludes();
+
+
+    File benchRootDir = Paths.get("../../distribution/component/test/Benchmarks").toFile();
 
     initCtx();
+    var specCollector = new SpecCollector(ctx, rootDir);
+    specCollector.collectBenchSpecsFromSingleFile()
     Set<BenchSuite> benchSpecs = collectAllBenchSpecs();
     for (BenchSuite benchSpec : benchSpecs) {
       for (BenchGroup group : benchSpec.groups()) {
