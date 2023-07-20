@@ -111,7 +111,7 @@ interface AuthContextType {
     signUp: (email: string, password: string, organizationId: string | null) => Promise<boolean>
     confirmSignUp: (email: string, code: string) => Promise<boolean>
     setUsername: (
-        backend: backendProvider.AnyBackendAPI,
+        backend: backendModule.Backend,
         username: string,
         email: string
     ) => Promise<boolean>
@@ -380,11 +380,7 @@ export function AuthProvider(props: AuthProviderProps) {
         return result.ok
     }
 
-    const setUsername = async (
-        backend: backendProvider.AnyBackendAPI,
-        username: string,
-        email: string
-    ) => {
+    const setUsername = async (backend: backendModule.Backend, username: string, email: string) => {
         if (backend.type === backendModule.BackendType.local) {
             toast.error('You cannot set your username on the local backend.')
             return false

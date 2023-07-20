@@ -10,16 +10,14 @@ export interface ButtonProps {
 }
 
 /** A styled button. */
-function Button(props: ButtonProps) {
+export default function Button(props: ButtonProps) {
     const { active, disabled = false, image, onClick } = props
 
     return (
         <img
-            className={`${active ? '' : 'opacity-30'} ${disabled ? '' : 'cursor-pointer'}`}
+            className={`hover:opacity-100 ${active ? '' : 'opacity-30'} ${disabled ? '' : 'cursor-pointer'}`}
             src={image}
             onClick={onClick}
         />
     )
 }
-
-export default Button

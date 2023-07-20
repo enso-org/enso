@@ -145,6 +145,12 @@ body {
       display: none; /* Safari and Chrome */
     }
 
+    .rounded-rows > tbody > tr:nth-child(odd) {
+      > td {
+        background: rgba(0, 0, 0, 0.03);
+      }
+    }
+
     .h-templates-custom {
       height: 21.5rem;
 

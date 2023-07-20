@@ -189,7 +189,6 @@ export interface AssetsTableProps {
     dispatchAssetEvent: (event: assetEventModule.AssetEvent) => void
     assetListEvent: assetListEventModule.AssetListEvent | null
     dispatchAssetListEvent: (event: assetListEventModule.AssetListEvent) => void
-    doCreateProject: () => void
     doOpenIde: (project: backendModule.ProjectAsset) => void
     doCloseIde: () => void
 }
@@ -206,7 +205,6 @@ export default function AssetsTable(props: AssetsTableProps) {
         dispatchAssetEvent,
         assetListEvent,
         dispatchAssetListEvent,
-        doCreateProject,
         doOpenIde,
         doCloseIde: rawDoCloseIde,
     } = props
@@ -440,23 +438,25 @@ export default function AssetsTable(props: AssetsTableProps) {
         <>
             {/* FIXME: This element should cover elements below it but still have a transparent background.
              ** Unfortunately, this does not seem to be possible. */}
-            <div className="absolute right-0">
-                {columnModule.EXTRA_COLUMNS.map(column => (
-                    <Button
-                        key={column}
-                        active={extraColumns.has(column)}
-                        image={columnModule.EXTRA_COLUMN_IMAGES[column]}
-                        onClick={() => {
-                            const newExtraColumns = new Set(extraColumns)
-                            if (extraColumns.has(column)) {
-                                newExtraColumns.delete(column)
-                            } else {
-                                newExtraColumns.add(column)
-                            }
-                            setExtraColumns(newExtraColumns)
-                        }}
-                    />
-                ))}
+            <div className="relative">
+                <div className="absolute flex gap-3 right-0">
+                    {columnModule.EXTRA_COLUMNS.map(column => (
+                        <Button
+                            key={column}
+                            active={extraColumns.has(column)}
+                            image={columnModule.EXTRA_COLUMN_IMAGES[column]}
+                            onClick={() => {
+                                const newExtraColumns = new Set(extraColumns)
+                                if (extraColumns.has(column)) {
+                                    newExtraColumns.delete(column)
+                                } else {
+                                    newExtraColumns.add(column)
+                                }
+                                setExtraColumns(newExtraColumns)
+                            }}
+                        />
+                    ))}
+                </div>
             </div>
             <Table<backendModule.AnyAsset, AssetsTableState, AssetRowState, backendModule.AssetId>
                 rowComponent={AssetRow}

@@ -5,8 +5,10 @@ import AccessedByProjectsIcon from 'enso-assets/accessed_by_projects.svg'
 import AccessedDataIcon from 'enso-assets/accessed_data.svg'
 import DefaultUserIcon from 'enso-assets/default_user.svg'
 import DocsIcon from 'enso-assets/docs.svg'
+import PeopleIcon from 'enso-assets/people.svg'
 import PlusIcon from 'enso-assets/plus.svg'
 import TagIcon from 'enso-assets/tag.svg'
+import TimeIcon from 'enso-assets/time.svg'
 
 import * as authProvider from '../authentication/providers/auth'
 import * as backend from './backend'
@@ -76,7 +78,8 @@ export const EXTRA_COLUMN_IMAGES: Record<ExtraColumn, string> = {
 }
 
 /** English names for every column except for the name column. */
-export const COLUMN_NAME: Record<Exclude<Column, Column.name>, string> = {
+export const COLUMN_NAME: Record<Column, string> = {
+    [Column.name]: 'Name',
     [Column.modified]: 'Modified',
     [Column.sharedWith]: 'Shared with',
     [Column.tags]: 'Tags',
@@ -87,13 +90,13 @@ export const COLUMN_NAME: Record<Exclude<Column, Column.name>, string> = {
 
 /** CSS classes for every column. Currently only used to set the widths. */
 export const COLUMN_CSS_CLASS: Record<Column, string> = {
-    [Column.name]: 'w-60',
-    [Column.modified]: 'w-40',
-    [Column.sharedWith]: 'w-36',
-    [Column.tags]: 'w-80',
-    [Column.accessedByProjects]: 'w-96',
-    [Column.accessedData]: 'w-96',
-    [Column.docs]: 'w-96',
+    [Column.name]: 'w-60 first:rounded-l-full last:rounded-r-full last:grow',
+    [Column.modified]: 'w-40 first:rounded-l-full last:rounded-r-full last:grow',
+    [Column.sharedWith]: 'w-36 first:rounded-l-full last:rounded-r-full last:grow',
+    [Column.tags]: 'w-80 first:rounded-l-full last:rounded-r-full last:grow',
+    [Column.accessedByProjects]: 'w-96 first:rounded-l-full last:rounded-r-full last:grow',
+    [Column.accessedData]: 'w-96 first:rounded-l-full last:rounded-r-full last:grow',
+    [Column.docs]: 'w-96 first:rounded-l-full last:rounded-r-full last:grow',
 } as const
 
 /** {@link table.ColumnProps} for an unknown variant of {@link backend.Asset}. */
@@ -333,6 +336,43 @@ function SharedWithColumn(props: AssetColumnProps<backend.AnyAsset>) {
 /** A placeholder component for columns which do not yet have corresponding data to display. */
 function PlaceholderColumn() {
     return <></>
+}
+
+export const COLUMN_HEADING: Record<
+    Column,
+    (props: tableColumn.TableColumnHeadingProps<assetsTable.AssetsTableState>) => JSX.Element
+> = {
+    [Column.name]: () => <>{COLUMN_NAME[Column.name]}</>,
+    [Column.modified]: () => (
+        <div className="flex gap-2">
+            <img src={TimeIcon} /> {COLUMN_NAME[Column.modified]}
+        </div>
+    ),
+    [Column.sharedWith]: () => (
+        <div className="flex gap-2">
+            <img src={PeopleIcon} /> {COLUMN_NAME[Column.sharedWith]}
+        </div>
+    ),
+    [Column.tags]: () => (
+        <div className="flex gap-2">
+            <img src={TagIcon} /> {COLUMN_NAME[Column.tags]}
+        </div>
+    ),
+    [Column.accessedByProjects]: () => (
+        <div className="flex gap-2">
+            <img src={AccessedByProjectsIcon} /> {COLUMN_NAME[Column.accessedByProjects]}
+        </div>
+    ),
+    [Column.accessedData]: () => (
+        <div className="flex gap-2">
+            <img src={AccessedDataIcon} /> {COLUMN_NAME[Column.accessedData]}
+        </div>
+    ),
+    [Column.docs]: () => (
+        <div className="flex gap-2">
+            <img src={DocsIcon} /> {COLUMN_NAME[Column.docs]}
+        </div>
+    ),
 }
 
 /** React components for every column except for the name column. */

@@ -178,16 +178,25 @@ export default function Table<T, State = never, RowState = never, Key extends st
 
     const headerRow = (
         <tr>
-            {columns.map(column => (
-                <th
-                    key={column.id}
-                    className={`text-vs px-4 align-middle py-1 border-0 border-r whitespace-nowrap font-semibold text-left ${
-                        column.className ?? ''
-                    }`}
-                >
-                    {column.heading}
-                </th>
-            ))}
+            {columns.map(column => {
+                // This is a React component, even though it does not contain JSX.
+                // eslint-disable-next-line no-restricted-syntax
+                const Heading = column.heading
+                return (
+                    <th
+                        key={column.id}
+                        className={`text-vs px-4 align-middle py-1 border-0 border-r whitespace-nowrap font-semibold text-left ${
+                            column.className ?? ''
+                        }`}
+                    >
+                        <Heading
+                            // @ts-expect-error The following line is safe; the type error occurs
+                            // because a property with a conditional type is being destructured.
+                            state={props.state}
+                        />
+                    </th>
+                )
+            })}
         </tr>
     )
 
@@ -232,7 +241,7 @@ export default function Table<T, State = never, RowState = never, Key extends st
 
     return (
         <table
-            className="table-fixed items-center border-collapse w-0 mt-2"
+            className="rounded-rows table-fixed items-center border-collapse w-0 mt-2"
             onContextMenu={event => {
                 onContextMenu(selectedKeys, event, setSelectedKeys)
             }}

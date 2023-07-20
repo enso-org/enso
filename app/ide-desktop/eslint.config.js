@@ -234,10 +234,6 @@ const RESTRICTED_SYNTAXES = [
         selector: 'VariableDeclarator[id.name=ENVIRONMENT][init.value!=production]',
         message: "Environment must be 'production' when committing",
     },
-    {
-        selector: 'ExportDefaultDeclaration:has(Identifier.declaration)',
-        message: 'Use `export default` on the declaration, instead of as a separate statement',
-    },
 ]
 
 // ============================
@@ -462,6 +458,11 @@ export default [
                 {
                     selector: '[declare=true]',
                     message: 'No ambient declarations',
+                },
+                {
+                    selector: 'ExportDefaultDeclaration:has(Identifier.declaration)',
+                    message:
+                        'Use `export default` on the declaration, instead of as a separate statement',
                 },
             ],
             // This rule does not work with TypeScript, and TypeScript already does this.
