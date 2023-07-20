@@ -6,19 +6,11 @@ import java.time.OffsetDateTime
 /** A file with extra info.
   *
   * @param file the underlying file
+  * @param isModifiedOnDisk is the file modified on disk
   * @param lastModifiedTime the last known modified time on disk
   */
 case class FileWithMetadata(
   file: File,
-  lastModifiedTime: Option[OffsetDateTime]
+  isModifiedOnDisk: Boolean                = false,
+  lastModifiedTime: Option[OffsetDateTime] = None
 )
-object FileWithMetadata {
-
-  /** Create a file with metadata.
-    *
-    * @param file the underlying file
-    * @return a new instance of [[FileWithMetadata]]
-    */
-  def apply(file: File): FileWithMetadata =
-    FileWithMetadata(file, None)
-}

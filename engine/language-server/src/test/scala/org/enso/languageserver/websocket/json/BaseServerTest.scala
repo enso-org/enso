@@ -20,7 +20,8 @@ import org.enso.languageserver.boot.{
 import org.enso.languageserver.boot.resource.{
   DirectoriesInitialization,
   RepoInitialization,
-  SequentialResourcesInitialization
+  SequentialResourcesInitialization,
+  ZioRuntimeInitialization
 }
 import org.enso.languageserver.capability.CapabilityRouter
 import org.enso.languageserver.data._
@@ -133,12 +134,14 @@ class BaseServerTest
       InputRedirectionController.props(stdIn, stdInSink, sessionRouter)
     )
 
-  val zioExec         = ZioExec(new TestRuntime)
+  val zioRuntime      = new TestRuntime
+  val zioExec         = ZioExec(zioRuntime)
   val sqlDatabase     = SqlDatabase(config.directories.suggestionsDatabaseFile)
   val suggestionsRepo = new SqlSuggestionsRepo(sqlDatabase)(system.dispatcher)
 
   val initializationComponent = SequentialResourcesInitialization(
     new DirectoriesInitialization(config.directories),
+    new ZioRuntimeInitialization(zioRuntime, system.eventStream),
     new RepoInitialization(
       config.directories,
       system.eventStream,
