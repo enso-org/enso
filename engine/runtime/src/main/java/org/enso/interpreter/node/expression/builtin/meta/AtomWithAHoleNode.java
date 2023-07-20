@@ -1,6 +1,7 @@
 package org.enso.interpreter.node.expression.builtin.meta;
 
 import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.Annotation;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
@@ -11,6 +12,7 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.state.State;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
@@ -23,8 +25,6 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
-import org.enso.interpreter.node.callable.InvokeCallableNode;
-import org.enso.interpreter.runtime.state.State;
 
 @BuiltinMethod(
     type = "Meta",
@@ -35,6 +35,10 @@ public abstract class AtomWithAHoleNode extends Node {
 
   static AtomWithAHoleNode build() {
     return AtomWithAHoleNodeGen.create();
+  }
+
+  public static boolean isHole(Object v) {
+    return v instanceof HoleInAtom;
   }
 
   abstract Object execute(VirtualFrame frame, Object factory, State state);

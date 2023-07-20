@@ -9,6 +9,7 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
 import java.util.*;
@@ -234,6 +235,7 @@ public final class Type implements TruffleObject {
   }
 
   @ExportMessage
+  @ExplodeLoop
   boolean isMetaInstance(Object instance, @CachedLibrary(limit = "3") TypesLibrary lib)
       throws UnsupportedMessageException {
     var b = EnsoContext.get(lib).getBuiltins();
@@ -244,6 +246,7 @@ public final class Type implements TruffleObject {
       throw UnsupportedMessageException.create();
     }
     var type = lib.getType(instance);
+    CompilerAsserts.partialEvaluationConstant(type);
     while (type != null && type != b.any()) {
       if (type == this) {
         return true;
