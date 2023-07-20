@@ -43,7 +43,7 @@ const ALIAS_MATCH_ATTENUATION_FACTOR: f32 = 0.75;
 // === Group ===
 // =============
 
-/// A structure describing a component group.
+/// Group properties.
 #[allow(missing_docs)]
 #[derive(Clone, Debug, Default)]
 pub struct Group {

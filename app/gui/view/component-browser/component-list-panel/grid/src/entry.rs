@@ -47,25 +47,17 @@ const ENTRIES_OVERLAP_PX: f32 = 2.0;
 // === Background ===
 // ==================
 
-/// The background of the Component Browser Entry. It consists of a rectangle and an optional shadow
-/// underneath it. The shadow is shown under the group headers which are pushed down to be visible
-/// in the viewport.
+/// The background of the Component Browser Entry.
 pub mod background {
     use super::*;
-
-    // We don't use the usual padding of sprites, because we clip the shadow under the background
-    // and clipping the shadow shape with `*` operator causes glitches.
-    // See https://www.pivotaltracker.com/story/show/182593513
 
     ensogl_core::shape! {
         below = [grid_view::entry::overlay, grid_view::selectable::highlight::shape, icon::any];
         pointer_events = false;
-        // alignment = center;
         (style:Style, color:Vector4) {
             let color = Var::<color::Rgba>::from(color);
-            let width: Var<Pixels> = "input_size.x".into();
-            let height: Var<Pixels> = "input_size.y".into();
-            let bg = Rect((&width, &height)).fill(color);
+            let size: Var<Vector2<Pixels>> = "input_size".into();
+            let bg = Rect(size).fill(color);
             bg.into()
         }
     }
@@ -284,9 +276,6 @@ impl grid_view::Entry for View {
             data.label.set_property <+ highlight_range.map2(&style, |range, s| {
                 (range.into(), Some(text::SdfWeight::new(s.highlight_bold).into()))
             });
-            // data.label.set_property <+ is_not_header.map(|_| {
-            //     ((..).into(), Some(text::Weight::Medium.into()))
-            // });
             data.label.set_property_default <+ style.map(|s| text::Size::new(s.text_size)).cloned_into_some();
             eval icon ((&icon) data.icon.icon.set(icon.map_or(default(), |icon| icon.any_cached_shape_location())));
             data.label.set_font <+ style.map(|s| s.font.clone_ref()).on_change();

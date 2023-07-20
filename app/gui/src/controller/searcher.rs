@@ -456,7 +456,8 @@ impl Searcher {
         self.use_suggestion(suggestion)
     }
 
-    /// Preview the suggestion in the searcher.
+    /// Preview the suggestion in the searcher by given index, or preview the current searcher input
+    /// if index is `None`.
     pub fn preview_by_index(&self, index: Option<usize>) -> FallibleResult {
         debug!("Previewing entry: {index:?}.");
         let data = self.data.borrow();
