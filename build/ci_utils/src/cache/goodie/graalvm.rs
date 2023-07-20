@@ -179,9 +179,9 @@ mod tests {
     /// Check that we correctly recognize both the GraalVM version and the Java version.
     #[test]
     fn version_recognize() {
-        let version_string = "openjdk version \"17.0.7\" 2023-04-18
+        let version_string = r#"openjdk version "17.0.7" 2023-04-18
 OpenJDK Runtime Environment GraalVM CE 17.0.7+7.1 (build 17.0.7+7-jvmci-23.0-b12)
-OpenJDK 64-Bit Server VM GraalVM CE 17.0.7+7.1 (build 17.0.7+7-jvmci-23.0-b12, mixed mode, sharing)";
+OpenJDK 64-Bit Server VM GraalVM CE 17.0.7+7.1 (build 17.0.7+7-jvmci-23.0-b12, mixed mode, sharing)"#;
 
         let found_graal = graal_version_from_version_string(version_string).unwrap();
         let expected_graal_version = Version {
