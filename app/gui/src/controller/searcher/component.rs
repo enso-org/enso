@@ -119,7 +119,10 @@ pub enum Data {
 #[derive(Clone, CloneRef, Debug)]
 pub struct Component {
     pub data:       Data,
+    /// Filter match information, and label to be displayed in the Component Browser.
     pub match_info: Rc<RefCell<MatchInfo>>,
+    /// The component string representation that will be used during matching.
+    label:          ImString,
 }
 
 impl Component {
@@ -127,17 +130,25 @@ impl Component {
     ///
     /// The matching info will be filled for an empty pattern.
     pub fn new_from_database_entry(id: Id, entry: Rc<suggestion_database::Entry>) -> Self {
+        let entry_name = entry.name.from_case(Case::Snake).to_case(Case::Lower);
+        let self_type_ref = entry.self_type.as_ref();
+        let self_type_not_here = self_type_ref.filter(|t| *t != &entry.defined_in);
+        let label = if let Some(self_type) = self_type_not_here {
+            let self_name = self_type.name().from_case(Case::Snake).to_case(Case::Title);
+            format!("{entry_name} ({self_name})").into()
+        } else {
+            entry_name.into()
+        };
         let data = Data::FromDatabase { id: Immutable(id), entry };
-        Self { data, match_info: default() }
+        Self { data, label, match_info: default() }
     }
 
     /// The label which should be displayed in the Component Browser.
-    pub fn label(&self) -> String {
+    pub fn label(&self) -> ImString {
         match &*self.match_info.borrow() {
-            MatchInfo::Matches { kind: MatchKind::Alias(alias), .. } => {
-                format!("{alias} ({self})")
-            }
-            _ => self.to_string(),
+            MatchInfo::Matches { kind: MatchKind::Alias(alias), .. } =>
+                format!("{alias} ({label})", label = self.label).into(),
+            _ => self.label.clone(),
         }
     }
 
@@ -176,8 +187,8 @@ impl Component {
     /// It should be called each time the filtering pattern changes.
     pub fn update_matching_info(&self, filter: Filter) {
         // Match the input pattern to the component label.
-        let label = self.to_string();
-        let label_matches = fuzzly::matches(&label, filter.pattern.as_str());
+        let label = self.label.as_str();
+        let label_matches = fuzzly::matches(label, filter.pattern.as_str());
         let label_subsequence = label_matches.and_option_from(|| {
             let metric = fuzzly::metric::default();
             fuzzly::find_best_subsequence(label, filter.pattern.as_str(), metric)
@@ -273,25 +284,10 @@ impl Component {
 
 impl From<Rc<hardcoded::Snippet>> for Component {
     fn from(snippet: Rc<hardcoded::Snippet>) -> Self {
-        Self { data: Data::Virtual { snippet }, match_info: default() }
-    }
-}
-
-impl Display for Component {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match &self.data {
-            Data::FromDatabase { entry, .. } => {
-                let entry_name = entry.name.from_case(Case::Snake).to_case(Case::Lower);
-                let self_type_ref = entry.self_type.as_ref();
-                let self_type_not_here = self_type_ref.filter(|t| *t != &entry.defined_in);
-                if let Some(self_type) = self_type_not_here {
-                    let self_name = self_type.name().from_case(Case::Snake).to_case(Case::Title);
-                    write!(f, "{entry_name} ({self_name})")
-                } else {
-                    write!(f, "{entry_name}")
-                }
-            }
-            Data::Virtual { snippet } => write!(f, "{}", snippet.name),
+        Self {
+            label:      snippet.name.clone(),
+            data:       Data::Virtual { snippet },
+            match_info: default(),
         }
     }
 }
