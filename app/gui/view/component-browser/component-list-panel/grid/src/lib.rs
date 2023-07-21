@@ -334,8 +334,11 @@ impl Model {
     ) -> Option<EntryId> {
         // The first row is reserved as empty space. It is needed for design reasons, to not cover
         // the top most entry by the buttons panel of the component browser.
-        if row == 0 { None } else {
-        content.entry_count.checked_sub(row) }
+        if row == 0 {
+            None
+        } else {
+            content.entry_count.checked_sub(row)
+        }
     }
 
     fn entry_id_to_location(
