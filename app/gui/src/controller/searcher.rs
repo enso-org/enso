@@ -40,7 +40,7 @@ pub mod input;
 /// needed. Currently enabled to trigger engine's caching of user-added nodes.
 /// See: https://github.com/enso-org/ide/issues/1067
 pub const ASSIGN_NAMES_FOR_NODES: bool = true;
-/// A name of component group containin entries representing literals.
+/// A name of a component group containing entries representing literals.
 pub const LITERALS_GROUP_NAME: &str = "Literals";
 
 
