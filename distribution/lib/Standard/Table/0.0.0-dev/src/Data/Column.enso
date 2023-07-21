@@ -1383,28 +1383,17 @@ type Column
     is_in self vector =
         op_name = "is_in"
         result_name = Naming_Helpers.to_expression_text self + " " + "in " + Naming_Helpers.to_expression_text vector
-        case self.java_column.getStorage.isOpVectorized op_name of
+        as_vector = case vector of
+            _ : Vector -> vector
+            _ : Array -> Vector.from_polyglot_array vector
+            column : Column -> column.to_vector
+        case self.java_column.getStorage.isBinaryOpVectorized op_name of
             True ->
-                true_vector = case vector of
-                    _ : Vector -> vector
-                    _ : Array -> Vector.from_polyglot_array vector
-                    column : Column -> column.to_vector
                 run_vectorized_binary_op self op_name true_vector expected_result_type=Value_Type.Boolean skip_nulls=False new_name=result_name
             False ->
-                ## We have custom code for the non-vectorized case, because
-                   usually a vectorized binary op will apply the fallback
-                   function element-wise if the other argument is a Column. But
-                   for `Is_In` we want each element of `self` to be checked
-                   against the whole other column, instead of just the
-                   corresponding row - so we need to go around a bit.
-                true_vector = case vector of
-                    _ : Vector -> vector
-                    _ : Array -> Vector.from_polyglot_array vector
-                    ## This does no copying, as `Column.to_vector` just returns
-                       a view of the storage.
-                    column : Column -> column.to_vector
-                new_vector = self.to_vector.map (Filter_Condition.Is_In true_vector).to_predicate
-                Column.from_vector result_name new_vector
+                set = Set.from_vector as_vector error_on_duplicates=False
+                on_missing = set.contains Nothing
+                run_unary_op self set.contains new_name=result_name on_missing=on_missing expected_result_type=Value_Type.Boolean
 
     ## Parses a text column into values.
 
@@ -2106,6 +2095,14 @@ run_binary_op column operand function new_name skip_nulls=True expected_result_t
             s.zip function other_column.java_column.getStorage skip_nulls storage_type
         _ ->
             s.biMap function operand skip_nulls storage_type
+    Column.Value (Java_Column.new new_name new_storage)
+
+## PRIVATE
+   Runs a unary operation over the provided column.
+run_unary_op column function new_name on_missing=Nothing expected_result_type=Nothing =
+    s = column.java_column.getStorage
+    storage_type = resolve_storage_type expected_result_type
+    new_storage = s.unaryMap function on_missing storage_type
     Column.Value (Java_Column.new new_name new_storage)
 
 ## PRIVATE
