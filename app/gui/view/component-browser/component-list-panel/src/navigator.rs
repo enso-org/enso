@@ -34,4 +34,3 @@ pub struct Style {
     #[theme_path = "theme::highlight::corners_radius"]
     pub highlight_corners_radius: f32,
 }
-
