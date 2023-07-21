@@ -27,6 +27,7 @@ jobs:
         with:
           java-version: ${{ env.javaVersion }}
           distribution: graalvm-community
+          github-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Set Up SBT
         shell: bash
         run: |
