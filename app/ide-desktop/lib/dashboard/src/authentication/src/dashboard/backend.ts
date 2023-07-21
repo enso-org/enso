@@ -26,6 +26,17 @@ export type DirectoryId = newtype.Newtype<string, 'DirectoryId'>
 /** Create a {@link DirectoryId}. */
 export const DirectoryId = newtype.newtypeConstructor<DirectoryId>()
 
+/** Unique identifier for an asset representing the items inside a directory for which the
+ * request to retrive the items has not yet completed. */
+export type LoadingAssetId = newtype.Newtype<string, 'LoadingAssetId'>
+/** Create a {@link LoadingAssetId}. */
+export const LoadingAssetId = newtype.newtypeConstructor<LoadingAssetId>()
+
+/** Unique identifier for an asset representing the nonexistent children of an empty directory. */
+export type EmptyAssetId = newtype.Newtype<string, 'EmptyAssetId'>
+/** Create a {@link EmptyAssetId}. */
+export const EmptyAssetId = newtype.newtypeConstructor<EmptyAssetId>()
+
 /** Unique identifier for a user's project. */
 export type ProjectId = newtype.Newtype<string, 'ProjectId'>
 /** Create a {@link ProjectId}. */
@@ -42,7 +53,7 @@ export type SecretId = newtype.Newtype<string, 'SecretId'>
 export const SecretId = newtype.newtypeConstructor<SecretId>()
 
 /** Unique identifier for an arbitrary asset */
-export type AssetId = DirectoryId | FileId | ProjectId | SecretId
+export type AssetId = IdType[keyof IdType]
 
 /** Unique identifier for a file tag or project tag. */
 export type TagId = newtype.Newtype<string, 'TagId'>
@@ -315,6 +326,11 @@ export enum AssetType {
     file = 'file',
     secret = 'secret',
     directory = 'directory',
+    /** A special {@link AssetType} representing the unknown items of a directory, before the
+     * request to retrieve the items completes. */
+    specialLoading = 'special-loading',
+    /** A special {@link AssetType} representing the sole child of an empty directory. */
+    specialEmpty = 'special-empty',
 }
 
 /** The corresponding ID newtype for each {@link AssetType}. */
@@ -323,6 +339,8 @@ export interface IdType {
     [AssetType.file]: FileId
     [AssetType.secret]: SecretId
     [AssetType.directory]: DirectoryId
+    [AssetType.specialLoading]: LoadingAssetId
+    [AssetType.specialEmpty]: EmptyAssetId
 }
 
 /** Integers (starting from 0) corresponding to the order in which each asset type should appear
@@ -331,9 +349,14 @@ export const ASSET_TYPE_ORDER: Record<AssetType, number> = {
     [AssetType.directory]: 0,
     [AssetType.project]: 1,
     [AssetType.file]: 2,
-    // This is not a magic constant; `3` is simply the next number after `2`.
-    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+    // These are not magic constants; `3` is simply the next number after `2`.
+    // `999` and `1000` are arbitrary numbers chosen to be higher than the number of possible
+    // asset types.
+    /* eslint-disable @typescript-eslint/no-magic-numbers */
     [AssetType.secret]: 3,
+    [AssetType.specialLoading]: 999,
+    [AssetType.specialEmpty]: 1000,
+    /* eslint-enable @typescript-eslint/no-magic-numbers */
 }
 
 // =============
@@ -372,8 +395,20 @@ export interface FileAsset extends Asset<AssetType.file> {}
 /** A convenience alias for {@link Asset}<{@link AssetType.secret}>. */
 export interface SecretAsset extends Asset<AssetType.secret> {}
 
+/** A convenience alias for {@link Asset}<{@link AssetType.specialLoading}>. */
+export interface SpecialLoadingAsset extends Asset<AssetType.specialLoading> {}
+
+/** A convenience alias for {@link Asset}<{@link AssetType.specialEmpty}>. */
+export interface SpecialEmptyAsset extends Asset<AssetType.specialEmpty> {}
+
 /** A union of all possible {@link Asset} variants. */
-export type AnyAsset = DirectoryAsset | FileAsset | ProjectAsset | SecretAsset
+export type AnyAsset =
+    | DirectoryAsset
+    | FileAsset
+    | ProjectAsset
+    | SecretAsset
+    | SpecialEmptyAsset
+    | SpecialLoadingAsset
 
 /** A type guard that returns whether an {@link Asset} is a specific type of asset. */
 export function assetIsType<Type extends AssetType>(type: Type) {
@@ -570,6 +605,12 @@ export abstract class Backend {
             }
             case AssetType.secret: {
                 await this.deleteSecret(asset.id, asset.title)
+                break
+            }
+            case AssetType.specialLoading:
+            case AssetType.specialEmpty: {
+                // Ignored. This should never happen, and because they do not exist on the backend,
+                // there are no negative consequences.
                 break
             }
         }

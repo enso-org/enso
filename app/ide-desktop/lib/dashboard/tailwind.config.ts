@@ -18,9 +18,8 @@ export const content = [THIS_PATH + '/src/**/*.tsx']
 export const theme = {
     extend: {
         colors: {
-            // Should be `#3e515fe5`, but `bg-opacity` does not work with RGBA.
             /** The default color of all text. */
-            primary: '#52636f',
+            primary: 'rgba(0, 0, 0, 0.6)',
             chat: '#484848',
             'ide-bg': '#ebeef1',
             'ide-bg-dark': '#d0d3d6',
@@ -48,11 +47,15 @@ export const theme = {
             vs: '0.8125rem',
         },
         spacing: {
+            '18': '4.5rem',
             '29': '7.25rem',
-            '83.5': '20.875rem',
+            '30': '7.5rem',
+            '42': '10.5rem',
+            '54': '13.5rem',
             '70': '17.5rem',
-            '10lh': '10lh',
+            '83.5': '20.875rem',
             '140': '35rem',
+            '10lh': '10lh',
         },
         minWidth: {
             '20': '5rem',

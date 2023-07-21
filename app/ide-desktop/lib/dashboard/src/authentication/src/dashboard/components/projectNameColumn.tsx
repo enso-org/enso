@@ -9,6 +9,7 @@ import * as backendProvider from '../../providers/backend'
 import * as errorModule from '../../error'
 import * as eventModule from '../event'
 import * as hooks from '../../hooks'
+import * as indent from '../indent'
 import * as loggerProvider from '../../providers/logger'
 import * as presence from '../presence'
 import * as shortcuts from '../shortcuts'
@@ -43,6 +44,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
             doOpenManually,
             doOpenIde,
             doCloseIde,
+            getDepth,
         },
     } = props
     const logger = loggerProvider.useLogger()
@@ -125,7 +127,9 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
 
     return (
         <div
-            className="flex text-left items-center align-middle whitespace-nowrap"
+            className={`flex text-left items-center whitespace-nowrap ${indent.indentClass(
+                getDepth(key)
+            )}`}
             onClick={event => {
                 if (!rowState.isEditingName && eventModule.isDoubleClick(event)) {
                     // It is a double click; open the project.

@@ -10,11 +10,11 @@ import LockIcon from 'enso-assets/lock.svg'
 
 import * as app from '../../components/app'
 import * as authModule from '../providers/auth'
-import * as svg from '../../components/svg'
 import * as validation from '../../dashboard/validation'
 
 import Input from './input'
 import SvgIcon from './svgIcon'
+import SvgMask from './svgMask'
 
 // =================
 // === Constants ===
@@ -75,7 +75,7 @@ export default function Registration() {
                         </label>
                         <div className="relative">
                             <SvgIcon>
-                                <svg.SvgMask src={AtIcon} />
+                                <SvgMask src={AtIcon} />
                             </SvgIcon>
                             <Input
                                 id="email"
@@ -96,7 +96,7 @@ export default function Registration() {
                         </label>
                         <div className="relative">
                             <SvgIcon>
-                                <svg.SvgMask src={LockIcon} />
+                                <SvgMask src={LockIcon} />
                             </SvgIcon>
                             <Input
                                 required
@@ -120,7 +120,7 @@ export default function Registration() {
                         </label>
                         <div className="relative">
                             <SvgIcon>
-                                <svg.SvgMask src={LockIcon} />
+                                <SvgMask src={LockIcon} />
                             </SvgIcon>
                             <Input
                                 required
@@ -145,7 +145,7 @@ export default function Registration() {
                         >
                             <span className="mr-2 uppercase">Register</span>
                             <span>
-                                <svg.SvgMask src={CreateAccountIcon} />
+                                <SvgMask src={CreateAccountIcon} />
                             </span>
                         </button>
                     </div>
@@ -160,7 +160,7 @@ export default function Registration() {
                     }
                 >
                     <span>
-                        <svg.SvgMask src={GoBackIcon} />
+                        <SvgMask src={GoBackIcon} />
                     </span>
                     <span className="ml-2">Already have an account?</span>
                 </router.Link>

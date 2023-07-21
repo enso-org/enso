@@ -50,6 +50,10 @@ export default function AssetContextMenu(props: AssetContextMenuProps<backendMod
                 />
             )
         }
+        case backendModule.AssetType.specialLoading:
+        case backendModule.AssetType.specialEmpty: {
+            return null
+        }
         /* eslint-enable no-restricted-syntax */
     }
 }

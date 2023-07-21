@@ -9,7 +9,7 @@ import GoBackIcon from 'enso-assets/go_back.svg'
 
 import * as app from '../../components/app'
 import * as auth from '../providers/auth'
-import * as svg from '../../components/svg'
+import SvgMask from './svgMask'
 
 import Input from './input'
 import SvgIcon from './svgIcon'
@@ -51,7 +51,7 @@ export default function ForgotPassword() {
                             </label>
                             <div className="relative">
                                 <SvgIcon>
-                                    <svg.SvgMask src={AtIcon} />
+                                    <SvgMask src={AtIcon} />
                                 </SvgIcon>
                                 <Input
                                     id="email"
@@ -74,7 +74,7 @@ export default function ForgotPassword() {
                             >
                                 <span className="mr-2 uppercase">Send link</span>
                                 <span>
-                                    <svg.SvgMask src={ArrowRightIcon} />
+                                    <SvgMask src={ArrowRightIcon} />
                                 </span>
                             </button>
                         </div>
@@ -89,7 +89,7 @@ export default function ForgotPassword() {
                         }
                     >
                         <span>
-                            <svg.SvgMask src={GoBackIcon} />
+                            <SvgMask src={GoBackIcon} />
                         </span>
                         <span className="ml-2">Go back to login</span>
                     </router.Link>

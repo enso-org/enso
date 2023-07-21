@@ -2,16 +2,16 @@
 import * as React from 'react'
 import * as router from 'react-router-dom'
 
+import * as fontawesomeIcons from '@fortawesome/free-brands-svg-icons'
+
 import ArrowRightIcon from 'enso-assets/arrow_right.svg'
 import AtIcon from 'enso-assets/at.svg'
 import CreateAccountIcon from 'enso-assets/create_account.svg'
 import LockIcon from 'enso-assets/lock.svg'
 
-import * as fontawesomeIcons from '@fortawesome/free-brands-svg-icons'
-
 import * as app from '../../components/app'
 import * as auth from '../providers/auth'
-import * as svg from '../../components/svg'
+import SvgMask from './svgMask'
 
 import FontAwesomeIcon from './fontAwesomeIcon'
 import Input from './input'
@@ -93,7 +93,7 @@ export default function Login() {
                             </label>
                             <div className="relative">
                                 <SvgIcon>
-                                    <svg.SvgMask src={AtIcon} />
+                                    <SvgMask src={AtIcon} />
                                 </SvgIcon>
                                 <Input
                                     required
@@ -115,7 +115,7 @@ export default function Login() {
                             </label>
                             <div className="relative">
                                 <SvgIcon>
-                                    <svg.SvgMask src={LockIcon} />
+                                    <SvgMask src={LockIcon} />
                                 </SvgIcon>
                                 <Input
                                     required={true}
@@ -151,7 +151,7 @@ export default function Login() {
                             >
                                 <span className="mr-2 uppercase">Login</span>
                                 <span>
-                                    <svg.SvgMask src={ArrowRightIcon} />
+                                    <SvgMask src={ArrowRightIcon} />
                                 </span>
                             </button>
                         </div>
@@ -166,7 +166,7 @@ export default function Login() {
                         }
                     >
                         <span>
-                            <svg.SvgMask src={CreateAccountIcon} />
+                            <SvgMask src={CreateAccountIcon} />
                         </span>
                         <span className="ml-2">You don&apos;t have an account?</span>
                     </router.Link>

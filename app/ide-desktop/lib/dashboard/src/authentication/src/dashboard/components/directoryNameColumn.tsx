@@ -11,6 +11,7 @@ import * as column from '../column'
 import * as errorModule from '../../error'
 import * as eventModule from '../event'
 import * as hooks from '../../hooks'
+import * as indent from '../indent'
 import * as presence from '../presence'
 import * as shortcuts from '../shortcuts'
 
@@ -34,7 +35,8 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         item,
         setItem,
         selected,
-        state: { assetEvent, dispatchAssetListEvent, doToggleDirectoryExpansion },
+        setSelected,
+        state: { assetEvent, dispatchAssetListEvent, doToggleDirectoryExpansion, getDepth },
         rowState,
         setRowState,
     } = props
@@ -107,7 +109,9 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
 
     return (
         <div
-            className="flex text-left items-center align-middle whitespace-nowrap"
+            className={`flex text-left items-center whitespace-nowrap ${indent.indentClass(
+                getDepth(key)
+            )}`}
             onClick={event => {
                 if (
                     eventModule.isSingleClick(event) &&
@@ -122,7 +126,14 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
                         isEditingName: true,
                     }))
                 } else if (eventModule.isDoubleClick(event)) {
-                    doToggleDirectoryExpansion(item.id)
+                    if (!rowState.isEditingName) {
+                        // This must be processed on the next tick, otherwise it will be overridden
+                        // by the default click handler.
+                        setTimeout(() => {
+                            setSelected(false)
+                        }, 0)
+                        doToggleDirectoryExpansion(item, key)
+                    }
                 }
             }}
         >

@@ -49,6 +49,11 @@ export default function AssetNameColumn(props: AssetNameColumnProps) {
                 />
             )
         }
+        case backendModule.AssetType.specialLoading:
+        case backendModule.AssetType.specialEmpty: {
+            // Special rows do not display columns at all.
+            return <></>
+        }
         /* eslint-enable no-restricted-syntax */
     }
 }

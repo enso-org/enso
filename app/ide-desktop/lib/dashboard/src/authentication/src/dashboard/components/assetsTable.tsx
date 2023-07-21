@@ -4,6 +4,8 @@ import toast from 'react-hot-toast'
 
 import * as common from 'enso-common'
 
+import BlankIcon from 'enso-assets/blank.svg'
+
 import * as array from '../array'
 import * as assetEventModule from '../events/assetEvent'
 import * as assetListEventModule from '../events/assetListEvent'
@@ -14,6 +16,7 @@ import * as columnModule from '../column'
 import * as dateTime from '../dateTime'
 import * as errorModule from '../../error'
 import * as hooks from '../../hooks'
+import * as indent from '../indent'
 import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
 import * as permissions from '../permissions'
@@ -21,6 +24,7 @@ import * as presenceModule from '../presence'
 import * as string from '../../string'
 import * as uniqueString from '../../uniqueString'
 
+import StatelessSpinner, * as statelessSpinner from './statelessSpinner'
 import TableRow, * as tableRow from './tableRow'
 import AssetContextMenu from './assetContextMenu'
 import Button from './button'
@@ -51,11 +55,25 @@ const PLACEHOLDER = (
         from the home screen.
     </span>
 )
+/** Placeholder row for directories that are empty. */
+const EMPTY_DIRECTORY_PLACEHOLDER = <span className="px-2 opacity-75">This folder is empty.</span>
 
 /** The {@link RegExp} matching a directory name following the default naming convention. */
 const DIRECTORY_NAME_REGEX = /^New_Folder_(?<directoryIndex>\d+)$/
 /** The default prefix of an automatically generated directory. */
 const DIRECTORY_NAME_DEFAULT_PREFIX = 'New_Folder_'
+
+// =============
+// === Types ===
+// =============
+
+/** An interface containing only the depth of an item (an integer). */
+interface Depth {
+    depth: number
+}
+
+/** The type of items in an {@link AssetsTable}. */
+export type AssetTableItem<T extends backendModule.AnyAsset = backendModule.AnyAsset> = Depth & T
 
 // ================
 // === AssetRow ===
@@ -78,6 +96,7 @@ function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
             dispatchAssetListEvent,
             markItemAsHidden,
             markItemAsVisible,
+            getDepth,
         },
     } = props
     const logger = loggerProvider.useLogger()
@@ -128,29 +147,70 @@ function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
         }
     })
 
-    return presence === presenceModule.Presence.deleting ? (
-        <></>
-    ) : (
-        <TableRow
-            className={presenceModule.CLASS_NAME[presence]}
-            {...props}
-            onContextMenu={(innerProps, event) => {
-                event.preventDefault()
-                event.stopPropagation()
-                setModal(
-                    <AssetContextMenu
-                        innerProps={innerProps}
-                        event={event}
-                        dispatchAssetEvent={dispatchAssetEvent}
-                        doDelete={doDelete}
-                    />
-                )
-            }}
-            item={item}
-            setItem={setItem}
-            initialRowState={{ ...initialRowState, setPresence }}
-        />
-    )
+    switch (item.type) {
+        case backendModule.AssetType.directory:
+        case backendModule.AssetType.project:
+        case backendModule.AssetType.file:
+        case backendModule.AssetType.secret: {
+            return presence === presenceModule.Presence.deleting ? (
+                <></>
+            ) : (
+                <TableRow
+                    className={presenceModule.CLASS_NAME[presence]}
+                    {...props}
+                    onContextMenu={(innerProps, event) => {
+                        event.preventDefault()
+                        event.stopPropagation()
+                        setModal(
+                            <AssetContextMenu
+                                innerProps={innerProps}
+                                event={event}
+                                dispatchAssetEvent={dispatchAssetEvent}
+                                doDelete={doDelete}
+                            />
+                        )
+                    }}
+                    item={item}
+                    setItem={setItem}
+                    initialRowState={{ ...initialRowState, setPresence }}
+                />
+            )
+        }
+        case backendModule.AssetType.specialLoading: {
+            return (
+                <tr>
+                    <td colSpan={999} className="p-0 rounded-full border-r">
+                        <div
+                            className={`flex justify-center py-2 ${indent.indentClass(
+                                getDepth(key)
+                            )}`}
+                        >
+                            <StatelessSpinner
+                                size={24}
+                                state={statelessSpinner.SpinnerState.loadingMedium}
+                            />
+                        </div>
+                    </td>
+                </tr>
+            )
+        }
+        case backendModule.AssetType.specialEmpty: {
+            return (
+                <tr>
+                    <td colSpan={999} className="p-0 rounded-full border-r">
+                        <div
+                            className={`flex items-center h-10 py-2 ${indent.indentClass(
+                                getDepth(key)
+                            )}`}
+                        >
+                            <img src={BlankIcon} />
+                            {EMPTY_DIRECTORY_PLACEHOLDER}
+                        </div>
+                    </td>
+                </tr>
+            )
+        }
+    }
 }
 
 // ===================
@@ -165,7 +225,11 @@ export interface AssetsTableState {
     dispatchAssetListEvent: (event: assetListEventModule.AssetListEvent) => void
     markItemAsHidden: (key: string) => void
     markItemAsVisible: (key: string) => void
-    doToggleDirectoryExpansion: (id: backendModule.DirectoryId) => void
+    getDepth: (id: backendModule.AssetId) => number
+    doToggleDirectoryExpansion: (
+        directory: backendModule.DirectoryAsset,
+        key: backendModule.AssetId
+    ) => void
     /** Called when the project is opened via the {@link ProjectActionButton}. */
     doOpenManually: (projectId: backendModule.ProjectId) => void
     doOpenIde: (project: backendModule.ProjectAsset) => void
@@ -225,7 +289,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         () => new Set<columnModule.ExtraColumn>()
     )
     // Items in the root directory have a depth of 0.
-    const itemDepthsRef = React.useRef(new WeakMap<backendModule.Asset, number>())
+    const itemDepthsRef = React.useRef(new Map<backendModule.AssetId, number>())
 
     React.useEffect(() => {
         setInitialized(true)
@@ -248,17 +312,34 @@ export default function AssetsTable(props: AssetsTableProps) {
         }
     }, [extraColumns, initialized])
 
+    const getDepth = React.useCallback(
+        (id: backendModule.AssetId) => itemDepthsRef.current.get(id) ?? 0,
+        []
+    )
+
     React.useEffect(() => {
         setItems(rawItems)
-        for (const item of rawItems) {
-            itemDepthsRef.current.set(item, 0)
-        }
     }, [rawItems])
 
     const visibleItems = React.useMemo(
         () => (filter != null ? items.filter(filter) : items),
         [items, filter]
     )
+
+    React.useEffect(() => {
+        // Remove unused keys.
+        const oldDepths = itemDepthsRef.current
+        itemDepthsRef.current = new Map(
+            items.map(backendModule.getAssetId).flatMap(key => {
+                const depth = oldDepths.get(key)
+                return depth != null ? [[key, depth]] : []
+            })
+        )
+        const oldKeys = keysOfHiddenItemsRef.current
+        keysOfHiddenItemsRef.current = new Set(
+            items.map(backendModule.getAssetId).filter(key => oldKeys.has(key))
+        )
+    }, [items])
 
     // === Tracking number of visually hidden items ===
 
@@ -272,13 +353,6 @@ export default function AssetsTable(props: AssetsTableProps) {
     }, [visibleItems])
 
     React.useEffect(updateShouldForceShowPlaceholder, [updateShouldForceShowPlaceholder])
-
-    React.useEffect(() => {
-        const oldKeys = keysOfHiddenItemsRef.current
-        keysOfHiddenItemsRef.current = new Set(
-            items.map(backendModule.getAssetId).filter(key => oldKeys.has(key))
-        )
-    }, [items])
 
     const markItemAsHidden = React.useCallback(
         (key: string) => {
@@ -299,15 +373,68 @@ export default function AssetsTable(props: AssetsTableProps) {
     // === End tracking number of visually hidden items ===
 
     const expandedDirectoriesRef = React.useRef(new Set<backendModule.DirectoryId>())
-    const doToggleDirectoryExpansion = React.useCallback((id: backendModule.DirectoryId) => {
-        const set = expandedDirectoriesRef.current
-        // FIXME: update assets list. deletes (and adds?) should happen via events
-        if (set.has(id)) {
-            set.delete(id)
-        } else {
-            set.add(id)
-        }
-    }, [])
+    const doToggleDirectoryExpansion = React.useCallback(
+        (directory: backendModule.DirectoryAsset, key: backendModule.AssetId) => {
+            const set = expandedDirectoriesRef.current
+            if (set.has(directory.id)) {
+                set.delete(directory.id)
+                setItems(items.filter(item => item.parentId !== directory.id))
+            } else {
+                const childDepth = getDepth(key) + 1
+                set.add(directory.id)
+                const loadingAssetId = backendModule.LoadingAssetId(uniqueString.uniqueString())
+                itemDepthsRef.current.set(loadingAssetId, childDepth)
+                setItems(
+                    array.splicedAfter(
+                        items,
+                        [
+                            {
+                                type: backendModule.AssetType.specialLoading,
+                                title: '',
+                                id: loadingAssetId,
+                                modifiedAt: dateTime.toRfc3339(new Date()),
+                                parentId: directory.id,
+                                permissions: [],
+                                projectState: null,
+                            },
+                        ],
+                        item => item.id === directory.id
+                    )
+                )
+                void (async () => {
+                    const returnedItems = await backend.listDirectory(
+                        { parentId: directory.id },
+                        directory.title
+                    )
+                    const childItems: backendModule.AnyAsset[] =
+                        returnedItems.length !== 0
+                            ? returnedItems
+                            : [
+                                  {
+                                      type: backendModule.AssetType.specialEmpty,
+                                      title: '',
+                                      id: backendModule.EmptyAssetId(uniqueString.uniqueString()),
+                                      modifiedAt: dateTime.toRfc3339(new Date()),
+                                      parentId: directory.id,
+                                      permissions: [],
+                                      projectState: null,
+                                  },
+                              ]
+                    for (const childItem of childItems) {
+                        itemDepthsRef.current.set(childItem.id, childDepth)
+                    }
+                    setItems(oldItems =>
+                        array.splicedReplacing(
+                            oldItems,
+                            childItems,
+                            item => item.id === loadingAssetId
+                        )
+                    )
+                })()
+            }
+        },
+        [items, backend, getDepth]
+    )
 
     const getNewProjectName = React.useCallback(
         (templateId?: string | null) => {
@@ -341,8 +468,6 @@ export default function AssetsTable(props: AssetsTableProps) {
                     type: backendModule.AssetType.directory,
                 }
                 const typeOrder = backendModule.ASSET_TYPE_ORDER[placeholderItem.type]
-                // FIXME: `array.splicedBefore` fails when there are no children in a directory yet,
-                // as `item.parentId === event.parentId` will never be true.
                 setItems(oldItems =>
                     array.splicedBefore(
                         oldItems,
@@ -483,6 +608,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             dispatchAssetListEvent,
             markItemAsHidden,
             markItemAsVisible,
+            getDepth,
             doToggleDirectoryExpansion,
             doOpenManually,
             doOpenIde,
@@ -496,6 +622,7 @@ export default function AssetsTable(props: AssetsTableProps) {
             doCloseIde,
             markItemAsHidden,
             markItemAsVisible,
+            getDepth,
             doToggleDirectoryExpansion,
             /* should never change */ dispatchAssetEvent,
             /* should never change */ dispatchAssetListEvent,

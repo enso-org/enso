@@ -58,6 +58,7 @@ interface InternalBaseTableRowProps<
     initialRowState?: TableRowState
     columns: tableColumn.TableColumn<T, State, TableRowState, Key>[]
     selected: boolean
+    setSelected: (selected: boolean) => void
     allowContextMenu: boolean
     onClick: (props: TableRowInnerProps<T, TableRowState, Key>, event: React.MouseEvent) => void
     onContextMenu?: (
@@ -88,6 +89,7 @@ export default function TableRow<T, State = never, RowState = never, Key extends
         initialRowState,
         columns,
         selected,
+        setSelected,
         allowContextMenu,
         onClick,
         onContextMenu,
@@ -144,15 +146,14 @@ export default function TableRow<T, State = never, RowState = never, Key extends
                 return (
                     <td
                         key={column.id}
-                        className={`px-4 border-0 border-r vertical-align-middle ${
-                            column.className ?? ''
-                        }`}
+                        className={`px-4 border-r ${column.className ?? ''}`}
                     >
                         <Render
                             keyProp={key}
                             item={item}
                             setItem={setItem}
                             selected={selected}
+                            setSelected={setSelected}
                             /** This is SAFE, as the type is defined such that they MUST be
                              * present if it is specified as a generic parameter.
                              * See the type definitions of {@link TableRowProps} and {@link TableProps}.

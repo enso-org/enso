@@ -55,7 +55,7 @@ export default function Label(props: React.PropsWithChildren<LabelProps>) {
     const { status = Status.none, children, onContextMenu } = props
     return (
         <div
-            className={`${CSS_CLASS[status]} whitespace-nowrap rounded-full inline-flex flex-row flex-nowrap align-middle items-center leading-[27px] m-1`}
+            className={`${CSS_CLASS[status]} whitespace-nowrap rounded-full inline-flex flex-row flex-nowrap items-center leading-[27px] m-1`}
             onContextMenu={onContextMenu}
         >
             {STATUS_ICON[status]}

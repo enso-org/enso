@@ -3,6 +3,7 @@
  * being used directly. */
 import * as React from 'react'
 
+import * as set from '../../set'
 import * as shortcuts from '../shortcuts'
 
 import * as tableColumn from './tableColumn'
@@ -81,7 +82,8 @@ export default function Table<T, State = never, RowState = never, Key extends st
 
     const [spinnerState, setSpinnerState] = React.useState(spinner.SpinnerState.initial)
     // This should not be made mutable for the sake of optimization, otherwise its value may
-    // be different after `await`ing an I/O operation.
+    // be different after `await`ing an I/O operation. Also, a change in its value should trigger
+    // a re-render.
     const [selectedKeys, setSelectedKeys] = React.useState(() => new Set<Key>())
     const [previouslySelectedKey, setPreviouslySelectedKey] = React.useState<Key | null>(null)
 
@@ -186,7 +188,7 @@ export default function Table<T, State = never, RowState = never, Key extends st
                 return (
                     <th
                         key={column.id}
-                        className={`text-vs px-4 align-middle py-1 border-0 border-r whitespace-nowrap font-semibold text-left ${
+                        className={`text-vs px-4 py-1 border-0 border-r whitespace-nowrap font-semibold text-left ${
                             column.className ?? ''
                         }`}
                     >
@@ -230,6 +232,11 @@ export default function Table<T, State = never, RowState = never, Key extends st
                     keyProp={key}
                     item={item}
                     selected={selectedKeys.has(key)}
+                    setSelected={selected => {
+                        setSelectedKeys(oldSelectedKeys =>
+                            set.withPresence(oldSelectedKeys, key, selected)
+                        )
+                    }}
                     allowContextMenu={
                         selectedKeys.size === 0 ||
                         (selectedKeys.size === 1 && selectedKeys.has(key))

@@ -11,11 +11,11 @@ import LockIcon from 'enso-assets/lock.svg'
 
 import * as app from '../../components/app'
 import * as auth from '../providers/auth'
-import * as svg from '../../components/svg'
 import * as validation from '../../dashboard/validation'
 
 import Input from './input'
 import SvgIcon from './svgIcon'
+import SvgMask from './svgMask'
 
 // =================
 // === Constants ===
@@ -78,7 +78,7 @@ export default function ResetPassword() {
                             </label>
                             <div className="relative">
                                 <SvgIcon>
-                                    <svg.SvgMask src={AtIcon} />
+                                    <SvgMask src={AtIcon} />
                                 </SvgIcon>
                                 <Input
                                     id="email"
@@ -99,7 +99,7 @@ export default function ResetPassword() {
                             </label>
                             <div className="relative">
                                 <SvgIcon>
-                                    <svg.SvgMask src={LockIcon} />
+                                    <SvgMask src={LockIcon} />
                                 </SvgIcon>
                                 <Input
                                     id="code"
@@ -120,7 +120,7 @@ export default function ResetPassword() {
                             </label>
                             <div className="relative">
                                 <SvgIcon>
-                                    <svg.SvgMask src={LockIcon} />
+                                    <SvgMask src={LockIcon} />
                                 </SvgIcon>
                                 <Input
                                     id="new_password"
@@ -143,7 +143,7 @@ export default function ResetPassword() {
                             </label>
                             <div className="relative">
                                 <SvgIcon>
-                                    <svg.SvgMask src={LockIcon} />
+                                    <SvgMask src={LockIcon} />
                                 </SvgIcon>
                                 <Input
                                     id="new_password_confirm"
@@ -166,7 +166,7 @@ export default function ResetPassword() {
                             >
                                 <span className="mr-2 uppercase">Reset</span>
                                 <span>
-                                    <svg.SvgMask src={ArrowRightIcon} />
+                                    <SvgMask src={ArrowRightIcon} />
                                 </span>
                             </button>
                         </div>
@@ -181,7 +181,7 @@ export default function ResetPassword() {
                         }
                     >
                         <span>
-                            <svg.SvgMask src={GoBackIcon} />
+                            <SvgMask src={GoBackIcon} />
                         </span>
                         <span className="ml-2">Go back to login</span>
                     </router.Link>

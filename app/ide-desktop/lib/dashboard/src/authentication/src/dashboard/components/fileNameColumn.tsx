@@ -10,6 +10,7 @@ import * as errorModule from '../../error'
 import * as eventModule from '../event'
 import * as fileInfo from '../../fileInfo'
 import * as hooks from '../../hooks'
+import * as indent from '../indent'
 import * as loggerProvider from '../../providers/logger'
 import * as presence from '../presence'
 import * as shortcuts from '../shortcuts'
@@ -31,7 +32,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
         item,
         setItem,
         selected,
-        state: { assetEvent, dispatchAssetListEvent },
+        state: { assetEvent, dispatchAssetListEvent, getDepth },
         rowState,
         setRowState,
     } = props
@@ -101,7 +102,9 @@ export default function FileNameColumn(props: FileNameColumnProps) {
 
     return (
         <div
-            className="flex text-left items-center align-middle whitespace-nowrap"
+            className={`flex text-left items-center align-middle whitespace-nowrap ${indent.indentClass(
+                getDepth(key)
+            )}`}
             onClick={event => {
                 if (
                     eventModule.isSingleClick(event) &&

@@ -5,6 +5,7 @@ import toast from 'react-hot-toast'
 
 import ArrowUpIcon from 'enso-assets/arrow_up.svg'
 import PlayIcon from 'enso-assets/play.svg'
+import StopIcon from 'enso-assets/stop.svg'
 
 import * as assetEventModule from '../events/assetEvent'
 import * as backendModule from '../backend'
@@ -12,10 +13,9 @@ import * as backendProvider from '../../providers/backend'
 import * as errorModule from '../../error'
 import * as hooks from '../../hooks'
 import * as modalProvider from '../../providers/modal'
-import * as svg from '../../components/svg'
 
 import * as assetsTable from './assetsTable'
-import * as spinner from './spinner'
+import Spinner, * as spinner from './spinner'
 
 // =================
 // === Constants ===
@@ -349,7 +349,10 @@ export default function ProjectIcon(props: ProjectIconProps) {
                         await closeProject()
                     }}
                 >
-                    <svg.StopIcon className={spinner.SPINNER_CSS_CLASSES[spinnerState]} />
+                    <div className="relative h-0">
+                        <Spinner size={24} state={spinnerState} />
+                    </div>
+                    <img src={StopIcon} />
                 </button>
             )
         case backendModule.ProjectState.opened:
@@ -363,7 +366,10 @@ export default function ProjectIcon(props: ProjectIconProps) {
                             await closeProject()
                         }}
                     >
-                        <svg.StopIcon className={spinner.SPINNER_CSS_CLASSES[spinnerState]} />
+                        <div className="relative h-0">
+                            <Spinner size={24} state={spinnerState} />
+                        </div>
+                        <img src={StopIcon} />
                     </button>
                     <button
                         className="w-6"

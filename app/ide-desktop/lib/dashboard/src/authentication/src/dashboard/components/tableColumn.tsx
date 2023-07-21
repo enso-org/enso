@@ -10,6 +10,7 @@ export interface TableColumnProps<T, State = never, RowState = never, Key extend
     item: T
     setItem: React.Dispatch<React.SetStateAction<T>>
     selected: boolean
+    setSelected: (selected: boolean) => void
     state: State
     rowState: RowState
     setRowState: React.Dispatch<React.SetStateAction<RowState>>
