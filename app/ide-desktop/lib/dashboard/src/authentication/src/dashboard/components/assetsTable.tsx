@@ -2,6 +2,8 @@
 import * as React from 'react'
 import toast from 'react-hot-toast'
 
+import * as common from 'enso-common'
+
 import * as array from '../array'
 import * as assetEventModule from '../events/assetEvent'
 import * as assetListEventModule from '../events/assetListEvent'
@@ -30,6 +32,10 @@ import Table from './table'
 // =================
 // === Constants ===
 // =================
+
+/** The `localStorage` key under which the ID of the current directory is stored. */
+const EXTRA_COLUMNS_KEY =
+    common.PRODUCT_NAME.toLowerCase() + '-dashboard-directory-list-extra-columns'
 
 /** The user-facing name of this asset type. */
 const ASSET_TYPE_NAME = 'item'
@@ -210,12 +216,34 @@ export default function AssetsTable(props: AssetsTableProps) {
     const { organization } = authProvider.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
     const { setModal } = modalProvider.useSetModal()
+    const [initialized, setInitialized] = React.useState(false)
     const [items, setItems] = React.useState(rawItems)
     const [extraColumns, setExtraColumns] = React.useState(
         () => new Set<columnModule.ExtraColumn>()
     )
     // Items in the root directory have a depth of 0.
     const itemDepthsRef = React.useRef(new WeakMap<backendModule.Asset, number>())
+
+    React.useEffect(() => {
+        setInitialized(true)
+
+        const extraColumnsJson = localStorage.getItem(EXTRA_COLUMNS_KEY)
+        if (extraColumnsJson != null) {
+            const savedExtraColumns: unknown = JSON.parse(extraColumnsJson)
+            if (
+                Array.isArray(savedExtraColumns) &&
+                savedExtraColumns.every(array.includesPredicate(columnModule.EXTRA_COLUMNS))
+            ) {
+                setExtraColumns(new Set(savedExtraColumns))
+            }
+        }
+    }, [])
+
+    React.useEffect(() => {
+        if (initialized) {
+            localStorage.setItem(EXTRA_COLUMNS_KEY, JSON.stringify(Array.from(extraColumns)))
+        }
+    }, [extraColumns, initialized])
 
     React.useEffect(() => {
         setItems(rawItems)
@@ -473,75 +501,82 @@ export default function AssetsTable(props: AssetsTableProps) {
 
     return (
         <>
-            {/* FIXME: This element should cover elements below it but still have a transparent background.
-             ** Unfortunately, this does not seem to be possible. */}
-            <div className="relative">
-                <div className="absolute flex gap-3 right-0">
-                    {columnModule.EXTRA_COLUMNS.map(column => (
-                        <Button
-                            key={column}
-                            active={extraColumns.has(column)}
-                            image={columnModule.EXTRA_COLUMN_IMAGES[column]}
-                            onClick={() => {
-                                const newExtraColumns = new Set(extraColumns)
-                                if (extraColumns.has(column)) {
-                                    newExtraColumns.delete(column)
-                                } else {
-                                    newExtraColumns.add(column)
-                                }
-                                setExtraColumns(newExtraColumns)
-                            }}
-                        />
-                    ))}
-                </div>
-            </div>
-            <Table<backendModule.AnyAsset, AssetsTableState, AssetRowState, backendModule.AssetId>
-                rowComponent={AssetRow}
-                items={visibleItems}
-                isLoading={isLoading}
-                state={state}
-                initialRowState={INITIAL_ROW_STATE}
-                getKey={backendModule.getAssetId}
-                placeholder={PLACEHOLDER}
-                forceShowPlaceholder={shouldForceShowPlaceholder}
-                columns={columnModule.getColumnList(backend.type, extraColumns).map(column => ({
-                    id: column,
-                    className: columnModule.COLUMN_CSS_CLASS[column],
-                    heading: columnModule.COLUMN_HEADING[column],
-                    render: columnModule.COLUMN_RENDERER[column],
-                }))}
-                onContextMenu={(selectedKeys, event, setSelectedKeys) => {
-                    event.preventDefault()
-                    event.stopPropagation()
-                    const pluralized = pluralize(selectedKeys.size)
-                    // This is not a React component even though it contains JSX.
-                    // eslint-disable-next-line no-restricted-syntax
-                    const doDeleteAll = () => {
-                        setModal(
-                            <ConfirmDeleteModal
-                                description={`${selectedKeys.size} selected ${pluralized}`}
-                                doDelete={() => {
-                                    setSelectedKeys(new Set())
-                                    dispatchAssetEvent({
-                                        type: assetEventModule.AssetEventType.deleteMultiple,
-                                        ids: selectedKeys,
-                                    })
-                                    return Promise.resolve()
+            <div className="flex-1 overflow-auto mx-2">
+                {/* FIXME: This element should cover elements below it but still have a transparent background.
+                 ** Unfortunately, this does not seem to be possible. */}
+                <div className="relative">
+                    <div className="absolute flex gap-3 right-0 top-2 px-2 py-1">
+                        {columnModule.EXTRA_COLUMNS.map(column => (
+                            <Button
+                                key={column}
+                                active={extraColumns.has(column)}
+                                image={columnModule.EXTRA_COLUMN_IMAGES[column]}
+                                onClick={() => {
+                                    const newExtraColumns = new Set(extraColumns)
+                                    if (extraColumns.has(column)) {
+                                        newExtraColumns.delete(column)
+                                    } else {
+                                        newExtraColumns.add(column)
+                                    }
+                                    setExtraColumns(newExtraColumns)
                                 }}
                             />
+                        ))}
+                    </div>
+                </div>
+                <Table<
+                    backendModule.AnyAsset,
+                    AssetsTableState,
+                    AssetRowState,
+                    backendModule.AssetId
+                >
+                    rowComponent={AssetRow}
+                    items={visibleItems}
+                    isLoading={isLoading}
+                    state={state}
+                    initialRowState={INITIAL_ROW_STATE}
+                    getKey={backendModule.getAssetId}
+                    placeholder={PLACEHOLDER}
+                    forceShowPlaceholder={shouldForceShowPlaceholder}
+                    columns={columnModule.getColumnList(backend.type, extraColumns).map(column => ({
+                        id: column,
+                        className: columnModule.COLUMN_CSS_CLASS[column],
+                        heading: columnModule.COLUMN_HEADING[column],
+                        render: columnModule.COLUMN_RENDERER[column],
+                    }))}
+                    onContextMenu={(selectedKeys, event, setSelectedKeys) => {
+                        event.preventDefault()
+                        event.stopPropagation()
+                        const pluralized = pluralize(selectedKeys.size)
+                        // This is not a React component even though it contains JSX.
+                        // eslint-disable-next-line no-restricted-syntax
+                        const doDeleteAll = () => {
+                            setModal(
+                                <ConfirmDeleteModal
+                                    description={`${selectedKeys.size} selected ${pluralized}`}
+                                    doDelete={() => {
+                                        setSelectedKeys(new Set())
+                                        dispatchAssetEvent({
+                                            type: assetEventModule.AssetEventType.deleteMultiple,
+                                            ids: selectedKeys,
+                                        })
+                                        return Promise.resolve()
+                                    }}
+                                />
+                            )
+                        }
+                        setModal(
+                            <ContextMenu key={uniqueString.uniqueString()} event={event}>
+                                <ContextMenuEntry onClick={doDeleteAll}>
+                                    <span className="text-red-700">
+                                        Delete {selectedKeys.size} {pluralized}
+                                    </span>
+                                </ContextMenuEntry>
+                            </ContextMenu>
                         )
-                    }
-                    setModal(
-                        <ContextMenu key={uniqueString.uniqueString()} event={event}>
-                            <ContextMenuEntry onClick={doDeleteAll}>
-                                <span className="text-red-700">
-                                    Delete {selectedKeys.size} {pluralized}
-                                </span>
-                            </ContextMenuEntry>
-                        </ContextMenu>
-                    )
-                }}
-            />
+                    }}
+                />
+            </div>
         </>
     )
 }

@@ -45,6 +45,7 @@ interface InternalTableProps<T, State = never, RowState = never, Key extends str
     isLoading: boolean
     placeholder: JSX.Element
     forceShowPlaceholder?: boolean
+    className?: string
     onContextMenu: (
         selectedKeys: Set<Key>,
         event: React.MouseEvent<HTMLTableElement>,

@@ -1,5 +1,20 @@
 /** @file Utilities for manipulating arrays. */
 
+// =========================
+// === includesPredicate ===
+// =========================
+
+/** Returns a type predicate that returns true if and only if the value is in the array.
+ * The array MUST contain every element of `T`. */
+export function includesPredicate<T>(array: Iterable<T>) {
+    const set: Set<unknown> = array instanceof Set ? array : new Set<T>(array)
+    return (item: unknown): item is T => set.has(item)
+}
+
+// =============================
+// === insertItemsAtBoundary ===
+// =============================
+
 /** Insert items before the first index `i` for which `predicate(array[i])` is `true`.
  * Insert the items at the end if the `predicate` never returns `true`. */
 export function insertItemsAtBoundary<T>(array: T[], items: T[], predicate: (value: T) => boolean) {
