@@ -1389,7 +1389,7 @@ type Column
             column : Column -> column.to_vector
         case self.java_column.getStorage.isBinaryOpVectorized op_name of
             True ->
-                run_vectorized_binary_op self op_name true_vector expected_result_type=Value_Type.Boolean skip_nulls=False new_name=result_name
+                run_vectorized_binary_op self op_name as_vector expected_result_type=Value_Type.Boolean skip_nulls=False new_name=result_name
             False ->
                 set = Set.from_vector as_vector error_on_duplicates=False
                 on_missing = set.contains Nothing

@@ -262,17 +262,18 @@ public abstract class Storage<T> {
     }
   }
 
-  private static void checkFallback(Object fallback, StorageType storageType, String operationName)
+  private void checkFallback(Object fallback, StorageType storageType, String operationName)
       throws IllegalArgumentException {
     if (fallback == null) {
       if (operationName == null) {
         throw new IllegalArgumentException(
             "A function or name of vectorized operation must be specified. This is a bug in the Table library.");
       } else {
+        String className = this.getClass().getName();
         throw new IllegalArgumentException(
             "The operation "
                 + operationName
-                + " has no vectorized implementation for this storage type, but no fallback function was provided. This is a bug in the Table library.");
+                + " has no vectorized implementation for " + className + ", but no fallback function was provided. This is a bug in the Table library.");
       }
     }
 
