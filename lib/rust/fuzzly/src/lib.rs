@@ -1,3 +1,5 @@
+//! Fuzzy-matching library.
+
 #![recursion_limit = "256"]
 // === Features ===
 #![feature(core_intrinsics)]
@@ -44,10 +46,13 @@ use score::*;
 // === Result of a successful match ===
 // ====================================
 
+/// Result of a successful match of a pattern against a string.
 #[derive(Debug, Clone, Derivative)]
 #[derivative(PartialEq, Eq, PartialOrd, Ord)]
 pub struct Match<Score> {
+    /// Value that can be used to compare match quality.
     pub score:         Score,
+    /// Identifies which characters in the string were matched against characters from the pattern.
     #[derivative(PartialEq = "ignore", PartialOrd = "ignore", Ord = "ignore")]
     pub match_indexes: MatchIndexes,
 }
@@ -268,7 +273,7 @@ impl<SB: ScoreBuilder> Matcher<SB> {
     /// quality of the match; returns this score along with information about what characters of the
     /// target were matched by the pattern.
     pub fn search(&mut self, pattern: &str, target: &str) -> Option<Match<SB::SubmatchScore>> {
-        let pattern: String = normalize_pattern(pattern.chars()).collect();
+        let pattern: String = normalize_pattern(pattern).collect();
         let root_submatch = self.subsearch(&pattern, target)?;
         let WithMatchIndexes { inner: score, match_indexes } = root_submatch;
         let match_indexes = MatchIndexes { indexes: match_indexes };
@@ -281,11 +286,13 @@ impl<SB: ScoreBuilder> Matcher<SB> {
 ///
 /// This is not a static method of [`Matcher`] because it is independent of [`Matcher`]'s generic
 /// parameterization.
-fn normalize_pattern(pattern: impl Iterator<Item = char>) -> impl Iterator<Item = char> {
+fn normalize_pattern(pattern: &str) -> impl Iterator<Item = char> + '_ {
+    // Strip leading and trailing whitespace.
+    let pattern = pattern.trim();
     // Collapse any sequence of delimiters to the strongest, in this ranking: `.` > `_` > ` `
     core::iter::from_generator(|| {
         let mut delimiter = None;
-        for c in pattern {
+        for c in pattern.chars() {
             match c {
                 '.' => {
                     delimiter = Some('.');
@@ -690,8 +697,7 @@ mod test_match {
     fn check_normalization(cases: &[(&str, &str)]) {
         let normalized = cases.iter().map(|(_raw, normalized)| normalized);
         let raw = cases.iter().map(|(raw, _normalized)| raw);
-        let computed: Vec<String> =
-            raw.map(|raw| normalize_pattern(raw.chars()).collect()).collect();
+        let computed: Vec<String> = raw.map(|raw| normalize_pattern(raw).collect()).collect();
         let expected: Vec<_> = normalized.map(|s| s.to_owned()).collect();
         assert_eq!(&computed[..], &expected[..]);
     }
@@ -706,10 +712,10 @@ mod test_match {
             ("data. re fi", "data.re fi"),
             ("data .refi", "data.refi"),
             // === Leading and trailing underscores and dots are preserved ===
-            //("_data.read_file_", "_data.read_file_"),
-            //(".data.read_file.", ".data.read_file."),
+            ("_data.read_file_", "_data.read_file_"),
+            (".data.read_file.", ".data.read_file."),
             // === Leading and trailing spaces are stripped ===
-            //(" data.read_file ", "data.read_file"),
+            (" data.read_file ", "data.read_file"),
         ]);
     }
 }

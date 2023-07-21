@@ -220,9 +220,8 @@ impl Component {
         let target_info = search::TargetInfo { is_alias: false };
         let name = self.name();
         let name_subsequence = search(name, pattern, target_info);
-        let name_match_info = name_subsequence.map(|subsequence| {
-            MatchInfo::Matches { subsequence, kind: MatchKind::Name }
-        });
+        let name_match_info = name_subsequence
+            .map(|subsequence| MatchInfo::Matches { subsequence, kind: MatchKind::Name });
 
         // Match the input pattern to an entry's aliases and select the best alias match.
         let target_info = search::TargetInfo { is_alias: true };

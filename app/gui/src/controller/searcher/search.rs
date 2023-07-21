@@ -1,7 +1,7 @@
 //! Component Browser filtering and result ordering.
 
-use std::cmp::Ordering;
 use fuzzly::score;
+use std::cmp::Ordering;
 
 
 
@@ -16,7 +16,7 @@ pub fn search(target: &str, pattern: &str, target_info: TargetInfo) -> Option<Su
     thread_local! {
         static MATCHER: std::cell::RefCell<fuzzly::Matcher<ScoreBuilder>> = Default::default();
     }
-    let r#match = MATCHER.with(|matcher| Some(matcher.borrow_mut().search(pattern, target)?))?;
+    let r#match = MATCHER.with(|matcher| matcher.borrow_mut().search(pattern, target))?;
     Some(r#match.map_score(|score| match_score(score, target_info)))
 }
 
