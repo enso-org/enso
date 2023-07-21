@@ -296,7 +296,7 @@ impl View {
 
             // === Breadcrumbs ===
 
-            eval_ frp.show(model.set_initial_breadcrumbs());
+            eval_ init(model.set_initial_breadcrumbs());
 
 
             // === Displaying documentation ===
