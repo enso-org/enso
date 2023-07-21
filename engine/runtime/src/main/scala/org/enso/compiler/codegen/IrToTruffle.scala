@@ -248,31 +248,34 @@ class IrToTruffle(
           val argumentExpressions =
             new ArrayBuffer[(RuntimeExpression, RuntimeExpression)]
 
-          for (idx <- atomDefn.arguments.indices) {
-            val unprocessedArg = atomDefn.arguments(idx)
-            val runtimeTypes   = checkRuntimeTypes(unprocessedArg)
+          val runtimeArgumentTypes =
+            for (idx <- atomDefn.arguments.indices) yield {
+              val unprocessedArg = atomDefn.arguments(idx)
+              val runtimeTypes   = checkRuntimeTypes(unprocessedArg)
 
-            val arg = argFactory.run(unprocessedArg, idx)
-            val occInfo = unprocessedArg
-              .unsafeGetMetadata(
-                AliasAnalysis,
-                "No occurrence on an argument definition."
-              )
-              .unsafeAs[AliasAnalysis.Info.Occurrence]
-            val slotIdx = localScope.getVarSlotIdx(occInfo.id)
-            argDefs(idx) = arg
-            val readArg =
-              ReadArgumentNode.build(
-                arg.getName(),
-                idx,
-                arg.getDefaultValue.orElse(null),
-                runtimeTypes.asJava
-              )
-            val assignmentArg = AssignmentNode.build(readArg, slotIdx)
-            val argRead =
-              ReadLocalVariableNode.build(new FramePointer(0, slotIdx))
-            argumentExpressions.append((assignmentArg, argRead))
-          }
+              val arg = argFactory.run(unprocessedArg, idx)
+              val occInfo = unprocessedArg
+                .unsafeGetMetadata(
+                  AliasAnalysis,
+                  "No occurrence on an argument definition."
+                )
+                .unsafeAs[AliasAnalysis.Info.Occurrence]
+              val slotIdx = localScope.getVarSlotIdx(occInfo.id)
+              argDefs(idx) = arg
+              val readArg =
+                ReadArgumentNode.build(
+                  arg.getName(),
+                  idx,
+                  arg.getDefaultValue.orElse(null),
+                  runtimeTypes.asJava
+                )
+              val assignmentArg = AssignmentNode.build(readArg, slotIdx)
+              val argRead =
+                ReadLocalVariableNode.build(new FramePointer(0, slotIdx))
+              argumentExpressions.append((assignmentArg, argRead))
+
+              runtimeTypes
+            }
 
           val (assignments, reads) = argumentExpressions.unzip
           // build annotations
@@ -313,6 +316,7 @@ class IrToTruffle(
               assignments.toArray,
               reads.toArray,
               annotations.toArray,
+              runtimeArgumentTypes.map(_.toArray).toArray,
               argDefs: _*
             )
           }

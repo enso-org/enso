@@ -43,7 +43,7 @@ public abstract class ReadArgumentCheckNode extends Node {
     this.expectedTypes = expectedTypes;
   }
 
-  static ReadArgumentCheckNode build(String argumentName, Type[] expectedTypes) {
+  public static ReadArgumentCheckNode build(String argumentName, Type[] expectedTypes) {
     if (expectedTypes == null || expectedTypes.length == 0) {
       return null;
     } else {
@@ -51,7 +51,7 @@ public abstract class ReadArgumentCheckNode extends Node {
     }
   }
 
-  abstract Object executeCheckOrConversion(VirtualFrame frame, Object value);
+  public abstract Object executeCheckOrConversion(VirtualFrame frame, Object value);
 
   @Specialization(rewriteOn = InvalidAssumptionException.class)
   Object doCheckNoConversionNeeded(VirtualFrame frame, Object v) throws InvalidAssumptionException {

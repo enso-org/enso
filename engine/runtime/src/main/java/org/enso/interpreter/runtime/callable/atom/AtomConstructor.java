@@ -97,7 +97,14 @@ public final class AtomConstructor implements TruffleObject {
       reads[i] = ReadArgumentNode.build(args[i].getName(), i, null, null);
     }
     return initializeFields(
-        language, null, LocalScope.root(), new ExpressionNode[0], reads, new Annotation[0], args);
+        language,
+        null,
+        LocalScope.root(),
+        new ExpressionNode[0],
+        reads,
+        new Annotation[0],
+        new Type[args.length][],
+        args);
   }
 
   /**
@@ -116,6 +123,7 @@ public final class AtomConstructor implements TruffleObject {
       ExpressionNode[] assignments,
       ExpressionNode[] varReads,
       Annotation[] annotations,
+      Type[][] types,
       ArgumentDefinition... args) {
     CompilerDirectives.transferToInterpreterAndInvalidate();
     if (args.length == 0) {
@@ -124,7 +132,7 @@ public final class AtomConstructor implements TruffleObject {
       cachedInstance = null;
     }
     if (Layout.isAritySupported(args.length)) {
-      boxedLayout = Layout.create(args.length, 0, args);
+      boxedLayout = Layout.create(args.length, 0, types, args);
     }
     this.constructorFunction =
         buildConstructorFunction(

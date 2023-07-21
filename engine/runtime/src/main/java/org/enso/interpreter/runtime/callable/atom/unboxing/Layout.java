@@ -1,13 +1,20 @@
 package org.enso.interpreter.runtime.callable.atom.unboxing;
 
-import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.dsl.NodeFactory;
-import com.oracle.truffle.api.nodes.ExplodeLoop;
+import java.util.List;
+
 import org.enso.interpreter.dsl.atom.LayoutSpec;
+import org.enso.interpreter.node.callable.argument.ReadArgumentCheckNode;
 import org.enso.interpreter.node.expression.atom.InstantiateNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
+import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.data.Type;
+
+import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.dsl.NodeFactory;
+import com.oracle.truffle.api.nodes.ExplodeLoop;
+import com.oracle.truffle.api.nodes.Node;
 
 /**
  * This class mediates the use of {@link UnboxingAtom} instances. It is responsible for describing
@@ -66,7 +73,7 @@ public class Layout {
           ? extends UnboxingAtom.InstantiatorNode>
       instantiatorFactory;
 
-  public Layout(
+  private Layout(
       long inputFlags,
       int[] fieldToStorage,
       NodeFactory<? extends UnboxingAtom.FieldGetterNode>[] fieldGetterFactories,
@@ -107,7 +114,7 @@ public class Layout {
    * factories for getters, setters and instantiators.
    */
   @SuppressWarnings("unchecked")
-  public static Layout create(int arity, long typeFlags, ArgumentDefinition[] args) {
+  public static Layout create(int arity, long typeFlags, Type[][] types, ArgumentDefinition[] args) {
     if (arity > 32) {
       throw new IllegalArgumentException("Too many fields in unboxed atom");
     }
@@ -140,7 +147,11 @@ public class Layout {
         LayoutFactory.getFieldSetterNodeFactories(numDouble, numLong, numBoxed);
     var setterFactories = new NodeFactory[arity];
     for (int i = 0; i < arity; i++) {
-      setterFactories[i] = storageSetterFactories[fieldToStorage[i]];
+      var factory = storageSetterFactories[fieldToStorage[i]];
+      if (types[i] != null) {
+        factory = new SetterTypeCheckFactory(args[i], types[i], factory);
+      }
+      setterFactories[i] = factory;
     }
 
     var instantiatorFactory = LayoutFactory.getInstantiatorNodeFactory(numUnboxed, numBoxed);
@@ -251,7 +262,13 @@ public class Layout {
         if (layouts.length == this.unboxedLayouts.length) {
           // Layouts stored in this node are probably up-to-date; create a new one and try to
           // register it.
-          var newLayout = Layout.create(arity, flags, boxedLayout.layout.args);
+          var types = new Type[boxedLayout.layout.args.length][];
+          for (int i = 0; i < types.length; i++) {
+              if (boxedLayout.layout.fieldSetterFactories[i] instanceof SetterTypeCheckFactory factory) {
+                types[i] = factory.type;
+              }
+          }
+          var newLayout = Layout.create(arity, flags, types, boxedLayout.layout.args);
           constructor.atomicallyAddLayout(newLayout, this.unboxedLayouts.length);
         }
         updateFromConstructor();
@@ -285,6 +302,56 @@ public class Layout {
         }
       }
       return flags;
+    }
+  }
+
+  private static final class SetterTypeCheckFactory implements NodeFactory<UnboxingAtom.FieldSetterNode> {
+    private final String argName;
+    private final Type[] type;
+    private final NodeFactory<UnboxingAtom.FieldSetterNode> delegate;
+
+    private SetterTypeCheckFactory(ArgumentDefinition arg, Type[] type, NodeFactory<UnboxingAtom.FieldSetterNode> factory) {
+      this.argName = arg.getName();
+      this.type = type;
+      this.delegate = factory;
+    }
+
+    @Override
+    public UnboxingAtom.FieldSetterNode createNode(Object... arguments) {
+      var checkNode = ReadArgumentCheckNode.build(argName, type);
+      var setterNode = delegate.createNode(arguments);
+      return checkNode == null ? setterNode : new CheckFieldSetterNode(setterNode, checkNode);
+    }
+
+    @Override
+    public Class<UnboxingAtom.FieldSetterNode> getNodeClass() {
+      return delegate.getNodeClass();
+    }
+
+    @Override
+    public List<List<Class<?>>> getNodeSignatures() {
+      return delegate.getNodeSignatures();
+    }
+
+    @Override
+    public List<Class<? extends Node>> getExecutionSignature() {
+      return delegate.getExecutionSignature();
+    }
+  }
+
+  private static final class CheckFieldSetterNode extends UnboxingAtom.FieldSetterNode {
+    @Child ReadArgumentCheckNode checkNode;
+    @Child UnboxingAtom.FieldSetterNode setterNode;
+
+    private CheckFieldSetterNode(UnboxingAtom.FieldSetterNode setterNode, ReadArgumentCheckNode checkNode) {
+      this.setterNode = setterNode;
+      this.checkNode = checkNode;
+    }
+
+    @Override
+    public void execute(Atom atom, Object value) {
+      var valueOrConvertedValue = checkNode.executeCheckOrConversion(null, value);
+      setterNode.execute(atom, valueOrConvertedValue);
     }
   }
 }

@@ -1,7 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
-from Standard.Base.Errors.Common import Uninitialized_State
+from Standard.Base.Errors.Common import Uninitialized_State, Type_Error
 
 polyglot java import java.lang.Object as JObject
 polyglot java import java.lang.Long as JLong
@@ -374,6 +374,11 @@ spec =
 
             fill 10 # no change
             atom.bar . should_equal 2
+
+        Test.specify "reject wrong type" <|
+            pair = Meta.atom_with_hole (e -> My_Ascribed_Type.Value_With_Type 1 e 3)
+            fill = pair.fill
+            Panic.catch Any (fill "Two") err->err.convert_to_dataflow_error . should_fail_with Type_Error
 
         Test.specify "fail if atom_with_hole isn't used" <|
             key = Panic.catch Uninitialized_State handler=(caught_panic-> caught_panic.payload.key) <|
