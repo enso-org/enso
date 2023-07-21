@@ -515,7 +515,7 @@ impl<E: Entry> GridView<E> {
             set_entry_params:      set_entry_params.into(),
             entry_contour:         out.entry_contour.clone_ref(),
             entry_hovered:         out.entry_hovered.clone_ref(),
-            select_entry:          frp.input.select_entry.clone_ref(),
+            entry_selected:        out.entry_selected.clone_ref(),
             entry_accepted:        out.entry_accepted.clone_ref(),
             override_column_width: override_column_width.clone_ref(),
             minimum_column_width:  minimum_column_width.clone_ref(),

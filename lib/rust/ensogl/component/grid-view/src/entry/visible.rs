@@ -70,7 +70,7 @@ pub struct CreationCtx<EntryParams> {
     pub set_entry_params:      frp::Stream<EntryParams>,
     pub entry_contour:         frp::Any<(Row, Col, entry::Contour)>,
     pub entry_hovered:         frp::Any<Option<(Row, Col)>>,
-    pub select_entry:          frp::Any<Option<(Row, Col)>>,
+    pub entry_selected:        frp::Any<Option<(Row, Col)>>,
     pub entry_accepted:        frp::Any<(Row, Col)>,
     pub override_column_width: frp::Any<(Col, f32)>,
     pub minimum_column_width:  frp::Any<(Col, f32)>,
@@ -133,7 +133,7 @@ where EntryParams: frp::node::Data
                 selected <- events.mouse_down.gate_not(disabled);
                 accepted <- events.mouse_down_primary.gate_not(disabled);
                 self.entry_hovered <+ location.sample(&hovered).map(|l| Some(*l));
-                self.select_entry <+ location.sample(&selected).map(|l| Some(*l));
+                self.entry_selected <+ location.sample(&selected).map(|l| Some(*l));
                 self.entry_accepted <+ location.sample(&accepted);
                 self.override_column_width <+ entry_frp.override_column_width.map2(
                     &column,
