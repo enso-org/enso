@@ -1,5 +1,7 @@
 package org.enso.interpreter.node.callable.argument;
 
+import com.oracle.truffle.api.dsl.Cached.Shared;
+
 import java.util.Arrays;
 import java.util.stream.Collectors;
 
@@ -68,7 +70,7 @@ public abstract class ReadArgumentCheckNode extends Node {
   })
   Object doWithConversionCached(
     VirtualFrame frame, Object v,
-    @Cached TypeOfNode typeOfNode,
+    @Shared("typeOfNode") @Cached TypeOfNode typeOfNode,
     @Cached("findType(typeOfNode, v)") Type cachedType,
     @Cached("findConversionNode(cachedType)") ApplicationNode convertNode
   ) {
@@ -78,7 +80,7 @@ public abstract class ReadArgumentCheckNode extends Node {
   @Specialization(replaces = "doWithConversionCached")
   Object doWithConversionUncached(
     VirtualFrame frame, Object v,
-    @Cached TypeOfNode typeOfNode
+    @Shared("typeOfNode") @Cached TypeOfNode typeOfNode
   ) {
     var type = findType(typeOfNode, v);
     return doWithConversionUncachedBoundary(frame.materialize(), v, type);

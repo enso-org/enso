@@ -1,6 +1,7 @@
 package org.enso.interpreter.node.callable.resolver;
 
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.ImportStatic;
 import com.oracle.truffle.api.dsl.ReportPolymorphism;
@@ -202,8 +203,8 @@ public abstract class HostMethodCallNode extends Node {
       String symbol,
       Object self,
       Object[] args,
-      @CachedLibrary(limit = "LIB_LIMIT") InteropLibrary members,
-      @Cached HostValueToEnsoNode hostValueToEnsoNode) {
+      @Shared("interop") @CachedLibrary(limit = "LIB_LIMIT") InteropLibrary members,
+      @Shared("hostValueToEnsoNode") @Cached HostValueToEnsoNode hostValueToEnsoNode) {
     try {
       return hostValueToEnsoNode.execute(members.invokeMember(self, symbol, args));
     } catch (UnsupportedMessageException | UnknownIdentifierException e) {
@@ -232,8 +233,8 @@ public abstract class HostMethodCallNode extends Node {
       String symbol,
       Object self,
       Object[] args,
-      @CachedLibrary(limit = "LIB_LIMIT") InteropLibrary members,
-      @Cached HostValueToEnsoNode hostValueToEnsoNode,
+      @Shared("interop") @CachedLibrary(limit = "LIB_LIMIT") InteropLibrary members,
+      @Shared("hostValueToEnsoNode") @Cached HostValueToEnsoNode hostValueToEnsoNode,
       @Cached BranchProfile errorProfile) {
     if (args.length != 0) {
       errorProfile.enter();
@@ -254,8 +255,8 @@ public abstract class HostMethodCallNode extends Node {
       String symbol,
       Object self,
       Object[] args,
-      @CachedLibrary(limit = "LIB_LIMIT") InteropLibrary instances,
-      @Cached HostValueToEnsoNode hostValueToEnsoNode) {
+      @Shared("interop") @CachedLibrary(limit = "LIB_LIMIT") InteropLibrary instances,
+      @Shared("hostValueToEnsoNode") @Cached HostValueToEnsoNode hostValueToEnsoNode) {
     try {
       return hostValueToEnsoNode.execute(instances.instantiate(self, args));
     } catch (UnsupportedMessageException e) {

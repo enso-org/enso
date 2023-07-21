@@ -2,6 +2,7 @@ package org.enso.interpreter.node.expression.builtin.meta;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -83,8 +84,8 @@ public abstract class TypeOfNode extends Node {
   @Specialization(guards = {"!types.hasType(value)"})
   Object withoutType(
       Object value,
-      @CachedLibrary(limit = "3") InteropLibrary interop,
-      @CachedLibrary(limit = "3") TypesLibrary types,
+      @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary interop,
+      @Shared("types") @CachedLibrary(limit = "3") TypesLibrary types,
       @Cached WithoutType delegate) {
     var type = WithoutType.Interop.resolve(value, interop);
     return delegate.execute(type, value);
@@ -93,8 +94,8 @@ public abstract class TypeOfNode extends Node {
   @Specialization(guards = {"types.hasType(value)", "!interop.isNumber(value)"})
   Object doType(
       Object value,
-      @CachedLibrary(limit = "3") InteropLibrary interop,
-      @CachedLibrary(limit = "3") TypesLibrary types) {
+      @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary interop,
+      @Shared("types") @CachedLibrary(limit = "3") TypesLibrary types) {
     return types.getType(value);
   }
 
@@ -130,7 +131,9 @@ public abstract class TypeOfNode extends Node {
 
     @Specialization(guards = {"type.isNumber()"})
     Type doPolyglotNumber(
-        Interop type, Object value, @CachedLibrary(limit = "3") InteropLibrary interop) {
+        Interop type,
+        Object value,
+        @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary interop) {
       Builtins builtins = EnsoContext.get(this).getBuiltins();
       if (interop.fitsInInt(value)) {
         return builtins.number().getInteger();
@@ -174,7 +177,9 @@ public abstract class TypeOfNode extends Node {
 
     @Specialization(guards = {"type.isMetaObject()"})
     Object doMetaObject(
-        Interop type, Object value, @CachedLibrary(limit = "3") InteropLibrary interop) {
+        Interop type,
+        Object value,
+        @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary interop) {
       try {
         return interop.getMetaObject(value);
       } catch (UnsupportedMessageException e) {
