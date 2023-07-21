@@ -81,7 +81,7 @@ pub struct Snippet {
 
 impl Snippet {
     /// Construct a hardcoded snippet with given name, code, and icon.
-    fn new(name: &str, code: &str, icon: IconId) -> Self {
+    pub fn new(name: &str, code: &str, icon: IconId) -> Self {
         Self { name: name.into(), code: code.into(), icon, ..default() }
     }
 
