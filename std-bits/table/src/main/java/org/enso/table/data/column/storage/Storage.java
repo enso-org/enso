@@ -124,20 +124,18 @@ public abstract class Storage<T> {
    * Runs a unary function on each non-null element in this storage.
    *
    * @param function the function to run.
-   * @param onMissing the value to place for missing cells, usually just null
+   * @param skipNa whether rows containing missing values should be passed to the function.
    * @param expectedResultType the expected type for the result storage; it is ignored if the
    *     operation is vectorized
    * @return the result of running the function on each row
    */
-  public final Storage<?> unaryMap(Function<Object, Value> function, Value onMissing, StorageType expectedResultType) {
-    Object missingValue = Polyglot_Utils.convertPolyglotValue(onMissing);
-
+  public final Storage<?> unaryMap(Function<Object, Value> function, boolean skipNa, StorageType expectedResultType) {
     Builder storageBuilder = Builder.getForType(expectedResultType, size());
     Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
       Object it = getItemBoxed(i);
-      if (it == null) {
-        storageBuilder.appendNoGrow(missingValue);
+      if (skipNa && it == null) {
+        storageBuilder.appendNulls(1);
       } else {
         Value result = function.apply(it);
         // TODO convert only conditionally
@@ -222,17 +220,17 @@ public abstract class Storage<T> {
    * @param name the name of the vectorized operation
    * @param problemBuilder the problem builder to use for the vectorized implementation
    * @param fallback the fallback Enso function to run if vectorized implementation is not available
-   * @param onMissing the value to place for missing cells, usually just null
+   * @param skipNa whether rows containing missing values should be passed to the fallback function.
    * @param expectedResultType the expected type for the result storage; it is ignored if the
    *     operation is vectorized
    * @return the result of running the operation on each row
    */
-  public final Storage<?> vectorizedOrFallbackUnaryMap(String name, MapOperationProblemBuilder problemBuilder, Function<Object, Value> fallback, Value onMissing, StorageType expectedResultType) {
+  public final Storage<?> vectorizedOrFallbackUnaryMap(String name, MapOperationProblemBuilder problemBuilder, Function<Object, Value> fallback, boolean skipNa, StorageType expectedResultType) {
     if (isUnaryOpVectorized(name)) {
       return runVectorizedUnaryMap(name, problemBuilder);
     } else {
       checkFallback(fallback, expectedResultType, name);
-      return unaryMap(fallback, onMissing, expectedResultType);
+      return unaryMap(fallback, skipNa, expectedResultType);
     }
   }
 

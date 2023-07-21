@@ -931,23 +931,23 @@ type Column
     is_nothing : Column
     is_nothing self =
         new_name = Naming_Helpers.to_expression_text self + " is null"
-        run_vectorized_unary_op self "is_nothing" new_name fallback_fn=(== Nothing) expected_result_type=Value_Type.Boolean on_missing=True
+        run_vectorized_unary_op self "is_nothing" new_name fallback_fn=(x-> x == Nothing) expected_result_type=Value_Type.Boolean skip_nulls=False
 
     ## Returns a column of booleans, with `True` items at the positions where
        this column contains a NaN. This is only applicable to double columns.
     is_nan : Column
     is_nan self = Value_Type.expect_numeric self <|
-        self.internal_is_nan on_missing=Nothing
+        self.internal_is_nan
 
     ## PRIVATE
-    internal_is_nan : Any -> Column
-    internal_is_nan self on_missing =
+    internal_is_nan : Column
+    internal_is_nan self =
         new_name = Naming_Helpers.function_name "is_nan" [self]
         fallback x = case x of
             _ : Decimal -> x.is_nan
-            Nothing     -> on_missing
+            Nothing     -> Nothing
             _           -> False
-        run_vectorized_unary_op self "is_nan" new_name fallback_fn=fallback expected_result_type=Value_Type.Boolean on_missing=on_missing
+        run_vectorized_unary_op self "is_nan" new_name fallback_fn=fallback expected_result_type=Value_Type.Boolean
 
     ## Returns a column of booleans, with `True` items at the positions where
        this column contains a +Inf/-Inf. This is only applicable to double
@@ -959,7 +959,7 @@ type Column
             _ : Decimal -> x.is_infinite
             Nothing     -> Nothing
             _           -> False
-        run_vectorized_unary_op self "is_infinite" new_name fallback_fn=fallback expected_result_type=Value_Type.Boolean on_missing=Nothing
+        run_vectorized_unary_op self "is_infinite" new_name fallback_fn=fallback expected_result_type=Value_Type.Boolean
 
     ## PRIVATE
        Returns a column of booleans, with `True` items at the positions where
@@ -972,7 +972,7 @@ type Column
     internal_is_empty : Column
     internal_is_empty self =
         new_name = Naming_Helpers.to_expression_text self + " is empty"
-        run_vectorized_unary_op self "is_empty" new_name fallback_fn=Filter_Condition.Is_Empty.to_predicate expected_result_type=Value_Type.Boolean on_missing=True
+        run_vectorized_unary_op self "is_empty" new_name fallback_fn=Filter_Condition.Is_Empty.to_predicate expected_result_type=Value_Type.Boolean skip_nulls=False
 
     ## Returns a column of booleans, with `True` items at the positions where
        this column does not contain a `Nothing`.
@@ -1004,9 +1004,9 @@ type Column
         result = case self.value_type of
             Value_Type.Char _ _ -> self.is_empty
             Value_Type.Float _ ->
-                if treat_nans_as_blank then self.is_nothing.iif True (self.internal_is_nan on_missing=False) else self.is_nothing
+                if treat_nans_as_blank then self.is_nothing.iif True self.internal_is_nan else self.is_nothing
             Value_Type.Mixed ->
-                self.internal_is_empty || (if treat_nans_as_blank then self.is_nothing.iif True (self.internal_is_nan on_missing=False) else self.is_nothing)
+                self.internal_is_empty || (if treat_nans_as_blank then self.is_nothing.iif True self.internal_is_nan else self.is_nothing)
             _ -> self.is_nothing
         result.rename new_name
 
@@ -1407,8 +1407,7 @@ type Column
                 run_vectorized_binary_op self op_name as_vector expected_result_type=Value_Type.Boolean skip_nulls=False new_name=result_name
             False ->
                 set = Set.from_vector as_vector error_on_duplicates=False
-                on_missing = set.contains Nothing
-                run_unary_op self set.contains new_name=result_name on_missing=on_missing expected_result_type=Value_Type.Boolean
+                run_unary_op self set.contains new_name=result_name skip_nulls=False expected_result_type=Value_Type.Boolean
 
     ## Parses a text column into values.
 
@@ -1684,9 +1683,8 @@ type Column
              example_map = Examples.integer_column.map (x -> x * x)
     map : (Any -> Any) -> Boolean -> Column
     map self function skip_nothing=True =
-        new_fn = if skip_nothing then (x-> if x.is_nothing then Nothing else function x) else function
-        new_st = self.to_vector.map new_fn
-        Column.from_vector self.name new_st
+        # TODO [RW] #6111 fill in expected_result_type
+        run_unary_op self function new_name=self.name skip_nulls=skip_nothing
 
     ## ALIAS Transform Columns
 
@@ -1712,16 +1710,9 @@ type Column
                 Examples.integer_column.zip Examples.text_column_1 [_, _]
     zip : Column -> (Any -> Any -> Any) -> Boolean -> Column
     zip self that function skip_nothing=True =
-        new_fn = case skip_nothing of
-            True ->
-                x -> y ->
-                    if x.is_nothing then Nothing else
-                        if y.is_nothing then Nothing else
-                            function x y
-            False -> function
         new_name = Naming_Helpers.binary_operation_name "x" self that
-        vec = self.to_vector.zip that.to_vector new_fn
-        Column.from_vector new_name vec
+        # TODO [RW] #6111 fill in expected_result_type
+        run_binary_op self function that new_name=new_name skip_nulls=skip_nothing
 
     ## Returns a new column, containing the same elements as `self`, but with
        the given name.
@@ -2118,11 +2109,11 @@ run_binary_op column function operand new_name skip_nulls=True expected_result_t
 
 ## PRIVATE
    Runs a unary operation over the provided column.
-run_unary_op column function new_name on_missing=Nothing expected_result_type=Nothing =
+run_unary_op column function new_name skip_nulls=True expected_result_type=Nothing =
     s = column.java_column.getStorage
     storage_type = resolve_storage_type expected_result_type
     new_storage = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
-        s.unaryMap function on_missing storage_type
+        s.unaryMap function skip_nulls storage_type
     Column.Value (Java_Column.new new_name new_storage)
 
 ## PRIVATE
@@ -2169,18 +2160,21 @@ run_vectorized_binary_op_with_fallback_problem_handling column name operand fall
    Arguments:
    - column: The column to execute the operation over.
    - name: The name of the vectorized operation.
-   - expected_result_type: The expected result type of the operation.
    - new_name: The name of the column created as the result of this operation.
-   - on_missing: The value to return for missing cells. Ideally it should be
-     replaced with a `skip_nulls` parameter like elsewhere, but currently that
-     is not possible due to a bug: https://github.com/oracle/graal/issues/4741
+   - fallback_fn: The function to call if a vectorized operation is not
+     available.
+   - expected_result_type: The expected result type of the operation.
+   - skip_nulls: Specifies if nulls should be skipped. If set to `True`, a null
+     value results in null without passing it to the function. If set to
+     `False`, the null values are passed as any other value and can have custom
+     handling logic.
 run_vectorized_unary_op : Column -> Text -> Text -> (Any -> Any) -> Value_Type -> Any -> Column
-run_vectorized_unary_op column name new_name fallback_fn=Nothing expected_result_type=Nothing on_missing=Nothing =
+run_vectorized_unary_op column name new_name fallback_fn=Nothing expected_result_type=Nothing skip_nulls=True =
     problem_builder = MapOperationProblemBuilder.new column.name
     s = column.java_column.getStorage
     storage_type = resolve_storage_type expected_result_type
     rs = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
-        s.vectorizedOrFallbackUnaryMap name problem_builder fallback_fn on_missing storage_type
+        s.vectorizedOrFallbackUnaryMap name problem_builder fallback_fn skip_nulls storage_type
     result = Column.Value (Java_Column.new new_name rs)
     Problem_Behavior.Report_Warning.attach_problems_after result <|
         Java_Problems.parse_aggregated_problems problem_builder.getProblems
