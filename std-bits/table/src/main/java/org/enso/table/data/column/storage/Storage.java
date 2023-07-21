@@ -8,6 +8,7 @@ import java.util.function.Function;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.InferredBuilder;
+import org.enso.table.data.column.builder.MixedBuilder;
 import org.enso.table.data.column.builder.ObjectBuilder;
 import org.enso.table.data.column.operation.cast.CastProblemBuilder;
 import org.enso.table.data.column.operation.cast.StorageConverter;
@@ -298,7 +299,7 @@ public abstract class Storage<T> {
    * @return a new storage, with all missing elements replaced by arg
    */
   public Storage<?> fillMissing(Value arg) {
-    return fillMissingHelper(arg, new ObjectBuilder(size()));
+    return fillMissingHelper(arg, new MixedBuilder(size()));
   }
 
   /**

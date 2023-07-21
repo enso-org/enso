@@ -14,7 +14,7 @@ public abstract class Builder {
    */
   public static Builder getForType(StorageType type, int size) {
     Builder builder = switch (type) {
-      case AnyObjectType x -> new ObjectBuilder(size);
+      case AnyObjectType x -> new MixedBuilder(size);
       case BooleanType x -> new BoolBuilder(size);
       case DateType x -> new DateBuilder(size);
       case DateTimeType x -> new DateTimeBuilder(size);
