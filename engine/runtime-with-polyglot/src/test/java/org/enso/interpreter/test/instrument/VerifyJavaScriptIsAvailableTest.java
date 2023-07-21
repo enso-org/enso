@@ -6,6 +6,7 @@ import static org.junit.Assert.assertNotNull;
 import java.nio.file.Paths;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.io.IOAccess;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -20,7 +21,7 @@ public class VerifyJavaScriptIsAvailableTest {
     ctx =
         Context.newBuilder()
             .allowExperimentalOptions(true)
-            .allowIO(true)
+            .allowIO(IOAccess.ALL)
             .option(RuntimeOptions.PREINITIALIZE, "js")
             .option(
                 RuntimeOptions.LANGUAGE_HOME_OVERRIDE,

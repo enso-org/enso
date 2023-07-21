@@ -29,7 +29,7 @@ jobs:
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.0.5
+        uses: s-weigand/setup-conda@v1.0.6
         with:
           update-conda: false
           conda-channels: anaconda, conda-forge
@@ -103,7 +103,7 @@ jobs:
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.0.5
+        uses: s-weigand/setup-conda@v1.0.6
         with:
           update-conda: false
           conda-channels: anaconda, conda-forge
@@ -179,7 +179,7 @@ jobs:
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.0.5
+        uses: s-weigand/setup-conda@v1.0.6
         with:
           update-conda: false
           conda-channels: anaconda, conda-forge

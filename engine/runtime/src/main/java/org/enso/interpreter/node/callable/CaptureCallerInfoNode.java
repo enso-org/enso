@@ -5,6 +5,7 @@ import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.GenerateUncached;
+import com.oracle.truffle.api.dsl.NeverDefault;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.nodes.Node;
@@ -59,12 +60,14 @@ public abstract class CaptureCallerInfoNode extends Node {
     }
   }
 
+  @NeverDefault
   ScopeInfo buildScopeInfo() {
     EnsoRootNode rootNode = (EnsoRootNode) getRootNode();
     return new ScopeInfo(rootNode.getLocalScope(), rootNode.getModuleScope());
   }
 
   @CompilerDirectives.TruffleBoundary
+  @NeverDefault
   ScopeInfo buildUncachedScopeInfo() {
     RootCallTarget ct =
         Truffle.getRuntime()

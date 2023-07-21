@@ -31,8 +31,6 @@ function ConfirmRegistration() {
 
     const { verificationCode, email } = parseUrlSearchParams(location.search)
 
-    // No dependencies means this runs on every render, however this component immediately
-    // navigates away so it should not exist for more than a few renders.
     React.useEffect(() => {
         if (email == null || verificationCode == null) {
             navigate(app.LOGIN_PATH)
@@ -50,7 +48,10 @@ function ConfirmRegistration() {
                 }
             })()
         }
-    })
+        // This MUST only run once - this is fine because the above function *always* `navigate`s
+        // away.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
 
     return <></>
 }

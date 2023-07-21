@@ -7,24 +7,23 @@ CHANGELOG.md
 /build @mwu-tow
 
 # Rust Libraries and Related Files
-rust-toolchain.toml @MichaelMauderer @mwu-tow @farmaazon
-rustfmt.toml @MichaelMauderer @mwu-tow @farmaazon
+rust-toolchain.toml @MichaelMauderer @vitvakatu @Frizi @kazcw @farmaazon @mwu-tow
+rustfmt.toml @MichaelMauderer @mwu-tow @farmaazon @vitvakatu @Frizi @kazcw 
 Cargo.lock
 Cargo.toml
-/lib/rust/ @MichaelMauderer @mwu-tow @farmaazon @wdanilo @kazcw
-/lib/rust/ensogl/ @MichaelMauderer @wdanilo @farmaazon @kazcw
-/lib/rust/parser/ @kazcw @wdanilo @jaroslavtulach
-/integration-test/ @MichaelMauderer @wdanilo @farmaazon @kazcw
-/tools/build-performance/ @kazcw @mwu-tow @wdanilo @Akirathan
+/lib/rust/ @MichaelMauderer @mwu-tow @farmaazon @kazcw @vitvakatu @Frizi
+/lib/rust/ensogl/ @MichaelMauderer @farmaazon @kazcw @vitvakatu @Frizi
+/lib/rust/parser/ @kazcw @jaroslavtulach
+/integration-test/ @MichaelMauderer @farmaazon @kazcw @vitvakatu @Frizi
+/tools/build-performance/ @kazcw @mwu-tow @Akirathan
 
 # Scala Libraries
 /lib/scala/ @4e6 @jaroslavtulach @hubertp
 
 # GUI
-/app/gui/ @MichaelMauderer @wdanilo @farmaazon @mwu-tow @kazcw
-/app/gui/view/ @MichaelMauderer @wdanilo @farmaazon @kazcw
-/app/gui/view/graph-editor/src/builtin/visualization/java_script/ @MichaelMauderer @wdanilo @farmaazon @kazcw @jdunkerley
-/app/ide-desktop/ @MichaelMauderer @wdanilo
+/app/gui/ @MichaelMauderer @farmaazon @mwu-tow @kazcw @vitvakatu @Frizi
+/app/gui/view/ @MichaelMauderer @farmaazon @kazcw @vitvakatu @Frizi
+/app/gui/view/graph-editor/src/builtin/visualization/java_script/ @MichaelMauderer @farmaazon @kazcw @jdunkerley @vitvakatu @Frizi
 
 # Engine (old)
 # This section should be removed once the engine moves to /app/engine
@@ -40,14 +39,5 @@ Cargo.toml
 /distribution/lib/ @jdunkerley @radeusgd @GregoryTravis
 /std-bits/ @jdunkerley @radeusgd @GregoryTravis
 
-# Cloud Dashboard & Authentication
-/app/ide-desktop/lib/dashboard @PabloBuchu @indiv0 @somebody1234
-/app/ide-desktop/lib/content @PabloBuchu @indiv0 @somebody1234
-/app/ide-desktop/lib/client @PabloBuchu @indiv0 @somebody1234
-/app/ide-desktop/lib/types @PabloBuchu @indiv0 @somebody1234
-/app/ide-desktop/lib/common @PabloBuchu @indiv0 @somebody1234
-
-# Eslint & Esbuild Configuration
-/app/ide-desktop/lib/esbuild-plugin-copy-directories @somebody1234
-/app/ide-desktop/eslint.config.js @somebody1234
-/app/ide-desktop/utils.ts @somebody1234
+# Dashboard, Cloud & Authentication
+/app/ide-desktop/ @PabloBuchu @indiv0 @somebody1234

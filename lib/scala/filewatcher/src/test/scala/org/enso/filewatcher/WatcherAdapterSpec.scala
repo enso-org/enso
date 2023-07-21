@@ -1,10 +1,9 @@
-package org.enso.languageserver.filemanager
+package org.enso.filewatcher
 
 import java.nio.file.{Files, Path, Paths}
 import java.util.concurrent.{Executors, LinkedBlockingQueue, Semaphore}
 
 import org.apache.commons.io.FileUtils
-import org.enso.languageserver.effect.Effects
 import org.enso.testkit.RetrySpec
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -12,11 +11,7 @@ import org.scalatest.matchers.should.Matchers
 import scala.concurrent.duration._
 import scala.util.Try
 
-class WatcherAdapterSpec
-    extends AnyFlatSpec
-    with Matchers
-    with Effects
-    with RetrySpec {
+class WatcherAdapterSpec extends AnyFlatSpec with Matchers with RetrySpec {
 
   import WatcherAdapter._
 
@@ -79,16 +74,16 @@ class WatcherAdapterSpec
     val queue    = new LinkedBlockingQueue[WatcherEvent]()
     val watcher  = WatcherAdapter.build(tmp, queue.put, println(_))
 
-    executor.submit { () =>
+    executor.submit[Any] { () =>
       lock.release()
-      watcher.start().unsafeRunSync()
+      watcher.start()
     }
 
     try {
       lock.tryAcquire(Timeout.length, Timeout.unit)
       test(tmp, queue)
     } finally {
-      watcher.stop().unsafeRunSync()
+      watcher.stop()
       executor.shutdown()
       Try(executor.awaitTermination(Timeout.length, Timeout.unit))
       Try(FileUtils.deleteDirectory(tmp.toFile))
