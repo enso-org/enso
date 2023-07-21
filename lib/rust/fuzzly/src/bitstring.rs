@@ -1,3 +1,6 @@
+//! Data structure that provides stack-of-boolean operations, implemented based on constant-time
+//! bitwise operations supported in hardware on typical modern machines.
+
 #[cfg(test)]
 use std::assert_matches::assert_matches;
 use std::intrinsics::likely;
@@ -10,7 +13,7 @@ use std::ops::Add;
 // === Bitstring ===
 // =================
 
-/// A sequence of bits, supporting stack operations, and concatenation. Optimized for sequences of
+/// A sequence of bits, supporting stack operations and concatenation. Optimized for sequences of
 /// 64 or fewer elements.
 #[derive(Debug, Default, Clone)]
 pub struct Bitstring {
@@ -18,12 +21,6 @@ pub struct Bitstring {
     head: Word,
     /// Extra segments. Each contains 1-64 bits.
     tail: Vec<Word>,
-}
-
-#[derive(Debug, Default, Clone, Copy)]
-struct Word {
-    len:  u32,
-    bits: u64,
 }
 
 impl Bitstring {
@@ -124,6 +121,11 @@ impl Bitstring {
         self.head.len == 0 && self.tail.is_empty()
     }
 
+    #[inline]
+    pub fn len(&self) -> u32 {
+        self.head.len + self.tail.iter().map(|word| word.len).sum::<u32>()
+    }
+
     #[cfg(test)]
     fn check_invariants(&self) {
         assert_matches!(self.head.len, 0..=64);
@@ -136,6 +138,9 @@ impl Bitstring {
     #[inline]
     fn check_invariants(&self) {}
 }
+
+
+// === Bitstring Trait Implementations ===
 
 impl Add for Bitstring {
     type Output = Self;
@@ -161,6 +166,21 @@ impl Add for Bitstring {
         result
     }
 }
+
+
+// === Word ===
+
+#[derive(Debug, Default, Clone, Copy)]
+struct Word {
+    len:  u32,
+    bits: u64,
+}
+
+
+
+// ==================
+// === Unit Tests ===
+// ==================
 
 #[cfg(test)]
 mod test {
@@ -225,9 +245,9 @@ mod test {
 
     #[test]
     fn test_bitstring() {
-        use rand_chacha::ChaCha8Rng;
         use rand::Rng;
         use rand::SeedableRng;
+        use rand_chacha::ChaCha8Rng;
         let mut rng = ChaCha8Rng::seed_from_u64(0);
         let mut strings = vec![];
         let mut i = 0;
@@ -244,20 +264,18 @@ mod test {
             }
             let operation = rng.gen_range(0u8..64);
             match operation {
-                0..28 => {
+                0..28 =>
                     if !shrink_phase || rng.gen() {
                         let bit = rng.gen();
                         string.0.push(bit);
                         string.1.push(bit);
-                    }
-                }
-                28..32 => {
+                    },
+                28..32 =>
                     if !shrink_phase || rng.gen() {
                         let count = core::num::NonZeroU32::new(rng.gen_range(1..80)).unwrap();
                         string.0.push_zeros(count);
                         string.1.push_zeros(count);
-                    }
-                }
+                    },
                 32..36 => {
                     string.0.drop_front();
                     string.1.drop_front();
@@ -276,17 +294,15 @@ mod test {
                         string = s;
                     }
                 }
-                56..60 => {
+                56..60 =>
                     if let Some(lhs) = strings.pop() {
                         let string_ = core::mem::take(&mut string);
                         string = (lhs.0 + string_.0, lhs.1 + string_.1);
-                    }
-                }
-                60..64 => {
+                    },
+                60..64 =>
                     if !shrink_phase || rng.gen() {
                         strings.push((super::Bitstring::new(), SlowBitstring::new()));
-                    }
-                }
+                    },
                 _ => (),
             }
             assert_eq!(string.0.is_empty(), string.1.is_empty());

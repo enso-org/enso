@@ -3681,7 +3681,10 @@ dependencies = [
 name = "fuzzly"
 version = "0.1.0"
 dependencies = [
- "enso-prelude",
+ "derivative",
+ "enso-text",
+ "rand 0.8.5",
+ "rand_chacha 0.3.1",
 ]
 
 [[package]]
@@ -7736,15 +7739,6 @@ dependencies = [
  "tokio-stream",
  "url",
  "websocket-lite",
-]
-
-[[package]]
-name = "wuzzly"
-version = "0.1.0"
-dependencies = [
- "derivative",
- "rand 0.8.5",
- "rand_chacha 0.3.1",
 ]
 
 [[package]]

@@ -29,6 +29,7 @@ use flo_stream::Subscriber;
 pub mod breadcrumbs;
 pub mod component;
 pub mod input;
+pub mod search;
 
 
 

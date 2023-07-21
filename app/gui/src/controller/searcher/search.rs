@@ -1,5 +1,7 @@
-use super::score;
+//! Component Browser filtering and result ordering.
+
 use std::cmp::Ordering;
+use fuzzly::score;
 
 
 
@@ -7,12 +9,15 @@ use std::cmp::Ordering;
 // === Search ===
 // ==============
 
-pub fn search(pattern: &str, target: &str, target_info: TargetInfo) -> Option<Score> {
+/// Try to find the pattern in the target. If matched, produced a score (adjusted using the
+/// specified information about the target), and information about target characters used in the
+/// match.
+pub fn search(target: &str, pattern: &str, target_info: TargetInfo) -> Option<Subsequence> {
     thread_local! {
-        static MATCHER: std::cell::RefCell<crate::Matcher<ScoreBuilder>> = Default::default();
+        static MATCHER: std::cell::RefCell<fuzzly::Matcher<ScoreBuilder>> = Default::default();
     }
-    let score = MATCHER.with(|matcher| Some(matcher.borrow_mut().search(pattern, target)?.score))?;
-    Some(match_score(score, target_info))
+    let r#match = MATCHER.with(|matcher| Some(matcher.borrow_mut().search(pattern, target)?))?;
+    Some(r#match.map_score(|score| match_score(score, target_info)))
 }
 
 
@@ -27,12 +32,15 @@ pub struct TargetInfo {
 
 
 
-// =============
-// === Score ===
-// =============
+// ===========================
+// === Search result types ===
+// ===========================
+
+/// Result of a successful match, including match score and indexes of the target string matched.
+pub type Subsequence = fuzzly::Match<Score>;
 
 /// Value enabling comparison of quality of a match.
-#[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Default, Ord, PartialOrd, Eq, PartialEq)]
 pub struct Score(u32);
 
 
@@ -204,8 +212,8 @@ impl core::ops::Add for ScoreInfo {
 // === Match score ===
 // ===================
 
-/// Given a submatch score a root submatch and information about a target, return a score for the
-/// target.
+/// Given a submatch score for a root submatch and information about a target, return a score for
+/// the target.
 fn match_score(score: ScoreInfo, target_info: TargetInfo) -> Score {
     let ScoreInfo { mut penalty, word_chars_skipped } = score;
     if target_info.is_alias {
