@@ -771,7 +771,7 @@ impl LayerModel {
         trans_cam.append_nonuniform_scaling_mut(&Vector3(1.0, -1.0, 1.0));
         let matrix_fmt = display::object::transformation::CssTransformFormatter(&trans_cam);
         let style = format!("transform:perspective({near}px) {matrix_fmt};");
-        dom.set_attribute_or_warn("style", &style);
+        dom.set_attribute_or_warn("style", style);
     }
 
     /// Compute a combined [`DependencyGraph`] for the layer taking into consideration the global

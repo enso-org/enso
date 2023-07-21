@@ -735,15 +735,15 @@ impl Tree {
             Some(entry) => {
                 dst.push_str(entry.node.widget().name());
                 if entry.node.port().is_some() {
-                    dst.push_str("*");
+                    dst.push('*');
                 }
             }
             None => {
                 dst.push_str("<MISSING>");
             }
         }
-        dst.push_str("\n");
-        let indent = format!("{}  ", indent);
+        dst.push('\n');
+        let indent = format!("{indent}  ");
         self.model.iter_children(pointer).for_each(|child| self.print_subtree(dst, &indent, child));
     }
 }
@@ -1590,7 +1590,7 @@ impl<'a> TreeBuilder<'a> {
             let is_applicable = |ctx: &ConfigContext, cfg: &Configuration| {
                 let flag = cfg.kind.flag();
                 !disallowed_configs.contains(flag)
-                    && !matches!(flag.match_node(&ctx), Score::Mismatch)
+                    && !matches!(flag.match_node(ctx), Score::Mismatch)
             };
 
             if let Some(config) = configuration.filter(|c| is_applicable(&ctx, c)) {

@@ -330,12 +330,7 @@ fn component_to_entry_model(component: &component::Component) -> component_grid:
         }
         component::Data::Virtual { snippet } => snippet.icon,
     };
-    component_grid::EntryModel {
-        caption: caption.into(),
-        highlighted: Rc::new(highlighted),
-        icon,
-        can_be_entered,
-    }
+    component_grid::EntryModel { caption, highlighted: Rc::new(highlighted), icon, can_be_entered }
 }
 
 fn bytes_of_matched_letters(match_info: &MatchInfo, label: &str) -> Vec<text::Range<text::Byte>> {

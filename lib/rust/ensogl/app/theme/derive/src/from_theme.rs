@@ -168,6 +168,6 @@ fn ensogl_core_crate() -> Ident {
         Ok(FoundCrate::Name(name)) => Ident::new(&name, Span::call_site()),
         Err(proc_macro_crate::Error::CrateNotFound { .. }) =>
             panic!("Could not find 'ensogl-core' or 'ensogl' in dependencies."),
-        Err(e) => panic!("{:?}", e),
+        Err(e) => panic!("{e:?}"),
     }
 }

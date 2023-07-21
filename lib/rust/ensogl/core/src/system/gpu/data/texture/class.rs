@@ -376,7 +376,7 @@ where
                     .unwrap();
             }
             _ => {
-                panic!("Unsupported texture target: {:?}", target);
+                panic!("Unsupported texture target: {target:?}");
             }
         }
         self.apply_texture_parameters(&self.context);

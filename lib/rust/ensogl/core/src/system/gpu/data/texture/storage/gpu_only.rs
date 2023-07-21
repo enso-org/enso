@@ -108,7 +108,7 @@ impl<I: InternalFormat, T: ItemType> TextureReload for Texture<GpuOnly, I, T> {
                     .unwrap();
             }
             _ => {
-                panic!("Unsupported texture target: {:?}", target);
+                panic!("Unsupported texture target: {target:?}");
             }
         }
 

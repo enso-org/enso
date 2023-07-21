@@ -265,7 +265,7 @@ pub struct CssTransformFormatter<'a>(pub &'a Matrix4<f32>);
 
 impl Display for CssTransformFormatter<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let transform = nalgebra::Transform3::from_matrix_unchecked(self.0.clone());
+        let transform = nalgebra::Transform3::from_matrix_unchecked(*self.0);
         if let Some(t) = nalgebra::try_convert_ref::<_, nalgebra::Translation3<f32>>(&transform) {
             if t.z == 0.0 {
                 write!(f, "translate({}px,{}px)", t.x, t.y)?;

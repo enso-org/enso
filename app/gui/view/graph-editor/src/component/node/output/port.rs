@@ -205,7 +205,7 @@ impl ShapeView {
         let label_width = self.type_label.width.value();
         let label_x = port_left_position + port_total_width * 0.5 - label_width * 0.5;
         self.type_label.set_x(label_x);
-        self.end_cap_right.as_ref().map(|cap| cap.set_x(size.x - NODE_OVERLAP));
+        self.end_cap_right.for_each_ref(|cap| cap.set_x(size.x - NODE_OVERLAP));
     }
 
     fn set_size_multiplier(&self, multiplier: f32) {
@@ -214,15 +214,14 @@ impl ShapeView {
         self.main.set_border(current_width);
         let cap_size = (current_width, current_width * 0.5);
         self.end_cap_left
-            .as_ref()
-            .map(|cap| cap.set_size(cap_size).set_x(-current_width + NODE_OVERLAP));
-        self.end_cap_right.as_ref().map(|cap| cap.set_size(cap_size));
+            .for_each_ref(|cap| cap.set_size(cap_size).set_x(-current_width + NODE_OVERLAP));
+        self.end_cap_right.for_each_ref(|cap| cap.set_size(cap_size));
     }
 
     fn set_color(&self, color: color::Rgba) {
         self.main.set_border_color(color);
-        self.end_cap_left.as_ref().map(|cap| cap.set_color(color));
-        self.end_cap_right.as_ref().map(|cap| cap.set_color(color));
+        self.end_cap_left.for_each_ref(|cap| cap.set_color(color));
+        self.end_cap_right.for_each_ref(|cap| cap.set_color(color));
     }
 }
 
