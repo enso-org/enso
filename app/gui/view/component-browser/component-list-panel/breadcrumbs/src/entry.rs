@@ -226,7 +226,6 @@ impl EntryData {
             self.text.set_x(ICON_WIDTH);
         } else {
             self.icon.unset_parent();
-            self.icon.set_size((0.0, 0.0));
             self.text.set_x(0.0);
         }
         let has_icon = icon.is_some();
