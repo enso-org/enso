@@ -1,7 +1,10 @@
 package org.enso.interpreter.runtime.callable.atom.unboxing;
 
+import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.dsl.NodeFactory;
+import com.oracle.truffle.api.nodes.ExplodeLoop;
+import com.oracle.truffle.api.nodes.Node;
 import java.util.List;
-
 import org.enso.interpreter.dsl.atom.LayoutSpec;
 import org.enso.interpreter.node.callable.argument.ReadArgumentCheckNode;
 import org.enso.interpreter.node.expression.atom.InstantiateNode;
@@ -10,11 +13,6 @@ import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.Type;
-
-import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.dsl.NodeFactory;
-import com.oracle.truffle.api.nodes.ExplodeLoop;
-import com.oracle.truffle.api.nodes.Node;
 
 /**
  * This class mediates the use of {@link UnboxingAtom} instances. It is responsible for describing
@@ -114,7 +112,7 @@ public class Layout {
    * factories for getters, setters and instantiators.
    */
   @SuppressWarnings("unchecked")
-  public static Layout create(int arity, long typeFlags, Type[][] types, ArgumentDefinition[] args) {
+  public static Layout create(int arity, long typeFlags, ArgumentDefinition[] args) {
     if (arity > 32) {
       throw new IllegalArgumentException("Too many fields in unboxed atom");
     }
@@ -148,8 +146,9 @@ public class Layout {
     var setterFactories = new NodeFactory[arity];
     for (int i = 0; i < arity; i++) {
       var factory = storageSetterFactories[fieldToStorage[i]];
-      if (types[i] != null) {
-        factory = new SetterTypeCheckFactory(args[i], types[i], factory);
+      var types = args[i].getCheckType();
+      if (types != null) {
+        factory = new SetterTypeCheckFactory(args[i], types, factory);
       }
       setterFactories[i] = factory;
     }
@@ -262,13 +261,7 @@ public class Layout {
         if (layouts.length == this.unboxedLayouts.length) {
           // Layouts stored in this node are probably up-to-date; create a new one and try to
           // register it.
-          var types = new Type[boxedLayout.layout.args.length][];
-          for (int i = 0; i < types.length; i++) {
-              if (boxedLayout.layout.fieldSetterFactories[i] instanceof SetterTypeCheckFactory factory) {
-                types[i] = factory.type;
-              }
-          }
-          var newLayout = Layout.create(arity, flags, types, boxedLayout.layout.args);
+          var newLayout = Layout.create(arity, flags, boxedLayout.layout.args);
           constructor.atomicallyAddLayout(newLayout, this.unboxedLayouts.length);
         }
         updateFromConstructor();
@@ -305,12 +298,14 @@ public class Layout {
     }
   }
 
-  private static final class SetterTypeCheckFactory implements NodeFactory<UnboxingAtom.FieldSetterNode> {
+  private static final class SetterTypeCheckFactory
+      implements NodeFactory<UnboxingAtom.FieldSetterNode> {
     private final String argName;
     private final Type[] type;
     private final NodeFactory<UnboxingAtom.FieldSetterNode> delegate;
 
-    private SetterTypeCheckFactory(ArgumentDefinition arg, Type[] type, NodeFactory<UnboxingAtom.FieldSetterNode> factory) {
+    private SetterTypeCheckFactory(
+        ArgumentDefinition arg, Type[] type, NodeFactory<UnboxingAtom.FieldSetterNode> factory) {
       this.argName = arg.getName();
       this.type = type;
       this.delegate = factory;
@@ -343,7 +338,8 @@ public class Layout {
     @Child ReadArgumentCheckNode checkNode;
     @Child UnboxingAtom.FieldSetterNode setterNode;
 
-    private CheckFieldSetterNode(UnboxingAtom.FieldSetterNode setterNode, ReadArgumentCheckNode checkNode) {
+    private CheckFieldSetterNode(
+        UnboxingAtom.FieldSetterNode setterNode, ReadArgumentCheckNode checkNode) {
       this.setterNode = setterNode;
       this.checkNode = checkNode;
     }

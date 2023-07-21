@@ -129,8 +129,8 @@ public abstract class AtomWithAHoleNode extends Node {
     private SwapAtomFieldNode() {
       super(null);
       this.schema = new FunctionSchema(FunctionSchema.CallerFrameAccess.NONE, new ArgumentDefinition[]{
-        new ArgumentDefinition(0, "lazy", null, ArgumentDefinition.ExecutionMode.EXECUTE),
-        new ArgumentDefinition(1, "value", null, ArgumentDefinition.ExecutionMode.EXECUTE)
+        new ArgumentDefinition(0, "lazy", null, null, ArgumentDefinition.ExecutionMode.EXECUTE),
+        new ArgumentDefinition(1, "value", null, null, ArgumentDefinition.ExecutionMode.EXECUTE)
       }, new boolean[]{
         true, false
       }, new CallArgumentInfo[0], new Annotation[0]);

@@ -97,14 +97,7 @@ public final class AtomConstructor implements TruffleObject {
       reads[i] = ReadArgumentNode.build(args[i].getName(), i, null, null);
     }
     return initializeFields(
-        language,
-        null,
-        LocalScope.root(),
-        new ExpressionNode[0],
-        reads,
-        new Annotation[0],
-        new Type[args.length][],
-        args);
+        language, null, LocalScope.root(), new ExpressionNode[0], reads, new Annotation[0], args);
   }
 
   /**
@@ -113,7 +106,6 @@ public final class AtomConstructor implements TruffleObject {
    * @param localScope a description of the local scope
    * @param assignments the expressions that evaluate and assign constructor arguments to local vars
    * @param varReads the expressions that read field values from local vars
-   * @param args the arguments this constructor will take
    * @return {@code this}, for convenience
    */
   public AtomConstructor initializeFields(
@@ -123,7 +115,6 @@ public final class AtomConstructor implements TruffleObject {
       ExpressionNode[] assignments,
       ExpressionNode[] varReads,
       Annotation[] annotations,
-      Type[][] types,
       ArgumentDefinition... args) {
     CompilerDirectives.transferToInterpreterAndInvalidate();
     if (args.length == 0) {
@@ -132,7 +123,7 @@ public final class AtomConstructor implements TruffleObject {
       cachedInstance = null;
     }
     if (Layout.isAritySupported(args.length)) {
-      boxedLayout = Layout.create(args.length, 0, types, args);
+      boxedLayout = Layout.create(args.length, 0, args);
     }
     this.constructorFunction =
         buildConstructorFunction(
@@ -189,7 +180,8 @@ public final class AtomConstructor implements TruffleObject {
             callTarget,
             null,
             new FunctionSchema(
-                new ArgumentDefinition(0, "self", null, ArgumentDefinition.ExecutionMode.EXECUTE)));
+                new ArgumentDefinition(
+                    0, "self", null, null, ArgumentDefinition.ExecutionMode.EXECUTE)));
     definitionScope.registerMethod(type.getEigentype(), this.name, function);
   }
 

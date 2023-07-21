@@ -76,7 +76,8 @@ public final class Type implements TruffleObject {
             node.getCallTarget(),
             null,
             new FunctionSchema(
-                new ArgumentDefinition(0, "this", null, ArgumentDefinition.ExecutionMode.EXECUTE)));
+                new ArgumentDefinition(
+                    0, "this", null, null, ArgumentDefinition.ExecutionMode.EXECUTE)));
     definitionScope.registerMethod(definitionScope.getAssociatedType(), this.name, function);
   }
 
@@ -180,6 +181,7 @@ public final class Type implements TruffleObject {
                       new ArgumentDefinition(
                           0,
                           Constants.Names.SELF_ARGUMENT,
+                          null,
                           null,
                           ArgumentDefinition.ExecutionMode.EXECUTE)));
           definitionScope.registerMethod(this, name, f);
