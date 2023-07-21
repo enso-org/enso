@@ -15,6 +15,7 @@ import project.Common_Table_Operations.Join.Join_Spec
 import project.Common_Table_Operations.Join.Cross_Join_Spec
 import project.Common_Table_Operations.Join.Zip_Spec
 import project.Common_Table_Operations.Join.Union_Spec
+import project.Common_Table_Operations.Map_Spec
 import project.Common_Table_Operations.Missing_Values_Spec
 import project.Common_Table_Operations.Order_By_Spec
 import project.Common_Table_Operations.Select_Columns_Spec
@@ -109,6 +110,7 @@ spec setup =
     Conversion_Spec.spec setup
     Aggregate_Spec.spec setup
     Filter_Spec.spec setup
+    Map_Spec.spec setup
     Missing_Values_Spec.spec setup
     Order_By_Spec.spec setup
     Take_Drop_Spec.spec setup
