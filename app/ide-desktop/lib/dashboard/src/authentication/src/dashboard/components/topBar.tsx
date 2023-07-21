@@ -9,7 +9,7 @@ import MagnifyingGlassIcon from 'enso-assets/magnifying_glass.svg'
 import SpeechBubbleIcon from 'enso-assets/speech_bubble.svg'
 
 import * as backendModule from '../backend'
-import * as dashboard from './dashboard'
+import * as tabModule from '../tab'
 
 import * as backendProvider from '../../providers/backend'
 import * as modalProvider from '../../providers/modal'
@@ -25,7 +25,7 @@ export interface TopBarProps {
     /** Whether the application may have the local backend running. */
     supportsLocalBackend: boolean
     projectName: string | null
-    tab: dashboard.Tab
+    tab: tabModule.Tab
     toggleTab: () => void
     setBackendType: (backendType: backendModule.BackendType) => void
     isHelpChatOpen: boolean
@@ -48,24 +48,8 @@ function TopBar(props: TopBarProps) {
         query,
         setQuery,
     } = props
-    const [isUserMenuVisible, setIsUserMenuVisible] = React.useState(false)
-    const { modal } = modalProvider.useModal()
-    const { setModal, unsetModal } = modalProvider.useSetModal()
     const { backend } = backendProvider.useBackend()
-
-    React.useEffect(() => {
-        if (!modal) {
-            setIsUserMenuVisible(false)
-        }
-    }, [modal])
-
-    React.useEffect(() => {
-        if (isUserMenuVisible) {
-            setModal(() => <UserMenu />)
-        } else {
-            unsetModal()
-        }
-    }, [isUserMenuVisible, setModal, unsetModal])
+    const { updateModal } = modalProvider.useSetModal()
 
     return (
         <div className="flex mx-2 h-8">
@@ -105,7 +89,7 @@ function TopBar(props: TopBarProps) {
             >
                 <span
                     className={`opacity-50 overflow-hidden transition-width nowrap ${
-                        tab === dashboard.Tab.dashboard ? 'm-2 w-16' : 'w-0'
+                        tab === tabModule.Tab.dashboard ? 'm-2 w-16' : 'w-0'
                     }`}
                 >
                     {projectName ?? 'Dashboard'}
@@ -115,7 +99,7 @@ function TopBar(props: TopBarProps) {
                 </div>
                 <span
                     className={`opacity-50 overflow-hidden transition-width nowrap ${
-                        tab === dashboard.Tab.ide ? 'm-2 w-16' : 'w-0'
+                        tab === tabModule.Tab.ide ? 'm-2 w-16' : 'w-0'
                     }`}
                 >
                     {projectName ?? 'No project open'}
@@ -155,7 +139,7 @@ function TopBar(props: TopBarProps) {
                 <div
                     onClick={event => {
                         event.stopPropagation()
-                        setIsUserMenuVisible(!isUserMenuVisible)
+                        updateModal(oldModal => (oldModal?.type === UserMenu ? null : <UserMenu />))
                     }}
                     className="rounded-full w-8 h-8 bg-cover cursor-pointer"
                 >

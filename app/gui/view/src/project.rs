@@ -163,7 +163,7 @@ ensogl::define_endpoints! {
         // TODO[MM]: this should not contain the group entry id as that is component browser
         // specific. It should be refactored to be an implementation detail of the component
         // browser.
-        editing_committed              (NodeId, Option<component_list_panel::grid::GroupEntryId>),
+        editing_committed              (NodeId, Option<component_list_panel::grid::EntryId>),
         project_list_shown             (bool),
         code_editor_shown              (bool),
         style                          (Theme),
@@ -643,7 +643,7 @@ impl View {
             // user was typing and a change to the selection was to be expected.
             frp.source.editing_committed <+ on_update_with_refresh.map3(
                 &committed_in_searcher,&grid.active,
-                |_, (node_id, _), &entry| Some((*node_id, entry?.as_entry_id()))).unwrap();
+                |_, (node_id, _), &entry| (*node_id, entry));
 
             // If we have no outstanding key presses, we can accept the selection as is.
             frp.source.editing_committed <+ committed_in_searcher.sample(&update_without_refresh);

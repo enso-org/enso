@@ -153,4 +153,9 @@ body {
       }
     }
   }
+
+  .pointer-events-none-recursive,
+  .pointer-events-none-recursive * {
+    pointer-events: none;
+  }
 }

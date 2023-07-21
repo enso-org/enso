@@ -37,9 +37,9 @@ enum ShadowClass {
     both = 'shadow-inset-v-lg',
 }
 
-// =================
-// === Templates ===
-// =================
+// =============
+// === Types ===
+// =============
 
 /** Template metadata. */
 export interface Template {
@@ -48,6 +48,10 @@ export interface Template {
     id: string
     background: string
 }
+
+// =================
+// === Constants ===
+// =================
 
 /** The full list of templates. */
 export const TEMPLATES: [Template, ...Template[]] = [
@@ -73,19 +77,19 @@ export const TEMPLATES: [Template, ...Template[]] = [
         title: 'Combine spreadsheets',
         id: 'Orders',
         description: 'Glue multiple spreadsheets together to analyse all your data at once.',
-        background: 'url("/spreadsheets.png") 50% 20% / 80% no-repeat, #479366',
+        background: 'url("./spreadsheets.png") 50% 20% / 80% no-repeat, #479366',
     },
     {
         title: 'Geospatial analysis',
         id: 'Restaurants',
         description: 'Learn where to open a coffee shop to maximize your income.',
-        background: 'url("/geo.png") center / cover',
+        background: 'url("./geo.png") center / cover, #6b7280',
     },
     {
         title: 'Analyze GitHub stars',
         id: 'Stargazers',
         description: "Find out which of Enso's repositories are most popular over time.",
-        background: 'url("/visualize.png") center / cover',
+        background: 'url("./visualize.png") center / cover, #6b7280',
     },
 ]
 
@@ -154,6 +158,17 @@ interface InternalTemplateButtonProps {
 function TemplateButton(props: InternalTemplateButtonProps) {
     const { template, onTemplateClick } = props
     const [spinnerState, setSpinnerState] = React.useState<spinner.SpinnerState | null>(null)
+    const onSpinnerStateChange = React.useCallback(
+        (newSpinnerState: spinner.SpinnerState | null) => {
+            setSpinnerState(newSpinnerState)
+            if (newSpinnerState === spinner.SpinnerState.done) {
+                setTimeout(() => {
+                    setSpinnerState(null)
+                }, SPINNER_DONE_DURATION_MS)
+            }
+        },
+        []
+    )
 
     return (
         <button
@@ -161,14 +176,7 @@ function TemplateButton(props: InternalTemplateButtonProps) {
             className="h-40 cursor-pointer"
             onClick={() => {
                 setSpinnerState(spinner.SpinnerState.initial)
-                onTemplateClick(template.id, newSpinnerState => {
-                    setSpinnerState(newSpinnerState)
-                    if (newSpinnerState === spinner.SpinnerState.done) {
-                        setTimeout(() => {
-                            setSpinnerState(null)
-                        }, SPINNER_DONE_DURATION_MS)
-                    }
-                })
+                onTemplateClick(template.id, onSpinnerStateChange)
             }}
         >
             <div

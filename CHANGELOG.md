@@ -197,6 +197,11 @@
   visualization size by dragging its right and bottom borders. Visualization
   width also follows the node's width, and visualizations are aligned to the
   left side of the node.
+- [Component Browser was redesigned][7372]. The three columns of groups turned
+  out to be non-practical, as they give too much information to comprehend.
+  Also, filtering results was kept in groups making second-best match not easily
+  available. Therefore, we introduced a new, impler CB design with single
+  column.
 - [Help chat][7151]. The link to the Discord server is replaced with a chat
   bridge to the Discord server. This is intended to have the chat visible at the
   same time as the IDE, so that help can be much more interactive.
@@ -220,6 +225,7 @@
 [7146]: https://github.com/enso-org/enso/pull/7146
 [7151]: https://github.com/enso-org/enso/pull/7151
 [7164]: https://github.com/enso-org/enso/pull/7164
+[7372]: https://github.com/enso-org/enso/pull/7372
 
 #### EnsoGL (rendering engine)
 
@@ -525,6 +531,7 @@
   `date_part` and some shorthands. Extended `Time_Period` with milli-, micro-
   and nanosecond periods.][7221]
 - [Retire `Column_Selector` and allow regex based selection of columns.][7295]
+- [`Text.parse_to_table` can take a `Regex`.][7297]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -755,6 +762,7 @@
 [7234]: https://github.com/enso-org/enso/pull/7234
 [7221]: https://github.com/enso-org/enso/pull/7221
 [7295]: https://github.com/enso-org/enso/pull/7295
+[7297]: https://github.com/enso-org/enso/pull/7297
 
 #### Enso Compiler
 
@@ -882,6 +890,7 @@
 - [Send info about function values][7168]
 - [Cache dataflow errors][7193]
 - [Add endpoint for downloading a project][7291]
+- [Update to GraalVM 23.0.0][7176]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -1009,6 +1018,7 @@
 [7168]: https://github.com/enso-org/enso/pull/7168
 [7193]: https://github.com/enso-org/enso/pull/7193
 [7291]: https://github.com/enso-org/enso/pull/7291
+[7176]: https://github.com/enso-org/enso/pull/7176
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

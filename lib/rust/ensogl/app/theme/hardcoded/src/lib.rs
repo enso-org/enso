@@ -565,6 +565,7 @@ define_themes! { [light:0, dark:1]
                 context_switch {
                     toggled     = Lcha(0.58, 0.67, 0.0825, 1.0), Lcha(0.58, 0.67, 0.0825, 1.0);
                 }
+                dull_alpha = 0.25, 0.25;
             }
             vcs {
                 unchanged = Lcha::transparent(), Lcha::transparent();

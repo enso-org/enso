@@ -272,7 +272,7 @@ rename_columns (internal_columns:Vector) (mapping:(Map | Vector)) (case_sensitiv
             ## Attempt to treat as Map
             map = Map.from_vector mapping
             if map.is_error then Error.throw (Illegal_Argument.Error "A mapping Vector must be either a list of names or a list of pairs (old name to new name).") else
-                rename_columns internal_columns map error_on_missing_columns on_problems
+                rename_columns internal_columns map case_sensitivity error_on_missing_columns on_problems
         False ->
             unique = Unique_Name_Strategy.new
             problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns

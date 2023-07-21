@@ -14,6 +14,10 @@ const HALF_DAY_HOURS = 12
 
 /** A string with date and time, following the RFC3339 specification. */
 export type Rfc3339DateTime = newtype.Newtype<string, 'Rfc3339DateTime'>
+/** Create a {@link Rfc3339DateTime}. */
+// This is a constructor function that constructs values of the type it is named after.
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const Rfc3339DateTime = newtype.newtypeConstructor<Rfc3339DateTime>()
 
 /** Formats date time into the preferred format: `YYYY-MM-DD, hh:mm`. */
 export function formatDateTime(date: Date) {
@@ -44,5 +48,5 @@ export function formatDateTimeChatFriendly(date: Date) {
 
 /** Formats a {@link Date} as a {@link Rfc3339DateTime}  */
 export function toRfc3339(date: Date) {
-    return newtype.asNewtype<Rfc3339DateTime>(date.toISOString())
+    return Rfc3339DateTime(date.toISOString())
 }
