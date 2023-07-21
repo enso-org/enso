@@ -808,7 +808,7 @@ pub trait HasRepr {
     /// Get the representation length in bytes.
     ///
     /// May be implemented in a quicker way than building string. Must meet the constraint
-    /// `x.len() == x.repr().len()` for any `x: impl HasRepr`.
+    /// `x.repr_len() == x.repr().len()` for any `x: impl HasRepr`.
     fn repr_len(&self) -> Bytes {
         self.repr().len().bytes()
     }

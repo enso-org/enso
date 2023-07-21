@@ -125,12 +125,6 @@ impl Frp {
         activity_cool_off.frp.set_delay(HIDE_DELAY);
         activity_cool_off.frp.set_duration(0.0);
 
-        // let overshoot_limit = style.get_number(theme::component::slider::overshoot_limit);
-        // let default_color = style.get_color_lcha(theme::component::slider::track::color);
-        // let hover_color = style.get_color_lcha(theme::component::slider::track::hover_color);
-        // let bg_default_color = style.get_color_lcha(theme::component::slider::background::color);
-        // let bg_hover_color =
-        // style.get_color_lcha(theme::component::slider::background::hover_color);
         let style = Style::from_theme(network, style);
 
         let click_and_hold_timer = frp::io::timer::DelayedInterval::new(network);

@@ -47,12 +47,12 @@ impl Color {
     }
 }
 
-/// A custom accessor for retrieving the color from the stylesheet using the [`FromTheme`]
-/// macro. In the stylesheet, the color can be defined as either a `color::Rgba` or a `float`
-/// value for the mixing coefficient. This accessor produces the corresponding variants of
-/// [`Color`] or returns a default value ([`Color::MainColorWithAlpha(0.0)`]) if there is no
-/// such property in the stylesheet.
 impl ThemeAccess for Color {
+    /// A custom accessor for retrieving the color from the stylesheet using the [`FromTheme`]
+    /// macro. In the stylesheet, the color can be defined as either a `color::Rgba` or a `float`
+    /// value for the mixing coefficient. This accessor produces the corresponding variants of
+    /// [`Color`] or returns a default value ([`Color::MainColorWithAlpha(0.0)`]) if there is no
+    /// such property in the stylesheet.
     fn from_style_data(path_str: &str, data: &Option<style::Data>) -> Self {
         data.color()
             .map(|color| Color::Arbitrary(color::Lcha::from(color)))

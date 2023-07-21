@@ -359,7 +359,6 @@ pub(super) struct Corner {
     max_radius: f32,
 }
 
-
 impl Corner {
     #[inline]
     pub fn clip(self) -> Vector2 {
@@ -388,19 +387,15 @@ impl Corner {
         let pad = self.overlap_padding(line_width);
         // Position the overlap according to clip direction. For straight lines, the overlap is
         // centered on the line.
-        let x = if offset.x() < 0.0 {
-            -1.0
-        } else if offset.y() == 0.0 {
-            -0.5
-        } else {
-            0.0
+        let x = match () {
+            _ if offset.x() < 0.0 => -1.0,
+            _ if offset.y() == 0.0 => -0.5,
+            _ => 0.0,
         };
-        let y = if offset.y() > 0.0 {
-            -1.0
-        } else if offset.x() == 0.0 {
-            -0.5 * -1.0
-        } else {
-            0.0
+        let y = match () {
+            _ if offset.y() > 0.0 => -1.0,
+            _ if offset.x() == 0.0 => -0.5 * -1.0,
+            _ => 0.0,
         };
         Vector2(x * pad.x(), y * pad.y())
     }

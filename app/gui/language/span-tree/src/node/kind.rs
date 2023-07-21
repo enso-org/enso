@@ -97,7 +97,7 @@ impl Kind {
         matches!(self, Self::InsertionPoint(t) if t.kind.is_expected_argument())
     }
 
-    /// Match the value with `Kind::InsertionPoint(ExpectedArgument(_))`.
+    /// Match the argument in a prefix method application.
     pub fn is_prefix_argument(&self) -> bool {
         matches!(self, Self::Argument(a) if a.in_prefix_chain)
     }

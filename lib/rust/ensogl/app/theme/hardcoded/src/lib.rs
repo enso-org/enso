@@ -334,12 +334,6 @@ define_themes! { [light:0, dark:1]
                         group_5 = Rgb::from_base_255(181.0, 97.0, 35.0), Rgb::from_base_255(181.0, 97.0, 35.0);
                         local_scope_group = Rgba::new(0.0, 0.42, 0.64, 1.0),Rgba::new(0.0, 0.42, 0.64, 1.0);
                     }
-
-                    temp_colors {
-                        color_0 = Lch(0.491, 0.339, 0.727), Lch(0.491, 0.339, 0.727);
-                        color_1 = Lch(0.447, 0.379, 0.968), Lch(0.447, 0.379, 0.968);
-                        color_2 = Lch(0.444, 0.124, 0.701), Lch(0.444, 0.124, 0.701);
-                    }
                 }
                 menu_height = 45.0, 45.0;
                 menu_divider_color = Rgb(0.7804, 0.7804, 0.7804), Rgb(0.7804, 0.7804, 0.7804);
@@ -582,6 +576,12 @@ define_themes! { [light:0, dark:1]
             }
             type_label {
                 offset_y = -23.0, -23.0;
+            }
+
+            temp_colors {
+                color_0 = Lch(0.491, 0.339, 0.727), Lch(0.491, 0.339, 0.727);
+                color_1 = Lch(0.447, 0.379, 0.968), Lch(0.447, 0.379, 0.968);
+                color_2 = Lch(0.444, 0.124, 0.701), Lch(0.444, 0.124, 0.701);
             }
         }
         visualization {

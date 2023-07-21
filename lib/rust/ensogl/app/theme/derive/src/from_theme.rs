@@ -47,10 +47,8 @@ fn build_frp(
 
     quote! {
         frp::extend! { network
-            layout_update_init <- source_();
             layout_update_init_debounced <- any_(...);
             layout_update_needed <- any_(...);
-            layout_update_needed <+ layout_update_init;
             layout_update_needed <+ layout_update_init_debounced.debounce();
             #frp_content
             layout_sampler <- layout_update_needed.map(move |()| {
@@ -62,12 +60,8 @@ fn build_frp(
         // In order to make sure that the style value is initialized on first access, we need to
         // force an update immediately. Then, in order to fire the update after FRP network
         // initialization, we need to emit the init value in the next microtask.
-        layout_update_init.emit(());
-        __ensogl_core::frp::stream::EventEmitter::emit_event(
-            &layout_update_init_debounced,
-            &default(),
-            &()
-        );
+        layout_update_needed.emit();
+        layout_update_init_debounced.emit();
     }
 }
 

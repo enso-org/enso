@@ -64,9 +64,9 @@ impl SpanWidget for Widget {
         use span_tree::node::Kind;
         let kind = &ctx.span_node.kind;
         let expr = ctx.span_expression();
-        let is_inert = matches!(kind, Kind::Token | Kind::NamedArgument)
+        let not_port = matches!(kind, Kind::Token | Kind::NamedArgument)
             || matches!(kind, Kind::Operation if expr == ".");
-        Configuration::maybe_with_port(default(), !is_inert)
+        Configuration::maybe_with_port(default(), !not_port)
     }
 
     fn root_object(&self) -> &object::Instance {

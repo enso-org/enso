@@ -1802,8 +1802,8 @@ impl Model {
         self.set_display_layer(layer, default())
     }
 
-    /// Add this object to the specified set of symbol partitions of the provided scene layer. Do/
-    /// not use this method explicitly. Use layers' methods instead.
+    /// Add this object to the specified symbol partition of the provided scene layer. Do not use
+    /// this method explicitly. Use layers' methods instead.
     pub(crate) fn add_to_display_layer_symbol_partition(
         &self,
         layer: &Layer,
@@ -1814,6 +1814,8 @@ impl Model {
 
     fn set_display_layer(&self, layer: &Layer, symbol_partition: Option<AnySymbolPartition>) {
         let mut assigned_layer = self.assigned_layer.borrow_mut();
+
+        // TODO: replace with [`Option::is_some_and`] once we bump rust version.
         let already_assigned = matches!(
             &*assigned_layer,
             Some(a) if &a.layer == layer && a.symbol_partition == symbol_partition
@@ -1828,6 +1830,8 @@ impl Model {
     /// layers' methods instead.
     pub(crate) fn remove_from_display_layer(&self, layer: &Layer) {
         let mut assigned_layer = self.assigned_layer.borrow_mut();
+
+        // TODO: replace with [`Option::is_some_and`] once we bump rust version.
         if matches!(&*assigned_layer, Some(a) if &a.layer == layer) {
             *assigned_layer = None;
             self.dirty.new_layer.set();
@@ -2343,6 +2347,8 @@ pub struct LayerAssignment {
     /// The symbol partition, if any.
     pub symbol_partition: Option<AnySymbolPartition>,
 }
+
+
 
 // =======================
 // === Transformations ===

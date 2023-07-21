@@ -3083,8 +3083,6 @@ impl<Out: Data> Any<Out> {
         self.upgrade().for_each(|t| t.srcs.borrow_mut().push(Box::new(src.clone_ref())));
     }
 
-    pub fn detach_all(&self) {}
-
     /// Emit new event. It's questionable if this node type should expose the `emit` functionality,
     /// but the current usage patterns proven it is a very handy utility. This node is used to
     /// define sources of frp output streams. Sources allow multiple streams to be attached and
@@ -3179,6 +3177,12 @@ impl OwnedAny_ {
     {
         Self::new(label).with(t1).with(t2).with(t3).with(t4).with(t5)
     }
+
+
+    /// Emit new event.
+    pub fn emit(&self) {
+        self.emit_event(&default(), &());
+    }
 }
 
 impl Any_ {
@@ -3193,6 +3197,11 @@ impl Any_ {
     pub fn attach<T1>(&self, src: &T1)
     where T1: EventOutput {
         src.register_target(self.into());
+    }
+
+    /// Emit new event.
+    pub fn emit(&self) {
+        self.emit_event(&default(), &());
     }
 }
 

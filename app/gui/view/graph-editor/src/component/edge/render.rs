@@ -35,11 +35,11 @@ mod arrow {
 }
 
 mod attachment {
-    /// Extra length to add to the top of the target-attachment bit, to ensure that it
+    /// Extra length to add to the top and bottom of the target-attachment bit, to ensure that it
     /// appears to pass through the top of the node. Without this adjustment, inexact
     /// floating-point math and anti-aliasing would cause a 1-pixel gap artifact right where
     /// the attachment should meet the corner at the edge of the node.
-    pub(super) const TOP_ADJUSTMENT: f32 = 0.1;
+    pub(super) const LENGTH_ADJUSTMENT: f32 = 0.1;
 }
 
 
@@ -206,8 +206,9 @@ impl Shapes {
         if let Some(TargetAttachment { target, length }) = target_attachment
                 && length > f32::EPSILON {
             let shape = shape.unwrap_or_else(|| parent.new_target_attachment());
-            shape.set_size_y(length + attachment::TOP_ADJUSTMENT * 2.0);
-            shape.set_xy(target + Vector2(-LINE_WIDTH / 2.0, -length - attachment::TOP_ADJUSTMENT));
+            shape.set_size_y(length + attachment::LENGTH_ADJUSTMENT * 2.0);
+            let offset = Vector2(-LINE_WIDTH / 2.0, - length - attachment::LENGTH_ADJUSTMENT);
+            shape.set_xy(target + offset);
             shape.set_color(color);
             self.target_attachment.replace(Some(shape));
         }
