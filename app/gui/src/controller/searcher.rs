@@ -5,11 +5,11 @@ use crate::prelude::*;
 
 use crate::controller::graph::ImportType;
 use crate::controller::graph::RequiredImport;
+use crate::model::execution_context::GroupQualifiedName;
 use crate::model::module::NodeEditStatus;
 use crate::model::suggestion_database;
 use crate::presenter::searcher;
 
-use crate::model::execution_context::GroupQualifiedName;
 use breadcrumbs::Breadcrumbs;
 use double_representation::name::project;
 use double_representation::name::QualifiedName;

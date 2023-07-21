@@ -6,6 +6,7 @@ use crate::prelude::*;
 
 use crate::controller::graph::RequiredImport;
 use crate::controller::searcher::Filter;
+use crate::model::execution_context::GroupQualifiedName;
 use crate::model::suggestion_database;
 
 use enso_doc_parser::DocSection;
@@ -24,8 +25,8 @@ use superslice::Ext;
 pub mod builder;
 pub mod hardcoded;
 
-use crate::model::execution_context::GroupQualifiedName;
 pub use builder::Builder;
+
 
 
 // =================
