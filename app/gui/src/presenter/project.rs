@@ -119,7 +119,7 @@ impl Model {
     fn editing_committed(
         &self,
         view_id: ide_view::graph_editor::NodeId,
-        entry_id: Option<view::component_browser::component_list_panel::grid::GroupEntryId>,
+        entry_id: Option<view::component_browser::component_list_panel::grid::EntryId>,
     ) -> bool {
         let searcher = self.searcher.take();
         if let Some(searcher) = searcher {

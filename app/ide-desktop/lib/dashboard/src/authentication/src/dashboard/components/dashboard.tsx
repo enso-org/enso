@@ -114,12 +114,15 @@ function Dashboard(props: DashboardProps) {
     React.useEffect(() => {
         if (
             supportsLocalBackend &&
+            session.type !== authProvider.UserSessionType.offline &&
             localStorage.getItem(backendProvider.BACKEND_TYPE_KEY) !==
                 backendModule.BackendType.remote
         ) {
             setBackend(new localBackend.LocalBackend())
         }
-    }, [/* should never change */ setBackend, /* should never change */ supportsLocalBackend])
+        // This hook MUST only run once, on mount.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
 
     React.useEffect(() => {
         document.addEventListener('show-dashboard', switchToDashboardTab)

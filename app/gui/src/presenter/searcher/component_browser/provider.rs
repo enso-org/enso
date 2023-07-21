@@ -2,141 +2,14 @@
 
 use crate::prelude::*;
 
-use crate::controller::searcher::action::MatchInfo;
 use crate::controller::searcher::component;
-use crate::presenter;
+use crate::controller::searcher::component::MatchInfo;
 
 use enso_frp as frp;
 use enso_suggestion_database::entry::for_each_kind_variant;
 use enso_text as text;
-use ensogl_component::list_view;
-use ensogl_component::list_view::entry::GlyphHighlightedLabel;
-use ide_view as view;
 use ide_view::component_browser::component_list_panel;
 use ide_view::component_browser::component_list_panel::grid as component_grid;
-
-
-
-// ============================
-// === Any Provider Helpers ===
-// ============================
-
-/// Wrappers for some instance of the structure being both entry and documentation provider.
-pub type Any = (
-    list_view::entry::AnyModelProvider<GlyphHighlightedLabel>,
-    view::searcher::AnyDocumentationProvider,
-);
-
-/// Create providers from the current controller's action list.
-pub fn create_providers_from_controller(controller: &controller::Searcher) -> Any {
-    use controller::searcher::Actions;
-    match controller.actions() {
-        Actions::Loading => as_any(Rc::new(list_view::entry::EmptyProvider)),
-        Actions::Loaded { list } => {
-            let provider = Action { actions: list };
-            as_any(Rc::new(provider))
-        }
-        Actions::Error(err) => {
-            error!("Error while obtaining searcher action list: {err}");
-            as_any(Rc::new(list_view::entry::EmptyProvider))
-        }
-    }
-}
-
-fn as_any<P>(provider: Rc<P>) -> Any
-where P: list_view::entry::ModelProvider<view::searcher::Entry>
-        + view::searcher::DocumentationProvider
-        + 'static {
-    (provider.clone_ref().into(), provider.into())
-}
-
-
-
-// ========================
-// === provider::Action ===
-// ========================
-
-/// An searcher actions provider, based on the action list retrieved from the searcher controller.
-#[derive(Clone, Debug)]
-pub struct Action {
-    actions: Rc<controller::searcher::action::List>,
-}
-
-impl Action {
-    /// Get the documentation for a suggestion in case when this suggestion does not have
-    /// a documentation.
-    ///
-    /// Usually something like "Function foo - no documentation available". The returned string is
-    /// documentation in HTML format.
-    pub fn doc_placeholder_for(suggestion: &controller::searcher::action::Suggestion) -> String {
-        use controller::searcher::action::Suggestion;
-        match suggestion {
-            Suggestion::FromDatabase(suggestion) =>
-                presenter::searcher::component_browser::doc_placeholder_for(suggestion),
-            Suggestion::Hardcoded(suggestion) => {
-                format!(
-                    "<div class=\"enso docs summary\"><p />{}<p />No documentation available</div>",
-                    suggestion.name
-                )
-            }
-        }
-    }
-}
-
-impl list_view::entry::ModelProvider<GlyphHighlightedLabel> for Action {
-    fn entry_count(&self) -> usize {
-        // TODO[ao] Because of "All Search Results" category, the actions on list are duplicated.
-        //     But we don't want to display duplicates on the old searcher list. To be fixed/removed
-        //     once new searcher GUI will be implemented
-        //     (https://github.com/enso-org/ide/issues/1681)
-        self.actions.matching_count() / 2
-    }
-
-    fn get(&self, id: usize) -> Option<list_view::entry::GlyphHighlightedLabelModel> {
-        let action = self.actions.get_cloned(id)?;
-        if let MatchInfo::Matches { subsequence, .. } = action.match_info {
-            let label = action.action.to_string();
-            let mut char_iter = label.char_indices().enumerate();
-            let highlighted = subsequence
-                .indices
-                .iter()
-                .filter_map(|idx| loop {
-                    if let Some(char) = char_iter.next() {
-                        let (char_idx, (byte_id, char)) = char;
-                        if char_idx == *idx {
-                            let start = enso_text::index::Byte(byte_id);
-                            let end = enso_text::index::Byte(byte_id + char.len_utf8());
-                            break Some(enso_text::Range::new(start, end));
-                        }
-                    } else {
-                        break None;
-                    }
-                })
-                .collect();
-            Some(list_view::entry::GlyphHighlightedLabelModel { label, highlighted })
-        } else {
-            None
-        }
-    }
-}
-
-impl ide_view::searcher::DocumentationProvider for Action {
-    fn get(&self) -> Option<String> {
-        None
-    }
-
-    fn get_for_entry(&self, id: usize) -> Option<String> {
-        use controller::searcher::action::Action;
-        match self.actions.get_cloned(id)?.action {
-            Action::Suggestion(suggestion) => {
-                let doc = suggestion.documentation_html().map(ToOwned::to_owned);
-                Some(doc.unwrap_or_else(|| Self::doc_placeholder_for(&suggestion)))
-            }
-            Action::Example(example) => Some(example.documentation_html.clone()),
-            Action::ProjectManagement(_) => None,
-        }
-    }
-}
 
 
 
@@ -144,165 +17,47 @@ impl ide_view::searcher::DocumentationProvider for Action {
 // === ControllerComponentsProviderExt ===
 // =======================================
 
-/// An extension for controller's component provider adding useful functions for conversions between
+/// An extension for controller's component list adding useful functions for conversions between
 /// controller and view structures.
-pub trait ControllerComponentsProviderExt {
-    /// Return the component from controllers by view's id.
-    fn component_by_view_id(
-        &self,
-        id: component_grid::GroupEntryId,
-    ) -> Option<component::Component>;
-
-    /// Return the group from controllers by view's id.
-    fn group_by_view_id(&self, id: component_grid::GroupId) -> Option<component::Group>;
-
+pub trait ControllerComponentsProvider {
     /// Create information about content for the view.
     fn create_grid_content_info(&self) -> component_grid::content::Info;
 
     /// Create a view's model for given entry.
     fn get_entry_model(
         &self,
-        entry_id: component_grid::GroupEntryId,
+        entry_id: component_grid::EntryId,
     ) -> Option<component_grid::EntryModel>;
-
-    /// Create a view's model for header of given group.
-    fn get_header_model(
-        &self,
-        group_id: component_grid::GroupId,
-    ) -> Option<component_grid::HeaderModel>;
 }
 
 
 // === Implementation ===
 
-impl ControllerComponentsProviderExt for controller::searcher::ComponentsProvider {
-    fn component_by_view_id(
-        &self,
-        id: component_grid::GroupEntryId,
-    ) -> Option<component::Component> {
-        let group = self.group_by_view_id(id.group);
-        group.and_then(|group| group.get_entry(id.entry))
-    }
-
-    fn group_by_view_id(&self, id: component_grid::GroupId) -> Option<component::Group> {
-        use controller::searcher::TopModules;
-        let opt_group = match id.section {
-            component_grid::SectionId::Popular => self.favorites().get(id.index).cloned(),
-            component_grid::SectionId::LocalScope =>
-                (id.index == 0).as_some_from(|| self.local_scope().clone_ref()),
-            component_grid::SectionId::Namespace(grid_idx) => match self.top_modules() {
-                TopModules::All(modules) => modules.get(grid_idx)?.get(id.index).cloned(),
-                TopModules::Subset(modules, top_module_idx) if grid_idx == top_module_idx =>
-                    modules.get(id.index).cloned(),
-                _ => None,
-            },
-        };
-        opt_group
-    }
-
+impl ControllerComponentsProvider for component::List {
     fn create_grid_content_info(&self) -> component_grid::content::Info {
-        let local_scope = self.local_scope();
-        let mut groups = collect_all_groups_info(self.favorites(), self.top_modules());
-        if self.is_filtered() {
-            groups.sort_by_key(|group| ordered_float::OrderedFloat(-group.best_match_score));
-        }
-        let local_scope_score = local_scope.best_match_score.get();
-        let first_group = groups.first();
-        let first_group_best_matching =
-            first_group.filter(|grp| grp.best_match_score > local_scope_score);
-        let (score, best_match) = first_group_best_matching.map_or(
-            (local_scope_score, component_grid::GroupId::local_scope_group().first_element()),
-            |grp| (grp.best_match_score, grp.id.first_element()),
-        );
-
         component_list_panel::grid::content::Info {
-            groups,
-            local_scope_entry_count: local_scope.matched_items.get(),
-            namespace_section_count: self.namespace_section_count(),
-            best_match: (score > component::NOT_MATCHING_SCORE).then_some(best_match),
-            displaying_module_content: self.displaying_module(),
+            entry_count: self.displayed().len(),
+            groups:      self
+                .groups()
+                .iter()
+                .enumerate()
+                .map(|(id, group)| component_grid::content::Group { id, color: group.color })
+                .collect(),
+            is_filtered: self.is_filtered(),
         }
     }
 
     fn get_entry_model(
         &self,
-        entry_id: component_grid::GroupEntryId,
+        entry_id: component_grid::EntryId,
     ) -> Option<component_grid::EntryModel> {
-        let component = self.component_by_view_id(entry_id)?;
-        Some(component_to_entry_model(&component))
-    }
-
-    fn get_header_model(
-        &self,
-        group_id: component_grid::GroupId,
-    ) -> Option<component_grid::HeaderModel> {
-        let group = self.group_by_view_id(group_id)?;
-        let can_be_entered = match group_id.section {
-            component_grid::SectionId::Popular => false,
-            component_grid::SectionId::LocalScope => true,
-            component_grid::SectionId::Namespace(_) => true,
-        };
-        Some(group_to_header_model(&group, can_be_entered))
+        let component = self.displayed().get(entry_id)?;
+        Some(component_to_entry_model(component))
     }
 }
 
 
 // === ControllerComponentsProviderExt Helper Functions ===
-
-
-fn collect_all_groups_info(
-    favorites: component::group::List,
-    top_modules: controller::searcher::TopModules,
-) -> Vec<component_grid::content::Group> {
-    use controller::searcher::TopModules;
-    let popular_section =
-        group_list_to_grid_group_infos(component_grid::SectionId::Popular, &favorites);
-    match top_modules {
-        TopModules::All(modules) => {
-            let submodules = modules.iter().enumerate().flat_map(|(section, list)| {
-                group_list_to_grid_group_infos(component_grid::SectionId::Namespace(section), list)
-            });
-            popular_section.chain(submodules).collect()
-        }
-        TopModules::Subset(list, section) => {
-            let submodules = group_list_to_grid_group_infos(
-                component_grid::SectionId::Namespace(section),
-                &list,
-            );
-            popular_section.chain(submodules).collect()
-        }
-    }
-}
-
-fn group_list_to_grid_group_infos(
-    section: component_grid::SectionId,
-    list: &component::group::List,
-) -> impl Iterator<Item = component_grid::content::Group> + '_ {
-    list.iter().enumerate().map(move |(index, group)| {
-        let id = component_grid::GroupId { section, index };
-        controller_group_to_grid_group_info(id, group)
-    })
-}
-
-fn controller_group_to_grid_group_info(
-    id: component_grid::GroupId,
-    group: &component::Group,
-) -> component_grid::content::Group {
-    component_grid::content::Group {
-        id,
-        height: group.matched_items.get(),
-        original_height: group.len(),
-        color: group.color,
-        best_match_score: group.best_match_score.get(),
-    }
-}
-
-fn group_to_header_model(
-    group: &component::Group,
-    can_be_entered: bool,
-) -> component_grid::HeaderModel {
-    component_grid::HeaderModel { caption: group.name.clone_ref(), can_be_entered }
-}
 
 macro_rules! kind_to_icon {
     ([ $( $variant:ident ),* ] $kind:ident) => {
@@ -318,23 +73,24 @@ macro_rules! kind_to_icon {
 
 fn component_to_entry_model(component: &component::Component) -> component_grid::EntryModel {
     let can_be_entered = component.can_be_entered();
-    let match_info = component.match_info.borrow();
+    let match_info = &component.match_info;
     let caption = component.label();
-    let highlighted = bytes_of_matched_letters(&match_info, &caption);
-    let icon = match &component.data {
-        component::Data::FromDatabase { entry, .. } => {
+    let highlighted = bytes_of_matched_letters(match_info, &caption);
+    let icon = match &component.suggestion {
+        component::Suggestion::FromDatabase { entry, .. } => {
             let kind = entry.kind;
             let icon_name = entry.icon_name.as_ref();
             let icon = icon_name.and_then(|n| n.to_pascal_case().parse().ok());
             icon.unwrap_or_else(|| for_each_kind_variant!(kind_to_icon(kind)))
         }
-        component::Data::Virtual { snippet } => snippet.icon,
+        component::Suggestion::Virtual { snippet } => snippet.icon,
     };
     component_grid::EntryModel {
         caption: caption.into(),
         highlighted: Rc::new(highlighted),
         icon,
         can_be_entered,
+        group: component.group_id,
     }
 }
 
@@ -383,26 +139,28 @@ impl Component {
     /// Initialize the [`Component`] provider, setting up proper connections to feed
     /// [grid](component_list_panel::grid::View) with entries and headers models.
     pub fn provide_new_list(
-        provider: controller::searcher::ComponentsProvider,
+        list: &Rc<component::List>,
         grid: &component_list_panel::grid::View,
     ) -> Self {
         let network = frp::Network::new("presenter::searcher::provider::Component");
+
+        // We capture weak reference to list, because searcher controllers sometimes calls
+        // [`Rc::make_mut`] on it and we want to keep it from cloning entire list.
+        let weak_list = Rc::downgrade(list);
 
         frp::extend! { network
             // Beware! We cannot connect the expression `grid.model_for...` to grid inputs, because
             // the connections alone does not belong to network - thus when provider's network would
             // be dropped, the connections would remain. Therefore we create intermediate nodes
-            // `entry_model` and `header_model`.
-            entry_model <- grid.model_for_entry_needed.filter_map(f!([provider](&id)
-                Some((id, provider.get_entry_model(id)?))
-            ));
-            header_model <- grid.model_for_header_needed.filter_map(f!([provider](&id)
-                Some((id, provider.get_header_model(id)?))
+            // `entry_model` and more if needed.
+            entry_model <- grid.model_for_entry_needed.filter_map(f!([weak_list](&id)
+                // If the weak was disassociated, then we should soon receive a new component list,
+                // or the Component Browser is about to be hidden.
+                weak_list.upgrade().and_then(|list| Some((id, list.get_entry_model(id)?)))
             ));
             grid.model_for_entry <+ entry_model;
-            grid.model_for_header <+ header_model;
         }
-        let content = provider.create_grid_content_info();
+        let content = list.create_grid_content_info();
         grid.reset(content);
         Self { _network: network }
     }
