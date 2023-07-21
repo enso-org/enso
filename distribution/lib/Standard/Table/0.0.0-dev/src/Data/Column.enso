@@ -168,7 +168,7 @@ type Column
             if (a.is_a Decimal) || (b.is_a Decimal) then
                 problem_builder.reportFloatingPointEquality -1
             a == b
-        run_vectorized_binary_op_with_fallback_problem_handling self '==' other expected_result_type=Value_Type.Boolean new_name fallback_fn=fallback
+        run_vectorized_binary_op_with_fallback_problem_handling self '==' other fallback_fn=fallback new_name=new_name expected_result_type=Value_Type.Boolean skip_nulls=True
 
     ## Element-wise case-insensitive text equality comparison.
 
@@ -255,7 +255,7 @@ type Column
              example_geq = Examples.integer_column >= 1
     >= : Column | Any -> Column
     >= self other = Value_Type.expect_comparable self other <|
-        run_vectorized_binary_op self ">=" (>=) other expected_result_type=Value_Type.Boolean
+        run_vectorized_binary_op self ">=" fallback_fn=(>=) other expected_result_type=Value_Type.Boolean
 
     ## ALIAS Less Than Or Equal
        Element-wise order comparison.
@@ -283,7 +283,7 @@ type Column
              example_leq = Examples.integer_column <= 1
     <= : Column | Any -> Column
     <= self other = Value_Type.expect_comparable self other <|
-        run_vectorized_binary_op self "<=" (<=) other expected_result_type=Value_Type.Boolean
+        run_vectorized_binary_op self "<=" fallback_fn=(<=) other expected_result_type=Value_Type.Boolean
 
     ## ALIAS Greater Than
        Element-wise order comparison.
@@ -311,7 +311,7 @@ type Column
              example_gt = Examples.integer_column > 1
     > : Column | Any -> Column
     > self other = Value_Type.expect_comparable self other <|
-        run_vectorized_binary_op self ">" (>) other expected_result_type=Value_Type.Boolean
+        run_vectorized_binary_op self ">" fallback_fn=(>) other expected_result_type=Value_Type.Boolean
 
     ## ALIAS Less Than
        Element-wise order comparison.
@@ -339,7 +339,7 @@ type Column
              example_lt = Examples.integer_column < 1
     < : Column | Any -> Column
     < self other = Value_Type.expect_comparable self other <|
-        run_vectorized_binary_op self "<" (<) other expected_result_type=Value_Type.Boolean
+        run_vectorized_binary_op self "<" fallback_fn=(<) other expected_result_type=Value_Type.Boolean
 
     ## Element-wise inclusive bounds check.
 
@@ -916,7 +916,7 @@ type Column
     is_nothing : Column
     is_nothing self =
         new_name = Naming_Helpers.to_expression_text self + " is null"
-        run_vectorized_unary_op self "is_nothing" (== Nothing) expected_result_type=Value_Type.Boolean new_name on_missing=True
+        run_vectorized_unary_op self "is_nothing" new_name fallback_fn=(== Nothing) expected_result_type=Value_Type.Boolean on_missing=True
 
     ## Returns a column of booleans, with `True` items at the positions where
        this column contains a NaN. This is only applicable to double columns.
@@ -932,7 +932,7 @@ type Column
             _ : Decimal -> x.is_nan
             Nothing     -> on_missing
             _           -> False
-        run_vectorized_unary_op self "is_nan" fallback expected_result_type=Value_Type.Boolean new_name on_missing=on_missing
+        run_vectorized_unary_op self "is_nan" new_name fallback_fn=fallback expected_result_type=Value_Type.Boolean on_missing=on_missing
 
     ## Returns a column of booleans, with `True` items at the positions where
        this column contains a +Inf/-Inf. This is only applicable to double
@@ -944,7 +944,7 @@ type Column
             _ : Decimal -> x.is_infinite
             Nothing     -> Nothing
             _           -> False
-        run_vectorized_unary_op self "is_infinite" fallback expected_result_type=Value_Type.Boolean new_name on_missing=Nothing
+        run_vectorized_unary_op self "is_infinite" new_name fallback_fn=fallback expected_result_type=Value_Type.Boolean on_missing=Nothing
 
     ## PRIVATE
        Returns a column of booleans, with `True` items at the positions where
@@ -957,7 +957,7 @@ type Column
     internal_is_empty : Column
     internal_is_empty self =
         new_name = Naming_Helpers.to_expression_text self + " is empty"
-        run_vectorized_unary_op self "is_empty" Filter_Condition.Is_Empty.to_predicate expected_result_type=Value_Type.Boolean new_name on_missing=True
+        run_vectorized_unary_op self "is_empty" new_name fallback_fn=Filter_Condition.Is_Empty.to_predicate expected_result_type=Value_Type.Boolean on_missing=True
 
     ## Returns a column of booleans, with `True` items at the positions where
        this column does not contain a `Nothing`.
@@ -2043,9 +2043,9 @@ run_vectorized_many_op column name fallback_fn operands new_name=Nothing skip_nu
         folded = effective_operands.fold column.java_column.getStorage current-> operand->
             case operand of
                 _ : Column ->
-                    current.zip name fallback_fn operand.java_column.getStorage skip_nulls storage_type problem_builder
+                    current.vectorizedOrFallbackZip name problem_builder fallback_fn operand.java_column.getStorage skip_nulls storage_type
                 _ ->
-                    current.bimap name fallback_fn operand skip_nulls storage_type problem_builder
+                    current.vectorizedOrFallbackBiMap name problem_builder fallback_fn operand skip_nulls storage_type
         result = Column.Value (Java_Column.new effective_new_name folded)
         Problem_Behavior.Report_Warning.attach_problems_after result <|
             Java_Problems.parse_aggregated_problems problem_builder.getProblems
@@ -2112,16 +2112,16 @@ run_unary_op column function new_name on_missing=Nothing expected_result_type=No
    Arguments:
    - column: The column to execute the operation over.
    - name: The name of the vectorized operation.
+   - operand: The operand to apply to the function after `column`.
    - fallback_fn: A function used if the vectorized operation isn't available.
      It takes a `MapOperationProblemBuilder` as its first argument.
-   - operand: The operand to apply to the function after `column`.
    - expected_result_type: The expected result type of the operation.
    - new_name: The name of the column created as the result of this operation.
    - skip_nulls: Specifies if nulls should be skipped. If set to `True`, a null
      value results in null without passing it to the function. If set to
      `False`, the null values are passed as any other value and can have custom
      handling logic.
-run_vectorized_binary_op_with_fallback_problem_handling column name fallback_fn operand new_name expected_result_type=Nothing skip_nulls=True =
+run_vectorized_binary_op_with_fallback_problem_handling column name operand fallback_fn new_name expected_result_type=Nothing skip_nulls=True =
     problem_builder = MapOperationProblemBuilder.new new_name
     applied_fn = case fallback_fn of
         Nothing -> Nothing
@@ -2131,11 +2131,11 @@ run_vectorized_binary_op_with_fallback_problem_handling column name fallback_fn 
         Column.Value col2 ->
             s1 = column.java_column.getStorage
             s2 = col2.getStorage
-            rs = s1.zip name applied_fn s2 skip_nulls storage_type problem_builder
+            rs = s1.vectorizedOrFallbackZip name problem_builder applied_fn s2 skip_nulls storage_type
             Column.Value (Java_Column.new new_name rs)
         _ ->
             s1 = column.java_column.getStorage
-            rs = s1.bimap name applied_fn operand skip_nulls storage_type problem_builder
+            rs = s1.vectorizedOrFallbackBiMap name problem_builder applied_fn operand skip_nulls storage_type
             Column.Value (Java_Column.new new_name rs)
     Problem_Behavior.Report_Warning.attach_problems_after result <|
         Java_Problems.parse_aggregated_problems problem_builder.getProblems
@@ -2152,8 +2152,8 @@ run_vectorized_binary_op_with_fallback_problem_handling column name fallback_fn 
    - on_missing: The value to return for missing cells. Ideally it should be
      replaced with a `skip_nulls` parameter like elsewhere, but currently that
      is not possible due to a bug: https://github.com/oracle/graal/issues/4741
-run_vectorized_unary_op : Column -> Text -> (Any -> Any) -> Value_Type -> Text -> Any -> Column
-run_vectorized_unary_op column name fallback_fn new_name expected_result_type=Nothing on_missing=Nothing =
+run_vectorized_unary_op : Column -> Text -> Text -> (Any -> Any) -> Value_Type -> Any -> Column
+run_vectorized_unary_op column name new_name fallback_fn=Nothing expected_result_type=Nothing on_missing=Nothing =
     problem_builder = MapOperationProblemBuilder.new column.name
     s = column.java_column.getStorage
     storage_type = resolve_storage_type expected_result_type
@@ -2233,7 +2233,7 @@ run_vectorized_binary_case_text_op left op other case_sensitivity fallback new_n
 ## PRIVATE
 simple_unary_op column op_name =
     new_name = Naming_Helpers.function_name op_name [column]
-    run_vectorized_unary_op column op_name (_ -> Error.throw (Illegal_State.Error "Missing vectorized implementation for `"+op_name+"`. This is a bug in the Table library.")) new_name
+    run_vectorized_unary_op column op_name new_name
 
 ## PRIVATE
    Converts the value type to a storage type, passing `Nothing` through.
