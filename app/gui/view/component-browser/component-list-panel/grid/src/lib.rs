@@ -246,7 +246,7 @@ impl Model {
     fn reset(&self, content: &content::Info) -> (Row, Col) {
         *self.colors.borrow_mut() = Self::collect_colors(content);
         self.enterable_elements.borrow_mut().clear();
-        (content.entry_count, COLUMN_COUNT)
+        (content.entry_count + 1, COLUMN_COUNT)
     }
 
     fn collect_colors(content: &content::Info) -> HashMap<GroupId, entry::MainColor> {
@@ -326,7 +326,8 @@ impl Model {
         &(row, _): &(Row, Col),
         content: &content::Info,
     ) -> Option<EntryId> {
-        content.entry_count.checked_sub(row + 1)
+        if row == 0 { None } else {
+        content.entry_count.checked_sub(row) }
     }
 
     fn entry_id_to_location(
@@ -334,7 +335,7 @@ impl Model {
         entry_id: EntryId,
         content: &content::Info,
     ) -> Option<(Row, Col)> {
-        content.entry_count.checked_sub(entry_id + 1).map(|row| (row, COLUMN))
+        content.entry_count.checked_sub(entry_id + 1).map(|row| (row + 1, COLUMN))
     }
 }
 
@@ -371,7 +372,7 @@ impl Model {
 
 impl Model {
     fn first_entry_to_select(&self, info: &content::Info) -> Option<(Row, Col)> {
-        info.entry_count.checked_sub(1).map(|row| (row, COLUMN))
+        info.entry_count.checked_sub(1).map(|row| (row + 1, COLUMN))
     }
 }
 
