@@ -161,8 +161,8 @@ impl State {
 
 // === EntryData ===
 
-/// An internal structure of [`Entry`]. It has four visual representations: text, an icon (before a
-/// text entry), separator between entries, and an ellipsis. The breadcrumbs implementation selects
+/// An internal structure of [`Entry`]. It has three visual representations: text (optionally
+/// with icon), separator between entries, and an ellipsis. The breadcrumbs implementation selects
 /// the needed representation for each entry in the grid view. For efficiency, text label and icons
 /// are allocated once the entry is created.
 #[allow(missing_docs)]
