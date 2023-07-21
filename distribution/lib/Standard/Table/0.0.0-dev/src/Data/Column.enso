@@ -52,7 +52,7 @@ type Column
     from_vector : Text -> Vector -> Column
     from_vector name items =
         expected_storage_type = Nothing
-        Illegal_Argument.handle_java_exception <|
+        Illegal_Argument.handle_java_exception <| Polyglot_Helpers.handle_polyglot_dataflow_errors <|
             Column.Value (Java_Column.fromItems name items expected_storage_type)
 
     ## PRIVATE
