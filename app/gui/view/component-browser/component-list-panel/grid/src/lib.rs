@@ -246,7 +246,13 @@ impl Model {
     fn reset(&self, content: &content::Info) -> (Row, Col) {
         *self.colors.borrow_mut() = Self::collect_colors(content);
         self.enterable_elements.borrow_mut().clear();
-        (content.entry_count + 1, COLUMN_COUNT)
+        // For design reasons, we want to keep the top-most row empty. It will be covered by the
+        // buttons panel otherwise. To do that, we increment the overall entry count by one, so
+        // that the grid will have bigger height. We also make adjustments in any conversion
+        // from/to grid coordinates. See [`Model::location_to_entry_id`] and
+        // [`Model::entry_id_to_location`].
+        let additional_empty_row = 1;
+        (content.entry_count + additional_empty_row, COLUMN_COUNT)
     }
 
     fn collect_colors(content: &content::Info) -> HashMap<GroupId, entry::MainColor> {
@@ -326,6 +332,8 @@ impl Model {
         &(row, _): &(Row, Col),
         content: &content::Info,
     ) -> Option<EntryId> {
+        // The first row is reserved as empty space. It is needed for design reasons, to not cover
+        // the top most entry by the buttons panel of the component browser.
         if row == 0 { None } else {
         content.entry_count.checked_sub(row) }
     }
@@ -335,7 +343,10 @@ impl Model {
         entry_id: EntryId,
         content: &content::Info,
     ) -> Option<(Row, Col)> {
-        content.entry_count.checked_sub(entry_id + 1).map(|row| (row + 1, COLUMN))
+        // Entries are offset by 1, because we want to preserve some empty space at the top of the
+        // list for design reasons.
+        let offset = 1;
+        content.entry_count.checked_sub(entry_id + 1).map(|row| (row + offset, COLUMN))
     }
 }
 
@@ -372,7 +383,10 @@ impl Model {
 
 impl Model {
     fn first_entry_to_select(&self, info: &content::Info) -> Option<(Row, Col)> {
-        info.entry_count.checked_sub(1).map(|row| (row + 1, COLUMN))
+        // Entries are offset by 1, because we want to preserve some empty space at the top of the
+        // list for design reasons.
+        let offset = 1;
+        info.entry_count.checked_sub(1).map(|row| (row + offset, COLUMN))
     }
 }
 
