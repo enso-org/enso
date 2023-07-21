@@ -1683,8 +1683,9 @@ type Column
              example_map = Examples.integer_column.map (x -> x * x)
     map : (Any -> Any) -> Boolean -> Column
     map self function skip_nothing=True =
-        # TODO [RW] #6111 fill in expected_result_type
-        run_unary_op self function new_name=self.name skip_nulls=skip_nothing
+        new_fn = if skip_nothing then (x-> if x.is_nothing then Nothing else function x) else function
+        new_st = self.to_vector.map new_fn
+        Column.from_vector self.name new_st
 
     ## ALIAS Transform Columns
 
@@ -1710,9 +1711,16 @@ type Column
                 Examples.integer_column.zip Examples.text_column_1 [_, _]
     zip : Column -> (Any -> Any -> Any) -> Boolean -> Column
     zip self that function skip_nothing=True =
+        new_fn = case skip_nothing of
+            True ->
+                x -> y ->
+                    if x.is_nothing then Nothing else
+                        if y.is_nothing then Nothing else
+                            function x y
+            False -> function
         new_name = Naming_Helpers.binary_operation_name "x" self that
-        # TODO [RW] #6111 fill in expected_result_type
-        run_binary_op self function that new_name=new_name skip_nulls=skip_nothing
+        vec = self.to_vector.zip that.to_vector new_fn
+        Column.from_vector new_name vec
 
     ## Returns a new column, containing the same elements as `self`, but with
        the given name.
