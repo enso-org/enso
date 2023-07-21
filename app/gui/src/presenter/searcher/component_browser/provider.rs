@@ -4,6 +4,7 @@ use crate::prelude::*;
 
 use crate::controller::searcher::component;
 use crate::controller::searcher::component::MatchInfo;
+use crate::controller::searcher::component::MatchKind;
 
 use enso_frp as frp;
 use enso_suggestion_database::entry::for_each_kind_variant;
@@ -73,9 +74,10 @@ macro_rules! kind_to_icon {
 
 fn component_to_entry_model(component: &component::Component) -> component_grid::EntryModel {
     let can_be_entered = component.can_be_entered();
-    let match_info = &component.match_info;
+    let match_info = component.match_info.as_ref();
     let caption = component.label();
-    let highlighted = bytes_of_matched_letters(match_info, &caption);
+    let highlighted =
+        match_info.and_then(|info| bytes_of_matched_letters(info, &caption)).unwrap_or_default();
     let icon = match &component.suggestion {
         component::Suggestion::FromDatabase { entry, .. } => {
             let kind = entry.kind;
@@ -94,27 +96,19 @@ fn component_to_entry_model(component: &component::Component) -> component_grid:
     }
 }
 
-fn bytes_of_matched_letters(match_info: &MatchInfo, label: &str) -> Vec<text::Range<text::Byte>> {
-    if let MatchInfo::Matches { subsequence, .. } = match_info {
-        let mut char_iter = label.char_indices().enumerate();
-        subsequence
-            .indices
-            .iter()
-            .filter_map(|idx| loop {
-                if let Some(char) = char_iter.next() {
-                    let (char_idx, (byte_id, char)) = char;
-                    if char_idx == *idx {
-                        let start = enso_text::index::Byte(byte_id);
-                        let end = enso_text::index::Byte(byte_id + char.len_utf8());
-                        break Some(enso_text::Range::new(start, end));
-                    }
-                } else {
-                    break None;
-                }
-            })
-            .collect()
-    } else {
-        default()
+fn bytes_of_matched_letters(
+    match_info: &MatchInfo,
+    label: &str,
+) -> Option<Vec<text::Range<text::Byte>>> {
+    match match_info {
+        MatchInfo::Matches { subsequence, kind } => {
+            let label = match kind {
+                MatchKind::Alias(label) => label.as_str(),
+                _ => label,
+            };
+            Some(subsequence.match_indexes.byte_ranges(label).collect())
+        }
+        _ => None,
     }
 }
 

@@ -5,6 +5,8 @@
 use crate::prelude::*;
 
 use crate::controller::graph::RequiredImport;
+use crate::controller::searcher::search;
+use crate::controller::searcher::search::search;
 use crate::controller::searcher::Filter;
 use crate::model::execution_context::GroupQualifiedName;
 use crate::model::suggestion_database;
@@ -13,7 +15,6 @@ use enso_doc_parser::DocSection;
 use enso_doc_parser::Tag;
 use enso_suggestion_database::entry;
 use ensogl::data::color;
-use ordered_float::OrderedFloat;
 use std::cmp;
 use superslice::Ext;
 
@@ -26,16 +27,6 @@ pub mod builder;
 pub mod hardcoded;
 
 pub use builder::Builder;
-
-
-
-// =================
-// === Constants ===
-// =================
-
-/// A factor to multiply a component's alias match score by. It is intended to reduce the importance
-/// of alias matches compared to label matches.
-const ALIAS_MATCH_ATTENUATION_FACTOR: f32 = 0.75;
 
 
 
@@ -61,10 +52,9 @@ pub struct Group {
 // === MatchInfo ===
 
 /// Which part of the component browser entry was best matched to the searcher input.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum MatchKind {
     /// The entry's label to be displayed in the component browser was matched.
-    #[default]
     Label,
     /// The entry's name from the code was matched.
     Name,
@@ -74,47 +64,11 @@ pub enum MatchKind {
 
 /// Information how the list entry matches the filtering pattern.
 #[allow(missing_docs)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum MatchInfo {
     DoesNotMatch,
-    Matches { subsequence: fuzzly::Subsequence, kind: MatchKind },
+    Matches { subsequence: search::Subsequence, kind: MatchKind },
 }
-
-impl Default for MatchInfo {
-    fn default() -> Self {
-        Self::Matches { subsequence: default(), kind: default() }
-    }
-}
-
-impl Ord for MatchInfo {
-    /// Compare Match infos: the better matches are greater. The scores are compared using the full
-    /// ordering as described in [`fuzzly::Subsequence::compare_scores`].
-    fn cmp(&self, rhs: &Self) -> std::cmp::Ordering {
-        use std::cmp::Ordering::*;
-        use MatchInfo::*;
-        match (&self, &rhs) {
-            (DoesNotMatch, DoesNotMatch) => Equal,
-            (DoesNotMatch, Matches { .. }) => Less,
-            (Matches { .. }, DoesNotMatch) => Greater,
-            (Matches { subsequence: lhs, .. }, Matches { subsequence: rhs, .. }) =>
-                OrderedFloat(lhs.score).cmp(&OrderedFloat(rhs.score)),
-        }
-    }
-}
-
-impl PartialOrd for MatchInfo {
-    fn partial_cmp(&self, rhs: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(rhs))
-    }
-}
-
-impl PartialEq for MatchInfo {
-    fn eq(&self, rhs: &Self) -> bool {
-        self.cmp(rhs) == std::cmp::Ordering::Equal
-    }
-}
-
-impl Eq for MatchInfo {}
 
 
 // === Suggestion ===
@@ -173,7 +127,8 @@ pub struct Component {
     pub suggestion: Suggestion,
     /// A group id, being an index of `group` field of [`List`] structure.
     pub group_id:   Option<usize>,
-    pub match_info: MatchInfo,
+    /// Results of matching this component against the current filter, if any.
+    pub match_info: Option<MatchInfo>,
 }
 
 impl Component {
@@ -192,7 +147,7 @@ impl Component {
     /// The label which should be displayed in the Component Browser.
     pub fn label(&self) -> String {
         match &self.match_info {
-            MatchInfo::Matches { kind: MatchKind::Alias(alias), .. } => {
+            Some(MatchInfo::Matches { kind: MatchKind::Alias(alias), .. }) => {
                 format!("{alias} ({self})")
             }
             _ => self.to_string(),
@@ -215,7 +170,7 @@ impl Component {
 
     /// Checks if component is filtered out.
     pub fn is_filtered_out(&self) -> bool {
-        matches!(self.match_info, MatchInfo::DoesNotMatch)
+        matches!(self.match_info, Some(MatchInfo::DoesNotMatch))
     }
 
     /// Checks if the component can be entered in Component Browser.
@@ -231,64 +186,59 @@ impl Component {
     ///
     /// It should be called each time the filtering pattern changes.
     pub fn update_matching_info(&mut self, filter: Filter) {
-        // Match the input pattern to the component label.
-        let label = self.to_string();
-        let label_matches = fuzzly::matches(&label, filter.pattern.as_str());
-        let label_subsequence = label_matches.and_option_from(|| {
-            let metric = fuzzly::metric::default();
-            fuzzly::find_best_subsequence(label, filter.pattern.as_str(), metric)
+        let filter_enabled = filter.context.is_some() || !filter.pattern.is_empty();
+        let excluded_by_context = filter
+            .context
+            .map(|context| {
+                if let Suggestion::FromDatabase { entry, .. } = &self.suggestion {
+                    !entry.qualified_name().to_string().contains(context.as_str())
+                } else {
+                    // Remove virtual entries if the context is present.
+                    true
+                }
+            })
+            .unwrap_or_default();
+        let match_info = filter_enabled.then(|| {
+            if !excluded_by_context {
+                self.match_info_for_pattern(&filter.pattern)
+            } else {
+                MatchInfo::DoesNotMatch
+            }
         });
+        self.match_info = match_info;
+    }
+
+    fn match_info_for_pattern(&self, pattern: &str) -> MatchInfo {
+        // Match the input pattern to the component label.
+        let target_info = search::TargetInfo { is_alias: false };
+        let label = self.to_string();
+        let label_subsequence = search(&label, pattern, target_info);
         let label_match_info = label_subsequence
             .map(|subsequence| MatchInfo::Matches { subsequence, kind: MatchKind::Label });
 
         // Match the input pattern to the component name.
+        let target_info = search::TargetInfo { is_alias: false };
         let name = self.name();
-        let name_matches = fuzzly::matches(name, filter.pattern.as_str());
-        let name_subsequence = name_matches.and_option_from(|| {
-            let metric = fuzzly::metric::default();
-            fuzzly::find_best_subsequence(name, filter.pattern.as_str(), metric)
-        });
+        let name_subsequence = search(name, pattern, target_info);
         let name_match_info = name_subsequence.map(|subsequence| {
-            let subsequence = fuzzly::Subsequence { indices: Vec::new(), ..subsequence };
             MatchInfo::Matches { subsequence, kind: MatchKind::Name }
         });
 
         // Match the input pattern to an entry's aliases and select the best alias match.
+        let target_info = search::TargetInfo { is_alias: true };
         let alias_matches = self.aliases().filter_map(|alias| {
-            if fuzzly::matches(alias, filter.pattern.as_str()) {
-                let metric = fuzzly::metric::default();
-                let subsequence =
-                    fuzzly::find_best_subsequence(alias, filter.pattern.as_str(), metric);
-                subsequence.map(|subsequence| (subsequence, alias))
-            } else {
-                None
-            }
+            search(alias, pattern, target_info).map(|subsequence| (subsequence, alias))
         });
-        let alias_match = alias_matches.max_by_key(|(m, _)| OrderedFloat(m.score));
-        let alias_match_info = alias_match.map(|(subsequence, alias)| {
-            let subsequence = fuzzly::Subsequence {
-                score: subsequence.score * ALIAS_MATCH_ATTENUATION_FACTOR,
-                ..subsequence
-            };
-            MatchInfo::Matches { subsequence, kind: MatchKind::Alias(alias.to_im_string()) }
+        let alias_match = alias_matches.max_by_key(|(m, _)| m.score);
+        let alias_match_info = alias_match.map(|(subsequence, alias)| MatchInfo::Matches {
+            subsequence,
+            kind: MatchKind::Alias(alias.to_im_string()),
         });
 
         // Select the best match of the available label-, code- and alias matches.
         let match_info_iter = [alias_match_info, name_match_info, label_match_info].into_iter();
-        let best_match_info = match_info_iter.flatten().max_by(|lhs, rhs| lhs.cmp(rhs));
-        self.match_info = best_match_info.unwrap_or(MatchInfo::DoesNotMatch);
-
-        // Filter out components with FQN not matching the context.
-        if let Some(context) = filter.context {
-            if let Suggestion::FromDatabase { entry, .. } = &self.suggestion {
-                if !entry.qualified_name().to_string().contains(context.as_str()) {
-                    self.match_info = MatchInfo::DoesNotMatch;
-                }
-            } else {
-                // Remove virtual entries if the context is present.
-                self.match_info = MatchInfo::DoesNotMatch;
-            }
-        }
+        let best_match_info = match_info_iter.flatten().max();
+        best_match_info.unwrap_or(MatchInfo::DoesNotMatch)
     }
 
     /// Check whether the component contains the "PRIVATE" tag.
@@ -403,7 +353,7 @@ impl List {
     }
 
     /// Return the entry match ordering when sorting by match. See [`component::Order::ByMatch`].
-    fn entry_match_ordering(lhs: &MatchInfo, rhs: &MatchInfo) -> cmp::Ordering {
+    fn entry_match_ordering(lhs: &Option<MatchInfo>, rhs: &Option<MatchInfo>) -> cmp::Ordering {
         lhs.cmp(rhs).reverse()
     }
 }
