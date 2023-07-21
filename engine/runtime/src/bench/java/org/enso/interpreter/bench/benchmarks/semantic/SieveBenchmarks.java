@@ -5,6 +5,7 @@ import java.nio.file.Paths;
 import java.util.concurrent.TimeUnit;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
+import org.graalvm.polyglot.io.IOAccess;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -32,7 +33,7 @@ public class SieveBenchmarks {
   public void initializeBenchmark(BenchmarkParams params) throws Exception {
     var ctx = Context.newBuilder()
       .allowExperimentalOptions(true)
-      .allowIO(true)
+      .allowIO(IOAccess.ALL)
       .allowAllAccess(true)
       .logHandler(new ByteArrayOutputStream())
       .option(

@@ -2,6 +2,7 @@ package org.enso.interpreter.node.callable;
 
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.ReportPolymorphism;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -60,9 +61,9 @@ public abstract class IndirectInvokeMethodNode extends Node {
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       BaseNode.TailStatus isTail,
       int thisArgumentPosition,
-      @CachedLibrary(limit = "10") TypesLibrary dispatch,
-      @Cached MethodResolverNode methodResolverNode,
-      @Cached IndirectInvokeFunctionNode invokeFunctionNode) {
+      @Shared("typesLib") @CachedLibrary(limit = "10") TypesLibrary dispatch,
+      @Shared("methodResolverNode") @Cached MethodResolverNode methodResolverNode,
+      @Shared("indirectInvokeFunctionNode") @Cached IndirectInvokeFunctionNode invokeFunctionNode) {
     Function function = methodResolverNode.expectNonNull(self, dispatch.getType(self), symbol);
     return invokeFunctionNode.execute(
         function,
@@ -87,8 +88,8 @@ public abstract class IndirectInvokeMethodNode extends Node {
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       BaseNode.TailStatus isTail,
       int thisArgumentPosition,
-      @Cached MethodResolverNode methodResolverNode,
-      @Cached IndirectInvokeFunctionNode invokeFunctionNode,
+      @Shared("methodResolverNode") @Cached MethodResolverNode methodResolverNode,
+      @Shared("indirectInvokeFunctionNode") @Cached IndirectInvokeFunctionNode invokeFunctionNode,
       @Cached ConditionProfile profile) {
     Function function =
         methodResolverNode.execute(EnsoContext.get(this).getBuiltins().dataflowError(), symbol);
@@ -170,8 +171,8 @@ public abstract class IndirectInvokeMethodNode extends Node {
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       BaseNode.TailStatus isTail,
       int thisArgumentPosition,
-      @CachedLibrary(limit = "10") TypesLibrary methods,
-      @CachedLibrary(limit = "10") InteropLibrary interop,
+      @Shared("typesLib") @CachedLibrary(limit = "10") TypesLibrary methods,
+      @Shared("interopLib") @CachedLibrary(limit = "10") InteropLibrary interop,
       @Bind("getPolyglotCallType(self, symbol, interop)")
           HostMethodCallNode.PolyglotCallType polyglotCallType,
       @Cached ThunkExecutorNode argExecutor,
@@ -205,10 +206,10 @@ public abstract class IndirectInvokeMethodNode extends Node {
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       BaseNode.TailStatus isTail,
       int thisArgumentPosition,
-      @CachedLibrary(limit = "10") TypesLibrary methods,
-      @Cached MethodResolverNode methodResolverNode,
-      @CachedLibrary(limit = "10") InteropLibrary interop,
-      @Cached IndirectInvokeFunctionNode invokeFunctionNode) {
+      @Shared("typesLib") @CachedLibrary(limit = "10") TypesLibrary methods,
+      @Shared("methodResolverNode") @Cached MethodResolverNode methodResolverNode,
+      @Shared("interopLib") @CachedLibrary(limit = "10") InteropLibrary interop,
+      @Shared("indirectInvokeFunctionNode") @Cached IndirectInvokeFunctionNode invokeFunctionNode) {
     try {
       var str = interop.asString(self);
       var text = Text.create(str);
@@ -248,10 +249,10 @@ public abstract class IndirectInvokeMethodNode extends Node {
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       BaseNode.TailStatus isTail,
       int thisArgumentPosition,
-      @Cached MethodResolverNode methodResolverNode,
-      @CachedLibrary(limit = "10") TypesLibrary types,
-      @CachedLibrary(limit = "10") InteropLibrary interop,
-      @Cached IndirectInvokeFunctionNode invokeFunctionNode) {
+      @Shared("methodResolverNode") @Cached MethodResolverNode methodResolverNode,
+      @Shared("typesLib") @CachedLibrary(limit = "10") TypesLibrary types,
+      @Shared("interopLib") @CachedLibrary(limit = "10") InteropLibrary interop,
+      @Shared("indirectInvokeFunctionNode") @Cached IndirectInvokeFunctionNode invokeFunctionNode) {
     Function function =
         methodResolverNode.expectNonNull(self, EnsoContext.get(this).getBuiltins().any(), symbol);
     return invokeFunctionNode.execute(

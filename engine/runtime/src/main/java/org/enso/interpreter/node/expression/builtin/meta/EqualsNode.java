@@ -3,6 +3,7 @@ package org.enso.interpreter.node.expression.builtin.meta;
 import com.ibm.icu.text.Normalizer;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -213,7 +214,9 @@ public abstract class EqualsNode extends Node {
 
   @Specialization(guards = "isPrimitive(self, interop) != isPrimitive(other, interop)")
   boolean equalsDifferent(
-      Object self, Object other, @CachedLibrary(limit = "10") InteropLibrary interop) {
+      Object self,
+      Object other,
+      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
     return false;
   }
 
@@ -228,7 +231,7 @@ public abstract class EqualsNode extends Node {
       Atom self,
       Atom other,
       @Cached EqualsAtomNode equalsAtomNode,
-      @Cached IsSameObjectNode isSameObjectNode) {
+      @Shared("isSameObjectNode") @Cached IsSameObjectNode isSameObjectNode) {
     return isSameObjectNode.execute(self, other) || equalsAtomNode.execute(self, other);
   }
 
@@ -237,8 +240,8 @@ public abstract class EqualsNode extends Node {
       Object self,
       Object other,
       @Cached EqualsComplexNode equalsComplex,
-      @Cached IsSameObjectNode isSameObjectNode,
-      @CachedLibrary(limit = "10") InteropLibrary interop,
+      @Shared("isSameObjectNode") @Cached IsSameObjectNode isSameObjectNode,
+      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
       @CachedLibrary(limit = "5") WarningsLibrary warnings) {
     return isSameObjectNode.execute(self, other) || equalsComplex.execute(self, other);
   }
