@@ -2,7 +2,7 @@
 
 use crate::prelude::*;
 
-use crate::controller::searcher::action;
+use crate::controller::searcher::component::Suggestion;
 use crate::controller::searcher::Filter;
 use crate::controller::searcher::RequiredImport;
 
@@ -408,7 +408,7 @@ impl InsertedSuggestion {
 /// For example, if the user types `Foo.Bar.` and accepts a method `Foo.Bar.baz` we insert
 /// `Foo.Bar.baz` with `Foo` import instead of inserting `Bar.baz` with `Bar` import.
 struct InsertContext<'a> {
-    suggestion:    &'a action::Suggestion,
+    suggestion:    &'a Suggestion,
     context:       Option<ast::opr::Chain>,
     generate_this: bool,
 }
@@ -434,7 +434,7 @@ impl InsertContext<'_> {
     /// by the user and the segments that need to be added.
     fn segments_to_replace(&self) -> Option<(Vec<ImString>, Option<RequiredImport>)> {
         if let Some(existing_segments) = self.qualified_name_segments() {
-            if let action::Suggestion::FromDatabase(entry) = self.suggestion {
+            if let Suggestion::FromDatabase { entry, .. } = &self.suggestion {
                 let name = entry.qualified_name();
                 let all_segments = name.segments().cloned().collect_vec();
                 // A list of search windows is reversed, because we want to look from the end, as it
@@ -468,8 +468,8 @@ impl InsertContext<'_> {
     }
 
     fn code_to_insert(&self, in_module: QualifiedNameRef) -> (Cow<str>, Option<RequiredImport>) {
-        match self.suggestion {
-            action::Suggestion::FromDatabase(entry) => {
+        match &self.suggestion {
+            Suggestion::FromDatabase { entry, .. } => {
                 if let Some((segments, import)) = self.segments_to_replace() {
                     (Cow::from(segments.iter().join(ast::opr::predefined::ACCESS)), import)
                 } else {
@@ -478,7 +478,7 @@ impl InsertContext<'_> {
                     (code, import)
                 }
             }
-            action::Suggestion::Hardcoded(snippet) => (Cow::from(snippet.code.as_str()), None),
+            Suggestion::Virtual { snippet } => (Cow::from(snippet.code.as_str()), None),
         }
     }
 }
@@ -489,7 +489,7 @@ impl Input {
     /// Return an information about input change after inserting given suggestion.
     pub fn after_inserting_suggestion(
         &self,
-        suggestion: &action::Suggestion,
+        suggestion: &Suggestion,
         has_this: bool,
         in_module: QualifiedNameRef,
     ) -> FallibleResult<InsertedSuggestion> {
