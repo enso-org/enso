@@ -720,7 +720,7 @@ impl Searcher {
 
 fn add_virtual_entries_to_builder(builder: &mut component::Builder) {
     let snippets = component::hardcoded::INPUT_SNIPPETS.with(|s| s.clone());
-    // Unwrap is safe because conversion from INPUt_GROUP_NAME is tested.
+    // Unwrap is safe because conversion from INPUT_GROUP_NAME is tested.
     let group_name = GroupQualifiedName::try_from(component::hardcoded::INPUT_GROUP_NAME).unwrap();
     builder.add_virtual_entries_to_group(group_name, snippets);
 }
