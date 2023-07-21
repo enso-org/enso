@@ -67,6 +67,10 @@ spec =
             (File.new "foo").should_equal (File.new "foo")
             (File.new "bar").should_not_equal (File.new "foo")
 
+        Test.specify "should allow checking in parent path with `starts_with`" <|
+            (File.new "foo/bar").starts_with (File.new "foo") . should_be_true
+            (File.new "foo/bar").starts_with (File.new "f") . should_be_false
+
         Test.specify "should allow creating a directory" <|
             f = enso_project.data / "good_dir"
             f.delete_if_exists
