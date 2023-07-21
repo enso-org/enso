@@ -5,13 +5,12 @@ use crate::cache::goodie::Goodie;
 use crate::cache::Cache;
 use crate::env::known::PATH;
 use crate::github::RepoRef;
-use crate::programs::java;
 use crate::programs::java::JAVA_HOME;
 use crate::programs::Java;
 
 
 
-const PACKAGE_PREFIX: &str = "graalvm-ce";
+const PACKAGE_PREFIX_URL: &str = "graalvm-community";
 
 pub const CE_BUILDS_REPOSITORY: RepoRef = RepoRef { owner: "graalvm", name: "graalvm-ce-builds" };
 
@@ -24,7 +23,7 @@ crate::define_env_var! {
 }
 
 pub fn graal_version_from_version_string(version_string: &str) -> Result<Version> {
-    let line = version_string.lines().find(|line| line.contains("GraalVM")).context(
+    let line = version_string.lines().find(|line| line.contains("GraalVM CE")).context(
         "There is a Java environment available but it is not recognizable as GraalVM one.",
     )?;
     Version::find_in_text(line)
@@ -41,7 +40,6 @@ pub struct GraalVM {
     /// Used to query GitHub about releases.
     pub client:        Octocrab,
     pub graal_version: Version,
-    pub java_version:  java::LanguageVersion,
     pub os:            OS,
     pub arch:          Arch,
 }
@@ -54,27 +52,33 @@ impl Goodie for GraalVM {
 
     fn is_active(&self) -> BoxFuture<'static, Result<bool>> {
         let expected_graal_version = self.graal_version.clone();
-        let expected_java_language_version = self.java_version;
         async move {
             let found_version = find_graal_version().await?;
             ensure!(found_version == expected_graal_version, "GraalVM version mismatch. Expected {expected_graal_version}, found {found_version}.");
-
-            let found_java_version = Java.check_language_version().await?;
-            ensure!(
-                found_java_version == expected_java_language_version,
-                "Java language version mismatch. Expected {expected_java_language_version}, found {found_java_version}."
-            );
-
             Result::Ok(true)
         }
         .boxed()
     }
 
     fn activation_env_changes(&self, package_path: &Path) -> Result<Vec<crate::env::Modification>> {
-        let package_path = package_path.join(self.root_directory_name());
+        let dir_entries = package_path
+            .read_dir()
+            .context("Failed to read GraalVM cache directory")?
+            .collect_vec();
+        let [graalvm_dir] = dir_entries.as_slice() else {
+            bail!("GraalVM cache directory should contain exactly one directory");
+        };
+        let graalvm_dir = match graalvm_dir {
+            Ok(dir_entry) => dir_entry,
+            Err(err) => bail!("Failed to read GraalVM cache directory: {}", err),
+        };
+        let dir_name = graalvm_dir.file_name();
+        let dir_name = dir_name.as_str();
+        ensure!(dir_name.contains("graalvm"));
+        ensure!(dir_name.contains(self.graal_version.to_string_core().as_str()));
         let root = match TARGET_OS {
-            OS::MacOS => package_path.join_iter(["Contents", "Home"]),
-            _ => package_path,
+            OS::MacOS => graalvm_dir.path().join_iter(["Contents", "Home"]),
+            _ => graalvm_dir.path(),
         };
         Ok(vec![
             crate::env::Modification::set(&JAVA_HOME, &root)?,
@@ -87,18 +91,18 @@ impl Goodie for GraalVM {
 impl GraalVM {
     pub fn url(&self) -> BoxFuture<'static, Result<Url>> {
         let platform_string = self.platform_string();
-        let graal_version = self.graal_version.clone();
+        let graal_version_tag = self.graal_version.to_string_core();
         let client = self.client.clone();
         async move {
             let repo = CE_BUILDS_REPOSITORY.handle(&client);
-            let release = repo.find_release_by_text(&graal_version.to_string()).await?;
+            let release = repo.find_release_by_text(&graal_version_tag).await?;
             crate::github::find_asset_url_by_text(&release, &platform_string).cloned()
         }
         .boxed()
     }
 
     pub fn platform_string(&self) -> String {
-        let Self { graal_version: _graal_version, java_version, arch, os, client: _client } = &self;
+        let Self { graal_version: _graal_version, arch, os, client: _client } = &self;
         let os_name = match *os {
             OS::Linux => "linux",
             OS::Windows => "windows",
@@ -106,18 +110,14 @@ impl GraalVM {
             other_os => unimplemented!("System `{}` is not supported!", other_os),
         };
         let arch_name = match *arch {
-            Arch::X86_64 => "amd64",
+            Arch::X86_64 => "x64",
             // No Graal packages for Apple Silicon.
-            Arch::AArch64 if TARGET_OS == OS::MacOS => "amd64",
+            Arch::AArch64 if TARGET_OS == OS::MacOS => "x64",
             Arch::AArch64 => "aarch64",
             other_arch => unimplemented!("Architecture `{}` is not supported!", other_arch),
         };
-        let java_version = format!("java{}", java_version.0);
-        format!("{PACKAGE_PREFIX}-{java_version}-{os_name}-{arch_name}")
-    }
-
-    pub fn root_directory_name(&self) -> PathBuf {
-        PathBuf::from(format!("{}-{}-{}", PACKAGE_PREFIX, self.java_version, self.graal_version))
+        let java_version = format!("jdk-{}", _graal_version.to_string_core());
+        format!("{PACKAGE_PREFIX_URL}-{java_version}_{os_name}-{arch_name}")
     }
 }
 
@@ -142,17 +142,18 @@ mod tests {
     use crate::log::setup_logging;
     use crate::programs::graal::Gu;
     use crate::programs::Java;
+    use semver::BuildMetadata;
+    use semver::Prerelease;
 
     #[tokio::test]
     #[ignore]
     async fn test_is_enabled() -> Result {
         setup_logging()?;
-        let graal_version = Version::parse("22.3.1").unwrap();
-        let java_version = java::LanguageVersion(17);
+        let graal_version = Version::parse("17.0.7+7.1").unwrap();
         let os = TARGET_OS;
         let arch = Arch::X86_64;
         let client = Octocrab::default();
-        let graalvm = GraalVM { graal_version, java_version, os, arch, client };
+        let graalvm = GraalVM { graal_version, os, arch, client };
 
         graalvm.install_if_missing(&cache::Cache::new_default().await?).await?;
 
@@ -166,14 +167,36 @@ mod tests {
     /// Check that we correctly recognize both the GraalVM version and the Java version.
     #[test]
     fn version_recognize() {
-        let version_string = r"openjdk version 17.0.6 2023-01-17
-OpenJDK Runtime Environment GraalVM CE 22.3.1 (build 17.0.6+10-jvmci-22.3-b13)
-OpenJDK 64-Bit Server VM GraalVM CE 22.3.1 (build 17.0.6+10-jvmci-22.3-b13, mixed mode, sharing)";
+        let version_string = r#"openjdk version "17.0.7" 2023-04-18
+OpenJDK Runtime Environment GraalVM CE 17.0.7+7.1 (build 17.0.7+7-jvmci-23.0-b12)
+OpenJDK 64-Bit Server VM GraalVM CE 17.0.7+7.1 (build 17.0.7+7-jvmci-23.0-b12, mixed mode, sharing)"#;
 
         let found_graal = graal_version_from_version_string(version_string).unwrap();
-        assert_eq!(found_graal, Version::new(22, 3, 1));
+        let expected_graal_version = Version {
+            major: 17,
+            minor: 0,
+            patch: 7,
+            pre:   Prerelease::EMPTY,
+            build: BuildMetadata::new("7.1").unwrap(),
+        };
+        assert_eq!(found_graal, expected_graal_version);
 
         let found_java = Java.parse_version(version_string).unwrap();
-        assert_eq!(found_java, Version::new(17, 0, 6));
+        assert_eq!(found_java, Version::new(17, 0, 7));
+    }
+
+    #[test]
+    fn recognize_oneline_version() {
+        let version_line =
+            "OpenJDK Runtime Environment GraalVM CE 17.0.7+7.1 (build 17.0.7+7-jvmci-23.0-b12)";
+        let graal_version = Version::find_in_text(version_line).unwrap();
+        let expected_graal_version = Version {
+            major: 17,
+            minor: 0,
+            patch: 7,
+            pre:   Prerelease::EMPTY,
+            build: BuildMetadata::new("7.1").unwrap(),
+        };
+        assert_eq!(graal_version, expected_graal_version);
     }
 }

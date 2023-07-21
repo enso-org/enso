@@ -4,16 +4,18 @@
 
 use crate::prelude::*;
 
+use crate::controller::graph::RequiredImport;
+use crate::controller::searcher::Filter;
 use crate::model::suggestion_database;
 
-use controller::searcher::action::MatchKind;
-use controller::searcher::Filter;
-use convert_case::Case;
-use convert_case::Casing;
-use double_representation::name::QualifiedName;
+use double_representation::name::project;
 use enso_doc_parser::DocSection;
 use enso_doc_parser::Tag;
+use enso_suggestion_database::entry;
+use ensogl::data::color;
 use ordered_float::OrderedFloat;
+use std::cmp;
+use superslice::Ext;
 
 
 // ==============
@@ -21,10 +23,9 @@ use ordered_float::OrderedFloat;
 // ==============
 
 pub mod builder;
-pub mod group;
 pub mod hardcoded;
 
-pub use group::Group;
+pub use builder::Builder;
 
 
 
@@ -32,64 +33,106 @@ pub use group::Group;
 // === Constants ===
 // =================
 
-/// A "matching" score assigned to the entries which does not match the current pattern entirely.
-///
-/// **Note**: If some entries matches, but their score are equal or below this value, they will be
-/// filtered out as well!
-pub const NOT_MATCHING_SCORE: f32 = 0.0;
-
 /// A factor to multiply a component's alias match score by. It is intended to reduce the importance
 /// of alias matches compared to label matches.
 const ALIAS_MATCH_ATTENUATION_FACTOR: f32 = 0.75;
 
 
 
-// ====================
-// === Type Aliases ===
-// ====================
-
-/// A component identifier.
-pub type Id = suggestion_database::entry::Id;
-/// Information how the component matches the filtering pattern.
-pub type MatchInfo = controller::searcher::action::MatchInfo;
-
-
-
 // =============
-// === Order ===
+// === Group ===
 // =============
 
-/// Defines supported sorting orders for [`Component`]s. Used by
-/// [`Group::update_sorting_and_visibility`].
-#[derive(Copy, Clone, Debug)]
-pub enum Order {
-    /// The same order of components as when the group was built.
-    /// Will use the [`Group::initial_entries_order`] field.
-    Initial,
-    /// Order non-modules by name, followed by modules (also by name).
-    ByNameNonModulesThenModules,
-    /// Order [`Component`]s by [`Component::match_info`] score. The matching entries will go
-    /// first, and the greater score will take precedence.
-    ByMatch,
+/// Group properties.
+#[allow(missing_docs)]
+#[derive(Clone, Debug, Default)]
+pub struct Group {
+    /// The project where the group is defined.
+    pub project: project::QualifiedName,
+    pub name:    ImString,
+    /// Color as defined in project's `package.yaml` file.
+    pub color:   Option<color::Rgb>,
 }
 
 
 
-// ============
-// === Data ===
-// ============
+// =================
+// === Component ===
+// =================
 
-/// Contains detailed data of a [`Component`]. The storage of the details differs depending on
-/// where the data originates from (either from the [`suggestion_database`] or from a
-/// [`hardcoded::Snippet`]).
-#[derive(Clone, CloneRef, Debug)]
-pub enum Data {
+// === MatchInfo ===
+
+/// Which part of the component browser entry was best matched to the searcher input.
+#[derive(Clone, Debug, Default)]
+pub enum MatchKind {
+    /// The entry's label to be displayed in the component browser was matched.
+    #[default]
+    Label,
+    /// The entry's name from the code was matched.
+    Name,
+    /// An alias of the entry was matched, contains the specific alias that was matched.
+    Alias(ImString),
+}
+
+/// Information how the list entry matches the filtering pattern.
+#[allow(missing_docs)]
+#[derive(Clone, Debug)]
+pub enum MatchInfo {
+    DoesNotMatch,
+    Matches { subsequence: fuzzly::Subsequence, kind: MatchKind },
+}
+
+impl Default for MatchInfo {
+    fn default() -> Self {
+        Self::Matches { subsequence: default(), kind: default() }
+    }
+}
+
+impl Ord for MatchInfo {
+    /// Compare Match infos: the better matches are greater. The scores are compared using the full
+    /// ordering as described in [`fuzzly::Subsequence::compare_scores`].
+    fn cmp(&self, rhs: &Self) -> std::cmp::Ordering {
+        use std::cmp::Ordering::*;
+        use MatchInfo::*;
+        match (&self, &rhs) {
+            (DoesNotMatch, DoesNotMatch) => Equal,
+            (DoesNotMatch, Matches { .. }) => Less,
+            (Matches { .. }, DoesNotMatch) => Greater,
+            (Matches { subsequence: lhs, .. }, Matches { subsequence: rhs, .. }) =>
+                OrderedFloat(lhs.score).cmp(&OrderedFloat(rhs.score)),
+        }
+    }
+}
+
+impl PartialOrd for MatchInfo {
+    fn partial_cmp(&self, rhs: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(rhs))
+    }
+}
+
+impl PartialEq for MatchInfo {
+    fn eq(&self, rhs: &Self) -> bool {
+        self.cmp(rhs) == std::cmp::Ordering::Equal
+    }
+}
+
+impl Eq for MatchInfo {}
+
+
+// === Suggestion ===
+
+/// Code suggestion.
+///
+/// It's a part of [`Component`], containing the data required for generating code suggested by
+/// given component.
+#[derive(Clone, Debug, PartialEq)]
+pub enum Suggestion {
     /// A component from the [`suggestion_database`]. When this component is picked in the
     /// Component Browser, the code returned by [`suggestion_database::Entry::code_to_insert`] will
     /// be inserted into the program.
     FromDatabase {
         /// The ID of the component in the [`suggestion_database`].
-        id:    Immutable<Id>,
+        id:    suggestion_database::entry::Id,
         /// The component's entry in the [`suggestion_database`].
         entry: Rc<suggestion_database::Entry>,
     },
@@ -101,39 +144,56 @@ pub enum Data {
     },
 }
 
+impl Suggestion {
+    /// The name of the suggested component.
+    pub fn name(&self) -> &str {
+        match self {
+            Self::FromDatabase { entry, .. }
+                if entry.kind == entry::Kind::Module && entry.defined_in.is_main_module() =>
+                entry.defined_in.alias_name().as_str(),
+            Self::FromDatabase { entry, .. } => entry.name.as_str(),
+            Self::Virtual { snippet } => snippet.name.as_str(),
+        }
+    }
+
+    /// The import requiored by this suggestion.
+    pub fn required_import(&self) -> Option<RequiredImport> {
+        match self {
+            Self::FromDatabase { entry, .. } => Some(RequiredImport::Entry(entry.clone_ref())),
+            Self::Virtual { .. } => None,
+        }
+    }
+}
 
 
-// =================
 // === Component ===
-// =================
 
-/// A structure describing a language entity which may be picked in the Component Browser panel to
-/// create a new node or change existing one.
-///
-/// The components are usually stored in [`List`], which may be filtered; the single component keeps
-/// then information how it matches the current filtering pattern.
-///
-/// See the documentation of the [`Data`] variants for information on what will happen when the
-/// component is picked in the Component Browser panel.
+/// A single component entry to be displayed in the Component Browser.
 #[allow(missing_docs)]
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, Debug)]
 pub struct Component {
-    pub data:       Data,
-    pub match_info: Rc<RefCell<MatchInfo>>,
+    pub suggestion: Suggestion,
+    /// A group id, being an index of `group` field of [`List`] structure.
+    pub group_id:   Option<usize>,
+    pub match_info: MatchInfo,
 }
 
 impl Component {
     /// Construct a new component from a [`suggestion_database`] entry.
     ///
     /// The matching info will be filled for an empty pattern.
-    pub fn new_from_database_entry(id: Id, entry: Rc<suggestion_database::Entry>) -> Self {
-        let data = Data::FromDatabase { id: Immutable(id), entry };
-        Self { data, match_info: default() }
+    pub fn new_from_database_entry(
+        id: suggestion_database::entry::Id,
+        entry: Rc<suggestion_database::Entry>,
+        group_id: Option<usize>,
+    ) -> Self {
+        let data = Suggestion::FromDatabase { id, entry };
+        Self { suggestion: data, group_id, match_info: default() }
     }
 
     /// The label which should be displayed in the Component Browser.
     pub fn label(&self) -> String {
-        match &*self.match_info.borrow() {
+        match &self.match_info {
             MatchInfo::Matches { kind: MatchKind::Alias(alias), .. } => {
                 format!("{alias} ({self})")
             }
@@ -143,23 +203,21 @@ impl Component {
 
     /// The name of the component.
     pub fn name(&self) -> &str {
-        match &self.data {
-            Data::FromDatabase { entry, .. } => entry.name.as_str(),
-            Data::Virtual { snippet } => snippet.name.as_str(),
-        }
+        self.suggestion.name()
     }
 
-    /// The [`Id`] of the component in the [`suggestion_database`], or `None` if not applicable.
-    pub fn id(&self) -> Option<Id> {
-        match self.data {
-            Data::FromDatabase { id, .. } => Some(*id),
-            Data::Virtual { .. } => None,
+    /// The [ID](suggestion_database::entry::Id) of the component in the [`suggestion_database`], or
+    /// `None` if not applicable.
+    pub fn id(&self) -> Option<suggestion_database::entry::Id> {
+        match &self.suggestion {
+            Suggestion::FromDatabase { id, .. } => Some(*id),
+            Suggestion::Virtual { .. } => None,
         }
     }
 
     /// Checks if component is filtered out.
     pub fn is_filtered_out(&self) -> bool {
-        matches!(*self.match_info.borrow(), MatchInfo::DoesNotMatch)
+        matches!(self.match_info, MatchInfo::DoesNotMatch)
     }
 
     /// Checks if the component can be entered in Component Browser.
@@ -168,13 +226,13 @@ impl Component {
     /// submodules of the entered module.
     pub fn can_be_entered(&self) -> bool {
         use suggestion_database::entry::Kind as EntryKind;
-        matches!(&self.data, Data::FromDatabase { entry, .. } if entry.kind == EntryKind::Module)
+        matches!(&self.suggestion, Suggestion::FromDatabase { entry, .. } if entry.kind == EntryKind::Module)
     }
 
     /// Update matching info.
     ///
     /// It should be called each time the filtering pattern changes.
-    pub fn update_matching_info(&self, filter: Filter) {
+    pub fn update_matching_info(&mut self, filter: Filter) {
         // Match the input pattern to the component label.
         let label = self.to_string();
         let label_matches = fuzzly::matches(&label, filter.pattern.as_str());
@@ -220,25 +278,25 @@ impl Component {
         // Select the best match of the available label-, code- and alias matches.
         let match_info_iter = [alias_match_info, name_match_info, label_match_info].into_iter();
         let best_match_info = match_info_iter.flatten().max_by(|lhs, rhs| lhs.cmp(rhs));
-        *self.match_info.borrow_mut() = best_match_info.unwrap_or(MatchInfo::DoesNotMatch);
+        self.match_info = best_match_info.unwrap_or(MatchInfo::DoesNotMatch);
 
         // Filter out components with FQN not matching the context.
         if let Some(context) = filter.context {
-            if let Data::FromDatabase { entry, .. } = &self.data {
+            if let Suggestion::FromDatabase { entry, .. } = &self.suggestion {
                 if !entry.qualified_name().to_string().contains(context.as_str()) {
-                    *self.match_info.borrow_mut() = MatchInfo::DoesNotMatch;
+                    self.match_info = MatchInfo::DoesNotMatch;
                 }
             } else {
                 // Remove virtual entries if the context is present.
-                *self.match_info.borrow_mut() = MatchInfo::DoesNotMatch;
+                self.match_info = MatchInfo::DoesNotMatch;
             }
         }
     }
 
     /// Check whether the component contains the "PRIVATE" tag.
     pub fn is_private(&self) -> bool {
-        match &self.data {
-            Data::FromDatabase { entry, .. } => entry
+        match &self.suggestion {
+            Suggestion::FromDatabase { entry, .. } => entry
                 .documentation
                 .iter()
                 .any(|doc| matches!(doc, DocSection::Tag { tag: Tag::Private, .. })),
@@ -249,8 +307,8 @@ impl Component {
     /// Return an iterator over the component's aliases from the "ALIAS" tags in the entry's
     /// documentation.
     pub fn aliases(&self) -> impl Iterator<Item = &str> {
-        let aliases = match &self.data {
-            Data::FromDatabase { entry, .. } => {
+        let aliases = match &self.suggestion {
+            Suggestion::FromDatabase { entry, .. } => {
                 let aliases = entry.documentation.iter().filter_map(|doc| match doc {
                     DocSection::Tag { tag: Tag::Alias, body } =>
                         Some(body.as_str().split(',').map(|s| s.trim())),
@@ -262,36 +320,22 @@ impl Component {
         };
         aliases.into_iter().flatten()
     }
-
-    pub(crate) fn score(&self) -> f32 {
-        match &*self.match_info.borrow() {
-            MatchInfo::DoesNotMatch => NOT_MATCHING_SCORE,
-            MatchInfo::Matches { subsequence, .. } => subsequence.score,
-        }
-    }
-}
-
-impl From<Rc<hardcoded::Snippet>> for Component {
-    fn from(snippet: Rc<hardcoded::Snippet>) -> Self {
-        Self { data: Data::Virtual { snippet }, match_info: default() }
-    }
 }
 
 impl Display for Component {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match &self.data {
-            Data::FromDatabase { entry, .. } => {
-                let entry_name = entry.name.from_case(Case::Snake).to_case(Case::Lower);
-                let self_type_ref = entry.self_type.as_ref();
-                let self_type_not_here = self_type_ref.filter(|t| *t != &entry.defined_in);
-                if let Some(self_type) = self_type_not_here {
-                    let self_name = self_type.name().from_case(Case::Snake).to_case(Case::Title);
-                    write!(f, "{entry_name} ({self_name})")
-                } else {
-                    write!(f, "{entry_name}")
-                }
-            }
-            Data::Virtual { snippet } => write!(f, "{}", snippet.name),
+        use suggestion_database::entry::Kind;
+        match &self.suggestion {
+            Suggestion::FromDatabase { entry, .. } => match entry.kind {
+                Kind::Module
+                    if entry.defined_in.is_main_module() || entry.defined_in.is_top_element() =>
+                    write!(f, "{}", entry.defined_in),
+                _ => match entry.self_type.as_ref() {
+                    Some(self_type) => write!(f, "{}.{}", self_type.alias_name(), entry.name),
+                    None => write!(f, "{}", entry.name),
+                },
+            },
+            Suggestion::Virtual { snippet } => write!(f, "{}", snippet.name),
         }
     }
 }
@@ -301,139 +345,68 @@ impl Display for Component {
 // ============
 // === List ===
 // ============
-
-// === ModuleGroups ===
-
-/// The Component groups associated with a module: the group containing the module's content, and
-/// groups with direct submodules' content.
-#[allow(missing_docs)]
-#[derive(Clone, CloneRef, Debug)]
-pub struct ModuleGroups {
-    pub qualified_name: Rc<QualifiedName>,
-    pub content:        Group,
-    pub submodules:     group::AlphabeticalList,
-}
-
-
-// === Submodule section
-
-/// Component groups that belong together in a section of the component browser.
-#[derive(Clone, CloneRef, Debug)]
-struct Section {
-    modules:           group::AlphabeticalList,
-    modules_flattened: group::AlphabeticalList,
-    name:              ImString,
-}
-
-
-// === List ===
 
 /// The Component List.
 ///
-/// The List is used to provide information to Component Browser Panel View: thus the components
-/// are arranged in appropriate groups, and the groups are ordered accordingly. You may check the
-/// [design doc](https://github.com/enso-org/design/blob/main/epics/component-browser/design.md#overview)
-/// for information how the Component Browser works.
+/// The list is created using [`Builder`] for a specific Component Browser input context. Then the
+/// filtering may be applied with [`Self::update_filtering`] method. [`Self::displayed`] returns the
+/// list of components which ought to be displayed with current filtering.
 ///
-/// The components and their structure are immutable, only the filtering may change in created List.
-/// If there is need to change/extend the component list, a new one should be created using
-/// [`builder::List`].
-#[derive(Clone, CloneRef, Debug, Default)]
+/// Please note, that even without filtering [`Self::displayed`] may not return all components,
+/// depending on the mode the list was built: see [`Builder`] docs for details.
+#[derive(Clone, Debug, Default)]
 pub struct List {
-    all_components:             Rc<Vec<Component>>,
-    top_module_sections:        Rc<Vec<Section>>,
-    top_module_section_indices: Rc<HashMap<ImString, usize>>,
-    module_groups:              Rc<HashMap<Id, ModuleGroups>>,
-    filtered:                   Rc<Cell<bool>>,
-    /// Components to display in the "Local Scope" section of the [Component
-    /// Browser](crate::controller::Searcher).
-    pub local_scope:            Group,
-    /// Groups of components to display in the "Favorites Data Science Tools" section of the
-    /// [Component Browser](crate::controller::Searcher).
-    pub favorites:              group::List,
+    pub(crate) filtered_in:          Option<RangeTo<usize>>,
+    pub(crate) components:           Vec<Component>,
+    pub(crate) displayed_by_default: Vec<Component>,
+    pub(crate) groups:               Vec<Group>,
 }
 
 impl List {
-    /// Return the list of top modules, which should be displayed in Component Browser.
+    /// Return a slice of the currently displayed component.
     ///
-    /// If the list is filtered, all top modules will be flattened.
-    pub fn top_modules(&self) -> impl Iterator<Item = group::AlphabeticalList> + '_ {
-        self.top_module_sections.iter().map(|section| {
-            if self.filtered.get() {
-                section.modules_flattened.clone_ref()
-            } else {
-                section.modules.clone_ref()
-            }
-        })
-    }
-
-    /// Return the list of filtered top modules and their contents.
-    pub fn top_modules_flattened(&self) -> impl Iterator<Item = group::AlphabeticalList> + '_ {
-        self.top_module_sections.iter().map(|s| s.modules_flattened.clone_ref())
-    }
-
-    /// Get the list of given component submodules. Returns [`None`] if given component is not
-    /// a module.
-    pub fn submodules_of(&self, component: Id) -> Option<&group::AlphabeticalList> {
-        self.module_groups.get(&component).map(|mg| &mg.submodules)
-    }
-
-    /// Get the content of given module component. Returns [`None`] if given component is not a
-    /// module.
-    pub fn get_module_content(&self, component: Id) -> Option<&Group> {
-        self.module_groups.get(&component).map(|mg| &mg.content)
-    }
-
-    /// Get the qualified name of the module. Returns [`None`] if given component is not a module.
-    pub fn module_qualified_name(&self, component: Id) -> Option<Rc<QualifiedName>> {
-        self.module_groups.get(&component).map(|mg| mg.qualified_name.clone_ref())
-    }
-
-    /// Update matching info in all components according to the new filtering pattern.
-    pub fn update_filtering(&self, filter: Filter) {
-        let pattern = &filter.pattern;
-        for component in &*self.all_components {
-            component.update_matching_info(filter.clone_ref())
+    /// The filtering applied with [`Self::update_filtering`] method will be taken into account.
+    pub fn displayed(&self) -> &[Component] {
+        if let Some(range) = self.filtered_in {
+            &self.components[range]
+        } else {
+            &self.displayed_by_default
         }
-        let filtering_enabled = !pattern.is_empty() || filter.context.is_some();
-        let submodules_order =
-            if filtering_enabled { Order::ByMatch } else { Order::ByNameNonModulesThenModules };
-        let favorites_order = if filtering_enabled { Order::ByMatch } else { Order::Initial };
-        for group in self.all_groups_not_in_favorites() {
-            group.update_match_info_and_sorting(submodules_order);
-        }
-        for group in self.favorites.iter() {
-            group.update_match_info_and_sorting(favorites_order);
-        }
-        self.filtered.set(filtering_enabled);
     }
 
-    /// All groups from [`List`] without the groups found in [`List::favorites`].
-    fn all_groups_not_in_favorites(&self) -> impl Iterator<Item = &Group> {
-        let normal = self.module_groups.values().map(|mg| &mg.content);
-        let flattened = self.top_module_sections.iter().flat_map(|s| s.modules_flattened.iter());
-        normal.chain(flattened).chain(std::iter::once(&self.local_scope))
+    /// Get description of all component groups.
+    pub fn groups(&self) -> &[Group] {
+        &self.groups
     }
-
-    /// Get a vector of section names for the sections of the top modules.
-    pub fn top_module_section_names(&self) -> impl Iterator<Item = &ImString> {
-        self.top_module_sections.iter().map(|s| &s.name)
-    }
-
-    /// Get a map of section names to section indices for the sections of the top modules.
-    pub fn top_module_section_indices(&self) -> &HashMap<ImString, usize> {
-        &self.top_module_section_indices
-    }
-
-    /// Get the number of namespace sections.
-    pub fn top_module_section_count(&self) -> usize {
-        self.top_module_sections.len()
-    }
-
-    /// Check if the list is currently filtered (last [`update_filtering`](Self::update_filtering)
-    /// call was with non-empty pattern).
+    /// Returns true if the list is currently filtered.
     pub fn is_filtered(&self) -> bool {
-        self.filtered.get()
+        self.filtered_in.is_some()
+    }
+
+    /// Update list filtering.
+    ///
+    /// If the filtering pattern is not empty, the components will be sorted by match score (best
+    /// match first), and [`Self::displayed`] will return only matched entries. Otherwise
+    /// [`Self::displayed`] will return a "default" view, which depend on the context - see
+    /// [structure docs](List) for details.
+    pub fn update_filtering(&mut self, filter: Filter) {
+        if filter.pattern.trim().is_empty() {
+            self.filtered_in = None;
+        } else {
+            for component in &mut self.components {
+                component.update_matching_info(filter.clone_ref());
+            }
+            self.components
+                .sort_by(|lhs, rhs| Self::entry_match_ordering(&lhs.match_info, &rhs.match_info));
+            let first_non_matching =
+                self.components.lower_bound_by_key(&true, |entry| entry.is_filtered_out());
+            self.filtered_in = Some(..first_non_matching);
+        }
+    }
+
+    /// Return the entry match ordering when sorting by match. See [`component::Order::ByMatch`].
+    fn entry_match_ordering(lhs: &MatchInfo, rhs: &MatchInfo) -> cmp::Ordering {
+        lhs.cmp(rhs).reverse()
     }
 }
 
@@ -447,160 +420,55 @@ impl List {
 pub(crate) mod tests {
     use super::*;
 
-    use double_representation::name::project;
+    use double_representation::name::QualifiedName;
     use enso_suggestion_database::mock_suggestion_database;
 
-    pub fn mock_suggestion_db() -> model::SuggestionDatabase {
-        mock_suggestion_database! {
+    pub fn check_displayed_components(list: &List, expected: Vec<&str>) {
+        let components = list.displayed().iter().map(|component| component.label()).collect_vec();
+        assert_eq!(components, expected);
+    }
+
+    pub fn check_groups(list: &List, expected: Vec<Option<usize>>) {
+        let groups = list.displayed().iter().map(|component| component.group_id).collect_vec();
+        assert_eq!(groups, expected);
+    }
+
+    #[test]
+    fn filtering() {
+        let db = mock_suggestion_database! {
+            local.New_Project_1 {
+                fn main() -> Standard.Base.Any;
+            }
             test.Test {
                 mod TopModule1 {
-                    fn fun1() -> Standard.Base.Any;
+                    fn foo() -> Standard.Base.Any;
+                    fn bar() -> Standard.Base.Any;
 
                     mod SubModule1 {
-                        fn fun4() -> Standard.Base.Any;
-                    }
-                    mod SubModule2 {
-                        fn fun5 -> Standard.Base.Any;
-                        mod SubModule3 {
-                            fn fun6 -> Standard.Base.Any;
-                        }
-                    }
-
-                    fn fun2() -> Standard.Base.Any;
-                }
-                mod TopModule2 {
-                    fn fun3() -> Standard.Base.Any;
-                }
-            }
-        }
-    }
-
-    fn mock_favorites(
-        db: &model::SuggestionDatabase,
-        component_ids: &[Id],
-    ) -> Vec<crate::model::execution_context::ComponentGroup> {
-        let db_entries = component_ids.iter().map(|id| db.lookup(*id).unwrap());
-        let group = crate::model::execution_context::ComponentGroup {
-            project:    project::QualifiedName::standard_base_library(),
-            name:       "Test Group 1".into(),
-            color:      None,
-            components: db_entries.into_iter().map(|e| e.qualified_name()).collect(),
-        };
-        vec![group]
-    }
-
-
-    // === Filtering Component List ===
-
-    /// Assert IDs and order of all entries in the group which have their [`Component::match_info`]
-    /// set to [`MatchInfo::Matches`]. Additionally, verify the [`Group::visible`] field is
-    /// [`true`] iff no IDs are expected.
-    fn assert_ids_of_matches_entries(group: &Group, expected_ids: &[Id]) {
-        let ids_of_matches = group
-            .entries
-            .borrow()
-            .iter()
-            .take_while(|c| matches!(*c.match_info.borrow(), MatchInfo::Matches { .. }))
-            .map(|c| c.id().unwrap())
-            .collect_vec();
-        assert_eq!(ids_of_matches, expected_ids);
-    }
-
-    #[test]
-    fn filtering_component_list() {
-        let suggestion_db = mock_suggestion_database! {
-            test.Test {
-                mod TopModule {
-                    fn fun1() -> Standard.Base.Any;
-
-                    mod SubModule {
-                        fn funx2() -> Standard.Base.Any;
+                        fn bazz() -> Standard.Base.Any;
                     }
                 }
             }
         };
-        let favorites = mock_favorites(&suggestion_db, &[4, 2]);
-        let mut builder = builder::List::new().with_local_scope_module_id(1);
-        builder.set_grouping_and_order_of_favorites(&suggestion_db, &favorites);
-        builder.extend_list_and_allow_favorites_with_ids(&suggestion_db, 0..=4);
-        let list = builder.build();
-        let module_name: Rc<QualifiedName> = Rc::new("test.Test.TopModule".try_into().unwrap());
-        let filter = |pattern: &str| Filter {
-            pattern:     pattern.into(),
+
+        let mut builder = Builder::new_empty(&db);
+        builder.add_components_from_db(db.keys());
+        let mut list = builder.build();
+
+        let module_name = Rc::new(QualifiedName::from_text("local.New_Project_1").unwrap());
+        let make_filter = |pat: &str| Filter {
+            pattern:     pat.into(),
             context:     None,
-            module_name: module_name.clone(),
+            module_name: module_name.clone_ref(),
         };
-
-        list.update_filtering(filter("fu"));
-        let match_infos = list.top_modules().next().unwrap()[0]
-            .entries
-            .borrow()
-            .iter()
-            .map(|c| c.match_info.borrow().clone())
-            .collect_vec();
-        debug!("{match_infos:?}");
-        assert_ids_of_matches_entries(&list.top_modules().next().unwrap()[0], &[2, 4]);
-        assert_ids_of_matches_entries(&list.favorites[0], &[2, 4]);
-        assert_ids_of_matches_entries(&list.local_scope, &[2]);
-
-        list.update_filtering(filter("x"));
-        assert_ids_of_matches_entries(&list.top_modules().next().unwrap()[0], &[4]);
-        assert_ids_of_matches_entries(&list.favorites[0], &[4]);
-        assert_ids_of_matches_entries(&list.local_scope, &[]);
-
-        list.update_filtering(filter("Sub"));
-        assert_ids_of_matches_entries(&list.top_modules().next().unwrap()[0], &[3]);
-        assert_ids_of_matches_entries(&list.favorites[0], &[]);
-        assert_ids_of_matches_entries(&list.local_scope, &[]);
-
-        list.update_filtering(filter("y"));
-        assert_ids_of_matches_entries(&list.top_modules().next().unwrap()[0], &[]);
-        assert_ids_of_matches_entries(&list.favorites[0], &[]);
-        assert_ids_of_matches_entries(&list.local_scope, &[]);
-
-        list.update_filtering(filter(""));
-        assert_ids_of_matches_entries(&list.top_modules().next().unwrap()[0], &[2, 3]);
-        assert_ids_of_matches_entries(&list.favorites[0], &[4, 2]);
-        assert_ids_of_matches_entries(&list.local_scope, &[2]);
-    }
-
-
-    // === Component List modules tree ===
-
-    #[test]
-    fn component_list_modules_tree() {
-        // Create a components list with sample data.
-        let suggestion_db = mock_suggestion_db();
-        let mut builder = builder::List::new().with_local_scope_module_id(0);
-        builder.extend_list_and_allow_favorites_with_ids(&suggestion_db, 0..=11);
-        let list = builder.build();
-
-        // Verify that we can read all top-level modules from the component list.
-        let expected_top_modules_ids = vec![Some(1), Some(10)];
-        let top_modules = list.top_modules().collect::<Vec<_>>();
-        let top_modules_ids = top_modules
-            .iter()
-            .flat_map(|section| section.iter())
-            .map(|m| m.component_id)
-            .collect_vec();
-        assert_eq!(top_modules_ids, expected_top_modules_ids);
-
-        // Verify that we can read content and direct submodules of a second-level submodule
-        // ("test.Test.TopModule1.SubModule2").
-        let content = list.get_module_content(5).unwrap();
-        let expected_content_ids = vec![6, 7];
-        let content_ids = content.entries.borrow().iter().map(|e| e.id().unwrap()).collect_vec();
-        assert_eq!(content_ids, expected_content_ids);
-        let direct_submodules = list.submodules_of(5).unwrap();
-        let expected_direct_submodules_ids = vec![Some(7)];
-        let direct_submodules_ids = direct_submodules.iter().map(|m| m.component_id).collect_vec();
-        assert_eq!(direct_submodules_ids, expected_direct_submodules_ids);
-
-        // Verify that we can read content of a third-level submodule
-        // ("test.Test.TopModule1.SubModule1.SubSubModule").
-        let content = list.get_module_content(7).unwrap();
-        let expected_content_ids = vec![8];
-        let content_ids = content.entries.borrow().iter().map(|e| e.id().unwrap()).collect_vec();
-        assert_eq!(content_ids, expected_content_ids);
+        check_displayed_components(&list, vec!["test.Test.TopModule1"]);
+        list.update_filtering(make_filter("main"));
+        check_displayed_components(&list, vec!["New_Project_1.main"]);
+        list.update_filtering(make_filter("fo"));
+        check_displayed_components(&list, vec!["TopModule1.foo"]);
+        list.update_filtering(make_filter("ba"));
+        check_displayed_components(&list, vec!["TopModule1.bar", "SubModule1.bazz"]);
+        list.update_filtering(make_filter(""));
+        check_displayed_components(&list, vec!["test.Test.TopModule1"]);
     }
 }

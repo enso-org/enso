@@ -165,15 +165,25 @@ public final class EnsoHashMap implements TruffleObject {
 
   @ExportMessage
   @TruffleBoundary
-  Object toDisplayString(
-      boolean allowSideEffects, @CachedLibrary(limit = "5") InteropLibrary interop) {
+  Object toDisplayString(boolean allowSideEffects) {
+    return toString(true);
+  }
+
+  @Override
+  public String toString() {
+    // We are not using uncached InteropLibrary in this method, as it may substantially
+    // slow down Java debugger.
+    return toString(false);
+  }
+
+  private String toString(boolean useInterop) {
     var sb = new StringBuilder();
     sb.append("{");
     boolean empty = true;
     for (StorageEntry entry : mapBuilder.getStorage().getValues()) {
       if (isEntryInThisMap(entry)) {
         empty = false;
-        sb.append(entryToString(entry, interop)).append(", ");
+        sb.append(entryToString(entry, useInterop)).append(", ");
       }
     }
     if (!empty) {
@@ -184,17 +194,11 @@ public final class EnsoHashMap implements TruffleObject {
     return sb.toString();
   }
 
-  @Override
-  public String toString() {
-    // We are not using uncached InteropLibrary in this method, as it may substantially
-    // slow down Java debugger.
-    return (String) toDisplayString(true, null);
-  }
-
-  private static String entryToString(StorageEntry entry, InteropLibrary interop) {
+  private static String entryToString(StorageEntry entry, boolean useInterop) {
     String keyStr;
     String valStr;
-    if (interop != null) {
+    if (useInterop) {
+      var interop = InteropLibrary.getUncached();
       try {
         keyStr = interop.asString(interop.toDisplayString(entry.key()));
         valStr = interop.asString(interop.toDisplayString(entry.value()));

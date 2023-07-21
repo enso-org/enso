@@ -201,7 +201,7 @@ impl RunContext {
         // Some GraalVM components depend on Sulong and are not available on all platforms (like
         // Windows or M1 macOS). Thus, we treat them as optional. See e.g.
         // https://github.com/oracle/graalpython/issues/156
-        let optional_components = [graal::ComponentId::Python, graal::ComponentId::R];
+        let optional_components = [graal::ComponentId::Python];
         graal::install_missing_components(required_components, optional_components).await?;
         prepare_simple_library_server.await??;
         Ok(())

@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.expression.builtin.meta;
 
+import com.oracle.truffle.api.dsl.NeverDefault;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.Annotation;
@@ -39,6 +40,7 @@ public abstract class AtomWithAHoleNode extends Node {
 
   abstract Object execute(VirtualFrame frame, Object factory, State state);
 
+  @NeverDefault
   static InvokeCallableNode callWithHole() {
     return InvokeCallableNode.build(
       new CallArgumentInfo[] {new CallArgumentInfo()},
@@ -130,6 +132,7 @@ public abstract class AtomWithAHoleNode extends Node {
       }, new CallArgumentInfo[0], new Annotation[0]);
     }
 
+    @NeverDefault
     static SwapAtomFieldNode create() {
       return new SwapAtomFieldNode();
     }

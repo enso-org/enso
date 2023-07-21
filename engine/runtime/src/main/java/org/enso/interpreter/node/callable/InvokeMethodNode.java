@@ -3,7 +3,9 @@ package org.enso.interpreter.node.callable;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.ImportStatic;
+import com.oracle.truffle.api.dsl.NonIdempotent;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -14,6 +16,7 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.profiles.BranchProfile;
 import com.oracle.truffle.api.profiles.ConditionProfile;
+import com.oracle.truffle.api.profiles.CountingConditionProfile;
 import com.oracle.truffle.api.source.SourceSection;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -69,7 +72,7 @@ public abstract class InvokeMethodNode extends BaseNode {
    */
   private @Child InvokeFunctionNode invokeAnyStaticFunctionNode;
 
-  private final ConditionProfile errorReceiverProfile = ConditionProfile.createCountingProfile();
+  private final CountingConditionProfile errorReceiverProfile = CountingConditionProfile.create();
   private @Child InvokeMethodNode childDispatch;
 
   private final int argumentCount;
@@ -119,6 +122,7 @@ public abstract class InvokeMethodNode extends BaseNode {
   public abstract Object execute(
       VirtualFrame frame, State state, UnresolvedSymbol symbol, Object self, Object[] arguments);
 
+  @NonIdempotent
   boolean isAnyEigenType(Type type) {
     return EnsoContext.get(this).getBuiltins().any().getEigentype() == type;
   }
@@ -139,8 +143,8 @@ public abstract class InvokeMethodNode extends BaseNode {
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
-      @CachedLibrary(limit = "10") TypesLibrary typesLibrary,
-      @Cached MethodResolverNode methodResolverNode,
+      @Shared("types") @CachedLibrary(limit = "10") TypesLibrary typesLibrary,
+      @Shared("methodResolverNode") @Cached MethodResolverNode methodResolverNode,
       @Cached("symbol") UnresolvedSymbol cachedSymbol,
       @Cached("typesLibrary.getType(self)") Type cachedSelfTpe,
       @Cached("resolveFunction(cachedSymbol, cachedSelfTpe, methodResolverNode)")
@@ -193,8 +197,8 @@ public abstract class InvokeMethodNode extends BaseNode {
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
-      @CachedLibrary(limit = "10") TypesLibrary typesLibrary,
-      @Cached MethodResolverNode methodResolverNode) {
+      @Shared("types") @CachedLibrary(limit = "10") TypesLibrary typesLibrary,
+      @Shared("methodResolverNode") @Cached MethodResolverNode methodResolverNode) {
     Type selfTpe = typesLibrary.getType(self);
     Function function = resolveFunction(symbol, selfTpe, methodResolverNode);
     if (function == null) {
@@ -267,7 +271,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       UnresolvedSymbol symbol,
       DataflowError self,
       Object[] arguments,
-      @Cached MethodResolverNode methodResolverNode) {
+      @Shared("methodResolverNode") @Cached MethodResolverNode methodResolverNode) {
     Function function =
         methodResolverNode.execute(EnsoContext.get(this).getBuiltins().dataflowError(), symbol);
     if (errorReceiverProfile.profile(function == null)) {
@@ -362,8 +366,8 @@ public abstract class InvokeMethodNode extends BaseNode {
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
-      @CachedLibrary(limit = "10") TypesLibrary types,
-      @CachedLibrary(limit = "10") WarningsLibrary warnings,
+      @Shared("types") @CachedLibrary(limit = "10") TypesLibrary types,
+      @Shared("warnings") @CachedLibrary(limit = "10") WarningsLibrary warnings,
       @Cached("resolveWarningFunction(self, symbol, types, warnings)") Function resolvedFunction,
       @Cached("resolvedFunction.getSchema()") FunctionSchema cachedSchema,
       @Cached("buildInvokeFunctionWithSelf()") InvokeFunctionNode warningFunctionNode) {
@@ -383,7 +387,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
-      @CachedLibrary(limit = "10") WarningsLibrary warnings) {
+      @Shared("warnings") @CachedLibrary(limit = "10") WarningsLibrary warnings) {
     Object selfWithoutWarnings;
     Warning[] arrOfWarnings;
     try {
@@ -434,17 +438,17 @@ public abstract class InvokeMethodNode extends BaseNode {
         "!methods.hasType(self)",
         "!methods.hasSpecialDispatch(self)",
         "polyglotCallType.isInteropLibrary()",
-      })
+      }, limit = "3")
   Object doPolyglot(
       VirtualFrame frame,
       State state,
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
-      @CachedLibrary(limit = "10") TypesLibrary methods,
-      @CachedLibrary(limit = "10") InteropLibrary interop,
-      @CachedLibrary(limit = "10") WarningsLibrary warnings,
-      @Cached MethodResolverNode preResolveMethod,
+      @Shared("types") @CachedLibrary(limit = "10") TypesLibrary methods,
+      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
+      @Shared("warnings") @CachedLibrary(limit = "10") WarningsLibrary warnings,
+      @Shared("methodResolverNode") @Cached MethodResolverNode preResolveMethod,
       @Bind("getPolyglotCallType(self, symbol, interop, preResolveMethod)")
           HostMethodCallNode.PolyglotCallType polyglotCallType,
       @Cached(value = "buildExecutors()") ThunkExecutorNode[] argExecutors,
@@ -494,10 +498,10 @@ public abstract class InvokeMethodNode extends BaseNode {
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
-      @CachedLibrary(limit = "10") InteropLibrary interop,
-      @CachedLibrary(limit = "10") TypesLibrary types,
-      @CachedLibrary(limit = "10") WarningsLibrary warnings,
-      @Cached MethodResolverNode methodResolverNode) {
+      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
+      @Shared("types") @CachedLibrary(limit = "10") TypesLibrary types,
+      @Shared("warnings") @CachedLibrary(limit = "10") WarningsLibrary warnings,
+      @Shared("methodResolverNode") @Cached MethodResolverNode methodResolverNode) {
     try {
       var str = interop.asString(self);
       var text = Text.create(str);
@@ -517,17 +521,17 @@ public abstract class InvokeMethodNode extends BaseNode {
         "!types.hasType(self)",
         "!types.hasSpecialDispatch(self)",
         "getPolyglotCallType(self, symbol, interop, methodResolverNode) == CONVERT_TO_ARRAY",
-      })
+      }, limit = "3")
   Object doConvertArray(
       VirtualFrame frame,
       State state,
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
-      @CachedLibrary(limit = "10") InteropLibrary interop,
-      @CachedLibrary(limit = "10") TypesLibrary types,
-      @CachedLibrary(limit = "10") WarningsLibrary warnings,
-      @Cached MethodResolverNode methodResolverNode) {
+      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
+      @Shared("types") @CachedLibrary(limit = "10") TypesLibrary types,
+      @Shared("warnings") @CachedLibrary(limit = "10") WarningsLibrary warnings,
+      @Shared("methodResolverNode") @Cached MethodResolverNode methodResolverNode) {
     var ctx = EnsoContext.get(this);
     var arrayType = ctx.getBuiltins().array();
     var function = methodResolverNode.expectNonNull(self, arrayType, symbol);
@@ -541,17 +545,17 @@ public abstract class InvokeMethodNode extends BaseNode {
         "!types.hasType(self)",
         "!types.hasSpecialDispatch(self)",
         "getPolyglotCallType(self, symbol, interop, methodResolverNode) == CONVERT_TO_HASH_MAP",
-      })
+      }, limit = "3")
   Object doConvertHashMap(
       VirtualFrame frame,
       State state,
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
-      @CachedLibrary(limit = "10") InteropLibrary interop,
-      @CachedLibrary(limit = "10") TypesLibrary types,
-      @CachedLibrary(limit = "10") WarningsLibrary warnings,
-      @Cached MethodResolverNode methodResolverNode) {
+      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
+      @Shared("types") @CachedLibrary(limit = "10") TypesLibrary types,
+      @Shared("warnings") @CachedLibrary(limit = "10") WarningsLibrary warnings,
+      @Shared("methodResolverNode") @Cached MethodResolverNode methodResolverNode) {
     var ctx = EnsoContext.get(this);
     var hashMapType = ctx.getBuiltins().map();
     var function = methodResolverNode.expectNonNull(self, hashMapType, symbol);
@@ -572,10 +576,10 @@ public abstract class InvokeMethodNode extends BaseNode {
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
-      @CachedLibrary(limit = "10") TypesLibrary types,
-      @CachedLibrary(limit = "10") InteropLibrary interop,
-      @CachedLibrary(limit = "10") WarningsLibrary warnings,
-      @Cached MethodResolverNode methodResolverNode) {
+      @Shared("types") @CachedLibrary(limit = "10") TypesLibrary types,
+      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
+      @Shared("warnings") @CachedLibrary(limit = "10") WarningsLibrary warnings,
+      @Shared("methodResolverNode") @Cached MethodResolverNode methodResolverNode) {
     var ctx = EnsoContext.get(this);
     try {
       var hostLocalDate = interop.asDate(self);
@@ -602,10 +606,10 @@ public abstract class InvokeMethodNode extends BaseNode {
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
-      @CachedLibrary(limit = "10") TypesLibrary types,
-      @CachedLibrary(limit = "10") InteropLibrary interop,
-      @CachedLibrary(limit = "10") WarningsLibrary warnings,
-      @Cached MethodResolverNode methodResolverNode) {
+      @Shared("types") @CachedLibrary(limit = "10") TypesLibrary types,
+      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
+      @Shared("warnings") @CachedLibrary(limit = "10") WarningsLibrary warnings,
+      @Shared("methodResolverNode") @Cached MethodResolverNode methodResolverNode) {
     var ctx = EnsoContext.get(this);
     try {
       var hostLocalDate = interop.asDate(self);
@@ -634,10 +638,10 @@ public abstract class InvokeMethodNode extends BaseNode {
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
-      @CachedLibrary(limit = "10") TypesLibrary types,
-      @CachedLibrary(limit = "10") InteropLibrary interop,
-      @CachedLibrary(limit = "10") WarningsLibrary warnings,
-      @Cached MethodResolverNode methodResolverNode) {
+      @Shared("types") @CachedLibrary(limit = "10") TypesLibrary types,
+      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
+      @Shared("warnings") @CachedLibrary(limit = "10") WarningsLibrary warnings,
+      @Shared("methodResolverNode") @Cached MethodResolverNode methodResolverNode) {
     var ctx = EnsoContext.get(this);
     try {
       var duration = interop.asDuration(self);
@@ -674,10 +678,10 @@ public abstract class InvokeMethodNode extends BaseNode {
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
-      @CachedLibrary(limit = "10") TypesLibrary types,
-      @CachedLibrary(limit = "10") InteropLibrary interop,
-      @CachedLibrary(limit = "10") WarningsLibrary warnings,
-      @Cached MethodResolverNode methodResolverNode) {
+      @Shared("types") @CachedLibrary(limit = "10") TypesLibrary types,
+      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
+      @Shared("warnings") @CachedLibrary(limit = "10") WarningsLibrary warnings,
+      @Shared("methodResolverNode") @Cached MethodResolverNode methodResolverNode) {
     var ctx = EnsoContext.get(this);
     try {
       var hostLocalDate = interop.asDate(self);
@@ -706,10 +710,10 @@ public abstract class InvokeMethodNode extends BaseNode {
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
-      @CachedLibrary(limit = "10") TypesLibrary types,
-      @CachedLibrary(limit = "10") InteropLibrary interop,
-      @CachedLibrary(limit = "10") WarningsLibrary warnings,
-      @Cached MethodResolverNode methodResolverNode) {
+      @Shared("types") @CachedLibrary(limit = "10") TypesLibrary types,
+      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
+      @Shared("warnings") @CachedLibrary(limit = "10") WarningsLibrary warnings,
+      @Shared("methodResolverNode") @Cached MethodResolverNode methodResolverNode) {
     var ctx = EnsoContext.get(this);
     try {
       var hostZone = interop.asTimeZone(self);
@@ -736,10 +740,10 @@ public abstract class InvokeMethodNode extends BaseNode {
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
-      @CachedLibrary(limit = "10") TypesLibrary types,
-      @CachedLibrary(limit = "10") InteropLibrary interop,
-      @CachedLibrary(limit = "10") WarningsLibrary warnings,
-      @Cached MethodResolverNode methodResolverNode) {
+      @Shared("types") @CachedLibrary(limit = "10") TypesLibrary types,
+      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
+      @Shared("warnings") @CachedLibrary(limit = "10") WarningsLibrary warnings,
+      @Shared("methodResolverNode") @Cached MethodResolverNode methodResolverNode) {
     var ctx = EnsoContext.get(this);
     try {
       var hostLocalTime = interop.asTime(self);
@@ -766,10 +770,10 @@ public abstract class InvokeMethodNode extends BaseNode {
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
-      @CachedLibrary(limit = "10") TypesLibrary methods,
-      @CachedLibrary(limit = "10") InteropLibrary interop,
-      @CachedLibrary(limit = "10") WarningsLibrary warnings,
-      @Cached MethodResolverNode resolverNode) {
+      @Shared("types") @CachedLibrary(limit = "10") TypesLibrary methods,
+      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
+      @Shared("warnings") @CachedLibrary(limit = "10") WarningsLibrary warnings,
+      @Shared("methodResolverNode") @Cached MethodResolverNode resolverNode) {
     var ctx = EnsoContext.get(this);
     Function function = resolverNode.expectNonNull(self, ctx.getBuiltins().function(), symbol);
     return invokeFunctionNode.execute(function, frame, state, arguments);

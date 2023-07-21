@@ -65,7 +65,6 @@ use ensogl_hardcoded_theme::application::component_browser::component_list_panel
 use theme::button_panel as button_panel_theme;
 
 
-
 // ==============
 // === Export ===
 // ==============
@@ -272,8 +271,6 @@ impl component::Frp<Model> for Frp {
             //   https://www.pivotaltracker.com/story/show/180872763
             model.grid.deprecated_set_focus <+ is_visible;
 
-            on_hover_end <- is_hovered.on_false();
-            model.grid.unhover_element <+ on_hover_end;
         }
         panel_style.init.emit(());
         grid_style.init.emit(());
