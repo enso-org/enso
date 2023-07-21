@@ -3,6 +3,7 @@ package org.enso.interpreter.bench.benchmarks.semantic;
 import org.enso.polyglot.MethodNames.Module;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
+import org.graalvm.polyglot.io.IOAccess;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.BenchmarkParams;
 import org.openjdk.jmh.infra.Blackhole;
@@ -28,7 +29,7 @@ public class TypePatternBenchmarks {
   public void initializeBenchmark(BenchmarkParams params) throws Exception {
     var ctx = Context.newBuilder()
       .allowExperimentalOptions(true)
-      .allowIO(true)
+      .allowIO(IOAccess.ALL)
       .allowAllAccess(true)
       .logHandler(new ByteArrayOutputStream())
       .option(

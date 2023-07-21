@@ -2,7 +2,7 @@ package org.enso.interpreter.node.expression.builtin.bool;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
-import com.oracle.truffle.api.profiles.ConditionProfile;
+import com.oracle.truffle.api.profiles.CountingConditionProfile;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.dsl.Suspend;
 import org.enso.interpreter.node.BaseNode;
@@ -17,7 +17,7 @@ import org.enso.interpreter.runtime.state.State;
 public final class IfThenElseNode extends Node {
   private @Child ThunkExecutorNode leftThunkExecutorNode = ThunkExecutorNode.build();
   private @Child ThunkExecutorNode rightThunkExecutorNode = ThunkExecutorNode.build();
-  private final ConditionProfile condProfile = ConditionProfile.createCountingProfile();
+  private final CountingConditionProfile condProfile = CountingConditionProfile.create();
 
   public Object execute(
       VirtualFrame frame,
