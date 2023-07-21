@@ -193,7 +193,6 @@ export function AuthProvider(props: AuthProviderProps) {
     const goOfflineInternal = React.useCallback(() => {
         setInitialized(true)
         setUserSession(OFFLINE_USER_SESSION)
-        setBackendWithoutSavingType(new localBackend.LocalBackend())
         if (supportsLocalBackend) {
             setBackendWithoutSavingType(new localBackend.LocalBackend())
         } else {

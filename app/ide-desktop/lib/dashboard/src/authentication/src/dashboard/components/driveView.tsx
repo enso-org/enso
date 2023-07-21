@@ -281,7 +281,7 @@ export default function DirectoryView(props: DirectoryViewProps) {
             directoryId != null &&
             backend.type === backendModule.BackendType.remote ? (
                 <div
-                    className="text-white text-lg fixed w-screen h-screen inset-0 bg-primary grid place-items-center"
+                    className="text-white text-lg fixed w-screen h-screen inset-0 opacity-0 hover:opacity-100 bg-primary bg-opacity-75 backdrop-blur-none hover:backdrop-blur-xs transition-all grid place-items-center"
                     onDragLeave={() => {
                         setIsFileBeingDragged(false)
                     }}
