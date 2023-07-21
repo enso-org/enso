@@ -51,7 +51,8 @@ closest_storage_type value_type = case value_type of
     Value_Type.Date_Time _ -> DateTimeType.INSTANCE
     Value_Type.Time -> TimeOfDayType.INSTANCE
     Value_Type.Mixed -> AnyObjectType.INSTANCE
-    _ -> Error.throw (Illegal_Argument.Error "Columns of type "+value_type.to_display_text+" are currently not supported in the in-memory backend.")
+    _ ->
+        Error.throw (Illegal_Argument.Error "Columns of type "+value_type.to_display_text+" are currently not supported in the in-memory backend.")
 
 ## PRIVATE
    Converts a value type to an in-memory storage type, possibly approximating it

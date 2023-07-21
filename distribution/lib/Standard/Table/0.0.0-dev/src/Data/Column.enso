@@ -2228,7 +2228,7 @@ run_vectorized_binary_case_text_op left op other case_sensitivity fallback new_n
                implementation, but we need to extend the architecture to allow
                passing the locale to it.
                See: https://www.pivotaltracker.com/n/projects/2539304/stories/184093260
-            run_vectorized_binary_op left Nothing other new_name result_type fallback
+            run_binary_op left other fallback new_name=new_name skip_nulls=True expected_result_type=result_type
 
 ## PRIVATE
 simple_unary_op column op_name =
