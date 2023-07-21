@@ -1,23 +1,55 @@
 package org.enso.compiler;
 
-import java.util.Objects;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.IR$Error$Syntax;
 import org.enso.compiler.core.IR$Error$Syntax$InvalidEscapeSequence$;
-import org.enso.compiler.core.IR$Error$Syntax$Reason;
-import org.enso.compiler.core.IR$Error$Syntax$InvalidImport;
 import org.enso.compiler.core.IR$Error$Syntax$InvalidExport;
+import org.enso.compiler.core.IR$Error$Syntax$InvalidImport;
+import org.enso.compiler.core.IR$Error$Syntax$Reason;
+import org.enso.compiler.core.IR$Error$Syntax$UnclosedTextLiteral$;
 import org.enso.compiler.core.IR$Error$Syntax$UnexpectedExpression$;
 import org.enso.compiler.core.IR$Error$Syntax$UnrecognizedToken$;
 import org.enso.compiler.core.IR$Error$Syntax$UnsupportedSyntax;
 import org.enso.syntax.text.Location;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import org.junit.Test;
 import scala.collection.immutable.List;
 
 public class ErrorCompilerTest extends CompilerTest {
+
+  @Test
+  public void unfinishedLiteral1() throws Exception {
+    var ir = parse("""
+    foo = "unfinished literal...
+    """);
+
+    assertSingleSyntaxError(ir, IR$Error$Syntax$UnclosedTextLiteral$.MODULE$, "Unclosed text literal", 6, 28);
+  }
+
+  @Test
+  public void unfinishedLiteral2() throws Exception {
+    var ir = parse("""
+    foo = 'unfinished literal...
+    """);
+    assertSingleSyntaxError(ir, IR$Error$Syntax$UnclosedTextLiteral$.MODULE$, "Unclosed text literal", 6, 28);
+  }
+
+  @Test
+  public void unpairedLiteral1() throws Exception {
+    var ir = parse("""
+    foo = "unpaired literal'
+    """);
+    assertSingleSyntaxError(ir, IR$Error$Syntax$UnclosedTextLiteral$.MODULE$, "Unclosed text literal", 6, 24);
+  }
+
+  @Test
+  public void unpairedLiteral2() throws Exception {
+    var ir = parse("""
+    foo = 'unpaired literal"
+    """);
+    assertSingleSyntaxError(ir, IR$Error$Syntax$UnclosedTextLiteral$.MODULE$, "Unclosed text literal", 6, 24);
+  }
 
   @Test
   public void spaceRequired() throws Exception {
