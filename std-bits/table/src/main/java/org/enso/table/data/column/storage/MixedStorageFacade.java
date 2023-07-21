@@ -113,4 +113,9 @@ public class MixedStorageFacade extends Storage<Object> {
     Storage<?> newStorage = underlyingStorage.slice(ranges);
     return new MixedStorageFacade(newStorage);
   }
+
+  @Override
+  public Storage<?> tryGettingMoreSpecializedStorage() {
+    return underlyingStorage.tryGettingMoreSpecializedStorage();
+  }
 }

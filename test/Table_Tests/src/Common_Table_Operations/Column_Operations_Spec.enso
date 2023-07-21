@@ -387,14 +387,44 @@ spec setup =
 
         if setup.test_selection.supports_mixed_columns then
             Test.specify "should allow comparing Mixed columns" <|
-                t1 = table_builder [["X", ['a', 23]], ["Y", ['b', 1]]]
+                t1 = table_builder [["X", ["a", 23]], ["Y", ["b", 1]]]
                 ((t1.at "X") == (t1.at "Y")) . to_vector . should_equal [False, False]
                 ((t1.at "X") <= (t1.at "Y")) . to_vector . should_equal [True, False]
                 ((t1.at "X") > (t1.at "Y")) . to_vector . should_equal [False, True]
 
-                t2 = table_builder [["X", [1, 2]], ["Y", ['b', 1]]]
+                t1_2 = table_builder [["X", [1, "2"]], ["Y", ["b", 1]]]
+                ((t1_2.at "X") == (t1_2.at "Y")) . to_vector . should_equal [False, False]
+                ((t1_2.at "X") <= (t1_2.at "Y")) . to_vector . should_fail_with Incomparable_Values
+
+                t2 = table_builder [["X", [1, 2]], ["Y", ["b", 1]]]
                 ((t2.at "X") == (t2.at "Y")) . to_vector . should_equal [False, False]
                 ((t2.at "X") <= (t2.at "Y")) . to_vector . should_fail_with Incomparable_Values
+                ((t2.at "Y") > (t2.at "X")) . to_vector . should_fail_with Incomparable_Values
+
+                t3 = table_builder [["X", [1.0, 2.0]], ["Y", ["b", 1]]]
+                ((t3.at "X") == (t3.at "Y")) . to_vector . should_equal [False, False]
+                ((t3.at "X") <= (t3.at "Y")) . to_vector . should_fail_with Incomparable_Values
+                ((t3.at "Y") > (t3.at "X")) . to_vector . should_fail_with Incomparable_Values
+
+                t4 = table_builder [["X", ["a", "b"]], ["Y", ["b", 1]]]
+                ((t4.at "X") == (t4.at "Y")) . to_vector . should_equal [False, False]
+                ((t4.at "X") <= (t4.at "Y")) . to_vector . should_fail_with Incomparable_Values
+                ((t4.at "Y") > (t4.at "X")) . to_vector . should_fail_with Incomparable_Values
+
+                t5 = table_builder [["X", [Date.new 2022, Date.new 2019]], ["Y", ["b", 1]]]
+                ((t5.at "X") == (t5.at "Y")) . to_vector . should_equal [False, False]
+                ((t5.at "X") <= (t5.at "Y")) . to_vector . should_fail_with Incomparable_Values
+                ((t5.at "Y") > (t5.at "X")) . to_vector . should_fail_with Incomparable_Values
+
+                t6 = table_builder [["X", [Time_Of_Day.new 21, Time_Of_Day.new 22]], ["Y", ["b", 1]]]
+                ((t6.at "X") == (t6.at "Y")) . to_vector . should_equal [False, False]
+                ((t6.at "X") <= (t6.at "Y")) . to_vector . should_fail_with Incomparable_Values
+                ((t6.at "Y") > (t6.at "X")) . to_vector . should_fail_with Incomparable_Values
+
+                t7 = table_builder [["X", [Date_Time.new 2022, Date_Time.new 2019]], ["Y", ["b", 1]]]
+                ((t7.at "X") == (t7.at "Y")) . to_vector . should_equal [False, False]
+                ((t7.at "X") <= (t7.at "Y")) . to_vector . should_fail_with Incomparable_Values
+                ((t7.at "Y") > (t7.at "X")) . to_vector . should_fail_with Incomparable_Values
 
         Test.specify "Between should return null if any of the values are null" pending="TODO" <|
             a = [2, 3, Nothing, 7,       5,       Nothing]

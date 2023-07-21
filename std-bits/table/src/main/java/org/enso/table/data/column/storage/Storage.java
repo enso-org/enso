@@ -39,6 +39,15 @@ public abstract class Storage<T> {
     return getType();
   }
 
+  /** Returns a more specialized storage, if available.
+   * <p>
+   * This storage should have the same type as returned by {@code inferPreciseType}.
+   * See {@link MixedStorage} for more information.
+   */
+  public Storage<?> tryGettingMoreSpecializedStorage() {
+    return this;
+  }
+
   /**
    * Checks whether the value at {@code idx} is missing.
    *

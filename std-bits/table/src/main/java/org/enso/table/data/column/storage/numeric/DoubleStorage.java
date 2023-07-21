@@ -8,6 +8,7 @@ import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.operation.map.numeric.DoubleBooleanOp;
+import org.enso.table.data.column.operation.map.numeric.DoubleComparison;
 import org.enso.table.data.column.operation.map.numeric.DoubleIsInOp;
 import org.enso.table.data.column.operation.map.numeric.DoubleLongMapOpWithSpecialNumericHandling;
 import org.enso.table.data.column.operation.map.numeric.DoubleNumericOp;
@@ -289,14 +290,14 @@ public final class DoubleStorage extends NumericStorage<Double> {
               }
             })
         .add(
-            new DoubleBooleanOp(Maps.LT) {
+            new DoubleComparison(Maps.LT) {
               @Override
               protected boolean doDouble(double a, double b) {
                 return a < b;
               }
             })
         .add(
-            new DoubleBooleanOp(Maps.LTE) {
+            new DoubleComparison(Maps.LTE) {
               @Override
               protected boolean doDouble(double a, double b) {
                 return a <= b;
@@ -335,14 +336,14 @@ public final class DoubleStorage extends NumericStorage<Double> {
               }
             })
         .add(
-            new DoubleBooleanOp(Maps.GT) {
+            new DoubleComparison(Maps.GT) {
               @Override
               protected boolean doDouble(double a, double b) {
                 return a > b;
               }
             })
         .add(
-            new DoubleBooleanOp(Maps.GTE) {
+            new DoubleComparison(Maps.GTE) {
               @Override
               protected boolean doDouble(double a, double b) {
                 return a >= b;

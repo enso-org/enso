@@ -1,12 +1,14 @@
 package org.enso.table.data.column.storage.numeric;
 
 import java.util.BitSet;
+
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.NumericBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.operation.map.numeric.LongBooleanOp;
+import org.enso.table.data.column.operation.map.numeric.LongComparison;
 import org.enso.table.data.column.operation.map.numeric.LongIsInOp;
 import org.enso.table.data.column.operation.map.numeric.LongNumericOp;
 import org.enso.table.data.column.operation.map.numeric.UnaryLongToLongOp;
@@ -178,7 +180,7 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
               }
             })
         .add(
-            new LongBooleanOp(Storage.Maps.GT) {
+            new LongComparison(Storage.Maps.GT) {
               @Override
               protected boolean doLong(long a, long b) {
                 return a > b;
@@ -190,7 +192,7 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
               }
             })
         .add(
-            new LongBooleanOp(Storage.Maps.GTE) {
+            new LongComparison(Storage.Maps.GTE) {
               @Override
               protected boolean doLong(long a, long b) {
                 return a >= b;
@@ -202,7 +204,7 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
               }
             })
         .add(
-            new LongBooleanOp(Storage.Maps.LT) {
+            new LongComparison(Storage.Maps.LT) {
               @Override
               protected boolean doLong(long a, long b) {
                 return a < b;
@@ -214,7 +216,7 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
               }
             })
         .add(
-            new LongBooleanOp(Storage.Maps.LTE) {
+            new LongComparison(Storage.Maps.LTE) {
               @Override
               protected boolean doLong(long a, long b) {
                 return a <= b;

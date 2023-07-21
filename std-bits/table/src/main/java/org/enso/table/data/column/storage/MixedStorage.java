@@ -115,7 +115,7 @@ public final class MixedStorage extends ObjectStorage {
     }
 
     // Otherwise, we try to avoid specializing if not yet necessary.
-    if (isUnaryOpVectorized(name)) {
+    if (super.isUnaryOpVectorized(name)) {
       return VectorizedOperationAvailability.AVAILABLE_IN_SUPER;
     } else {
       // But if our storage does not provide the operation, we have to try checking the other one.
@@ -134,7 +134,7 @@ public final class MixedStorage extends ObjectStorage {
     }
 
     // Otherwise, we try to avoid specializing if not yet necessary.
-    if (isBinaryOpVectorized(name)) {
+    if (super.isBinaryOpVectorized(name)) {
       return VectorizedOperationAvailability.AVAILABLE_IN_SUPER;
     } else {
       // But if our storage does not provide the operation, we have to try checking the other one.
@@ -189,5 +189,11 @@ public final class MixedStorage extends ObjectStorage {
   @Override
   public Builder createDefaultBuilderOfSameType(int capacity) {
     return new MixedBuilder(capacity);
+  }
+
+  @Override
+  public Storage<?> tryGettingMoreSpecializedStorage() {
+    var inferredStorage = getInferredStorage();
+    return inferredStorage != null ? inferredStorage : this;
   }
 }
