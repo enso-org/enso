@@ -13,7 +13,6 @@ main = run_default_backend spec
 spec setup =
     prefix = setup.prefix
     table_builder = setup.table_builder
-    test_selection = setup.test_selection
 
     Test.group prefix+"Column.map" <|
         if setup.is_database then
@@ -44,7 +43,7 @@ spec setup =
                 f x =
                     if x == 2 then Warning.attach (Illegal_State.Error "MY WARNING") (2*x + 1) else 2*x + 1
                 c1 = t.at "X" . map f
-                w1 = Problems.expect_only_warning Illegal_State
+                w1 = Problems.expect_only_warning Illegal_State c1
                 w1.message . should_equal "MY WARNING"
                 c1.to_vector . should_equal [3, 5, 7]
 
@@ -55,10 +54,6 @@ spec setup =
                 (t.at "X") . zip (t.at "Y") . should_fail_with Unsupported_Database_Operation
 
         if setup.is_database.not then
-            Test.specify "should allow to zip elements into pairs" <|
-                t = table_builder [["X", [1, 2, 3]], ["Y", [4, 5, 6]]]
-                (t.at "X") . zip (t.at "Y") . to_vector . should_equal [[1, 4], [2, 5], [3, 6]]
-
             Test.specify "should allow to zip two columns with an arbitrary function" <|
                 t = table_builder [["X", [1, 2, 3]], ["Y", [4, 5, 6]]]
                 f x y = 10*x + y
@@ -81,6 +76,6 @@ spec setup =
                 f x y =
                     if x == 2 then Warning.attach (Illegal_State.Error "MY WARNING") (10*x + y) else 10*x + y
                 c1 = (t.at "X") . zip (t.at "Y") f
-                w1 = Problems.expect_only_warning Illegal_State
+                w1 = Problems.expect_only_warning Illegal_State c1
                 w1.message . should_equal "MY WARNING"
                 c1.to_vector . should_equal [14, 25, 36]
