@@ -359,6 +359,19 @@ type File
     exists : Boolean
     exists self = @Builtin_Method "File.exists"
 
+    ## Checks whether the file is within another path.
+
+       Arguments:
+       - parent: The path to check if self is contained within.
+
+       > Example
+         Check if a file is within another path.
+
+             is_within = File.new "foo/bar" . starts_with (File.new "foo")
+             is_not_within = File.new "foo/bar" . starts_with (File.new "f")
+    starts_with : File -> Boolean
+    starts_with self parent = @Builtin_Method "File.starts_with"
+
     ## Gets the creation time of a file.
 
        > Example
