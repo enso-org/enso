@@ -2033,7 +2033,7 @@ lazy val `exploratory-benchmark-java-helpers` = project
         "test/Exploratory_Benchmarks/polyglot/java/exploratory-benchmark-java-helpers.jar"
       ),
     libraryDependencies ++= Seq(
-      "org.graalvm.sdk" % "graal-sdk" % graalVersion % "provided"
+      "org.graalvm.sdk" % "graal-sdk" % graalMavenPackagesVersion % "provided"
     )
   )
   .dependsOn(`std-base` % "provided")
