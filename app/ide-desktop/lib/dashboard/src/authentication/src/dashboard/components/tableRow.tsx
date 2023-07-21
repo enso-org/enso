@@ -53,6 +53,7 @@ interface InternalBaseTableRowProps<
 > extends Omit<JSX.IntrinsicElements['tr'], 'onClick' | 'onContextMenu'> {
     keyProp: Key
     item: T
+    setItem?: React.Dispatch<React.SetStateAction<T>>
     state?: State
     initialRowState?: TableRowState
     columns: tableColumn.TableColumn<T, State, TableRowState, Key>[]
@@ -82,6 +83,7 @@ export default function TableRow<T, State = never, RowState = never, Key extends
     const {
         keyProp: key,
         item: rawItem,
+        setItem: rawSetItem,
         state,
         initialRowState,
         columns,
@@ -95,7 +97,9 @@ export default function TableRow<T, State = never, RowState = never, Key extends
     const { unsetModal } = modalProvider.useSetModal()
 
     /** The internal state for this row. This may change as backend requests are sent. */
-    const [item, setItem] = React.useState(rawItem)
+    // This hook is not called conditionally. `setItem` either always exists, or never exists.
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const [item, setItem] = rawSetItem != null ? [rawItem, rawSetItem] : React.useState(rawItem)
     /** This is SAFE, as the type is defined such that they MUST be present when `RowState` is not
      * `never`.
      * See the type definitions of {@link TableRowProps} and `TableProps`. */
@@ -103,8 +107,10 @@ export default function TableRow<T, State = never, RowState = never, Key extends
     const [rowState, setRowState] = React.useState<RowState>(initialRowState!)
 
     React.useEffect(() => {
-        setItem(rawItem)
-    }, [rawItem])
+        if (rawSetItem != null) {
+            setItem(rawItem)
+        }
+    }, [rawItem, /* should never change */ setItem, /* should never change */ rawSetItem])
 
     const innerProps: TableRowInnerProps<T, RowState, Key> = {
         key,

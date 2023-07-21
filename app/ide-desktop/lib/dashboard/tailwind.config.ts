@@ -48,6 +48,7 @@ export const theme = {
             vs: '0.8125rem',
         },
         spacing: {
+            '29': '7.25rem',
             '83.5': '20.875rem',
             '70': '17.5rem',
             '10lh': '10lh',
