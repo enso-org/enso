@@ -341,10 +341,10 @@ export default function AssetsTable(props: AssetsTableProps) {
                     type: backendModule.AssetType.directory,
                 }
                 const typeOrder = backendModule.ASSET_TYPE_ORDER[placeholderItem.type]
-                // FIXME: `array.withItemsInsertedAtBoundary` fails when there are no children in
-                // a directory yet, as `item.parentId === event.parentId` will never be true.
+                // FIXME: `array.splicedBefore` fails when there are no children in a directory yet,
+                // as `item.parentId === event.parentId` will never be true.
                 setItems(oldItems =>
-                    array.withItemsInsertedAtBoundary(
+                    array.splicedBefore(
                         oldItems,
                         [placeholderItem],
                         item =>
@@ -372,7 +372,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 }
                 const typeOrder = backendModule.ASSET_TYPE_ORDER[placeholderItem.type]
                 setItems(oldItems =>
-                    array.withItemsInsertedAtBoundary(
+                    array.splicedBefore(
                         oldItems,
                         [placeholderItem],
                         item =>
@@ -401,7 +401,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     }))
                 const fileTypeOrder = backendModule.ASSET_TYPE_ORDER[backendModule.AssetType.file]
                 setItems(oldItems =>
-                    array.withItemsInsertedAtBoundary(
+                    array.splicedBefore(
                         oldItems,
                         placeholderItems,
                         item =>
@@ -435,7 +435,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 }
                 const typeOrder = backendModule.ASSET_TYPE_ORDER[placeholderItem.type]
                 setItems(oldItems =>
-                    array.withItemsInsertedAtBoundary(
+                    array.splicedBefore(
                         oldItems,
                         [placeholderItem],
                         item =>
