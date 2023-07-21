@@ -1,6 +1,5 @@
 package org.enso.interpreter.node.expression.builtin.meta;
 
-import com.oracle.truffle.api.dsl.NeverDefault;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.runtime.EnsoContext;
@@ -17,6 +16,7 @@ import org.enso.interpreter.runtime.state.State;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.NeverDefault;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -129,8 +129,8 @@ public abstract class AtomWithAHoleNode extends Node {
     private SwapAtomFieldNode() {
       super(null);
       this.schema = new FunctionSchema(FunctionSchema.CallerFrameAccess.NONE, new ArgumentDefinition[]{
-        new ArgumentDefinition(0, "lazy", ArgumentDefinition.ExecutionMode.EXECUTE),
-        new ArgumentDefinition(1, "value", ArgumentDefinition.ExecutionMode.EXECUTE)
+        new ArgumentDefinition(0, "lazy", null, ArgumentDefinition.ExecutionMode.EXECUTE),
+        new ArgumentDefinition(1, "value", null, ArgumentDefinition.ExecutionMode.EXECUTE)
       }, new boolean[]{
         true, false
       }, new CallArgumentInfo[0], new Annotation[0]);

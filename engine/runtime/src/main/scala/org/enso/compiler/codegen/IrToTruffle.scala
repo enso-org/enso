@@ -787,6 +787,7 @@ class IrToTruffle(
           new ArgumentDefinition(
             0,
             Constants.Names.SELF_ARGUMENT,
+            null,
             ArgumentDefinition.ExecutionMode.EXECUTE
           )
         )
@@ -801,6 +802,7 @@ class IrToTruffle(
           new ArgumentDefinition(
             0,
             Constants.Names.SELF_ARGUMENT,
+            null,
             ArgumentDefinition.ExecutionMode.EXECUTE
           )
         )

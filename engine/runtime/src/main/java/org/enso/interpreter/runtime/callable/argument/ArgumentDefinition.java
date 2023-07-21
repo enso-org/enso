@@ -29,22 +29,11 @@ public final class ArgumentDefinition {
   private final boolean isSuspended;
 
   /**
-   * Creates a new argument definition without a default value.
-   *
-   * @param position the position of the argument at the definition site
-   * @param name the name of the argument
-   * @param executionMode the execution mode for this argument
-   */
-  public ArgumentDefinition(int position, String name, ExecutionMode executionMode) {
-    this(position, name, null, executionMode);
-  }
-
-  /**
    * Creates a new argument definition with a default value.
    *
    * @param position the position of the argument at the definition site
    * @param name the name of the argument
-   * @param defaultValue the default value of the argument
+   * @param defaultValue the default value of the argument or {@code null}
    * @param executionMode the execution mode for this argument
    */
   public ArgumentDefinition(
