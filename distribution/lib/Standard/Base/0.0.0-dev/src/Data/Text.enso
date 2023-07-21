@@ -132,3 +132,13 @@ type Text
        Conversion to Text that overrides the default `to_text` behavior.
     to_text : Text
     to_text self = self
+
+    ## ADVANCED
+       Checks where this Text is in FCD normalized form.
+
+      > Example
+        Check if the string is normalized
+
+            "14.95€".is_normalized
+    is_normalized : Boolean
+    is_normalized self = @Builtin_Method "Text.is_normalized"
