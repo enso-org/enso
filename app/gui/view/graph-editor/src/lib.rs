@@ -114,7 +114,6 @@ const CURSOR_EDGE_OVERLAP: f32 = 2.0;
 
 
 
-
 // =================
 // === SharedVec ===
 // =================
@@ -1796,21 +1795,21 @@ impl GraphEditorModel {
 pub struct GraphEditorModel {
     pub display_object:   display::object::Instance,
     // Required for dynamically creating nodes and edges.
-    pub app: Application,
-    layers: GraphLayers,
-    pub nodes: Nodes,
-    edges: RefCell<Edges>,
-    pub vis_registry: visualization::Registry,
-    pub drop_manager: ensogl_drop_manager::Manager,
-    pub navigator: Navigator,
-    pub add_node_button: Rc<component::add_node_button::AddNodeButton>,
-    tooltip: Tooltip,
-    touch_state: TouchState,
-    visualizations: Visualizations,
-    frp: api::Private,
-    frp_public: api::Public,
-    profiling_statuses: profiling::Statuses,
-    styles_frp: StyleWatchFrp,
+    pub app:              Application,
+    layers:               GraphLayers,
+    pub nodes:            Nodes,
+    edges:                RefCell<Edges>,
+    pub vis_registry:     visualization::Registry,
+    pub drop_manager:     ensogl_drop_manager::Manager,
+    pub navigator:        Navigator,
+    pub add_node_button:  Rc<component::add_node_button::AddNodeButton>,
+    tooltip:              Tooltip,
+    touch_state:          TouchState,
+    visualizations:       Visualizations,
+    frp:                  api::Private,
+    frp_public:           api::Public,
+    profiling_statuses:   profiling::Statuses,
+    styles_frp:           StyleWatchFrp,
     selection_controller: selection::Controller,
 }
 

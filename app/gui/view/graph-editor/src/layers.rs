@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use ensogl::display::scene::layer;
 
 use crate::display;
 use crate::display::camera::Camera2d;
@@ -8,6 +7,10 @@ use crate::display::scene::HardcodedLayers;
 use crate::display::scene::Layer;
 use crate::display::shape::compound::rectangle;
 use crate::display::shape::system::Shape;
+
+use ensogl::display::scene::layer;
+
+
 
 /// An `Rc` handle over [`GraphLayersData`].
 #[derive(Debug, Clone, CloneRef, Deref)]

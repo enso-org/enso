@@ -31,7 +31,7 @@ impl<T> WeakOps for Weak<T> {
     where F: FnOnce(&Self::Target) -> U {
         self.upgrade().for_each_ref(f)
     }
-    
+
     fn strong_ptr_eq(&self, strong: &Rc<T>) -> bool {
         std::ptr::eq(Rc::as_ptr(strong), self.as_ptr())
     }

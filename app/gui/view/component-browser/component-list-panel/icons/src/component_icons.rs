@@ -3,6 +3,10 @@
 use crate::common_part::*;
 use crate::prelude::*;
 
+use crate::define_icons;
+use crate::SHRINK_AMOUNT;
+use crate::SIZE;
+
 use ensogl_core::data::color;
 use ensogl_core::display::shape::compound::path::path;
 use ensogl_core::display::IntoGlsl;
@@ -11,9 +15,7 @@ use std::f32::consts::PI;
 use theme::grid::entry::icon::dull_color_alpha;
 use theme::grid::entry::special_icons;
 
-use crate::define_icons;
-use crate::SHRINK_AMOUNT;
-use crate::SIZE;
+
 
 // ==============
 // === Export ===

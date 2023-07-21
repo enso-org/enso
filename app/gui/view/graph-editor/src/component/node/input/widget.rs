@@ -43,15 +43,14 @@
 //!    widget is the best fit for the node.
 
 use crate::prelude::*;
-use crate::GraphLayers;
-use std::any::TypeId;
 
 use crate::component::node::input::area::NODE_HEIGHT;
 use crate::component::node::input::area::TEXT_OFFSET;
 use crate::component::node::input::port::Port;
 use crate::display::shape::Rectangle;
-
 use crate::layers::CommonLayers;
+use crate::GraphLayers;
+
 use enso_frp as frp;
 use enso_text as text;
 use ensogl::application::Application;
@@ -66,7 +65,10 @@ use ensogl_component::drop_down::DropdownValue;
 use span_tree::node::Ref as SpanRef;
 use span_tree::PortId;
 use span_tree::TagValue;
+use std::any::TypeId;
 use text::index::Byte;
+
+
 
 /// A prelude module imported in all widget modules.
 pub(super) mod prelude {

@@ -1,7 +1,7 @@
 //! Separating line between top-level argument widgets.
 
-use super::prelude::*;
 use crate::prelude::*;
+use super::prelude::*;
 
 use crate::component::node::input::port::PORT_PADDING_X;
 use crate::component::node::HEIGHT as NODE_HEIGHT;
@@ -11,6 +11,8 @@ use ensogl::data::color;
 use ensogl::display::object;
 use ensogl::display::shape::Rectangle;
 use ensogl_component::text;
+
+
 
 /// =============
 /// === Style ===

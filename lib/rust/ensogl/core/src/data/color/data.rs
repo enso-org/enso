@@ -5,12 +5,14 @@ use super::component::*;
 use crate::prelude::*;
 use enso_generics::*;
 
-use super::component::HasComponents;
 use crate::data::mix::from_space;
 use crate::data::mix::into_space;
 use crate::data::mix::Mixable;
+
+use super::component::HasComponents;
 use nalgebra::Vector3;
 use nalgebra::Vector4;
+
 
 
 // =============

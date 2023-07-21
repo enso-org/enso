@@ -1,16 +1,15 @@
 //! A widget representing a top-level method call. Displays node background. Instead of `self`
 //! argument, it displays an icon as a first port.
 
-use super::prelude::*;
 use crate::prelude::*;
+use super::prelude::*;
 
 use ensogl::display;
-
 use ide_view_component_list_panel_icons as icons;
-
 use icons::any::View as AnyIcon;
 use icons::component_icons::Id as IconId;
 use icons::SIZE;
+
 
 
 // =================

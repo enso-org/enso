@@ -1,9 +1,9 @@
 //! Definition of single choice widget.
 
-use super::prelude::*;
-use crate::component::node;
 use crate::prelude::*;
+use super::prelude::*;
 
+use crate::component::node;
 use crate::component::node::input::widget::label;
 
 use enso_frp as frp;

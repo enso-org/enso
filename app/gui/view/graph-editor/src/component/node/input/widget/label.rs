@@ -1,13 +1,14 @@
 //! Definition of static text label widget.
 
-use super::prelude::*;
 use crate::prelude::*;
+use super::prelude::*;
 
 use crate::component::node::input::area::TEXT_SIZE;
 
 use ensogl::data::color;
 use ensogl::display::object;
 use ensogl_component::text;
+
 
 
 /// =============

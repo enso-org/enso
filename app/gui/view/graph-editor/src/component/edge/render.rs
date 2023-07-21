@@ -6,12 +6,13 @@
 use crate::prelude::*;
 use ensogl::display::shape::*;
 
+use crate::GraphLayers;
+
 use super::layout::Corner;
 use super::layout::EdgeSplit;
 use super::layout::Oriented;
 use super::layout::SplitArc;
 use super::layout::TargetAttachment;
-use crate::GraphLayers;
 use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::scene::Scene;

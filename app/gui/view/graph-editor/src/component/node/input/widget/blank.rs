@@ -2,8 +2,8 @@
 //!
 //! See also [`span_tree::node::InsertionPoint`].
 
-use super::prelude::*;
 use crate::prelude::*;
+use super::prelude::*;
 
 use ensogl::display::object;
 
