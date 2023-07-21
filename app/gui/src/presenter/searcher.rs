@@ -121,7 +121,7 @@ pub trait SearcherPresenter: Debug {
     fn expression_accepted(
         self: Box<Self>,
         node_id: NodeId,
-        entry_id: Option<component_grid::GroupEntryId>,
+        entry_id: Option<component_grid::EntryId>,
     ) -> Option<AstNodeId>;
 
     /// Abort editing, without taking any action.

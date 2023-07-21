@@ -53,86 +53,34 @@ use ide_view_component_list_panel::grid::entry::icon;
 // === Mock Entries ===
 // ====================
 
-const PREPARED_ITEMS: &[(&str, icon::Id)] = &[
+const PREPARED_ITEMS: &[(&str, icon::Id, grid::GroupId)] = &[
     // ("long sample entry with text overflowing the width", icon::Id::Star),
-    ("convert", icon::Id::Convert),
-    ("data input", icon::Id::DataInput),
-    ("data output", icon::Id::DataOutput),
-    ("table input", icon::Id::TableEdit),
-    ("number input", icon::Id::NumberInput),
-    ("text input", icon::Id::TextInput),
-    ("add column", icon::Id::AddColumn),
-    ("select column", icon::Id::SelectColumn),
-    ("clean", icon::Id::DataframeClean),
-    ("add row", icon::Id::AddRow),
-    ("map row", icon::Id::DataframeMapRow),
-    ("map column", icon::Id::DataframeMapColumn),
+    ("Data.read", icon::Id::DataInput, 0),
+    ("Data.fetch", icon::Id::DataframeClean, 0),
+    ("Query.google", icon::Id::DataScience, 0),
+    ("Query.chat_gpt", icon::Id::DataScience, 0),
+    ("number", icon::Id::NumberInput, 1),
+    ("text", icon::Id::TextInput, 1),
+    ("Table.new", icon::Id::TableEdit, 1),
+    ("Array.new", icon::Id::TableEdit, 1),
+    ("Date.current", icon::Id::DateAndTime, 2),
+    ("Date.current_time", icon::Id::DateAndTime, 2),
+    ("Table.count_rows", icon::Id::TableEdit, 2),
 ];
 
-const fn make_group(section: grid::SectionId, index: usize, size: usize) -> grid::content::Group {
-    let group_id = grid::GroupId { section, index };
-    grid::content::Group {
-        id:               group_id,
-        height:           size,
-        original_height:  size,
-        color:            None,
-        best_match_score: 0.0,
-    }
+const fn make_group(group_id: grid::GroupId) -> grid::content::Group {
+    grid::content::Group { id: group_id, color: None }
 }
 
-/// Use this groups setup to compare to Figma design.
 #[allow(dead_code)]
-const GROUPS_AS_IN_DESIGN: &[grid::content::Group] = &[
-    make_group(grid::SectionId::Popular, 0, 7),
-    make_group(grid::SectionId::Popular, 1, 7),
-    make_group(grid::SectionId::Popular, 2, 5),
-    make_group(grid::SectionId::Namespace(0), 3, 10),
-    make_group(grid::SectionId::Namespace(0), 4, 3),
-    make_group(grid::SectionId::Namespace(0), 5, 10),
-    make_group(grid::SectionId::Namespace(0), 6, 10),
-];
+const GROUP_COUNT: usize = 3;
 
-const GROUPS: &[grid::content::Group] = &[
-    make_group(grid::SectionId::Popular, 1, 3),
-    make_group(grid::SectionId::Popular, 2, 2),
-    make_group(grid::SectionId::Popular, 3, 1),
-    make_group(grid::SectionId::Popular, 4, 3),
-    make_group(grid::SectionId::Popular, 5, 2),
-    make_group(grid::SectionId::Popular, 6, 6),
-    make_group(grid::SectionId::Popular, 7, 6),
-    make_group(grid::SectionId::Popular, 8, 6),
-    make_group(grid::SectionId::Popular, 9, 5),
-    make_group(grid::SectionId::Popular, 10, 4),
-    make_group(grid::SectionId::Popular, 11, 8),
-    make_group(grid::SectionId::Popular, 12, 10),
-    make_group(grid::SectionId::Popular, 13, 12),
-    make_group(grid::SectionId::Popular, 14, 3),
-    make_group(grid::SectionId::Namespace(0), 15, 23),
-    make_group(grid::SectionId::Namespace(0), 16, 12),
-    make_group(grid::SectionId::Namespace(0), 17, 21),
-    make_group(grid::SectionId::Namespace(0), 18, 33),
-    make_group(grid::SectionId::Namespace(0), 19, 5),
-    make_group(grid::SectionId::Namespace(0), 20, 14),
-    make_group(grid::SectionId::Namespace(0), 21, 44),
-    make_group(grid::SectionId::Namespace(0), 22, 12),
-    make_group(grid::SectionId::Namespace(0), 23, 14),
-    make_group(grid::SectionId::Namespace(0), 24, 7),
-    make_group(grid::SectionId::Namespace(0), 25, 8),
-    make_group(grid::SectionId::Namespace(0), 26, 13),
-    make_group(grid::SectionId::Namespace(0), 27, 32),
-    make_group(grid::SectionId::Namespace(0), 28, 34),
-];
-
-const LOCAL_SCOPE_GROUP_SIZE: usize = 1024;
-const NAMESPACE_SECTION_COUNT: usize = 1;
 
 fn content_info() -> grid::content::Info {
     grid::content::Info {
-        groups:                    GROUPS_AS_IN_DESIGN.into(),
-        local_scope_entry_count:   LOCAL_SCOPE_GROUP_SIZE,
-        namespace_section_count:   NAMESPACE_SECTION_COUNT,
-        best_match:                None,
-        displaying_module_content: false,
+        entry_count: 100,
+        groups:      (0..GROUP_COUNT).map(make_group).collect(),
+        is_filtered: false,
     }
 }
 
@@ -146,24 +94,17 @@ const GROUP_NAMES: &[&str] = &[
     "Machine Learning",
 ];
 
-fn get_header_model(group: grid::GroupId) -> Option<(grid::GroupId, grid::HeaderModel)> {
-    let caption = GROUP_NAMES.get(group.index % GROUP_NAMES.len()).copied().unwrap_or("");
-    let model = grid::HeaderModel { caption: caption.into(), can_be_entered: false };
-    Some((group, model))
-}
-
-fn get_entry_model(entry: grid::GroupEntryId) -> Option<(grid::GroupEntryId, grid::EntryModel)> {
-    let (caption, icon) = PREPARED_ITEMS[entry.entry % PREPARED_ITEMS.len()];
-    let highlighted = if entry.entry == 4 {
-        vec![text::Range::new(text::Byte(2), text::Byte(4))]
-    } else {
-        vec![]
-    };
+fn get_entry_model(entry: grid::EntryId) -> Option<(grid::EntryId, grid::EntryModel)> {
+    let (caption, icon, group) = PREPARED_ITEMS[entry % PREPARED_ITEMS.len()];
+    let opt_group = (entry < PREPARED_ITEMS.len()).as_some(group);
+    let highlighted =
+        if entry == 4 { vec![text::Range::new(text::Byte(2), text::Byte(4))] } else { vec![] };
     let model = grid::EntryModel {
         caption: caption.into(),
         highlighted: Rc::new(highlighted),
         icon,
         can_be_entered: false,
+        group: opt_group,
     };
     Some((entry, model))
 }
@@ -203,7 +144,6 @@ pub fn main() {
         let grid = &panel.model().grid;
         frp::extend! { network
             init <- source_();
-            grid.model_for_header <+ grid.model_for_header_needed.filter_map(|&id| get_header_model(id));
             grid.model_for_entry <+ grid.model_for_entry_needed.filter_map(|&id| get_entry_model(id));
             size <- all_with(&init, &panel.size, |(), panel_size| *panel_size);
             snap <- all_with(&size, &scene.frp.shape, |sz, sh| snap_to_pixel_offset(*sz, sh));

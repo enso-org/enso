@@ -52,6 +52,7 @@ import * as sessionProvider from '../authentication/providers/session'
 
 import ConfirmRegistration from '../authentication/components/confirmRegistration'
 import Dashboard from '../dashboard/components/dashboard'
+import EnterOfflineMode from '../authentication/components/enterOfflineMode'
 import ForgotPassword from '../authentication/components/forgotPassword'
 import Login from '../authentication/components/login'
 import Registration from '../authentication/components/registration'
@@ -76,6 +77,8 @@ export const FORGOT_PASSWORD_PATH = '/forgot-password'
 export const RESET_PASSWORD_PATH = '/password-reset'
 /** Path to the set username page. */
 export const SET_USERNAME_PATH = '/set-username'
+/** Path to the offline mode entrypoint. */
+export const ENTER_OFFLINE_MODE_PATH = '/offline'
 /** A {@link RegExp} matching all paths. */
 export const ALL_PATHS_REGEX = new RegExp(
     `(?:${DASHBOARD_PATH}|${LOGIN_PATH}|${REGISTRATION_PATH}|${CONFIRM_REGISTRATION_PATH}|` +
@@ -193,6 +196,7 @@ function AppRouter(props: AppProps) {
                 <router.Route path={CONFIRM_REGISTRATION_PATH} element={<ConfirmRegistration />} />
                 <router.Route path={FORGOT_PASSWORD_PATH} element={<ForgotPassword />} />
                 <router.Route path={RESET_PASSWORD_PATH} element={<ResetPassword />} />
+                <router.Route path={ENTER_OFFLINE_MODE_PATH} element={<EnterOfflineMode />} />
             </React.Fragment>
         </router.Routes>
     )

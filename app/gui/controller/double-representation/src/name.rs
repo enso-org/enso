@@ -194,6 +194,22 @@ impl<Segments: AsRef<[ImString]>> QualifiedNameTemplate<Segments> {
         self.path.as_ref().is_empty()
     }
 
+    /// Check if this name refers to a descendant of another name.
+    ///
+    /// ```rust
+    /// # use double_representation::name::QualifiedName;
+    ///
+    /// let parent = QualifiedName::from_text("ns.Project.Module").unwrap();
+    /// let descendant = QualifiedName::from_text("ns.Project.Module.SubModule.Element").unwrap();
+    /// let not_descendant = QualifiedName::from_text("ns.Project.Module2.Element").unwrap();
+    ///
+    /// assert!(descendant.is_descendant_of(parent.as_ref()));
+    /// assert!(!not_descendant.is_descendant_of(parent.as_ref()));
+    /// assert!(parent.is_descendant_of(parent.as_ref()));
+    pub fn is_descendant_of(&self, other: QualifiedNameRef) -> bool {
+        self.project == other.project && self.path.as_ref().starts_with(other.path)
+    }
+
     /// The iterator over name's segments (including project namespace and name).
     pub fn segments(&self) -> impl Iterator<Item = &ImString> {
         self.project.segments().chain(self.path.as_ref())
