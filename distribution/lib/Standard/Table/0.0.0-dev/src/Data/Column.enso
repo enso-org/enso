@@ -430,7 +430,7 @@ type Column
                            the whole operation in pure Enso.
                         fn = x-> y-> Period.between y x
                         new_name = Naming_Helpers.binary_operation_name "-" self other
-                        run_binary_op self other fn new_name
+                        run_binary_op self fn other new_name
                     _ ->
                         run_vectorized_binary_op self '-' other
 
@@ -1329,7 +1329,7 @@ type Column
                             start-> end-> Time_Utils.unit_date_difference java_unit start end
                         Value_Type.Time ->
                             start-> end-> Time_Utils.unit_time_difference java_unit start end
-                    run_binary_op self end fn new_name
+                    run_binary_op self fn end new_name
 
 
     ## Shifts the date/time by a specified period, returning a new date/time
@@ -1363,7 +1363,7 @@ type Column
                        Java instance.
                     fn date amount =
                         java_unit.addTo date amount
-                    run_binary_op self amount fn new_name
+                    run_binary_op self fn amount new_name
 
     ## Checks for each element of the column if it is contained within the
        provided vector or column.
@@ -2087,7 +2087,7 @@ run_vectorized_binary_op column name operand new_name=Nothing fallback_fn=Nothin
 ## PRIVATE
    Runs a binary operation over the provided column and operand which may be
    another column or a scalar value.
-run_binary_op column operand function new_name skip_nulls=True expected_result_type=Nothing =
+run_binary_op column function operand new_name skip_nulls=True expected_result_type=Nothing =
     s = column.java_column.getStorage
     storage_type = resolve_storage_type expected_result_type
     new_storage = case operand of
@@ -2228,7 +2228,7 @@ run_vectorized_binary_case_text_op left op other case_sensitivity fallback new_n
                implementation, but we need to extend the architecture to allow
                passing the locale to it.
                See: https://www.pivotaltracker.com/n/projects/2539304/stories/184093260
-            run_binary_op left other fallback new_name=new_name skip_nulls=True expected_result_type=result_type
+            run_binary_op left fallback other new_name=new_name skip_nulls=True expected_result_type=result_type
 
 ## PRIVATE
 simple_unary_op column op_name =
