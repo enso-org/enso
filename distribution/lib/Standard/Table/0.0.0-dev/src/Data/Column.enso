@@ -51,6 +51,8 @@ type Column
                  Column.from_vector "My Column" [1, 2, 3, 4, 5]
     from_vector : Text -> Vector -> Column
     from_vector name items =
+        ## TODO [RW] in #6111 use a more specific storage type, and if it is a
+           type that does not allow date/time values, use `fromItemsNoDateConversion` instead.
         expected_storage_type = Nothing
         Illegal_Argument.handle_java_exception <| Polyglot_Helpers.handle_polyglot_dataflow_errors <|
             Column.Value (Java_Column.fromItems name items expected_storage_type)
@@ -2039,6 +2041,7 @@ type Column
    - column: The column to execute the operation over.
    - name: The name of the vectorized operation.
    - fallback_fn: A function used if the vectorized operation isn't available.
+     It should never raise dataflow errors.
    - operands: The vector of operands to apply to the function after `column`.
    - new_name: The name of the column created as the result of this operation.
    - skip_nulls: Specifies if nulls should be skipped. If set to `True`, a null
@@ -2074,6 +2077,7 @@ run_vectorized_many_op column name fallback_fn operands new_name=Nothing skip_nu
    - operand: The operand to apply to the function after `column`.
    - new_name: The name of the column created as the result of this operation.
    - fallback_fn: A function used if the vectorized operation isn't available.
+     It should never raise dataflow errors.
    - expected_result_type: The expected result type of the operation.
    - skip_nulls: Specifies if nulls should be skipped. If set to `True`, a null
      value results in null without passing it to the function. If set to
@@ -2103,25 +2107,58 @@ run_vectorized_binary_op column name operand new_name=Nothing fallback_fn=Nothin
 ## PRIVATE
    Runs a binary operation over the provided column and operand which may be
    another column or a scalar value.
-run_binary_op column function operand new_name skip_nulls=True expected_result_type=Nothing =
+
+   Arguments:
+   - column: The column to execute the operation over.
+   - function: The function to apply to each element of `column`.
+   - operand: The operand to apply to the function after `column`.
+   - new_name: The name of the column created as the result of this operation.
+   - skip_nulls: Specifies if nulls should be skipped. If set to `True`, a null
+     value results in null without passing it to the function. If set to
+     `False`, the null values are passed as any other value and can have custom
+     handling logic.
+   - expected_result_type: The expected result type of the operation. If set to
+     `Nothing`, the result type is inferred from the values.
+   - expect_dataflow_errors: Specifies if `function` may raise dataflow errors.
+     If `expect_dataflow_errors` is set to `False` (default), the polyglot code
+     may run some optimizations that may yield invalid behavior if a dataflow
+     error is returned. If the function may raise errors, this should be set to
+     `True`.
+run_binary_op column function operand new_name skip_nulls=True expected_result_type=Nothing expect_dataflow_errors=False =
     s = column.java_column.getStorage
     storage_type = resolve_storage_type expected_result_type
     new_storage = case operand of
         other_column : Column ->
             Polyglot_Helpers.handle_polyglot_dataflow_errors <|
-                s.zip function other_column.java_column.getStorage skip_nulls storage_type
+                s.zip function other_column.java_column.getStorage skip_nulls storage_type expect_dataflow_errors
         _ ->
             Polyglot_Helpers.handle_polyglot_dataflow_errors <|
-                s.biMap function operand skip_nulls storage_type
+                s.biMap function operand skip_nulls storage_type expect_dataflow_errors
     Column.Value (Java_Column.new new_name new_storage)
 
 ## PRIVATE
    Runs a unary operation over the provided column.
-run_unary_op column function new_name skip_nulls=True expected_result_type=Nothing =
+
+   Arguments:
+   - column: The column to execute the operation over.
+   - function: The function to apply to each element of `column`.
+   - new_name: The name of the column created as the result of this operation.
+   - skip_nulls: Specifies if nulls should be skipped. If set to `True`, a null
+     value results in null without passing it to the function. If set to
+     `False`, the null values are passed as any other value and can have custom
+     handling logic.
+   - expected_result_type: The expected result type of the operation. If set to
+     `Nothing`, the result type is inferred from the values.
+   - expect_dataflow_errors: Specifies if `function` may raise dataflow errors.
+     If `expect_dataflow_errors` is set to `False` (default), the polyglot code
+     may run some optimizations that may yield invalid behavior if a dataflow
+     error is returned. If the function may raise errors, this should be set to
+     `True`.
+run_unary_op column function new_name skip_nulls=True expected_result_type=Nothing expect_dataflow_errors=False =
     s = column.java_column.getStorage
     storage_type = resolve_storage_type expected_result_type
     new_storage = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
-        s.unaryMap function skip_nulls storage_type
+        s.unaryMap function skip_nulls storage_type expect_dataflow_errors
     Column.Value (Java_Column.new new_name new_storage)
 
 ## PRIVATE
@@ -2134,6 +2171,10 @@ run_unary_op column function new_name skip_nulls=True expected_result_type=Nothi
    - operand: The operand to apply to the function after `column`.
    - fallback_fn: A function used if the vectorized operation isn't available.
      It takes a `MapOperationProblemBuilder` as its first argument.
+     It should never raise dataflow errors and use the problem builder to report
+     problems. If fatal problems are expected, the fallback should be raising a
+     panic and the user-facing code should ensure such panic is caught and
+     converted to a dataflow error.
    - expected_result_type: The expected result type of the operation.
    - new_name: The name of the column created as the result of this operation.
    - skip_nulls: Specifies if nulls should be skipped. If set to `True`, a null
@@ -2170,7 +2211,7 @@ run_vectorized_binary_op_with_fallback_problem_handling column name operand fall
    - name: The name of the vectorized operation.
    - new_name: The name of the column created as the result of this operation.
    - fallback_fn: The function to call if a vectorized operation is not
-     available.
+     available. It should never raise dataflow errors.
    - expected_result_type: The expected result type of the operation.
    - skip_nulls: Specifies if nulls should be skipped. If set to `True`, a null
      value results in null without passing it to the function. If set to

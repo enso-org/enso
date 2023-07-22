@@ -17,6 +17,7 @@ import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
+import org.enso.table.util.Polyglot_Helper;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
@@ -127,19 +128,25 @@ public abstract class Storage<T> {
    * @param skipNa whether rows containing missing values should be passed to the function.
    * @param expectedResultType the expected type for the result storage; it is ignored if the
    *     operation is vectorized
+   * @param expectDataflowErrors specifies if this function should be prepared to handle dataflow errors coming from
+   * `function` (which may add a bit of overhead)
    * @return the result of running the function on each row
    */
-  public final Storage<?> unaryMap(Function<Object, Value> function, boolean skipNa, StorageType expectedResultType) {
+  public final Storage<?> unaryMap(Function<Object, Value> function, boolean skipNa, StorageType expectedResultType, boolean expectDataflowErrors) {
     Builder storageBuilder = Builder.getForType(expectedResultType, size());
-    Context context = Context.getCurrent();
+    final boolean needsConversion = Polyglot_Helper.isPolyglotConversionNeeded(expectedResultType, expectDataflowErrors);
+    final Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
       Object it = getItemBoxed(i);
       if (skipNa && it == null) {
         storageBuilder.appendNulls(1);
       } else {
         Value result = function.apply(it);
-        // TODO convert only conditionally
-        Object converted = Polyglot_Utils.convertPolyglotValue(result);
+        // TODO [RW] - I'm not 100% sure this is actually improving the performance much without again measuring it, we may need to revise this.
+        // (the original code that fas faster had no conversions, but here we are adding a branch which may actually
+        // hurt performance more, the branch is on an effective constant so it may not be a big deal, but only way to
+        // tell is to measure.)
+        Object converted = needsConversion ? Polyglot_Utils.convertPolyglotValue(result) : result;
         storageBuilder.appendNoGrow(converted);
       }
 
@@ -157,9 +164,11 @@ public abstract class Storage<T> {
    *     without passing them through the function, this is useful if the function does not support
    *     the null-values, but it needs to be set to false if the function should handle them.
    * @param expectedResultType the expected type for the result storage
+   * @param expectDataflowErrors specifies if this function should be prepared to handle dataflow errors coming from
+   * `function` (which may add a bit of overhead)
    * @return a new storage containing results of the function for each row
    */
-  public final Storage<?> biMap(BiFunction<Object, Object, Object> function, Object argument, boolean skipNulls, StorageType expectedResultType) {
+  public final Storage<?> biMap(BiFunction<Object, Object, Object> function, Object argument, boolean skipNulls, StorageType expectedResultType, boolean expectDataflowErrors) {
 
     Builder storageBuilder = Builder.getForType(expectedResultType, size());
     if (skipNulls && argument == null) {
@@ -167,15 +176,16 @@ public abstract class Storage<T> {
       return storageBuilder.seal();
     }
 
-    Context context = Context.getCurrent();
+    final boolean needsConversion = Polyglot_Helper.isPolyglotConversionNeeded(expectedResultType, expectDataflowErrors);
+    final Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
       Object it = getItemBoxed(i);
       if (skipNulls && it == null) {
         storageBuilder.appendNulls(1);
       } else {
         Object result = function.apply(it, argument);
-        // TODO convert only conditionally
-        Object converted = Polyglot_Utils.convertPolyglotValue(result);
+        // TODO [RW] - I'm not 100% sure this is actually improving the performance much without again measuring it, we may need to revise this
+        Object converted = needsConversion ? Polyglot_Utils.convertPolyglotValue(result) : result;
         storageBuilder.appendNoGrow(converted);
       }
 
@@ -191,11 +201,14 @@ public abstract class Storage<T> {
    * @param skipNa whether rows containing missing values should be passed to the function.
    * @param expectedResultType the expected type for the result storage; it is ignored if the
    *     operation is vectorized
+   * @param expectDataflowErrors specifies if this function should be prepared to handle dataflow errors coming from
+   * `function` (which may add a bit of overhead)
    * @return the result of running the function on all non-missing elements.
    */
-  public final Storage<?> zip(BiFunction<Object, Object, Object> function, Storage<?> arg, boolean skipNa, StorageType expectedResultType) {
+  public final Storage<?> zip(BiFunction<Object, Object, Object> function, Storage<?> arg, boolean skipNa, StorageType expectedResultType, boolean expectDataflowErrors) {
     Builder storageBuilder = Builder.getForType(expectedResultType, size());
-    Context context = Context.getCurrent();
+    final boolean needsConversion = Polyglot_Helper.isPolyglotConversionNeeded(expectedResultType, expectDataflowErrors);
+    final Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
       Object it1 = getItemBoxed(i);
       Object it2 = i < arg.size() ? arg.getItemBoxed(i) : null;
@@ -203,7 +216,8 @@ public abstract class Storage<T> {
         storageBuilder.appendNulls(1);
       } else {
         Object result = function.apply(it1, it2);
-        Object converted = Polyglot_Utils.convertPolyglotValue(result);
+        // TODO [RW] - I'm not 100% sure this is actually improving the performance much without again measuring it, we may need to revise this
+        Object converted = needsConversion ? Polyglot_Utils.convertPolyglotValue(result) : result;
         storageBuilder.appendNoGrow(converted);
       }
 
@@ -219,7 +233,8 @@ public abstract class Storage<T> {
    *
    * @param name the name of the vectorized operation
    * @param problemBuilder the problem builder to use for the vectorized implementation
-   * @param fallback the fallback Enso function to run if vectorized implementation is not available
+   * @param fallback the fallback Enso function to run if vectorized implementation is not available; it should never
+   * raise dataflow errors.
    * @param skipNa whether rows containing missing values should be passed to the fallback function.
    * @param expectedResultType the expected type for the result storage; it is ignored if the
    *     operation is vectorized
@@ -230,7 +245,7 @@ public abstract class Storage<T> {
       return runVectorizedUnaryMap(name, problemBuilder);
     } else {
       checkFallback(fallback, expectedResultType, name);
-      return unaryMap(fallback, skipNa, expectedResultType);
+      return unaryMap(fallback, skipNa, expectedResultType, false);
     }
   }
 
@@ -240,7 +255,8 @@ public abstract class Storage<T> {
    *
    * @param name the name of the vectorized operation
    * @param problemBuilder the problem builder to use for the vectorized implementation
-   * @param fallback the fallback Enso function to run if vectorized implementation is not available
+   * @param fallback the fallback Enso function to run if vectorized implementation is not available; it should never
+   * raise dataflow errors.
    * @param argument the argument to pass to each run of the function
    * @param skipNulls specifies whether null values on the input should result in a null result
    * @param expectedResultType the expected type for the result storage; it is ignored if the
@@ -252,7 +268,7 @@ public abstract class Storage<T> {
       return runVectorizedBiMap(name, argument, problemBuilder);
     } else {
       checkFallback(fallback, expectedResultType, name);
-      return biMap(fallback, argument, skipNulls, expectedResultType);
+      return biMap(fallback, argument, skipNulls, expectedResultType, false);
     }
   }
 
@@ -262,7 +278,8 @@ public abstract class Storage<T> {
    *
    * @param name the name of the vectorized operation
    * @param problemBuilder the problem builder to use for the vectorized implementation
-   * @param fallback the fallback Enso function to run if vectorized implementation is not available
+   * @param fallback the fallback Enso function to run if vectorized implementation is not available; it should never
+   * raise dataflow errors.
    * @param other the other storage to zip with this one
    * @param skipNulls specifies whether null values on the input should result in a null result
    * @param expectedResultType the expected type for the result storage; it is ignored if the
@@ -274,7 +291,7 @@ public abstract class Storage<T> {
       return runVectorizedZip(name, other, problemBuilder);
     } else {
       checkFallback(fallback, expectedResultType, name);
-      return zip(fallback, other, skipNulls, expectedResultType);
+      return zip(fallback, other, skipNulls, expectedResultType, false);
     }
   }
 
