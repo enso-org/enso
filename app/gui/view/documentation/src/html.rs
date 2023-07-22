@@ -550,6 +550,24 @@ fn paragraph<'a>(doc_section: &'a DocSection) -> Box<dyn Render + 'a> {
                 }
             }
         }
+        DocSection::List { items } => {
+            box_html! {
+                ul {
+                    @for item in items {
+                        li { : Raw(&item); }
+                    }
+                }
+            }
+        }
+        DocSection::Arguments { args } => {
+            box_html! {
+                ul {
+                    @for arg in args {
+                        li { : &arg.name; : ": "; : Raw(&arg.description); }
+                    }
+                }
+            }
+        }
         _ => box_html! {
             p(class="paragraph") { : "Unexpected doc section type." }
         },

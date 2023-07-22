@@ -431,6 +431,16 @@ macro_rules! doc_section {
             body: $body.into(),
         }
     };
+    ($(- $body:expr);*) => {
+        $crate::mock::enso_doc_parser::DocSection::List { items: vec![
+            $($body.into()),*
+        ]}
+    };
+    ($(- $name:expr, $desc:expr);*) => {
+        $crate::mock::enso_doc_parser::DocSection::Arguments { args: vec![
+            $(crate::mock::enso_doc_parser::Argument { name: $name.into(), description: $desc.into() }),*
+        ]}
+    };
     ($mark:tt $body:expr) => {
         $crate::mock::enso_doc_parser::DocSection::Marked {
             mark:   $crate::doc_section_mark!($mark),

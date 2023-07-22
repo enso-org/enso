@@ -87,9 +87,8 @@ fn database() -> SuggestionDatabase {
         #[with_doc_section(doc_section!("It also contains the autobiography of the author of \
                                          this code."))]
         #[with_doc_section(doc_section!("And a long list of his cats."))]
-        #[with_doc_section(doc_section!(
-            "Here it is" => "<ul><li>Tom</li><li>Garfield</li><li>Mr. Bigglesworth</li></ul>"
-        ))]
+        #[with_doc_section(doc_section!("Here it is" => ""))]
+        #[with_doc_section(doc_section!(- "Tom"; - "Garfield"; - "Mr. Bigglesworth"))]
         #[with_doc_section(doc_section!(! "Important", "Important sections are used to warn the \
                                                    reader about the dangers of using the module."))]
         #[with_doc_section(doc_section!(? "Info", "Info sections provide some insights."))]
@@ -105,7 +104,8 @@ fn database() -> SuggestionDatabase {
                 None;
 
                 #[with_doc_section(doc_section!("Documentation for the is_some() method."))]
-                #[with_doc_section(doc_section!("Arguments" => "<ul><li>self</li></ul>"))]
+                #[with_doc_section(doc_section!("Arguments" => ""))]
+                #[with_doc_section(doc_section!(- "self", "Self argument"))]
                 #[with_doc_section(doc_section!(! "Important", "This method is important."))]
                 fn is_some(self) -> Standard.Base.Boolean;
 
