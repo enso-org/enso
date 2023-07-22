@@ -352,14 +352,16 @@ public final class DoubleStorage extends NumericStorage<Double> {
         .add(
             new UnaryMapOperation<>(Maps.IS_NOTHING) {
               @Override
-              public BoolStorage run(DoubleStorage storage, MapOperationProblemBuilder problemBuilder) {
+              public BoolStorage run(
+                  DoubleStorage storage, MapOperationProblemBuilder problemBuilder) {
                 return new BoolStorage(storage.isMissing, new BitSet(), storage.size, false);
               }
             })
         .add(
             new UnaryMapOperation<>(Maps.IS_NAN) {
               @Override
-              public BoolStorage run(DoubleStorage storage, MapOperationProblemBuilder problemBuilder) {
+              public BoolStorage run(
+                  DoubleStorage storage, MapOperationProblemBuilder problemBuilder) {
                 BitSet nans = new BitSet();
                 Context context = Context.getCurrent();
                 for (int i = 0; i < storage.size; i++) {
@@ -375,7 +377,8 @@ public final class DoubleStorage extends NumericStorage<Double> {
         .add(
             new UnaryMapOperation<>(Maps.IS_INFINITE) {
               @Override
-              public BoolStorage run(DoubleStorage storage, MapOperationProblemBuilder problemBuilder) {
+              public BoolStorage run(
+                  DoubleStorage storage, MapOperationProblemBuilder problemBuilder) {
                 BitSet infintes = new BitSet();
                 Context context = Context.getCurrent();
                 for (int i = 0; i < storage.size; i++) {

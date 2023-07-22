@@ -7,7 +7,8 @@ import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
 
 public class Polyglot_Helper {
-  public static boolean isPolyglotConversionNeeded(StorageType expectedType, boolean expectDataflowErrors) {
+  public static boolean isPolyglotConversionNeeded(
+      StorageType expectedType, boolean expectDataflowErrors) {
     if (expectDataflowErrors) {
       return true;
     }

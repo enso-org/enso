@@ -69,7 +69,8 @@ public class MixedStorageFacade extends Storage<Object> {
   }
 
   @Override
-  public Storage<?> runVectorizedBiMap(String name, Object argument, MapOperationProblemBuilder problemBuilder) {
+  public Storage<?> runVectorizedBiMap(
+      String name, Object argument, MapOperationProblemBuilder problemBuilder) {
     return underlyingStorage.runVectorizedBiMap(name, argument, problemBuilder);
   }
 

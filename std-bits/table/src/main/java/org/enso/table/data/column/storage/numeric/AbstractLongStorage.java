@@ -1,7 +1,6 @@
 package org.enso.table.data.column.storage.numeric;
 
 import java.util.BitSet;
-
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.NumericBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
@@ -287,14 +286,16 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
         .add(
             new UnaryMapOperation<>(Storage.Maps.IS_NOTHING) {
               @Override
-              public BoolStorage run(AbstractLongStorage storage, MapOperationProblemBuilder problemBuilder) {
+              public BoolStorage run(
+                  AbstractLongStorage storage, MapOperationProblemBuilder problemBuilder) {
                 return new BoolStorage(storage.getIsMissing(), new BitSet(), storage.size(), false);
               }
             })
         .add(
             new UnaryMapOperation<>(Storage.Maps.IS_NAN) {
               @Override
-              public BoolStorage run(AbstractLongStorage storage, MapOperationProblemBuilder problemBuilder) {
+              public BoolStorage run(
+                  AbstractLongStorage storage, MapOperationProblemBuilder problemBuilder) {
                 BitSet isNaN = new BitSet();
                 return new BoolStorage(isNaN, storage.getIsMissing(), storage.size(), false);
               }
@@ -302,7 +303,8 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
         .add(
             new UnaryMapOperation<>(Storage.Maps.IS_INFINITE) {
               @Override
-              public BoolStorage run(AbstractLongStorage storage, MapOperationProblemBuilder problemBuilder) {
+              public BoolStorage run(
+                  AbstractLongStorage storage, MapOperationProblemBuilder problemBuilder) {
                 BitSet isInfinite = new BitSet();
                 return new BoolStorage(isInfinite, storage.getIsMissing(), storage.size(), false);
               }

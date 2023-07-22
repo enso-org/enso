@@ -9,7 +9,6 @@ import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.InferredBuilder;
 import org.enso.table.data.column.builder.MixedBuilder;
-import org.enso.table.data.column.builder.ObjectBuilder;
 import org.enso.table.data.column.operation.cast.CastProblemBuilder;
 import org.enso.table.data.column.operation.cast.StorageConverter;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
@@ -40,10 +39,11 @@ public abstract class Storage<T> {
     return getType();
   }
 
-  /** Returns a more specialized storage, if available.
-   * <p>
-   * This storage should have the same type as returned by {@code inferPreciseType}.
-   * See {@link MixedStorage} for more information.
+  /**
+   * Returns a more specialized storage, if available.
+   *
+   * <p>This storage should have the same type as returned by {@code inferPreciseType}. See {@link
+   * MixedStorage} for more information.
    */
   public Storage<?> tryGettingMoreSpecializedStorage() {
     return this;
@@ -110,16 +110,22 @@ public abstract class Storage<T> {
   public abstract boolean isUnaryOpVectorized(String name);
 
   /** Runs a vectorized unary operation. */
-  public abstract Storage<?> runVectorizedUnaryMap(String name, MapOperationProblemBuilder problemBuilder);
+  public abstract Storage<?> runVectorizedUnaryMap(
+      String name, MapOperationProblemBuilder problemBuilder);
 
   /* Specifies if the given binary operation has a vectorized implementation available for this storage.*/
   public abstract boolean isBinaryOpVectorized(String name);
 
   /** Runs a vectorized operation on this storage, taking one scalar argument. */
-  public abstract Storage<?> runVectorizedBiMap(String name, Object argument, MapOperationProblemBuilder problemBuilder);
+  public abstract Storage<?> runVectorizedBiMap(
+      String name, Object argument, MapOperationProblemBuilder problemBuilder);
 
-  /** Runs a vectorized operation on this storage, taking a storage as the right argument - processing row-by-row. */
-  public abstract Storage<?> runVectorizedZip(String name, Storage<?> argument, MapOperationProblemBuilder problemBuilder);
+  /**
+   * Runs a vectorized operation on this storage, taking a storage as the right argument -
+   * processing row-by-row.
+   */
+  public abstract Storage<?> runVectorizedZip(
+      String name, Storage<?> argument, MapOperationProblemBuilder problemBuilder);
 
   /**
    * Runs a unary function on each non-null element in this storage.
@@ -128,13 +134,18 @@ public abstract class Storage<T> {
    * @param skipNa whether rows containing missing values should be passed to the function.
    * @param expectedResultType the expected type for the result storage; it is ignored if the
    *     operation is vectorized
-   * @param expectDataflowErrors specifies if this function should be prepared to handle dataflow errors coming from
-   * `function` (which may add a bit of overhead)
+   * @param expectDataflowErrors specifies if this function should be prepared to handle dataflow
+   *     errors coming from `function` (which may add a bit of overhead)
    * @return the result of running the function on each row
    */
-  public final Storage<?> unaryMap(Function<Object, Value> function, boolean skipNa, StorageType expectedResultType, boolean expectDataflowErrors) {
+  public final Storage<?> unaryMap(
+      Function<Object, Value> function,
+      boolean skipNa,
+      StorageType expectedResultType,
+      boolean expectDataflowErrors) {
     Builder storageBuilder = Builder.getForType(expectedResultType, size());
-    final boolean needsConversion = Polyglot_Helper.isPolyglotConversionNeeded(expectedResultType, expectDataflowErrors);
+    final boolean needsConversion =
+        Polyglot_Helper.isPolyglotConversionNeeded(expectedResultType, expectDataflowErrors);
     final Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
       Object it = getItemBoxed(i);
@@ -142,9 +153,12 @@ public abstract class Storage<T> {
         storageBuilder.appendNulls(1);
       } else {
         Value result = function.apply(it);
-        // TODO [RW] - I'm not 100% sure this is actually improving the performance much without again measuring it, we may need to revise this.
-        // (the original code that fas faster had no conversions, but here we are adding a branch which may actually
-        // hurt performance more, the branch is on an effective constant so it may not be a big deal, but only way to
+        // TODO [RW] - I'm not 100% sure this is actually improving the performance much without
+        // again measuring it, we may need to revise this.
+        // (the original code that fas faster had no conversions, but here we are adding a branch
+        // which may actually
+        // hurt performance more, the branch is on an effective constant so it may not be a big
+        // deal, but only way to
         // tell is to measure.)
         Object converted = needsConversion ? Polyglot_Utils.convertPolyglotValue(result) : result;
         storageBuilder.appendNoGrow(converted);
@@ -164,11 +178,16 @@ public abstract class Storage<T> {
    *     without passing them through the function, this is useful if the function does not support
    *     the null-values, but it needs to be set to false if the function should handle them.
    * @param expectedResultType the expected type for the result storage
-   * @param expectDataflowErrors specifies if this function should be prepared to handle dataflow errors coming from
-   * `function` (which may add a bit of overhead)
+   * @param expectDataflowErrors specifies if this function should be prepared to handle dataflow
+   *     errors coming from `function` (which may add a bit of overhead)
    * @return a new storage containing results of the function for each row
    */
-  public final Storage<?> biMap(BiFunction<Object, Object, Object> function, Object argument, boolean skipNulls, StorageType expectedResultType, boolean expectDataflowErrors) {
+  public final Storage<?> biMap(
+      BiFunction<Object, Object, Object> function,
+      Object argument,
+      boolean skipNulls,
+      StorageType expectedResultType,
+      boolean expectDataflowErrors) {
 
     Builder storageBuilder = Builder.getForType(expectedResultType, size());
     if (skipNulls && argument == null) {
@@ -176,7 +195,8 @@ public abstract class Storage<T> {
       return storageBuilder.seal();
     }
 
-    final boolean needsConversion = Polyglot_Helper.isPolyglotConversionNeeded(expectedResultType, expectDataflowErrors);
+    final boolean needsConversion =
+        Polyglot_Helper.isPolyglotConversionNeeded(expectedResultType, expectDataflowErrors);
     final Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
       Object it = getItemBoxed(i);
@@ -184,7 +204,8 @@ public abstract class Storage<T> {
         storageBuilder.appendNulls(1);
       } else {
         Object result = function.apply(it, argument);
-        // TODO [RW] - I'm not 100% sure this is actually improving the performance much without again measuring it, we may need to revise this
+        // TODO [RW] - I'm not 100% sure this is actually improving the performance much without
+        // again measuring it, we may need to revise this
         Object converted = needsConversion ? Polyglot_Utils.convertPolyglotValue(result) : result;
         storageBuilder.appendNoGrow(converted);
       }
@@ -201,13 +222,19 @@ public abstract class Storage<T> {
    * @param skipNa whether rows containing missing values should be passed to the function.
    * @param expectedResultType the expected type for the result storage; it is ignored if the
    *     operation is vectorized
-   * @param expectDataflowErrors specifies if this function should be prepared to handle dataflow errors coming from
-   * `function` (which may add a bit of overhead)
+   * @param expectDataflowErrors specifies if this function should be prepared to handle dataflow
+   *     errors coming from `function` (which may add a bit of overhead)
    * @return the result of running the function on all non-missing elements.
    */
-  public final Storage<?> zip(BiFunction<Object, Object, Object> function, Storage<?> arg, boolean skipNa, StorageType expectedResultType, boolean expectDataflowErrors) {
+  public final Storage<?> zip(
+      BiFunction<Object, Object, Object> function,
+      Storage<?> arg,
+      boolean skipNa,
+      StorageType expectedResultType,
+      boolean expectDataflowErrors) {
     Builder storageBuilder = Builder.getForType(expectedResultType, size());
-    final boolean needsConversion = Polyglot_Helper.isPolyglotConversionNeeded(expectedResultType, expectDataflowErrors);
+    final boolean needsConversion =
+        Polyglot_Helper.isPolyglotConversionNeeded(expectedResultType, expectDataflowErrors);
     final Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
       Object it1 = getItemBoxed(i);
@@ -216,7 +243,8 @@ public abstract class Storage<T> {
         storageBuilder.appendNulls(1);
       } else {
         Object result = function.apply(it1, it2);
-        // TODO [RW] - I'm not 100% sure this is actually improving the performance much without again measuring it, we may need to revise this
+        // TODO [RW] - I'm not 100% sure this is actually improving the performance much without
+        // again measuring it, we may need to revise this
         Object converted = needsConversion ? Polyglot_Utils.convertPolyglotValue(result) : result;
         storageBuilder.appendNoGrow(converted);
       }
@@ -228,19 +256,24 @@ public abstract class Storage<T> {
 
   /**
    * Runs a unary operation.
-   * <p>
-   * If a vectorized implementation is available, it is used, otherwise the fallback is used.
+   *
+   * <p>If a vectorized implementation is available, it is used, otherwise the fallback is used.
    *
    * @param name the name of the vectorized operation
    * @param problemBuilder the problem builder to use for the vectorized implementation
-   * @param fallback the fallback Enso function to run if vectorized implementation is not available; it should never
-   * raise dataflow errors.
+   * @param fallback the fallback Enso function to run if vectorized implementation is not
+   *     available; it should never raise dataflow errors.
    * @param skipNa whether rows containing missing values should be passed to the fallback function.
    * @param expectedResultType the expected type for the result storage; it is ignored if the
    *     operation is vectorized
    * @return the result of running the operation on each row
    */
-  public final Storage<?> vectorizedOrFallbackUnaryMap(String name, MapOperationProblemBuilder problemBuilder, Function<Object, Value> fallback, boolean skipNa, StorageType expectedResultType) {
+  public final Storage<?> vectorizedOrFallbackUnaryMap(
+      String name,
+      MapOperationProblemBuilder problemBuilder,
+      Function<Object, Value> fallback,
+      boolean skipNa,
+      StorageType expectedResultType) {
     if (isUnaryOpVectorized(name)) {
       return runVectorizedUnaryMap(name, problemBuilder);
     } else {
@@ -249,21 +282,28 @@ public abstract class Storage<T> {
     }
   }
 
-  /** Runs a binary operation with a scalar argument.
-   * <p>
-   * If a vectorized implementation is available, it is used, otherwise the fallback is used.
+  /**
+   * Runs a binary operation with a scalar argument.
+   *
+   * <p>If a vectorized implementation is available, it is used, otherwise the fallback is used.
    *
    * @param name the name of the vectorized operation
    * @param problemBuilder the problem builder to use for the vectorized implementation
-   * @param fallback the fallback Enso function to run if vectorized implementation is not available; it should never
-   * raise dataflow errors.
+   * @param fallback the fallback Enso function to run if vectorized implementation is not
+   *     available; it should never raise dataflow errors.
    * @param argument the argument to pass to each run of the function
    * @param skipNulls specifies whether null values on the input should result in a null result
    * @param expectedResultType the expected type for the result storage; it is ignored if the
-   *                    operation is vectorized
+   *     operation is vectorized
    * @return the result of running the operation on each row
    */
-  public final Storage<?> vectorizedOrFallbackBiMap(String name, MapOperationProblemBuilder problemBuilder, BiFunction<Object, Object, Object> fallback, Object argument, boolean skipNulls, StorageType expectedResultType) {
+  public final Storage<?> vectorizedOrFallbackBiMap(
+      String name,
+      MapOperationProblemBuilder problemBuilder,
+      BiFunction<Object, Object, Object> fallback,
+      Object argument,
+      boolean skipNulls,
+      StorageType expectedResultType) {
     if (isBinaryOpVectorized(name)) {
       return runVectorizedBiMap(name, argument, problemBuilder);
     } else {
@@ -272,21 +312,28 @@ public abstract class Storage<T> {
     }
   }
 
-  /** Runs a binary operation with a storage argument.
-   * <p>
-   * If a vectorized implementation is available, it is used, otherwise the fallback is used.
+  /**
+   * Runs a binary operation with a storage argument.
+   *
+   * <p>If a vectorized implementation is available, it is used, otherwise the fallback is used.
    *
    * @param name the name of the vectorized operation
    * @param problemBuilder the problem builder to use for the vectorized implementation
-   * @param fallback the fallback Enso function to run if vectorized implementation is not available; it should never
-   * raise dataflow errors.
+   * @param fallback the fallback Enso function to run if vectorized implementation is not
+   *     available; it should never raise dataflow errors.
    * @param other the other storage to zip with this one
    * @param skipNulls specifies whether null values on the input should result in a null result
    * @param expectedResultType the expected type for the result storage; it is ignored if the
-   *                    operation is vectorized
+   *     operation is vectorized
    * @return the result of running the operation on each row
    */
-  public final Storage<?> vectorizedOrFallbackZip(String name, MapOperationProblemBuilder problemBuilder, BiFunction<Object, Object, Object> fallback, Storage<?> other, boolean skipNulls, StorageType expectedResultType) {
+  public final Storage<?> vectorizedOrFallbackZip(
+      String name,
+      MapOperationProblemBuilder problemBuilder,
+      BiFunction<Object, Object, Object> fallback,
+      Storage<?> other,
+      boolean skipNulls,
+      StorageType expectedResultType) {
     if (isBinaryOpVectorized(name)) {
       return runVectorizedZip(name, other, problemBuilder);
     } else {
@@ -306,7 +353,9 @@ public abstract class Storage<T> {
         throw new IllegalArgumentException(
             "The operation "
                 + operationName
-                + " has no vectorized implementation for " + className + ", but no fallback function was provided. This is a bug in the Table library.");
+                + " has no vectorized implementation for "
+                + className
+                + ", but no fallback function was provided. This is a bug in the Table library.");
       }
     }
 

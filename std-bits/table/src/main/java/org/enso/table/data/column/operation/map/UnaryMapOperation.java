@@ -9,6 +9,7 @@ import org.enso.table.data.column.storage.Storage;
  */
 public abstract class UnaryMapOperation<T, I extends Storage<? super T>> {
   private final String name;
+
   public UnaryMapOperation(String name) {
     this.name = name;
   }

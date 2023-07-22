@@ -1,7 +1,6 @@
 package org.enso.table.data.column.operation.map.numeric;
 
 import java.util.BitSet;
-
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
@@ -18,7 +17,8 @@ public abstract class UnaryLongToLongOp extends UnaryMapOperation<Long, Abstract
   protected abstract long doOperation(long value);
 
   @Override
-  protected LongStorage run(AbstractLongStorage storage, MapOperationProblemBuilder problemBuilder) {
+  protected LongStorage run(
+      AbstractLongStorage storage, MapOperationProblemBuilder problemBuilder) {
     Context context = Context.getCurrent();
     BitSet newMissing = new BitSet();
     long[] newVals = new long[storage.size()];

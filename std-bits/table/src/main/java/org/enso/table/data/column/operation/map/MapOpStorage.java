@@ -34,11 +34,11 @@ public class MapOpStorage<T, S extends Storage<? super T>> {
    */
   public Storage<?> runUnaryMap(String n, S storage, MapOperationProblemBuilder problemBuilder) {
     if (!isSupportedUnary(n)) {
-      throw new IllegalStateException("Requested vectorized unary operation " + n + ", but no such operation is known.");
+      throw new IllegalStateException(
+          "Requested vectorized unary operation " + n + ", but no such operation is known.");
     }
     return unaryOps.get(n).run(storage, problemBuilder);
   }
-
 
   /**
    * Checks if a binary operation is supported by this set.
@@ -62,7 +62,8 @@ public class MapOpStorage<T, S extends Storage<? super T>> {
   public Storage<?> runBiMap(
       String n, S storage, Object arg, MapOperationProblemBuilder problemBuilder) {
     if (!isSupportedBinary(n)) {
-      throw new IllegalStateException("Requested vectorized binary operation " + n + ", but no such operation is known.");
+      throw new IllegalStateException(
+          "Requested vectorized binary operation " + n + ", but no such operation is known.");
     }
     return binaryOps.get(n).runBiMap(storage, arg, problemBuilder);
   }
@@ -79,10 +80,12 @@ public class MapOpStorage<T, S extends Storage<? super T>> {
   public Storage<?> runZip(
       String n, S storage, Storage<?> arg, MapOperationProblemBuilder problemBuilder) {
     if (!isSupportedBinary(n)) {
-      throw new IllegalStateException("Requested vectorized binary operation " + n + ", but no such operation is known.");
+      throw new IllegalStateException(
+          "Requested vectorized binary operation " + n + ", but no such operation is known.");
     }
 
-    // We try to get the right-hand side argument as specific as possible, so that our operation will know how to deal with it.
+    // We try to get the right-hand side argument as specific as possible, so that our operation
+    // will know how to deal with it.
     var specializedArg = arg.tryGettingMoreSpecializedStorage();
     return binaryOps.get(n).runZip(storage, specializedArg, problemBuilder);
   }
