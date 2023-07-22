@@ -133,4 +133,9 @@ public abstract class LongBooleanOp extends BinaryMapOperation<Long, AbstractLon
       return new BoolStorage(newVals, newMissing, storage.size(), false);
     }
   }
+
+  @Override
+  public boolean reliesOnSpecializedStorage() {
+    return false;
+  }
 }

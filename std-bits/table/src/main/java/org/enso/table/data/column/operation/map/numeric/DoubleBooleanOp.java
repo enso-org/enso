@@ -113,4 +113,9 @@ public abstract class DoubleBooleanOp extends BinaryMapOperation<Double, DoubleS
       return new BoolStorage(newVals, newMissing, storage.size(), false);
     }
   }
+
+  @Override
+  public boolean reliesOnSpecializedStorage() {
+    return false;
+  }
 }

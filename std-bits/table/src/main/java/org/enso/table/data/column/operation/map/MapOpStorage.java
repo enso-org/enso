@@ -84,10 +84,14 @@ public class MapOpStorage<T, S extends Storage<? super T>> {
           "Requested vectorized binary operation " + n + ", but no such operation is known.");
     }
 
-    // We try to get the right-hand side argument as specific as possible, so that our operation
-    // will know how to deal with it.
-    var specializedArg = arg.tryGettingMoreSpecializedStorage();
-    return binaryOps.get(n).runZip(storage, specializedArg, problemBuilder);
+    var operation = binaryOps.get(n);
+
+    if (operation.reliesOnSpecializedStorage()) {
+      // We try to get the right-hand side argument as specific as possible, so that our operation
+      // will know how to deal with it.
+      arg = arg.tryGettingMoreSpecializedStorage();
+    }
+    return operation.runZip(storage, arg, problemBuilder);
   }
 
   /**
