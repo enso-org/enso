@@ -1138,6 +1138,10 @@ pub const ENABLE_DOM_DEBUG_ALL: bool = true;
 /// The name of a display object when not specified. Object names are visible in the DOM inspector.
 pub const DEFAULT_NAME: &str = "UnnamedDisplayObject";
 
+/// The size of a smallvec used to temporarily store children of a display object. Most display
+/// objects on the scene should have at less children than this. The object instances stored in that
+/// smallvec are a size of a single pointer, so this value can be relatively generous.
+const NUM_CHILDREN_IN_SMALLVEC: usize = 12;
 
 
 // ==========
@@ -1840,7 +1844,7 @@ impl Model {
 }
 
 impl Model {
-    fn children(&self) -> Vec<Instance> {
+    fn children(&self) -> SmallVec<[Instance; NUM_CHILDREN_IN_SMALLVEC]> {
         self.children.borrow().values().filter_map(|t| t.upgrade()).collect()
     }
 
@@ -3661,7 +3665,7 @@ impl Model {
         let hug_children = pass_cfg != PassConfig::DoNotHugDirectChildren;
         let hug_children = hug_children && self.layout.size.get_dim(x).is_hug();
         let children = self.children();
-        let old_child_computed_sizes: Vec<f32> =
+        let old_child_computed_sizes: SmallVec<[f32; NUM_CHILDREN_IN_SMALLVEC]> =
             children.iter().map(|child| child.layout.computed_size.get_dim(x)).collect();
 
         let mut max_x = 0.0f32;
@@ -3698,6 +3702,8 @@ impl Model {
             self.layout.computed_size.set_dim(x, max_x);
         }
 
+        let padding = self.layout.padding.get_dim(x).resolve_pixels_or_default();
+
         // Resolve aligned children and hug them again.
         if has_aligned_non_grow_children {
             let base_size = self.layout.computed_size.get_dim(x);
@@ -3706,10 +3712,13 @@ impl Model {
                 if let Some(alignment) = *child.layout.alignment.get().get_dim(x) && !to_grow {
                     let child_size = child.computed_size().get_dim(x);
                     let child_margin = child.layout.margin.get_dim(x).resolve_pixels_or_default();
-                    let remaining_size = base_size - child_size - child_margin.total();
-                    let aligned_x = remaining_size * alignment.normalized() + child_margin.start;
+                    let remaining_size =
+                        base_size - child_size - child_margin.total() - padding.total();
+                    let aligned_x = remaining_size * alignment.normalized()
+                        + child_margin.start
+                        + padding.start;
                     child.set_position_dim(x, aligned_x);
-                    max_x = max_x.max(aligned_x + child_size + child_margin.end);
+                    max_x = max_x.max(aligned_x + child_size + child_margin.end + padding.end);
                 }
             }
             if hug_children {
@@ -3740,9 +3749,11 @@ impl Model {
                     }
 
                     if let Some(alignment) = *child.layout.alignment.get().get_dim(x) {
-                        let remaining_size = self_size - desired_child_size - child_margin.total();
-                        let aligned_x =
-                            remaining_size * alignment.normalized() + child_margin.start;
+                        let remaining_size =
+                            self_size - desired_child_size - child_margin.total() - padding.total();
+                        let aligned_x = remaining_size * alignment.normalized()
+                            + child_margin.start
+                            + padding.start;
                         child.set_position_dim(x, aligned_x);
                     }
                 }
@@ -4730,7 +4741,7 @@ mod hierarchy_tests {
 
         let new_nodes: [_; 10] = std::array::from_fn(|_| Instance::new());
         root.replace_children(&new_nodes);
-        assert_eq!(root.children(), &new_nodes);
+        assert_eq!(&*root.children(), &new_nodes);
         assert.child_indices(&[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
         assert.modified_children(&[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
         assert.removed_children(&nodes);

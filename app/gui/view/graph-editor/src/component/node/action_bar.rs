@@ -27,7 +27,7 @@ pub mod icon;
 // ==================
 // === Constants  ===
 // ==================
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
+
 const BUTTON_SIZE: f32 = 15.0;
 const BUTTON_GAP: f32 = BUTTON_SIZE * 0.5;
 /// Grow the hover area in x direction by this amount. Used to close the gap between action
@@ -112,7 +112,8 @@ impl Icons {
             display_object.add_child(&skip);
         }
 
-        // The appears smaller than the other ones, so this is an aesthetic adjustment.
+        // The visibility icon looks smaller than the other ones, so we make it bigger. This is a
+        // purely aesthetic adjustment.
         visibility.set_size((BUTTON_SIZE * 1.2, BUTTON_SIZE * 1.2));
         visibility.set_margin_all(-BUTTON_SIZE * 0.2);
 
@@ -124,7 +125,7 @@ impl Icons {
         self.context_switch.set_visibility(visible);
         self.freeze.set_visibility(visible);
         self.skip.set_visibility(visible);
-        let pointer_events_val = (!visible) as i32 as f32;
+        let pointer_events_val = if visible { 0.0 } else { 1.0 };
         self.visibility.view().disable_pointer_events.set(pointer_events_val);
         self.freeze.view().disable_pointer_events.set(pointer_events_val);
         self.skip.view().disable_pointer_events.set(pointer_events_val);
@@ -205,7 +206,7 @@ impl ContextSwitchButton {
     fn set_visibility(&self, visible: bool) {
         self.disable_button.set_visibility(visible);
         self.enable_button.set_visibility(visible);
-        let pointer_events_val = (!visible) as i32 as f32;
+        let pointer_events_val = if visible { 0.0 } else { 1.0 };
         self.enable_button.view().disable_pointer_events.set(pointer_events_val);
         self.enable_button.view().disable_pointer_events.set(pointer_events_val);
     }

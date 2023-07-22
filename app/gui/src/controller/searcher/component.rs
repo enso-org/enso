@@ -119,7 +119,6 @@ pub enum Data {
 #[derive(Clone, CloneRef, Debug)]
 pub struct Component {
     pub data:       Data,
-    /// Filter match information, and label to be displayed in the Component Browser.
     pub match_info: Rc<RefCell<MatchInfo>>,
     /// The component string representation that will be used during matching.
     label:          ImString,

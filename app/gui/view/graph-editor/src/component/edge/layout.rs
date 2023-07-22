@@ -388,16 +388,16 @@ impl Corner {
         // Position the overlap according to clip direction. For straight lines, the overlap is
         // centered on the line.
         let x = match () {
-            _ if offset.x() < 0.0 => -1.0,
-            _ if offset.y() == 0.0 => -0.5,
+            _ if offset.x() < 0.0 => -pad.x(),
+            _ if offset.y() == 0.0 => -0.5 * pad.x(),
             _ => 0.0,
         };
         let y = match () {
-            _ if offset.y() > 0.0 => -1.0,
-            _ if offset.x() == 0.0 => -0.5 * -1.0,
+            _ if offset.y() > 0.0 => -pad.y(),
+            _ if offset.x() == 0.0 => -0.5 * pad.y(),
             _ => 0.0,
         };
-        Vector2(x * pad.x(), y * pad.y())
+        Vector2(x, y)
     }
 
     #[inline]

@@ -11,6 +11,9 @@ use enso_web as web;
 // ================
 
 macro_rules! define_bindings {
+    // Note: Return type is intentionally wrapped in parentheses, so that we can match it as a
+    // sequence of token trees. That way it can later be matched more specifically inside
+    // `define_native_binding` macro.
     ($( $(#$meta:tt)* pub fn $fn:ident $args:tt $(-> ($($ret:tt)*))?; )*) => {
         #[cfg(not(target_arch = "wasm32"))]
         #[allow(unused_variables)]

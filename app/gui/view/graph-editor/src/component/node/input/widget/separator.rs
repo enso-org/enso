@@ -1,11 +1,11 @@
-//! Separating line between top-level argument widgets.
+//! Separating line between top-level argument widgets and the argument name.
 
 use crate::prelude::*;
 use super::prelude::*;
 
+use crate::component::node::input::area::TEXT_SIZE;
 use crate::component::node::input::port::PORT_PADDING_X;
 use crate::component::node::HEIGHT as NODE_HEIGHT;
-use crate::component::node::input::area::TEXT_SIZE;
 
 use ensogl::data::color;
 use ensogl::display::object;
@@ -21,10 +21,10 @@ use ensogl_component::text;
 #[derive(Clone, Debug, Default, PartialEq, FromTheme)]
 #[base_path = "theme::widget::separator"]
 struct Style {
-    color:  color::Rgba,
-    margin: f32,
-    width:  f32,
-    arg_name_color: color::Rgba,
+    color:           color::Rgba,
+    margin:          f32,
+    width:           f32,
+    arg_name_color:  color::Rgba,
     arg_name_weight: f32,
 }
 
@@ -34,18 +34,21 @@ struct Style {
 // === Widget ===
 // ==============
 
-/// Insertion point widget configuration options.
+/// Separator widget configuration options.
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct Config;
 
 
-/// Insertion point widget. Displays nothing when not connected.
+/// The widget that displays a separating line between top-level argument nodes, as well as prints
+/// the argument name when applicable. The name is only printed in cases where it would not be
+/// repeated as a label in the child widget.
 #[derive(Clone, Debug)]
 pub struct Widget {
-    separator: Rectangle,
-    root:      object::Instance,
+    separator:         Rectangle,
+    root:              object::Instance,
     arg_label_wrapper: object::Instance,
-    arg_name:  frp::Source<ImString>,
+    arg_name:          frp::Source<ImString>,
+    port_root_object:  frp::Source<Option<object::WeakInstance>>,
 }
 
 impl SpanWidget for Widget {
@@ -80,7 +83,7 @@ impl SpanWidget for Widget {
             .justify_content_center_y();
 
         let separator = Rectangle();
-        
+
         let arg_label_wrapper = object::Instance::new_named("arg_label_wrapper");
         let arg_label = text::Text::new(ctx.app());
         arg_label.set_property_default(text::Size(TEXT_SIZE));
@@ -89,18 +92,39 @@ impl SpanWidget for Widget {
         let network = &root.network;
         let style = ctx.cached_style::<Style>(network);
         frp::extend! { network
-            eval style([separator, arg_label, arg_label_wrapper] (style) {
-                separator.set_size((style.width, NODE_HEIGHT));
-                separator.set_margin_xy((style.margin + PORT_PADDING_X, -NODE_HEIGHT / 2.0));
-                separator.set_color(style.color);
-                arg_label.set_property_default(style.arg_name_color);
-                arg_label.set_property_default(text::Weight::from(style.arg_name_weight as u16));
-                // Argument label is not always visible, but when it is, it is drawn after the
-                // separator. The left margin needs to be adjusted to cancel extra separator margin.
-                arg_label_wrapper.set_margin_left(-PORT_PADDING_X);
-                arg_label_wrapper.set_margin_right(style.margin + PORT_PADDING_X);
-            });
+            cleanup <- on_drop();
             arg_name <- source();
+            port_root_object <- source::<Option<object::WeakInstance>>();
+            port <- port_root_object.on_change();
+
+            port_changed <- port.previous();
+            port_on_drop <- port.sample(&cleanup);
+            port_needs_cleanup <- any(port_on_drop, port_changed);
+            eval port_needs_cleanup([] (port) {
+                if let Some(port) = port.as_ref().and_then(|port| port.upgrade()) {
+                    port.set_padding_left(0.0);
+                }
+            });
+
+            _eval <- all_with(
+                &style, &port,
+                f!([separator, arg_label, arg_label_wrapper] (style, port) {
+                    separator.set_size((style.width, NODE_HEIGHT));
+                    separator.set_margin_xy((style.margin, -NODE_HEIGHT / 2.0));
+                    separator.set_color(style.color);
+                    arg_label.set_property_default(style.arg_name_color);
+                    let weight = text::Weight::from(style.arg_name_weight as u16);
+                    arg_label.set_property_default(weight);
+                    arg_label_wrapper.set_margin_right(style.margin);
+                    // if let Some(port) = port.as_ref().and_then(|port| port.upgrade()) {
+                    //     let total_separator_width =  style.margin + style.width + style.margin;
+                    //     // separator.set_margin_left(-);
+                    //     port.set_padding_left(total_separator_width);
+                    // }
+                })
+            );
+                
+            
             arg_label.set_content <+ arg_name.on_change();
             label_width <- arg_label.width.on_change();
             label_height <- arg_label.height.on_change();
@@ -110,7 +134,7 @@ impl SpanWidget for Widget {
                 arg_label.set_y(*h);
             });
         }
-        Self { root, separator, arg_label_wrapper, arg_name }
+        Self { root, separator, arg_label_wrapper, arg_name, port_root_object }
     }
 
     fn configure(&mut self, _: &Config, ctx: ConfigContext) {
@@ -119,6 +143,8 @@ impl SpanWidget for Widget {
 
         let arg_name: Option<ImString>;
         let child_node;
+        let show_arg =
+            !(ctx.span_node.kind.is_expected_argument() || ctx.info.connection.is_some());
 
         if ctx.span_node.kind.is_named_argument() {
             let mut child_iter = ctx.span_node.clone().children_iter();
@@ -126,15 +152,17 @@ impl SpanWidget for Widget {
             let _token = child_iter.next();
             let arg_node = child_iter.next();
 
-            arg_name = name_node.map(|node| ctx.expression_at(node.span())).map(Into::into);
+            arg_name = show_arg.and_option(name_node)
+                .map(|node| ctx.expression_at(node.span()))
+                .map(Into::into);
             child_node = arg_node.unwrap_or(ctx.span_node);
         } else {
-            let show_arg = !ctx.span_node.kind.is_expected_argument();
-            arg_name = show_arg
-                .and_option_from(|| ctx.span_node.kind.argument_name())
-                .map(Into::into);
+            arg_name =
+                show_arg.and_option_from(|| ctx.span_node.kind.argument_name()).map(Into::into);
             child_node = ctx.span_node;
         }
+
+        self.port_root_object.emit(ctx.port_root_object);
 
         let separator = self.separator.display_object();
         let label = self.arg_label_wrapper.display_object();

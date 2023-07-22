@@ -279,14 +279,7 @@ macro_rules! define_widget_modules(
             /// Create default configuration of the widget kind contained within this flag.
             fn default_config(&self, ctx: &ConfigContext) -> Configuration {
                 match self {
-                    $(&DynKindFlags::$name => {
-                        let config = $module::Widget::default_config(ctx);
-                        Configuration {
-                            display: config.display,
-                            has_port: config.has_port,
-                            kind: config.kind.into(),
-                        }
-                    },)*
+                    $(&DynKindFlags::$name => $module::Widget::default_config(ctx).into_dyn(),)*
                     _ => panic!("No widget kind specified.")
                 }
             }
@@ -437,6 +430,16 @@ impl<KindConfig> Configuration<KindConfig> {
 
     fn inert(kind: KindConfig) -> Self {
         Self::maybe_with_port(kind, false)
+    }
+
+    /// Convert this configuration into a dynamic version.
+    pub fn into_dyn(self) -> Configuration
+    where KindConfig: Into<DynConfig> {
+        Configuration {
+            display:  self.display,
+            has_port: self.has_port,
+            kind:     self.kind.into(),
+        }
     }
 }
 
@@ -692,7 +695,7 @@ impl Tree {
             styles,
         );
         self.frp.private.output.on_rebuild_finished.emit(());
-        // debug!("Widget tree:\n{}", self.debug_print());
+        trace!("Widget tree:\n{:?}", self.pretty_printer());
     }
 
     /// Get the root display object of the widget port for given span tree node. Not all nodes must
@@ -719,8 +722,16 @@ impl Tree {
         }
     }
 
+    /// Wrap the widget into a pretty-printing adapter that implements `Debug` and prints the widget
+    /// hierarchy. See [`Tree::debug_print`] method for more details.
+    ///
+    /// Note that this printer emits multi-line output. In order for those lines to be properly
+    /// aligned, it should be always printed on a new line.
+    pub fn pretty_printer(&self) -> WidgetTreePrettyPrint<'_> {
+        WidgetTreePrettyPrint { tree: self }
+    }
+
     /// Get pretty-printed representation of this widget tree for debugging purposes.
-    #[allow(unused)]
     fn debug_print(&self) -> String {
         let mut result = String::new();
         let hierarchy = self.model.hierarchy.borrow();
@@ -745,6 +756,23 @@ impl Tree {
         dst.push('\n');
         let indent = format!("{indent}  ");
         self.model.iter_children(pointer).for_each(|child| self.print_subtree(dst, &indent, child));
+    }
+}
+
+// === Pretty printing debug adapter ===
+
+/// Debug adapter used for pretty-printing the widget tree. Can be used to print the widget tree
+/// hierarchy. This printer is normally too verbose to be a default `Debug` implementation of
+/// `Tree`, so it is hidden behind a separate adapter and can be chosen by calling
+/// `tree.pretty_printer()`.
+pub struct WidgetTreePrettyPrint<'a> {
+    tree: &'a Tree,
+}
+
+impl<'a> Debug for WidgetTreePrettyPrint<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> fmt::Result {
+        let printed = self.tree.debug_print();
+        f.write_str(&printed)
     }
 }
 
@@ -1015,8 +1043,7 @@ impl TreeModel {
         let mut hierarchy = self.hierarchy.take();
         hierarchy.clear();
 
-        let global_scene = scene();
-        let shared_extension = global_scene.extension::<SceneSharedExtension>();
+        let shared_extension = scene().extension::<SceneSharedExtension>();
 
         let mut builder = TreeBuilder {
             app,
@@ -1100,12 +1127,12 @@ pub struct NodeInfo {
 struct NodeSettings {
     /// Whether the widget is manipulating the child margins itself. Will prevent the builder from
     /// automatically adding margins calculated from span tree offsets.
-    manage_margins:            bool,
+    manage_margins:                  bool,
     /// Whether the widget wants to not have the automatic margin applied.
-    skip_self_margin:          bool,
+    skip_self_margin:                bool,
     /// Override the padding of port hover area, which is used during edge dragging to determine
     /// which port is being hovered.
-    custom_port_hover_padding: Option<f32>,
+    custom_child_port_hover_padding: Option<f32>,
 }
 
 /// A collection of common data used by all widgets and ports in the widget tree during
@@ -1127,6 +1154,14 @@ pub struct ConfigContext<'a, 'b> {
     /// The length of tree extensions vector before the widget was configured. Used to determine
     /// which extensions were added by the widget parents, and which are new.
     parent_extensions_len: usize,
+    /// The primary display object of the port of this widget, if it has one. As long as this
+    /// widget is alive and has a port, its port object will not change.
+    ///
+    /// NOTE: The port will only be available during widget configuration itself, i.e. inside all
+    /// [`SpanWidget::configure`] call. Notably, this field will always be `None` during
+    /// [`SpanWidget::new`], [`SpanWidget::match_node`] and [`SpanWidget::default_config`] calls,
+    /// since the port construction is not yet determined or finished at that point.
+    pub port_root_object:  Option<display::object::WeakInstance>,
 }
 
 impl<'a, 'b> ConfigContext<'a, 'b> {
@@ -1479,7 +1514,7 @@ impl<'a> TreeBuilder<'a> {
     /// Override horizontal port hover area margin for ports of this children. The margin is used
     /// during edge dragging to determine which port is being hovered.
     pub fn override_port_hover_padding(&mut self, padding: Option<f32>) {
-        self.node_settings.custom_port_hover_padding = padding;
+        self.node_settings.custom_child_port_hover_padding = padding;
     }
 
     /// Create a new child widget, along with its whole subtree. The widget type will be
@@ -1583,6 +1618,8 @@ impl<'a> TreeBuilder<'a> {
             info: info.clone(),
             parent_extensions_len,
             layers: layers.clone(),
+            // Not yet determined. It is set later inside [`Port::configure`].
+            port_root_object: None,
         };
 
 
@@ -1625,7 +1662,7 @@ impl<'a> TreeBuilder<'a> {
         let widget_has_port =
             ptr_usage.request_port(&widget_id, ctx.span_node.port_id, can_assign_port);
 
-        let port_pad = this.node_settings.custom_port_hover_padding;
+        let port_pad = this.node_settings.custom_child_port_hover_padding;
         let old_node = this.old_nodes.remove(&widget_id).map(|e| e.node);
         let parent_info = mem::replace(&mut this.parent_info, Some(info.clone()));
         let saved_node_settings = mem::take(&mut this.node_settings);

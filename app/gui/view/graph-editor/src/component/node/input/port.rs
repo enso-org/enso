@@ -142,7 +142,7 @@ impl Port {
     pub fn configure(
         &mut self,
         config: &DynConfig,
-        ctx: ConfigContext,
+        mut ctx: ConfigContext,
         pad_x_override: Option<f32>,
         port_hover_layer: &LayerSymbolPartition<rectangle::Shape>,
     ) {
@@ -154,6 +154,7 @@ impl Port {
 
         self.set_connected(ctx.info.connection);
         self.set_port_layout(&ctx, pad_x_override.unwrap_or(HOVER_PADDING_X));
+        ctx.port_root_object = Some(self.port_root.downgrade());
         self.widget.configure(config, ctx);
         self.update_root();
     }
@@ -162,12 +163,16 @@ impl Port {
     /// port's visible shape from the display hierarchy.
     fn set_connected(&self, status: Option<EdgeData>) {
         match status {
+            None => {
+                // Put the port shape of a disconnected node into the detached layer, instead of
+                // removing it from the display hierarchy. This is required for the port shape
+                // position and size to be calculated for disconnected ports, as that information
+                // is used when hovering over the port with a detached edge.
+                with_context(|ctx| ctx.layers.DETACHED.add(&self.port_shape));
+            }
             Some(data) => {
                 self.port_shape.set_color(data.color.into());
                 with_context(|ctx| ctx.layers.DETACHED.remove(&self.port_shape));
-            }
-            None => {
-                with_context(|ctx| ctx.layers.DETACHED.add(&self.port_shape));
             }
         };
     }

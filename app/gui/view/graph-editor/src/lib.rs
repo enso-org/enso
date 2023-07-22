@@ -57,7 +57,6 @@ use crate::component::node;
 use crate::component::visualization;
 use crate::component::visualization::instance::PreprocessorConfiguration;
 use crate::data::enso;
-pub use crate::node::profiling::Status as NodeProfilingStatus;
 use engine_protocol::language_server::ExecutionEnvironment;
 
 use application::tooltip;
@@ -81,8 +80,18 @@ use ensogl_component::text;
 use ensogl_component::text::buffer::selection::Selection;
 use ensogl_component::tooltip::Tooltip;
 use ensogl_hardcoded_theme as theme;
-pub use layers::GraphLayers;
 use span_tree::PortId;
+
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub use crate::node::profiling::Status as NodeProfilingStatus;
+pub use layers::GraphLayers;
+
+
 
 // ===============
 // === Prelude ===
