@@ -147,7 +147,7 @@ public class Layout {
     for (int i = 0; i < arity; i++) {
       var factory = storageSetterFactories[fieldToStorage[i]];
       var types = args[i].getCheckType();
-      if (types != null) {
+      if (types != null && factory != null) {
         factory = new SetterTypeCheckFactory(args[i], types, factory);
       }
       setterFactories[i] = factory;
@@ -306,6 +306,7 @@ public class Layout {
 
     private SetterTypeCheckFactory(
         ArgumentDefinition arg, Type[] type, NodeFactory<UnboxingAtom.FieldSetterNode> factory) {
+      assert factory != null;
       this.argName = arg.getName();
       this.type = type;
       this.delegate = factory;
@@ -331,6 +332,11 @@ public class Layout {
     @Override
     public List<Class<? extends Node>> getExecutionSignature() {
       return delegate.getExecutionSignature();
+    }
+
+    @Override
+    public UnboxingAtom.FieldSetterNode getUncachedInstance() {
+      return delegate.getUncachedInstance();
     }
   }
 
