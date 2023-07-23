@@ -33,7 +33,6 @@ use horrorshow::owned_html;
 
 /// We use SVG icons imported as text.
 type Icon = &'static str;
-const ICON_TYPE: &str = include_str!("../assets/icon-type.svg");
 const ICON_METHODS: &str = include_str!("../assets/icon-methods.svg");
 const ICON_EXAMPLES: &str = include_str!("../assets/icon-examples.svg");
 const ICON_INFO: &str = include_str!("../assets/icon-info.svg");
@@ -81,33 +80,14 @@ fn validate_utf8(s: &str) -> Result<&str, std::str::Utf8Error> {
 }
 
 fn render_documentation(docs: Documentation) -> String {
-    let back_link = match &docs {
-        Documentation::Constructor { type_docs, .. } => Some(BackLink {
-            displayed: type_docs.name.name().to_owned(),
-            id:        anchor_name(&type_docs.name),
-        }),
-        Documentation::Method { type_docs, .. } => Some(BackLink {
-            displayed: type_docs.name.name().to_owned(),
-            id:        anchor_name(&type_docs.name),
-        }),
-        Documentation::ModuleMethod { module_docs, .. } => Some(BackLink {
-            displayed: module_docs.name.name().to_owned(),
-            id:        anchor_name(&module_docs.name),
-        }),
-        Documentation::Type { module_docs, .. } => Some(BackLink {
-            displayed: module_docs.name.name().to_owned(),
-            id:        anchor_name(&module_docs.name),
-        }),
-        _ => None,
-    };
     match docs {
         Documentation::Module(module_docs) => render_module_documentation(&module_docs),
-        Documentation::Type { docs, .. } => render_type_documentation(&docs, back_link),
-        Documentation::Function(docs) => render_function_documentation(&docs, back_link),
+        Documentation::Type { docs, .. } => render_type_documentation(&docs),
+        Documentation::Function(docs) => render_function_documentation(&docs),
         Documentation::Local(docs) => render_local_documentation(&docs),
-        Documentation::Constructor { docs, .. } => render_function_documentation(&docs, back_link),
-        Documentation::Method { docs, .. } => render_function_documentation(&docs, back_link),
-        Documentation::ModuleMethod { docs, .. } => render_function_documentation(&docs, back_link),
+        Documentation::Constructor { docs, .. } => render_function_documentation(&docs),
+        Documentation::Method { docs, .. } => render_function_documentation(&docs),
+        Documentation::ModuleMethod { docs, .. } => render_function_documentation(&docs),
         Documentation::Builtin(builtin_docs) => render_builtin_documentation(&builtin_docs),
     }
 }
@@ -122,17 +102,6 @@ fn render_virtual_component_group_docs(name: ImString) -> String {
     docs_content(content).into_string().unwrap()
 }
 
-/// An optional link to the parent entry (module or type), that is displayed in the documentation
-/// header. Pressing this link will switch the documentation to the parent entry, allowing
-/// bidirectional navigation.
-#[derive(Debug, Clone)]
-struct BackLink {
-    /// Displayed text.
-    displayed: String,
-    /// The unique ID of the link.
-    id:        String,
-}
-
 
 // === Types ===
 
@@ -143,12 +112,10 @@ struct BackLink {
 /// - Synopsis and a list of constructors.
 /// - Methods.
 /// - Examples.
-fn render_type_documentation(docs: &TypeDocumentation, back_link: Option<BackLink>) -> String {
+fn render_type_documentation(docs: &TypeDocumentation) -> String {
     let constructors_exist = !docs.constructors.is_empty();
     let methods_exist = !docs.methods.is_empty();
     let examples_exist = !docs.examples.is_empty();
-    let name = &docs.name;
-    let arguments = &docs.arguments;
     let synopsis = &docs.synopsis;
     let constructors = &docs.constructors;
     let synopsis = section_content(type_synopsis(synopsis));
@@ -156,11 +123,8 @@ fn render_type_documentation(docs: &TypeDocumentation, back_link: Option<BackLin
     let methods = section_content(list_of_functions(&docs.methods));
     let examples = section_content(list_of_examples(&docs.examples));
     let tags = section_content(list_of_tags(&docs.tags));
-    let header_text = type_header(name.name(), arguments_list(arguments), back_link.as_ref());
-    let header = header(ICON_TYPE, header_text, "header-top");
 
     let content = owned_html! {
-        : &header;
         : &tags;
         : &synopsis;
         @ if constructors_exist {
@@ -193,24 +157,6 @@ fn examples_header() -> impl Render {
 
 fn types_header() -> impl Render {
     header(ICON_METHODS, "Types", "section-header types-header")
-}
-
-/// A header for the type documentation.
-fn type_header<'a>(
-    name: &'a str,
-    arguments: impl Render + 'a,
-    back_link: Option<&'a BackLink>,
-) -> Box<dyn Render + 'a> {
-    box_html! {
-        @ if let Some(BackLink { id, displayed }) = &back_link {
-            a(id=id, class="link") {
-                : displayed;
-            }
-            : ".";
-        }
-        : &name;
-        span(class="arguments") { : &arguments }
-    }
 }
 
 /// A synopsis of the type. Contains a list of constructors, if it is not empty.
@@ -269,14 +215,12 @@ fn render_module_documentation(docs: &ModuleDocumentation) -> String {
     let types_exist = !docs.types.is_empty();
     let methods_exist = !docs.methods.is_empty();
     let examples_exist = !docs.examples.is_empty();
-    let name = &docs.name;
     let synopsis = section_content(module_synopsis(&docs.synopsis));
     let types = section_content(list_of_types(&docs.types));
     let methods = section_content(list_of_functions(&docs.methods));
     let examples = section_content(list_of_examples(&docs.examples));
     let tags = section_content(list_of_tags(&docs.tags));
     let content = owned_html! {
-        : header(ICON_TYPE, name.name(), "header-top");
         : &tags;
         : &synopsis;
         @ if types_exist {
@@ -352,17 +296,14 @@ fn module_synopsis<'a>(synopsis: &'a Synopsis) -> Box<dyn Render + 'a> {
 // === Functions ===
 
 /// Render documentation of a function.
-fn render_function_documentation(docs: &Function, back_link: Option<BackLink>) -> String {
-    let Function { name, arguments, synopsis, tags, .. } = docs;
+fn render_function_documentation(docs: &Function) -> String {
+    let Function { synopsis, tags, .. } = docs;
 
     let examples_exist = !docs.examples.is_empty();
     let synopsis = section_content(function_synopsis(synopsis));
     let tags = section_content(list_of_tags(tags));
     let examples = section_content(list_of_examples(&docs.examples));
-    let header_text = function_header(name.name(), arguments_list(arguments), back_link.as_ref());
-    let header = header(ICON_TYPE, header_text, "header-top");
     let content = owned_html! {
-        : &header;
         : &tags;
         : &synopsis;
         @ if examples_exist {
@@ -371,24 +312,6 @@ fn render_function_documentation(docs: &Function, back_link: Option<BackLink>) -
         }
     };
     docs_content(content).into_string().unwrap()
-}
-
-/// A header for the function documentation.
-fn function_header<'a>(
-    name: &'a str,
-    arguments: impl Render + 'a,
-    back_link: Option<&'a BackLink>,
-) -> Box<dyn Render + 'a> {
-    box_html! {
-        @ if let Some(BackLink { id, displayed }) = &back_link {
-            a(id=id, class="link") {
-                : displayed;
-            }
-            : ".";
-        }
-        : name;
-        span(class="arguments") { : &arguments }
-    }
 }
 
 /// A synopsis of the function.
@@ -405,17 +328,14 @@ fn function_synopsis<'a>(synopsis: &'a Synopsis) -> Box<dyn Render + 'a> {
 
 /// Render documentation of a function.
 fn render_local_documentation(docs: &LocalDocumentation) -> String {
-    let LocalDocumentation { name, synopsis, return_type, tags, .. } = docs;
+    let LocalDocumentation { synopsis, tags, .. } = docs;
 
     let examples_exist = !docs.examples.is_empty();
     let synopsis = section_content(local_synopsis(synopsis));
     let tags = section_content(list_of_tags(tags));
     let examples = section_content(list_of_examples(&docs.examples));
-    let header_text = local_header(name.name(), return_type.name());
-    let header = header(ICON_TYPE, header_text, "header-top");
 
     let content = owned_html! {
-        : &header;
         : &tags;
         : &synopsis;
         @ if examples_exist {
@@ -424,14 +344,6 @@ fn render_local_documentation(docs: &LocalDocumentation) -> String {
         }
     };
     docs_content(content).into_string().unwrap()
-}
-
-/// A header for the local documentation.
-fn local_header<'a>(name: &'a str, return_type: &'a str) -> Box<dyn Render + 'a> {
-    box_html! {
-        : name; : " ";
-        span(class="arguments") { : return_type }
-    }
 }
 
 /// A synopsis of the local.

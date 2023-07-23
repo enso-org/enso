@@ -238,7 +238,7 @@ define_themes! { [light:0, dark:1]
                 width = 406.0, 406.0;
                 height = 380.0, 380.0;
                 background = application::component_browser::component_list_panel::background_color, application::component_browser::component_list_panel::background_color;
-                corner_radius = 14.0, 14.0;
+                corner_radius = 20.0, 20.0;
             }
             component_list_panel {
                 width = 190.0, 190.0;
