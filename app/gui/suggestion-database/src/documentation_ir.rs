@@ -286,13 +286,11 @@ impl EntryDocumentation {
 // === Placeholder ===
 
 /// No documentation is available for the entry.
-#[derive(Debug, Clone, CloneRef, PartialEq)]
+#[derive(Debug, Clone, Copy, CloneRef, PartialEq)]
 #[allow(missing_docs)]
 pub enum Placeholder {
     /// Documentation is empty.
     NoDocumentation,
-    /// Documentation for the Virtual Component group.
-    VirtualComponentGroup { name: ImString },
 }
 
 // === Documentation ===

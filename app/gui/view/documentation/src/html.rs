@@ -59,8 +59,6 @@ pub fn render(docs: &EntryDocumentation) -> String {
     let html = match docs {
         EntryDocumentation::Placeholder(placeholder) => match placeholder {
             Placeholder::NoDocumentation => String::from("No documentation available."),
-            Placeholder::VirtualComponentGroup { name } =>
-                render_virtual_component_group_docs(name.clone_ref()),
         },
         EntryDocumentation::Docs(docs) => render_documentation(docs.clone_ref()),
     };
@@ -90,16 +88,6 @@ fn render_documentation(docs: Documentation) -> String {
         Documentation::ModuleMethod { docs, .. } => render_function_documentation(&docs),
         Documentation::Builtin(builtin_docs) => render_builtin_documentation(&builtin_docs),
     }
-}
-
-/// Render the documentation of the virtual component group. Includes the name of the group.
-fn render_virtual_component_group_docs(name: ImString) -> String {
-    let content = owned_html! {
-        h1(class="header-top") {
-            : &*name
-        }
-    };
-    docs_content(content).into_string().unwrap()
 }
 
 
