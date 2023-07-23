@@ -13,7 +13,7 @@ natural =
 
 type Filter
     Empty
-    Item n:Integer next
+    Item n:Integer next:Filter
     Head first:Filter set_last:Filter->Nothing
 
     acceptAndAdd : Integer

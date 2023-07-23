@@ -1,22 +1,19 @@
 from Standard.Base import Any, Meta, Integer, True, False, Nothing
 
 type Gen
-    Generator n:Integer
+    Generator n
 
-    next : Gen
     next self = Gen.Generator self.n+1
 
-natural : Gen
 natural =
     gen n = Gen.Generator n
     gen 2
 
 type Filter
     Empty
-    Item n:Integer next
-    Head first:Filter set_last:Filter->Nothing
+    Item n next
+    Head first set_last
 
-    acceptAndAdd : Integer
     acceptAndAdd self n =
         iterate f = case f of
             Filter.Item p next -> if n % p == 0 then False else
