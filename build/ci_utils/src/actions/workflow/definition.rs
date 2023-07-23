@@ -36,7 +36,7 @@ pub fn setup_conda() -> Step {
     // use crate::actions::workflow::definition::step::CondaChannel;
     Step {
         name: Some("Setup conda (GH runners only)".into()),
-        uses: Some("s-weigand/setup-conda@v1.0.5".into()),
+        uses: Some("s-weigand/setup-conda@v1.0.6".into()),
         r#if: Some(is_github_hosted()),
         with: Some(step::Argument::SetupConda {
             update_conda:   Some(false),

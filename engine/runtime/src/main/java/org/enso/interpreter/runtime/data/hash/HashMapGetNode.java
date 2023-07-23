@@ -1,6 +1,7 @@
 package org.enso.interpreter.runtime.data.hash;
 
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -39,7 +40,7 @@ public abstract class HashMapGetNode extends Node {
       VirtualFrame frame,
       State state, Object self, Object key, Object defaultValue,
       @CachedLibrary("self") InteropLibrary interop,
-      @Cached("build()") ThunkExecutorNode thunkExecutorNode) {
+      @Shared @Cached("build()") ThunkExecutorNode thunkExecutorNode) {
     if (interop.isHashEntryReadable(self, key)) {
       try {
         return interop.readHashValue(self, key);
@@ -53,7 +54,7 @@ public abstract class HashMapGetNode extends Node {
 
   @Fallback
   Object fallback(VirtualFrame frame, State state, Object self, Object key, Object defaultValue,
-      @Cached("build()") ThunkExecutorNode thunkExecutorNode) {
+      @Shared @Cached("build()") ThunkExecutorNode thunkExecutorNode) {
     return thunkExecutorNode.executeThunk(frame, defaultValue, state, TailStatus.NOT_TAIL);
   }
 }

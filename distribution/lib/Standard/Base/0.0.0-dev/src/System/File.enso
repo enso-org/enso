@@ -359,6 +359,19 @@ type File
     exists : Boolean
     exists self = @Builtin_Method "File.exists"
 
+    ## Checks whether the file is within another path.
+
+       Arguments:
+       - parent: The path to check if self is contained within.
+
+       > Example
+         Check if a file is within another path.
+
+             is_within = File.new "foo/bar" . starts_with (File.new "foo")
+             is_not_within = File.new "foo/bar" . starts_with (File.new "f")
+    starts_with : File -> Boolean
+    starts_with self parent = @Builtin_Method "File.starts_with"
+
     ## Gets the creation time of a file.
 
        > Example
@@ -668,13 +681,9 @@ type File
          the name `"abc"` or any name starting with `"x"`. The groups cannot be
          nested.
 
-       Keep in mind that if `recursive` is set to True and a `name_filter` is
-       used, the function will return files from subdirectories only if the set
-       `name_filter` allows crossing directories. So even with `recursive=True`
-       a filter `"*.txt"` will only return files that are immediate children of
-       the listed directory, to list files recursively you need to use a filter
-       like `"**.txt"` or `"*/*"` (which will match only files that are exactly
-       one directory down from the listed directory) or no filter at all.
+       If `recursive` is set to True and a `name_filter` does not contain `**`,
+       it will be automatically prefixed with `**/` to allow matching files in
+       subdirectories.
 
        > Example
          List all files with ".md" or ".txt" extension in the example directory
@@ -685,19 +694,20 @@ type File
              example_list_md_files =
                  Examples.data_dir.list name_filter="**.{txt,md}" recursive=True
     list : Text -> Boolean -> Vector File
-    list self name_filter=Nothing recursive=False =
+    list self name_filter:Text="" recursive:Boolean=False =
         all_files = case recursive of
             True -> list_descendants self
             False -> self.list_immediate_children
-        filtered = case name_filter of
-            Nothing -> all_files
+        case name_filter of
+            "" -> all_files
             _ ->
+                used_filter = if recursive.not || name_filter.contains "**" then name_filter else
+                    (if name_filter.starts_with "*" then "*" else "**/") + name_filter
                 fs = FileSystems.getDefault
-                matcher = fs.getPathMatcher "glob:"+name_filter
+                matcher = fs.getPathMatcher "glob:"+used_filter
                 all_files.filter file->
                     pathStr = self.relativize file . path
                     matcher.matches (Path.of pathStr)
-        filtered
 
     ## Checks if `self` is a child path of `other`.
     is_child_of : File -> Boolean

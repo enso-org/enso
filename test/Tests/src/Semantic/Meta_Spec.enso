@@ -255,10 +255,10 @@ spec =
             methods.sort . should_equal ['Value', 'create', 'factory', 'first_method', 'my_method', 'other_method', 'second_method']
 
         Test.specify "methods of Integer" <|
-            Meta.meta Integer . methods . sort . should_equal ['round', 'truncate']
+            Meta.meta Integer . methods . sort . should_equal ['bit_shift_l', 'round', 'truncate']
 
         Test.specify "static methods of Integer" <|
-            Meta.meta (Meta.type_of Integer) . methods . sort . should_equal ['parse', 'parse_builtin', 'round', 'truncate']
+            Meta.meta (Meta.type_of Integer) . methods . sort . should_equal ['bit_shift_l', 'parse', 'parse_builtin', 'round', 'truncate']
 
         Test.specify "methods of Any" <|
             Meta.meta Any . methods . should_contain "to_text"

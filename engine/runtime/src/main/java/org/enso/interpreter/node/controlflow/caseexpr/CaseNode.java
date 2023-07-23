@@ -1,6 +1,7 @@
 package org.enso.interpreter.node.controlflow.caseexpr;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.NodeChild;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
@@ -8,7 +9,7 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import com.oracle.truffle.api.profiles.ConditionProfile;
+import com.oracle.truffle.api.profiles.CountingConditionProfile;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.function.Function;
@@ -30,7 +31,7 @@ public abstract class CaseNode extends ExpressionNode {
   @Children private final BranchNode[] cases;
   private final boolean isNested;
 
-  private final ConditionProfile fallthroughProfile = ConditionProfile.createCountingProfile();
+  private final CountingConditionProfile fallthroughProfile = CountingConditionProfile.create();
 
   CaseNode(boolean isNested, BranchNode[] cases) {
     this.cases = cases;
@@ -79,7 +80,9 @@ public abstract class CaseNode extends ExpressionNode {
 
   @Specialization(guards = {"object != null", "warnings.hasWarnings(object)"})
   Object doWarning(
-      VirtualFrame frame, Object object, @CachedLibrary(limit = "3") WarningsLibrary warnings) {
+      VirtualFrame frame,
+      Object object,
+      @Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings) {
     try {
       EnsoContext ctx = EnsoContext.get(this);
       Warning[] ws = warnings.getWarnings(object, this);
@@ -105,7 +108,9 @@ public abstract class CaseNode extends ExpressionNode {
       })
   @ExplodeLoop
   public Object doMatch(
-      VirtualFrame frame, Object object, @CachedLibrary(limit = "3") WarningsLibrary warnings) {
+      VirtualFrame frame,
+      Object object,
+      @Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings) {
     State state = Function.ArgumentsHelper.getState(frame.getArguments());
     try {
       for (BranchNode branchNode : cases) {

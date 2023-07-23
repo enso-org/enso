@@ -1,6 +1,7 @@
 package org.enso.interpreter.node.expression.builtin.state;
 
 import com.oracle.truffle.api.dsl.Bind;
+import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.ReportPolymorphism;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
@@ -38,7 +39,7 @@ public abstract class RunStateNode extends Node {
       Object local,
       Object computation,
       @Bind("state.getContainer()") State.Container data,
-      @CachedLibrary(limit = "10") DynamicObjectLibrary objects) {
+      @Shared("dynamicObjectLib") @CachedLibrary(limit = "10") DynamicObjectLibrary objects) {
     var old = objects.getOrDefault(data, key, null);
     objects.put(data, key, local);
     try {
@@ -57,7 +58,7 @@ public abstract class RunStateNode extends Node {
       Object local,
       Object computation,
       @Bind("state.getContainer()") State.Container data,
-      @CachedLibrary(limit = "10") DynamicObjectLibrary objects) {
+      @Shared("dynamicObjectLib") @CachedLibrary(limit = "10") DynamicObjectLibrary objects) {
     objects.put(data, key, local);
     try {
       return thunkExecutorNode.executeThunk(

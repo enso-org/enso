@@ -5,7 +5,9 @@ import com.ibm.icu.text.Normalizer2;
 import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.GenerateUncached;
+import com.oracle.truffle.api.dsl.NeverDefault;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -147,7 +149,7 @@ public abstract class HashCodeNode extends Node {
   @Specialization
   @TruffleBoundary
   long hashCodeForUnresolvedSymbol(UnresolvedSymbol unresolvedSymbol,
-      @Cached HashCodeNode hashCodeNode) {
+      @Shared("hashCodeNode") @Cached HashCodeNode hashCodeNode) {
     long nameHash = hashCodeNode.execute(unresolvedSymbol.getName());
     long scopeHash = hashCodeNode.execute(unresolvedSymbol.getScope());
     return Objects.hashCode(nameHash, scopeHash);
@@ -155,26 +157,26 @@ public abstract class HashCodeNode extends Node {
 
   @Specialization
   long hashCodeForUnresolvedConversion(UnresolvedConversion unresolvedConversion,
-      @CachedLibrary(limit = "5") InteropLibrary interop) {
+      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
     return hashCodeForModuleScope(unresolvedConversion.getScope(), interop);
   }
 
   @Specialization
   long hashCodeForModuleScope(ModuleScope moduleScope,
-      @CachedLibrary(limit = "5") InteropLibrary interop) {
+      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
     return hashCodeForModule(moduleScope.getModule(), interop);
   }
 
   @Specialization
   @TruffleBoundary
   long hashCodeForModule(Module module,
-      @CachedLibrary(limit = "5") InteropLibrary interop) {
+      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
     return hashCodeForString(module.toString(), interop);
   }
 
   @Specialization
   long hashCodeForFile(EnsoFile file,
-      @CachedLibrary(limit = "5") InteropLibrary interop) {
+      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
     return hashCodeForString(file.getPath(), interop);
   }
 
@@ -186,7 +188,7 @@ public abstract class HashCodeNode extends Node {
    */
   @Specialization
   long hashCodeForType(Type type,
-      @Cached HashCodeNode hashCodeNode) {
+      @Shared("hashCodeNode") @Cached HashCodeNode hashCodeNode) {
     if (EnsoContext.get(this).getNothing() == type) {
       // Nothing should be equal to `null`
       return 0;
@@ -195,6 +197,7 @@ public abstract class HashCodeNode extends Node {
     }
   }
 
+  @NeverDefault
   static HashCodeNode[] createHashCodeNodes(int size) {
     HashCodeNode[] nodes = new HashCodeNode[size];
     Arrays.fill(nodes, HashCodeNode.build());
@@ -204,7 +207,7 @@ public abstract class HashCodeNode extends Node {
   @Specialization(guards = {
       "atomCtorCached == atom.getConstructor()",
       "customComparatorNode.execute(atom) == null",
-  }, limit = "10")
+  }, limit = "5")
   @ExplodeLoop
   long hashCodeForAtomWithDefaultComparator(
       Atom atom,
@@ -214,8 +217,8 @@ public abstract class HashCodeNode extends Node {
           HashCodeNode[] fieldHashCodeNodes,
       @Cached ConditionProfile isHashCodeCached,
       @CachedLibrary(limit = "10") StructsLibrary structs,
-      @Cached CustomComparatorNode customComparatorNode,
-      @Cached HashCallbackNode hashCallbackNode) {
+      @Shared("customComparatorNode") @Cached CustomComparatorNode customComparatorNode,
+      @Shared("hashCallbackNode") @Cached HashCallbackNode hashCallbackNode) {
     if (isHashCodeCached.profile(atom.getHashCode() != null)) {
       return atom.getHashCode();
     }
@@ -246,13 +249,14 @@ public abstract class HashCodeNode extends Node {
       guards = {
         "atomCtorCached == atom.getConstructor()",
         "cachedComparator != null"
-      }
+      },
+      limit = "5"
   )
   long hashCodeForAtomWithCustomComparator(
       Atom atom,
       @Cached("atom.getConstructor()") AtomConstructor atomCtorCached,
-      @Cached CustomComparatorNode customComparatorNode,
-      @CachedLibrary(limit = "5") InteropLibrary interop,
+      @Shared("customComparatorNode") @Cached CustomComparatorNode customComparatorNode,
+      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
       @Cached(value = "customComparatorNode.execute(atom)") Type cachedComparator,
       @Cached(value = "findHashMethod(cachedComparator)", allowUncached = true)
         Function compareMethod,
@@ -281,6 +285,7 @@ public abstract class HashCodeNode extends Node {
     return fn;
   }
 
+  @NeverDefault
   static InvokeFunctionNode createInvokeNode(Function compareFn) {
     CallArgumentInfo[] argsInfo = new CallArgumentInfo[compareFn.getSchema().getArgumentsCount()];
     for (int i = 0; i < argsInfo.length; i++) {
@@ -337,7 +342,7 @@ public abstract class HashCodeNode extends Node {
   long hashCodeForWarning(
       Object selfWithWarning,
       @CachedLibrary("selfWithWarning") WarningsLibrary warnLib,
-      @Cached HashCodeNode hashCodeNode) {
+      @Shared("hashCodeNode") @Cached HashCodeNode hashCodeNode) {
     try {
       return hashCodeNode.execute(warnLib.removeWarnings(selfWithWarning));
     } catch (UnsupportedMessageException e) {
@@ -458,7 +463,9 @@ public abstract class HashCodeNode extends Node {
   }
 
   @Specialization
-  long hashCodeForText(Text text, @CachedLibrary(limit = "3") InteropLibrary interop) {
+  long hashCodeForText(
+      Text text,
+      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
     if (text.is_normalized()) {
       return text.toString().hashCode();
     } else {
@@ -470,7 +477,9 @@ public abstract class HashCodeNode extends Node {
   @Specialization(
       guards = {"interop.isString(selfStr)"},
       limit = "3")
-  long hashCodeForString(Object selfStr, @CachedLibrary("selfStr") InteropLibrary interop) {
+  long hashCodeForString(
+      Object selfStr,
+      @CachedLibrary("selfStr") InteropLibrary interop) {
     String str;
     try {
       str = interop.asString(selfStr);
@@ -494,10 +503,10 @@ public abstract class HashCodeNode extends Node {
   long hashCodeForArray(
       Object selfArray,
       @CachedLibrary("selfArray") InteropLibrary interop,
-      @Cached HashCodeNode hashCodeNode,
-      @Cached("createCountingProfile()") LoopConditionProfile loopProfile,
-      @Cached HashCallbackNode hashCallbackNode,
-      @Cached CustomComparatorNode customComparatorNode) {
+      @Shared("hashCodeNode") @Cached HashCodeNode hashCodeNode,
+      @Cached LoopConditionProfile loopProfile,
+      @Shared("hashCallbackNode") @Cached HashCallbackNode hashCallbackNode,
+      @Shared("customComparatorNode") @Cached CustomComparatorNode customComparatorNode) {
     try {
       long arraySize = interop.getArraySize(selfArray);
       loopProfile.profileCounted(arraySize);
@@ -528,8 +537,8 @@ public abstract class HashCodeNode extends Node {
   })
   long hashCodeForMap(
       Object selfMap,
-      @CachedLibrary(limit = "5") InteropLibrary interop,
-      @Cached HashCodeNode hashCodeNode) {
+      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
+      @Shared("hashCodeNode") @Cached HashCodeNode hashCodeNode) {
     int mapSize;
     long keysHashCode = 0;
     long valuesHashCode = 0;
@@ -561,9 +570,9 @@ public abstract class HashCodeNode extends Node {
       "!typesLib.hasType(objectWithMembers)",
   })
   long hashCodeForInteropObjectWithMembers(Object objectWithMembers,
-      @CachedLibrary(limit = "10") InteropLibrary interop,
+      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
       @CachedLibrary(limit = "5") TypesLibrary typesLib,
-      @Cached HashCodeNode hashCodeNode) {
+      @Shared("hashCodeNode") @Cached HashCodeNode hashCodeNode) {
     try {
       Object members = interop.getMembers(objectWithMembers);
       assert interop.getArraySize(members) < Integer.MAX_VALUE : "long array size not supported";
@@ -600,7 +609,8 @@ public abstract class HashCodeNode extends Node {
 
   @Specialization(guards = "isHostObject(hostObject)")
   long hashCodeForHostObject(
-      Object hostObject, @CachedLibrary(limit = "3") InteropLibrary interop) {
+      Object hostObject,
+      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
     try {
       Object hashCodeRes = interop.invokeMember(hostObject, "hashCode");
       assert interop.fitsInInt(hashCodeRes);
@@ -620,8 +630,8 @@ public abstract class HashCodeNode extends Node {
   @TruffleBoundary
   @Specialization(guards = "isHostFunction(hostFunction)")
   long hashCodeForHostFunction(Object hostFunction,
-      @CachedLibrary(limit = "3") InteropLibrary interop,
-      @Cached HashCodeNode hashCodeNode) {
+      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
+      @Shared("hashCodeNode") @Cached HashCodeNode hashCodeNode) {
     return hashCodeNode.execute(interop.toDisplayString(hostFunction));
   }
 
