@@ -239,6 +239,9 @@ define_themes! { [light:0, dark:1]
                 height = 380.0, 380.0;
                 background = application::component_browser::component_list_panel::background_color, application::component_browser::component_list_panel::background_color;
                 corner_radius = 20.0, 20.0;
+                breadcrumbs {
+                    height = 40.0, 40.0;
+                }
             }
             component_list_panel {
                 width = 190.0, 190.0;

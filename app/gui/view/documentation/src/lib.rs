@@ -1,5 +1,4 @@
-//! Documentation view visualization generating and presenting Enso Documentation under
-//! the documented node.
+//! Documentation view presenting the documentation in the Component Browser.
 
 #![recursion_limit = "1024"]
 // === Features ===
@@ -65,10 +64,12 @@ const DISPLAY_DELAY_MS: i32 = 0;
 #[base_path = "theme"]
 #[allow(missing_docs)]
 pub struct Style {
-    width:         f32,
-    height:        f32,
-    background:    color::Rgba,
-    corner_radius: f32,
+    width:              f32,
+    height:             f32,
+    background:         color::Rgba,
+    corner_radius:      f32,
+    #[theme_path = "theme::breadcrumbs::height"]
+    breadcrumbs_height: f32,
 }
 
 
@@ -81,12 +82,13 @@ pub struct Style {
 #[derive(Clone, CloneRef, Debug, display::Object)]
 #[allow(missing_docs)]
 pub struct Model {
-    outer_dom:       DomSymbol,
-    inner_dom:       DomSymbol,
+    style_container: DomSymbol,
+    dom:             DomSymbol,
     pub breadcrumbs: breadcrumbs::Breadcrumbs,
     /// The purpose of this overlay is stop propagating mouse events under the documentation panel
     /// to EnsoGL shapes, and pass them to the DOM instead.
     overlay:         Rectangle,
+    background:      Rectangle,
     display_object:  display::object::Instance,
     event_handlers:  Rc<RefCell<Vec<web::EventListenerHandle>>>,
 }
@@ -96,10 +98,11 @@ impl Model {
     fn new(app: &Application) -> Self {
         let scene = &app.display.default_scene;
         let display_object = display::object::Instance::new();
-        let outer_div = web::document.create_div_or_panic();
-        let outer_dom = DomSymbol::new(&outer_div);
-        let inner_div = web::document.create_div_or_panic();
-        let inner_dom = DomSymbol::new(&inner_div);
+        let style_div = web::document.create_div_or_panic();
+        let style_container = DomSymbol::new(&style_div);
+        let div = web::document.create_div_or_panic();
+        let dom = DomSymbol::new(&div);
+        let background = Rectangle::new();
         let overlay = Rectangle::new().build(|r| {
             r.set_color(INVISIBLE_HOVER_COLOR);
         });
@@ -108,28 +111,24 @@ impl Model {
         breadcrumbs.set_base_layer(&app.display.default_scene.layers.node_searcher);
         display_object.add_child(&breadcrumbs);
 
-        outer_dom.dom().set_style_or_warn("white-space", "normal");
-        outer_dom.dom().set_style_or_warn("overflow-y", "auto");
-        outer_dom.dom().set_style_or_warn("overflow-x", "auto");
-        outer_dom.dom().set_style_or_warn("pointer-events", "auto");
+        dom.dom().set_attribute_or_warn("class", "scrollable");
+        dom.dom().set_style_or_warn("white-space", "normal");
+        dom.dom().set_style_or_warn("overflow-y", "auto");
+        dom.dom().set_style_or_warn("overflow-x", "auto");
+        dom.dom().set_style_or_warn("pointer-events", "auto");
 
-        inner_dom.dom().set_attribute_or_warn("class", "scrollable");
-        inner_dom.dom().set_style_or_warn("white-space", "normal");
-        inner_dom.dom().set_style_or_warn("overflow-y", "auto");
-        inner_dom.dom().set_style_or_warn("overflow-x", "auto");
-        inner_dom.dom().set_style_or_warn("pointer-events", "auto");
-
-        display_object.add_child(&outer_dom);
-        outer_dom.add_child(&inner_dom);
+        display_object.add_child(&background);
+        display_object.add_child(&dom);
         display_object.add_child(&overlay);
-        scene.dom.layers.node_searcher.manage(&outer_dom);
-        scene.dom.layers.node_searcher.manage(&inner_dom);
+        scene.dom.layers.node_searcher.manage(&style_container);
+        scene.dom.layers.node_searcher.manage(&dom);
 
         Model {
-            outer_dom,
-            inner_dom,
+            style_container,
+            dom,
             breadcrumbs,
             overlay,
+            background,
             display_object,
             event_handlers: default(),
         }
@@ -146,7 +145,7 @@ impl Model {
         let stylesheet = include_str!("../assets/styles.css");
         let element = web::document.create_element_or_panic("style");
         element.set_inner_html(stylesheet);
-        self.outer_dom.append_or_warn(&element);
+        self.style_container.append_or_warn(&element);
     }
 
     fn set_initial_breadcrumbs(&self) {
@@ -181,10 +180,10 @@ impl Model {
     fn display_doc(&self, docs: EntryDocumentation, display_doc: &frp::Source<EntryDocumentation>) {
         let linked_pages = docs.linked_doc_pages();
         let html = html::render(&docs);
-        self.inner_dom.dom().set_inner_html(&html);
+        self.dom.dom().set_inner_html(&html);
         self.set_link_handlers(linked_pages, display_doc);
         // Scroll to the top of the page.
-        self.inner_dom.dom().set_scroll_top(0);
+        self.dom.dom().set_scroll_top(0);
     }
 
     /// Setup event handlers for links on the documentation page.
@@ -212,16 +211,16 @@ impl Model {
     /// TODO(#5214): This should be replaced with a EnsoGL spinner.
     fn load_waiting_screen(&self) {
         let spinner = include_str!("../assets/spinner.html");
-        self.inner_dom.dom().set_inner_html(spinner)
+        self.dom.dom().set_inner_html(spinner)
     }
 
     fn update_style(&self, style: Style) {
         // Size is updated separately in [`size_changed`] method.
         self.overlay.set_corner_radius(style.corner_radius);
-        self.outer_dom.set_style_or_warn("border-radius", format!("{}px", style.corner_radius));
-        self.inner_dom.set_style_or_warn("border-radius", format!("{}px", style.corner_radius));
-        let bg_color = style.background.to_javascript_string();
-        self.outer_dom.set_style_or_warn("background-color", bg_color);
+        self.dom.set_style_or_warn("border-radius", format!("{}px", style.corner_radius));
+
+        self.breadcrumbs.set_xy(Vector2(0.0, size.y));
+        self.breadcrumbs.frp().set_size(Vector2(size.x, style.breadcrumbs_height));
     }
 }
 
@@ -272,15 +271,6 @@ pub struct View {
 }
 
 impl View {
-    /// Definition of this visualization.
-    pub fn definition() -> visualization::Definition {
-        let path = visualization::Path::builtin("Documentation View");
-        visualization::Definition::new(
-            visualization::Signature::new_for_any_type(path, visualization::Format::Json),
-            |app| Ok(Self::new(app).into()),
-        )
-    }
-
     /// Constructor.
     pub fn new(app: &Application) -> Self {
         let frp = Frp::new();
