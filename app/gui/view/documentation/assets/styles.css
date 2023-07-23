@@ -86,6 +86,10 @@
   opacity: 0.34;
 }
 
+.enso-docs .argument {
+  font-weight: 600;
+}
+
 .enso-docs .section-content {
   padding-left: 8px;
   padding-right: 8px;

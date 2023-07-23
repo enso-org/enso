@@ -463,7 +463,10 @@ fn paragraph<'a>(doc_section: &'a DocSection) -> Box<dyn Render + 'a> {
             box_html! {
                 ul(class="unordered-list") {
                     @for arg in args {
-                        li { : &arg.name; : ": "; : Raw(&arg.description); }
+                        li {
+                            span(class="argument") { : &arg.name; }
+                            : ": "; : Raw(&arg.description);
+                        }
                     }
                 }
             }
