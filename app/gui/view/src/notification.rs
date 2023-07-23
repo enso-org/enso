@@ -148,6 +148,9 @@ impl<'de> Deserialize<'de> for SerializableJsValue {
 // === AutoClose ===
 
 /// Helper structure for [`AutoClose`] so it serializes in a way compatible with the JS library.
+///
+/// Users of this module should not deal directly with this type. Instead, rely on
+/// [`AutoClose::After`] or [`AutoClose::Never`]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum AutoCloseInner {
