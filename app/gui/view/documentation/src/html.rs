@@ -464,7 +464,7 @@ fn paragraph<'a>(doc_section: &'a DocSection) -> Box<dyn Render + 'a> {
         }
         DocSection::List { items } => {
             box_html! {
-                ul {
+                ul(class="unordered-list") {
                     @for item in items {
                         li { : Raw(&item); }
                     }
@@ -473,7 +473,7 @@ fn paragraph<'a>(doc_section: &'a DocSection) -> Box<dyn Render + 'a> {
         }
         DocSection::Arguments { args } => {
             box_html! {
-                ul {
+                ul(class="unordered-list") {
                     @for arg in args {
                         li { : &arg.name; : ": "; : Raw(&arg.description); }
                     }

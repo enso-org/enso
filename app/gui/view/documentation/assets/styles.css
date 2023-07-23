@@ -28,27 +28,25 @@
   padding-bottom: 0.5rem;
 }
 
-/* It's better to use `.unordered-list` class here instead of `ul`, but it will break the keyed lists that a provided by the engine.
- * We need a separate way to represent keyed lists without embedded HTML tags. */
-.enso-docs ul {
+.enso-docs .unordered-list {
   margin: 0;
   padding: 0;
   list-style-type: none;
   list-style-position: inside;
 }
 
-.enso-docs ul li:before {
+.enso-docs .unordered-list li:before {
   content: "•";
   font-size: 13px;
   font-weight: 700;
   margin-right: 3px;
 }
 
-.enso-docs ul li.type-item:before {
+.enso-docs .unordered-list li.type-item:before {
   color: var(--enso-docs-type-name-color);
 }
 
-.enso-docs ul li.method-item:before {
+.enso-docs .unordered-list li.method-item:before {
   color: var(--enso-docs-method-name-color);
 }
 
