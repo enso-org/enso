@@ -169,7 +169,7 @@ impl AutoClose {
         Self(AutoCloseInner::Delay(delay_ms))
     }
 
-    /// Do not auto close. The boolean value must be `false`.
+    /// Do not auto close.
     #[allow(non_snake_case)]
     pub fn Never() -> Self {
         Self(AutoCloseInner::ShouldEver(false))
