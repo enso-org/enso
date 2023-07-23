@@ -21,6 +21,8 @@ pub enum Kind {
     Chained,
     /// A node representing operation (operator or function) of parent Infix, Section or Prefix.
     Operation,
+    /// A part of the access chain that is not the primary target (not the leftmost node).
+    Access,
     /// A node being a normal (not target) parameter of parent Infix, Section or Prefix.
     Argument(Argument),
     /// A node representing a named argument. Always contains two tokens and an `Argument` node.
@@ -249,6 +251,7 @@ impl Kind {
             Self::Root => "Root",
             Self::Chained => "Chained",
             Self::Operation => "Operation",
+            Self::Access => "Access",
             Self::Argument(_) => "Argument",
             Self::NamedArgument => "NamedArgument",
             Self::Token => "Token",

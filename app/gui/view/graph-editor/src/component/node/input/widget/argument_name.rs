@@ -5,11 +5,11 @@
 use super::prelude::*;
 use crate::prelude::*;
 
+use crate::node::input::area::TEXT_SIZE;
+
 use ensogl::data::color;
 use ensogl::display::object;
 use ensogl_component::text;
-
-use crate::node::input::area::TEXT_SIZE;
 
 
 
@@ -103,7 +103,7 @@ impl SpanWidget for Widget {
 
         let level = ctx.info.nesting_level;
         match ctx.span_node.kind.argument_name() {
-            Some(arg_name) if arg_name != "" => {
+            Some(arg_name) if !arg_name.is_empty() => {
                 self.arg_name.emit(arg_name);
                 let child = ctx.builder.child_widget(ctx.span_node, level);
                 self.root.replace_children(&[&self.arg_label_wrapper, &child.root_object]);

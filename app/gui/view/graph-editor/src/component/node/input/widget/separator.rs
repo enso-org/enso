@@ -1,8 +1,8 @@
 //! Separating line between top-level argument widgets. Handles named argument nodes, creating a
 //! child widget only for the argument value.
 
-use super::prelude::*;
 use crate::prelude::*;
+use super::prelude::*;
 
 use crate::component::node::HEIGHT as NODE_HEIGHT;
 

@@ -451,7 +451,7 @@ fn generate_node_for_opr_chain(
         let left_crumbs = if has_left { vec![elem.crumb_to_previous()] } else { vec![] };
 
         let mut gen = ChildGenerator::default();
-        if is_first && has_left {
+        if is_first && has_left && !app_base.uses_method_notation {
             gen.generate_empty_node(InsertionPointType::BeforeArgument(0));
         }
         let node = gen.add_node(left_crumbs, node);
@@ -501,12 +501,16 @@ fn generate_node_for_opr_chain(
             let arg_crumbs = elem.crumb_to_operand(has_left);
             let arg_ast = Located::new(arg_crumbs, &operand.arg);
 
-            if has_left {
+            if has_left && !app_base.uses_method_notation {
                 gen.generate_empty_node(InsertionPointType::BeforeArgument(i + 1));
             }
             gen.spacing(operand.offset);
 
-            let argument_kind = node::Kind::argument().with_removable(removable);
+            let argument_kind: node::Kind = if app_base.uses_method_notation {
+                node::Kind::Access.into()
+            } else {
+                node::Kind::argument().with_removable(removable).into()
+            };
             let argument = gen.generate_ast_node(arg_ast, argument_kind, context)?;
 
             if let Some((index, info)) = infix_right_argument_info {
@@ -515,7 +519,7 @@ fn generate_node_for_opr_chain(
             }
         }
 
-        if is_last {
+        if is_last && !app_base.uses_method_notation {
             gen.generate_empty_node(InsertionPointType::Append);
         }
 
