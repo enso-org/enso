@@ -15,6 +15,7 @@
   --enso-docs-background-color: #eaeaea;
   --enso-docs-text-color: #434343;
   --enso-docs-tag-background-color: #dcd8d8;
+  --enso-docs-code-background-color: #dddcde;
   --enso-docs-caption-background-color: #0077f6;
 }
 
@@ -193,6 +194,14 @@ div.enso-docs .marked-icon-info {
   white-space: pre;
   overflow-x: auto;
   margin: 0.05rem 0.1rem;
+}
+
+/* Code. The words emphasized with backticks. */
+
+.enso-docs code {
+  background-color: var(--enso-docs-code-background-color);
+  border-radius: 4px;
+  padding: 2px;
 }
 
 /* Tags */
