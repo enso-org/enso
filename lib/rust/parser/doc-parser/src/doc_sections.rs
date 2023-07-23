@@ -74,7 +74,7 @@ pub struct Argument {
 
 impl Argument {
     /// Convert the given string to the argument description.
-    pub fn from_str(text: &str) -> Self {
+    pub fn new(text: &str) -> Self {
         let (name, description) = text.splitn(2, ':').collect_tuple().unwrap_or_default();
         let name = name.trim().to_string();
         let description = description.trim().to_string();
@@ -238,7 +238,7 @@ impl<L> TokenConsumer<L> for DocSectionCollector {
             ScopeType::List => {
                 let items = mem::take(&mut self.current_list);
                 if self.inside_arguments {
-                    let args = items.iter().map(|arg| Argument::from_str(&arg)).collect();
+                    let args = items.iter().map(|arg| Argument::new(arg)).collect();
                     self.sections.push(DocSection::Arguments { args });
                     self.inside_arguments = false;
                 } else {
