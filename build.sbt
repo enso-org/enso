@@ -1341,6 +1341,9 @@ lazy val runtime = (project in file("engine/runtime"))
     Test / envVars ++= distributionEnvironmentOverrides ++ Map(
       "ENSO_TEST_DISABLE_IR_CACHE" -> "false"
     ),
+    Global / onLoad := GraalVersionCheck.addVersionCheck(
+      graalVersion
+    )((Global / onLoad).value),
     bootstrap := CopyTruffleJAR.bootstrapJARs.value
   )
   .settings(
