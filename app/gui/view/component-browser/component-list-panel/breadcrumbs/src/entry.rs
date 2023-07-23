@@ -31,7 +31,7 @@ pub mod separator {
     use super::*;
     use std::f32::consts::PI;
 
-    pub const ICON_WIDTH: f32 = 30.0;
+    pub const ICON_WIDTH: f32 = 26.0;
 
     ensogl_core::shape! {
         above = [ensogl_grid_view::entry::shape];
