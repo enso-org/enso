@@ -354,7 +354,7 @@ define_themes! { [light:0, dark:1]
                             background_width = 28.0, 28.0;
                             background_height = 16.0, 16.0;
                             background_corners_radius = 100.0, 100.0;
-                            background_color = Rgba(1.0, 1.0, 1.0, 0.84), Rgba(1.0, 1.0, 1.0, 0.84);
+                            background_color = Rgba(1.0, 1.0, 1.0, 0.04), Rgba(1.0, 1.0, 1.0, 0.04);
                             circles_color = Rgba(1.0, 1.0, 1.0, 1.0), Rgba(1.0, 1.0, 1.0, 1.0);
                             circles_radius = 2.0, 2.0;
                             circles_gap = 2.0, 2.0;

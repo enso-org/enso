@@ -96,7 +96,7 @@ pub mod ellipsis {
 // =============
 
 /// The width of the icon in a text [`Entry`].
-pub const ICON_WIDTH: f32 = 30.0;
+pub const ICON_WIDTH: f32 = 17.0;
 
 
 /// Stylesheet-defined portion of the entries' parameters.
@@ -263,8 +263,8 @@ impl EntryData {
         self.separator.set_size(Vector2(separator::ICON_WIDTH, size.y));
         self.ellipsis.set_size(Vector2(ellipsis::ICON_WIDTH, size.y));
         self.icon.set_size(Vector2(ICON_WIDTH, size.y));
-        self.icon.set_x(-ICON_WIDTH / 2.0);
-        self.icon.set_y(-text_y_offset / 2.0);
+        self.icon.set_x(-ICON_WIDTH);
+        self.icon.set_y(-2.0);
     }
 
     fn set_default_color(&self, color: color::Lcha) {
