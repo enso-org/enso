@@ -2,6 +2,7 @@ package org.enso.interpreter.node.expression.builtin.meta;
 
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
+import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.Annotation;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
@@ -100,6 +101,13 @@ public abstract class AtomWithAHoleNode extends Node {
         };
     }
 
+    @ExportMessage boolean isMemberInvocable(String member) {
+        return switch (member) {
+            case "fill" -> true;
+            default -> false;
+        };
+    }
+
     @ExportMessage Object getMembers(boolean includeInternal) {
         return new Array("value", "fill");
     }
@@ -111,6 +119,21 @@ public abstract class AtomWithAHoleNode extends Node {
       }
       if ("fill".equals(name)) {
         return function;
+      }
+      throw UnknownIdentifierException.create(name);
+    }
+
+    @ExportMessage
+    Object invokeMember(
+      String name, Object[] args,
+      @Cached(value="buildWithArity(1)", allowUncached=true) InvokeFunctionNode invoke
+    ) throws UnknownIdentifierException {
+      if ("fill".equals(name)) {
+        if (args.length == 0) {
+          return function;
+        }
+        var ctx = EnsoContext.get(invoke);
+        return invoke.execute(function, null, State.create(ctx), args);
       }
       throw UnknownIdentifierException.create(name);
     }

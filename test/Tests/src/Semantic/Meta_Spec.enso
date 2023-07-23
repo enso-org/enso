@@ -380,6 +380,11 @@ spec =
             fill = pair.fill
             Panic.catch Any (fill "Two") err->err.convert_to_dataflow_error . should_fail_with Type_Error
 
+        Test.specify "direct use of pair.fill" <|
+            pair = Meta.atom_with_hole (e -> My_Ascribed_Type.Value_With_Type 1 e 3)
+            pair.fill 2
+            pair.value.bar . should_equal 2
+
         Test.specify "fail if atom_with_hole isn't used" <|
             key = Panic.catch Uninitialized_State handler=(caught_panic-> caught_panic.payload.key) <|
                 Meta.atom_with_hole (_ -> My_Type.Value 1 2 3)
