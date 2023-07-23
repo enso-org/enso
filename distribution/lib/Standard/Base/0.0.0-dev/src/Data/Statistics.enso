@@ -21,7 +21,6 @@ from project.Errors.Common import Unsupported_Argument_Types
 polyglot java import java.lang.NullPointerException
 polyglot java import org.enso.base.CompareException
 polyglot java import org.enso.base.statistics.CorrelationStatistics
-polyglot java import org.enso.base.statistics.CountMinMax
 polyglot java import org.enso.base.statistics.Moments
 polyglot java import org.enso.base.statistics.MomentStatistic
 polyglot java import org.enso.base.statistics.Rank
@@ -155,13 +154,9 @@ type Statistic
        - statistics: Set of statistics to calculate.
     compute_bulk : Vector -> Vector Statistic -> Vector Any
     compute_bulk data statistics=[Statistic.Count, Statistic.Sum] =
-        counter = CountMinMax.new
-
         moment_order = statistics.map .order
-        skip_moments = moment_order.all s->s.is_nothing
-        moments = if skip_moments then Nothing else Moments.new (moment_order.filter (v-> v != Nothing) . fold 0 .max)
-
-        result = data.fold moments current-> value-> compute_fold counter current value
+        max_moment_order = moment_order.filter (v-> v != Nothing) . fold 0 .max
+        counter = data.fold (Accumulator.new max_moment_order) current-> value-> compute_fold current value
 
         report_error stats =
             first = 0.up_to stats.length . find i-> (moment_order.at i . is_nothing . not)
@@ -169,16 +164,13 @@ type Statistic
             Error.throw (Illegal_Argument.Error ("Can only compute " + stat.to_text + " on numerical data sets."))
 
         if counter.count == 0 then statistics.map empty_value else
-            if skip_moments.not && result.is_nothing then report_error statistics else
+            if max_moment_order > 0 && counter.moments.is_nothing then report_error statistics else
                 statistics.map statistic-> case statistic of
-                    Statistic.Count -> counter.count
-                    Statistic.Minimum -> if counter.comparatorError then (Error.throw (Incomparable_Values.Error Nothing Nothing)) else counter.minimum
-                    Statistic.Maximum -> if counter.comparatorError then (Error.throw (Incomparable_Values.Error Nothing Nothing)) else counter.maximum
                     Statistic.Covariance series -> calculate_correlation_statistics data series . covariance
                     Statistic.Pearson series -> calculate_correlation_statistics data series . pearsonCorrelation
                     Statistic.Spearman series -> calculate_spearman_rank data series
                     Statistic.R_Squared series -> calculate_correlation_statistics data series . rSquared
-                    _ -> moments.compute (to_moment_statistic statistic)
+                    _ -> counter.compute statistic
 
     ## PRIVATE
        Compute a running statistics on a vector like object.
@@ -206,7 +198,7 @@ type Statistic
             _ -> False
 
         if statistics.any is_unsupported then Error.throw (Illegal_Argument.Error ("Unsupported Statistics ( " + (statistics.filter is_unsupported . to_text) ") for running calculations.")) else
-            counter = CountMinMax.new
+            counter = Accumulator.new 0
 
             moment_order = statistics.map .order
             skip_moments = moment_order.all s->s.is_nothing
@@ -222,8 +214,8 @@ type Statistic
 
                     row = Panic.throw_wrapped_if_error <| statistics.map s-> case s of
                         Statistic.Count -> counter.count
-                        Statistic.Minimum -> if counter.comparatorError then (Error.throw (Incomparable_Values.Error Nothing Nothing)) else counter.minimum
-                        Statistic.Maximum -> if counter.comparatorError then (Error.throw (Incomparable_Values.Error Nothing Nothing)) else counter.maximum
+                        Statistic.Minimum -> if counter.comparator_error then (Error.throw (Incomparable_Values.Error Nothing Nothing)) else counter.minimum
+                        Statistic.Maximum -> if counter.comparator_error then (Error.throw (Incomparable_Values.Error Nothing Nothing)) else counter.maximum
                         _ -> if result.is_nothing then Error.throw (Illegal_Argument.Error ("Can only compute " + s.to_text + " on numerical data sets.")) else result.compute (to_moment_statistic s)
                     output.append row
 
@@ -357,23 +349,7 @@ Vector.rank_data self method=Rank_Method.Average =
     Statistic.rank_data self method
 
 ## PRIVATE
-compute_fold counter current value =
-    if is_valid value . not then current else
-        counter.increment
-
-        if counter.comparatorError.not then
-            if counter.minimum.is_nothing then counter.setMinimum value else
-                ordering = Ordering.compare value counter.minimum
-                if ordering.is_error then counter.failComparator else
-                    if ordering == Ordering.Less then counter.setMinimum value
-            if counter.maximum.is_nothing then counter.setMaximum value else
-                ordering = Ordering.compare value counter.maximum
-                if ordering.is_error then counter.failComparator else
-                    if ordering == Ordering.Greater then counter.setMaximum value
-
-        if current.is_nothing then Nothing else case value of
-            _ : Number -> current.add value
-            _ -> Nothing
+compute_fold current value = if is_valid value then current.increment value else current
 
 ## PRIVATE
 empty_value statistic = case statistic of
@@ -388,3 +364,78 @@ is_valid v = case v of
     Nothing -> False
     _ : Number -> v.is_nan.not
     _ -> True
+
+## PRIVATE
+type Accumulator
+    new : Integer -> Accumulator
+    new moments=0 = Accumulator.Value 0 Nothing Nothing (Vector.fill moments 0)
+
+    ## PRIVATE
+    Value count:Integer minimum:Any maximum:Any (moments:Vector|Nothing)
+
+    ## PRIVATE
+    comparator_error : Boolean
+    comparator_error self = self.minimum.is_nothing
+
+    ## PRIVATE
+    increment self value = if self.count == 0 then (Accumulator.Value 1 value value (self.update_moments value)) else
+        minimum = Accumulator.comparator self.minimum value Ordering.Less
+        maximum = Accumulator.comparator self.maximum value Ordering.Greater
+        Accumulator.Value self.count+1 minimum maximum (self.update_moments value)
+
+    ## PRIVATE
+    comparator current value bound = if current == Nothing then Nothing else
+        comp = Ordering.compare value current
+        if comp == Nothing then Nothing else
+            if comp == bound then value else current
+
+    ## PRIVATE
+    update_moments self value = if self.moments.is_nothing then Nothing else
+        case value of
+            _ : Number -> self.moments.map_with_index i->v-> v + (value ^ i+1)
+            _ -> Nothing
+
+    ## PRIVATE
+    compute : Statistic -> Any
+    compute self statistic =
+        case statistic of
+            Statistic.Count -> self.count
+            Statistic.Minimum -> if self.comparator_error then (Error.throw (Incomparable_Values.Error Nothing Nothing)) else self.minimum
+            Statistic.Maximum -> if self.comparator_error then (Error.throw (Incomparable_Values.Error Nothing Nothing)) else self.maximum
+            Statistic.Sum -> self.report_error statistic self.moments.first
+            Statistic.Mean -> self.report_error statistic (self.moments.first / self.count)
+            Statistic.Variance p -> self.report_error statistic (self.variance p)
+            Statistic.Standard_Deviation p -> (self.compute (Statistic.Variance p)) . sqrt
+            Statistic.Skew p -> self.report_error statistic (self.skew p)
+            Statistic.Kurtosis -> self.report_error statistic (self.kurtosis)
+
+    ## PRIVATE
+    variance self population =
+        min_points = if population then 1 else 2
+        if self.count < min_points then Number.nan else
+            denominator = if population then self.count else self.count-1
+            (self.moments.second - self.moments.first^2 / self.count) / denominator
+
+    ## PRIVATE
+    skew self population =
+        if self.count < 3 then Number.nan else
+            mean = self.compute (Statistic.Mean)
+            standard_deviation = self.compute (Statistic.Standard_Deviation population)
+            denominator = if population then self.count else ((self.count-1)*(self.count-2)/self.count)
+            scale = 1.0 / (standard_deviation^3) / denominator
+            ((self.moments.at 2) - 3 * mean * self.moments.second + 2 * mean * mean * self.moments.first) * scale
+
+    ## PRIVATE
+    kurtosis self =
+        if self.count < 4 then Number.nan else
+            n = self.count
+            mean = self.compute (Statistic.Mean)
+            variance = self.compute (Statistic.Variance False)
+            scale = n * (n+1) / ((n-1)*(n-2)*(n-3)*variance*variance)
+            shift = 3*(n-1)*(n-1)/((n-2)*(n-3))
+            ((self.moments.at 3) - 4 * mean * (self.moments.at 2) + 6 * mean * mean * self.moments.second - 3 * mean * mean * mean * self.moments.first) * scale - shift
+
+    ## PRIVATE
+    report_error self statistic ~action =
+        if self.moments.is_nothing.not && self.moments.length >= statistic.order then action else
+            Error.throw (Illegal_Argument.Error ("Can't compute " + statistic.to_text + " on this Accumulator."))
