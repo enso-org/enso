@@ -723,9 +723,12 @@ define_themes! { [light:0, dark:1]
             color = Rgba(0.0, 0.0, 0.0, 0.12);
             margin = 7.5;
             width = 1.0;
+        }
+        argument_name {
             /// Label style for argument names.
-            arg_name_color = Lcha(1.0,0.0,0.0,0.7);
-            arg_name_weight = 400.0;
+            color = Lcha(1.0,0.0,0.0,0.7);
+            margin = widget::separator::margin;
+            weight = 400.0;
         }
     }
     colors {

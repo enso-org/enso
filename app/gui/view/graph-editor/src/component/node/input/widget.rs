@@ -220,6 +220,16 @@ impl Score {
             Score::Mismatch
         }
     }
+
+    /// Conditionally declare that the widget can be used if the condition is true, but only if it
+    /// is explicitly requested using an override.
+    pub fn allow_override_if(condition: bool) -> Self {
+        if condition {
+            Score::OnlyOverride
+        } else {
+            Score::Mismatch
+        }
+    }
 }
 
 /// Generate implementation for [`DynWidget`] enum and its associated [`Config`] enum. Those enums
@@ -364,6 +374,10 @@ define_widget_modules! {
     /// Separating line between top-level argument widgets. Can only be assigned through override,
     /// which is currently done in hierarchy widget.
     Separator separator,
+    /// Displays the argument name next to its value widget. Can only be assigned through override,
+    /// which is currently done in separator widget.
+    ArgumentName argument_name,
+
 }
 
 // =====================
@@ -1154,14 +1168,6 @@ pub struct ConfigContext<'a, 'b> {
     /// The length of tree extensions vector before the widget was configured. Used to determine
     /// which extensions were added by the widget parents, and which are new.
     parent_extensions_len: usize,
-    /// The primary display object of the port of this widget, if it has one. As long as this
-    /// widget is alive and has a port, its port object will not change.
-    ///
-    /// NOTE: The port will only be available during widget configuration itself, i.e. inside all
-    /// [`SpanWidget::configure`] call. Notably, this field will always be `None` during
-    /// [`SpanWidget::new`], [`SpanWidget::match_node`] and [`SpanWidget::default_config`] calls,
-    /// since the port construction is not yet determined or finished at that point.
-    pub port_root_object:  Option<display::object::WeakInstance>,
 }
 
 impl<'a, 'b> ConfigContext<'a, 'b> {
@@ -1618,8 +1624,6 @@ impl<'a> TreeBuilder<'a> {
             info: info.clone(),
             parent_extensions_len,
             layers: layers.clone(),
-            // Not yet determined. It is set later inside [`Port::configure`].
-            port_root_object: None,
         };
 
 

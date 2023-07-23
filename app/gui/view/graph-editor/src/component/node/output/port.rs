@@ -88,7 +88,7 @@ impl ShapeView {
 
         let type_label = app.new_view::<text::Text>();
         type_label.set_y(-LABEL_OFFSET);
-
+        root.add_child(&type_label);
 
         // depending on the position of port, keep either the bottom left, bottom right, both or
         // neither corners of the main shape.

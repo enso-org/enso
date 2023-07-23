@@ -501,10 +501,10 @@ fn generate_node_for_opr_chain(
             let arg_crumbs = elem.crumb_to_operand(has_left);
             let arg_ast = Located::new(arg_crumbs, &operand.arg);
 
-            gen.spacing(operand.offset);
             if has_left {
                 gen.generate_empty_node(InsertionPointType::BeforeArgument(i + 1));
             }
+            gen.spacing(operand.offset);
 
             let argument_kind = node::Kind::argument().with_removable(removable);
             let argument = gen.generate_ast_node(arg_ast, argument_kind, context)?;
@@ -591,7 +591,6 @@ fn generate_node_for_prefix_chain(
                 ArgumentPosition::ChainArgument { arg, named, info } => {
                     let mut gen = ChildGenerator::default();
                     gen.add_node(vec![PrefixCrumb::Func.into()], node);
-                    gen.spacing(arg.sast.off);
 
                     let arg_name = named.as_ref().map(|named| named.name);
 
@@ -623,6 +622,7 @@ fn generate_node_for_prefix_chain(
                         ));
                     }
                     inserted_arguments += 1;
+                    gen.spacing(arg.sast.off);
 
                     // For named arguments, we need to generate the named argument span-tree
                     // structure. The actual argument node is nested inside the named argument.

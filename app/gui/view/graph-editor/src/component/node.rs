@@ -857,7 +857,7 @@ impl Node {
         frp::extend! { network
             // === Type Labels ===`
 
-            model.output.set_type_label_visibility <+ visualization.visible.not().and(&no_error_set);
+            model.output.set_type_label_visibility <+ no_error_set.and_not(&visualization.visible);
         }
 
         frp::extend! { network

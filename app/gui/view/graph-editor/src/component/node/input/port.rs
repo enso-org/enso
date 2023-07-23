@@ -142,7 +142,7 @@ impl Port {
     pub fn configure(
         &mut self,
         config: &DynConfig,
-        mut ctx: ConfigContext,
+        ctx: ConfigContext,
         pad_x_override: Option<f32>,
         port_hover_layer: &LayerSymbolPartition<rectangle::Shape>,
     ) {
@@ -154,7 +154,6 @@ impl Port {
 
         self.set_connected(ctx.info.connection);
         self.set_port_layout(&ctx, pad_x_override.unwrap_or(HOVER_PADDING_X));
-        ctx.port_root_object = Some(self.port_root.downgrade());
         self.widget.configure(config, ctx);
         self.update_root();
     }
