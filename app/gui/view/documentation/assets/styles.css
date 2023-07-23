@@ -108,6 +108,8 @@ div.enso-docs .header-icon {
 }
 
 .enso-docs .header-container {
+  padding-left: 8px;
+  margin-top: 16px;
   display: flex;
   align-items: center;
 }
