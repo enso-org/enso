@@ -23,9 +23,9 @@
   font-size: 11.5px;
   color: var(--enso-docs-text-color);
   background-color: var(--enso-docs-background-color);
-  padding-left: 0.5rem;
-  padding-right: 0.5rem;
-  padding-bottom: 0.5rem;
+  padding-left: 8px;
+  padding-right: 8px;
+  padding-bottom: 4px;
 }
 
 .enso-docs .unordered-list {
@@ -86,17 +86,11 @@
 }
 
 .enso-docs .section-content {
-  padding-left: 1.25rem;
+  padding-left: 8px;
+  padding-right: 8px;
 }
 
 /* Headers. */
-
-.enso-docs .header-top {
-  font-size: 17px;
-  font-weight: 700;
-  color: var(--enso-docs-type-name-color);
-  margin: 0.5rem 0;
-}
 
 div.enso-docs .header-icon {
   align-self: start;
