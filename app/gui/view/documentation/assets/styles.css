@@ -14,7 +14,7 @@
   --enso-docs-example-background-color: #e6f1f8;
   --enso-docs-background-color: #eaeaea;
   --enso-docs-text-color: #434343;
-  --enso-docs-tag-background-color: #f5f5f5;
+  --enso-docs-tag-background-color: #dcd8d8;
   --enso-docs-caption-background-color: #0077f6;
 }
 
@@ -208,9 +208,13 @@ div.enso-docs .marked-icon-info {
 }
 
 .enso-docs .tag {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 24px;
   background-color: var(--enso-docs-tag-background-color);
-  border-radius: 0.5rem;
-  padding: 0.15rem 0.5rem;
-  margin-bottom: 0.25rem;
-  margin-right: 0.5rem;
+  border-radius: 4px;
+  padding: 1px 5px;
+  margin-bottom: 1px;
+  margin-right: 2px;
 }
