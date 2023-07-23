@@ -412,7 +412,7 @@ impl Model {
 pub(crate) type Icon = Rc<icon::Id>;
 
 /// A single breadcrumb.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, Default)]
 pub struct Breadcrumb {
     text: ImString,
     icon: Option<Icon>,
@@ -458,12 +458,6 @@ impl From<&str> for Breadcrumb {
 impl From<ImString> for Breadcrumb {
     fn from(text: ImString) -> Self {
         Self { text, icon: default() }
-    }
-}
-
-impl Default for Breadcrumb {
-    fn default() -> Self {
-        Self { text: ImString::new(""), icon: default() }
     }
 }
 
