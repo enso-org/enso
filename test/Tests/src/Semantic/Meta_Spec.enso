@@ -1,7 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
-from Standard.Base.Errors.Common import Uninitialized_State
+from Standard.Base.Errors.Common import Uninitialized_State, Type_Error
 
 polyglot java import java.lang.Object as JObject
 polyglot java import java.lang.Long as JLong
@@ -30,6 +30,9 @@ type My_Type
     other_method self a = a
 
     create foo bar = My_Type.Value foo bar 3
+
+type My_Ascribed_Type
+    Value_With_Type foo:Number bar:Number baz:Number
 
 @self ("se" + "lf")
 My_Type.my_method self = self.foo + self.bar + self.baz
@@ -346,6 +349,41 @@ spec =
 
             fill 10 # no change
             atom.bar . should_equal 2
+
+        Test.specify "construct and fill with type" <|
+            pair = Meta.atom_with_hole (e -> My_Ascribed_Type.Value_With_Type 1 e 3)
+
+            atom = pair.value
+            fill = pair.fill
+
+            Meta.is_atom atom . should_be_true
+
+            atom.foo . should_equal 1
+            atom.baz . should_equal 3
+            case atom.bar of
+                n : Number -> Test.fail "Shouldn't be number yet: "+n
+                _ -> Nothing
+
+            tpe_of_bar = Meta.type_of atom.bar
+            tpe_of_bar.is_error . should_equal True
+
+            fill 2
+            atom.bar . should_equal 2
+            tpe_of_bar_after_fill = Meta.type_of atom.bar
+            tpe_of_bar_after_fill . should_equal Integer
+
+            fill 10 # no change
+            atom.bar . should_equal 2
+
+        Test.specify "reject wrong type" <|
+            pair = Meta.atom_with_hole (e -> My_Ascribed_Type.Value_With_Type 1 e 3)
+            fill = pair.fill
+            Panic.catch Any (fill "Two") err->err.convert_to_dataflow_error . should_fail_with Type_Error
+
+        Test.specify "direct use of pair.fill" <|
+            pair = Meta.atom_with_hole (e -> My_Ascribed_Type.Value_With_Type 1 e 3)
+            pair.fill 2
+            pair.value.bar . should_equal 2
 
         Test.specify "fail if atom_with_hole isn't used" <|
             key = Panic.catch Uninitialized_State handler=(caught_panic-> caught_panic.payload.key) <|
