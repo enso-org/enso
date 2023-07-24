@@ -48,11 +48,11 @@ public abstract class BinaryMapOperation<T, I extends Storage<? super T>> {
 
   /**
    * Specifies if the operation relies on specialized storage types.
-   * <p>
-   * Some operations, e.g. numeric operations, may only work with specialized numeric storages. In this case, the caller
-   * will ensure that if a mixed column pretending to be numeric is passed to such an operation, it will first be
-   * converted to a specialized type. If a given operation can handle any storage, this may return false to avoid an
-   * unnecessary costly conversion.
+   *
+   * <p>Some operations, e.g. numeric operations, may only work with specialized numeric storages.
+   * In this case, the caller will ensure that if a mixed column pretending to be numeric is passed
+   * to such an operation, it will first be converted to a specialized type. If a given operation
+   * can handle any storage, this may return false to avoid an unnecessary costly conversion.
    */
   public boolean reliesOnSpecializedStorage() {
     return true;
