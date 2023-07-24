@@ -80,9 +80,9 @@ class ProjectFileRepository[
 
   /** @inheritdoc */
   override def findPathForNewProject(
-    moduleName: String
+    projectName: String
   ): F[ProjectRepositoryFailure, Path] =
-    findTargetPath(moduleName).map(_.toPath)
+    findTargetPath(projectName).map(_.toPath)
 
   private def tryLoadProject(
     directory: File
@@ -150,8 +150,16 @@ class ProjectFileRepository[
   def getPackageName(projectId: UUID): F[ProjectRepositoryFailure, String] = {
     for {
       project        <- getProject(projectId)
+<<<<<<< HEAD
       projectPackage <- getPackage(project.path)
-    } yield projectPackage.getConfig().module
+    } yield projectPackage.getConfig().name
+||||||| parent of 97a885659 (update: s/name/module)
+      projectPackage <- getPackage(new File(project.path.get))
+    } yield projectPackage.config.name
+=======
+      projectPackage <- getPackage(new File(project.path.get))
+    } yield projectPackage.config.module
+>>>>>>> 97a885659 (update: s/name/module)
   }
 
   /** @inheritdoc */
@@ -275,14 +283,14 @@ class ProjectFileRepository[
   }
 
   private def findTargetPath(
-    moduleName: String
+    projectName: String
   ): F[ProjectRepositoryFailure, File] =
     CovariantFlatMap[F]
       .tailRecM[ProjectRepositoryFailure, Int, File](0) { number =>
         val path =
           new File(
             storageConfig.userProjectsPath,
-            moduleName + genSuffix(number)
+            projectName + genSuffix(number)
           )
         fileSystem
           .exists(path)
