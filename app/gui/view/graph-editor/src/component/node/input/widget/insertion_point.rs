@@ -5,8 +5,8 @@
 //!
 //! See also [`span_tree::node::InsertionPoint`].
 
-use super::prelude::*;
 use crate::prelude::*;
+use super::prelude::*;
 
 
 

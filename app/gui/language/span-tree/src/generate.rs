@@ -507,7 +507,7 @@ fn generate_node_for_opr_chain(
             gen.spacing(operand.offset);
 
             let argument_kind: node::Kind = if app_base.uses_method_notation {
-                node::Kind::Access.into()
+                node::Kind::Access
             } else {
                 node::Kind::argument().with_removable(removable).into()
             };
