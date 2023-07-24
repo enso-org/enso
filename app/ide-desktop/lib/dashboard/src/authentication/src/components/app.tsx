@@ -131,7 +131,7 @@ function App(props: AppProps) {
      * will redirect the user between the login/register pages and the dashboard. */
     return (
         <>
-            <toastify.ToastContainer position="top-center" theme="light" />
+            <toastify.ToastContainer position="top-center" theme="light" closeOnClick={false} />
             <Router basename={getMainPageUrl().pathname}>
                 <AppRouter {...props} />
             </Router>
