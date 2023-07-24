@@ -190,11 +190,11 @@ impl Component {
         let excluded_by_context = filter
             .context
             .map(|context| {
-                if let Suggestion::FromDatabase { entry, .. } = &self.suggestion {
-                    !entry.qualified_name().to_string().contains(context.as_str())
-                } else {
-                    // Remove virtual entries if the context is present.
-                    true
+                match &self.suggestion {
+                    Suggestion::FromDatabase { entry, .. } => {
+                        !entry.qualified_name().to_string().contains(context.as_str())
+                    }
+                    Suggestion::Virtual { .. } => true,
                 }
             })
             .unwrap_or_default();

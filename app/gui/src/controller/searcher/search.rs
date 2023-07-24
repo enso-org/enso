@@ -13,6 +13,7 @@ use std::cmp::Ordering;
 /// specified information about the target), and information about target characters used in the
 /// match.
 pub fn search(target: &str, pattern: &str, target_info: TargetInfo) -> Option<Subsequence> {
+    // Reuse one matcher object for performance.
     thread_local! {
         static MATCHER: std::cell::RefCell<fuzzly::Matcher<ScoreBuilder>> = Default::default();
     }

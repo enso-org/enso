@@ -1,4 +1,14 @@
 //! Fuzzy-matching library.
+//!
+//! Usage:
+//! - Define a scoring algorithm, implementing [`score::ScoreBuilder`].
+//! - Instantiate a matcher for the chosen scorer.
+//! - Call [`Matcher::search`] to get results about whether the pattern matched the target, and if
+//!   so: how well, according to the given scorer; which characters from the target were used in the
+//!   match.
+//! - The matcher may be reused for multiple matches, as a performance optimization. It retains no
+//!   logical state between searches, but reuses buffers, which is much more efficient when
+//!   performing many matches.
 
 #![recursion_limit = "256"]
 // === Features ===
