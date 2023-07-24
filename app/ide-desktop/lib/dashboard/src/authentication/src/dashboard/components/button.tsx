@@ -15,7 +15,7 @@ function Button(props: ButtonProps) {
 
     return (
         <img
-            className={`${active ? '' : 'opacity-30'} ${disabled ? '' : 'cursor-pointer'}`}
+            className={`${active ? '' : 'opacity-50'} ${disabled ? '' : 'cursor-pointer'}`}
             src={image}
             onClick={onClick}
         />

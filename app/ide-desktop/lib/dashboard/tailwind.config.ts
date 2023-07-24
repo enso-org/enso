@@ -30,6 +30,8 @@ export const theme = {
             warning: '#eab120',
             'severe-warning': '#e06740',
             cloud: '#0666be',
+            'frame-selected-bg': 'rgba(255, 255, 255, 0.70)',
+            'frame-bg': 'rgba(255, 255, 255, 0.40)',
             'not-active': 'rgba(0, 0, 0, 0.30)',
             'perm-owner': '#51626e',
             'perm-admin': '#e06a50',
