@@ -263,6 +263,9 @@ class App {
                     height: windowSize.height,
                     frame: useFrame,
                     transparent: false,
+                    // The `window` material is fully opaque, which is undesirable.
+                    vibrancy: 'sidebar',
+                    backgroundMaterial: 'acrylic',
                     titleBarStyle: useHiddenInsetTitleBar ? 'hiddenInset' : 'default',
                     ...(useVibrancy ? { vibrancy: 'fullscreen-ui' } : {}),
                 }
