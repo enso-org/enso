@@ -173,7 +173,7 @@ type Column
             if (a.is_a Decimal) || (b.is_a Decimal) then
                 problem_builder.reportFloatingPointEquality -1
             a == b
-        run_vectorized_binary_op_with_fallback_problem_handling self '==' other fallback_fn=fallback new_name=new_name expected_result_type=Value_Type.Boolean skip_nulls=True
+        run_vectorized_binary_op_with_fallback_problem_handling self Java_Storage.Maps.EQ other fallback_fn=fallback new_name=new_name expected_result_type=Value_Type.Boolean skip_nulls=True
 
     ## Element-wise case-insensitive text equality comparison.
 
@@ -261,7 +261,7 @@ type Column
     >= : Column | Any -> Column
     >= self other = Value_Type.expect_comparable self other <|
         Incomparable_Values.handle_errors <|
-            run_vectorized_binary_op self ">=" fallback_fn=(>=) other expected_result_type=Value_Type.Boolean
+            run_vectorized_binary_op self Java_Storage.Maps.GTE fallback_fn=(>=) other expected_result_type=Value_Type.Boolean
 
     ## ALIAS Less Than Or Equal
        Element-wise order comparison.
@@ -290,7 +290,7 @@ type Column
     <= : Column | Any -> Column
     <= self other = Value_Type.expect_comparable self other <|
         Incomparable_Values.handle_errors <|
-            run_vectorized_binary_op self "<=" fallback_fn=(<=) other expected_result_type=Value_Type.Boolean
+            run_vectorized_binary_op self Java_Storage.Maps.LTE fallback_fn=(<=) other expected_result_type=Value_Type.Boolean
 
     ## ALIAS Greater Than
        Element-wise order comparison.
@@ -319,7 +319,7 @@ type Column
     > : Column | Any -> Column
     > self other = Value_Type.expect_comparable self other <|
         Incomparable_Values.handle_errors <|
-            run_vectorized_binary_op self ">" fallback_fn=(>) other expected_result_type=Value_Type.Boolean
+            run_vectorized_binary_op self Java_Storage.Maps.GT fallback_fn=(>) other expected_result_type=Value_Type.Boolean
 
     ## ALIAS Less Than
        Element-wise order comparison.
@@ -348,7 +348,7 @@ type Column
     < : Column | Any -> Column
     < self other = Value_Type.expect_comparable self other <|
         Incomparable_Values.handle_errors <|
-            run_vectorized_binary_op self "<" fallback_fn=(<) other expected_result_type=Value_Type.Boolean
+            run_vectorized_binary_op self Java_Storage.Maps.LT fallback_fn=(<) other expected_result_type=Value_Type.Boolean
 
     ## Element-wise inclusive bounds check.
 
@@ -397,7 +397,7 @@ type Column
     + : Column | Any -> Column
     + self other =
         Value_Type_Helpers.resolve_addition_kind self other . if_not_error <|
-            run_vectorized_binary_op self '+' other
+            run_vectorized_binary_op self Java_Storage.Maps.ADD other
 
     ## ALIAS Subtract, Minus
        Element-wise subtraction. Allows to subtract numeric types or compute a
@@ -428,7 +428,7 @@ type Column
     - self other =
         case Value_Type_Helpers.resolve_subtraction_kind self other of
             Value_Type_Helpers.Subtraction_Kind.Numeric_Subtract ->
-                run_vectorized_binary_op self '-' other
+                run_vectorized_binary_op self Java_Storage.Maps.SUB other
             Value_Type_Helpers.Subtraction_Kind.Date_Time_Difference ->
                 case self.inferred_precise_value_type of
                     Value_Type.Date ->
@@ -441,7 +441,7 @@ type Column
                         new_name = Naming_Helpers.binary_operation_name "-" self other
                         run_binary_op self fn other new_name
                     _ ->
-                        run_vectorized_binary_op self '-' other
+                        run_vectorized_binary_op self Java_Storage.Maps.SUB other
 
     ## ALIAS Multiply, Times, Product
        Element-wise multiplication.
@@ -470,7 +470,7 @@ type Column
     * : Column | Any -> Column
     * self other =
         Value_Type_Helpers.check_binary_numeric_op self other <|
-            run_vectorized_binary_op self '*' other
+            run_vectorized_binary_op self Java_Storage.Maps.MUL other
 
     ## ALIAS Divide
        Element-wise division.
@@ -505,7 +505,7 @@ type Column
     / self other =
         Value_Type_Helpers.check_binary_numeric_op self other <|
             new_name = Naming_Helpers.binary_operation_name "/" self other
-            run_vectorized_binary_op self "/" other new_name
+            run_vectorized_binary_op self Java_Storage.Maps.DIV other new_name
 
     ## ALIAS Modulus, Modulo
        Element-wise modulus.
@@ -540,7 +540,7 @@ type Column
     % self other =
         Value_Type_Helpers.check_binary_numeric_op self other <|
             new_name = Naming_Helpers.binary_operation_name "%" self other
-            run_vectorized_binary_op self "%" other new_name
+            run_vectorized_binary_op self Java_Storage.Maps.MOD other new_name
 
     ## ALIAS Power
        Element-wise raising to the power.
@@ -569,7 +569,7 @@ type Column
     ^ : Column | Any -> Column
     ^ self other =
         Value_Type_Helpers.check_binary_numeric_op self other <|
-            run_vectorized_binary_op self '^' other
+            run_vectorized_binary_op self Java_Storage.Maps.POWER other
 
     ## ALIAS And
        Element-wise boolean conjunction.
@@ -599,7 +599,7 @@ type Column
     && : Column | Any -> Column
     && self other =
         Value_Type_Helpers.check_binary_boolean_op self other <|
-            run_vectorized_binary_op self "&&" other
+            run_vectorized_binary_op self Java_Storage.Maps.AND other
 
     ## ALIAS Or
 
@@ -630,7 +630,7 @@ type Column
     || : Column | Any -> Column
     || self other =
         Value_Type_Helpers.check_binary_boolean_op self other <|
-           run_vectorized_binary_op self "||" other
+           run_vectorized_binary_op self Java_Storage.Maps.OR other
 
     ## ALIAS NOT
 
@@ -646,7 +646,7 @@ type Column
     not self =
         Value_Type.expect_boolean self <|
             new_name = "not " + Naming_Helpers.to_expression_text self
-            run_vectorized_unary_op self "not" new_name
+            run_vectorized_unary_op self Java_Storage.Maps.NOT new_name
 
     ## ALIAS IF
 
@@ -821,7 +821,7 @@ type Column
                         new_name = Naming_Helpers.function_name "truncate" [self]
                         self.rename new_name
                     False ->
-                        simple_unary_op self "truncate"
+                        simple_unary_op self Java_Storage.Maps.TRUNCATE
             False -> case precise_value_type == Value_Type.Date_Time of
                 True ->
                     fun = _.date
@@ -844,7 +844,7 @@ type Column
                 new_name = Naming_Helpers.function_name "ceil" [self]
                 self.rename new_name
             False ->
-                simple_unary_op self "ceil"
+                simple_unary_op self Java_Storage.Maps.CEIL
 
     ## Computes the nearest integer below this number for values in a numeric
        column.
@@ -862,7 +862,7 @@ type Column
                 new_name = Naming_Helpers.function_name "floor" [self]
                 self.rename new_name
             False ->
-                simple_unary_op self "floor"
+                simple_unary_op self Java_Storage.Maps.FLOOR
 
     ## Returns a column of first non-`Nothing` value on each row of `self` and
        `values` list.
@@ -933,7 +933,7 @@ type Column
     is_nothing : Column
     is_nothing self =
         new_name = Naming_Helpers.to_expression_text self + " is null"
-        run_vectorized_unary_op self "is_nothing" new_name fallback_fn=(x-> x == Nothing) expected_result_type=Value_Type.Boolean skip_nulls=False
+        run_vectorized_unary_op self Java_Storage.Maps.IS_NOTHING new_name fallback_fn=(x-> x == Nothing) expected_result_type=Value_Type.Boolean skip_nulls=False
 
     ## Returns a column of booleans, with `True` items at the positions where
        this column contains a NaN. This is only applicable to double columns.
@@ -949,7 +949,7 @@ type Column
             _ : Decimal -> x.is_nan
             Nothing     -> Nothing
             _           -> False
-        run_vectorized_unary_op self "is_nan" new_name fallback_fn=fallback expected_result_type=Value_Type.Boolean
+        run_vectorized_unary_op self Java_Storage.Maps.IS_NAN new_name fallback_fn=fallback expected_result_type=Value_Type.Boolean
 
     ## Returns a column of booleans, with `True` items at the positions where
        this column contains a +Inf/-Inf. This is only applicable to double
@@ -961,7 +961,7 @@ type Column
             _ : Decimal -> x.is_infinite
             Nothing     -> Nothing
             _           -> False
-        run_vectorized_unary_op self "is_infinite" new_name fallback_fn=fallback expected_result_type=Value_Type.Boolean
+        run_vectorized_unary_op self Java_Storage.Maps.IS_INFINITE new_name fallback_fn=fallback expected_result_type=Value_Type.Boolean
 
     ## PRIVATE
        Returns a column of booleans, with `True` items at the positions where
@@ -974,7 +974,7 @@ type Column
     internal_is_empty : Column
     internal_is_empty self =
         new_name = Naming_Helpers.to_expression_text self + " is empty"
-        run_vectorized_unary_op self "is_empty" new_name fallback_fn=Filter_Condition.Is_Empty.to_predicate expected_result_type=Value_Type.Boolean skip_nulls=False
+        run_vectorized_unary_op self Java_Storage.Maps.IS_EMPTY new_name fallback_fn=Filter_Condition.Is_Empty.to_predicate expected_result_type=Value_Type.Boolean skip_nulls=False
 
     ## Returns a column of booleans, with `True` items at the positions where
        this column does not contain a `Nothing`.
@@ -1179,7 +1179,7 @@ type Column
     like self pattern =
         Value_Type.expect_text self <|
             Value_Type.expect_text pattern <|
-                run_vectorized_binary_op self "like" pattern expected_result_type=Value_Type.Boolean
+                run_vectorized_binary_op self Java_Storage.Maps.LIKE pattern expected_result_type=Value_Type.Boolean
 
     ## This function removes the specified characters, by default any
        whitespace, from the start, the end, or both ends of the input.
@@ -1257,7 +1257,7 @@ type Column
        Returns a column of `Integer` type.
     year : Column ! Invalid_Value_Type
     year self = Value_Type.expect_has_date self <|
-        simple_unary_op self "year"
+        simple_unary_op self Java_Storage.Maps.YEAR
 
     ## Gets the month as a number (1-12) from the date stored in the column.
 
@@ -1265,7 +1265,7 @@ type Column
        Returns a column of `Integer` type.
     month : Column ! Invalid_Value_Type
     month self = Value_Type.expect_has_date self <|
-        simple_unary_op self "month"
+        simple_unary_op self Java_Storage.Maps.MONTH
 
     ## Gets the day of the month as a number (1-31) from the date stored in the
        column.
@@ -1274,7 +1274,7 @@ type Column
        Returns a column of `Integer` type.
     day : Column ! Invalid_Value_Type
     day self = Value_Type.expect_has_date self <|
-        simple_unary_op self "day"
+        simple_unary_op self Java_Storage.Maps.DAY
 
     ## Gets the hour as a number (0-23) from the time stored in the column.
 
@@ -1282,7 +1282,7 @@ type Column
        Returns a column of `Integer` type.
     hour : Column ! Invalid_Value_Type
     hour self = Value_Type.expect_has_time self <|
-        simple_unary_op self "hour"
+        simple_unary_op self Java_Storage.Maps.HOUR
 
     ## Gets the minute as a number (0-59) from the time stored in the column.
 
@@ -1290,7 +1290,7 @@ type Column
        Returns a column of `Integer` type.
     minute : Column ! Invalid_Value_Type
     minute self = Value_Type.expect_has_time self <|
-        simple_unary_op self "minute"
+        simple_unary_op self Java_Storage.Maps.MINUTE
 
     ## Gets the second as an integer (0-60) from the time stored in the column.
 
@@ -1298,7 +1298,7 @@ type Column
        Returns a column of `Integer` type.
     second : Column ! Invalid_Value_Type
     second self = Value_Type.expect_has_time self <|
-        simple_unary_op self "second"
+        simple_unary_op self Java_Storage.Maps.SECOND
 
     ## Gets the date part of the date/time value.
 
@@ -1398,12 +1398,12 @@ type Column
              example_contains = Examples.text_column_1.is_in [1, 2, 5]
     is_in : Column | Vector -> Column
     is_in self vector =
-        op_name = "is_in"
         result_name = Naming_Helpers.to_expression_text self + " " + "in " + Naming_Helpers.to_expression_text vector
         as_vector = case vector of
             _ : Vector -> vector
             _ : Array -> Vector.from_polyglot_array vector
             column : Column -> column.to_vector
+        op_name = Java_Storage.Maps.IS_IN
         case self.java_column.getStorage.isBinaryOpVectorized op_name of
             True ->
                 run_vectorized_binary_op self op_name as_vector expected_result_type=Value_Type.Boolean skip_nulls=False new_name=result_name
