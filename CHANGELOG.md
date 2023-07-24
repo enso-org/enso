@@ -205,6 +205,10 @@
 - [Help chat][7151]. The link to the Discord server is replaced with a chat
   bridge to the Discord server. This is intended to have the chat visible at the
   same time as the IDE, so that help can be much more interactive.
+- [Graph editor node was redesigned][7311]. Nodes have a color and icon matching
+  the selected entry in the component browser. Clear separating lines between
+  method arguments were added. The node selection was made easier with
+  additional thick interactive selection border.
 
 [5910]: https://github.com/enso-org/enso/pull/5910
 [6279]: https://github.com/enso-org/enso/pull/6279
