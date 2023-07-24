@@ -17,6 +17,7 @@ trait ProjectCreationServiceApi[F[+_, +_]] {
     *                        or waiting on locks
     * @param path path at which to create the project
     * @param name name of the project
+    * @param moduleName the module name of the project
     * @param engineVersion version of the engine this project is meant for
     * @param projectTemplate the name of the project template
     * @param missingComponentAction specifies how to handle missing components
@@ -25,6 +26,7 @@ trait ProjectCreationServiceApi[F[+_, +_]] {
     progressTracker: ActorRef,
     path: Path,
     name: String,
+    moduleName: String,
     engineVersion: SemVer,
     projectTemplate: Option[String],
     missingComponentAction: MissingComponentAction

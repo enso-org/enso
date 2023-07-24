@@ -116,8 +116,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
       }
     }
 
-    "create project with name, default author (if specified) and additional " +
-    "arguments" in {
+    "create project with name, default author (if specified) and additional arguments" in {
       val runner             = makeFakeRunner()
       val projectPath        = getTestDirectory / "project"
       val authorName         = "Author Name"
@@ -128,6 +127,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
           path                = projectPath,
           name                = "ProjectName",
           engineVersion       = defaultEngineVersion,
+          moduleName          = None,
           projectTemplate     = None,
           authorName          = Some(authorName),
           authorEmail         = Some(authorEmail),
@@ -146,6 +146,32 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
       commandLine should include(s"--new-project-author-email $authorEmail")
     }
 
+    "create project with name and module name" in {
+      val runner      = makeFakeRunner()
+      val projectPath = getTestDirectory / "project"
+      val moduleName  = "Project_Name"
+      val runSettings = runner
+        .newProject(
+          path                = projectPath,
+          name                = "ProjectName",
+          engineVersion       = defaultEngineVersion,
+          moduleName          = Some(moduleName),
+          projectTemplate     = None,
+          authorName          = None,
+          authorEmail         = None,
+          additionalArguments = Seq()
+        )
+        .get
+
+      runSettings.engineVersion shouldEqual defaultEngineVersion
+      val commandLine = runSettings.runnerArguments.mkString(" ")
+      commandLine should include(
+        s"--new ${projectPath.toAbsolutePath.normalize}"
+      )
+      commandLine should include("--new-project-name ProjectName")
+      commandLine should include(s"--new-project-module-name $moduleName")
+    }
+
     "warn when creating a project using a nightly version" taggedAs Flaky in {
       val runner         = makeFakeRunner()
       val projectPath    = getTestDirectory / "project2"
@@ -156,6 +182,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
             path                = projectPath,
             name                = "ProjectName2",
             engineVersion       = nightlyVersion,
+            moduleName          = None,
             projectTemplate     = None,
             authorName          = None,
             authorEmail         = None,

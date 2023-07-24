@@ -256,10 +256,12 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
 
   /** Creates a new Package in a given location and with given name. Leaves all the other config fields blank.
     *
-    * @param root  the root location of the package.
-    * @param name the name for the new package.
-    * @param version version of the newly-created package.
-    * @param template the template for the new package.
+    * @param root the root location of the package
+    * @param name the name of the new package
+    * @param namespace the package namespace
+    * @param module the module name of the new package
+    * @param version version of the newly-created package
+    * @param template the template for the new package
     * @param edition the edition to use for the project; if not specified, it
     *                will not specify any, meaning that the current default one
     *                will be used
@@ -269,6 +271,7 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
     root: F,
     name: String,
     namespace: String                    = "local",
+    module: Option[String]               = None,
     version: String                      = "0.0.1",
     template: Template                   = Template.Default,
     edition: Option[Editions.RawEdition] = None,
@@ -279,7 +282,7 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
   ): Package[F] = {
     val config = Config(
       name                 = name,
-      module               = NameValidation.normalizeName(name),
+      module               = module.getOrElse(NameValidation.normalizeName(name)),
       namespace            = namespace,
       version              = version,
       license              = license,

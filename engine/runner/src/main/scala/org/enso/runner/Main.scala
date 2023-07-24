@@ -39,6 +39,7 @@ object Main {
   private val HELP_OPTION                    = "help"
   private val NEW_OPTION                     = "new"
   private val PROJECT_NAME_OPTION            = "new-project-name"
+  private val PROJECT_MODULE_NAME_OPTION     = "new-project-module-name"
   private val PROJECT_TEMPLATE_OPTION        = "new-project-template"
   private val PROJECT_AUTHOR_NAME_OPTION     = "new-project-author-name"
   private val PROJECT_AUTHOR_EMAIL_OPTION    = "new-project-author-email"
@@ -134,6 +135,15 @@ object Main {
       .longOpt(PROJECT_NAME_OPTION)
       .desc(
         s"Specifies a project name when creating a project using --$NEW_OPTION."
+      )
+      .build
+    val newProjectModuleNameOpt = CliOption.builder
+      .hasArg(true)
+      .numberOfArgs(1)
+      .argName("module")
+      .longOpt(PROJECT_MODULE_NAME_OPTION)
+      .desc(
+        s"Specifies a project module name when creating a project using --$NEW_OPTION."
       )
       .build
     val newProjectTemplateOpt = CliOption.builder
@@ -388,6 +398,7 @@ object Main {
       .addOption(preinstall)
       .addOption(newOpt)
       .addOption(newProjectNameOpt)
+      .addOption(newProjectModuleNameOpt)
       .addOption(newProjectTemplateOpt)
       .addOption(newProjectAuthorNameOpt)
       .addOption(newProjectAuthorEmailOpt)
@@ -451,6 +462,7 @@ object Main {
     *
     * @param path           root path of the newly created project
     * @param nameOption     specifies the name of the created project
+    * @param moduleOption   specifies the module name of the created project
     * @param templateOption specifies the template of the created project
     * @param authorName     if set, sets the name of the author and maintainer
     * @param authorEmail    if set, sets the email of the author and maintainer
@@ -458,6 +470,7 @@ object Main {
   private def createNew(
     path: String,
     nameOption: Option[String],
+    moduleOption: Option[String],
     templateOption: Option[String],
     authorName: Option[String],
     authorEmail: Option[String]
@@ -487,6 +500,7 @@ object Main {
     PackageManager.Default.create(
       root        = root,
       name        = name,
+      module      = moduleOption,
       edition     = Some(edition),
       authors     = authors,
       maintainers = authors,
@@ -1042,6 +1056,7 @@ object Main {
       createNew(
         path           = line.getOptionValue(NEW_OPTION),
         nameOption     = Option(line.getOptionValue(PROJECT_NAME_OPTION)),
+        moduleOption   = Option(line.getOptionValue(PROJECT_MODULE_NAME_OPTION)),
         authorName     = Option(line.getOptionValue(PROJECT_AUTHOR_NAME_OPTION)),
         authorEmail    = Option(line.getOptionValue(PROJECT_AUTHOR_EMAIL_OPTION)),
         templateOption = Option(line.getOptionValue(PROJECT_TEMPLATE_OPTION))

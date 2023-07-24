@@ -112,11 +112,11 @@ class ProjectService[
       name,
       projectId
     )
-    // TODO[6356] create new project passing both display and module names
     _ <- projectCreationService.createProject(
       progressTracker,
       path,
       name,
+      moduleName,
       engineVersion,
       projectTemplate,
       missingComponentAction
@@ -446,11 +446,10 @@ class ProjectService[
   ): F[ProjectServiceFailure, Unit] =
     validator
       .validate(name)
-      .mapError {
-        case ProjectNameValidator.ValidationFailure.EmptyName =>
-          ProjectServiceFailure.ValidationFailure(
-            "Project name cannot be empty."
-          )
+      .mapError { case ProjectNameValidator.ValidationFailure.EmptyName =>
+        ProjectServiceFailure.ValidationFailure(
+          "Project name cannot be empty."
+        )
       }
       .flatMap { _ =>
         log.debug("Project name [{}] validated by [{}].", name, validator)
