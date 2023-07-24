@@ -29,6 +29,8 @@ export const theme = {
             help: '#3f68ce',
             warning: '#eab120',
             'severe-warning': '#e06740',
+            cloud: '#0666be',
+            'not-active': 'rgba(0, 0, 0, 0.30)',
             'perm-owner': '#51626e',
             'perm-admin': '#e06a50',
             'perm-write': '#efa043',
@@ -44,10 +46,12 @@ export const theme = {
             2: '2',
         },
         fontSize: {
-            'xs-mini': '0.71875rem',
+            xs: '0.71875rem',
             vs: '0.8125rem',
         },
         spacing: {
+            '4.75': '1.1875rem',
+            '5.5': '1.375rem',
             '83.5': '20.875rem',
             '70': '17.5rem',
             '10lh': '10lh',

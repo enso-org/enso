@@ -3,9 +3,9 @@ import * as React from 'react'
 
 import BarsIcon from 'enso-assets/bars.svg'
 import CloudIcon from 'enso-assets/cloud.svg'
-import ComputerIcon from 'enso-assets/computer.svg'
 import DefaultUserIcon from 'enso-assets/default_user.svg'
 import MagnifyingGlassIcon from 'enso-assets/magnifying_glass.svg'
+import NotCloudIcon from 'enso-assets/not_cloud.svg'
 import SpeechBubbleIcon from 'enso-assets/speech_bubble.svg'
 
 import * as backendModule from '../backend'
@@ -14,6 +14,7 @@ import * as tabModule from '../tab'
 import * as backendProvider from '../../providers/backend'
 import * as modalProvider from '../../providers/modal'
 
+import * as svg from '../../components/svg'
 import UserMenu from './userMenu'
 
 // ==============
@@ -52,21 +53,9 @@ function TopBar(props: TopBarProps) {
     const { updateModal } = modalProvider.useSetModal()
 
     return (
-        <div className="flex mx-2 h-8">
+        <div className="flex mx-4.75 h-8 gap-6">
             {supportsLocalBackend && (
                 <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap p-1.5">
-                    <button
-                        onClick={() => {
-                            setBackendType(backendModule.BackendType.local)
-                        }}
-                        className={`${
-                            backend.type === backendModule.BackendType.local
-                                ? 'bg-white shadow-soft'
-                                : 'opacity-50'
-                        } rounded-full px-1.5 py-1`}
-                    >
-                        <img src={ComputerIcon} />
-                    </button>
                     <button
                         onClick={() => {
                             setBackendType(backendModule.BackendType.remote)
@@ -77,7 +66,20 @@ function TopBar(props: TopBarProps) {
                                 : 'opacity-50'
                         } rounded-full px-1.5 py-1`}
                     >
-                        <img src={CloudIcon} />
+                        <svg.SvgMask src={CloudIcon} />
+                    </button>
+                    <button
+                        onClick={() => {
+                            setBackendType(backendModule.BackendType.local)
+                        }}
+                        className={`${
+                            backend.type === backendModule.BackendType.local
+                                ? 'bg-white shadow-soft'
+                                : 'opacity-50'
+                        } rounded-full gap-2 px-2.5 py-1`}
+                    >
+                        <svg.SvgMask src={NotCloudIcon} />
+                        <span className="h-5.5 py-px">Local</span>
                     </button>
                 </div>
             )}
