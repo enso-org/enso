@@ -456,10 +456,15 @@ object DistributionPackage {
 
   sealed trait Architecture {
     def name: String
+
+    /** Name of the architecture for GraalVM releases
+      */
+    def graalName: String
   }
   object Architecture {
     case object X64 extends Architecture {
-      override def name: String = "x64"
+      override def name: String      = "amd64"
+      override def graalName: String = "x64"
     }
 
     val archs = Seq(X64)
@@ -566,7 +571,7 @@ object DistributionPackage {
           s"https://github.com/graalvm/graalvm-ce-builds/releases/download/" +
           s"jdk-$graalJavaVersion/" +
           s"graalvm-community-jdk-${graalJavaVersion}_${os.name}-" +
-          s"${architecture.name}_bin${os.archiveExt}"
+          s"${architecture.graalName}_bin${os.archiveExt}"
         val exitCode = (url(graalUrl) #> archive).!
         if (exitCode != 0) {
           throw new RuntimeException(s"Graal download from $graalUrl failed.")

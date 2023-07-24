@@ -22,6 +22,7 @@ use crate::paths::ENSO_TEST_JUNIT_DIR;
 use crate::project::ProcessWrapper;
 
 use ide_ci::actions::workflow::is_in_env;
+use ide_ci::actions::workflow::MessageLevel;
 use ide_ci::cache;
 use ide_ci::github::release::IsReleaseExt;
 use ide_ci::platform::DEFAULT_SHELL;
@@ -221,13 +222,16 @@ impl RunContext {
             ide_ci::fs::remove_if_exists(&self.paths.repo_root.engine.runtime.bench_report_xml)?;
         }
 
-        if self.config.test_standard_library {
+        let test_results_dir = if self.config.test_standard_library {
             // If we run tests, make sure that old and new results won't end up mixed together.
             let test_results_dir = ENSO_TEST_JUNIT_DIR
                 .get()
                 .unwrap_or_else(|_| self.paths.repo_root.target.test_results.path.clone());
-            ide_ci::fs::reset_dir(test_results_dir)?;
-        }
+            ide_ci::fs::reset_dir(&test_results_dir)?;
+            Some(test_results_dir)
+        } else {
+            None
+        };
 
         // Workaround for incremental compilation issue, as suggested by kustosz.
         // We target files like
@@ -454,6 +458,19 @@ impl RunContext {
 
         if self.config.test_standard_library {
             enso.run_tests(IrCaches::Yes, &sbt, PARALLEL_ENSO_TESTS).await?;
+        }
+
+        // If we are run in CI conditions and we prepared some test results, we want to upload
+        // them as a separate artifact to ease debugging.
+        if let Some(test_results_dir) = test_results_dir && is_in_env() {
+            // Each platform gets its own log results, so we need to generate unique names.
+            let name = format!("Test_Results_{TARGET_OS}");
+            if let Err(err) = ide_ci::actions::artifacts::upload_compressed_directory(&test_results_dir, name)
+                .await {
+                // We wouldn't want to fail the whole build if we can't upload the test results.
+                // Still, it should be somehow visible in the build summary.
+                ide_ci::actions::workflow::message(MessageLevel::Warning, format!("Failed to upload test results: {err}"));
+            }
         }
 
         // if build_native_runner {
