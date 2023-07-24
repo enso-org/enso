@@ -1,7 +1,7 @@
 /** @file Header menubar for the directory listing, containing information about
  * the current directory and some configuration options. */
 import * as React from 'react'
-import toast from 'react-hot-toast'
+import * as toastify from 'react-toastify'
 
 import ArrowRightSmallIcon from 'enso-assets/arrow_right_small.svg'
 import DownloadIcon from 'enso-assets/download.svg'
@@ -52,18 +52,18 @@ function DriveBar(props: DriveBarProps) {
                 // TODO[sb]: Allow uploading `.enso-project`s
                 // https://github.com/enso-org/cloud-v2/issues/510
                 const message = 'Files cannot be uploaded to the local backend.'
-                toast.error(message)
+                toastify.toast.error(message)
                 logger.error(message)
             } else if (
                 event.currentTarget.files == null ||
                 event.currentTarget.files.length === 0
             ) {
-                toast.success('No files selected to upload.')
+                toastify.toast.success('No files selected to upload.')
             } else if (directoryId == null) {
                 // This should never happen, however display a nice error message in case
                 // it somehow does.
                 const message = 'Files cannot be uploaded while offline.'
-                toast.error(message)
+                toastify.toast.error(message)
                 logger.error(message)
             } else {
                 dispatchFileListEvent({
