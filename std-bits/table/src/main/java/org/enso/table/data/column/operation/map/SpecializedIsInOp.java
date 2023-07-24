@@ -71,4 +71,9 @@ public abstract class SpecializedIsInOp<T, S extends Storage<T>> extends BinaryM
   public Storage<?> runZip(S storage, Storage<?> arg, MapOperationProblemBuilder problemBuilder) {
     return runMap(storage, arg.toList());
   }
+
+  @Override
+  public boolean reliesOnSpecializedStorage() {
+    return false;
+  }
 }
