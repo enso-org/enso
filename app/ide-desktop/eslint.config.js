@@ -155,6 +155,8 @@ const RESTRICTED_SYNTAXES = [
         // - a top-level variable declaration that shouldn't be `as const`
         // - a top-level variable declaration that should be `as const`, but is `as SomeActualType` instead
         selector: `:matches(:not(VariableDeclarator) > TSAsExpression, :not(:matches(Program, ExportNamedDeclaration)) > VariableDeclaration > * > TSAsExpression, :matches(Program, ExportNamedDeclaration) > VariableDeclaration > * > TSAsExpression > .expression:not(ObjectExpression:has(Property > ${STRING_LITERAL}.value):not(:has(Property > .value:not(${STRING_LITERAL})))), :matches(Program, ExportNamedDeclaration) > VariableDeclaration > * > TsAsExpression:not(:has(TSTypeReference > Identifier[name=const])) > ObjectExpression.expression:has(Property > ${STRING_LITERAL}.value):not(:has(Property > .value:not(${STRING_LITERAL}))))`,
+        // This cannot be changed right now, as `cognito.ts` would need to be refactored.
+        // selector: `:matches(:not(VariableDeclarator) > TSAsExpression, VariableDeclaration > * > TSAsExpression)`,
         message: 'Avoid `as T`. Consider using a type annotation instead.',
     },
     {

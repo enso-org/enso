@@ -3,7 +3,6 @@ import * as React from 'react'
 
 import AccessedByProjectsIcon from 'enso-assets/accessed_by_projects.svg'
 import AccessedDataIcon from 'enso-assets/accessed_data.svg'
-import DefaultUserIcon from 'enso-assets/default_user.svg'
 import DocsIcon from 'enso-assets/docs.svg'
 import PeopleIcon from 'enso-assets/people.svg'
 import PlusIcon from 'enso-assets/plus.svg'
@@ -15,6 +14,7 @@ import * as backend from './backend'
 import * as dateTime from './dateTime'
 import * as modalProvider from '../providers/modal'
 import * as tableColumn from './components/tableColumn'
+import * as uniqueString from '../uniqueString'
 
 import * as assetsTable from './components/assetsTable'
 import PermissionDisplay, * as permissionDisplay from './components/permissionDisplay'
@@ -90,13 +90,13 @@ export const COLUMN_NAME: Record<Column, string> = {
 
 /** CSS classes for every column. Currently only used to set the widths. */
 export const COLUMN_CSS_CLASS: Record<Column, string> = {
-    [Column.name]: 'w-60 first:rounded-l-full last:rounded-r-full',
-    [Column.modified]: 'w-40 first:rounded-l-full last:rounded-r-full',
-    [Column.sharedWith]: 'w-36 first:rounded-l-full last:rounded-r-full',
-    [Column.tags]: 'w-80 first:rounded-l-full last:rounded-r-full',
-    [Column.accessedByProjects]: 'w-96 first:rounded-l-full last:rounded-r-full',
-    [Column.accessedData]: 'w-96 first:rounded-l-full last:rounded-r-full',
-    [Column.docs]: 'w-96 first:rounded-l-full last:rounded-r-full',
+    [Column.name]: 'min-w-60 first:rounded-l-full last:rounded-r-full',
+    [Column.modified]: 'min-w-40 first:rounded-l-full last:rounded-r-full',
+    [Column.sharedWith]: 'min-w-36 first:rounded-l-full last:rounded-r-full',
+    [Column.tags]: 'min-w-80 first:rounded-l-full last:rounded-r-full',
+    [Column.accessedByProjects]: 'min-w-96 first:rounded-l-full last:rounded-r-full',
+    [Column.accessedData]: 'min-w-96 first:rounded-l-full last:rounded-r-full',
+    [Column.docs]: 'min-w-96 first:rounded-l-full last:rounded-r-full',
 } as const
 
 /** {@link table.ColumnProps} for an unknown variant of {@link backend.Asset}. */
@@ -175,9 +175,7 @@ function UserPermissionDisplay(props: InternalUserPermissionDisplayProps) {
         <PermissionDisplay
             key={user.user.pk}
             permissions={permissionDisplay.permissionActionsToPermissions(permissions)}
-            className={`border-2 rounded-full -ml-5 first:ml-0 ${
-                ownsThisAsset ? 'cursor-pointer hover:shadow-soft hover:z-10' : ''
-            }`}
+            className={ownsThisAsset ? 'cursor-pointer hover:shadow-soft hover:z-10' : ''}
             onClick={event => {
                 event.stopPropagation()
                 if (ownsThisAsset) {
@@ -221,12 +219,12 @@ function UserPermissionDisplay(props: InternalUserPermissionDisplayProps) {
         >
             {isHovered && (
                 <div className="relative">
-                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 rounded-full shadow-soft bg-white px-2 py-1">
+                    <div className="absolute text-primary bottom-2 left-1/2 -translate-x-1/2 rounded-full shadow-soft bg-white px-2 py-1">
                         {user.user.user_email}
                     </div>
                 </div>
             )}
-            <img src={DefaultUserIcon} height={24} width={24} />
+            {user.user.user_name}
         </PermissionDisplay>
     )
 }
@@ -244,6 +242,7 @@ function SharedWithColumn(props: AssetColumnProps<backend.AnyAsset>) {
         backend.groupPermissionsByUser(item.permissions ?? [])
     )
     const [oldPermissions, setOldPermissions] = React.useState(permissions)
+    const [isHovered, setIsHovered] = React.useState(false)
     const emailsOfUsersWithPermission = React.useMemo(
         () => new Set(permissions.map(permission => permission.user.user_email)),
         [permissions]
@@ -253,7 +252,15 @@ function SharedWithColumn(props: AssetColumnProps<backend.AnyAsset>) {
     )?.permission
     const ownsThisAsset = selfPermission === backend.PermissionAction.own
     return (
-        <div className="flex">
+        <div
+            className="flex items-center gap-1"
+            onMouseEnter={() => {
+                setIsHovered(true)
+            }}
+            onMouseLeave={() => {
+                setIsHovered(false)
+            }}
+        >
             {permissions.map(user => (
                 <UserPermissionDisplay
                     key={user.user.user_email}
@@ -279,13 +286,13 @@ function SharedWithColumn(props: AssetColumnProps<backend.AnyAsset>) {
                     }}
                 />
             ))}
-            {ownsThisAsset && (
+            {ownsThisAsset && isHovered && (
                 <button
                     onClick={event => {
                         event.stopPropagation()
                         setModal(
                             <ManagePermissionsModal
-                                key={Number(new Date())}
+                                key={uniqueString.uniqueString()}
                                 asset={item}
                                 initialPermissions={EMPTY_ARRAY}
                                 emailsOfUsersWithPermission={emailsOfUsersWithPermission}

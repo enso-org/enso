@@ -71,7 +71,6 @@ export default function Autocomplete(
     const [isDropdownVisible, setIsDropdownVisible] = React.useState(false)
     const [selectedIndex, setSelectedIndex] = React.useState<number | null>(null)
     const [valuesText, setValuesText] = React.useState('')
-
     const valuesSet = React.useMemo(() => new Set(values), [values])
 
     /** This input should only act like a multiple select only when `multiple` is true,

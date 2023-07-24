@@ -65,10 +65,10 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
                             <PermissionDisplay
                                 permissions={permission}
                                 className={`cursor-pointer ${
-                                    permissions.has(action) ? 'shadow-soft-dark' : ''
+                                    permissions.has(action) ? '' : 'opacity-50'
                                 } ${permissionClassName ?? ''}`}
                             >
-                                <div className="mx-1">{name}</div>
+                                {name}
                             </PermissionDisplay>
                         </label>
                         <input
