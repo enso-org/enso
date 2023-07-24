@@ -1064,7 +1064,7 @@ type Integer
 
              1.bit_shift_l 4
     bit_shift_l : Integer -> Integer ! Arithmetic_Error
-    bit_shift_l self that = @Builtin_Method "Integer.bit_shift_l"
+    bit_shift_l self that = self.bit_shift that
 
     ## Performs a right-wise bit shift on the bits of this.
 

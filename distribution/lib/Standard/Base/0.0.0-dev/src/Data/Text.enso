@@ -1,5 +1,6 @@
 import project.Any.Any
 import project.Data.Locale.Locale
+import project.Data.Numbers.Integer
 import project.Data.Ordering.Ordering
 import project.Error.Error
 import project.Errors.Common.Type_Error
@@ -18,6 +19,20 @@ polyglot java import org.enso.base.Text_Utils
      users with efficient concatenation operations.
 @Builtin_Type
 type Text
+    ## ALIAS Count
+       Computes the number of characters in the text.
+
+       ! What is a Character?
+          A character is defined as an Extended Grapheme Cluster, see Unicode
+          Standard Annex 29. This is the smallest unit that still has semantic
+          meaning in most text-processing applications.
+
+       > Example
+          Getting the length of the string "건반(Korean)".
+
+              "건반(Korean)".length
+    length : Integer
+    length self = @Builtin_Method "Text.length"
 
     ## ALIAS Concatenate
        Concatenates the text that to the right side of this.
@@ -117,3 +132,13 @@ type Text
        Conversion to Text that overrides the default `to_text` behavior.
     to_text : Text
     to_text self = self
+
+    ## ADVANCED
+       Checks where this Text is in FCD normalized form.
+
+      > Example
+        Check if the string is normalized
+
+            "14.95€".is_normalized
+    is_normalized : Boolean
+    is_normalized self = @Builtin_Method "Text.is_normalized"

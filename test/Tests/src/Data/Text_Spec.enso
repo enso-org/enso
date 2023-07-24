@@ -77,6 +77,12 @@ spec =
             kshi.length . should_equal 1
             facepalm.length . should_equal 1
 
+        Test.specify "should be able to tell if Text is normalized" <|
+            'a'.is_normalized . should_be_true
+            "14.95€".is_normalized . should_be_true
+            'é'.is_normalized . should_be_false
+            'e\u{301}'.is_normalized . should_be_true
+
         Test.specify "should compare strings using utf normalization" <|
             "abc"=="def" . should_be_false
             'a'=='b' . should_be_false

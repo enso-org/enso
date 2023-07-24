@@ -422,7 +422,6 @@ object DistributionPackage {
   sealed trait OS {
     def name:                String
     def hasSupportForSulong: Boolean
-    def graalName: String                    = name
     def executableName(base: String): String = base
     def archiveExt: String                   = ".tar.gz"
     def isUNIX: Boolean                      = true
@@ -435,7 +434,6 @@ object DistributionPackage {
     case object MacOS extends OS {
       override val name: String                 = "macos"
       override val hasSupportForSulong: Boolean = true
-      override def graalName: String            = "darwin"
     }
     case object Windows extends OS {
       override val name: String                         = "windows"
@@ -461,7 +459,7 @@ object DistributionPackage {
   }
   object Architecture {
     case object X64 extends Architecture {
-      override def name: String = "amd64"
+      override def name: String = "x64"
     }
 
     val archs = Seq(X64)
@@ -566,9 +564,9 @@ object DistributionPackage {
         )
         val graalUrl =
           s"https://github.com/graalvm/graalvm-ce-builds/releases/download/" +
-          s"vm-$graalVersion/" +
-          s"graalvm-ce-java$graalJavaVersion-${os.graalName}-" +
-          s"${architecture.name}-$graalVersion${os.archiveExt}"
+          s"jdk-$graalJavaVersion/" +
+          s"graalvm-community-jdk-${graalJavaVersion}_${os.name}-" +
+          s"${architecture.name}_bin${os.archiveExt}"
         val exitCode = (url(graalUrl) #> archive).!
         if (exitCode != 0) {
           throw new RuntimeException(s"Graal download from $graalUrl failed.")
@@ -614,7 +612,7 @@ object DistributionPackage {
         extract(archive, packageDir)
 
         log.info("Installing components")
-        gu(log, os, extractedGraalDir, "install", "python", "R")
+        gu(log, os, extractedGraalDir, "install", "python")
 
         log.info(s"Re-creating $archive")
         IO.delete(archive)
