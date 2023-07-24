@@ -8,6 +8,10 @@ import * as modalProvider from '../../providers/modal'
 
 import UserMenu from './userMenu'
 
+// ===============
+// === UserBar ===
+// ===============
+
 /** Props for a {@link UserBar}. */
 export interface UserBarProps {
     isHelpChatOpen: boolean

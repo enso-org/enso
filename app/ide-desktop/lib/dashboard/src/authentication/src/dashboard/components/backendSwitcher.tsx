@@ -9,6 +9,10 @@ import * as backendProvider from '../../providers/backend'
 
 import * as svg from '../../components/svg'
 
+// =======================
+// === BackendSwitcher ===
+// =======================
+
 /** Props for a {@link BackendSwitcher}. */
 export interface BackendSwitcherProps {
     setBackendType: (backendType: backendModule.BackendType) => void

@@ -10,12 +10,12 @@ import * as backendProvider from '../../providers/backend'
 import * as columnModule from '../column'
 import * as hooks from '../../hooks'
 import * as loggerProvider from '../../providers/logger'
-import * as tabModule from '../tab'
 
 import * as fileListEventModule from '../events/fileListEvent'
 import * as projectEventModule from '../events/projectEvent'
 import * as projectListEventModule from '../events/projectListEvent'
 
+import * as pageSwitcher from './pageSwitcher'
 import DirectoriesTable from './directoriesTable'
 import DriveBar from './driveBar'
 import FilesTable from './filesTable'
@@ -44,7 +44,7 @@ function regexEscape(string: string) {
 
 /** Props for a {@link DirectoryView}. */
 export interface DirectoryViewProps {
-    tab: tabModule.Tab
+    page: pageSwitcher.Page
     initialProjectName: string | null
     nameOfProjectToImmediatelyOpen: string | null
     setNameOfProjectToImmediatelyOpen: (nameOfProjectToImmediatelyOpen: string | null) => void
@@ -53,8 +53,8 @@ export interface DirectoryViewProps {
     projectListEvent: projectListEventModule.ProjectListEvent | null
     dispatchProjectListEvent: (directoryEvent: projectListEventModule.ProjectListEvent) => void
     query: string
-    onOpenIde: (project: backendModule.ProjectAsset) => void
-    onCloseIde: () => void
+    onOpenEditor: (project: backendModule.ProjectAsset) => void
+    onCloseEditor: () => void
     appRunner: AppRunner | null
     loadingProjectManagerDidFail: boolean
     isListingRemoteDirectoryWhileOffline: boolean
@@ -65,7 +65,7 @@ export interface DirectoryViewProps {
 /** Contains directory path and directory contents (projects, folders, secrets and files). */
 function DirectoryView(props: DirectoryViewProps) {
     const {
-        tab,
+        page,
         initialProjectName,
         nameOfProjectToImmediatelyOpen,
         setNameOfProjectToImmediatelyOpen,
@@ -74,8 +74,8 @@ function DirectoryView(props: DirectoryViewProps) {
         query,
         projectListEvent,
         dispatchProjectListEvent,
-        onOpenIde,
-        onCloseIde,
+        onOpenEditor: onOpenIde,
+        onCloseEditor: onCloseIde,
         appRunner,
         loadingProjectManagerDidFail,
         isListingRemoteDirectoryWhileOffline,
@@ -273,7 +273,7 @@ function DirectoryView(props: DirectoryViewProps) {
     React.useEffect(() => {
         const onDragEnter = (event: DragEvent) => {
             if (
-                tab === tabModule.Tab.dashboard &&
+                page === pageSwitcher.Page.drive &&
                 event.dataTransfer?.types.includes('Files') === true
             ) {
                 setIsFileBeingDragged(true)
@@ -283,7 +283,7 @@ function DirectoryView(props: DirectoryViewProps) {
         return () => {
             document.body.removeEventListener('dragenter', onDragEnter)
         }
-    }, [tab])
+    }, [page])
 
     return (
         <>
