@@ -224,7 +224,7 @@ type Name_Too_Long
         name_length_graphemes = self.name.length
         name_length_codeunits = self.name.char_vector.length
         length_suffix = if name_length_graphemes == name_length_codeunits then "" else "code units"
-        "The " + entity_kind + " name [" + self.name.to_display_text + "] is too long for the given backend. It spans " + name_length_graphemes.to_text + length_suffix + " but the maximum length is " + self.max_length.to_text + length_suffix + "."
+        "The " + self.entity_kind + " name [" + self.name.to_display_text + "] is too long for the given backend. It spans " + name_length_graphemes.to_text + length_suffix + " but the maximum length is " + self.max_length.to_text + length_suffix + "."
 
 type Truncated_Column_Names
     ## PRIVATE
