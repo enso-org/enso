@@ -249,7 +249,7 @@ export default function Table<T, State = never, RowState = never, Key extends st
 
     return (
         <table
-            className="rounded-rows self-start table-fixed items-center border-collapse mt-2"
+            className="rounded-rows self-start table-fixed border-collapse mt-2"
             onContextMenu={event => {
                 onContextMenu(selectedKeys, event, setSelectedKeys)
             }}

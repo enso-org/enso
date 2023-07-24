@@ -90,13 +90,13 @@ export const COLUMN_NAME: Record<Column, string> = {
 
 /** CSS classes for every column. Currently only used to set the widths. */
 export const COLUMN_CSS_CLASS: Record<Column, string> = {
-    [Column.name]: 'min-w-60 first:rounded-l-full last:rounded-r-full',
-    [Column.modified]: 'min-w-40 first:rounded-l-full last:rounded-r-full',
-    [Column.sharedWith]: 'min-w-36 first:rounded-l-full last:rounded-r-full',
-    [Column.tags]: 'min-w-80 first:rounded-l-full last:rounded-r-full',
-    [Column.accessedByProjects]: 'min-w-96 first:rounded-l-full last:rounded-r-full',
-    [Column.accessedData]: 'min-w-96 first:rounded-l-full last:rounded-r-full',
-    [Column.docs]: 'min-w-96 first:rounded-l-full last:rounded-r-full',
+    [Column.name]: 'min-w-60 rounded-l-full',
+    [Column.modified]: 'min-w-40 last:rounded-r-full',
+    [Column.sharedWith]: 'min-w-36 last:rounded-r-full',
+    [Column.tags]: 'min-w-80 last:rounded-r-full',
+    [Column.accessedByProjects]: 'min-w-96 last:rounded-r-full',
+    [Column.accessedData]: 'min-w-96 last:rounded-r-full',
+    [Column.docs]: 'min-w-96 last:rounded-r-full',
 } as const
 
 /** {@link table.ColumnProps} for an unknown variant of {@link backend.Asset}. */
