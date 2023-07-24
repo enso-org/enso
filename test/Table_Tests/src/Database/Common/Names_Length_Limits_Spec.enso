@@ -1,0 +1,41 @@
+from Standard.Base import all
+
+from Standard.Table import Table
+
+from Standard.Database import all
+from Standard.Database.Errors import all
+
+from Standard.Test import Test, Test_Suite, Problems
+import Standard.Test.Extensions
+
+import project.Util
+import project.Database.Helpers.Name_Generator
+
+spec prefix connection =
+    Test.group prefix+" Support for Long Column/Table names" <|
+        has_maximum_table_name_length = connection.dialect.max_table_name_length
+        has_maximum_column_name_length = connection.dialect.max_column_name_length
+
+        if has_maximum_table_name_length.not then
+            Test.specify "should allow to create tables with very long names" <|
+                ...
+
+        if has_maximum_table_name_length then
+            Test.specify "should raise an error when creating a table with a column name that is too long" <|
+                ...
+
+        Test.specify "should be fine joining tables with long names" <|
+            ## If we know the maximum length, we choose a length that will be
+               just short enough to fit in the limit, but long enough that after
+               concatenating two of such names, the result will exceed the limit.
+               If we don't know the limit, we just choose a very long name.
+            name_length = case connection.dialect.max_table_name_length of
+                Nothing -> 5000
+                max : Integer -> max
+
+            name_a = ("x" * (name_length - 1)) + "a"
+            name_b = ("x" * (name_length - 1)) + "b"
+
+        if has_maximum_column_name_length.not then
+            Test.specify "should allow to create very long column names" <|
+                ...

@@ -383,6 +383,12 @@ type Connection
         if reported == 0 then Nothing else reported
 
     ## PRIVATE
+    max_column_name_length : Integer | Nothing
+    max_column_name_length self =
+        reported = self.jdbc_connection.with_metadata .getMaxColumnNameLength
+        if reported == 0 then Nothing else reported
+
+    ## PRIVATE
        Generates a temporary table name for the given table name, used for dry
        runs.
 
