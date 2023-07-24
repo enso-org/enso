@@ -2022,10 +2022,6 @@ impl application::View for Text {
             (PressAndRepeat, "cmd shift right", "cursor_select_right_word", ""),
             (PressAndRepeat, "shift up", "cursor_select_up", "!single_line_mode"),
             (PressAndRepeat, "shift down", "cursor_select_down", "!single_line_mode"),
-            (PressAndRepeat, "backspace", "delete_left", ""),
-            (PressAndRepeat, "delete", "delete_right", ""),
-            (PressAndRepeat, "cmd backspace", "delete_word_left", ""),
-            (PressAndRepeat, "cmd delete", "delete_word_right", ""),
             (Press, "shift left-mouse-button", "set_newest_selection_end_to_mouse_position", ""),
             (DoublePress, "left-mouse-button", "select_word_at_cursor", ""),
             (Press, "left-mouse-button", "set_cursor_at_mouse_position", ""),
@@ -2033,15 +2029,19 @@ impl application::View for Text {
             (Press, "cmd left-mouse-button", "add_cursor_at_mouse_position", ""),
             (Press, "cmd left-mouse-button", "start_newest_selection_end_follow_mouse", ""),
             (Press, "cmd a", "select_all", ""),
-            (Press, "cmd x", "cut", ""),
-            (Press, "cmd v", "paste", ""),
         ];
         let non_focus_capturing_shortcuts = [
             (Press, "cmd c", "copy", ""),
+            (Press, "cmd x", "cut", ""),
+            (Press, "cmd v", "paste", ""),
             (Press, "cmd z", "undo", ""),
             (Press, "escape", "keep_oldest_cursor_only", ""),
             (Release, "left-mouse-button", "stop_newest_selection_end_follow_mouse", ""),
             (Release, "cmd left-mouse-button", "stop_newest_selection_end_follow_mouse", ""),
+            (PressAndRepeat, "backspace", "delete_left", ""),
+            (PressAndRepeat, "delete", "delete_right", ""),
+            (PressAndRepeat, "cmd backspace", "delete_word_left", ""),
+            (PressAndRepeat, "cmd delete", "delete_word_right", ""),
         ];
         non_focus_capturing_shortcuts
             .iter()
