@@ -28,11 +28,9 @@ pub mod project;
 pub enum InvalidQualifiedName {
     #[fail(display = "The qualified name is empty.")]
     EmptyName,
-    #[fail(display = "No namespace in project qualified name.")]
-    NoNamespace,
-    #[fail(display = "Invalid namespace in project qualified name.")]
-    InvalidNamespace,
-    #[fail(display = "Too many segments in project qualified name.")]
+    #[fail(display = "Too few segments in qualified name.")]
+    TooFewSegments,
+    #[fail(display = "Too many segments in qualified name.")]
     TooManySegments,
 }
 
@@ -156,7 +154,7 @@ impl QualifiedName {
         let mut iter = segments.into_iter().map(|name| name.into());
         let project_name = match (iter.next(), iter.next()) {
             (Some(ns), Some(name)) => project::QualifiedName::new(ns, name),
-            _ => return Err(InvalidQualifiedName::NoNamespace.into()),
+            _ => return Err(InvalidQualifiedName::TooFewSegments.into()),
         };
         let without_main = iter.skip_while(|s| *s == PROJECTS_MAIN_MODULE);
         Ok(Self::new(project_name, without_main.collect()))
