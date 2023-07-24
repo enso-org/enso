@@ -1113,7 +1113,7 @@ spec setup =
                 do_replace col patterns replacements only_first=True expected=['bye Hello', 'bye hello', 'HELLO HELLO', 'hey A[bCd] a[bcd]', 'abac ad Ab aCAd']
 
             Test.specify "case_sensitivity=insensitive use_regex=false only_first=false"
-                do_replace col patterns replacements case_sensitivity=Case_Sensitivity.Insensitive expected=['bye bye', 'bye bye', 'HELLO bye', 'hey hey hey', 'abac ad Ab aCAd']
+                do_replace col patterns replacements case_sensitivity=Case_Sensitivity.Insensitive expected=['bye bye', 'bye bye', 'bye bye', 'hey hey hey', 'abac ad Ab aCAd']
 
             Test.specify "case_sensitivity=insensitive use_regex=false only_first=true"
                 do_replace col patterns replacements case_sensitivity=Case_Sensitivity.Insensitive only_first=True expected=['bye Hello', 'bye hello', 'bye HELLO', 'hey A[bCd] a[bcd]', 'abac ad Ab aCAd']
