@@ -2,16 +2,13 @@
 import * as React from 'react'
 
 import BarsIcon from 'enso-assets/bars.svg'
-import ChatIcon from 'enso-assets/chat.svg'
-import DefaultUserIcon from 'enso-assets/default_user.svg'
 import MagnifyingGlassIcon from 'enso-assets/magnifying_glass.svg'
 
 import * as backendModule from '../backend'
-import * as modalProvider from '../../providers/modal'
 import * as tabModule from '../tab'
 
 import BackendSwitcher from './backendSwitcher'
-import UserMenu from './userMenu'
+import UserBar from './userBar'
 
 // ==============
 // === TopBar ===
@@ -45,7 +42,6 @@ function TopBar(props: TopBarProps) {
         query,
         setQuery,
     } = props
-    const { updateModal } = modalProvider.useSetModal()
 
     return (
         <div className="flex mx-4.75 h-8 gap-6">
@@ -90,31 +86,7 @@ function TopBar(props: TopBarProps) {
                 />
             </div>
             <div className="grow" />
-            {!isHelpChatOpen && (
-                <div
-                    className="flex cursor-pointer items-center bg-help rounded-full px-2.5 text-white mx-2"
-                    onClick={() => {
-                        setIsHelpChatOpen(true)
-                    }}
-                >
-                    <span className="whitespace-nowrap">help chat</span>
-                    <div className="ml-2">
-                        <img src={ChatIcon} />
-                    </div>
-                </div>
-            )}
-            {/* User profile and menu. */}
-            <div className="transform w-8">
-                <div
-                    onClick={event => {
-                        event.stopPropagation()
-                        updateModal(oldModal => (oldModal?.type === UserMenu ? null : <UserMenu />))
-                    }}
-                    className="rounded-full w-8 h-8 bg-cover cursor-pointer"
-                >
-                    <img src={DefaultUserIcon} />
-                </div>
-            </div>
+            <UserBar isHelpChatOpen={isHelpChatOpen} setIsHelpChatOpen={setIsHelpChatOpen} />
         </div>
     )
 }
