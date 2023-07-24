@@ -230,6 +230,7 @@
 [7151]: https://github.com/enso-org/enso/pull/7151
 [7164]: https://github.com/enso-org/enso/pull/7164
 [7372]: https://github.com/enso-org/enso/pull/7372
+[7311]: https://github.com/enso-org/enso/pull/7311
 
 #### EnsoGL (rendering engine)
 
