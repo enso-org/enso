@@ -51,7 +51,8 @@ spec setup =
         if setup.is_database then
             Test.specify "should report unsupported error" <|
                 t = table_builder [["X", [1, 2, 3]], ["Y", [4, 5, 6]]]
-                (t.at "X") . zip (t.at "Y") . should_fail_with Unsupported_Database_Operation
+                f x y = 10*x + y
+                (t.at "X") . zip (t.at "Y") f . should_fail_with Unsupported_Database_Operation
 
         if setup.is_database.not then
             Test.specify "should allow to zip two columns with an arbitrary function" <|
