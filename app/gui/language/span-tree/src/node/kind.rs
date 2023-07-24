@@ -46,10 +46,13 @@ pub enum Kind {
 #[allow(missing_docs)]
 impl Kind {
     pub fn this() -> Argument {
-        Self::argument().with_name(Some(Argument::THIS.into()))
+        Self::prefix_argument().with_name(Some(Argument::THIS.into()))
     }
     pub fn argument() -> Argument {
         default()
+    }
+    pub fn prefix_argument() -> Argument {
+        Argument::default().in_prefix_chain()
     }
     pub fn insertion_point() -> InsertionPoint {
         default()

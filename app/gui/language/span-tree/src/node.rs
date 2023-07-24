@@ -928,7 +928,7 @@ mod test {
             .add_child(0, 8, node::Kind::Operation, ast::crumbs::Crumbs::default())
             .add_leaf(0, 4, node::Kind::this(), LeftOperand)
             .add_leaf(4, 1, node::Kind::Operation, Operator)
-            .add_leaf(5, 3, node::Kind::argument(), RightOperand)
+            .add_leaf(5, 3, node::Kind::prefix_argument(), RightOperand)
             .done()
             .add_empty_child(8, InsertionPoint::expected_argument(0))
             .done()
