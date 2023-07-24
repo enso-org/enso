@@ -1,4 +1,4 @@
-package org.enso.benchmarks.libs.processor;
+package org.enso.benchmarks.processor;
 
 import java.util.Set;
 import javax.annotation.processing.AbstractProcessor;
@@ -15,8 +15,8 @@ import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.TypeElement;
 import org.openide.util.lookup.ServiceProvider;
 
-//@SupportedAnnotationTypes("org.enso.benchmarks.libs.processor.Dummy")
-//@SupportedSourceVersion(SourceVersion.RELEASE_17)
+@SupportedAnnotationTypes("org.enso.benchmarks.processor.Dummy")
+@SupportedSourceVersion(SourceVersion.RELEASE_17)
 @ServiceProvider(service = Processor.class)
 public class BenchProcessor extends AbstractProcessor {
   public BenchProcessor() {
@@ -26,6 +26,6 @@ public class BenchProcessor extends AbstractProcessor {
   @Override
   public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
     System.out.println("[mylog] Running BenchProcessor");
-    return false;
+    throw new IllegalStateException("[mylog] Running bench proc - unimpl");
   }
 }

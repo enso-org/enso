@@ -9,6 +9,7 @@ import java.util.Collection;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.enso.benchmarks.BenchSuite;
 import org.enso.polyglot.MethodNames.Module;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;

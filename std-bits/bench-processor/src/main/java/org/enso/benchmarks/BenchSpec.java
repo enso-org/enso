@@ -1,4 +1,4 @@
-package org.enso.benchmarks.libs;
+package org.enso.benchmarks;
 
 import org.graalvm.polyglot.Value;
 

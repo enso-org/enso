@@ -1764,21 +1764,13 @@ lazy val `distribution-manager` = project
   .dependsOn(pkg)
   .dependsOn(`logging-utils`)
 
-lazy val `bench-libs` = (project in file("std-bits/benchmarks"))
-  .configs(Benchmark)
+lazy val `bench-processor` = (project in file("std-bits/bench-processor"))
   .settings(
     frgaalJavaCompilerSetting,
-    assembly / mainClass := (Compile / run / mainClass).value,
-    libraryDependencies ++= jmh ++ Seq(
+    libraryDependencies ++= Seq(
       "org.netbeans.api" % "org-openide-util-lookup"   % netbeansApiVersion,
-      "org.openjdk.jmh"  % "jmh-core"                  % jmhVersion,
-      "org.openjdk.jmh"  % "jmh-generator-annprocess"  % jmhVersion,
       "org.graalvm.sdk"  % "graal-sdk"                 % graalMavenPackagesVersion   % "provided",
     ),
-    commands += WithDebugCommand.withDebug,
-    (Compile / mainClass) := Some("org.enso.benchmarks.libs.LibBenchRunner"),
-    (Compile / run / fork) := true,
-    (Compile / run / connectInput) := true,
     Compile / javacOptions := ((Compile / javacOptions).value ++
       // Only run ServiceProvider processor and ignore those defined in META-INF, thus
       // fixing incremental compilation setup
@@ -1787,6 +1779,22 @@ lazy val `bench-libs` = (project in file("std-bits/benchmarks"))
         "org.netbeans.modules.openide.util.ServiceProviderProcessor"
       )
     ),
+  )
+
+lazy val `bench-libs` = (project in file("std-bits/benchmarks"))
+  .configs(Benchmark)
+  .settings(
+    frgaalJavaCompilerSetting,
+    assembly / mainClass := (Compile / run / mainClass).value,
+    libraryDependencies ++= jmh ++ Seq(
+      "org.openjdk.jmh"  % "jmh-core"                  % jmhVersion,
+      "org.openjdk.jmh"  % "jmh-generator-annprocess"  % jmhVersion,
+      "org.graalvm.sdk"  % "graal-sdk"                 % graalMavenPackagesVersion   % "provided",
+    ),
+    commands += WithDebugCommand.withDebug,
+    (Compile / mainClass) := Some("org.enso.benchmarks.libs.LibBenchRunner"),
+    (Compile / run / fork) := true,
+    (Compile / run / connectInput) := true,
     (Compile / javaOptions) ++= {
       val runtimeClasspath =
         (LocalProject("runtime") / Compile / fullClasspath).value
@@ -1804,6 +1812,7 @@ lazy val `bench-libs` = (project in file("std-bits/benchmarks"))
       )
     },
   )
+  .dependsOn(`bench-processor`)
   .dependsOn(runtime)
 
 lazy val editions = project
