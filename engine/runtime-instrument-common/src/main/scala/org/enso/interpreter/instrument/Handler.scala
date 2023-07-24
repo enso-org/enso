@@ -116,7 +116,9 @@ final class Handler {
     */
   def onMessage(request: Api.Request): Unit = request match {
     case Api.Request(requestId, Api.ShutDownRuntimeServer()) =>
-      commandProcessor.stop()
+      if (commandProcessor ne null) {
+        commandProcessor.stop()
+      }
       endpoint.sendToClient(
         Api.Response(requestId, Api.RuntimeServerShutDown())
       )
