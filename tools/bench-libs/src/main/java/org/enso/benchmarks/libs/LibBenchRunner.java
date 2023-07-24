@@ -5,7 +5,11 @@ import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.regex.Pattern;
+import org.enso.benchmarks.libs.processor.Dummy;
 import org.openjdk.jmh.results.RunResult;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
@@ -14,7 +18,10 @@ import org.openjdk.jmh.runner.options.CommandLineOptionException;
 import org.openjdk.jmh.runner.options.CommandLineOptions;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
+@Dummy
 public class LibBenchRunner {
+
+  private static final String benchNameDelimiter = "/";
 
   public static void main(String[] args) {
     CommandLineOptions cmdOpts = null;
@@ -82,7 +89,35 @@ public class LibBenchRunner {
       System.exit(0);
     }
 
-    List<String> includes = cmdOpts.getIncludes();
+    Set<String> benchNames = new HashSet<>();
+    for (BenchSuite benchSuite: benchSuites) {
+      for (BenchGroup group : benchSuite.groups()) {
+        String groupName = group.name();
+        for (BenchSpec spec : group.specs()) {
+          String specName = spec.name();
+          benchNames.add(groupName + benchNameDelimiter + specName);
+        }
+      }
+    }
+
+    List<Pattern> includePatterns = cmdOpts.getIncludes()
+        .stream()
+        .map(Pattern::compile)
+        .toList();
+    // Filter benchNames that match includePatterns
+    benchNames.removeIf(benchName -> {
+      for (Pattern includePattern : includePatterns) {
+        if (includePattern.matcher(benchName).matches()) {
+          return false;
+        }
+      }
+      return true;
+    });
+    if (benchNames.isEmpty()) {
+      System.err.println("No benchmarks to run");
+      System.exit(1);
+    }
+
     Runner jmhRunner = new Runner(cmdOpts);
     Collection<RunResult> results = Collections.emptyList();
     try {

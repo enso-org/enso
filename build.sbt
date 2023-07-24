@@ -1770,14 +1770,23 @@ lazy val `bench-libs` = (project in file("tools/bench-libs"))
     frgaalJavaCompilerSetting,
     assembly / mainClass := (Compile / run / mainClass).value,
     libraryDependencies ++= jmh ++ Seq(
-      "org.openjdk.jmh" % "jmh-core"                  % jmhVersion,
-      "org.openjdk.jmh" % "jmh-generator-annprocess"  % jmhVersion,
-      "org.graalvm.sdk" % "graal-sdk"                 % graalMavenPackagesVersion   % "provided",
+      "org.netbeans.api" % "org-openide-util-lookup"   % netbeansApiVersion,
+      "org.openjdk.jmh"  % "jmh-core"                  % jmhVersion,
+      "org.openjdk.jmh"  % "jmh-generator-annprocess"  % jmhVersion,
+      "org.graalvm.sdk"  % "graal-sdk"                 % graalMavenPackagesVersion   % "provided",
     ),
     commands += WithDebugCommand.withDebug,
     (Compile / mainClass) := Some("org.enso.benchmarks.libs.LibBenchRunner"),
     (Compile / run / fork) := true,
     (Compile / run / connectInput) := true,
+    Compile / javacOptions := ((Compile / javacOptions).value ++
+      // Only run ServiceProvider processor and ignore those defined in META-INF, thus
+      // fixing incremental compilation setup
+      Seq(
+        "-processor",
+        "org.netbeans.modules.openide.util.ServiceProviderProcessor"
+      )
+    ),
     (Compile / javaOptions) ++= {
       val runtimeClasspath =
         (LocalProject("runtime") / Compile / fullClasspath).value
