@@ -1764,7 +1764,7 @@ lazy val `distribution-manager` = project
   .dependsOn(pkg)
   .dependsOn(`logging-utils`)
 
-lazy val `bench-libs` = (project in file("tools/bench-libs"))
+lazy val `bench-libs` = (project in file("std-bits/benchmarks"))
   .configs(Benchmark)
   .settings(
     frgaalJavaCompilerSetting,
