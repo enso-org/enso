@@ -118,8 +118,6 @@ ensogl_core::define_endpoints_2! {
         accept_suggestion(),
         /// Accept current input as expression, ignoring any active suggestion.
         accept_current_input_expression(),
-        jump_group_up(),
-        jump_group_down(),
         focus(),
     }
     Output {
@@ -557,8 +555,6 @@ impl component::Frp<Model> for Frp {
             // underlying Grid View.
             (Press, "!is_active", "enter", "accept_current_input_expression"),
             (Press, "", "cmd enter", "accept_current_input_expression"),
-            (Press, "", "cmd up", "jump_group_up"),
-            (Press, "", "cmd down", "jump_group_down"),
             (Press, "!is_active", "up", "select_first_entry"),
             (Press, "!is_active", "up", "focus"),
         ]
