@@ -16,7 +16,6 @@ import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
-import org.enso.table.util.Polyglot_Helper;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
@@ -134,33 +133,19 @@ public abstract class Storage<T> {
    * @param skipNa whether rows containing missing values should be passed to the function.
    * @param expectedResultType the expected type for the result storage; it is ignored if the
    *     operation is vectorized
-   * @param expectDataflowErrors specifies if this function should be prepared to handle dataflow
-   *     errors coming from `function` (which may add a bit of overhead)
    * @return the result of running the function on each row
    */
   public final Storage<?> unaryMap(
-      Function<Object, Object> function,
-      boolean skipNa,
-      StorageType expectedResultType,
-      boolean expectDataflowErrors) {
+      Function<Object, Value> function, boolean skipNa, StorageType expectedResultType) {
     Builder storageBuilder = Builder.getForType(expectedResultType, size());
-    final boolean needsConversion =
-        Polyglot_Helper.isPolyglotConversionNeeded(expectedResultType, expectDataflowErrors);
     final Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
       Object it = getItemBoxed(i);
       if (skipNa && it == null) {
         storageBuilder.appendNulls(1);
       } else {
-        Object result = function.apply(it);
-        // TODO [RW] - I'm not 100% sure this is actually improving the performance much without
-        // again measuring it, we may need to revise this.
-        // (the original code that fas faster had no conversions, but here we are adding a branch
-        // which may actually
-        // hurt performance more, the branch is on an effective constant so it may not be a big
-        // deal, but only way to
-        // tell is to measure.)
-        Object converted = needsConversion ? Polyglot_Utils.convertPolyglotValue(result) : result;
+        Value result = function.apply(it);
+        Object converted = Polyglot_Utils.convertPolyglotValue(result);
         storageBuilder.appendNoGrow(converted);
       }
 
@@ -178,25 +163,19 @@ public abstract class Storage<T> {
    *     without passing them through the function, this is useful if the function does not support
    *     the null-values, but it needs to be set to false if the function should handle them.
    * @param expectedResultType the expected type for the result storage
-   * @param expectDataflowErrors specifies if this function should be prepared to handle dataflow
-   *     errors coming from `function` (which may add a bit of overhead)
    * @return a new storage containing results of the function for each row
    */
   public final Storage<?> biMap(
       BiFunction<Object, Object, Object> function,
       Object argument,
       boolean skipNulls,
-      StorageType expectedResultType,
-      boolean expectDataflowErrors) {
-
+      StorageType expectedResultType) {
     Builder storageBuilder = Builder.getForType(expectedResultType, size());
     if (skipNulls && argument == null) {
       storageBuilder.appendNulls(size());
       return storageBuilder.seal();
     }
 
-    final boolean needsConversion =
-        Polyglot_Helper.isPolyglotConversionNeeded(expectedResultType, expectDataflowErrors);
     final Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
       Object it = getItemBoxed(i);
@@ -204,9 +183,7 @@ public abstract class Storage<T> {
         storageBuilder.appendNulls(1);
       } else {
         Object result = function.apply(it, argument);
-        // TODO [RW] - I'm not 100% sure this is actually improving the performance much without
-        // again measuring it, we may need to revise this
-        Object converted = needsConversion ? Polyglot_Utils.convertPolyglotValue(result) : result;
+        Object converted = Polyglot_Utils.convertPolyglotValue(result);
         storageBuilder.appendNoGrow(converted);
       }
 
@@ -222,19 +199,14 @@ public abstract class Storage<T> {
    * @param skipNa whether rows containing missing values should be passed to the function.
    * @param expectedResultType the expected type for the result storage; it is ignored if the
    *     operation is vectorized
-   * @param expectDataflowErrors specifies if this function should be prepared to handle dataflow
-   *     errors coming from `function` (which may add a bit of overhead)
    * @return the result of running the function on all non-missing elements.
    */
   public final Storage<?> zip(
       BiFunction<Object, Object, Object> function,
       Storage<?> arg,
       boolean skipNa,
-      StorageType expectedResultType,
-      boolean expectDataflowErrors) {
+      StorageType expectedResultType) {
     Builder storageBuilder = Builder.getForType(expectedResultType, size());
-    final boolean needsConversion =
-        Polyglot_Helper.isPolyglotConversionNeeded(expectedResultType, expectDataflowErrors);
     final Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
       Object it1 = getItemBoxed(i);
@@ -243,9 +215,7 @@ public abstract class Storage<T> {
         storageBuilder.appendNulls(1);
       } else {
         Object result = function.apply(it1, it2);
-        // TODO [RW] - I'm not 100% sure this is actually improving the performance much without
-        // again measuring it, we may need to revise this
-        Object converted = needsConversion ? Polyglot_Utils.convertPolyglotValue(result) : result;
+        Object converted = Polyglot_Utils.convertPolyglotValue(result);
         storageBuilder.appendNoGrow(converted);
       }
 
@@ -271,14 +241,14 @@ public abstract class Storage<T> {
   public final Storage<?> vectorizedOrFallbackUnaryMap(
       String name,
       MapOperationProblemBuilder problemBuilder,
-      Function<Object, Object> fallback,
+      Function<Object, Value> fallback,
       boolean skipNa,
       StorageType expectedResultType) {
     if (isUnaryOpVectorized(name)) {
       return runVectorizedUnaryMap(name, problemBuilder);
     } else {
       checkFallback(fallback, expectedResultType, name);
-      return unaryMap(fallback, skipNa, expectedResultType, false);
+      return unaryMap(fallback, skipNa, expectedResultType);
     }
   }
 
@@ -308,7 +278,7 @@ public abstract class Storage<T> {
       return runVectorizedBiMap(name, argument, problemBuilder);
     } else {
       checkFallback(fallback, expectedResultType, name);
-      return biMap(fallback, argument, skipNulls, expectedResultType, false);
+      return biMap(fallback, argument, skipNulls, expectedResultType);
     }
   }
 
@@ -338,7 +308,7 @@ public abstract class Storage<T> {
       return runVectorizedZip(name, other, problemBuilder);
     } else {
       checkFallback(fallback, expectedResultType, name);
-      return zip(fallback, other, skipNulls, expectedResultType, false);
+      return zip(fallback, other, skipNulls, expectedResultType);
     }
   }
 

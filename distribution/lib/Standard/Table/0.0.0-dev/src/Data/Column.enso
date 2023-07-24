@@ -2119,21 +2119,16 @@ run_vectorized_binary_op column name operand new_name=Nothing fallback_fn=Nothin
      handling logic.
    - expected_result_type: The expected result type of the operation. If set to
      `Nothing`, the result type is inferred from the values.
-   - expect_dataflow_errors: Specifies if `function` may raise dataflow errors.
-     If `expect_dataflow_errors` is set to `False` (default), the polyglot code
-     may run some optimizations that may yield invalid behavior if a dataflow
-     error is returned. If the function may raise errors, this should be set to
-     `True`.
-run_binary_op column function operand new_name skip_nulls=True expected_result_type=Nothing expect_dataflow_errors=False =
+run_binary_op column function operand new_name skip_nulls=True expected_result_type=Nothing =
     s = column.java_column.getStorage
     storage_type = resolve_storage_type expected_result_type
     new_storage = case operand of
         other_column : Column ->
             Polyglot_Helpers.handle_polyglot_dataflow_errors <|
-                s.zip function other_column.java_column.getStorage skip_nulls storage_type expect_dataflow_errors
+                s.zip function other_column.java_column.getStorage skip_nulls storage_type
         _ ->
             Polyglot_Helpers.handle_polyglot_dataflow_errors <|
-                s.biMap function operand skip_nulls storage_type expect_dataflow_errors
+                s.biMap function operand skip_nulls storage_type
     Column.Value (Java_Column.new new_name new_storage)
 
 ## PRIVATE
@@ -2149,16 +2144,11 @@ run_binary_op column function operand new_name skip_nulls=True expected_result_t
      handling logic.
    - expected_result_type: The expected result type of the operation. If set to
      `Nothing`, the result type is inferred from the values.
-   - expect_dataflow_errors: Specifies if `function` may raise dataflow errors.
-     If `expect_dataflow_errors` is set to `False` (default), the polyglot code
-     may run some optimizations that may yield invalid behavior if a dataflow
-     error is returned. If the function may raise errors, this should be set to
-     `True`.
-run_unary_op column function new_name skip_nulls=True expected_result_type=Nothing expect_dataflow_errors=False =
+run_unary_op column function new_name skip_nulls=True expected_result_type=Nothing =
     s = column.java_column.getStorage
     storage_type = resolve_storage_type expected_result_type
     new_storage = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
-        s.unaryMap function skip_nulls storage_type expect_dataflow_errors
+        s.unaryMap function skip_nulls storage_type
     Column.Value (Java_Column.new new_name new_storage)
 
 ## PRIVATE
