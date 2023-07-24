@@ -2,11 +2,10 @@
 //!
 //! See also [`span_tree::node::InsertionPoint`].
 
-use crate::prelude::*;
 use super::prelude::*;
+use crate::prelude::*;
 
-use ensogl::display::object;
-
+use span_tree::node::Kind;
 
 
 /// =============
@@ -30,7 +29,7 @@ struct Style {
 // ==============
 
 /// Blank widget configuration options.
-#[derive(Debug, Clone, Copy, PartialEq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Config;
 
 /// Blank widget. Displays a stylized underscore shape.
@@ -44,11 +43,14 @@ impl SpanWidget for Widget {
     type Config = Config;
 
     fn match_node(ctx: &ConfigContext) -> Score {
-        Score::only_if(ctx.span_expression() == "_")
+        let kind = &ctx.span_node.kind;
+        let matches =
+            matches!(kind, Kind::Argument(..) | Kind::Root if ctx.span_expression() == "_");
+        Score::only_if(matches)
     }
 
     fn default_config(_: &ConfigContext) -> Configuration<Self::Config> {
-        Configuration::always(default())
+        Configuration::always(Config)
     }
 
     fn root_object(&self) -> &object::Instance {

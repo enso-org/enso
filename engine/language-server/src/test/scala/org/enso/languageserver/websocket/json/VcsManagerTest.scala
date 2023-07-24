@@ -306,14 +306,16 @@ class VcsManagerTest extends BaseServerTest with RetrySpec with FlakySpec {
     }
 
     "force all pending saves" taggedAs Retry in withCleanRoot { client =>
-      this.timingsConfig.withAutoSave(5.seconds)
+      this.timingsConfig.withAutoSave(10.seconds)
 
-      val fooPath = testContentRoot.file.toPath.resolve("foo.txt")
+      val fooPath = testContentRoot.file.toPath.resolve("foo_pending_save.txt")
       fooPath.toFile.createNewFile()
       Files.write(
         fooPath,
         "123456789".getBytes(StandardCharsets.UTF_8)
       )
+      // Ensure that the file handler is released on Windows
+      Thread.sleep(2000)
       client.send(json"""
           { "jsonrpc": "2.0",
             "method": "text/openFile",
@@ -321,7 +323,7 @@ class VcsManagerTest extends BaseServerTest with RetrySpec with FlakySpec {
             "params": {
               "path": {
                 "rootId": $testContentRootId,
-                "segments": [ "foo.txt" ]
+                "segments": [ "foo_pending_save.txt" ]
               }
             }
           }

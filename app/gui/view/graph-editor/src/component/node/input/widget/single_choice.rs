@@ -1,15 +1,11 @@
 //! Definition of single choice widget.
 
-use crate::prelude::*;
 use super::prelude::*;
+use crate::prelude::*;
 
 use crate::component::node;
 use crate::component::node::input::widget::label;
 
-use enso_frp as frp;
-use ensogl::control::io::mouse;
-use ensogl::data::color;
-use ensogl::display;
 use ensogl::display::object::event;
 use ensogl::display::shape::SimpleTriangle;
 use ensogl_component::button::prelude::INVISIBLE_HOVER_COLOR;
@@ -92,11 +88,11 @@ ensogl::define_endpoints_2! {
 #[allow(dead_code)]
 pub struct Widget {
     config_frp:       Frp,
-    display_object:   display::object::Instance,
+    display_object:   object::Instance,
     hover_area:       Rectangle,
-    content_wrapper:  display::object::Instance,
-    dropdown_wrapper: display::object::Instance,
-    triangle_wrapper: display::object::Instance,
+    content_wrapper:  object::Instance,
+    dropdown_wrapper: object::Instance,
+    triangle_wrapper: object::Instance,
     dropdown:         Rc<RefCell<LazyDropdown>>,
     triangle:         SimpleTriangle,
 }
@@ -119,7 +115,7 @@ impl SpanWidget for Widget {
         Configuration::always(default_config)
     }
 
-    fn root_object(&self) -> &display::object::Instance {
+    fn root_object(&self) -> &object::Instance {
         &self.display_object
     }
 
@@ -135,7 +131,7 @@ impl SpanWidget for Widget {
         //  │ ◎ dropdown_wrapper                │
         //  ╰───────────────────────────────────╯
 
-        let display_object = display::object::Instance::new_named("widget::SingleChoice");
+        let display_object = object::Instance::new_named("widget::SingleChoice");
         let hover_area = Rectangle();
         hover_area
             .set_color(INVISIBLE_HOVER_COLOR)
@@ -445,7 +441,7 @@ impl LazyDropdown {
     /// a request to open the dropdown.
     fn lazy_init(
         &mut self,
-        parent: &display::object::Instance,
+        parent: &object::Instance,
         style: &frp::Stream<Style>,
         current_style: &Style,
     ) {

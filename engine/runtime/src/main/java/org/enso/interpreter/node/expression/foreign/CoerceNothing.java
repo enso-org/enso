@@ -8,7 +8,7 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
-import com.oracle.truffle.api.profiles.ConditionProfile;
+import com.oracle.truffle.api.profiles.CountingConditionProfile;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.error.Warning;
 import org.enso.interpreter.runtime.error.WarningsLibrary;
@@ -34,7 +34,7 @@ public abstract class CoerceNothing extends Node {
       Object value,
       @CachedLibrary(limit = "1") InteropLibrary interop,
       @CachedLibrary(limit = "3") WarningsLibrary warningsLibrary,
-      @Cached("createCountingProfile()") ConditionProfile nullWarningProfile) {
+      @Cached CountingConditionProfile nullWarningProfile) {
     var ctx = EnsoContext.get(this);
     var nothing = ctx.getBuiltins().nothing();
     if (nullWarningProfile.profile(warningsLibrary.hasWarnings(value))) {

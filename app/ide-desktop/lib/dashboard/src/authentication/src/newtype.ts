@@ -37,8 +37,10 @@ interface NotNewtype {
     _$type?: never
 }
 
-/** Converts a value that is not a newtype, to a value that is a newtype. */
-export function asNewtype<T extends Newtype<unknown, string>>(s: UnNewtype<T>): T {
+/** Converts a value that is not a newtype, to a value that is a newtype.
+ * This function intentionally returns another function, to ensure that each function instance
+ * is only used for one type, avoiding the de-optimization caused by polymorphic functions. */
+export function newtypeConstructor<T extends Newtype<unknown, string>>() {
     // This cast is unsafe.
     // `T` has an extra property `_$type` which is used purely for typechecking
     // and does not exist at runtime.
@@ -46,5 +48,5 @@ export function asNewtype<T extends Newtype<unknown, string>>(s: UnNewtype<T>): 
     // The property name is specifically chosen to trigger eslint's `naming-convention` lint,
     // so it should not be possible to accidentally create a value with such a type.
     // eslint-disable-next-line no-restricted-syntax
-    return s as unknown as T
+    return (s: NotNewtype & UnNewtype<T>) => s as unknown as T
 }

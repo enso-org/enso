@@ -1,13 +1,12 @@
 //! Definition of static text label widget.
 
-use crate::prelude::*;
 use super::prelude::*;
+use crate::prelude::*;
 
 use crate::component::node::input::area::TEXT_SIZE;
 
-use ensogl::data::color;
-use ensogl::display::object;
 use ensogl_component::text;
+use span_tree::node::Kind;
 
 
 
@@ -33,7 +32,7 @@ struct Style {
 // ==============
 
 /// Label widget configuration options.
-#[derive(Debug, Clone, Copy, PartialEq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Config;
 
 ensogl::define_endpoints_2! {
@@ -62,12 +61,11 @@ impl SpanWidget for Widget {
     }
 
     fn default_config(ctx: &ConfigContext) -> Configuration<Self::Config> {
-        use span_tree::node::Kind;
         let kind = &ctx.span_node.kind;
         let expr = ctx.span_expression();
         let not_port = matches!(kind, Kind::Token | Kind::NamedArgument | Kind::Access)
             || matches!(kind, Kind::Operation if expr == ".");
-        Configuration::maybe_with_port(default(), !not_port)
+        Configuration::maybe_with_port(Config, !not_port)
     }
 
     fn root_object(&self) -> &object::Instance {
@@ -94,17 +92,25 @@ impl SpanWidget for Widget {
         frp::extend! { network
             let id = ctx.info.identity;
             parent_port_hovered <- widgets_frp.hovered_port_children.map(move |h| h.contains(&id));
-            label_color <- frp.text_color.all_with3(&style, &parent_port_hovered,
-                |state, style, hovered| state.to_color(*hovered, style)
-            );
+            parent_port_hovered <- parent_port_hovered.on_change();
+            text_color <- frp.text_color.on_change();
+            label_color <- all_with3(
+                &style, &text_color, &parent_port_hovered,
+                |style, state, hovered| state.to_color(*hovered, style)
+            ).debounce().on_change();
 
-            color_anim.target <+ label_color.on_change();
+            trace label_color;
+            color_anim.target <+ label_color;
             eval color_anim.value((color) label.set_property_default(color));
 
             weight_anim.target <+ frp.text_sdf_weight.on_change();
             eval weight_anim.value((weight) label.set_property_default(text::SdfWeight(*weight)));
 
-            label_weight <- frp.text_color.all_with4(&frp.text_weight, &style, &parent_port_hovered,
+            label_weight <- all_with4(
+                &frp.text_color,
+                &frp.text_weight,
+                &style,
+                &parent_port_hovered,
                 |state, weight, style, hovered| state.to_weight(*hovered, *weight, style)
             ).debounce().on_change();
             eval label_weight((weight) label.set_property_default(weight));
@@ -174,7 +180,7 @@ pub struct Extension {
 
 /// Configured color state of a label widget.
 #[allow(missing_docs)]
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub enum ColorState {
     #[default]
     Base,

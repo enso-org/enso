@@ -22,14 +22,14 @@ const logger = app.log.logger
 /** The name of the `localStorage` key storing the initial URL of the app. */
 const INITIAL_URL_KEY = `${common.PRODUCT_NAME.toLowerCase()}-initial-url`
 /** Path to the SSE endpoint over which esbuild sends events. */
-const ESBUILD_PATH = '/esbuild'
+const ESBUILD_PATH = './esbuild'
 /** SSE event indicating a build has finished. */
 const ESBUILD_EVENT_NAME = 'change'
 /** Path to the serice worker that caches assets for offline usage.
  * In development, it also resolves all extensionless paths to `/index.html`.
  * This is required for client-side routing to work when doing `./run gui watch`.
  */
-const SERVICE_WORKER_PATH = '/serviceWorker.js'
+const SERVICE_WORKER_PATH = './serviceWorker.js'
 /** One second in milliseconds. */
 const SECOND = 1000
 /** Time in seconds after which a `fetchTimeout` ends. */

@@ -1,8 +1,8 @@
 package org.enso.languageserver.filemanager
 
 import java.io.File
-
 import enumeratum._
+import org.enso.filewatcher.WatcherAdapter
 
 /** A representation of filesystem event.
   *

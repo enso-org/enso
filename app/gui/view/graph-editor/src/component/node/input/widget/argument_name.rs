@@ -7,8 +7,6 @@ use crate::prelude::*;
 
 use crate::node::input::area::TEXT_SIZE;
 
-use ensogl::data::color;
-use ensogl::display::object;
 use ensogl_component::text;
 
 
@@ -32,7 +30,7 @@ struct Style {
 // ==============
 
 /// Separator widget configuration options.
-#[derive(Debug, Clone, Copy, PartialEq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Config;
 
 
@@ -54,7 +52,7 @@ impl SpanWidget for Widget {
     }
 
     fn default_config(_: &ConfigContext) -> Configuration<Self::Config> {
-        Configuration::always(default())
+        Configuration::always(Config)
     }
 
     fn root_object(&self) -> &object::Instance {

@@ -85,8 +85,10 @@ pub(super) mod prelude {
     pub use super::WidgetIdentity;
     pub use super::WidgetsFrp;
 
-    pub use crate::display::shape::Rectangle;
+    pub use ensogl::control::io::mouse;
     pub use ensogl::data::color;
+    pub use ensogl::display::object;
+    pub use ensogl::display::shape::Rectangle;
     pub use ensogl::display::shape::StyleWatchFrp;
     pub use ensogl::display::style::FromTheme;
     pub use ensogl_hardcoded_theme as theme;

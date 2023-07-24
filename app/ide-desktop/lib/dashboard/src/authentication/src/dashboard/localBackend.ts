@@ -4,7 +4,7 @@
  * The functions are asynchronous and return a {@link Promise} that resolves to the response from
  * the API. */
 import * as backend from './backend'
-import * as newtype from '../newtype'
+import * as errorModule from '../error'
 import * as projectManager from './projectManager'
 
 // ========================
@@ -13,24 +13,18 @@ import * as projectManager from './projectManager'
 
 /** Convert a {@link projectManager.IpWithSocket} to a {@link backend.Address}. */
 function ipWithSocketToAddress(ipWithSocket: projectManager.IpWithSocket) {
-    return newtype.asNewtype<backend.Address>(`ws://${ipWithSocket.host}:${ipWithSocket.port}`)
+    return backend.Address(`ws://${ipWithSocket.host}:${ipWithSocket.port}`)
 }
 
 // ====================
 // === LocalBackend ===
 // ====================
 
-/** The currently open project and its ID. */
-interface CurrentlyOpenProjectInfo {
-    id: projectManager.ProjectId
-    project: projectManager.OpenProject
-}
-
 /** Class for sending requests to the Project Manager API endpoints.
  * This is used instead of the cloud backend API when managing local projects from the dashboard. */
 export class LocalBackend implements Partial<backend.Backend> {
     static currentlyOpeningProjectId: backend.ProjectId | null = null
-    static currentlyOpenProject: CurrentlyOpenProjectInfo | null = null
+    static currentlyOpenProjects = new Map<projectManager.ProjectId, projectManager.OpenProject>()
     readonly type = backend.BackendType.local
     private readonly projectManager = projectManager.ProjectManager.default()
 
@@ -53,17 +47,16 @@ export class LocalBackend implements Partial<backend.Backend> {
             id: project.id,
             title: project.name,
             modifiedAt: project.lastOpened ?? project.created,
-            parentId: newtype.asNewtype<backend.AssetId>(''),
+            parentId: backend.DirectoryId(''),
             permissions: [],
             projectState: {
-                type:
-                    project.id === LocalBackend.currentlyOpenProject?.id
-                        ? backend.ProjectState.opened
-                        : project.id === LocalBackend.currentlyOpeningProjectId
-                        ? backend.ProjectState.openInProgress
-                        : project.lastOpened != null
-                        ? backend.ProjectState.closed
-                        : backend.ProjectState.created,
+                type: LocalBackend.currentlyOpenProjects.has(project.id)
+                    ? backend.ProjectState.opened
+                    : project.id === LocalBackend.currentlyOpeningProjectId
+                    ? backend.ProjectState.openInProgress
+                    : project.lastOpened != null
+                    ? backend.ProjectState.closed
+                    : backend.ProjectState.created,
             },
         }))
     }
@@ -91,7 +84,7 @@ export class LocalBackend implements Partial<backend.Backend> {
      * @throws An error if the JSON-RPC call fails. */
     async createProject(body: backend.CreateProjectRequestBody): Promise<backend.CreatedProject> {
         const project = await this.projectManager.createProject({
-            name: newtype.asNewtype<projectManager.ProjectName>(body.projectName),
+            name: projectManager.ProjectName(body.projectName),
             ...(body.projectTemplateName != null
                 ? { projectTemplate: body.projectTemplateName }
                 : {}),
@@ -111,37 +104,45 @@ export class LocalBackend implements Partial<backend.Backend> {
     /** Close the project identified by the given project ID.
      *
      * @throws An error if the JSON-RPC call fails. */
-    async closeProject(projectId: backend.ProjectId): Promise<void> {
+    async closeProject(projectId: backend.ProjectId, title: string | null): Promise<void> {
         if (LocalBackend.currentlyOpeningProjectId === projectId) {
             LocalBackend.currentlyOpeningProjectId = null
         }
-        if (LocalBackend.currentlyOpenProject?.id === projectId) {
-            LocalBackend.currentlyOpenProject = null
+        LocalBackend.currentlyOpenProjects.delete(projectId)
+        try {
+            await this.projectManager.closeProject({ projectId })
+            return
+        } catch (error) {
+            throw new Error(
+                `Unable to close project ${
+                    title != null ? `'${title}'` : `with ID '${projectId}'`
+                }: ${errorModule.tryGetMessage(error) ?? 'unknown error'}.`
+            )
         }
-        await this.projectManager.closeProject({ projectId })
     }
 
     /** Close the project identified by the given project ID.
      *
      * @throws An error if the JSON-RPC call fails. */
     async getProjectDetails(projectId: backend.ProjectId): Promise<backend.Project> {
-        if (projectId !== LocalBackend.currentlyOpenProject?.id) {
+        const cachedProject = LocalBackend.currentlyOpenProjects.get(projectId)
+        if (cachedProject == null) {
             const result = await this.projectManager.listProjects({})
             const project = result.projects.find(listedProject => listedProject.id === projectId)
             const engineVersion = project?.engineVersion
             if (project == null) {
                 throw new Error(`The project ID '${projectId}' is invalid.`)
             } else if (engineVersion == null) {
-                throw new Error(`The project '${projectId}' does not have an engine version.`)
+                throw new Error(`The project '${project.name}' does not have an engine version.`)
             } else {
-                return Promise.resolve<backend.Project>({
+                return {
                     name: project.name,
                     engineVersion: {
-                        lifecycle: backend.VersionLifecycle.stable,
+                        lifecycle: backend.detectVersionLifecycle(engineVersion),
                         value: engineVersion,
                     },
                     ideVersion: {
-                        lifecycle: backend.VersionLifecycle.stable,
+                        lifecycle: backend.detectVersionLifecycle(engineVersion),
                         value: engineVersion,
                     },
                     jsonAddress: null,
@@ -157,43 +158,55 @@ export class LocalBackend implements Partial<backend.Backend> {
                                 ? backend.ProjectState.closed
                                 : backend.ProjectState.created,
                     },
-                })
+                }
             }
         } else {
-            const project = LocalBackend.currentlyOpenProject.project
-            return Promise.resolve<backend.Project>({
-                name: project.projectName,
+            return {
+                name: cachedProject.projectName,
                 engineVersion: {
-                    lifecycle: backend.VersionLifecycle.stable,
-                    value: project.engineVersion,
+                    lifecycle: backend.detectVersionLifecycle(cachedProject.engineVersion),
+                    value: cachedProject.engineVersion,
                 },
                 ideVersion: {
-                    lifecycle: backend.VersionLifecycle.stable,
-                    value: project.engineVersion,
+                    lifecycle: backend.detectVersionLifecycle(cachedProject.engineVersion),
+                    value: cachedProject.engineVersion,
                 },
-                jsonAddress: ipWithSocketToAddress(project.languageServerJsonAddress),
-                binaryAddress: ipWithSocketToAddress(project.languageServerBinaryAddress),
+                jsonAddress: ipWithSocketToAddress(cachedProject.languageServerJsonAddress),
+                binaryAddress: ipWithSocketToAddress(cachedProject.languageServerBinaryAddress),
                 organizationId: '',
-                packageName: project.projectName,
+                packageName: cachedProject.projectName,
                 projectId,
                 state: {
                     type: backend.ProjectState.opened,
                 },
-            })
+            }
         }
     }
 
     /** Prepare a project for execution.
      *
      * @throws An error if the JSON-RPC call fails. */
-    async openProject(projectId: backend.ProjectId): Promise<void> {
+    async openProject(
+        projectId: backend.ProjectId,
+        _body: backend.OpenProjectRequestBody | null,
+        title: string | null
+    ): Promise<void> {
         LocalBackend.currentlyOpeningProjectId = projectId
-        const project = await this.projectManager.openProject({
-            projectId,
-            missingComponentAction: projectManager.MissingComponentAction.install,
-        })
-        if (LocalBackend.currentlyOpeningProjectId === projectId) {
-            LocalBackend.currentlyOpenProject = { id: projectId, project }
+        if (!LocalBackend.currentlyOpenProjects.has(projectId)) {
+            try {
+                const project = await this.projectManager.openProject({
+                    projectId,
+                    missingComponentAction: projectManager.MissingComponentAction.install,
+                })
+                LocalBackend.currentlyOpenProjects.set(projectId, project)
+                return
+            } catch (error) {
+                throw new Error(
+                    `Unable to open project ${
+                        title != null ? `'${title}'` : `with ID '${projectId}'`
+                    }: ${errorModule.tryGetMessage(error) ?? 'unknown error'}.`
+                )
+            }
         }
     }
 
@@ -210,7 +223,7 @@ export class LocalBackend implements Partial<backend.Backend> {
             if (body.projectName != null) {
                 await this.projectManager.renameProject({
                     projectId,
-                    name: newtype.asNewtype<projectManager.ProjectName>(body.projectName),
+                    name: projectManager.ProjectName(body.projectName),
                 })
             }
             const result = await this.projectManager.listProjects({})
@@ -219,7 +232,7 @@ export class LocalBackend implements Partial<backend.Backend> {
             if (project == null) {
                 throw new Error(`The project ID '${projectId}' is invalid.`)
             } else if (engineVersion == null) {
-                throw new Error(`The project '${projectId}' does not have an engine version.`)
+                throw new Error(`The project '${project.name}' does not have an engine version.`)
             } else {
                 return {
                     ami: null,
@@ -242,13 +255,20 @@ export class LocalBackend implements Partial<backend.Backend> {
     /** Delete a project.
      *
      * @throws An error if the JSON-RPC call fails. */
-    async deleteProject(projectId: backend.ProjectId): Promise<void> {
+    async deleteProject(projectId: backend.ProjectId, title: string | null): Promise<void> {
         if (LocalBackend.currentlyOpeningProjectId === projectId) {
             LocalBackend.currentlyOpeningProjectId = null
         }
-        if (LocalBackend.currentlyOpenProject?.id === projectId) {
-            LocalBackend.currentlyOpenProject = null
+        LocalBackend.currentlyOpenProjects.delete(projectId)
+        try {
+            await this.projectManager.deleteProject({ projectId })
+            return
+        } catch (error) {
+            throw new Error(
+                `Unable to delete project ${
+                    title != null ? `'${title}'` : `with ID '${projectId}'`
+                }: ${errorModule.tryGetMessage(error) ?? 'unknown error'}.`
+            )
         }
-        await this.projectManager.deleteProject({ projectId })
     }
 }

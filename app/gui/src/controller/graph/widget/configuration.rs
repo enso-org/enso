@@ -9,7 +9,6 @@ use super::response;
 use enso_suggestion_database::entry::argument_tag_values;
 use enso_suggestion_database::SuggestionDatabase;
 use ide_view::graph_editor::component::node::input::widget;
-use ide_view::graph_editor::component::node::input::widget::single_choice::ChoiceArgConfig;
 use ide_view::graph_editor::ArgumentWidgetConfig;
 
 
@@ -87,7 +86,7 @@ fn to_kind(
                 item_default: ImString::from(item_default).into(),
             }
             .into(),
-        _ => widget::label::Config::default().into(),
+        _ => widget::label::Config.into(),
     }
 }
 
@@ -95,7 +94,7 @@ fn to_choices_and_arguments(
     choices: Vec<response::Choice>,
     db: &SuggestionDatabase,
     parser: &parser::Parser,
-) -> (Vec<widget::Choice>, Vec<ChoiceArgConfig>) {
+) -> (Vec<widget::Choice>, Vec<widget::single_choice::ChoiceArgConfig>) {
     let mut args = Vec::new();
 
     let expressions = choices.iter().map(|c| c.value.as_ref());
@@ -116,7 +115,7 @@ fn to_widget_choice(
     db: &SuggestionDatabase,
     parser: &parser::Parser,
     tag: span_tree::TagValue,
-    arguments: &mut Vec<ChoiceArgConfig>,
+    arguments: &mut Vec<widget::single_choice::ChoiceArgConfig>,
 ) -> widget::Choice {
     let value: ImString = tag.expression.into();
     let label = choice.label.map_or_else(|| value.clone(), |label| label.into());
@@ -127,7 +126,11 @@ fn to_widget_choice(
             Ok(None) => {}
             Ok(Some(config)) => {
                 let configuration = to_configuration(config, db, parser);
-                let arg = ChoiceArgConfig { choice_index, name: arg.name.into(), configuration };
+                let arg = widget::single_choice::ChoiceArgConfig {
+                    choice_index,
+                    name: arg.name.into(),
+                    configuration,
+                };
                 arguments.push(arg);
             }
             Err(err) => {

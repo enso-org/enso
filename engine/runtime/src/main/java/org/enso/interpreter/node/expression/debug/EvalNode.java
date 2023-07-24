@@ -3,6 +3,7 @@ package org.enso.interpreter.node.expression.debug;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.ReportPolymorphism;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.NodeInfo;
@@ -93,13 +94,13 @@ public abstract class EvalNode extends BaseNode {
       State state,
       Text expression,
       @Cached("expression") Text cachedExpression,
-      @Cached("build()") ToJavaStringNode toJavaStringNode,
+      @Shared("toJavaStringNode") @Cached("build()") ToJavaStringNode toJavaStringNode,
       @Cached("toJavaStringNode.execute(expression)") String expressionStr,
       @Cached("callerInfo") CallerInfo cachedCallerInfo,
       @Cached(
               "parseExpression(callerInfo.getLocalScope(), callerInfo.getModuleScope(), expressionStr)")
           RootCallTarget cachedCallTarget,
-      @Cached("build()") ThunkExecutorNode thunkExecutorNode) {
+      @Shared("thunkExecutorNode") @Cached("build()") ThunkExecutorNode thunkExecutorNode) {
     Function thunk = Function.thunk(cachedCallTarget, callerInfo.getFrame());
     return thunkExecutorNode.executeThunk(callerInfo.getFrame(), thunk, state, getTailStatus());
   }
@@ -109,8 +110,8 @@ public abstract class EvalNode extends BaseNode {
       CallerInfo callerInfo,
       State state,
       Text expression,
-      @Cached("build()") ThunkExecutorNode thunkExecutorNode,
-      @Cached("build()") ToJavaStringNode toJavaStringNode) {
+      @Shared("thunkExecutorNode") @Cached("build()") ThunkExecutorNode thunkExecutorNode,
+      @Shared("toJavaStringNode") @Cached("build()") ToJavaStringNode toJavaStringNode) {
     RootCallTarget callTarget =
         parseExpression(
             callerInfo.getLocalScope(),

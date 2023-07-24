@@ -3,15 +3,13 @@
 // FIXME[ao]: This code miss important documentation (e.g. for `Element`, `DragData` and `ListItem`)
 //  and may be unreadable at some places. It should be improved in several next debugging PRs.
 
-use crate::prelude::*;
 use super::prelude::*;
+use crate::prelude::*;
 
 use crate::component::node::input::area::TEXT_SIZE;
 use crate::layers::CommonLayers;
 
-use ensogl::control::io::mouse;
 use ensogl::display;
-use ensogl::display::object;
 use ensogl::Animation;
 use ensogl_component::list_editor::ListEditor;
 use span_tree::node::Kind;
@@ -538,7 +536,7 @@ impl Model {
     }
 }
 
-fn set_margins(object: &display::object::Instance, left: f32, right: f32) {
+fn set_margins(object: &object::Instance, left: f32, right: f32) {
     let margin = object.margin().x();
     let current_left = margin.start.as_pixels();
     let current_right = margin.end.as_pixels();

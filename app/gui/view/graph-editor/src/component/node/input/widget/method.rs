@@ -1,14 +1,13 @@
 //! A widget representing a top-level method call. Displays node background. Instead of `self`
 //! argument, it displays an icon as a first port.
 
-use crate::prelude::*;
 use super::prelude::*;
+use crate::prelude::*;
 
-use ensogl::display;
-use ide_view_component_list_panel_icons as icons;
 use icons::any::View as AnyIcon;
 use icons::component_icons::Id as IconId;
 use icons::SIZE;
+use ide_view_component_list_panel_icons as icons;
 
 
 
@@ -27,15 +26,15 @@ const ICON_GAP: f32 = 10.0;
 
 /// Method widget configuration options.
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Config {}
+pub struct Config;
 
 /// A widget for selecting a single value from a list of available options. The options can be
 /// provided as a static list of strings from argument `tag_values`, or as a dynamic expression.
 #[derive(Debug)]
 #[allow(dead_code)]
 pub struct Widget {
-    display_object: display::object::Instance,
-    icon_wrapper:   display::object::Instance,
+    display_object: object::Instance,
+    icon_wrapper:   object::Instance,
     icon_id:        IconId,
     icon:           AnyIcon,
 }
@@ -47,7 +46,7 @@ impl SpanWidget for Widget {
     type Config = Config;
 
     fn default_config(_: &ConfigContext) -> Configuration<Self::Config> {
-        Configuration::always(Config {})
+        Configuration::always(Config)
     }
 
     fn match_node(ctx: &ConfigContext) -> Score {
@@ -56,7 +55,7 @@ impl SpanWidget for Widget {
         Score::only_if(matches)
     }
 
-    fn root_object(&self) -> &display::object::Instance {
+    fn root_object(&self) -> &object::Instance {
         &self.display_object
     }
 
@@ -68,7 +67,7 @@ impl SpanWidget for Widget {
         // │ ╰───────╯ ╰───────────────────╯ │
         // ╰─────────────────────────────────╯
 
-        let display_object = display::object::Instance::new_named("widget::Method");
+        let display_object = object::Instance::new_named("widget::Method");
         display_object
             .use_auto_layout()
             .set_row_flow()
@@ -76,7 +75,7 @@ impl SpanWidget for Widget {
             .set_children_alignment_left_center()
             .justify_content_center_y();
 
-        let icon_wrapper = display::object::Instance::new_named("icon_wrapper");
+        let icon_wrapper = object::Instance::new_named("icon_wrapper");
         icon_wrapper.set_size((SIZE, SIZE));
         let mut this = Self { display_object, icon_wrapper, icon_id: default(), icon: default() };
         this.set_icon(IconId::default());

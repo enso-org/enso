@@ -1,10 +1,8 @@
 //! Definition of default hierarchy widget. This widget expands each child of its span tree into
 //! a new widget.
 
-use crate::prelude::*;
 use super::prelude::*;
-
-use ensogl::display::object;
+use crate::prelude::*;
 
 
 
@@ -13,7 +11,7 @@ use ensogl::display::object;
 // ==============
 
 /// Label widget configuration options.
-#[derive(Debug, Clone, Copy, PartialEq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Config;
 
 /// Hierarchy widget. This widget expands each child of its span tree into a new widget.
@@ -36,8 +34,10 @@ impl SpanWidget for Widget {
     }
 
     fn default_config(ctx: &ConfigContext) -> Configuration<Self::Config> {
-        let has_port = !ctx.span_node.kind.is_named_argument();
-        Configuration::maybe_with_port(default(), has_port)
+        use span_tree::node::Kind;
+        let has_port =
+            !matches!(ctx.span_node.kind, Kind::NamedArgument | Kind::Chained | Kind::BlockLine);
+        Configuration::maybe_with_port(Config, has_port)
     }
 
     fn root_object(&self) -> &object::Instance {

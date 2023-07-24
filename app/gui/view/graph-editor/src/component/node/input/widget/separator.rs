@@ -1,14 +1,10 @@
 //! Separating line between top-level argument widgets. Handles named argument nodes, creating a
 //! child widget only for the argument value.
 
-use crate::prelude::*;
 use super::prelude::*;
+use crate::prelude::*;
 
 use crate::component::node::HEIGHT as NODE_HEIGHT;
-
-use ensogl::data::color;
-use ensogl::display::object;
-
 
 
 /// =============
@@ -30,7 +26,7 @@ struct Style {
 // ==============
 
 /// Separator widget configuration options.
-#[derive(Debug, Clone, Copy, PartialEq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Config;
 
 
@@ -56,7 +52,7 @@ impl SpanWidget for Widget {
     }
 
     fn default_config(_: &ConfigContext) -> Configuration<Self::Config> {
-        Configuration::inert(default())
+        Configuration::inert(Config)
     }
 
     fn root_object(&self) -> &object::Instance {

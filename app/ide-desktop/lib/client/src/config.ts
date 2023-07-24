@@ -154,7 +154,7 @@ export const CONFIG = contentConfig.OPTIONS.merge(
                 options: {
                     backgroundThrottling: new contentConfig.Option({
                         passToWebApplication: true,
-                        value: true,
+                        value: false,
                         description: 'Throttle animations when run in background.',
                     }),
 

@@ -278,6 +278,7 @@ impl Network {
     where T: EventOutput {
         self.register(OwnedDebounce::new(label, event))
     }
+
     /// Batch all incoming events emitted within a single microtask. The batch will be emitted
     /// after the current program execution finishes, but before returning to the event loop. All
     /// emitted batches are guaranteed to be non-empty.

@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+
 import javax.annotation.processing.Filer;
 import javax.annotation.processing.Processor;
 import javax.annotation.processing.RoundEnvironment;
@@ -125,7 +126,7 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
           "com.oracle.truffle.api.nodes.RootNode",
           "com.oracle.truffle.api.nodes.UnexpectedResultException",
           "com.oracle.truffle.api.profiles.BranchProfile",
-          "com.oracle.truffle.api.profiles.ConditionProfile",
+          "com.oracle.truffle.api.profiles.CountingConditionProfile",
           "java.nio.file.OpenOption",
           "org.enso.interpreter.EnsoLanguage",
           "org.enso.interpreter.node.InlineableNode",
@@ -180,9 +181,9 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
         if (arg.shouldCheckErrors()) {
           String condName = mkArgumentInternalVarName(arg) + DATAFLOW_ERROR_PROFILE;
           out.println(
-              "    private final ConditionProfile "
+              "    private final CountingConditionProfile "
                   + condName
-                  + " = ConditionProfile.createCountingProfile();");
+                  + " = CountingConditionProfile.create();");
         }
 
         if (arg.isPositional() && !arg.isSelf()) {
@@ -348,7 +349,7 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
     List<String> argumentDefs = new ArrayList<>();
     int staticPrefix = 0;
     if (staticInstance) {
-      argumentDefs.add("        new ArgumentDefinition(0, \"selfStatic\", ArgumentDefinition.ExecutionMode.EXECUTE)");
+      argumentDefs.add("        new ArgumentDefinition(0, \"selfStatic\", null, null, ArgumentDefinition.ExecutionMode.EXECUTE)");
       staticPrefix = 1;
     }
     for (MethodDefinition.ArgumentDefinition arg : args) {
@@ -359,7 +360,7 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
                         + (staticPrefix + arg.getPosition())
                         + ", \""
                         + arg.getName()
-                        + "\", ArgumentDefinition.ExecutionMode."
+                        + "\", null, null, ArgumentDefinition.ExecutionMode."
                         + executionMode
                         + ")");
       }

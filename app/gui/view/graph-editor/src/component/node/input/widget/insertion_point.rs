@@ -5,10 +5,8 @@
 //!
 //! See also [`span_tree::node::InsertionPoint`].
 
-use crate::prelude::*;
 use super::prelude::*;
-
-use ensogl::display::object;
+use crate::prelude::*;
 
 
 
@@ -17,7 +15,7 @@ use ensogl::display::object;
 // ==============
 
 /// Insertion point widget configuration options.
-#[derive(Debug, Clone, Copy, PartialEq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Config;
 
 
@@ -35,7 +33,7 @@ impl SpanWidget for Widget {
     }
 
     fn default_config(_: &ConfigContext) -> Configuration<Self::Config> {
-        Configuration::inert(default())
+        Configuration::inert(Config)
     }
 
     fn root_object(&self) -> &object::Instance {

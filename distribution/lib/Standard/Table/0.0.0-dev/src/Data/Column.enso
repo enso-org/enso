@@ -47,8 +47,9 @@ type Column
                  Column.from_vector "My Column" [1, 2, 3, 4, 5]
     from_vector : Text -> Vector -> Column
     from_vector name items =
+        expected_storage_type = Nothing
         Illegal_Argument.handle_java_exception <|
-            Column.Value (Java_Column.fromItems name items)
+            Column.Value (Java_Column.fromItems name items expected_storage_type)
 
     ## PRIVATE
        Creates a new column given a name and an internal Java storage.

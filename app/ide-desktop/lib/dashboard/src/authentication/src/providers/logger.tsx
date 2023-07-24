@@ -1,4 +1,4 @@
-/** @file Defines the React provider for the {@link Logger} interface, along with a hook to use the
+/** @file The React provider for the {@link Logger} interface, along with a hook to use the
  * provider via the shared React context. */
 import * as React from 'react'
 

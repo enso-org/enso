@@ -1,6 +1,7 @@
 package org.enso.interpreter.node.expression.builtin.immutable;
 
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -31,8 +32,8 @@ public abstract class InsertBuiltinVectorNode extends Node {
       Vector vec,
       long index,
       Vector values,
-      @Cached CopyNode copyNode,
-      @CachedLibrary(limit = "3") InteropLibrary interop) {
+      @Shared("copyNode") @Cached CopyNode copyNode,
+      @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary interop) {
     return insertBuiltin(vec.toArray(), index, values.toArray(), copyNode, interop);
   }
 
@@ -41,8 +42,8 @@ public abstract class InsertBuiltinVectorNode extends Node {
       Array vec,
       long index,
       Vector values,
-      @Cached CopyNode copyNode,
-      @CachedLibrary(limit = "3") InteropLibrary interop) {
+      @Shared("copyNode") @Cached CopyNode copyNode,
+      @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary interop) {
     return insertBuiltin(vec, index, values.toArray(), copyNode, interop);
   }
 
@@ -51,8 +52,8 @@ public abstract class InsertBuiltinVectorNode extends Node {
       Object vec,
       long index,
       Vector values,
-      @Cached CopyNode copyNode,
-      @CachedLibrary(limit = "3") InteropLibrary interop) {
+      @Shared("copyNode") @Cached CopyNode copyNode,
+      @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary interop) {
     return insertBuiltin(vec, index, values.toArray(), copyNode, interop);
   }
 
@@ -61,8 +62,8 @@ public abstract class InsertBuiltinVectorNode extends Node {
       Vector vec,
       long index,
       Object values,
-      @Cached CopyNode copyNode,
-      @CachedLibrary(limit = "3") InteropLibrary interop) {
+      @Shared("copyNode") @Cached CopyNode copyNode,
+      @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary interop) {
     return insertBuiltin(vec.toArray(), index, values, copyNode, interop);
   }
 
@@ -71,8 +72,8 @@ public abstract class InsertBuiltinVectorNode extends Node {
       Array vec,
       long index,
       Object values,
-      @Cached CopyNode copyNode,
-      @CachedLibrary(limit = "3") InteropLibrary interop) {
+      @Shared("copyNode") @Cached CopyNode copyNode,
+      @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary interop) {
     return insertBuiltin(vec, index, values, copyNode, interop);
   }
 
@@ -81,8 +82,8 @@ public abstract class InsertBuiltinVectorNode extends Node {
       Object vec,
       long index,
       Object values,
-      @Cached CopyNode copyNode,
-      @CachedLibrary(limit = "3") InteropLibrary interop) {
+      @Shared("copyNode") @Cached CopyNode copyNode,
+      @Shared("interop") @CachedLibrary(limit = "3") InteropLibrary interop) {
     return insertBuiltin(vec, index, values, copyNode, interop);
   }
 
