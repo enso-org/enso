@@ -139,7 +139,7 @@ public abstract class Storage<T> {
    * @return the result of running the function on each row
    */
   public final Storage<?> unaryMap(
-      Function<Object, Value> function,
+      Function<Object, Object> function,
       boolean skipNa,
       StorageType expectedResultType,
       boolean expectDataflowErrors) {
@@ -152,7 +152,7 @@ public abstract class Storage<T> {
       if (skipNa && it == null) {
         storageBuilder.appendNulls(1);
       } else {
-        Value result = function.apply(it);
+        Object result = function.apply(it);
         // TODO [RW] - I'm not 100% sure this is actually improving the performance much without
         // again measuring it, we may need to revise this.
         // (the original code that fas faster had no conversions, but here we are adding a branch
@@ -271,7 +271,7 @@ public abstract class Storage<T> {
   public final Storage<?> vectorizedOrFallbackUnaryMap(
       String name,
       MapOperationProblemBuilder problemBuilder,
-      Function<Object, Value> fallback,
+      Function<Object, Object> fallback,
       boolean skipNa,
       StorageType expectedResultType) {
     if (isUnaryOpVectorized(name)) {
