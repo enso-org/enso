@@ -4,6 +4,8 @@
 use super::prelude::*;
 use crate::prelude::*;
 
+use span_tree::node::Kind;
+
 
 
 // ==============
@@ -34,9 +36,10 @@ impl SpanWidget for Widget {
     }
 
     fn default_config(ctx: &ConfigContext) -> Configuration<Self::Config> {
-        use span_tree::node::Kind;
-        let has_port =
-            !matches!(ctx.span_node.kind, Kind::NamedArgument | Kind::Chained | Kind::BlockLine);
+        let has_port = !matches!(
+            ctx.span_node.kind,
+            Kind::NamedArgument | Kind::ChainedPrefix | Kind::BlockLine
+        );
         Configuration::maybe_with_port(Config, has_port)
     }
 

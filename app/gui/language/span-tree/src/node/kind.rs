@@ -17,8 +17,10 @@ use crate::TagValue;
 pub enum Kind {
     /// A root of the expression tree.
     Root,
-    /// A node chained with parent node. See crate's docs for more info about chaining.
-    Chained,
+    /// A node chained with parent node, part of prefix method application.
+    ChainedPrefix,
+    /// A node chained with parent node, part of infix operator application.
+    ChainedInfix,
     /// A node representing operation (operator or function) of parent Infix, Section or Prefix.
     Operation,
     /// A part of the access chain that is not the primary target (not the leftmost node).
@@ -63,7 +65,7 @@ impl Kind {
         matches!(self, Self::Root { .. })
     }
     pub fn is_chained(&self) -> bool {
-        matches!(self, Self::Chained)
+        matches!(self, Self::ChainedPrefix | Self::ChainedInfix)
     }
     pub fn is_operation(&self) -> bool {
         matches!(self, Self::Operation { .. })
@@ -249,7 +251,8 @@ impl Kind {
     pub fn variant_name(&self) -> &str {
         match self {
             Self::Root => "Root",
-            Self::Chained => "Chained",
+            Self::ChainedPrefix => "ChainedPrefix",
+            Self::ChainedInfix => "ChainedInfix",
             Self::Operation => "Operation",
             Self::Access => "Access",
             Self::Argument(_) => "Argument",
