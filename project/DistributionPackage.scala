@@ -456,13 +456,14 @@ object DistributionPackage {
 
   sealed trait Architecture {
     def name: String
+
     /** Name of the architecture for GraalVM releases
-     */
+      */
     def graalName: String
   }
   object Architecture {
     case object X64 extends Architecture {
-      override def name: String = "amd64"
+      override def name: String      = "amd64"
       override def graalName: String = "x64"
     }
 
