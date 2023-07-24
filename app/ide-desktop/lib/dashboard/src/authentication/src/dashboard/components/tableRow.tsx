@@ -135,7 +135,7 @@ export default function TableRow<T, State = never, RowState = never, Key extends
                 }
             }}
             className={`h-10 transition duration-300 ease-in-out ${className ?? ''} ${
-                selected ? 'bg-gray-200' : ''
+                selected ? 'selected' : ''
             }`}
             {...passthrough}
         >
@@ -144,10 +144,7 @@ export default function TableRow<T, State = never, RowState = never, Key extends
                 // eslint-disable-next-line no-restricted-syntax
                 const Render = column.render
                 return (
-                    <td
-                        key={column.id}
-                        className={`px-4 border-r ${column.className ?? ''}`}
-                    >
+                    <td key={column.id} className={`px-4 border-r ${column.className ?? ''}`}>
                         <Render
                             keyProp={key}
                             item={item}

@@ -111,6 +111,12 @@ body {
       }
     }
 
+    .rounded-rows > tbody > tr.selected {
+      > td {
+        background: rgba(255, 255, 255, 0.4);
+      }
+    }
+
     .h-templates-custom {
       height: 21.5rem;
 

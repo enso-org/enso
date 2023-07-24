@@ -378,7 +378,16 @@ export default function AssetsTable(props: AssetsTableProps) {
             const set = expandedDirectoriesRef.current
             if (set.has(directory.id)) {
                 set.delete(directory.id)
-                setItems(items.filter(item => item.parentId !== directory.id))
+                const foldersToCollapse = new Set([directory.id])
+                setItems(
+                    items.filter(item => {
+                        const shouldKeep = !foldersToCollapse.has(item.parentId)
+                        if (item.type === backendModule.AssetType.directory && !shouldKeep) {
+                            foldersToCollapse.add(item.id)
+                        }
+                        return shouldKeep
+                    })
+                )
             } else {
                 const childDepth = getDepth(key) + 1
                 set.add(directory.id)
