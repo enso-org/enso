@@ -1,5 +1,6 @@
 import project.Any.Any
 import project.Data.Filter_Condition.Filter_Condition
+import project.Data.Json.JS_Object
 import project.Data.Map.Map
 import project.Data.Numbers.Integer
 import project.Data.Range.Range
@@ -60,6 +61,17 @@ type Regex
        internal_regex_object : RegexObject (Truffle)
        (See https://github.com/oracle/graal/blob/master/regex/docs/README.md)
     Value (case_insensitive : Boolean) (internal_regex_object : Any)
+
+    ## PRIVATE
+       Converts this value to a JSON serializable object.
+    to_js_object : JS_Object
+    to_js_object self =
+        JS_Object.from_pairs [["type", "Regex"], ["case_insensitive", self.case_insensitive], ["pattern", self.internal_regex_object.pattern]]
+
+    ## PRIVATE
+       Provides a human-readable representation of the `Regex`.
+    to_display_text : Text
+    to_display_text self = "Regex /" + self.internal_regex_object.pattern + "/" + (if self.case_insensitive then "i" else "")
 
     ## Returns `True` if the input matches against the pattern described by
        `self`, otherwise `False`.

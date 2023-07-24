@@ -28,6 +28,7 @@ polyglot java import org.enso.base.Http_Utils
 
 type HTTP
     ## ADVANCED
+       GROUP Web
        Create a new instance of the HTTP client.
 
        Arguments:

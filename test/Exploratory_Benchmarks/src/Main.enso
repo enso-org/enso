@@ -1,0 +1,3 @@
+import project.Table.Main as Table_Main
+
+main = Table_Main.spec

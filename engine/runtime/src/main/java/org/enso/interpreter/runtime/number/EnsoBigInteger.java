@@ -16,6 +16,7 @@ import java.math.BigInteger;
 /** Internal wrapper for a {@link BigInteger}. */
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
+@SuppressWarnings("truffle-abstract-export")
 public final class EnsoBigInteger extends Number implements TruffleObject {
   private final BigInteger value;
 

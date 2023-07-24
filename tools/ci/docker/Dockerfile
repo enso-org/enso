@@ -1,4 +1,4 @@
-FROM ghcr.io/graalvm/graalvm-ce:ol9-java17-22.3.1
+FROM ghcr.io/graalvm/graalvm-community:17.0.7
 
 USER root
 
@@ -30,7 +30,7 @@ ENV ENSO_RUNTIME_DIRECTORY=/opt/enso/work
 ENV ENSO_LOG_DIRECTORY=/opt/enso/logs
 ENV ENSO_HOME=/volumes/workspace/home
 
-RUN gu install js python r
+RUN gu install js python
 RUN chown -hR ensodev:ensodev /opt/enso
 RUN chmod -R u=rX,g=rX /opt/enso
 RUN chmod a+x /opt/enso/bin/*

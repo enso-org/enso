@@ -171,6 +171,20 @@ function Login() {
                         <span className="ml-2">You don&apos;t have an account?</span>
                     </router.Link>
                 </div>
+                <div className="flex justify-center items-center mt-6">
+                    <router.Link
+                        to={app.ENTER_OFFLINE_MODE_PATH}
+                        className={
+                            'inline-flex items-center font-bold text-blue-500 hover:text-blue-700 ' +
+                            'text-xs text-center'
+                        }
+                    >
+                        <span>
+                            <svg.SvgMask src={ArrowRightIcon} />
+                        </span>
+                        <span className="ml-2">Continue without creating an account</span>
+                    </router.Link>
+                </div>
             </div>
         </div>
     )

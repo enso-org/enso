@@ -107,7 +107,7 @@ export type UserSession = FullUserSession | OfflineUserSession | PartialUserSess
  *
  * See {@link Cognito} for details on each of the authentication functions. */
 interface AuthContextType {
-    goOffline: () => Promise<boolean>
+    goOffline: (shouldShowToast?: boolean) => Promise<boolean>
     signUp: (email: string, password: string, organizationId: string | null) => Promise<boolean>
     confirmSignUp: (email: string, code: string) => Promise<boolean>
     setUsername: (
@@ -208,12 +208,17 @@ export function AuthProvider(props: AuthProviderProps) {
         /* should never change */ setBackendWithoutSavingType,
     ])
 
-    const goOffline = React.useCallback(() => {
-        toast.error('You are offline, switching to offline mode.')
-        goOfflineInternal()
-        navigate(app.DASHBOARD_PATH)
-        return Promise.resolve(true)
-    }, [/* should never change */ goOfflineInternal, /* should never change */ navigate])
+    const goOffline = React.useCallback(
+        (shouldShowToast = true) => {
+            if (shouldShowToast) {
+                toast.error('You are offline, switching to offline mode.')
+            }
+            goOfflineInternal()
+            navigate(app.DASHBOARD_PATH)
+            return Promise.resolve(true)
+        },
+        [/* should never change */ goOfflineInternal, /* should never change */ navigate]
+    )
 
     // This is identical to `hooks.useOnlineCheck`, however it is inline here to avoid any possible
     // circular dependency.
@@ -238,7 +243,9 @@ export function AuthProvider(props: AuthProviderProps) {
                 setForceOfflineMode(false)
             } else if (session == null) {
                 setInitialized(true)
-                setUserSession(null)
+                if (!initialized) {
+                    setUserSession(null)
+                }
             } else {
                 const headers = new Headers([['Authorization', `Bearer ${session.accessToken}`]])
                 const client = new http.Client(headers)

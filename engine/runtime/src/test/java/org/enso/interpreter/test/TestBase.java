@@ -21,6 +21,7 @@ import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Language;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
+import org.graalvm.polyglot.io.IOAccess;
 import org.graalvm.polyglot.proxy.ProxyExecutable;
 
 public abstract class TestBase {
@@ -41,7 +42,7 @@ public abstract class TestBase {
   private static Context.Builder defaultContextBuilder() {
     return Context.newBuilder()
         .allowExperimentalOptions(true)
-        .allowIO(true)
+        .allowIO(IOAccess.ALL)
         .allowAllAccess(true)
         .logHandler(new ByteArrayOutputStream())
         .option(RuntimeOptions.STRICT_ERRORS, "true")

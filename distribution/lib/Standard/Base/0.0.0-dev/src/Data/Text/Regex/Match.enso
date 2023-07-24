@@ -1,4 +1,5 @@
 import project.Any.Any
+import project.Data.Json.JS_Object
 import project.Data.Map.Map
 import project.Data.Numbers.Integer
 import project.Data.Range.Range
@@ -21,6 +22,17 @@ type Match
        internal_regex_result : RegexResult (Truffle)
        (See https://github.com/oracle/graal/blob/master/regex/docs/README.md)
     Value (pattern : Regex) (internal_regex_result : Any) (input : Text)
+
+    ## PRIVATE
+       Converts this value to a JSON serializable object.
+    to_js_object : JS_Object
+    to_js_object self =
+        JS_Object.from_pairs [["type", "Match"], ["text", self.text]]
+
+    ## PRIVATE
+       Provides a human-readable representation of the `Match`.
+    to_display_text : Text
+    to_display_text self = "Match {" + self.tet + "}"
 
     ## PRIVATE
        Returns the start UTF16 character index of a group.

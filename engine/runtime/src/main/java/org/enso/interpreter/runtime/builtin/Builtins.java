@@ -1,6 +1,5 @@
 package org.enso.interpreter.runtime.builtin;
 
-import com.oracle.truffle.api.CompilerDirectives;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -17,8 +16,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import org.enso.compiler.context.CompilerContext;
+
 import org.enso.compiler.Passes;
+import org.enso.compiler.context.CompilerContext;
 import org.enso.compiler.context.FreshNameSupply;
 import org.enso.compiler.core.CompilerError;
 import org.enso.compiler.phase.BuiltinsIrBuilder;
@@ -50,12 +50,12 @@ import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.builtin.Error;
 import org.enso.interpreter.runtime.builtin.Number;
 import org.enso.interpreter.runtime.builtin.System;
-import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.scope.ModuleScope;
-import org.enso.interpreter.runtime.type.TypesFromProxy;
 import org.enso.pkg.QualifiedName;
+
+import com.oracle.truffle.api.CompilerDirectives;
 
 /** Container class for static predefined atoms, methods, and their containing scope. */
 public final class Builtins {
@@ -634,17 +634,6 @@ public final class Builtins {
 
   public Module getModule() {
     return module;
-  }
-
-  /**
-   * Convert from type-system type names to types.
-   *
-   * @param typeName the fully qualified type name of a builtin
-   * @return the associated {@link Atom} if it exists,
-   *     and {@code null} otherwise
-   */
-  public Type fromTypeSystem(String typeName) {
-    return TypesFromProxy.fromTypeSystem(this, typeName);
   }
 
   private record LoadedBuiltinMethod(Method meth, boolean isStatic, boolean isAutoRegister) {

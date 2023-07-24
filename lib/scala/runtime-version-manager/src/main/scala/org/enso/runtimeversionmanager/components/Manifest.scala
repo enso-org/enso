@@ -41,6 +41,8 @@ case class Manifest(
   jvmOptions: Seq[JVMOption],
   brokenMark: Boolean
 ) {
+  require(GraalVMVersion.isCorrectVersionFormat(graalVMVersion))
+  require(GraalVMVersion.isCorrectVersionFormat(graalJavaVersion))
 
   /** Returns a [[GraalVMVersion]] which encapsulates all version information
     * needed to find the runtime required for this release.
