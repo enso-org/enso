@@ -464,7 +464,7 @@ impl RunContext {
         // them as a separate artifact to ease debugging.
         if let Some(test_results_dir) = test_results_dir && is_in_env() {
             // Each platform gets its own log results, so we need to generate unique names.
-            let name = format!("Test_Results_{}", TARGET_OS);
+            let name = format!("Test_Results_{TARGET_OS}");
             if let Err(err) = ide_ci::actions::artifacts::upload_compressed_directory(&test_results_dir, name)
                 .await {
                 // We wouldn't want to fail the whole build if we can't upload the test results.
