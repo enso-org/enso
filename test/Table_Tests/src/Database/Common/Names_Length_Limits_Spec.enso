@@ -86,12 +86,20 @@ spec prefix connection =
                 t1213.row_count . should_equal 2
                 t1213.at "X" . to_vector . should_contain_the_same_elements_as [1, 2]
 
+                t11 = t1.join t1
+                t11.row_count . should_equal 2
+                t11.at "X" . to_vector . should_contain_the_same_elements_as [1, 2]
+
             Test.with_clue "cross_join: " <|
                 t12 = t1.cross_join t2
                 t13 = t1.cross_join t3
                 t1213 = t12.cross_join t13
                 t1213.row_count . should_equal 16
                 t1213.at "X" . to_vector . should_contain_the_same_elements_as [1, 2]
+
+                t11 = t1.cross_join t1
+                t11.row_count . should_equal 4
+                t11.at "X" . to_vector . should_contain_the_same_elements_as [1, 2]
 
         Test.specify "should be fine operating on columns with long names" <|
             ## If we know the maximum length, we choose a length that will be
