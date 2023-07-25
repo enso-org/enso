@@ -17,6 +17,7 @@ import project.Common_Table_Operations.Join.Join_Spec
 import project.Common_Table_Operations.Join.Cross_Join_Spec
 import project.Common_Table_Operations.Join.Zip_Spec
 import project.Common_Table_Operations.Join.Union_Spec
+import project.Common_Table_Operations.Map_Spec
 import project.Common_Table_Operations.Missing_Values_Spec
 import project.Common_Table_Operations.Order_By_Spec
 import project.Common_Table_Operations.Select_Columns_Spec
@@ -99,9 +100,11 @@ type Test_Selection
          `Duration`/`Period` type.
        - supports_nanoseconds_in_time: Specifies if the backend supports
          nanosecond precision in time values.
+       - supports_mixed_columns: Specifies if the backend supports mixed-type
+         columns.
        - supported_replace_params: Specifies the possible values of
          Replace_Params that a backend supports.
-    Config supports_case_sensitive_columns=True order_by=True natural_ordering=False case_insensitive_ordering=True order_by_unicode_normalization_by_default=False case_insensitive_ascii_only=False take_drop=True allows_mixed_type_comparisons=True supports_unicode_normalization=False is_nan_and_nothing_distinct=True distinct_returns_first_row_from_group_if_ordered=True date_time=True fixed_length_text_columns=False supports_decimal_type=False supports_time_duration=False supports_nanoseconds_in_time=False supported_replace_params=Nothing
+    Config supports_case_sensitive_columns=True order_by=True natural_ordering=False case_insensitive_ordering=True order_by_unicode_normalization_by_default=False case_insensitive_ascii_only=False take_drop=True allows_mixed_type_comparisons=True supports_unicode_normalization=False is_nan_and_nothing_distinct=True distinct_returns_first_row_from_group_if_ordered=True date_time=True fixed_length_text_columns=False supports_decimal_type=False supports_time_duration=False supports_nanoseconds_in_time=False supports_mixed_columns=False supported_replace_params=Nothing
 
 spec setup =
     Core_Spec.spec setup
@@ -111,6 +114,7 @@ spec setup =
     Conversion_Spec.spec setup
     Aggregate_Spec.spec setup
     Filter_Spec.spec setup
+    Map_Spec.spec setup
     Missing_Values_Spec.spec setup
     Order_By_Spec.spec setup
     Take_Drop_Spec.spec setup
