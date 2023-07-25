@@ -36,7 +36,7 @@
 
 import * as React from 'react'
 import * as router from 'react-router-dom'
-import * as toast from 'react-hot-toast'
+import * as toastify from 'react-toastify'
 
 import * as detect from 'enso-common/src/detect'
 
@@ -131,7 +131,7 @@ function App(props: AppProps) {
      * will redirect the user between the login/register pages and the dashboard. */
     return (
         <>
-            <toast.Toaster toastOptions={{ style: { maxWidth: '100%' } }} position="top-center" />
+            <toastify.ToastContainer position="top-center" theme="light" closeOnClick={false} />
             <Router basename={getMainPageUrl().pathname}>
                 <AppRouter {...props} />
             </Router>

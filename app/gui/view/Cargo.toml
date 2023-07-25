@@ -28,14 +28,17 @@ ide-view-documentation = { path = "documentation" }
 ide-view-graph-editor = { path = "graph-editor" }
 ide-view-project-view-top-bar = { path = "project-view-top-bar" }
 span-tree = { path = "../language/span-tree" }
+gloo-utils = { workspace = true }
 js-sys = { workspace = true }
 multi-map = { workspace = true }
 nalgebra = { workspace = true }
 ordered-float = { workspace = true }
 serde_json = { workspace = true }
 serde = { version = "1.0", features = ["derive"] }
+strum = { workspace = true }
 uuid = { version = "0.8", features = ["serde", "v4", "wasm-bindgen"] }
 wasm-bindgen = { workspace = true }
+wasm-bindgen-test = { workspace = true }
 welcome-screen = { path = "welcome-screen" }
 
 [dependencies.web-sys]
