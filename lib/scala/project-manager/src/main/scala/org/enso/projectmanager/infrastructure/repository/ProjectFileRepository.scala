@@ -152,7 +152,7 @@ class ProjectFileRepository[
     for {
       project        <- getProject(projectId)
       projectPackage <- getPackage(project.path)
-    } yield projectPackage.getConfig().module
+    } yield projectPackage.getConfig().moduleName
   }
 
   /** @inheritdoc */

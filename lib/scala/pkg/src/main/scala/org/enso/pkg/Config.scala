@@ -15,6 +15,7 @@ import org.enso.editions.{
 import org.enso.pkg.validation.NameValidation
 
 import java.io.Reader
+
 import scala.util.Try
 
 /** An extra project dependency.
@@ -110,7 +111,7 @@ object Contact {
   */
 case class Config(
   name: String,
-  module: String,
+  module: Option[String],
   namespace: String,
   version: String,
   license: String,
@@ -125,6 +126,11 @@ case class Config(
   /** Converts the configuration into a YAML representation. */
   def toYaml: String =
     Printer.spaces2.copy(preserveOrder = true).pretty(Config.encoder(this))
+
+  /** @return the module of name. */
+  def moduleName: String =
+    module.getOrElse(NameValidation.normalizeName(name))
+
 }
 
 object Config {
@@ -147,10 +153,8 @@ object Config {
 
   implicit val decoder: Decoder[Config] = { json =>
     for {
-      name <- json.get[String](JsonFields.name)
-      module <- json.getOrElse[String](JsonFields.module)(
-        NameValidation.normalizeName(name)
-      )
+      name   <- json.get[String](JsonFields.name)
+      module <- json.get[Option[String]](JsonFields.module)
       namespace <- json.getOrElse[String](JsonFields.namespace)(
         defaultNamespace
       )
@@ -216,7 +220,7 @@ object Config {
       )
     }
 
-    val module = originals(JsonFields.module).map(JsonFields.module -> _)
+    val module = config.module.map(value => JsonFields.module -> value.asJson)
 
     val overrides =
       Seq(JsonFields.name -> config.name.asJson) ++

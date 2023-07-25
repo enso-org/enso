@@ -22,7 +22,7 @@ case class SourceFile[F](qualifiedName: QualifiedName, file: F)
 /** Represents an Enso package stored on the hard drive.
   *
   * @param root the root directory of this package
-  * @param config the metadata contained in the package configuration
+  * @param initialConfig the metadata contained in the package configuration
   * @param fileSystem the file system access module
   */
 class Package[F](
@@ -64,7 +64,7 @@ class Package[F](
     * @return a package with the updated name
     */
   def setPackageName(newName: String): Package[F] = {
-    new Package(root, config.copy(module = newName), fileSystem)
+    new Package(root, config.copy(module = Some(newName)), fileSystem)
   }
 
   /** Stores the package metadata on the hard drive. If the package does not exist,
@@ -127,9 +127,12 @@ class Package[F](
     * @return The package object with changed name. The old package is not
     *         valid anymore.
     */
-  def rename(newName: String): Package[F] = updateConfig(
-    _.copy(name = newName, module = NameValidation.normalizeName(newName))
-  )
+  def rename(newName: String): Package[F] = updateConfig { config =>
+    config.copy(
+      name   = newName,
+      module = config.module.map(_ => NameValidation.normalizeName(newName))
+    )
+  }
 
   /** Updates the package config.
     *
@@ -180,12 +183,13 @@ class Package[F](
   /** Returns the module of this package.
     * @return the module of this package.
     */
-  def module: String = config.module
+  def module: String =
+    config.module.getOrElse(NameValidation.normalizeName(name))
 
   def namespace: String = config.namespace
 
   /** A [[LibraryName]] associated with the package. */
-  def libraryName: LibraryName = LibraryName(config.namespace, config.module)
+  def libraryName: LibraryName = LibraryName(config.namespace, module)
 
   /** Parses a file path into a qualified module name belonging to this
     * package.
@@ -287,7 +291,7 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
   ): Package[F] = {
     val config = Config(
       name                 = name,
-      module               = module.getOrElse(NameValidation.normalizeName(name)),
+      module               = module,
       namespace            = namespace,
       version              = version,
       license              = license,
