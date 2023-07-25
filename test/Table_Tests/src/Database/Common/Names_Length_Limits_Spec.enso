@@ -40,7 +40,7 @@ spec prefix connection =
                 r.catch.to_display_text . should_contain "The table name"
                 r.catch.to_display_text . should_contain "is too long"
 
-                r2 = connection.create_table name [["X", Value_Type.Integer]] temporary=True
+                r2 = connection.create_table name [Column_Description.Value "X" Value_Type.Integer] temporary=True
                 r2.should_fail_with Name_Too_Long
 
                 connection.query (SQL_Query.Table_Name name) . should_fail_with Table_Not_Found
@@ -117,7 +117,7 @@ spec prefix connection =
                So if it will work that means that the names have been correctly amended.
             t5 = t1.cross_join t4
             last_column = t5.at (-1)
-            last_column.to_vector. should_contain_the_same_elements_as [4, 10, 18]
+            last_column.to_vector . should_contain_the_same_elements_as [4, 10, 18]
 
         if has_maximum_column_name_length.not then
             Test.specify "should allow to create very long column names" <|
@@ -161,7 +161,7 @@ spec prefix connection =
                 db_table.at name_a . to_vector . should_equal [1, 2, 3]
                 db_table.at name_b . to_vector . should_equal [4, 5, 6]
 
-                db_table_2 = connection.create_table (Name_Generator.random_name "long-column-names") [[name_a, Value_Type.Integer]] temporary=True
+                db_table_2 = connection.create_table (Name_Generator.random_name "long-column-names") [Column_Description.Value name_a Value_Type.Integer] temporary=True
                 Problems.assume_no_problems db_table_2
                 db_table_2.row_count . should_equal 0
 
@@ -197,7 +197,7 @@ spec prefix connection =
                 r1.catch.entity_kind . should_equal "column"
                 [name_a, name_b].should_contain r1.catch.name
 
-                r2 = connection.create_table table_name [[name_a, Value_Type.Integer]] temporary=True
+                r2 = connection.create_table table_name [Column_Description.Value name_a Value_Type.Integer] temporary=True
                 r2.should_fail_with Name_Too_Long
 
                 connection.query (SQL_Query.Table_Name table_name) . should_fail_with Table_Not_Found
