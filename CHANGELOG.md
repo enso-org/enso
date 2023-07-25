@@ -895,6 +895,7 @@
 - [Cache dataflow errors][7193]
 - [Add endpoint for downloading a project][7291]
 - [Update to GraalVM 23.0.0][7176]
+- [Allow users to give a project other than Upper_Snake_Case name][7397]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -1020,9 +1021,10 @@
 [7090]: https://github.com/enso-org/enso/pull/7090
 [7143]: https://github.com/enso-org/enso/pull/7143
 [7168]: https://github.com/enso-org/enso/pull/7168
+[7176]: https://github.com/enso-org/enso/pull/7176
 [7193]: https://github.com/enso-org/enso/pull/7193
 [7291]: https://github.com/enso-org/enso/pull/7291
-[7176]: https://github.com/enso-org/enso/pull/7176
+[7397]: https://github.com/enso-org/enso/pull/7397
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 
