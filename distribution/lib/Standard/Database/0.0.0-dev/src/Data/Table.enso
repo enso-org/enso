@@ -1695,7 +1695,7 @@ type Table
     @delimiter make_delimiter_selector
     split_to_columns : Text | Integer -> Text -> Integer | Nothing -> Problem_Behavior -> Table
     split_to_columns self column delimiter="," column_count=Nothing on_problems=Report_Error =
-        _ = [column delimiter column_count on_problems]
+        _ = [column, delimiter, column_count, on_problems]
         Error.throw (Unsupported_Database_Operation.Error "Table.split_to_columns is not implemented yet for the Database backends.")
 
     ## Splits a column of text into a set of new rows.
@@ -1708,7 +1708,7 @@ type Table
     @delimiter make_delimiter_selector
     split_to_rows : Text | Integer -> Text -> Table
     split_to_rows self column delimiter="," =
-        _ = [column delimiter]
+        _ = [column, delimiter]
         Error.throw (Unsupported_Database_Operation.Error "Table.split_to_rows is not implemented yet for the Database backends.")
 
     ## Tokenizes a column of text into a set of new columns using a regular
@@ -1734,7 +1734,7 @@ type Table
     @column Widget_Helpers.make_column_name_selector
     tokenize_to_columns : Text | Integer -> Text -> Case_Sensitivity -> Integer | Nothing -> Problem_Behavior -> Table
     tokenize_to_columns self column pattern="." case_sensitivity=Case_Sensitivity.Sensitive column_count=Nothing on_problems=Report_Error =
-        _ = [column pattern case_sensitivity column_count on_problems]
+        _ = [column, pattern, case_sensitivity, column_count, on_problems]
         Error.throw (Unsupported_Database_Operation.Error "Table.tokenize_to_columns is not implemented yet for the Database backends.")
 
     ## Tokenizes a column of text into a set of new rows using a regular
