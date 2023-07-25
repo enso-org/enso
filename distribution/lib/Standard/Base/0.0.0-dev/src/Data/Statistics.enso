@@ -21,8 +21,6 @@ from project.Errors.Common import Unsupported_Argument_Types
 polyglot java import java.lang.NullPointerException
 polyglot java import org.enso.base.CompareException
 polyglot java import org.enso.base.statistics.CorrelationStatistics
-polyglot java import org.enso.base.statistics.Moments
-polyglot java import org.enso.base.statistics.MomentStatistic
 polyglot java import org.enso.base.statistics.Rank
 
 ## Specifies how to handle ranking of equal values.
@@ -261,18 +259,6 @@ type Statistic
     rank_data : Vector -> Rank_Method -> Vector
     rank_data input method=Rank_Method.Average =
         method.compute input
-
-## PRIVATE
-   Convert the Enso Statistic into Java equivalent.
-to_moment_statistic : Statistic -> MomentStatistic
-to_moment_statistic s = case s of
-    Statistic.Sum -> Moments.SUM
-    Statistic.Mean -> Moments.MEAN
-    Statistic.Variance p -> if p then Moments.VARIANCE_POPULATION else Moments.VARIANCE
-    Statistic.Standard_Deviation p -> if p then Moments.STANDARD_DEVIATION_POPULATION else Moments.STANDARD_DEVIATION
-    Statistic.Skew p -> if p then Moments.SKEW_POPULATION else Moments.SKEW
-    Statistic.Kurtosis -> Moments.KURTOSIS
-    _ -> Nothing
 
 ## PRIVATE
 wrap_java_call : Any -> Any
