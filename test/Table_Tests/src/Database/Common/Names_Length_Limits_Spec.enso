@@ -340,7 +340,7 @@ spec prefix connection =
                 db_table = src.select_into_database_table connection (Name_Generator.random_name "cross-tab") temporary=True primary_key=[]
 
                 Test.with_clue "cross_tab test will have to be amended once it is implemented: " <|
-                    db_table.cross_tab name_column="X" . should_fail_with Unsupported_Database_Operation
+                    db_table.cross_tab group_by=[] name_column="X" . should_fail_with Unsupported_Database_Operation
 
                 Test.with_clue "transpose test will have to be amended once it is implemented: " <|
                     db_table.transpose attribute_column_name=name_a . should_fail_with Unsupported_Database_Operation
