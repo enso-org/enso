@@ -3,8 +3,8 @@ package org.enso.table.data.column.storage;
 import java.util.AbstractList;
 import java.util.BitSet;
 import java.util.List;
-import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
+import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
@@ -24,7 +24,8 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
    * @param data the underlying data
    * @param size the number of items stored
    */
-  protected SpecializedStorage(T[] data, int size, MapOperationStorage<T, SpecializedStorage<T>> ops) {
+  protected SpecializedStorage(
+      T[] data, int size, MapOperationStorage<T, SpecializedStorage<T>> ops) {
     this.data = data;
     this.size = size;
     this.ops = ops;

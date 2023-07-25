@@ -21,7 +21,8 @@ public final class DateStorage extends SpecializedStorage<LocalDate> {
   }
 
   private static MapOperationStorage<LocalDate, SpecializedStorage<LocalDate>> buildOps() {
-    MapOperationStorage<LocalDate, SpecializedStorage<LocalDate>> t = ObjectStorage.buildObjectOps();
+    MapOperationStorage<LocalDate, SpecializedStorage<LocalDate>> t =
+        ObjectStorage.buildObjectOps();
     t.add(new DateTimeIsInOp<>(LocalDate.class));
     t.add(DatePartExtractors.year());
     t.add(DatePartExtractors.quarter());

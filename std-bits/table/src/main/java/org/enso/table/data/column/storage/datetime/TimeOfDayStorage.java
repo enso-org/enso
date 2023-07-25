@@ -24,7 +24,8 @@ public final class TimeOfDayStorage extends SpecializedStorage<LocalTime> {
   }
 
   private static MapOperationStorage<LocalTime, SpecializedStorage<LocalTime>> buildOps() {
-    MapOperationStorage<LocalTime, SpecializedStorage<LocalTime>> t = ObjectStorage.buildObjectOps();
+    MapOperationStorage<LocalTime, SpecializedStorage<LocalTime>> t =
+        ObjectStorage.buildObjectOps();
     t.add(new DateTimeIsInOp<>(LocalTime.class));
     t.add(DatePartExtractors.hour());
     t.add(DatePartExtractors.minute());
