@@ -5,8 +5,10 @@ import Standard.Base.Errors.File_Error.File_Error
 import Standard.Table.Data.Type.Value_Type.Bits
 from Standard.Table import Table, Value_Type
 
+import Standard.Database.Data.Column.Column
+import Standard.Database.Internal.Replace_Params.Replace_Params
 from Standard.Database import all
-from Standard.Database.Errors import SQL_Error
+from Standard.Database.Errors import SQL_Error, Unsupported_Database_Operation
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
@@ -203,7 +205,7 @@ sqlite_spec connection prefix =
 
     Common_Spec.spec prefix connection
 
-    common_selection = Common_Table_Operations.Main.Test_Selection.Config supports_case_sensitive_columns=False order_by=True natural_ordering=False case_insensitive_ordering=True case_insensitive_ascii_only=True take_drop=False is_nan_and_nothing_distinct=False date_time=False
+    common_selection = Common_Table_Operations.Main.Test_Selection.Config supports_case_sensitive_columns=False order_by=True natural_ordering=False case_insensitive_ordering=True case_insensitive_ascii_only=True take_drop=False is_nan_and_nothing_distinct=False date_time=False supported_replace_params=supported_replace_params
 
     ## For now `advanced_stats`, `first_last`, `text_shortest_longest` and
        `multi_distinct` remain disabled, because SQLite does not provide the
@@ -223,6 +225,12 @@ sqlite_spec connection prefix =
     Common_Table_Operations.Main.spec setup
 
     connection.close
+
+## PRIVATE
+supported_replace_params : Set Replace_Params
+supported_replace_params =
+    e = [Replace_Params.Value Text Case_Sensitivity.Default False, Replace_Params.Value Text Case_Sensitivity.Sensitive False, Replace_Params.Value Text Case_Sensitivity.Default True, Replace_Params.Value Text Case_Sensitivity.Sensitive True, Replace_Params.Value Text Case_Sensitivity.Insensitive True]
+    Set.from_vector e
 
 spec =
     enso_project.data.create_directory

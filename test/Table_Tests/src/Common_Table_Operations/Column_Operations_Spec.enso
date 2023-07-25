@@ -1,6 +1,10 @@
 from Standard.Base import all
+
 import Standard.Base.Errors.Common.Arithmetic_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Meta.Type
+import Standard.Database.Data.Column.Column
+import Standard.Database.Internal.Replace_Params.Replace_Params
 
 from Standard.Table import Value_Type
 from Standard.Table.Data.Type.Value_Type import Bits
@@ -1038,6 +1042,103 @@ spec setup =
                 op a True . should_fail_with Invalid_Value_Type
 
     Test.group prefix+"Column Operations - Text Replace" <|
+        do_replace column term new_text case_sensitivity=Case_Sensitivity.Default only_first=False expected =
+            case setup.is_database of
+                True ->
+                    input_type = Meta.type_of term
+                    params = Replace_Params.Value input_type case_sensitivity only_first
+                    supported_replace_params = setup.test_selection.supported_replace_params
+                    supported_replace_params . should_be_a Set
+                    are_params_supported = supported_replace_params.contains params
+                    case are_params_supported of
+                        True -> column.replace term new_text case_sensitivity only_first . to_vector . should_equal expected
+                        False -> column.replace term new_text case_sensitivity only_first . should_fail_with Unsupported_Database_Operation
+                False ->
+                    column.replace term new_text case_sensitivity only_first . to_vector . should_equal expected
+
+        Test.group prefix+"replace: literal text pattern and replacement" <|
+            col0 = table_builder [["x", ['hello Hello', 'hello hello', 'HELLO HELLO']]] . at "x"
+            col1 = table_builder [["x", ['a[bcd] A[bCd] a[bcd]', 'abac ad Ab aCAd']]] . at "x"
+
+            Test.specify "case_sensitivity=sensitive/default use_regex=false only_first=false"
+                do_replace col0 'hello' 'bye' expected=['bye Hello', 'bye bye', 'HELLO HELLO']
+                do_replace col0 'hello' 'bye' case_sensitivity=Case_Sensitivity.Default expected=['bye Hello', 'bye bye', 'HELLO HELLO']
+                do_replace col0 'hello' 'bye' case_sensitivity=Case_Sensitivity.Sensitive expected=['bye Hello', 'bye bye', 'HELLO HELLO']
+                do_replace col1 'a[bcd]' 'hey' expected=['hey A[bCd] hey', 'abac ad Ab aCAd']
+
+            Test.specify "case_sensitivity=sensitive/default use_regex=false only_first=true"
+                do_replace col0 'hello' 'bye' only_first=True expected=['bye Hello', 'bye hello', 'HELLO HELLO']
+                do_replace col1 'a[bcd]' 'hey' only_first=True expected=['hey A[bCd] a[bcd]', 'abac ad Ab aCAd']
+
+            Test.specify "case_sensitivity=insensitive use_regex=false only_first=false"
+                do_replace col0 'hello' 'bye' case_sensitivity=Case_Sensitivity.Insensitive expected=['bye bye', 'bye bye', 'bye bye']
+                do_replace col1 'a[bcd]' 'hey' case_sensitivity=Case_Sensitivity.Insensitive expected=['hey hey hey', 'abac ad Ab aCAd']
+
+            Test.specify "case_sensitivity=insensitive use_regex=false only_first=true"
+                do_replace col0 'hello' 'bye' case_sensitivity=Case_Sensitivity.Insensitive only_first=True expected=['bye Hello', 'bye hello', 'bye HELLO']
+                do_replace col1 'a[bcd]' 'hey' case_sensitivity=Case_Sensitivity.Insensitive only_first=True expected=['hey A[bCd] a[bcd]', 'abac ad Ab aCAd']
+
+        Test.group prefix+"replace: literal regex pattern and replacement" <|
+            col1 = table_builder [["x", ['a[bcd] A[bCd] a[bcd]', 'abac ad Ab aCAd']]] . at "x"
+
+            Test.specify "case_sensitivity=sensitive/default use_regex=True only_first=false"
+                do_replace col1 'a[bcd]'.to_regex 'hey' expected=['a[bcd] A[bCd] a[bcd]', 'heyhey hey Ab aCAd']
+
+            Test.specify "case_sensitivity=sensitive/default use_regex=True only_first=true"
+                do_replace col1 'a[bcd]'.to_regex 'hey' only_first=True expected=['a[bcd] A[bCd] a[bcd]', 'heyac ad Ab aCAd']
+
+            Test.specify "case_sensitivity=insensitive use_regex=True only_first=false"
+                do_replace col1 'a[bcd]'.to_regex 'hey' case_sensitivity=Case_Sensitivity.Insensitive expected=['a[bcd] A[bCd] a[bcd]', 'heyhey hey hey heyhey']
+
+            Test.specify "case_sensitivity=insensitive use_regex=True only_first=true"
+                do_replace col1 'a[bcd]'.to_regex 'hey' case_sensitivity=Case_Sensitivity.Insensitive only_first=True expected=['a[bcd] A[bCd] a[bcd]', 'heyac ad Ab aCAd']
+
+            Test.specify "can properly escape complex regexes" <|
+                regex = "^([^\(]+)|(?<foo>\w\d[a-z])+$"
+                col = table_builder [["x", [regex]]] . at "x"
+                do_replace col regex "asdf" ["asdf"]
+
+        Test.group prefix+"replace: pattern and replacement columns" <|
+            table = table_builder [["x", ['hello Hello', 'hello hello', 'HELLO HELLO', 'a[bcd] A[bCd] a[bcd]', 'abac ad Ab aCAd']], ["patterns", ['hello', 'hello', 'hello', 'a[bcd]', 'a[bcd]']], ["replacements", ['bye', 'bye', 'bye', 'hey', 'hey']]]
+            col = table.at "x"
+            patterns = table.at "patterns"
+            replacements = table.at "replacements"
+
+            Test.specify "case_sensitivity=sensitive/default use_regex=false only_first=false"
+                do_replace col patterns replacements expected=['bye Hello', 'bye bye', 'HELLO HELLO', 'hey A[bCd] hey', 'abac ad Ab aCAd']
+                do_replace col patterns replacements case_sensitivity=Case_Sensitivity.Default expected=['bye Hello', 'bye bye', 'HELLO HELLO', 'hey A[bCd] hey', 'abac ad Ab aCAd']
+                do_replace col patterns replacements case_sensitivity=Case_Sensitivity.Sensitive expected=['bye Hello', 'bye bye', 'HELLO HELLO', 'hey A[bCd] hey', 'abac ad Ab aCAd']
+
+            Test.specify "case_sensitivity=sensitive/default use_regex=false only_first=true"
+                do_replace col patterns replacements only_first=True expected=['bye Hello', 'bye hello', 'HELLO HELLO', 'hey A[bCd] a[bcd]', 'abac ad Ab aCAd']
+
+            Test.specify "case_sensitivity=insensitive use_regex=false only_first=false"
+                do_replace col patterns replacements case_sensitivity=Case_Sensitivity.Insensitive expected=['bye bye', 'bye bye', 'bye bye', 'hey hey hey', 'abac ad Ab aCAd']
+
+            Test.specify "case_sensitivity=insensitive use_regex=false only_first=true"
+                do_replace col patterns replacements case_sensitivity=Case_Sensitivity.Insensitive only_first=True expected=['bye Hello', 'bye hello', 'bye HELLO', 'hey A[bCd] a[bcd]', 'abac ad Ab aCAd']
+
+        if setup.is_database then
+            col = table_builder [["A", ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot"]]] . at 'A'
+            Test.specify "should not allow Case_Sensitivity.Insensitive with a non-default locale" <|
+                locale = Locale.new "en" "GB" "UTF-8"
+                col.replace 'asdf' 'zxcv' case_sensitivity=(Case_Sensitivity.Insensitive locale) . should_fail_with Illegal_Argument
+
+            Test.specify "column name" <|
+                table = table_builder [["x", ['hello Hello', 'hello hello', 'HELLO HELLO', 'a[bcd] A[bCd] a[bcd]', 'abac ad Ab aCAd']], ["patterns", ['hello', 'hello', 'hello', 'a[bcd]', 'a[bcd]']], ["replacements", ['bye', 'bye', 'bye', 'hey', 'hey']]]
+                col = table.at "x"
+                patterns = table.at "patterns"
+                replacements = table.at "replacements"
+
+                supported_replace_params = setup.test_selection.supported_replace_params
+                if supported_replace_params.contains (Replace_Params.Value Text Case_Sensitivity.Default False) then
+                    col.replace 'hello' 'bye' . name . should_equal 'replace([x], \'hello\', \'bye\')'
+                if supported_replace_params.contains (Replace_Params.Value Regex Case_Sensitivity.Default False) then
+                    col.replace 'a[bcd]'.to_regex 'hey' . name . should_equal 'replace([x], \'a[bcd]\', \'hey\')'
+                if supported_replace_params.contains (Replace_Params.Value Column Case_Sensitivity.Default False) then
+                    col.replace patterns replacements . name . should_equal 'replace([x], [patterns], [replacements])'
+
+    Test.group prefix+"Column Operations - Text Replace (in-memory only)" <|
         if setup.is_database.not then
             t4 = table_builder [["A", ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot"]], ["B", ["A","O","a","E","o","O"]], ["C", [1,2,3,4,5,6]], ["D", ['',Nothing,'',Nothing,'','']]]
             a = t4.at "A"
@@ -1058,6 +1159,22 @@ spec setup =
                 a.replace "[aeiou]".to_regex "#" . to_vector . should_equal ["Alph#", "Br#v#", "Ch#rl##", "D#lt#", "Ech#", "F#xtr#t"]
                 a.replace "[aeiou]".to_regex "#" . to_vector . should_equal ["Alph#", "Br#v#", "Ch#rl##", "D#lt#", "Ech#", "F#xtr#t"]
                 a.replace "([aeiou])(.*?)[aeiou]".to_regex "$1$2$1" . to_vector . should_equal ["Alpha", "Brava", "Charlae", "Delte", "Echo", "Foxtrot"]
+
+            Test.specify "should handle unicode" <|
+                table = table_builder [["x", ["śćxx", "ąąasdfąą", "aﬃb"]], ["patterns", ["ć", "ąą", "ﬃ"]], ["replacements", ["abc", "def", "ghi"]]]
+                col = table.at "x"
+                patterns = table.at "patterns"
+                replacements = table.at "replacements"
+
+                col.replace patterns replacements . to_vector . should_equal ["śabcxx", "defasdfdef", "aghib"]
+
+            Test.specify "should take pattern and replacement string columns" <|
+                t = table_builder [["x", ["hello", "what", "yes"]], ["patterns", ["ell", "wh", "es"]], ["replacements", ["xyz", "qwer", "asdf"]]]
+                col = t.at "x"
+                patterns = t.at "patterns"
+                replacements = t.at "replacements"
+
+                col.replace patterns replacements . to_vector . should_equal ["hxyzo", "qwerat", "yasdf"]
 
             Test.specify "should only allow replace on Text columns" <|
                 c.replace "a" "#" . should_fail_with Invalid_Value_Type

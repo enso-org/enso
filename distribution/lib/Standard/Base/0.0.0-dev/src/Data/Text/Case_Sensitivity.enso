@@ -1,3 +1,4 @@
+import project.Any.Any
 import project.Data.Locale.Locale
 import project.Data.Text.Regex.Regex
 import project.Data.Text.Text
@@ -60,3 +61,12 @@ type Case_Sensitivity
     to_explicit_sensitivity_in_memory self = case self of
         Case_Sensitivity.Default -> Case_Sensitivity.Sensitive
         _ -> self
+
+    ## PRIVATE
+       Throws an error if self is Insensitive with a non-default locale
+    disallow_non_default_locale : Any -> Any
+    disallow_non_default_locale self ~action = case self of
+        Case_Sensitivity.Insensitive locale -> if locale == Locale.default then action else
+            msg = "Custom locales are not supported for this operation."
+            Error.throw (Illegal_Argument.Error msg)
+        _ -> action
