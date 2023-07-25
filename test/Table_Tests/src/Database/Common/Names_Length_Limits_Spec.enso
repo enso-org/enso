@@ -69,7 +69,7 @@ spec prefix connection =
                concatenating two of such names, the result will exceed the limit.
                If we don't know the limit, we just choose a very long name.
             name_length = case connection.base_connection.max_table_name_length of
-                Nothing -> 5000
+                Nothing -> big_name_length
                 max : Integer -> max
 
             name_1 = ("x" * (name_length - 1)) + "1"
@@ -92,6 +92,32 @@ spec prefix connection =
                 t1213 = t12.cross_join t13
                 t1213.row_count . should_equal 16
                 t1213.at "X" . to_vector . should_contain_the_same_elements_as [1, 2]
+
+        Test.specify "should be fine operating on columns with long names" <|
+            ## If we know the maximum length, we choose a length that will be
+               just short enough to fit in the limit, but long enough that after
+               concatenating two of such names, the result will exceed the limit.
+               If we don't know the limit, we just choose a very long name.
+            name_length = case connection.base_connection.max_column_name_length of
+                Nothing -> big_name_length
+                max : Integer -> max
+
+            name_1 = ("x" * (name_length - 1)) + "1"
+            name_2 = ("x" * (name_length - 1)) + "2"
+            src = Table.new [[name_1, [1, 2, 3]], [name_2, [4, 5, 6]]]
+            t1 = src.select_into_database_table connection (Name_Generator.random_name "long-column-names") temporary=True
+            t2 = t1.aggregate [Aggregate_Column.Group_By name_1, Aggregate_Column.Maximum name_2]
+            # The newly added column would by default have a name exceeding the limit, if there's one - and its 'dumbly' truncated name will clash with the already existing column.
+            t3 = t1.set (t1.at name_1 * t1.at name_2)
+            t4 = t2.join t3 on=name_1 join_kind=Join_Kind.Right_Outer right_prefix="Right_"
+            t4.row_count . should_equal 3
+            t4.column_names.length . should_equal 5
+            ## By adding another level of a join, we ensure that there exists a subquery inside this query.
+               If too-big-name handling were wrong here, such subquery would contain clashing column names.
+               So if it will work that means that the names have been correctly amended.
+            t5 = t1.cross_join t4
+            last_column = t5.at (-1)
+            last_column.to_vector. should_contain_the_same_elements_as [4, 10, 18]
 
         if has_maximum_column_name_length.not then
             Test.specify "should allow to create very long column names" <|
