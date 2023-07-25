@@ -1493,7 +1493,7 @@ fn test(code: &str, expect: lexpr::Value) {
 }
 
 
-// === Testing inputs containing syntax error ===
+// === Testing inputs containing syntax errors ===
 
 #[derive(Debug, Eq, PartialEq, Default, Copy, Clone)]
 struct Errors {
