@@ -1,4 +1,4 @@
-/** @file A horizontal selector for all possible permissions. */
+/** @file A selector for all possible permissions. */
 import * as React from 'react'
 
 import * as backend from '../backend'

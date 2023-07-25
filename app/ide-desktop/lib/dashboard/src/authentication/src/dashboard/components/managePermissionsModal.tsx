@@ -270,7 +270,7 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
                         left: position.left + window.scrollX,
                         top: position.top + window.scrollY,
                     }}
-                    className="sticky bg-white shadow-soft rounded-lg w-64"
+                    className="sticky bg-white shadow-soft rounded-2xl gap-2 w-64 pt-2 pr-4 pb-3 pl-3"
                     onSubmit={onSubmit}
                     onClick={mouseEvent => {
                         mouseEvent.stopPropagation()
@@ -279,16 +279,17 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
                     <button type="button" className="absolute right-0 m-2" onClick={unsetModal}>
                         <img src={CloseIcon} />
                     </button>
-                    <h2 className="inline-block font-semibold m-2">
-                        {user == null ? 'Share' : 'Update permissions'}
-                    </h2>
+                    <div>
+                        <h2 className="text-sm font-bold">Invite</h2>
+                    </div>
                     <div className="mx-2 my-1">
                         <label htmlFor="share_with_user_email">Email</label>
                     </div>
-                    <div className="mx-2">
+                    <div className="flex">
                         <Autocomplete
                             autoFocus
                             multiple
+                            placeholder="Type usernames or emails to search or invite"
                             maxItemsToShow={MAX_AUTOCOMPLETE_ITEMS_TO_SHOW}
                             disabled={rawUser != null}
                             inputRef={userEmailRef}
@@ -296,6 +297,7 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
                             itemNamePlural="users"
                             initialValue={emails[0] ?? null}
                             items={matchingUsers.map(matchingUser => matchingUser.email)}
+                            className="grow"
                             onInput={newEmail => {
                                 const lowercaseEmail = newEmail.toLowerCase()
                                 setMatchingUsers(
@@ -306,6 +308,7 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
                             }}
                             onChange={onEmailsChange}
                         />
+                        <button>Invite</button>
                     </div>
                     {!willInviteNewUser && (
                         <>

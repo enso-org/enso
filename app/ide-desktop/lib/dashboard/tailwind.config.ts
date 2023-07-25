@@ -45,7 +45,7 @@ export const theme = {
         },
         fontSize: {
             'xs-mini': '0.71875rem',
-            vs: '0.8125rem',
+            sm: '0.8125rem',
         },
         spacing: {
             '1.75': '0.4375rem',
@@ -55,6 +55,7 @@ export const theme = {
             '18': '4.5rem',
             '29': '7.25rem',
             '30': '7.5rem',
+            '30.25': '7.5625rem',
             '42': '10.5rem',
             '54': '13.5rem',
             '70': '17.5rem',
