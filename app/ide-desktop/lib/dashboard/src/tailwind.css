@@ -2,6 +2,9 @@
 
 body {
   margin: 0;
+  backdrop-filter: blur(64px);
+  background: url("enso-assets/background.png") center / cover no-repeat, rgba(255, 255, 255, 0.80);
+  background-blend-mode: lighten;
 }
 
 /* These styles MUST still be copied
