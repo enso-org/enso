@@ -188,9 +188,7 @@ export default function Table<T, State = never, RowState = never, Key extends st
                 return (
                     <th
                         key={column.id}
-                        className={`text-vs px-4 py-1 bg-clip-padding border-transparent border-l-2 border-r-2 first:border-l-0 last:border-r-0 font-semibold text-left ${
-                            column.className ?? ''
-                        }`}
+                        className={`text-vs font-semibold ${column.className ?? ''}`}
                     >
                         <Heading
                             // @ts-expect-error The following line is safe; the type error occurs

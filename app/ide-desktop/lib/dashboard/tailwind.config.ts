@@ -66,6 +66,7 @@ export const theme = {
             '36': '9rem',
             '40': '10rem',
             '60': '15rem',
+            '80': '20rem',
             '96': '24rem',
         },
         opacity: {

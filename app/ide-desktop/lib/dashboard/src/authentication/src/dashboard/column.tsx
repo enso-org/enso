@@ -88,15 +88,19 @@ export const COLUMN_NAME: Record<Column, string> = {
     [Column.docs]: 'Docs',
 } as const
 
+const COLUMN_COMMON_CSS_CLASSES =
+    'text-left bg-clip-padding border-transparent border-l-2 border-r-2 first:border-l-0 last:border-r-0'
+
 /** CSS classes for every column. Currently only used to set the widths. */
 export const COLUMN_CSS_CLASS: Record<Column, string> = {
-    [Column.name]: 'min-w-60 rounded-l-full',
-    [Column.modified]: 'min-w-40 last:rounded-r-full',
-    [Column.sharedWith]: 'min-w-36 last:rounded-r-full',
-    [Column.tags]: 'min-w-80 last:rounded-r-full',
-    [Column.accessedByProjects]: 'min-w-96 last:rounded-r-full',
-    [Column.accessedData]: 'min-w-96 last:rounded-r-full',
-    [Column.docs]: 'min-w-96 last:rounded-r-full',
+    [Column.name]: `min-w-60 px-1.5 py-2 rounded-l-full ${COLUMN_COMMON_CSS_CLASSES}`,
+    [Column.modified]: `min-w-40 px-4 py-1 last:rounded-r-full ${COLUMN_COMMON_CSS_CLASSES}`,
+    [Column.sharedWith]: `min-w-36 px-4 py-1 last:rounded-r-full ${COLUMN_COMMON_CSS_CLASSES}`,
+    [Column.tags]: `min-w-80 px-4 py-1 last:rounded-r-full ${COLUMN_COMMON_CSS_CLASSES}`,
+    [Column.accessedByProjects]: `min-w-96 px-4 py-1 last:rounded-r-full \
+${COLUMN_COMMON_CSS_CLASSES}`,
+    [Column.accessedData]: `min-w-96 px-4 py-1 last:rounded-r-full ${COLUMN_COMMON_CSS_CLASSES}`,
+    [Column.docs]: `min-w-96 px-4 py-1 last:rounded-r-full ${COLUMN_COMMON_CSS_CLASSES}`,
 } as const
 
 /** {@link table.ColumnProps} for an unknown variant of {@link backend.Asset}. */

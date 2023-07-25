@@ -38,7 +38,7 @@ export default function DriveBar(props: DriveBarProps) {
     )
 
     return (
-        <div className="flex">
+        <div className="flex py-0.5">
             <div className="flex gap-2.5">
                 <button
                     className="flex items-center bg-white rounded-full h-8 px-2.5"

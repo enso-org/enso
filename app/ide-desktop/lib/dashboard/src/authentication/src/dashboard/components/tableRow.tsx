@@ -144,12 +144,7 @@ export default function TableRow<T, State = never, RowState = never, Key extends
                 // eslint-disable-next-line no-restricted-syntax
                 const Render = column.render
                 return (
-                    <td
-                        key={column.id}
-                        className={`px-4 bg-clip-padding border-transparent border-l-2 border-r-2 first:border-l-0 last:border-r-0 ${
-                            column.className ?? ''
-                        }`}
-                    >
+                    <td key={column.id} className={column.className ?? ''}>
                         <Render
                             keyProp={key}
                             item={item}
