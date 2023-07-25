@@ -241,6 +241,20 @@ spec prefix connection =
                 t2.at (w.truncated_names.at 0) . to_vector . should_equal [3]
                 t2.at (w.truncated_names.at 1) . to_vector . should_equal [6]
 
+                # This should work even if there is so many columns that more than one digit is needed to deduplicate
+                names = (0.up_to 15).map i->
+                    letter = Text.from_codepoints [65 + i]
+                    "x" * (max_column_name_length - 1) + letter
+                src = Table.new (names.map_with_index i-> name-> [name, [100 + i, 200 + i]])
+                db_table = src.select_into_database_table connection (Name_Generator.random_name "long-column-names") temporary=True
+                Problems.assume_no_problems db_table
+                t2 = db_table.aggregate (names.map name-> Aggregate_Column.Maximum name)
+                w = Problems.expect_warning Truncated_Column_Names t2
+                w.original_names . should_equal (names.map name-> "Maximum " + name)
+                t2.column_names . should_equal w.truncated_names
+                (0.up_to 15).each i->
+                    t2.at (w.truncated_names.at i) . to_vector . should_equal [200 + i]
+
             Test.specify "should truncate and deduplicate the names in join/cross_join, and issue a warning" <|
                 name_a = "x" * (max_column_name_length - 1) + "A"
                 name_b = "x" * (max_column_name_length - 1) + "B"
