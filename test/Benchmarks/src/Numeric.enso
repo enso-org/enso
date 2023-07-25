@@ -21,21 +21,17 @@ bench =
     IO.println <| "Creating integers"
     integers = Vector.new vector_size _-> faker.integer -1000000000 1000000000
 
-    IO.println "DEC"
-    IO.println <| decimals.take 20
+    funs.map pair->
+        name = pair.at 0
+        fun = pair.at 1
+        IO.println <| "Benchmarking decimal " + name
+        Bench.measure (decimals.map fun) name iter_size num_iterations
 
-    ##
-        funs.map pair->
-            name = pair.at 0
-            fun = pair.at 1
-            IO.println <| "Benchmarking decimal " + name
-            Bench.measure (decimals.map fun) name iter_size num_iterations
-
-        funs.map pair->
-            name = pair.at 0
-            fun = pair.at 1
-            IO.println <| "Benchmarking integer" + name
-            Bench.measure (integers.map fun) name iter_size num_iterations
+    funs.map pair->
+        name = pair.at 0
+        fun = pair.at 1
+        IO.println <| "Benchmarking integer" + name
+        Bench.measure (integers.map fun) name iter_size num_iterations
 
     [True, False].map use_bankers->
         [0, -2, 2].map decimal_places->

@@ -1,6 +1,6 @@
-package org.enso.base.math;
+package org.enso.polyglot.common_utils;
 
-public class Math_Utils {
+public class Core_Math_Utils {
   /** Minimum value for the `decimal_places` parameter to `roundDouble`. */
   private static final double ROUND_MIN_DECIMAL_PLACES = -15;
 
