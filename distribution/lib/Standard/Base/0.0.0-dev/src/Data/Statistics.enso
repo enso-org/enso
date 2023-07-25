@@ -153,8 +153,9 @@ type Statistic
     compute_bulk : Vector -> Vector Statistic -> Vector Any
     compute_bulk data statistics=[Statistic.Count, Statistic.Sum] =
         moment_order = statistics.map .order
+        has_min_max = statistics.any (s-> s == Statistic.Minimum || s == Statistic.Maximum)
         max_moment_order = moment_order.filter (v-> v != Nothing) . fold 0 .max
-        counter = data.fold (Accumulator.new max_moment_order) current-> value-> compute_fold current value
+        counter = data.fold (Accumulator.new has_min_max max_moment_order) current-> value-> compute_fold current value
 
         report_error stats =
             first = 0.up_to stats.length . find i-> (moment_order.at i . is_nothing . not)
@@ -197,12 +198,13 @@ type Statistic
 
         if statistics.any is_unsupported then Error.throw (Illegal_Argument.Error ("Unsupported Statistics ( " + (statistics.filter is_unsupported . to_text) ") for running calculations.")) else
             moment_order = statistics.map .order
+            has_min_max = statistics.any (s-> s == Statistic.Minimum || s == Statistic.Maximum)
             max_moment_order = moment_order.filter (v-> v != Nothing) . fold 0 .max
 
             Panic.handle_wrapped_dataflow_error <|
                 output = Vector.new_builder data.length
 
-                counter = Accumulator.new max_moment_order
+                counter = Accumulator.new has_min_max max_moment_order
                 data.fold counter current->value->
                     result = compute_fold current value
 
@@ -347,27 +349,26 @@ is_valid v = case v of
 
 ## PRIVATE
 type Accumulator
-    new : Integer -> Accumulator
-    new moments=0 = Accumulator.Value 0 Nothing Nothing (Vector.fill moments 0)
+    new : Boolean -> Integer -> Accumulator
+    new min_max=True moments=0 = Accumulator.Value 0 min_max Nothing Nothing (Vector.fill moments 0)
 
     ## PRIVATE
-    Value count:Integer minimum:Any maximum:Any (moments:Vector|Nothing)
+    Value count:Integer min_max:Boolean minimum:Any maximum:Any (moments:Vector|Nothing)
 
     ## PRIVATE
-    comparator_error : Boolean
-    comparator_error self = self.minimum.is_nothing
+    increment self value = case self.count of
+        0 -> if self.min_max then Accumulator.Value 1 True value value (self.update_moments value) else
+            Accumulator.Value 1 False value value (self.update_moments value)
+        _ ->
+            if self.min_max.not then Accumulator.Value self.count+1 False Nothing Nothing (self.update_moments value) else
+                minimum = Accumulator.perform_comparison self.minimum value Ordering.Less
+                maximum = Accumulator.perform_comparison self.maximum value Ordering.Greater
+                Accumulator.Value self.count+1 True minimum maximum (self.update_moments value)
 
     ## PRIVATE
-    increment self value = if self.count == 0 then (Accumulator.Value 1 value value (self.update_moments value)) else
-        minimum = Accumulator.comparator self.minimum value Ordering.Less
-        maximum = Accumulator.comparator self.maximum value Ordering.Greater
-        Accumulator.Value self.count+1 minimum maximum (self.update_moments value)
-
-    ## PRIVATE
-    comparator current value bound = if current == Nothing then Nothing else
-        comp = Ordering.compare value current . catch Incomparable_Values (_-> Nothing)
-        if comp == Nothing then Nothing else
-            if comp == bound then value else current
+    perform_comparison current value bound = if current.is_error then current else
+        comp = Ordering.compare value current
+        if comp == bound then value else current
 
     ## PRIVATE
     update_moments self value = if self.moments.is_nothing then Nothing else
@@ -380,14 +381,14 @@ type Accumulator
     compute self statistic =
         case statistic of
             Statistic.Count -> self.count
-            Statistic.Minimum -> if self.comparator_error then (Error.throw (Incomparable_Values.Error Nothing Nothing)) else self.minimum
-            Statistic.Maximum -> if self.comparator_error then (Error.throw (Incomparable_Values.Error Nothing Nothing)) else self.maximum
-            Statistic.Sum -> self.report_error statistic self.moments.first
-            Statistic.Mean -> self.report_error statistic (self.moments.first / self.count)
-            Statistic.Variance p -> self.report_error statistic (self.variance p)
+            Statistic.Minimum -> self.minimum
+            Statistic.Maximum -> self.maximum
+            Statistic.Sum -> self.check_moments statistic self.moments.first
+            Statistic.Mean -> self.check_moments statistic (self.moments.first / self.count)
+            Statistic.Variance p -> self.check_moments statistic (self.variance p)
             Statistic.Standard_Deviation p -> (self.compute (Statistic.Variance p)) . sqrt
-            Statistic.Skew p -> self.report_error statistic (self.skew p)
-            Statistic.Kurtosis -> self.report_error statistic (self.kurtosis)
+            Statistic.Skew p -> self.check_moments statistic (self.skew p)
+            Statistic.Kurtosis -> self.check_moments statistic (self.kurtosis)
 
     ## PRIVATE
     variance self population =
@@ -416,6 +417,6 @@ type Accumulator
             ((self.moments.at 3) - 4 * mean * (self.moments.at 2) + 6 * mean * mean * self.moments.second - 3 * mean * mean * mean * self.moments.first) * scale - shift
 
     ## PRIVATE
-    report_error self statistic ~action =
+    check_moments self statistic ~action =
         if self.moments.is_nothing.not && self.moments.length >= statistic.order then action else
             Error.throw (Illegal_Argument.Error ("Can't compute " + statistic.to_text + " on this Accumulator."))
