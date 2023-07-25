@@ -1,6 +1,7 @@
-//! An argument widget that displays the argument name. It is always requested as a child of a
-//! separator widget. This widget's node matching rules determine whether or not the dedicated
-//! argument name label will be displayed next to the separator.
+//! A wrapper widget for top-level arguments. Displays the argument name next to the argument
+//! widget. It is always requested as a child of a separator widget. This widget's node matching
+//! rules determine whether or not the dedicated argument name label will be displayed next to the
+//! separator.
 
 use super::prelude::*;
 use crate::prelude::*;

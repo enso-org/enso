@@ -1,5 +1,5 @@
-//! Separating line between top-level argument widgets. Handles named argument nodes, creating a
-//! child widget only for the argument value.
+//! A wrapper widget for top-level arguments. Displays a separating line next to an argument widget.
+//! Handles named argument nodes, creating a child widget only for the argument value.
 
 use super::prelude::*;
 use crate::prelude::*;

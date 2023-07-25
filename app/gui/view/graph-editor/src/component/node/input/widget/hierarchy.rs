@@ -58,9 +58,10 @@ impl SpanWidget for Widget {
         let child_level = ctx.info.nesting_level.next_if(ctx.span_node.is_argument());
         let is_primary = ctx.info.nesting_level.is_primary();
 
-        // When this is a top-level (primary) hierarchy widget, request children widgets to be
-        // separators. This configuration will only be applied to nodes that the separator accepts,
-        // which is limited to arguments in prefix chains.
+        // When this is a top-level (primary) hierarchy widget, request children widgets to have
+        // separators. The "separator" widget is a wrapper which will display the default argument
+        // widget next to the separating line. This configuration will only be applied to nodes that
+        // the separator accepts, which is limited to arguments in prefix chains.
         let separator_config = super::separator::Widget::default_config(&ctx).into_dyn();
         let child_config = is_primary.then_some(&separator_config);
 
