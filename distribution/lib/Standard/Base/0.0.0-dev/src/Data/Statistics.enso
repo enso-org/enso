@@ -362,32 +362,66 @@ is_valid v = case v of
 ## PRIVATE
 type Accumulator
     new : Integer -> Accumulator
-    new moments=0 = Accumulator.Value 0 Nothing Nothing (Vector.fill moments 0)
+    new moments=0 =
+        count_ref = Ref.new 0
+        minimum_ref = Ref.new Nothing
+        maximum_ref = Ref.new Nothing
+        moments_ref = if moments == 0 then Nothing else Vector.new moments (_-> Ref.new 0)
+        Accumulator.Value count_ref minimum_ref maximum_ref moments_ref
 
     ## PRIVATE
-    Value count:Integer minimum:Any maximum:Any (moments:Vector|Nothing)
+    Value count_ref:Ref minimum_ref:Ref maximum_ref:Ref (moments_ref:Vector|Nothing)
+
+    ## PRIVATE
+    count : Integer
+    count self = self.count_ref.get
+
+    ## PRIVATE
+    minimum : Any
+    minimum self = self.minimum_ref.get
+
+    ## PRIVATE
+    maximum : Any
+    maximum self = self.maximum_ref.get
+
+    ## PRIVATE
+    moments : Vector | Nothing
+    moments self = case self.moments_ref of
+        Nothing -> Nothing
+        _ -> self.moments_ref.map r-> r.get
 
     ## PRIVATE
     comparator_error : Boolean
     comparator_error self = self.minimum.is_nothing
 
     ## PRIVATE
-    increment self value = if self.count == 0 then (Accumulator.Value 1 value value (self.update_moments value)) else
-        minimum = Accumulator.comparator self.minimum value Ordering.Less
-        maximum = Accumulator.comparator self.maximum value Ordering.Greater
-        Accumulator.Value self.count+1 minimum maximum (self.update_moments value)
+    increment self value = case self.count of
+        0 ->
+            self.count_ref.put 1
+            self.minimum_ref.put value
+            self.maximum_ref.put value
+            self.update_moments value
+        _ ->
+            self.count_ref.put (self.count+1)
+            Accumulator.comparator self.minimum_ref value Ordering.Less
+            Accumulator.comparator self.maximum_ref value Ordering.Greater
+            self.update_moments value
 
     ## PRIVATE
-    comparator current value bound = if current == Nothing then Nothing else
-        comp = Ordering.compare value current . catch Incomparable_Values (_-> Nothing)
-        if comp == Nothing then Nothing else
-            if comp == bound then value else current
+    comparator current value bound =
+        current_value = current.get
+        if current_value != Nothing then
+            comp = Ordering.compare value current_value . catch Incomparable_Values (_-> Nothing)
+            if comp == Nothing then current.put Nothing else
+                if comp == bound then current.put value
 
     ## PRIVATE
-    update_moments self value = if self.moments.is_nothing then Nothing else
+    update_moments self value = if self.moments_ref.is_nothing then self else
         case value of
-            _ : Number -> self.moments.map_with_index i->v-> v + (value ^ i+1)
-            _ -> Nothing
+            _ : Number ->
+                self.moments_ref.map_with_index i->v-> v.put (v.get + (value ^ i+1))
+                self
+            _ -> Accumulator.Value self.count_ref self.minimum_ref self.maximum_ref Nothing
 
     ## PRIVATE
     compute : Statistic -> Any
