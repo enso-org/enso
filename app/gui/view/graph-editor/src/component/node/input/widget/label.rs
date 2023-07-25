@@ -98,6 +98,8 @@ impl SpanWidget for Widget {
                 &style, &text_color, &parent_port_hovered,
                 |style, state, hovered| state.to_color(*hovered, style)
             ).debounce().on_change();
+
+            trace label_color;
             color_anim.target <+ label_color;
             eval color_anim.value((color) label.set_property_default(color));
 
