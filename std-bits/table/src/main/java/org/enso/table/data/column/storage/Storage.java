@@ -138,7 +138,7 @@ public abstract class Storage<T> {
   public final Storage<?> unaryMap(
       Function<Object, Value> function, boolean skipNa, StorageType expectedResultType) {
     Builder storageBuilder = Builder.getForType(expectedResultType, size());
-    final Context context = Context.getCurrent();
+    Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
       Object it = getItemBoxed(i);
       if (skipNa && it == null) {
@@ -176,7 +176,7 @@ public abstract class Storage<T> {
       return storageBuilder.seal();
     }
 
-    final Context context = Context.getCurrent();
+    Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
       Object it = getItemBoxed(i);
       if (skipNulls && it == null) {
@@ -207,7 +207,7 @@ public abstract class Storage<T> {
       boolean skipNa,
       StorageType expectedResultType) {
     Builder storageBuilder = Builder.getForType(expectedResultType, size());
-    final Context context = Context.getCurrent();
+    Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
       Object it1 = getItemBoxed(i);
       Object it2 = i < arg.size() ? arg.getItemBoxed(i) : null;
@@ -267,7 +267,7 @@ public abstract class Storage<T> {
    *     operation is vectorized
    * @return the result of running the operation on each row
    */
-  public final Storage<?> vectorizedOrFallbackBiMap(
+  public final Storage<?> vectorizedOrFallbackBinaryMap(
       String name,
       MapOperationProblemBuilder problemBuilder,
       BiFunction<Object, Object, Object> fallback,

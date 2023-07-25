@@ -28,7 +28,7 @@ public abstract class GenericBinaryObjectMapOperation<
   protected abstract OutputType run(InputType value, InputType other);
 
   @Override
-  public Storage<?> runBiMap(
+  public Storage<?> runBinaryMap(
       InputStorageType storage, Object arg, MapOperationProblemBuilder problemBuilder) {
     arg = Polyglot_Utils.convertPolyglotValue(arg);
     if (arg == null) {

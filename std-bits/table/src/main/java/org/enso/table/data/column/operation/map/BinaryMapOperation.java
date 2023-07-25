@@ -20,18 +20,18 @@ public abstract class BinaryMapOperation<T, I extends Storage<? super T>> {
   }
 
   /**
-   * Run the operation in map mode
+   * Run the operation in map mode - combining every row of the storage with a scalar argument.
    *
    * @param storage the storage to run operation on
    * @param arg the argument passed to the operation
    * @param problemBuilder the builder allowing to report computation problems
    * @return the result of running the operation
    */
-  public abstract Storage<?> runBiMap(
+  public abstract Storage<?> runBinaryMap(
       I storage, Object arg, MapOperationProblemBuilder problemBuilder);
 
   /**
-   * Run the operation in zip mode
+   * Run the operation in zip mode - combining corresponding rows of two storages.
    *
    * @param storage the storage to run operation on
    * @param arg the storage providing second arguments to the operation

@@ -33,7 +33,7 @@ public abstract class LongNumericOp extends BinaryMapOperation<Long, AbstractLon
   public abstract Long doLong(long in, long arg, int ix, MapOperationProblemBuilder problemBuilder);
 
   @Override
-  public NumericStorage<?> runBiMap(AbstractLongStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
+  public NumericStorage<?> runBinaryMap(AbstractLongStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
     Context context = Context.getCurrent();
     if (arg == null) {
       if (alwaysCastToDouble) {

@@ -2062,7 +2062,7 @@ run_vectorized_many_op column name fallback_fn operands new_name=Nothing skip_nu
                 _ : Column -> Polyglot_Helpers.handle_polyglot_dataflow_errors <|
                     current.vectorizedOrFallbackZip name problem_builder fallback_fn operand.java_column.getStorage skip_nulls storage_type
                 _ -> Polyglot_Helpers.handle_polyglot_dataflow_errors <|
-                    current.vectorizedOrFallbackBiMap name problem_builder fallback_fn operand skip_nulls storage_type
+                    current.vectorizedOrFallbackBinaryMap name problem_builder fallback_fn operand skip_nulls storage_type
         result = Column.Value (Java_Column.new effective_new_name folded)
         Problem_Behavior.Report_Warning.attach_problems_after result <|
             Java_Problems.parse_aggregated_problems problem_builder.getProblems
@@ -2099,7 +2099,7 @@ run_vectorized_binary_op column name operand new_name=Nothing fallback_fn=Nothin
         _ ->
             s1 = column.java_column.getStorage
             rs = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
-                s1.vectorizedOrFallbackBiMap name problem_builder fallback_fn operand skip_nulls storage_type
+                s1.vectorizedOrFallbackBinaryMap name problem_builder fallback_fn operand skip_nulls storage_type
             Column.Value (Java_Column.new effective_new_name rs)
     Problem_Behavior.Report_Warning.attach_problems_after result <|
         Java_Problems.parse_aggregated_problems problem_builder.getProblems
@@ -2187,7 +2187,7 @@ run_vectorized_binary_op_with_fallback_problem_handling column name operand fall
         _ ->
             s1 = column.java_column.getStorage
             rs = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
-                s1.vectorizedOrFallbackBiMap name problem_builder applied_fn operand skip_nulls storage_type
+                s1.vectorizedOrFallbackBinaryMap name problem_builder applied_fn operand skip_nulls storage_type
             Column.Value (Java_Column.new new_name rs)
     Problem_Behavior.Report_Warning.attach_problems_after result <|
         Java_Problems.parse_aggregated_problems problem_builder.getProblems

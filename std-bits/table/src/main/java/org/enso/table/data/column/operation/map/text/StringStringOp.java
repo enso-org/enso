@@ -17,7 +17,7 @@ public abstract class StringStringOp extends BinaryMapOperation<String, Speciali
   protected abstract String doString(String a, String b);
 
   @Override
-  public Storage<?> runBiMap(SpecializedStorage<String> storage, Object arg, MapOperationProblemBuilder problemBuilder) {
+  public Storage<?> runBinaryMap(SpecializedStorage<String> storage, Object arg, MapOperationProblemBuilder problemBuilder) {
     int size = storage.size();
     if (arg == null) {
       StringBuilder builder = new StringBuilder(size);

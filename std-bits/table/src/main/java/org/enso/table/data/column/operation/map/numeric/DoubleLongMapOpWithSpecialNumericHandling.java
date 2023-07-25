@@ -16,7 +16,7 @@ public abstract class DoubleLongMapOpWithSpecialNumericHandling
   protected abstract long doOperation(double a);
 
   @Override
-  public LongStorage run(DoubleStorage storage, MapOperationProblemBuilder problemBuilder) {
+  public LongStorage runUnaryMap(DoubleStorage storage, MapOperationProblemBuilder problemBuilder) {
     Context context = Context.getCurrent();
     long[] out = new long[storage.size()];
     BitSet isMissing = new BitSet();

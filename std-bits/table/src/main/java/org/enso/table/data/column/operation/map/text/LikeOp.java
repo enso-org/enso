@@ -37,7 +37,7 @@ public class LikeOp extends StringBooleanOp {
   }
 
   @Override
-  public BoolStorage runBiMap(SpecializedStorage<String> storage, Object arg, MapOperationProblemBuilder problemBuilder) {
+  public BoolStorage runBinaryMap(SpecializedStorage<String> storage, Object arg, MapOperationProblemBuilder problemBuilder) {
     if (arg == null) {
       BitSet newVals = new BitSet();
       BitSet newMissing = new BitSet();

@@ -3,7 +3,7 @@ package org.enso.table.data.column.storage;
 import java.util.AbstractList;
 import java.util.BitSet;
 import java.util.List;
-import org.enso.table.data.column.operation.map.MapOpStorage;
+import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.index.Index;
@@ -24,7 +24,7 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
    * @param data the underlying data
    * @param size the number of items stored
    */
-  protected SpecializedStorage(T[] data, int size, MapOpStorage<T, SpecializedStorage<T>> ops) {
+  protected SpecializedStorage(T[] data, int size, MapOperationStorage<T, SpecializedStorage<T>> ops) {
     this.data = data;
     this.size = size;
     this.ops = ops;
@@ -32,7 +32,7 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
 
   protected final T[] data;
   protected final int size;
-  private final MapOpStorage<T, SpecializedStorage<T>> ops;
+  private final MapOperationStorage<T, SpecializedStorage<T>> ops;
 
   /** @inheritDoc */
   @Override
@@ -92,7 +92,7 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
   @Override
   public Storage<?> runVectorizedBiMap(
       String name, Object argument, MapOperationProblemBuilder problemBuilder) {
-    return ops.runBiMap(name, this, argument, problemBuilder);
+    return ops.runBinaryMap(name, this, argument, problemBuilder);
   }
 
   @Override

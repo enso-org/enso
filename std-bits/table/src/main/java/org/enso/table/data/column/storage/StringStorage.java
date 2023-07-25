@@ -3,7 +3,7 @@ package org.enso.table.data.column.storage;
 import org.enso.base.Text_Utils;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.StringBuilder;
-import org.enso.table.data.column.operation.map.MapOpStorage;
+import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.operation.map.BinaryMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
@@ -59,12 +59,12 @@ public final class StringStorage extends SpecializedStorage<String> {
     return new StringBuilder(capacity);
   }
 
-  private static MapOpStorage<String, SpecializedStorage<String>> buildOps() {
-    MapOpStorage<String, SpecializedStorage<String>> t = ObjectStorage.buildObjectOps();
+  private static MapOperationStorage<String, SpecializedStorage<String>> buildOps() {
+    MapOperationStorage<String, SpecializedStorage<String>> t = ObjectStorage.buildObjectOps();
     t.add(
         new BinaryMapOperation<>(Maps.EQ) {
           @Override
-          public BoolStorage runBiMap(
+          public BoolStorage runBinaryMap(
               SpecializedStorage<String> storage,
               Object arg,
               MapOperationProblemBuilder problemBuilder) {
@@ -107,7 +107,7 @@ public final class StringStorage extends SpecializedStorage<String> {
     t.add(
         new UnaryMapOperation<>(Maps.IS_EMPTY) {
           @Override
-          protected BoolStorage run(SpecializedStorage<String> storage, MapOperationProblemBuilder problemBuilder) {
+          protected BoolStorage runUnaryMap(SpecializedStorage<String> storage, MapOperationProblemBuilder problemBuilder) {
             BitSet r = new BitSet();
             Context context = Context.getCurrent();
             for (int i = 0; i < storage.size; i++) {

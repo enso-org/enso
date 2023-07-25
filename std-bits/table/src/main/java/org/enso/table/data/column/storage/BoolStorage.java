@@ -3,7 +3,7 @@ package org.enso.table.data.column.storage;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.BoolBuilder;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.operation.map.MapOpStorage;
+import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.operation.map.BinaryMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
@@ -24,7 +24,7 @@ import java.util.function.IntFunction;
 
 /** A boolean column storage. */
 public final class BoolStorage extends Storage<Boolean> {
-  private static final MapOpStorage<Boolean, BoolStorage> ops = buildOps();
+  private static final MapOperationStorage<Boolean, BoolStorage> ops = buildOps();
   private final BitSet values;
   private final BitSet isMissing;
   private final int size;
@@ -93,7 +93,7 @@ public final class BoolStorage extends Storage<Boolean> {
   @Override
   public Storage<?> runVectorizedBiMap(
       String name, Object argument, MapOperationProblemBuilder problemBuilder) {
-    return ops.runBiMap(name, this, argument, problemBuilder);
+    return ops.runBinaryMap(name, this, argument, problemBuilder);
   }
 
   @Override
@@ -228,12 +228,12 @@ public final class BoolStorage extends Storage<Boolean> {
     return i -> converted;
   }
 
-  private static MapOpStorage<Boolean, BoolStorage> buildOps() {
-    MapOpStorage<Boolean, BoolStorage> ops = new MapOpStorage<>();
+  private static MapOperationStorage<Boolean, BoolStorage> buildOps() {
+    MapOperationStorage<Boolean, BoolStorage> ops = new MapOperationStorage<>();
     ops.add(
             new UnaryMapOperation<>(Maps.NOT) {
               @Override
-              protected BoolStorage run(BoolStorage storage, MapOperationProblemBuilder problemBuilder) {
+              protected BoolStorage runUnaryMap(BoolStorage storage, MapOperationProblemBuilder problemBuilder) {
                 return new BoolStorage(
                     storage.values, storage.isMissing, storage.size, !storage.negated);
               }
@@ -241,7 +241,7 @@ public final class BoolStorage extends Storage<Boolean> {
         .add(
             new BinaryMapOperation<>(Maps.EQ) {
               @Override
-              public BoolStorage runBiMap(
+              public BoolStorage runBinaryMap(
                   BoolStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
                 if (arg == null) {
                   return BoolStorage.makeEmpty(storage.size);
@@ -280,7 +280,7 @@ public final class BoolStorage extends Storage<Boolean> {
         .add(
             new BinaryMapOperation<>(Maps.AND) {
               @Override
-              public BoolStorage runBiMap(
+              public BoolStorage runBinaryMap(
                   BoolStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
                 if (arg == null) {
                   return BoolStorage.makeEmpty(storage.size);
@@ -326,7 +326,7 @@ public final class BoolStorage extends Storage<Boolean> {
         .add(
             new BinaryMapOperation<>(Maps.OR) {
               @Override
-              public BoolStorage runBiMap(
+              public BoolStorage runBinaryMap(
                   BoolStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
                 if (arg == null) {
                   return BoolStorage.makeEmpty(storage.size);
@@ -373,7 +373,7 @@ public final class BoolStorage extends Storage<Boolean> {
         .add(
             new UnaryMapOperation<>(Maps.IS_NOTHING) {
               @Override
-              public BoolStorage run(BoolStorage storage, MapOperationProblemBuilder problemBuilder) {
+              public BoolStorage runUnaryMap(BoolStorage storage, MapOperationProblemBuilder problemBuilder) {
                 return new BoolStorage(storage.isMissing, new BitSet(), storage.size, false);
               }
             })

@@ -10,7 +10,7 @@ import org.enso.table.data.column.storage.Storage;
  * @param <T> the type of elements stored in the storage
  * @param <S> the storage type handled by these operations.
  */
-public class MapOpStorage<T, S extends Storage<? super T>> {
+public class MapOperationStorage<T, S extends Storage<? super T>> {
   private final Map<String, BinaryMapOperation<T, S>> binaryOps = new HashMap<>();
   private final Map<String, UnaryMapOperation<T, S>> unaryOps = new HashMap<>();
 
@@ -37,7 +37,7 @@ public class MapOpStorage<T, S extends Storage<? super T>> {
       throw new IllegalStateException(
           "Requested vectorized unary operation " + n + ", but no such operation is known.");
     }
-    return unaryOps.get(n).run(storage, problemBuilder);
+    return unaryOps.get(n).runUnaryMap(storage, problemBuilder);
   }
 
   /**
@@ -59,13 +59,13 @@ public class MapOpStorage<T, S extends Storage<? super T>> {
    * @param problemBuilder the builder allowing to report computation problems
    * @return the result of running the operation
    */
-  public Storage<?> runBiMap(
+  public Storage<?> runBinaryMap(
       String n, S storage, Object arg, MapOperationProblemBuilder problemBuilder) {
     if (!isSupportedBinary(n)) {
       throw new IllegalStateException(
           "Requested vectorized binary operation " + n + ", but no such operation is known.");
     }
-    return binaryOps.get(n).runBiMap(storage, arg, problemBuilder);
+    return binaryOps.get(n).runBinaryMap(storage, arg, problemBuilder);
   }
 
   /**
@@ -100,7 +100,7 @@ public class MapOpStorage<T, S extends Storage<? super T>> {
    * @param op the operation to add
    * @return this operation set
    */
-  public MapOpStorage<T, S> add(BinaryMapOperation<T, S> op) {
+  public MapOperationStorage<T, S> add(BinaryMapOperation<T, S> op) {
     binaryOps.put(op.getName(), op);
     return this;
   }
@@ -111,7 +111,7 @@ public class MapOpStorage<T, S extends Storage<? super T>> {
    * @param op the operation to add
    * @return this operation set
    */
-  public MapOpStorage<T, S> add(UnaryMapOperation<T, S> op) {
+  public MapOperationStorage<T, S> add(UnaryMapOperation<T, S> op) {
     unaryOps.put(op.getName(), op);
     return this;
   }

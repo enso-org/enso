@@ -6,7 +6,7 @@ import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.ObjectBuilder;
 import org.enso.table.data.column.builder.TimeOfDayBuilder;
 import org.enso.table.data.column.operation.map.GenericBinaryObjectMapOperation;
-import org.enso.table.data.column.operation.map.MapOpStorage;
+import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.operation.map.datetime.DatePartExtractors;
 import org.enso.table.data.column.operation.map.datetime.DateTimeIsInOp;
 import org.enso.table.data.column.storage.ObjectStorage;
@@ -23,8 +23,8 @@ public final class TimeOfDayStorage extends SpecializedStorage<LocalTime> {
     super(data, size, buildOps());
   }
 
-  private static MapOpStorage<LocalTime, SpecializedStorage<LocalTime>> buildOps() {
-    MapOpStorage<LocalTime, SpecializedStorage<LocalTime>> t = ObjectStorage.buildObjectOps();
+  private static MapOperationStorage<LocalTime, SpecializedStorage<LocalTime>> buildOps() {
+    MapOperationStorage<LocalTime, SpecializedStorage<LocalTime>> t = ObjectStorage.buildObjectOps();
     t.add(new DateTimeIsInOp<>(LocalTime.class));
     t.add(DatePartExtractors.hour());
     t.add(DatePartExtractors.minute());

@@ -17,7 +17,7 @@ public abstract class UnaryLongToLongOp extends UnaryMapOperation<Long, Abstract
   protected abstract long doOperation(long value);
 
   @Override
-  protected LongStorage run(
+  protected LongStorage runUnaryMap(
       AbstractLongStorage storage, MapOperationProblemBuilder problemBuilder) {
     Context context = Context.getCurrent();
     BitSet newMissing = new BitSet();

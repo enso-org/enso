@@ -14,7 +14,8 @@ public abstract class UnaryMapOperation<T, I extends Storage<? super T>> {
     this.name = name;
   }
 
-  protected abstract Storage<?> run(I storage, MapOperationProblemBuilder problemBuilder);
+  /** Run the unary operation. */
+  protected abstract Storage<?> runUnaryMap(I storage, MapOperationProblemBuilder problemBuilder);
 
   /** @return the name of this operation */
   public String getName() {

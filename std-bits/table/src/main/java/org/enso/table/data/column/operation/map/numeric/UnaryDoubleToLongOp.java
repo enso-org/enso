@@ -17,7 +17,7 @@ public abstract class UnaryDoubleToLongOp extends UnaryMapOperation<Double, Doub
   protected abstract long doOperation(double value);
 
   @Override
-  protected LongStorage run(DoubleStorage storage, MapOperationProblemBuilder problemBuilder) {
+  protected LongStorage runUnaryMap(DoubleStorage storage, MapOperationProblemBuilder problemBuilder) {
     Context context = Context.getCurrent();
     BitSet newMissing = new BitSet();
     long[] newVals = new long[storage.size()];

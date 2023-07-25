@@ -19,7 +19,7 @@ public class BooleanIsInOp extends BinaryMapOperation<Boolean, BoolStorage> {
   }
 
   @Override
-  public BoolStorage runBiMap(BoolStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
+  public BoolStorage runBinaryMap(BoolStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
     if (arg instanceof List) {
       return runMap(storage, (List<?>) arg);
     } else {

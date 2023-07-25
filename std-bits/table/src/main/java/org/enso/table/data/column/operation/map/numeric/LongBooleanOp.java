@@ -29,7 +29,7 @@ public abstract class LongBooleanOp extends BinaryMapOperation<Long, AbstractLon
   }
 
   @Override
-  public BoolStorage runBiMap(AbstractLongStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
+  public BoolStorage runBinaryMap(AbstractLongStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
     Context context = Context.getCurrent();
     if (arg instanceof Long) {
       long x = (Long) arg;

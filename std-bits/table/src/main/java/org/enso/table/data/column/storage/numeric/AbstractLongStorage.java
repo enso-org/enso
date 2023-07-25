@@ -3,7 +3,7 @@ package org.enso.table.data.column.storage.numeric;
 import java.util.BitSet;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.NumericBuilder;
-import org.enso.table.data.column.operation.map.MapOpStorage;
+import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.operation.map.numeric.LongBooleanOp;
@@ -25,7 +25,7 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
     return (double) getItem(idx);
   }
 
-  private static final MapOpStorage<Long, AbstractLongStorage> ops = buildOps();
+  private static final MapOperationStorage<Long, AbstractLongStorage> ops = buildOps();
 
   @Override
   public boolean isUnaryOpVectorized(String name) {
@@ -45,7 +45,7 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
   @Override
   public Storage<?> runVectorizedBiMap(
       String name, Object argument, MapOperationProblemBuilder problemBuilder) {
-    return ops.runBiMap(name, this, argument, problemBuilder);
+    return ops.runBinaryMap(name, this, argument, problemBuilder);
   }
 
   @Override
@@ -59,8 +59,8 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
     return NumericBuilder.createLongBuilder(capacity);
   }
 
-  private static MapOpStorage<Long, AbstractLongStorage> buildOps() {
-    MapOpStorage<Long, AbstractLongStorage> ops = new MapOpStorage<>();
+  private static MapOperationStorage<Long, AbstractLongStorage> buildOps() {
+    MapOperationStorage<Long, AbstractLongStorage> ops = new MapOperationStorage<>();
     ops.add(
             new LongNumericOp(Storage.Maps.ADD) {
               @Override
@@ -229,14 +229,14 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
         .add(
             new LongBooleanOp(Storage.Maps.EQ) {
               @Override
-              public BoolStorage runBiMap(
+              public BoolStorage runBinaryMap(
                   AbstractLongStorage storage,
                   Object arg,
                   MapOperationProblemBuilder problemBuilder) {
                 if (arg instanceof Double) {
                   problemBuilder.reportFloatingPointEquality(-1);
                 }
-                return super.runBiMap(storage, arg, problemBuilder);
+                return super.runBinaryMap(storage, arg, problemBuilder);
               }
 
               @Override
@@ -286,7 +286,7 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
         .add(
             new UnaryMapOperation<>(Storage.Maps.IS_NOTHING) {
               @Override
-              public BoolStorage run(
+              public BoolStorage runUnaryMap(
                   AbstractLongStorage storage, MapOperationProblemBuilder problemBuilder) {
                 return new BoolStorage(storage.getIsMissing(), new BitSet(), storage.size(), false);
               }
@@ -294,7 +294,7 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
         .add(
             new UnaryMapOperation<>(Storage.Maps.IS_NAN) {
               @Override
-              public BoolStorage run(
+              public BoolStorage runUnaryMap(
                   AbstractLongStorage storage, MapOperationProblemBuilder problemBuilder) {
                 BitSet isNaN = new BitSet();
                 return new BoolStorage(isNaN, storage.getIsMissing(), storage.size(), false);
@@ -303,7 +303,7 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
         .add(
             new UnaryMapOperation<>(Storage.Maps.IS_INFINITE) {
               @Override
-              public BoolStorage run(
+              public BoolStorage runUnaryMap(
                   AbstractLongStorage storage, MapOperationProblemBuilder problemBuilder) {
                 BitSet isInfinite = new BitSet();
                 return new BoolStorage(isInfinite, storage.getIsMissing(), storage.size(), false);

@@ -25,7 +25,7 @@ public abstract class DoubleBooleanOp extends BinaryMapOperation<Double, DoubleS
   }
 
   @Override
-  public BoolStorage runBiMap(DoubleStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
+  public BoolStorage runBinaryMap(DoubleStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
     Context context = Context.getCurrent();
     Double v = NumericConverter.tryConvertingToDouble(arg);
     if (v != null) {

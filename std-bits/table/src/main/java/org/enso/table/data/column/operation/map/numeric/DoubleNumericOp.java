@@ -20,7 +20,7 @@ public abstract class DoubleNumericOp extends BinaryMapOperation<Double, DoubleS
   protected abstract double doDouble(double a, double b, int ix, MapOperationProblemBuilder problemBuilder);
 
   @Override
-  public Storage<Double> runBiMap(DoubleStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
+  public Storage<Double> runBinaryMap(DoubleStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
     if (arg == null) {
       return DoubleStorage.makeEmpty(storage.size());
     }
