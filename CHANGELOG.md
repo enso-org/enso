@@ -197,9 +197,17 @@
   visualization size by dragging its right and bottom borders. Visualization
   width also follows the node's width, and visualizations are aligned to the
   left side of the node.
+- [Component Browser was redesigned][7372]. The three columns of groups turned
+  out to be non-practical, as they give too much information to comprehend.
+  Also, filtering results was kept in groups making second-best match not easily
+  available. Therefore, we introduced a new, impler CB design with single
+  column.
 - [Help chat][7151]. The link to the Discord server is replaced with a chat
   bridge to the Discord server. This is intended to have the chat visible at the
   same time as the IDE, so that help can be much more interactive.
+- [The libraries' authors may put entities to groups by adding GROUP tag in the
+  docstring]. It was requested as more convenient way than specifying full names
+  in package.yaml.
 
 [5910]: https://github.com/enso-org/enso/pull/5910
 [6279]: https://github.com/enso-org/enso/pull/6279
@@ -220,6 +228,8 @@
 [7146]: https://github.com/enso-org/enso/pull/7146
 [7151]: https://github.com/enso-org/enso/pull/7151
 [7164]: https://github.com/enso-org/enso/pull/7164
+[7372]: https://github.com/enso-org/enso/pull/7372
+[7337]: https://github.com/enso-org/enso/pull/7337
 
 #### EnsoGL (rendering engine)
 

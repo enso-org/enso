@@ -3,27 +3,21 @@
 
 use crate::prelude::*;
 
-use crate::controller::searcher::action::Suggestion;
-use crate::controller::searcher::component;
 use crate::controller::searcher::Mode;
 use crate::controller::searcher::Notification;
 use crate::executor::global::spawn_stream_handler;
-use crate::model::suggestion_database::entry::Kind;
 use crate::presenter;
 use crate::presenter::graph::AstNodeId;
 use crate::presenter::graph::ViewNodeId;
-use crate::presenter::searcher::component_browser::provider::ControllerComponentsProviderExt;
 use crate::presenter::searcher::SearcherPresenter;
 
 use enso_frp as frp;
 use enso_suggestion_database::documentation_ir::EntryDocumentation;
-use enso_suggestion_database::documentation_ir::Placeholder;
 use enso_text as text;
 use ide_view as view;
 use ide_view::component_browser;
 use ide_view::component_browser::component_list_panel::grid as component_grid;
 use ide_view::component_browser::component_list_panel::BreadcrumbId;
-use ide_view::component_browser::component_list_panel::SECTION_NAME_CRUMB_INDEX;
 use ide_view::graph_editor::NodeId;
 use ide_view::project::SearcherParams;
 
@@ -43,33 +37,8 @@ pub mod provider;
 #[allow(missing_docs)]
 #[derive(Copy, Clone, Debug, Fail)]
 #[fail(display = "No component group with the index {:?}.", _0)]
-pub struct NoSuchComponent(component_grid::GroupEntryId);
+pub struct NoSuchComponent(component_grid::EntryId);
 
-
-
-// ========================
-// === Helper Functions ===
-// ========================
-
-fn title_for_docs(suggestion: &model::suggestion_database::Entry) -> String {
-    match suggestion.kind {
-        Kind::Type => format!("Type {}", suggestion.name),
-        Kind::Constructor => format!("Constructor {}", suggestion.name),
-        Kind::Function => format!("Function {}", suggestion.name),
-        Kind::Local => format!("Node {}", suggestion.name),
-        Kind::Method => {
-            let preposition = if suggestion.self_type.is_some() { " of " } else { "" };
-            let self_type = suggestion.self_type.as_ref().map_or("", |tp| tp.name());
-            format!("Method {}{}{}", suggestion.name, preposition, self_type)
-        }
-        Kind::Module => format!("Module {}", suggestion.name),
-    }
-}
-
-fn doc_placeholder_for(suggestion: &model::suggestion_database::Entry) -> String {
-    let title = title_for_docs(suggestion);
-    format!("<div class=\"enso docs summary\"><p />{title} <p />No documentation available</div>")
-}
 
 
 // =============
@@ -104,53 +73,18 @@ impl Model {
         }
     }
 
-    fn suggestion_for_entry_id(
-        &self,
-        id: component_grid::GroupEntryId,
-    ) -> FallibleResult<Suggestion> {
-        let component: FallibleResult<_> = self
-            .controller
-            .provider()
-            .component_by_view_id(id)
-            .ok_or_else(|| NoSuchComponent(id).into());
-        Ok(match component?.data {
-            component::Data::FromDatabase { entry, .. } =>
-                Suggestion::FromDatabase(entry.clone_ref()),
-            component::Data::Virtual { snippet } => Suggestion::Hardcoded(snippet.clone_ref()),
-        })
-    }
-
     /// Should be called if a suggestion is selected but not used yet.
-    fn suggestion_selected(&self, entry_id: Option<component_grid::GroupEntryId>) {
-        let suggestion = entry_id.map(|id| self.suggestion_for_entry_id(id));
-        let to_preview = match suggestion {
-            Some(Ok(suggestion)) => Some(suggestion),
-            Some(Err(err)) => {
-                warn!("Error while previewing suggestion: {err}.");
-                None
-            }
-            None => None,
-        };
-        if let Err(error) = self.controller.preview(to_preview) {
+    fn suggestion_selected(&self, entry_id: Option<component_grid::EntryId>) {
+        if let Err(error) = self.controller.preview_by_index(entry_id) {
             error!("Failed to preview searcher input (selected suggestion: {entry_id:?}) because of error: {error}.");
         }
     }
 
     fn suggestion_accepted(
         &self,
-        id: component_grid::GroupEntryId,
+        id: component_grid::EntryId,
     ) -> Option<(ViewNodeId, text::Range<text::Byte>, ImString)> {
-        let provider = self.controller.provider();
-        let component: FallibleResult<_> =
-            provider.component_by_view_id(id).ok_or_else(|| NoSuchComponent(id).into());
-        let new_code = component.and_then(|component| {
-            let suggestion = match component.data {
-                component::Data::FromDatabase { entry, .. } =>
-                    Suggestion::FromDatabase(entry.clone_ref()),
-                component::Data::Virtual { snippet } => Suggestion::Hardcoded(snippet.clone_ref()),
-            };
-            self.controller.use_suggestion(suggestion)
-        });
+        let new_code = self.controller.use_suggestion_by_index(id);
         match new_code {
             Ok(text::Change { range, text }) => {
                 self.update_breadcrumbs();
@@ -177,54 +111,14 @@ impl Model {
         browser.model().list.model().breadcrumbs.set_entries_from(breadcrumbs_from);
     }
 
-    fn show_breadcrumbs_ellipsis(&self, show: bool) {
-        let browser = &self.view;
-        browser.model().list.model().breadcrumbs.show_ellipsis(show);
+    fn module_entered(&self, entry: component_grid::EntryId) {
+        match self.controller.enter_entry(entry) {
+            Ok(()) => self.update_breadcrumbs(),
+            Err(error) => error!("Failed to enter entry in Component Browser: {error}"),
+        }
     }
 
-    fn set_section_name_crumb(&self, text: ImString) {
-        let browser = &self.view;
-        let breadcrumbs = &browser.model().list.model().breadcrumbs;
-        breadcrumbs.set_entry((SECTION_NAME_CRUMB_INDEX, text.into()));
-    }
-
-    fn on_active_section_change(&self, section_id: component_grid::SectionId) {
-        let components = self.controller.components();
-        let mut section_names = components.top_module_section_names();
-        let name = match section_id {
-            component_grid::SectionId::Namespace(n) =>
-                section_names.nth(n).map(|n| n.clone_ref()).unwrap_or_default(),
-            component_grid::SectionId::Popular => "Popular".to_im_string(),
-            component_grid::SectionId::LocalScope => "Local".to_im_string(),
-        };
-        self.set_section_name_crumb(name);
-    }
-
-    fn module_entered(&self, module: component_grid::ElementId) {
-        self.enter_module(module);
-    }
-
-    fn enter_module(&self, module: component_grid::ElementId) -> Option<()> {
-        let provider = self.controller.provider();
-        let id = if let Some(entry) = module.as_entry_id() {
-            let component = provider.component_by_view_id(entry)?;
-            component.id()?
-        } else {
-            let group = provider.group_by_view_id(module.group)?;
-            group.component_id?
-        };
-        self.controller.enter_module(&id);
-        self.update_breadcrumbs();
-        let show_ellipsis = self.controller.last_module_has_submodules();
-        self.show_breadcrumbs_ellipsis(show_ellipsis);
-        Some(())
-    }
-
-    fn expression_accepted(
-        &self,
-        _node_id: NodeId,
-        entry_id: Option<component_grid::GroupEntryId>,
-    ) -> Option<AstNodeId> {
+    fn expression_accepted(&self, entry_id: Option<component_grid::EntryId>) -> Option<AstNodeId> {
         if let Some(entry_id) = entry_id {
             self.suggestion_accepted(entry_id);
         }
@@ -240,34 +134,8 @@ impl Model {
         }
     }
 
-    fn documentation_of_component(
-        &self,
-        id: view::component_browser::component_list_panel::grid::GroupEntryId,
-    ) -> EntryDocumentation {
-        let component = self.controller.provider().component_by_view_id(id);
-        if let Some(component) = component {
-            match component.data {
-                component::Data::FromDatabase { id, .. } =>
-                    self.controller.documentation_for_entry(*id),
-                component::Data::Virtual { snippet } =>
-                    snippet.documentation.clone().unwrap_or_default(),
-            }
-        } else {
-            default()
-        }
-    }
-
-    fn documentation_of_group(&self, id: component_grid::GroupId) -> EntryDocumentation {
-        let group = self.controller.provider().group_by_view_id(id);
-        if let Some(group) = group {
-            if let Some(id) = group.component_id {
-                self.controller.documentation_for_entry(id)
-            } else {
-                Placeholder::VirtualComponentGroup { name: group.name.clone() }.into()
-            }
-        } else {
-            default()
-        }
+    fn documentation_of_component(&self, id: component_grid::EntryId) -> EntryDocumentation {
+        self.controller.documentation_for_entry(id)
     }
 
     fn should_select_first_entry(&self) -> bool {
@@ -333,10 +201,10 @@ impl SearcherPresenter for ComponentBrowserSearcher {
 
     fn expression_accepted(
         self: Box<Self>,
-        node_id: NodeId,
-        entry_id: Option<component_grid::GroupEntryId>,
+        _node_id: NodeId,
+        entry_id: Option<component_grid::EntryId>,
     ) -> Option<AstNodeId> {
-        self.model.expression_accepted(node_id, entry_id)
+        self.model.expression_accepted(entry_id)
     }
 
 
@@ -382,62 +250,36 @@ impl ComponentBrowserSearcher {
         }
 
         let grid = &browser.model().list.model().grid;
-        let navigator = &browser.model().list.model().section_navigator;
         let breadcrumbs = &browser.model().list.model().breadcrumbs;
         let documentation = &browser.model().documentation;
         frp::extend! { network
-            eval_ action_list_changed ([model, grid, navigator] {
+            eval_ action_list_changed ([model, grid] {
                 model.provider.take();
-                let controller_provider = model.controller.provider();
-                let namespace_section_count = controller_provider.namespace_section_count();
-                navigator.set_namespace_section_count.emit(namespace_section_count);
-                let provider = provider::Component::provide_new_list(controller_provider, &grid);
+                let list = model.controller.components();
+                let provider = provider::Component::provide_new_list(&list, &grid);
                 *model.provider.borrow_mut() = Some(provider);
             });
             grid.select_first_entry <+ action_list_changed.filter(f_!(model.should_select_first_entry()));
             input_edit <- grid.suggestion_accepted.filter_map(f!((e) model.suggestion_accepted(*e)));
             graph.edit_node_expression <+ input_edit;
 
-            entry_selected <- grid.active.map(|&s| s?.as_entry_id());
-            selected_entry_changed <- entry_selected.on_change().constant(());
-            grid.unhover_element <+ any2(
-                &selected_entry_changed,
-                &model.project.toggle_component_browser_private_entries_visibility,
-            );
-            hovered_not_selected <- all_with(&grid.hovered, &grid.active, |h, s| {
-                match (h, s) {
-                    (Some(h), Some(s)) => h != s,
-                    _ => false,
-                }
-            });
-            documentation.frp.show_hovered_item_preview_caption <+ hovered_not_selected;
-            docs_params <- all3(&action_list_changed, &grid.active, &grid.hovered);
-            docs <- docs_params.filter_map(f!([model]((_, selected, hovered)) {
-                let entry = hovered.as_ref().or(selected.as_ref());
-                entry.map(|entry| {
-                    if let Some(group_id) = entry.as_header() {
-                        model.documentation_of_group(group_id)
-                    } else {
-                        let entry_id = entry.as_entry_id().expect("GroupEntryId");
-                        model.documentation_of_component(entry_id)
-                    }
-                })
+            docs_params <- all(&action_list_changed, &grid.active);
+            docs <- docs_params.filter_map(f!([model]((_, entry)) {
+                entry.map(|entry_id| model.documentation_of_component(entry_id))
             }));
             documentation.frp.display_documentation <+ docs;
 
             eval_ grid.suggestion_accepted([]analytics::remote_log_event("component_browser::suggestion_accepted"));
-            eval entry_selected((entry) model.suggestion_selected(*entry));
+            eval grid.active((entry) model.suggestion_selected(*entry));
             eval grid.module_entered((id) model.module_entered(*id));
             eval breadcrumbs.selected((id) model.breadcrumb_selected(*id));
-            active_section <- grid.active_section.filter_map(|s| *s);
-            eval active_section((section) model.on_active_section_change(*section));
         }
 
         let weak_model = Rc::downgrade(&model);
         let notifications = model.controller.subscribe();
         spawn_stream_handler(weak_model, notifications, move |notification, _| {
             match notification {
-                Notification::NewActionList => action_list_changed.emit(()),
+                Notification::NewComponentList => action_list_changed.emit(()),
             };
             std::future::ready(())
         });

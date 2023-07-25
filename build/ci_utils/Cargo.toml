@@ -66,7 +66,7 @@ serde_json = { workspace = true }
 serde_yaml = { workspace = true }
 scopeguard = "1.1.0"
 sha2 = "0.10.2"
-strum = { version = "0.24.0", features = ["derive"] }
+strum = { workspace = true }
 symlink = "0.1.0"
 syn = { workspace = true }
 sysinfo = "0.26.2"

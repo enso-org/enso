@@ -1227,11 +1227,21 @@ final class TreeToIr {
   }
 
   IR.Literal translateLiteral(Tree.TextLiteral txt) throws SyntaxException {
+    if (txt.getClose() == null) {
+      if (txt.getOpen() == null || switch (txt.getOpen().codeRepr()) {
+        case "'''" -> false;
+        case "\"\"\"" -> false;
+        default -> true;
+      }) {
+        throw new SyntaxException(txt, IR$Error$Syntax$UnclosedTextLiteral$.MODULE$);
+      }
+    }
     // Splices are not yet supported in the IR.
     var value = buildTextConstant(txt, txt.getElements());
     return new IR$Literal$Text(value, getIdentifiedLocation(txt), meta(), diag());
   }
-  String buildTextConstant(Tree at, Iterable<TextElement> elements) throws SyntaxException {
+
+  private String buildTextConstant(Tree at, Iterable<TextElement> elements) throws SyntaxException {
     var sb = new StringBuilder();
     TextElement error = null;
     for (var t : elements) {
