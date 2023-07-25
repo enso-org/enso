@@ -287,22 +287,38 @@ spec prefix connection =
                     m2.at (w.truncated_names.at 0) . to_vector . should_contain_the_same_elements_as [1, 2, 3]
                     m2.at (w.truncated_names.at 1) . to_vector . should_contain_the_same_elements_as [4, 5, 6]
 
-            Test.specify "should fail a cross-tab if the column names are too long" <|
-                # TODO cross tab is currently not implemented, so nothing to test here, but this test ensures that we won't forget to update it once we implement it
-                name_a = "x" * (max_column_name_length + 1) + "A"
-                name_b = "x" * (max_column_name_length + 1) + "B"
-                src = Table.new [["X", [name_a, name_b, name_a]], ["Y", [4, 5, 6]]]
-                db_table = src.select_into_database_table connection (Name_Generator.random_name "cross-tab") temporary=True primary_key=[]
-                db_table.cross_tab name_column="X" . should_fail_with Unsupported_Database_Operation
+            Test.specify "should truncate new column names in other operations" <|
+                name_a = "x" * (max_column_name_length - 1) + "A"
+                name_b = "x" * (max_column_name_length - 1) + "B"
+                src_a = Table.new [[name_a, ["1", "2", "3"]]]
+                src_b = Table.new [[name_b, [4, 5, 6]]]
+                db_a = src_a.select_into_database_table connection (Name_Generator.random_name "long-column-names-a") temporary=True
+                db_b = src_b.select_into_database_table connection (Name_Generator.random_name "long-column-names-b") temporary=True
 
-            Test.specify "should fail if column names provided in transpose" <|
-                # TODO transpose is currently not implemented, so nothing to test here, but this test ensures that we won't forget to update it once we implement it
+                Test.with_clue "zip test will have to be amended once it is implemented: " <|
+                    db_a.zip db_b . should_fail_with Unsupported_Database_Operation
+
+                Test.with_clue "parse_to_columns will have to be amended once it is implemented: " <|
+                    db_a.parse_to_columns name_a delimiter="," . should_fail_with Unsupported_Database_Operation
+
+                Test.with_clue "split_to_columns will have to be amended once it is implemented: " <|
+                    db_a.split_to_columns name_a delimiter="," . should_fail_with Unsupported_Database_Operation
+
+                Test.with_clue "tokenize_to_columns will have to be amended once it is implemented: " <|
+                    db_a.tokenize_to_columns name_a . should_fail_with Unsupported_Database_Operation
+
+            Test.specify "should fail other operations that create new columns if the column names are too long" <|
                 name_a = "x" * (max_column_name_length + 1) + "A"
                 name_b = "x" * (max_column_name_length + 1) + "B"
                 src = Table.new [["X", [name_a, name_b, name_a]], ["Y", [4, 5, 6]]]
                 db_table = src.select_into_database_table connection (Name_Generator.random_name "cross-tab") temporary=True primary_key=[]
-                db_table.transpose attribute_column_name=name_a . should_fail_with Unsupported_Database_Operation
-                db_table.transpose value_column_name=name_a . should_fail_with Unsupported_Database_Operation
+
+                Test.with_clue "cross_tab test will have to be amended once it is implemented: " <|
+                    db_table.cross_tab name_column="X" . should_fail_with Unsupported_Database_Operation
+
+                Test.with_clue "transpose test will have to be amended once it is implemented: " <|
+                    db_table.transpose attribute_column_name=name_a . should_fail_with Unsupported_Database_Operation
+                    db_table.transpose value_column_name=name_a . should_fail_with Unsupported_Database_Operation
 
 main = Test_Suite.run_main <|
     spec "[SQLite] " (Database.connect (SQLite In_Memory))
