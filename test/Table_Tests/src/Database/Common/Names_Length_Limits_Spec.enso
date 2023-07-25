@@ -188,16 +188,16 @@ spec prefix connection =
                 db_table1 = src1.select_into_database_table connection (Name_Generator.random_name "long-column-names") temporary=True
                 Problems.assume_no_problems <|
                     db_table1.at "X" . rename name_ok
-                r2 = db_table1.at "X" . rename name_large
-                r2.should_fail_with Name_Too_Long
-                r2.catch.entity_kind . should_equal "column"
-                r2.catch.name . should_equal name_large
-                r2.catch.to_display_text.should_contain (max_column_name_length.to_text + " code units")
+                r1 = db_table1.at "X" . rename name_large
+                r1.should_fail_with Name_Too_Long
+                r1.catch.entity_kind . should_equal "column"
+                r1.catch.name . should_equal name_large
+                r1.catch.to_display_text.should_contain (max_column_name_length.to_text + " code units")
 
                 src2 = Table.new [[name_ok, [1, 2, 3]], [name_large, [4, 5, 6]]]
-                db_table2 = src2.select_into_database_table connection (Name_Generator.random_name "long-column-names") temporary=True
-                w = Problems.expect_warning Truncated_Column_Names db_table2
-                w.original_names . should_equal [name_large]
+                r2 = src2.select_into_database_table connection (Name_Generator.random_name "long-column-names") temporary=True
+                r2.should_fail_with Name_Too_Long
+                r2.catch.name . should_equal name_large
 
             Test.specify "should truncate the column name if the resulting operation-generated name is too long, without warnings" <|
                 long_name = "a" * max_column_name_length
