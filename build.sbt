@@ -1780,6 +1780,8 @@ lazy val `bench-processor` = (project in file("std-bits/bench-processor"))
       )
     ),
   )
+  .dependsOn(`polyglot-api`)
+  .dependsOn(runtime)
 
 lazy val `bench-libs` = (project in file("std-bits/benchmarks"))
   .configs(Benchmark)
@@ -1795,7 +1797,7 @@ lazy val `bench-libs` = (project in file("std-bits/benchmarks"))
     (Compile / mainClass) := Some("org.enso.benchmarks.libs.LibBenchRunner"),
     (Compile / run / fork) := true,
     (Compile / run / connectInput) := true,
-    (Compile / javaOptions) ++= {
+    (Compile / javacOptions) ++= {
       val runtimeClasspath =
         (LocalProject("runtime") / Compile / fullClasspath).value
       val runtimeInstrumentsClasspath =
@@ -1806,9 +1808,11 @@ lazy val `bench-libs` = (project in file("std-bits/benchmarks"))
         (runtimeClasspath ++ runtimeInstrumentsClasspath)
           .map(_.data)
           .mkString(File.pathSeparator)
+      // Only run ServiceProvider processor and ignore those defined in META-INF, thus
+      // fixing incremental compilation setup
       Seq(
-        "-ea",
-        s"-Dtruffle.class.path.append=$appendClasspath",
+        "-J--no-limit-modules",
+        s"-J-Dtruffle.class.path.append=$appendClasspath",
       )
     },
   )

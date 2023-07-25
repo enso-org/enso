@@ -9,19 +9,20 @@
  * (http://www.apache.org/licenses/LICENSE-2.0).
  */
 
-import sbt._
+import sbt.*
 import sbt.internal.inc.CompilerArguments
 import sbt.internal.inc.javac.JavacLogger
 import sbt.io.IO
 import sbt.util.Logger
-import xsbti.{PathBasedFile, Reporter, VirtualFile, Logger => XLogger}
-import xsbti.compile.{IncToolOptions, Output, JavaCompiler => XJavaCompiler}
+import xsbti.{PathBasedFile, Reporter, VirtualFile, Logger as XLogger}
+import xsbti.compile.{IncToolOptions, Output, JavaCompiler as XJavaCompiler}
 
 import java.io.File
-import java.nio.file.{Path, Paths}
+import java.nio.file.{Files, Path, Paths, StandardCopyOption}
 import scala.sys.process.Process
 import scala.util.Using
 import java.io.FileWriter
+import scala.collection.mutable.ArrayBuffer
 
 object FrgaalJavaCompiler {
   private val ENSO_SOURCES = ".enso-sources"
@@ -65,7 +66,14 @@ object FrgaalJavaCompiler {
     xsbti.compile.Compilers.of(sbtCompilers.scalac, javaTools)
   }
 
-  /** Helper method to launch programs. */
+  /**
+   * Helper method to launch programs.
+   *
+   * If -J--no-limit-modules is passed to javac, no --limit-modules option is passed to frgaal.
+   * With -J--no-limit-modules, one can use any class path in annotation processors.
+   * All the options with "-J" prefix are prepended to the frgaal command line, instead of passing
+   * them via an argument file. Moreover, the "-J" prefix is stripped.
+   * */
   def launch(
     javaHome: Option[Path],
     compilerJar: Path,
@@ -78,6 +86,15 @@ object FrgaalJavaCompiler {
     target: String
   ): Boolean = {
     val (jArgs, nonJArgs) = options.partition(_.startsWith("-J"))
+    var noLimitModules = false
+    val strippedJArgs: ArrayBuffer[String] = ArrayBuffer()
+    for (strippedJArg <- jArgs.map(_.stripPrefix("-J"))) {
+      if (strippedJArg == "--no-limit-modules") {
+        noLimitModules = true
+      } else {
+        strippedJArgs += strippedJArg
+      }
+    }
     val outputOption      = CompilerArguments.outputOption(output)
     val sources = sources0 map { case x: PathBasedFile =>
       x.toPath.toAbsolutePath.toString
@@ -213,9 +230,15 @@ object FrgaalJavaCompiler {
     withArgumentFile(allArguments) { argsFile =>
       // Need to disable standard compiler tools that come with used jdk and replace them
       // with the ones provided with Frgaal.
-      val forkArgs = (jArgs ++ Seq(
-        "--limit-modules",
-        "java.base,jdk.zipfs,jdk.internal.vm.compiler.management",
+      val limitModulesArgs = if (noLimitModules) {
+        Seq()
+      } else {
+        Seq(
+          "--limit-modules",
+          "java.base,jdk.zipfs,jdk.internal.vm.compiler.management",
+        )
+      }
+      val forkArgs = (strippedJArgs ++ limitModulesArgs ++ Seq(
         "-jar",
         compilerJar.toString
       )) :+
