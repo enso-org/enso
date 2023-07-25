@@ -198,26 +198,20 @@ type Statistic
             _ -> False
 
         if statistics.any is_unsupported then Error.throw (Illegal_Argument.Error ("Unsupported Statistics ( " + (statistics.filter is_unsupported . to_text) ") for running calculations.")) else
-            counter = Accumulator.new 0
-
             moment_order = statistics.map .order
-            skip_moments = moment_order.all s->s.is_nothing
-            moments = if skip_moments then Nothing else Moments.new (moment_order.filter (v-> v != Nothing) . fold 0 .max)
-            ref_moment = Ref.new moments
+            max_moment_order = moment_order.filter (v-> v != Nothing) . fold 0 .max
 
             Panic.handle_wrapped_dataflow_error <|
                 output = Vector.new_builder data.length
 
-                data.each value->
-                    result = compute_fold counter ref_moment.get value
-                    ref_moment.put result
+                counter = Accumulator.new max_moment_order
+                data.fold counter current->value->
+                    result = compute_fold current value
 
-                    row = Panic.throw_wrapped_if_error <| statistics.map s-> case s of
-                        Statistic.Count -> counter.count
-                        Statistic.Minimum -> if counter.comparator_error then (Error.throw (Incomparable_Values.Error Nothing Nothing)) else counter.minimum
-                        Statistic.Maximum -> if counter.comparator_error then (Error.throw (Incomparable_Values.Error Nothing Nothing)) else counter.maximum
-                        _ -> if result.is_nothing then Error.throw (Illegal_Argument.Error ("Can only compute " + s.to_text + " on numerical data sets.")) else result.compute (to_moment_statistic s)
+                    row = Panic.throw_wrapped_if_error <| statistics.map s-> result.compute s
                     output.append row
+
+                    result
 
                 output.to_vector
 
@@ -385,7 +379,7 @@ type Accumulator
 
     ## PRIVATE
     comparator current value bound = if current == Nothing then Nothing else
-        comp = Ordering.compare value current
+        comp = Ordering.compare value current . catch Incomparable_Values (_-> Nothing)
         if comp == Nothing then Nothing else
             if comp == bound then value else current
 
