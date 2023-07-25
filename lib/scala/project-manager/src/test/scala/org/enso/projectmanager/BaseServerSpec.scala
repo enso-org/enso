@@ -24,13 +24,24 @@ import org.enso.projectmanager.boot.configuration._
 import org.enso.projectmanager.control.effect.ZioEnvExec
 import org.enso.projectmanager.data.MissingComponentAction
 import org.enso.projectmanager.infrastructure.file.BlockingFileSystem
-import org.enso.projectmanager.infrastructure.languageserver.{ExecutorWithUnlimitedPool, LanguageServerGatewayImpl, LanguageServerRegistry, ShutdownHookActivator}
+import org.enso.projectmanager.infrastructure.languageserver.{
+  ExecutorWithUnlimitedPool,
+  LanguageServerGatewayImpl,
+  LanguageServerRegistry,
+  ShutdownHookActivator
+}
 import org.enso.projectmanager.infrastructure.log.Slf4jLogging
 import org.enso.projectmanager.infrastructure.repository.ProjectFileRepository
-import org.enso.projectmanager.protocol.{JsonRpcProtocolFactory, ManagerClientControllerFactory}
+import org.enso.projectmanager.protocol.{
+  JsonRpcProtocolFactory,
+  ManagerClientControllerFactory
+}
 import org.enso.projectmanager.service.config.GlobalConfigService
 import org.enso.projectmanager.service.validation.ProjectNameValidator
-import org.enso.projectmanager.service.versionmanagement.{RuntimeVersionManagementService, RuntimeVersionManagerFactory}
+import org.enso.projectmanager.service.versionmanagement.{
+  RuntimeVersionManagementService,
+  RuntimeVersionManagerFactory
+}
 import org.enso.projectmanager.service.{ProjectCreationService, ProjectService}
 import org.enso.projectmanager.test.{ObservableGenerator, ProgrammableClock}
 import org.enso.runtimeversionmanager.components.GraalVMVersion
