@@ -30,7 +30,7 @@ spec prefix connection =
 
         if has_maximum_table_name_length then
             max_table_name_length = connection.base_connection.max_table_name_length
-            Test.specify "should raise an error when creating a table with a column name that is too long" <|
+            Test.specify "should not allow to create a table with a name that is too long" <|
                 name = "a" * (max_table_name_length + 1)
                 src = Table.new [["X", [1, 2, 3]]]
                 r = src.select_into_database_table connection name temporary=True
@@ -39,6 +39,11 @@ spec prefix connection =
                 r.catch.name . should_equal name
                 r.catch.to_display_text . should_contain "The table name"
                 r.catch.to_display_text . should_contain "is too long"
+
+                r2 = connection.create_table name [["X", Value_Type.Integer]] temporary=True
+                r2.should_fail_with Name_Too_Long
+
+                connection.query (SQL_Query.Table_Name name) . should_fail_with Table_Not_Found
 
             Test.specify "should ensure length is measured in code units, even if grapheme length is lower" <|
                 big_grapheme = '\u{1F926}\u{1F3FC}\u200D\u2642\uFE0F'
@@ -130,6 +135,10 @@ spec prefix connection =
                 db_table.at name_a . to_vector . should_equal [1, 2, 3]
                 db_table.at name_b . to_vector . should_equal [4, 5, 6]
 
+                db_table_2 = connection.create_table (Name_Generator.random_name "long-column-names") [[name_a, Value_Type.Integer]] temporary=True
+                Problems.assume_no_problems db_table_2
+                db_table_2.row_count . should_equal 0
+
         if has_maximum_column_name_length then
             max_column_name_length = connection.base_connection.max_column_name_length
             Test.specify "should raise an error when renaming a column to a name that is too long" <|
@@ -151,44 +160,21 @@ spec prefix connection =
                 Problems.assume_no_problems <| db_table.set "[X] + [Y] * 10" "Z"
                 db_table.set "[X] + [Y] * 10" long_name . should_fail_with Name_Too_Long
 
-            Test.specify "should truncate column names in upload when they are too long and issue a warning" <|
+            Test.specify "should prevent upload if column names are too long" <|
                 name_a = "a" * (max_column_name_length + 1)
                 name_b = "b" * (max_column_name_length + 1)
+
+                table_name = (Name_Generator.random_name "long-column-names")
                 src = Table.new [[name_a, [1, 2, 3]], [name_b, [4, 5, 6]]]
-                db_table = src.select_into_database_table connection (Name_Generator.random_name "long-column-names") temporary=True
-                w = Problems.expect_only_warning Truncated_Column_Names db_table
-                w.original_names . should_equal [name_a, name_b]
-                w.truncated_names . should_equal ["a" * max_column_name_length, "b" * max_column_name_length]
+                r1 = src.select_into_database_table connection table_name temporary=True
+                r1.should_fail_with Name_Too_Long
+                r1.catch.entity_kind . should_equal "column"
+                [name_a, name_b].should_contain r1.catch.name
 
-                db_table.at ("a" * max_column_name_length) . to_vector . should_equal [1, 2, 3]
-                db_table.at ("b" * max_column_name_length) . to_vector . should_equal [4, 5, 6]
+                r2 = connection.create_table table_name [[name_a, Value_Type.Integer]] temporary=True
+                r2.should_fail_with Name_Too_Long
 
-            Test.specify "should truncate column names in upload when they are too long, rename them if needed and issue a warning" <|
-                name_a = "x" * (max_column_name_length + 1) + "A"
-                name_b = "x" * (max_column_name_length + 1) + "B"
-                src = Table.new [[name_a, [1, 2, 3]], [name_b, [4, 5, 6]], ["C", [7, 8, 9]]]
-                db_table = src.select_into_database_table connection (Name_Generator.random_name "long-column-names") temporary=True
-                w = Problems.expect_only_warning Truncated_Column_Names db_table
-                w.original_names . should_equal [name_a, name_b]
-                w.to_display_text . should_contain "The column names"
-                w.to_display_text . should_contain "were truncated to fit the maximum length"
-
-                db_table.at name_a . should_fail_with No_Such_Column
-                db_table.at name_b . should_fail_with No_Such_Column
-                db_table.at "C" . to_vector . should_equal [7, 8, 9]
-
-                db_table.column_names . should_equal (w.truncated_names+["C"])
-                db_table.at (w.truncated_names.at 0) . to_vector . should_equal [1, 2, 3]
-                db_table.at (w.truncated_names.at 1) . to_vector . should_equal [4, 5, 6]
-
-                # This should work even if there is a lot of columns like this (i.e. a number that we use to make them unique is more than 1 digit)
-                src2 = Table.new (0.up_to 15 . map i-> ["x" * (max_column_name_length + 10) + i.to_string, [100+i, 200+i, 300+i]])
-                db_table2 = src2.select_into_database_table connection (Name_Generator.random_name "long-column-names") temporary=True
-                w2 = Problems.expect_only_warning Truncated_Column_Names db_table2
-                w2.original_names . should_equal src2.column_names
-                db_table2.column_names . should_equal w2.truncated_names
-                0.up_to 15 . each i->
-                    db_table2.at (w2.truncated_names.at i) . to_vector . should_equal [100+i, 200+i, 300+i]
+                connection.query (SQL_Query.Table_Name table_name) . should_fail_with Table_Not_Found
 
             Test.specify "should ensure length is measured in code units, even if grapheme length is lower" <|
                 big_grapheme = '\u{1F926}\u{1F3FC}\u200D\u2642\uFE0F'
