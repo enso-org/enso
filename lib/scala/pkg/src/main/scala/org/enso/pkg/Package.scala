@@ -175,6 +175,11 @@ class Package[F](
   /** Returns the name of this package.
     * @return the name of this package.
     */
+  def name: String = config.name
+
+  /** Returns the module of this package.
+    * @return the module of this package.
+    */
   def module: String = config.module
 
   def namespace: String = config.namespace

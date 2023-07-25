@@ -105,7 +105,7 @@ class ProjectFileRepository[
     } yield {
       Project(
         id                    = meta.id,
-        name                  = pkg.module,
+        name                  = pkg.name,
         namespace             = pkg.namespace,
         kind                  = meta.kind,
         created               = meta.created,
