@@ -4,7 +4,6 @@ use crate::prelude::*;
 
 use crate::controller::searcher::component;
 use crate::controller::searcher::component::MatchInfo;
-use crate::controller::searcher::component::MatchKind;
 
 use enso_frp as frp;
 use enso_suggestion_database::entry::for_each_kind_variant;
@@ -101,13 +100,8 @@ fn bytes_of_matched_letters(
     label: &str,
 ) -> Option<Vec<text::Range<text::Byte>>> {
     match match_info {
-        MatchInfo::Matches { subsequence, kind } => {
-            let label = match kind {
-                MatchKind::Alias(label) => label.as_str(),
-                _ => label,
-            };
-            Some(subsequence.match_indexes.byte_ranges(label).collect())
-        }
+        MatchInfo::Matches { subsequence, .. } =>
+            Some(subsequence.match_indexes.byte_ranges(label).collect()),
         _ => None,
     }
 }

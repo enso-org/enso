@@ -12,31 +12,20 @@
 
 #![recursion_limit = "256"]
 // === Features ===
-#![feature(core_intrinsics)]
-#![feature(generators)]
-#![feature(iter_from_generator)]
-#![feature(iter_advance_by)]
-#![feature(let_chains)]
-#![feature(type_changing_struct_update)]
-#![feature(exclusive_range_pattern)]
 #![feature(assert_matches)]
+#![feature(core_intrinsics)]
+#![feature(exclusive_range_pattern)]
+#![feature(generators)]
+#![feature(iter_advance_by)]
+#![feature(iter_from_generator)]
+#![feature(let_chains)]
+#![feature(test)]
+#![feature(type_changing_struct_update)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
 #![allow(clippy::bool_to_int_with_if)]
 #![allow(clippy::let_and_return)]
-// === Non-Standard Linter Configuration ===
-#![allow(clippy::option_map_unit_fn)]
-#![allow(clippy::precedence)]
-#![allow(dead_code)]
-#![deny(unconditional_recursion)]
-#![warn(missing_copy_implementations)]
-#![warn(missing_debug_implementations)]
-#![warn(missing_docs)]
-#![warn(trivial_casts)]
-#![warn(trivial_numeric_casts)]
-#![warn(unused_import_braces)]
-#![warn(unused_qualifications)]
 
 
 pub mod score;
@@ -97,16 +86,25 @@ pub struct MatchIndexes {
 impl MatchIndexes {
     /// Produce a sequence of byte ranges corresponding to the substrings of matched characters, in
     /// unspecified order.
+    ///
+    /// The target should start with the same `target` that was passed to [`Matcher::search`] to
+    /// produce this result. Any extra suffix will be ignored.
     pub fn to_byte_ranges(
         self,
         target: &str,
     ) -> impl '_ + Iterator<Item = enso_text::Range<enso_text::Byte>> {
-        debug_assert_eq!(target.char_indices().count(), self.indexes.len() as usize);
+        let target_len = target.len();
+        let end = target
+            .char_indices()
+            .nth(self.indexes.len() as usize)
+            .map(|(i, _)| i)
+            .unwrap_or(target_len);
+        let target = &target[..std::cmp::min(end, target_len)];
         core::iter::from_generator(move || {
             let mut indexes = self.indexes;
             let mut previously_in_match = false;
             let mut match_start = 0;
-            let mut match_end = target.len();
+            let mut match_end = target_len;
             for (i, _) in target.char_indices().rev() {
                 let now_in_match = indexes.pop().unwrap_or_default();
                 if !now_in_match {
@@ -148,15 +146,24 @@ impl MatchIndexes {
 /// reusing one object for many matches is much more efficient than performing each match
 /// independently, because the buffers will be reused.
 #[derive(Debug, Default)]
-pub struct Matcher<SB> {
-    /// The normalized pattern for the current match.
+pub struct Matcher<SB: ScoreBuilder> {
+    /// The normalized pattern for the current match. This is used during a single call to
+    /// [`search`].
+    ///
+    /// Its value is constructed during [`match_initials`] or [`match_prefixes`] to perform either
+    /// a by-initials match or by-prefix match.
     pattern:            String,
-    /// The normalized target for the current match.
+    /// The normalized target for the current match. This is only used within [`do_match`], and is
+    /// cleared between uses. It is persisted to reuse the buffer.
+    ///
+    /// It is the target, case-normalized, with `_` prepended to treat the beginning of the string
+    /// as a word boundary.
     target:             String,
     /// Empty `Vec` used to reuse storage.
     states_buffer:      Vec<State<'static, WithMatchIndexes<SB>>>,
     /// Empty `Vec` used to reuse storage.
     next_states_buffer: Vec<State<'static, WithMatchIndexes<SB>>>,
+    best_score:         Vec<Candidate<SB::SubmatchScore>>,
 }
 
 impl<SB: ScoreBuilder> Matcher<SB> {
@@ -196,7 +203,11 @@ impl<SB: ScoreBuilder> Matcher<SB> {
         self.pattern.push(' ');
     }
 
-    /// Shared match implementation supporting both by-prefix and by-initials matching.
+    /// Searches for [`self.pattern`] in the target string. Before calling this, [`self.pattern`]
+    /// should be constructed by: Starting with a [` `] character, so that the pattern will begin
+    /// matching at any delimiter (this is done in [`reset_pattern`]; Appending the case-normalized
+    /// pattern, which should consist of delimiter characters (`.`, `_`, and ` `) and word
+    /// characters (anything which is not a delimiter).
     fn do_match(&mut self, target: &str) -> Option<WithMatchIndexes<SB::SubmatchScore>> {
         /// Supports reusing *the storage* of a buffer, despite it being used for objects of
         /// different lifetimes.
@@ -217,13 +228,31 @@ impl<SB: ScoreBuilder> Matcher<SB> {
         self.target.extend(target.chars().map(|c| c.to_ascii_lowercase()));
         let initial_state = State::new(&self.target);
         let mut states = cast_lifetime(core::mem::take(&mut self.states_buffer));
-        let mut next_states = cast_lifetime(core::mem::take(&mut self.states_buffer));
+        let mut next_states = cast_lifetime(core::mem::take(&mut self.next_states_buffer));
         states.push(initial_state);
-        for c in self.pattern.chars() {
+        self.best_score.clear();
+        self.best_score.resize(target.len() + 1, Default::default());
+        for (i, c) in self.pattern.char_indices() {
+            let generation = i + 1;
             match c {
                 '_' | ' ' | '.' =>
                     for state in states.drain(..) {
-                        next_states.extend(state.match_delimiter(c));
+                        for new_state in state.match_delimiter(c) {
+                            let new_score = new_state.score.finish().without_match_indexes();
+                            let target_pos = new_state.target_suffix_remaining.len() as usize;
+                            let score_entry = &mut self.best_score[target_pos];
+                            if score_entry.generation == generation {
+                                if score_entry.score < new_score {
+                                    next_states[score_entry.index] = new_state;
+                                    score_entry.score = new_score;
+                                }
+                            } else {
+                                score_entry.generation = generation;
+                                score_entry.index = next_states.len();
+                                score_entry.score = new_score;
+                                next_states.push(new_state);
+                            }
+                        }
                     },
                 c =>
                     for state in states.drain(..) {
@@ -243,7 +272,8 @@ impl<SB: ScoreBuilder> Matcher<SB> {
         best
     }
 
-    fn subsearch(
+    /// Search for a pattern that may contain `.` characters.
+    fn subsearch_compound(
         &mut self,
         pattern: &str,
         target: &str,
@@ -251,8 +281,8 @@ impl<SB: ScoreBuilder> Matcher<SB> {
         if let Some((r#type, name)) = pattern.rsplit_once('.') {
             // Try to match both parts, then compute a composite score.
             let (r#type2, name2) = target.rsplit_once('.')?;
-            let r#type = self.subsearch(r#type, r#type2)?;
-            let name = self.subsearch(name, name2)?;
+            let r#type = self.subsearch_compound(r#type, r#type2)?;
+            let name = self.subsearch_simple(name, name2)?;
             let dot = {
                 let mut builder = WithMatchIndexes::<SB>::default();
                 builder.match_delimiter('.', '.');
@@ -260,22 +290,30 @@ impl<SB: ScoreBuilder> Matcher<SB> {
             };
             Some(r#type + dot + name)
         } else {
-            // Try to match either by prefix, or by initials; return the best score.
-            let matched_prefix = self.match_prefixes(pattern, target);
-            let try_initials_match = {
-                let no_delimiters_in_pattern = !pattern.contains('_') && !pattern.contains(' ');
-                // Optimization: The scoring criteria may guarantee that an initials-match would
-                // never be preferred to a prefix match.
-                let best_match_could_be_initials =
-                    !SB::SubmatchScore::ANY_PREFIX_MATCH_BEATS_ANY_INITIALS_MATCH
-                        || matched_prefix.is_none();
-                no_delimiters_in_pattern && best_match_could_be_initials
-            };
-            let matched_initials = try_initials_match
-                .then_some(())
-                .and_then(|()| self.match_initials(pattern, target));
-            core::cmp::max(matched_prefix, matched_initials)
+            self.subsearch_simple(pattern, target)
         }
+    }
+
+    /// Search for a pattern that does not contain `.` characters.
+    fn subsearch_simple(
+        &mut self,
+        pattern: &str,
+        target: &str,
+    ) -> Option<WithMatchIndexes<SB::SubmatchScore>> {
+        // Try to match either by prefix, or by initials; return the best score.
+        let matched_prefix = self.match_prefixes(pattern, target);
+        let try_initials_match = {
+            let no_delimiters_in_pattern = !pattern.contains('_') && !pattern.contains(' ');
+            // Optimization: The scoring criteria may guarantee that an initials-match would
+            // never be preferred to a prefix match.
+            let best_match_could_be_initials =
+                !SB::SubmatchScore::ANY_PREFIX_MATCH_BEATS_ANY_INITIALS_MATCH
+                    || matched_prefix.is_none();
+            no_delimiters_in_pattern && best_match_could_be_initials
+        };
+        let matched_initials =
+            try_initials_match.then_some(()).and_then(|()| self.match_initials(pattern, target));
+        core::cmp::max(matched_prefix, matched_initials)
     }
 
     /// Determine whether the given pattern matches the given target. If so, uses the matching
@@ -284,7 +322,7 @@ impl<SB: ScoreBuilder> Matcher<SB> {
     /// target were matched by the pattern.
     pub fn search(&mut self, pattern: &str, target: &str) -> Option<Match<SB::SubmatchScore>> {
         let pattern: String = normalize_pattern(pattern).collect();
-        let root_submatch = self.subsearch(&pattern, target)?;
+        let root_submatch = self.subsearch_compound(&pattern, target)?;
         let WithMatchIndexes { inner: score, match_indexes } = root_submatch;
         let match_indexes = MatchIndexes { indexes: match_indexes };
         Some(Match { score, match_indexes })
@@ -334,22 +372,25 @@ fn normalize_pattern(pattern: &str) -> impl Iterator<Item = char> + '_ {
 
 #[derive(Debug, Clone)]
 struct State<'s, SB> {
-    chars: WordIndexedChars<'s>,
-    score: SB,
+    target_suffix_remaining: WordIndexedChars<'s>,
+    score:                   SB,
 }
 
 impl<'s, SB: ScoreBuilder + 's> State<'s, SB> {
     fn new(target: &'s str) -> Self {
-        Self { chars: WordIndexedChars::new(target), score: Default::default() }
+        Self {
+            target_suffix_remaining: WordIndexedChars::new(target),
+            score:                   Default::default(),
+        }
     }
 
     /// Produce all possible resulting states resulting from applying specified delimiter to the
     /// current state.
     fn match_delimiter(mut self, c: char) -> impl Iterator<Item = State<'s, SB>> {
         core::iter::from_generator(move || {
-            while let Ok(skipped) = self.chars.advance_until_at_word_boundary() {
+            while let Ok(skipped) = self.target_suffix_remaining.advance_until_at_word_boundary() {
                 self.score.skip_word_chars_if_any(skipped);
-                let Some(d) = self.chars.next() else { break };
+                let Some(d) = self.target_suffix_remaining.next() else { break };
                 if c == '_' && d == '.' {
                     break;
                 }
@@ -366,23 +407,42 @@ impl<'s, SB: ScoreBuilder + 's> State<'s, SB> {
     /// Try to apply the given non-delimiter character to the state.
     fn match_word_character(mut self, c: char) -> Option<Self> {
         self.score.match_word_char();
-        (self.chars.next() == Some(c)).then_some(self)
+        (self.target_suffix_remaining.next() == Some(c)).then_some(self)
     }
 
     /// Skip any remaining characters, and return the resulting score.
     fn into_score(mut self) -> SB::SubmatchScore {
         // Skip up to and including each remaining delimiter.
-        while let Ok(skipped) = self.chars.advance_until_at_word_boundary() {
+        while let Ok(skipped) = self.target_suffix_remaining.advance_until_at_word_boundary() {
             self.score.skip_word_chars_if_any(skipped);
-            let Some(d) = self.chars.next() else { break };
+            let Some(d) = self.target_suffix_remaining.next() else { break };
             self.score.skip_delimiter(None, d);
         }
         // Skip after the last delimiter.
-        let trailing_word_chars = self.chars.count() as u32;
+        let trailing_word_chars = self.target_suffix_remaining.count() as u32;
         self.score.skip_word_chars_if_any(trailing_word_chars);
         // Return the score.
         self.score.finish()
     }
+}
+
+
+// === Candidate ===
+
+/// Information used to ensure that:
+/// - At any position in the pattern, there is at most one [`State`] for each possible position in
+///   the target.
+/// - When there is more than one possible [`State`] for a position in the target, the one with the
+///   best score is kept.
+#[derive(Debug, Default, Clone)]
+struct Candidate<S> {
+    /// A unique value for each position in the pattern; used to entries that were inserted during
+    /// previous positions in the pattern.
+    generation: usize,
+    /// Position in `next_states` vector of best value seen so far for this position in the target.
+    index:      usize,
+    /// Best value seen for this position in the target.
+    score:      S,
 }
 
 
@@ -415,6 +475,11 @@ impl<'s> WordIndexedChars<'s> {
             true => Err(()),
         }
     }
+
+    /// Returns the number of characters remaining.
+    fn len(&self) -> u32 {
+        self.word_boundaries.len()
+    }
 }
 
 impl<'s> Iterator for WordIndexedChars<'s> {
@@ -438,8 +503,8 @@ struct WithMatchIndexes<T> {
 }
 
 impl<T> WithMatchIndexes<T> {
-    fn map<U>(self, f: impl FnOnce(T) -> U) -> WithMatchIndexes<U> {
-        WithMatchIndexes { inner: f(self.inner), ..self }
+    fn without_match_indexes(self) -> T {
+        self.inner
     }
 }
 
@@ -467,8 +532,11 @@ impl<SB: ScoreBuilder> ScoreBuilder for WithMatchIndexes<SB> {
         self.match_indexes.push(false);
     }
 
-    fn finish(self) -> Self::SubmatchScore {
-        WithMatchIndexes { inner: self.inner.finish(), ..self }
+    fn finish(&self) -> Self::SubmatchScore {
+        WithMatchIndexes {
+            inner:         self.inner.finish(),
+            match_indexes: self.match_indexes.clone(),
+        }
     }
 }
 
@@ -502,10 +570,14 @@ impl<T: Add<Output = T>> Add<Self> for WithMatchIndexes<T> {
 mod test_utils {
     use super::*;
 
-    /// Search for a pattern in a string using a temporary [`Matcher`]. When performing multiple
-    /// searches it is more efficient to reuse a [`Matcher`], but this is convenient for testing.
+    /// Search for a pattern in a string.
     pub(crate) fn search(pattern: &str, target: &str) -> Option<MatchIndexes> {
-        Some(Matcher::<ScoreForgetter>::default().search(pattern, target)?.match_indexes)
+        thread_local! {
+            static MATCHER: std::cell::RefCell<Matcher<ScoreForgetter>> = Default::default();
+        }
+        MATCHER.with(|matcher| {
+            matcher.borrow_mut().search(pattern, target).map(|result| result.match_indexes)
+        })
     }
 
     pub(crate) fn fmt_match(indexes: MatchIndexes, target: &str) -> String {
@@ -531,7 +603,7 @@ mod test_utils {
         fn match_word_char(&mut self) {}
         fn match_delimiter(&mut self, _pattern: char, _value: char) {}
         fn skip_delimiter(&mut self, _pattern: Option<char>, _value: char) {}
-        fn finish(self) -> Self::SubmatchScore {
+        fn finish(&self) -> Self::SubmatchScore {
             Zero
         }
     }
@@ -782,5 +854,37 @@ mod test_match_indexes {
     #[test]
     fn test_byte_ranges_pattern_normalized() {
         check_match_ranges("a . b . c", "(a.b.c)");
+    }
+
+    #[test]
+    fn test_byte_ranges_ignores_extra_suffix() {
+        let result = search("ab", "abc").unwrap();
+        let byte_ranges_for_original_input: Vec<_> = result.byte_ranges("abc").collect();
+        let byte_ranges_for_suffixed_input: Vec<_> = result.byte_ranges("abcd").collect();
+        assert_eq!(byte_ranges_for_suffixed_input, byte_ranges_for_original_input);
+    }
+}
+
+
+
+// ==================
+// === Benchmarks ===
+// ==================
+
+#[cfg(test)]
+mod bench {
+    extern crate test;
+
+    use super::*;
+    use test::Bencher;
+
+    #[bench]
+    fn bench_a_a_a_a_a_a(b: &mut Bencher) {
+        // This input demonstrates the worst-case quadratic time complexity. For a pathological
+        // input of this length, it runs at ~1ms/iter. (Memory usage is `O(pattern + target)`).
+        let pattern = "a_a_a_a_a_a_a_a_a_a_a_a_a_a_a_a_a_a_a_a_a_a_a_a_a_a_a";
+        let target = "a_a_a_a_a_a_a_a_a_a_a_a_a_a_a_a_a_a_a_a_a_a_a_a_a_a_a\
+            a_a_a_a_a_a_a_a_a_a_a_a_a_a_a_a_a_a_a_a_a_a_a_a_a_a_a";
+        b.iter(|| test_utils::search(pattern, target).unwrap());
     }
 }

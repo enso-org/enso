@@ -17,7 +17,7 @@ use std::ops::Add;
 /// 64 or fewer elements.
 #[derive(Debug, Default, Clone)]
 pub struct Bitstring {
-    /// Current segments. Contains 0-64 bits.
+    /// Current segment (the least-significant/most recently-pushed bits). Contains 0-64 bits.
     head: Word,
     /// Extra segments. Each contains 1-64 bits.
     tail: Vec<Word>,
@@ -67,12 +67,14 @@ impl Bitstring {
         if likely(self.tail.is_empty()) {
             // Branchless equivalent of `self.head.len.saturating_sub(1)`
             self.head.len = self.head.len + (self.head.len == 0) as u32 - 1;
+            self.head.bits &= !(1 << self.head.len);
         } else {
             let first = self.tail.first_mut().unwrap();
             let new_len = first.len - 1;
             if new_len == 0 {
                 self.tail.remove(0);
             } else {
+                first.bits &= !(1 << new_len);
                 first.len = new_len;
             }
         }
@@ -110,6 +112,7 @@ impl Bitstring {
             self.head = word;
             zeros + self.pop_trailing_zeros()
         } else {
+            self.head.bits = 0;
             mem::replace(&mut self.head.len, 0)
         };
         self.check_invariants();
@@ -129,8 +132,14 @@ impl Bitstring {
     #[cfg(test)]
     fn check_invariants(&self) {
         assert_matches!(self.head.len, 0..=64);
+        if self.head.len != 64 {
+            assert_eq!(self.head.bits & !((1 << self.head.len) - 1), 0, "{:?}", self.head);
+        }
         for word in &self.tail {
             assert_matches!(word.len, 1..=64);
+            if word.len != 64 {
+                assert_eq!(word.bits & !((1 << word.len) - 1), 0, "{word:?}");
+            }
         }
     }
 
@@ -173,6 +182,7 @@ impl Add for Bitstring {
 #[derive(Debug, Default, Clone, Copy)]
 struct Word {
     len:  u32,
+    /// Contains `len` bits at the least-significant end. All other bits are 0.
     bits: u64,
 }
 
@@ -243,18 +253,21 @@ mod test {
     }
     use reference_impl::SlowBitstring;
 
+    /// Test that `Bitstring` behaves the same as the `SlowBitstring` reference when performing a
+    /// long arbitrary but deterministically-generated sequence of operations.
     #[test]
     fn test_bitstring() {
         use rand::Rng;
         use rand::SeedableRng;
         use rand_chacha::ChaCha8Rng;
         let mut rng = ChaCha8Rng::seed_from_u64(0);
-        let mut strings = vec![];
+        let mut strings: Vec<(super::Bitstring, SlowBitstring)> = vec![];
         let mut i = 0;
         let mut shrink_phase = false;
-        let mut string = (super::Bitstring::new(), SlowBitstring::new());
-        while !(shrink_phase && string.0.is_empty() && strings.is_empty()) {
-            assert_eq!(string.0.is_empty(), string.1.is_empty());
+        let mut tested = super::Bitstring::new();
+        let mut reference = SlowBitstring::new();
+        while !(shrink_phase && tested.is_empty() && reference.is_empty() && strings.is_empty()) {
+            assert_eq!(tested.is_empty(), reference.is_empty());
             i += 1;
             if i == 10_000 {
                 shrink_phase = true;
@@ -264,48 +277,64 @@ mod test {
             }
             let operation = rng.gen_range(0u8..64);
             match operation {
-                0..28 =>
+                // The probabilities here were chosen to be moderately-biased toward growing the
+                // string during the initial phase, and moderately-biased toward shrinking the
+                // string during the shrink phase. This moderate bias ensures that many cases
+                // involving relatively short strings are tested, which is optimal because if
+                // operations are correct for bitstrings with a few segments, they will not be wrong
+                // for bitstrings with many segments (as there are no differences in the logic for
+                // strings with many segments, versus strings with one segment beyond the head).
+                //
+                // The primary goal is full branch coverage, which has been verified empirically
+                // with llvm-cov.
+                0..26 =>
                     if !shrink_phase || rng.gen() {
                         let bit = rng.gen();
-                        string.0.push(bit);
-                        string.1.push(bit);
+                        tested.push(bit);
+                        reference.push(bit);
                     },
-                28..32 =>
+                26..28 =>
                     if !shrink_phase || rng.gen() {
                         let count = core::num::NonZeroU32::new(rng.gen_range(1..80)).unwrap();
-                        string.0.push_zeros(count);
-                        string.1.push_zeros(count);
+                        tested.push_zeros(count);
+                        reference.push_zeros(count);
                     },
-                32..36 => {
-                    string.0.drop_front();
-                    string.1.drop_front();
+                28..32 => {
+                    tested.drop_front();
+                    reference.drop_front();
                 }
-                36..50 => {
-                    assert_eq!(string.0.pop(), string.1.pop());
-                    assert_eq!(string.0.is_empty(), string.1.is_empty());
-                    if string.0.is_empty() && rng.gen() && let Some(s) = strings.pop() {
-                        string = s;
+                32..46 => {
+                    assert_eq!(tested.pop(), reference.pop());
+                    assert_eq!(tested.is_empty(), reference.is_empty());
+                    if tested.is_empty() && rng.gen() && let Some(s) = strings.pop() {
+                        tested = s.0;
+                        reference = s.1;
                     }
                 }
-                50..56 => {
-                    assert_eq!(string.0.pop_trailing_zeros(), string.1.pop_trailing_zeros());
-                    assert_eq!(string.0.is_empty(), string.1.is_empty());
-                    if string.0.is_empty() && rng.gen() && let Some(s) = strings.pop() {
-                        string = s;
+                46..52 => {
+                    assert_eq!(tested.pop_trailing_zeros(), reference.pop_trailing_zeros());
+                    assert_eq!(tested.is_empty(), reference.is_empty());
+                    if tested.is_empty() && rng.gen() && let Some(s) = strings.pop() {
+                        tested = s.0;
+                        reference = s.1;
                     }
                 }
-                56..60 =>
-                    if let Some(lhs) = strings.pop() {
-                        let string_ = core::mem::take(&mut string);
-                        string = (lhs.0 + string_.0, lhs.1 + string_.1);
+                52..58 =>
+                    if let Some((tested_lhs, reference_lhs)) = strings.pop() {
+                        let tested_ = core::mem::take(&mut tested);
+                        let reference_ = core::mem::take(&mut reference);
+                        tested = tested_lhs + tested_;
+                        reference = reference_lhs + reference_;
                     },
-                60..64 =>
+                58..64 =>
                     if !shrink_phase || rng.gen() {
-                        strings.push((super::Bitstring::new(), SlowBitstring::new()));
+                        let tested_ = core::mem::take(&mut tested);
+                        let reference_ = core::mem::take(&mut reference);
+                        strings.push((tested_, reference_));
                     },
                 _ => (),
             }
-            assert_eq!(string.0.is_empty(), string.1.is_empty());
+            assert_eq!(tested.is_empty(), reference.is_empty());
         }
     }
 }

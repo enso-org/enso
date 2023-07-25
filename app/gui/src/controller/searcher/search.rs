@@ -108,7 +108,7 @@ define_mixed_binary_radix_bases_low_to_high!(u32,
 // =====================
 
 /// Observes how characters are matched within a submatch.
-#[derive(Clone, Default)]
+#[derive(Debug, Clone, Default, Copy)]
 struct ScoreBuilder {
     // === State maintained to determine how further characters affect penalty ===
     word_chars_matched: bool,
@@ -154,8 +154,8 @@ impl score::ScoreBuilder for ScoreBuilder {
         self.word_chars_matched_since_last_delimiter = false;
     }
 
-    fn finish(self) -> Self::SubmatchScore {
-        let Self { penalty, word_chars_skipped, .. } = self;
+    fn finish(&self) -> Self::SubmatchScore {
+        let Self { penalty, word_chars_skipped, .. } = *self;
         ScoreInfo { penalty, word_chars_skipped }
     }
 }
@@ -241,7 +241,8 @@ mod test_score {
     fn check_order(pattern: &str, inputs: &[(&str, TargetInfo)]) {
         let expected = inputs;
         let mut computed: Vec<_> = inputs.to_vec();
-        computed.sort_by_key(|(target, target_info)| search(pattern, target, *target_info));
+        computed
+            .sort_by_key(|(target, target_info)| search(target, pattern, *target_info).unwrap());
         computed.reverse();
         assert_eq!(computed, expected);
     }

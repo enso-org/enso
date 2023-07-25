@@ -189,13 +189,10 @@ impl Component {
         let filter_enabled = filter.context.is_some() || !filter.pattern.is_empty();
         let excluded_by_context = filter
             .context
-            .map(|context| {
-                match &self.suggestion {
-                    Suggestion::FromDatabase { entry, .. } => {
-                        !entry.qualified_name().to_string().contains(context.as_str())
-                    }
-                    Suggestion::Virtual { .. } => true,
-                }
+            .map(|context| match &self.suggestion {
+                Suggestion::FromDatabase { entry, .. } =>
+                    !entry.qualified_name().to_string().contains(context.as_str()),
+                Suggestion::Virtual { .. } => true,
             })
             .unwrap_or_default();
         let match_info = filter_enabled.then(|| {
