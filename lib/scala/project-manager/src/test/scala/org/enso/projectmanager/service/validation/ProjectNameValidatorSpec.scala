@@ -25,6 +25,14 @@ class ProjectNameValidatorSpec
         .value mustEqual ProjectNameValidator.ValidationFailure.EmptyName
     }
 
+    "discard name with only whitespace" in {
+      projectNameValidator
+        .validate("   ")
+        .unsafeRunSync()
+        .left
+        .value mustEqual ProjectNameValidator.ValidationFailure.EmptyName
+    }
+
     "allow arbitrary non-empty name" in {
       projectNameValidator
         .validate("hello 世界 \uD83D\uDE04")
