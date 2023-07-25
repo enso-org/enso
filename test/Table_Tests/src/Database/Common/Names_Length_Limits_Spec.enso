@@ -1,6 +1,7 @@
 from Standard.Base import all
 
-from Standard.Table import Table
+from Standard.Table import Table, Join_Kind, Aggregate_Column, Value_Type
+from Standard.Table.Errors import No_Such_Column
 
 from Standard.Database import all
 from Standard.Database.Errors import all
@@ -13,8 +14,8 @@ import project.Database.Helpers.Name_Generator
 
 spec prefix connection =
     Test.group prefix+" Support for Long Column/Table names" <|
-        has_maximum_table_name_length = connection.dialect.max_table_name_length
-        has_maximum_column_name_length = connection.dialect.max_column_name_length
+        has_maximum_table_name_length = connection.base_connection.max_table_name_length.is_nothing.not
+        has_maximum_column_name_length = connection.base_connection.max_column_name_length.is_nothing.not
         big_name_length = 10000
 
         if has_maximum_table_name_length.not then
@@ -35,8 +36,8 @@ spec prefix connection =
                 r.should_fail_with Name_Too_Long
                 r.catch.entity_kind . should_equal "table"
                 r.catch.name . should_equal name
-                c.catch.to_display_text . should_contain "The table name"
-                c.catch.to_display_text . should_contain "is too long"
+                r.catch.to_display_text . should_contain "The table name"
+                r.catch.to_display_text . should_contain "is too long"
 
             Test.specify "should ensure length is measured in code units, even if grapheme length is lower" <|
                 # TODO test with emojis
@@ -47,16 +48,16 @@ spec prefix connection =
                just short enough to fit in the limit, but long enough that after
                concatenating two of such names, the result will exceed the limit.
                If we don't know the limit, we just choose a very long name.
-            name_length = case connection.dialect.max_table_name_length of
+            name_length = case connection.base_connection.max_table_name_length of
                 Nothing -> 5000
                 max : Integer -> max
 
             name_1 = ("x" * (name_length - 1)) + "1"
             name_2 = ("x" * (name_length - 1)) + "2"
             name_3 = ("x" * (name_length - 1)) + "3"
-            t1 = (Table.new [["X", [1, 2]]]).select_into_database_table c name_1 temporary=True
-            t2 = (Table.new [["X", [1, 2]]]).select_into_database_table c name_2 temporary=True
-            t3 = (Table.new [["X", [1, 2]]]).select_into_database_table c name_3 temporary=True
+            t1 = (Table.new [["X", [1, 2]]]).select_into_database_table connection name_1 temporary=True
+            t2 = (Table.new [["X", [1, 2]]]).select_into_database_table connection name_2 temporary=True
+            t3 = (Table.new [["X", [1, 2]]]).select_into_database_table connection name_3 temporary=True
 
             Test.with_clue "join: " <|
                 t12 = t1.join t2
@@ -96,7 +97,7 @@ spec prefix connection =
                 c = db_table.at "X"
                 long_name = "a" * big_name_length
                 c2 = c.rename long_name
-                t2 = db_table.set c2
+                t2 = db_table.set (c2 * c2) long_name
                 t2.column_names . should_equal ["X", long_name]
 
                 t3 = t2.join t2 on="X" join_kind=Join_Kind.Inner right_prefix="Right_"
@@ -115,9 +116,9 @@ spec prefix connection =
                 db_table.at name_b . to_vector . should_equal [4, 5, 6]
 
         if has_maximum_column_name_length then
-            max_column_name_length = connection.dialect.max_column_name_length
+            max_column_name_length = connection.base_connection.max_column_name_length
             Test.specify "should raise an error when renaming a column to a name that is too long" <|
-                src = Table.new [["X", [1, 2, 3]], ["Y", [4, 5, 6]]
+                src = Table.new [["X", [1, 2, 3]], ["Y", [4, 5, 6]]]
                 db_table = src.select_into_database_table connection (Name_Generator.random_name "long-column-names") temporary=True
                 c = db_table.at "X"
                 long_name = "a" * (max_column_name_length + 1)
@@ -137,7 +138,7 @@ spec prefix connection =
 
             Test.specify "should truncate column names in upload when they are too long and issue a warning" <|
                 name_a = "a" * (max_column_name_length + 1)
-                name_a = "b" * (max_column_name_length + 1)
+                name_b = "b" * (max_column_name_length + 1)
                 src = Table.new [[name_a, [1, 2, 3]], [name_b, [4, 5, 6]]]
                 db_table = src.select_into_database_table connection (Name_Generator.random_name "long-column-names") temporary=True
                 w = Problems.expect_only_warning Truncated_Column_Names db_table
@@ -149,7 +150,7 @@ spec prefix connection =
 
             Test.specify "should truncate column names in upload when they are too long, rename them if needed and issue a warning" <|
                 name_a = "x" * (max_column_name_length + 1) + "A"
-                name_a = "x" * (max_column_name_length + 1) + "B"
+                name_b = "x" * (max_column_name_length + 1) + "B"
                 src = Table.new [[name_a, [1, 2, 3]], [name_b, [4, 5, 6]], ["C", [7, 8, 9]]]
                 db_table = src.select_into_database_table connection (Name_Generator.random_name "long-column-names") temporary=True
                 w = Problems.expect_only_warning Truncated_Column_Names db_table
@@ -234,6 +235,7 @@ spec prefix connection =
             Test.specify "should fail if column names provided in transpose" <|
                 # TODO transpose is currently not implemented, so nothing to test here, but this test ensures that we won't forget to update it once we implement it
                 name_a = "x" * (max_column_name_length + 1) + "A"
+                name_b = "x" * (max_column_name_length + 1) + "B"
                 src = Table.new [["X", [name_a, name_b, name_a]], ["Y", [4, 5, 6]]]
                 db_table = src.select_into_database_table connection (Name_Generator.random_name "cross-tab") temporary=True
                 db_table.transpose attribute_column_name=name_a . should_fail_with Unsupported_Database_Operation
