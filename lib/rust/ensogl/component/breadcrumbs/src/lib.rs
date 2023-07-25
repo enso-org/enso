@@ -477,6 +477,8 @@ ensogl_core::define_endpoints_2! {
         push(Breadcrumb),
         /// Set the displayed breadcrumbs starting from the specific index.
         set_entries_from((Vec<Breadcrumb>, BreadcrumbId)),
+        /// Set the displayed breadcrumbs.
+        set_entries(Vec<Breadcrumb>),
         /// Set the breadcrumb at a specified index.
         set_entry((BreadcrumbId, Breadcrumb)),
         /// Enable or disable displaying of the ellipsis icon at the end of the list.
@@ -534,7 +536,10 @@ impl Breadcrumbs {
             eval_ input.clear(model.clear());
             selected <- selected_grid_col.map(|(_, col)| col / 2);
             eval input.push((b) model.push(b));
-            eval input.set_entries_from(((entries, from)) model.set_entries(entries, *from));
+
+            set_entries_from_zero <- input.set_entries.map(|entries| (entries.clone(), 0));
+            set_entries_from <- any(set_entries_from_zero, input.set_entries_from);
+            eval set_entries_from(((entries, from)) model.set_entries(entries, *from));
             eval input.set_entry(((index, entry)) model.set_entry(entry, *index));
             out.selected <+ selected;
 

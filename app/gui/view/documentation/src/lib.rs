@@ -44,7 +44,7 @@ use ide_view_graph_editor as graph_editor;
 
 pub mod html;
 
-pub use ide_view_component_list_panel_breadcrumbs as breadcrumbs;
+pub use ensogl_breadcrumbs as breadcrumbs;
 
 
 
@@ -151,8 +151,8 @@ impl Model {
 
     fn set_initial_breadcrumbs(&self) {
         let breadcrumb = breadcrumbs::Breadcrumb::new(INITIAL_SECTION_NAME, None);
-        self.breadcrumbs.set_entries_from((vec![breadcrumb], 0));
-        self.breadcrumbs.show_ellipsis(true);
+        self.breadcrumbs.set_entries(vec![breadcrumb]);
+        self.breadcrumbs.show_ellipsis(false);
     }
 
     /// Set size of the documentation view.

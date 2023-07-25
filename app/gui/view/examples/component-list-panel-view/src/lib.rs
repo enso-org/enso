@@ -145,7 +145,7 @@ pub fn main() {
         panel.show();
 
         let breadcrumbs = app.new_view::<Breadcrumbs>();
-        breadcrumbs.set_y(400.0);
+        breadcrumbs.set_y(500.0);
         breadcrumbs.frp().set_size(Vector2(500.0, 100.0));
         breadcrumbs.set_entries_from((
             vec![

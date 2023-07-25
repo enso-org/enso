@@ -5,6 +5,7 @@ use crate::prelude::*;
 
 use crate::controller::graph::ImportType;
 use crate::controller::graph::RequiredImport;
+use crate::controller::searcher::breadcrumbs::BreadcrumbEntry;
 use crate::model::execution_context::GroupQualifiedName;
 use crate::model::module::NodeEditStatus;
 use crate::model::suggestion_database;
@@ -15,11 +16,14 @@ use double_representation::name::project;
 use double_representation::name::QualifiedName;
 use engine_protocol::language_server;
 use enso_suggestion_database::documentation_ir::EntryDocumentation;
+use enso_suggestion_database::entry::Id as EntryId;
+use enso_suggestion_database::NoSuchEntry;
 use enso_text as text;
 use enso_text::Byte;
 use enso_text::Location;
 use enso_text::Rope;
 use flo_stream::Subscriber;
+use ide_view::component_browser::breadcrumbs::Breadcrumb;
 
 
 // ==============
@@ -354,16 +358,7 @@ impl Searcher {
     }
 
     /// Enter the specified module. The displayed content of the browser will be updated.
-    pub fn enter_entry(&self, entry: usize) -> FallibleResult {
-        let id = {
-            let data = self.data.borrow();
-            let error = || NoSuchComponent { index: entry };
-            let component = data.components.displayed().get(entry).ok_or_else(error)?;
-            component.id().ok_or(NotEnterable { index: entry })?
-        };
-        let bc_builder = breadcrumbs::Builder::new(&self.database);
-        let breadcrumbs = bc_builder.build(id);
-        self.breadcrumbs.set_content(breadcrumbs);
+    pub fn enter_entry(&self, _entry: usize) -> FallibleResult {
         self.reload_list();
         Ok(())
     }
@@ -374,11 +369,55 @@ impl Searcher {
         self.breadcrumbs.names()
     }
 
-    /// Select the breadcrumb with the index [`id`]. The displayed content of the browser will be
-    /// updated.
+    /// Set the selected breadcrumb. The `id` is the index of the breadcrumb from left to right.
     pub fn select_breadcrumb(&self, id: usize) {
         self.breadcrumbs.select(id);
-        self.reload_list();
+    }
+
+    /// Set the breadcrumbs to match the component at the given `index`. The index refers to the
+    /// displayed list of components. Returns the full breadcrumb for the entry, if there is one.
+    pub fn update_breadcrumbs(&self, index: usize) -> Option<Vec<BreadcrumbEntry>> {
+        let data = self.data.borrow();
+        if let Some(component) = data.components.displayed().get(index) {
+            if let Some(id) = component.id() {
+                let bc_builder = breadcrumbs::Builder::new(&self.database);
+                let breadcrumbs = bc_builder.build(id).collect_vec();
+                assert!(breadcrumbs.iter().all(|e| self.database.lookup(e.id()).is_ok()));
+                self.breadcrumbs.set_content(breadcrumbs.clone().into_iter());
+                Some(breadcrumbs)
+            } else {
+                warn!(
+                    "Cannot update breadcrumbs with component that has no suggestion database \
+                entry. Invalid component: {:?}",
+                    component
+                );
+                None
+            }
+        } else {
+            warn!("Update readcrumbs called with invalid index: {}", index);
+            None
+        }
+    }
+
+    /// Return the full breadcrumb for the entry.
+    pub fn breadcrumbs_for_entry(&self, id: EntryId) -> Result<Vec<Breadcrumb>, NoSuchEntry> {
+        let component = self.database.lookup(id)?;
+        let name = &component.name;
+        let icon = Some(component.icon());
+        let module = &component.defined_in;
+        let breadcrumbs_base = module.path().iter().map(|name| Breadcrumb::new_without_icon(name));
+        let breadcrumbs = breadcrumbs_base.chain(iter::once(Breadcrumb::new(name, icon)));
+        Ok(breadcrumbs.collect())
+    }
+
+    /// Return the documentation for the breadcrumb.
+    pub fn documentation_for_selected_breadcrumb(&self) -> Option<EntryDocumentation> {
+        let selected = self.breadcrumbs.selected();
+        console_log!("documentation_for_selected_breadcrumb -> selected: {:?}", selected);
+        let component = selected?;
+        assert!(self.database.lookup(component).is_ok());
+        let docs = self.database.documentation_for_entry(component);
+        Some(docs)
     }
 
     /// Set the Searcher Input.

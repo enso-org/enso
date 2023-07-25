@@ -1,5 +1,5 @@
 [package]
-name = "ide-view-component-list-panel-breadcrumbs"
+name = "ensogl-breadcrumbs"
 version = "0.1.0"
 authors = ["Enso Team <contact@enso.org>"]
 edition = "2021"

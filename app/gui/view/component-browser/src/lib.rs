@@ -35,8 +35,8 @@ use ide_view_graph_editor::component::node::HEIGHT as NODE_HEIGHT;
 // === Export ===
 // ==============
 
+pub use ensogl_breadcrumbs as breadcrumbs;
 pub use ide_view_component_list_panel as component_list_panel;
-pub use ide_view_component_list_panel_breadcrumbs as breadcrumbs;
 
 
 

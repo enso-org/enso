@@ -6,6 +6,7 @@ use crate::model::suggestion_database;
 
 use double_representation::name::QualifiedName;
 use double_representation::name::QualifiedNameRef;
+use ensogl_icons::icon;
 use model::suggestion_database::Entry;
 
 
@@ -32,9 +33,11 @@ impl Breadcrumbs {
 
     /// Set the list of breadcrumbs to be displayed in the breadcrumbs panel.
     pub fn set_content(&self, breadcrumbs: impl Iterator<Item = BreadcrumbEntry>) {
+        let breadcrumbs: Vec<_> = breadcrumbs.collect();
         let mut borrowed = self.list.borrow_mut();
-        *borrowed = breadcrumbs.collect();
-        self.select(borrowed.len());
+        *borrowed = breadcrumbs;
+        let len = borrowed.len();
+        self.select(len - 1);
     }
 
     /// A list of breadcrumbs' text labels to be displayed in the panel.
@@ -60,12 +63,13 @@ impl Breadcrumbs {
     /// Returns a currently selected breadcrumb id. Returns [`None`] if the top level breadcrumb
     /// is selected.
     pub fn selected(&self) -> Option<suggestion_database::entry::Id> {
-        if self.is_top_module() {
-            None
-        } else {
-            let index = self.selected.get();
-            self.list.borrow().get(index - 1).map(BreadcrumbEntry::id)
-        }
+        let index = self.selected.get();
+        self.list.borrow().get(index).map(BreadcrumbEntry::id)
+    }
+
+    /// Return a list of breadcrumbs to be displayed in the panel.
+    pub fn items(&self) -> impl Iterator<Item = BreadcrumbEntry> + '_ {
+        self.list.borrow().iter().cloned().collect_vec().into_iter()
     }
 }
 
@@ -81,6 +85,7 @@ pub struct BreadcrumbEntry {
     displayed_name: ImString,
     component_id:   suggestion_database::entry::Id,
     qualified_name: QualifiedName,
+    icon:           Option<icon::Id>,
 }
 
 impl BreadcrumbEntry {
@@ -98,13 +103,25 @@ impl BreadcrumbEntry {
     pub fn qualified_name(&self) -> &QualifiedName {
         &self.qualified_name
     }
+
+    /// An icon of the entry.
+    pub fn icon(&self) -> Option<icon::Id> {
+        self.icon
+    }
 }
 
 impl From<(suggestion_database::entry::Id, Rc<Entry>)> for BreadcrumbEntry {
     fn from((component_id, entry): (suggestion_database::entry::Id, Rc<Entry>)) -> Self {
         let qualified_name = entry.qualified_name();
         let displayed_name = entry.name.clone();
-        BreadcrumbEntry { displayed_name, component_id, qualified_name }
+        let icon = Some(entry.as_ref().icon());
+        BreadcrumbEntry { displayed_name, component_id, qualified_name, icon }
+    }
+}
+
+impl From<BreadcrumbEntry> for ensogl_breadcrumbs::Breadcrumb {
+    fn from(val: BreadcrumbEntry) -> Self {
+        ensogl_breadcrumbs::Breadcrumb::new(val.name().as_str(), val.icon())
     }
 }
 

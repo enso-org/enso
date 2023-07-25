@@ -18,6 +18,7 @@ ensogl-selector = { path = "../../../../../lib/rust/ensogl/component/selector" }
 ensogl-toggle-button = { path = "../../../../../lib/rust/ensogl/component/toggle-button" }
 ensogl-text = { path = "../../../../../lib/rust/ensogl/component/text" }
 ensogl-tooltip = { path = "../../../../../lib/rust/ensogl/component/tooltip/" }
+ensogl-breadcrumbs = { path = "../../../../../lib/rust/ensogl/component/breadcrumbs/" }
 ide-view-component-list-panel-grid = { path = "grid" }
 ensogl-icons = { path = "../../../../../lib/rust/ensogl/component/icons" }
 ordered-float = { workspace = true }

@@ -2197,6 +2197,7 @@ dependencies = [
  "enso-text",
  "enso-web",
  "ensogl",
+ "ensogl-breadcrumbs",
  "ensogl-component",
  "ensogl-drop-manager",
  "ensogl-dynamic-assets",
@@ -2620,6 +2621,19 @@ name = "ensogl"
 version = "0.1.0"
 dependencies = [
  "ensogl-core",
+ "ensogl-text",
+]
+
+[[package]]
+name = "ensogl-breadcrumbs"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "ensogl-core",
+ "ensogl-derive-theme",
+ "ensogl-grid-view",
+ "ensogl-hardcoded-theme",
+ "ensogl-icons",
  "ensogl-text",
 ]
 
@@ -4322,11 +4336,11 @@ dependencies = [
  "enso-frp",
  "enso-prelude",
  "ensogl",
+ "ensogl-breadcrumbs",
  "ensogl-gui-component",
  "ensogl-hardcoded-theme",
  "ensogl-text",
  "ide-view-component-list-panel",
- "ide-view-component-list-panel-breadcrumbs",
  "ide-view-documentation",
  "ide-view-graph-editor",
 ]
@@ -4337,6 +4351,7 @@ version = "0.1.0"
 dependencies = [
  "approx 0.5.1",
  "enso-frp",
+ "ensogl-breadcrumbs",
  "ensogl-core",
  "ensogl-grid-view",
  "ensogl-gui-component",
@@ -4349,19 +4364,6 @@ dependencies = [
  "ensogl-tooltip",
  "ide-view-component-list-panel-grid",
  "ordered-float",
-]
-
-[[package]]
-name = "ide-view-component-list-panel-breadcrumbs"
-version = "0.1.0"
-dependencies = [
- "enso-frp",
- "ensogl-core",
- "ensogl-derive-theme",
- "ensogl-grid-view",
- "ensogl-hardcoded-theme",
- "ensogl-icons",
- "ensogl-text",
 ]
 
 [[package]]
@@ -4392,11 +4394,11 @@ dependencies = [
  "enso-profiler",
  "enso-suggestion-database",
  "ensogl",
+ "ensogl-breadcrumbs",
  "ensogl-component",
  "ensogl-hardcoded-theme",
  "horrorshow",
  "ide-ci",
- "ide-view-component-list-panel-breadcrumbs",
  "ide-view-graph-editor",
  "serde_json",
  "tokio",

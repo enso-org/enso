@@ -16,7 +16,7 @@ ensogl = { path = "../../../../lib/rust/ensogl" }
 ensogl-component = { path = "../../../../lib/rust/ensogl/component" }
 ensogl-hardcoded-theme = { path = "../../../../lib/rust/ensogl/app/theme/hardcoded" }
 ide-view-graph-editor = { path = "../graph-editor" }
-ide-view-component-list-panel-breadcrumbs = { path = "../../../../lib/rust/ensogl/component/breadcrumbs" }
+ensogl-breadcrumbs = { path = "../../../../lib/rust/ensogl/component/breadcrumbs" }
 wasm-bindgen = { workspace = true }
 serde_json = { workspace = true }
 horrorshow = "0.8.4"

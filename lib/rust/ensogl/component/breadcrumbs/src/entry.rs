@@ -125,7 +125,7 @@ pub struct Style {
 
 /// A model for the entry in the breadcrumbs list.
 #[allow(missing_docs)]
-#[derive(Clone, CloneRef, Debug, Default)]
+#[derive(Clone, CloneRef, Debug, Default, PartialEq)]
 pub enum Model {
     #[default]
     Ellipsis,
@@ -186,8 +186,9 @@ impl EntryData {
         let separator = separator::View::new();
         let state = default();
         let icon: any_icon::View = default();
-        icon.set_size((ICON_WIDTH, ICON_WIDTH));
+        ellipsis.set_size((ICON_WIDTH, ICON_WIDTH));
         ellipsis.set_size((ellipsis::ICON_WIDTH, ellipsis::ICON_WIDTH));
+        icon.set_size((ICON_WIDTH, ICON_WIDTH));
         display_object.add_child(&icon);
         display_object.add_child(&ellipsis);
         Self { display_object, state, text, ellipsis, separator, icon }
@@ -223,7 +224,6 @@ impl EntryData {
         if let Some(icon) = icon {
             self.display_object.add_child(&self.icon);
             self.icon.icon.set(icon.any_cached_shape_location());
-            self.text.set_x(ICON_WIDTH);
         } else {
             self.icon.unset_parent();
             self.text.set_x(0.0);
@@ -263,8 +263,8 @@ impl EntryData {
         self.separator.set_size(Vector2(separator::ICON_WIDTH, size.y));
         self.ellipsis.set_size(Vector2(ellipsis::ICON_WIDTH, size.y));
         self.icon.set_size(Vector2(ICON_WIDTH, size.y));
-        self.icon.set_x(-ICON_WIDTH);
-        self.icon.set_y(-2.0);
+        self.icon.set_x(-size.x / 2.0 - 2.0);
+        self.icon.set_y(-ICON_WIDTH * 1.25 - 2.0);
     }
 
     fn set_default_color(&self, color: color::Lcha) {
@@ -376,6 +376,10 @@ impl ensogl_grid_view::Entry for Entry {
             highlight_corners_radius <- input.set_params.map(|p| p.style.highlight_corners_radius).on_change();
             greyed_out_from <- input.set_params.map(|p| p.greyed_out_start).on_change();
             transparent_color <- init.constant(color::Lcha::transparent());
+            new_model <- input.set_model.on_change();
+
+
+            // === Appearance ===
 
             col <- input.set_location._1();
             should_grey_out <- all_with(&col, &greyed_out_from,
@@ -397,7 +401,6 @@ impl ensogl_grid_view::Entry for Entry {
                 size: *size - Vector2(*margin, *margin) * 2.0,
                 corners_radius: 0.0,
             });
-
             eval color((c) data.set_default_color(*c));
             eval font((f) data.set_font(f.to_string()));
             eval text_size((s) data.set_default_text_size(*s));
@@ -410,24 +413,29 @@ impl ensogl_grid_view::Entry for Entry {
             out.hover_highlight_color <+ hover_color;
             out.selection_highlight_color <+ init.constant(color::Lcha::transparent());
 
-
-            // === Override column width ===
-
-            // We need to adjust the width of the grid view column depending on the width of
-            // the entry.
-            out.override_column_width <+ input.set_model.map2(&text_padding,
-                f!([data](model, text_padding) {
-                    data.set_model(model);
-                    data.width(*text_padding)
-                })
-            );
             // For text entries, we also listen for [`Text::width`] changes.
             text_width <- data.text.width.filter(f_!(data.is_text_displayed()));
             entry_width <- text_width.map2(&text_padding, f!((w, o) data.text_width(*w, *o)));
             out.override_column_width <+ entry_width;
 
-            layout <- all(contour, text_padding, text_y_offset, input.set_model);
+
+            // === Layout ===
+
+            override_column_width <- new_model.map2(&text_padding,
+                f!([data](model, text_padding) {
+                    data.set_model(model);
+                    data.width(*text_padding)
+                })
+            );
+
+            layout <- all(contour, text_padding, text_y_offset, new_model);
             eval layout ((&(c, to, tyo, _)) data.update_layout(c, to, tyo));
+
+            // === Override column width ===
+
+            // We need to adjust the width of the grid view column depending on the width of
+            // the entry.
+            out.override_column_width <+ override_column_width;
         }
         init.emit(());
         Self { frp, data }
