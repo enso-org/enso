@@ -21,6 +21,7 @@ export const theme = {
             // Should be `#3e515fe5`, but `bg-opacity` does not work with RGBA.
             /** The default color of all text. */
             primary: '#52636f',
+            normal: 'rgba(0, 0, 0, 0.60)',
             chat: '#484848',
             'ide-bg': '#ebeef1',
             'ide-bg-dark': '#d0d3d6',
@@ -57,6 +58,7 @@ export const theme = {
             '5.5': '1.375rem',
             '83.5': '20.875rem',
             '70': '17.5rem',
+            '98.25': '24.5625rem',
             '10lh': '10lh',
             '140': '35rem',
         },

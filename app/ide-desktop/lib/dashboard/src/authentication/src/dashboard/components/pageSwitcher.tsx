@@ -39,7 +39,7 @@ export interface PageSwitcherProps {
 export default function PageSwitcher(props: PageSwitcherProps) {
     const { page, setPage, isEditorDisabled } = props
     return (
-        <div className="flex gap-4">
+        <div className="flex shrink-0 gap-4">
             {PAGE_DATA.map(pageData => {
                 const isDisabled =
                     pageData.page === Page.home ||

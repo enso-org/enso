@@ -1,7 +1,7 @@
 /** @file The top-bar of dashboard. */
 import * as React from 'react'
 
-import MagnifyingGlassIcon from 'enso-assets/magnifying_glass.svg'
+import FindIcon from 'enso-assets/find.svg'
 
 import * as backendModule from '../backend'
 
@@ -44,22 +44,24 @@ function TopBar(props: TopBarProps) {
     } = props
 
     return (
-        <div className="flex mx-4.75 h-8 gap-6">
+        <div className="relative flex mx-4.75 h-8 gap-6">
             <PageSwitcher page={page} setPage={setPage} isEditorDisabled={isEditorDisabled} />
-            {supportsLocalBackend || <BackendSwitcher setBackendType={setBackendType} />}
-            <div className="grow flex items-center bg-label rounded-full px-2">
-                <div>
-                    <img src={MagnifyingGlassIcon} />
-                </div>
+            {supportsLocalBackend && <BackendSwitcher setBackendType={setBackendType} />}
+            <div className="grow" />
+            <div className="search-bar absolute flex items-center text-normal bg-frame-bg rounded-full -translate-x-1/2 gap-2.5 left-1/2 h-8 w-98.25 px-2">
+                <label htmlFor="search">
+                    <img src={FindIcon} className="opacity-80" />
+                </label>
                 <input
                     type="text"
                     size={1}
-                    placeholder="Click here or start typing to search for projects, data connectors, users, and more ..."
+                    id="search"
+                    placeholder="Type to search for projects, data connectors, users, and more."
                     value={query}
                     onChange={event => {
                         setQuery(event.target.value)
                     }}
-                    className="flex-1 mx-2 bg-transparent"
+                    className="grow bg-transparent h-5.5 py-px"
                 />
             </div>
             <div className="grow" />

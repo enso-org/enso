@@ -23,9 +23,9 @@ export default function BackendSwitcher(props: BackendSwitcherProps) {
     const { setBackendType } = props
     const { backend } = backendProvider.useBackend()
     return (
-        <div className="flex gap-px">
+        <div className="flex shrink-0 gap-px">
             <div
-                className={`rounded-r-full px-2.5 py-1 ${
+                className={`rounded-l-full px-2.5 py-1 ${
                     backend.type === backendModule.BackendType.remote
                         ? 'bg-frame-selected-bg'
                         : 'bg-frame-bg'
