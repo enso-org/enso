@@ -234,7 +234,7 @@ spec prefix connection =
                 c1 = c0 + 10
                 c1.to_vector . should_equal [11, 12, 13]
                 # truncated
-                c1.name . should_equal long_name
+                c1.name . should_equal ("[" + long_name.drop 1)
 
                 c2 = c0.ceil
                 c2.to_vector . should_equal [1, 2, 3]
