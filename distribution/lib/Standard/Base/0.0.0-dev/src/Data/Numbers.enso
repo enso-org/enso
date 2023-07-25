@@ -923,9 +923,21 @@ type Integer
         ## It's already an integer so unless decimal_places is
            negative, the value is unchanged.
         if decimal_places >= 0 then self else
-            # Don't check decimal_places here, it's checked in the Java.
-            Rounding_Helpers.check_round_input self <|
-                Math_Utils.roundLong self decimal_places use_bankers
+            Rounding_Helpers.check_decimal_places decimal_places <| Rounding_Helpers.check_round_input self <|
+                scale = 10 ^ -decimal_places
+                halfway = scale.div 2
+                remainder = self % scale
+                scaled_down = self.div scale
+                result_unnudged = scaled_down * scale
+                case self >= 0 of
+                    True ->
+                        half_goes_up = if use_bankers then (scaled_down % 2) != 0 else True
+                        round_up = if half_goes_up then remainder >= halfway else remainder > halfway
+                        if round_up  then result_unnudged + scale else result_unnudged
+                    False ->
+                        half_goes_up = if use_bankers then (scaled_down % 2) == 0 else False
+                        round_up = if half_goes_up then remainder < -halfway else remainder <= -halfway
+                        if round_up then result_unnudged - scale else result_unnudged
 
     ## Compute the negation of this.
 
