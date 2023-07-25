@@ -188,7 +188,7 @@ export default function Table<T, State = never, RowState = never, Key extends st
                 return (
                     <th
                         key={column.id}
-                        className={`text-vs px-4 py-1 border-0 border-r whitespace-nowrap font-semibold text-left ${
+                        className={`text-vs px-4 py-1 bg-clip-padding border-transparent border-l-2 border-r-2 first:border-l-0 last:border-r-0 font-semibold text-left ${
                             column.className ?? ''
                         }`}
                     >
@@ -205,7 +205,7 @@ export default function Table<T, State = never, RowState = never, Key extends st
 
     const itemRows = isLoading ? (
         <tr className="h-10">
-            <td colSpan={columns.length}>
+            <td colSpan={columns.length} className="bg-transparent">
                 <div className="grid justify-around w-full">
                     <Spinner size={LOADING_SPINNER_SIZE} state={spinnerState} />
                 </div>
@@ -213,7 +213,9 @@ export default function Table<T, State = never, RowState = never, Key extends st
         </tr>
     ) : items.length === 0 || forceShowPlaceholder ? (
         <tr className="h-10">
-            <td colSpan={columns.length}>{placeholder}</td>
+            <td colSpan={columns.length} className="bg-transparent">
+                {placeholder}
+            </td>
         </tr>
     ) : (
         items.map(item => {

@@ -28,9 +28,7 @@ interface OwnerPermissions extends BasePermissions<Permission.owner> {}
 interface AdminPermissions extends BasePermissions<Permission.admin> {}
 
 /** Editor permissions for an asset. */
-interface EditPermissions extends BasePermissions<Permission.edit> {
-    type: Permission.edit
-}
+interface EditPermissions extends BasePermissions<Permission.edit> {}
 
 /** Reader permissions for an asset. */
 interface ReadPermissions extends BasePermissions<Permission.read> {
@@ -39,7 +37,10 @@ interface ReadPermissions extends BasePermissions<Permission.read> {
 }
 
 /** Viewer permissions for an asset. */
-interface ViewPermissions extends BasePermissions<Permission.view> {}
+interface ViewPermissions extends BasePermissions<Permission.view> {
+    execute: boolean
+    docs: boolean
+}
 
 /** Detailed permission information. This is used to draw the border. */
 export type Permissions =
@@ -83,7 +84,7 @@ export const PERMISSION: Record<backend.PermissionAction, Permissions> = {
         docs: false,
     },
     [backend.PermissionAction.edit]: { type: Permission.edit },
-    [backend.PermissionAction.view]: { type: Permission.view },
+    [backend.PermissionAction.view]: { type: Permission.view, execute: false, docs: false },
 }
 
 // ======================
@@ -101,7 +102,7 @@ export function permissionActionsToPermissions(
                 ? actionResult
                 : result
         },
-        { type: Permission.view }
+        { type: Permission.view, execute: false, docs: false }
     )
 }
 
@@ -125,8 +126,7 @@ export default function PermissionDisplay(props: PermissionDisplayProps) {
     switch (permissions.type) {
         case Permission.owner:
         case Permission.admin:
-        case Permission.edit:
-        case Permission.view: {
+        case Permission.edit: {
             return (
                 <div
                     className={`${
@@ -140,7 +140,8 @@ export default function PermissionDisplay(props: PermissionDisplayProps) {
                 </div>
             )
         }
-        case Permission.read: {
+        case Permission.read:
+        case Permission.view: {
             return (
                 <div
                     className={`relative inline-block rounded-full ${className ?? ''}`}

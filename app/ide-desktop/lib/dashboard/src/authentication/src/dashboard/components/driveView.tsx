@@ -267,7 +267,7 @@ export default function DirectoryView(props: DirectoryViewProps) {
     }, [tab])
 
     return (
-        <div className="flex flex-col gap-2.5 px-3.25">
+        <div className="flex flex-col flex-1 gap-2.5 px-3.25">
             <h1 className="text-xl font-bold h-9.5 pl-1.5">
                 {backend.type === backendModule.BackendType.remote ? 'Cloud Drive' : 'Local Drive'}
             </h1>

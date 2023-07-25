@@ -107,13 +107,17 @@ body {
 
     .rounded-rows > tbody > tr:nth-child(odd) {
       > td {
-        background: rgba(0, 0, 0, 0.03);
+        background-color: rgba(0, 0, 0, 0.03);
+      }
+
+      > td.bg-transparent {
+        background-color: transparent;
       }
     }
 
     .rounded-rows > tbody > tr.selected {
       > td {
-        background: rgba(255, 255, 255, 0.4);
+        background-color: rgba(255, 255, 255, 0.4);
       }
     }
 
