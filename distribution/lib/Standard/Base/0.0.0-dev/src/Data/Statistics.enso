@@ -162,14 +162,13 @@ type Statistic
             stat = stats.at first
             Error.throw (Illegal_Argument.Error ("Can only compute " + stat.to_text + " on numerical data sets."))
 
-        if counter.count == 0 then statistics.map empty_value else
-            if max_moment_order > 0 && counter.moments.is_nothing then report_error statistics else
-                statistics.map statistic-> case statistic of
-                    Statistic.Covariance series -> calculate_correlation_statistics data series . covariance
-                    Statistic.Pearson series -> calculate_correlation_statistics data series . pearsonCorrelation
-                    Statistic.Spearman series -> calculate_spearman_rank data series
-                    Statistic.R_Squared series -> calculate_correlation_statistics data series . rSquared
-                    _ -> counter.compute statistic
+        if max_moment_order > 0 && counter.moments.is_nothing then report_error statistics else
+            statistics.map statistic-> case statistic of
+                Statistic.Covariance series -> check_if_empty counter.count <| calculate_correlation_statistics data series . covariance
+                Statistic.Pearson series -> check_if_empty counter.count <| calculate_correlation_statistics data series . pearsonCorrelation
+                Statistic.R_Squared series -> check_if_empty counter.count <| calculate_correlation_statistics data series . rSquared
+                Statistic.Spearman series -> check_if_empty counter.count <| calculate_spearman_rank data series
+                _ -> counter.compute statistic
 
     ## PRIVATE
        Compute a running statistics on a vector like object.
@@ -334,6 +333,9 @@ Vector.rank_data self method=Rank_Method.Average =
 compute_fold current value = if is_valid value then current.increment value else current
 
 ## PRIVATE
+check_if_empty count ~action = if count == 0 then Number.nan else action
+
+## PRIVATE
 empty_value statistic = case statistic of
     Statistic.Count -> 0
     Statistic.Sum -> 0
@@ -356,6 +358,7 @@ type Accumulator
     Value count:Integer min_max:Boolean minimum:Any maximum:Any (moments:Vector|Nothing)
 
     ## PRIVATE
+       Add a single value to the accumulator.
     increment self value = case self.count of
         0 -> if self.min_max then Accumulator.Value 1 True value value (self.update_moments value) else
             Accumulator.Value 1 False value value (self.update_moments value)
@@ -366,7 +369,7 @@ type Accumulator
                 Accumulator.Value self.count+1 True minimum maximum (self.update_moments value)
 
     ## PRIVATE
-    perform_comparison current value bound = if current.is_error then current else
+    perform_comparison current value bound =
         comp = Ordering.compare value current
         if comp == bound then value else current
 
@@ -378,7 +381,7 @@ type Accumulator
 
     ## PRIVATE
     compute : Statistic -> Any
-    compute self statistic =
+    compute self statistic = if self.count == 0 then empty_value statistic else
         case statistic of
             Statistic.Count -> self.count
             Statistic.Minimum -> self.minimum
