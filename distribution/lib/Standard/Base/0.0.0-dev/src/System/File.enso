@@ -46,6 +46,7 @@ polyglot java import org.enso.base.Encoding_Utils
 @Builtin_Type
 type File
     ## ALIAS New File
+       GROUP Input
 
        Creates a new file object, pointing to the given path.
 
