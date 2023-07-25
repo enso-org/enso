@@ -167,46 +167,7 @@ function DirectoryView(props: DirectoryViewProps) {
         }
     }, [directoryStack, directoryId, organization])
 
-    const assets = hooks.useAsyncEffect(
-        [],
-        async signal => {
-            switch (backend.type) {
-                case backendModule.BackendType.local: {
-                    if (!isListingLocalDirectoryAndWillFail) {
-                        const newAssets = await backend.listDirectory()
-                        if (!signal.aborted) {
-                            setIsLoadingAssets(false)
-                        }
-                        return newAssets
-                    } else {
-                        return []
-                    }
-                }
-                case backendModule.BackendType.remote: {
-                    if (
-                        !isListingRemoteDirectoryAndWillFail &&
-                        !isListingRemoteDirectoryWhileOffline &&
-                        directoryId != null
-                    ) {
-                        const newAssets = await backend.listDirectory(
-                            { parentId: directoryId },
-                            directory?.title ?? null
-                        )
-                        if (!signal.aborted) {
-                            setIsLoadingAssets(false)
-                        }
-                        return newAssets
-                    } else {
-                        setIsLoadingAssets(false)
-                        return []
-                    }
-                }
-            }
-        },
-        [accessToken, directoryId, backend]
-    )
-
-    React.useEffect(() => {
+    const setAssets = (assets: backendModule.Asset[]) => {
         const newProjectAssets = assets.filter(backendModule.assetIsProject)
         setProjectAssets(newProjectAssets)
         setDirectoryAssets(assets.filter(backendModule.assetIsDirectory))
@@ -234,14 +195,45 @@ function DirectoryView(props: DirectoryViewProps) {
         }
         // `nameOfProjectToImmediatelyOpen` must NOT trigger this effect.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [
-        assets,
-        initialized,
-        initialProjectName,
-        logger,
-        /* should never change */ setNameOfProjectToImmediatelyOpen,
-        /* should never change */ dispatchProjectEvent,
-    ])
+    }
+
+    hooks.useAsyncEffect(
+        null,
+        async signal => {
+            switch (backend.type) {
+                case backendModule.BackendType.local: {
+                    if (!isListingLocalDirectoryAndWillFail) {
+                        const newAssets = await backend.listDirectory()
+                        if (!signal.aborted) {
+                            setIsLoadingAssets(false)
+                            setAssets(newAssets)
+                        }
+                    }
+                    return
+                }
+                case backendModule.BackendType.remote: {
+                    if (
+                        !isListingRemoteDirectoryAndWillFail &&
+                        !isListingRemoteDirectoryWhileOffline &&
+                        directoryId != null
+                    ) {
+                        const assets = await backend.listDirectory(
+                            { parentId: directoryId },
+                            directory?.title ?? null
+                        )
+                        if (!signal.aborted) {
+                            setIsLoadingAssets(false)
+                            setAssets(assets)
+                        }
+                    } else {
+                        setIsLoadingAssets(false)
+                    }
+                    return
+                }
+            }
+        },
+        [accessToken, directoryId, backend]
+    )
 
     const doCreateProject = React.useCallback(() => {
         dispatchProjectListEvent({
