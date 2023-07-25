@@ -238,3 +238,6 @@ spec prefix connection =
                 db_table = src.select_into_database_table connection (Name_Generator.random_name "cross-tab") temporary=True
                 db_table.transpose attribute_column_name=name_a . should_fail_with Unsupported_Database_Operation
                 db_table.transpose value_column_name=name_a . should_fail_with Unsupported_Database_Operation
+
+main = Test_Suite.run_main <|
+    spec "[SQLite] " (Database.connect (SQLite In_Memory))
