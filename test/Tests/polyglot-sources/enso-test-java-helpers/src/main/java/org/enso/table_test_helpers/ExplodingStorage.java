@@ -76,7 +76,7 @@ public class ExplodingStorage extends Storage<Long> {
   }
 
   @Override
-  public Storage<?> runVectorizedBiMap(
+  public Storage<?> runVectorizedBinaryMap(
       String name, Object argument, MapOperationProblemBuilder problemBuilder) {
     return null;
   }

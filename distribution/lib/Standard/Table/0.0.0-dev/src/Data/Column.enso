@@ -2128,7 +2128,7 @@ run_binary_op column function operand new_name skip_nulls=True expected_result_t
                 s.zip function other_column.java_column.getStorage skip_nulls storage_type
         _ ->
             Polyglot_Helpers.handle_polyglot_dataflow_errors <|
-                s.biMap function operand skip_nulls storage_type
+                s.binaryMap function operand skip_nulls storage_type
     Column.Value (Java_Column.new new_name new_storage)
 
 ## PRIVATE

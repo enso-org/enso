@@ -182,13 +182,13 @@ public final class MixedStorage extends ObjectStorage {
   }
 
   @Override
-  public Storage<?> runVectorizedBiMap(
+  public Storage<?> runVectorizedBinaryMap(
       String name, Object argument, MapOperationProblemBuilder problemBuilder) {
     if (resolveBinaryOp(name) == VectorizedOperationAvailability.AVAILABLE_IN_SPECIALIZED_STORAGE) {
-      return getInferredStorage().runVectorizedBiMap(name, argument, problemBuilder);
+      return getInferredStorage().runVectorizedBinaryMap(name, argument, problemBuilder);
     } else {
       // Even if the operation is not available, we rely on super to report an exception.
-      return super.runVectorizedBiMap(name, argument, problemBuilder);
+      return super.runVectorizedBinaryMap(name, argument, problemBuilder);
     }
   }
 

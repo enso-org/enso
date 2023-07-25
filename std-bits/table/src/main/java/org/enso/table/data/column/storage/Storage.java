@@ -116,7 +116,7 @@ public abstract class Storage<T> {
   public abstract boolean isBinaryOpVectorized(String name);
 
   /** Runs a vectorized operation on this storage, taking one scalar argument. */
-  public abstract Storage<?> runVectorizedBiMap(
+  public abstract Storage<?> runVectorizedBinaryMap(
       String name, Object argument, MapOperationProblemBuilder problemBuilder);
 
   /**
@@ -165,7 +165,7 @@ public abstract class Storage<T> {
    * @param expectedResultType the expected type for the result storage
    * @return a new storage containing results of the function for each row
    */
-  public final Storage<?> biMap(
+  public final Storage<?> binaryMap(
       BiFunction<Object, Object, Object> function,
       Object argument,
       boolean skipNulls,
@@ -275,10 +275,10 @@ public abstract class Storage<T> {
       boolean skipNulls,
       StorageType expectedResultType) {
     if (isBinaryOpVectorized(name)) {
-      return runVectorizedBiMap(name, argument, problemBuilder);
+      return runVectorizedBinaryMap(name, argument, problemBuilder);
     } else {
       checkFallback(fallback, expectedResultType, name);
-      return biMap(fallback, argument, skipNulls, expectedResultType);
+      return binaryMap(fallback, argument, skipNulls, expectedResultType);
     }
   }
 
