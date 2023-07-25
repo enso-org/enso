@@ -244,6 +244,13 @@ export default function DirectoryView(props: DirectoryViewProps) {
         ]
     )
 
+    const doCreateDirectory = React.useCallback(() => {
+        dispatchAssetListEvent({
+            type: assetListEventModule.AssetListEventType.createDirectory,
+            parentId: directoryId,
+        })
+    }, [directoryId, /* should never change */ dispatchAssetListEvent])
+
     React.useEffect(() => {
         const onDragEnter = (event: DragEvent) => {
             if (
@@ -260,11 +267,15 @@ export default function DirectoryView(props: DirectoryViewProps) {
     }, [tab])
 
     return (
-        <>
-            <h1 className="text-xl font-bold mx-4">
+        <div className="flex flex-col gap-2.5 px-3.25">
+            <h1 className="text-xl font-bold h-9.5 pl-1.5">
                 {backend.type === backendModule.BackendType.remote ? 'Cloud Drive' : 'Local Drive'}
             </h1>
-            <DriveBar doCreateProject={doCreateProject} doUploadFiles={doUploadFiles} />
+            <DriveBar
+                doCreateProject={doCreateProject}
+                doUploadFiles={doUploadFiles}
+                doCreateDirectory={doCreateDirectory}
+            />
             <AssetsTable
                 items={assets}
                 filter={assetFilter}
@@ -301,6 +312,6 @@ export default function DirectoryView(props: DirectoryViewProps) {
                     Drop to upload files.
                 </div>
             ) : null}
-        </>
+        </div>
     )
 }

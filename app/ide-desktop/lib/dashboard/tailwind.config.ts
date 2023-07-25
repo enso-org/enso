@@ -48,6 +48,9 @@ export const theme = {
         },
         spacing: {
             '1.75': '0.4375rem',
+            '3.25': '0.8125rem',
+            '5.5': '1.375rem',
+            '9.5': '2.375rem',
             '18': '4.5rem',
             '29': '7.25rem',
             '30': '7.5rem',
@@ -64,6 +67,9 @@ export const theme = {
             '40': '10rem',
             '60': '15rem',
             '96': '24rem',
+        },
+        opacity: {
+            '1/3': '.33333333',
         },
         backdropBlur: {
             xs: '2px',

@@ -2,8 +2,10 @@
  * the current directory and some configuration options. */
 import * as React from 'react'
 
-import DownloadIcon from 'enso-assets/download.svg'
-import UploadIcon from 'enso-assets/upload.svg'
+import AddConnectorIcon from 'enso-assets/add_connector.svg'
+import AddFolderIcon from 'enso-assets/add_folder.svg'
+import DataDownloadIcon from 'enso-assets/data_download.svg'
+import DataUploadIcon from 'enso-assets/data_upload.svg'
 
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
@@ -14,15 +16,17 @@ import * as backendProvider from '../../providers/backend'
 
 /** Props for a {@link DriveBar}. */
 export interface DriveBarProps {
-    doUploadFiles: (files: FileList) => void
     doCreateProject: () => void
+    doCreateDirectory: () => void
+    doUploadFiles: (files: FileList) => void
 }
 
 /** Displays the current directory path and permissions, upload and download buttons,
  * and a column display mode switcher. */
 export default function DriveBar(props: DriveBarProps) {
-    const { doUploadFiles: doUploadFilesRaw, doCreateProject } = props
+    const { doCreateProject, doCreateDirectory, doUploadFiles: doUploadFilesRaw } = props
     const { backend } = backendProvider.useBackend()
+    const uploadFilesRef = React.useRef<HTMLInputElement>(null)
 
     const doUploadFiles = React.useCallback(
         (event: React.FormEvent<HTMLInputElement>) => {
@@ -34,43 +38,47 @@ export default function DriveBar(props: DriveBarProps) {
     )
 
     return (
-        <div className="flex flex-row flex-nowrap my-2">
-            <div className="flex flex-row flex-nowrap mx-4">
+        <div className="flex">
+            <div className="flex gap-2.5">
                 <button
                     className="flex items-center bg-white rounded-full h-8 px-2.5"
                     onClick={doCreateProject}
                 >
-                    <span className="h-6 py-px">New Project</span>
+                    <span className="h-5.5 py-px">New Project</span>
                 </button>
-                <div className="bg-gray-100 rounded-full flex flex-row flex-nowrap px-1.5 py-1 mx-4">
+                <div className="flex items-center bg-frame-bg rounded-full gap-3 h-8 px-3">
+                    {backend.type !== backendModule.BackendType.local && (
+                        <>
+                            <button onClick={doCreateDirectory}>
+                                <img src={AddFolderIcon} />
+                            </button>
+                            <button disabled className="opacity-50">
+                                <img src={AddConnectorIcon} />
+                            </button>
+                        </>
+                    )}
                     <input
+                        ref={uploadFilesRef}
                         type="file"
                         multiple
-                        disabled={backend.type === backendModule.BackendType.local}
                         id="upload_files_input"
                         name="upload_files_input"
-                        className="w-0 h-0"
+                        className="hidden"
                         onInput={doUploadFiles}
                     />
-                    <label
-                        htmlFor="upload_files_input"
-                        className={`mx-1 ${
-                            backend.type === backendModule.BackendType.local
-                                ? 'opacity-50'
-                                : 'cursor-pointer'
-                        }`}
-                    >
-                        <img src={UploadIcon} />
-                    </label>
                     <button
-                        className={`mx-1 opacity-50`}
-                        disabled={true}
-                        onClick={event => {
-                            event.stopPropagation()
-                            /* TODO */
+                        disabled={backend.type === backendModule.BackendType.local}
+                        className={
+                            backend.type === backendModule.BackendType.local ? 'opacity-50' : ''
+                        }
+                        onClick={() => {
+                            uploadFilesRef.current?.click()
                         }}
                     >
-                        <img src={DownloadIcon} />
+                        <img src={DataUploadIcon} />
+                    </button>
+                    <button disabled className="opacity-50">
+                        <img src={DataDownloadIcon} />
                     </button>
                 </div>
             </div>
