@@ -2,7 +2,7 @@
  * email address. */
 import * as React from 'react'
 import * as router from 'react-router-dom'
-import toast from 'react-hot-toast'
+import * as toastify from 'react-toastify'
 
 import * as app from '../../components/app'
 import * as authModule from '../providers/auth'
@@ -41,7 +41,7 @@ function ConfirmRegistration() {
                     navigate(app.LOGIN_PATH + location.search.toString())
                 } catch (error) {
                     logger.error('Error while confirming sign-up', error)
-                    toast.error(
+                    toastify.toast.error(
                         'Something went wrong! Please try again or contact the administrators.'
                     )
                     navigate(app.LOGIN_PATH)

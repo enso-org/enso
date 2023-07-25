@@ -1,6 +1,6 @@
 /** @file Table displaying a list of directories. */
 import * as React from 'react'
-import toast from 'react-hot-toast'
+import * as toastify from 'react-toastify'
 
 import DirectoryIcon from 'enso-assets/directory.svg'
 import PlusIcon from 'enso-assets/plus.svg'
@@ -111,7 +111,6 @@ function DirectoryName(props: InternalDirectoryNameProps) {
         rowState,
         setRowState,
     } = props
-    const logger = loggerProvider.useLogger()
     const { backend } = backendProvider.useBackend()
 
     const doRename = async (newName: string) => {
@@ -120,11 +119,7 @@ function DirectoryName(props: InternalDirectoryNameProps) {
                 await backend.updateDirectory(item.id, { title: newName }, item.title)
                 return
             } catch (error) {
-                const message = `Error renaming folder: ${
-                    errorModule.tryGetMessage(error) ?? 'unknown error'
-                }`
-                toast.error(message)
-                logger.error(message)
+                errorModule.toastAndLog('Error renaming folder', error)
                 throw error
             }
         }
@@ -274,11 +269,7 @@ function DirectoryRow(
             } catch (error) {
                 setStatus(presence.Presence.present)
                 markItemAsVisible(key)
-                const message = `Unable to delete directory: ${
-                    errorModule.tryGetMessage(error) ?? 'unknown error.'
-                }`
-                toast.error(message)
-                logger.error(message)
+                errorModule.toastAndLog('Unable to delete directory', error)
             }
         }
     }
@@ -289,7 +280,7 @@ function DirectoryRow(
                 if (key === event.placeholderId) {
                     if (backend.type !== backendModule.BackendType.remote) {
                         const message = 'Folders cannot be created on the local backend.'
-                        toast.error(message)
+                        toastify.toast.error(message)
                         logger.error(message)
                     } else {
                         setStatus(presence.Presence.inserting)
@@ -309,11 +300,7 @@ function DirectoryRow(
                                 type: directoryListEventModule.DirectoryListEventType.delete,
                                 directoryId: key,
                             })
-                            const message = `Error creating new folder: ${
-                                errorModule.tryGetMessage(error) ?? 'unknown error.'
-                            }`
-                            toast.error(message)
-                            logger.error(message)
+                            errorModule.toastAndLog('Error creating new folder', error)
                         }
                     }
                 }

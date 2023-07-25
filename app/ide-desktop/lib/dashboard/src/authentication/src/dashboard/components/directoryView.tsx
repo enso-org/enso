@@ -1,6 +1,6 @@
 /** @file The directory header bar and directory item listing. */
 import * as React from 'react'
-import toast from 'react-hot-toast'
+import * as toastify from 'react-toastify'
 
 import * as common from 'enso-common'
 
@@ -228,7 +228,7 @@ function DirectoryView(props: DirectoryViewProps) {
             setInitialized(true)
             if (!newProjectAssets.some(asset => asset.title === initialProjectName)) {
                 const errorMessage = `No project named '${initialProjectName}' was found.`
-                toast.error(errorMessage)
+                toastify.toast.error(errorMessage)
                 logger.error(`Error opening project on startup: ${errorMessage}`)
             }
         }

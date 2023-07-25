@@ -32,6 +32,7 @@
 #[allow(clippy::option_map_unit_fn)]
 pub mod code_editor;
 pub mod debug_mode_popup;
+pub mod notification;
 pub mod popup;
 pub mod project;
 pub mod project_list;

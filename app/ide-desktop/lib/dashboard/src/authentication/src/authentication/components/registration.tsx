@@ -1,7 +1,7 @@
 /** @file Registration container responsible for rendering and interactions in sign up flow. */
 import * as React from 'react'
 import * as router from 'react-router-dom'
-import toast from 'react-hot-toast'
+import * as toastify from 'react-toastify'
 
 import AtIcon from 'enso-assets/at.svg'
 import CreateAccountIcon from 'enso-assets/create_account.svg'
@@ -41,7 +41,7 @@ function Registration() {
     const onSubmit = () => {
         /** The password & confirm password fields must match. */
         if (password !== confirmPassword) {
-            toast.error('Passwords do not match.')
+            toastify.toast.error('Passwords do not match.')
             return Promise.resolve()
         } else {
             return auth.signUp(email, password, organizationId)
