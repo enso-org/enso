@@ -75,7 +75,7 @@ function esbuildPluginGenerateTailwind(): esbuild.Plugin {
                     tailwindConfigLastModified !== tailwindConfigNewLastModified
                 tailwindConfigLastModified = tailwindConfigNewLastModified
             })
-            build.onLoad({ filter: /\.css$/ }, async loadArgs => {
+            build.onLoad({ filter: /tailwind\.css$/ }, async loadArgs => {
                 const lastModified = (await fs.stat(loadArgs.path)).mtimeMs
                 let output = cachedOutput[loadArgs.path]
                 if (!output || output.lastModified !== lastModified || tailwindConfigWasModified) {

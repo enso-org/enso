@@ -2,7 +2,7 @@
  * flow. */
 import * as React from 'react'
 import * as router from 'react-router-dom'
-import toast from 'react-hot-toast'
+import * as toastify from 'react-toastify'
 
 import ArrowRightIcon from 'enso-assets/arrow_right.svg'
 import AtIcon from 'enso-assets/at.svg'
@@ -44,7 +44,7 @@ function ResetPassword() {
 
     const onSubmit = () => {
         if (newPassword !== newPasswordConfirm) {
-            toast.error('Passwords do not match')
+            toastify.toast.error('Passwords do not match')
             return Promise.resolve()
         } else {
             return resetPassword(email, code, newPassword)

@@ -85,7 +85,7 @@ debug-assertions = true
 console-subscriber = "0.1.8"
 nix = "0.26.1"
 octocrab = { git = "https://github.com/enso-org/octocrab", default-features = false, features = [
-  "rustls"
+  "rustls",
 ] }
 regex = { version = "1.6.0" }
 serde_yaml = { version = "0.9.16" }
@@ -93,7 +93,7 @@ serde-wasm-bindgen = { version = "0.4.5" }
 tokio = { version = "1.23.0", features = ["full", "tracing"] }
 tokio-stream = { version = "0.1.12", features = ["fs"] }
 tokio-util = { version = "0.7.4", features = ["full"] }
-wasm-bindgen = { version = "0.2.84", features = ["serde-serialize"] }
+wasm-bindgen = { version = "0.2.84", features = [] }
 wasm-bindgen-test = { version = "0.3.34" }
 anyhow = { version = "1.0.66" }
 failure = { version = "0.1.8" }
@@ -135,7 +135,11 @@ syn = { version = "1.0", features = [
 ] }
 quote = { version = "1.0.23" }
 semver = { version = "1.0.0", features = ["serde"] }
+strum = { version = "0.24.0", features = ["derive"] }
 thiserror = "1.0.40"
 bytemuck = { version = "1.13.1", features = ["derive"] }
 bitflags = { version = "2.2.1" }
 superslice = { version = "1.0.0" }
+# We don't use serde-wasm-bindgen in some cases, because it cannot deal properly with flattened fields, see:
+# https://github.com/cloudflare/serde-wasm-bindgen/issues/9
+gloo-utils = { version = "0.1.7" }
