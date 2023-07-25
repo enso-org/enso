@@ -1,7 +1,7 @@
 from Standard.Base import all
-from Standard.Base.Errors.Common import Uninitialized_State
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.State
+from Standard.Base.Errors.Common import Uninitialized_State
 
 ## PRIVATE
 type In_Transaction

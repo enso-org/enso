@@ -2,6 +2,7 @@ package org.enso.interpreter.node.expression.builtin.mutable;
 
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Fallback;
+import com.oracle.truffle.api.dsl.NeverDefault;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
@@ -19,6 +20,7 @@ import org.enso.interpreter.runtime.error.PanicException;
 public abstract class CoerceArrayNode extends Node {
   private @Child InteropLibrary library = InteropLibrary.getFactory().createDispatched(10);
 
+  @NeverDefault
   public static CoerceArrayNode build() {
     return CoerceArrayNodeGen.create();
   }
@@ -31,18 +33,8 @@ public abstract class CoerceArrayNode extends Node {
   }
 
   @Specialization
-  Object[] doVector(Vector arr, @Cached HostValueToEnsoNode hostValueToEnsoNode) {
-    try {
-      return convertToArray(arr, hostValueToEnsoNode);
-    } catch (UnsupportedMessageException e) {
-      Builtins builtins = EnsoContext.get(this).getBuiltins();
-      Atom err = builtins.error().makeTypeError(builtins.array(), arr, "arr");
-      throw new PanicException(err, this);
-    } catch (InvalidArrayIndexException e) {
-      Builtins builtins = EnsoContext.get(this).getBuiltins();
-      throw new PanicException(
-          builtins.error().makeInvalidArrayIndex(arr, e.getInvalidIndex()), this);
-    }
+  Object[] doVector(Vector arr, @Cached CoerceArrayNode coerceArrayNode) {
+    return coerceArrayNode.execute(arr.toArray());
   }
 
   @Specialization(guards = "interop.hasArrayElements(arr)")

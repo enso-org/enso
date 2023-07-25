@@ -4,6 +4,7 @@ import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.library.CachedLibrary;
@@ -46,7 +47,7 @@ public abstract class EqualsAtomNode extends Node {
       },
       limit = "10")
   @ExplodeLoop
-  boolean equalsAtoms(
+  boolean equalsAtomsWithDefaultComparator(
       Atom self,
       Atom other,
       @Cached("self.getConstructor()") AtomConstructor selfCtorCached,
@@ -54,7 +55,7 @@ public abstract class EqualsAtomNode extends Node {
           int fieldsLenCached,
       @Cached(value = "createEqualsNodes(fieldsLenCached)", allowUncached = true)
           EqualsNode[] fieldEqualsNodes,
-      @Cached CustomComparatorNode customComparatorNode,
+      @Shared("customComparatorNode") @Cached CustomComparatorNode customComparatorNode,
       @Cached ConditionProfile constructorsNotEqualProfile,
       @CachedLibrary(limit = "5") StructsLibrary structsLib) {
     if (constructorsNotEqualProfile.profile(self.getConstructor() != other.getConstructor())) {
@@ -81,11 +82,11 @@ public abstract class EqualsAtomNode extends Node {
         "cachedComparator != null",
       },
       limit = "10")
-  boolean equalsAtoms(
+  boolean equalsAtomsWithCustomComparator(
       Atom self,
       Atom other,
       @Cached("self.getConstructor()") AtomConstructor selfCtorCached,
-      @Cached CustomComparatorNode customComparatorNode,
+      @Shared("customComparatorNode") @Cached CustomComparatorNode customComparatorNode,
       @Cached(value = "customComparatorNode.execute(self)") Type cachedComparator,
       @Cached(value = "findCompareMethod(cachedComparator)", allowUncached = true)
           Function compareFn,
@@ -101,10 +102,24 @@ public abstract class EqualsAtomNode extends Node {
   }
 
   @CompilerDirectives.TruffleBoundary
-  @Specialization(replaces = "equalsAtoms")
+  @Specialization(
+      replaces = {"equalsAtomsWithDefaultComparator", "equalsAtomsWithCustomComparator"})
   boolean equalsAtomsUncached(Atom self, Atom other) {
     if (self.getConstructor() != other.getConstructor()) {
       return false;
+    }
+    Type customComparator = CustomComparatorNode.getUncached().execute(self);
+    if (customComparator != null) {
+      Function compareFunc = findCompareMethod(customComparator);
+      var invokeFuncNode = invokeCompareNode(compareFunc);
+      return equalsAtomsWithCustomComparator(
+          self,
+          other,
+          self.getConstructor(),
+          CustomComparatorNode.getUncached(),
+          customComparator,
+          compareFunc,
+          invokeFuncNode);
     }
     Object[] selfFields = StructsLibrary.getUncached().getFields(self);
     Object[] otherFields = StructsLibrary.getUncached().getFields(other);

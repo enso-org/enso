@@ -94,7 +94,7 @@ type Matrix
              example_from_vector = Matrix.from_vector [1, 1, 0, 0] rows=2
     from_vector : Vector -> Integer -> Integer -> Matrix
     from_vector values rows=1 channels=1 =
-        Matrix.Value (Java_Matrix.from_vector values.to_array channels rows)
+        Matrix.Value (Java_Matrix.from_vector values channels rows)
 
     ## Return the number of matrix rows.
 
@@ -397,7 +397,7 @@ core_op mat value function =
     result = Mat.new
     scalar = case value of
         _ : Vector ->
-            Scalar.new value.to_array
+            Scalar.new value
         Matrix.Value m ->
             if ((m.rows == mat.rows) && (m.cols == mat.cols) && (m.channels == mat.channels)) then m else Panic.throw Matrix_Error.Dimensions_Not_Equal
         _ ->

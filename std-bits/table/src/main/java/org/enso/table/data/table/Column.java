@@ -2,14 +2,17 @@ package org.enso.table.data.table;
 
 import org.enso.base.Text_Utils;
 import org.enso.base.polyglot.Polyglot_Utils;
+import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.InferredBuilder;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.index.DefaultIndex;
 import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.enso.table.error.UnexpectedColumnTypeException;
+import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
 import java.util.ArrayList;
@@ -115,17 +118,13 @@ public class Column {
     return new Column(name, storage);
   }
 
-  /**
-   * Creates a new column with given name and elements.
-   *
-   * @param name the name to use
-   * @param items the items contained in the column
-   * @return a column with given name and items
-   */
-  public static Column fromItems(String name, List<Value> items) {
-    InferredBuilder builder = new InferredBuilder(items.size());
+  /** Creates a column from an Enso array, ensuring Enso dates are converted to Java dates. */
+  public static Column fromItems(String name, List<Value> items, StorageType expectedType) throws ClassCastException {
+    Context context = Context.getCurrent();
+    int n = items.size();
+    Builder builder = expectedType == null ? new InferredBuilder(n) : Builder.getForType(expectedType, n);
+
     // ToDo: This a workaround for an issue with polyglot layer. #5590 is related.
-    // to revert replace with: for (Value item : items) {
     for (Object item : items) {
       if (item instanceof Value v) {
         Object converted = Polyglot_Utils.convertPolyglotValue(v);
@@ -133,6 +132,22 @@ public class Column {
       } else {
         builder.appendNoGrow(item);
       }
+
+      context.safepoint();
+    }
+    var storage = builder.seal();
+    return new Column(name, storage);
+  }
+
+  /** Creates a column from an Enso array. No polyglot conversion happens. This is unsafe */
+  public static Column fromItemsNoDateConversion(String name, List<Object> items, StorageType expectedType) throws ClassCastException {
+    Context context = Context.getCurrent();
+    int n = items.size();
+    Builder builder = expectedType == null ? new InferredBuilder(n) : Builder.getForType(expectedType, n);
+
+    for (Object item : items) {
+      builder.appendNoGrow(item);
+      context.safepoint();
     }
     var storage = builder.seal();
     return new Column(name, storage);
@@ -151,9 +166,10 @@ public class Column {
     }
 
     if (repeat == 1) {
-      return fromItems(name, items);
+      return fromItems(name, items, null);
     }
 
+    Context context = Context.getCurrent();
     var totalSize = items.size() * repeat;
 
     var values = new ArrayList<Object>(items.size());
@@ -162,12 +178,14 @@ public class Column {
     for (Object item : items) {
       Object converted = item instanceof Value v ? Polyglot_Utils.convertPolyglotValue(v) : item;
       values.add(converted);
+      context.safepoint();
     }
 
     var builder = new InferredBuilder(totalSize);
     for (int i = 0; i < totalSize; i++) {
       var item = values.get(i % items.size());
       builder.appendNoGrow(item);
+      context.safepoint();
     }
     return new Column(name, builder.seal());
   }

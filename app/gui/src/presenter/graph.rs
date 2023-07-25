@@ -97,22 +97,27 @@ impl Model {
     pub fn new(
         project: model::Project,
         controller: controller::ExecutedGraph,
-        view: view::graph_editor::GraphEditor,
+        graph_editor_view: view::graph_editor::GraphEditor,
+        project_view: view::project::View,
     ) -> Self {
         let state: Rc<State> = default();
         let visualization = Visualization::new(
             project.clone_ref(),
             controller.clone_ref(),
-            view.clone_ref(),
+            graph_editor_view.clone_ref(),
             state.clone_ref(),
         );
         let widget = controller::Widget::new(controller.clone_ref());
-        let execution_stack =
-            CallStack::new(controller.clone_ref(), view.clone_ref(), state.clone_ref());
+        let execution_stack = CallStack::new(
+            controller.clone_ref(),
+            graph_editor_view.clone_ref(),
+            project_view.clone_ref(),
+            state.clone_ref(),
+        );
         Self {
             project,
             controller,
-            view,
+            view: graph_editor_view,
             state,
             _visualization: visualization,
             widget,
@@ -132,6 +137,7 @@ impl Model {
     }
 
     fn node_visualization_changed(&self, id: ViewNodeId, path: Option<visualization_view::Path>) {
+        let action = format!("update node {id} visualization to {path:?}");
         self.log_action(
             || {
                 let ast_id =
@@ -144,7 +150,7 @@ impl Model {
                 };
                 Some(result)
             },
-            "update node visualization",
+            &action,
         );
     }
 
@@ -291,6 +297,17 @@ impl Model {
             || {
                 let ast_id = self.state.update_from_view().remove_node(id)?;
                 self.widget.remove_all_node_widgets(ast_id);
+
+                let connections = self.controller.connections();
+                let node_connections = connections.map(|c| c.with_node(ast_id));
+                let disconnect_result = node_connections.map(|c| self.controller.disconnect_all(c));
+                if let Err(e) = disconnect_result {
+                    warn!(
+                        "Failed to disconnect all connections from node {:?} because of {:?}",
+                        ast_id, e
+                    );
+                }
+
                 Some(self.controller.graph().remove_node(ast_id))
             },
             "remove node",
@@ -640,7 +657,7 @@ impl ViewUpdate {
 /// This presenter focuses on the graph structure: nodes, their expressions and types, and
 /// connections between them. It does not integrate Searcher nor Breadcrumbs (managed by
 /// [`presenter::Searcher`] and [`presenter::CallStack`] respectively).
-#[derive(Debug)]
+#[derive(Clone, CloneRef, Debug)]
 pub struct Graph {
     network: frp::Network,
     model:   Rc<Model>,
@@ -656,8 +673,9 @@ impl Graph {
         project_view: &view::project::View,
     ) -> Self {
         let network = frp::Network::new("presenter::Graph");
-        let view = project_view.graph().clone_ref();
-        let model = Rc::new(Model::new(project, controller, view));
+        let graph_editor_view = project_view.graph().clone_ref();
+        let project_view_clone = project_view.clone_ref();
+        let model = Rc::new(Model::new(project, controller, graph_editor_view, project_view_clone));
         Self { network, model }.init(project_view)
     }
 
@@ -802,19 +820,20 @@ impl Graph {
         let graph_notifications = self.model.controller.subscribe();
         let weak = Rc::downgrade(&self.model);
         spawn_stream_handler(weak, graph_notifications, move |notification, _model| {
-            debug!("Received controller notification {notification:?}");
-            match notification {
-                executed::Notification::Graph(graph) => match graph {
-                    Notification::Invalidate => update_view.emit(()),
-                    Notification::PortsUpdate => update_view.emit(()),
-                },
-                executed::Notification::ComputedValueInfo(expressions) =>
-                    update_expressions.emit(expressions),
-                executed::Notification::EnteredStack(_)
-                | executed::Notification::ExitedStack(_) => update_view.emit(()),
-            }
-            std::future::ready(())
-        })
+            debug_span!("Received controller notification {notification:?}").in_scope(|| {
+                match notification {
+                    executed::Notification::Graph(graph) => match graph {
+                        Notification::Invalidate => update_view.emit(()),
+                        Notification::PortsUpdate => update_view.emit(()),
+                    },
+                    executed::Notification::ComputedValueInfo(expressions) =>
+                        update_expressions.emit(expressions),
+                    executed::Notification::EnteredStack(_)
+                    | executed::Notification::ExitedStack(_) => update_view.emit(()),
+                }
+                std::future::ready(())
+            })
+        });
     }
 }
 

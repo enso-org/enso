@@ -50,7 +50,7 @@ public abstract class ExecuteCallNode extends Node {
   @Specialization(guards = {
     "function.getCallTarget() == cachedTarget",
     "callNode != null"
-  })
+  }, limit = "3")
   protected Object callInlineable(
       VirtualFrame frame,
       Function function,
@@ -79,7 +79,7 @@ public abstract class ExecuteCallNode extends Node {
    */
   @Specialization(guards = {
     "function.getCallTarget() == cachedTarget",
-  })
+  }, limit = "3")
   protected Object callDirect(
       Function function,
       CallerInfo callerInfo,

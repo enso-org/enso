@@ -1,4 +1,5 @@
-@import url("https://fonts.googleapis.com/css2?family=M+PLUS+1:wght@500;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=M+PLUS+1:wght@500;600;700&display=swap");
+@import "react-toastify/dist/ReactToastify.css";
 
 body {
   margin: 0;
@@ -6,7 +7,8 @@ body {
 
 /* These styles MUST still be copied
  * as `.enso-dashboard body` and `.enso-dashboard html` make no sense. */
-.enso-dashboard {
+.enso-dashboard,
+.enso-chat {
   line-height: 1.5;
   -webkit-text-size-adjust: 100%;
   -moz-tab-size: 4;
@@ -16,7 +18,8 @@ body {
   font-feature-settings: normal;
 }
 
-.enso-dashboard *:focus {
+.enso-dashboard *:focus,
+.enso-chat *:focus {
   outline: none !important;
 }
 
@@ -48,7 +51,8 @@ body {
   background: rgba(0, 0, 0, 0);
 }
 
-.enso-dashboard {
+.enso-dashboard,
+.enso-chat {
   @tailwind base;
   @tailwind components;
   @tailwind utilities;
@@ -90,6 +94,15 @@ body {
       );
     }
 
+    .clip-path-bottom-shadow {
+      clip-path: polygon(
+        0 0,
+        100% 0,
+        100% calc(100% + 100vh),
+        0 calc(100% + 100vh)
+      );
+    }
+
     .dasharray-5 {
       stroke-dasharray: calc(12 * 0.05 * 6.2832) calc(12 * 6.2832);
     }
@@ -107,74 +120,43 @@ body {
       background-image: url("enso-assets/dashed_border.svg");
     }
 
-    .grid-cols-fill-60-minmax-scrollbar-aware {
-      /* Graceful degradation for extremely large monitors. */
-      @media screen and (min-width: 1275px) {
-        grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+    .blink-background {
+      /** The duration MUST be synced with the corresponding value in `sharedWithModal.tsx`. */
+      animation: blink 0.5s ease-in-out;
+    }
+
+    @keyframes blink {
+      0% {
+        background: #f0f1f3;
       }
-
-      /* Each column is 240px (tile) + 8px (padding). */
-      /* Hardcore scrollbar-aware values for monitors up to 3840px wide. */
-
-      @media screen and (min-width: 3755px) and (max-width: 4002px) {
-        grid-template-columns: repeat(14, minmax(15rem, 1fr));
+      33% {
+        background: #e2e4e9;
       }
-
-      @media screen and (min-width: 3507px) and (max-width: 3754px) {
-        grid-template-columns: repeat(14, minmax(15rem, 1fr));
-      }
-
-      @media screen and (min-width: 3259px) and (max-width: 3506px) {
-        grid-template-columns: repeat(13, minmax(15rem, 1fr));
-      }
-
-      @media screen and (min-width: 3011px) and (max-width: 3258px) {
-        grid-template-columns: repeat(12, minmax(15rem, 1fr));
-      }
-
-      @media screen and (min-width: 2763px) and (max-width: 3010px) {
-        grid-template-columns: repeat(11, minmax(15rem, 1fr));
-      }
-
-      @media screen and (min-width: 2515px) and (max-width: 2762px) {
-        grid-template-columns: repeat(10, minmax(15rem, 1fr));
-      }
-
-      @media screen and (min-width: 2267px) and (max-width: 2514px) {
-        grid-template-columns: repeat(9, minmax(15rem, 1fr));
-      }
-
-      @media screen and (min-width: 2019px) and (max-width: 2266px) {
-        grid-template-columns: repeat(8, minmax(15rem, 1fr));
-      }
-
-      @media screen and (min-width: 1771px) and (max-width: 2018px) {
-        grid-template-columns: repeat(7, minmax(15rem, 1fr));
-      }
-
-      @media screen and (min-width: 1523px) and (max-width: 1770px) {
-        grid-template-columns: repeat(6, minmax(15rem, 1fr));
-      }
-
-      @media screen and (min-width: 1275px) and (max-width: 1522px) {
-        grid-template-columns: repeat(5, minmax(15rem, 1fr));
-      }
-
-      @media screen and (min-width: 1027px) and (max-width: 1274px) {
-        grid-template-columns: repeat(4, minmax(15rem, 1fr));
-      }
-
-      @media screen and (min-width: 779px) and (max-width: 1026px) {
-        grid-template-columns: repeat(3, minmax(15rem, 1fr));
-      }
-
-      @media screen and (min-width: 531px) and (max-width: 778px) {
-        grid-template-columns: repeat(2, minmax(15rem, 1fr));
-      }
-
-      @media screen and (max-width: 530) {
-        grid-template-columns: repeat(1, 1fr);
+      100% {
+        background: #f0f1f3;
       }
     }
+
+    .scroll-hidden {
+      -ms-overflow-style: none; /* Internet Explorer 10+ */
+      scrollbar-width: none; /* Firefox */
+    }
+
+    .scroll-hidden::-webkit-scrollbar {
+      display: none; /* Safari and Chrome */
+    }
+
+    .h-templates-custom {
+      height: 21.5rem;
+
+      @media screen and (min-width: 1771px) {
+        height: 11rem;
+      }
+    }
+  }
+
+  .pointer-events-none-recursive,
+  .pointer-events-none-recursive * {
+    pointer-events: none;
   }
 }

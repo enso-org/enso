@@ -1,5 +1,5 @@
 /** @file Login component responsible for rendering and interactions in sign in flow. */
-import * as react from 'react'
+import * as React from 'react'
 import * as router from 'react-router-dom'
 
 import ArrowRightIcon from 'enso-assets/arrow_right.svg'
@@ -36,8 +36,8 @@ function Login() {
 
     const initialEmail = parseUrlSearchParams(search)
 
-    const [email, setEmail] = react.useState(initialEmail ?? '')
-    const [password, setPassword] = react.useState('')
+    const [email, setEmail] = React.useState(initialEmail ?? '')
+    const [password, setPassword] = React.useState('')
 
     return (
         <div className="min-h-screen flex flex-col items-center justify-center bg-gray-300">
@@ -169,6 +169,20 @@ function Login() {
                             <svg.SvgMask src={CreateAccountIcon} />
                         </span>
                         <span className="ml-2">You don&apos;t have an account?</span>
+                    </router.Link>
+                </div>
+                <div className="flex justify-center items-center mt-6">
+                    <router.Link
+                        to={app.ENTER_OFFLINE_MODE_PATH}
+                        className={
+                            'inline-flex items-center font-bold text-blue-500 hover:text-blue-700 ' +
+                            'text-xs text-center'
+                        }
+                    >
+                        <span>
+                            <svg.SvgMask src={ArrowRightIcon} />
+                        </span>
+                        <span className="ml-2">Continue without creating an account</span>
                     </router.Link>
                 </div>
             </div>

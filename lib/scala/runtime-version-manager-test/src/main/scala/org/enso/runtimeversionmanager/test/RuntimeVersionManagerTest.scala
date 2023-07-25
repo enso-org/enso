@@ -58,6 +58,7 @@ class RuntimeVersionManagerTest
     val componentConfig = new GraalVMComponentConfiguration
 
     val runtimeVersionManager = new RuntimeVersionManager(
+      env,
       userInterface,
       distributionManager,
       temporaryDirectoryManager,

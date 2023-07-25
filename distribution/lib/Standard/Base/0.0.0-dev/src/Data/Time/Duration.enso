@@ -4,13 +4,12 @@ import project.Data.Numbers.Decimal
 import project.Data.Numbers.Integer
 import project.Data.Ordering.Comparable
 import project.Data.Pair.Pair
-from project.Data.Text.Extensions import all
 import project.Data.Text.Text
 import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Period.Period
 import project.Data.Vector.Vector
-import project.Errors.Common.Type_Error
 import project.Error.Error
+import project.Errors.Common.Type_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Illegal_State.Illegal_State
 import project.Errors.Time_Error.Time_Error
@@ -18,13 +17,13 @@ import project.Meta
 import project.Panic.Panic
 import project.Runtime
 import project.System
+from project.Data.Boolean import Boolean, False, True
+from project.Data.Text.Extensions import all
 
-from project.Data.Boolean import Boolean, True, False
-
+polyglot java import java.lang.ArithmeticException
 polyglot java import java.time.Duration as Java_Duration
 polyglot java import java.time.Period as Java_Period
 polyglot java import org.enso.base.Time_Utils
-polyglot java import java.lang.ArithmeticException
 
 ## PRIVATE
    Create an interval representing the duration between two points in time.

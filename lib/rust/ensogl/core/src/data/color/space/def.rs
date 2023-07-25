@@ -357,7 +357,7 @@ define_color_spaces! {
     /// ## Parameters
     ///
     /// - `lightness` [0.0 - 1.0]
-    ///   Lightness of 0.0 gives absolute black and 100.0 gives the brightest white. Most
+    ///   Lightness of 0.0 gives absolute black and 1.0 gives the brightest white. Most
     ///   implementations use value range of [0 .. 100] instead. It was rescaled for convenience.
     ///
     /// - `chroma` [0.0 - 1.0]

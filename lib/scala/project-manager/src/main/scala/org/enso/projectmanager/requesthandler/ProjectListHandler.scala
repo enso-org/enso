@@ -1,23 +1,17 @@
 package org.enso.projectmanager.requesthandler
 
-import java.util.UUID
-
-import akka.actor.{Actor, ActorRef, Cancellable, Props, Status}
-import akka.pattern.pipe
-import com.typesafe.scalalogging.LazyLogging
-import org.enso.jsonrpc.Errors.ServiceError
-import org.enso.jsonrpc.{Id, Request, ResponseError, ResponseResult}
+import akka.actor.Props
+import org.enso.projectmanager.control.core.CovariantFlatMap
+import org.enso.projectmanager.control.core.syntax._
 import org.enso.projectmanager.control.effect.Exec
 import org.enso.projectmanager.data.ProjectMetadata
 import org.enso.projectmanager.protocol.ProjectManagementApi.ProjectList
-import org.enso.projectmanager.requesthandler.ProjectServiceFailureMapper.mapFailure
+import org.enso.projectmanager.requesthandler.ProjectServiceFailureMapper.failureMapper
 import org.enso.projectmanager.service.{
   ProjectServiceApi,
   ProjectServiceFailure
 }
-import org.enso.projectmanager.util.UnhandledLogging
 
-import scala.annotation.unused
 import scala.concurrent.duration.FiniteDuration
 
 /** A request handler for `project/list` commands.
@@ -25,64 +19,30 @@ import scala.concurrent.duration.FiniteDuration
   * @param clientId the requester id
   * @param service a project service
   * @param requestTimeout a request timeout
+  * @param timeoutRetries a number of timeouts to wait until a failure is reported
   */
-class ProjectListHandler[F[+_, +_]: Exec](
-  @unused clientId: UUID,
-  service: ProjectServiceApi[F],
-  requestTimeout: FiniteDuration
-) extends Actor
-    with LazyLogging
-    with UnhandledLogging {
+class ProjectListHandler[F[+_, +_]: Exec: CovariantFlatMap](
+  projectService: ProjectServiceApi[F],
+  requestTimeout: FiniteDuration,
+  timeoutRetries: Int
+) extends RequestHandler[
+      F,
+      ProjectServiceFailure,
+      ProjectList.type,
+      ProjectList.Params,
+      ProjectList.Result
+    ](
+      ProjectList,
+      Some(requestTimeout),
+      timeoutRetries
+    ) {
 
-  override def receive: Receive = requestStage
-
-  import context.dispatcher
-
-  private def requestStage: Receive = {
-    case Request(ProjectList, id, params: ProjectList.Params) =>
-      Exec[F]
-        .exec { service.listProjects(params.numberOfProjects) }
-        .pipeTo(self)
-      val cancellable =
-        context.system.scheduler
-          .scheduleOnce(requestTimeout, self, RequestTimeout)
-      context.become(responseStage(id, sender(), cancellable))
-  }
-
-  private def responseStage(
-    id: Id,
-    replyTo: ActorRef,
-    cancellable: Cancellable
-  ): Receive = {
-    case Status.Failure(ex) =>
-      logger.error("Failure during ProjectList operation.", ex)
-      replyTo ! ResponseError(Some(id), ServiceError)
-      cancellable.cancel()
-      context.stop(self)
-
-    case RequestTimeout =>
-      logger.error("Request {} with {} timed out.", ProjectList, id)
-      replyTo ! ResponseError(Some(id), ServiceError)
-      context.stop(self)
-
-    case Left(failure: ProjectServiceFailure) =>
-      logger.error("Request {} failed due to {}.", id, failure)
-      replyTo ! ResponseError(Some(id), mapFailure(failure))
-      cancellable.cancel()
-      context.stop(self)
-
-    case Right(list: List[_]) =>
-      val metadata = list.collect { case meta: ProjectMetadata =>
-        meta
-      }
-
-      replyTo ! ResponseResult(
-        ProjectList,
-        id,
-        ProjectList.Result(metadata)
-      )
-      cancellable.cancel()
-      context.stop(self)
+  override def handleRequest = { params =>
+    for {
+      projects <- projectService.listProjects(params.numberOfProjects)
+    } yield ProjectList.Result(projects.collect { case meta: ProjectMetadata =>
+      meta
+    })
   }
 
 }
@@ -94,13 +54,16 @@ object ProjectListHandler {
     * @param clientId the requester id
     * @param service a project service
     * @param requestTimeout a request timeout
+    * @param timeoutRetries a number of timeouts to wait until a failure is reported
     * @return a configuration object
     */
-  def props[F[+_, +_]: Exec](
-    clientId: UUID,
+  def props[F[+_, +_]: Exec: CovariantFlatMap](
     service: ProjectServiceApi[F],
-    requestTimeout: FiniteDuration
+    requestTimeout: FiniteDuration,
+    timeoutRetries: Int
   ): Props =
-    Props(new ProjectListHandler(clientId, service, requestTimeout))
+    Props(
+      new ProjectListHandler(service, requestTimeout, timeoutRetries)
+    )
 
 }

@@ -1,0 +1,9 @@
+from Standard.Base import all
+
+type Hello
+    Say (msg:Text)
+
+    formulate : Vector Hello -> Text
+    formulate arr =
+        process (t:Text) (h:Hello) = t + h.msg
+        arr.fold "" process

@@ -2,6 +2,7 @@ package org.enso.interpreter.node.expression.builtin.text;
 
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.exception.AbstractTruffleException;
 import com.oracle.truffle.api.nodes.Node;
@@ -43,6 +44,13 @@ public abstract class RegexCompileNode extends Node {
   @Specialization
   Object alwaysCompile(Text pattern, Text options) {
     return compile(pattern.toString(), options.toString());
+  }
+
+  @Fallback
+  Object doOther(Object pattern, Object options) {
+    Builtins builtins = EnsoContext.get(this).getBuiltins();
+    Atom err = builtins.error().makeTypeError(builtins.text(), pattern, "pattern");
+    throw new PanicException(err, this);
   }
 
   @TruffleBoundary

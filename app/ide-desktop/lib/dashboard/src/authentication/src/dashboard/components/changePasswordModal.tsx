@@ -1,6 +1,6 @@
 /** @file Managing the logic and displaying the UI for the password change function. */
-import * as react from 'react'
-import toast from 'react-hot-toast'
+import * as React from 'react'
+import * as toastify from 'react-toastify'
 
 import ArrowRightIcon from 'enso-assets/arrow_right.svg'
 import LockIcon from 'enso-assets/lock.svg'
@@ -23,13 +23,13 @@ function ChangePasswordModal() {
     const { changePassword } = auth.useAuth()
     const { unsetModal } = modalProvider.useSetModal()
 
-    const [oldPassword, setOldPassword] = react.useState('')
-    const [newPassword, setNewPassword] = react.useState('')
-    const [confirmNewPassword, setConfirmNewPassword] = react.useState('')
+    const [oldPassword, setOldPassword] = React.useState('')
+    const [newPassword, setNewPassword] = React.useState('')
+    const [confirmNewPassword, setConfirmNewPassword] = React.useState('')
 
     const onSubmit = async () => {
         if (newPassword !== confirmNewPassword) {
-            toast.error('Passwords do not match.')
+            toastify.toast.error('Passwords do not match.')
         } else {
             const success = await changePassword(oldPassword, newPassword)
             if (success) {

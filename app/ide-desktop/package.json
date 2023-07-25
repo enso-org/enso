@@ -31,12 +31,18 @@
     "@typescript-eslint/parser": "^5.55.0",
     "cross-env": "^7.0.3",
     "eslint": "^8.36.0",
-    "eslint-plugin-jsdoc": "^40.0.2"
+    "eslint-plugin-jsdoc": "^40.0.2",
+    "eslint-plugin-react": "^7.32.2",
+    "eslint-plugin-react-hooks": "^4.6.0"
   },
   "scripts": {
     "watch": "npm run watch --workspace enso-content",
     "watch-dashboard": "npm run watch --workspace enso-dashboard",
     "build-dashboard": "npm run build --workspace enso-dashboard",
     "typecheck": "npx tsc -p lib/types/tsconfig.json && npm run typecheck --workspace enso && npm run typecheck --workspace enso-content && npm run typecheck --workspace enso-dashboard && npm run typecheck --workspace enso-authentication"
+  },
+  "dependencies": {
+    "eslint-plugin-react": "^7.32.2",
+    "eslint-plugin-react-hooks": "^4.6.0"
   }
 }

@@ -1,10 +1,10 @@
 import project.Any.Any
+import project.Data.Json.JS_Object
 import project.Data.Map.Map
 import project.Data.Numbers.Integer
-from project.Data.Range.Extensions import all
 import project.Data.Range.Range
 import project.Data.Text.Regex.No_Such_Group
-import project.Data.Text.Regex.Pattern.Pattern
+import project.Data.Text.Regex.Regex
 import project.Data.Text.Span.Span
 import project.Data.Text.Span.Utf_16_Span
 import project.Data.Text.Text
@@ -13,15 +13,26 @@ import project.Error.Error
 import project.Errors.Common.Index_Out_Of_Bounds
 import project.Nothing.Nothing
 import project.Panic.Panic
-
-from project.Data.Boolean import Boolean, True, False
+from project.Data.Boolean import Boolean, False, True
+from project.Data.Range.Extensions import all
 
 
 type Match
     ## PRIVATE
        internal_regex_result : RegexResult (Truffle)
        (See https://github.com/oracle/graal/blob/master/regex/docs/README.md)
-    Value (pattern : Pattern) (internal_regex_result : Any) (input : Text)
+    Value (pattern : Regex) (internal_regex_result : Any) (input : Text)
+
+    ## PRIVATE
+       Converts this value to a JSON serializable object.
+    to_js_object : JS_Object
+    to_js_object self =
+        JS_Object.from_pairs [["type", "Match"], ["text", self.text]]
+
+    ## PRIVATE
+       Provides a human-readable representation of the `Match`.
+    to_display_text : Text
+    to_display_text self = "Match {" + self.tet + "}"
 
     ## PRIVATE
        Returns the start UTF16 character index of a group.
@@ -121,7 +132,7 @@ type Match
             "ab((c)|(d))".find "abc"
 
        In this case, the group id for "(d)", which is 3, is a valid group id and
-       (Pattern.lookup_group 3) will return 3. If the caller tries to get group 3,
+       (Regex.lookup_group 3) will return 3. If the caller tries to get group 3,
        Match.utf_16_span will return the default value.
     utf_16_span : Integer | Text -> Any -> Utf_16_Span ! No_Such_Group
     utf_16_span self group=0 ~default=Nothing =
@@ -159,7 +170,7 @@ type Match
             "ab((c)|(d))".find "abc"
 
        In this case, the group id for "(d)", which is 3, is a valid group id and
-       (Pattern.lookup_group 3) will return 3. If the caller tries to get
+       (Regex.lookup_group 3) will return 3. If the caller tries to get
        group 3, Match.span will return the default value.
     span : Integer | Text -> Any -> Span ! No_Such_Group
     span self group=0 ~default=Nothing =
@@ -187,7 +198,7 @@ type Match
             "ab((c)|(d))".find "abc"
 
        In this case, the group id for "(d)", which is 3, is a valid group id and
-       (Pattern.lookup_group 3) will return 3. If the caller tries to get
+       (Regex.lookup_group 3) will return 3. If the caller tries to get
        group 3, Match.text will return the default value.
     text : Integer | Text -> Any -> Text ! No_Such_Group
     text self group=0 ~default=Nothing =
@@ -217,7 +228,7 @@ type Match
             "ab((c)|(d))".find "abc"
 
        In this case, the group id for "(d)", which is 3, is a valid group id and
-       (Pattern.lookup_group 3) will return 3. `groups` will return the
+       (Regex.lookup_group 3) will return 3. `groups` will return the
        default value for groups that do not participate.
 
        > Example
@@ -249,7 +260,7 @@ type Match
             "ab((c)|(d))".find "abc"
 
        In this case, the group id for "(d)", which is 3, is a valid group id and
-       (Pattern.lookup_group 3) will return 3. `named_groups` will map
+       (Regex.lookup_group 3) will return 3. `named_groups` will map
        a named group that does not participate to the default value.
 
        > Example

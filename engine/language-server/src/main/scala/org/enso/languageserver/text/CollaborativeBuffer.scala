@@ -12,6 +12,8 @@ import org.enso.languageserver.event.{
   JsonSessionTerminated
 }
 import org.enso.languageserver.filemanager.{
+  FileAttributes,
+  FileEvent,
   FileEventKind,
   FileManagerProtocol,
   FileNotFound,
@@ -91,8 +93,34 @@ class CollaborativeBuffer(
     timeoutCancellable: Cancellable,
     inMemoryBuffer: Boolean
   ): Receive = {
+    case FileManagerProtocol.ReadFileWithAttributesResult(
+          Right((content, attrs))
+        ) =>
+      handleFileContent(
+        rpcSession,
+        replyTo,
+        content,
+        Some(attrs),
+        inMemoryBuffer,
+        Map.empty
+      )
+      unstashAll()
+      timeoutCancellable.cancel()
+
+    case FileManagerProtocol.ReadFileWithAttributesResult(Left(failure)) =>
+      replyTo ! OpenFileResponse(Left(failure))
+      timeoutCancellable.cancel()
+      stop(Map.empty)
+
     case FileManagerProtocol.ReadTextualFileResult(Right(content)) =>
-      handleFileContent(rpcSession, replyTo, content, inMemoryBuffer, Map.empty)
+      handleFileContent(
+        rpcSession,
+        replyTo,
+        content,
+        None,
+        inMemoryBuffer,
+        Map.empty
+      )
       unstashAll()
       timeoutCancellable.cancel()
 
@@ -215,16 +243,20 @@ class CollaborativeBuffer(
       )
 
     case AutoSave(clientId, clientVersion) =>
-      saveFile(
-        buffer,
-        clients,
-        lockHolder,
-        clientId,
-        clientVersion,
-        autoSave.removed(clientId),
-        isAutoSave = true,
-        onClose    = None
-      )
+      if (buffer.fileWithMetadata.isModifiedOnDisk) {
+        clients.foreach(_._2.rpcController ! FileModifiedOnDisk(bufferPath))
+      } else {
+        saveFile(
+          buffer,
+          clients,
+          lockHolder,
+          clientId,
+          clientVersion,
+          autoSave.removed(clientId),
+          isAutoSave = true,
+          onClose    = None
+        )
+      }
 
     case ForceSave(clientId) =>
       autoSave.get(clientId) match {
@@ -249,7 +281,7 @@ class CollaborativeBuffer(
       if (buffer.inMemory) {
         fileManager ! FileManagerProtocol.OpenBuffer(path)
       } else {
-        fileManager ! FileManagerProtocol.ReadFile(path)
+        fileManager ! FileManagerProtocol.ReadFileWithAttributes(path)
       }
       val timeoutCancellable = context.system.scheduler
         .scheduleOnce(timingsConfig.requestTimeout, self, IOTimeout)
@@ -265,6 +297,81 @@ class CollaborativeBuffer(
         )
       )
 
+    case FileEvent(path, _) =>
+      fileManager ! FileManagerProtocol.InfoFile(path)
+      val timeoutCancellable = context.system.scheduler.scheduleOnce(
+        timingsConfig.requestTimeout,
+        self,
+        IOTimeout
+      )
+      context.become(
+        waitingOnFileEventContent(
+          path,
+          buffer,
+          timeoutCancellable,
+          clients,
+          lockHolder,
+          autoSave
+        )
+      )
+
+  }
+
+  private def waitingOnFileEventContent(
+    path: Path,
+    buffer: Buffer,
+    timeoutCancellable: Cancellable,
+    clients: Map[ClientId, JsonSession],
+    lockHolder: Option[JsonSession],
+    autoSave: Map[ClientId, (ContentVersion, Cancellable)]
+  ): Receive = {
+    case FileManagerProtocol.InfoFileResult(Right(attrs)) =>
+      timeoutCancellable.cancel()
+      val newBuffer = buffer.fileWithMetadata.lastModifiedTime.map {
+        bufferLastModifiedTime =>
+          if (attrs.lastModifiedTime.isAfter(bufferLastModifiedTime)) {
+            clients.values.foreach {
+              _.rpcController ! FileModifiedOnDisk(path)
+            }
+            buffer
+              .withLastModifiedTime(attrs.lastModifiedTime)
+              .withModifiedOnDisk()
+          } else {
+            buffer
+          }
+      }
+      unstashAll()
+      context.become(
+        collaborativeEditing(
+          newBuffer.getOrElse(buffer),
+          clients,
+          lockHolder,
+          autoSave
+        )
+      )
+
+    case FileManagerProtocol.InfoFileResult(Left(err)) =>
+      timeoutCancellable.cancel()
+      logger.error("Failed to read file attributes for [{}]. {}", path, err)
+      unstashAll()
+      context.become(
+        collaborativeEditing(buffer, clients, lockHolder, autoSave)
+      )
+
+    case Status.Failure(ex) =>
+      logger.error("Failed to read file attributes for [{}].", path, ex)
+      unstashAll()
+      context.become(
+        collaborativeEditing(buffer, clients, lockHolder, autoSave)
+      )
+
+    case IOTimeout =>
+      unstashAll()
+      context.become(
+        collaborativeEditing(buffer, clients, lockHolder, autoSave)
+      )
+
+    case _ => stash()
   }
 
   private def waitingOnReloadedContent(
@@ -276,9 +383,12 @@ class CollaborativeBuffer(
     clients: Map[ClientId, JsonSession],
     inMemoryBuffer: Boolean
   ): Receive = {
-    case FileManagerProtocol.ReadTextualFileResult(Right(file)) =>
+    case FileManagerProtocol.ReadFileWithAttributesResult(
+          Right((file, attrs))
+        ) =>
       timeoutCancellable.cancel()
       val buffer = Buffer(file.path, file.content, inMemoryBuffer)
+        .withLastModifiedTime(attrs.lastModifiedTime)
 
       // Notify *all* clients about the new buffer
       // This also ensures that the client that requested the restore operation
@@ -305,7 +415,7 @@ class CollaborativeBuffer(
         )
       )
 
-    case FileManagerProtocol.ReadTextualFileResult(Left(FileNotFound)) =>
+    case FileManagerProtocol.ReadFileWithAttributesResult(Left(FileNotFound)) =>
       clients.values.foreach {
         _.rpcController ! TextProtocol.FileEvent(path, FileEventKind.Removed)
       }
@@ -313,7 +423,7 @@ class CollaborativeBuffer(
       timeoutCancellable.cancel()
       stop(Map.empty)
 
-    case FileManagerProtocol.ReadTextualFileResult(Left(err)) =>
+    case FileManagerProtocol.ReadFileWithAttributesResult(Left(err)) =>
       replyTo ! ReloadBufferFailed(path, "io failure: " + err.toString)
       timeoutCancellable.cancel()
       context.become(
@@ -384,6 +494,20 @@ class CollaborativeBuffer(
           )
       }
 
+    case FileManagerProtocol.WriteFileIfNotModifiedResult(Left(failure)) =>
+      replyTo.foreach(_ ! SaveFailed(failure))
+      unstashAll()
+      timeoutCancellable.cancel()
+      onClose match {
+        case Some(clientId) =>
+          replyTo.foreach(_ ! FileClosed)
+          removeClient(buffer, clients, lockHolder, clientId, autoSave)
+        case None =>
+          context.become(
+            collaborativeEditing(buffer, clients, lockHolder, autoSave)
+          )
+      }
+
     case Status.Failure(failure) =>
       logger.error(
         s"Waiting on save operation to complete failed with: ${failure.getMessage}.",
@@ -400,7 +524,7 @@ class CollaborativeBuffer(
           )
       }
 
-    case FileManagerProtocol.WriteFileResult(Right(())) =>
+    case FileManagerProtocol.WriteFileResult(Right(attrs)) =>
       replyTo match {
         case Some(replyTo) => replyTo ! FileSaved
         case None =>
@@ -413,10 +537,47 @@ class CollaborativeBuffer(
       onClose match {
         case Some(clientId) =>
           replyTo.foreach(_ ! FileClosed)
-          removeClient(buffer, clients, lockHolder, clientId, autoSave)
+          removeClient(
+            buffer.withLastModifiedTime(attrs.lastModifiedTime),
+            clients,
+            lockHolder,
+            clientId,
+            autoSave
+          )
         case None =>
           context.become(
-            collaborativeEditing(buffer, clients, lockHolder, autoSave)
+            collaborativeEditing(
+              buffer.withLastModifiedTime(attrs.lastModifiedTime),
+              clients,
+              lockHolder,
+              autoSave
+            )
+          )
+      }
+
+    case FileManagerProtocol.WriteFileIfNotModifiedResult(Right(result)) =>
+      replyTo match {
+        case Some(replyTo) => replyTo ! FileSaved
+        case None =>
+          val message = result.fold[Any](FileModifiedOnDisk(bufferPath))(_ =>
+            FileAutoSaved(bufferPath)
+          )
+          clients.values.foreach {
+            _.rpcController ! message
+          }
+      }
+      unstashAll()
+      timeoutCancellable.cancel()
+      onClose match {
+        case Some(clientId) =>
+          replyTo.foreach(_ ! FileClosed)
+          removeClient(buffer, clients, lockHolder, clientId, autoSave)
+        case None =>
+          val newBuffer = result.fold(buffer)(attrs =>
+            buffer.withLastModifiedTime(attrs.lastModifiedTime)
+          )
+          context.become(
+            collaborativeEditing(newBuffer, clients, lockHolder, autoSave)
           )
       }
 
@@ -438,10 +599,17 @@ class CollaborativeBuffer(
     val hasLock = lockHolder.exists(_.clientId == clientId)
     if (hasLock) {
       if (clientVersion == buffer.version) {
-        fileManager ! FileManagerProtocol.WriteFile(
-          bufferPath,
-          buffer.contents.toString
-        )
+        val saveMessage =
+          if (isAutoSave && buffer.fileWithMetadata.lastModifiedTime.nonEmpty) {
+            FileManagerProtocol.WriteFileIfNotModified(
+              bufferPath,
+              buffer.fileWithMetadata.lastModifiedTime.get,
+              buffer.contents.toString
+            )
+          } else {
+            FileManagerProtocol.WriteFile(bufferPath, buffer.contents.toString)
+          }
+        fileManager ! saveMessage
         currentAutoSaves.get(clientId).foreach(_._2.cancel())
 
         val timeoutCancellable = context.system.scheduler
@@ -518,7 +686,7 @@ class CollaborativeBuffer(
         subscribers foreach { _.rpcController ! TextDidChange(List(change)) }
         runtimeConnector ! Api.Request(
           Api.SetExpressionValueNotification(
-            buffer.file,
+            buffer.fileWithMetadata.file,
             change.edits,
             expressionId,
             expressionValue
@@ -551,7 +719,11 @@ class CollaborativeBuffer(
         val subscribers = clients.filterNot(_._1 == clientId).values
         subscribers foreach { _.rpcController ! TextDidChange(List(change)) }
         runtimeConnector ! Api.Request(
-          Api.EditFileNotification(buffer.file, change.edits, execute)
+          Api.EditFileNotification(
+            buffer.fileWithMetadata.file,
+            change.edits,
+            execute
+          )
         )
         val newAutoSave: Map[ClientId, (ContentVersion, Cancellable)] =
           upsertAutoSaveTimer(
@@ -617,14 +789,7 @@ class CollaborativeBuffer(
     EditorOps
       .applyEdits(buffer.contents, edits)
       .leftMap(toEditFailure)
-      .map(rope =>
-        Buffer(
-          buffer.file,
-          rope,
-          buffer.inMemory,
-          versionCalculator.evalVersion(rope.toString)
-        )
-      )
+      .map(rope => buffer.withContents(rope))
   }
 
   private val toEditFailure: TextEditValidationFailure => ApplyEditFailure = {
@@ -644,7 +809,7 @@ class CollaborativeBuffer(
     rpcSession: JsonSession,
     path: Path
   ): Unit = {
-    fileManager ! FileManagerProtocol.ReadFile(path)
+    fileManager ! FileManagerProtocol.ReadFileWithAttributes(path)
     val timeoutCancellable = context.system.scheduler
       .scheduleOnce(timingsConfig.requestTimeout, self, IOTimeout)
     context.become(
@@ -678,11 +843,15 @@ class CollaborativeBuffer(
     rpcSession: JsonSession,
     originalSender: ActorRef,
     file: FileManagerProtocol.TextualFileContent,
+    attributes: Option[FileAttributes],
     inMemoryBuffer: Boolean,
     autoSave: Map[ClientId, (ContentVersion, Cancellable)]
   ): Unit = {
-    val buffer = Buffer(file.path, file.content, inMemoryBuffer)
-    val cap    = CapabilityRegistration(CanEdit(bufferPath))
+    val initialBuffer = Buffer(file.path, file.content, inMemoryBuffer)
+    val buffer = attributes.fold(initialBuffer)(attrs =>
+      initialBuffer.withLastModifiedTime(attrs.lastModifiedTime)
+    )
+    val cap = CapabilityRegistration(CanEdit(bufferPath))
     originalSender ! OpenFileResponse(
       Right(OpenFileResult(buffer, Some(cap)))
     )
@@ -737,7 +906,9 @@ class CollaborativeBuffer(
 
     val newClientMap = clients - clientId
     if (newClientMap.isEmpty) {
-      runtimeConnector ! Api.Request(Api.CloseFileNotification(buffer.file))
+      runtimeConnector ! Api.Request(
+        Api.CloseFileNotification(buffer.fileWithMetadata.file)
+      )
       stop(autoSave)
     } else {
       context.become(

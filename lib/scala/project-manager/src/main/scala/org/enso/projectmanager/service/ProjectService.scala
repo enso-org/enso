@@ -98,15 +98,16 @@ class ProjectService[
     _            <- validateName(name)
     _            <- checkIfNameExists(name)
     creationTime <- clock.nowInUtc()
+    path         <- repo.findPathForNewProject(name).mapError(toServiceFailure)
     project = Project(
       id        = projectId,
       name      = name,
       namespace = Config.defaultNamespace,
       kind      = UserProject,
       created   = creationTime,
-      edition   = None
+      edition   = None,
+      path      = path.toFile
     )
-    path <- repo.findPathForNewProject(project).mapError(toServiceFailure)
     _ <- log.debug(
       "Found a path [{}] for a new project [{}, {}].",
       path,
@@ -127,9 +128,7 @@ class ProjectService[
       path,
       name
     )
-    _ <- repo
-      .update(project.copy(path = Some(path.toString)))
-      .mapError(toServiceFailure)
+    _ <- repo.update(project).mapError(toServiceFailure)
     _ <- log.debug("Project [{}] updated in repository [{}].", projectId, repo)
     _ <- log.info("Project created [{}].", project)
   } yield project
