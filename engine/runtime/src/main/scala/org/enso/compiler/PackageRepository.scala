@@ -468,7 +468,7 @@ object PackageRepository {
             Left(Error.PackageLoadingError(err.getMessage()))
           case Right(componentGroups) =>
             logger.debug(
-              s"Resolving component groups of package [${pkg.name}]."
+              s"Resolving component groups of package [${pkg.module}]."
             )
 
             registerComponentGroups(pkg.libraryName, componentGroups.newGroups)

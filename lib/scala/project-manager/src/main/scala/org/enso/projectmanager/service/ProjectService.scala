@@ -173,7 +173,7 @@ class ProjectService[
         .getPackageNamespace(projectId)
         .mapError(toServiceFailure)
       newPackage = NameValidation.normalizeName(newName)
-      _ <- repo.rename(projectId, newPackage).mapError(toServiceFailure)
+      _ <- repo.rename(projectId, newName).mapError(toServiceFailure)
       _ <- renameProjectDirOrRegisterShutdownHook(projectId, newPackage)
       _ <- refactorProjectName(projectId, namespace, oldPackage, newPackage)
       _ <- log.info("Project renamed [{}].", projectId)

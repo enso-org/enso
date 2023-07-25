@@ -175,7 +175,7 @@ class Package[F](
   /** Returns the name of this package.
     * @return the name of this package.
     */
-  def name: String = config.module
+  def module: String = config.module
 
   def namespace: String = config.namespace
 
@@ -192,7 +192,7 @@ class Package[F](
     val segments                 = sourceDir.relativize(file).getSegments.asScala.toList
     val dirSegments              = segments.take(segments.length - 1)
     val fileNameWithoutExtension = file.getName.takeWhile(_ != '.')
-    QualifiedName(namespace :: name :: dirSegments, fileNameWithoutExtension)
+    QualifiedName(namespace :: module :: dirSegments, fileNameWithoutExtension)
   }
 
   /** Lists the source files in this package.
