@@ -10,16 +10,8 @@ maintainers:
     email: contact@enso.org
 component-groups:
   new:
-    - Input:
-        exports:
-          - Standard.Base.System.File.File.new
-          - Standard.Base.Data.read
-          - Standard.Base.Data.read_text
-          - Standard.Base.Data.list_directory
-    - Web:
-        exports:
-          - Standard.Base.Network.HTTP.HTTP.new
-          - Standard.Base.Data.fetch
+    - Input: {}
+    - Web: {}
     - Parse:
         exports:
           - Standard.Base.Data.Json.Json.parse

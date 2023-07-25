@@ -1,6 +1,5 @@
 /** @file Table displaying a list of projects. */
 import * as React from 'react'
-import toast from 'react-hot-toast'
 
 import * as common from 'enso-common'
 
@@ -17,7 +16,6 @@ import * as dateTime from '../dateTime'
 import * as errorModule from '../../error'
 import * as hooks from '../../hooks'
 import * as indent from '../indent'
-import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
 import * as permissions from '../permissions'
 import * as presenceModule from '../presence'
@@ -99,7 +97,6 @@ function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
             getDepth,
         },
     } = props
-    const logger = loggerProvider.useLogger()
     const { backend } = backendProvider.useBackend()
     const { setModal } = modalProvider.useSetModal()
     const [item, setItem] = React.useState(rawItem)
@@ -122,8 +119,7 @@ function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
             setPresence(presenceModule.Presence.present)
             markItemAsVisible(key)
             const message = errorModule.tryGetMessage(error) ?? 'Unable to delete project.'
-            toast.error(message)
-            logger.error(message)
+            errorModule.toastAndLog(message)
         }
     }
 

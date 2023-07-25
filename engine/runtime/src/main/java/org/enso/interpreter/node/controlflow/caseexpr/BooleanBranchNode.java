@@ -5,13 +5,13 @@ import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import com.oracle.truffle.api.profiles.ConditionProfile;
+import com.oracle.truffle.api.profiles.CountingConditionProfile;
 
 /** An implementation of the case expression specialised to working on booleans. */
 @NodeInfo(shortName = "BooleanMatch")
 public abstract class BooleanBranchNode extends BranchNode {
   private final boolean matched;
-  private final ConditionProfile profile = ConditionProfile.createCountingProfile();
+  private final CountingConditionProfile profile = CountingConditionProfile.create();
 
   BooleanBranchNode(boolean matched, RootCallTarget branch, boolean terminalBranch) {
     super(branch, terminalBranch);

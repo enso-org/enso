@@ -8,10 +8,25 @@ import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.data.*;
+import org.enso.interpreter.runtime.data.Array;
+import org.enso.interpreter.runtime.data.ArrayOverBuffer;
+import org.enso.interpreter.runtime.data.ArrayProxy;
+import org.enso.interpreter.runtime.data.EnsoDate;
+import org.enso.interpreter.runtime.data.EnsoDateTime;
+import org.enso.interpreter.runtime.data.EnsoDuration;
+import org.enso.interpreter.runtime.data.EnsoFile;
+import org.enso.interpreter.runtime.data.EnsoTimeOfDay;
+import org.enso.interpreter.runtime.data.EnsoTimeZone;
+import org.enso.interpreter.runtime.data.ManagedResource;
+import org.enso.interpreter.runtime.data.Ref;
+import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.Vector;
 import org.enso.interpreter.runtime.data.hash.EnsoHashMap;
 import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.interpreter.runtime.error.*;
+import org.enso.interpreter.runtime.error.DataflowError;
+import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.error.PanicSentinel;
+import org.enso.interpreter.runtime.error.Warning;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.polyglot.data.TypeGraph;
@@ -107,68 +122,6 @@ public class Types {
     }
   }
 
-  /**
-   * Return a type of the given object as a string.
-   *
-   * @param value an object of interest.
-   * @return the string representation of object's type.
-   */
-  public static String getName(Object value) {
-    if (TypesGen.isLong(value) || TypesGen.isEnsoBigInteger(value)) {
-      return ConstantsGen.INTEGER;
-    } else if (TypesGen.isDouble(value)) {
-      return ConstantsGen.DECIMAL;
-    } else if (TypesGen.isBoolean(value)) {
-      return ConstantsGen.BOOLEAN;
-    } else if (TypesGen.isText(value)) {
-      return ConstantsGen.TEXT;
-    } else if (TypesGen.isFunction(value)) {
-      return ConstantsGen.FUNCTION;
-    } else if (value instanceof Atom atom) {
-      return atom.getConstructor().getQualifiedTypeName().toString();
-    } else if (value instanceof AtomConstructor cons) {
-      return cons.getQualifiedName().toString();
-    } else if (value instanceof Type t) {
-      return t.getQualifiedName().toString();
-    } else if (TypesGen.isDataflowError(value)) {
-      return ConstantsGen.ERROR;
-    } else if (TypesGen.isUnresolvedSymbol(value) || TypesGen.isUnresolvedConversion(value)) {
-      return Constants.UNRESOLVED_SYMBOL;
-    } else if (TypesGen.isManagedResource(value)) {
-      return ConstantsGen.MANAGED_RESOURCE;
-    } else if (TypesGen.isArray(value) || TypesGen.isArrayOverBuffer(value) || TypesGen.isArrayProxy(value)) {
-      return ConstantsGen.ARRAY;
-    } else if (TypesGen.isVector(value)) {
-      return ConstantsGen.VECTOR;
-    } else if (TypesGen.isEnsoDate(value)) {
-      return ConstantsGen.DATE;
-    } else if (TypesGen.isEnsoDateTime(value)) {
-      return ConstantsGen.DATE_TIME;
-    } else if (TypesGen.isEnsoTimeOfDay(value)) {
-      return ConstantsGen.TIME_OF_DAY;
-    } else if (TypesGen.isEnsoDuration(value)) {
-      return ConstantsGen.DURATION;
-    } else if (TypesGen.isEnsoTimeZone(value)) {
-      return ConstantsGen.TIME_ZONE;
-    } else if (TypesGen.isEnsoFile(value)) {
-      return ConstantsGen.FILE;
-    } else if (TypesGen.isModuleScope(value)) {
-      return Constants.MODULE_SCOPE;
-    } else if (TypesGen.isRef(value)) {
-      return ConstantsGen.REF;
-    } else if (TypesGen.isPanicException(value)) {
-      return ConstantsGen.PANIC;
-    } else if (TypesGen.isPanicSentinel(value)) {
-      return ConstantsGen.PANIC;
-    } else if (TypesGen.isWarning(value)) {
-      return ConstantsGen.WARNING;
-    } else if (value instanceof WithWarnings) {
-      return getName(((WithWarnings) value).getValue());
-    } else {
-      return null;
-    }
-  }
-
   /** Check if the given type is a panic. */
   public static boolean isPanic(String typeName) {
     return ConstantsGen.PANIC.equals(typeName);
@@ -227,9 +180,7 @@ public class Types {
     return new Pair<>((A) arguments[0], (B) arguments[1]);
   }
 
-  /**
-   * @return the language type hierarchy
-   */
+  /** @return the language type hierarchy */
   public static TypeGraph getTypeHierarchy() {
     return typeHierarchy;
   }

@@ -61,7 +61,8 @@ polyglot java import org.enso.table.operations.OrderBuilder
 
 ## Represents a column-oriented table data structure.
 type Table
-    ## Creates a new table from a vector of `[name, items]` pairs.
+    ## GROUP Standard.Base.Input
+       Creates a new table from a vector of `[name, items]` pairs.
 
        Arguments:
        - columns: The `[name, items]` pairs to construct a new table from.
@@ -91,7 +92,8 @@ type Table
                 if cols.distinct .getName . length != cols.length then Error.throw (Illegal_Argument.Error "Column names must be distinct.") else
                     Table.Value (Java_Table.new cols)
 
-    ## Creates a new table from a vector of column names and a vector of vectors
+    ## GROUP Standard.Base.Input
+       Creates a new table from a vector of column names and a vector of vectors
        specifying row contents.
 
        Arguments:

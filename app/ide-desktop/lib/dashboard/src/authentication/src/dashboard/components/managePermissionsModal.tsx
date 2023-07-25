@@ -1,6 +1,6 @@
 /** @file A modal with inputs for user email and permission level. */
 import * as React from 'react'
-import toast from 'react-hot-toast'
+import * as toastify from 'react-toastify'
 
 import CloseIcon from 'enso-assets/close.svg'
 
@@ -224,7 +224,7 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
                             userEmail: backendModule.EmailAddress(firstEmail),
                         })
                     } catch (error) {
-                        toast.error(errorModule.tryGetMessage(error) ?? 'Unknown error.')
+                        toastify.toast.error(errorModule.tryGetMessage(error) ?? 'Unknown error.')
                     }
                 } else if (finalUsers.length !== 0) {
                     unsetModal()
@@ -240,7 +240,9 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
                     } catch {
                         onFailure?.(finalUsers, permissionsArray)
                         const finalUserEmails = finalUsers.map(finalUser => `'${finalUser.email}'`)
-                        toast.error(`Unable to set permissions of ${finalUserEmails.join(', ')}.`)
+                        toastify.toast.error(
+                            `Unable to set permissions of ${finalUserEmails.join(', ')}.`
+                        )
                     }
                 }
             },

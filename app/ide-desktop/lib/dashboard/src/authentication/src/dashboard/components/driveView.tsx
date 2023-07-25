@@ -1,6 +1,6 @@
 /** @file The directory header bar and directory item listing. */
 import * as React from 'react'
-import toast from 'react-hot-toast'
+import * as toastify from 'react-toastify'
 
 import * as common from 'enso-common'
 
@@ -9,6 +9,7 @@ import * as assetListEventModule from '../events/assetListEvent'
 import * as authProvider from '../../authentication/providers/auth'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
+import * as errorModule from '../../error'
 import * as hooks from '../../hooks'
 import * as loggerProvider from '../../providers/logger'
 import * as tabModule from '../tab'
@@ -199,7 +200,7 @@ export default function DirectoryView(props: DirectoryViewProps) {
             setInitialized(true)
             if (!assets.some(asset => asset.title === initialProjectName)) {
                 const errorMessage = `No project named '${initialProjectName}' was found.`
-                toast.error(errorMessage)
+                toastify.toast.error(errorMessage)
                 logger.error(`Error opening project on startup: ${errorMessage}`)
             }
         }
@@ -219,15 +220,10 @@ export default function DirectoryView(props: DirectoryViewProps) {
             if (backend.type === backendModule.BackendType.local) {
                 // TODO[sb]: Allow uploading `.enso-project`s
                 // https://github.com/enso-org/cloud-v2/issues/510
-                const message = 'Files cannot be uploaded to the local backend.'
-                toast.error(message)
-                logger.error(message)
+                errorModule.toastAndLog('Files cannot be uploaded to the local backend.')
             } else if (directoryId == null) {
-                // This should never happen, however display a nice error message in case
-                // it somehow does.
-                const message = 'Files cannot be uploaded while offline.'
-                toast.error(message)
-                logger.error(message)
+                // This should never happen, however display a nice error message in case it does.
+                errorModule.toastAndLog('Files cannot be uploaded while offline.')
             } else {
                 dispatchAssetListEvent({
                     type: assetListEventModule.AssetListEventType.uploadFiles,
@@ -236,12 +232,7 @@ export default function DirectoryView(props: DirectoryViewProps) {
                 })
             }
         },
-        [
-            backend.type,
-            directoryId,
-            /* should never change */ logger,
-            /* should never change */ dispatchAssetListEvent,
-        ]
+        [backend.type, directoryId, /* should never change */ dispatchAssetListEvent]
     )
 
     const doCreateDirectory = React.useCallback(() => {

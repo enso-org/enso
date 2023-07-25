@@ -1,6 +1,5 @@
 /** @file The icon and name of a {@link backendModule.SecretAsset}. */
 import * as React from 'react'
-import toast from 'react-hot-toast'
 
 import SecretIcon from 'enso-assets/secret.svg'
 
@@ -12,7 +11,6 @@ import * as errorModule from '../../error'
 import * as eventModule from '../event'
 import * as hooks from '../../hooks'
 import * as indent from '../indent'
-import * as loggerProvider from '../../providers/logger'
 import * as presence from '../presence'
 import * as shortcuts from '../shortcuts'
 
@@ -37,7 +35,6 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
         rowState,
         setRowState,
     } = props
-    const logger = loggerProvider.useLogger()
     const { backend } = backendProvider.useBackend()
 
     // TODO[sb]: Wait for backend implementation. `editable` should also be re-enabled, and the
@@ -63,8 +60,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
                 if (key === event.placeholderId) {
                     if (backend.type !== backendModule.BackendType.remote) {
                         const message = 'Secrets cannot be created on the local backend.'
-                        toast.error(message)
-                        logger.error(message)
+                        errorModule.toastAndLog(message)
                     } else {
                         rowState.setPresence(presence.Presence.inserting)
                         try {
@@ -87,8 +83,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
                             const message = `Error creating new secret: ${
                                 errorModule.tryGetMessage(error) ?? 'unknown error.'
                             }`
-                            toast.error(message)
-                            logger.error(message)
+                            errorModule.toastAndLog(message)
                         }
                     }
                 }

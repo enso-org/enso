@@ -1,7 +1,6 @@
 /** @file An interactive button indicating the status of a project. */
 import * as React from 'react'
-
-import toast from 'react-hot-toast'
+import * as toast from 'react-toastify'
 
 import ArrowUpIcon from 'enso-assets/arrow_up.svg'
 import PlayIcon from 'enso-assets/play.svg'
@@ -113,14 +112,14 @@ export default function ProjectIcon(props: ProjectIconProps) {
     const [checkState, setCheckState] = React.useState(CheckState.notChecking)
     const [spinnerState, setSpinnerState] = React.useState(REMOTE_SPINNER_STATE[state])
     const [shouldOpenWhenReady, setShouldOpenWhenReady] = React.useState(false)
-    const [toastId, setToastId] = React.useState<string | null>(null)
+    const [toastId, setToastId] = React.useState<toast.Id | null>(null)
 
     const openProject = React.useCallback(async () => {
         setState(backendModule.ProjectState.openInProgress)
         try {
             switch (backend.type) {
                 case backendModule.BackendType.remote:
-                    setToastId(toast.loading(LOADING_MESSAGE))
+                    setToastId(toast.toast.loading(LOADING_MESSAGE))
                     setRowState({ ...rowState, isRunning: true })
                     await backend.openProject(project.id, null, project.title)
                     setCheckState(CheckState.checkingStatus)
@@ -139,7 +138,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
             }
         } catch (error) {
             setCheckState(CheckState.notChecking)
-            toast.error(
+            toast.toast.error(
                 `Error opening project '${project.title}': ${
                     errorModule.tryGetMessage(error) ?? 'unknown error'
                 }.`
@@ -151,7 +150,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
     React.useEffect(() => {
         if (toastId != null) {
             return () => {
-                toast.dismiss(toastId)
+                toast.toast.dismiss(toastId)
             }
         } else {
             return
@@ -171,7 +170,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
 
     React.useEffect(() => {
         if (toastId != null && state !== backendModule.ProjectState.openInProgress) {
-            toast.dismiss(toastId)
+            toast.toast.dismiss(toastId)
         }
     }, [state, toastId])
 

@@ -1,6 +1,5 @@
 /** @file The icon and name of a {@link backendModule.DirectoryAsset}. */
 import * as React from 'react'
-import toast from 'react-hot-toast'
 
 import DirectoryIcon from 'enso-assets/directory.svg'
 
@@ -16,7 +15,6 @@ import * as presence from '../presence'
 import * as shortcuts from '../shortcuts'
 
 import * as backendProvider from '../../providers/backend'
-import * as loggerProvider from '../../providers/logger'
 
 import EditableSpan from './editableSpan'
 
@@ -40,7 +38,6 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         rowState,
         setRowState,
     } = props
-    const logger = loggerProvider.useLogger()
     const { backend } = backendProvider.useBackend()
 
     const doRename = async (newName: string) => {
@@ -52,8 +49,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
                 const message = `Error renaming folder: ${
                     errorModule.tryGetMessage(error) ?? 'unknown error'
                 }`
-                toast.error(message)
-                logger.error(message)
+                errorModule.toastAndLog(message)
                 throw error
             }
         }
@@ -74,8 +70,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
                 if (key === event.placeholderId) {
                     if (backend.type !== backendModule.BackendType.remote) {
                         const message = 'Folders cannot be created on the local backend.'
-                        toast.error(message)
-                        logger.error(message)
+                        errorModule.toastAndLog(message)
                     } else {
                         rowState.setPresence(presence.Presence.inserting)
                         try {
@@ -97,8 +92,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
                             const message = `Error creating new folder: ${
                                 errorModule.tryGetMessage(error) ?? 'unknown error.'
                             }`
-                            toast.error(message)
-                            logger.error(message)
+                            errorModule.toastAndLog(message)
                         }
                     }
                 }

@@ -150,9 +150,7 @@ export default function Login() {
                                 }
                             >
                                 <span className="mr-2 uppercase">Login</span>
-                                <span>
-                                    <SvgMask src={ArrowRightIcon} />
-                                </span>
+                                <SvgMask src={ArrowRightIcon} />
                             </button>
                         </div>
                     </form>
@@ -165,10 +163,20 @@ export default function Login() {
                             'text-xs text-center'
                         }
                     >
-                        <span>
-                            <SvgMask src={CreateAccountIcon} />
-                        </span>
+                        <SvgMask src={CreateAccountIcon} />
                         <span className="ml-2">You don&apos;t have an account?</span>
+                    </router.Link>
+                </div>
+                <div className="flex justify-center items-center mt-6">
+                    <router.Link
+                        to={app.ENTER_OFFLINE_MODE_PATH}
+                        className={
+                            'inline-flex items-center font-bold text-blue-500 hover:text-blue-700 ' +
+                            'text-xs text-center'
+                        }
+                    >
+                        <SvgMask src={ArrowRightIcon} />
+                        <span className="ml-2">Continue without creating an account</span>
                     </router.Link>
                 </div>
             </div>

@@ -1,6 +1,5 @@
 /** @file The icon and name of a {@link backendModule.ProjectAsset}. */
 import * as React from 'react'
-import toast from 'react-hot-toast'
 
 import * as assetEventModule from '../events/assetEvent'
 import * as assetListEventModule from '../events/assetListEvent'
@@ -10,7 +9,6 @@ import * as errorModule from '../../error'
 import * as eventModule from '../event'
 import * as hooks from '../../hooks'
 import * as indent from '../indent'
-import * as loggerProvider from '../../providers/logger'
 import * as presence from '../presence'
 import * as shortcuts from '../shortcuts'
 import * as validation from '../validation'
@@ -47,7 +45,6 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
             getDepth,
         },
     } = props
-    const logger = loggerProvider.useLogger()
     const { backend } = backendProvider.useBackend()
 
     const doRename = async (newName: string) => {
@@ -66,8 +63,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
             const message = `Unable to rename project: ${
                 errorModule.tryGetMessage(error) ?? 'unknown error.'
             }`
-            toast.error(message)
-            logger.error(message)
+            errorModule.toastAndLog(message)
             throw error
         }
     }
@@ -116,8 +112,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                         const message = `Error creating new project: ${
                             errorModule.tryGetMessage(error) ?? 'unknown error.'
                         }`
-                        toast.error(message)
-                        logger.error(message)
+                        errorModule.toastAndLog(message)
                     }
                 }
                 break

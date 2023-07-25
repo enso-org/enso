@@ -1,5 +1,5 @@
 # This file is auto-generated. Do not edit it manually!
-# Edit the build\shader-tools\src\ci.rs module instead and run `cargo run --package enso-build-ci-gen`.
+# Edit the build/shader-tools/src/ci.rs module instead and run `cargo run --package enso-build-ci-gen`.
 
 name: Package Tools
 on:

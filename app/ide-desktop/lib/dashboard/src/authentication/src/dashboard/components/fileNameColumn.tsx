@@ -1,6 +1,5 @@
 /** @file The icon and name of a {@link backendModule.FileAsset}. */
 import * as React from 'react'
-import toast from 'react-hot-toast'
 
 import * as assetEventModule from '../events/assetEvent'
 import * as assetListEventModule from '../events/assetListEvent'
@@ -11,7 +10,6 @@ import * as eventModule from '../event'
 import * as fileInfo from '../../fileInfo'
 import * as hooks from '../../hooks'
 import * as indent from '../indent'
-import * as loggerProvider from '../../providers/logger'
 import * as presence from '../presence'
 import * as shortcuts from '../shortcuts'
 
@@ -36,7 +34,6 @@ export default function FileNameColumn(props: FileNameColumnProps) {
         rowState,
         setRowState,
     } = props
-    const logger = loggerProvider.useLogger()
     const { backend } = backendProvider.useBackend()
 
     // TODO[sb]: Wait for backend implementation. `editable` should also be re-enabled, and the
@@ -63,8 +60,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
                 if (file != null) {
                     if (backend.type !== backendModule.BackendType.remote) {
                         const message = 'Files cannot be uploaded on the local backend.'
-                        toast.error(message)
-                        logger.error(message)
+                        errorModule.toastAndLog(message)
                     } else {
                         rowState.setPresence(presence.Presence.inserting)
                         try {
@@ -90,8 +86,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
                             const message = `Error creating new file: ${
                                 errorModule.tryGetMessage(error) ?? 'unknown error.'
                             }`
-                            toast.error(message)
-                            logger.error(message)
+                            errorModule.toastAndLog(message)
                         }
                     }
                 }
