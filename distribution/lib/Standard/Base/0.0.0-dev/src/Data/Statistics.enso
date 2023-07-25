@@ -289,7 +289,7 @@ calculate_correlation_statistics_matrix data =
     stats_array = wrap_java_call <| CorrelationStatistics.computeMatrix data_array
     Vector.new stats_array.length i->(Vector.from_polyglot_array (stats_array.at i))
 
-## Compute a single statistic on the vector.
+## Compute a single statistic on the vector (ignoring Nothing and NaN values).
 
    Arguments:
    - statistic: Statistic to calculate.
@@ -297,7 +297,7 @@ Vector.compute : Statistic -> Any
 Vector.compute self statistic=Statistic.Count =
     self.compute_bulk [statistic] . first
 
-## Compute statistics on the vector.
+## Compute statistics on the vector (ignoring Nothing and NaN values).
 
    Arguments:
    - statistics: Set of statistics to calculate.
@@ -305,7 +305,8 @@ Vector.compute_bulk : Vector Statistic -> Vector Any
 Vector.compute_bulk self statistics=[Statistic.Count, Statistic.Sum] =
     Statistic.compute_bulk self statistics
 
-## Compute a single running statistic on the vector.
+## Compute a single running statistic on the vector (ignoring Nothing and NaN
+   values).
 
    Arguments:
    - statistic: Statistic to calculate.
@@ -313,7 +314,8 @@ Vector.running : Statistic -> Vector Any
 Vector.running self statistic=Statistic.Count =
     Statistic.running self statistic
 
-## Compute a set running statistics on the vector.
+## Compute a set running statistics on the vector (ignoring Nothing and NaN
+   values).
 
    Arguments:
    - statistics: Set of statistics to calculate.
@@ -321,7 +323,8 @@ Vector.running_bulk : Vector Statistic -> Vector Any
 Vector.running_bulk self statistics=[Statistic.Count, Statistic.Sum] =
     Statistic.running_bulk self statistics
 
-## Assigns a rank to each value of data, dealing with equal values according to the method.
+## Assigns a rank to each value of data, dealing with equal values according to
+   the method.
 
    Arguments:
    - method: Method used to deal with equal values.
