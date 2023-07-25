@@ -151,6 +151,10 @@ pub enum HeaderToken {
     EmptyLine,
     ModuleDoc,
     Comment,
+    SuperUse,
+    SuperUseStar,
+    SuperPubUse,
+    SuperPubUseStar,
     CrateUse,
     CrateUseStar,
     CratePubUse,
@@ -242,6 +246,10 @@ define_rules! {
     CrateUseStar             = r"use +crate( *:: *[\w*]+)*";
     CratePubUse              = r"pub +use +crate( *:: *[\w]+)*( +as +[\w]+)?";
     CratePubUseStar          = r"pub +use +crate( *:: *[\w*]+)*";
+    SuperUse                 = r"use +super( *:: *[\w]+)*( +as +[\w]+)?";
+    SuperUseStar             = r"use +super( *:: *[\w*]+)*";
+    SuperPubUse              = r"pub +use +super( *:: *[\w]+)*( +as +[\w]+)?";
+    SuperPubUseStar          = r"pub +use +super( *:: *[\w*]+)*";
     Use                      = r"use +[\w]+( *:: *[\w]+)*( +as +[\w]+)?";
     UseStar                  = r"use +[\w]+( *:: *[\w*]+)*";
     PubUse                   = r"pub +use +[\w]+( *:: *[\w]+)*( +as +[\w]+)?";
@@ -572,13 +580,27 @@ pub fn process_file_content(input: String, is_main_file: bool) -> Result<String>
     );
     print_section(&mut out, &mut map, &[ModuleAttribAllow, ModuleAttribDeny, ModuleAttribWarn]);
 
-    print_section(&mut out, &mut map, &[CrateUseStar, UseStar]);
+    // Sort `super` before `crate` to match with rustfmt behavior.
+    print_section(&mut out, &mut map, &[SuperUseStar, CrateUseStar, UseStar]);
     print_section(&mut out, &mut map, &[CrateUse]);
+    print_section(&mut out, &mut map, &[SuperUse]);
     print_section(&mut out, &mut map, &[Use]);
 
-    print_h1(&mut out, &map, &[PubMod, CratePubUseStar, PubUseStar, CratePubUse, PubUse], "Export");
+    print_h1(
+        &mut out,
+        &map,
+        &[PubMod, SuperPubUseStar, CratePubUseStar, PubUseStar, SuperPubUse, CratePubUse, PubUse],
+        "Export",
+    );
     print_section(&mut out, &mut map, &[PubMod]);
-    print_section(&mut out, &mut map, &[CratePubUseStar, PubUseStar, CratePubUse, PubUse]);
+    print_section(&mut out, &mut map, &[
+        SuperPubUseStar,
+        CratePubUseStar,
+        PubUseStar,
+        SuperPubUse,
+        CratePubUse,
+        PubUse,
+    ]);
     out.push_str("\n\n");
     out.push_str(&input[total_len..]);
     Ok(out)

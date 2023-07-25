@@ -534,6 +534,9 @@ pub struct WidgetsFrp {
     pub(super) set_ports_visible:      frp::Sampler<bool>,
     pub(super) set_edit_ready_mode:    frp::Sampler<bool>,
     pub(super) set_read_only:          frp::Sampler<bool>,
+    /// Whether the widget should allow user interaction, either mouse hover or click. A
+    /// combination of `set_read_only`, `set_edit_ready_mode` and `set_ports_visible` signals.
+    pub(super) allow_interaction:      frp::Sampler<bool>,
     pub(super) set_view_mode:          frp::Sampler<crate::view::Mode>,
     pub(super) set_profiling_status:   frp::Sampler<crate::node::profiling::Status>,
     pub(super) hovered_port_children:  frp::Sampler<HashSet<WidgetIdentity>>,
@@ -616,6 +619,11 @@ impl Tree {
             frp.private.output.on_port_hover <+ on_port_hover;
             frp.private.output.on_port_press <+ on_port_press;
 
+            allow_interaction <- all_with3(
+                &set_edit_ready_mode, &set_read_only, &set_ports_visible,
+                |edit, read_only, ports_visible| !(*edit || *read_only || *ports_visible)
+            ).sampler();
+
             port_hover_chain_dirty <- all(&on_port_hover, &frp.on_rebuild_finished)._0().debounce();
             hovered_port_children <- port_hover_chain_dirty.map(
                 f!([model] (port) port.into_on().map_or_default(|id| model.port_child_widgets(id)))
@@ -633,6 +641,7 @@ impl Tree {
             set_ports_visible,
             set_edit_ready_mode,
             set_read_only,
+            allow_interaction,
             set_view_mode,
             set_profiling_status,
             transfer_ownership,

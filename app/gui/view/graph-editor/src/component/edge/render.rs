@@ -13,6 +13,7 @@ use super::layout::EdgeSplit;
 use super::layout::Oriented;
 use super::layout::SplitArc;
 use super::layout::TargetAttachment;
+
 use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::scene::Scene;

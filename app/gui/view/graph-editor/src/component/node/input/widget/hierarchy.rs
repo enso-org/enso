@@ -1,8 +1,8 @@
 //! Definition of default hierarchy widget. This widget expands each child of its span tree into
 //! a new widget.
 
-use crate::prelude::*;
 use super::prelude::*;
+use crate::prelude::*;
 
 use span_tree::node::Kind;
 

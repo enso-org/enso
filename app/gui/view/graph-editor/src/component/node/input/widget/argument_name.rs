@@ -2,8 +2,8 @@
 //! separator widget. This widget's node matching rules determine whether or not the dedicated
 //! argument name label will be displayed next to the separator.
 
-use crate::prelude::*;
 use super::prelude::*;
+use crate::prelude::*;
 
 use crate::node::input::area::TEXT_SIZE;
 

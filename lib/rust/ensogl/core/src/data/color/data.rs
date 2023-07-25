@@ -10,6 +10,7 @@ use crate::data::mix::into_space;
 use crate::data::mix::Mixable;
 
 use super::component::HasComponents;
+
 use nalgebra::Vector3;
 use nalgebra::Vector4;
 

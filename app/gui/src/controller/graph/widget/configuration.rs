@@ -6,6 +6,7 @@ use crate::prelude::*;
 use crate::model::execution_context::VisualizationUpdateData;
 
 use super::response;
+
 use enso_suggestion_database::entry::argument_tag_values;
 use enso_suggestion_database::SuggestionDatabase;
 use ide_view::graph_editor::component::node::input::widget;

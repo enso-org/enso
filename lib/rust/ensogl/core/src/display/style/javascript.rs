@@ -8,6 +8,7 @@ use wasm_bindgen::prelude::*;
 use crate::system::web;
 
 use super::theme::Manager;
+
 #[cfg(target_arch = "wasm32")]
 use js_sys;
 use wasm_bindgen::prelude::Closure;

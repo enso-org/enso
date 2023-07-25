@@ -1,8 +1,8 @@
 //! A widget representing a top-level method call. Displays node background. Instead of `self`
 //! argument, it displays an icon as a first port.
 
-use crate::prelude::*;
 use super::prelude::*;
+use crate::prelude::*;
 
 use icons::any::View as AnyIcon;
 use icons::component_icons::Id as IconId;

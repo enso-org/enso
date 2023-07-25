@@ -1,7 +1,7 @@
 //! Definition of static text label widget.
 
-use crate::prelude::*;
 use super::prelude::*;
+use crate::prelude::*;
 
 use crate::component::node::input::area::TEXT_SIZE;
 

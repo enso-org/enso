@@ -2,8 +2,8 @@
 //!
 //! See also [`span_tree::node::InsertionPoint`].
 
-use crate::prelude::*;
 use super::prelude::*;
+use crate::prelude::*;
 
 use span_tree::node::Kind;
 

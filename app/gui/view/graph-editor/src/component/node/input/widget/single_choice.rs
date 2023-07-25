@@ -1,7 +1,7 @@
 //! Definition of single choice widget.
 
-use crate::prelude::*;
 use super::prelude::*;
+use crate::prelude::*;
 
 use crate::component::node;
 use crate::component::node::input::widget::label;
@@ -329,13 +329,12 @@ impl Widget {
 
             mouse_dropdown_down_delayed <- mouse_dropdown_down.debounce();
             handling_dropdown_down <- bool(&mouse_dropdown_down_delayed, &mouse_dropdown_down);
-            mouse_down <- mouse_down.gate_not(&widgets_frp.set_edit_ready_mode);
+            mouse_down <- mouse_down.gate(&widgets_frp.allow_interaction);
             clicked <- mouse_down.filter(mouse::is_primary);
             eval clicked([] (event) event.stop_propagation());
             clicked <- clicked.gate_not(&handling_dropdown_down);
 
-            is_hovered <- bool(&mouse_leave, &mouse_enter);
-            is_hovered <- is_hovered.and_not(&widgets_frp.set_edit_ready_mode);
+            is_hovered <- bool(&mouse_leave, &mouse_enter).and(&widgets_frp.allow_interaction);
 
             let triangle_color = color::Animation::new(network);
             triangle_color.target <+ is_connected.all_with3(style, &is_hovered,

@@ -65,6 +65,10 @@ pub struct NodeBackdropLayers {
 
     /// The visual layer for all rectangle shapes displayed below node background and edges, such
     /// as node selection.
+    ///
+    /// Note: We are using a single partition instead of the layer directly, so that we can easily
+    /// add more partitions either below or above the backdrop if necessary, and to not mix the
+    /// types of layers and partitions in different parts of the code.
     pub backdrop: LayerSymbolPartition<rectangle::Shape>,
 }
 
