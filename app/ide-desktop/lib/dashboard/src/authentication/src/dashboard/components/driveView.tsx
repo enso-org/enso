@@ -9,7 +9,6 @@ import * as assetListEventModule from '../events/assetListEvent'
 import * as authProvider from '../../authentication/providers/auth'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
-import * as errorModule from '../../error'
 import * as hooks from '../../hooks'
 import * as loggerProvider from '../../providers/logger'
 import * as tabModule from '../tab'
@@ -82,7 +81,7 @@ export default function DirectoryView(props: DirectoryViewProps) {
     const logger = loggerProvider.useLogger()
     const { organization, accessToken } = authProvider.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
-
+    const toastAndLog = hooks.useToastAndLog()
     const [initialized, setInitialized] = React.useState(false)
     const [assets, setAssets] = React.useState<backendModule.AnyAsset[]>([])
     const [isLoadingAssets, setIsLoadingAssets] = React.useState(true)
@@ -220,10 +219,10 @@ export default function DirectoryView(props: DirectoryViewProps) {
             if (backend.type === backendModule.BackendType.local) {
                 // TODO[sb]: Allow uploading `.enso-project`s
                 // https://github.com/enso-org/cloud-v2/issues/510
-                errorModule.toastAndLog('Files cannot be uploaded to the local backend.')
+                toastAndLog('Files cannot be uploaded to the local backend')
             } else if (directoryId == null) {
                 // This should never happen, however display a nice error message in case it does.
-                errorModule.toastAndLog('Files cannot be uploaded while offline.')
+                toastAndLog('Files cannot be uploaded while offline')
             } else {
                 dispatchAssetListEvent({
                     type: assetListEventModule.AssetListEventType.uploadFiles,
@@ -232,7 +231,7 @@ export default function DirectoryView(props: DirectoryViewProps) {
                 })
             }
         },
-        [backend.type, directoryId, /* should never change */ dispatchAssetListEvent]
+        [backend.type, directoryId, toastAndLog, /* should never change */ dispatchAssetListEvent]
     )
 
     const doCreateDirectory = React.useCallback(() => {

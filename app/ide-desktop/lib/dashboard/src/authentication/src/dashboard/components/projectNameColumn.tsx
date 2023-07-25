@@ -5,7 +5,6 @@ import * as assetEventModule from '../events/assetEvent'
 import * as assetListEventModule from '../events/assetListEvent'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
-import * as errorModule from '../../error'
 import * as eventModule from '../event'
 import * as hooks from '../../hooks'
 import * as indent from '../indent'
@@ -46,6 +45,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         },
     } = props
     const { backend } = backendProvider.useBackend()
+    const toastAndLog = hooks.useToastAndLog()
 
     const doRename = async (newName: string) => {
         try {
@@ -60,10 +60,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
             )
             return
         } catch (error) {
-            const message = `Unable to rename project: ${
-                errorModule.tryGetMessage(error) ?? 'unknown error.'
-            }`
-            errorModule.toastAndLog(message)
+            toastAndLog('Unable to rename project', error)
             throw error
         }
     }
@@ -109,10 +106,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                             type: assetListEventModule.AssetListEventType.delete,
                             id: key,
                         })
-                        const message = `Error creating new project: ${
-                            errorModule.tryGetMessage(error) ?? 'unknown error.'
-                        }`
-                        errorModule.toastAndLog(message)
+                        toastAndLog('Error creating new project', error)
                     }
                 }
                 break

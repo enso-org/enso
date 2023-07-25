@@ -13,7 +13,6 @@ import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as columnModule from '../column'
 import * as dateTime from '../dateTime'
-import * as errorModule from '../../error'
 import * as hooks from '../../hooks'
 import * as indent from '../indent'
 import * as modalProvider from '../../providers/modal'
@@ -99,6 +98,7 @@ function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
     } = props
     const { backend } = backendProvider.useBackend()
     const { setModal } = modalProvider.useSetModal()
+    const toastAndLog = hooks.useToastAndLog()
     const [item, setItem] = React.useState(rawItem)
     const [presence, setPresence] = React.useState(presenceModule.Presence.present)
 
@@ -118,8 +118,7 @@ function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
         } catch (error) {
             setPresence(presenceModule.Presence.present)
             markItemAsVisible(key)
-            const message = errorModule.tryGetMessage(error) ?? 'Unable to delete project.'
-            errorModule.toastAndLog(message)
+            toastAndLog('Unable to delete project', error)
         }
     }
 

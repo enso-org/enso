@@ -7,7 +7,6 @@ import * as assetEventModule from '../events/assetEvent'
 import * as assetListEventModule from '../events/assetListEvent'
 import * as backendModule from '../backend'
 import * as column from '../column'
-import * as errorModule from '../../error'
 import * as eventModule from '../event'
 import * as hooks from '../../hooks'
 import * as indent from '../indent'
@@ -39,6 +38,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         setRowState,
     } = props
     const { backend } = backendProvider.useBackend()
+    const toastAndLog = hooks.useToastAndLog()
 
     const doRename = async (newName: string) => {
         if (backend.type !== backendModule.BackendType.local) {
@@ -46,10 +46,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
                 await backend.updateDirectory(item.id, { title: newName }, item.title)
                 return
             } catch (error) {
-                const message = `Error renaming folder: ${
-                    errorModule.tryGetMessage(error) ?? 'unknown error'
-                }`
-                errorModule.toastAndLog(message)
+                toastAndLog('Error renaming folder', error)
                 throw error
             }
         }
@@ -69,8 +66,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
             case assetEventModule.AssetEventType.createDirectory: {
                 if (key === event.placeholderId) {
                     if (backend.type !== backendModule.BackendType.remote) {
-                        const message = 'Folders cannot be created on the local backend.'
-                        errorModule.toastAndLog(message)
+                        toastAndLog('Folders cannot be created on the local backend')
                     } else {
                         rowState.setPresence(presence.Presence.inserting)
                         try {
@@ -89,10 +85,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
                                 type: assetListEventModule.AssetListEventType.delete,
                                 id: key,
                             })
-                            const message = `Error creating new folder: ${
-                                errorModule.tryGetMessage(error) ?? 'unknown error.'
-                            }`
-                            errorModule.toastAndLog(message)
+                            toastAndLog('Error creating new folder', error)
                         }
                     }
                 }

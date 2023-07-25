@@ -5,7 +5,6 @@ import * as assetEventModule from '../events/assetEvent'
 import * as assetListEventModule from '../events/assetListEvent'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
-import * as errorModule from '../../error'
 import * as eventModule from '../event'
 import * as fileInfo from '../../fileInfo'
 import * as hooks from '../../hooks'
@@ -35,6 +34,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
         setRowState,
     } = props
     const { backend } = backendProvider.useBackend()
+    const toastAndLog = hooks.useToastAndLog()
 
     // TODO[sb]: Wait for backend implementation. `editable` should also be re-enabled, and the
     // context menu entry should be re-added.
@@ -59,8 +59,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
                 const file = event.files.get(key)
                 if (file != null) {
                     if (backend.type !== backendModule.BackendType.remote) {
-                        const message = 'Files cannot be uploaded on the local backend.'
-                        errorModule.toastAndLog(message)
+                        toastAndLog('Files cannot be uploaded on the local backend')
                     } else {
                         rowState.setPresence(presence.Presence.inserting)
                         try {
@@ -83,10 +82,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
                                 type: assetListEventModule.AssetListEventType.delete,
                                 id: key,
                             })
-                            const message = `Error creating new file: ${
-                                errorModule.tryGetMessage(error) ?? 'unknown error.'
-                            }`
-                            errorModule.toastAndLog(message)
+                            toastAndLog('Error creating new file', error)
                         }
                     }
                 }
