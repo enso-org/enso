@@ -59,7 +59,7 @@ parse_to_columns table input_column_id (pattern:(Text | Regex)=".") case_sensiti
         _ : Regex -> pattern.recompile case_sensitivity
         _ : Text ->
             case_insensitive = case_sensitivity.is_case_insensitive_in_memory
-            pat = Regex.compile pattern case_insensitive=case_insensitive
+            Regex.compile pattern case_insensitive=case_insensitive
 
     fun = handle_nothing (regex_parse_to_vectors regex)
     column_names = regex_to_column_names regex input_column_id
