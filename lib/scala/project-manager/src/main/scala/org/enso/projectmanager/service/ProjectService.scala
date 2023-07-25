@@ -100,6 +100,7 @@ class ProjectService[
     project = Project(
       id        = projectId,
       name      = name,
+      module    = moduleName,
       namespace = Config.defaultNamespace,
       kind      = UserProject,
       created   = creationTime,
@@ -272,16 +273,19 @@ class ProjectService[
     projectId: UUID,
     missingComponentAction: MissingComponentAction
   ): F[ProjectServiceFailure, RunningLanguageServerInfo] = {
-    // format: off
     for {
       _        <- log.debug(s"Opening project [{}].", projectId)
       project  <- getUserProject(projectId)
       openTime <- clock.nowInUtc()
-      updated   = project.copy(lastOpened = Some(openTime))
-      _        <- repo.update(updated).mapError(toServiceFailure)
-      sockets  <- startServer(progressTracker, clientId, updated, missingComponentAction)
+      updated = project.copy(lastOpened = Some(openTime))
+      _ <- repo.update(updated).mapError(toServiceFailure)
+      sockets <- startServer(
+        progressTracker,
+        clientId,
+        updated,
+        missingComponentAction
+      )
     } yield sockets
-    // format: on
   }
 
   private def preinstallEngine(
@@ -333,6 +337,7 @@ class ProjectService[
     version,
     sockets,
     project.name,
+    project.module,
     project.namespace
   )
 
