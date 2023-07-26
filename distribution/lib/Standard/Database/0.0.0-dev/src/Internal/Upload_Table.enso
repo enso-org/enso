@@ -60,12 +60,14 @@ create_table_implementation connection table_name structure primary_key temporar
 internal_create_table_structure connection table_name structure primary_key temporary on_problems =
     aligned_structure = align_structure structure
     resolved_primary_key = resolve_primary_key aligned_structure primary_key
-    create_table_statement = prepare_create_table_statement connection table_name aligned_structure resolved_primary_key temporary on_problems
-    check_transaction_ddl_support connection
-    update_result = create_table_statement.if_not_error <|
-        connection.execute_update create_table_statement
-    update_result.if_not_error <|
-        table_name
+    column_names = aligned_structure.map .name
+    connection.base_connection.column_naming_helper.validate_many_column_names column_names <|
+        create_table_statement = prepare_create_table_statement connection table_name aligned_structure resolved_primary_key temporary on_problems
+        check_transaction_ddl_support connection
+        update_result = create_table_statement.if_not_error <|
+            connection.execute_update create_table_statement
+        update_result.if_not_error <|
+            table_name
 
 ## PRIVATE
    A helper that can upload a table from any backend to a database.

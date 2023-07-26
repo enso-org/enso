@@ -1737,7 +1737,7 @@ type Column
 
              example_rename = Examples.integer_column.rename "My Numbers"
     rename : Text -> Column ! Illegal_Argument
-    rename self name = self.naming_helpers.ensure_name_is_valid name <|
+    rename self name = naming_helpers.ensure_name_is_valid name <|
         Illegal_Argument.handle_java_exception <|
             Column.Value (self.java_column.rename name)
 

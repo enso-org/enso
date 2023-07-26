@@ -1,6 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
+from project.Errors import Name_Too_Long
 from project.Internal.Table_Helpers import is_column
 
 polyglot java import org.enso.base.Text_Utils
