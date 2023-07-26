@@ -147,12 +147,12 @@ impl Node {
 #[allow(missing_docs)]
 impl Node {
     pub fn name(&self) -> Option<&str> {
-        self.kind.name()
+        self.kind.argument_name()
     }
     pub fn tp(&self) -> Option<&String> {
         self.kind.tp()
     }
-    pub fn argument_info(&self) -> Option<ArgumentInfo> {
+    pub fn argument_info(&self) -> Option<&ArgumentInfo> {
         self.kind.argument_info()
     }
     pub fn set_argument_info(&mut self, info: ArgumentInfo) {

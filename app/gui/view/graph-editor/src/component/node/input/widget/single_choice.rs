@@ -108,7 +108,7 @@ impl SpanWidget for Widget {
 
     fn default_config(ctx: &ConfigContext) -> Configuration<Self::Config> {
         let kind = &ctx.span_node.kind;
-        let label = kind.name().map(Into::into);
+        let label = kind.argument_name().map(Into::into);
         let tags = kind.tag_values().unwrap_or_default();
         let choices = Rc::new(tags.iter().map(Choice::from).collect());
         let default_config = Config { label, choices, arguments: default() };

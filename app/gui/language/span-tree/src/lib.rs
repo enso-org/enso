@@ -333,7 +333,7 @@ impl SpanTree {
                 write!(buffer, "({:?})", inner.kind).unwrap();
             }
 
-            if let Some(name) = node.kind.name() {
+            if let Some(name) = node.kind.argument_name() {
                 write!(buffer, " name={name:?}").unwrap();
             }
 

@@ -20,7 +20,7 @@ pub enum Kind {
     /// A node chained with parent node, part of prefix method application.
     ChainedPrefix,
     /// A node chained with parent node, part of infix operator application.
-    ChainedInfix,
+    ChainedInfix(ArgumentInfo),
     /// A node representing operation (operator or function) of parent Infix, Section or Prefix.
     Operation,
     /// A part of the access chain that is not the primary target (not the leftmost node).
@@ -57,6 +57,9 @@ impl Kind {
     pub fn insertion_point() -> InsertionPoint {
         default()
     }
+    pub fn chained_infix() -> Self {
+        Self::ChainedInfix(default())
+    }
 }
 
 
@@ -68,7 +71,7 @@ impl Kind {
         matches!(self, Self::Root { .. })
     }
     pub fn is_chained(&self) -> bool {
-        matches!(self, Self::ChainedPrefix | Self::ChainedInfix)
+        matches!(self, Self::ChainedPrefix | Self::ChainedInfix(..))
     }
     pub fn is_operation(&self) -> bool {
         matches!(self, Self::Operation { .. })
@@ -76,8 +79,8 @@ impl Kind {
     pub fn is_this(&self) -> bool {
         matches!(
             self,
-            Self::Argument(Argument { name, .. })
-            if name.as_deref() == Some(Argument::THIS)
+            Self::Argument(arg)
+            if arg.info.name.as_deref() == Some(Argument::THIS)
         )
     }
     pub fn is_argument(&self) -> bool {
@@ -125,24 +128,6 @@ impl Kind {
 // === API ===
 
 impl Kind {
-    /// Name getter.
-    pub fn name(&self) -> Option<&str> {
-        match self {
-            Self::Argument(t) => t.name.as_deref(),
-            Self::InsertionPoint(t) => t.name.as_deref(),
-            _ => None,
-        }
-    }
-
-    /// Type getter.
-    pub fn tp(&self) -> Option<&String> {
-        match self {
-            Self::Argument(t) => t.tp.as_ref(),
-            Self::InsertionPoint(t) => t.tp.as_ref(),
-            _ => None,
-        }
-    }
-
     /// Removable flag getter.
     pub fn removable(&self) -> bool {
         match self {
@@ -153,24 +138,24 @@ impl Kind {
 
     /// `ArgumentInfo` getter. Returns `None` if the node could not be attached with the
     /// information.
-    pub fn argument_info(&self) -> Option<ArgumentInfo> {
-        Some(match self {
-            Self::Argument(t) =>
-                ArgumentInfo::new(t.name.clone(), t.tp.clone(), t.call_id, t.tag_values.clone()),
-            Self::InsertionPoint(t) =>
-                ArgumentInfo::new(t.name.clone(), t.tp.clone(), t.call_id, t.tag_values.clone()),
-            _ => return None,
-        })
+    pub fn argument_info(&self) -> Option<&ArgumentInfo> {
+        match self {
+            Self::Argument(t) => Some(&t.info),
+            Self::InsertionPoint(t) => Some(&t.info),
+            Self::ChainedInfix(info) => Some(info),
+            _ => None,
+        }
     }
 
     /// Get a reference to the name of an argument represented by this node, if available. Returns
     /// `None` if the node could not be attached with the argument information.
     pub fn argument_name(&self) -> Option<&str> {
-        match self {
-            Self::Argument(t) => t.name.as_deref(),
-            Self::InsertionPoint(t) => t.name.as_deref(),
-            _ => None,
-        }
+        self.argument_info().and_then(|info| info.name.as_deref())
+    }
+
+    /// Type getter.
+    pub fn tp(&self) -> Option<&String> {
+        self.argument_info().and_then(|info| info.tp.as_ref())
     }
 
     /// Get the definition index of an argument represented by this node, if available. Returns
@@ -185,68 +170,39 @@ impl Kind {
     /// Get a reference to tag values of an argument represented by this node, if available. Returns
     /// `None` if the node could not be attached with the argument information.
     pub fn tag_values(&self) -> Option<&[TagValue]> {
-        match self {
-            Self::Argument(t) => Some(&t.tag_values),
-            Self::InsertionPoint(t) => Some(&t.tag_values),
-            _ => None,
-        }
+        self.argument_info().map(|info| &info.tag_values[..])
     }
 
     /// Get the function call AST ID associated with this argument.
     pub fn call_id(&self) -> Option<ast::Id> {
+        self.argument_info().and_then(|info| info.call_id)
+    }
+
+    /// `ArgumentInfo` setter.
+    pub fn set_argument_info(&mut self, argument_info: ArgumentInfo) {
         match self {
-            Self::Argument(t) => t.call_id,
-            Self::InsertionPoint(t) => t.call_id,
-            _ => None,
+            Self::Argument(t) => t.info = argument_info,
+            Self::InsertionPoint(t) => t.info = argument_info,
+            Self::ChainedInfix(info) => *info = argument_info,
+            _ => (),
         }
     }
 
-    /// `ArgumentInfo` setter. Returns bool indicating whether the operation was possible
-    /// or was skipped.
-    pub fn set_argument_info(&mut self, argument_info: ArgumentInfo) -> bool {
+    /// Argument definition index setter.
+    pub fn set_definition_index(&mut self, index: usize) {
         match self {
-            Self::Argument(t) => {
-                t.name = argument_info.name;
-                t.tp = argument_info.tp;
-                t.call_id = argument_info.call_id;
-                t.tag_values = argument_info.tag_values;
-                true
-            }
-            Self::InsertionPoint(t) => {
-                t.name = argument_info.name;
-                t.tp = argument_info.tp;
-                t.call_id = argument_info.call_id;
-                t.tag_values = argument_info.tag_values;
-                true
-            }
-            _ => false,
+            Self::Argument(t) => t.definition_index = Some(index),
+            _ => (),
         }
     }
 
-    /// Argument definition index setter. Returns bool indicating whether the operation was
-    /// possible.
-    pub fn set_definition_index(&mut self, index: usize) -> bool {
+    /// Call ID setter..
+    pub fn set_call_id(&mut self, call_id: Option<ast::Id>) {
         match self {
-            Self::Argument(t) => {
-                t.definition_index = Some(index);
-                true
-            }
-            _ => false,
-        }
-    }
-
-    /// Call ID setter. Returns bool indicating whether the operation was possible.
-    pub fn set_call_id(&mut self, call_id: Option<ast::Id>) -> bool {
-        match self {
-            Self::Argument(t) => {
-                t.call_id = call_id;
-                true
-            }
-            Self::InsertionPoint(t) => {
-                t.call_id = call_id;
-                true
-            }
-            _ => false,
+            Self::Argument(t) => t.info.call_id = call_id,
+            Self::InsertionPoint(t) => t.info.call_id = call_id,
+            Self::ChainedInfix(info) => info.call_id = call_id,
+            _ => (),
         }
     }
 
@@ -255,7 +211,7 @@ impl Kind {
         match self {
             Self::Root => "Root",
             Self::ChainedPrefix => "ChainedPrefix",
-            Self::ChainedInfix => "ChainedInfix",
+            Self::ChainedInfix(_) => "ChainedInfix",
             Self::Operation => "Operation",
             Self::Access => "Access",
             Self::Argument(_) => "Argument",
@@ -291,10 +247,7 @@ pub struct Argument {
     pub in_prefix_chain:  bool,
     /// The index of the argument in the function definition.
     pub definition_index: Option<usize>,
-    pub name:             Option<String>,
-    pub tp:               Option<String>,
-    pub call_id:          Option<ast::Id>,
-    pub tag_values:       Vec<TagValue>,
+    pub info:             ArgumentInfo,
 }
 
 
@@ -305,7 +258,7 @@ impl Argument {
     pub const THIS: &'static str = "self";
 
     pub fn typed(mut self, tp: String) -> Self {
-        self.tp = Some(tp);
+        self.info.tp = Some(tp);
         self
     }
     pub fn removable(mut self) -> Self {
@@ -321,15 +274,15 @@ impl Argument {
         self
     }
     pub fn with_name(mut self, name: Option<String>) -> Self {
-        self.name = name;
+        self.info.name = name;
         self
     }
     pub fn with_tp(mut self, tp: Option<String>) -> Self {
-        self.tp = tp;
+        self.info.tp = tp;
         self
     }
     pub fn with_call_id(mut self, call_id: Option<ast::Id>) -> Self {
-        self.call_id = call_id;
+        self.info.call_id = call_id;
         self
     }
     pub fn indexed(mut self, index: usize) -> Self {
@@ -357,11 +310,8 @@ impl From<Argument> for Kind {
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 #[allow(missing_docs)]
 pub struct InsertionPoint {
-    pub kind:       InsertionPointType,
-    pub name:       Option<String>,
-    pub tp:         Option<String>,
-    pub call_id:    Option<ast::Id>,
-    pub tag_values: Vec<TagValue>,
+    pub kind: InsertionPointType,
+    pub info: ArgumentInfo,
 }
 
 // === Constructors ===
@@ -392,7 +342,7 @@ impl InsertionPoint {
     }
 
     pub fn with_name(mut self, name: Option<String>) -> Self {
-        self.name = name;
+        self.info.name = name;
         self
     }
 }
