@@ -634,76 +634,83 @@ export default function AssetsTable(props: AssetsTableProps) {
     )
 
     return (
-        <div className="flex flex-col flex-1 overflow-auto w-min min-w-full">
-            <div className="h-0">
-                <div className="block sticky right-0 px-2 py-1 ml-auto mt-3 w-29 z-10">
-                    <div className="inline-flex gap-3">
-                        {columnModule.EXTRA_COLUMNS.map(column => (
-                            <Button
-                                key={column}
-                                active={extraColumns.has(column)}
-                                image={columnModule.EXTRA_COLUMN_IMAGES[column]}
-                                onClick={() => {
-                                    const newExtraColumns = new Set(extraColumns)
-                                    if (extraColumns.has(column)) {
-                                        newExtraColumns.delete(column)
-                                    } else {
-                                        newExtraColumns.add(column)
-                                    }
-                                    setExtraColumns(newExtraColumns)
-                                }}
-                            />
-                        ))}
+        <div className="flex-1 overflow-auto">
+            <div className="flex flex-col w-min min-w-full">
+                <div className="h-0">
+                    <div className="block sticky right-0 px-2 py-1 ml-auto mt-3 w-29 z-10">
+                        <div className="inline-flex gap-3">
+                            {columnModule.EXTRA_COLUMNS.map(column => (
+                                <Button
+                                    key={column}
+                                    active={extraColumns.has(column)}
+                                    image={columnModule.EXTRA_COLUMN_IMAGES[column]}
+                                    onClick={() => {
+                                        const newExtraColumns = new Set(extraColumns)
+                                        if (extraColumns.has(column)) {
+                                            newExtraColumns.delete(column)
+                                        } else {
+                                            newExtraColumns.add(column)
+                                        }
+                                        setExtraColumns(newExtraColumns)
+                                    }}
+                                />
+                            ))}
+                        </div>
                     </div>
                 </div>
-            </div>
-            <Table<backendModule.AnyAsset, AssetsTableState, AssetRowState, backendModule.AssetId>
-                rowComponent={AssetRow}
-                items={visibleItems}
-                isLoading={isLoading}
-                state={state}
-                initialRowState={INITIAL_ROW_STATE}
-                getKey={backendModule.getAssetId}
-                placeholder={PLACEHOLDER}
-                forceShowPlaceholder={shouldForceShowPlaceholder}
-                columns={columnModule.getColumnList(backend.type, extraColumns).map(column => ({
-                    id: column,
-                    className: columnModule.COLUMN_CSS_CLASS[column],
-                    heading: columnModule.COLUMN_HEADING[column],
-                    render: columnModule.COLUMN_RENDERER[column],
-                }))}
-                onContextMenu={(selectedKeys, event, setSelectedKeys) => {
-                    event.preventDefault()
-                    event.stopPropagation()
-                    const pluralized = pluralize(selectedKeys.size)
-                    // This is not a React component even though it contains JSX.
-                    // eslint-disable-next-line no-restricted-syntax
-                    const doDeleteAll = () => {
+                <Table<
+                    backendModule.AnyAsset,
+                    AssetsTableState,
+                    AssetRowState,
+                    backendModule.AssetId
+                >
+                    rowComponent={AssetRow}
+                    items={visibleItems}
+                    isLoading={isLoading}
+                    state={state}
+                    initialRowState={INITIAL_ROW_STATE}
+                    getKey={backendModule.getAssetId}
+                    placeholder={PLACEHOLDER}
+                    forceShowPlaceholder={shouldForceShowPlaceholder}
+                    columns={columnModule.getColumnList(backend.type, extraColumns).map(column => ({
+                        id: column,
+                        className: columnModule.COLUMN_CSS_CLASS[column],
+                        heading: columnModule.COLUMN_HEADING[column],
+                        render: columnModule.COLUMN_RENDERER[column],
+                    }))}
+                    onContextMenu={(selectedKeys, event, setSelectedKeys) => {
+                        event.preventDefault()
+                        event.stopPropagation()
+                        const pluralized = pluralize(selectedKeys.size)
+                        // This is not a React component even though it contains JSX.
+                        // eslint-disable-next-line no-restricted-syntax
+                        const doDeleteAll = () => {
+                            setModal(
+                                <ConfirmDeleteModal
+                                    description={`${selectedKeys.size} selected ${pluralized}`}
+                                    doDelete={() => {
+                                        setSelectedKeys(new Set())
+                                        dispatchAssetEvent({
+                                            type: assetEventModule.AssetEventType.deleteMultiple,
+                                            ids: selectedKeys,
+                                        })
+                                        return Promise.resolve()
+                                    }}
+                                />
+                            )
+                        }
                         setModal(
-                            <ConfirmDeleteModal
-                                description={`${selectedKeys.size} selected ${pluralized}`}
-                                doDelete={() => {
-                                    setSelectedKeys(new Set())
-                                    dispatchAssetEvent({
-                                        type: assetEventModule.AssetEventType.deleteMultiple,
-                                        ids: selectedKeys,
-                                    })
-                                    return Promise.resolve()
-                                }}
-                            />
+                            <ContextMenu key={uniqueString.uniqueString()} event={event}>
+                                <ContextMenuEntry onClick={doDeleteAll}>
+                                    <span className="text-red-700">
+                                        Delete {selectedKeys.size} {pluralized}
+                                    </span>
+                                </ContextMenuEntry>
+                            </ContextMenu>
                         )
-                    }
-                    setModal(
-                        <ContextMenu key={uniqueString.uniqueString()} event={event}>
-                            <ContextMenuEntry onClick={doDeleteAll}>
-                                <span className="text-red-700">
-                                    Delete {selectedKeys.size} {pluralized}
-                                </span>
-                            </ContextMenuEntry>
-                        </ContextMenu>
-                    )
-                }}
-            />
+                    }}
+                />
+            </div>
         </div>
     )
 }
