@@ -7,7 +7,6 @@ use crate::prelude::*;
 use crate::controller::graph::RequiredImport;
 use crate::controller::searcher::Filter;
 use crate::model::execution_context::GroupQualifiedName;
-use crate::model::suggestion_database;
 
 use enso_doc_parser::DocSection;
 use enso_doc_parser::Tag;

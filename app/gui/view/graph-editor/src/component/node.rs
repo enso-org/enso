@@ -481,12 +481,13 @@ impl NodeModel {
                 (&self.layers.edited_backdrop, &self.layers.edited_nodes),
         };
 
-        let body_layers = main.body_layers();
-        body_layers.visual.add(&self.display_object);
+        main.body.add(&self.display_object);
         below.backdrop.add(&self.background.selection_shape);
         below.backdrop.add(&self.error_indicator);
         main.action_bar.add(&self.action_bar_wrapper);
-        body_layers.hover.add(self.output.hover_root());
+        main.below_body.add(&self.output);
+        main.output_hover.add(self.output.hover_root());
+        self.action_bar.set_bridge_layer(&main.below_body_hover);
     }
 
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.

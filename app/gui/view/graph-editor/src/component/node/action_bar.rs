@@ -10,6 +10,8 @@ use ensogl::application::tooltip;
 use ensogl::application::Application;
 use ensogl::control::io::mouse;
 use ensogl::display;
+use ensogl::display::scene::layer::LayerSymbolPartition;
+use ensogl::display::shape::compound::rectangle;
 use ensogl_component::toggle_button;
 use ensogl_component::toggle_button::ColorableShape;
 use ensogl_component::toggle_button::ToggleButton;
@@ -32,7 +34,10 @@ const BUTTON_SIZE: f32 = 15.0;
 const BUTTON_GAP: f32 = BUTTON_SIZE * 0.5;
 /// Grow the hover area in x direction by this amount. Used to close the gap between action
 /// icons and node.
-const HOVER_EXTENSION: Vector2 = Vector2(15.0, 15.0);
+const HOVER_EXTENSION: Vector2 = Vector2(15.0, 11.0);
+/// The size of additional hover area that is drawn below the node background. Necessary to prevent
+/// easily losing the hover state when moving the mouse towards the action bar.
+const HOVER_BRIDGE_SIZE: Vector2 = Vector2(10.0, 26.0);
 const HOVER_HIDE_DELAY_MS: i32 = 20;
 const VISIBILITY_TOOLTIP_LABEL: &str = "Show preview";
 const DISABLE_OUTPUT_CONTEXT_TOOLTIP_LABEL: &str = "Don't write to files and databases";
@@ -63,8 +68,8 @@ ensogl::define_endpoints! {
     }
 
     Output {
-        mouse_over            (),
-        mouse_out             (),
+        mouse_enter            (),
+        mouse_leave             (),
         action_visibility     (bool),
         /// The last visibility selection by the user. Ignores changes to the
         /// visibility chooser icon made through the input API.
@@ -236,10 +241,15 @@ impl display::Object for ContextSwitchButton {
 
 #[derive(Clone, CloneRef, Debug)]
 struct Model {
-    display_object: display::object::Instance,
-    hover_area:     Rectangle,
-    icons:          Icons,
-    styles:         StyleWatch,
+    display_object:    display::object::Instance,
+    hover_area:        Rectangle,
+    /// Additional hover area that is drawn below the node background. Provides additional "bridge"
+    /// between the node and the action bar, so that the hover state is not lost when moving the
+    /// mouse. It is drawn below the node background to not cover it, as it can also have its own
+    /// mouse interactions.
+    hover_area_bridge: Rectangle,
+    icons:             Icons,
+    styles:            StyleWatch,
 }
 
 impl Model {
@@ -247,14 +257,20 @@ impl Model {
         let scene = &app.display.default_scene;
         let display_object = display::object::Instance::new_named("ActionBar");
         let hover_area = Rectangle::new();
+        let hover_area_bridge = Rectangle::new();
         hover_area.set_color(INVISIBLE_HOVER_COLOR);
         hover_area.allow_grow().set_alignment_left_center();
+        hover_area_bridge.set_color(INVISIBLE_HOVER_COLOR);
+        hover_area_bridge
+            .set_size(HOVER_BRIDGE_SIZE)
+            .set_alignment_right_center()
+            .set_margin_right(-HOVER_BRIDGE_SIZE.x);
 
         let icons = Icons::new(app);
 
         display_object.add_child(&hover_area);
+        display_object.add_child(&hover_area_bridge);
         display_object.add_child(&icons);
-
 
         let styles = StyleWatch::new(&scene.style_sheet);
 
@@ -268,12 +284,13 @@ impl Model {
             }
         }
 
-        Self { display_object, hover_area, icons, styles }
+        Self { display_object, hover_area, hover_area_bridge, icons, styles }
     }
 
     fn set_visibility(&self, visible: bool) {
         self.icons.set_visibility(visible);
         self.hover_area.set_pointer_events(visible);
+        self.hover_area_bridge.set_pointer_events(visible);
     }
 }
 
@@ -348,13 +365,13 @@ impl ActionBar {
 
             visibility_init  <- source::<bool>();
 
-            let mouse_over = model.display_object.on_event::<mouse::Over>();
-            let mouse_out = model.display_object.on_event::<mouse::Out>();
-            visibility_mouse <- bool(&mouse_out,&mouse_over);
+            let mouse_enter = model.display_object.on_event::<mouse::Enter>();
+            let mouse_leave = model.display_object.on_event::<mouse::Leave>();
+            visibility_mouse <- bool(&mouse_leave,&mouse_enter);
 
             let hide_delay = frp::io::timer::Timeout::new(network);
-            hide_delay.restart <+ mouse_out.constant(HOVER_HIDE_DELAY_MS);
-            visibility_delay <- bool(&hide_delay.on_expired, &mouse_out);
+            hide_delay.restart <+ mouse_leave.constant(HOVER_HIDE_DELAY_MS);
+            visibility_delay <- bool(&hide_delay.on_expired, &mouse_leave);
 
             visibility       <- frp.set_visibility || visibility_mouse;
             visibility       <- visibility || visibility_delay;
@@ -417,6 +434,11 @@ impl ActionBar {
         visibility_init.emit(false);
 
         self
+    }
+
+    /// Set the layer of the bridge hover area. Should be below the node background.
+    pub fn set_bridge_layer(&self, layer: &LayerSymbolPartition<rectangle::Shape>) {
+        layer.add(&self.model.hover_area_bridge);
     }
 }
 

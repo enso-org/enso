@@ -77,6 +77,15 @@ pub struct MainNodeLayers {
     /// The actual layer that is used as the base for all shapes within the node itself.
     pub node_base: Layer,
 
+    /// Layer below the node body, but above the backdrop.
+    pub below_body: LayerSymbolPartition<rectangle::Shape>,
+
+    /// Hover layer for output port shapes.
+    pub output_hover: LayerSymbolPartition<rectangle::Shape>,
+
+    /// Hover layer below the node body, but above the output port.
+    pub below_body_hover: LayerSymbolPartition<rectangle::Shape>,
+
     /// Main node's body, including its background color shape and output port.
     pub body: LayerSymbolPartition<rectangle::Shape>,
 
@@ -157,6 +166,9 @@ impl MainNodeLayers {
         let above_base = layer.create_sublayer_with_optional_camera("above", camera);
 
         Self {
+            below_body: node_base.create_symbol_partition("below_body"),
+            output_hover: node_base.create_symbol_partition("output_hover"),
+            below_body_hover: node_base.create_symbol_partition("below_body_hover"),
             body: node_base.create_symbol_partition("body"),
             body_hover: node_base.create_symbol_partition("body_hover"),
             widget_rectangles: PartitionStack::new(&widget_base),
@@ -171,11 +183,6 @@ impl MainNodeLayers {
     /// Camera getter of this set of layers.
     pub fn camera(&self) -> Camera2d {
         self.node_base.camera()
-    }
-
-    /// Get a set of layer partitions for the main node body.
-    pub fn body_layers(&self) -> CommonLayers {
-        CommonLayers { visual: self.body.clone(), hover: self.body_hover.clone() }
     }
 
     /// Get a set of layer partitions for node widgets at given tree depth. The widgets that are

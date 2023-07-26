@@ -24,7 +24,6 @@ use ensogl::Animation;
 // === Constants ===
 // =================
 
-const NODE_OVERLAP: f32 = 0.2;
 const PORT_LINE_WIDTH: f32 = 6.0;
 const PORT_OPACITY_HOVERED: f32 = 1.0;
 const PORT_OPACITY_NOT_HOVERED: f32 = 0.25;
@@ -94,7 +93,7 @@ impl ShapeView {
         // neither corners of the main shape.
         let is_first = port_index == 0;
         let is_last = port_index == number_of_ports - 1;
-        let main_radius = node::CORNER_RADIUS + PORT_LINE_WIDTH - NODE_OVERLAP;
+        let main_radius = node::CORNER_RADIUS + PORT_LINE_WIDTH;
         match (is_first, is_last) {
             (true, true) => main.keep_bottom_half().set_corner_radius(main_radius),
             (true, false) => main.keep_bottom_left_quarter().set_corner_radius(main_radius),
@@ -116,7 +115,7 @@ impl ShapeView {
                 .set_clip(Vector2(0.0, END_CAP_CLIP));
             end_cap.set_pointer_events(false);
             // End caps are positioned right above the main port line shape.
-            end_cap.set_y(node::HEIGHT * 0.5 + NODE_OVERLAP - clip_diff);
+            end_cap.set_y(node::HEIGHT * 0.5 - clip_diff);
             root.add_child(&end_cap);
             end_cap
         };
@@ -172,15 +171,14 @@ impl ShapeView {
 
         // Ports at either end receive additional space to fill the rounded corners. This space
         // also includes the width of the port line.
-        let corner_space = PORT_LINE_WIDTH + corner_radius - NODE_OVERLAP;
+        let corner_space = PORT_LINE_WIDTH + corner_radius;
         let is_first = self.port_index == 0;
         let is_last = self.port_index == self.number_of_ports - 1;
         let left_corner = if is_first { corner_space } else { 0.0 };
         let right_corner = if is_last { corner_space } else { 0.0 };
         let corner_before_port = if is_first { 0.0 } else { corner_space };
 
-        let port_left_position =
-            line_space_before_port + corner_before_port - PORT_LINE_WIDTH + NODE_OVERLAP;
+        let port_left_position = line_space_before_port + corner_before_port - PORT_LINE_WIDTH;
         let port_total_width = single_port_width + left_corner + right_corner;
 
         let hover_corner_pad = HOVER_AREA_PADDING - PORT_LINE_WIDTH;
@@ -200,12 +198,12 @@ impl ShapeView {
             .set_xy(origin_offset + Vector2(hover_left_position, -HOVER_AREA_PADDING));
         self.main
             .set_size((port_total_width, port_total_height))
-            .set_xy((port_left_position, -PORT_LINE_WIDTH + NODE_OVERLAP));
+            .set_xy((port_left_position, -PORT_LINE_WIDTH));
 
         let label_width = self.type_label.width.value();
         let label_x = port_left_position + port_total_width * 0.5 - label_width * 0.5;
         self.type_label.set_x(label_x);
-        self.end_cap_right.for_each_ref(|cap| cap.set_x(size.x - NODE_OVERLAP));
+        self.end_cap_right.for_each_ref(|cap| cap.set_x(size.x));
     }
 
     fn set_size_multiplier(&self, multiplier: f32) {
@@ -213,13 +211,12 @@ impl ShapeView {
         let current_width = PORT_LINE_WIDTH * multiplier;
         self.main.set_border(current_width);
         let cap_size = (current_width, current_width * 0.5);
-        self.end_cap_left
-            .for_each_ref(|cap| cap.set_size(cap_size).set_x(-current_width + NODE_OVERLAP));
+        self.end_cap_left.for_each_ref(|cap| cap.set_size(cap_size).set_x(-current_width));
         self.end_cap_right.for_each_ref(|cap| cap.set_size(cap_size));
     }
 
     fn set_color(&self, color: color::Rgba) {
-        self.main.set_border_color(color);
+        self.main.set_color(color).set_border_color(color);
         self.end_cap_left.for_each_ref(|cap| cap.set_color(color));
         self.end_cap_right.for_each_ref(|cap| cap.set_color(color));
     }
