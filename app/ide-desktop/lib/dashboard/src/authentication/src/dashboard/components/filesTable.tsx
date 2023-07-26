@@ -1,6 +1,6 @@
 /** @file Table displaying a list of files. */
 import * as React from 'react'
-import toast from 'react-hot-toast'
+import * as toastify from 'react-toastify'
 
 import PlusIcon from 'enso-assets/plus.svg'
 
@@ -76,18 +76,18 @@ function FileNameHeading(props: InternalFileNameHeadingProps) {
                 // TODO[sb]: Allow uploading `.enso-project`s
                 // https://github.com/enso-org/cloud-v2/issues/510
                 const message = 'Files cannot be uploaded to the local backend.'
-                toast.error(message)
+                toastify.toast.error(message)
                 logger.error(message)
             } else if (
                 event.currentTarget.files == null ||
                 event.currentTarget.files.length === 0
             ) {
-                toast.success('No files selected to upload.')
+                toastify.toast.success('No files selected to upload.')
             } else if (directoryId == null) {
                 // This should never happen, however display a nice error message in case
                 // it somehow does.
                 const message = 'Files cannot be uploaded while offline.'
-                toast.error(message)
+                toastify.toast.error(message)
                 logger.error(message)
             } else {
                 dispatchFileListEvent({
@@ -284,11 +284,7 @@ function FileRow(
             } catch (error) {
                 setStatus(presence.Presence.present)
                 markItemAsVisible(key)
-                const message = `Unable to delete file: ${
-                    errorModule.tryGetMessage(error) ?? 'unknown error.'
-                }`
-                toast.error(message)
-                logger.error(message)
+                errorModule.toastAndLog('Unable to delete file', error)
             }
         }
     }
@@ -300,7 +296,7 @@ function FileRow(
                 if (file != null) {
                     if (backend.type !== backendModule.BackendType.remote) {
                         const message = 'Files cannot be uploaded on the local backend.'
-                        toast.error(message)
+                        toastify.toast.error(message)
                         logger.error(message)
                     } else {
                         setStatus(presence.Presence.inserting)
@@ -324,11 +320,7 @@ function FileRow(
                                 type: fileListEventModule.FileListEventType.delete,
                                 fileId: key,
                             })
-                            const message = `Error creating new file: ${
-                                errorModule.tryGetMessage(error) ?? 'unknown error.'
-                            }`
-                            toast.error(message)
-                            logger.error(message)
+                            errorModule.toastAndLog('Error creating new file', error)
                         }
                     }
                 }

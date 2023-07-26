@@ -1,6 +1,6 @@
 /** @file Modal for confirming delete of any type of asset. */
 import * as React from 'react'
-import toast from 'react-hot-toast'
+import * as toastify from 'react-toastify'
 
 import CloseIcon from 'enso-assets/close.svg'
 
@@ -32,10 +32,8 @@ function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
         try {
             doDelete()
         } catch (error) {
-            const message = `Could not delete ${description}: ${
-                errorModule.tryGetMessage(error) ?? 'unknown error.'
-            }`
-            toast.error(message)
+            const message = errorModule.getMessageOrToString(error)
+            toastify.toast.error(message)
             logger.error(message)
         }
     }

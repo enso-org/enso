@@ -7,9 +7,9 @@ use crate::controller::searcher::component;
 use crate::controller::searcher::component::hardcoded;
 use crate::controller::searcher::component::Component;
 use crate::model::execution_context;
+use crate::model::execution_context::GroupQualifiedName;
 use crate::model::suggestion_database;
 
-use double_representation::name::project;
 use double_representation::name::project::STANDARD_NAMESPACE;
 use double_representation::name::QualifiedName;
 use double_representation::name::QualifiedNameRef;
@@ -113,6 +113,7 @@ pub struct Builder<'a> {
     built_list:         component::List,
     /// A mapping from entry id to group index and the cached suggestion database entry.
     entry_to_group_map: HashMap<suggestion_database::entry::Id, EntryInGroup>,
+    group_name_to_id:   HashMap<GroupQualifiedName, usize>,
 }
 
 impl<'a> Builder<'a> {
@@ -124,26 +125,29 @@ impl<'a> Builder<'a> {
             inside_module: default(),
             built_list: default(),
             entry_to_group_map: default(),
+            group_name_to_id: default(),
         }
     }
 
     /// Create builder for base view (without self type and not inside any module).
     pub fn new(db: &'a SuggestionDatabase, groups: &[execution_context::ComponentGroup]) -> Self {
-        let entry_to_group_entries = groups
-            .iter()
-            .enumerate()
-            .flat_map(|(index, data)| Self::group_data_to_map_entries(db, index, data));
-        let groups = groups.iter().map(|group_data| component::Group {
-            project: group_data.project.clone_ref(),
-            name:    group_data.name.clone_ref(),
-            color:   group_data.color,
+        let group_name_to_id =
+            groups.iter().enumerate().map(|(index, data)| (data.name.clone_ref(), index)).collect();
+        let entry_to_group_entries = groups.iter().enumerate().flat_map(|(index, data)| {
+            Self::group_data_to_map_entries(db, index, data, &group_name_to_id)
         });
+        let groups = groups.iter().map(|group_data| component::Group {
+            name:  group_data.name.clone_ref(),
+            color: group_data.color,
+        });
+
         Self {
             db,
             this_type: None,
             inside_module: None,
             built_list: component::List { groups: groups.collect(), ..default() },
             entry_to_group_map: entry_to_group_entries.collect(),
+            group_name_to_id,
         }
     }
 
@@ -151,12 +155,15 @@ impl<'a> Builder<'a> {
         db: &'b SuggestionDatabase,
         group_index: usize,
         group_data: &'b execution_context::ComponentGroup,
+        group_name_to_id: &'b HashMap<GroupQualifiedName, usize>,
     ) -> impl Iterator<Item = (suggestion_database::entry::Id, EntryInGroup)> + 'b {
         group_data.components.iter().filter_map(move |component_qn| {
             let (id, entry) = db.lookup_by_qualified_name(component_qn).handle_err(|err| {
                 warn!("Cannot put entry {component_qn} to component groups. {err}")
             })?;
-            Some((id, EntryInGroup { entry, group_index }))
+            // The group name from documentation tags has precedence.
+            let group_from_tag = group_index_from_entry_tag(&entry, group_name_to_id);
+            Some((id, EntryInGroup { entry, group_index: group_from_tag.unwrap_or(group_index) }))
         })
     }
 
@@ -252,17 +259,20 @@ impl<'a> Builder<'a> {
     /// It may not be actually added, depending on the mode. See [structure's docs](Builder) for
     /// details.
     pub fn add_component_from_db(&mut self, id: suggestion_database::entry::Id) -> FallibleResult {
-        let in_group = self.entry_to_group_map.get(&id);
-        // If the entry is in group, we already retrieved it from suggestion database.
-        let entry =
-            in_group.map_or_else(|| self.db.lookup(id), |group| Ok(group.entry.clone_ref()))?;
+        // If the entry was specified as in some group, we already retrieved it from suggestion
+        // database.
+        let cached_in_group = self.entry_to_group_map.get(&id);
+        let entry = cached_in_group
+            .map_or_else(|| self.db.lookup(id), |entry| Ok(entry.entry.clone_ref()))?;
+        let group_id = cached_in_group
+            .map(|entry| entry.group_index)
+            .or_else(|| self.group_index_from_entry_tag(&entry));
         let when_displayed = match &self.inside_module {
             Some(module) => WhenDisplayed::inside_module(&entry, module.as_ref()),
             None if self.this_type.is_some() => WhenDisplayed::with_self_type(),
-            None => WhenDisplayed::in_base_mode(&entry, in_group.is_some()),
+            None => WhenDisplayed::in_base_mode(&entry, group_id.is_some()),
         };
-        let component =
-            Component::new_from_database_entry(id, entry, in_group.map(|e| e.group_index));
+        let component = Component::new_from_database_entry(id, entry, group_id);
         if matches!(when_displayed, WhenDisplayed::Always) {
             self.built_list.displayed_by_default.push(component.clone());
         }
@@ -272,19 +282,22 @@ impl<'a> Builder<'a> {
         Ok(())
     }
 
+    fn group_index_from_entry_tag(&self, entry: &suggestion_database::Entry) -> Option<usize> {
+        group_index_from_entry_tag(entry, &self.group_name_to_id)
+    }
+
     /// Add virtual entries to a specific group.
     ///
     /// If the groups was not specified in constructor, it will be added.
     pub fn add_virtual_entries_to_group(
         &mut self,
-        group_name: &str,
-        project: project::QualifiedName,
+        group_name: GroupQualifiedName,
         snippets: impl IntoIterator<Item = Rc<hardcoded::Snippet>>,
     ) {
         let groups = &mut self.built_list.groups;
         let existing_group_index = groups.iter().position(|grp| grp.name == group_name);
         let group_index = existing_group_index.unwrap_or_else(|| {
-            groups.push(component::Group { project, name: group_name.into(), color: None });
+            groups.push(component::Group { name: group_name, color: None });
             groups.len() - 1
         });
         for snippet in snippets {
@@ -299,6 +312,22 @@ impl<'a> Builder<'a> {
     }
 }
 
+fn group_index_from_entry_tag(
+    entry: &suggestion_database::Entry,
+    group_name_to_id: &HashMap<GroupQualifiedName, usize>,
+) -> Option<usize> {
+    entry.group_name.as_ref().and_then(|name| {
+        // If the group name in tag is not fully qualified, we assume a group defined in the
+        // same project where entry is defined.
+        let qn_name =
+            GroupQualifiedName::try_from(name.as_str()).unwrap_or_else(|_| GroupQualifiedName {
+                project: entry.defined_in.project().clone_ref(),
+                name:    name.into(),
+            });
+        group_name_to_id.get(&qn_name).copied()
+    })
+}
+
 
 
 // =============
@@ -308,8 +337,11 @@ impl<'a> Builder<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
     use crate::controller::searcher::component::tests::check_displayed_components;
     use crate::controller::searcher::component::tests::check_groups;
+
+    use double_representation::name::project;
     use enso_suggestion_database::mock_suggestion_database;
     use ide_view::component_browser::component_list_panel::icon;
 
@@ -317,18 +349,21 @@ mod tests {
         mock_suggestion_database! {
             test.Test {
                 mod TopModule1 {
+                    #[in_group("First Group")]
                     fn fun2() -> Standard.Base.Any;
 
                     mod SubModule1 {
                         fn fun4() -> Standard.Base.Any;
                     }
                     mod SubModule2 {
+                        #[in_group("Second Group")]
                         fn fun5 -> Standard.Base.Any;
                         mod SubModule3 {
                             fn fun6 -> Standard.Base.Any;
                         }
                     }
 
+                    #[in_group("First Group")]
                     fn fun1() -> Standard.Base.Any;
                 }
                 mod TopModule2 {
@@ -342,20 +377,18 @@ mod tests {
         let project = project::QualifiedName::from_text("test.Test").unwrap();
         vec![
             execution_context::ComponentGroup {
-                project:    project.clone(),
-                name:       "First Group".into(),
+                name:       GroupQualifiedName::new(project.clone_ref(), "First Group"),
                 color:      None,
                 components: vec![
                     "test.Test.TopModule2.fun0".try_into().unwrap(),
-                    "test.Test.TopModule1.fun1".try_into().unwrap(),
-                    "test.Test.TopModule1.fun2".try_into().unwrap(),
+                    // Should be overwritten by tag.
+                    "test.Test.TopModule1.SubModule2.fun5".try_into().unwrap(),
                 ],
             },
             execution_context::ComponentGroup {
-                project,
-                name: "Second Group".into(),
-                color: None,
-                components: vec!["test.Test.TopModule1.SubModule2.fun5".try_into().unwrap()],
+                name:       GroupQualifiedName::new(project, "Second Group"),
+                color:      None,
+                components: vec![],
             },
         ]
     }
@@ -444,7 +477,10 @@ mod tests {
 
         // Adding to an empty builder.
         let mut builder = Builder::new_empty(&database);
-        builder.add_virtual_entries_to_group("First Group", project.clone_ref(), snippets.clone());
+        builder.add_virtual_entries_to_group(
+            GroupQualifiedName::new(project.clone_ref(), "First Group"),
+            snippets.clone(),
+        );
         let list = builder.build();
         check_displayed_components(&list, vec!["test1", "test2"]);
         check_filterable_components(&list, vec!["test1", "test2"]);
@@ -453,7 +489,8 @@ mod tests {
                     expected_components: Vec<&str>,
                     expected_group: Vec<Option<usize>>| {
             let mut builder = Builder::new(&database, &groups);
-            builder.add_virtual_entries_to_group(group_name, project.clone_ref(), snippets.clone());
+            let group_name = GroupQualifiedName::new(project.clone_ref(), group_name);
+            builder.add_virtual_entries_to_group(group_name.clone_ref(), snippets.clone());
             builder.add_components_from_db(database.keys());
             let list = builder.build();
             check_displayed_components(&list, expected_components.clone());
@@ -461,7 +498,7 @@ mod tests {
 
             let mut builder = Builder::new(&database, &groups);
             builder.add_components_from_db(database.keys());
-            builder.add_virtual_entries_to_group(group_name, project.clone_ref(), snippets.clone());
+            builder.add_virtual_entries_to_group(group_name, snippets.clone());
             let list = builder.build();
             check_displayed_components(&list, expected_components);
             check_groups(&list, expected_group);

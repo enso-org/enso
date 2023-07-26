@@ -6,9 +6,9 @@ use crate::prelude::*;
 
 use crate::controller::graph::RequiredImport;
 use crate::controller::searcher::Filter;
+use crate::model::execution_context::GroupQualifiedName;
 use crate::model::suggestion_database;
 
-use double_representation::name::project;
 use enso_doc_parser::DocSection;
 use enso_doc_parser::Tag;
 use enso_suggestion_database::entry;
@@ -47,11 +47,9 @@ const ALIAS_MATCH_ATTENUATION_FACTOR: f32 = 0.75;
 #[allow(missing_docs)]
 #[derive(Clone, Debug, Default)]
 pub struct Group {
-    /// The project where the group is defined.
-    pub project: project::QualifiedName,
-    pub name:    ImString,
+    pub name:  GroupQualifiedName,
     /// Color as defined in project's `package.yaml` file.
-    pub color:   Option<color::Rgb>,
+    pub color: Option<color::Rgb>,
 }
 
 

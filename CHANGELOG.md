@@ -205,6 +205,9 @@
 - [Help chat][7151]. The link to the Discord server is replaced with a chat
   bridge to the Discord server. This is intended to have the chat visible at the
   same time as the IDE, so that help can be much more interactive.
+- [The libraries' authors may put entities to groups by adding GROUP tag in the
+  docstring]. It was requested as more convenient way than specifying full names
+  in package.yaml.
 
 [5910]: https://github.com/enso-org/enso/pull/5910
 [6279]: https://github.com/enso-org/enso/pull/6279
@@ -226,6 +229,7 @@
 [7151]: https://github.com/enso-org/enso/pull/7151
 [7164]: https://github.com/enso-org/enso/pull/7164
 [7372]: https://github.com/enso-org/enso/pull/7372
+[7337]: https://github.com/enso-org/enso/pull/7337
 
 #### EnsoGL (rendering engine)
 
@@ -530,6 +534,7 @@
 - [Improving date/time support in Table - added `date_diff`, `date_add`,
   `date_part` and some shorthands. Extended `Time_Period` with milli-, micro-
   and nanosecond periods.][7221]
+- [Implemented `replace` on database columns.][7275]
 - [Retire `Column_Selector` and allow regex based selection of columns.][7295]
 - [`Text.parse_to_table` can take a `Regex`.][7297]
 
@@ -761,6 +766,7 @@
 [7223]: https://github.com/enso-org/enso/pull/7223
 [7234]: https://github.com/enso-org/enso/pull/7234
 [7221]: https://github.com/enso-org/enso/pull/7221
+[7275]: https://github.com/enso-org/enso/pull/7275
 [7295]: https://github.com/enso-org/enso/pull/7295
 [7297]: https://github.com/enso-org/enso/pull/7297
 
