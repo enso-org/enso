@@ -3,10 +3,11 @@ package org.enso.table.data.column.storage.numeric;
 import java.util.BitSet;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.NumericBuilder;
-import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
+import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.operation.map.numeric.LongBooleanOp;
+import org.enso.table.data.column.operation.map.numeric.LongComparison;
 import org.enso.table.data.column.operation.map.numeric.LongIsInOp;
 import org.enso.table.data.column.operation.map.numeric.LongNumericOp;
 import org.enso.table.data.column.operation.map.numeric.UnaryLongToLongOp;
@@ -24,21 +25,31 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
     return (double) getItem(idx);
   }
 
-  private static final MapOpStorage<Long, AbstractLongStorage> ops = buildOps();
+  private static final MapOperationStorage<Long, AbstractLongStorage> ops = buildOps();
 
   @Override
-  public boolean isOpVectorized(String name) {
-    return ops.isSupported(name);
+  public boolean isUnaryOpVectorized(String name) {
+    return ops.isSupportedUnary(name);
   }
 
   @Override
-  protected Storage<?> runVectorizedMap(
+  public Storage<?> runVectorizedUnaryMap(String name, MapOperationProblemBuilder problemBuilder) {
+    return ops.runUnaryMap(name, this, problemBuilder);
+  }
+
+  @Override
+  public boolean isBinaryOpVectorized(String name) {
+    return ops.isSupportedBinary(name);
+  }
+
+  @Override
+  public Storage<?> runVectorizedBinaryMap(
       String name, Object argument, MapOperationProblemBuilder problemBuilder) {
-    return ops.runMap(name, this, argument, problemBuilder);
+    return ops.runBinaryMap(name, this, argument, problemBuilder);
   }
 
   @Override
-  protected Storage<?> runVectorizedZip(
+  public Storage<?> runVectorizedZip(
       String name, Storage<?> argument, MapOperationProblemBuilder problemBuilder) {
     return ops.runZip(name, this, argument, problemBuilder);
   }
@@ -48,8 +59,8 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
     return NumericBuilder.createLongBuilder(capacity);
   }
 
-  private static MapOpStorage<Long, AbstractLongStorage> buildOps() {
-    MapOpStorage<Long, AbstractLongStorage> ops = new MapOpStorage<>();
+  private static MapOperationStorage<Long, AbstractLongStorage> buildOps() {
+    MapOperationStorage<Long, AbstractLongStorage> ops = new MapOperationStorage<>();
     ops.add(
             new LongNumericOp(Storage.Maps.ADD) {
               @Override
@@ -168,7 +179,7 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
               }
             })
         .add(
-            new LongBooleanOp(Storage.Maps.GT) {
+            new LongComparison(Storage.Maps.GT) {
               @Override
               protected boolean doLong(long a, long b) {
                 return a > b;
@@ -180,7 +191,7 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
               }
             })
         .add(
-            new LongBooleanOp(Storage.Maps.GTE) {
+            new LongComparison(Storage.Maps.GTE) {
               @Override
               protected boolean doLong(long a, long b) {
                 return a >= b;
@@ -192,7 +203,7 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
               }
             })
         .add(
-            new LongBooleanOp(Storage.Maps.LT) {
+            new LongComparison(Storage.Maps.LT) {
               @Override
               protected boolean doLong(long a, long b) {
                 return a < b;
@@ -204,7 +215,7 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
               }
             })
         .add(
-            new LongBooleanOp(Storage.Maps.LTE) {
+            new LongComparison(Storage.Maps.LTE) {
               @Override
               protected boolean doLong(long a, long b) {
                 return a <= b;
@@ -218,14 +229,14 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
         .add(
             new LongBooleanOp(Storage.Maps.EQ) {
               @Override
-              public BoolStorage runMap(
+              public BoolStorage runBinaryMap(
                   AbstractLongStorage storage,
                   Object arg,
                   MapOperationProblemBuilder problemBuilder) {
                 if (arg instanceof Double) {
                   problemBuilder.reportFloatingPointEquality(-1);
                 }
-                return super.runMap(storage, arg, problemBuilder);
+                return super.runBinaryMap(storage, arg, problemBuilder);
               }
 
               @Override
@@ -275,14 +286,16 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
         .add(
             new UnaryMapOperation<>(Storage.Maps.IS_NOTHING) {
               @Override
-              public BoolStorage run(AbstractLongStorage storage) {
+              public BoolStorage runUnaryMap(
+                  AbstractLongStorage storage, MapOperationProblemBuilder problemBuilder) {
                 return new BoolStorage(storage.getIsMissing(), new BitSet(), storage.size(), false);
               }
             })
         .add(
             new UnaryMapOperation<>(Storage.Maps.IS_NAN) {
               @Override
-              public BoolStorage run(AbstractLongStorage storage) {
+              public BoolStorage runUnaryMap(
+                  AbstractLongStorage storage, MapOperationProblemBuilder problemBuilder) {
                 BitSet isNaN = new BitSet();
                 return new BoolStorage(isNaN, storage.getIsMissing(), storage.size(), false);
               }
@@ -290,7 +303,8 @@ public abstract class AbstractLongStorage extends NumericStorage<Long> {
         .add(
             new UnaryMapOperation<>(Storage.Maps.IS_INFINITE) {
               @Override
-              public BoolStorage run(AbstractLongStorage storage) {
+              public BoolStorage runUnaryMap(
+                  AbstractLongStorage storage, MapOperationProblemBuilder problemBuilder) {
                 BitSet isInfinite = new BitSet();
                 return new BoolStorage(isInfinite, storage.getIsMissing(), storage.size(), false);
               }

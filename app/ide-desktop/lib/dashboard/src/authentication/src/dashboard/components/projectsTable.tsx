@@ -1,6 +1,6 @@
 /** @file Table displaying a list of projects. */
 import * as React from 'react'
-import toast from 'react-hot-toast'
+import * as toastify from 'react-toastify'
 
 import ArrowUpIcon from 'enso-assets/arrow_up.svg'
 import PlayIcon from 'enso-assets/play.svg'
@@ -14,7 +14,6 @@ import * as dateTime from '../dateTime'
 import * as errorModule from '../../error'
 import * as eventModule from '../event'
 import * as hooks from '../../hooks'
-import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
 import * as permissions from '../permissions'
 import * as presence from '../presence'
@@ -157,14 +156,14 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
         ((state: spinner.SpinnerState | null) => void) | null
     >(null)
     const [shouldOpenWhenReady, setShouldOpenWhenReady] = React.useState(false)
-    const [toastId, setToastId] = React.useState<string | null>(null)
+    const [toastId, setToastId] = React.useState<toastify.Id | null>(null)
 
     const openProject = React.useCallback(async () => {
         setState(backendModule.ProjectState.openInProgress)
         try {
             switch (backend.type) {
                 case backendModule.BackendType.remote:
-                    setToastId(toast.loading(LOADING_MESSAGE))
+                    setToastId(toastify.toast.loading(LOADING_MESSAGE))
                     setRowState({ ...rowState, isRunning: true })
                     await backend.openProject(project.id, null, project.title)
                     setCheckState(CheckState.checkingStatus)
@@ -183,7 +182,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
             }
         } catch (error) {
             setCheckState(CheckState.notChecking)
-            toast.error(
+            toastify.toast.error(
                 `Error opening project '${project.title}': ${
                     errorModule.tryGetMessage(error) ?? 'unknown error'
                 }.`
@@ -195,7 +194,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
     React.useEffect(() => {
         if (toastId != null) {
             return () => {
-                toast.dismiss(toastId)
+                toastify.toast.dismiss(toastId)
             }
         } else {
             return
@@ -222,7 +221,7 @@ function ProjectActionButton(props: ProjectActionButtonProps) {
 
     React.useEffect(() => {
         if (toastId != null && state !== backendModule.ProjectState.openInProgress) {
-            toast.dismiss(toastId)
+            toastify.toast.dismiss(toastId)
         }
     }, [state, toastId])
 
@@ -501,7 +500,6 @@ function ProjectName(props: InternalProjectNameProps) {
             doCloseIde,
         },
     } = props
-    const logger = loggerProvider.useLogger()
     const { backend } = backendProvider.useBackend()
 
     const doRename = async (newName: string) => {
@@ -517,11 +515,7 @@ function ProjectName(props: InternalProjectNameProps) {
             )
             return
         } catch (error) {
-            const message = `Unable to rename project: ${
-                errorModule.tryGetMessage(error) ?? 'unknown error.'
-            }`
-            toast.error(message)
-            logger.error(message)
+            errorModule.toastAndLog('Unable to rename project', error)
             throw error
         }
     }
@@ -701,7 +695,6 @@ function ProjectRow(
             markItemAsVisible,
         },
     } = props
-    const logger = loggerProvider.useLogger()
     const { backend } = backendProvider.useBackend()
     const { setModal } = modalProvider.useSetModal()
     const [item, setItem] = React.useState(rawItem)
@@ -723,9 +716,7 @@ function ProjectRow(
         } catch (error) {
             setStatus(presence.Presence.present)
             markItemAsVisible(key)
-            const message = errorModule.tryGetMessage(error) ?? 'Unable to delete project.'
-            toast.error(message)
-            logger.error(message)
+            errorModule.toastAndLog('Unable to delete project', error)
         }
     }
 
@@ -764,11 +755,7 @@ function ProjectRow(
                             type: projectListEventModule.ProjectListEventType.delete,
                             projectId: key,
                         })
-                        const message = `Error creating new project: ${
-                            errorModule.tryGetMessage(error) ?? 'unknown error.'
-                        }`
-                        toast.error(message)
-                        logger.error(message)
+                        errorModule.toastAndLog('Error creating new project', error)
                     }
                 }
                 break
