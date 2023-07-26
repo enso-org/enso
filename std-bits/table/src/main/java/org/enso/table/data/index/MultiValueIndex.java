@@ -146,7 +146,7 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
                     TextFoldingStrategy.unicodeNormalizedFold);
 
     // Generate lists of combined keys and subkeys
-    List<UnorderedMultiValueKey> combinedKeys = new ArrayList<>(combinedIndex.locs.keySet());
+    List<UnorderedMultiValueKey> combinedKeys = new ArrayList<>(combinedIndex.keys());
     List<UnorderedMultiValueKey> groupingSubkeys = new ArrayList<>(combinedKeys.size());
     List<UnorderedMultiValueKey> nameSubKeys = new ArrayList<>(combinedKeys.size());
     int[] groupingColumnIndices = IntStream.range(0, groupingColumns.length).toArray();
@@ -219,19 +219,21 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
       grid[groupingCoordinate][nameCoordinate] = combinedKey;
     }
 
+    // Fill the columns.
     var emptyList = new ArrayList<Integer>();
     for (UnorderedMultiValueKey groupingSubKey : groupingNumberer.getObjects()) {
       int groupingCoordinate = groupingNumberer.getNumber(groupingSubKey);
 
-      // Fill the grouping columns
+      // Fill the grouping columns.
       IntStream.range(0, groupingColumns.length)
           .forEach(i -> storage[i].appendNoGrow(groupingSubKey.get(i)));
 
       int offset = groupingColumns.length;
 
+      // Fill the aggregate columns.
       for (UnorderedMultiValueKey nameSubKey : nameNumberer.getObjects()) {
         int nameCoordinate = nameNumberer.getNumber(nameSubKey);
-        List<Integer> rowIds = combinedIndex.locs.get(grid[groupingCoordinate][nameCoordinate]);
+        List<Integer> rowIds = combinedIndex.get(grid[groupingCoordinate][nameCoordinate]);
         if (rowIds == null) {
           rowIds = emptyList;
         }
