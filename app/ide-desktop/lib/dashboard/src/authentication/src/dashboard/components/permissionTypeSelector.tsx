@@ -50,65 +50,63 @@ const PERMISSION_TYPE_DATA: PermissionTypeData[] = [
 export interface PermissionTypeSelectorProps {
     type: permissions.Permission
     style?: React.CSSProperties
+    className?: string
     onChange: (permission: permissions.Permission) => void
 }
 
 /** A selector for all possible permission types. */
 export default function PermissionTypeSelector(props: PermissionTypeSelectorProps) {
-    const { type, style, onChange } = props
-    // FIXME: it must be offset such that the first button is where the original button is
+    const { type, style, className, onChange } = props
     return (
         <div
             style={style}
-            className="relative"
+            className={`w-min ${className ?? 'relative'}`}
             onClick={event => {
                 event.stopPropagation()
             }}
         >
-            <div className="absolute">
-                <div className="absolute bg-frame-selected rounded-2xl backdrop-blur-3xl w-full h-full -z-10" />
-                <div className="flex flex-col w-109.75 p-1">
-                    {PERMISSION_TYPE_DATA.map(data => (
-                        <button
-                            key={data.type}
-                            disabled={type === data.type}
-                            className={`flex items-center rounded-full gap-2 h-8 px-1 ${
-                                type === data.type ? 'bg-black-a5' : ''
+            <div className="absolute bg-frame-selected rounded-2xl backdrop-blur-3xl w-full h-full -z-10" />
+            <div className="flex flex-col w-109.75 p-1">
+                {PERMISSION_TYPE_DATA.map(data => (
+                    <button
+                        key={data.type}
+                        disabled={type === data.type}
+                        className={`flex items-center rounded-full gap-2 h-8 px-1 ${
+                            type === data.type ? 'bg-black-a5' : ''
+                        }`}
+                        onClick={() => {
+                            onChange(data.type)
+                        }}
+                    >
+                        <div
+                            className={`rounded-full w-13 h-5 my-1 py-0.5 ${
+                                permissions.PERMISSION_CLASS_NAME[data.type]
                             }`}
-                            onClick={() => {
-                                onChange(data.type)
-                            }}
                         >
-                            <div
-                                className={`rounded-full w-13 h-5 my-1 py-0.5 ${
-                                    permissions.PERMISSION_CLASS_NAME[data.type]
-                                }`}
-                            >
-                                {data.type}
-                            </div>
-                            <span className="font-normal leading-170 h-6.5 pt-1">
-                                <span className="h-5.5 py-px">=</span>
-                            </span>
-                            {data.previous != null && (
-                                <>
-                                    <div
-                                        className={`text-center rounded-full w-13 h-5 my-1 py-0.5 ${
-                                            permissions.PERMISSION_CLASS_NAME[data.previous]
-                                        }`}
-                                    >
-                                        {data.previous}
-                                    </div>
-                                    <span className="font-normal leading-170 h-6.5 pt-1">
-                                        <span className="h-5.5 py-px">+</span>
-                                    </span>
-                                </>
-                            )}
-                            <div className="leading-170 h-6.5 pt-1">
-                                <span className="h-5.5 py-px">{data.description}</span>
-                            </div>
-                        </button>
-                    ))}
-                </div>
+                            {data.type}
+                        </div>
+                        <span className="font-normal leading-170 h-6.5 pt-1">
+                            <span className="h-5.5 py-px">=</span>
+                        </span>
+                        {data.previous != null && (
+                            <>
+                                <div
+                                    className={`text-center rounded-full w-13 h-5 my-1 py-0.5 ${
+                                        permissions.PERMISSION_CLASS_NAME[data.previous]
+                                    }`}
+                                >
+                                    {data.previous}
+                                </div>
+                                <span className="font-normal leading-170 h-6.5 pt-1">
+                                    <span className="h-5.5 py-px">+</span>
+                                </span>
+                            </>
+                        )}
+                        <div className="leading-170 h-6.5 pt-1">
+                            <span className="h-5.5 py-px">{data.description}</span>
+                        </div>
+                    </button>
+                ))}
             </div>
         </div>
     )

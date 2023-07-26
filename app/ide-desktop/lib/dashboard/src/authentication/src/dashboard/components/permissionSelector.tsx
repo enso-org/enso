@@ -49,7 +49,7 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
                 function Child() {
                     return (
                         <Modal
-                            className="fixed bg-dim w-screen h-screen top-0 left-0 z-10"
+                            className="fixed bg-dim w-full h-full z-10"
                             onClick={() => {
                                 setTheChild(null)
                             }}
@@ -57,6 +57,7 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
                             <PermissionTypeSelector
                                 type={permissions.type}
                                 style={{ left, top }}
+                                className="sticky"
                                 onChange={type => {
                                     setTheChild(null)
                                     let newPermissions: permissionsModule.Permissions
