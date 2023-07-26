@@ -11,6 +11,7 @@ import project.Data.Time.Date_Part_Spec
 polyglot java import org.enso.base.Time_Utils
 polyglot java import java.time.ZonedDateTime
 polyglot java import java.time.LocalDateTime
+polyglot java import java.time.ZoneId
 polyglot java import java.time.ZoneOffset
 polyglot java import java.time.format.DateTimeFormatter
 polyglot java import java.lang.Exception as JException
@@ -850,7 +851,10 @@ js_set_zone local_datetime zone =
     datetime_with_tz + diff
 
 python_datetime year month=1 day=1 hour=0 minute=0 second=0 nanosecond=0 zone=Time_Zone.system =
-    Panic.catch Any (python_datetime_impl year month day hour minute second nanosecond zone) (err -> Error.throw (Time_Error.Error err.payload))
+    rules = Polyglot.invoke (ZoneId.of (zone.zone_id)) "getRules" []
+    zone_offset = Polyglot.invoke rules "getOffset" [ LocalDateTime.now ]
+    delta = Polyglot.invoke zone_offset "getTotalSeconds" []
+    Panic.catch Any (python_datetime_impl year month day hour minute second nanosecond delta) (err -> Error.throw (Time_Error.Error err.payload))
 
 python_parse text format="" =
     d = Date_Time.parse text format
@@ -884,7 +888,7 @@ foreign python python_datetime_impl year month day hour minute second nanosecond
             self.zone = zone
 
         def utcoffset(self, dt):
-            return datetime.timedelta()
+            return datetime.timedelta(seconds=zone)
 
     return datetime.datetime(year, month, day, hour, minute, second, int(nanosecond / 1000000), Zone(zone))
 
