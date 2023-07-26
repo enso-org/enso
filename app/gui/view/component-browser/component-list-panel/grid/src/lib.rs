@@ -538,6 +538,9 @@ impl component::Frp<Model> for Frp {
             // === Focus ===
 
             eval_ input.focus (model.focus());
+            let focused = model.on_event::<ensogl_core::event::FocusIn>();
+            let defocused = model.on_event::<ensogl_core::event::FocusOut>();
+            grid.disable_selection <+ bool(&focused, &defocused);
         }
 
         grid.resize_grid(0, COLUMN_COUNT);

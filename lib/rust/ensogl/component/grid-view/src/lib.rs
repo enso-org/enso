@@ -178,6 +178,8 @@ ensogl_core::define_endpoints_2! {
         /// Declare what area of the GridView is visible. The area position is relative to left-top
         /// corner of the Grid View.
         set_viewport(Viewport),
+        /// If `true`, the selection state will not be visible until it goes back to `false`.
+        disable_selection(bool),
     }
 
     Output {
@@ -590,14 +592,13 @@ impl<E: Entry> GridView<E> {
             out.model_for_entry_needed <+ request_models_after_text_layer_change;
             out.model_for_entry_needed <+ request_models_for_request;
 
-            let focus_in = model.on_event::<ensogl_core::event::FocusIn>();
-            let focus_out = model.on_event::<ensogl_core::event::FocusOut>();
-            is_focused <- bool(&focus_out, &focus_in);
-
+            let selection_hidden = &input.disable_selection;
+            hide_selection <- input.disable_selection.on_true();
+            show_selection <- input.disable_selection.on_false();
             out.entry_hovered <+ input.hover_entry;
-            out.entry_selected <+ input.select_entry.gate(&is_focused);
-            out.entry_selected <+ input.select_entry.sample(&focus_in);
-            out.entry_selected <+ focus_out.constant(None);
+            out.entry_selected <+ input.select_entry.gate_not(selection_hidden);
+            out.entry_selected <+ input.select_entry.sample(&show_selection);
+            out.entry_selected <+ hide_selection.constant(None);
             out.entry_accepted <+ input.accept_entry;
             out.entry_accepted <+ out.entry_selected.filter_map(|e| *e).sample(&input.accept_selected_entry);
 
