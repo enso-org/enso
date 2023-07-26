@@ -161,6 +161,7 @@ impl Kind {
     /// Get the definition index of an argument represented by this node, if available. Returns
     /// `None` if the node could not be attached with the argument information.
     pub fn definition_index(&self) -> Option<usize> {
+        #[allow(clippy::single_match)]
         match self {
             Self::Argument(t) => t.definition_index,
             _ => None,
