@@ -14,8 +14,9 @@ import project.Database.Helpers.Name_Generator
 
 spec prefix connection =
     Test.group prefix+"Support for Long Column/Table names" <|
-        has_maximum_table_name_length = connection.base_connection.max_table_name_length.is_nothing.not
-        has_maximum_column_name_length = connection.base_connection.max_column_name_length.is_nothing.not
+        naming_helper = connection.base_connection.naming_helper
+        has_maximum_table_name_length = naming_helper.max_table_name_length.is_nothing.not
+        has_maximum_column_name_length = naming_helper.max_column_name_length.is_nothing.not
         big_name_length = 10000
 
         if has_maximum_table_name_length.not then
@@ -29,7 +30,7 @@ spec prefix connection =
                 dest_fetched.at "X" . to_vector . should_equal [1, 2, 3]
 
         if has_maximum_table_name_length then
-            max_table_name_length = connection.base_connection.max_table_name_length
+            max_table_name_length = naming_helper.max_table_name_length
             Test.specify "should not allow to create a table with a name that is too long" <|
                 name = "a" * (max_table_name_length + 1)
                 src = Table.new [["X", [1, 2, 3]]]
@@ -63,12 +64,23 @@ spec prefix connection =
                 t2.catch.name . should_equal name_large
                 t2.catch.to_display_text.should_contain (max_table_name_length.to_text + " code units")
 
+            Test.specify "should not mangle a too long name when accessing tables, returning a different table" <|
+                long_name = "z" * max_table_name_length
+                src = Table.new [["X", [1, 2, 3]]]
+                t1 = src.select_into_database_table connection long_name temporary=True
+                Problems.assume_no_problems t1
+                connection.query long_name . at "X" . to_vector . should_equal [1, 2, 3]
+
+                longer_name_with_same_prefix = long_name + ("z" * 10)
+                connection.query longer_name_with_same_prefix . should_fail_with Table_Not_Found
+                connection.query (SQL_Query.Table_Name longer_name_with_same_prefix) . should_fail_with Table_Not_Found
+
         Test.specify "should be fine joining tables with long names" <|
             ## If we know the maximum length, we choose a length that will be
                just short enough to fit in the limit, but long enough that after
                concatenating two of such names, the result will exceed the limit.
                If we don't know the limit, we just choose a very long name.
-            name_length = case connection.base_connection.max_table_name_length of
+            name_length = case naming_helper.max_table_name_length of
                 Nothing -> big_name_length
                 max : Integer -> max
 
@@ -106,7 +118,7 @@ spec prefix connection =
                just short enough to fit in the limit, but long enough that after
                concatenating two of such names, the result will exceed the limit.
                If we don't know the limit, we just choose a very long name.
-            name_length = case connection.base_connection.max_column_name_length of
+            name_length = case naming_helper.max_column_name_length of
                 Nothing -> big_name_length
                 max : Integer -> max
 
@@ -176,7 +188,7 @@ spec prefix connection =
                 db_table_2.row_count . should_equal 0
 
         if has_maximum_column_name_length then
-            max_column_name_length = connection.base_connection.max_column_name_length
+            max_column_name_length = naming_helper.max_column_name_length
             Test.specify "should raise an error when renaming a column to a name that is too long" <|
                 src = Table.new [["X", [1, 2, 3]], ["Y", [4, 5, 6]]]
                 db_table = src.select_into_database_table connection (Name_Generator.random_name "long-column-names") temporary=True

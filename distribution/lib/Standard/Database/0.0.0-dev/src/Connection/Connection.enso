@@ -25,6 +25,7 @@ import project.Internal.Hidden_Table_Registry
 import project.Internal.IR.Context.Context
 import project.Internal.IR.Query.Query
 import project.Internal.IR.SQL_Expression.SQL_Expression
+import project.Internal.Naming_Helper.Naming_Helper
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.Internal.Statement_Setter.Statement_Setter
 from project.Errors import SQL_Error, Table_Already_Exists, Table_Not_Found
@@ -223,7 +224,10 @@ type Connection
                 ctx = Context.for_query raw_sql name
                 Database_Table_Module.make_table self name columns ctx
         SQL_Query.Table_Name name ->
-            make_table_for_name self name alias
+            case self.naming_helper.is_table_name_valid name of
+                True -> make_table_for_name self name alias
+                False ->
+                    Error.throw (Table_Not_Found.Error name related_query_error=Nothing treated_as_query=False extra_message="")
 
 
     ## PRIVATE
@@ -377,72 +381,10 @@ type Connection
         self.jdbc_connection.run_maintenance_action_if_possible callback
 
     ## PRIVATE
-    max_table_name_length : Integer | Nothing
-    max_table_name_length self =
-        reported = self.jdbc_connection.with_metadata .getMaxTableNameLength
-        if reported == 0 then Nothing else reported
-
-    ## PRIVATE
-    max_column_name_length : Integer | Nothing
-    max_column_name_length self =
-        reported = self.jdbc_connection.with_metadata .getMaxColumnNameLength
-        if reported == 0 then Nothing else reported
-
-    ## PRIVATE
-       Generates a temporary table name for the given table name, used for dry
-       runs.
-
-       The table name is 'stable', meaning that the same name will be returned
-       for the given input `table_name` on subsequent calls, unless the user
-       creates a clashing table in the meantime.
-
-       The table name is guaranteed to be unique for the database at the time it
-       is generated - this is used to ensure that the dry run tables never
-       overwrite pre-existing user data.
-
-       ! Safety
-
-         It is safe to drop/overwrite the table returned by this method, as it
-         can be assumed that it was not created by the user. It either does not
-         (yet) exist, or if it exists, it is present in our hidden table
-         registry - but that means it was created by Enso as a hidden table.
-    generate_dry_run_table_name : Text -> Text
-    generate_dry_run_table_name self table_name =
-        max_length = (self.max_table_name_length.if_nothing 60) - 1
-        go ix =
-            prefix = "enso-dry-run-" + if ix == 0 then "" else ix.to_text + "-"
-            ## This check ensures that if all possible names are taken, the
-               method will not loop forever but report an error. It should never
-               occur in practice - it would mean that the Database contains
-               unimaginable amounts of dry run tables or has impractically small
-               table name length limit.
-            if prefix.length > max_length then Error.throw (Illegal_State.Error "Reached the table name length limit ("+max_length.to_text+") while trying to find a unused table name. It seems that all possible names are already taken. The Database may need to be cleaned up for dry run to work.") else
-                name = (prefix + table_name) . take max_length
-                ## The dry run name is ok if it is already registered (that means it
-                   may exist in the Database, but it was created by other dry runs
-                   and is safe to overwrite) or if it does not exist in the database.
-                name_ok = (self.hidden_table_registry.is_registered name) || (self.table_exists name . not)
-                if name_ok then name else
-                    @Tail_Call go (ix + 1)
-        go 0
-
-    ## PRIVATE
-       Generates a random table name that does not currently exist in the
-       database.
-    generate_random_table_name : Text -> Text
-    generate_random_table_name self prefix="enso-table-" =
-        max_length = self.max_table_name_length
-        minimum_randomness = 5
-        maximum_retries = 20^minimum_randomness
-        if max_length.is_nothing.not && (prefix.length + minimum_randomness > max_length) then Error.throw (Illegal_State.Error "The prefix has length "+prefix.length.to_text+" while max table name is "+max_length.to_text+" - there is not enough space to safely generate random names.") else
-            go ix =
-                if ix > maximum_retries then Error.throw (Illegal_State.Error "Could not generate a non-assigned random table name after "+maximum_retries+". Giving up.") else
-                    base_name = prefix + Random.random_uuid
-                    name = if max_length.is_nothing then base_name else base_name.take max_length
-                    if self.table_exists name . not then name else
-                        @Tail_Call go (ix + 1)
-            go 0
-
+       Returns a helper for checking and generating table/column that will be
+       valid for this connection.
+    naming_helper : Naming_Helper
+    naming_helper self = Naming_Helper.Value self
 
     ## PRIVATE
        Creates a Table reference that refers to a table with the given name.
