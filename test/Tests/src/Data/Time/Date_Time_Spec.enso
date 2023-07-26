@@ -884,7 +884,7 @@ foreign python python_datetime_impl year month day hour minute second nanosecond
             self.zone = zone
 
         def utcoffset(self, dt):
-            return 0
+            return datetime.timedelta()
 
     return datetime.datetime(year, month, day, hour, minute, second, int(nanosecond / 1000000), Zone(zone))
 
