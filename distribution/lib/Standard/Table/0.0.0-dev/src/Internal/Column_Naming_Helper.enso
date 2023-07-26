@@ -3,6 +3,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from project.Internal.Table_Helpers import is_column
 
+polyglot java import org.enso.base.Text_Utils
 polyglot java import org.enso.table.data.table.Column as Java_Column
 
 ## PRIVATE
@@ -24,7 +25,17 @@ type Column_Naming_Helper
     ensure_name_is_valid self name ~action =
         checked = Illegal_Argument.handle_java_exception <|
             Java_Column.ensureNameIsValid name
-        checked.if_not_error action
+        checked.if_not_error <| case self.max_name_length_units of
+            Nothing -> action
+            max_length ->
+                name_length = Text_Utils.char_length name
+                if name_length <= max_length then action else
+                    Error.throw (Name_Too_Long.Error "column" name max_length)
+
+    ## PRIVATE
+       Checks if the names are valid and runs the action, otherwise raises an error.
+    validate_many_column_names self names ~action =
+        names.all (name-> self.ensure_name_is_valid name True) . if_not_error action
 
     ## PRIVATE
        Ensures that the name does not contain the null character.

@@ -23,6 +23,7 @@ import Standard.Table.Data.Table.Table as Materialized_Table
 import Standard.Table.Data.Type.Value_Type_Helpers
 import Standard.Table.Internal.Add_Row_Number
 import Standard.Table.Internal.Aggregate_Column_Helper
+import Standard.Table.Internal.Column_Naming_Helper.Column_Naming_Helper
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 import Standard.Table.Internal.Table_Helpers
 import Standard.Table.Internal.Table_Helpers.Table_Column_Helper
@@ -443,7 +444,7 @@ type Table
     @column_map Widget_Helpers.make_rename_name_vector_selector
     rename_columns : Map (Text | Integer | Regex) Text | Vector Text | Vector Vector -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Ambiguous_Column_Rename | Too_Many_Column_Names_Provided | Invalid_Output_Column_Names | Duplicate_Output_Column_Names
     rename_columns self (column_map:(Map | Vector)=["Column"]) (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default) (error_on_missing_columns:Boolean=True) (on_problems:Problem_Behavior=Report_Warning) =
-        new_names = Table_Helpers.rename_columns self.internal_columns column_map case_sensitivity error_on_missing_columns on_problems
+        new_names = Table_Helpers.rename_columns self.naming_helpers self.internal_columns column_map case_sensitivity error_on_missing_columns on_problems
         Warning.with_suspended new_names names->
             self.updated_columns (self.internal_columns.map c-> c.rename (names.at c.name))
 
@@ -1944,6 +1945,10 @@ type Table
     columns_helper : Table_Column_Helper
     columns_helper self =
         Table_Helpers.Table_Column_Helper.Value self.internal_columns self.make_column self .read
+
+    ## PRIVATE
+    naming_helpers : Column_Naming_Helper
+    naming_helpers self = self.connection.base_connection.column_naming_helper
 
     ## PRIVATE
 
