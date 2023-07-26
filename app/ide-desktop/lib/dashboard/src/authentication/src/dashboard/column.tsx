@@ -173,15 +173,10 @@ function SharedWithColumn(props: AssetColumnProps<backend.AnyAsset>) {
     const { item } = props
     const session = authProvider.useNonPartialUserSession()
     const { setModal } = modalProvider.useSetModal()
-    const [permissions, setPermissions] = React.useState(() =>
+    const [usersPermissions, setUsersPermissions] = React.useState(() =>
         backend.groupPermissionsByUser(item.permissions ?? [])
     )
-    const [oldPermissions, setOldPermissions] = React.useState(permissions)
     const [isHovered, setIsHovered] = React.useState(false)
-    const emailsOfUsersWithPermission = React.useMemo(
-        () => new Set(permissions.map(permission => permission.user.user_email)),
-        [permissions]
-    )
     const selfPermission = item.permissions?.find(
         permission => permission.user.user_email === session.organization?.email
     )?.permission
@@ -196,7 +191,7 @@ function SharedWithColumn(props: AssetColumnProps<backend.AnyAsset>) {
                 setIsHovered(false)
             }}
         >
-            {permissions.map(user => (
+            {usersPermissions.map(user => (
                 <UserPermissionDisplay key={user.user.user_email} user={user} />
             ))}
             {ownsThisAsset && isHovered && (
@@ -208,33 +203,9 @@ function SharedWithColumn(props: AssetColumnProps<backend.AnyAsset>) {
                                 key={uniqueString.uniqueString()}
                                 asset={item}
                                 initialPermissions={permissionsModule.DEFAULT_PERMISSIONS}
-                                emailsOfUsersWithPermission={emailsOfUsersWithPermission}
+                                usersPermissions={usersPermissions}
+                                setUsersPermissions={setUsersPermissions}
                                 eventTarget={event.currentTarget}
-                                onSubmit={(user, newPermissions) => {
-                                    setOldPermissions(permissions)
-                                    setPermissions([
-                                        ...permissions,
-                                        {
-                                            user: {
-                                                pk: user.id,
-                                                // The names come from a third-party API
-                                                // and cannot be changed.
-                                                /* eslint-disable @typescript-eslint/naming-convention */
-                                                user_name: user.name,
-                                                user_email: user.email,
-                                                /** {@link SharedWithColumn} is only accessible
-                                                 * if `session.organization` is not `null`. */
-                                                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                                                organization_id: session.organization!.id,
-                                                /* eslint-enable @typescript-eslint/naming-convention */
-                                            },
-                                            permissions: newPermissions,
-                                        },
-                                    ])
-                                }}
-                                onFailure={() => {
-                                    setPermissions(oldPermissions)
-                                }}
                             />
                         )
                     }}

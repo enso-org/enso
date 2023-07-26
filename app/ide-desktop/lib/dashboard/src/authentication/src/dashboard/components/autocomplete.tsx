@@ -61,7 +61,15 @@ export default function Autocomplete(props: AutocompleteProps) {
     // eslint-disable-next-line react-hooks/rules-of-hooks
     const inputRef = rawInputRef ?? React.useRef<HTMLInputElement>(null)
 
-    /** Set values, while also changing the input text if the input is not using multi-select. */
+    React.useEffect(() => {
+        if (inputRef.current != null) {
+            inputRef.current.value = initialValue ?? ''
+        }
+        // `inputRef` is NOT a dependency as it is a React ref (a mutable value).
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [initialValue])
+
+    /** Set values, while also changing the input text. */
     const overrideValues = React.useCallback(
         (newItem: string) => {
             setIsDropdownVisible(false)
@@ -156,15 +164,15 @@ export default function Autocomplete(props: AutocompleteProps) {
             </div>
             <div className={`relative h-0 ${optionsClassName ?? ''}`}>
                 <div
-                    className={`absolute bg-white z-10 w-full rounded-lg shadow-soft max-h-10lh ${
+                    className={`absolute bg-frame-selected w-full rounded-2xl max-h-10lh ${
                         isDropdownVisible ? 'overflow-auto' : 'overflow-hidden h-0'
                     }`}
                 >
                     {items.map((item, index) => (
                         <div
                             key={item}
-                            className={`cursor-pointer first:rounded-t-lg last:rounded-b-lg hover:bg-gray-100 p-1 ${
-                                index === selectedIndex ? 'bg-gray-100' : 'bg-white'
+                            className={`cursor-pointer first:rounded-t-2xl last:rounded-b-2xl hover:bg-black-a5 p-1 ${
+                                index === selectedIndex ? 'bg-gray-100' : ''
                             }`}
                             onMouseDown={event => {
                                 event.preventDefault()

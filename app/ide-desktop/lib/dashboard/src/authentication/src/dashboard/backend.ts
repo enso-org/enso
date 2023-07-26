@@ -593,13 +593,44 @@ export function groupPermissionsByUser(permissions: UserPermission[]) {
                 user.permissions = {
                     type: permissionsModule.Permission.view,
                     docs: false,
-                    execute: false,
+                    execute: 'execute' in user.permissions && user.permissions.execute,
                 }
                 break
             }
         }
     }
     return users
+}
+
+// ======================================
+// === permissionsToPermissionActions ===
+// ======================================
+
+/** Converts a {@link Permissions} to a list of backend {@link PermissionAction}s. */
+export function permissionsToPermissionActions(
+    permissions: permissionsModule.Permissions
+): PermissionAction[] {
+    switch (permissions.type) {
+        case permissionsModule.Permission.admin:
+        case permissionsModule.Permission.owner: {
+            return [PermissionAction.own]
+        }
+        case permissionsModule.Permission.edit: {
+            return [PermissionAction.edit]
+        }
+        case permissionsModule.Permission.read: {
+            return [
+                PermissionAction.view,
+                ...(permissions.execute ? [PermissionAction.execute] : []),
+            ]
+        }
+        case permissionsModule.Permission.view: {
+            return [
+                PermissionAction.view,
+                ...(permissions.execute ? [PermissionAction.execute] : []),
+            ]
+        }
+    }
 }
 
 // ===============

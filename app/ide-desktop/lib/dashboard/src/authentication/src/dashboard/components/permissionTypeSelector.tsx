@@ -49,35 +49,43 @@ const PERMISSION_TYPE_DATA: PermissionTypeData[] = [
 /** Props for a {@link PermissionTypeSelector}. */
 export interface PermissionTypeSelectorProps {
     type: permissions.Permission
+    style?: React.CSSProperties
     onChange: (permission: permissions.Permission) => void
 }
 
 /** A selector for all possible permission types. */
 export default function PermissionTypeSelector(props: PermissionTypeSelectorProps) {
-    const { type, onChange } = props
+    const { type, style, onChange } = props
     // FIXME: it must be offset such that the first button is where the original button is
     return (
-        <div className="relative">
+        <div
+            style={style}
+            className="relative"
+            onClick={event => {
+                event.stopPropagation()
+            }}
+        >
             <div className="absolute">
                 <div className="absolute bg-frame-selected rounded-2xl backdrop-blur-3xl w-full h-full -z-10" />
                 <div className="flex flex-col w-109.75 p-1">
                     {PERMISSION_TYPE_DATA.map(data => (
-                        <div
+                        <button
                             key={data.type}
-                            className={`flex rounded-full gap-2 h-8 px-1 ${
+                            disabled={type === data.type}
+                            className={`flex items-center rounded-full gap-2 h-8 px-1 ${
                                 type === data.type ? 'bg-black-a5' : ''
                             }`}
+                            onClick={() => {
+                                onChange(data.type)
+                            }}
                         >
-                            <button
+                            <div
                                 className={`rounded-full w-13 h-5 my-1 py-0.5 ${
                                     permissions.PERMISSION_CLASS_NAME[data.type]
                                 }`}
-                                onClick={() => {
-                                    onChange(data.type)
-                                }}
                             >
                                 {data.type}
-                            </button>
+                            </div>
                             <span className="font-normal leading-170 h-6.5 pt-1">
                                 <span className="h-5.5 py-px">=</span>
                             </span>
@@ -95,10 +103,10 @@ export default function PermissionTypeSelector(props: PermissionTypeSelectorProp
                                     </span>
                                 </>
                             )}
-                            <div className="h-6.5 pt-1">
+                            <div className="leading-170 h-6.5 pt-1">
                                 <span className="h-5.5 py-px">{data.description}</span>
                             </div>
-                        </div>
+                        </button>
                     ))}
                 </div>
             </div>

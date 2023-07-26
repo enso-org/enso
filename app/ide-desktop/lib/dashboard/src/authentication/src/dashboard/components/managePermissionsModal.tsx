@@ -1,19 +1,16 @@
 /** @file A modal with inputs for user email and permission level. */
 import * as React from 'react'
-import * as toastify from 'react-toastify'
-
-import CloseIcon from 'enso-assets/close.svg'
 
 import * as auth from '../../authentication/providers/auth'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
-import * as errorModule from '../../error'
-import * as modalProvider from '../../providers/modal'
+import * as hooks from '../../hooks'
 import * as permissionsModule from '../permissions'
 
 import Autocomplete from './autocomplete'
 import Modal from './modal'
 import PermissionSelector from './permissionSelector'
+import UserPermissions from './userPermissions'
 
 // ==============================
 // === ManagePermissionsModal ===
@@ -23,18 +20,10 @@ import PermissionSelector from './permissionSelector'
 export interface ManagePermissionsModalProps {
     asset: backendModule.Asset
     initialPermissions: permissionsModule.Permissions
-    emailsOfUsersWithPermission: Set<backendModule.EmailAddress>
+    usersPermissions: backendModule.UserPermissions[]
+    setUsersPermissions: (usersPermissions: backendModule.UserPermissions[]) => void
     /* If present, the user cannot be changed. */
     user?: backendModule.User
-    onSubmit: (users: backendModule.SimpleUser, permissions: permissionsModule.Permissions) => void
-    onSuccess?: (
-        users: backendModule.SimpleUser,
-        permissions: permissionsModule.Permissions
-    ) => void
-    onFailure?: (
-        users: backendModule.SimpleUser,
-        permissions: permissionsModule.Permissions
-    ) => void
     eventTarget: HTMLElement
 }
 
@@ -45,37 +34,46 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
     const {
         asset,
         initialPermissions,
-        emailsOfUsersWithPermission,
+        usersPermissions: initialUsersPermissions,
+        setUsersPermissions: outerSetUsersPermissions,
         user: rawUser,
-        onSubmit: rawOnSubmit,
-        onSuccess,
-        onFailure,
         eventTarget,
     } = props
     const { organization } = auth.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
-    const { unsetModal } = modalProvider.useSetModal()
-
-    const position = React.useMemo(() => eventTarget.getBoundingClientRect(), [eventTarget])
+    const toastAndLog = hooks.useToastAndLog()
     const [users, setUsers] = React.useState<backendModule.SimpleUser[]>([])
     const [matchingUsers, setMatchingUsers] = React.useState(users)
     const [email, setEmail] = React.useState<string | null>(rawUser?.user_email ?? null)
     const [permissions, setPermissions] = React.useState(initialPermissions)
+    const userEmailRef = React.useRef<HTMLInputElement>(null)
+    const position = React.useMemo(() => eventTarget.getBoundingClientRect(), [eventTarget])
+    const [usersPermissions, setUsersPermissions] = React.useState(initialUsersPermissions)
+    const emailsOfUsersWithPermission = React.useMemo(
+        () =>
+            new Set(usersPermissions.map<string>(userPermission => userPermission.user.user_email)),
+        [usersPermissions]
+    )
+    const usernamesOfUsersWithPermission = React.useMemo(
+        () =>
+            new Set(usersPermissions.map<string>(userPermission => userPermission.user.user_name)),
+        [usersPermissions]
+    )
 
-    // FIXME: if this is true, disable the permission selector
     const willInviteNewUser = React.useMemo(() => {
         if (email == null) {
             return false
         } else {
-            const lowercaseEmail = backendModule.EmailAddress(email.toLowerCase())
+            const lowercaseUser = email.toLowerCase()
             return (
                 userEmailRef.current?.validity.valid === true &&
-                lowercaseEmail !== '' &&
-                !emailsOfUsersWithPermission.has(lowercaseEmail) &&
-                !users.some(innerUser => innerUser.email.toLowerCase() === lowercaseEmail)
+                lowercaseUser !== '' &&
+                !emailsOfUsersWithPermission.has(lowercaseUser) &&
+                !usernamesOfUsersWithPermission.has(lowercaseUser) &&
+                !users.some(innerUser => innerUser.email.toLowerCase() === lowercaseUser)
             )
         }
-    }, [email, emailsOfUsersWithPermission, users])
+    }, [email, emailsOfUsersWithPermission, usernamesOfUsersWithPermission, users])
 
     const user = React.useMemo(() => {
         if (rawUser != null) {
@@ -86,8 +84,6 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
             return null
         }
     }, [rawUser, email, /* should never change */ asset.permissions])
-
-    const userEmailRef = React.useRef<HTMLInputElement>(null)
 
     if (backend.type === backendModule.BackendType.local || organization == null) {
         // This should never happen - the local backend does not have the "shared with" column,
@@ -120,65 +116,69 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
             /* should never change */ emailsOfUsersWithPermission,
         ])
 
-        const onSubmit = React.useCallback(
-            async (formEvent: React.FormEvent) => {
-                formEvent.preventDefault()
-                const isEmailInvalid = userEmailRef.current?.validity.valid === false
-                const usersMap = Object.fromEntries(
-                    users.map(theUser => [theUser.email.toLowerCase(), theUser])
-                )
-                const finalUser: backendModule.SimpleUser | null =
-                    rawUser != null
-                        ? { id: rawUser.pk, email: rawUser.user_email, name: rawUser.user_name }
-                        : email != null
-                        ? usersMap[email.toLowerCase()] ?? null
-                        : null
-                if (isEmailInvalid) {
-                    // This should never happen. Do nothing.
-                } else if (finalUser != null) {
-                    unsetModal()
-                    try {
-                        rawOnSubmit(finalUser, permissions)
-                        await backend.createPermission({
-                            userSubjects: [finalUser.id],
-                            resourceId: asset.id,
-                            actions: permissions,
+        const doSubmit = async () => {
+            if (willInviteNewUser) {
+                try {
+                    // If the email address is `null`, then the "Invite" button should be disabled,
+                    // meaning this callback should never run.
+                    if (email != null) {
+                        setEmail(null)
+                        await backend.inviteUser({
+                            organizationId: organization.id,
+                            userEmail: backendModule.EmailAddress(email),
                         })
-                        onSuccess?.(finalUser, permissions)
-                    } catch {
-                        onFailure?.(finalUser, permissions)
-                        toastify.toast.error(`Unable to set permissions of '${finalUser.email}'.`)
+                    }
+                } catch (error) {
+                    toastAndLog('Could not invite user', error)
+                }
+            } else {
+                setEmail(null)
+                const newUser = users.find(currentUser => currentUser.email === email)
+                if (newUser != null) {
+                    const userPermissions: backendModule.UserPermissions = {
+                        user: {
+                            // The names come from a third-party API and cannot be changed.
+                            /* eslint-disable @typescript-eslint/naming-convention */
+                            organization_id: organization.id,
+                            pk: newUser.id,
+                            user_email: newUser.email,
+                            user_name: newUser.name,
+                            /* eslint-enable @typescript-eslint/naming-convention */
+                        },
+                        permissions,
+                    }
+                    const oldUsersPermissions = usersPermissions
+                    try {
+                        // This type assertion is SAFE. It is required to avoid TypeScript's overly
+                        // eager narrowing.
+                        // eslint-disable-next-line no-restricted-syntax
+                        let found = false as boolean
+                        const newUsersPermissions = [
+                            ...usersPermissions.map(oldUserPermission => {
+                                if (oldUserPermission.user.pk === userPermissions.user.pk) {
+                                    found = true
+                                    return userPermissions
+                                } else {
+                                    return oldUserPermission
+                                }
+                            }),
+                            ...(found ? [] : [userPermissions]),
+                        ]
+                        setUsersPermissions(newUsersPermissions)
+                        outerSetUsersPermissions(newUsersPermissions)
+                        await backend.createPermission({
+                            userSubjects: [userPermissions.user.pk],
+                            resourceId: asset.id,
+                            actions: backendModule.permissionsToPermissionActions(permissions),
+                        })
+                    } catch (error) {
+                        setUsersPermissions(oldUsersPermissions)
+                        outerSetUsersPermissions(oldUsersPermissions)
+                        toastAndLog(`Unable to set permissions of '${newUser.email}'`, error)
                     }
                 }
-            },
-            [
-                email,
-                permissions,
-                asset.id,
-                users,
-                rawOnSubmit,
-                onSuccess,
-                onFailure,
-                /* should never change */ unsetModal,
-                /* should never change */ backend,
-                /* should never change */ rawUser,
-            ]
-        )
-
-        const doInviteUser = React.useCallback(async () => {
-            try {
-                // If the email address is `null`, then the "Invite" button should be disabled,
-                // meaning this callback should never run.
-                if (email != null) {
-                    await backend.inviteUser({
-                        organizationId: organization.id,
-                        userEmail: backendModule.EmailAddress(email),
-                    })
-                }
-            } catch (error) {
-                toastify.toast.error(errorModule.tryGetMessage(error) ?? 'Unknown error.')
             }
-        }, [backend, email, organization.id])
+        }
 
         return (
             <Modal className="absolute overflow-hidden bg-dim w-full h-full top-0 left-0 z-10">
@@ -205,6 +205,7 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
                         <div className="flex gap-1">
                             <div className="flex items-center grow rounded-full border border-black-a10 gap-2 px-1">
                                 <PermissionSelector
+                                    disabled={willInviteNewUser}
                                     initialPermissions={initialPermissions}
                                     onChange={setPermissions}
                                 />
@@ -230,14 +231,45 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
                                 />
                             </div>
                             <button
-                                disabled={!willInviteNewUser}
+                                disabled={
+                                    email == null ||
+                                    email === '' ||
+                                    userEmailRef.current?.validity.valid !== true
+                                }
                                 className="text-tag-text bg-invite rounded-full px-2 py-1 disabled:opacity-30"
-                                onClick={doInviteUser}
+                                onClick={doSubmit}
                             >
                                 <div className="h-6 py-0.5">Invite</div>
                             </button>
                         </div>
-                        {Array.from(emailsOfUsersWithPermission, email => {})}
+                        <div className="pl-1 pr-12">
+                            {usersPermissions.map(userPermissions => (
+                                <div
+                                    key={userPermissions.user.pk}
+                                    className="flex items-center h-8"
+                                >
+                                    <UserPermissions
+                                        asset={asset}
+                                        userPermissions={userPermissions}
+                                        setUserPermissions={newUserPermissions => {
+                                            setUsersPermissions(oldUsersPermissions => {
+                                                const newUsersPermissions = oldUsersPermissions.map(
+                                                    oldUserPermissions =>
+                                                        oldUserPermissions.user.pk ===
+                                                        newUserPermissions.user.pk
+                                                            ? newUserPermissions
+                                                            : oldUserPermissions
+                                                )
+                                                setTimeout(() => {
+                                                    outerSetUsersPermissions(newUsersPermissions)
+                                                }, 0)
+                                                return newUsersPermissions
+                                            })
+                                        }}
+                                    />
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 </div>
             </Modal>

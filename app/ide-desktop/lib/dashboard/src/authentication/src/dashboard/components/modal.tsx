@@ -11,6 +11,7 @@ import * as modalProvider from '../../providers/modal'
 export interface ModalProps extends React.PropsWithChildren {
     centered?: boolean
     className?: string
+    onClick?: (event: React.MouseEvent<HTMLDivElement>) => void
 }
 
 /** A fullscreen modal with content at the center.
@@ -18,7 +19,7 @@ export interface ModalProps extends React.PropsWithChildren {
  * background transparency can be enabled with Tailwind's `bg-opacity` classes,
  * like `className="bg-opacity-50"` */
 export default function Modal(props: ModalProps) {
-    const { children, centered = false, className } = props
+    const { children, centered = false, className, onClick } = props
     const { unsetModal } = modalProvider.useSetModal()
 
     return (
@@ -26,12 +27,15 @@ export default function Modal(props: ModalProps) {
             className={`inset-0 ${
                 centered ? 'fixed w-screen h-screen grid place-items-center ' : ''
             }${className ?? ''}`}
-            onClick={event => {
-                if (event.currentTarget === event.target && getSelection()?.type !== 'Range') {
-                    event.stopPropagation()
-                    unsetModal()
-                }
-            }}
+            onClick={
+                onClick ??
+                (event => {
+                    if (event.currentTarget === event.target && getSelection()?.type !== 'Range') {
+                        event.stopPropagation()
+                        unsetModal()
+                    }
+                })
+            }
         >
             {children}
         </div>

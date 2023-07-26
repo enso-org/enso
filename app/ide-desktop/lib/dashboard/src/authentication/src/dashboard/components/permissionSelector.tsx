@@ -2,7 +2,17 @@
 import * as React from 'react'
 
 import * as permissionsModule from '../permissions'
+import Modal from './modal'
 import PermissionTypeSelector from './permissionTypeSelector'
+
+// =================
+// === Constants ===
+// =================
+
+/** The horizontal offset of the {@link PermissionTypeSelector} from its parent element. */
+const TYPE_SELECTOR_HORIZONTAL_OFFSET = -8
+/** The vertical offset of the {@link PermissionTypeSelector} from its parent element. */
+const TYPE_SELECTOR_VERTICAL_OFFSET = -8
 
 // ==========================
 // === PermissionSelector ===
@@ -10,6 +20,7 @@ import PermissionTypeSelector from './permissionTypeSelector'
 
 /** Props for a {@link PermissionSelector}. */
 export interface PermissionSelectorProps {
+    disabled?: boolean
     /** If this prop changes, the internal state will be updated too. */
     initialPermissions?: permissionsModule.Permissions | null
     className?: string
@@ -18,44 +29,60 @@ export interface PermissionSelectorProps {
 
 /** A horizontal selector for all possible permissions. */
 export default function PermissionSelector(props: PermissionSelectorProps) {
-    const { initialPermissions, className, onChange } = props
-    const [permissions, setPermissions] = React.useState<permissionsModule.Permissions>(
+    const { disabled = false, initialPermissions, className, onChange } = props
+    const [permissions, rawSetPermissions] = React.useState<permissionsModule.Permissions>(
         initialPermissions ?? permissionsModule.DEFAULT_PERMISSIONS
     )
     const [TheChild, setTheChild] = React.useState<(() => JSX.Element) | null>()
 
-    React.useEffect(() => {
-        onChange(permissions)
-    }, [onChange, permissions])
+    const setPermissions = (newPermissions: permissionsModule.Permissions) => {
+        rawSetPermissions(newPermissions)
+        onChange(newPermissions)
+    }
 
-    const showPermissionTypeSelector = React.useCallback(() => {
+    const doShowPermissionTypeSelector = (event: React.SyntheticEvent<HTMLElement>) => {
+        const position = event.currentTarget.getBoundingClientRect()
+        const left = position.left + window.scrollX + TYPE_SELECTOR_HORIZONTAL_OFFSET
+        const top = position.top + window.scrollY + TYPE_SELECTOR_VERTICAL_OFFSET
         setTheChild(
             () =>
                 function Child() {
                     return (
-                        <PermissionTypeSelector
-                            type={permissions.type}
-                            onChange={type => {
+                        <Modal
+                            className="fixed bg-dim w-screen h-screen top-0 left-0 z-10"
+                            onClick={() => {
                                 setTheChild(null)
-                                let newPermissions: permissionsModule.Permissions
-                                switch (type) {
-                                    case permissionsModule.Permission.read:
-                                    case permissionsModule.Permission.view: {
-                                        newPermissions = { type, docs: false, execute: false }
-                                        break
-                                    }
-                                    default: {
-                                        newPermissions = { type }
-                                        break
-                                    }
-                                }
-                                setPermissions(newPermissions)
                             }}
-                        />
+                        >
+                            <PermissionTypeSelector
+                                type={permissions.type}
+                                style={{ left, top }}
+                                onChange={type => {
+                                    setTheChild(null)
+                                    let newPermissions: permissionsModule.Permissions
+                                    switch (type) {
+                                        case permissionsModule.Permission.read:
+                                        case permissionsModule.Permission.view: {
+                                            newPermissions = {
+                                                type,
+                                                docs: false,
+                                                execute: false,
+                                            }
+                                            break
+                                        }
+                                        default: {
+                                            newPermissions = { type }
+                                            break
+                                        }
+                                    }
+                                    setPermissions(newPermissions)
+                                }}
+                            />
+                        </Modal>
                     )
                 }
         )
-    }, [permissions.type])
+    }
 
     let permissionDisplay: JSX.Element
 
@@ -65,15 +92,19 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
             permissionDisplay = (
                 <div className="flex gap-px w-30.25">
                     <button
-                        className={`grow rounded-l-full h-6 px-1.75 py-0.5 ${
+                        disabled={disabled}
+                        className={`${
                             permissionsModule.PERMISSION_CLASS_NAME[permissions.type]
-                        }`}
-                        onClick={showPermissionTypeSelector}
+                        } grow rounded-l-full h-6 px-1.75 py-0.5 disabled:opacity-30`}
+                        onClick={doShowPermissionTypeSelector}
                     >
                         {permissions.type}
                     </button>
                     <button
-                        className={`grow h-6 px-1.75 py-0.5 ${permissionsModule.DOCS_CLASS_NAME} ${
+                        disabled={disabled}
+                        className={`${
+                            permissionsModule.DOCS_CLASS_NAME
+                        } grow h-6 px-1.75 py-0.5 disabled:opacity-30 ${
                             permissions.docs ? '' : 'opacity-30'
                         }`}
                         onClick={event => {
@@ -84,9 +115,12 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
                         docs
                     </button>
                     <button
-                        className={`grow rounded-r-full h-6 px-1.75 py-0.5 ${
+                        disabled={disabled}
+                        className={`${
                             permissionsModule.EXEC_CLASS_NAME
-                        } ${permissions.execute ? '' : 'opacity-30'}`}
+                        } grow rounded-r-full h-6 px-1.75 py-0.5 disabled:opacity-30 ${
+                            permissions.execute ? '' : 'opacity-30'
+                        }`}
                         onClick={event => {
                             event.stopPropagation()
                             setPermissions({ ...permissions, execute: !permissions.execute })
@@ -101,10 +135,11 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
         default: {
             permissionDisplay = (
                 <button
+                    disabled={disabled}
                     className={`${
                         permissionsModule.PERMISSION_CLASS_NAME[permissions.type]
-                    } rounded-full w-30.25`}
-                    onClick={showPermissionTypeSelector}
+                    } rounded-full h-6 w-30.25 disabled:opacity-30`}
+                    onClick={doShowPermissionTypeSelector}
                 >
                     {permissions.type}
                 </button>

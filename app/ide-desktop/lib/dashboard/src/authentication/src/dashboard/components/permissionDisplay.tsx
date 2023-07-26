@@ -2,107 +2,65 @@
 import * as React from 'react'
 
 import * as backend from '../backend'
-
-// =============
-// === Types ===
-// =============
-
-/** Type of permission. This determines what kind of border is displayed. */
-export enum Permission {
-    owner = 'owner',
-    admin = 'admin',
-    edit = 'edit',
-    read = 'read',
-    view = 'view',
-}
-
-/** Properties common to all permissions. */
-interface BasePermissions<T extends Permission> {
-    type: T
-}
-
-/** Owner permissions for an asset. */
-interface OwnerPermissions extends BasePermissions<Permission.owner> {}
-
-/** Admin permissions for an asset. */
-interface AdminPermissions extends BasePermissions<Permission.admin> {}
-
-/** Editor permissions for an asset. */
-interface EditPermissions extends BasePermissions<Permission.edit> {}
-
-/** Reader permissions for an asset. */
-interface ReadPermissions extends BasePermissions<Permission.read> {
-    execute: boolean
-    docs: boolean
-}
-
-/** Viewer permissions for an asset. */
-interface ViewPermissions extends BasePermissions<Permission.view> {
-    execute: boolean
-    docs: boolean
-}
-
-/** Detailed permission information. This is used to draw the border. */
-export type Permissions =
-    | AdminPermissions
-    | EditPermissions
-    | OwnerPermissions
-    | ReadPermissions
-    | ViewPermissions
+import * as permissionsModule from '../permissions'
 
 // =================
 // === Constants ===
 // =================
 
 /** CSS classes for each permission. */
-export const PERMISSION_CLASS_NAME: Record<Permission, string> = {
-    [Permission.owner]: 'text-tag-text bg-permission-owner',
-    [Permission.admin]: 'text-tag-text bg-permission-admin',
-    [Permission.edit]: 'text-tag-text bg-permission-edit',
-    [Permission.read]: 'text-tag-text bg-permission-read',
-    [Permission.view]: 'text-tag-text-2 bg-permission-view',
+export const PERMISSION_CLASS_NAME: Record<permissionsModule.Permission, string> = {
+    [permissionsModule.Permission.owner]: 'text-tag-text bg-permission-owner',
+    [permissionsModule.Permission.admin]: 'text-tag-text bg-permission-admin',
+    [permissionsModule.Permission.edit]: 'text-tag-text bg-permission-edit',
+    [permissionsModule.Permission.read]: 'text-tag-text bg-permission-read',
+    [permissionsModule.Permission.view]: 'text-tag-text-2 bg-permission-view',
 } as const
 
 /** Precedences for each permission. A lower number means a higher priority. */
-const PERMISSION_PRECEDENCE: Record<Permission, number> = {
+const PERMISSION_PRECEDENCE: Record<permissionsModule.Permission, number> = {
     // These are not magic numbers - they are just a sequence of numbers.
     /* eslint-disable @typescript-eslint/no-magic-numbers */
-    [Permission.owner]: 0,
-    [Permission.admin]: 1,
-    [Permission.edit]: 2,
-    [Permission.read]: 3,
-    [Permission.view]: 4,
+    [permissionsModule.Permission.owner]: 0,
+    [permissionsModule.Permission.admin]: 1,
+    [permissionsModule.Permission.edit]: 2,
+    [permissionsModule.Permission.read]: 3,
+    [permissionsModule.Permission.view]: 4,
     /* eslint-enable @typescript-eslint/no-magic-numbers */
 }
 
 /** The corresponding `Permissions` for each backend `PermissionAction`. */
-export const PERMISSION: Record<backend.PermissionAction, Permissions> = {
-    [backend.PermissionAction.own]: { type: Permission.owner },
+export const PERMISSION: Record<backend.PermissionAction, permissionsModule.Permissions> = {
+    [backend.PermissionAction.own]: { type: permissionsModule.Permission.owner },
     [backend.PermissionAction.execute]: {
-        type: Permission.read,
+        type: permissionsModule.Permission.read,
         execute: true,
         docs: false,
     },
-    [backend.PermissionAction.edit]: { type: Permission.edit },
-    [backend.PermissionAction.view]: { type: Permission.view, execute: false, docs: false },
+    [backend.PermissionAction.edit]: { type: permissionsModule.Permission.edit },
+    [backend.PermissionAction.view]: {
+        type: permissionsModule.Permission.view,
+        execute: false,
+        docs: false,
+    },
 }
 
 // ======================
 // === permissionsToX ===
 // ======================
 
-/** Converts an array of {@link backend.PermissionAction} to a {@link Permissions}. */
+/** Converts an array of {@link backend.PermissionAction} to a {@link permissionsModule.Permissions}. */
 export function permissionActionsToPermissions(
-    permissions: backend.PermissionAction[]
-): Permissions {
-    return permissions.reduce<Permissions>(
+    permissionActions: backend.PermissionAction[]
+): permissionsModule.Permissions {
+    return permissionActions.reduce<permissionsModule.Permissions>(
         (result, action) => {
             const actionResult = PERMISSION[action]
             return PERMISSION_PRECEDENCE[actionResult.type] <= PERMISSION_PRECEDENCE[result.type]
                 ? actionResult
                 : result
         },
-        { type: Permission.view, execute: false, docs: false }
+        { type: permissionsModule.Permission.view, execute: false, docs: false }
     )
 }
 
@@ -112,7 +70,7 @@ export function permissionActionsToPermissions(
 
 /** Props for a {@link PermissionDisplay}. */
 export interface PermissionDisplayProps extends React.PropsWithChildren {
-    permissions: Permissions
+    permissions: permissionsModule.Permissions
     className?: string
     onClick?: React.MouseEventHandler<HTMLDivElement>
     onMouseEnter?: React.MouseEventHandler<HTMLDivElement>
@@ -124,9 +82,9 @@ export default function PermissionDisplay(props: PermissionDisplayProps) {
     const { permissions, className, onClick, onMouseEnter, onMouseLeave, children } = props
 
     switch (permissions.type) {
-        case Permission.owner:
-        case Permission.admin:
-        case Permission.edit: {
+        case permissionsModule.Permission.owner:
+        case permissionsModule.Permission.admin:
+        case permissionsModule.Permission.edit: {
             return (
                 <div
                     className={`${
@@ -140,8 +98,8 @@ export default function PermissionDisplay(props: PermissionDisplayProps) {
                 </div>
             )
         }
-        case Permission.read:
-        case Permission.view: {
+        case permissionsModule.Permission.read:
+        case permissionsModule.Permission.view: {
             return (
                 <div
                     className={`relative inline-block rounded-full ${className ?? ''}`}
