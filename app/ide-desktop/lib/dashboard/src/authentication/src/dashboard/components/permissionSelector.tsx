@@ -1,27 +1,8 @@
 /** @file A selector for all possible permissions. */
 import * as React from 'react'
 
-import * as backend from '../backend'
-import * as set from '../../set'
-
-import PermissionDisplay, * as permissionDisplay from './permissionDisplay'
-
-// =================
-// === Constants ===
-// =================
-
-/** A list of all permissions, and relevant associated data. */
-const PERMISSIONS = [
-    // `name` currently holds the same as `action`. However, it may need to change in the future,
-    // for features like internalization, so it is kept separate.
-    { action: backend.PermissionAction.own, name: 'Own' },
-    { action: backend.PermissionAction.execute, name: 'Execute' },
-    { action: backend.PermissionAction.edit, name: 'Edit' },
-    { action: backend.PermissionAction.view, name: 'View' },
-].map(object => ({
-    ...object,
-    permission: permissionDisplay.PERMISSION[object.action],
-}))
+import * as permissionsModule from '../permissions'
+import PermissionTypeSelector from './permissionTypeSelector'
 
 // ==========================
 // === PermissionSelector ===
@@ -30,73 +11,112 @@ const PERMISSIONS = [
 /** Props for a {@link PermissionSelector}. */
 export interface PermissionSelectorProps {
     /** If this prop changes, the internal state will be updated too. */
-    initialPermissions?: backend.PermissionAction[] | null
+    initialPermissions?: permissionsModule.Permissions | null
     className?: string
-    permissionClassName?: string
-    onChange: (permissions: Set<backend.PermissionAction>) => void
+    onChange: (permissions: permissionsModule.Permissions) => void
 }
 
 /** A horizontal selector for all possible permissions. */
 export default function PermissionSelector(props: PermissionSelectorProps) {
-    const { initialPermissions, className, permissionClassName, onChange } = props
-    const [permissions, setPermissions] = React.useState(() => new Set<backend.PermissionAction>())
+    const { initialPermissions, className, onChange } = props
+    const [permissions, setPermissions] = React.useState<permissionsModule.Permissions>(
+        initialPermissions ?? permissionsModule.DEFAULT_PERMISSIONS
+    )
+    const [TheChild, setTheChild] = React.useState<(() => JSX.Element) | null>()
 
     React.useEffect(() => {
-        if (initialPermissions != null) {
-            const initialPermissionsSet = new Set(initialPermissions)
-            setPermissions(initialPermissionsSet)
-            onChange(initialPermissionsSet)
-        }
-        // `onChange` is NOT a dependency.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [initialPermissions])
+        onChange(permissions)
+    }, [onChange, permissions])
 
-    return (
-        <div className={`flex justify-items-center ${className ?? ''}`}>
-            {PERMISSIONS.map(object => {
-                const { name, action, permission } = object
-
-                return (
-                    <div className="flex flex-1" key={action}>
-                        <label
-                            htmlFor={`share_with_permission_${action.toLowerCase()}`}
-                            className="m-auto"
-                        >
-                            <PermissionDisplay
-                                permissions={permission}
-                                className={`cursor-pointer ${
-                                    permissions.has(action) ? '' : 'opacity-50'
-                                } ${permissionClassName ?? ''}`}
-                            >
-                                {name}
-                            </PermissionDisplay>
-                        </label>
-                        <input
-                            type="checkbox"
-                            checked={permissions.has(action)}
-                            id={`share_with_permission_${action.toLowerCase()}`}
-                            name="share_with_permission_input"
-                            className="w-0 h-0"
-                            onChange={event => {
-                                const element = event.currentTarget
-                                let newPermissions: Set<backend.PermissionAction>
-                                if (action === backend.PermissionAction.own) {
-                                    newPermissions = new Set(element.checked ? [action] : [])
-                                } else {
-                                    newPermissions = set.withPresence(
-                                        permissions,
-                                        action,
-                                        element.checked
-                                    )
-                                    newPermissions.delete(backend.PermissionAction.own)
+    const showPermissionTypeSelector = React.useCallback(() => {
+        setTheChild(
+            () =>
+                function Child() {
+                    return (
+                        <PermissionTypeSelector
+                            type={permissions.type}
+                            onChange={type => {
+                                setTheChild(null)
+                                let newPermissions: permissionsModule.Permissions
+                                switch (type) {
+                                    case permissionsModule.Permission.read:
+                                    case permissionsModule.Permission.view: {
+                                        newPermissions = { type, docs: false, execute: false }
+                                        break
+                                    }
+                                    default: {
+                                        newPermissions = { type }
+                                        break
+                                    }
                                 }
                                 setPermissions(newPermissions)
-                                onChange(newPermissions)
                             }}
                         />
-                    </div>
-                )
-            })}
+                    )
+                }
+        )
+    }, [permissions.type])
+
+    let permissionDisplay: JSX.Element
+
+    switch (permissions.type) {
+        case permissionsModule.Permission.read:
+        case permissionsModule.Permission.view: {
+            permissionDisplay = (
+                <div className="flex gap-px w-30.25">
+                    <button
+                        className={`grow rounded-l-full h-6 px-1.75 py-0.5 ${
+                            permissionsModule.PERMISSION_CLASS_NAME[permissions.type]
+                        }`}
+                        onClick={showPermissionTypeSelector}
+                    >
+                        {permissions.type}
+                    </button>
+                    <button
+                        className={`grow h-6 px-1.75 py-0.5 ${permissionsModule.DOCS_CLASS_NAME} ${
+                            permissions.docs ? '' : 'opacity-30'
+                        }`}
+                        onClick={event => {
+                            event.stopPropagation()
+                            setPermissions({ ...permissions, docs: !permissions.docs })
+                        }}
+                    >
+                        docs
+                    </button>
+                    <button
+                        className={`grow rounded-r-full h-6 px-1.75 py-0.5 ${
+                            permissionsModule.EXEC_CLASS_NAME
+                        } ${permissions.execute ? '' : 'opacity-30'}`}
+                        onClick={event => {
+                            event.stopPropagation()
+                            setPermissions({ ...permissions, execute: !permissions.execute })
+                        }}
+                    >
+                        exec
+                    </button>
+                </div>
+            )
+            break
+        }
+        default: {
+            permissionDisplay = (
+                <button
+                    className={`${
+                        permissionsModule.PERMISSION_CLASS_NAME[permissions.type]
+                    } rounded-full w-30.25`}
+                    onClick={showPermissionTypeSelector}
+                >
+                    {permissions.type}
+                </button>
+            )
+            break
+        }
+    }
+
+    return (
+        <div className={className}>
+            {permissionDisplay}
+            {TheChild && <TheChild />}
         </div>
     )
 }

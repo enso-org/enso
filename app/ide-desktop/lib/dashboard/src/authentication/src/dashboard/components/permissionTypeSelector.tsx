@@ -9,6 +9,7 @@ import * as permissions from '../permissions'
 /** Data for */
 interface PermissionTypeData {
     type: permissions.Permission
+    previous: permissions.Permission | null
     description: string
 }
 
@@ -16,27 +17,28 @@ interface PermissionTypeData {
 const PERMISSION_TYPE_DATA: PermissionTypeData[] = [
     {
         type: permissions.Permission.view,
-        description:
-            'Can see the file but not read it. Can also be allowed to edit documentation and execute the project.',
+        previous: null,
+        description: 'File visibility only. Optionally, edit docs and execute project.',
     },
     {
         type: permissions.Permission.read,
-        description:
-            'Can read the file. Can also be allowed to edit documentation or execute the project.',
+        previous: permissions.Permission.view,
+        description: 'File content reading.',
     },
     {
         type: permissions.Permission.edit,
-        description: 'Can edit the file, its documentation, and execute the project.',
+        previous: permissions.Permission.read,
+        description: 'File editing.',
     },
     {
         type: permissions.Permission.admin,
-        description:
-            'Can see the files. Optionally, can be assigned with permissions to edit documentation or execute the project.',
+        previous: permissions.Permission.edit,
+        description: 'Sharing management.',
     },
     {
         type: permissions.Permission.owner,
-        description:
-            'Can see the files. Optionally, can be assigned with permissions to edit documentation or execute the project.',
+        previous: permissions.Permission.admin,
+        description: 'File removal permission.',
     },
 ]
 
@@ -46,30 +48,60 @@ const PERMISSION_TYPE_DATA: PermissionTypeData[] = [
 
 /** Props for a {@link PermissionTypeSelector}. */
 export interface PermissionTypeSelectorProps {
+    type: permissions.Permission
     onChange: (permission: permissions.Permission) => void
 }
 
 /** A selector for all possible permission types. */
 export default function PermissionTypeSelector(props: PermissionTypeSelectorProps) {
-    const { onChange } = props
+    const { type, onChange } = props
     // FIXME: it must be offset such that the first button is where the original button is
     return (
-        <div className="flex flex-col gap-2 px-4 pt-2 pb-3">
-            {PERMISSION_TYPE_DATA.map(data => (
-                <div key={data.type} className="gap-1.5">
-                    <button
-                        className={`rounded-full w-30.25 h-5 my-1 py-0.5 ${
-                            permissions.PERMISSION_CLASS_NAME[data.type]
-                        }`}
-                        onClick={() => {
-                            onChange(data.type)
-                        }}
-                    >
-                        {data.type}
-                    </button>
-                    <span className="pt-1">{data.description}</span>
+        <div className="relative">
+            <div className="absolute">
+                <div className="absolute bg-frame-selected rounded-2xl backdrop-blur-3xl w-full h-full -z-10" />
+                <div className="flex flex-col w-109.75 p-1">
+                    {PERMISSION_TYPE_DATA.map(data => (
+                        <div
+                            key={data.type}
+                            className={`flex rounded-full gap-2 h-8 px-1 ${
+                                type === data.type ? 'bg-black-a5' : ''
+                            }`}
+                        >
+                            <button
+                                className={`rounded-full w-13 h-5 my-1 py-0.5 ${
+                                    permissions.PERMISSION_CLASS_NAME[data.type]
+                                }`}
+                                onClick={() => {
+                                    onChange(data.type)
+                                }}
+                            >
+                                {data.type}
+                            </button>
+                            <span className="font-normal leading-170 h-6.5 pt-1">
+                                <span className="h-5.5 py-px">=</span>
+                            </span>
+                            {data.previous != null && (
+                                <>
+                                    <div
+                                        className={`text-center rounded-full w-13 h-5 my-1 py-0.5 ${
+                                            permissions.PERMISSION_CLASS_NAME[data.previous]
+                                        }`}
+                                    >
+                                        {data.previous}
+                                    </div>
+                                    <span className="font-normal leading-170 h-6.5 pt-1">
+                                        <span className="h-5.5 py-px">+</span>
+                                    </span>
+                                </>
+                            )}
+                            <div className="h-6.5 pt-1">
+                                <span className="h-5.5 py-px">{data.description}</span>
+                            </div>
+                        </div>
+                    ))}
                 </div>
-            ))}
+            </div>
         </div>
     )
 }

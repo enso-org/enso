@@ -1,6 +1,9 @@
 /** @file Utilities for working with permissions. */
 import * as backend from './backend'
 
+/** This file MUST be `.tsx` even though it does not contain JSX, in order for Tailwind to include
+ * the classes in this file. */
+
 // ==================
 // === Permission ===
 // ==================
@@ -23,6 +26,11 @@ export const PERMISSION_CLASS_NAME: Record<Permission, string> = {
     [Permission.view]: 'text-tag-text-2 bg-permission-view',
 } as const
 
+/** CSS classes for the docs permission. */
+export const DOCS_CLASS_NAME = 'text-tag-text bg-permission-docs'
+/** CSS classes for the execute permission. */
+export const EXEC_CLASS_NAME = 'text-tag-text bg-permission-exec'
+
 // ===================
 // === Permissions ===
 // ===================
@@ -43,14 +51,14 @@ interface EditPermissions extends BasePermissions<Permission.edit> {}
 
 /** Reader permissions for an asset. */
 interface ReadPermissions extends BasePermissions<Permission.read> {
-    execute: boolean
     docs: boolean
+    execute: boolean
 }
 
 /** Viewer permissions for an asset. */
 interface ViewPermissions extends BasePermissions<Permission.view> {
-    execute: boolean
     docs: boolean
+    execute: boolean
 }
 
 /** Detailed permission information. This is used to draw the border. */
@@ -60,6 +68,12 @@ export type Permissions =
     | OwnerPermissions
     | ReadPermissions
     | ViewPermissions
+
+export const DEFAULT_PERMISSIONS = Object.freeze<Permissions>({
+    type: Permission.view,
+    docs: false,
+    execute: false,
+})
 
 // ======================================
 // === tryGetSingletonOwnerPermission ===

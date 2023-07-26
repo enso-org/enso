@@ -2,6 +2,7 @@
 
 import * as dateTime from './dateTime'
 import * as newtype from '../newtype'
+import * as permissionsModule from './permissions'
 
 // =============
 // === Types ===
@@ -299,11 +300,10 @@ export interface UserPermission {
     permission: PermissionAction
 }
 
-/** User permissions for a specific user. This is only returned by
- * {@link groupPermissionsByUser}. */
+/** User permissions for a specific user. This is only returned by {@link groupPermissionsByUser}. */
 export interface UserPermissions {
     user: User
-    permissions: PermissionAction[]
+    permissions: permissionsModule.Permissions
 }
 
 /** The type returned from the "update directory" endpoint. */
@@ -565,16 +565,38 @@ export function groupPermissionsByUser(permissions: UserPermission[]) {
     const users: UserPermissions[] = []
     const userMap: Record<Subject, UserPermissions> = {}
     for (const permission of permissions) {
-        const existingUser = userMap[permission.user.pk]
-        if (existingUser != null) {
-            existingUser.permissions.push(permission.permission)
-        } else {
-            const newUser: UserPermissions = {
+        let user = userMap[permission.user.pk]
+        if (user == null) {
+            user = {
                 user: permission.user,
-                permissions: [permission.permission],
+                permissions: { ...permissionsModule.DEFAULT_PERMISSIONS },
             }
-            users.push(newUser)
-            userMap[permission.user.pk] = newUser
+            userMap[permission.user.pk] = user
+            users.push(user)
+        }
+        switch (permission.permission) {
+            case PermissionAction.own: {
+                user.permissions = { type: permissionsModule.Permission.owner }
+                break
+            }
+            case PermissionAction.execute: {
+                if ('execute' in user.permissions) {
+                    user.permissions.execute = true
+                }
+                break
+            }
+            case PermissionAction.edit: {
+                user.permissions = { type: permissionsModule.Permission.edit }
+                break
+            }
+            case PermissionAction.view: {
+                user.permissions = {
+                    type: permissionsModule.Permission.view,
+                    docs: false,
+                    execute: false,
+                }
+                break
+            }
         }
     }
     return users

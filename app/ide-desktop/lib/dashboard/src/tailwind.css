@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=M+PLUS+1:wght@500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=M+PLUS+1:wght@400;500;600;700&display=swap");
 @import "react-toastify/dist/ReactToastify.css";
 
 body {
@@ -104,6 +104,10 @@ body {
 
     .scroll-hidden::-webkit-scrollbar {
       display: none; /* Safari and Chrome */
+    }
+
+    .backface-invisible {
+      backface-visibility: hidden;
     }
 
     .rounded-rows > tbody > tr:nth-child(odd) {
