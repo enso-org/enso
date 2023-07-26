@@ -30,13 +30,14 @@ use ensogl_core::application;
 use ensogl_core::application::command::FrpNetworkProvider;
 use ensogl_core::application::shortcut;
 use ensogl_core::application::Application;
+use ensogl_core::control::io::keyboard::event::*;
 use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::gui::cursor;
 use ensogl_core::system::web::clipboard;
 use ensogl_text_font_family::NonVariableFaceHeader;
 use owned_ttf_parser::AsFaceRef;
-use std::ops::Not;
+
 
 
 // ==============
@@ -163,11 +164,12 @@ impl From<LinesVec> for Lines {
 
 /// The visual text area implementation. It is meant to be a generic rich text component which you
 /// should use everywhere you want to display text.
-#[derive(Clone, CloneRef, Debug, Deref)]
+#[derive(Clone, CloneRef, Debug, Deref, display::Object)]
 #[allow(missing_docs)]
 pub struct Text {
     #[deref]
     pub frp:  Frp,
+    #[display_object]
     pub data: TextModel,
 }
 
@@ -298,6 +300,7 @@ ensogl_core::define_endpoints_2! {
 
         hover(),
         unhover(),
+        focus(),
         set_single_line_mode(bool),
         set_hover(bool),
 
@@ -363,6 +366,7 @@ ensogl_core::define_endpoints_2! {
 impl Text {
     fn init(self) -> Self {
         self.init_hover();
+        self.init_focus();
         self.init_single_line_mode();
         self.init_cursors();
         self.init_selections();
@@ -384,6 +388,16 @@ impl Text {
             hovered <- any(&input.set_hover,&hovered);
             out.hovered <+ hovered;
             out.pointer_style <+ out.hovered.map(|h| h.then_or_default(cursor::Style::cursor));
+        }
+    }
+
+    fn init_focus(&self) {
+        let m = &self.data;
+        let network = self.frp.network();
+        let input = &self.frp.input;
+
+        frp::extend! { network
+            eval_ input.focus (m.focus());
         }
     }
 
@@ -560,11 +574,11 @@ impl Text {
     fn init_edits(&self) {
         let m = &self.data;
         let scene = &m.app.display.default_scene;
-        let keyboard = &scene.keyboard;
         let network = self.frp.network();
         let input = &self.frp.input;
         let out = &self.frp.private.output;
         let after_animations = ensogl_core::animation::on_after_animations();
+        let key_down = scene.on_event::<KeyDown>();
 
         frp::extend! { network
 
@@ -575,9 +589,7 @@ impl Text {
             eval_ input.delete_word_left (m.buffer.frp.delete_word_left());
             eval_ input.delete_word_right (m.buffer.frp.delete_word_right());
 
-            key_down <- keyboard.frp.down.gate_not(&keyboard.frp.is_meta_down);
-            key_down <- key_down.gate_not(&keyboard.frp.is_control_down);
-            key_to_insert <= key_down.map(f!((key) m.key_to_string(key).map(ImString::from)));
+            key_to_insert <= key_down.map2(&out.single_line_mode, TextModel::process_key_event);
             str_to_insert <- any(&input.insert, &key_to_insert);
             eval str_to_insert ((s) m.buffer.frp.insert(s));
             eval input.set_content ((s) {
@@ -703,13 +715,13 @@ impl Text {
 // =================
 
 /// Internal representation of `Text`.
-#[derive(Clone, CloneRef, Debug, Deref)]
+#[derive(Clone, CloneRef, Debug, Deref, display::Object)]
 pub struct TextModel {
     rc: Rc<TextModelData>,
 }
 
 /// Internal representation of `Text`.
-#[derive(Debug, Deref)]
+#[derive(Debug, Deref, display::Object)]
 pub struct TextModelData {
     #[deref]
     buffer:         buffer::Buffer,
@@ -1913,10 +1925,23 @@ impl TextModel {
         *s = s.lines().next().unwrap_or("").to_string();
     }
 
-    fn key_to_string(&self, key: &Key) -> Option<String> {
+    fn process_key_event(
+        event: &ensogl_core::event::Event<KeyDown>,
+        single_line_mode: &bool,
+    ) -> Option<ImString> {
+        let check_modifiers = (!event.ctrl() && !event.meta()).then_some(());
+        let text =
+            check_modifiers.and_then(|_| Self::key_to_string(event.key(), *single_line_mode));
+        if text.is_some() {
+            event.stop_propagation();
+        }
+        text
+    }
+
+    fn key_to_string(key: &Key, single_line_mode: bool) -> Option<ImString> {
         match key {
-            Key::Character(s) => Some(s.clone()),
-            Key::Enter => self.frp.output.single_line_mode.value().not().as_some("\n".into()),
+            Key::Character(s) => Some(s.into()),
+            Key::Enter if !single_line_mode => Some("\n".into()),
             Key::Space => Some(" ".into()),
             _ => None,
         }
@@ -1945,18 +1970,6 @@ where T: for<'t> FromInContextSnapped<&'t TextModel, S>
     }
 }
 
-impl display::Object for TextModel {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
-    }
-}
-
-impl display::Object for Text {
-    fn display_object(&self) -> &display::object::Instance {
-        self.data.display_object()
-    }
-}
-
 impl FrpNetworkProvider for Text {
     fn network(&self) -> &frp::Network {
         self.frp.network()
@@ -1978,63 +1991,74 @@ impl application::View for Text {
         Text::new(app)
     }
 
-    fn default_shortcuts() -> Vec<shortcut::Shortcut> {
+    fn global_shortcuts() -> Vec<shortcut::Shortcut> {
         use shortcut::ActionType::*;
-        ([
-            (PressAndRepeat, "left", "cursor_move_left"),
-            (PressAndRepeat, "right", "cursor_move_right"),
-            (PressAndRepeat, "up", "cursor_move_up"),
-            (PressAndRepeat, "down", "cursor_move_down"),
-            (PressAndRepeat, "cmd left", "cursor_move_left_word"),
-            (PressAndRepeat, "cmd right", "cursor_move_right_word"),
-            (Press, "alt left", "cursor_move_left_of_line"),
-            (Press, "alt right", "cursor_move_right_of_line"),
-            (Press, "home", "cursor_move_left_of_line"),
-            (Press, "end", "cursor_move_right_of_line"),
-            (Press, "alt shift left", "cursor_select_left_of_line"),
-            (Press, "alt shift right", "cursor_select_right_of_line"),
-            (Press, "shift home", "cursor_select_left_of_line"),
-            (Press, "shift end", "cursor_select_right_of_line"),
-            (Press, "cmd up", "cursor_move_to_text_start"),
-            (Press, "cmd down", "cursor_move_to_text_end"),
-            (Press, "ctrl home", "cursor_move_to_text_start"),
-            (Press, "ctrl end", "cursor_move_to_text_end"),
-            (Press, "cmd shift up", "cursor_select_to_text_start"),
-            (Press, "cmd shift down", "cursor_select_to_text_end"),
-            (Press, "ctrl shift home", "cursor_select_to_text_start"),
-            (Press, "ctrl shift end", "cursor_select_to_text_end"),
-            (PressAndRepeat, "shift left", "cursor_select_left"),
-            (PressAndRepeat, "shift right", "cursor_select_right"),
-            (PressAndRepeat, "cmd shift left", "cursor_select_left_word"),
-            (PressAndRepeat, "cmd shift right", "cursor_select_right_word"),
-            (PressAndRepeat, "shift up", "cursor_select_up"),
-            (PressAndRepeat, "shift down", "cursor_select_down"),
-            (PressAndRepeat, "backspace", "delete_left"),
-            (PressAndRepeat, "delete", "delete_right"),
-            (PressAndRepeat, "cmd backspace", "delete_word_left"),
-            (PressAndRepeat, "cmd delete", "delete_word_right"),
-            (Press, "shift left-mouse-button", "set_newest_selection_end_to_mouse_position"),
-            (DoublePress, "left-mouse-button", "select_word_at_cursor"),
-            (Press, "left-mouse-button", "set_cursor_at_mouse_position"),
-            (Press, "left-mouse-button", "start_newest_selection_end_follow_mouse"),
-            (Release, "left-mouse-button", "stop_newest_selection_end_follow_mouse"),
-            (Press, "cmd left-mouse-button", "add_cursor_at_mouse_position"),
-            (Press, "cmd left-mouse-button", "start_newest_selection_end_follow_mouse"),
-            (Release, "cmd left-mouse-button", "stop_newest_selection_end_follow_mouse"),
-            (Press, "cmd a", "select_all"),
-            (Press, "cmd c", "copy"),
-            (Press, "cmd x", "cut"),
-            (Press, "cmd v", "paste"),
-            (Press, "cmd z", "undo"),
-            (Press, "escape", "keep_oldest_cursor_only"),
-        ])
-        .iter()
-        .map(|(action, rule, command)| {
-            let only_hovered = *action != Release && rule.contains("left-mouse-button");
-            let condition = if only_hovered { "focused & hovered" } else { "focused" };
-            Self::self_shortcut_when(*action, *rule, *command, condition)
-        })
-        .collect()
+        let focus_capturing_shortcuts = [
+            (PressAndRepeat, "left", "cursor_move_left", ""),
+            (PressAndRepeat, "right", "cursor_move_right", ""),
+            (PressAndRepeat, "up", "cursor_move_up", "!single_line_mode"),
+            (PressAndRepeat, "down", "cursor_move_down", "!single_line_mode"),
+            (PressAndRepeat, "cmd left", "cursor_move_left_word", ""),
+            (PressAndRepeat, "cmd right", "cursor_move_right_word", ""),
+            (Press, "alt left", "cursor_move_left_of_line", ""),
+            (Press, "alt right", "cursor_move_right_of_line", ""),
+            (Press, "home", "cursor_move_left_of_line", ""),
+            (Press, "end", "cursor_move_right_of_line", ""),
+            (Press, "alt shift left", "cursor_select_left_of_line", ""),
+            (Press, "alt shift right", "cursor_select_right_of_line", ""),
+            (Press, "shift home", "cursor_select_left_of_line", ""),
+            (Press, "shift end", "cursor_select_right_of_line", ""),
+            (Press, "cmd up", "cursor_move_to_text_start", ""),
+            (Press, "cmd down", "cursor_move_to_text_end", ""),
+            (Press, "ctrl home", "cursor_move_to_text_start", ""),
+            (Press, "ctrl end", "cursor_move_to_text_end", ""),
+            (Press, "cmd shift up", "cursor_select_to_text_start", ""),
+            (Press, "cmd shift down", "cursor_select_to_text_end", ""),
+            (Press, "ctrl shift home", "cursor_select_to_text_start", ""),
+            (Press, "ctrl shift end", "cursor_select_to_text_end", ""),
+            (PressAndRepeat, "shift left", "cursor_select_left", ""),
+            (PressAndRepeat, "shift right", "cursor_select_right", ""),
+            (PressAndRepeat, "cmd shift left", "cursor_select_left_word", ""),
+            (PressAndRepeat, "cmd shift right", "cursor_select_right_word", ""),
+            (PressAndRepeat, "shift up", "cursor_select_up", "!single_line_mode"),
+            (PressAndRepeat, "shift down", "cursor_select_down", "!single_line_mode"),
+            (Press, "shift left-mouse-button", "set_newest_selection_end_to_mouse_position", ""),
+            (DoublePress, "left-mouse-button", "select_word_at_cursor", ""),
+            (Press, "left-mouse-button", "set_cursor_at_mouse_position", ""),
+            (Press, "left-mouse-button", "start_newest_selection_end_follow_mouse", ""),
+            (Press, "cmd left-mouse-button", "add_cursor_at_mouse_position", ""),
+            (Press, "cmd left-mouse-button", "start_newest_selection_end_follow_mouse", ""),
+            (Press, "cmd a", "select_all", ""),
+        ];
+        let non_focus_capturing_shortcuts = [
+            (Press, "cmd c", "copy", ""),
+            (Press, "cmd x", "cut", ""),
+            (Press, "cmd v", "paste", ""),
+            (Press, "cmd z", "undo", ""),
+            (Press, "escape", "keep_oldest_cursor_only", ""),
+            (Release, "left-mouse-button", "stop_newest_selection_end_follow_mouse", ""),
+            (Release, "cmd left-mouse-button", "stop_newest_selection_end_follow_mouse", ""),
+            (PressAndRepeat, "backspace", "delete_left", ""),
+            (PressAndRepeat, "delete", "delete_right", ""),
+            (PressAndRepeat, "cmd backspace", "delete_word_left", ""),
+            (PressAndRepeat, "cmd delete", "delete_word_right", ""),
+        ];
+        non_focus_capturing_shortcuts
+            .iter()
+            .copied()
+            .chain(focus_capturing_shortcuts.iter().copied())
+            .chain(focus_capturing_shortcuts.iter().map(|(a, r, _, c)| (*a, *r, "focus", *c)))
+            .map(|(action, rule, command, condition)| {
+                let only_hovered = action != Release && rule.contains("left-mouse-button");
+                let base_condition = if only_hovered { "focused & hovered" } else { "focused" };
+                let condition = if condition.is_empty() {
+                    Cow::from(base_condition)
+                } else {
+                    Cow::from(format!("{base_condition} & {condition}"))
+                };
+                Self::self_shortcut_when(action, rule, command, condition.as_ref())
+            })
+            .collect()
     }
 }
 

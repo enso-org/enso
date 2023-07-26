@@ -124,7 +124,7 @@ pub mod shape {
 /// such as circles, rings, or ring segments. The advantage of having a singular shape for these
 /// cases is that a single draw call can be used to render multiple GUI elements, which ultimately
 /// enhances performance.
-#[derive(Clone, CloneRef, Deref)]
+#[derive(Clone, CloneRef, Deref, display::Object)]
 #[allow(missing_docs)]
 pub struct Rectangle {
     pub view: shape::View,
@@ -339,12 +339,6 @@ impl Rectangle {
     }
 }
 
-impl display::Object for Rectangle {
-    fn display_object(&self) -> &display::object::Instance {
-        self.view.display_object()
-    }
-}
-
 /// Rectangle constructor.
 #[allow(non_snake_case)]
 pub fn Rectangle() -> Rectangle {
@@ -438,7 +432,7 @@ pub fn RightTriangle() -> Rectangle {
 /// achieve any angle with correct borders and rounding. However, this approach requires two
 /// `Rectangle`s to draw each triangle, and as of this writing we have no need for triangles with
 /// borders.)
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, display::Object)]
 pub struct SimpleTriangle {
     shape: Rectangle,
 }
@@ -462,12 +456,6 @@ impl SimpleTriangle {
     /// Set whether the shape receives pointer events.
     pub fn set_pointer_events(&self, value: bool) {
         self.shape.set_pointer_events(value);
-    }
-}
-
-impl display::Object for SimpleTriangle {
-    fn display_object(&self) -> &display::object::Instance {
-        self.shape.display_object()
     }
 }
 

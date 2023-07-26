@@ -80,6 +80,7 @@ extern crate proc_macro;
 use proc_macro::TokenStream;
 use syn::parse_macro_input;
 use syn::DeriveInput;
+use syn_1 as syn;
 
 mod from_theme;
 

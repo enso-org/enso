@@ -178,10 +178,13 @@ ensogl_core::define_endpoints_2! {
         /// Declare what area of the GridView is visible. The area position is relative to left-top
         /// corner of the Grid View.
         set_viewport(Viewport),
+        /// If `true`, the selection state will not be visible until it goes back to `false`.
+        disable_selection(bool),
     }
 
     Output {
         grid_size(Row, Col),
+        multicolumn(bool),
         viewport(Viewport),
         entries_size(Vector2),
         entries_params(EntryParams),
@@ -200,7 +203,7 @@ ensogl_core::define_endpoints_2! {
         column_resized(Col, f32),
         /// Event emitted after a request was made to move the selection in a direction, but the
         /// currently selected entry is the last one in the grid in that direction.
-        selection_movement_out_of_grid_prevented(Option<frp::io::keyboard::ArrowDirection>),
+        selection_movement_out_of_grid_prevented(frp::io::keyboard::ArrowDirection),
     }
 }
 
@@ -214,7 +217,7 @@ ensogl_core::define_endpoints_2! {
 
 /// The Model of [`GridView`].
 #[allow(missing_docs)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, display::Object)]
 pub struct Model<Entry, EntryParams> {
     display_object:         display::object::Instance,
     visible_entries:        RefCell<HashMap<(Row, Col), entry::visible::VisibleEntry<Entry>>>,
@@ -420,7 +423,7 @@ impl<E: Entry> Model<E, E::Params> {
 /// `Entry` bound in each place. Otherwise, it's better to use [`GridView`].
 ///
 /// Note that some bounds are still required, as we use [`Widget`] and [`Frp`] nodes.
-#[derive(CloneRef, Debug, Deref, Derivative)]
+#[derive(CloneRef, Debug, Deref, Derivative, display::Object)]
 #[derivative(Clone(bound = ""))]
 pub struct GridViewTemplate<
     Entry: 'static,
@@ -522,6 +525,7 @@ impl<E: Entry> GridView<E> {
         let model = Rc::new(Model::new(entry_creation_ctx));
         frp::extend! { network
             grid_size <- any(input.resize_grid, input.reset_entries);
+            out.multicolumn <+ grid_size.map(|(_, col)| *col > 1);
             // We want to update `properties` output first, as some could listen for specific
             // event (e.g. the `viewport` and expect the `properties` output is up-to-date.
             out.properties <+ all_with3(
@@ -588,8 +592,13 @@ impl<E: Entry> GridView<E> {
             out.model_for_entry_needed <+ request_models_after_text_layer_change;
             out.model_for_entry_needed <+ request_models_for_request;
 
+            let selection_hidden = &input.disable_selection;
+            hide_selection <- input.disable_selection.on_true();
+            show_selection <- input.disable_selection.on_false();
             out.entry_hovered <+ input.hover_entry;
-            out.entry_selected <+ input.select_entry;
+            out.entry_selected <+ input.select_entry.gate_not(selection_hidden);
+            out.entry_selected <+ input.select_entry.sample(&show_selection);
+            out.entry_selected <+ hide_selection.constant(None);
             out.entry_accepted <+ input.accept_entry;
             out.entry_accepted <+ out.entry_selected.filter_map(|e| *e).sample(&input.accept_selected_entry);
 
@@ -604,8 +613,7 @@ impl<E: Entry> GridView<E> {
                 );
             out.entry_shown <+ input.model_for_entry.map(|(row, col, _)| (*row, *col));
         }
-        let display_object = model.display_object.clone_ref();
-        let widget = Widget::new(app, frp, model, display_object);
+        let widget = Widget::new(app, frp, model);
         Self { widget }
     }
 }
@@ -666,14 +674,6 @@ impl<Entry, EntryModel: frp::node::Data, EntryParams: frp::node::Data> AsRef<Sel
     }
 }
 
-impl<Entry, EntryModel: frp::node::Data, EntryParams: frp::node::Data> display::Object
-    for GridViewTemplate<Entry, EntryModel, EntryParams>
-{
-    fn display_object(&self) -> &display::object::Instance {
-        self.widget.display_object()
-    }
-}
-
 impl<E: Entry> FrpNetworkProvider for GridView<E> {
     fn network(&self) -> &frp::Network {
         self.widget.network()
@@ -689,17 +689,19 @@ impl<E: Entry> application::View for GridView<E> {
         GridView::<E>::new(app)
     }
 
-    fn default_shortcuts() -> Vec<application::shortcut::Shortcut> {
+    fn focused_shortcuts() -> Vec<application::shortcut::Shortcut> {
         use application::shortcut::ActionType::*;
         [
-            (PressAndRepeat, "up", "move_selection_up"),
-            (PressAndRepeat, "down", "move_selection_down"),
-            (PressAndRepeat, "left", "move_selection_left"),
-            (PressAndRepeat, "right", "move_selection_right"),
-            (Press, "enter", "accept_selected_entry"),
+            (PressAndRepeat, "up", "move_selection_up", ""),
+            (PressAndRepeat, "down", "move_selection_down", ""),
+            (PressAndRepeat, "left", "move_selection_left", "multicolumn"),
+            (PressAndRepeat, "right", "move_selection_right", "multicolumn"),
+            (Press, "enter", "accept_selected_entry", ""),
         ]
         .iter()
-        .map(|(a, b, c)| Self::self_shortcut_when(*a, *b, *c, "focused"))
+        .map(|(action, pattern, command, condition)| {
+            Self::self_shortcut_when(*action, *pattern, *command, *condition)
+        })
         .collect()
     }
 }
@@ -720,7 +722,7 @@ pub(crate) mod tests {
         pub param: Immutable<usize>,
     }
 
-    #[derive(Clone, CloneRef, Debug)]
+    #[derive(Clone, CloneRef, Debug, display::Object)]
     pub struct TestEntry {
         pub frp:            EntryFrp<Self>,
         pub param_set:      Rc<Cell<usize>>,
@@ -747,12 +749,6 @@ pub(crate) mod tests {
 
         fn frp(&self) -> &EntryFrp<Self> {
             &self.frp
-        }
-    }
-
-    impl display::Object for TestEntry {
-        fn display_object(&self) -> &display::object::Instance {
-            &self.display_object
         }
     }
 

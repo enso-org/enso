@@ -353,10 +353,11 @@ impl Frp {
 ///
 /// All operations related to the scroll position take as argument a number of pixels describing a
 /// position or distance on the scrolled area. We call them scroll units.
-#[derive(Clone, CloneRef, Debug, Derivative)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 pub struct Scrollbar {
     /// Public FRP api of the Component.
     pub frp: Rc<Frp>,
+    #[display_object]
     model:   Rc<Model>,
 }
 
@@ -369,12 +370,6 @@ impl Scrollbar {
         frp.init(app, &model, &style);
         let frp = Rc::new(frp);
         Self { frp, model }
-    }
-}
-
-impl display::Object for Scrollbar {
-    fn display_object(&self) -> &display::object::Instance {
-        self.model.display_object()
     }
 }
 

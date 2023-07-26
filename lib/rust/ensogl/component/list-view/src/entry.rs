@@ -86,7 +86,7 @@ pub trait Entry: CloneRef + Debug + display::Object + 'static {
 
 /// The [`Entry`] being a single text field displaying String.
 #[allow(missing_docs)]
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 pub struct Label {
     display_object:  display::object::Instance,
     pub label:       text::Text,
@@ -156,12 +156,6 @@ impl Entry for Label {
     }
 }
 
-impl display::Object for Label {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
-    }
-}
-
 
 // === HighlightedLabel ===
 
@@ -177,8 +171,9 @@ pub struct GlyphHighlightedLabelModel {
 
 /// The [`Entry`] similar to the [`Label`], but allows highlighting some parts of text.
 #[allow(missing_docs)]
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 pub struct GlyphHighlightedLabel {
+    #[display_object]
     pub inner: Label,
     highlight: frp::Source<Vec<text::Range<text::Byte>>>,
 }
@@ -218,12 +213,6 @@ impl Entry for GlyphHighlightedLabel {
 
     fn set_label_layer(&self, layer: &display::scene::Layer) {
         self.inner.set_label_layer(layer);
-    }
-}
-
-impl display::Object for GlyphHighlightedLabel {
-    fn display_object(&self) -> &display::object::Instance {
-        self.inner.display_object()
     }
 }
 

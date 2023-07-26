@@ -6,6 +6,7 @@ use crate::prelude::*;
 use crate::component::node::input::area::TEXT_SIZE;
 
 use ensogl::data::color;
+use ensogl::display;
 use ensogl::display::object;
 use ensogl::display::shape::StyleWatch;
 use ensogl_component::text;
@@ -30,9 +31,10 @@ ensogl::define_endpoints_2! {
 }
 
 /// Label widget. Always displays the span tree node's expression as text.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, display::Object)]
 pub struct Widget {
     frp:   Frp,
+    #[display_object]
     root:  object::Instance,
     #[allow(dead_code)]
     label: text::Text,
@@ -49,10 +51,6 @@ impl SpanWidget for Widget {
         use span_tree::node::Kind;
         let has_port = !matches!(ctx.span_node.kind, Kind::Token | Kind::NamedArgument);
         Configuration::maybe_with_port(default(), has_port)
-    }
-
-    fn root_object(&self) -> &object::Instance {
-        &self.root
     }
 
     fn new(_: &Config, ctx: &ConfigContext) -> Self {

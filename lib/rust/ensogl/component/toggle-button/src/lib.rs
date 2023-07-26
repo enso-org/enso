@@ -84,7 +84,7 @@ ensogl_core::define_endpoints_2! {
 // === Model ===
 // =============
 
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 #[clone_ref(bound = "S: CloneRef")]
 struct Model<S: Shape> {
     icon: ShapeView<S>,
@@ -216,12 +216,13 @@ impl ColorScheme {
 
 /// A UI component that acts as a toggle which can be toggled on and of. Has a visible shape
 /// that acts as button and changes color depending on the toggle state.
-#[derive(CloneRef, Debug, Derivative, Deref)]
+#[derive(CloneRef, Debug, Derivative, Deref, display::Object)]
 #[derivative(Clone(bound = ""))]
 #[allow(missing_docs)]
 pub struct ToggleButton<S: Shape> {
     #[deref]
     pub frp: Frp,
+    #[display_object]
     model:   Rc<Model<S>>,
 }
 
@@ -315,11 +316,5 @@ impl<Shape: ColorableShape + 'static> ToggleButton<Shape> {
     /// overwritten regularly by internals of the `ToggleButton` mechanics.
     pub fn view(&self) -> ShapeView<Shape> {
         self.model.icon.clone_ref()
-    }
-}
-
-impl<S: Shape> display::Object for ToggleButton<S> {
-    fn display_object(&self) -> &display::object::Instance {
-        self.model.icon.display_object()
     }
 }

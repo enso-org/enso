@@ -108,11 +108,12 @@ impl PortLayers {
 
 /// Node of a widget tree that can be a source of an edge. Displays a visual representation of the
 /// connection below the widget, and handles mouse hover and click events when an edge is dragged.
-#[derive(Debug)]
+#[derive(Debug, display::Object)]
 pub struct Port {
     /// Drop source must be kept at the top of the struct, so it will be dropped first.
     _on_cleanup:   frp::DropSource,
     port_id:       frp::Source<PortId>,
+    #[display_object]
     port_root:     display::object::Instance,
     widget_root:   display::object::Instance,
     widget:        DynWidget,
@@ -128,7 +129,7 @@ impl Port {
     /// display object, and its layout size will be used to determine the port's size.
     pub fn new(widget: DynWidget, app: &Application, frp: &WidgetsFrp) -> Self {
         let port_root = display::object::Instance::new_named("Port");
-        let widget_root = widget.root_object().clone_ref();
+        let widget_root = widget.display_object().clone_ref();
         let port_shape = PortShape::new();
         let hover_shape = HoverShape::new();
         port_shape.set_corner_radius_max().set_pointer_events(false);
@@ -234,7 +235,7 @@ impl Port {
     }
 
     fn update_root(&mut self) {
-        let new_root = self.widget.root_object();
+        let new_root = self.widget.display_object();
         if new_root != &self.widget_root {
             self.port_root.remove_child(&self.widget_root);
             self.port_root.add_child(new_root);
@@ -287,11 +288,5 @@ impl Port {
     /// Get the port's hover shape. Used for testing to simulate mouse events.
     pub fn hover_shape(&self) -> &HoverShape {
         &self.hover_shape
-    }
-}
-
-impl display::Object for Port {
-    fn display_object(&self) -> &display::object::Instance {
-        self.port_root.display_object()
     }
 }
