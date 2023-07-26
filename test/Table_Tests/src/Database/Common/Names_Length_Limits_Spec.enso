@@ -1,10 +1,10 @@
 from Standard.Base import all
 
 from Standard.Table import Table, Join_Kind, Aggregate_Column, Value_Type
-from Standard.Table.Errors import No_Such_Column
+from Standard.Table.Errors import No_Such_Column, Name_Too_Long, Truncated_Column_Names
 
 from Standard.Database import all
-from Standard.Database.Errors import all
+from Standard.Database.Errors import Table_Not_Found, Unsupported_Database_Operation
 
 from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions

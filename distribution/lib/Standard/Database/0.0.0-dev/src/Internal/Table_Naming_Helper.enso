@@ -1,7 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
-from project.Errors import Name_Too_Long
+from Standard.Table.Errors import Name_Too_Long
 
 polyglot java import org.enso.base.Text_Utils
 
