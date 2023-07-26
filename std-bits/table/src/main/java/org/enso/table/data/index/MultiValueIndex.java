@@ -4,6 +4,7 @@ import java.util.*;
 import java.util.function.IntFunction;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.aggregations.Aggregator;
 import org.enso.table.data.column.builder.Builder;
@@ -127,7 +128,7 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
         merged);
   }
 
-  public Table makeCrossTabTable(
+  public static Table makeCrossTabTable(
       Column[] groupingColumns,
       Column nameColumn,
       Aggregator[] aggregates,
@@ -135,13 +136,27 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
     Context context = Context.getCurrent();
     NameDeduplicator outputTableNameDeduplicator = new NameDeduplicator();
 
-    final int size = locs.size();
+    // Create combined index
+    Column combinedColumns[] = Stream.concat(Arrays.stream(groupingColumns), Arrays.stream(new Column[] {nameColumn}))
+            .toArray(Column[]::new);
+    var combinedIndex =
+            MultiValueIndex.makeUnorderedIndex(
+                    combinedColumns,
+                    nameColumn.getSize(),
+                    TextFoldingStrategy.unicodeNormalizedFold);
 
     var nameIndex =
-        MultiValueIndex.makeUnorderedIndex(
-            new Column[] {nameColumn},
-            nameColumn.getSize(),
-            TextFoldingStrategy.unicodeNormalizedFold);
+            MultiValueIndex.makeUnorderedIndex(
+                    new Column[] {nameColumn},
+                    nameColumn.getSize(),
+                    TextFoldingStrategy.unicodeNormalizedFold);
+    var groupingIndex =
+            MultiValueIndex.makeUnorderedIndex(
+                    groupingColumns,
+                    nameColumn.getSize(),
+                    TextFoldingStrategy.unicodeNormalizedFold);
+    final int size = groupingIndex.locs.size();
+
     final int columnCount = groupingColumns.length + nameIndex.locs.size() * aggregates.length;
     if (columnCount > MAXIMUM_CROSS_TAB_COLUMN_COUNT) {
       throw new TooManyColumnsException(
@@ -154,12 +169,28 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
           MAXIMUM_CROSS_TAB_COLUMN_COUNT);
     }
 
+    // Fill numberings
+    ObjectNumberer<UnorderedMultiValueKey> nameNumberer = new ObjectNumberer<>();
+    for (UnorderedMultiValueKey key : nameIndex.locs.keySet()) {
+      nameNumberer.put(key);
+    }
+    ObjectNumberer<UnorderedMultiValueKey> groupingNumberer = new ObjectNumberer<>();
+    for (UnorderedMultiValueKey key : groupingIndex.locs.keySet()) {
+      groupingNumberer.put(key);
+    }
+
     // Create the storage
     Builder[] storage = new Builder[columnCount];
     for (int i = 0; i < groupingColumns.length; i++) {
       storage[i] = Builder.getForType(groupingColumns[i].getStorage().getType(), size);
       context.safepoint();
     }
+
+    //ArrayList<Integer>[] a = new ArrayList<Integer>[2];
+    int numNames = nameNumberer.size();
+    int numGroupings = groupingNumberer.size();
+    //List<Integer>[][] subPartitions = (List<Integer>[][]) new ArrayList<Integer>[numGroupings][numNames];
+    UnorderedMultiValueKey[][] arrangement = new UnorderedMultiValueKey[numGroupings][numNames];
 
     for (int i = 0; i < nameIndex.locs.size(); i++) {
       int offset = groupingColumns.length + i * aggregates.length;
@@ -169,7 +200,78 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
       }
     }
 
+    for (UnorderedMultiValueKey key : combinedIndex.locs.keySet()) {
+      int[] groupingColumnIndices = IntStream.range(0, groupingColumns.length).toArray();
+      int[] nameColumnIndices = new int[] { groupingColumns.length };
+      UnorderedMultiValueKey groupingSubKey = key.subKey(groupingColumnIndices);
+      UnorderedMultiValueKey nameSubKey = key.subKey(nameColumnIndices);
+      //System.out.println("Subkeys");
+      //System.out.println(key.toString());
+      //System.out.println(groupingSubKey.toString());
+      //System.out.println(nameSubKey.toString());
+      /*
+      if (!(groupingSubKeyMaybe instanceof KeyType groupingSubKey))
+      {
+        throw new IllegalStateException("Internal error: makeCrossTabTable can only be used with an unordered index");
+      }
+      */
+      int groupingCoordinate = groupingNumberer.getNumber(groupingSubKey);
+      int nameCoordinate = nameNumberer.getNumber(nameSubKey);
+      // The pair (groupingCoordinate, nameCoordinate) must be unique so this
+      // check is not really necessary.
+      if (arrangement[groupingCoordinate][nameCoordinate] != null) {
+        throw new IllegalStateException("Internal error: makeCrossTabTable coordinate conflict");
+      }
+      arrangement[groupingCoordinate][nameCoordinate] = key;
+    }
+
+    for (UnorderedMultiValueKey groupingSubKey : groupingNumberer.getObjects()) {
+      int groupingCoordinate = groupingNumberer.getNumber(groupingSubKey);
+
+      // Find a cell that has a key; there has to be one.
+      UnorderedMultiValueKey keyForGroup = null;
+      for (int i=0; i<numNames; ++i) {
+        if (arrangement[groupingCoordinate][i] != null) {
+            keyForGroup = arrangement[groupingCoordinate][i];
+            break;
+        }
+      }
+      if (keyForGroup == null) {
+        throw new IllegalStateException("Internal error: empty group partition");
+      }
+
+      // Fill the grouping columns
+      int aGroupRow = combinedIndex.locs.get(keyForGroup).get(0);
+      IntStream.range(0, groupingColumns.length)
+          .forEach(
+                i ->
+                    storage[i].appendNoGrow(
+                        groupingColumns[i].getStorage().getItemBoxed(aGroupRow)));
+
+      int offset = groupingColumns.length;
+
+      for (UnorderedMultiValueKey nameSubKey : nameNumberer.getObjects()) {
+        int nameCoordinate = nameNumberer.getNumber(nameSubKey);
+        if (arrangement[groupingCoordinate][nameCoordinate] == null) {
+          //System.out.println("AAAA0 null");
+        }
+        List<Integer> rowIds = combinedIndex.locs.get(arrangement[groupingCoordinate][nameCoordinate]);
+        if (rowIds == null) {
+          //System.out.println("AAAA1 null");
+          rowIds = new ArrayList<Integer>();
+        }
+
+        for (int i = 0; i < aggregates.length; i++) {
+          storage[offset + i].appendNoGrow(aggregates[i].aggregate(rowIds));
+        }
+
+        offset += aggregates.length;
+        context.safepoint();
+      }
+    }
+
     // Fill the storage
+    /*
     for (List<Integer> group_locs : this.locs.values()) {
       // Fill the grouping columns
       IntStream.range(0, groupingColumns.length)
@@ -194,6 +296,7 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
         context.safepoint();
       }
     }
+     */
 
     // Create Columns
     Column[] output = new Column[columnCount];
@@ -204,8 +307,10 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
     }
 
     int offset = groupingColumns.length;
-    for (List<Integer> name_locs : nameIndex.locs.values()) {
-      Object boxed = nameColumn.getStorage().getItemBoxed(name_locs.get(0));
+    //for (List<Integer> name_locs : nameIndex.locs.values()) {
+      //Object boxed = nameColumn.getStorage().getItemBoxed(name_locs.get(0));
+    for (UnorderedMultiValueKey nameSubKey : nameNumberer.getObjects()) {
+      Object boxed = nameSubKey.get(0);
       String name;
       if (boxed == null) {
         throw Column.raiseNothingName();
@@ -241,7 +346,7 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
 
     // Merge Problems
     AggregatedProblems[] problems = new AggregatedProblems[aggregates.length + 3];
-    problems[0] = this.problems;
+    problems[0] = groupingIndex.problems;
     problems[1] = AggregatedProblems.of(outputTableNameDeduplicator.getProblems());
     problems[2] = nameIndex.getProblems();
     for (int i = 0; i < aggregates.length; i++) {

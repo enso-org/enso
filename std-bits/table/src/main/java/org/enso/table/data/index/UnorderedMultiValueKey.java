@@ -1,5 +1,6 @@
 package org.enso.table.data.index;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -49,6 +50,10 @@ public class UnorderedMultiValueKey extends MultiValueKeyBase {
     return EnsoObjectWrapper.foldObject(this.get(index), textFoldingStrategy.get(index));
   }
 
+  public UnorderedMultiValueKey subKey(int[] storageIndices) {
+    Storage<?>[] newStorages = Arrays.stream(storageIndices).mapToObj(i -> storages[i]).toArray(Storage<?>[]::new);
+    return new UnorderedMultiValueKey(newStorages, rowIndex, textFoldingStrategy);
+  }
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
