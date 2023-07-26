@@ -1,4 +1,4 @@
-package org.enso.benchmarks.libs;
+package org.enso.benchmarks.processor;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -10,7 +10,10 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.enso.benchmarks.BenchSuite;
+import org.enso.benchmarks.BenchSuiteWrapper;
+import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.MethodNames.Module;
+import org.enso.polyglot.MethodNames.TopScope;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
@@ -21,9 +24,11 @@ import org.graalvm.polyglot.io.IOAccess;
  * Collect benchmark specifications from source files.
  */
 public class SpecCollector {
+
   private final File rootDir;
   private final Context ctx;
   private static final String allSuitesVarName = "all";
+  private final String benchPackagePrefix = "local.Benchmarks";
 
   public SpecCollector(File benchProjectDir, File languageHomeOverride) {
     if (!benchProjectDir.exists() || !benchProjectDir.isDirectory()) {
@@ -46,7 +51,7 @@ public class SpecCollector {
         .build();
   }
 
-  public Collection<BenchSuite> collectAllBenchSpecs() {
+  public Collection<BenchSuiteWrapper> collectAllBenchSpecs() {
     try (Stream<Path> stream = Files.walk(rootDir.toPath())) {
       return stream
           .map(Path::toFile)
@@ -57,7 +62,15 @@ public class SpecCollector {
     } catch (IOException e) {
       throw new IllegalStateException("Unreachable", e);
     }
+  }
 
+  public BenchSuiteWrapper collectBenchSpecFromModuleName(String moduleName) {
+    Objects.requireNonNull(moduleName);
+    if (!moduleName.startsWith(benchPackagePrefix)) {
+      throw new IllegalArgumentException("Module name must start with " + benchPackagePrefix);
+    }
+    Value module = ctx.getBindings(LanguageInfo.ID).invokeMember(TopScope.GET_MODULE, moduleName);
+    return collectBenchSpecFromModule(module);
   }
 
   /**
@@ -66,7 +79,7 @@ public class SpecCollector {
    * @param benchFile Path to the source file.
    * @return null if there are no benchmark specs in the file.
    */
-  private BenchSuite collectBenchSpecsFromSingleFile(File benchFile) {
+  private BenchSuiteWrapper collectBenchSpecsFromSingleFile(File benchFile) {
     Source source;
     try {
       source = Source.newBuilder("enso", benchFile).build();
@@ -74,17 +87,26 @@ public class SpecCollector {
       throw new IllegalStateException("Unreachable", e);
     }
     Value module = ctx.eval(source);
+    return collectBenchSpecFromModule(module);
+  }
+
+  private BenchSuiteWrapper collectBenchSpecFromModule(Value module) {
     Value moduleType = module.invokeMember(Module.GET_ASSOCIATED_TYPE);
     Value allSuitesVar = module.invokeMember(Module.GET_METHOD, moduleType, allSuitesVarName);
     if (!allSuitesVar.isNull()) {
+      BenchSuite suite;
       try {
-        return module
+        suite = module
             .invokeMember(Module.EVAL_EXPRESSION, "all")
             .as(BenchSuite.class);
       } catch (PolyglotException e) {
         // TODO: Replace with proper logging
         System.err.println("WARN: An exception occured while evaluating benchmark suite var: " + e.getMessage());
+        return null;
       }
+      String moduleName = module.invokeMember(Module.GET_NAME).asString();
+      String moduleQualifiedName = benchPackagePrefix + "." + moduleName;
+      return new BenchSuiteWrapper(suite, moduleQualifiedName);
     }
     return null;
   }
