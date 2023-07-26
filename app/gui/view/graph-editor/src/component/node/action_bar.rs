@@ -3,6 +3,7 @@
 use crate::prelude::*;
 use ensogl::display::shape::*;
 
+use crate::layers::MainNodeLayers;
 use engine_protocol::language_server::ExecutionEnvironment;
 use enso_config::ARGS;
 use enso_frp as frp;
@@ -10,8 +11,6 @@ use ensogl::application::tooltip;
 use ensogl::application::Application;
 use ensogl::control::io::mouse;
 use ensogl::display;
-use ensogl::display::scene::layer::LayerSymbolPartition;
-use ensogl::display::shape::compound::rectangle;
 use ensogl_component::toggle_button;
 use ensogl_component::toggle_button::ColorableShape;
 use ensogl_component::toggle_button::ToggleButton;
@@ -212,7 +211,7 @@ impl ContextSwitchButton {
         self.disable_button.set_visibility(visible);
         self.enable_button.set_visibility(visible);
         let pointer_events_val = if visible { 0.0 } else { 1.0 };
-        self.enable_button.view().disable_pointer_events.set(pointer_events_val);
+        self.disable_button.view().disable_pointer_events.set(pointer_events_val);
         self.enable_button.view().disable_pointer_events.set(pointer_events_val);
     }
 
@@ -437,9 +436,9 @@ impl ActionBar {
         self
     }
 
-    /// Set the layer of the hover area below nodes.
-    pub fn set_below_node_hover_layer(&self, layer: &LayerSymbolPartition<rectangle::Shape>) {
-        layer.add(&self.model.hover_area_below_nodes);
+    /// Configure this action bar to use specific node layers.
+    pub fn set_layers(&self, main: &MainNodeLayers) {
+        main.below_body_hover.add(&self.model.hover_area_below_nodes);
     }
 }
 

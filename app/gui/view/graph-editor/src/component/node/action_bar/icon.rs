@@ -16,6 +16,7 @@ pub mod visibility {
     use super::*;
 
     ensogl::shape! {
+        above = [compound::rectangle];
         pointer_events_instanced = true;
         (style: Style, color_rgba: Vector4<f32>) {
             let fill_color  = Var::<color::Rgba>::from(color_rgba);
@@ -53,6 +54,7 @@ pub mod visibility2 {
     use super::*;
 
     ensogl::shape! {
+        above = [compound::rectangle];
         pointer_events_instanced = true;
         (style: Style, color_rgba: Vector4<f32>) {
             let fill_color   = Var::<color::Rgba>::from(color_rgba);
@@ -97,6 +99,7 @@ pub mod expand {
     use super::*;
 
     ensogl::shape! {
+        above = [compound::rectangle];
         alignment = center;
         (style: Style, color_rgba: Vector4<f32>) {
             let fill_color: Var<color::Rgba> = color_rgba.into();
@@ -131,6 +134,7 @@ pub mod freeze {
     use super::*;
 
     ensogl::shape! {
+        above = [compound::rectangle];
         pointer_events_instanced = true;
         (style: Style, color_rgba: Vector4<f32>) {
             let fill_color       = Var::<color::Rgba>::from(color_rgba);
@@ -169,6 +173,7 @@ pub mod skip {
     use super::*;
 
     ensogl::shape! {
+        above = [compound::rectangle];
         pointer_events_instanced = true;
         (style: Style, color_rgba: Vector4<f32>) {
             let fill_color   = Var::<color::Rgba>::from(color_rgba);
@@ -206,6 +211,7 @@ pub mod disable_output_context {
     use super::*;
 
     ensogl::shape! {
+        above = [compound::rectangle];
         pointer_events_instanced = true;
         (style: Style, color_rgba: Vector4<f32>) {
             let fill_color = Var::<color::Rgba>::from(color_rgba);
@@ -237,6 +243,7 @@ pub mod enable_output_context {
     use super::*;
 
     ensogl::shape! {
+        above = [compound::rectangle];
         pointer_events_instanced = true;
         (style: Style, color_rgba: Vector4<f32>) {
             let fill_color = Var::<color::Rgba>::from(color_rgba);
