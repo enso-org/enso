@@ -23,6 +23,6 @@ export const PREVIOUS_PASSWORD_TITLE =
  *  Validation rules:
  *  - allow any non-empty string
  */
-export const LOCAL_PROJECT_NAME_PATTERN = '\\s*\\S+.*'
+export const LOCAL_PROJECT_NAME_PATTERN = '.*\\S.*'
 /** Human readable explanation of project name restrictions for local projects. */
 export const LOCAL_PROJECT_NAME_TITLE = 'Project name cannot be empty.'
