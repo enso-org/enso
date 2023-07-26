@@ -1816,6 +1816,20 @@ lazy val `bench-libs` = (project in file("std-bits/benchmarks"))
       )
     },
   )
+  .settings(
+    (Compile / javacOptions) ++= Seq(
+      "-s",
+      (Compile / sourceManaged).value.getAbsolutePath,
+      "-Xlint:unchecked"
+    )
+  )
+  .settings(
+    (Compile / compile) := (Compile / compile)
+      .dependsOn(Def.task {
+        (Compile / sourceManaged).value.mkdirs
+      })
+      .value
+  )
   .dependsOn(`bench-processor`)
   .dependsOn(runtime)
 
