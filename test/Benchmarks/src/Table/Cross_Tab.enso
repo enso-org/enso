@@ -7,9 +7,9 @@ from Standard.Test import Bench, Faker
 
 ## Bench Utilities ============================================================
 
-num_rows = 25
-iter_size = 20
-num_iterations = 3
+num_rows = 2500
+iter_size = 1000
+num_iterations = 10
 seed=1646322139
 
 create_table : Table
@@ -32,15 +32,9 @@ bench =
     IO.println <| "Making table data..."
     table = create_table
 
-    IO.println "dumps"
-    table.cross_tab [] "size" . print 10000
-    table.cross_tab ["type"] "size" . print 10000
-    table.cross_tab ["store"] "size" . print 10000
-    table.cross_tab ["size"] "store" . print 10000
-    table.cross_tab ["size"] "store" values=[Count, Sum "price"] . print 10000
-
-    IO.println <| "running..."
     Bench.measure (table.cross_tab [] "size") "[], size" iter_size num_iterations
+    Bench.measure (table.cross_tab [] "type") "[], size" iter_size num_iterations
+    Bench.measure (table.cross_tab [] "store") "[], size" iter_size num_iterations
     Bench.measure (table.cross_tab ["type"] "size") "[type], size" iter_size num_iterations
     Bench.measure (table.cross_tab ["store"] "size") "[store], size" iter_size num_iterations
     Bench.measure (table.cross_tab ["size"] "store") "[size], store" iter_size num_iterations
