@@ -392,6 +392,12 @@ type Regex
             if should_recompile.not then self else
                 Regex.compile self.internal_regex_object.pattern case_insensitive
 
+    ## PRIVATE
+
+       Get the original pattern string as a `Text`.
+    pattern_string : Text
+    pattern_string self = self.internal_regex_object.pattern
+
 ## PRIVATE
    Convert the polyglot map to a Map.
 polyglot_map_to_map : Any -> Map Any Any
