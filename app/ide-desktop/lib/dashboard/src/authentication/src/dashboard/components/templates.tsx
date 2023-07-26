@@ -22,8 +22,6 @@ const MAX_WIDTH_NEEDING_SCROLL = 1031
 const PADDING_HEIGHT = 16
 /** The size (both width and height) of the spinner, in pixels. */
 const SPINNER_SIZE = 64
-/** The duration of the "spinner done" animation. */
-const SPINNER_DONE_DURATION_MS = 1000
 
 // =============
 // === Types ===
@@ -99,10 +97,7 @@ export const TEMPLATES: [Template, ...Template[]] = [
 
 /** Props for an {@link EmptyProjectButton}. */
 interface InternalEmptyProjectButtonProps {
-    onTemplateClick: (
-        name: null,
-        onSpinnerStateChange: (spinnerState: spinner.SpinnerState | null) => void
-    ) => void
+    onTemplateClick: () => void
 }
 
 /** A button that, when clicked, creates and opens a new blank project. */
@@ -114,14 +109,7 @@ function EmptyProjectButton(props: InternalEmptyProjectButtonProps) {
         <button
             onClick={() => {
                 setSpinnerState(spinner.SpinnerState.initial)
-                onTemplateClick(null, newSpinnerState => {
-                    setSpinnerState(newSpinnerState)
-                    if (newSpinnerState === spinner.SpinnerState.done) {
-                        setTimeout(() => {
-                            setSpinnerState(null)
-                        }, SPINNER_DONE_DURATION_MS)
-                    }
-                })
+                onTemplateClick()
             }}
             className="cursor-pointer relative text-primary h-40"
         >
@@ -148,27 +136,13 @@ function EmptyProjectButton(props: InternalEmptyProjectButtonProps) {
 /** Props for a {@link TemplateButton}. */
 interface InternalTemplateButtonProps {
     template: Template
-    onTemplateClick: (
-        name: string | null,
-        onSpinnerStateChange: (state: spinner.SpinnerState | null) => void
-    ) => void
+    onTemplateClick: (name: string) => void
 }
 
 /** A button that, when clicked, creates and opens a new project based on a template. */
 function TemplateButton(props: InternalTemplateButtonProps) {
     const { template, onTemplateClick } = props
     const [spinnerState, setSpinnerState] = React.useState<spinner.SpinnerState | null>(null)
-    const onSpinnerStateChange = React.useCallback(
-        (newSpinnerState: spinner.SpinnerState | null) => {
-            setSpinnerState(newSpinnerState)
-            if (newSpinnerState === spinner.SpinnerState.done) {
-                setTimeout(() => {
-                    setSpinnerState(null)
-                }, SPINNER_DONE_DURATION_MS)
-            }
-        },
-        []
-    )
 
     return (
         <button
@@ -176,7 +150,7 @@ function TemplateButton(props: InternalTemplateButtonProps) {
             className="h-40 cursor-pointer"
             onClick={() => {
                 setSpinnerState(spinner.SpinnerState.initial)
-                onTemplateClick(template.id, onSpinnerStateChange)
+                onTemplateClick(template.id)
             }}
         >
             <div
@@ -207,10 +181,7 @@ function TemplateButton(props: InternalTemplateButtonProps) {
 interface InternalTemplatesRenderProps {
     // Later this data may be requested and therefore needs to be passed dynamically.
     templates: Template[]
-    onTemplateClick: (
-        name: string | null,
-        onSpinnerStateChange: (spinnerState: spinner.SpinnerState | null) => void
-    ) => void
+    onTemplateClick: (name?: string) => void
 }
 
 /** Render all templates, and a button to create an empty project. */
@@ -237,14 +208,11 @@ function TemplatesRender(props: InternalTemplatesRenderProps) {
 
 /** Props for a {@link Templates}. */
 export interface TemplatesProps {
-    onTemplateClick: (
-        name: string | null,
-        onSpinnerStateChange: (state: spinner.SpinnerState | null) => void
-    ) => void
+    onTemplateClick: (name?: string) => void
 }
 
 /** A container for a {@link TemplatesRender} which passes it a list of templates. */
-function Templates(props: TemplatesProps) {
+export default function Templates(props: TemplatesProps) {
     const { onTemplateClick } = props
 
     const [shadowClass, setShadowClass] = React.useState(
@@ -339,4 +307,3 @@ function Templates(props: TemplatesProps) {
         </div>
     )
 }
-export default Templates

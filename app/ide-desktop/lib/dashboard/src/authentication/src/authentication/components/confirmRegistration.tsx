@@ -23,7 +23,7 @@ const REGISTRATION_QUERY_PARAMS = {
 // ============================
 
 /** An empty component redirecting users based on the backend response to user registration. */
-function ConfirmRegistration() {
+export default function ConfirmRegistration() {
     const logger = loggerProvider.useLogger()
     const auth = authModule.useAuth()
     const location = router.useLocation()
@@ -63,5 +63,3 @@ function parseUrlSearchParams(search: string) {
     const email = query.get(REGISTRATION_QUERY_PARAMS.email)
     return { verificationCode, email }
 }
-
-export default ConfirmRegistration

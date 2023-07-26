@@ -33,7 +33,7 @@ interface InternalValidTwemojiProps<T extends string> {
 }
 
 /** Serves a Twemoji image from the JSDelivr CDN. */
-function Twemoji<T extends string>(props: InternalValidTwemojiProps<T>) {
+export default function Twemoji<T extends string>(props: InternalValidTwemojiProps<T>) {
     const { emoji, size } = props
 
     // This is safe as the that the string is required to be non-empty by the type of `props`.
@@ -50,5 +50,3 @@ function Twemoji<T extends string>(props: InternalValidTwemojiProps<T>) {
         />
     )
 }
-
-export default Twemoji
