@@ -33,7 +33,6 @@ class ProjectCreationService[
     progressTracker: ActorRef,
     path: Path,
     name: String,
-    moduleName: String,
     engineVersion: SemVer,
     projectTemplate: Option[String],
     missingComponentAction: MissingComponentAction
@@ -62,7 +61,7 @@ class ProjectCreationService[
             path,
             name,
             engineVersion,
-            Some(moduleName),
+            None,
             projectTemplate,
             None,
             None,

@@ -117,7 +117,6 @@ class ProjectService[
       progressTracker,
       path,
       name,
-      moduleName,
       engineVersion,
       projectTemplate,
       missingComponentAction
