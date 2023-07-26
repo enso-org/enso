@@ -139,7 +139,13 @@ public class Column {
     return new Column(name, storage);
   }
 
-  /** Creates a column from an Enso array. No polyglot conversion happens. This is unsafe */
+  /**
+   * Creates a column from an Enso array. No polyglot conversion happens.
+   * <p>
+   * If a date value is passed to this function, it may not be recognized as such due to the lack of conversion. So this
+   * is only safe if we guarantee that the method will not get a Date value, or will reject it right after processing
+   * it.
+   */
   public static Column fromItemsNoDateConversion(String name, List<Object> items, StorageType expectedType) throws ClassCastException {
     Context context = Context.getCurrent();
     int n = items.size();

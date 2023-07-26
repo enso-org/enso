@@ -129,7 +129,7 @@ interface ListUsersResponseBody {
 
 /** HTTP response body for the "list projects" endpoint. */
 interface ListDirectoryResponseBody {
-    assets: backend.BaseAsset[]
+    assets: backend.AnyAsset[]
 }
 
 /** HTTP response body for the "list projects" endpoint. */
@@ -162,7 +162,7 @@ interface ListVersionsResponseBody {
 // =====================
 
 /** Class for sending requests to the Cloud backend API endpoints. */
-export class RemoteBackend implements backend.Backend {
+export class RemoteBackend extends backend.Backend {
     readonly type = backend.BackendType.remote
 
     /** Create a new instance of the {@link RemoteBackend} API client.
@@ -172,6 +172,7 @@ export class RemoteBackend implements backend.Backend {
         private readonly client: http.Client,
         private readonly logger: loggerProvider.Logger
     ) {
+        super()
         // All of our API endpoints are authenticated, so we expect the `Authorization` header to be
         // set.
         if (!this.client.defaultHeaders.has('Authorization')) {
@@ -251,7 +252,7 @@ export class RemoteBackend implements backend.Backend {
     async listDirectory(
         query: backend.ListDirectoryRequestParams,
         title: string | null
-    ): Promise<backend.Asset[]> {
+    ): Promise<backend.AnyAsset[]> {
         const response = await this.get<ListDirectoryResponseBody>(
             LIST_DIRECTORY_PATH +
                 '?' +
@@ -277,7 +278,7 @@ export class RemoteBackend implements backend.Backend {
             return (await response.json()).assets.map(
                 // This type assertion is safe; it is only needed to convert `type` to a newtype.
                 // eslint-disable-next-line no-restricted-syntax
-                asset => ({ ...asset, type: asset.id.match(/^(.+?)-/)?.[1] } as backend.Asset)
+                asset => ({ ...asset, type: asset.id.match(/^(.+?)-/)?.[1] } as backend.AnyAsset)
             )
         }
     }

@@ -24,7 +24,7 @@ export interface EditableSpanProps extends Omit<EditableSpanPassthroughProps, 'o
 }
 
 /** A `<span>` that can turn into an `<input type="text">`. */
-function EditableSpan(props: EditableSpanProps) {
+export default function EditableSpan(props: EditableSpanProps) {
     const {
         editable = false,
         children,
@@ -87,5 +87,3 @@ function EditableSpan(props: EditableSpanProps) {
         return <span {...passthroughProps}>{children}</span>
     }
 }
-
-export default EditableSpan

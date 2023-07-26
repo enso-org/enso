@@ -78,6 +78,13 @@ spec =
             (test_column * 1.5).value_type . should_equal Value_Type.Float
             (test_column + another).value_type . should_equal Value_Type.Integer
 
+        Test.specify "should forward dataflow error if constructed from one" <|
+            foo x =
+                if x == 1 then Error.throw "X" else x
+            col = Column.from_vector "Test" [foo 0, foo 1, foo 2]
+            col . should_fail_with Text
+            col.catch . should_equal "X"
+
         Test.specify "should not allow invalid column names" <|
             c1 = Column.from_vector "" [1, 2, 3]
             c1.should_fail_with Illegal_Argument
@@ -90,6 +97,27 @@ spec =
 
             c4 = Column.from_vector 'foo\0bar' [1, 2, 3]
             c4.should_fail_with Illegal_Argument
+
+        Test.specify "will coerce integers to decimals by default, to get a numeric column" <|
+            c1 = Column.from_vector "X" [1, 2.0]
+            c1.value_type . should_equal Value_Type.Float
+            c1.at 0 . should_be_a Decimal
+            c1.at 1 . should_be_a Decimal
+            c1.at 0 . is_a Integer . should_be_false
+
+        Test.specify "will preserve the types if the column is Mixed" <|
+            c1 = Column.from_vector "X" ["a", 1, 2.0]
+            c1.value_type . should_equal Value_Type.Mixed
+            c1.at 0 . should_be_a Text
+            c1.at 1 . should_be_a Integer
+            c1.at 2 . should_be_a Decimal
+
+        Test.specify "will preserve the types if the column is Mixed (2)" pending="TODO: disabled due to issue #7352" <|
+            c2 = Column.from_vector "X" [1, 2.0, "a"]
+            c2.value_type . should_equal Value_Type.Mixed
+            c2.at 0 . should_be_a Integer
+            c2.at 1 . should_be_a Decimal
+            c2.at 2 . should_be_a Text
 
     Test.group "Rounding" <|
         Test.specify "should be able to round a column of decimals" <|

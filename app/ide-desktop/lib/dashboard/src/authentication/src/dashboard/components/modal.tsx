@@ -17,7 +17,7 @@ export interface ModalProps extends React.PropsWithChildren {
  * The background is fully opaque by default;
  * background transparency can be enabled with Tailwind's `bg-opacity` classes,
  * like `className="bg-opacity-50"` */
-function Modal(props: ModalProps) {
+export default function Modal(props: ModalProps) {
     const { children, centered = false, className } = props
     const { unsetModal } = modalProvider.useSetModal()
 
@@ -37,5 +37,3 @@ function Modal(props: ModalProps) {
         </div>
     )
 }
-
-export default Modal

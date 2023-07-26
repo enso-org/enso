@@ -53,13 +53,16 @@ tokenize_to_rows table input_column_id pattern="." case_sensitivity=Case_Sensiti
    Converts a Text column into new columns using a regular expression
    pattern.
    See `Table.parse_to_columns`.
-parse_to_columns : Table -> Text | Integer -> Text -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table
-parse_to_columns table input_column_id pattern="." case_sensitivity=Case_Sensitivity.Sensitive parse_values=True on_problems=Report_Error =
-    case_insensitive = case_sensitivity.is_case_insensitive_in_memory
-    pat = Regex.compile pattern case_insensitive=case_insensitive
+parse_to_columns : Table -> Text | Integer -> Text | Regex -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table
+parse_to_columns table input_column_id (pattern:(Text | Regex)=".") case_sensitivity=Case_Sensitivity.Sensitive parse_values=True on_problems=Report_Error =
+    regex = case pattern of
+        _ : Regex -> pattern.recompile case_sensitivity
+        _ : Text ->
+            case_insensitive = case_sensitivity.is_case_insensitive_in_memory
+            Regex.compile pattern case_insensitive=case_insensitive
 
-    fun = handle_nothing (regex_parse_to_vectors pat)
-    column_names = regex_to_column_names pat input_column_id
+    fun = handle_nothing (regex_parse_to_vectors regex)
+    column_names = regex_to_column_names regex input_column_id
 
     column = table.at input_column_id
 
