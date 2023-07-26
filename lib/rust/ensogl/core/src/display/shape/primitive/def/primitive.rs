@@ -428,37 +428,6 @@ define_sdf_shapes! {
         );
         return bound_sdf(dist,bounds);
     }
-
-    // === CapsuleArc ===
-
-    /// A partial horizontal capsule shape - two circular arcs connected with a line on the bottom.
-    /// Supports arc angles between 0 and 180 degrees.
-    ///
-    ///                  angle=0 angle=90deg angle=180deg
-    ///
-    /// arc_distance=50                       ╭     ╮
-    ///                   ─────    ╰─────╯    ╰─────╯
-    ///                                         ╭ ╮
-    /// arc_distance=10     ─        ╰─╯        ╰─╯
-    ///
-    CapsuleArc (radius:Pixels, angle:Radians, width:Pixels, arc_distance:Pixels) {
-        // The implementation is based on combination of arc and box shapes:
-        // https://iquilezles.org/www/articles/distfunctions2d/distfunctions2d.htm
-
-        vec2 sc = vec2(sin(angle.value), cos(angle.value));
-        float midline = length(max(abs(position) - vec2(arc_distance, 0.0), 0.0));
-        position.x = abs(position.x) - arc_distance;
-        float k = sc.y * max(position.x, 0.0) > sc.x * position.y
-                    ? length(position - sc * radius)
-                    : abs(midline - radius);
-        float dist = min(k, midline + radius) - width * 0.5;
-
-        BoundingBox bounds = bounding_box(
-            2.0 * radius + width + arc_distance,
-            2.0 * radius + width
-        );
-        return bound_sdf(dist,bounds);
-    }
 }
 
 

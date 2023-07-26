@@ -47,7 +47,7 @@ fn build_frp(
     }
 
     quote! {
-        frp::extend! { network
+        __ensogl_core::frp::extend! { network
             layout_update_init_debounced <- any_(...);
             layout_update_needed <- any_(...);
             layout_update_needed <+ layout_update_init_debounced.debounce();

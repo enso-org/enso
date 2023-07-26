@@ -36,6 +36,7 @@ impl Data {
     ///  - other strings result in `None`.
     /// See below for some examples:
     /// ```
+    /// # use ensogl_core::prelude::*;
     /// # use ensogl_core::data::color;
     /// # use ensogl_core::display::style::data::*;
     /// assert_eq!(Data::parse("123.4"), Some(Data::Number(123.4)));
@@ -56,7 +57,7 @@ impl Data {
             return Some(Data::Text(s[1..s.len() - 1].to_string()));
         }
         if s.starts_with('(') && s.ends_with(')') {
-            if let Some((x, y)) = s.split_once(',').and_then(|(l, r)| {
+            if let Some((x, y)) = s[1..s.len() - 1].split_once(',').and_then(|(l, r)| {
                 let l = l.trim().parse::<f32>();
                 let r = r.trim().parse::<f32>();
                 l.ok().zip(r.ok())

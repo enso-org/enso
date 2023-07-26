@@ -339,16 +339,12 @@ impl AsRef<Manager> for Manager {
 /// A struct containing a set of predefined styles that can be constructed from theme. This trait
 /// can be derived using `#[derive(FromTheme)]`.
 ///
-/// ```
-/// # use ensogl_core::data::color;
-/// # use ensogl_core::display::style::FromTheme;
+/// ```ignore
 /// #[derive(Clone, Debug, Default, FromTheme)]
-/// #[base_path = "theme::code::syntax"]
+/// #[base_path = "theme::widget::label"]
 /// struct Style {
-///     base:      color::Rgba,
-///     selection: color::Rgba,
-///     disabled:  color::Rgba,
-///     expected:  color::Rgba,
+///     base_color:  color::Rgba,
+///     base_weight: f32,
 /// }
 /// ```
 pub trait FromTheme: Clone + Debug + Default + 'static {
