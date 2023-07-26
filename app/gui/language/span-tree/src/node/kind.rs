@@ -190,9 +190,8 @@ impl Kind {
 
     /// Argument definition index setter.
     pub fn set_definition_index(&mut self, index: usize) {
-        match self {
-            Self::Argument(t) => t.definition_index = Some(index),
-            _ => (),
+        if let Self::Argument(t) = self {
+            t.definition_index = Some(index);
         }
     }
 

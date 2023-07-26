@@ -1197,7 +1197,7 @@ mod test {
         let ctx = MockContext::new_single(ast.id.unwrap(), invocation_info);
         let mut tree: SpanTree = SpanTree::new(&ast, &ctx).unwrap();
         match tree.root_ref().leaf_iter().collect_vec().as_slice() {
-            [_func, arg0] => assert_eq!(arg0.argument_info(), Some(this_param(Some(call_id)))),
+            [_func, arg0] => assert_eq!(arg0.argument_info(), Some(&this_param(Some(call_id)))),
             sth_else => panic!("There should be 2 leaves, found: {}", sth_else.len()),
         }
         let expected = TreeBuilder::new(3)
@@ -1218,7 +1218,7 @@ mod test {
         let ctx = MockContext::new_single(ast.id.unwrap(), invocation_info);
         let mut tree: SpanTree = SpanTree::new(&ast, &ctx).unwrap();
         match tree.root_ref().leaf_iter().collect_vec().as_slice() {
-            [_func, arg0] => assert_eq!(arg0.argument_info(), Some(this_param(Some(call_id)))),
+            [_func, arg0] => assert_eq!(arg0.argument_info(), Some(&this_param(Some(call_id)))),
             sth_else => panic!("There should be 2 leaves, found: {}", sth_else.len()),
         }
         let expected = TreeBuilder::new(8)
@@ -1243,9 +1243,9 @@ mod test {
         let mut tree: SpanTree = SpanTree::new(&ast, &ctx).unwrap();
         match tree.root_ref().leaf_iter().collect_vec().as_slice() {
             [_func, arg0, arg1, arg2] => {
-                assert_eq!(arg0.argument_info(), Some(this_param(call_id)));
-                assert_eq!(arg1.argument_info(), Some(param1(call_id)));
-                assert_eq!(arg2.argument_info(), Some(param2(call_id)));
+                assert_eq!(arg0.argument_info(), Some(&this_param(call_id)));
+                assert_eq!(arg1.argument_info(), Some(&param1(call_id)));
+                assert_eq!(arg2.argument_info(), Some(&param2(call_id)));
             }
             sth_else => panic!("There should be 4 leaves, found: {}", sth_else.len()),
         }
@@ -1276,8 +1276,8 @@ mod test {
         let mut tree: SpanTree = SpanTree::new(&ast, &ctx).unwrap();
         match tree.root_ref().leaf_iter().collect_vec().as_slice() {
             [_this, _operator, _access, arg1, arg2] => {
-                assert_eq!(arg1.argument_info(), Some(param1(call_id)));
-                assert_eq!(arg2.argument_info(), Some(param2(call_id)));
+                assert_eq!(arg1.argument_info(), Some(&param1(call_id)));
+                assert_eq!(arg2.argument_info(), Some(&param2(call_id)));
             }
             sth_else => panic!("There should be 5 leaves, found: {}", sth_else.len()),
         }
