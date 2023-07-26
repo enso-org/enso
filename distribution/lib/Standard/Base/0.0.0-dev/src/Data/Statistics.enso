@@ -207,7 +207,10 @@ type Statistic
                 data.fold counter current->value->
                     result = compute_fold current value
 
-                    row = Panic.throw_wrapped_if_error <| statistics.map s-> result.compute s
+                    row = Panic.throw_wrapped_if_error <| statistics.map s-> case s of
+                        Statistic.Maximum -> if result.count == 0 then Nothing else result.maximum
+                        Statistic.Minimum -> if result.count == 0 then Nothing else result.minimum
+                        _ -> result.compute s
                     output.append row
 
                     result
