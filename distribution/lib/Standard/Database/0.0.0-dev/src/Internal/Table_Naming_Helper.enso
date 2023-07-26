@@ -1,29 +1,22 @@
 from Standard.Base import all
+import Standard.Base.Errors.Illegal_State.Illegal_State
 
 from project.Errors import Name_Too_Long
 
 polyglot java import org.enso.base.Text_Utils
 
 ## PRIVATE
-   A helper for checking and managing column/table names.
-type Naming_Helper
+   A helper for checking and generating table names.
+type Table_Naming_Helper
     ## PRIVATE
     Value connection
 
     ## PRIVATE
        Maximum length (in code units) for table name length.
        Nothing if there is no limit.
-    max_table_name_length : Integer | Nothing
-    max_table_name_length self =
+    max_name_length_units : Integer | Nothing
+    max_name_length_units self =
         reported = self.connection.jdbc_connection.with_metadata .getMaxTableNameLength
-        if reported == 0 then Nothing else reported
-
-    ## PRIVATE
-       Maximum length (in code units) for column name length.
-       Nothing if there is no limit.
-    max_column_name_length : Integer | Nothing
-    max_column_name_length self =
-        reported = self.connection.jdbc_connection.with_metadata .getMaxColumnNameLength
         if reported == 0 then Nothing else reported
 
     ## PRIVATE
@@ -32,12 +25,12 @@ type Naming_Helper
     verify_table_name : Text -> Any -> Any ! Name_Too_Long
     verify_table_name self table_name ~action =
         if self.is_table_name_valid table_name then action else
-            Error.throw (Name_Too_Long.Error "table" table_name max_length)
+            Error.throw (Name_Too_Long.Error "table" table_name self.max_name_length_units)
 
     ## PRIVATE
     is_table_name_valid : Text -> Boolean
     is_table_name_valid self table_name =
-        case self.max_table_name_length of
+        case self.max_name_length_units of
             Nothing -> True
             max_length ->
                 name_length = Text_Utils.char_length table_name
@@ -63,7 +56,7 @@ type Naming_Helper
          registry - but that means it was created by Enso as a hidden table.
     generate_dry_run_table_name : Text -> Text
     generate_dry_run_table_name self table_name =
-        max_length = (self.max_table_name_length.if_nothing 60) - 1
+        max_length = (self.max_name_length_units.if_nothing 60) - 1
         go ix =
             prefix = "enso-dry-run-" + if ix == 0 then "" else ix.to_text + "-"
             ## This check ensures that if all possible names are taken, the
@@ -86,7 +79,7 @@ type Naming_Helper
        database.
     generate_random_table_name : Text -> Text
     generate_random_table_name self prefix="enso-table-" =
-        max_length = self.max_table_name_length
+        max_length = self.max_name_length_units
         minimum_randomness = 5
         maximum_retries = 20^minimum_randomness
         if max_length.is_nothing.not && (prefix.length + minimum_randomness > max_length) then Error.throw (Illegal_State.Error "The prefix has length "+prefix.length.to_text+" while max table name is "+max_length.to_text+" - there is not enough space to safely generate random names.") else

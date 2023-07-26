@@ -2,7 +2,6 @@ from Standard.Base import all
 import Standard.Base.Errors.Common.Dry_Run_Operation
 import Standard.Base.Errors.Common.Forbidden_Operation
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
-import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Metadata.Display
 import Standard.Base.Metadata.Widget
 import Standard.Base.Runtime.Context as Execution_Context
@@ -13,6 +12,7 @@ from Standard.Base.Metadata.Widget import Single_Choice, Vector_Editor
 
 import Standard.Table.Data.Table.Table as Materialized_Table
 import Standard.Table.Data.Type.Value_Type.Value_Type
+import Standard.Table.Internal.Column_Naming_Helper.Column_Naming_Helper
 
 import project.Data.Column_Description.Column_Description
 import project.Data.Dialect.Dialect
@@ -25,7 +25,7 @@ import project.Internal.Hidden_Table_Registry
 import project.Internal.IR.Context.Context
 import project.Internal.IR.Query.Query
 import project.Internal.IR.SQL_Expression.SQL_Expression
-import project.Internal.Naming_Helper.Naming_Helper
+import project.Internal.Table_Naming_Helper.Table_Naming_Helper
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.Internal.Statement_Setter.Statement_Setter
 from project.Errors import SQL_Error, Table_Already_Exists, Table_Not_Found
@@ -224,7 +224,7 @@ type Connection
                 ctx = Context.for_query raw_sql name
                 Database_Table_Module.make_table self name columns ctx
         SQL_Query.Table_Name name ->
-            case self.naming_helper.is_table_name_valid name of
+            case self.table_naming_helper.is_table_name_valid name of
                 True -> make_table_for_name self name alias
                 False ->
                     Error.throw (Table_Not_Found.Error name related_query_error=Nothing treated_as_query=False extra_message="")
@@ -381,10 +381,18 @@ type Connection
         self.jdbc_connection.run_maintenance_action_if_possible callback
 
     ## PRIVATE
-       Returns a helper for checking and generating table/column that will be
-       valid for this connection.
-    naming_helper : Naming_Helper
-    naming_helper self = Naming_Helper.Value self
+       Returns a helper for checking and generating table names.
+    table_naming_helper : Table_Naming_Helper
+    table_naming_helper self = Table_Naming_Helper.Value self
+
+    ## PRIVATE
+       Returns a helper for checking and generating column names.
+    column_naming_helper : Column_Naming_Helper
+    column_naming_helper self =
+        max_column_name_length =
+            reported = self.jdbc_connection.with_metadata .getMaxColumnNameLength
+            if reported == 0 then Nothing else reported
+        Column_Naming_Helper.Value max_name_length_units=max_column_name_length
 
     ## PRIVATE
        Creates a Table reference that refers to a table with the given name.

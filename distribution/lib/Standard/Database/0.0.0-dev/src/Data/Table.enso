@@ -796,7 +796,7 @@ type Table
         get_column name = self.at name
         new_column = Expression.evaluate expression get_column self.make_constant_column "Standard.Database.Data.Column" "Column" Column.var_args_functions
         problems = Warning.get_all new_column . map .value
-        result = new_column.rename (self.connection.dialect.get_naming_helpers.sanitize_name expression)
+        result = new_column.rename (self.connection.base_connection.column_naming_helper.sanitize_name expression)
         on_problems.attach_problems_before problems <|
             Warning.set result []
 

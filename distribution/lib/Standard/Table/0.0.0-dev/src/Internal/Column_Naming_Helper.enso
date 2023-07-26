@@ -7,10 +7,21 @@ polyglot java import org.enso.table.data.table.Column as Java_Column
 
 ## PRIVATE
    An utility module for validating and generating column names.
-type Naming_Helpers
+type Column_Naming_Helper
+    ## PRIVATE
+       Arguments:
+       - max_name_length_units: Specifies a maximum length for the column name. Note
+         that the length is expressed in code units (chars) and not graphemes,
+         like in most places.
+    Value (max_name_length_units : Integer | Nothing)
+
+    ## PRIVATE
+    has_length_limit : Boolean
+    has_length_limit self = self.max_name_length_units.is_nothing.not
+
     ## PRIVATE
        Checks if the name is valid and runs the action, otherwise raises an error.
-    ensure_name_is_valid name ~action =
+    ensure_name_is_valid self name ~action =
         checked = Illegal_Argument.handle_java_exception <|
             Java_Column.ensureNameIsValid name
         checked.if_not_error action
@@ -18,23 +29,24 @@ type Naming_Helpers
     ## PRIVATE
        Ensures that the name does not contain the null character.
     sanitize_name : Text -> Text
-    sanitize_name name =
+    sanitize_name self name =
+        # TODO also truncate!
         # Using the regex matcher due to the #5831 bug.
         name.replace '\0'.to_regex '\\0'
 
     ## PRIVATE
        Generates a column name for a binary operation.
     binary_operation_name : Text -> Any -> Any -> Text
-    binary_operation_name operation_name left right =
-        lhs = Naming_Helpers.to_expression_text left
-        rhs = Naming_Helpers.to_expression_text right
+    binary_operation_name self operation_name left right =
+        lhs = self.to_expression_text left
+        rhs = self.to_expression_text right
         lhs + " " + operation_name + " " + rhs
 
     ## PRIVATE
        Generates a column name for a function-like transformation.
     function_name : Text -> Vector Any -> Text
-    function_name function_name arguments =
-        function_name + "(" + (arguments.map Naming_Helpers.to_expression_text . join ", ") + ")"
+    function_name self function_name arguments =
+        function_name + "(" + (arguments.map self.to_expression_text . join ", ") + ")"
 
     ## PRIVATE
        Serializes a given object into an expression-like text approximation.
@@ -42,6 +54,6 @@ type Naming_Helpers
        For columns, it will return its name wrapped in `[` and `]`, with the `]`
        symbols in the name escaped as `]]`, according to the expression rules.
        For other objects, it will return its pretty-printed representation.
-    to_expression_text value =
+    to_expression_text self value =
         if is_column value then "[" + value.name.replace "]" "]]" + "]" else
             value.pretty

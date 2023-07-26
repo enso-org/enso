@@ -14,9 +14,10 @@ import project.Database.Helpers.Name_Generator
 
 spec prefix connection =
     Test.group prefix+"Support for Long Column/Table names" <|
-        naming_helper = connection.base_connection.naming_helper
-        has_maximum_table_name_length = naming_helper.max_table_name_length.is_nothing.not
-        has_maximum_column_name_length = naming_helper.max_column_name_length.is_nothing.not
+        max_table_name_length = connection.base_connection.table_naming_helper.max_name_length_units
+        max_column_name_length = connection.base_connection.column_naming_helper.max_name_length_units
+        has_maximum_table_name_length = max_table_name_length.is_nothing.not
+        has_maximum_column_name_length = max_column_name_length.is_nothing.not
         big_name_length = 10000
 
         if has_maximum_table_name_length.not then
@@ -30,7 +31,6 @@ spec prefix connection =
                 dest_fetched.at "X" . to_vector . should_equal [1, 2, 3]
 
         if has_maximum_table_name_length then
-            max_table_name_length = naming_helper.max_table_name_length
             Test.specify "should not allow to create a table with a name that is too long" <|
                 name = "a" * (max_table_name_length + 1)
                 src = Table.new [["X", [1, 2, 3]]]
@@ -80,7 +80,7 @@ spec prefix connection =
                just short enough to fit in the limit, but long enough that after
                concatenating two of such names, the result will exceed the limit.
                If we don't know the limit, we just choose a very long name.
-            name_length = case naming_helper.max_table_name_length of
+            name_length = case max_table_name_length of
                 Nothing -> big_name_length
                 max : Integer -> max
 
@@ -118,7 +118,7 @@ spec prefix connection =
                just short enough to fit in the limit, but long enough that after
                concatenating two of such names, the result will exceed the limit.
                If we don't know the limit, we just choose a very long name.
-            name_length = case naming_helper.max_column_name_length of
+            name_length = case max_column_name_length of
                 Nothing -> big_name_length
                 max : Integer -> max
 
@@ -135,7 +135,7 @@ spec prefix connection =
             # We use no prefix to force the system to add a suffix.
             t4 = t2.join t3 on=name_1 join_kind=Join_Kind.Right_Outer right_prefix=""
             t4.row_count . should_equal 3
-            t4.column_names.length . should_equal 5
+            t4.column_names.length . should_equal 6
 
             t5 = t1.cross_join t4 right_prefix=""
             last_column = t5.at (-1)
@@ -188,7 +188,6 @@ spec prefix connection =
                 db_table_2.row_count . should_equal 0
 
         if has_maximum_column_name_length then
-            max_column_name_length = naming_helper.max_column_name_length
             Test.specify "should raise an error when renaming a column to a name that is too long" <|
                 src = Table.new [["X", [1, 2, 3]], ["Y", [4, 5, 6]]]
                 db_table = src.select_into_database_table connection (Name_Generator.random_name "long-column-names") temporary=True

@@ -7,6 +7,7 @@ from Standard.Base.Widget_Helpers import make_regex_text_widget
 import Standard.Table.Data.Column.Column as Materialized_Column
 import Standard.Table.Data.Type.Enso_Types
 import Standard.Table.Data.Type.Value_Type_Helpers
+import Standard.Table.Internal.Column_Naming_Helper.Column_Naming_Helper
 import Standard.Table.Internal.Date_Time_Helpers
 import Standard.Table.Internal.Java_Problems
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
@@ -1551,14 +1552,15 @@ type Column
     sql_type self = self.sql_type_reference.get
 
     ## PRIVATE
-    naming_helpers self = self.connection.dialect.get_naming_helpers
+    naming_helpers : Column_Naming_Helper
+    naming_helpers self = self.connection.base_connection.column_naming_helper
 
     ## PRIVATE
        Helper for the expression to tell it which functions needs a Vector.
     var_args_functions : Array
     var_args_functions = ['is_in', 'coalesce', 'min', 'max']
 
-    ## PRVIATE
+    ## PRIVATE
        If the column is NaN/Inf, return it immediately as the value; otherwise
        return the expression. If returning immediately, rename to the expression's
        name. If the column is not floating point, just return the expression.

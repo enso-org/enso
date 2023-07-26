@@ -33,7 +33,7 @@ import project.Internal.Add_Row_Number
 import project.Internal.Aggregate_Column_Helper
 import project.Internal.Java_Problems
 import project.Internal.Join_Helpers
-import project.Internal.Naming_Helpers.Naming_Helpers
+import project.Internal.Column_Naming_Helper.Column_Naming_Helper
 import project.Internal.Parse_Values_Helper
 import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Split_Tokenize
@@ -1359,7 +1359,7 @@ type Table
         get_column name = self.at name
         new_column = Expression.evaluate expression get_column self.make_constant_column "Standard.Table.Data.Column" "Column" Column.var_args_functions
         problems = Warning.get_all new_column . map .value
-        result = new_column.rename (Naming_Helpers.sanitize_name expression)
+        result = new_column.rename (Column_Naming_Helper.sanitize_name expression)
         on_problems.attach_problems_before problems <|
             Warning.set result []
 

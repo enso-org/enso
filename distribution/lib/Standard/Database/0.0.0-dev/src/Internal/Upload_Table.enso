@@ -30,13 +30,13 @@ from project.Internal.Result_Set import result_set_to_table
    The user-facing function that handles the dry-run logic.
 create_table_implementation connection table_name structure primary_key temporary allow_existing on_problems = Panic.recover SQL_Error <|
     connection.base_connection.maybe_run_maintenance
-    naming_helper = connection.base_connection.naming_helper
-    naming_helper.verify_table_name table_name <| case connection.base_connection.table_exists table_name of
+    table_naming_helper = connection.base_connection.table_naming_helper
+    table_naming_helper.verify_table_name table_name <| case connection.base_connection.table_exists table_name of
         True ->
             if allow_existing then connection.query (SQL_Query.Table_Name table_name) else Error.throw (Table_Already_Exists.Error table_name)
         False ->
             dry_run = Context.Output.is_enabled.not
-            effective_table_name = if dry_run.not then table_name else naming_helper.generate_dry_run_table_name table_name
+            effective_table_name = if dry_run.not then table_name else table_naming_helper.generate_dry_run_table_name table_name
             effective_temporary = temporary || dry_run
             created_table_name = Context.Output.with_enabled <|
                 connection.jdbc_connection.run_within_transaction <|
@@ -82,8 +82,8 @@ internal_upload_table source_table connection table_name primary_key temporary o
 ## PRIVATE
 select_into_table_implementation source_table connection table_name primary_key temporary on_problems =
     connection.base_connection.maybe_run_maintenance
-    naming_helper = connection.base_connection.naming_helper
-    naming_helper.verify_table_name table_name <|
+    table_naming_helper = connection.base_connection.table_naming_helper
+    table_naming_helper.verify_table_name table_name <|
         real_target_already_exists = connection.base_connection.table_exists table_name
         if real_target_already_exists then Error.throw (Table_Already_Exists.Error table_name) else
             Panic.recover SQL_Error <| handle_upload_errors <|
@@ -92,7 +92,7 @@ select_into_table_implementation source_table connection table_name primary_key 
                     False ->
                         internal_upload_table source_table connection table_name primary_key temporary on_problems=on_problems row_limit=Nothing
                     True ->
-                        tmp_table_name = naming_helper.generate_dry_run_table_name table_name
+                        tmp_table_name = table_naming_helper.generate_dry_run_table_name table_name
                         table = Context.Output.with_enabled <|
                             ## This temporary table can be safely dropped if it
                                exists, because it only existed if it was created by
@@ -278,7 +278,7 @@ common_update_table (source_table : In_Memory_Table | Database_Table) (target_ta
             connection.jdbc_connection.run_within_transaction <|
                 effective_key_columns = if key_columns.is_nothing then [] else key_columns
                 check_update_arguments_structure_match source_table target_table effective_key_columns update_action error_on_missing_columns on_problems <|
-                    tmp_table_name = connection.base_connection.naming_helper.generate_random_table_name "enso-temp-source-table-"
+                    tmp_table_name = connection.base_connection.table_naming_helper.generate_random_table_name "enso-temp-source-table-"
                     dry_run = Context.Output.is_enabled.not
                     row_limit = if dry_run then dry_run_row_limit else Nothing
                     Context.Output.with_enabled <|
