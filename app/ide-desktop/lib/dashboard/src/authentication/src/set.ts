@@ -20,6 +20,6 @@ export function withPresence<T>(set: Set<T>, value: T, presence: boolean) {
     if (presence === set.has(value)) {
         return set
     } else {
-        return setPresence(new Set([...set]), value, presence)
+        return setPresence(new Set(set), value, presence)
     }
 }

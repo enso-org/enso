@@ -11,11 +11,11 @@ import LockIcon from 'enso-assets/lock.svg'
 
 import * as app from '../../components/app'
 import * as auth from '../providers/auth'
-import * as svg from '../../components/svg'
 import * as validation from '../../dashboard/validation'
 
 import Input from './input'
 import SvgIcon from './svgIcon'
+import SvgMask from './svgMask'
 
 // =================
 // === Constants ===
@@ -31,7 +31,7 @@ const RESET_PASSWORD_QUERY_PARAMS = {
 // =====================
 
 /** A form for users to reset their password. */
-function ResetPassword() {
+export default function ResetPassword() {
     const { resetPassword } = auth.useAuth()
     const { search } = router.useLocation()
 
@@ -78,7 +78,7 @@ function ResetPassword() {
                             </label>
                             <div className="relative">
                                 <SvgIcon>
-                                    <svg.SvgMask src={AtIcon} />
+                                    <SvgMask src={AtIcon} />
                                 </SvgIcon>
                                 <Input
                                     id="email"
@@ -99,7 +99,7 @@ function ResetPassword() {
                             </label>
                             <div className="relative">
                                 <SvgIcon>
-                                    <svg.SvgMask src={LockIcon} />
+                                    <SvgMask src={LockIcon} />
                                 </SvgIcon>
                                 <Input
                                     id="code"
@@ -120,7 +120,7 @@ function ResetPassword() {
                             </label>
                             <div className="relative">
                                 <SvgIcon>
-                                    <svg.SvgMask src={LockIcon} />
+                                    <SvgMask src={LockIcon} />
                                 </SvgIcon>
                                 <Input
                                     id="new_password"
@@ -143,7 +143,7 @@ function ResetPassword() {
                             </label>
                             <div className="relative">
                                 <SvgIcon>
-                                    <svg.SvgMask src={LockIcon} />
+                                    <SvgMask src={LockIcon} />
                                 </SvgIcon>
                                 <Input
                                     id="new_password_confirm"
@@ -166,7 +166,7 @@ function ResetPassword() {
                             >
                                 <span className="mr-2 uppercase">Reset</span>
                                 <span>
-                                    <svg.SvgMask src={ArrowRightIcon} />
+                                    <SvgMask src={ArrowRightIcon} />
                                 </span>
                             </button>
                         </div>
@@ -181,7 +181,7 @@ function ResetPassword() {
                         }
                     >
                         <span>
-                            <svg.SvgMask src={GoBackIcon} />
+                            <SvgMask src={GoBackIcon} />
                         </span>
                         <span className="ml-2">Go back to login</span>
                     </router.Link>
@@ -198,5 +198,3 @@ function parseUrlSearchParams(search: string) {
     const email = query.get(RESET_PASSWORD_QUERY_PARAMS.email)
     return { verificationCode, email }
 }
-
-export default ResetPassword

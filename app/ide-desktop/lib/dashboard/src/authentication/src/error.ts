@@ -1,12 +1,9 @@
 /** @file Contains useful error types common across the module. */
+import * as toastify from 'react-toastify'
 
 // =====================
 // === tryGetMessage ===
 // =====================
-
-import * as toastify from 'react-toastify'
-
-import * as loggerProvider from './providers/logger'
 
 /** Evaluates the given type only if it the exact same type as {@link Expected}. */
 type MustBe<T, Expected> = (<U>() => U extends T ? 1 : 2) extends <U>() => U extends Expected
@@ -21,8 +18,9 @@ type MustBeAny<T> = never extends T ? (0 extends T & 1 ? T : never) : never
 
 /** Enforces that a parameter must not have a known type. This means the only types allowed are
  * `{}`, `object`, `unknown` and `any`. */
-// eslint-disable-next-line @typescript-eslint/ban-types, no-restricted-syntax
-type MustNotBeKnown<T> = MustBe<T, {}> | MustBe<T, object> | MustBe<T, unknown> | MustBeAny<T>
+export type MustNotBeKnown<T> =
+    // eslint-disable-next-line @typescript-eslint/ban-types, no-restricted-syntax
+    MustBe<T, {}> | MustBe<T, object> | MustBe<T, unknown> | MustBeAny<T>
 
 export function tryGetMessage<T>(error: MustNotBeKnown<T>): string | null
 /** Extracts the `message` property of a value if it is a string. Intended to be used on
@@ -46,25 +44,6 @@ export function getMessageOrToString<T>(error: MustNotBeKnown<T>) {
 // eslint-disable-next-line no-restricted-syntax
 export function render(f: (message: string) => string): toastify.UpdateOptions {
     return { render: ({ data }) => f(getMessageOrToString(data)) }
-}
-
-/** Send a toast with rendered error message. Same message is logged as an error.
- *
- * @param messagePrefix - a prefix to add to the error message, should represent the immediate
- * error context.
- * @param error - the error to render, which will be appended to the message prefix.
- * @param options - additional options to pass to the toast API.
- * @returns - the toast ID. */
-export function toastAndLog(
-    messagePrefix: string,
-    error?: unknown,
-    options?: toastify.ToastOptions
-) {
-    const message =
-        error == null ? `${messagePrefix}.` : `${messagePrefix}: ${getMessageOrToString(error)}`
-    const id = toastify.toast.error(message, options)
-    loggerProvider.useLogger().error(message)
-    return id
 }
 
 // ============================
