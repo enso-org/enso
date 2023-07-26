@@ -157,7 +157,7 @@ object ComponentGroupsValidatorSpec {
   ): Config =
     Config(
       name                 = name,
-      module               = name,
+      module               = None,
       namespace            = namespace,
       version              = "0.0.1",
       license              = "",
@@ -170,5 +170,5 @@ object ComponentGroupsValidatorSpec {
 
   /** Create a library name from config. */
   def libraryName(config: Config): LibraryName =
-    LibraryName(config.namespace, config.module)
+    LibraryName(config.namespace, config.moduleName)
 }
