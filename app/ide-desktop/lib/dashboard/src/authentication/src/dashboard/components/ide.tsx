@@ -28,7 +28,7 @@ export interface IdeProps {
 }
 
 /** The container that launches the IDE. */
-function Ide(props: IdeProps) {
+export default function Ide(props: IdeProps) {
     const { project, appRunner } = props
     const { backend } = backendProvider.useBackend()
     const { accessToken } = auth.useNonPartialUserSession()
@@ -150,5 +150,3 @@ function Ide(props: IdeProps) {
 
     return <></>
 }
-
-export default Ide

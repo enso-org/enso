@@ -27,13 +27,12 @@ const NAME = 'enso'
  * and conversely type errors may not mean they don't support ESM -
  * but we add those to the whitelist anyway otherwise we get type errors.
  * In particular, `string-length` supports ESM but its type definitions don't.
- * `yargs` and `react-hot-toast` are modules we explicitly want the default imports of.
+ * `yargs` is a modules we explicitly want the default imports of.
  * `node:process` is here because `process.on` does not exist on the namespace import. */
 const DEFAULT_IMPORT_ONLY_MODULES =
     'node:process|chalk|string-length|yargs|yargs\\u002Fyargs|sharp|to-ico|connect|morgan|serve-static|create-servers|electron-is-dev|fast-glob|esbuild-plugin-.+|opener|tailwindcss.*|enso-assets.*'
-const ALLOWED_DEFAULT_IMPORT_MODULES = `${DEFAULT_IMPORT_ONLY_MODULES}|postcss|react-hot-toast`
-const OUR_MODULES =
-    'enso-authentication|enso-content-config|enso-common|enso-common\\u002Fsrc\\u002Fdetect'
+const ALLOWED_DEFAULT_IMPORT_MODULES = `${DEFAULT_IMPORT_ONLY_MODULES}|postcss`
+const OUR_MODULES = 'enso-.*'
 const RELATIVE_MODULES =
     'bin\\u002Fproject-manager|bin\\u002Fserver|config\\u002Fparser|authentication|config|debug|file-associations|index|ipc|log|naming|paths|preload|security|url-associations'
 const STRING_LITERAL = ':matches(Literal[raw=/^["\']/], TemplateLiteral)'
@@ -156,6 +155,8 @@ const RESTRICTED_SYNTAXES = [
         // - a top-level variable declaration that shouldn't be `as const`
         // - a top-level variable declaration that should be `as const`, but is `as SomeActualType` instead
         selector: `:matches(:not(VariableDeclarator) > TSAsExpression, :not(:matches(Program, ExportNamedDeclaration)) > VariableDeclaration > * > TSAsExpression, :matches(Program, ExportNamedDeclaration) > VariableDeclaration > * > TSAsExpression > .expression:not(ObjectExpression:has(Property > ${STRING_LITERAL}.value):not(:has(Property > .value:not(${STRING_LITERAL})))), :matches(Program, ExportNamedDeclaration) > VariableDeclaration > * > TsAsExpression:not(:has(TSTypeReference > Identifier[name=const])) > ObjectExpression.expression:has(Property > ${STRING_LITERAL}.value):not(:has(Property > .value:not(${STRING_LITERAL}))))`,
+        // This cannot be changed right now, as `cognito.ts` would need to be refactored.
+        // selector: `:matches(:not(VariableDeclarator) > TSAsExpression, VariableDeclaration > * > TSAsExpression)`,
         message: 'Avoid `as T`. Consider using a type annotation instead.',
     },
     {
@@ -220,7 +221,7 @@ const RESTRICTED_SYNTAXES = [
     },
     {
         selector: 'FunctionDeclaration:has(:matches(ObjectPattern.params, ArrayPattern.params))',
-        message: 'Destructure function parameters in the body instead of in the parameter list',
+        message: 'Destructure function parameters in the body, instead of in the parameter list',
     },
     {
         selector: 'IfStatement > ExpressionStatement',
@@ -458,6 +459,11 @@ export default [
                 {
                     selector: '[declare=true]',
                     message: 'No ambient declarations',
+                },
+                {
+                    selector: 'ExportDefaultDeclaration:has(Identifier.declaration)',
+                    message:
+                        'Use `export default` on the declaration, instead of as a separate statement',
                 },
             ],
             // This rule does not work with TypeScript, and TypeScript already does this.

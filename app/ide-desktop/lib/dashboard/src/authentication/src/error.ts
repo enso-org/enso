@@ -1,4 +1,5 @@
 /** @file Contains useful error types common across the module. */
+import * as toastify from 'react-toastify'
 
 // =====================
 // === tryGetMessage ===
@@ -15,9 +16,13 @@ type MustBe<T, Expected> = (<U>() => U extends T ? 1 : 2) extends <U>() => U ext
  * from an API that returns `any`. */
 type MustBeAny<T> = never extends T ? (0 extends T & 1 ? T : never) : never
 
-export function tryGetMessage<T>(
-    error: MustBe<T, object> | MustBe<T, unknown> | MustBeAny<T>
-): string | null
+/** Enforces that a parameter must not have a known type. This means the only types allowed are
+ * `{}`, `object`, `unknown` and `any`. */
+export type MustNotBeKnown<T> =
+    // eslint-disable-next-line @typescript-eslint/ban-types, no-restricted-syntax
+    MustBe<T, {}> | MustBe<T, object> | MustBe<T, unknown> | MustBeAny<T>
+
+export function tryGetMessage<T>(error: MustNotBeKnown<T>): string | null
 /** Extracts the `message` property of a value if it is a string. Intended to be used on
  * {@link Error}s. */
 export function tryGetMessage(error: unknown): string | null {
@@ -27,6 +32,18 @@ export function tryGetMessage(error: unknown): string | null {
         typeof error.message === 'string'
         ? error.message
         : null
+}
+
+/** Like {@link tryGetMessage} but return the string representation of the value if it is not an
+ * {@link Error} */
+export function getMessageOrToString<T>(error: MustNotBeKnown<T>) {
+    return tryGetMessage(error) ?? String(error)
+}
+
+/** Return a toastify option object that renders an error message. */
+// eslint-disable-next-line no-restricted-syntax
+export function render(f: (message: string) => string): toastify.UpdateOptions {
+    return { render: ({ data }) => f(getMessageOrToString(data)) }
 }
 
 // ============================
