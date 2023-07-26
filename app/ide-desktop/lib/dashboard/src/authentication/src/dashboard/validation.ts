@@ -11,7 +11,7 @@ export const PASSWORD_TITLE =
 
 /** Regex pattern used by the backend for validating the previous password,
  * when changing password. */
-export const PREVIOUS_PASSWORD_PATTERN = '[\\S]+.*[\\S]+'
+export const PREVIOUS_PASSWORD_PATTERN = '^[\\S]+.*[\\S]+$'
 /** Human readable explanation of password requirements. */
 export const PREVIOUS_PASSWORD_TITLE =
     'Your password must neither start nor end with whitespace, and must contain ' +
@@ -23,6 +23,6 @@ export const PREVIOUS_PASSWORD_TITLE =
  *  Validation rules:
  *  - allow any non-empty string
  */
-export const LOCAL_PROJECT_NAME_PATTERN = '^\\s*\\S+.*$'
+export const LOCAL_PROJECT_NAME_PATTERN = '\\s*\\S+.*'
 /** Human readable explanation of project name restrictions for local projects. */
 export const LOCAL_PROJECT_NAME_TITLE = 'Project name cannot be empty.'
