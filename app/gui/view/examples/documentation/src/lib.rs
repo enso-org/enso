@@ -217,7 +217,7 @@ pub fn main() {
         let navigator = Navigator::new(scene, &scene.layers.node_searcher.camera());
         let panel = documentation::View::new(&app);
         panel.set_xy(Vector2(-200.0, -200.0));
-        panel.frp.show();
+        panel.frp.set_visible(true);
         panel.frp.skip_animation();
         scene.add_child(&panel);
         scene.layers.node_searcher.add(&panel);
@@ -273,9 +273,7 @@ pub fn main() {
             panel_visible <- any(...);
             panel_visible <+ init.constant(true);
             current_state <- panel_visible.sample(&show_hide.events_deprecated.mouse_down);
-            panel_visible <+ current_state.not();
-            panel.frp.show <+ panel_visible.on_true();
-            panel.frp.hide <+ panel_visible.on_false();
+            panel.frp.set_visible <+ current_state.not();
 
             // === Disable navigator on hover ===
 

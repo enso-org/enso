@@ -6,7 +6,6 @@ use ensogl_core::prelude::*;
 
 use crate::grid::entry::icon;
 
-use enso_frp as frp;
 use ensogl_core::application::tooltip;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
@@ -121,6 +120,15 @@ impl Model {
         Self { background, local_scope, shortcuts, unstable, marketplace, side_panel }
     }
 
+    fn initialize_buttons_state(&self) {
+        self.side_panel.set_state(true);
+        // Buttons below are not implemented.
+        self.local_scope.set_read_only(true);
+        self.shortcuts.set_read_only(true);
+        self.unstable.set_read_only(true);
+        self.marketplace.set_read_only(true);
+    }
+
     fn update_style(&self, style: &Style) {
         self.background.set_size(Vector2(style.width, style.height));
         self.background.set_corner_radius(style.corner_radius);
@@ -157,22 +165,14 @@ impl View {
 
         let styles = StyleWatchFrp::new(&scene().style_sheet);
         let style = Style::from_theme(network, &styles);
+        model.side_panel.set_state(true);
+        // Buttons below are not implemented.
+        model.local_scope.set_read_only(true);
+        model.shortcuts.set_read_only(true);
+        model.unstable.set_read_only(true);
+        model.marketplace.set_read_only(true);
         frp::extend! { network
-            init <- source_();
             eval style.update((style) model.update_style(style));
-
-
-            // === Initial state ===
-
-            model.side_panel.set_state <+ init.constant(true);
-            // Buttons below are not implemented.
-            model.local_scope.set_read_only <+ init.constant(true);
-            model.shortcuts.set_read_only <+ init.constant(true);
-            model.unstable.set_read_only <+ init.constant(true);
-            model.marketplace.set_read_only <+ init.constant(true);
-
-
-            // === Buttons ===
 
             model.local_scope.set_state <+ frp.set_local_scope_mode;
             model.shortcuts.set_state <+ frp.set_show_shortcuts;
@@ -183,8 +183,8 @@ impl View {
             out.show_shortcuts <+ model.shortcuts.state;
             out.side_panel <+ model.side_panel.state;
         }
-        init.emit(());
         style.init.emit(());
+        model.initialize_buttons_state();
 
         Self { model, frp }
     }

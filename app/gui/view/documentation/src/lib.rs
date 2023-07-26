@@ -223,10 +223,8 @@ ensogl::define_endpoints! {
     Input {
         /// Display documentation of the specific entry from the suggestion database.
         display_documentation (EntryDocumentation),
-        /// Open documentation panel with animation.
-        show(),
-        /// Close documentation panel with animation.
-        hide(),
+        /// Set documentation visibility. It will appear or disappear with animation.
+        set_visible(bool),
         /// Skip show/hide animation.
         skip_animation(),
     }
@@ -289,15 +287,8 @@ impl View {
         let display_delay = frp::io::timer::Timeout::new(network);
         let style_frp = StyleWatchFrp::new(&scene.style_sheet);
         let style = Style::from_theme(network, &style_frp);
-        let width_anim = Animation::new(network);
+        let width_anim = Animation::new_with_init(network, 1.0);
         frp::extend! { network
-            init <- source_();
-
-
-            // === Breadcrumbs ===
-
-            eval_ init(model.set_initial_breadcrumbs());
-
 
             // === Displaying documentation ===
 
@@ -325,10 +316,8 @@ impl View {
 
             // === Show/hide animation ===
 
-            width_anim.target <+ frp.show.constant(1.0);
-            width_anim.target <+ frp.hide.constant(0.0);
+            width_anim.target <+ frp.set_visible.map(|&visible| if visible { 1.0 } else { 0.0 });
             width_anim.skip <+ frp.skip_animation;
-            width_anim.target <+ init.constant(1.0);
             _eval <- width_anim.value.all_with(&size, f!((f, s) model.set_size(Vector2(s.x * f, s.y))));
 
 
@@ -361,7 +350,7 @@ impl View {
             frp.source.is_hovered <+ model.overlay.events_deprecated.mouse_over.constant(true);
             frp.source.is_hovered <+ model.overlay.events_deprecated.mouse_out.constant(false);
         }
-        init.emit(());
+        model.set_initial_breadcrumbs();
         style.init.emit(());
         self
     }

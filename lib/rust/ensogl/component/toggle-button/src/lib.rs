@@ -34,6 +34,14 @@ use ensogl_hardcoded_theme::component::toggle_button as theme;
 
 
 
+// ==================
+// === any_cached ===
+// ==================
+
+pub use display::shape::compound::from_cache::recolorized as any_cached;
+
+
+
 // =================
 // === Colorable ===
 // =================
@@ -48,26 +56,6 @@ pub trait ColorableShape: ShapeWithDefaultableData {
     fn set_color(&self, color: color::Rgba);
 }
 
-/// A shape that can be parametrized by any cached icon. Same as
-/// [`display::shape::compound::from_cache::recolorized`], but has an overlay for capturing mouse
-/// events and implements [`ColorableShape`].
-pub mod any_cached {
-    use ensogl_core::display::shape::*;
-    ensogl_core::shape! {
-        alignment = left_bottom;
-        (style: Style, icon: AnyCachedShape, r_component: Vector4, g_component: Vector4, b_component: Vector4) {
-            let r: Var<color::Rgba> = r_component.into();
-            let g: Var<color::Rgba> = g_component.into();
-            let b: Var<color::Rgba> = b_component.into();
-            let width = Var::<Pixels>::from("input_size.x");
-            let height = Var::<Pixels>::from("input_size.y");
-            let icon = icon.recolorize(r, g, b);
-            let overlay = Rect((width, height)).fill(INVISIBLE_HOVER_COLOR);
-            (icon + overlay).into()
-        }
-    }
-}
-
 impl ColorableShape for any_cached::Shape {
     fn set_color(&self, color: color::Rgba) {
         // We set only red component, because it was historically used for Component Browser cached
@@ -75,6 +63,7 @@ impl ColorableShape for any_cached::Shape {
         self.r_component.set(color.into());
     }
 }
+
 
 
 // ===========
@@ -114,13 +103,17 @@ ensogl_core::define_endpoints_2! {
 #[derive(Clone, CloneRef, Debug)]
 #[clone_ref(bound = "S: CloneRef")]
 struct Model<S: Shape> {
-    icon: ShapeView<S>,
+    icon:    ShapeView<S>,
+    overlay: Rectangle,
 }
 
 impl<Shape: ColorableShape + 'static> Model<Shape> {
     fn new() -> Self {
         let icon = ShapeView::new();
-        Self { icon }
+        let overlay = Rectangle::new().build(|rect| {
+            rect.set_color(INVISIBLE_HOVER_COLOR);
+        });
+        Self { icon, overlay }
     }
 }
 
@@ -267,7 +260,7 @@ impl<Shape: ColorableShape + 'static> ToggleButton<Shape> {
         let output = &self.frp.private.output;
         let model = &self.model;
         let color = color::Animation::new(network);
-        let icon = &model.icon.events_deprecated;
+        let events = &model.overlay.events_deprecated;
 
         // Explicitly define the tooltip placement if none was set. This ensures that this tooltip
         // is always correctly placed even when other components use tooltips as well. Otherwise,
@@ -282,12 +275,15 @@ impl<Shape: ColorableShape + 'static> ToggleButton<Shape> {
 
              // === Input Processing ===
 
-            eval input.set_size ((size) model.icon.set_size(*size););
+            eval input.set_size ((size) {
+                model.icon.set_size(*size);
+                model.overlay.set_size(*size);
+            });
 
 
             // === State ===
 
-            clicked <- icon.mouse_down_primary.gate_not(&input.set_read_only);
+            clicked <- events.mouse_down_primary.gate_not(&input.set_read_only);
             toggle <- any_(input.toggle, clicked);
             output.state <+ output.state.not().sample(&toggle);
             output.state <+ input.set_state;
@@ -296,10 +292,10 @@ impl<Shape: ColorableShape + 'static> ToggleButton<Shape> {
 
             // === Mouse Interactions ===
 
-            output.mouse_over <+ icon.mouse_over;
-            output.mouse_out  <+ icon.mouse_out;
-            output.is_hovered <+ bool(&icon.mouse_out, &icon.mouse_over);
-            output.is_pressed <+ bool(&icon.mouse_up_primary, &icon.mouse_down_primary);
+            output.mouse_over <+ events.mouse_over;
+            output.mouse_out  <+ events.mouse_out;
+            output.is_hovered <+ bool(&events.mouse_out, &events.mouse_over);
+            output.is_pressed <+ bool(&events.mouse_up_primary, &events.mouse_down_primary);
 
 
             // === Color ===
