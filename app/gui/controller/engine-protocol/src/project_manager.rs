@@ -468,6 +468,7 @@ mod remote_client_tests {
                 "port" : 27016
             },
             "projectName"      : "Test",
+            "projectModule"    : "Test",
             "projectNamespace" : "test_ns",
         });
         let project_name = ProjectName::new_unchecked("HelloWorld");
