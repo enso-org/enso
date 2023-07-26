@@ -43,7 +43,7 @@ export default function BackendSwitcher(props: BackendSwitcherProps) {
                     }`}
                 >
                     <svg.SvgMask src={CloudIcon} />
-                    <span className="h-5.5 py-px">Cloud</span>
+                    <span className="leading-5 h-6 py-px">Cloud</span>
                 </button>
             </div>
             <div
@@ -65,7 +65,7 @@ export default function BackendSwitcher(props: BackendSwitcherProps) {
                     }`}
                 >
                     <svg.SvgMask src={NotCloudIcon} />
-                    <span className="h-5.5 py-px">Local</span>
+                    <span className="leading-5 h-6 py-px">Local</span>
                 </button>
             </div>
         </div>

@@ -6,6 +6,7 @@ import FindIcon from 'enso-assets/find.svg'
 import * as backendModule from '../backend'
 
 import PageSwitcher, * as pageSwitcher from './pageSwitcher'
+import AssetInfoBar from './assetInfoBar'
 import BackendSwitcher from './backendSwitcher'
 import UserBar from './userBar'
 
@@ -20,6 +21,7 @@ export interface TopBarProps {
     projectName: string | null
     page: pageSwitcher.Page
     setPage: (page: pageSwitcher.Page) => void
+    asset: backendModule.Asset | null
     isEditorDisabled: boolean
     setBackendType: (backendType: backendModule.BackendType) => void
     isHelpChatOpen: boolean
@@ -35,6 +37,7 @@ function TopBar(props: TopBarProps) {
         supportsLocalBackend,
         page,
         setPage,
+        asset,
         isEditorDisabled,
         setBackendType,
         isHelpChatOpen,
@@ -44,7 +47,7 @@ function TopBar(props: TopBarProps) {
     } = props
 
     return (
-        <div className="relative flex mx-4.75 h-8 gap-6">
+        <div className="relative flex ml-4.75 mr-2.25 mt-2.25 h-8 gap-6">
             <PageSwitcher page={page} setPage={setPage} isEditorDisabled={isEditorDisabled} />
             {supportsLocalBackend && <BackendSwitcher setBackendType={setBackendType} />}
             <div className="grow" />
@@ -61,11 +64,14 @@ function TopBar(props: TopBarProps) {
                     onChange={event => {
                         setQuery(event.target.value)
                     }}
-                    className="grow bg-transparent h-5.5 py-px"
+                    className="grow bg-transparent leading-5 h-6 py-px"
                 />
             </div>
             <div className="grow" />
-            <UserBar isHelpChatOpen={isHelpChatOpen} setIsHelpChatOpen={setIsHelpChatOpen} />
+            <div className="flex gap-2">
+                <AssetInfoBar asset={asset} />
+                <UserBar isHelpChatOpen={isHelpChatOpen} setIsHelpChatOpen={setIsHelpChatOpen} />
+            </div>
         </div>
     )
 }

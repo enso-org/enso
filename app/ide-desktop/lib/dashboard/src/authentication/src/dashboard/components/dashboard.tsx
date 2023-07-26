@@ -202,7 +202,7 @@ function Dashboard(props: DashboardProps) {
 
     return (
         <div
-            className={`flex flex-col gap-2 relative select-none text-primary text-xs h-screen py-2 ${
+            className={`flex flex-col gap-2 relative select-none text-primary text-xs h-screen pb-2 ${
                 page === pageSwitcher.Page.drive ? '' : 'hidden'
             }`}
             onClick={closeModalIfExists}
@@ -212,6 +212,7 @@ function Dashboard(props: DashboardProps) {
                 projectName={project?.name ?? null}
                 page={page}
                 setPage={setPage}
+                asset={null}
                 isEditorDisabled={project == null}
                 isHelpChatOpen={isHelpChatOpen}
                 setIsHelpChatOpen={setIsHelpChatOpen}

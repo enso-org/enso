@@ -1,4 +1,4 @@
-/** @file A small toolbar containing chat and the user menu. */
+/** @file A toolbar containing chat and the user menu. */
 import * as React from 'react'
 
 import ChatIcon from 'enso-assets/chat.svg'
@@ -18,7 +18,7 @@ export interface UserBarProps {
     setIsHelpChatOpen: (isHelpChatOpen: boolean) => void
 }
 
-/** A small toolbar containing chat and the user menu. */
+/** A toolbar containing chat and the user menu. */
 export default function UserBar(props: UserBarProps) {
     const { isHelpChatOpen, setIsHelpChatOpen } = props
     const { updateModal } = modalProvider.useSetModal()

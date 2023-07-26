@@ -14,11 +14,13 @@ function Button(props: ButtonProps) {
     const { active, disabled = false, image, onClick } = props
 
     return (
-        <img
-            className={`${active ? '' : 'opacity-50'} ${disabled ? '' : 'cursor-pointer'}`}
-            src={image}
+        <button
+            disabled={disabled}
+            className="cursor-pointer disabled:cursor-default disabled:opacity-50"
             onClick={onClick}
-        />
+        >
+            <img className={active ? '' : 'opacity-50'} src={image} />
+        </button>
     )
 }
 
