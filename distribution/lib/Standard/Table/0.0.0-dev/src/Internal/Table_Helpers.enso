@@ -265,7 +265,7 @@ type Table_Column_Helper
      If set to `Report_Error`, the operation fails with a dataflow error.
      If set to `Ignore`, the operation proceeds without errors or warnings.
 rename_columns : Column_Naming_Helper -> Vector -> Map (Text | Integer | Regex) Text | Vector Text -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Map Text Text
-rename_columns (naming_helpers : Column_Naming_Helper) (internal_columns:Vector) (mapping:(Map | Vector)) (case_sensitivity:Case_Sensitivity) (error_on_missing_columns:Boolean) (on_problems:Problem_Behavior) =
+rename_columns (naming_helper : Column_Naming_Helper) (internal_columns:Vector) (mapping:(Map | Vector)) (case_sensitivity:Case_Sensitivity) (error_on_missing_columns:Boolean) (on_problems:Problem_Behavior) =
     ## Convert Vector of Pairs to Map
     is_vec_pairs = mapping.is_a Vector && mapping.length > 0 && (mapping.first.is_a Text . not)
     case is_vec_pairs of
@@ -273,7 +273,7 @@ rename_columns (naming_helpers : Column_Naming_Helper) (internal_columns:Vector)
             ## Attempt to treat as Map
             map = Map.from_vector mapping
             if map.is_error then Error.throw (Illegal_Argument.Error "A mapping Vector must be either a list of names or a list of pairs (old name to new name).") else
-                rename_columns naming_helpers internal_columns map case_sensitivity error_on_missing_columns on_problems
+                rename_columns naming_helper internal_columns map case_sensitivity error_on_missing_columns on_problems
         False ->
             unique = Unique_Name_Strategy.new
             problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns
@@ -308,7 +308,7 @@ rename_columns (naming_helpers : Column_Naming_Helper) (internal_columns:Vector)
                     builder.to_vector
 
             all_new_names = columns_with_new_names.map .second
-            naming_helpers.validate_many_column_names all_new_names <|
+            naming_helper.validate_many_column_names all_new_names <|
                 ## Resolves actual new names for renamed columns.
                    If a column received ambiguous new names, an error is raised.
                 name_map = columns_with_new_names.fold Map.empty current-> pair->
