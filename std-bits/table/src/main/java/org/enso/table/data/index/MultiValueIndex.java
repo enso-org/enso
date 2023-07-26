@@ -219,32 +219,16 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
       grid[groupingCoordinate][nameCoordinate] = combinedKey;
     }
 
+    var emptyList = new ArrayList<Integer>();
     for (UnorderedMultiValueKey groupingSubKey : groupingNumberer.getObjects()) {
       int groupingCoordinate = groupingNumberer.getNumber(groupingSubKey);
 
-      // Find a cell for this group that has a key; there has to be one.
-      UnorderedMultiValueKey keyForGroup = null;
-      for (int i=0; i<numNames; ++i) {
-        if (grid[groupingCoordinate][i] != null) {
-            keyForGroup = grid[groupingCoordinate][i];
-            break;
-        }
-      }
-      if (keyForGroup == null) {
-        throw new IllegalStateException("Internal error: empty group partition");
-      }
-
       // Fill the grouping columns
-      int aGroupRow = combinedIndex.locs.get(keyForGroup).get(0);
       IntStream.range(0, groupingColumns.length)
-          .forEach(
-                i ->
-                    storage[i].appendNoGrow(
-                        groupingColumns[i].getStorage().getItemBoxed(aGroupRow)));
+          .forEach(i -> storage[i].appendNoGrow(groupingSubKey.get(i)));
 
       int offset = groupingColumns.length;
 
-      var emptyList = new ArrayList<Integer>();
       for (UnorderedMultiValueKey nameSubKey : nameNumberer.getObjects()) {
         int nameCoordinate = nameNumberer.getNumber(nameSubKey);
         List<Integer> rowIds = combinedIndex.locs.get(grid[groupingCoordinate][nameCoordinate]);
