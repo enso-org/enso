@@ -879,7 +879,14 @@ foreign js js_array_datetimeCreate year month day hour minute second nanosecond 
 foreign python python_datetime_impl year month day hour minute second nanosecond zone = """
     import datetime
 
-    return datetime.datetime(year, month, day, hour, minute, second, int(nanosecond/1000), zone)
+    class Zone(datetime.tzinfo):
+        def __init__(self,zone):
+            self.zone = zone
+
+        def utcoffset(self, dt):
+            return 0
+
+    return datetime.datetime(year, month, day, hour, minute, second, int(nanosecond / 1000000), Zone(zone))
 
 enso_datetime year month=1 day=1 hour=0 minute=0 second=0 nanosecond=0 zone=Time_Zone.system =
     Date_Time.new year month day hour minute second nanosecond=nanosecond zone=zone
