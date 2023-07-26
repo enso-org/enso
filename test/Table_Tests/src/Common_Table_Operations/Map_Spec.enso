@@ -1,0 +1,82 @@
+from Standard.Base import all
+import Standard.Base.Errors.Illegal_State.Illegal_State
+
+from Standard.Database.Errors import Unsupported_Database_Operation
+
+from Standard.Test import Test, Problems
+import Standard.Test.Extensions
+
+from project.Common_Table_Operations.Util import run_default_backend
+
+main = run_default_backend spec
+
+spec setup =
+    prefix = setup.prefix
+    table_builder = setup.table_builder
+
+    Test.group prefix+"Column.map" <|
+        if setup.is_database then
+            Test.specify "should report unsupported error" <|
+                t = table_builder [["X", [1, 2, 3]]]
+                t.at "X" . map (x-> x + 1) . should_fail_with Unsupported_Database_Operation
+
+        if setup.is_database.not then
+            Test.specify "should allow to map a column with an arbitrary function" <|
+                t = table_builder [["X", [1, 2, 3]]]
+                f x = 2*x + 1
+                t.at "X" . map f . to_vector . should_equal [3, 5, 7]
+
+            Test.specify "should forward dataflow errors that occur within the map" <|
+                t = table_builder [["X", [1, 2, 3]]]
+                f x = if x == 2 then Error.throw (Illegal_State.Error "MY ERROR") else 2*x + 1
+                c1 = t.at "X" . map f
+                c1.should_fail_with Illegal_State
+                c1.catch.message . should_equal "MY ERROR"
+
+            Test.specify "should forward panics that occur within the map" <|
+                t = table_builder [["X", [1, 2, 3]]]
+                f x = if x == 2 then Panic.throw (Illegal_State.Error "MY PANIC") else 2*x + 1
+                Test.expect_panic_with (t.at "X" . map f) Illegal_State
+
+            Test.specify "should forward warnings that are attached to results of function invocation" <|
+                t = table_builder [["X", [1, 2, 3]]]
+                f x =
+                    if x == 2 then Warning.attach (Illegal_State.Error "MY WARNING") (2*x + 1) else 2*x + 1
+                c1 = t.at "X" . map f
+                w1 = Problems.expect_only_warning Illegal_State c1
+                w1.message . should_equal "MY WARNING"
+                c1.to_vector . should_equal [3, 5, 7]
+
+    Test.group prefix+"Column.zip" <|
+        if setup.is_database then
+            Test.specify "should report unsupported error" <|
+                t = table_builder [["X", [1, 2, 3]], ["Y", [4, 5, 6]]]
+                f x y = 10*x + y
+                (t.at "X") . zip (t.at "Y") f . should_fail_with Unsupported_Database_Operation
+
+        if setup.is_database.not then
+            Test.specify "should allow to zip two columns with an arbitrary function" <|
+                t = table_builder [["X", [1, 2, 3]], ["Y", [4, 5, 6]]]
+                f x y = 10*x + y
+                (t.at "X") . zip (t.at "Y") f . to_vector . should_equal [14, 25, 36]
+
+            Test.specify "should forward dataflow errors that occur within the zip" <|
+                t = table_builder [["X", [1, 2, 3]], ["Y", [4, 5, 6]]]
+                f x y = if x == 2 then Error.throw (Illegal_State.Error "MY ERROR") else 10*x + y
+                c1 = (t.at "X") . zip (t.at "Y") f
+                c1.should_fail_with Illegal_State
+                c1.catch.message . should_equal "MY ERROR"
+
+            Test.specify "should forward panics that occur within the zip" <|
+                t = table_builder [["X", [1, 2, 3]], ["Y", [4, 5, 6]]]
+                f x y = if x == 2 then Panic.throw (Illegal_State.Error "MY PANIC") else 10*x + y
+                Test.expect_panic_with ((t.at "X") . zip (t.at "Y") f) Illegal_State
+
+            Test.specify "should forward warnings that are attached to results of function invocation" <|
+                t = table_builder [["X", [1, 2, 3]], ["Y", [4, 5, 6]]]
+                f x y =
+                    if x == 2 then Warning.attach (Illegal_State.Error "MY WARNING") (10*x + y) else 10*x + y
+                c1 = (t.at "X") . zip (t.at "Y") f
+                w1 = Problems.expect_only_warning Illegal_State c1
+                w1.message . should_equal "MY WARNING"
+                c1.to_vector . should_equal [14, 25, 36]

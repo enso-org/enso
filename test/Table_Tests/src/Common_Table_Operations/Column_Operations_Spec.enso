@@ -1,6 +1,7 @@
 from Standard.Base import all
 
 import Standard.Base.Errors.Common.Arithmetic_Error
+import Standard.Base.Errors.Common.Incomparable_Values
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Meta.Type
 import Standard.Database.Data.Column.Column
@@ -28,6 +29,33 @@ spec setup =
         result = table.at "x" |> op
         result.to_vector.at 0
     do_round n dp=0 use_bankers=False = do_op n (_.round dp use_bankers)
+
+    ## Runs the provided callback with a few combinations of columns, where some
+       of them are made Mixed (but still contain only the original values).
+       If the backend does not support mixed columns, the callback is run only
+       once.
+       Note that this is called exponentially many times with the number of
+       columns, so the number of columns given to this function must be limited.
+    with_mixed_columns_if_supported table_structure callback =
+        if table_structure.length > 3 then
+            Panic.throw (Illegal_Argument.Error "with_mixed_columns_if_supported: Too many columns.")
+        if table_structure.length == 0 then
+            Panic.throw (Illegal_Argument.Error "with_mixed_columns_if_supported: No columns provided.")
+        callback_with_clue table =
+            clue = table.columns.map (c-> c.name + "->" + c.value_type.to_display_text) . join ", " "{Table: " "} "
+            Test.with_clue clue <|
+                callback table
+        case setup.test_selection.supports_mixed_columns of
+            False -> callback_with_clue (table_builder table_structure)
+            True ->
+                all_combinations (Vector.fill table_structure.length [Nothing, Mixed_Type_Object.Value]) . each combination->
+                    amended_table_structure = table_structure.zip combination column_definition-> prefix->
+                        name = column_definition.first
+                        values = column_definition.second
+                        [name, [prefix]+values]
+                    mixed_table = table_builder amended_table_structure
+                    aligned_table = mixed_table.drop 1
+                    callback_with_clue aligned_table
 
     Test.group prefix+"Boolean Column Operations" <|
         Test.specify "iif" <|
@@ -59,19 +87,19 @@ spec setup =
             t.at "X" . iif 22 "0" . should_fail_with No_Common_Type
 
         Test.specify "iif on Columns" <|
-            t1 = table_builder [["X", [True, False, Nothing, False]], ["Y", [1, 2, 3, 4]], ["Z", [1.5, 2.0, 3.5, 4.0]]]
-            c1 = t1.at "X" . iif (t1.at "Y") (t1.at "Z")
-            c1.value_type . is_floating_point . should_be_true
-            c1.to_vector . should_equal [1, 2.0, Nothing, 4.0]
+            with_mixed_columns_if_supported [["X", [True, False, Nothing, False]], ["Y", [1, 2, 3, 4]], ["Z", [1.5, 2.0, 3.5, 4.0]]] t1->
+                c1 = t1.at "X" . iif (t1.at "Y") (t1.at "Z")
+                c1.value_type . is_floating_point . should_be_true
+                c1.to_vector . should_equal [1, 2.0, Nothing, 4.0]
 
-            t2 = table_builder [["X", [True, False]], ["Y", [1, 2]], ["Z", [1.5, 3.0]]]
-            c2 = t2.at "X" . iif (t2.at "Y") (t2.at "Z")
-            c2.to_vector . should_equal [1, 3]
-            c2.value_type . is_floating_point . should_be_true
+            with_mixed_columns_if_supported [["X", [True, False]], ["Y", [1, 2]], ["Z", [1.5, 3.0]]] t2->
+                c2 = t2.at "X" . iif (t2.at "Y") (t2.at "Z")
+                c2.to_vector . should_equal [1, 3]
+                c2.value_type . is_floating_point . should_be_true
 
-            t3 = table_builder [["X", [True, False]], ["Y", [10, 20]], ["Z", [False, True]]]
-            t3.at "X" . iif (t3.at "Y") (t3.at "Z") . should_fail_with No_Common_Type
-            t3.at "X" . iif (t3.at "Y") "<NA>" . should_fail_with No_Common_Type
+            with_mixed_columns_if_supported [["X", [True, False]], ["Y", [10, 20]], ["Z", [False, True]]] t3->
+                t3.at "X" . iif (t3.at "Y") (t3.at "Z") . should_fail_with No_Common_Type
+                t3.at "X" . iif (t3.at "Y") "<NA>" . should_fail_with No_Common_Type
 
         Test.specify "iif should correctly unify text columns of various lengths" pending=(if setup.test_selection.fixed_length_text_columns.not then "Fixed-length Char columns are not supported by this backend.") <|
             t0 = table_builder [["x", [False, True, False]], ["A", ["a", "b", "c"]], ["B", ["xyz", "abc", "def"]]]
@@ -100,13 +128,16 @@ spec setup =
                 g.value_type.variable_length.should_be_true
 
         Test.specify "should allow to compute &&, || and not" <|
-            t = table_builder [["X", [True, False, True]], ["Y", [True, False, False]]]
-            x = t.at "X"
-            y = t.at "Y"
-            (x || y.not).to_vector . should_equal [True, True, True]
-            (x || False).to_vector . should_equal [True, False, True]
-            (x || True).to_vector . should_equal [True, True, True]
-            (x && False).to_vector . should_equal [False, False, False]
+            with_mixed_columns_if_supported [["X", [True, False, True]], ["Y", [True, False, False]]] t->
+                x = t.at "X"
+                y = t.at "Y"
+                (x || False).to_vector . should_equal [True, False, True]
+                (x || True).to_vector . should_equal [True, True, True]
+                (x || y).to_vector . should_equal [True, False, True]
+                (x && False).to_vector . should_equal [False, False, False]
+                (x && True).to_vector . should_equal [True, False, True]
+                (x && y).to_vector . should_equal [True, False, False]
+                (x || y.not).to_vector . should_equal [True, True, True]
 
         Test.specify "should return null if one of arguments is missing" pending="TODO null handling" <|
             t = table_builder [["X", [True, False, True]]]
@@ -129,21 +160,23 @@ spec setup =
             ((t.at "X") . not) . should_fail_with Invalid_Value_Type
             ((t.at "Y") . iif 10 20) . should_fail_with Invalid_Value_Type
 
-    t2 = table_builder [["x", [1, 4, 5, Nothing]], ["y", [2.0, 3.25, 5.0, Nothing]]]
-    x = t2.at "x"
-    y = t2.at "y"
     Test.group prefix+"Column Operations - Equality & Null Handling" <|
         Test.specify "should provide basic == and != comparisons" pending="TODO figure out proper null handling" <|
-            (x == y).to_vector . should_equal [False, False, True, Nothing]
-            (x != y).to_vector . should_equal [True, True, False, Nothing]
-            (x == 4).to_vector . should_equal [False, True, False, Nothing]
-            (x == Nothing).to_vector . should_equal [Nothing, Nothing, Nothing, Nothing]
+            with_mixed_columns_if_supported [["x", [1, 4, 5, Nothing]], ["y", [2.0, 3.25, 5.0, Nothing]]] t2->
+                x = t2.at "x"
+                y = t2.at "y"
+                (x == y).to_vector . should_equal [False, False, True, Nothing]
+                (x != y).to_vector . should_equal [True, True, False, Nothing]
+                (x == 4).to_vector . should_equal [False, True, False, Nothing]
+                (x == Nothing).to_vector . should_equal [Nothing, Nothing, Nothing, Nothing]
 
         Test.specify "should allow to check which values are null"
-            x.is_nothing.to_vector . should_equal [False, False, False, True]
-            (x + Nothing).is_nothing.to_vector . should_equal [True, True, True, True]
-            x.is_present.to_vector . should_equal [True, True, True, False]
-            (x + Nothing).is_present.to_vector . should_equal [False, False, False, False]
+            with_mixed_columns_if_supported [["x", [1, 4, 5, Nothing]]] t->
+                x = t.at "x"
+                x.is_nothing.to_vector . should_equal [False, False, False, True]
+                (x + Nothing).is_nothing.to_vector . should_equal [True, True, True, True]
+                x.is_present.to_vector . should_equal [True, True, True, False]
+                (x + Nothing).is_present.to_vector . should_equal [False, False, False, False]
 
         Test.specify "Column equality should handle nulls correctly" pending="TODO" <|
             a = [2, 3, Nothing, Nothing]
@@ -163,11 +196,11 @@ spec setup =
 
             x.zip y (.equals_ignore_case) . should_equal r
 
-            t = table_builder [["X", x], ["Y", y]]
-            c = (t.at "X") . equals_ignore_case (t.at "Y")
-            c.to_vector . should_equal r
-            c.value_type.should_equal Value_Type.Boolean
-            (t.at "X") . equals_ignore_case "Def" . to_vector . should_equal [False, False, False, True]
+            with_mixed_columns_if_supported [["X", x], ["Y", y]] t->
+                c = (t.at "X") . equals_ignore_case (t.at "Y")
+                c.to_vector . should_equal r
+                c.value_type.should_equal Value_Type.Boolean
+                (t.at "X") . equals_ignore_case "Def" . to_vector . should_equal [False, False, False, True]
 
         Test.specify "equals_ignore_case should check types" <|
             t = table_builder [["X", [1, 2, 3]], ["Y", ['a', 'b', 'c']]]
@@ -280,10 +313,10 @@ spec setup =
     Test.group prefix+"Table.replace" <|
         if setup.is_database.not then
             Test.specify "should allow to replace values in a table" <|
-                t = table_builder [["col0", ["abc", "def", "ghi"]], ["col1", ["nabc", "ndef", "asdf"]]]
-                actual = t.replace ["col0", "col1"] "ab" "xy"
-                actual.at "col0" . to_vector . should_equal ["xyc", "def", "ghi"]
-                actual.at "col1" . to_vector . should_equal ["nxyc", "ndef", "asdf"]
+                with_mixed_columns_if_supported [["col0", ["abc", "def", "ghi"]], ["col1", ["nabc", "ndef", "asdf"]]] t->
+                    actual = t.replace ["col0", "col1"] "ab" "xy"
+                    actual.at "col0" . to_vector . should_equal ["xyc", "def", "ghi"]
+                    actual.at "col1" . to_vector . should_equal ["nxyc", "ndef", "asdf"]
 
             Test.specify "should allow to replace values in a table with a regex" <|
                 t = table_builder [["col0", ["abc", "def", "ghi"]], ["col1", ["nabc", "ndef", "asdf"]]]
@@ -300,22 +333,25 @@ spec setup =
 
     Test.group prefix+"Column Comparisons" <|
         Test.specify "should allow to compare numbers" <|
-            x.value_type . is_integer . should_be_true
-            y.value_type . is_floating_point . should_be_true
+            with_mixed_columns_if_supported [["x", [1, 4, 5, Nothing]], ["y", [2.0, 3.25, 5.0, Nothing]]] t2->
+                x = t2.at "x"
+                y = t2.at "y"
+                x.inferred_precise_value_type . is_integer . should_be_true
+                y.inferred_precise_value_type . is_floating_point . should_be_true
 
-            (x < y).to_vector . should_equal [True, False, False, Nothing]
-            (x <= y).to_vector . should_equal [True, False, True, Nothing]
-            (x > y).to_vector . should_equal (x <= y).not.to_vector
-            (x >= y).to_vector . should_equal (x < y).not.to_vector
+                (x < y).to_vector . should_equal [True, False, False, Nothing]
+                (x <= y).to_vector . should_equal [True, False, True, Nothing]
+                (x > y).to_vector . should_equal (x <= y).not.to_vector
+                (x >= y).to_vector . should_equal (x < y).not.to_vector
 
-            (x < 1000).to_vector . should_equal [True, True, True, Nothing]
+                (x < 1000).to_vector . should_equal [True, True, True, Nothing]
 
-            [(<), (<=), (>), (>=)].each op->
-                op x y . value_type . should_equal Value_Type.Boolean
-                op x y . to_vector . should_succeed
-                op x 23 . to_vector . should_succeed
-                op y 23 . to_vector . should_succeed
-                op x 1.5 . to_vector . should_succeed
+                [(<), (<=), (>), (>=)].each op->
+                    op x y . value_type . should_equal Value_Type.Boolean
+                    op x y . to_vector . should_succeed
+                    op x 23 . to_vector . should_succeed
+                    op y 23 . to_vector . should_succeed
+                    op x 1.5 . to_vector . should_succeed
 
         Test.specify "should allow to compare texts" <|
             t0 = table_builder [["X", ["a", "b", "c"]], ["Y", ["a", "b", "d"]]]
@@ -353,6 +389,47 @@ spec setup =
                 op (t.at "Z") 32 . should_fail_with Invalid_Value_Type
                 op (t.at "Z") (t.at "X") . should_fail_with Invalid_Value_Type
 
+        if setup.test_selection.supports_mixed_columns then
+            Test.specify "should allow comparing Mixed columns" <|
+                t1 = table_builder [["X", ["a", 23]], ["Y", ["b", 1]]]
+                ((t1.at "X") == (t1.at "Y")) . to_vector . should_equal [False, False]
+                ((t1.at "X") <= (t1.at "Y")) . to_vector . should_equal [True, False]
+                ((t1.at "X") > (t1.at "Y")) . to_vector . should_equal [False, True]
+
+                t1_2 = table_builder [["X", [1, "2"]], ["Y", ["b", 1]]]
+                ((t1_2.at "X") == (t1_2.at "Y")) . to_vector . should_equal [False, False]
+                ((t1_2.at "X") <= (t1_2.at "Y")) . to_vector . should_fail_with Incomparable_Values
+
+                t2 = table_builder [["X", [1, 2]], ["Y", ["b", 1]]]
+                ((t2.at "X") == (t2.at "Y")) . to_vector . should_equal [False, False]
+                ((t2.at "X") <= (t2.at "Y")) . to_vector . should_fail_with Incomparable_Values
+                ((t2.at "Y") > (t2.at "X")) . to_vector . should_fail_with Incomparable_Values
+
+                t3 = table_builder [["X", [1.0, 2.0]], ["Y", ["b", 1]]]
+                ((t3.at "X") == (t3.at "Y")) . to_vector . should_equal [False, False]
+                ((t3.at "X") <= (t3.at "Y")) . to_vector . should_fail_with Incomparable_Values
+                ((t3.at "Y") > (t3.at "X")) . to_vector . should_fail_with Incomparable_Values
+
+                t4 = table_builder [["X", ["a", "b"]], ["Y", ["b", 1]]]
+                ((t4.at "X") == (t4.at "Y")) . to_vector . should_equal [False, False]
+                ((t4.at "X") <= (t4.at "Y")) . to_vector . should_fail_with Incomparable_Values
+                ((t4.at "Y") > (t4.at "X")) . to_vector . should_fail_with Incomparable_Values
+
+                t5 = table_builder [["X", [Date.new 2022, Date.new 2019]], ["Y", ["b", 1]]]
+                ((t5.at "X") == (t5.at "Y")) . to_vector . should_equal [False, False]
+                ((t5.at "X") <= (t5.at "Y")) . to_vector . should_fail_with Incomparable_Values
+                ((t5.at "Y") > (t5.at "X")) . to_vector . should_fail_with Incomparable_Values
+
+                t6 = table_builder [["X", [Time_Of_Day.new 21, Time_Of_Day.new 22]], ["Y", ["b", 1]]]
+                ((t6.at "X") == (t6.at "Y")) . to_vector . should_equal [False, False]
+                ((t6.at "X") <= (t6.at "Y")) . to_vector . should_fail_with Incomparable_Values
+                ((t6.at "Y") > (t6.at "X")) . to_vector . should_fail_with Incomparable_Values
+
+                t7 = table_builder [["X", [Date_Time.new 2022, Date_Time.new 2019]], ["Y", ["b", 1]]]
+                ((t7.at "X") == (t7.at "Y")) . to_vector . should_equal [False, False]
+                ((t7.at "X") <= (t7.at "Y")) . to_vector . should_fail_with Incomparable_Values
+                ((t7.at "Y") > (t7.at "X")) . to_vector . should_fail_with Incomparable_Values
+
         Test.specify "Between should return null if any of the values are null" pending="TODO" <|
             a = [2, 3, Nothing, 7,       5,       Nothing]
             b = [0, 5, 7,       Nothing, 7,       Nothing]
@@ -363,15 +440,29 @@ spec setup =
             ((t.at "A").between (t.at "B") (t.at "C")) . to_vector . should_equal r
 
     Test.group prefix+"Arithmetic Column Operations" <|
+        t2 = table_builder [["x", [1, 4, 5, Nothing]], ["y", [2.0, 3.25, 5.0, Nothing]]]
+        x = t2.at "x"
+        y = t2.at "y"
         Test.specify "should allow basic operations" <|
             (x + y).to_vector . should_equal [3, 7.25, 10, Nothing]
             (x - y).to_vector . should_equal [-1.0, 0.75, 0.0, Nothing]
             (x * y).to_vector . should_equal [2.0, 13.0, 25.0, Nothing]
 
-        Test.specify "should allow combining a column with a scalar" pending="TODO null handling" <|
+        Test.specify "should allow combining a column with a scalar" <|
             (x + 100).to_vector . should_equal [101, 104, 105, Nothing]
             (x * 10).to_vector . should_equal [10, 40, 50, Nothing]
             (x - 10).to_vector . should_equal [-9, -6, -5, Nothing]
+
+        Test.specify "should work with mixed types" <|
+            with_mixed_columns_if_supported [["X", [100, 25]], ["Y", [2, 5]]] t->
+                x = t.at "X"
+                y = t.at "Y"
+                (x + y).to_vector . should_equal [102, 30]
+                (x - y).to_vector . should_equal [98, 20]
+                (x * y).to_vector . should_equal [200, 125]
+                (x / y).to_vector . should_equal [50, 5]
+                (x % y).to_vector . should_equal [0, 0]
+                (x ^ y).to_vector . should_equal [10000, 9765625]
 
         Test.specify "should correctly infer the types" <|
             (x + x).value_type . is_integer . should_be_true
@@ -634,6 +725,22 @@ spec setup =
             table = table_builder [["x", ["a", "b"]]]
             table.at "x" . round . should_fail_with Invalid_Value_Type
 
+        Test.specify "should work with mixed type columns" <|
+            with_mixed_columns_if_supported [["X", [112, 210, 222]]] t->
+                x = t.at "X"
+                x.floor . to_vector . should_equal [112, 210, 222]
+                x.ceil . to_vector . should_equal [112, 210, 222]
+                x.round . to_vector . should_equal [112, 210, 222]
+                x.truncate . to_vector . should_equal [112, 210, 222]
+                x.round (-1) . to_vector . should_equal [110, 210, 220]
+
+            with_mixed_columns_if_supported [["X", [1.0, -2.4, 3.8]]] t->
+                x = t.at "X"
+                x.floor . to_vector . should_equal [1, -3, 3]
+                x.ceil . to_vector . should_equal [1, -2, 4]
+                x.round . to_vector . should_equal [1, -2, 4]
+                x.truncate . to_vector . should_equal [1, -2, 3]
+
     Test.group prefix+"Rounding numeric tests" <|
         Test.specify "Can round positive decimals correctly" <|
             do_round 3.0 . should_equal 3
@@ -894,39 +1001,39 @@ spec setup =
             do_round -12251 -2 use_bankers=True . should_equal -12300
 
     Test.group prefix+"Text Column Operations" <|
-        t3 = table_builder [["s1", ["foobar", "bar", "baz", "BAB", Nothing]], ["s2", ["foo", "ar", "a", "b", Nothing]]]
-        s1 = t3.at "s1"
-        s2 = t3.at "s2"
         Test.specify "should handle operations like starts_with, ends_with, contains" <|
-            s1.starts_with s2 . to_vector . should_equal [True, False, False, False, Nothing]
-            s1.starts_with s2 Case_Sensitivity.Insensitive . to_vector . should_equal [True, False, False, True, Nothing]
-            s1.starts_with "foo" . to_vector . should_equal [True, False, False, False, Nothing]
-            s1.starts_with "ba" . to_vector . should_equal [False, True, True, False, Nothing]
-            s1.starts_with "ba" Case_Sensitivity.Insensitive . to_vector . should_equal [False, True, True, True, Nothing]
+            with_mixed_columns_if_supported [["s1", ["foobar", "bar", "baz", "BAB", Nothing]], ["s2", ["foo", "ar", "a", "b", Nothing]]] t3->
+                s1 = t3.at "s1"
+                s2 = t3.at "s2"
+                s1.starts_with s2 . to_vector . should_equal [True, False, False, False, Nothing]
+                s1.starts_with s2 Case_Sensitivity.Insensitive . to_vector . should_equal [True, False, False, True, Nothing]
+                s1.starts_with "foo" . to_vector . should_equal [True, False, False, False, Nothing]
+                s1.starts_with "ba" . to_vector . should_equal [False, True, True, False, Nothing]
+                s1.starts_with "ba" Case_Sensitivity.Insensitive . to_vector . should_equal [False, True, True, True, Nothing]
 
-            s1.contains s2 . to_vector . should_equal [True, True, True, False, Nothing]
-            s1.contains s2 Case_Sensitivity.Insensitive . to_vector . should_equal [True, True, True, True, Nothing]
-            s1.contains "a" . to_vector . should_equal [True, True, True, False, Nothing]
-            s1.contains "oo" . to_vector . should_equal [True, False, False, False, Nothing]
-            s1.contains "a" Case_Sensitivity.Insensitive . to_vector . should_equal [True, True, True, True, Nothing]
+                s1.contains s2 . to_vector . should_equal [True, True, True, False, Nothing]
+                s1.contains s2 Case_Sensitivity.Insensitive . to_vector . should_equal [True, True, True, True, Nothing]
+                s1.contains "a" . to_vector . should_equal [True, True, True, False, Nothing]
+                s1.contains "oo" . to_vector . should_equal [True, False, False, False, Nothing]
+                s1.contains "a" Case_Sensitivity.Insensitive . to_vector . should_equal [True, True, True, True, Nothing]
 
-            s1.ends_with s2 . to_vector . should_equal [False, True, False, False, Nothing]
-            s1.ends_with s2 Case_Sensitivity.Insensitive . to_vector . should_equal [False, True, False, True, Nothing]
-            s1.ends_with "ar" . to_vector . should_equal [True, True, False, False, Nothing]
-            s1.ends_with "a" . to_vector . should_equal [False, False, False, False, Nothing]
-            s1.ends_with "b" Case_Sensitivity.Insensitive . to_vector . should_equal [False, False, False, True, Nothing]
+                s1.ends_with s2 . to_vector . should_equal [False, True, False, False, Nothing]
+                s1.ends_with s2 Case_Sensitivity.Insensitive . to_vector . should_equal [False, True, False, True, Nothing]
+                s1.ends_with "ar" . to_vector . should_equal [True, True, False, False, Nothing]
+                s1.ends_with "a" . to_vector . should_equal [False, False, False, False, Nothing]
+                s1.ends_with "b" Case_Sensitivity.Insensitive . to_vector . should_equal [False, False, False, True, Nothing]
 
-            s1.like s2 . to_vector . should_equal [False, False, False, False, Nothing]
-            s1.like (s2+"%r") . to_vector . should_equal [True, False, False, False, Nothing]
-            s1.like "%r%" . to_vector . should_equal [True, True, False, False, Nothing]
+                s1.like s2 . to_vector . should_equal [False, False, False, False, Nothing]
+                s1.like (s2+"%r") . to_vector . should_equal [True, False, False, False, Nothing]
+                s1.like "%r%" . to_vector . should_equal [True, True, False, False, Nothing]
 
         Test.specify "should handle operations like is_empty, is_blank, fill_empty" <|
-            t = table_builder [["s", ["", " ", "  ", Nothing, "foo"]], ["letters", ["a", "b", "c", "d", "e"]]]
-            s = t.at "s"
-            s.is_empty . to_vector . should_equal [True, False, False, True, False]
-            s.is_blank . to_vector . should_equal [True, False, False, True, False]
-            s.fill_empty "<>" . to_vector . should_equal ["<>", " ", "  ", "<>", "foo"]
-            s.fill_empty (t.at "letters") . to_vector . should_equal ["a", " ", "  ", "d", "foo"]
+            with_mixed_columns_if_supported [["s", ["", " ", "  ", Nothing, "foo"]], ["letters", ["a", "b", "c", "d", "e"]]] t->
+                s = t.at "s"
+                s.is_empty . to_vector . should_equal [True, False, False, True, False]
+                s.is_blank . to_vector . should_equal [True, False, False, True, False]
+                s.fill_empty "<>" . to_vector . should_equal ["<>", " ", "  ", "<>", "foo"]
+                s.fill_empty (t.at "letters") . to_vector . should_equal ["a", " ", "  ", "d", "foo"]
 
         Test.specify "should check types" <|
             t4 = table_builder [["str", ['a', 'b']], ["int", [1, 2]]]
@@ -955,6 +1062,9 @@ spec setup =
             int.is_empty . should_fail_with Invalid_Value_Type
 
         Test.specify "should return right types" <|
+            t3 = table_builder [["s1", ["foobar", "bar", "baz", "BAB", Nothing]], ["s2", ["foo", "ar", "a", "b", Nothing]]]
+            s1 = t3.at "s1"
+            s2 = t3.at "s2"
             [Case_Sensitivity.Default, Case_Sensitivity.Sensitive, Case_Sensitivity.Insensitive].each cs->
                 s1.starts_with s2 case_sensitivity=cs . value_type . should_equal Value_Type.Boolean
                 s1.ends_with s2 case_sensitivity=cs . value_type . should_equal Value_Type.Boolean
@@ -973,17 +1083,20 @@ spec setup =
             s1.fill_empty s2 . value_type . is_text . should_be_true
 
         Test.specify "should support text concatenation with the + operator" <|
-            c1 = s1 + s2
-            c1.to_vector . should_equal ["foobarfoo", "barar", "baza", "BABb", Nothing]
-            c1.value_type.is_text . should_be_true
+            with_mixed_columns_if_supported [["s1", ["foobar", "bar", "baz", "BAB", Nothing]], ["s2", ["foo", "ar", "a", "b", Nothing]]] t3->
+                s1 = t3.at "s1"
+                s2 = t3.at "s2"
+                c1 = s1 + s2
+                c1.to_vector . should_equal ["foobarfoo", "barar", "baza", "BABb", Nothing]
+                c1.value_type.is_text . should_be_true
 
-            c2 = s1 + "_SUF"
-            c2.to_vector . should_equal ["foobar_SUF", "bar_SUF", "baz_SUF", "BAB_SUF", Nothing]
-            c2.value_type.is_text . should_be_true
+                c2 = s1 + "_SUF"
+                c2.to_vector . should_equal ["foobar_SUF", "bar_SUF", "baz_SUF", "BAB_SUF", Nothing]
+                c2.value_type.is_text . should_be_true
 
-            c3 = s1 + Nothing
-            c3.to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, Nothing]
-            c3.value_type.is_text . should_be_true
+                c3 = s1 + Nothing
+                c3.to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, Nothing]
+                c3.value_type.is_text . should_be_true
 
     Test.group prefix+"Min/Max Operations" <|
         t = table_builder [["a", [1, 2, 3]], ["b", [4.5, 5.5, 6.5]], ["c", ['a', 'b', 'c']], ["d", [True, False, True]]]
@@ -1215,9 +1328,11 @@ spec setup =
         c = t5.at "C"
 
         Test.specify "should trim whitespace by default" <|
-            a.trim . to_vector . should_equal ["A", "A", "xxxAxx"]
-            a.trim Location.Start . to_vector . should_equal ["A ", 'A\r\n\t ', "xxxAxx"]
-            a.trim Location.End . to_vector . should_equal [" A", ' \t\n\rA', "xxxAxx"]
+            with_mixed_columns_if_supported [["A", [" A ", ' \t\n\rA\r\n\t ', "xxxAxx"]]] t->
+                a = t.at "A"
+                a.trim . to_vector . should_equal ["A", "A", "xxxAxx"]
+                a.trim Location.Start . to_vector . should_equal ["A ", 'A\r\n\t ', "xxxAxx"]
+                a.trim Location.End . to_vector . should_equal [" A", ' \t\n\rA', "xxxAxx"]
 
        Test.specify "should trim custom characters" <|
             a.trim what='x' . to_vector . should_equal [" A ", ' \t\n\rA\r\n\t ', "A"]
@@ -1337,3 +1452,18 @@ spec setup =
         Test.specify "Should not allow the creation of a constant column of columns" <|
             t = table_builder [["x", ["1", "2", "3"]]]
             t.at "x" . const (t.at "x") . should_fail_with Illegal_Argument
+
+# A dummy value used to force the in-memory backend to trigger a infer a mixed type for the given column.
+type Mixed_Type_Object
+    Value
+
+all_combinations variables =
+    result = Vector.new_builder
+    go current_choices =
+        i = current_choices.length
+        if i == variables.length then result.append current_choices else
+            choices = variables.at i
+            choices.each x->
+                go (current_choices + [x])
+    go []
+    result.to_vector

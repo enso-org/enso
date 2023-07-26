@@ -133,11 +133,30 @@ impl Concurrency {
     }
 }
 
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+#[serde(rename_all = "kebab-case")]
+pub enum Permission {
+    Actions,
+    Checks,
+    Contents,
+    Deployments,
+    IdToken,
+    Issues,
+    Discussions,
+    Packages,
+    Pages,
+    PullRequests,
+    RepositoryProjects,
+    SecurityEvents,
+    Statuses,
+}
+
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum Access {
     Read,
     Write,
+    None,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -148,7 +167,7 @@ pub struct Workflow {
     pub description: Option<String>,
     pub on:          Event,
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
-    pub permissions: BTreeMap<String, Access>,
+    pub permissions: BTreeMap<Permission, Access>,
     pub jobs:        BTreeMap<String, Job>,
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub env:         BTreeMap<String, String>,
@@ -225,6 +244,11 @@ impl Workflow {
 
     pub fn env(&mut self, var_name: impl Into<String>, var_value: impl Into<String>) {
         self.env.insert(var_name.into(), var_value.into());
+    }
+
+    /// Apply custom permissions to this job.
+    pub fn set_permission(&mut self, permission: Permission, access: Access) {
+        self.permissions.insert(permission, access);
     }
 }
 
@@ -620,6 +644,8 @@ pub struct Job {
     pub with:            BTreeMap<String, String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub secrets:         Option<JobSecrets>,
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    pub permissions:     BTreeMap<Permission, Access>,
 }
 
 impl Job {
@@ -703,6 +729,12 @@ impl Job {
     /// Like [`with`](Self::with), but self-consuming.
     pub fn with_with(mut self, name: impl Into<String>, value: impl Into<String>) -> Self {
         self.with(name, value);
+        self
+    }
+
+    /// Apply custom permissions to this job.
+    pub fn with_permission(mut self, permission: Permission, access: Access) -> Self {
+        self.permissions.insert(permission, access);
         self
     }
 }
