@@ -23,6 +23,7 @@ import project.Internal.IR.Context.Context
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.Query.Query
 import project.Internal.IR.SQL_Expression.SQL_Expression
+import project.Internal.Replace_Params.Replace_Params
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 from project.Data.Table import freshen_columns, Table
 from project.Errors import Integrity_Error, Unsupported_Database_Operation, Unsupported_Name
@@ -1125,6 +1126,40 @@ type Column
          sensitively.
        - only_first: If True, only replace the first match.
 
+       ! Backend Support
+
+         Each database backend supports different combinations of options:
+
+         Text:
+         +----------------+------------+----------+--------+
+         | case_sensitive | only_first | postgres | sqlite |
+         +----------------+------------+----------+--------+
+         |       t        |      f     |     ✓    |    ✓   |
+         |       t        |      t     |     ✓    |    ✓   |
+         |       f        |      f     |     ✓    |    ✗   |
+         |       f        |      t     |     ✓    |    ✓   |
+         +----------------+------------+----------+--------+
+
+         Regex:
+         +----------------+------------+----------+--------+
+         | case_sensitive | only_first | postgres | sqlite |
+         +----------------+------------+----------+--------+
+         |       t        |      f     |     ✓    |    ✗   |
+         |       t        |      t     |     ✓    |    ✗   |
+         |       f        |      f     |     ✓    |    ✗   |
+         |       f        |      t     |     ✓    |    ✗   |
+         +----------------+------------+----------+--------+
+
+         Text Column:
+         +----------------+------------+----------+--------+
+         | case_sensitive | only_first | postgres | sqlite |
+         +----------------+------------+----------+--------+
+         |       t        |      f     |     ✓    |    ✓   |
+         |       t        |      t     |     ✗    |    ✓   |
+         |       f        |      f     |     ✗    |    ✗   |
+         |       f        |      t     |     ✗    |    ✓   |
+         +----------------+------------+----------+--------+
+
        > Example
          Replace dashes with underscores.
 
@@ -1140,11 +1175,17 @@ type Column
 
              column.replace '"(.*?)"'.to_regex '($1)'
     @term make_regex_text_widget
-    replace : Text | Regex | Column -> Text | Column -> Case_Sensitivity -> Boolean -> Column
-    replace self term="" new_text="" case_sensitivity=Case_Sensitivity.Sensitive only_first=False =
-        _ = [term, new_text, case_sensitivity, only_first]
-        msg = "`Column.replace` is not yet implemented."
-        Error.throw (Unsupported_Database_Operation.Error msg)
+    replace : Text | Regex | Column -> Text | Column -> Case_Sensitivity -> Boolean -> Column ! Unsupported_Database_Operation
+    replace self term="" new_text="" case_sensitivity=Case_Sensitivity.Default only_first=False =
+        Value_Type.expect_text self <| case_sensitivity.disallow_non_default_locale <|
+            input_type = Meta.type_of term
+            params = Replace_Params.Value input_type case_sensitivity only_first
+            self.connection.dialect.if_replace_params_supports params <|
+                raw_term = case term of
+                    _ : Regex -> term.pattern_string
+                    _ -> term
+                new_name = self.naming_helpers.function_name "replace" [self, raw_term, new_text]
+                self.make_op "REPLACE" [raw_term, new_text] new_name [term, params]
 
     ## Gets the year as a number from the date stored in the column.
 

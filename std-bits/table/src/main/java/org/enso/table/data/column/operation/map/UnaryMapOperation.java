@@ -3,24 +3,22 @@ package org.enso.table.data.column.operation.map;
 import org.enso.table.data.column.storage.Storage;
 
 /**
- * A map-like operation that ignores its second argument
+ * A unary map-like operation.
  *
  * @param <I> the supported storage type
  */
-public abstract class UnaryMapOperation<T, I extends Storage<T>> extends MapOperation<T, I> {
+public abstract class UnaryMapOperation<T, I extends Storage<? super T>> {
+  private final String name;
+
   public UnaryMapOperation(String name) {
-    super(name);
+    this.name = name;
   }
 
-  protected abstract Storage<?> run(I storage);
+  /** Run the unary operation. */
+  protected abstract Storage<?> runUnaryMap(I storage, MapOperationProblemBuilder problemBuilder);
 
-  @Override
-  public Storage<?> runMap(I storage, Object arg, MapOperationProblemBuilder problemBuilder) {
-    return run(storage);
-  }
-
-  @Override
-  public Storage<?> runZip(I storage, Storage<?> arg, MapOperationProblemBuilder problemBuilder) {
-    return run(storage);
+  /** @return the name of this operation */
+  public String getName() {
+    return name;
   }
 }

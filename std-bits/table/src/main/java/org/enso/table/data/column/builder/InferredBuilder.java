@@ -108,7 +108,7 @@ public class InferredBuilder extends Builder {
     } else if (o instanceof String) {
       currentBuilder = new StringBuilder(initialCapacity);
     } else {
-      currentBuilder = new ObjectBuilder(initialCapacity);
+      currentBuilder = new MixedBuilder(initialCapacity);
     }
     currentBuilder.appendNulls(currentSize);
   }
@@ -143,12 +143,12 @@ public class InferredBuilder extends Builder {
       }
     }
 
-    retypeToObject();
+    retypeToMixed();
     currentBuilder.append(o);
   }
 
-  private void retypeToObject() {
-    ObjectBuilder objectBuilder = new ObjectBuilder(initialSize);
+  private void retypeToMixed() {
+    ObjectBuilder objectBuilder = new MixedBuilder(initialSize);
     currentBuilder.writeTo(objectBuilder.getData());
     objectBuilder.setCurrentSize(currentBuilder.getCurrentSize());
     currentBuilder = objectBuilder;
