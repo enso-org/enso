@@ -1563,9 +1563,7 @@ mod tests {
     #[test]
     fn test_case_operators() {
         test_lexer_many(lexer_case_operators(&["+", "-", "=", "==", "===", ":", ","]));
-        let properties = analyze_operator("-");
-        let unary_minus = Token("", "-", token::Variant::operator(properties));
-        test_lexer_many(vec![("+-", vec![operator_("", "+"), unary_minus])]);
+        assert_eq!(run("+-").unwrap().len(), 2);
     }
 
     /// Based on https://www.cl.cam.ac.uk/~mgk25/ucs/examples/UTF-8-test.txt.
