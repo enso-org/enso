@@ -74,7 +74,6 @@ ensogl_core::define_endpoints_2! {
     Input {
         set_visibility   (bool),
         set_color_scheme (ColorScheme),
-        set_size         (Vector2),
         toggle           (),
         set_state        (bool),
         /// Read only mode forbids changing the state of the button by clicking.
@@ -103,17 +102,21 @@ ensogl_core::define_endpoints_2! {
 #[derive(Clone, CloneRef, Debug)]
 #[clone_ref(bound = "S: CloneRef")]
 struct Model<S: Shape> {
-    icon:    ShapeView<S>,
-    overlay: Rectangle,
+    icon:       ShapeView<S>,
+    hover_area: Rectangle,
 }
 
 impl<Shape: ColorableShape + 'static> Model<Shape> {
     fn new() -> Self {
-        let icon = ShapeView::new();
-        let overlay = Rectangle::new().build(|rect| {
-            rect.set_color(INVISIBLE_HOVER_COLOR);
-        });
-        Self { icon, overlay }
+        let icon = ShapeView::<Shape>::new();
+        let hover_area = Rectangle::new();
+        hover_area
+            .set_color(INVISIBLE_HOVER_COLOR)
+            .set_pointer_events(true)
+            .set_alignment_center()
+            .allow_grow();
+        icon.add_child(&hover_area);
+        Self { icon, hover_area }
     }
 }
 
@@ -260,7 +263,7 @@ impl<Shape: ColorableShape + 'static> ToggleButton<Shape> {
         let output = &self.frp.private.output;
         let model = &self.model;
         let color = color::Animation::new(network);
-        let events = &model.overlay.events_deprecated;
+        let events = &model.hover_area.events_deprecated;
 
         // Explicitly define the tooltip placement if none was set. This ensures that this tooltip
         // is always correctly placed even when other components use tooltips as well. Otherwise,
@@ -272,14 +275,6 @@ impl<Shape: ColorableShape + 'static> ToggleButton<Shape> {
         };
 
         frp::extend! { network
-
-             // === Input Processing ===
-
-            eval input.set_size ((size) {
-                model.icon.set_size(*size);
-                model.overlay.set_size(*size);
-            });
-
 
             // === State ===
 

@@ -163,8 +163,6 @@ impl Model {
         let button_panel = ButtonPanel::new(app);
         background.add_child(&button_panel);
 
-        app.display.default_scene.layers.node_searcher_button_panel.add(&button_panel);
-
         shapes_order_dependencies! {
             scene => {
                 grid_view::selectable::highlight::shape -> grid::entry::icon::any;

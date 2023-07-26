@@ -4,6 +4,7 @@
 
 use crate::prelude::*;
 
+use crate::display;
 use crate::display::shape::AnyCachedShape;
 
 
@@ -13,8 +14,9 @@ use crate::display::shape::AnyCachedShape;
 // ===============================
 
 crate::shape! {
+    above = [display::shape::compound::rectangle];
     pointer_events = false;
-    alignment = center;
+    alignment = left_bottom;
     (style: Style, icon: AnyCachedShape) {
         icon.into()
     }
@@ -30,8 +32,9 @@ crate::shape! {
 /// shape.
 pub mod recolorized {
     crate::shape! {
+        above = [display::shape::compound::rectangle];
         pointer_events = false;
-        alignment = center;
+        alignment = left_bottom;
         (style: Style, icon: AnyCachedShape, r_component: Vector4, g_component: Vector4, b_component: Vector4) {
             let r: Var<color::Rgba> = r_component.into();
             let g: Var<color::Rgba> = g_component.into();

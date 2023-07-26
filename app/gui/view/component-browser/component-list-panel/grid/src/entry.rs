@@ -160,6 +160,7 @@ impl Data {
         display_object.add_child(&label);
         background.set_size((0.0, 0.0));
         icon.set_size((icon::SIZE, icon::SIZE));
+        icon.set_y(-icon::SIZE / 2.0);
         label.set_long_text_truncation_mode(true);
         if let Some(layer) = text_layer {
             label.add_to_scene_layer(layer);
@@ -172,7 +173,7 @@ impl Data {
         self.background.set_size(entry_size + overlap);
         self.background.set_xy(-entry_size / 2.0 - overlap);
         let left = -entry_size.x / 2.0 + style.padding;
-        let icon_x = left + style.icon_size / 2.0;
+        let icon_x = left;
         self.icon.set_x(icon_x);
         let text_x = Self::text_x_position(style, grid_style);
         let text_y = style.text_y_offset;
