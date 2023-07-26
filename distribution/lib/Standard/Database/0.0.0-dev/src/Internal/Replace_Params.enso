@@ -1,7 +1,7 @@
 import Standard.Base.Data.Boolean.Boolean
+import Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity
 import Standard.Base.Error.Error
 import Standard.Base.Nothing.Nothing
-import Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity
 
 from project.Errors import Unsupported_Database_Operation
 
