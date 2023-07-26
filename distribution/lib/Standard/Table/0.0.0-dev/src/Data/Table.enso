@@ -41,7 +41,7 @@ import project.Internal.Table_Helpers
 import project.Internal.Table_Helpers.Table_Column_Helper
 import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 import project.Internal.Widget_Helpers
-from project.Data.Column import get_item_string, normalize_string_for_display
+from project.Data.Column import get_item_string, normalize_string_for_display, naming_helpers
 from project.Data.Type.Value_Type import Auto, Value_Type
 from project.Errors import all
 from project.Internal.Filter_Condition_Helpers import make_filter_column
@@ -1359,7 +1359,7 @@ type Table
         get_column name = self.at name
         new_column = Expression.evaluate expression get_column self.make_constant_column "Standard.Table.Data.Column" "Column" Column.var_args_functions
         problems = Warning.get_all new_column . map .value
-        result = new_column.rename (Column_Naming_Helper.sanitize_name expression)
+        result = new_column.rename (naming_helpers.sanitize_name expression)
         on_problems.attach_problems_before problems <|
             Warning.set result []
 
