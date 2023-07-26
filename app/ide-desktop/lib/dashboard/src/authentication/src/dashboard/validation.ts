@@ -11,7 +11,7 @@ export const PASSWORD_TITLE =
 
 /** Regex pattern used by the backend for validating the previous password,
  * when changing password. */
-export const PREVIOUS_PASSWORD_PATTERN = '^[\\S]+.*[\\S]+$'
+export const PREVIOUS_PASSWORD_PATTERN = '[\\S]+.*[\\S]+'
 /** Human readable explanation of password requirements. */
 export const PREVIOUS_PASSWORD_TITLE =
     'Your password must neither start nor end with whitespace, and must contain ' +
