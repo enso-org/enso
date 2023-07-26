@@ -136,7 +136,6 @@ pub enum Model {
     Separator,
 }
 
-#[allow(missing_docs)]
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 enum State {
     #[default]
