@@ -1,0 +1,49 @@
+from Standard.Base import all
+
+from Standard.Table import Table
+from Standard.Table.Data.Aggregate_Column.Aggregate_Column import Count, Sum
+
+from Standard.Test import Bench, Faker
+
+## Bench Utilities ============================================================
+
+num_rows = 25
+iter_size = 20
+num_iterations = 3
+seed=1646322139
+
+create_table : Table
+create_table =
+    faker = Faker.new seed
+    sizes = ['XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL']
+    stores = ["Brixton", "Chelsea", "Fulham", "Mayfair", "Notting Hill", "Peckham", "Richmond", "Westminster", "Whitechapel", "Wimbledon"]
+    types = ["Gravel", "Mountain", "Road"]
+    vgen v = 0.up_to num_rows . map _-> faker.vector_item v
+
+    size = ["size", vgen sizes]
+    store = ["store", vgen stores]
+    typ = ["type", vgen types]
+    price = ["price", 0.up_to num_rows . map _-> faker.decimal -200.0 200.0]
+
+    Table.new [size, store, typ, price]
+
+# The Benchmarks ==============================================================
+bench =
+    IO.println <| "Making table data..."
+    table = create_table
+
+    IO.println "dumps"
+    table.cross_tab [] "size" . print 10000
+    table.cross_tab ["type"] "size" . print 10000
+    table.cross_tab ["store"] "size" . print 10000
+    table.cross_tab ["size"] "store" . print 10000
+    table.cross_tab ["size"] "store" values=[Count, Sum "price"] . print 10000
+
+    IO.println <| "running..."
+    Bench.measure (table.cross_tab [] "size") "[], size" iter_size num_iterations
+    Bench.measure (table.cross_tab ["type"] "size") "[type], size" iter_size num_iterations
+    Bench.measure (table.cross_tab ["store"] "size") "[store], size" iter_size num_iterations
+    Bench.measure (table.cross_tab ["size"] "store") "[size], store" iter_size num_iterations
+    Bench.measure (table.cross_tab ["size"] "store" values=[Count, Sum "price"]) "[size], store, [count, sum price]" iter_size num_iterations
+
+main = bench
