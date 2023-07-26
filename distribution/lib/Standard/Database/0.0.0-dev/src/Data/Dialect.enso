@@ -19,6 +19,7 @@ import project.Internal.IR.Order_Descriptor.Order_Descriptor
 import project.Internal.IR.Query.Query
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.Postgres.Postgres_Dialect
+import project.Internal.Replace_Params.Replace_Params
 import project.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.Internal.SQLite.SQLite_Dialect
@@ -229,6 +230,13 @@ type Dialect
     prepare_metadata_for_period : Date_Period | Time_Period -> Value_Type -> Any
     prepare_metadata_for_period self period operation_input_type =
         _ = [period, operation_input_type]
+        Unimplemented.throw "This is an interface only."
+
+    ## PRVIATE
+       Returns true if the `replace` parameters are supported by this backend.
+    if_replace_params_supports : Replace_Params -> Any -> Any
+    if_replace_params_supports self replace_params ~action =
+        _ = [replace_params, action]
         Unimplemented.throw "This is an interface only."
 
 ## PRIVATE

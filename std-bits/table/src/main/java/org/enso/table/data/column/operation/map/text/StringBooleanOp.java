@@ -1,6 +1,6 @@
 package org.enso.table.data.column.operation.map.text;
 
-import org.enso.table.data.column.operation.map.MapOperation;
+import org.enso.table.data.column.operation.map.BinaryMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.SpecializedStorage;
@@ -11,7 +11,7 @@ import org.graalvm.polyglot.Context;
 
 import java.util.BitSet;
 
-public abstract class StringBooleanOp extends MapOperation<String, SpecializedStorage<String>> {
+public abstract class StringBooleanOp extends BinaryMapOperation<String, SpecializedStorage<String>> {
   public StringBooleanOp(String name) {
     super(name);
   }
@@ -23,7 +23,7 @@ public abstract class StringBooleanOp extends MapOperation<String, SpecializedSt
   }
 
   @Override
-  public BoolStorage runMap(SpecializedStorage<String> storage, Object arg, MapOperationProblemBuilder problemBuilder) {
+  public BoolStorage runBinaryMap(SpecializedStorage<String> storage, Object arg, MapOperationProblemBuilder problemBuilder) {
     if (arg == null) {
       BitSet newVals = new BitSet();
       BitSet newMissing = new BitSet();

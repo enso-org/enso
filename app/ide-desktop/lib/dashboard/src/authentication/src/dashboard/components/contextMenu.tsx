@@ -23,7 +23,7 @@ export interface ContextMenuProps extends React.PropsWithChildren {
 }
 
 /** A context menu that opens at the current mouse position. */
-function ContextMenu(props: ContextMenuProps) {
+export default function ContextMenu(props: ContextMenuProps) {
     const { children, event } = props
     const contextMenuRef = React.useRef<HTMLDivElement>(null)
     const [top, setTop] = React.useState(event.pageY)
@@ -55,5 +55,3 @@ function ContextMenu(props: ContextMenuProps) {
         </div>
     )
 }
-
-export default ContextMenu

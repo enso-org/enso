@@ -36,7 +36,7 @@ export interface TopBarProps {
 
 /** The {@link TopBarProps.setQuery} parameter is used to communicate with the parent component,
  * because `searchVal` may change parent component's project list. */
-function TopBar(props: TopBarProps) {
+export default function TopBar(props: TopBarProps) {
     const {
         supportsLocalBackend,
         projectName,
@@ -149,5 +149,3 @@ function TopBar(props: TopBarProps) {
         </div>
     )
 }
-
-export default TopBar
