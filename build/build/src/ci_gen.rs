@@ -81,6 +81,10 @@ pub mod secret {
     pub const ECR_PUSH_RUNTIME_SECRET_ACCESS_KEY: &str = "ECR_PUSH_RUNTIME_SECRET_ACCESS_KEY";
     pub const ECR_PUSH_RUNTIME_ACCESS_KEY_ID: &str = "ECR_PUSH_RUNTIME_ACCESS_KEY_ID";
 
+    // === Enso Cloud deployment ===
+    /// Static token for admin requests on our Lambdas.
+    pub const ENSO_ADMIN_TOKEN: &str = "ENSO_ADMIN_TOKEN";
+
 
     // === Apple Code Signing & Notarization ===
     pub const APPLE_CODE_SIGNING_CERT: &str = "APPLE_CODE_SIGNING_CERT";

@@ -178,7 +178,8 @@ impl JobArchetype for DeployGui {
                 .with_secret_exposed_as(
                     secret::ARTEFACT_S3_SECRET_ACCESS_KEY,
                     "AWS_SECRET_ACCESS_KEY",
-                );
+                )
+                .with_secret_exposed_as(secret::ENSO_ADMIN_TOKEN, crate::env::ENSO_ADMIN_TOKEN);
             vec![step]
         })
     }
