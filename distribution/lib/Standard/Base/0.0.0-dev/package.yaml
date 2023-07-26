@@ -10,8 +10,10 @@ maintainers:
     email: contact@enso.org
 component-groups:
   new:
-    - Input: {}
-    - Web: {}
+    - Input:
+        exports: []
+    - Web:
+        exports: []
     - Parse:
         exports:
           - Standard.Base.Data.Json.Json.parse

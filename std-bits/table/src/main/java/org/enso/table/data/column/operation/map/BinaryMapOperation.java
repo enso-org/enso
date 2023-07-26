@@ -7,7 +7,7 @@ import org.enso.table.data.column.storage.Storage;
  *
  * @param <I> the supported storage type.
  */
-public abstract class MapOperation<T, I extends Storage<? super T>> {
+public abstract class BinaryMapOperation<T, I extends Storage<? super T>> {
   private final String name;
 
   /**
@@ -15,23 +15,23 @@ public abstract class MapOperation<T, I extends Storage<? super T>> {
    *
    * @param name the operation name
    */
-  public MapOperation(String name) {
+  public BinaryMapOperation(String name) {
     this.name = name;
   }
 
   /**
-   * Run the operation in map mode
+   * Run the operation in map mode - combining every row of the storage with a scalar argument.
    *
    * @param storage the storage to run operation on
    * @param arg the argument passed to the operation
    * @param problemBuilder the builder allowing to report computation problems
    * @return the result of running the operation
    */
-  public abstract Storage<?> runMap(
+  public abstract Storage<?> runBinaryMap(
       I storage, Object arg, MapOperationProblemBuilder problemBuilder);
 
   /**
-   * Run the operation in zip mode
+   * Run the operation in zip mode - combining corresponding rows of two storages.
    *
    * @param storage the storage to run operation on
    * @param arg the storage providing second arguments to the operation
@@ -44,5 +44,17 @@ public abstract class MapOperation<T, I extends Storage<? super T>> {
   /** @return the name of this operation */
   public String getName() {
     return name;
+  }
+
+  /**
+   * Specifies if the operation relies on specialized storage types.
+   *
+   * <p>Some operations, e.g. numeric operations, may only work with specialized numeric storages.
+   * In this case, the caller will ensure that if a mixed column pretending to be numeric is passed
+   * to such an operation, it will first be converted to a specialized type. If a given operation
+   * can handle any storage, this may return false to avoid an unnecessary costly conversion.
+   */
+  public boolean reliesOnSpecializedStorage() {
+    return true;
   }
 }

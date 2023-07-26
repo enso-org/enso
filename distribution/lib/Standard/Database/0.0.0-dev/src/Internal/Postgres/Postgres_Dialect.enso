@@ -6,11 +6,13 @@ import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Table.Data.Aggregate_Column.Aggregate_Column
 import Standard.Table.Internal.Naming_Helpers.Naming_Helpers
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
+import Standard.Table.Internal.Vector_Builder.Vector_Builder
 from Standard.Table import Value_Type
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
 from Standard.Table.Errors import Inexact_Type_Coercion
 
 import project.Connection.Connection.Connection
+import project.Data.Column.Column
 import project.Data.Dialect
 import project.Data.SQL.Builder
 import project.Data.SQL.SQL_Fragment
@@ -33,6 +35,7 @@ import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import project.Internal.Postgres.Postgres_Error_Mapper.Postgres_Error_Mapper
 import project.Internal.Postgres.Postgres_Type_Mapping.Postgres_Type_Mapping
+import project.Internal.Replace_Params.Replace_Params
 import project.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.Internal.Statement_Setter.Statement_Setter
@@ -239,10 +242,16 @@ type Postgres_Dialect
             _ ->
                 Date_Period_Metadata.Value period operation_input_type
 
+    ## PRVIATE
+       Returns true if the `replace` parameters are supported by this backend.
+    if_replace_params_supports : Replace_Params -> Any -> Any
+    if_replace_params_supports self replace_params ~action =
+        if supported_replace_params.contains replace_params then action else replace_params.throw_unsupported
+
 ## PRIVATE
 make_internal_generator_dialect =
     cases = [["LOWER", Base_Generator.make_function "LOWER"], ["UPPER", Base_Generator.make_function "UPPER"]]
-    text = [starts_with, contains, ends_with, agg_shortest, agg_longest, make_case_sensitive]+concat_ops+cases+trim_ops
+    text = [starts_with, contains, ends_with, agg_shortest, agg_longest, make_case_sensitive, ["REPLACE", replace]]+concat_ops+cases+trim_ops
     counts = [agg_count_is_null, agg_count_empty, agg_count_not_empty, ["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null]]
     arith_extensions = [is_nan, is_inf, floating_point_div, mod_op, decimal_div, decimal_mod, ["ROW_MIN", Base_Generator.make_function "LEAST"], ["ROW_MAX", Base_Generator.make_function "GREATEST"]]
     bool = [bool_or]
@@ -491,6 +500,67 @@ decimal_div = Base_Generator.lift_binary_op "DECIMAL_DIV" x-> y->
 ## PRIVATE
 decimal_mod = Base_Generator.lift_binary_op "DECIMAL_MOD" x-> y->
     x ++ " - FLOOR(CAST(" ++ x ++ " AS decimal) / CAST(" ++ y ++ " AS decimal)) * " ++ y
+
+## PRIVATE
+supported_replace_params : Set Replace_Params
+supported_replace_params =
+    e0 = [Replace_Params.Value Text Case_Sensitivity.Default False, Replace_Params.Value Text Case_Sensitivity.Default True, Replace_Params.Value Text Case_Sensitivity.Sensitive False]
+    e1 = [Replace_Params.Value Text Case_Sensitivity.Sensitive True, Replace_Params.Value Text Case_Sensitivity.Insensitive False, Replace_Params.Value Text Case_Sensitivity.Insensitive True]
+    e2 = [Replace_Params.Value Regex Case_Sensitivity.Default False, Replace_Params.Value Regex Case_Sensitivity.Default True, Replace_Params.Value Regex Case_Sensitivity.Sensitive False]
+    e3 = [Replace_Params.Value Regex Case_Sensitivity.Sensitive True, Replace_Params.Value Regex Case_Sensitivity.Insensitive False, Replace_Params.Value Regex Case_Sensitivity.Insensitive True]
+    e4 = [Replace_Params.Value Column Case_Sensitivity.Default False, Replace_Params.Value Column Case_Sensitivity.Sensitive False]
+    Set.from_vector <| e0 + e1 + e2 + e3 + e4
+
+replace : Vector Builder -> Any -> Builder
+replace args metadata =
+    input = args.at 0
+    pattern = args.at 1
+    replacement = args.at 2
+
+    ## `raw_pattern` is a `Text1 or `Regex`; it's the same value as `input`, but not
+       embedded in IR.
+    raw_pattern = metadata.at 0
+    replace_params = metadata.at 1
+
+    expression = case replace_params.input_type of
+        Text ->
+            ## To use REGEXP_REPLACE on a non-regex, we have to escape it.
+            escaped_pattern = Builder.interpolation (Regex.escape raw_pattern)
+            case replace_params.only_first of
+                False -> case replace_params.case_sensitivity of
+                    Case_Sensitivity.Insensitive _ ->
+                        Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ escaped_pattern ++ ", " ++ replacement ++ ", 'ig')"
+                    _ ->
+                        Builder.code "REPLACE(" ++ input ++ ", " ++ pattern ++ ", " ++ replacement ++ ")"
+                True -> case replace_params.case_sensitivity of
+                    Case_Sensitivity.Insensitive _ ->
+                        Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ escaped_pattern ++ ", " ++ replacement ++ ", 'i')"
+                    _ ->
+                        Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ escaped_pattern ++ ", " ++ replacement ++ ")"
+        Regex ->
+            pattern_string = Builder.interpolation raw_pattern.pattern_string
+            case replace_params.only_first of
+                False -> case replace_params.case_sensitivity of
+                    Case_Sensitivity.Insensitive _ ->
+                        Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_string ++ ", " ++ replacement ++ ", 'ig')"
+                    _ ->
+                        Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_string ++ ", " ++ replacement ++ ", 'g')"
+                True -> case replace_params.case_sensitivity of
+                    Case_Sensitivity.Insensitive _ ->
+                        Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_string ++ ", " ++ replacement ++ ", 'i')"
+                    _ ->
+                        Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_string ++ ", " ++ replacement ++ ")"
+        Column ->
+            case replace_params.only_first of
+                False -> case replace_params.case_sensitivity of
+                    Case_Sensitivity.Insensitive _ ->
+                        Nothing
+                    _ ->
+                        Builder.code "REPLACE(" ++ input ++ ", " ++ pattern ++ ", " ++ replacement ++ ")"
+                True -> Nothing
+    case expression of
+        Nothing -> replace_params.throw_unsupported
+       _ -> expression
 
 ## PRIVATE
 make_extract_as_int enso_name sql_name=enso_name =

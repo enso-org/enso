@@ -1,28 +1,30 @@
 package org.enso.compiler;
 
-import buildinfo.Info;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.oracle.truffle.api.TruffleFile;
-import com.oracle.truffle.api.TruffleLogger;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.Serializable;
+import java.util.List;
+import java.util.Optional;
+import java.util.logging.Level;
+
 import org.apache.commons.lang3.StringUtils;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.editions.LibraryName;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.pkg.QualifiedName;
 import org.enso.pkg.SourceFile;
-import scala.collection.immutable.Map;
 
-import java.io.Serializable;
-import java.util.List;
-import java.util.Optional;
-import java.util.logging.Level;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.oracle.truffle.api.TruffleFile;
+import com.oracle.truffle.api.TruffleLogger;
+
+import buildinfo.Info;
+import scala.collection.immutable.Map;
 
 public final class ImportExportCache extends Cache<ImportExportCache.CachedBindings, ImportExportCache.Metadata> {
 
@@ -125,11 +127,12 @@ public final class ImportExportCache extends Cache<ImportExportCache.CachedBindi
     }
 
     // CachedBindings is not a record **on purpose**. There appears to be a Frgaal bug leading to invalid compilation error.
-    static class CachedBindings {
+    public static final class CachedBindings {
         private final LibraryName _libraryName;
         private final MapToBindings _bindings;
         private final Optional<List<SourceFile<TruffleFile>>> _sources;
-        public CachedBindings(LibraryName libraryName, MapToBindings bindings, Optional<List<SourceFile<TruffleFile>>> sources) {
+
+        CachedBindings(LibraryName libraryName, MapToBindings bindings, Optional<List<SourceFile<TruffleFile>>> sources) {
             this._libraryName = libraryName;
             this._bindings = bindings;
             this._sources = sources;

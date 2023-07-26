@@ -136,9 +136,9 @@ type Text
     ## ADVANCED
        Checks where this Text is in FCD normalized form.
 
-      > Example
-        Check if the string is normalized
+       > Example
+         Check if the string is normalized
 
-            "14.95€".is_normalized
+             "14.95€".is_normalized
     is_normalized : Boolean
     is_normalized self = @Builtin_Method "Text.is_normalized"
