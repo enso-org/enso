@@ -144,8 +144,9 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
                     combinedColumns,
                     nameColumn.getSize(),
                     TextFoldingStrategy.unicodeNormalizedFold);
+
+    // Generate lists of combined keys and subkeys
     List<UnorderedMultiValueKey> combinedKeys = new ArrayList<>(combinedIndex.locs.keySet());
-    // Generate subkeys
     List<UnorderedMultiValueKey> groupingSubkeys = new ArrayList<>(combinedKeys.size());
     List<UnorderedMultiValueKey> nameSubKeys = new ArrayList<>(combinedKeys.size());
     int[] groupingColumnIndices = IntStream.range(0, groupingColumns.length).toArray();
@@ -186,12 +187,6 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
       context.safepoint();
     }
 
-    //ArrayList<Integer>[] a = new ArrayList<Integer>[2];
-    int numNames = nameNumberer.size();
-    int numGroupings = groupingNumberer.size();
-    //List<Integer>[][] subPartitions = (List<Integer>[][]) new ArrayList<Integer>[numGroupings][numNames];
-    UnorderedMultiValueKey[][] arrangement = new UnorderedMultiValueKey[numGroupings][numNames];
-
     for (int i = 0; i < nameNumberer.size(); i++) {
       int offset = groupingColumns.length + i * aggregates.length;
       for (int j = 0; j < aggregates.length; j++) {
@@ -200,28 +195,38 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
       }
     }
 
+    // Create grid of cells, with grouping column tuples as the vertical axis
+    // and name column tuples as the horizontal axis.
+    int numNames = nameNumberer.size();
+    int numGroupings = groupingNumberer.size();
+    UnorderedMultiValueKey[][] grid = new UnorderedMultiValueKey[numGroupings][numNames];
+
+    // For each combined key, use the two subkeys to determine row+col
+    // coordinates, and put the key at those coordinates.
     for (int i = 0; i < combinedIndex.size(); ++i) {
       UnorderedMultiValueKey combinedKey = combinedKeys.get(i);
       UnorderedMultiValueKey groupingSubKey = groupingSubkeys.get(i);
       UnorderedMultiValueKey nameSubKey = nameSubKeys.get(i);
       int groupingCoordinate = groupingNumberer.getNumber(groupingSubKey);
       int nameCoordinate = nameNumberer.getNumber(nameSubKey);
+
       // The pair (groupingCoordinate, nameCoordinate) must be unique so this
       // check is not really necessary.
-      if (arrangement[groupingCoordinate][nameCoordinate] != null) {
+      if (grid[groupingCoordinate][nameCoordinate] != null) {
         throw new IllegalStateException("Internal error: makeCrossTabTable coordinate conflict");
       }
-      arrangement[groupingCoordinate][nameCoordinate] = combinedKey;
+
+      grid[groupingCoordinate][nameCoordinate] = combinedKey;
     }
 
     for (UnorderedMultiValueKey groupingSubKey : groupingNumberer.getObjects()) {
       int groupingCoordinate = groupingNumberer.getNumber(groupingSubKey);
 
-      // Find a cell that has a key; there has to be one.
+      // Find a cell for this group that has a key; there has to be one.
       UnorderedMultiValueKey keyForGroup = null;
       for (int i=0; i<numNames; ++i) {
-        if (arrangement[groupingCoordinate][i] != null) {
-            keyForGroup = arrangement[groupingCoordinate][i];
+        if (grid[groupingCoordinate][i] != null) {
+            keyForGroup = grid[groupingCoordinate][i];
             break;
         }
       }
@@ -239,15 +244,12 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
 
       int offset = groupingColumns.length;
 
+      var emptyList = new ArrayList<Integer>();
       for (UnorderedMultiValueKey nameSubKey : nameNumberer.getObjects()) {
         int nameCoordinate = nameNumberer.getNumber(nameSubKey);
-        if (arrangement[groupingCoordinate][nameCoordinate] == null) {
-          //System.out.println("AAAA0 null");
-        }
-        List<Integer> rowIds = combinedIndex.locs.get(arrangement[groupingCoordinate][nameCoordinate]);
+        List<Integer> rowIds = combinedIndex.locs.get(grid[groupingCoordinate][nameCoordinate]);
         if (rowIds == null) {
-          //System.out.println("AAAA1 null");
-          rowIds = new ArrayList<Integer>();
+          rowIds = emptyList;
         }
 
         for (int i = 0; i < aggregates.length; i++) {
@@ -269,6 +271,7 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
 
     int offset = groupingColumns.length;
     for (UnorderedMultiValueKey nameSubKey : nameNumberer.getObjects()) {
+      // Use the nameColumn value as the new column name
       Object boxed = nameSubKey.get(0);
       String name;
       if (boxed == null) {
