@@ -241,15 +241,16 @@ impl display::Object for ContextSwitchButton {
 
 #[derive(Clone, CloneRef, Debug)]
 struct Model {
-    display_object:    display::object::Instance,
-    hover_area:        Rectangle,
-    /// Additional hover area that is drawn below the node background. Provides additional "bridge"
-    /// between the node and the action bar, so that the hover state is not lost when moving the
-    /// mouse. It is drawn below the node background to not cover it, as it can also have its own
-    /// mouse interactions.
-    hover_area_bridge: Rectangle,
-    icons:             Icons,
-    styles:            StyleWatch,
+    display_object:         display::object::Instance,
+    hover_area:             Rectangle,
+    /// Additional hover area that is drawn below the node background. Serves as an always active
+    /// hover area, but does not block the interactions of widgets on nearby nodes. It also
+    /// provides additional "bridge" between the node and the action bar, so that the hover
+    /// state is not lost when moving the mouse. It is drawn below the node background to not
+    /// cover it, as it can also have its own mouse interactions.
+    hover_area_below_nodes: Rectangle,
+    icons:                  Icons,
+    styles:                 StyleWatch,
 }
 
 impl Model {
@@ -257,19 +258,20 @@ impl Model {
         let scene = &app.display.default_scene;
         let display_object = display::object::Instance::new_named("ActionBar");
         let hover_area = Rectangle::new();
-        let hover_area_bridge = Rectangle::new();
+        let hover_area_below_nodes = Rectangle::new();
         hover_area.set_color(INVISIBLE_HOVER_COLOR);
         hover_area.allow_grow().set_alignment_left_center();
-        hover_area_bridge.set_color(INVISIBLE_HOVER_COLOR);
-        hover_area_bridge
-            .set_size(HOVER_BRIDGE_SIZE)
+        hover_area_below_nodes.set_color(INVISIBLE_HOVER_COLOR);
+        hover_area_below_nodes
+            .allow_grow_x()
+            .set_size_y(HOVER_BRIDGE_SIZE.y)
             .set_alignment_right_center()
             .set_margin_right(-HOVER_BRIDGE_SIZE.x);
 
         let icons = Icons::new(app);
 
         display_object.add_child(&hover_area);
-        display_object.add_child(&hover_area_bridge);
+        display_object.add_child(&hover_area_below_nodes);
         display_object.add_child(&icons);
 
         let styles = StyleWatch::new(&scene.style_sheet);
@@ -284,13 +286,12 @@ impl Model {
             }
         }
 
-        Self { display_object, hover_area, hover_area_bridge, icons, styles }
+        Self { display_object, hover_area, hover_area_below_nodes, icons, styles }
     }
 
     fn set_visibility(&self, visible: bool) {
         self.icons.set_visibility(visible);
         self.hover_area.set_pointer_events(visible);
-        self.hover_area_bridge.set_pointer_events(visible);
     }
 }
 
@@ -436,9 +437,9 @@ impl ActionBar {
         self
     }
 
-    /// Set the layer of the bridge hover area. Should be below the node background.
-    pub fn set_bridge_layer(&self, layer: &LayerSymbolPartition<rectangle::Shape>) {
-        layer.add(&self.model.hover_area_bridge);
+    /// Set the layer of the hover area below nodes.
+    pub fn set_below_node_hover_layer(&self, layer: &LayerSymbolPartition<rectangle::Shape>) {
+        layer.add(&self.model.hover_area_below_nodes);
     }
 }
 
