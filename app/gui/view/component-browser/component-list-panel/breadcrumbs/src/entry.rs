@@ -186,7 +186,8 @@ impl EntryData {
         let separator = separator::View::new();
         let state = default();
         let icon: any_icon::View = default();
-        icon.set_size((ellipsis::ICON_WIDTH, ellipsis::ICON_WIDTH));
+        icon.set_size((ICON_WIDTH, ICON_WIDTH));
+        ellipsis.set_size((ellipsis::ICON_WIDTH, ellipsis::ICON_WIDTH));
         display_object.add_child(&icon);
         display_object.add_child(&ellipsis);
         Self { display_object, state, text, ellipsis, separator, icon }
@@ -395,8 +396,7 @@ impl ensogl_grid_view::Entry for Entry {
                 size: *size - Vector2(*margin, *margin) * 2.0,
                 corners_radius: 0.0,
             });
-            layout <- all(contour, text_padding, text_y_offset);
-            eval layout ((&(c, to, tyo)) data.update_layout(c, to, tyo));
+
             eval color((c) data.set_default_color(*c));
             eval font((f) data.set_font(f.to_string()));
             eval text_size((s) data.set_default_text_size(*s));
@@ -424,6 +424,9 @@ impl ensogl_grid_view::Entry for Entry {
             text_width <- data.text.width.filter(f_!(data.is_text_displayed()));
             entry_width <- text_width.map2(&text_padding, f!((w, o) data.text_width(*w, *o)));
             out.override_column_width <+ entry_width;
+
+            layout <- all(contour, text_padding, text_y_offset, input.set_model);
+            eval layout ((&(c, to, tyo, _)) data.update_layout(c, to, tyo));
         }
         init.emit(());
         Self { frp, data }
