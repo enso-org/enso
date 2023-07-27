@@ -2,7 +2,7 @@ package org.enso.table.data.column.operation.map.bool;
 
 import java.util.BitSet;
 import java.util.List;
-import org.enso.table.data.column.operation.map.MapOperation;
+import org.enso.table.data.column.operation.map.BinaryMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
@@ -13,13 +13,13 @@ import org.graalvm.polyglot.Context;
  * possible values we can have a highly efficient implementation that does not even rely on hashmap
  * and after processing the input vector, performs the checks in constant time.
  */
-public class BooleanIsInOp extends MapOperation<Boolean, BoolStorage> {
+public class BooleanIsInOp extends BinaryMapOperation<Boolean, BoolStorage> {
   public BooleanIsInOp() {
     super(Storage.Maps.IS_IN);
   }
 
   @Override
-  public BoolStorage runMap(BoolStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
+  public BoolStorage runBinaryMap(BoolStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
     if (arg instanceof List) {
       return runMap(storage, (List<?>) arg);
     } else {

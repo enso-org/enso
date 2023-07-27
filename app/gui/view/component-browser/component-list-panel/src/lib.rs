@@ -46,30 +46,28 @@
 use crate::prelude::*;
 use ensogl_core::display::shape::*;
 
-use crate::navigator::Navigator as SectionNavigator;
-
 use enso_frp as frp;
 use ensogl_core::application::frp::API;
 use ensogl_core::application::Application;
+use ensogl_core::control::io::mouse;
 use ensogl_core::data::bounding_box::BoundingBox;
 use ensogl_core::data::color;
 use ensogl_core::define_endpoints_2;
 use ensogl_core::display;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_core::display::shape::StyleWatchFrp;
-use ensogl_derive_theme::FromTheme;
+use ensogl_core::display::style::FromTheme;
 use ensogl_grid_view as grid_view;
 use ensogl_gui_component::component;
 use ensogl_hardcoded_theme::application::component_browser::component_list_panel as theme;
 use ensogl_shadow as shadow;
 
 
-
 // ==============
 // === Export ===
 // ==============
 
-mod navigator;
+pub mod navigator;
 
 pub use breadcrumbs::BreadcrumbId;
 pub use breadcrumbs::SECTION_NAME_CRUMB_INDEX;
@@ -235,13 +233,13 @@ pub mod background {
 
 /// The Model of Select Component.
 #[allow(missing_docs)]
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 pub struct Model {
-    display_object:        display::object::Instance,
-    background:            background::View,
-    pub grid:              grid::View,
-    pub section_navigator: SectionNavigator,
-    pub breadcrumbs:       breadcrumbs::Breadcrumbs,
+    display_object:  display::object::Instance,
+    background:      background::View,
+    #[focus_receiver]
+    pub grid:        grid::View,
+    pub breadcrumbs: breadcrumbs::Breadcrumbs,
 }
 
 impl Model {
@@ -255,9 +253,6 @@ impl Model {
         let grid = app.new_view::<grid::View>();
         display_object.add_child(&grid);
 
-        let section_navigator = SectionNavigator::new(app);
-        display_object.add_child(&section_navigator);
-
         let breadcrumbs = app.new_view::<breadcrumbs::Breadcrumbs>();
         breadcrumbs.set_base_layer(&app.display.default_scene.layers.node_searcher);
         display_object.add_child(&breadcrumbs);
@@ -268,7 +263,7 @@ impl Model {
             }
         }
 
-        Self { display_object, background, grid, section_navigator, breadcrumbs }
+        Self { display_object, background, grid, breadcrumbs }
     }
 
     fn set_initial_breadcrumbs(&self) {
@@ -280,7 +275,6 @@ impl Model {
     fn update_style(&self, style: &AllStyles) {
         self.background.bg_color.set(style.panel.background_color.into());
         self.background.set_size(style.background_sprite_size());
-        self.section_navigator.update_layout(style);
 
         self.breadcrumbs.set_xy(style.breadcrumbs_pos());
         self.breadcrumbs.frp().set_size(style.breadcrumbs_size());
@@ -296,12 +290,6 @@ impl Model {
         let size = style.size();
         let viewport = BoundingBox::from_center_and_size(default(), size);
         viewport.contains(pos)
-    }
-}
-
-impl display::Object for Model {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
     }
 }
 
@@ -347,11 +335,6 @@ impl component::Frp<Model> for Frp {
         let output = &frp_api.output;
 
         frp::extend! { network
-            // === Section navigator ===
-
-            model.grid.switch_section <+ model.section_navigator.chosen_section.filter_map(|s| *s);
-            model.section_navigator.select_section <+ model.grid.active_section.on_change();
-
 
             // === Breadcrumbs ===
 
@@ -363,8 +346,7 @@ impl component::Frp<Model> for Frp {
             let panel_style = Style::from_theme(network, style);
             let grid_style = grid::Style::from_theme(network, style);
             let navigator_style = navigator::Style::from_theme(network, style);
-            style <- all_with3(&panel_style.update, &grid_style.update, &navigator_style.update, |&panel, &grid, &navigator| AllStyles {panel, grid, navigator});
-            model.section_navigator.style <+ style;
+            style <- all_with3(&panel_style, &grid_style, &navigator_style, |&panel, &grid, &navigator| AllStyles {panel, grid, navigator});
             eval style ((style) model.update_style(style));
             output.size <+ style.map(|style| style.size());
 
@@ -377,17 +359,13 @@ impl component::Frp<Model> for Frp {
                 model.is_hovered(pos, style)
             })).gate(&is_visible).on_change();
             output.is_hovered <+ is_hovered;
-            // TODO[ib] Temporary solution for focus, we grab keyboard events if the
-            //   component browser is visible. The proper implementation is tracked in
-            //   https://www.pivotaltracker.com/story/show/180872763
-            model.grid.deprecated_set_focus <+ is_visible;
 
-            on_hover_end <- is_hovered.on_false();
-            model.grid.unhover_element <+ on_hover_end;
+            let mouse_down = model.on_event::<mouse::Down>();
+            eval_ mouse_down (model.focus());
+            eval_ input.show (model.focus());
+            eval_ input.hide (model.blur());
+
         }
-        panel_style.init.emit(());
-        grid_style.init.emit(());
-        navigator_style.init.emit(());
     }
 }
 

@@ -2221,6 +2221,7 @@ dependencies = [
  "serde_json",
  "sha3",
  "span-tree",
+ "superslice",
  "uuid 0.8.2",
  "wasm-bindgen",
  "wasm-bindgen-futures",
@@ -2271,7 +2272,7 @@ dependencies = [
  "Inflector",
  "proc-macro2",
  "quote",
- "syn 1.0.107",
+ "syn 2.0.15",
 ]
 
 [[package]]
@@ -2472,7 +2473,7 @@ dependencies = [
  "Inflector",
  "proc-macro2",
  "quote",
- "syn 1.0.107",
+ "syn 2.0.15",
 ]
 
 [[package]]
@@ -2660,6 +2661,7 @@ dependencies = [
  "Inflector",
  "bit_field",
  "bitflags 2.2.1",
+ "bytemuck",
  "code-builder",
  "console_error_panic_hook",
  "enso-callback",
@@ -2673,6 +2675,8 @@ dependencies = [
  "enso-shortcuts",
  "enso-types",
  "enso-web",
+ "ensogl-derive",
+ "ensogl-derive-theme",
  "ensogl-text-embedded-fonts",
  "enum_dispatch",
  "failure",
@@ -2696,9 +2700,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "ensogl-derive"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.15",
+]
+
+[[package]]
 name = "ensogl-derive-theme"
 version = "0.1.0"
 dependencies = [
+ "proc-macro-crate",
  "proc-macro2",
  "quote",
  "syn 1.0.107",
@@ -3766,6 +3780,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "gloo-utils"
+version = "0.1.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "037fcb07216cb3a30f7292bd0176b050b7b9a052ba830ef7d5d65f6dc64ba58e"
+dependencies = [
+ "js-sys",
+ "serde",
+ "serde_json",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
 name = "graphql-introspection-query"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4229,7 +4256,7 @@ dependencies = [
  "sha2",
  "strum",
  "symlink",
- "syn 1.0.107",
+ "syn 2.0.15",
  "sysinfo",
  "tar",
  "tempfile",
@@ -4261,11 +4288,11 @@ dependencies = [
  "enso-shapely",
  "ensogl",
  "ensogl-component",
- "ensogl-derive-theme",
  "ensogl-gui-component",
  "ensogl-hardcoded-theme",
  "ensogl-text",
  "ensogl-text-msdf",
+ "gloo-utils",
  "ide-view-component-browser",
  "ide-view-documentation",
  "ide-view-execution-environment-selector",
@@ -4279,8 +4306,10 @@ dependencies = [
  "serde",
  "serde_json",
  "span-tree",
+ "strum",
  "uuid 0.8.2",
  "wasm-bindgen",
+ "wasm-bindgen-test",
  "web-sys",
  "welcome-screen",
 ]
@@ -4308,7 +4337,6 @@ dependencies = [
  "approx 0.5.1",
  "enso-frp",
  "ensogl-core",
- "ensogl-derive-theme",
  "ensogl-grid-view",
  "ensogl-gui-component",
  "ensogl-hardcoded-theme",
@@ -4329,10 +4357,11 @@ version = "0.1.0"
 dependencies = [
  "enso-frp",
  "ensogl-core",
- "ensogl-derive-theme",
  "ensogl-grid-view",
  "ensogl-hardcoded-theme",
  "ensogl-text",
+ "ide-view-component-list-panel-grid",
+ "ide-view-component-list-panel-icons",
 ]
 
 [[package]]
@@ -4341,7 +4370,6 @@ version = "0.1.0"
 dependencies = [
  "enso-frp",
  "ensogl-core",
- "ensogl-derive-theme",
  "ensogl-grid-view",
  "ensogl-gui-component",
  "ensogl-hardcoded-theme",
@@ -4357,6 +4385,7 @@ name = "ide-view-component-list-panel-icons"
 version = "0.1.0"
 dependencies = [
  "ensogl-core",
+ "ensogl-hardcoded-theme",
  "failure",
 ]
 
@@ -4372,7 +4401,6 @@ dependencies = [
  "enso-suggestion-database",
  "ensogl",
  "ensogl-component",
- "ensogl-derive-theme",
  "ensogl-hardcoded-theme",
  "horrorshow",
  "ide-ci",
@@ -4391,7 +4419,6 @@ dependencies = [
  "enso-frp",
  "enso-prelude",
  "ensogl",
- "ensogl-derive-theme",
  "ensogl-drop-down-menu",
  "ensogl-gui-component",
  "ensogl-hardcoded-theme",
@@ -4421,6 +4448,7 @@ dependencies = [
  "ensogl-hardcoded-theme",
  "ensogl-text-msdf",
  "failure",
+ "ide-view-component-list-panel-icons",
  "ide-view-execution-environment-selector",
  "indexmap",
  "js-sys",
@@ -6538,6 +6566,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "superslice"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ab16ced94dbd8a46c82fd81e3ed9a8727dac2977ea869d217bcc4ea1f122e81f"
+
+[[package]]
 name = "symlink"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7379,8 +7413,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "31f8dcbc21f30d9b8f2ea926ecb58f6b91192c17e9d33594b3df58b2007ca53b"
 dependencies = [
  "cfg-if 1.0.0",
- "serde",
- "serde_json",
  "wasm-bindgen-macro",
 ]
 

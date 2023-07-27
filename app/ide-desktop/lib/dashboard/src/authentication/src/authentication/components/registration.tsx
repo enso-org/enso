@@ -1,7 +1,7 @@
 /** @file Registration container responsible for rendering and interactions in sign up flow. */
 import * as React from 'react'
 import * as router from 'react-router-dom'
-import toast from 'react-hot-toast'
+import * as toastify from 'react-toastify'
 
 import AtIcon from 'enso-assets/at.svg'
 import CreateAccountIcon from 'enso-assets/create_account.svg'
@@ -10,11 +10,11 @@ import LockIcon from 'enso-assets/lock.svg'
 
 import * as app from '../../components/app'
 import * as authModule from '../providers/auth'
-import * as svg from '../../components/svg'
 import * as validation from '../../dashboard/validation'
 
 import Input from './input'
 import SvgIcon from './svgIcon'
+import SvgMask from './svgMask'
 
 // =================
 // === Constants ===
@@ -29,7 +29,7 @@ const REGISTRATION_QUERY_PARAMS = {
 // ====================
 
 /** A form for users to register an account. */
-function Registration() {
+export default function Registration() {
     const auth = authModule.useAuth()
     const location = router.useLocation()
     const [email, setEmail] = React.useState('')
@@ -41,7 +41,7 @@ function Registration() {
     const onSubmit = () => {
         /** The password & confirm password fields must match. */
         if (password !== confirmPassword) {
-            toast.error('Passwords do not match.')
+            toastify.toast.error('Passwords do not match.')
             return Promise.resolve()
         } else {
             return auth.signUp(email, password, organizationId)
@@ -49,7 +49,7 @@ function Registration() {
     }
 
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-gray-300 px-4 py-8">
+        <div className="flex flex-col items-center justify-center min-h-screen px-4 py-8">
             <div
                 className={
                     'rounded-md bg-white w-full max-w-sm sm:max-w-md border border-gray-200 ' +
@@ -75,7 +75,7 @@ function Registration() {
                         </label>
                         <div className="relative">
                             <SvgIcon>
-                                <svg.SvgMask src={AtIcon} />
+                                <SvgMask src={AtIcon} />
                             </SvgIcon>
                             <Input
                                 id="email"
@@ -96,7 +96,7 @@ function Registration() {
                         </label>
                         <div className="relative">
                             <SvgIcon>
-                                <svg.SvgMask src={LockIcon} />
+                                <SvgMask src={LockIcon} />
                             </SvgIcon>
                             <Input
                                 required
@@ -120,7 +120,7 @@ function Registration() {
                         </label>
                         <div className="relative">
                             <SvgIcon>
-                                <svg.SvgMask src={LockIcon} />
+                                <SvgMask src={LockIcon} />
                             </SvgIcon>
                             <Input
                                 required
@@ -145,7 +145,7 @@ function Registration() {
                         >
                             <span className="mr-2 uppercase">Register</span>
                             <span>
-                                <svg.SvgMask src={CreateAccountIcon} />
+                                <SvgMask src={CreateAccountIcon} />
                             </span>
                         </button>
                     </div>
@@ -160,7 +160,7 @@ function Registration() {
                     }
                 >
                     <span>
-                        <svg.SvgMask src={GoBackIcon} />
+                        <SvgMask src={GoBackIcon} />
                     </span>
                     <span className="ml-2">Already have an account?</span>
                 </router.Link>
@@ -175,5 +175,3 @@ function parseUrlSearchParams(search: string) {
     const organizationId = query.get(REGISTRATION_QUERY_PARAMS.organizationId)
     return { organizationId }
 }
-
-export default Registration

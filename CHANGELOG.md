@@ -197,9 +197,24 @@
   visualization size by dragging its right and bottom borders. Visualization
   width also follows the node's width, and visualizations are aligned to the
   left side of the node.
+- [Component Browser was redesigned][7372]. The three columns of groups turned
+  out to be non-practical, as they give too much information to comprehend.
+  Also, filtering results was kept in groups making second-best match not easily
+  available. Therefore, we introduced a new, impler CB design with single
+  column.
 - [Help chat][7151]. The link to the Discord server is replaced with a chat
   bridge to the Discord server. This is intended to have the chat visible at the
   same time as the IDE, so that help can be much more interactive.
+- [New breadcrumbs design][7362]. Breadcrumbs now optionally show the icon of
+  the item they represent. They also follow the new design of the component
+  browser.
+- [The libraries' authors may put entities to groups by adding GROUP tag in the
+  docstring]. It was requested as more convenient way than specifying full names
+  in package.yaml.
+- [Graph editor node was redesigned][7311]. Nodes have a color and icon matching
+  the selected entry in the component browser. Clear separating lines between
+  method arguments were added. The node selection was made easier with
+  additional thick interactive selection border.
 
 [5910]: https://github.com/enso-org/enso/pull/5910
 [6279]: https://github.com/enso-org/enso/pull/6279
@@ -220,6 +235,10 @@
 [7146]: https://github.com/enso-org/enso/pull/7146
 [7151]: https://github.com/enso-org/enso/pull/7151
 [7164]: https://github.com/enso-org/enso/pull/7164
+[7362]: https://github.com/enso-org/enso/pull/7362
+[7372]: https://github.com/enso-org/enso/pull/7372
+[7337]: https://github.com/enso-org/enso/pull/7337
+[7311]: https://github.com/enso-org/enso/pull/7311
 
 #### EnsoGL (rendering engine)
 
@@ -524,6 +543,7 @@
 - [Improving date/time support in Table - added `date_diff`, `date_add`,
   `date_part` and some shorthands. Extended `Time_Period` with milli-, micro-
   and nanosecond periods.][7221]
+- [Implemented `replace` on database columns.][7275]
 - [Retire `Column_Selector` and allow regex based selection of columns.][7295]
 - [`Text.parse_to_table` can take a `Regex`.][7297]
 
@@ -755,6 +775,7 @@
 [7223]: https://github.com/enso-org/enso/pull/7223
 [7234]: https://github.com/enso-org/enso/pull/7234
 [7221]: https://github.com/enso-org/enso/pull/7221
+[7275]: https://github.com/enso-org/enso/pull/7275
 [7295]: https://github.com/enso-org/enso/pull/7295
 [7297]: https://github.com/enso-org/enso/pull/7297
 

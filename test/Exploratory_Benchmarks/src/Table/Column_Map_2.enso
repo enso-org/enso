@@ -1,0 +1,77 @@
+from Standard.Base import all
+from Standard.Table import all
+
+from Standard.Test import Bench
+
+import project.Table.Common_Setup.Common_Setup
+import project.Table.Helpers
+
+polyglot java import org.enso.exploratory_benchmark_helpers.MapHelpers
+polyglot java import org.enso.table.data.column.builder.NumericBuilder
+
+## A second variant of Boxed_Map_Test.
+   The first one relied on `ends_with` which is actually a costly operation due to reliance on ICU and correct grapheme cluster handling.
+   So as a second comparison we will do `Date.year` instead which is much simpler.
+type Boxed_Map_Test_2
+    Instance date_column
+
+    current_implementation self =
+        self.date_column.year
+
+    java_map self =
+        Column.from_storage "result" <|
+            MapHelpers.getYear self.date_column.java_column.getStorage
+
+    ## We can still opt-out of `convert_polyglot_dates`, because this is applied
+       at output which is Integer. If our output was another Date, we could not
+       opt-out to remain correct.
+    enso_map_as_vector self convert_polyglot_dates =
+        vector_proxy = self.date_column.to_vector
+        mapped = vector_proxy.map x-> x.year
+        Helpers.column_from_vector "result" mapped convert_polyglot_dates=convert_polyglot_dates
+
+    enso_map_with_builder_append_long self =
+        n = self.date_column.length
+        builder = NumericBuilder.createLongBuilder n
+        storage = self.date_column.java_column.getStorage
+        0.up_to n . each i->
+            case storage.getItemBoxed i of
+                Nothing ->
+                    builder.appendNulls 1
+                date ->
+                    builder.appendLong date.year
+        Column.from_storage "result" builder.seal
+
+    ## This is the same as above, but uses `appendNoGrow` instead of
+       `appendLong`. I suspect it could be more efficient, so I'm testing it.
+    enso_map_with_builder_append_object self =
+        n = self.date_column.length
+        builder = NumericBuilder.createLongBuilder n
+        storage = self.date_column.java_column.getStorage
+        0.up_to n . each i->
+            case storage.getItemBoxed i of
+                Nothing ->
+                    builder.appendNulls 1
+                date ->
+                    builder.appendNoGrow date.year
+        Column.from_storage "result" builder.seal
+
+    verify_correctness self =
+        Helpers.check_results [self.current_implementation, self.java_map, self.enso_map_as_vector convert_polyglot_dates=True, self.enso_map_as_vector convert_polyglot_dates=False, self.enso_map_with_builder_append_long, self.enso_map_with_builder_append_object]
+
+main = spec (Common_Setup.Config)
+
+spec setup =
+    t = setup.generate_input_table_date
+
+    iter_size = setup.iter_size
+    num_iterations = setup.num_iterations
+    should_run_gc = setup.force_gc
+
+    boxed_map = Boxed_Map_Test_2.Instance (t.at "dates")
+    Bench.measure (boxed_map.current_implementation) "Boxed_Map_Test_2.current_implementation" iter_size num_iterations run_gc_between_iterations=should_run_gc
+    Bench.measure (boxed_map.java_map) "Boxed_Map_Test_2.java_map" iter_size num_iterations run_gc_between_iterations=should_run_gc
+    Bench.measure (boxed_map.enso_map_as_vector convert_polyglot_dates=True) "Boxed_Map_Test_2.enso_map_as_vector+convert_dates" iter_size num_iterations run_gc_between_iterations=should_run_gc
+    Bench.measure (boxed_map.enso_map_as_vector convert_polyglot_dates=False) "Boxed_Map_Test_2.enso_map_as_vector" iter_size num_iterations run_gc_between_iterations=should_run_gc
+    Bench.measure (boxed_map.enso_map_with_builder_append_long) "Boxed_Map_Test_2.enso_map_with_builder_append_long" iter_size num_iterations run_gc_between_iterations=should_run_gc
+    Bench.measure (boxed_map.enso_map_with_builder_append_object) "Boxed_Map_Test_2.enso_map_with_builder_append_object" iter_size num_iterations run_gc_between_iterations=should_run_gc

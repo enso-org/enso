@@ -472,6 +472,14 @@ impl Network {
         self.all_with(label, t1, t2, |a, b| *a && *b)
     }
 
+    /// On every input event, sample all input streams and output `t1 && !t2`.
+    pub fn and_not<T1, T2>(&self, label: Label, t1: &T1, t2: &T2) -> Stream<bool>
+    where
+        T1: EventOutput<Output = bool>,
+        T2: EventOutput<Output = bool>, {
+        self.all_with(label, t1, t2, |a, b| *a && !*b)
+    }
+
     pub fn is_some<T, X>(&self, label: Label, src: &T) -> Stream<bool>
     where T: EventOutput<Output = Option<X>> {
         self.map(label, src, |t| t.is_some())
@@ -3076,8 +3084,6 @@ impl<Out: Data> Any<Out> {
         self.upgrade().for_each(|t| t.srcs.borrow_mut().push(Box::new(src.clone_ref())));
     }
 
-    pub fn detach_all(&self) {}
-
     /// Emit new event. It's questionable if this node type should expose the `emit` functionality,
     /// but the current usage patterns proven it is a very handy utility. This node is used to
     /// define sources of frp output streams. Sources allow multiple streams to be attached and
@@ -3099,10 +3105,8 @@ impl<Out: Data> stream::EventConsumer<Out> for OwnedAny<Out> {
 // === Any_ ===
 // ============
 
-#[derive(Debug)]
-pub struct AnyData_ {
-    srcs: Rc<RefCell<Vec<Box<dyn std::any::Any>>>>,
-}
+#[derive(Debug, Clone, Copy)]
+pub struct AnyData_;
 pub type OwnedAny_ = stream::Node<AnyData_>;
 pub type Any_ = stream::WeakNode<AnyData_>;
 
@@ -3113,16 +3117,13 @@ impl HasOutput for AnyData_ {
 impl OwnedAny_ {
     /// Constructor.
     pub fn new(label: Label) -> Self {
-        let srcs = default();
-        let def = AnyData_ { srcs };
-        Self::construct(label, def)
+        Self::construct(label, AnyData_)
     }
 
     /// Takes ownership of self and returns it with a new stream attached.
     pub fn with<T>(self, src: &T) -> Self
     where T: EventOutput {
         src.register_target(self.downgrade().into());
-        self.srcs.borrow_mut().push(Box::new(src.clone_ref()));
         self
     }
 
@@ -3177,6 +3178,12 @@ impl OwnedAny_ {
     {
         Self::new(label).with(t1).with(t2).with(t3).with(t4).with(t5)
     }
+
+
+    /// Emit new event.
+    pub fn emit(&self) {
+        self.emit_event(&default(), &());
+    }
 }
 
 impl Any_ {
@@ -3184,7 +3191,6 @@ impl Any_ {
     pub fn with<T1>(self, src: &T1) -> Self
     where T1: EventOutput {
         src.register_target(self.clone_ref().into());
-        self.upgrade().for_each(|t| t.srcs.borrow_mut().push(Box::new(src.clone_ref())));
         self
     }
 
@@ -3192,7 +3198,11 @@ impl Any_ {
     pub fn attach<T1>(&self, src: &T1)
     where T1: EventOutput {
         src.register_target(self.into());
-        self.upgrade().for_each(|t| t.srcs.borrow_mut().push(Box::new(src.clone_ref())));
+    }
+
+    /// Emit new event.
+    pub fn emit(&self) {
+        self.emit_event(&default(), &());
     }
 }
 

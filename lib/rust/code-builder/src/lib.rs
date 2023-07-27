@@ -105,23 +105,9 @@ pub trait AddToBuilder<T> {
     fn add_to_builder(&mut self, t: T) -> &mut Self;
 }
 
-impl<T: HasCodeRepr> AddToBuilder<&T> for CodeBuilder {
-    default fn add_to_builder(&mut self, t: &T) -> &mut Self {
+impl<T: HasCodeRepr + ?Sized> AddToBuilder<&T> for CodeBuilder {
+    fn add_to_builder(&mut self, t: &T) -> &mut Self {
         t.build(self);
-        self
-    }
-}
-
-impl AddToBuilder<&String> for CodeBuilder {
-    fn add_to_builder(&mut self, t: &String) -> &mut Self {
-        self.add_str(t);
-        self
-    }
-}
-
-impl AddToBuilder<&str> for CodeBuilder {
-    fn add_to_builder(&mut self, t: &str) -> &mut Self {
-        self.add_str(t);
         self
     }
 }
@@ -176,5 +162,17 @@ impl<T: HasCodeRepr> HasCodeRepr for Option<T> {
 impl HasCodeRepr for usize {
     fn build(&self, builder: &mut CodeBuilder) {
         write!(builder, "{self}").unwrap();
+    }
+}
+
+impl HasCodeRepr for String {
+    fn build(&self, builder: &mut CodeBuilder) {
+        builder.add_str(self);
+    }
+}
+
+impl HasCodeRepr for str {
+    fn build(&self, builder: &mut CodeBuilder) {
+        builder.add_str(self);
     }
 }

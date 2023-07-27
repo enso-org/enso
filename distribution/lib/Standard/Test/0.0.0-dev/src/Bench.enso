@@ -70,6 +70,15 @@ type Bench
        - label: A name for the measurement.
        - iter_size: The number of runs per iteration.
        - num_iters: The number of iterations per measurement.
+       - run_gc_between_iterations: Whether to try running the garbage collector
+         between iterations. Defaults to False. This is helpful when testing
+         memory intensive operations, to ensure that GC runs between iterations
+         and not _during_ iterations. The time taken to run the requested
+         garbage collection will not be counted into the iteration time, however
+         there is no guarantee that the JVM will actually accept the GC hint and
+         it is still possible the JVM may run GC during an iteration. But
+         setting this option to True should make it less likely for GC to
+         interrupt measurements.
 
        > Example
          Measure a computation called "foo" with an iteration size of 2 and a number
@@ -80,8 +89,8 @@ type Bench
 
              example_measure =
                  Bench.measure Examples.get_boolean "foo" iter_size=2 num_iters=1
-    measure : Any -> Text -> Integer -> Integer -> Nothing
-    measure ~act label iter_size num_iters =
+    measure : Any -> Text -> Integer -> Integer -> Boolean -> Nothing
+    measure ~act label iter_size num_iters run_gc_between_iterations=False =
         dry_run = Environment.get "ENSO_BENCHMARK_TEST_DRY_RUN" "False" == "True"
         result = Ref.new 0.0
         single_call = _ ->
@@ -90,6 +99,8 @@ type Bench
             x2 = System.nano_time
             x2 - x1
         iteration = it_size -> it_num ->
+            if run_gc_between_iterations then
+                Runtime.gc
             act_it_num = num_iters - it_num
             res = times it_size single_call
             avg = avg_list res

@@ -14,7 +14,7 @@ import org.graalvm.polyglot.Context;
  * do not match that type and then rely on a consistent definition of hashcode for these builtin
  * types (which is not available in general for custom objects).
  */
-public abstract class SpecializedIsInOp<T, S extends Storage<T>> extends MapOperation<T, S> {
+public abstract class SpecializedIsInOp<T, S extends Storage<T>> extends BinaryMapOperation<T, S> {
   /**
    * An optimized representation of the vector of values to match.
    *
@@ -43,7 +43,7 @@ public abstract class SpecializedIsInOp<T, S extends Storage<T>> extends MapOper
   }
 
   @Override
-  public Storage<?> runMap(S storage, Object arg, MapOperationProblemBuilder problemBuilder) {
+  public Storage<?> runBinaryMap(S storage, Object arg, MapOperationProblemBuilder problemBuilder) {
     if (arg instanceof List) {
       return runMap(storage, (List<?>) arg);
     } else {
@@ -70,5 +70,10 @@ public abstract class SpecializedIsInOp<T, S extends Storage<T>> extends MapOper
   @Override
   public Storage<?> runZip(S storage, Storage<?> arg, MapOperationProblemBuilder problemBuilder) {
     return runMap(storage, arg.toList());
+  }
+
+  @Override
+  public boolean reliesOnSpecializedStorage() {
+    return false;
   }
 }

@@ -39,7 +39,6 @@ import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
-import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;

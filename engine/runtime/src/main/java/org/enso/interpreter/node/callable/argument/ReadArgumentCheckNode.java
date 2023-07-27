@@ -1,20 +1,14 @@
 package org.enso.interpreter.node.callable.argument;
 
-import com.oracle.truffle.api.CompilerAsserts;
-import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Cached.Shared;
-import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.frame.MaterializedFrame;
-import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.nodes.ExplodeLoop;
-import com.oracle.truffle.api.nodes.InvalidAssumptionException;
-import com.oracle.truffle.api.nodes.Node;
+
 import java.util.Arrays;
 import java.util.stream.Collectors;
+
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.callable.ApplicationNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode.DefaultsExecutionMode;
+import org.enso.interpreter.node.expression.builtin.meta.AtomWithAHoleNode;
 import org.enso.interpreter.node.expression.builtin.meta.IsValueOfTypeNode;
 import org.enso.interpreter.node.expression.builtin.meta.TypeOfNode;
 import org.enso.interpreter.node.expression.literal.LiteralNode;
@@ -26,6 +20,16 @@ import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.graalvm.collections.Pair;
+
+import com.oracle.truffle.api.CompilerAsserts;
+import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.frame.MaterializedFrame;
+import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.ExplodeLoop;
+import com.oracle.truffle.api.nodes.InvalidAssumptionException;
+import com.oracle.truffle.api.nodes.Node;
 
 public abstract class ReadArgumentCheckNode extends Node {
   private final String name;
@@ -41,7 +45,7 @@ public abstract class ReadArgumentCheckNode extends Node {
     this.expectedTypes = expectedTypes;
   }
 
-  static ReadArgumentCheckNode build(String argumentName, Type[] expectedTypes) {
+  public static ReadArgumentCheckNode build(String argumentName, Type[] expectedTypes) {
     if (expectedTypes == null || expectedTypes.length == 0) {
       return null;
     } else {
@@ -49,7 +53,7 @@ public abstract class ReadArgumentCheckNode extends Node {
     }
   }
 
-  abstract Object executeCheckOrConversion(VirtualFrame frame, Object value);
+  public abstract Object executeCheckOrConversion(VirtualFrame frame, Object value);
 
   @Specialization(rewriteOn = InvalidAssumptionException.class)
   Object doCheckNoConversionNeeded(VirtualFrame frame, Object v) throws InvalidAssumptionException {
@@ -84,17 +88,21 @@ public abstract class ReadArgumentCheckNode extends Node {
 
   private static boolean isAllFitValue(Object v) {
     return v instanceof DataflowError
-            || (v instanceof Function fn && fn.isThunk());
+            || (v instanceof Function fn && fn.isThunk())
+            || AtomWithAHoleNode.isHole(v);
   }
 
   @ExplodeLoop
   private boolean findAmongTypes(Object v) {
+    if (isAllFitValue(v)) {
+      return true;
+    }
     for (Type t : expectedTypes) {
       if (checkType.execute(t, v)) {
         return true;
       }
     }
-    return isAllFitValue(v);
+    return false;
   }
 
   @ExplodeLoop

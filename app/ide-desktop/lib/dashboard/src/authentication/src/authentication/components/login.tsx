@@ -2,16 +2,16 @@
 import * as React from 'react'
 import * as router from 'react-router-dom'
 
+import * as fontawesomeIcons from '@fortawesome/free-brands-svg-icons'
+
 import ArrowRightIcon from 'enso-assets/arrow_right.svg'
 import AtIcon from 'enso-assets/at.svg'
 import CreateAccountIcon from 'enso-assets/create_account.svg'
 import LockIcon from 'enso-assets/lock.svg'
 
-import * as fontawesomeIcons from '@fortawesome/free-brands-svg-icons'
-
 import * as app from '../../components/app'
 import * as auth from '../providers/auth'
-import * as svg from '../../components/svg'
+import SvgMask from './svgMask'
 
 import FontAwesomeIcon from './fontAwesomeIcon'
 import Input from './input'
@@ -30,7 +30,7 @@ const LOGIN_QUERY_PARAMS = {
 // =============
 
 /** A form for users to log in. */
-function Login() {
+export default function Login() {
     const { search } = router.useLocation()
     const { signInWithGoogle, signInWithGitHub, signInWithPassword } = auth.useAuth()
 
@@ -40,7 +40,7 @@ function Login() {
     const [password, setPassword] = React.useState('')
 
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center bg-gray-300">
+        <div className="min-h-screen flex flex-col items-center justify-center">
             <div
                 className={
                     'flex flex-col bg-white shadow-md px-4 sm:px-6 md:px-8 lg:px-10 py-8 rounded-md ' +
@@ -93,7 +93,7 @@ function Login() {
                             </label>
                             <div className="relative">
                                 <SvgIcon>
-                                    <svg.SvgMask src={AtIcon} />
+                                    <SvgMask src={AtIcon} />
                                 </SvgIcon>
                                 <Input
                                     required
@@ -115,7 +115,7 @@ function Login() {
                             </label>
                             <div className="relative">
                                 <SvgIcon>
-                                    <svg.SvgMask src={LockIcon} />
+                                    <SvgMask src={LockIcon} />
                                 </SvgIcon>
                                 <Input
                                     required={true}
@@ -150,9 +150,7 @@ function Login() {
                                 }
                             >
                                 <span className="mr-2 uppercase">Login</span>
-                                <span>
-                                    <svg.SvgMask src={ArrowRightIcon} />
-                                </span>
+                                <SvgMask src={ArrowRightIcon} />
                             </button>
                         </div>
                     </form>
@@ -165,10 +163,20 @@ function Login() {
                             'text-xs text-center'
                         }
                     >
-                        <span>
-                            <svg.SvgMask src={CreateAccountIcon} />
-                        </span>
+                        <SvgMask src={CreateAccountIcon} />
                         <span className="ml-2">You don&apos;t have an account?</span>
+                    </router.Link>
+                </div>
+                <div className="flex justify-center items-center mt-6">
+                    <router.Link
+                        to={app.ENTER_OFFLINE_MODE_PATH}
+                        className={
+                            'inline-flex items-center font-bold text-blue-500 hover:text-blue-700 ' +
+                            'text-xs text-center'
+                        }
+                    >
+                        <SvgMask src={ArrowRightIcon} />
+                        <span className="ml-2">Continue without creating an account</span>
                     </router.Link>
                 </div>
             </div>
@@ -182,5 +190,3 @@ function parseUrlSearchParams(search: string) {
     const email = query.get(LOGIN_QUERY_PARAMS.email)
     return email
 }
-
-export default Login

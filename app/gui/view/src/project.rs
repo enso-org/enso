@@ -163,7 +163,7 @@ ensogl::define_endpoints! {
         // TODO[MM]: this should not contain the group entry id as that is component browser
         // specific. It should be refactored to be an implementation detail of the component
         // browser.
-        editing_committed              (NodeId, Option<component_list_panel::grid::GroupEntryId>),
+        editing_committed              (NodeId, Option<component_list_panel::grid::EntryId>),
         project_list_shown             (bool),
         code_editor_shown              (bool),
         style                          (Theme),
@@ -182,7 +182,7 @@ ensogl::define_endpoints! {
 // === Model ===
 // =============
 
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 struct Model {
     display_object:   display::object::Instance,
     top_bar:          ProjectViewTopBar,
@@ -357,8 +357,9 @@ mod js {
 
 /// The main view of single project opened in IDE.
 #[allow(missing_docs)]
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 pub struct View {
+    #[display_object]
     model:   Model,
     pub frp: Frp,
 }
@@ -643,7 +644,7 @@ impl View {
             // user was typing and a change to the selection was to be expected.
             frp.source.editing_committed <+ on_update_with_refresh.map3(
                 &committed_in_searcher,&grid.active,
-                |_, (node_id, _), &entry| Some((*node_id, entry?.as_entry_id()))).unwrap();
+                |_, (node_id, _), &entry| (*node_id, entry));
 
             // If we have no outstanding key presses, we can accept the selection as is.
             frp.source.editing_committed <+ committed_in_searcher.sample(&update_without_refresh);
@@ -818,12 +819,6 @@ impl View {
     }
 }
 
-impl display::Object for View {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.model.display_object
-    }
-}
-
 impl FrpNetworkProvider for View {
     fn network(&self) -> &frp::Network {
         &self.frp.network
@@ -839,7 +834,7 @@ impl application::View for View {
         View::new(app)
     }
 
-    fn default_shortcuts() -> Vec<application::shortcut::Shortcut> {
+    fn global_shortcuts() -> Vec<application::shortcut::Shortcut> {
         use shortcut::ActionType::*;
         [
             (Press, "!is_searcher_opened", "cmd o", "show_project_list"),

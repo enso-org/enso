@@ -9,6 +9,7 @@ use crate::impls;
 
 use serde::Deserialize;
 use serde::Serialize;
+use std::borrow::Borrow;
 use std::borrow::Cow;
 use std::ops::Deref;
 use std::rc::Rc;
@@ -212,6 +213,18 @@ impl AsRef<String> for ImString {
 impl AsRef<str> for ImString {
     fn as_ref(&self) -> &str {
         self.content.as_ref()
+    }
+}
+
+impl Borrow<str> for ImString {
+    fn borrow(&self) -> &str {
+        &self.content
+    }
+}
+
+impl Borrow<String> for ImString {
+    fn borrow(&self) -> &String {
+        &self.content
     }
 }
 
