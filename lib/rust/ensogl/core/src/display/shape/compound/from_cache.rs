@@ -4,7 +4,6 @@
 
 use crate::prelude::*;
 
-use crate::display;
 use crate::display::shape::AnyCachedShape;
 
 

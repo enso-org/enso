@@ -156,13 +156,25 @@ impl Model {
     }
 
     /// Set size of the documentation view.
-    fn set_size(&self, size: Vector2) {
+    fn size_changed(&self, size: Vector2, fraction: f32) {
+        console_log!("FRACTION {fraction}");
+        let visible_part = Vector2(size.x * fraction, size.y);
         self.outer_dom.set_xy(size / 2.0);
-        self.overlay.set_size(size);
+        self.overlay.set_size(visible_part);
         self.outer_dom.set_dom_size(Vector2(size.x, size.y));
         self.inner_dom.set_dom_size(Vector2(size.x, size.y));
         self.breadcrumbs.set_xy(Vector2(0.0, size.y + 36.0));
-        self.breadcrumbs.frp().set_size(Vector2(size.x, 32.0));
+        self.breadcrumbs.frp().set_size(Vector2(visible_part.x, 32.0));
+    }
+
+    /// Set the fraction of visible documentation panel. Used to animate showing/hiding the panel.
+    fn width_animation_changed(&self, size: Vector2, fraction: f32) {
+        let percentage = (1.0 - fraction) * 100.0;
+        self.inner_dom.set_style_or_warn("clip-path", format!("inset(0 {percentage}% 0 0)"));
+        self.outer_dom.set_style_or_warn("clip-path", format!("inset(0 {percentage}% 0 0)"));
+        let actual_size = Vector2(size.x * fraction, size.y);
+        self.overlay.set_size(actual_size);
+        self.breadcrumbs.frp().set_size(Vector2(actual_size.x, 32.0));
     }
 
     /// Display the documentation and scroll to the qualified name if needed.
@@ -204,7 +216,7 @@ impl Model {
     }
 
     fn update_style(&self, style: Style) {
-        self.set_size(Vector2(style.width, style.height));
+        // Size is updated separately in [`size_changed`] method.
         self.overlay.set_corner_radius(style.corner_radius);
         self.outer_dom.set_style_or_warn("border-radius", format!("{}px", style.corner_radius));
         self.inner_dom.set_style_or_warn("border-radius", format!("{}px", style.corner_radius));
@@ -287,7 +299,7 @@ impl View {
         let display_delay = frp::io::timer::Timeout::new(network);
         let style_frp = StyleWatchFrp::new(&scene.style_sheet);
         let style = Style::from_theme(network, &style_frp);
-        let width_anim = Animation::new_with_init(network, 1.0);
+        let width_anim = Animation::new(network);
         frp::extend! { network
 
             // === Displaying documentation ===
@@ -306,7 +318,7 @@ impl View {
             // === Size ===
 
             size <- style.update.map(|s| Vector2(s.width, s.height));
-            eval size((size) model.set_size(*size));
+            _eval <- size.map2(&width_anim.value, f!((&s, &f) model.size_changed(s, f)));
 
 
             // === Style ===
@@ -318,7 +330,7 @@ impl View {
 
             width_anim.target <+ frp.set_visible.map(|&visible| if visible { 1.0 } else { 0.0 });
             width_anim.skip <+ frp.skip_animation;
-            _eval <- width_anim.value.all_with(&size, f!((f, s) model.set_size(Vector2(s.x * f, s.y))));
+            _eval <- width_anim.value.map2(&size, f!((&f, &s) model.width_animation_changed(s, f)));
 
 
             // === Activation ===
@@ -352,6 +364,7 @@ impl View {
         }
         model.set_initial_breadcrumbs();
         style.init.emit(());
+        frp.set_visible(true);
         self
     }
 }
