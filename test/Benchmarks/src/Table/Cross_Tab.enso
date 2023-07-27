@@ -33,8 +33,8 @@ bench =
     table = create_table
 
     Bench.measure (table.cross_tab [] "size") "[], size" iter_size num_iterations
-    Bench.measure (table.cross_tab [] "type") "[], size" iter_size num_iterations
-    Bench.measure (table.cross_tab [] "store") "[], size" iter_size num_iterations
+    Bench.measure (table.cross_tab [] "type") "[], type" iter_size num_iterations
+    Bench.measure (table.cross_tab [] "store") "[], store" iter_size num_iterations
     Bench.measure (table.cross_tab ["type"] "size") "[type], size" iter_size num_iterations
     Bench.measure (table.cross_tab ["store"] "size") "[store], size" iter_size num_iterations
     Bench.measure (table.cross_tab ["size"] "store") "[size], store" iter_size num_iterations
