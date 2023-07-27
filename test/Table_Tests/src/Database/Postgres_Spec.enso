@@ -11,9 +11,9 @@ import Standard.Database.Data.SQL_Type.SQL_Type
 import Standard.Database.Internal.Postgres.Pgpass
 import Standard.Database.Internal.Replace_Params.Replace_Params
 from Standard.Database import all
-from Standard.Database.Errors import SQL_Error, Unsupported_Database_Operation
+from Standard.Database.Errors import SQL_Error, SQL_Warning, Unsupported_Database_Operation
 
-from Standard.Test import Test, Test_Suite
+from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions
 import Standard.Test.Test_Environment
 
@@ -172,6 +172,23 @@ postgres_specific_spec connection db_name setup =
             r.columns.at 5 . value_type . should_equal Value_Type.Float
 
         connection.execute_update 'DROP TABLE "'+name+'"'
+
+    Test.group "[PostgreSQL] Warning/Error handling" <|
+        Test.specify "query warnings should be propagated" <|
+            long_name = (Name_Generator.random_name "T") + ("a" * 100)
+            r = connection.execute_update 'CREATE TEMPORARY TABLE "'+long_name+'" ("A" VARCHAR)'
+            w1 = Problems.expect_only_warning SQL_Warning r
+            # The display text may itself be truncated, so we just check the first words.
+            w1.to_display_text . should_contain "identifier"
+            # And check the full message for words that could be truncated in short message.
+            w1.message . should_contain "truncated to"
+
+            table = connection.query (SQL_Query.Raw_SQL 'SELECT 1 AS "'+long_name+'"')
+            w2 = Problems.expect_only_warning SQL_Warning table
+            w2.message . should_contain "truncated"
+            effective_name = table.column_names . at 0
+            effective_name . should_not_equal long_name
+            long_name.should_contain effective_name
 
     table_builder = setup.table_builder
     materialize = setup.materialize
