@@ -630,7 +630,9 @@ use crate::prelude::*;
 use crate::lib_b;
 use lib_c;
 pub use crate::lib_e;
+use super::prelude::*;
 use crate::lib_a;
+use super::item_2;
 use lib_d::item_1;
 use logger::traits::*;
 pub mod mod2;
@@ -654,11 +656,14 @@ pub struct Struct1 {}
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 
+use super::prelude::*;
 use crate::prelude::*;
 use logger::traits::*;
 
 use crate::lib_b;
 use crate::lib_a;
+
+use super::item_2;
 
 use lib_c;
 use lib_d::item_1;
