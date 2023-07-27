@@ -3,7 +3,6 @@ package org.enso.benchmarks.libs;
 import java.io.IOException;
 import java.util.Collection;
 import org.enso.benchmarks.processor.GenerateBenchSources;
-import org.graalvm.polyglot.Engine;
 import org.openjdk.jmh.results.RunResult;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
@@ -46,6 +45,7 @@ public class LibBenchRunner {
       throw new RuntimeException(e);
     }
 
+    // TODO[pm]: Process the results in the same way as we do in `runtime/bench`.
     System.out.println("Results:");
     for (RunResult result : results) {
       System.out.println(result.toString());

@@ -247,7 +247,7 @@ public class BenchProcessor extends AbstractProcessor {
   }
 
   private static char peekLastChar(StringBuilder sb) {
-    if (sb.length() > 0) {
+    if (!sb.isEmpty()) {
       return sb.charAt(sb.length() - 1);
     } else {
       return 0;
