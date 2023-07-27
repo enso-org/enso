@@ -124,6 +124,11 @@ development - if not specified, their default values will be used. However, they
 must be specified before publishing the package. A package missing any of these
 fields cannot be published.
 
+#### module
+
+**Optional** _String_: The module name of the project. If not set, it will be
+derived from the project `name`.
+
 #### license
 
 **Optional (required for publishing)** _String_: The short license name of this
