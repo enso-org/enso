@@ -158,6 +158,10 @@ spec =
             t.at 'café' . to_vector . should_equal [4, 5, 6]
             t.at 'sciana' . should_fail_with No_Such_Column
 
+            # Cannot create two columns with the same name modulo normalization.
+            r2 = Table.new [['ściana', [1, 2, 3]], ['s\u0301ciana', [4, 5, 6]]]
+            r2.should_fail_with Illegal_Argument
+
     Test.group "Vector conversion" <|
         Test.specify "should allow converting columns to valid vectors" <|
             col_1 = Column.from_vector 'x' [1, 2, 3]
