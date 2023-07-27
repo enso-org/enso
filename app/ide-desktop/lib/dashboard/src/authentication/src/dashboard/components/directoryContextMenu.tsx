@@ -3,11 +3,12 @@ import * as React from 'react'
 
 import * as backendModule from '../backend'
 import * as modalProvider from '../../providers/modal'
+import * as shortcuts from '../shortcuts'
+
+import * as assetContextMenu from './assetContextMenu'
 import ConfirmDeleteModal from './confirmDeleteModal'
 import ContextMenu from './contextMenu'
 import ContextMenuEntry from './contextMenuEntry'
-
-import * as assetContextMenu from './assetContextMenu'
 
 // =================
 // === Constants ===
@@ -28,7 +29,6 @@ export interface DirectoryContextMenuProps
 export default function DirectoryContextMenu(props: DirectoryContextMenuProps) {
     const {
         innerProps: { item, setRowState },
-        event,
         doDelete,
     } = props
     const { setModal, unsetModal } = modalProvider.useSetModal()
@@ -40,10 +40,12 @@ export default function DirectoryContextMenu(props: DirectoryContextMenuProps) {
         }))
         unsetModal()
     }
+
     return (
-        <ContextMenu key={item.id} event={event}>
-            <ContextMenuEntry onClick={doRename}>Rename</ContextMenuEntry>
+        <ContextMenu>
+            <ContextMenuEntry action={shortcuts.KeyboardAction.rename} onClick={doRename} />
             <ContextMenuEntry
+                action={shortcuts.KeyboardAction.moveToTrash}
                 onClick={() => {
                     setModal(
                         <ConfirmDeleteModal
@@ -52,9 +54,7 @@ export default function DirectoryContextMenu(props: DirectoryContextMenuProps) {
                         />
                     )
                 }}
-            >
-                <span className="text-red-700">Delete</span>
-            </ContextMenuEntry>
+            />
         </ContextMenu>
     )
 }

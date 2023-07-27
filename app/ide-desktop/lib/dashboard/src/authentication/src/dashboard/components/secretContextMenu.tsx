@@ -3,6 +3,7 @@ import * as React from 'react'
 
 import * as backendModule from '../backend'
 import * as modalProvider from '../../providers/modal'
+import * as shortcuts from '../shortcuts'
 
 import * as assetContextMenu from './assetContextMenu'
 import ConfirmDeleteModal from './confirmDeleteModal'
@@ -28,14 +29,14 @@ export interface SecretContextMenuProps
 export default function SecretContextMenu(props: SecretContextMenuProps) {
     const {
         innerProps: { item },
-        event,
         doDelete,
     } = props
     const { setModal } = modalProvider.useSetModal()
 
     return (
-        <ContextMenu key={item.id} event={event}>
+        <ContextMenu>
             <ContextMenuEntry
+                action={shortcuts.KeyboardAction.moveToTrash}
                 onClick={() => {
                     setModal(
                         <ConfirmDeleteModal
@@ -44,9 +45,7 @@ export default function SecretContextMenu(props: SecretContextMenuProps) {
                         />
                     )
                 }}
-            >
-                <span className="text-red-700">Delete</span>
-            </ContextMenuEntry>
+            />
         </ContextMenu>
     )
 }

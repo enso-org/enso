@@ -16,10 +16,10 @@ declare module '../../hooks' {
 
 /** Possible types of asset state change. */
 export enum AssetEventType {
-    createProject = 'create-project',
-    createDirectory = 'create-directory',
+    newProject = 'new-project',
+    newFolder = 'new-folder',
     uploadFiles = 'upload-files',
-    createSecret = 'create-secret',
+    newSecret = 'new-secret',
     openProject = 'open-project',
     cancelOpeningAllProjects = 'cancel-opening-all-projects',
     deleteMultiple = 'delete-multiple',
@@ -32,10 +32,10 @@ interface AssetBaseEvent<Type extends AssetEventType> {
 
 /** All possible events. */
 interface AssetEvents {
-    createProject: AssetCreateProjectEvent
-    createDirectory: AssetCreateDirectoryEvent
+    newProject: AssetNewProjecctEvent
+    newFolder: AssetNewFolderEvent
     uploadFiles: AssetUploadFilesEvent
-    createSecret: AssetCreateSecretEvent
+    newSecret: AssetNewSecretEvent
     openProject: AssetOpenProjectEvent
     cancelOpeningAllProjects: AssetCancelOpeningAllProjectsEvent
     deleteMultiple: AssetDeleteMultipleEvent
@@ -52,13 +52,13 @@ type SanityCheck<
 > = T
 
 /** A signal to create a project. */
-export interface AssetCreateProjectEvent extends AssetBaseEvent<AssetEventType.createProject> {
+export interface AssetNewProjecctEvent extends AssetBaseEvent<AssetEventType.newProject> {
     placeholderId: backendModule.ProjectId
     templateId: string | null
 }
 
 /** A signal to create a directory. */
-export interface AssetCreateDirectoryEvent extends AssetBaseEvent<AssetEventType.createDirectory> {
+export interface AssetNewFolderEvent extends AssetBaseEvent<AssetEventType.newFolder> {
     placeholderId: backendModule.DirectoryId
 }
 
@@ -68,7 +68,7 @@ export interface AssetUploadFilesEvent extends AssetBaseEvent<AssetEventType.upl
 }
 
 /** A signal to create a secret. */
-export interface AssetCreateSecretEvent extends AssetBaseEvent<AssetEventType.createSecret> {
+export interface AssetNewSecretEvent extends AssetBaseEvent<AssetEventType.newSecret> {
     placeholderId: backendModule.SecretId
     value: string
 }

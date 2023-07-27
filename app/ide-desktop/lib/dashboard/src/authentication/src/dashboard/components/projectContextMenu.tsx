@@ -5,6 +5,7 @@ import * as assetEventModule from '../events/assetEvent'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as modalProvider from '../../providers/modal'
+import * as shortcuts from '../shortcuts'
 
 import * as assetContextMenu from './assetContextMenu'
 import ConfirmDeleteModal from './confirmDeleteModal'
@@ -30,7 +31,6 @@ export interface ProjectContextMenuProps
 export default function ProjectContextMenu(props: ProjectContextMenuProps) {
     const {
         innerProps: { item, rowState, setRowState },
-        event,
         dispatchAssetEvent,
         doDelete,
     } = props
@@ -53,11 +53,12 @@ export default function ProjectContextMenu(props: ProjectContextMenuProps) {
         unsetModal()
     }
     return (
-        <ContextMenu key={item.id} event={event}>
-            <ContextMenuEntry onClick={doOpenForEditing}>Open for editing</ContextMenuEntry>
-            <ContextMenuEntry onClick={doRename}>Rename</ContextMenuEntry>
+        <ContextMenu>
+            <ContextMenuEntry action={shortcuts.KeyboardAction.open} onClick={doOpenForEditing} />
+            <ContextMenuEntry action={shortcuts.KeyboardAction.rename} onClick={doRename} />
             <ContextMenuEntry
                 disabled={isDeleteDisabled}
+                action={shortcuts.KeyboardAction.moveToTrash}
                 {...(isDeleteDisabled
                     ? {
                           title: 'A running local project cannot be removed.',
@@ -71,9 +72,7 @@ export default function ProjectContextMenu(props: ProjectContextMenuProps) {
                         />
                     )
                 }}
-            >
-                <span className="text-red-700">Delete</span>
-            </ContextMenuEntry>
+            />
         </ContextMenu>
     )
 }

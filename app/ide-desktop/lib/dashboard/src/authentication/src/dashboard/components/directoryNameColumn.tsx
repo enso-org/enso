@@ -1,7 +1,7 @@
 /** @file The icon and name of a {@link backendModule.DirectoryAsset}. */
 import * as React from 'react'
 
-import DirectoryIcon from 'enso-assets/directory.svg'
+import DirectoryIcon from 'enso-assets/folder.svg'
 
 import * as assetEventModule from '../events/assetEvent'
 import * as assetListEventModule from '../events/assetListEvent'
@@ -16,6 +16,7 @@ import * as shortcuts from '../shortcuts'
 import * as backendProvider from '../../providers/backend'
 
 import EditableSpan from './editableSpan'
+import SvgMask from '../../authentication/components/svgMask'
 
 // =====================
 // === DirectoryName ===
@@ -54,16 +55,16 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
 
     hooks.useEventHandler(assetEvent, async event => {
         switch (event.type) {
-            case assetEventModule.AssetEventType.createProject:
+            case assetEventModule.AssetEventType.newProject:
             case assetEventModule.AssetEventType.uploadFiles:
-            case assetEventModule.AssetEventType.createSecret:
+            case assetEventModule.AssetEventType.newSecret:
             case assetEventModule.AssetEventType.openProject:
             case assetEventModule.AssetEventType.cancelOpeningAllProjects:
             case assetEventModule.AssetEventType.deleteMultiple: {
                 // Ignored. These events should all be unrelated to directories.
                 break
             }
-            case assetEventModule.AssetEventType.createDirectory: {
+            case assetEventModule.AssetEventType.newFolder: {
                 if (key === event.placeholderId) {
                     if (backend.type !== backendModule.BackendType.remote) {
                         toastAndLog('Folders cannot be created on the local backend')
@@ -124,7 +125,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
                 }
             }}
         >
-            <img src={DirectoryIcon} />
+            <SvgMask src={DirectoryIcon} className="m-1" />
             <EditableSpan
                 editable={rowState.isEditingName}
                 onSubmit={async newTitle => {

@@ -15,6 +15,7 @@ import * as shortcuts from '../shortcuts'
 
 import * as column from '../column'
 import EditableSpan from './editableSpan'
+import SvgMask from '../../authentication/components/svgMask'
 
 // ==================
 // === SecretName ===
@@ -46,8 +47,8 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
 
     hooks.useEventHandler(assetEvent, async event => {
         switch (event.type) {
-            case assetEventModule.AssetEventType.createProject:
-            case assetEventModule.AssetEventType.createDirectory:
+            case assetEventModule.AssetEventType.newProject:
+            case assetEventModule.AssetEventType.newFolder:
             case assetEventModule.AssetEventType.uploadFiles:
             case assetEventModule.AssetEventType.openProject:
             case assetEventModule.AssetEventType.cancelOpeningAllProjects:
@@ -56,7 +57,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
                 // `deleteMultiple` is handled in `AssetRow`.
                 break
             }
-            case assetEventModule.AssetEventType.createSecret: {
+            case assetEventModule.AssetEventType.newSecret: {
                 if (key === event.placeholderId) {
                     if (backend.type !== backendModule.BackendType.remote) {
                         toastAndLog('Secrets cannot be created on the local backend')
@@ -109,7 +110,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
                 }
             }}
         >
-            <img src={SecretIcon} />{' '}
+            <SvgMask src={SecretIcon} />{' '}
             <EditableSpan
                 editable={false}
                 onSubmit={async newTitle => {

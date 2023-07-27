@@ -122,7 +122,10 @@ export default function Table<T, State = never, RowState = never, Key extends st
     }, [isLoading])
 
     const onRowClick = React.useCallback(
-        (innerRowProps: tableRow.TableRowInnerProps<T, RowState, Key>, event: React.MouseEvent) => {
+        (
+            innerRowProps: tableRow.TableRowInnerProps<T, State, RowState, Key>,
+            event: React.MouseEvent
+        ) => {
             const { key } = innerRowProps
             event.stopPropagation()
             const getNewlySelectedKeys = () => {
@@ -188,7 +191,7 @@ export default function Table<T, State = never, RowState = never, Key extends st
                 return (
                     <th
                         key={column.id}
-                        className={`text-vs font-semibold ${column.className ?? ''}`}
+                        className={`text-sm font-semibold ${column.className ?? ''}`}
                     >
                         <Heading
                             // @ts-expect-error The following line is safe; the type error occurs

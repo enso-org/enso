@@ -12,10 +12,10 @@ declare module '../../hooks' {
 
 /** Possible changes to the file list. */
 export enum AssetListEventType {
-    createDirectory = 'create-directory',
-    createProject = 'create-project',
+    newFolder = 'new-folder',
+    newProject = 'new-project',
     uploadFiles = 'upload-files',
-    createSecret = 'create-secret',
+    newSecret = 'new-secret',
     delete = 'delete',
 }
 
@@ -26,10 +26,10 @@ interface AssetListBaseEvent<Type extends AssetListEventType> {
 
 /** All possible events. */
 interface AssetListEvents {
-    createDirectory: AssetListCreateDirectoryEvent
-    createProject: AssetListCreateProjectEvent
+    newFolder: AssetListNewFolderEvent
+    newProject: AssetListNewProjectEvent
     uploadFiles: AssetListUploadFilesEvent
-    createSecret: AssetListCreateSecretEvent
+    newSecret: AssetListNewSecretEvent
     delete: AssetListDeleteEvent
 }
 
@@ -46,13 +46,12 @@ type SanityCheck<
 > = T
 
 /** A signal to create a new directory. */
-interface AssetListCreateDirectoryEvent
-    extends AssetListBaseEvent<AssetListEventType.createDirectory> {
+interface AssetListNewFolderEvent extends AssetListBaseEvent<AssetListEventType.newFolder> {
     parentId: backend.DirectoryId | null
 }
 
 /** A signal to create a new project. */
-interface AssetListCreateProjectEvent extends AssetListBaseEvent<AssetListEventType.createProject> {
+interface AssetListNewProjectEvent extends AssetListBaseEvent<AssetListEventType.newProject> {
     parentId: backend.DirectoryId | null
     templateId: string | null
 }
@@ -64,7 +63,7 @@ interface AssetListUploadFilesEvent extends AssetListBaseEvent<AssetListEventTyp
 }
 
 /** A signal to create a new secret. */
-interface AssetListCreateSecretEvent extends AssetListBaseEvent<AssetListEventType.createSecret> {
+interface AssetListNewSecretEvent extends AssetListBaseEvent<AssetListEventType.newSecret> {
     parentId: backend.DirectoryId | null
     name: string
     value: string

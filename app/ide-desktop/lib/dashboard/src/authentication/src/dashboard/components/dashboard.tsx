@@ -201,7 +201,7 @@ export default function Dashboard(props: DashboardProps) {
     const doCreateProject = React.useCallback(
         (templateId?: string) => {
             dispatchAssetListEvent({
-                type: assetListEventModule.AssetListEventType.createProject,
+                type: assetListEventModule.AssetListEventType.newProject,
                 parentId: directoryId,
                 templateId: templateId ?? null,
             })

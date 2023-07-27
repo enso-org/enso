@@ -9,11 +9,16 @@ import * as React from 'react'
 export interface SvgMaskProps {
     /** The URL of the SVG to use as the mask. */
     src: string
+    // Allowing `undefined` is fine here as this prop is being transparently passed through to the
+    // underlying `div`.
+    // eslint-disable-next-line no-restricted-syntax
+    className?: string | undefined
+    onClick?: (event: React.MouseEvent) => void
 }
 
 /** Use an SVG as a mask. This lets the SVG use the text color (`currentColor`). */
 export default function SvgMask(props: SvgMaskProps) {
-    const { src } = props
+    const { src, className, onClick } = props
     const urlSrc = `url(${JSON.stringify(src)})`
 
     return (
@@ -25,6 +30,8 @@ export default function SvgMask(props: SvgMaskProps) {
                 // eslint-disable-next-line @typescript-eslint/naming-convention
                 WebkitMask: urlSrc,
             }}
+            className={`inline-block w-max h-max ${className ?? ''}`}
+            onClick={onClick}
         >
             {/* This is required for this component to have the right size. */}
             <img src={src} className="opacity-0" />

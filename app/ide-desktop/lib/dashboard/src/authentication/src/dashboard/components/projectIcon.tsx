@@ -15,6 +15,7 @@ import * as modalProvider from '../../providers/modal'
 
 import * as assetsTable from './assetsTable'
 import Spinner, * as spinner from './spinner'
+import SvgMask from '../../authentication/components/svgMask'
 
 // =================
 // === Constants ===
@@ -203,7 +204,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
                 setShouldOpenWhenReady(false)
                 break
             }
-            case assetEventModule.AssetEventType.createProject: {
+            case assetEventModule.AssetEventType.newProject: {
                 if (event.placeholderId === project.id) {
                     setState(backendModule.ProjectState.openInProgress)
                 }
@@ -335,7 +336,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
                         doOpenManually(project.id)
                     }}
                 >
-                    <img src={PlayIcon} />
+                    <SvgMask src={PlayIcon} />
                 </button>
             )
         case backendModule.ProjectState.openInProgress:
@@ -351,7 +352,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
                     <div className="relative h-0">
                         <Spinner size={24} state={spinnerState} />
                     </div>
-                    <img src={StopIcon} />
+                    <SvgMask src={StopIcon} />
                 </button>
             )
         case backendModule.ProjectState.opened:
@@ -368,7 +369,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
                         <div className="relative h-0">
                             <Spinner size={24} state={spinnerState} />
                         </div>
-                        <img src={StopIcon} />
+                        <SvgMask src={StopIcon} />
                     </button>
                     <button
                         className="w-6"
@@ -378,7 +379,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
                             openIde()
                         }}
                     >
-                        <img src={ArrowUpIcon} />
+                        <SvgMask src={ArrowUpIcon} />
                     </button>
                 </>
             )

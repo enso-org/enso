@@ -67,9 +67,9 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
 
     hooks.useEventHandler(assetEvent, async event => {
         switch (event.type) {
-            case assetEventModule.AssetEventType.createDirectory:
+            case assetEventModule.AssetEventType.newFolder:
             case assetEventModule.AssetEventType.uploadFiles:
-            case assetEventModule.AssetEventType.createSecret:
+            case assetEventModule.AssetEventType.newSecret:
             case assetEventModule.AssetEventType.openProject:
             case assetEventModule.AssetEventType.cancelOpeningAllProjects:
             case assetEventModule.AssetEventType.deleteMultiple: {
@@ -77,7 +77,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                 // `ProjectIcon`. `deleteMultiple` is handled in `AssetRow`.
                 break
             }
-            case assetEventModule.AssetEventType.createProject: {
+            case assetEventModule.AssetEventType.newProject: {
                 if (key === event.placeholderId) {
                     rowState.setPresence(presence.Presence.inserting)
                     try {

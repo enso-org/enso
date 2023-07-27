@@ -18,6 +18,7 @@ import * as indent from '../indent'
 import * as modalProvider from '../../providers/modal'
 import * as permissions from '../permissions'
 import * as presenceModule from '../presence'
+import * as shortcuts from '../shortcuts'
 import * as string from '../../string'
 import * as uniqueString from '../../uniqueString'
 
@@ -28,6 +29,7 @@ import Button from './button'
 import ConfirmDeleteModal from './confirmDeleteModal'
 import ContextMenu from './contextMenu'
 import ContextMenuEntry from './contextMenuEntry'
+import ContextMenus from './contextMenus'
 import Table from './table'
 
 // =================
@@ -125,10 +127,10 @@ function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
     hooks.useEventHandler(assetEvent, async event => {
         switch (event.type) {
             // These events are handled in the specific NameColumn files.
-            case assetEventModule.AssetEventType.createProject:
-            case assetEventModule.AssetEventType.createDirectory:
+            case assetEventModule.AssetEventType.newProject:
+            case assetEventModule.AssetEventType.newFolder:
             case assetEventModule.AssetEventType.uploadFiles:
-            case assetEventModule.AssetEventType.createSecret:
+            case assetEventModule.AssetEventType.newSecret:
             case assetEventModule.AssetEventType.openProject:
             case assetEventModule.AssetEventType.cancelOpeningAllProjects: {
                 break
@@ -454,7 +456,7 @@ export default function AssetsTable(props: AssetsTableProps) {
 
     hooks.useEventHandler(assetListEvent, event => {
         switch (event.type) {
-            case assetListEventModule.AssetListEventType.createDirectory: {
+            case assetListEventModule.AssetListEventType.newFolder: {
                 const directoryIndices = items
                     .map(item => DIRECTORY_NAME_REGEX.exec(item.title))
                     .map(match => match?.groups?.directoryIndex)
@@ -482,12 +484,12 @@ export default function AssetsTable(props: AssetsTableProps) {
                     )
                 )
                 dispatchAssetEvent({
-                    type: assetEventModule.AssetEventType.createDirectory,
+                    type: assetEventModule.AssetEventType.newFolder,
                     placeholderId: placeholderItem.id,
                 })
                 break
             }
-            case assetListEventModule.AssetListEventType.createProject: {
+            case assetListEventModule.AssetListEventType.newProject: {
                 const projectName = getNewProjectName(event.templateId)
                 const dummyId = backendModule.ProjectId(uniqueString.uniqueString())
                 const placeholderItem: backendModule.ProjectAsset = {
@@ -510,7 +512,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     )
                 )
                 dispatchAssetEvent({
-                    type: assetEventModule.AssetEventType.createProject,
+                    type: assetEventModule.AssetEventType.newProject,
                     placeholderId: dummyId,
                     templateId: event.templateId,
                 })
@@ -552,7 +554,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 })
                 break
             }
-            case assetListEventModule.AssetListEventType.createSecret: {
+            case assetListEventModule.AssetListEventType.newSecret: {
                 const placeholderItem: backendModule.SecretAsset = {
                     id: backendModule.SecretId(uniqueString.uniqueString()),
                     title: event.name,
@@ -573,7 +575,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     )
                 )
                 dispatchAssetEvent({
-                    type: assetEventModule.AssetEventType.createSecret,
+                    type: assetEventModule.AssetEventType.newSecret,
                     placeholderId: placeholderItem.id,
                     value: event.value,
                 })
@@ -700,13 +702,14 @@ export default function AssetsTable(props: AssetsTableProps) {
                             )
                         }
                         setModal(
-                            <ContextMenu key={uniqueString.uniqueString()} event={event}>
-                                <ContextMenuEntry onClick={doDeleteAll}>
-                                    <span className="text-red-700">
-                                        Delete {selectedKeys.size} {pluralized}
-                                    </span>
-                                </ContextMenuEntry>
-                            </ContextMenu>
+                            <ContextMenus key={uniqueString.uniqueString()} event={event}>
+                                <ContextMenu>
+                                    <ContextMenuEntry
+                                        action={shortcuts.KeyboardAction.moveAllToTrash}
+                                        onClick={doDeleteAll}
+                                    />
+                                </ContextMenu>
+                            </ContextMenus>
                         )
                     }}
                 />

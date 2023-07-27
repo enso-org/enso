@@ -1,5 +1,6 @@
 /** @file A styled button. */
 import * as React from 'react'
+import SvgMask from '../../authentication/components/svgMask'
 
 /** Props for a {@link Button}. */
 export interface ButtonProps {
@@ -14,7 +15,7 @@ export default function Button(props: ButtonProps) {
     const { active = false, disabled = false, image, onClick } = props
 
     return (
-        <img
+        <SvgMask
             className={`${active ? '' : 'opacity-50'} ${
                 disabled ? '' : 'hover:opacity-100 cursor-pointer'
             }`}

@@ -3,6 +3,7 @@ import * as React from 'react'
 
 import * as backendModule from '../backend'
 import * as modalProvider from '../../providers/modal'
+import * as shortcuts from '../shortcuts'
 
 import * as assetContextMenu from './assetContextMenu'
 import ConfirmDeleteModal from './confirmDeleteModal'
@@ -27,13 +28,12 @@ export interface FileContextMenuProps
 export default function FileContextMenu(props: FileContextMenuProps) {
     const {
         innerProps: { item },
-        event,
         doDelete,
     } = props
     const { setModal } = modalProvider.useSetModal()
 
     return (
-        <ContextMenu key={item.id} event={event}>
+        <ContextMenu>
             {/*<ContextMenuEntry disabled onClick={doCopy}>
                                 Copy
                             </ContextMenuEntry>
@@ -41,6 +41,7 @@ export default function FileContextMenu(props: FileContextMenuProps) {
                                 Cut
                             </ContextMenuEntry>*/}
             <ContextMenuEntry
+                action={shortcuts.KeyboardAction.moveToTrash}
                 onClick={() => {
                     setModal(
                         <ConfirmDeleteModal
@@ -49,9 +50,14 @@ export default function FileContextMenu(props: FileContextMenuProps) {
                         />
                     )
                 }}
-            >
-                <span className="text-red-700">Delete</span>
-            </ContextMenuEntry>
+            />
+            <ContextMenuEntry
+                disabled
+                action={shortcuts.KeyboardAction.download}
+                onClick={() => {
+                    // No backend support yet.
+                }}
+            />
             {/*<ContextMenuEntry disabled onClick={doDownload}>
                                 Download
                             </ContextMenuEntry>*/}

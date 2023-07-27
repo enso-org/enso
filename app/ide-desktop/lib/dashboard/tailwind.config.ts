@@ -27,7 +27,9 @@ export const theme = {
             // Should be `#3e515f14`, but `bg-opacity` does not work with RGBA.
             label: '#f0f1f3',
             help: '#3f68ce',
-            'frame-bg': 'rgba(255, 255, 255, 0.40)',
+            delete: 'rgba(243, 24, 10, 0.87)',
+            frame: 'rgba(255, 255, 255, 0.40)',
+            'frame-selected': 'rgba(255, 255, 255, 0.70)',
             'tag-text': 'rgba(255, 255, 255, 0.90)',
             'tag-text-2': 'rgba(0, 0, 0, 0.60)',
             'permission-owner': 'rgba(236, 2, 2, 0.70)',
@@ -38,14 +40,15 @@ export const theme = {
             'permission-docs': 'rgba(91, 8, 226, 0.64)',
             'permission-view': 'rgba(0, 0, 0, 0.10)',
             'call-to-action': '#fa6c08',
+            'black-a16': 'rgba(0, 0, 0, 0.16)',
             'gray-350': '#b7bcc5',
         },
         flexGrow: {
             2: '2',
         },
         fontSize: {
-            'xs-mini': '0.71875rem',
-            vs: '0.8125rem',
+            xs: '0.71875rem',
+            sm: '0.8125rem',
         },
         spacing: {
             '1.75': '0.4375rem',
@@ -57,6 +60,7 @@ export const theme = {
             '30': '7.5rem',
             '42': '10.5rem',
             '54': '13.5rem',
+            '57.5': '14.375rem',
             '70': '17.5rem',
             '83.5': '20.875rem',
             '140': '35rem',
@@ -76,6 +80,7 @@ export const theme = {
         backdropBlur: {
             xs: '2px',
         },
+        borderWidth: { '0.5': '0.5px' },
         boxShadow: {
             soft: `0 0.5px 2.2px 0px #00000008, 0 1.2px 5.3px 0px #0000000b, \
 0 2.3px 10px 0 #0000000e, 0 4px 18px 0 #00000011, 0 7.5px 33.4px 0 #00000014, \

@@ -32,7 +32,7 @@ export default function ContextMenus(props: ContextMenusProps) {
     // This must be the original height before the returned element affects the `scrollHeight`.
     const [bodyHeight] = React.useState(document.body.scrollHeight)
 
-    React.useEffect(() => {
+    React.useLayoutEffect(() => {
         if (contextMenuRef.current != null) {
             setTop(Math.min(top, bodyHeight - contextMenuRef.current.clientHeight))
             const boundingBox = contextMenuRef.current.getBoundingClientRect()
@@ -45,12 +45,11 @@ export default function ContextMenus(props: ContextMenusProps) {
     }, [bodyHeight, children, top, event.pageX])
 
     return (
-        <Modal className="absolute overflow-hidden bg-dim w-full h-full top-0 left-0 z-10">
+        <Modal className="absolute overflow-hidden bg-dim w-full h-full z-10">
             <div
                 ref={contextMenuRef}
-                // The location must be offset by -0.5rem to balance out the `m-2`.
-                style={{ left: `calc(${left}px - 0.5rem)`, top: `calc(${top}px - 0.5rem)` }}
-                className="sticky bg-white rounded-lg shadow-soft flex flex-col flex-nowrap m-2"
+                style={{ left, top }}
+                className="sticky flex items-start gap-0.5 w-min"
                 onClick={clickEvent => {
                     clickEvent.stopPropagation()
                 }}

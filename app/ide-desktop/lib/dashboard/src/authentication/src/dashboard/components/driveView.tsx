@@ -236,7 +236,7 @@ export default function DirectoryView(props: DirectoryViewProps) {
 
     const doCreateDirectory = React.useCallback(() => {
         dispatchAssetListEvent({
-            type: assetListEventModule.AssetListEventType.createDirectory,
+            type: assetListEventModule.AssetListEventType.newFolder,
             parentId: directoryId,
         })
     }, [directoryId, /* should never change */ dispatchAssetListEvent])

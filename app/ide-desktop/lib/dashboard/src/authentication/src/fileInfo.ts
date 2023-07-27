@@ -1,5 +1,5 @@
 /** @file Utility functions for extracting and manipulating file information. */
-import FileIcon from 'enso-assets/file.svg'
+import TextIcon from 'enso-assets/text.svg'
 
 // ================================
 // === Extract file information ===
@@ -12,7 +12,7 @@ export function fileExtension(fileName: string) {
 
 /** Returns the appropriate icon for a specific file extension. */
 export function fileIcon() {
-    return FileIcon
+    return TextIcon
 }
 
 // ===================================
