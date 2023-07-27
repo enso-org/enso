@@ -66,6 +66,27 @@ spec =
             strategy_1.make_unique "A" . should_equal "A"
             strategy_1.make_unique "A" . should_equal "A 1"
 
+        Test.specify "should treat string equality consistently with Enso" <|
+            s1 = 'ś'
+            s2 = 's\u0301'
+            # Enso makes these values equal
+            s1 . should_equal s2
+            # but their codepoint representation does differ:
+            s1.codepoints . should_equal [347]
+            s2.codepoints . should_equal [115, 769]
+
+            strategy = Unique_Name_Strategy.new
+            r1 = strategy.make_unique s1
+            r1 . should_equal s1
+            r1.codepoints . should_equal [347]
+
+            # A suffix should be added, because the two names should be considered equal, so the second one needs to be deduplicated.
+            r2 = strategy.make_unique s2
+            r2 . should_equal 's\u0301 1'
+            # But the underlying representation should remain unchanged.
+            r2.codepoints . should_equal [115, 769, 32, 49]
+
+
     Test.group "Unique_Name_Strategy.combine_with_prefix" <|
         Test.specify "should work as in examples" <|
             strategy = Unique_Name_Strategy.new
