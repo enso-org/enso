@@ -150,17 +150,21 @@ export function useEvent<T extends KnownEvent>(): [
     event: T | null,
     dispatchEvent: (event: T) => void
 ] {
-    const [event, rawDispatchEvent] = React.useState<T | null>(null)
+    const [event, setEvent] = React.useState<T | null>(null)
+    React.useEffect(() => {
+        if (event != null) {
+            setEvent(null)
+        }
+    }, [event])
     const dispatchEvent = React.useCallback(
         (innerEvent: T) => {
             setTimeout(() => {
                 reactDom.flushSync(() => {
-                    rawDispatchEvent(innerEvent)
+                    setEvent(innerEvent)
                 })
             }, 0)
         },
-
-        [rawDispatchEvent]
+        [setEvent]
     )
     return [event, dispatchEvent]
 }
