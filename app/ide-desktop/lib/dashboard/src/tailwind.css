@@ -1,8 +1,22 @@
 @import url("https://fonts.googleapis.com/css2?family=M+PLUS+1:wght@500;600;700&display=swap");
 @import "react-toastify/dist/ReactToastify.css";
 
+/*:root {*/
+/*  --toastify-toast-width: 75vw;*/
+/*}*/
+
 body {
   margin: 0;
+}
+
+.Toastify__toast {
+  border-radius: 14px;
+  font-family: "M PLUS 1", DejaVuSansMonoBook, sans-serif;
+  font-size: 13px;
+}
+
+.Toastify--animate {
+  animation-duration: 0.2s;
 }
 
 /* These styles MUST still be copied

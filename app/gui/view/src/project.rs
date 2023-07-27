@@ -7,13 +7,10 @@ use ensogl::system::web::traits::*;
 use crate::code_editor;
 use crate::component_browser;
 use crate::component_browser::component_list_panel;
-use crate::debug_mode_popup;
-use crate::debug_mode_popup::DEBUG_MODE_SHORTCUT;
 use crate::graph_editor::component::node::Expression;
 use crate::graph_editor::component::visualization;
 use crate::graph_editor::GraphEditor;
 use crate::graph_editor::NodeId;
-use crate::popup;
 use crate::project_list::ProjectList;
 
 use enso_config::ARGS;
@@ -49,6 +46,18 @@ use ide_view_project_view_top_bar::ProjectViewTopBar;
 /// Browser when user is quickly typing in the expression input.
 const INPUT_CHANGE_DELAY_MS: i32 = 200;
 
+
+/// Mitigate limitations of constant strings concatenation.
+macro_rules! define_debug_mode_shortcut {
+    ($shortcut:literal) => {
+        /// A keyboard shortcut used to enable/disable Debug Mode.
+        pub const DEBUG_MODE_SHORTCUT: &str = $shortcut;
+        const DEBUG_MODE_ENABLED: &str =
+            concat!("Debug Mode enabled. To disable, press `<b>", $shortcut, "</b>`.");
+    };
+}
+
+define_debug_mode_shortcut!("ctrl shift d");
 
 
 // ===========
@@ -191,8 +200,7 @@ struct Model {
     code_editor:      code_editor::View,
     fullscreen_vis:   Rc<RefCell<Option<visualization::fullscreen::Panel>>>,
     project_list:     Rc<ProjectList>,
-    debug_mode_popup: debug_mode_popup::View,
-    popup:            popup::View,
+    debug_mode_popup: Rc<RefCell<Option<crate::notification::handled::Id>>>,
 }
 
 impl Model {
@@ -202,16 +210,13 @@ impl Model {
         let graph_editor = app.new_view::<GraphEditor>();
         let code_editor = app.new_view::<code_editor::View>();
         let fullscreen_vis = default();
-        let debug_mode_popup = debug_mode_popup::View::new(app);
-        let popup = popup::View::new(app);
+        let debug_mode_popup = default();
         let project_view_top_bar = ProjectViewTopBar::new(app);
         let project_list = Rc::new(ProjectList::new(app));
 
         display_object.add_child(&graph_editor);
         display_object.add_child(&code_editor);
         display_object.add_child(&searcher);
-        display_object.add_child(&debug_mode_popup);
-        display_object.add_child(&popup);
         display_object.add_child(&project_view_top_bar);
         display_object.remove_child(&searcher);
 
@@ -225,7 +230,6 @@ impl Model {
             fullscreen_vis,
             project_list,
             debug_mode_popup,
-            popup,
         }
     }
 
@@ -464,7 +468,7 @@ impl View {
             disable_navigation <- searcher_active || frp.project_list_shown;
             graph.set_navigator_disabled <+ disable_navigation;
 
-            model.popup.set_label <+ graph.visualization_update_error._1();
+            // model.popup.set_label <+ graph.visualization_update_error._1();
             graph.set_read_only <+ frp.set_read_only;
             graph.set_debug_mode <+ frp.source.debug_mode;
 
@@ -747,8 +751,18 @@ impl View {
         frp::extend! { network
             frp.source.debug_mode <+ bool(&frp.disable_debug_mode, &frp.enable_debug_mode);
 
-            popup.enabled <+ frp.enable_debug_mode;
-            popup.disabled <+ frp.disable_debug_mode;
+            eval frp.source.debug_mode ([popup](is_enabled) {
+                warn!("Debug mode is {}", if *is_enabled { "enabled" } else { "disabled" });
+                let mut popup = popup.borrow_mut();
+                warn!("Popup is {:?}", popup.as_ref());
+                if *is_enabled && popup.is_none() {
+                    let mut options = crate::notification::Options::default().always_present();
+                    options.position = Some(crate::notification::Position::BottomCenter);
+                    *popup = crate::notification::handled::info(&crate::notification::Content::from_html(DEBUG_MODE_ENABLED).unwrap(), &Some(options));
+                } else if !*is_enabled && let Some(old_popup) = popup.take() {
+                    old_popup.dismiss();
+                }
+            });
         }
         self
     }
@@ -805,16 +819,6 @@ impl View {
     /// Open Project Dialog
     pub fn project_list(&self) -> &ProjectList {
         &self.model.project_list
-    }
-
-    /// Debug Mode Popup
-    pub fn debug_mode_popup(&self) -> &debug_mode_popup::View {
-        &self.model.debug_mode_popup
-    }
-
-    /// Pop-up
-    pub fn popup(&self) -> &popup::View {
-        &self.model.popup
     }
 }
 

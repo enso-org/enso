@@ -4,8 +4,10 @@
 use crate::prelude::*;
 use wasm_bindgen::prelude::*;
 
+use crate::notification::Content;
 use crate::notification::Type;
 use crate::notification::UpdateOptions;
+use gloo_utils::format::JsValueSerdeExt;
 
 
 
@@ -43,6 +45,7 @@ pub fn get_toast() -> Result<ToastAPI, JsValue> {
 // Wrappers for [`toast`](https://react-hot-toast.com/docs/toast) API.
 #[wasm_bindgen(inline_js = r#"
     export function sendToast(toast, message, method, options) {
+        console.warn("sendToast", toast, message, method, options);
         const target = toast[method];
         return target(message, options);
     }
@@ -69,7 +72,7 @@ extern "C" {
     #[allow(unsafe_code)]
     pub fn sendToast(
         this: &ToastAPI,
-        message: &str,
+        message: &JsValue,
         method: &str,
         options: &JsValue,
     ) -> Result<Id, JsValue>;
@@ -129,12 +132,18 @@ extern "C" {
 
 impl ToastAPI {
     /// Send the toast notification.
-    pub fn send(&self, message: &str, method: &str, options: &JsValue) -> Result<Id, JsValue> {
-        sendToast(self, message, method, options)
+    pub fn send(&self, message: &Content, method: &str, options: &JsValue) -> Result<Id, JsValue> {
+        sendToast(self, &JsValue::from_serde(message).unwrap(), method, options) // FIXME
     }
 }
 
 impl Id {
+    pub fn new_unique() -> Self {
+        let uuid = uuid::Uuid::new_v4();
+        let uuid_str = uuid.to_string();
+        JsValue::from_str(&uuid_str).into()
+    }
+
     /// Dismisses the toast.
     pub fn dismiss(&self) -> Result<(), JsValue> {
         get_toast()?.dismiss(self)
@@ -156,6 +165,12 @@ impl Id {
     }
 }
 
+impl From<&str> for Id {
+    fn from(id: &str) -> Self {
+        let js_value = JsValue::from_str(id);
+        js_value.into()
+    }
+}
 
 impl ContainerId {
     /// Clear queue of notifications for this container (relevant if limit is set).
@@ -165,7 +180,7 @@ impl ContainerId {
 }
 
 /// Wrapper for sending arbitrary kind of toast.
-pub fn toast(message: &str, r#type: Type, options: &JsValue) -> Result<Id, JsValue> {
+pub fn toast(message: &Content, r#type: Type, options: &JsValue) -> Result<Id, JsValue> {
     let method: &str = r#type.as_ref();
     get_toast()?.send(message, method, options)
 }

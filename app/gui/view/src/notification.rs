@@ -27,12 +27,14 @@ use wasm_bindgen::prelude::*;
 use gloo_utils::format::JsValueSerdeExt;
 use serde::Deserialize;
 use serde::Serialize;
+use uuid::Uuid;
 
 
 // ==============
 // === Export ===
 // ==============
 
+pub mod handled;
 pub mod js;
 
 pub use js::Id;
@@ -44,7 +46,7 @@ pub use js::Id;
 // ===================
 
 /// Send any kind of notification.
-pub fn send_any(message: &str, r#type: Type, options: &Option<Options>) -> Result<Id, JsValue> {
+pub fn send_any(message: &Content, r#type: Type, options: &Option<Options>) -> Result<Id, JsValue> {
     let options = match options {
         Some(options) => options.try_into()?,
         None => JsValue::UNDEFINED,
@@ -53,22 +55,22 @@ pub fn send_any(message: &str, r#type: Type, options: &Option<Options>) -> Resul
 }
 
 /// Send an info notification.
-pub fn info(message: &str, options: &Option<Options>) -> Result<Id, JsValue> {
+pub fn info(message: &Content, options: &Option<Options>) -> Result<Id, JsValue> {
     send_any(message, Type::Info, options)
 }
 
 /// Send a warning notification.
-pub fn warning(message: &str, options: &Option<Options>) -> Result<Id, JsValue> {
+pub fn warning(message: &Content, options: &Option<Options>) -> Result<Id, JsValue> {
     send_any(message, Type::Warning, options)
 }
 
 /// Send a error notification.
-pub fn error(message: &str, options: &Option<Options>) -> Result<Id, JsValue> {
+pub fn error(message: &Content, options: &Option<Options>) -> Result<Id, JsValue> {
     send_any(message, Type::Error, options)
 }
 
 /// Send a success notification.
-pub fn success(message: &str, options: &Option<Options>) -> Result<Id, JsValue> {
+pub fn success(message: &Content, options: &Option<Options>) -> Result<Id, JsValue> {
     send_any(message, Type::Success, options)
 }
 
@@ -115,11 +117,26 @@ macro_rules! impl_try_from_jsvalue {
     };
 }
 
+// macro_rules! options_update_with {
+//     ($($field:ident),+ $(,)?) => {
+
+//             pub fn update_with(&mut self, other: &Self) -> &mut Self {
+//                 let Options { $(ref $field,)* .. } = other;
+
+//                 $(
+//                     if let Some($field) = $field {
+//                         self.$field = Some($field.clone());
+//                     }
+//                 )*
+//                 self
+//             }
+//         }
+// }
 
 // === SerializableJsValue ===
 
 /// A wrapper around a `JsValue` that implements the `Serialize` and `Deserialize` traits.
-#[derive(Clone, Debug, Deref, DerefMut, AsRef, From)]
+#[derive(Clone, Debug, Deref, DerefMut, AsRef, From, PartialEq)]
 pub struct SerializableJsValue(pub JsValue);
 
 impl Serialize for SerializableJsValue {
@@ -139,6 +156,41 @@ impl<'de> Deserialize<'de> for SerializableJsValue {
         JsValue::from_serde(&value).map(SerializableJsValue).map_err(serde::de::Error::custom)
     }
 }
+
+/// The notification content.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(untagged)]
+pub enum Content {
+    /// Plain text.
+    Text(String),
+    /// An HTML element.
+    Element(SerializableJsValue),
+}
+
+impl From<&str> for Content {
+    fn from(text: &str) -> Self {
+        Content::Text(text.to_owned())
+    }
+}
+
+impl From<String> for Content {
+    fn from(text: String) -> Self {
+        Content::Text(text)
+    }
+}
+
+impl Content {
+    pub fn from_html(html: &str) -> FallibleResult<Self> {
+        use anyhow::Context; // FIXME
+        let window = ensogl::system::web::binding::wasm::get_window();
+        let document =
+            window.document().context("Cannot get `document` from the `window`.").unwrap();
+        let div = document.create_element("div").unwrap(); // FIXME
+        div.set_inner_html(html);
+        Ok(Content::Element(SerializableJsValue(JsValue::from(div))))
+    }
+}
+
 
 
 // ===============
@@ -185,7 +237,7 @@ impl AutoClose {
 /// Represents the type of a notification.
 ///
 /// Affects styling and icon.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, strum::AsRefStr)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, strum::AsRefStr, strum::Display)]
 #[serde(rename_all = "kebab-case")]
 #[strum(serialize_all = "kebab-case")]
 #[allow(missing_docs)]
@@ -311,6 +363,20 @@ pub struct Options {
 
 impl_try_from_jsvalue! {Options}
 
+impl Options {
+    /// Popup will not disappear on itself nor allow user to dismiss it.
+    ///
+    /// The only way fot this notification to disappear is to call `dismiss()` manually. Otherwise,
+    /// it will stay on screen indefinitely.
+    pub fn always_present(mut self) -> Self {
+        self.auto_close = Some(AutoClose::Never());
+        self.close_button = Some(false);
+        self.close_on_click = Some(false);
+        self.draggable = Some(false);
+        self
+    }
+}
+
 
 // === Update ===
 
@@ -326,8 +392,8 @@ pub struct UpdateOptions {
     #[deref_mut]
     #[serde(flatten)]
     pub options: Options,
-    /// Used to update a toast. Pass any valid ReactNode(string, number, component).
-    pub render:  Option<SerializableJsValue>,
+    /// Used to update a toast content.
+    pub render:  Option<Content>,
 }
 
 impl_try_from_jsvalue! { UpdateOptions }
@@ -338,12 +404,38 @@ impl UpdateOptions {
     /// Useful only for update a toast.
     pub fn render_string(mut self, render: impl AsRef<str>) -> Self {
         let message = render.as_ref();
-        let value = JsValue::from_str(message);
-        self.render = Some(value.into());
+        self.render = Some(message.into());
         self
     }
 }
 
+#[derive(Clone, CloneRef, Debug)]
+pub struct Notification {
+    id:      Rc<Id>,
+    options: Rc<RefCell<UpdateOptions>>,
+}
+
+impl Default for Notification {
+    fn default() -> Self {
+        Self::new(Id::new_unique(), default())
+    }
+}
+
+impl Notification {
+    pub fn new(id: Id, options: UpdateOptions) -> Self {
+        Self { id: Rc::new(id), options: Rc::new(RefCell::new(options)) }
+    }
+
+
+    // pub fn options(&self) -> UpdateOptions {
+    //     self.options.deref().borrow().clone()
+    // }
+
+    pub fn update(&self, f: impl FnOnce(&mut UpdateOptions)) -> Result<(), JsValue> {
+        f(&mut self.options.borrow_mut());
+        self.id.update(&self.options.borrow())
+    }
+}
 
 
 // =============
@@ -387,5 +479,19 @@ mod tests {
         // Make sure that `js_object.theme` is equal to "dark".
         let theme = theme.as_string().unwrap();
         assert_eq!(theme, "dark");
+    }
+
+    #[wasm_bindgen_test]
+    fn test_contents_marshalling() {
+        let text_contents = Content::Text("Hello, world!".into());
+        let js_value = JsValue::from_serde(&text_contents).unwrap();
+        // Make sure that `js_value` is a valid JS String.
+        assert!(js_value.is_string());
+        let js_string = js_value.as_string().unwrap();
+        // Make sure that `js_string` is equal to "Hello, world!".
+        assert_eq!(js_string, "Hello, world!");
+        // Check for round-trip.
+        let back = js_value.into_serde::<Content>().unwrap();
+        assert_eq!(back, text_contents);
     }
 }

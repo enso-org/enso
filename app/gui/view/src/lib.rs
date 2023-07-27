@@ -8,6 +8,7 @@
 #![feature(associated_type_defaults)]
 #![feature(drain_filter)]
 #![feature(fn_traits)]
+#![feature(let_chains)]
 #![feature(option_result_contains)]
 #![feature(specialization)]
 #![feature(trait_alias)]
@@ -33,7 +34,6 @@
 pub mod code_editor;
 pub mod debug_mode_popup;
 pub mod notification;
-pub mod popup;
 pub mod project;
 pub mod project_list;
 pub mod root;

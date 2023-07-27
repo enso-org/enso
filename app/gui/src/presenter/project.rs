@@ -18,6 +18,7 @@ use ide_view::project::SearcherType;
 use model::module::NotificationKind;
 use model::project::Notification;
 use model::project::VcsStatus;
+use view::notification::handled as notification;
 
 
 
@@ -50,7 +51,7 @@ struct Model {
     searcher: RefCell<Option<Box<dyn SearcherPresenter>>>,
     available_projects: Rc<RefCell<Vec<(ImString, Uuid)>>>,
     shortcut_transaction: RefCell<Option<Rc<model::undo_redo::Transaction>>>,
-    execution_failed_process_id: Rc<Cell<Option<view::status_bar::process::Id>>>,
+    execution_failed_process_id: Rc<RefCell<Option<notification::Id>>>,
 }
 
 impl Model {
@@ -220,17 +221,17 @@ impl Model {
     fn execution_complete(&self) {
         self.view.graph().frp.set_read_only(false);
         self.view.graph().frp.execution_complete.emit(());
-        if let Some(id) = self.execution_failed_process_id.get() {
-            self.status_bar.finish_process(id);
-        }
+        with(self.execution_failed_process_id.borrow(), |id| {
+            id.as_ref().map(|id| id.dismiss());
+        });
     }
 
     fn execution_failed(&self) {
         let message = crate::EXECUTION_FAILED_MESSAGE;
-        let message = view::status_bar::process::Label::from(message);
-        self.status_bar.add_process(message);
-        let id = self.status_bar.last_process.value();
-        self.execution_failed_process_id.set(Some(id));
+        let id = notification::error(&message.into(), &None);
+        if let Some(old_id) = self.execution_failed_process_id.replace(id) {
+            old_id.dismiss();
+        }
     }
 
     fn execution_context_interrupt(&self) {
@@ -281,7 +282,6 @@ impl Model {
         let controller = self.ide_controller.clone_ref();
         let projects_list = self.available_projects.clone_ref();
         let view = self.view.clone_ref();
-        let status_bar = self.status_bar.clone_ref();
         let id = *id_in_list;
         executor::global::spawn(async move {
             let app = js::app_or_panic();
@@ -292,8 +292,9 @@ impl Model {
                 let uuid = projects_list.borrow().get(id).map(|(_name, uuid)| *uuid);
                 if let Some(uuid) = uuid {
                     if let Err(error) = api.open_project(uuid).await {
-                        error!("Error opening project: {error}.");
-                        status_bar.add_event(format!("Error opening project: {error}."));
+                        let message = format!("Error opening project: {error}");
+                        error!("{message}");
+                        notification::error(&message.into(), &None);
                     }
                 } else {
                     error!("Project with id {id} not found.");
@@ -481,8 +482,12 @@ impl Project {
             match notification {
                 Notification::ConnectionLost(_) => {
                     let message = crate::BACKEND_DISCONNECTED_MESSAGE;
-                    let message = view::status_bar::event::Label::from(message);
-                    model.status_bar.add_event(message);
+                    let options = view::notification::Options {
+                        auto_close: Some(view::notification::AutoClose::Never()),
+                        toast_id: Some("backend-disconnected-toast".into()),
+                        ..Default::default()
+                    };
+                    notification::error(&message.into(), &Some(options));
                 }
                 Notification::VcsStatusChanged(VcsStatus::Dirty) => {
                     model.set_project_changed(true);
