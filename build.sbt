@@ -1791,6 +1791,7 @@ lazy val `bench-libs` = (project in file("std-bits/benchmarks"))
       "org.openjdk.jmh"  % "jmh-core"                  % jmhVersion,
       "org.openjdk.jmh"  % "jmh-generator-annprocess"  % jmhVersion,
       "org.graalvm.sdk"  % "graal-sdk"                 % graalMavenPackagesVersion   % "provided",
+      "org.graalvm.truffle" % "truffle-api"           % graalMavenPackagesVersion % Benchmark,
     ),
     commands += WithDebugCommand.withDebug,
     (Benchmark / run / mainClass) := Some("org.enso.benchmarks.libs.LibBenchRunner"),
@@ -1818,6 +1819,11 @@ lazy val `bench-libs` = (project in file("std-bits/benchmarks"))
       (Compile / sourceManaged).value.getAbsolutePath,
       "-Xlint:unchecked"
     ),
+    (Compile / logManager) :=
+      sbt.internal.util.CustomLogManager.excludeMsg(
+        "Could not determine source for class ",
+        Level.Warn
+      ),
     (Benchmark / run / javaOptions) ++= {
       val runtimeClasspath =
         (LocalProject("runtime") / Compile / fullClasspath).value
