@@ -80,7 +80,7 @@ impl component::Frp<Model> for Frp {
 // =============
 
 /// Internal model of the LabeledLine.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 pub struct Model {
     line: shape::arrow::View,
 }
@@ -112,12 +112,6 @@ impl Model {
         }
         .to_radians();
         self.line.set_rotation_z(rotation);
-    }
-}
-
-impl display::Object for Model {
-    fn display_object(&self) -> &display::object::Instance {
-        self.line.display_object()
     }
 }
 

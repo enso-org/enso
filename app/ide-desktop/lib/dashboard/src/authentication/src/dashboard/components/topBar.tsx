@@ -32,7 +32,7 @@ export interface TopBarProps {
 
 /** The {@link TopBarProps.setQuery} parameter is used to communicate with the parent component,
  * because `searchVal` may change parent component's project list. */
-function TopBar(props: TopBarProps) {
+export default function TopBar(props: TopBarProps) {
     const {
         supportsLocalBackend,
         page,
@@ -51,7 +51,7 @@ function TopBar(props: TopBarProps) {
             <PageSwitcher page={page} setPage={setPage} isEditorDisabled={isEditorDisabled} />
             {supportsLocalBackend && <BackendSwitcher setBackendType={setBackendType} />}
             <div className="grow" />
-            <div className="search-bar absolute flex items-center text-normal bg-frame-bg rounded-full -translate-x-1/2 gap-2.5 left-1/2 h-8 w-98.25 px-2">
+            <div className="search-bar absolute flex items-center text-primary bg-frame-bg rounded-full -translate-x-1/2 gap-2.5 left-1/2 h-8 w-98.25 px-2">
                 <label htmlFor="search">
                     <img src={FindIcon} className="opacity-80" />
                 </label>
@@ -75,5 +75,3 @@ function TopBar(props: TopBarProps) {
         </div>
     )
 }
-
-export default TopBar

@@ -7,7 +7,7 @@ import NotCloudIcon from 'enso-assets/not_cloud.svg'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 
-import * as svg from '../../components/svg'
+import SvgMask from '../../authentication/components/svgMask'
 
 // =======================
 // === BackendSwitcher ===
@@ -42,7 +42,7 @@ export default function BackendSwitcher(props: BackendSwitcherProps) {
                             : 'text-black opacity-30'
                     }`}
                 >
-                    <svg.SvgMask src={CloudIcon} />
+                    <SvgMask src={CloudIcon} />
                     <span className="leading-5 h-6 py-px">Cloud</span>
                 </button>
             </div>
@@ -64,7 +64,7 @@ export default function BackendSwitcher(props: BackendSwitcherProps) {
                             : 'text-black opacity-30'
                     }`}
                 >
-                    <svg.SvgMask src={NotCloudIcon} />
+                    <SvgMask src={NotCloudIcon} />
                     <span className="leading-5 h-6 py-px">Local</span>
                 </button>
             </div>

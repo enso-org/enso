@@ -28,7 +28,7 @@ pub const PADDING_LEFT: f32 = 7.0;
 // === Frp ===
 // ===========
 
-ensogl::define_endpoints! {
+ensogl::define_endpoints_2! {
     Input {
         /// Show the Code Editor.
         show(),
@@ -52,18 +52,13 @@ ensogl::define_endpoints! {
 // ============
 
 /// The View of IDE Code Editor.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Deref, Debug, display::Object)]
 pub struct View {
+    #[display_object]
     model:  text::Text,
     styles: StyleWatchFrp,
+    #[deref]
     frp:    Frp,
-}
-
-impl Deref for View {
-    type Target = Frp;
-    fn deref(&self) -> &Self::Target {
-        &self.frp
-    }
 }
 
 impl View {
@@ -85,38 +80,35 @@ impl View {
         model.hover();
 
         frp::extend! { network
-            let is_visible     =  frp.output.is_visible.clone_ref();
+            let is_visible = frp.output.is_visible.clone_ref();
             show_after_toggle <- frp.toggle.gate_not(&is_visible);
-            hide_after_toggle <- frp.toggle.gate    (&is_visible);
-            show              <- any(frp.input.show,show_after_toggle);
-            hide              <- any(frp.input.hide,hide_after_toggle);
+            hide_after_toggle <- frp.toggle.gate(&is_visible);
+            show <- any(frp.input.show, show_after_toggle);
+            hide <- any(frp.input.hide, hide_after_toggle);
 
             eval_ show (height_fraction.set_target_value(HEIGHT_FRACTION));
             focus <- show.gate_not(&frp.set_read_only);
-            eval_ focus ({
-                model.deprecated_focus();
-                model.focus();
-            });
+            eval_ focus (model.focus());
             eval_ hide (height_fraction.set_target_value(0.0));
             enable_read_only <- frp.set_read_only.on_true();
             defocus <- any(hide, enable_read_only);
             eval_ defocus ([model] {
                 model.remove_all_cursors();
-                model.deprecated_defocus();
                 model.blur();
             });
 
-            frp.source.is_visible <+ bool(&frp.input.hide,&frp.input.show);
-            frp.source.is_visible <+ frp.toggle.map2(&is_visible, |(),b| !b);
+            frp.private.output.is_visible <+ bool(&frp.input.hide, &frp.input.show);
+            frp.private.output.is_visible <+ frp.toggle.map2(&is_visible, |(), b| !b);
 
             def init = source_();
-            let shape  = app.display.default_scene.shape();
-            position <- all_with3(&height_fraction.value,shape,&init, |height_f,scene_size,_init| {
-                let height = height_f * scene_size.height;
-                let x      = -scene_size.width  / 2.0 + PADDING_LEFT;
-                let y      = -scene_size.height / 2.0 + height;
-                Vector2(x,y)
-            });
+            let shape = app.display.default_scene.shape();
+            position <- all_with3(&height_fraction.value, shape, &init,
+                |height_f, scene_size, _init| {
+                    let height = height_f * scene_size.height;
+                    let x = -scene_size.width / 2.0 + PADDING_LEFT;
+                    let y = -scene_size.height / 2.0 + height;
+                    Vector2(x,y)
+                });
             eval position ((pos) model.set_xy(*pos));
 
             let color = styles.get_color(ensogl_hardcoded_theme::code::syntax::base);
@@ -131,12 +123,6 @@ impl View {
     /// Return the Text Area component inside this editor.
     pub fn text_area(&self) -> &text::Text {
         &self.model
-    }
-}
-
-impl display::Object for View {
-    fn display_object(&self) -> &display::object::Instance {
-        self.model.display_object()
     }
 }
 
@@ -155,7 +141,7 @@ impl application::View for View {
         Self::new(app)
     }
 
-    fn default_shortcuts() -> Vec<shortcut::Shortcut> {
+    fn global_shortcuts() -> Vec<shortcut::Shortcut> {
         use shortcut::ActionType::*;
         [(Press, "ctrl `", "toggle"), (Press, "escape", "hide")]
             .iter()

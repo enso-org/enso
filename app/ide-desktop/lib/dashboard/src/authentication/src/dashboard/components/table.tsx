@@ -3,6 +3,7 @@
  * being used directly. */
 import * as React from 'react'
 
+import * as set from '../../set'
 import * as shortcuts from '../shortcuts'
 
 import * as tableColumn from './tableColumn'
@@ -35,16 +36,17 @@ interface InitialRowStateProp<RowState> {
 // =============
 
 /** Props for a {@link Table}. */
-interface InternalTableProps<T, Key extends string = string, State = never, RowState = never> {
-    rowComponent?: (props: tableRow.TableRowProps<T, Key, State, RowState>) => JSX.Element
+interface InternalTableProps<T, State = never, RowState = never, Key extends string = string> {
+    rowComponent?: (props: tableRow.TableRowProps<T, State, RowState, Key>) => JSX.Element
     items: T[]
     state?: State
     initialRowState?: RowState
     getKey: (item: T) => Key
-    columns: tableColumn.TableColumn<T, State, RowState>[]
+    columns: tableColumn.TableColumn<T, State, RowState, Key>[]
     isLoading: boolean
     placeholder: JSX.Element
     forceShowPlaceholder?: boolean
+    className?: string
     onContextMenu: (
         selectedKeys: Set<Key>,
         event: React.MouseEvent<HTMLTableElement>,
@@ -55,16 +57,16 @@ interface InternalTableProps<T, Key extends string = string, State = never, RowS
 /** Props for a {@link Table}. */
 export type TableProps<
     T,
-    Key extends string = string,
     State = never,
-    RowState = never
-> = InternalTableProps<T, Key, State, RowState> &
+    RowState = never,
+    Key extends string = string
+> = InternalTableProps<T, State, RowState, Key> &
     ([RowState] extends [never] ? unknown : InitialRowStateProp<RowState>) &
     ([State] extends [never] ? unknown : StateProp<State>)
 
 /** Table that projects an object into each column. */
-function Table<T, Key extends string = string, State = never, RowState = never>(
-    props: TableProps<T, Key, State, RowState>
+export default function Table<T, State = never, RowState = never, Key extends string = string>(
+    props: TableProps<T, State, RowState, Key>
 ) {
     const {
         rowComponent: RowComponent = TableRow,
@@ -80,7 +82,8 @@ function Table<T, Key extends string = string, State = never, RowState = never>(
 
     const [spinnerState, setSpinnerState] = React.useState(spinner.SpinnerState.initial)
     // This should not be made mutable for the sake of optimization, otherwise its value may
-    // be different after `await`ing an I/O operation.
+    // be different after `await`ing an I/O operation. Also, a change in its value should trigger
+    // a re-render.
     const [selectedKeys, setSelectedKeys] = React.useState(() => new Set<Key>())
     const [previouslySelectedKey, setPreviouslySelectedKey] = React.useState<Key | null>(null)
 
@@ -119,7 +122,7 @@ function Table<T, Key extends string = string, State = never, RowState = never>(
     }, [isLoading])
 
     const onRowClick = React.useCallback(
-        (innerRowProps: tableRow.TableRowInnerProps<T, Key, RowState>, event: React.MouseEvent) => {
+        (innerRowProps: tableRow.TableRowInnerProps<T, RowState, Key>, event: React.MouseEvent) => {
             const { key } = innerRowProps
             event.stopPropagation()
             const getNewlySelectedKeys = () => {
@@ -178,22 +181,29 @@ function Table<T, Key extends string = string, State = never, RowState = never>(
 
     const headerRow = (
         <tr>
-            {columns.map(column => (
-                <th
-                    key={column.id}
-                    className={`text-vs px-4 align-middle py-1 border-0 border-r whitespace-nowrap font-semibold text-left ${
-                        column.className ?? ''
-                    }`}
-                >
-                    {column.heading}
-                </th>
-            ))}
+            {columns.map(column => {
+                // This is a React component, even though it does not contain JSX.
+                // eslint-disable-next-line no-restricted-syntax
+                const Heading = column.heading
+                return (
+                    <th
+                        key={column.id}
+                        className={`text-vs font-semibold ${column.className ?? ''}`}
+                    >
+                        <Heading
+                            // @ts-expect-error The following line is safe; the type error occurs
+                            // because a property with a conditional type is being destructured.
+                            state={props.state}
+                        />
+                    </th>
+                )
+            })}
         </tr>
     )
 
     const itemRows = isLoading ? (
         <tr className="h-10">
-            <td colSpan={columns.length}>
+            <td colSpan={columns.length} className="bg-transparent">
                 <div className="grid justify-around w-full">
                     <Spinner size={LOADING_SPINNER_SIZE} state={spinnerState} />
                 </div>
@@ -201,7 +211,9 @@ function Table<T, Key extends string = string, State = never, RowState = never>(
         </tr>
     ) : items.length === 0 || forceShowPlaceholder ? (
         <tr className="h-10">
-            <td colSpan={columns.length}>{placeholder}</td>
+            <td colSpan={columns.length} className="bg-transparent">
+                {placeholder}
+            </td>
         </tr>
     ) : (
         items.map(item => {
@@ -220,6 +232,11 @@ function Table<T, Key extends string = string, State = never, RowState = never>(
                     keyProp={key}
                     item={item}
                     selected={selectedKeys.has(key)}
+                    setSelected={selected => {
+                        setSelectedKeys(oldSelectedKeys =>
+                            set.withPresence(oldSelectedKeys, key, selected)
+                        )
+                    }}
                     allowContextMenu={
                         selectedKeys.size === 0 ||
                         (selectedKeys.size === 1 && selectedKeys.has(key))
@@ -232,7 +249,7 @@ function Table<T, Key extends string = string, State = never, RowState = never>(
 
     return (
         <table
-            className="table-fixed items-center border-collapse w-0 mt-2"
+            className="rounded-rows self-start table-fixed border-collapse mt-2"
             onContextMenu={event => {
                 onContextMenu(selectedKeys, event, setSelectedKeys)
             }}
@@ -242,5 +259,3 @@ function Table<T, Key extends string = string, State = never, RowState = never>(
         </table>
     )
 }
-
-export default Table

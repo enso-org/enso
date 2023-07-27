@@ -26,6 +26,17 @@ export type DirectoryId = newtype.Newtype<string, 'DirectoryId'>
 /** Create a {@link DirectoryId}. */
 export const DirectoryId = newtype.newtypeConstructor<DirectoryId>()
 
+/** Unique identifier for an asset representing the items inside a directory for which the
+ * request to retrive the items has not yet completed. */
+export type LoadingAssetId = newtype.Newtype<string, 'LoadingAssetId'>
+/** Create a {@link LoadingAssetId}. */
+export const LoadingAssetId = newtype.newtypeConstructor<LoadingAssetId>()
+
+/** Unique identifier for an asset representing the nonexistent children of an empty directory. */
+export type EmptyAssetId = newtype.Newtype<string, 'EmptyAssetId'>
+/** Create a {@link EmptyAssetId}. */
+export const EmptyAssetId = newtype.newtypeConstructor<EmptyAssetId>()
+
 /** Unique identifier for a user's project. */
 export type ProjectId = newtype.Newtype<string, 'ProjectId'>
 /** Create a {@link ProjectId}. */
@@ -42,7 +53,7 @@ export type SecretId = newtype.Newtype<string, 'SecretId'>
 export const SecretId = newtype.newtypeConstructor<SecretId>()
 
 /** Unique identifier for an arbitrary asset */
-export type AssetId = DirectoryId | FileId | ProjectId | SecretId
+export type AssetId = IdType[keyof IdType]
 
 /** Unique identifier for a file tag or project tag. */
 export type TagId = newtype.Newtype<string, 'TagId'>
@@ -302,6 +313,56 @@ export interface UpdatedDirectory {
     title: string
 }
 
+/** The type returned from the "create directory" endpoint. */
+export interface Directory extends DirectoryAsset {}
+
+// =================
+// === AssetType ===
+// =================
+
+/** All possible types of directory entries. */
+export enum AssetType {
+    project = 'project',
+    file = 'file',
+    secret = 'secret',
+    directory = 'directory',
+    /** A special {@link AssetType} representing the unknown items of a directory, before the
+     * request to retrieve the items completes. */
+    specialLoading = 'special-loading',
+    /** A special {@link AssetType} representing the sole child of an empty directory. */
+    specialEmpty = 'special-empty',
+}
+
+/** The corresponding ID newtype for each {@link AssetType}. */
+export interface IdType {
+    [AssetType.project]: ProjectId
+    [AssetType.file]: FileId
+    [AssetType.secret]: SecretId
+    [AssetType.directory]: DirectoryId
+    [AssetType.specialLoading]: LoadingAssetId
+    [AssetType.specialEmpty]: EmptyAssetId
+}
+
+/** Integers (starting from 0) corresponding to the order in which each asset type should appear
+ * in a directory listing. */
+export const ASSET_TYPE_ORDER: Record<AssetType, number> = {
+    [AssetType.directory]: 0,
+    [AssetType.project]: 1,
+    [AssetType.file]: 2,
+    // These are not magic constants; `3` is simply the next number after `2`.
+    // `999` and `1000` are arbitrary numbers chosen to be higher than the number of possible
+    // asset types.
+    /* eslint-disable @typescript-eslint/no-magic-numbers */
+    [AssetType.secret]: 3,
+    [AssetType.specialLoading]: 999,
+    [AssetType.specialEmpty]: 1000,
+    /* eslint-enable @typescript-eslint/no-magic-numbers */
+}
+
+// =============
+// === Asset ===
+// =============
+
 /** Metadata uniquely identifying a directory entry.
  * These can be Projects, Files, Secrets, or other directories. */
 export interface BaseAsset {
@@ -314,22 +375,6 @@ export interface BaseAsset {
     permissions: UserPermission[] | null
 }
 
-/** All possible types of directory entries. */
-export enum AssetType {
-    project = 'project',
-    file = 'file',
-    secret = 'secret',
-    directory = 'directory',
-}
-
-/** The corresponding ID newtype for each {@link AssetType}. */
-export interface IdType {
-    [AssetType.project]: ProjectId
-    [AssetType.file]: FileId
-    [AssetType.secret]: SecretId
-    [AssetType.directory]: DirectoryId
-}
-
 /** Metadata uniquely identifying a directory entry.
  * These can be Projects, Files, Secrets, or other directories. */
 export interface Asset<Type extends AssetType = AssetType> extends BaseAsset {
@@ -338,48 +383,49 @@ export interface Asset<Type extends AssetType = AssetType> extends BaseAsset {
     projectState: Type extends AssetType.project ? ProjectStateType : null
 }
 
-/** A convenience alias for {@link Asset}<{@link AssetType.project}>. */
-export interface ProjectAsset extends Asset<AssetType.project> {}
-
 /** A convenience alias for {@link Asset}<{@link AssetType.directory}>. */
 export interface DirectoryAsset extends Asset<AssetType.directory> {}
 
-/** A convenience alias for {@link Asset}<{@link AssetType.secret}>. */
-export interface SecretAsset extends Asset<AssetType.secret> {}
+/** A convenience alias for {@link Asset}<{@link AssetType.project}>. */
+export interface ProjectAsset extends Asset<AssetType.project> {}
 
 /** A convenience alias for {@link Asset}<{@link AssetType.file}>. */
 export interface FileAsset extends Asset<AssetType.file> {}
 
-/** The type returned from the "create directory" endpoint. */
-export interface Directory extends DirectoryAsset {}
+/** A convenience alias for {@link Asset}<{@link AssetType.secret}>. */
+export interface SecretAsset extends Asset<AssetType.secret> {}
 
-// =================
-// === Constants ===
-// =================
+/** A convenience alias for {@link Asset}<{@link AssetType.specialLoading}>. */
+export interface SpecialLoadingAsset extends Asset<AssetType.specialLoading> {}
 
-export const ASSET_TYPE_NAME: Record<AssetType, string> = {
-    [AssetType.project]: 'project',
-    [AssetType.directory]: 'folder',
-    [AssetType.secret]: 'secret',
-    [AssetType.file]: 'file',
-} as const
+/** A convenience alias for {@link Asset}<{@link AssetType.specialEmpty}>. */
+export interface SpecialEmptyAsset extends Asset<AssetType.specialEmpty> {}
 
-// ==============================
-// === detectVersionLifecycle ===
-// ==============================
+/** A union of all possible {@link Asset} variants. */
+export type AnyAsset =
+    | DirectoryAsset
+    | FileAsset
+    | ProjectAsset
+    | SecretAsset
+    | SpecialEmptyAsset
+    | SpecialLoadingAsset
 
-/** Extract the {@link VersionLifecycle} from a version string. */
-export function detectVersionLifecycle(version: string) {
-    if (/rc/i.test(version)) {
-        return VersionLifecycle.releaseCandidate
-    } else if (/\bnightly\b/i.test(version)) {
-        return VersionLifecycle.nightly
-    } else if (/\bdev\b|\balpha\b/i.test(version)) {
-        return VersionLifecycle.development
-    } else {
-        return VersionLifecycle.stable
-    }
+/** A type guard that returns whether an {@link Asset} is a specific type of asset. */
+export function assetIsType<Type extends AssetType>(type: Type) {
+    return (asset: AnyAsset): asset is Extract<AnyAsset, Asset<Type>> => asset.type === type
 }
+
+// These are functions, and so their names should be camelCase.
+/* eslint-disable no-restricted-syntax */
+/** A type guard that returns whether an {@link Asset} is a {@link ProjectAsset}. */
+export const assetIsProject = assetIsType(AssetType.project)
+/** A type guard that returns whether an {@link Asset} is a {@link DirectoryAsset}. */
+export const assetIsDirectory = assetIsType(AssetType.directory)
+/** A type guard that returns whether an {@link Asset} is a {@link SecretAsset}. */
+export const assetIsSecret = assetIsType(AssetType.secret)
+/** A type guard that returns whether an {@link Asset} is a {@link FileAsset}. */
+export const assetIsFile = assetIsType(AssetType.file)
+/* eslint-disable no-restricted-syntax */
 
 // =================
 // === Endpoints ===
@@ -474,26 +520,22 @@ export interface ListVersionsRequestParams {
     default: boolean
 }
 
-// ===================
-// === Type guards ===
-// ===================
+// ==============================
+// === detectVersionLifecycle ===
+// ==============================
 
-/** A type guard that returns whether an {@link Asset} is a specific type of asset. */
-export function assetIsType<Type extends AssetType>(type: Type) {
-    return (asset: Asset): asset is Asset<Type> => asset.type === type
+/** Extract the {@link VersionLifecycle} from a version string. */
+export function detectVersionLifecycle(version: string) {
+    if (/rc/i.test(version)) {
+        return VersionLifecycle.releaseCandidate
+    } else if (/\bnightly\b/i.test(version)) {
+        return VersionLifecycle.nightly
+    } else if (/\bdev\b|\balpha\b/i.test(version)) {
+        return VersionLifecycle.development
+    } else {
+        return VersionLifecycle.stable
+    }
 }
-
-// These are functions, and so their names should be camelCase.
-/* eslint-disable no-restricted-syntax */
-/** A type guard that returns whether an {@link Asset} is a {@link ProjectAsset}. */
-export const assetIsProject = assetIsType(AssetType.project)
-/** A type guard that returns whether an {@link Asset} is a {@link DirectoryAsset}. */
-export const assetIsDirectory = assetIsType(AssetType.directory)
-/** A type guard that returns whether an {@link Asset} is a {@link SecretAsset}. */
-export const assetIsSecret = assetIsType(AssetType.secret)
-/** A type guard that returns whether an {@link Asset} is a {@link FileAsset}. */
-export const assetIsFile = assetIsType(AssetType.file)
-/* eslint-disable no-restricted-syntax */
 
 // =======================
 // === rootDirectoryId ===
@@ -543,74 +585,104 @@ export function groupPermissionsByUser(permissions: UserPermission[]) {
 // ===============
 
 /** Interface for sending requests to a backend that manages assets and runs projects. */
-export interface Backend {
-    readonly type: BackendType
+export abstract class Backend {
+    abstract readonly type: BackendType
 
+    /** Delete an asset of any type. */
+    async deleteAsset(asset: AnyAsset) {
+        switch (asset.type) {
+            case AssetType.directory: {
+                await this.deleteDirectory(asset.id, asset.title)
+                break
+            }
+            case AssetType.project: {
+                await this.deleteProject(asset.id, asset.title)
+                break
+            }
+            case AssetType.file: {
+                await this.deleteFile(asset.id, asset.title)
+                break
+            }
+            case AssetType.secret: {
+                await this.deleteSecret(asset.id, asset.title)
+                break
+            }
+            case AssetType.specialLoading:
+            case AssetType.specialEmpty: {
+                // Ignored. This should never happen, and because they do not exist on the backend,
+                // there are no negative consequences.
+                break
+            }
+        }
+    }
     /** Return a list of all users in the same organization. */
-    listUsers: () => Promise<SimpleUser[]>
+    abstract listUsers(): Promise<SimpleUser[]>
     /** Set the username of the current user. */
-    createUser: (body: CreateUserRequestBody) => Promise<UserOrOrganization>
+    abstract createUser(body: CreateUserRequestBody): Promise<UserOrOrganization>
     /** Invite a new user to the organization by email. */
-    inviteUser: (body: InviteUserRequestBody) => Promise<void>
+    abstract inviteUser(body: InviteUserRequestBody): Promise<void>
     /** Adds a permission for a specific user on a specific asset. */
-    createPermission: (body: CreatePermissionRequestBody) => Promise<void>
+    abstract createPermission(body: CreatePermissionRequestBody): Promise<void>
     /** Return user details for the current user. */
-    usersMe: () => Promise<UserOrOrganization | null>
+    abstract usersMe(): Promise<UserOrOrganization | null>
     /** Return a list of assets in a directory. */
-    listDirectory: (query: ListDirectoryRequestParams, title: string | null) => Promise<Asset[]>
+    abstract listDirectory(
+        query: ListDirectoryRequestParams,
+        title: string | null
+    ): Promise<AnyAsset[]>
     /** Create a directory. */
-    createDirectory: (body: CreateDirectoryRequestBody) => Promise<CreatedDirectory>
+    abstract createDirectory(body: CreateDirectoryRequestBody): Promise<CreatedDirectory>
     /** Change the name of a directory. */
-    updateDirectory: (
+    abstract updateDirectory(
         directoryId: DirectoryId,
         body: UpdateDirectoryRequestBody,
         title: string | null
-    ) => Promise<UpdatedDirectory>
+    ): Promise<UpdatedDirectory>
     /** Delete a directory. */
-    deleteDirectory: (directoryId: DirectoryId, title: string | null) => Promise<void>
+    abstract deleteDirectory(directoryId: DirectoryId, title: string | null): Promise<void>
     /** Return a list of projects belonging to the current user. */
-    listProjects: () => Promise<ListedProject[]>
+    abstract listProjects(): Promise<ListedProject[]>
     /** Create a project for the current user. */
-    createProject: (body: CreateProjectRequestBody) => Promise<CreatedProject>
+    abstract createProject(body: CreateProjectRequestBody): Promise<CreatedProject>
     /** Close the project identified by the given project ID. */
-    closeProject: (projectId: ProjectId, title: string | null) => Promise<void>
+    abstract closeProject(projectId: ProjectId, title: string | null): Promise<void>
     /** Return project details for the specified project ID. */
-    getProjectDetails: (projectId: ProjectId, title: string | null) => Promise<Project>
+    abstract getProjectDetails(projectId: ProjectId, title: string | null): Promise<Project>
     /** Set a project to an open state. */
-    openProject: (
+    abstract openProject(
         projectId: ProjectId,
         body: OpenProjectRequestBody | null,
         title: string | null
-    ) => Promise<void>
-    projectUpdate: (
+    ): Promise<void>
+    abstract projectUpdate(
         projectId: ProjectId,
         body: ProjectUpdateRequestBody,
         title: string | null
-    ) => Promise<UpdatedProject>
+    ): Promise<UpdatedProject>
     /** Delete a project. */
-    deleteProject: (projectId: ProjectId, title: string | null) => Promise<void>
+    abstract deleteProject(projectId: ProjectId, title: string | null): Promise<void>
     /** Return project memory, processor and storage usage. */
-    checkResources: (projectId: ProjectId, title: string | null) => Promise<ResourceUsage>
+    abstract checkResources(projectId: ProjectId, title: string | null): Promise<ResourceUsage>
     /** Return a list of files accessible by the current user. */
-    listFiles: () => Promise<File[]>
+    abstract listFiles(): Promise<File[]>
     /** Upload a file. */
-    uploadFile: (params: UploadFileRequestParams, body: Blob) => Promise<FileInfo>
+    abstract uploadFile(params: UploadFileRequestParams, body: Blob): Promise<FileInfo>
     /** Delete a file. */
-    deleteFile: (fileId: FileId, title: string | null) => Promise<void>
+    abstract deleteFile(fileId: FileId, title: string | null): Promise<void>
     /** Create a secret environment variable. */
-    createSecret: (body: CreateSecretRequestBody) => Promise<SecretAndInfo>
+    abstract createSecret(body: CreateSecretRequestBody): Promise<SecretAndInfo>
     /** Return a secret environment variable. */
-    getSecret: (secretId: SecretId, title: string | null) => Promise<Secret>
+    abstract getSecret(secretId: SecretId, title: string | null): Promise<Secret>
     /** Return the secret environment variables accessible by the user. */
-    listSecrets: () => Promise<SecretInfo[]>
+    abstract listSecrets(): Promise<SecretInfo[]>
     /** Delete a secret environment variable. */
-    deleteSecret: (secretId: SecretId, title: string | null) => Promise<void>
+    abstract deleteSecret(secretId: SecretId, title: string | null): Promise<void>
     /** Create a file tag or project tag. */
-    createTag: (body: CreateTagRequestBody) => Promise<TagInfo>
+    abstract createTag(body: CreateTagRequestBody): Promise<TagInfo>
     /** Return file tags or project tags accessible by the user. */
-    listTags: (params: ListTagsRequestParams) => Promise<Tag[]>
+    abstract listTags(params: ListTagsRequestParams): Promise<Tag[]>
     /** Delete a file tag or project tag. */
-    deleteTag: (tagId: TagId) => Promise<void>
+    abstract deleteTag(tagId: TagId): Promise<void>
     /** Return a list of backend or IDE versions. */
-    listVersions: (params: ListVersionsRequestParams) => Promise<[Version, ...Version[]]>
+    abstract listVersions(params: ListVersionsRequestParams): Promise<[Version, ...Version[]]>
 }

@@ -140,7 +140,7 @@ ensogl_core::define_endpoints! {
 /// A type of Entry used in DropDownMenu's ListView.
 pub type Entry = list_view::entry::Label;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, display::Object)]
 struct Model {
     display_object: display::object::Instance,
 
@@ -211,12 +211,6 @@ impl Model {
     }
 }
 
-impl display::Object for Model {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
-    }
-}
-
 
 
 // ============================
@@ -225,17 +219,12 @@ impl display::Object for Model {
 
 /// UI entity that shows a button that opens a list of visualizations that can be selected from.
 #[allow(missing_docs)]
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, Deref, display::Object)]
 pub struct DropDownMenu {
+    #[display_object]
     model:   Rc<Model>,
+    #[deref]
     pub frp: Frp,
-}
-
-impl Deref for DropDownMenu {
-    type Target = Frp;
-    fn deref(&self) -> &Self::Target {
-        &self.frp
-    }
 }
 
 impl DropDownMenu {
@@ -436,11 +425,5 @@ impl DropDownMenu {
     pub fn set_label_layer(&self, layer: &display::scene::Layer) {
         self.model.selection_menu.set_label_layer(layer);
         self.model.label.add_to_scene_layer(layer);
-    }
-}
-
-impl display::Object for DropDownMenu {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.model.display_object
     }
 }

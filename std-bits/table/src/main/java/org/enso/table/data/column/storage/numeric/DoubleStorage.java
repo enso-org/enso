@@ -4,10 +4,11 @@ import java.util.BitSet;
 import java.util.List;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.NumericBuilder;
-import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
+import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.operation.map.numeric.DoubleBooleanOp;
+import org.enso.table.data.column.operation.map.numeric.DoubleComparison;
 import org.enso.table.data.column.operation.map.numeric.DoubleIsInOp;
 import org.enso.table.data.column.operation.map.numeric.DoubleLongMapOpWithSpecialNumericHandling;
 import org.enso.table.data.column.operation.map.numeric.DoubleNumericOp;
@@ -26,7 +27,7 @@ public final class DoubleStorage extends NumericStorage<Double> {
   private final long[] data;
   private final BitSet isMissing;
   private final int size;
-  private static final MapOpStorage<Double, DoubleStorage> ops = buildOps();
+  private static final MapOperationStorage<Double, DoubleStorage> ops = buildOps();
 
   /**
    * @param data the underlying data
@@ -76,6 +77,16 @@ public final class DoubleStorage extends NumericStorage<Double> {
     return isMissing.get(idx) ? null : Double.longBitsToDouble(data[idx]);
   }
 
+  @Override
+  public boolean isUnaryOpVectorized(String name) {
+    return ops.isSupportedUnary(name);
+  }
+
+  @Override
+  public Storage<?> runVectorizedUnaryMap(String name, MapOperationProblemBuilder problemBuilder) {
+    return ops.runUnaryMap(name, this, problemBuilder);
+  }
+
   /** @inheritDoc */
   @Override
   public StorageType getType() {
@@ -89,18 +100,18 @@ public final class DoubleStorage extends NumericStorage<Double> {
   }
 
   @Override
-  public boolean isOpVectorized(String op) {
-    return ops.isSupported(op);
+  public boolean isBinaryOpVectorized(String op) {
+    return ops.isSupportedBinary(op);
   }
 
   @Override
-  protected Storage<?> runVectorizedMap(
+  public Storage<?> runVectorizedBinaryMap(
       String name, Object argument, MapOperationProblemBuilder problemBuilder) {
-    return ops.runMap(name, this, argument, problemBuilder);
+    return ops.runBinaryMap(name, this, argument, problemBuilder);
   }
 
   @Override
-  protected Storage<?> runVectorizedZip(
+  public Storage<?> runVectorizedZip(
       String name, Storage<?> argument, MapOperationProblemBuilder problemBuilder) {
     return ops.runZip(name, this, argument, problemBuilder);
   }
@@ -201,8 +212,8 @@ public final class DoubleStorage extends NumericStorage<Double> {
     return data;
   }
 
-  private static MapOpStorage<Double, DoubleStorage> buildOps() {
-    MapOpStorage<Double, DoubleStorage> ops = new MapOpStorage<>();
+  private static MapOperationStorage<Double, DoubleStorage> buildOps() {
+    MapOperationStorage<Double, DoubleStorage> ops = new MapOperationStorage<>();
     ops.add(
             new DoubleNumericOp(Maps.ADD) {
               @Override
@@ -279,14 +290,14 @@ public final class DoubleStorage extends NumericStorage<Double> {
               }
             })
         .add(
-            new DoubleBooleanOp(Maps.LT) {
+            new DoubleComparison(Maps.LT) {
               @Override
               protected boolean doDouble(double a, double b) {
                 return a < b;
               }
             })
         .add(
-            new DoubleBooleanOp(Maps.LTE) {
+            new DoubleComparison(Maps.LTE) {
               @Override
               protected boolean doDouble(double a, double b) {
                 return a <= b;
@@ -295,12 +306,12 @@ public final class DoubleStorage extends NumericStorage<Double> {
         .add(
             new DoubleBooleanOp(Maps.EQ) {
               @Override
-              public BoolStorage runMap(
+              public BoolStorage runBinaryMap(
                   DoubleStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
                 if (arg != null) {
                   problemBuilder.reportFloatingPointEquality(-1);
                 }
-                return super.runMap(storage, arg, problemBuilder);
+                return super.runBinaryMap(storage, arg, problemBuilder);
               }
 
               @Override
@@ -325,14 +336,14 @@ public final class DoubleStorage extends NumericStorage<Double> {
               }
             })
         .add(
-            new DoubleBooleanOp(Maps.GT) {
+            new DoubleComparison(Maps.GT) {
               @Override
               protected boolean doDouble(double a, double b) {
                 return a > b;
               }
             })
         .add(
-            new DoubleBooleanOp(Maps.GTE) {
+            new DoubleComparison(Maps.GTE) {
               @Override
               protected boolean doDouble(double a, double b) {
                 return a >= b;
@@ -341,14 +352,16 @@ public final class DoubleStorage extends NumericStorage<Double> {
         .add(
             new UnaryMapOperation<>(Maps.IS_NOTHING) {
               @Override
-              public BoolStorage run(DoubleStorage storage) {
+              public BoolStorage runUnaryMap(
+                  DoubleStorage storage, MapOperationProblemBuilder problemBuilder) {
                 return new BoolStorage(storage.isMissing, new BitSet(), storage.size, false);
               }
             })
         .add(
             new UnaryMapOperation<>(Maps.IS_NAN) {
               @Override
-              public BoolStorage run(DoubleStorage storage) {
+              public BoolStorage runUnaryMap(
+                  DoubleStorage storage, MapOperationProblemBuilder problemBuilder) {
                 BitSet nans = new BitSet();
                 Context context = Context.getCurrent();
                 for (int i = 0; i < storage.size; i++) {
@@ -364,7 +377,8 @@ public final class DoubleStorage extends NumericStorage<Double> {
         .add(
             new UnaryMapOperation<>(Maps.IS_INFINITE) {
               @Override
-              public BoolStorage run(DoubleStorage storage) {
+              public BoolStorage runUnaryMap(
+                  DoubleStorage storage, MapOperationProblemBuilder problemBuilder) {
                 BitSet infintes = new BitSet();
                 Context context = Context.getCurrent();
                 for (int i = 0; i < storage.size; i++) {

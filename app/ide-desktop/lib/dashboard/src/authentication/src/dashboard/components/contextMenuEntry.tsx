@@ -13,7 +13,7 @@ export interface ContextMenuEntryProps {
 }
 
 /** An item in a `ContextMenu`. */
-function ContextMenuEntry(props: React.PropsWithChildren<ContextMenuEntryProps>) {
+export default function ContextMenuEntry(props: React.PropsWithChildren<ContextMenuEntryProps>) {
     const { children, disabled = false, title, onClick } = props
     return (
         <button
@@ -31,5 +31,3 @@ function ContextMenuEntry(props: React.PropsWithChildren<ContextMenuEntryProps>)
         </button>
     )
 }
-
-export default ContextMenuEntry

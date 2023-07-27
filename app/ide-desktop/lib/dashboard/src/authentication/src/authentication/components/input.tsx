@@ -12,7 +12,7 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
 }
 
 /** A component for authentication from inputs, with preset styles. */
-function Input(props: InputProps) {
+export default function Input(props: InputProps) {
     const { setValue, ...passThrough } = props
     return (
         <input
@@ -24,5 +24,3 @@ function Input(props: InputProps) {
         />
     )
 }
-
-export default Input

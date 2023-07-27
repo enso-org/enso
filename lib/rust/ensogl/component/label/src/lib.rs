@@ -50,7 +50,7 @@ ensogl_core::define_endpoints! {
 // === Model ===
 // =============
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, display::Object)]
 struct Model {
     background:     Rectangle,
     label:          text::Text,
@@ -133,9 +133,11 @@ impl Model {
 // =======================
 
 #[allow(missing_docs)]
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, Deref, display::Object)]
 pub struct Label {
+    #[display_object]
     model:   Rc<Model>,
+    #[deref]
     pub frp: Rc<Frp>,
 }
 
@@ -169,19 +171,5 @@ impl Label {
         }
 
         self
-    }
-}
-
-impl Deref for Label {
-    type Target = Frp;
-
-    fn deref(&self) -> &Self::Target {
-        &self.frp
-    }
-}
-
-impl display::Object for Label {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.model.display_object
     }
 }

@@ -132,7 +132,7 @@ ensogl::define_endpoints! {
 }
 
 /// Internal model of the port area.
-#[derive(Debug)]
+#[derive(Debug, display::Object)]
 pub struct Model {
     app:            Application,
     display_object: display::object::Instance,
@@ -348,11 +348,12 @@ impl Model {
 /// ## Origin
 /// Please note that the origin of the node is on its left side, centered vertically. To learn more
 /// about this design decision, please read the docs for the [`node::Node`].
-#[derive(Clone, CloneRef, Debug, Deref)]
+#[derive(Clone, CloneRef, Debug, Deref, display::Object)]
 #[allow(missing_docs)]
 pub struct Area {
     #[deref]
     pub frp:   Frp,
+    #[display_object]
     pub model: Rc<Model>,
 }
 
@@ -448,11 +449,5 @@ impl Area {
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn whole_expr_id(&self) -> Option<ast::Id> {
         self.model.expression.borrow().whole_expr_id
-    }
-}
-
-impl display::Object for Area {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.model.display_object
     }
 }

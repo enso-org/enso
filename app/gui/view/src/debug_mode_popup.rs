@@ -51,9 +51,11 @@ ensogl::define_endpoints! {
 // ============
 
 /// A pop-up that signals about enabling/disabling Debug Mode of Graph Editor.
-#[derive(Debug, Clone, CloneRef)]
+#[derive(Debug, Clone, CloneRef, Deref, display::Object)]
 pub struct View {
+    #[deref]
     frp:   Frp,
+    #[display_object]
     popup: popup::View,
 }
 
@@ -77,19 +79,5 @@ impl View {
     /// Get the FRP node for the content of the pop-up, for testing purposes.
     pub fn content_frp_node(&self) -> impl EventOutput<Output = String> + HasLabel {
         self.popup.content_frp_node()
-    }
-}
-
-impl display::Object for View {
-    fn display_object(&self) -> &display::object::Instance {
-        self.popup.display_object()
-    }
-}
-
-impl Deref for View {
-    type Target = Frp;
-
-    fn deref(&self) -> &Self::Target {
-        &self.frp
     }
 }

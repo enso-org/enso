@@ -39,28 +39,30 @@ interface InternalTableRowInnerProps<T, Key extends string = string> {
 /** State and setters passed to event handlers on a {@link TableRow}. */
 export type TableRowInnerProps<
     T,
-    Key extends string = string,
-    TableRowState = never
+    TableRowState = never,
+    Key extends string = string
 > = InternalTableRowInnerProps<T, Key> &
     ([TableRowState] extends never ? unknown : InternalTableRowStateProps<TableRowState>)
 
 /** Props for a {@link TableRow}. */
 interface InternalBaseTableRowProps<
     T,
-    Key extends string = string,
     State = never,
-    TableRowState = never
+    TableRowState = never,
+    Key extends string = string
 > extends Omit<JSX.IntrinsicElements['tr'], 'onClick' | 'onContextMenu'> {
     keyProp: Key
     item: T
+    setItem?: React.Dispatch<React.SetStateAction<T>>
     state?: State
     initialRowState?: TableRowState
-    columns: tableColumn.TableColumn<T, State, TableRowState>[]
+    columns: tableColumn.TableColumn<T, State, TableRowState, Key>[]
     selected: boolean
+    setSelected: (selected: boolean) => void
     allowContextMenu: boolean
-    onClick: (props: TableRowInnerProps<T, Key, TableRowState>, event: React.MouseEvent) => void
+    onClick: (props: TableRowInnerProps<T, TableRowState, Key>, event: React.MouseEvent) => void
     onContextMenu?: (
-        props: TableRowInnerProps<T, Key, TableRowState>,
+        props: TableRowInnerProps<T, TableRowState, Key>,
         event: React.MouseEvent<HTMLTableRowElement>
     ) => void
 }
@@ -68,24 +70,26 @@ interface InternalBaseTableRowProps<
 /** Props for a {@link TableRow}. */
 export type TableRowProps<
     T,
-    Key extends string = string,
     State = never,
-    TableRowState = never
-> = InternalBaseTableRowProps<T, Key, State, TableRowState> &
+    TableRowState = never,
+    Key extends string = string
+> = InternalBaseTableRowProps<T, State, TableRowState, Key> &
     ([State] extends [never] ? unknown : StateProp<State>) &
     ([TableRowState] extends [never] ? unknown : InitialRowStateProp<TableRowState>)
 
 /** A row of a table. This is required because each row may store its own state. */
-function TableRow<T, Key extends string = string, State = never, RowState = never>(
-    props: TableRowProps<T, Key, State, RowState>
+export default function TableRow<T, State = never, RowState = never, Key extends string = string>(
+    props: TableRowProps<T, State, RowState, Key>
 ) {
     const {
         keyProp: key,
         item: rawItem,
+        setItem: rawSetItem,
         state,
         initialRowState,
         columns,
         selected,
+        setSelected,
         allowContextMenu,
         onClick,
         onContextMenu,
@@ -95,7 +99,9 @@ function TableRow<T, Key extends string = string, State = never, RowState = neve
     const { unsetModal } = modalProvider.useSetModal()
 
     /** The internal state for this row. This may change as backend requests are sent. */
-    const [item, setItem] = React.useState(rawItem)
+    // This hook is not called conditionally. `setItem` either always exists, or never exists.
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const [item, setItem] = rawSetItem != null ? [rawItem, rawSetItem] : React.useState(rawItem)
     /** This is SAFE, as the type is defined such that they MUST be present when `RowState` is not
      * `never`.
      * See the type definitions of {@link TableRowProps} and `TableProps`. */
@@ -103,10 +109,12 @@ function TableRow<T, Key extends string = string, State = never, RowState = neve
     const [rowState, setRowState] = React.useState<RowState>(initialRowState!)
 
     React.useEffect(() => {
-        setItem(rawItem)
-    }, [rawItem])
+        if (rawSetItem != null) {
+            setItem(rawItem)
+        }
+    }, [rawItem, /* should never change */ setItem, /* should never change */ rawSetItem])
 
-    const innerProps: TableRowInnerProps<T, Key, RowState> = {
+    const innerProps: TableRowInnerProps<T, RowState, Key> = {
         key,
         item,
         setItem,
@@ -126,9 +134,9 @@ function TableRow<T, Key extends string = string, State = never, RowState = neve
                     onContextMenu?.(innerProps, event)
                 }
             }}
-            className={`h-10 transition duration-300 ease-in-out hover:bg-gray-100 ${
-                className ?? ''
-            } ${selected ? 'bg-gray-200' : ''}`}
+            className={`h-10 transition duration-300 ease-in-out ${className ?? ''} ${
+                selected ? 'selected' : ''
+            }`}
             {...passthrough}
         >
             {columns.map(column => {
@@ -136,16 +144,13 @@ function TableRow<T, Key extends string = string, State = never, RowState = neve
                 // eslint-disable-next-line no-restricted-syntax
                 const Render = column.render
                 return (
-                    <td
-                        key={column.id}
-                        className={`px-4 border-0 border-r vertical-align-middle ${
-                            column.className ?? ''
-                        }`}
-                    >
+                    <td key={column.id} className={column.className ?? ''}>
                         <Render
+                            keyProp={key}
                             item={item}
                             setItem={setItem}
                             selected={selected}
+                            setSelected={setSelected}
                             /** This is SAFE, as the type is defined such that they MUST be
                              * present if it is specified as a generic parameter.
                              * See the type definitions of {@link TableRowProps} and {@link TableProps}.
@@ -161,5 +166,3 @@ function TableRow<T, Key extends string = string, State = never, RowState = neve
         </tr>
     )
 }
-
-export default TableRow

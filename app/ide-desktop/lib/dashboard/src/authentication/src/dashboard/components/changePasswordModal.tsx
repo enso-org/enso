@@ -7,19 +7,19 @@ import LockIcon from 'enso-assets/lock.svg'
 
 import * as auth from '../../authentication/providers/auth'
 import * as modalProvider from '../../providers/modal'
-import * as svg from '../../components/svg'
 import * as validation from '../validation'
 
 import Input from './input'
 import Modal from './modal'
 import SvgIcon from './svgIcon'
+import SvgMask from '../../authentication/components/svgMask'
 
 // ==========================
 // === ResetPasswordModal ===
 // ==========================
 
 /** A modal for changing the user's password. */
-function ChangePasswordModal() {
+export default function ChangePasswordModal() {
     const { changePassword } = auth.useAuth()
     const { unsetModal } = modalProvider.useSetModal()
 
@@ -65,7 +65,7 @@ function ChangePasswordModal() {
                             </label>
                             <div className="relative">
                                 <SvgIcon>
-                                    <svg.SvgMask src={LockIcon} />
+                                    <SvgMask src={LockIcon} />
                                 </SvgIcon>
                                 <Input
                                     autoFocus
@@ -91,7 +91,7 @@ function ChangePasswordModal() {
                             </label>
                             <div className="relative">
                                 <SvgIcon>
-                                    <svg.SvgMask src={LockIcon} />
+                                    <SvgMask src={LockIcon} />
                                 </SvgIcon>
                                 <Input
                                     required
@@ -116,7 +116,7 @@ function ChangePasswordModal() {
                             </label>
                             <div className="relative">
                                 <SvgIcon>
-                                    <svg.SvgMask src={LockIcon} />
+                                    <SvgMask src={LockIcon} />
                                 </SvgIcon>
                                 <Input
                                     required
@@ -137,7 +137,7 @@ function ChangePasswordModal() {
                             >
                                 <span className="mr-2 uppercase">Reset</span>
                                 <span>
-                                    <svg.SvgMask src={ArrowRightIcon} />
+                                    <SvgMask src={ArrowRightIcon} />
                                 </span>
                             </button>
                         </div>
@@ -147,5 +147,3 @@ function ChangePasswordModal() {
         </Modal>
     )
 }
-
-export default ChangePasswordModal

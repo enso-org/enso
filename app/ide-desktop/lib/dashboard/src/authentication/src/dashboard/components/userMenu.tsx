@@ -36,7 +36,7 @@ function UserMenuItem(props: React.PropsWithChildren<UserMenuItemProps>) {
 }
 
 /** Handling the UserMenuItem click event logic and displaying its content. */
-function UserMenu() {
+export default function UserMenu() {
     const { signOut } = auth.useAuth()
     const { accessToken, organization } = auth.useNonPartialUserSession()
     const navigate = hooks.useNavigate()
@@ -93,5 +93,3 @@ function UserMenu() {
         </div>
     )
 }
-
-export default UserMenu

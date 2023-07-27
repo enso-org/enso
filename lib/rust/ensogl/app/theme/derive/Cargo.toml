@@ -9,5 +9,5 @@ proc-macro = true
 
 [dependencies]
 proc-macro2 = { workspace = true }
-syn = { workspace = true }
+syn_1 = { workspace = true }
 quote = { workspace = true }

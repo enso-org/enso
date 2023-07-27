@@ -31,7 +31,7 @@ export interface EditorProps {
 }
 
 /** The container that launches the IDE. */
-function Editor(props: EditorProps) {
+export default function Editor(props: EditorProps) {
     const { visible, project, appRunner } = props
     const { backend } = backendProvider.useBackend()
     const { accessToken } = auth.useNonPartialUserSession()
@@ -168,5 +168,3 @@ function Editor(props: EditorProps) {
 
     return <></>
 }
-
-export default Editor

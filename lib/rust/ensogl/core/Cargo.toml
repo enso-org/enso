@@ -25,6 +25,7 @@ enso-shapely = { path = "../../shapely" }
 enso-shortcuts = { path = "../../shortcuts" }
 enso-types = { path = "../../types" }
 enso-web = { path = "../../web" }
+ensogl-derive = { path = "../derive" }
 ensogl-text-embedded-fonts = { path = "../component/text/src/font/embedded" }
 bit_field = { version = "0.10.0" }
 bitflags = { workspace = true }

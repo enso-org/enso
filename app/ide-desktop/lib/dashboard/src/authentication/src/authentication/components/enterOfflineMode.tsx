@@ -11,7 +11,7 @@ import * as hooks from '../../hooks'
 // ============================
 
 /** An empty component redirecting users based on the backend response to user registration. */
-function EnterOfflineMode() {
+export default function EnterOfflineMode() {
     const { goOffline } = authProvider.useAuth()
     const navigate = hooks.useNavigate()
 
@@ -29,5 +29,3 @@ function EnterOfflineMode() {
 
     return <></>
 }
-
-export default EnterOfflineMode
