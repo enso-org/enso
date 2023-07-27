@@ -27,7 +27,7 @@ import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.Replace_Params.Replace_Params
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 from project.Data.Table import freshen_columns, Table
-from project.Errors import Integrity_Error, Unsupported_Database_Operation, Unsupported_Name
+from project.Errors import Integrity_Error, Unsupported_Database_Operation
 
 polyglot java import org.enso.table.data.column.operation.map.MapOperationProblemBuilder
 

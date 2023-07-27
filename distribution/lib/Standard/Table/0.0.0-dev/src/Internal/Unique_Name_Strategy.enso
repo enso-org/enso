@@ -18,6 +18,15 @@ type Unique_Name_Strategy
        of columns names and making them unique. It will track any duplicates or
        invalid names that are passed to it.
 
+       Arguments:
+       - max_name_length_units: The maximum length of a name in code units.
+         If this is specified, longer names will be truncated and any suffixes
+         added will also ensure to not exceed this limit (truncating the prefix
+         if necessary). The truncation is aware of grapheme clusters and will
+         not break them into parts, but remove as many whole grapheme clusters
+         as necessary to fit the limit. Defaults to `Nothing`, meaning that the
+         length is not limited.
+
        > Example
          Construct a set of unique names from two duplicate lists
 
@@ -25,8 +34,10 @@ type Unique_Name_Strategy
              unique_names = ["A","B","A",""] . map unique_name_strategy.make_unique
              duplicates = unique_name_strategy.renames
              invalid = unique_name_strategy.invalid_names
-    new : Unique_Name_Strategy
-    new = Unique_Name_Strategy.Value NameDeduplicator.new
+    new : (Integer | Nothing) -> Unique_Name_Strategy
+    new (max_name_length_units : Integer | Nothing = Nothing) =
+        deduplicator = NameDeduplicator.new max_name_length_units
+        Unique_Name_Strategy.Value deduplicator
 
     ## PRIVATE
        ADVANCED

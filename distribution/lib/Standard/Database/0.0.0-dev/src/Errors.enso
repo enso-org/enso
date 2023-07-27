@@ -72,31 +72,6 @@ type SQL_Timeout
     to_display_text : Text
     to_display_text self = self.to_text
 
-
-## Signals that a name for a column or table is not supported.
-
-   Arguments:
-   - text: The name that is not supported.
-
-   Currently the names can only include ASCII letters, numbers and the
-   underscore. This is a temporary limitation simplifying name handling. It will
-   be removed in a future version.
-type Unsupported_Name
-    ## PRIVATE
-    Error text
-
-    ## PRIVATE
-       Creates a human-readable representation of the unsupported name error.
-    to_text : Text
-    to_text self =
-        "The name " + self.text + " is not currently supported by the Database library."
-
-    ## PRIVATE
-       Pretty print the unsupported name error.
-    to_display_text : Text
-    to_display_text self = self.to_text
-
-
 type Integrity_Error
     ## PRIVATE
        Signalizes that an operation tried using objects coming from different

@@ -1276,8 +1276,6 @@ type Table
 
        ! Error Conditions
 
-         - In the Database backend, if the column name is not valid, an
-           `Unsupported_Name` dataflow error is raised.
          - If the column name is already present and `set_mode` is `Add`, a
            `Existing_Column` dataflow error is raised.
          - If the column name is not present and `set_mode` is `Update`, a
