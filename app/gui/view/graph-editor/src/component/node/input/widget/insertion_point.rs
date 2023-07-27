@@ -5,44 +5,41 @@
 //!
 //! See also [`span_tree::node::InsertionPoint`].
 
-use crate::component::node::input::widget::prelude::*;
+use super::prelude::*;
 use crate::prelude::*;
 
-use ensogl::display;
-use ensogl::display::object;
 
 
-
-// ======================
-// === InsertionPoint ===
-// ======================
+// ==============
+// === Widget ===
+// ==============
 
 /// Insertion point widget configuration options.
-#[derive(Debug, Clone, Copy, PartialEq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Config;
 
 
 /// Insertion point widget. Displays nothing when not connected.
-#[derive(Clone, Debug, display::Object)]
+#[derive(Debug, display::Object)]
 pub struct Widget {
-    root: object::Instance,
+    display_object: object::Instance,
 }
 
 impl SpanWidget for Widget {
     type Config = Config;
 
     fn match_node(ctx: &ConfigContext) -> Score {
-        ctx.span_node.is_positional_insertion_point().then_val_or_default(Score::Perfect)
+        Score::only_if(ctx.span_node.is_positional_insertion_point())
     }
 
     fn default_config(_: &ConfigContext) -> Configuration<Self::Config> {
-        Configuration::inert(default())
+        Configuration::inert(Config)
     }
 
     fn new(_: &Config, _: &ConfigContext) -> Self {
-        let root = object::Instance::new_named("widget::InsertionPoint");
-        root.set_size(Vector2::<f32>::zero());
-        Self { root }
+        let display_object = object::Instance::new_named("widget::InsertionPoint");
+        display_object.set_size(Vector2::<f32>::zero());
+        Self { display_object }
     }
 
     fn configure(&mut self, _: &Config, _: ConfigContext) {}

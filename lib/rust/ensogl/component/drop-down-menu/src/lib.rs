@@ -249,7 +249,7 @@ impl DropDownMenu {
 
             eval frp.input.set_entries ([model](entries) {
                 let entries:list_view::entry::SingleMaskedProvider<Entry> = entries.clone_ref().into();
-                model.content.set(entries.clone());
+                model.content.replace(Some(entries.clone()));
                 let entries = list_view::entry::AnyModelProvider::<Entry>::new(entries);
                 model.selection_menu.frp.set_entries.emit(entries);
             });
@@ -424,6 +424,6 @@ impl DropDownMenu {
     /// Set the layer of all text labels.
     pub fn set_label_layer(&self, layer: &display::scene::Layer) {
         self.model.selection_menu.set_label_layer(layer);
-        self.model.label.add_to_scene_layer(layer);
+        layer.add(&self.model.label);
     }
 }

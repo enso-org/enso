@@ -4,6 +4,8 @@ use crate::prelude::*;
 use ensogl::display::shape::*;
 use ensogl::display::traits::*;
 
+use crate::GraphLayers;
+
 use enso_frp as frp;
 use enso_frp;
 use ensogl::application::Application;
@@ -38,6 +40,8 @@ define_endpoints_2! {
     Input {
         /// The width and height of the source node in pixels.
         source_size(Vector2),
+        /// The width and height of the target port in pixels.
+        target_size(Vector2),
         /// The location of the center of the target node's input port.
         target_position(Vector2),
         /// Whether the target end of the edge is attached to a node (If `false`, it is being
@@ -78,9 +82,9 @@ pub struct Edge {
 impl Edge {
     /// Constructor.
     #[profile(Detail)]
-    pub fn new(app: &Application) -> Self {
+    pub fn new(app: &Application, layers: &GraphLayers) -> Self {
         let frp = Frp::new();
-        let model = Rc::new(EdgeModel::new(&app.display.default_scene));
+        let model = Rc::new(EdgeModel::new(&app.display.default_scene, layers));
         let network = &frp.network;
         let display_object = &model.display_object;
         let output = &frp.private.output;
@@ -96,6 +100,7 @@ impl Edge {
             eval frp.source_attached ((t) model.inputs.set_source_attached(*t));
             eval frp.target_attached ((t) model.inputs.set_target_attached(*t));
             eval frp.source_size ((t) model.inputs.set_source_size(*t));
+            eval frp.target_size ((t) model.inputs.set_target_size(*t));
             eval frp.set_disabled ((t) model.inputs.set_disabled(*t));
 
             // Mouse events.
@@ -159,8 +164,10 @@ impl Edge {
 struct EdgeModel {
     /// The parent display object of all the edge's parts.
     display_object: display::object::Instance,
-    /// The [`Scene`], needed for coordinate conversions and special layer assignments.
+    /// The [`Scene`], needed for coordinate conversions.
     scene:          Scene,
+    /// The [`GraphLayers`], used for special layer assignments.
+    layers:         GraphLayers,
     /// The raw inputs the state is computed from.
     inputs:         Inputs,
     /// The state, as of the last redraw.
@@ -172,11 +179,15 @@ struct EdgeModel {
 impl EdgeModel {
     /// Constructor.
     #[profile(Debug)]
-    pub fn new(scene: &Scene) -> Self {
-        let display_object = display::object::Instance::new_named("Edge");
-        let scene = scene.clone_ref();
-        scene.layers.main_edges_level.add(&display_object);
-        Self { display_object, scene, inputs: default(), state: default(), shapes: default() }
+    pub fn new(scene: &Scene, layers: &GraphLayers) -> Self {
+        Self {
+            display_object: display::object::Instance::new_named("Edge"),
+            scene:          scene.clone_ref(),
+            layers:         layers.clone_ref(),
+            inputs:         default(),
+            state:          default(),
+            shapes:         default(),
+        }
     }
 
     /// Redraws the connection.
@@ -184,7 +195,7 @@ impl EdgeModel {
     pub fn redraw(&self) {
         let state = self.calculate_state();
         self.apply_state(&state);
-        self.state.set(state);
+        self.state.replace(Some(state));
     }
 
     fn calculate_state(&self) -> State {
@@ -194,7 +205,15 @@ impl EdgeModel {
         let target_offset = self.target_offset();
         let target_attached = self.inputs.target_attached.get();
         let source_attached = self.inputs.source_attached.get();
-        let layout = layout::layout(self.source_half_width(), target_offset, target_attached);
+        let source_size = self.inputs.source_size.get();
+        let target_size = self.inputs.target_size.get();
+        let layout = layout::layout(
+            target_offset,
+            source_size,
+            target_size,
+            source_attached,
+            target_attached,
+        );
         let is_attached = target_attached && source_attached;
         let focus_split = is_attached
             .then(|| {
@@ -205,14 +224,14 @@ impl EdgeModel {
                 // `mouse::Out` event.
                 self.inputs.hover_position.get().and_then(|position| {
                     let position = self.scene_pos_to_parent_pos(position);
-                    let source_height = self.inputs.source_size.get().y();
+                    let source_height = source_size.y();
                     layout::find_position(position, &layout, source_height, render::HOVER_WIDTH)
                 })
             })
             .flatten();
         let styles = StyleWatch::new(&self.scene.style_sheet);
         let normal_color = if self.inputs.disabled.get() {
-            styles.get_color(theme::code::syntax::disabled)
+            styles.get_color(theme::graph_editor::edge::disabled_color)
         } else {
             self.inputs.color.get()
         };
@@ -243,7 +262,7 @@ impl EdgeModel {
             ))
             .or(any4(layout, colors, focus_split, is_attached).changed(
                 |(
-                    Layout { corners, arrow, .. },
+                    Layout { corners, arrow, source_size, .. },
                     Colors { source_color, target_color, .. },
                     FocusSplit { focus_split, .. },
                     IsAttached { is_attached, .. },
@@ -262,6 +281,7 @@ impl EdgeModel {
                         focus_split:  *focus_split,
                         is_attached:  *is_attached,
                     });
+                    self.shapes.redraw_cutout(self, *is_attached, *source_size);
                 },
             ))
             .or(any(layout, colors).changed(
@@ -287,10 +307,6 @@ impl EdgeModel {
 // === Low-level operations ===
 
 impl EdgeModel {
-    fn source_half_width(&self) -> f32 {
-        self.inputs.source_size.get().x() / 2.0
-    }
-
     fn screen_pos_to_scene_pos(&self, screen_pos: Vector2) -> SceneCoords {
         let screen_pos_3d = Vector3(screen_pos.x(), screen_pos.y(), 0.0);
         SceneCoords(self.scene.screen_to_scene_coordinates(screen_pos_3d).xy())
@@ -319,6 +335,10 @@ impl EdgeModel {
 impl ShapeParent for EdgeModel {
     fn scene(&self) -> &Scene {
         &self.scene
+    }
+
+    fn layers(&self) -> &GraphLayers {
+        &self.layers
     }
 }
 

@@ -208,6 +208,10 @@
 - [The libraries' authors may put entities to groups by adding GROUP tag in the
   docstring]. It was requested as more convenient way than specifying full names
   in package.yaml.
+- [Graph editor node was redesigned][7311]. Nodes have a color and icon matching
+  the selected entry in the component browser. Clear separating lines between
+  method arguments were added. The node selection was made easier with
+  additional thick interactive selection border.
 
 [5910]: https://github.com/enso-org/enso/pull/5910
 [6279]: https://github.com/enso-org/enso/pull/6279
@@ -230,6 +234,7 @@
 [7164]: https://github.com/enso-org/enso/pull/7164
 [7372]: https://github.com/enso-org/enso/pull/7372
 [7337]: https://github.com/enso-org/enso/pull/7337
+[7311]: https://github.com/enso-org/enso/pull/7311
 
 #### EnsoGL (rendering engine)
 

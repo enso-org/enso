@@ -166,7 +166,6 @@ impl Model {
         let entries: Entries = default();
         let show_ellipsis = Rc::new(Cell::new(false));
         frp::new_network! { network
-            init <- source_();
             requested_entry <- grid.model_for_entry_needed.map2(&grid.grid_size,
                 f!([entries, show_ellipsis]((row, col), grid_size) {
                     let (_, cols) = grid_size;
@@ -178,11 +177,9 @@ impl Model {
         let style_frp = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
         let style = entry::Style::from_theme(&network, &style_frp);
         frp::extend! { network
-            params <- style.update.map(|s| entry::Params { style: s.clone(), greyed_out_start: None });
+            params <- style.map(|s| entry::Params { style: s.clone(), greyed_out_start: None });
             grid.set_entries_params <+ params;
         }
-        init.emit(());
-        style.init.emit(());
         Self { display_object, grid, entries, network, mask, show_ellipsis }
     }
 

@@ -1187,6 +1187,10 @@ pub const ENABLE_DOM_DEBUG_ALL: bool = true;
 /// The name of a display object when not specified. Object names are visible in the DOM inspector.
 pub const DEFAULT_NAME: &str = "UnnamedDisplayObject";
 
+/// The size of a smallvec used to temporarily store children of a display object. Most display
+/// objects on the scene should have at less children than this. The object instances stored in that
+/// smallvec are a size of a single pointer, so this value can be relatively generous.
+const NUM_CHILDREN_IN_SMALLVEC: usize = 12;
 
 
 // ==========
@@ -1856,28 +1860,34 @@ impl Model {
     }
 
     fn set_display_layer(&self, layer: &Layer, symbol_partition: Option<AnySymbolPartition>) {
-        let layer = LayerAssignment { layer: layer.downgrade(), symbol_partition };
         let mut assigned_layer = self.assigned_layer.borrow_mut();
-        if assigned_layer.as_ref() != Some(&layer) {
+
+        // TODO: replace with [`Option::is_some_and`] once we bump rust version.
+        let already_assigned = matches!(
+            &*assigned_layer,
+            Some(a) if &a.layer == layer && a.symbol_partition == symbol_partition
+        );
+        if !already_assigned {
+            *assigned_layer = Some(LayerAssignment { layer: layer.downgrade(), symbol_partition });
             self.dirty.new_layer.set();
-            *assigned_layer = Some(layer);
         }
     }
 
     /// Remove this object from the provided scene layer. Do not use this method explicitly. Use
     /// layers' methods instead.
     pub(crate) fn remove_from_display_layer(&self, layer: &Layer) {
-        let layer = layer.downgrade();
-        if self.assigned_layer.borrow().as_ref().map(|assignment| &assignment.layer) == Some(&layer)
-        {
+        let mut assigned_layer = self.assigned_layer.borrow_mut();
+
+        // TODO: replace with [`Option::is_some_and`] once we bump rust version.
+        if matches!(&*assigned_layer, Some(a) if &a.layer == layer) {
+            *assigned_layer = None;
             self.dirty.new_layer.set();
-            *self.assigned_layer.borrow_mut() = None;
         }
     }
 }
 
 impl Model {
-    fn children(&self) -> Vec<Instance> {
+    fn children(&self) -> SmallVec<[Instance; NUM_CHILDREN_IN_SMALLVEC]> {
         self.children.borrow().values().filter_map(|t| t.upgrade()).collect()
     }
 
@@ -1886,7 +1896,6 @@ impl Model {
         self.visible.get()
     }
 
-    /// Hide the object. This is a helper API. Used by tests and the [`Root`] object.
     fn hide(&self) {
         self.set_vis_false(None)
     }
@@ -2553,28 +2562,27 @@ impl InstanceDef {
         }
 
         let style_string = RefCell::new(String::new());
-        let display = Rc::new(Cell::new(""));
         let last_parent_node = RefCell::new(None);
         let weak = self.downgrade();
         let network = &self.network;
         frp::extend! { network
-            eval_ self.on_show (display.set(""));
-            eval_ self.on_hide (display.set("display:none;"));
-            eval_ self.on_transformed ([display] {
+            is_visible <- bool(&self.on_hide, &self.on_show);
+            class <- is_visible.switch_constant("hidden", "");
+            _eval <- all_with(&self.on_transformed, &class, move |_, class| {
                 let Some(object) = weak.upgrade() else { return };
                 let Some(dom) = object.debug_dom.as_ref() else { return };
                 let mut parent_node = last_parent_node.borrow_mut();
                 let transform;
                 let new_parent;
 
-                let upgrade = |l: &LayerAssignment| l.layer.upgrade();
-                if let Some(layer) = object.assigned_layer.borrow().as_ref().and_then(upgrade) {
-                    transform = object.transformation.borrow().matrix();
-                    new_parent = layer.debug_dom.clone();
-                } else if let Some(parent) = object.parent().and_then(|p| p.debug_dom.clone()) {
+                let layer = object.display_layer();
+                let parent = object.parent();
+                let parent_layer = parent.as_ref().and_then(|p| p.display_layer());
+                let parent_dom = parent.as_ref().and_then(|p| p.debug_dom.as_ref());
+                if layer == parent_layer && let Some(dom) = parent_dom {
                     transform = object.transformation.borrow().local_matrix();
-                    new_parent = Some(parent);
-                } else if let Some(layer) = object.layer.borrow().as_ref().and_then(upgrade) {
+                    new_parent = Some(dom.clone());
+                } else if let Some(layer) = layer {
                     transform = object.transformation.borrow().matrix();
                     new_parent = layer.debug_dom.clone();
                 } else {
@@ -2593,21 +2601,17 @@ impl InstanceDef {
                 }
 
                 let size = object.computed_size();
-                let transform = transform.as_slice();
-                let mut style_string = style_string.borrow_mut();
                 let x = size.x();
                 let y = size.y();
-                let display = display.get();
-                let (first, rest) = transform.split_first().unwrap();
+                let transform = transformation::CssTransformFormatter(&transform);
+                let mut style_string = style_string.borrow_mut();
                 write!(style_string, "\
-                    {display}\
                     width:{x}px;\
                     height:{y}px;\
-                    transform:matrix3d({first:.4}"
+                    transform:{transform};"
                 ).unwrap();
-                rest.iter().for_each(|f| write!(style_string, ",{f:.4}").unwrap());
-                style_string.write_str(");").unwrap();
                 dom.set_attribute_or_warn("style", &*style_string);
+                dom.set_attribute_or_warn("class", class);
                 style_string.clear();
             });
         }
@@ -3130,10 +3134,10 @@ pub trait LayoutOps: Object {
         self.display_object().layout.margin.set(Vector2(margin, margin));
     }
 
-    /// Set vertical and horizontal margins of the object. Margin is the free space around the
+    /// Set horizontal and vertical margins of the object. Margin is the free space around the
     /// object.
-    fn set_margin_vh(&self, vertical: impl Into<Unit>, horizontal: impl Into<Unit>) -> &Self {
-        let margin = Vector2(horizontal.into().into(), vertical.into().into());
+    fn set_margin_xy(&self, margin: impl IntoVectorTrans2<Unit>) -> &Self {
+        let margin = margin.into_vector_trans().into_vector_trans();
         self.display_object().layout.margin.set(margin);
         self
     }
@@ -3172,10 +3176,10 @@ pub trait LayoutOps: Object {
         self.display_object().layout.padding.set(Vector2(horizontal, vertical));
     }
 
-    /// Set vertical and horizontal padding of the object. Padding is the free space inside the
+    /// Set horizontal and vertical padding of the object. Padding is the free space inside the
     /// object.
-    fn set_padding_vh(&self, vertical: impl Into<Unit>, horizontal: impl Into<Unit>) -> &Self {
-        let padding = Vector2(horizontal.into().into(), vertical.into().into());
+    fn set_padding_xy(&self, padding: impl IntoVectorTrans2<Unit>) -> &Self {
+        let padding = padding.into_vector_trans().into_vector_trans();
         self.display_object().layout.padding.set(padding);
         self
     }
@@ -3705,7 +3709,7 @@ impl Model {
         let hug_children = pass_cfg != PassConfig::DoNotHugDirectChildren;
         let hug_children = hug_children && self.layout.size.get_dim(x).is_hug();
         let children = self.children();
-        let old_child_computed_sizes: Vec<f32> =
+        let old_child_computed_sizes: SmallVec<[f32; NUM_CHILDREN_IN_SMALLVEC]> =
             children.iter().map(|child| child.layout.computed_size.get_dim(x)).collect();
 
         let mut max_x = 0.0f32;
@@ -3742,6 +3746,8 @@ impl Model {
             self.layout.computed_size.set_dim(x, max_x);
         }
 
+        let padding = self.layout.padding.get_dim(x).resolve_pixels_or_default();
+
         // Resolve aligned children and hug them again.
         if has_aligned_non_grow_children {
             let base_size = self.layout.computed_size.get_dim(x);
@@ -3750,10 +3756,13 @@ impl Model {
                 if let Some(alignment) = *child.layout.alignment.get().get_dim(x) && !to_grow {
                     let child_size = child.computed_size().get_dim(x);
                     let child_margin = child.layout.margin.get_dim(x).resolve_pixels_or_default();
-                    let remaining_size = base_size - child_size - child_margin.total();
-                    let aligned_x = remaining_size * alignment.normalized() + child_margin.start;
+                    let remaining_size =
+                        base_size - child_size - child_margin.total() - padding.total();
+                    let aligned_x = remaining_size * alignment.normalized()
+                        + child_margin.start
+                        + padding.start;
                     child.set_position_dim(x, aligned_x);
-                    max_x = max_x.max(aligned_x + child_size + child_margin.end);
+                    max_x = max_x.max(aligned_x + child_size + child_margin.end + padding.end);
                 }
             }
             if hug_children {
@@ -3784,9 +3793,11 @@ impl Model {
                     }
 
                     if let Some(alignment) = *child.layout.alignment.get().get_dim(x) {
-                        let remaining_size = self_size - desired_child_size - child_margin.total();
-                        let aligned_x =
-                            remaining_size * alignment.normalized() + child_margin.start;
+                        let remaining_size =
+                            self_size - desired_child_size - child_margin.total() - padding.total();
+                        let aligned_x = remaining_size * alignment.normalized()
+                            + child_margin.start
+                            + padding.start;
                         child.set_position_dim(x, aligned_x);
                     }
                 }
@@ -4800,7 +4811,7 @@ mod hierarchy_tests {
 
         let new_nodes: [_; 10] = std::array::from_fn(|_| Instance::new());
         root.replace_children(&new_nodes);
-        assert_eq!(root.children(), &new_nodes);
+        assert_eq!(&*root.children(), &new_nodes);
         assert.child_indices(&[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
         assert.modified_children(&[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
         assert.removed_children(&nodes);

@@ -11,3 +11,4 @@ proc-macro = true
 proc-macro2 = { workspace = true }
 syn_1 = { workspace = true }
 quote = { workspace = true }
+proc-macro-crate = "1.3"

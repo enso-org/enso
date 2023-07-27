@@ -63,9 +63,9 @@ mod status_indicator_shape {
         (style:Style,color_rgba:Vector4<f32>) {
             let width  = Var::<Pixels>::from("input_size.x");
             let height = Var::<Pixels>::from("input_size.y");
-            let width  = width  - node::PADDING.px() * 2.0;
-            let height = height - node::PADDING.px() * 2.0;
-            let radius = node::RADIUS.px();
+            let width  = width  - node::BACKDROP_INSET.px() * 2.0;
+            let height = height - node::BACKDROP_INSET.px() * 2.0;
+            let radius = node::CORNER_RADIUS.px();
 
             let base = Rect((&width,&height)).corners_radius(radius);
             let outer = base.grow(INDICATOR_WIDTH_OUTER.px());

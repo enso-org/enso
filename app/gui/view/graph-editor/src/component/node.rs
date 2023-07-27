@@ -10,6 +10,7 @@ use crate::selection::BoundingBox;
 use crate::tooltip;
 use crate::view;
 use crate::CallWidgetsConfig;
+use crate::GraphLayers;
 use crate::Type;
 
 use engine_protocol::language_server::ExecutionEnvironment;
@@ -20,12 +21,11 @@ use ensogl::application::Application;
 use ensogl::control::io::mouse;
 use ensogl::data::color;
 use ensogl::display;
-use ensogl::display::shape::compound::rectangle;
+use ensogl::display::style::FromTheme;
 use ensogl::gui;
 use ensogl::Animation;
 use ensogl_component::text;
 use ensogl_hardcoded_theme as theme;
-use ensogl_hardcoded_theme;
 
 
 // ==============
@@ -54,23 +54,22 @@ pub use expression::Expression;
 // === Constants ===
 // =================
 
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
-pub const ACTION_BAR_WIDTH: f32 = 180.0;
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
-pub const ACTION_BAR_HEIGHT: f32 = 15.0;
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
-pub const CORNER_RADIUS: f32 = 14.0;
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
-pub const HEIGHT: f32 = 28.0;
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
-pub const PADDING: f32 = 40.0;
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
-pub const RADIUS: f32 = 14.0;
+/// Base height of a single-line node.
+pub const HEIGHT: f32 = 32.0;
+/// The additional reserved space around base background shape to allow for drawing node backdrop
+/// shapes, such as selection or status.
+pub const BACKDROP_INSET: f32 = 25.0;
+/// Size of error indicator border around node.
+pub const ERROR_BORDER_WIDTH: f32 = 3.0;
+/// Distance between node and error indicator border.
+pub const ERROR_BORDER_DISTANCE: f32 = 3.0;
+/// Radius of rounded corners of base node background shape. Node also contains other shapes, such
+/// as selection, that will also received rounded corners by growing the background shape.
+pub const CORNER_RADIUS: f32 = HEIGHT / 2.0;
 
 /// Space between the documentation comment and the node.
 pub const COMMENT_MARGIN: f32 = 10.0;
 
-const INFINITE: f32 = 99999.0;
 const ERROR_VISUALIZATION_SIZE: Vector2 = visualization::container::DEFAULT_SIZE;
 
 const VISUALIZATION_OFFSET_Y: f32 = -20.0;
@@ -85,103 +84,120 @@ const UNRESOLVED_SYMBOL_TYPE: &str = "Builtins.Main.Unresolved_Symbol";
 
 
 
-// ===============
-// === Comment ===
-// ===============
-
-/// String with documentation comment text for this node.
-///
-/// This is just a plain string, as this is what text area expects and node just redirects this
-/// value,
-pub type Comment = ImString;
-
-
-
 // ==============
 // === Shapes ===
 // ==============
 
 /// A node's background area and selection.
-#[derive(Debug, Clone, CloneRef, display::Object)]
+#[derive(Debug, Clone, display::Object)]
 pub struct Background {
+    _network:            frp::Network,
     #[display_object]
-    shape:           Rectangle,
-    inset:           Immutable<f32>,
-    selection_color: Immutable<color::Rgba>,
+    shape:               Rectangle,
+    selection_shape:     Rectangle,
+    selection_animation: Animation<f32>,
+    color_animation:     color::Animation,
+    node_is_hovered:     frp::Any<bool>,
+    size_and_center:     frp::Source<(Vector2, Vector2)>,
+}
+
+#[derive(Debug, Clone, Default, FromTheme)]
+struct BackgroundStyle {
+    #[theme_path = "theme::graph_editor::node::selection::opacity"]
+    selection_opacity:       f32,
+    #[theme_path = "theme::graph_editor::node::selection::hover_opacity"]
+    selection_hover_opacity: f32,
+    #[theme_path = "theme::graph_editor::node::selection::size"]
+    selection_size:          f32,
 }
 
 impl Background {
     fn new(style: &StyleWatchFrp) -> Self {
-        let selection_color =
-            style.get_color(ensogl_hardcoded_theme::graph_editor::node::selection).value();
-        let selection_size =
-            style.get_number(ensogl_hardcoded_theme::graph_editor::node::selection::size).value();
-        let selection_offset =
-            style.get_number(ensogl_hardcoded_theme::graph_editor::node::selection::offset).value();
-        let inset = selection_size + selection_offset;
+        let network = frp::Network::new("Background");
+        let style = BackgroundStyle::from_theme(&network, style);
         let shape = Rectangle();
-        shape.set_corner_radius(RADIUS);
-        shape.set_frame_border(selection_size);
-        shape.set_border_color(color::Rgba::transparent());
-        shape.set_inset(inset);
-        Self { shape, inset: Immutable(inset), selection_color: Immutable(selection_color) }
+        let selection_shape = Rectangle();
+        let color_animation = color::Animation::new(&network);
+        let selection_animation = Animation::new(&network);
+        let hover_animation = Animation::new(&network);
+        shape.add_child(&selection_shape);
+
+        let selection_enter = selection_shape.on_event::<mouse::Enter>();
+        let selection_leave = selection_shape.on_event::<mouse::Leave>();
+
+        frp::extend! { network
+            selection_is_hovered <- bool(&selection_leave, &selection_enter);
+            node_is_hovered <- any(...);
+            is_hovered <- selection_is_hovered || node_is_hovered;
+            hover_animation.target <+ is_hovered.switch_constant(INVISIBLE_HOVER_COLOR.alpha, 1.0);
+            selection_colors <- color_animation.value.all_with3(
+                &hover_animation.value, &style,
+                |color, hover, style| (
+                    color.multiply_alpha(style.selection_opacity),
+                    color.multiply_alpha(style.selection_hover_opacity * hover),
+                )
+            );
+            selection_border <- selection_animation.value.all_with(&style,
+                |selection, style| style.selection_size * (1.0 - selection)
+            );
+
+            size_and_center <- source();
+            eval size_and_center([shape] (size_and_center) {
+                let (size, center) = *size_and_center;
+                shape.set_xy(center - size / 2.0);
+                shape.set_size(size);
+                shape.set_corner_radius(CORNER_RADIUS);
+            });
+
+            size_and_selection <- size_and_center.all_with(&style,
+                |(size, _), style| (*size, style.selection_size)
+            ).on_change();
+
+            eval size_and_selection([selection_shape] (size_and_selection) {
+                let (size, total_selection_size) = *size_and_selection;
+                let total_selection_vec = Vector2::from_element(total_selection_size);
+                // selection shape is positioned relative to the background shape.
+                selection_shape.set_xy(-total_selection_vec);
+                selection_shape.set_size(size + total_selection_vec * 2.0);
+                selection_shape.set_corner_radius(CORNER_RADIUS + total_selection_size);
+            });
+
+            eval color_animation.value((color) shape.set_color(color.into()););
+            eval selection_border((border) selection_shape.set_border_and_inset(*border););
+            eval selection_colors([selection_shape] ((selected_color, unselected_color)) {
+                selection_shape.set_color(selected_color.into());
+                selection_shape.set_border_color(unselected_color.into());
+            });
+        }
+
+        selection_animation.target.emit(0.0);
+        hover_animation.precision.emit(0.01);
+        hover_animation.target.emit(INVISIBLE_HOVER_COLOR.alpha);
+
+        Self {
+            _network: network,
+            shape,
+            selection_shape,
+            selection_animation,
+            node_is_hovered,
+            color_animation,
+            size_and_center,
+        }
     }
 
-    fn set_selected(&self, degree: f32) {
-        let selected = self.selection_color;
-        let blended = color::Rgba(selected.red, selected.green, selected.blue, degree);
-        self.shape.set_border_color(blended);
+    fn set_selected(&self, selected: bool) {
+        self.selection_animation.target.emit(if selected { 1.0 } else { 0.0 });
+    }
+
+    fn set_color(&self, color: color::Lcha) {
+        self.color_animation.target.emit(color);
     }
 
     fn set_size_and_center_xy(&self, size: Vector2<f32>, center: Vector2<f32>) {
-        let size_with_inset = size + 2.0 * Vector2(*self.inset, *self.inset);
-        let origin = center - size_with_inset / 2.0;
-        self.shape.set_size(size_with_inset);
-        self.shape.set_xy(origin);
+        self.size_and_center.emit((size, center));
     }
 }
 
-
-
-// =======================
-// === Error Indicator ===
-// =======================
-
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
-pub mod error_shape {
-    use super::*;
-
-    ensogl::shape! {
-        below = [rectangle];
-        alignment = center;
-        (style:Style,color_rgba:Vector4<f32>) {
-            use ensogl_hardcoded_theme::graph_editor::node as node_theme;
-
-            let width  = Var::<Pixels>::from("input_size.x");
-            let height = Var::<Pixels>::from("input_size.y");
-            let zoom   = Var::<f32>::from("1.0/zoom()");
-            let width  = width  - PADDING.px() * 2.0;
-            let height = height - PADDING.px() * 2.0;
-            let radius = RADIUS.px();
-
-            let error_width         = style.get_number(node_theme::error::width).px();
-            let repeat_x            = style.get_number(node_theme::error::repeat_x).px();
-            let repeat_y            = style.get_number(node_theme::error::repeat_y).px();
-            let stripe_width        = style.get_number(node_theme::error::stripe_width);
-            let stripe_angle        = style.get_number(node_theme::error::stripe_angle);
-            let repeat              = Var::<Vector2<Pixels>>::from((repeat_x,repeat_y));
-            let stripe_width        = Var::<Pixels>::from(zoom * stripe_width);
-            let stripe_red          = Rect((&stripe_width,INFINITE.px()));
-            let stripe_angle_rad    = stripe_angle.radians();
-            let pattern             = stripe_red.repeat(repeat).rotate(stripe_angle_rad);
-            let mask                = Rect((&width,&height)).corners_radius(radius);
-            let mask                = mask.grow(error_width);
-            let pattern             = mask.intersection(pattern).fill(color_rgba);
-
-            pattern.into()
-        }
-    }
-}
 
 
 // ============
@@ -205,7 +221,7 @@ ensogl::define_endpoints_2! {
         /// Set whether the output context is explicitly enabled: `Some(true/false)` for
         /// enabled/disabled; `None` for no context switch expression.
         set_context_switch    (Option<bool>),
-        set_comment           (Comment),
+        set_comment           (ImString),
         set_error             (Option<Error>),
         /// Set the expression USAGE type. This is not the definition type, which can be set with
         /// `set_expression` instead. In case the usage type is set to None, ports still may be
@@ -247,13 +263,12 @@ ensogl::define_endpoints_2! {
         /// execution context. It is the responsibility of the parent component to apply the changes
         /// and update the node with new expression tree using `set_expression`.
         on_expression_modified   (span_tree::Crumbs, ImString),
-        comment                  (Comment),
+        comment                  (ImString),
         context_switch           (bool),
         skip                     (bool),
         freeze                   (bool),
         hover                    (bool),
         error                    (Option<Error>),
-        expression_label_visible (bool),
         /// The [`display::object::Model::position`] of the Node. Emitted when the Display Object
         /// hierarchy is updated (see: [`ensogl_core::display::object::Instance::update`]).
         position                 (Vector2),
@@ -271,6 +286,9 @@ ensogl::define_endpoints_2! {
         /// call's target expression (`self` or first argument).
         requested_widgets        (ast::Id, ast::Id),
         request_import           (ImString),
+
+        base_color               (color::Lcha),
+        port_color               (color::Lcha),
     }
 }
 
@@ -353,43 +371,38 @@ impl Deref for Node {
 }
 
 /// Internal data of `Node`
-#[derive(Clone, CloneRef, Debug, display::Object)]
+#[derive(Clone, Debug, display::Object)]
 #[allow(missing_docs)]
 pub struct NodeModel {
-    // Required for switching the node to a different layer
-    pub app:                 Application,
+    pub layers:              GraphLayers,
     pub display_object:      display::object::Instance,
     pub background:          Background,
-    pub error_indicator:     error_shape::View,
+    pub error_indicator:     Rectangle,
     pub profiling_label:     ProfilingLabel,
     pub input:               input::Area,
     pub output:              output::Area,
     pub visualization:       visualization::Container,
     pub error_visualization: error::Container,
+    pub action_bar_wrapper:  display::object::Instance,
     pub action_bar:          action_bar::ActionBar,
     pub vcs_indicator:       vcs::StatusIndicator,
     pub style:               StyleWatchFrp,
     pub comment:             text::Text,
-    pub interaction_state:   Rc<Cell<InteractionState>>,
+    pub interaction_state:   Cell<InteractionState>,
 }
 
 impl NodeModel {
     /// Constructor.
     #[profile(Debug)]
-    pub fn new(app: &Application, registry: visualization::Registry) -> Self {
-        use display::shape::compound::rectangle;
-        ensogl::shapes_order_dependencies! {
-            app.display.default_scene => {
-                error_shape               -> output::port::single_port;
-                error_shape               -> output::port::multi_port;
-                output::port::single_port -> rectangle;
-                output::port::multi_port  -> rectangle;
-            }
-        }
-
+    pub fn new(app: &Application, layers: &GraphLayers, registry: visualization::Registry) -> Self {
         let style = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
 
-        let error_indicator = error_shape::View::new();
+        let error_indicator = Rectangle();
+        error_indicator
+            .set_corner_radius_max()
+            .set_pointer_events(false)
+            .set_color(color::Rgba::transparent())
+            .set_border_and_inset(ERROR_BORDER_WIDTH);
         let profiling_label = ProfilingLabel::new(app);
         let background = Background::new(&style);
         let vcs_indicator = vcs::StatusIndicator::new(app);
@@ -399,7 +412,7 @@ impl NodeModel {
         display_object.add_child(&background);
         display_object.add_child(&vcs_indicator);
 
-        let input = input::Area::new(app);
+        let input = input::Area::new(app, layers);
         let visualization = visualization::Container::new(app, registry);
 
         display_object.add_child(&visualization);
@@ -409,7 +422,11 @@ impl NodeModel {
         error_visualization.frp.set_size.emit(ERROR_VISUALIZATION_SIZE);
 
         let action_bar = action_bar::ActionBar::new(app);
-        display_object.add_child(&action_bar);
+        let action_bar_wrapper = display::object::Instance::new_named("action_bar_wrapper");
+        action_bar_wrapper.set_size((0.0, 0.0)).set_xy((0.0, 0.0));
+        action_bar_wrapper.add_child(&action_bar);
+        action_bar.set_alignment_right_center();
+        display_object.add_child(&action_bar_wrapper);
 
         let output = output::Area::new(app);
         display_object.add_child(&output);
@@ -419,9 +436,8 @@ impl NodeModel {
 
         let interaction_state = default();
 
-        let app = app.clone_ref();
         Self {
-            app,
+            layers: layers.clone(),
             display_object,
             background,
             error_indicator,
@@ -430,6 +446,7 @@ impl NodeModel {
             output,
             visualization,
             error_visualization,
+            action_bar_wrapper,
             action_bar,
             vcs_indicator,
             style,
@@ -452,51 +469,20 @@ impl NodeModel {
         self.set_layers_for_state(new_state);
     }
 
-    /// Set whether the node is being interacted with by moving an edge with the mouse.
-    pub fn set_editing_edge(&self, editing: bool) {
-        let new_state = self.interaction_state.update(|state| state.editing_edge(editing));
-        self.set_layers_for_state(new_state);
-    }
-
     fn set_layers_for_state(&self, new_state: InteractionState) {
-        let scene = &self.app.display.default_scene;
-        let main_layer;
-        let background_layer;
-        let text_layer;
-        let action_bar_layer;
-        match new_state {
-            InteractionState::EditingExpression => {
-                // Move all sub-components to `edited_node` layer.
-                //
-                // `action_bar` is moved to the `edited_node` layer as well, though normally it
-                // lives on a separate `above_nodes` layer, unlike every other node component.
-                main_layer = scene.layers.edited_node.default_partition();
-                background_layer = main_layer.clone();
-                text_layer = &scene.layers.edited_node_text;
-                action_bar_layer = &scene.layers.edited_node;
-            }
-            InteractionState::EditingEdge => {
-                main_layer = scene.layers.main_nodes_level.clone();
-                background_layer = scene.layers.main_active_nodes_level.clone();
-                text_layer = &scene.layers.label;
-                action_bar_layer = &scene.layers.above_nodes;
-            }
-            InteractionState::Normal => {
-                main_layer = scene.layers.main_nodes_level.clone();
-                background_layer = main_layer.clone();
-                text_layer = &scene.layers.label;
-                action_bar_layer = &scene.layers.above_nodes;
-            }
-        }
-        main_layer.add(&self.display_object);
-        background_layer.add(&self.background);
-        action_bar_layer.add(&self.action_bar);
-        // For the text layer, [`Layer::add`] can't be used because text rendering currently uses a
-        // separate layer management API.
-        self.output.set_label_layer(text_layer);
-        self.input.set_label_layer(text_layer);
-        self.profiling_label.set_label_layer(text_layer);
-        self.comment.add_to_scene_layer(text_layer);
+        let (below, main) = match new_state {
+            InteractionState::Normal => (&self.layers.main_backdrop, &self.layers.main_nodes),
+            InteractionState::EditingExpression =>
+                (&self.layers.edited_backdrop, &self.layers.edited_nodes),
+        };
+
+        main.body.add(&self.display_object);
+        below.backdrop.add(&self.background.selection_shape);
+        below.backdrop.add(&self.error_indicator);
+        main.action_bar.add(&self.action_bar_wrapper);
+        main.below_body.add(&self.output);
+        main.output_hover.add(self.output.hover_root());
+        self.action_bar.set_layers(main);
     }
 
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
@@ -526,19 +512,17 @@ impl NodeModel {
     fn set_width(&self, width: f32) -> Vector2 {
         let height = self.height();
         let size = Vector2(width, height);
-        let padded_size = size + Vector2(PADDING, PADDING) * 2.0;
-        self.error_indicator.set_size(padded_size);
+        let padded_size = size + Vector2(BACKDROP_INSET, BACKDROP_INSET) * 2.0;
+        let error_padding = ERROR_BORDER_WIDTH + ERROR_BORDER_DISTANCE;
+        let error_size = size + Vector2(error_padding, error_padding) * 2.0;
+        self.output.frp.set_size(size);
+        self.error_indicator.set_size(error_size);
         self.vcs_indicator.frp.set_size(padded_size);
         let x_offset_to_node_center = x_offset_to_node_center(width);
         let background_origin = Vector2(x_offset_to_node_center, 0.0);
         self.background.set_size_and_center_xy(size, background_origin);
-        self.error_indicator.set_x(x_offset_to_node_center);
+        self.error_indicator.set_xy((-error_padding, -height / 2.0 - error_padding));
         self.vcs_indicator.set_x(x_offset_to_node_center);
-
-        let action_bar_width = ACTION_BAR_WIDTH;
-        self.action_bar
-            .set_x(x_offset_to_node_center + width / 2.0 + CORNER_RADIUS + action_bar_width / 2.0);
-        self.action_bar.frp.set_size(Vector2::new(action_bar_width, ACTION_BAR_HEIGHT));
 
         self.visualization.set_xy(VISUALIZATION_OFFSET);
         // Error visualization has origin in the center, while regular visualization has it at the
@@ -570,29 +554,34 @@ impl NodeModel {
 
     #[profile(Debug)]
     fn set_error_color(&self, color: &color::Lcha) {
-        self.error_indicator.color_rgba.set(color::Rgba::from(color).into());
         if color.alpha < f32::EPSILON {
             self.error_indicator.unset_parent();
         } else {
+            self.error_indicator.set_border_color(color.into());
             self.display_object.add_child(&self.error_indicator);
         }
     }
 
-    fn set_selected(&self, degree: f32) {
-        self.background.set_selected(degree);
+    #[profile(Debug)]
+    fn update_colors(&self, color: color::Lcha, port_color: color::Lcha) {
+        self.background.set_color(color);
+        self.output.set_port_color(port_color);
+    }
+
+    fn set_selected(&self, selected: bool) {
+        self.background.set_selected(selected);
     }
 }
 
 impl Node {
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     #[profile(Debug)]
-    pub fn new(app: &Application, registry: visualization::Registry) -> Self {
+    pub fn new(app: &Application, layers: &GraphLayers, registry: visualization::Registry) -> Self {
         let frp = Frp::new();
         let network = frp.network();
         let out = &frp.private.output;
         let input = &frp.private.input;
-        let model = Rc::new(NodeModel::new(app, registry));
-        let selection = Animation::<f32>::new(network);
+        let model = Rc::new(NodeModel::new(app, layers, registry));
         let display_object = &model.display_object;
 
         // TODO[ao] The comment color should be animated, but this is currently slow. Will be fixed
@@ -605,12 +594,14 @@ impl Node {
 
         frp::extend! { network
             init <- source::<()>();
-
             // Hook up the display object position updates to the node's FRP. Required to calculate
             // the bounding box.
             out.position <+ display_object.on_transformed.map(f_!(display_object.position().xy()));
+        }
 
+        frp::extend! { network
             // === Hover ===
+
             // The hover discovery of a node is an interesting process. First, we discover whether
             // ths user hovers the background. The input port manager merges this information with
             // port hover events and outputs the final hover event for any part inside of the node.
@@ -626,30 +617,29 @@ impl Node {
             model.input.set_hover <+ node_hover;
             model.output.set_hover <+ model.input.body_hover;
             out.hover <+ model.output.body_hover;
+            model.background.node_is_hovered <+ out.hover;
+        }
 
-
+        frp::extend! { network
             // === Background Press ===
 
             let background_press = model.background.on_event::<mouse::Down>();
             let input_press = model.input.on_event::<mouse::Down>();
             input_as_background_press <- input_press.gate(&input.set_edit_ready_mode);
-            // When editing, clicks focus the `Text` component and set the cursor position.
-            background_as_input_press <- background_press.gate(&model.input.editing);
-            model.input.mouse_down <+_ background_as_input_press;
             background_press <- background_press.gate_not(&model.input.editing);
             any_background_press <- any(&background_press, &input_as_background_press);
             any_primary_press <- any_background_press.filter(mouse::event::is_primary);
             out.background_press <+_ any_primary_press;
+        }
 
-
+        frp::extend! { network
             // === Selection ===
 
-            deselect_target  <- input.deselect.constant(0.0);
-            select_target    <- input.select.constant(1.0);
-            selection.target <+ any(&deselect_target, &select_target);
-            eval selection.value ((t) model.set_selected(*t));
+            selected <- bool(&input.deselect, &input.select);
+            eval selected ((selected) model.set_selected(*selected));
+        }
 
-
+        frp::extend! { network
             // === Expression ===
 
             let unresolved_symbol_type = Some(Type(ImString::new(UNRESOLVED_SYMBOL_TYPE)));
@@ -668,8 +658,11 @@ impl Node {
             model.input.update_widgets <+ input.update_widgets;
             model.output.set_expression_visibility <+ input.set_output_expression_visibility;
 
+        }
 
+        frp::extend! { network
             // === Comment ===
+
 
             let comment_base_color = style_frp.get_color(theme::graph_editor::node::text);
             comment_color <- all_with(
@@ -690,29 +683,31 @@ impl Node {
                 model.comment.set_y(*height / 2.0));
             model.comment.set_content <+ input.set_comment;
             out.comment <+ model.comment.content.map(|text| text.to_im_string());
+        }
 
-
+        frp::extend! { network
             // === Size ===
 
             input_width <- all(&model.input.frp.width, &init)._0();
             new_size <- input_width.map(f!((w) model.set_width(*w)));
-            model.output.frp.set_size <+ new_size;
+        }
 
-
+        frp::extend! { network
             // === Action Bar ===
 
             out.context_switch <+ action_bar.action_context_switch;
             out.skip   <+ action_bar.action_skip;
             out.freeze <+ action_bar.action_freeze;
-            show_action_bar <- out.hover  && input.show_quick_action_bar_on_hover;
+            show_action_bar <- node_hover && input.show_quick_action_bar_on_hover;
             eval show_action_bar ((t) action_bar.set_visibility(t));
             eval input.show_quick_action_bar_on_hover((value) action_bar.show_on_hover(value));
             action_bar.set_action_freeze_state <+ input.set_freeze_macro;
             action_bar.set_action_skip_state <+ input.set_skip_macro;
             action_bar.set_action_context_switch_state <+ input.set_context_switch;
             action_bar.set_execution_environment <+ input.set_execution_environment;
+        }
 
-
+        frp::extend! { network
             // === View Mode ===
 
             model.input.set_view_mode <+ input.set_view_mode;
@@ -721,8 +716,9 @@ impl Node {
             model.vcs_indicator.set_visibility  <+ input.set_view_mode.map(|&mode| {
                 !matches!(mode,view::Mode::Profiling {..})
             });
+        }
 
-
+        frp::extend! { network
             // === Read-only mode ===
 
             action_bar.set_read_only <+ input.set_read_only;
@@ -758,7 +754,8 @@ impl Node {
             viz_enabled <- enabled && no_error_set;
             visualization.set_view_state <+ viz_enabled.on_true().constant(visualization::ViewState::Enabled);
             visualization.set_view_state <+ viz_enabled.on_false().constant(visualization::ViewState::Disabled);
-
+        }
+        frp::extend! { network
             // Integration between visualization and action bar.
             visualization.set_visualization <+ input.set_visualization;
             is_enabled <- visualization.view_state.map(|state|{
@@ -772,7 +769,8 @@ impl Node {
             action_bar.set_action_visibility_state <+ button_set_to_true_with_error.constant(false);
 
             visualization.set_view_state <+ action_bar.user_action_visibility.on_false().constant(visualization::ViewState::Disabled);
-
+        }
+        frp::extend! { network
             // Show preview visualization after some delay, depending on whether we show an error
             // or are in quick preview mode. Also, omit the preview if we don't have an
             // expression.
@@ -789,7 +787,8 @@ impl Node {
             });
             hover_onset_delay.set_delay <+ preview_show_delay;
             hide_tooltip                <- preview_show_delay.map(|&delay| delay <= f32::EPSILON);
-
+        }
+        frp::extend! { network
             output_hover <- model.output.on_port_hover.map(|s| s.is_on());
             visualization_hover <- bool(&model.visualization.on_event::<mouse::Out>(), &model.visualization.on_event::<mouse::Over>());
             hovered_for_preview <- output_hover || visualization_hover;
@@ -812,7 +811,8 @@ impl Node {
             vis_preview_visible <- vis_preview_visible.on_change();
             visualization.set_view_state <+ vis_preview_visible.on_true().constant(visualization::ViewState::Preview);
             visualization.set_view_state <+ vis_preview_visible.on_false().constant(visualization::ViewState::Disabled);
-
+        }
+        frp::extend! { network
             update_error <- all(input.set_error,preview_visible);
             eval update_error([model]((error,visible)){
                 if *visible {
@@ -830,9 +830,9 @@ impl Node {
 
         }
 
-        // === Profiling Indicator ===
-
         frp::extend! { network
+            // === Profiling Indicator ===
+
             model.profiling_label.set_min_global_duration
                 <+ input.set_profiling_min_global_duration;
             model.profiling_label.set_max_global_duration
@@ -841,46 +841,7 @@ impl Node {
             model.input.set_profiling_status <+ input.set_profiling_status;
         }
 
-        let bg_color_anim = color::Animation::new(network);
-
         frp::extend! { network
-
-            // === Color Handling ===
-
-            let bgg = style_frp.get_color(ensogl_hardcoded_theme::graph_editor::node::background);
-            let profiling_theme = profiling::Theme::from_styles(style_frp,network);
-
-            profiling_color <- all_with5
-                (&input.set_profiling_status,&input.set_profiling_min_global_duration,
-                &input.set_profiling_max_global_duration,&profiling_theme,&bgg,
-                |&status,&min,&max,&theme,&bgg| {
-                    if status.is_finished() {
-                        status.display_color(min,max,theme).with_alpha(1.0)
-                    } else {
-                        color::Lcha::from(bgg)
-                    }
-                });
-
-            bg_color_anim.target <+ all_with3(&bgg,&input.set_view_mode,&profiling_color,
-                |bgg,&mode,&profiling_color| {
-                    match mode {
-                        view::Mode::Normal    => color::Lcha::from(*bgg),
-                        view::Mode::Profiling => profiling_color,
-                    }
-                });
-
-            // FIXME [WD]: Uncomment when implementing disabled icon.
-            // bg_color <- frp.set_disabled.map(f!([model,style](disabled) {
-            //     model.input.frp.set_disabled(*disabled);
-            //     let bg_color_path = ensogl_hardcoded_theme::graph_editor::node::background;
-            //     if *disabled { style.get_color_dim(bg_color_path) }
-            //     else         { style.get_color(bg_color_path) }
-            // }));
-            // bg_color_anim.target <+ bg_color;
-
-            eval bg_color_anim.value ((c) model.background.shape.set_color(c.into()););
-
-
             // === Tooltip ===
 
             // Hide tooltip if we show the preview vis.
@@ -888,14 +849,15 @@ impl Node {
             // Propagate output tooltip. Only if it is not hidden, or to disable it.
             block_tooltip      <- hide_tooltip && has_tooltip;
             app.frp.set_tooltip <+ model.output.frp.tooltip.gate_not(&block_tooltip);
+        }
 
+        frp::extend! { network
+            // === Type Labels ===`
 
-            // === Type Labels ===
+            model.output.set_type_label_visibility <+ no_error_set.and_not(&visualization.visible);
+        }
 
-            model.output.set_type_label_visibility
-                <+ visualization.visible.not().and(&no_error_set);
-
-
+        frp::extend! { network
             // === Bounding Box ===
 
             let visualization_size = &model.visualization.frp.size;
@@ -905,12 +867,41 @@ impl Node {
 
             inner_bbox_input <- all2(&out.position,&new_size);
             out.inner_bounding_box <+ inner_bbox_input.map(|(a,b)| bounding_box(*a,*b,None));
+        }
 
-
+        frp::extend! { network
             // === VCS Handling ===
 
             model.vcs_indicator.frp.set_status <+ input.set_vcs_status;
         }
+
+        frp::extend! { network
+            // === Colors ===
+
+            let port_color_tint = style_frp.get_color_lcha(theme::graph_editor::node::port_color_tint);
+            let editing_color = style_frp.get_color_lcha(theme::graph_editor::node::background);
+            base_color_source <- source();
+            out.base_color <+ base_color_source;
+            out.port_color <+ out.base_color.all_with(&port_color_tint, |c, tint| tint.over(*c));
+            background_color <- model.input.frp.editing.switch(&frp.base_color, &editing_color);
+            node_colors <- all(background_color, frp.port_color);
+            eval node_colors(((base, port)) model.update_colors(*base, *port));
+            model.input.set_node_colors <+ node_colors;
+        }
+
+
+        // TODO: handle color change. Will likely require moving the node background and backdrop
+        // into a widget, which is also necessary to later support "split" nodes, where '.' chains
+        // are displayed as separate shapes.
+        let colors = [
+            color::Lcha(0.4911, 0.3390, 0.72658, 1.0),
+            color::Lcha(0.4468, 0.3788, 0.96805, 1.0),
+            color::Lcha(0.4437, 0.1239, 0.70062, 1.0),
+        ];
+        let mut hasher = crate::DefaultHasher::new();
+        Rc::as_ptr(&model).hash(&mut hasher);
+        base_color_source.emit(colors[hasher.finish() as usize % colors.len()]);
+
 
         // Init defaults.
         init.emit(());
@@ -925,7 +916,7 @@ impl Node {
 
     #[profile(Debug)]
     fn error_color(error: &Option<Error>, style: &StyleWatch) -> color::Lcha {
-        use ensogl_hardcoded_theme::graph_editor::node::error as error_theme;
+        use theme::graph_editor::node::error as error_theme;
 
         if let Some(error) = error {
             let path = match *error.kind {
@@ -981,8 +972,6 @@ fn bounding_box(
 pub enum InteractionState {
     /// The node is being edited (with the cursor / Component Browser).
     EditingExpression,
-    /// An edge of the node is being interacted with.
-    EditingEdge,
     /// The node is not being interacted with.
     #[default]
     Normal,
@@ -993,14 +982,6 @@ impl InteractionState {
         match editing {
             true => Self::EditingExpression,
             false => Self::Normal,
-        }
-    }
-
-    fn editing_edge(self, active: bool) -> Self {
-        match (self, active) {
-            (Self::EditingExpression, _) => self,
-            (_, true) => Self::EditingEdge,
-            (_, false) => Self::Normal,
         }
     }
 }
@@ -1017,33 +998,22 @@ pub mod test_utils {
 
     /// Addional [`NodeModel`] API for tests.
     pub trait NodeModelExt {
-        /// Return the `SinglePortView` of the first output port of the node.
-        ///
-        /// Returns `None`:
-        /// 1. If there are no output ports.
-        /// 2. If the port does not have a `PortShapeView`. Some port models does not initialize
-        ///    the `PortShapeView`, see [`output::port::Model::init_shape`].
-        /// 3. If the output port is [`MultiPortView`].
-        fn output_port_shape(&self) -> Option<output::port::SinglePortView>;
+        /// Return the `Shape` used for mouse handling of the first output port of the node. Returns
+        /// `None` if there are no output ports.
+        fn output_port_hover_shape(&self) -> Option<Rectangle>;
 
-        /// Return the `Shape` of the first input port of the node. Returns `None` if there are no
-        /// input ports.
-        fn input_port_hover_shape(&self) -> Option<input::port::HoverShape>;
+        /// Return the `Shape` used for mouse handling of the first input port of the node. Returns
+        /// `None` if there are no input ports.
+        fn input_port_hover_shape(&self) -> Option<Rectangle>;
     }
 
     impl NodeModelExt for NodeModel {
-        fn output_port_shape(&self) -> Option<output::port::SinglePortView> {
-            let ports = self.output.model.ports();
-            let port = ports.first()?;
-            let shape = port.shape.as_ref()?;
-            use output::port::PortShapeView::Single;
-            match shape {
-                Single(shape) => Some(shape.clone_ref()),
-                _ => None,
-            }
+        fn output_port_hover_shape(&self) -> Option<Rectangle> {
+            let shapes = self.output.model.port_hover_shapes();
+            shapes.into_iter().next()
         }
 
-        fn input_port_hover_shape(&self) -> Option<input::port::HoverShape> {
+        fn input_port_hover_shape(&self) -> Option<Rectangle> {
             let shapes = self.input.model.port_hover_shapes();
             shapes.into_iter().next()
         }

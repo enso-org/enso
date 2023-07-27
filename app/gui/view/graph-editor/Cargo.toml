@@ -27,6 +27,7 @@ ensogl-hardcoded-theme = { path = "../../../../lib/rust/ensogl/app/theme/hardcod
 ensogl-text-msdf = { path = "../../../../lib/rust/ensogl/component/text/src/font/msdf" }
 failure = { workspace = true }
 ide-view-execution-environment-selector = { path = "../execution-environment-selector" }
+ide-view-component-list-panel-icons = { path = "../component-browser/component-list-panel/icons" }
 indexmap = "1.9.2"
 js-sys = { workspace = true }
 nalgebra = { workspace = true }

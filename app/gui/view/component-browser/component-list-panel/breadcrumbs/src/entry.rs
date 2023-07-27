@@ -9,8 +9,8 @@ use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::scene::Layer;
+use ensogl_core::display::style::FromTheme;
 use ensogl_core::Animation;
-use ensogl_derive_theme::FromTheme;
 use ensogl_grid_view::entry::Contour;
 use ensogl_grid_view::entry::EntryFrp;
 use ensogl_grid_view::Col;
@@ -162,7 +162,7 @@ impl EntryData {
         let display_object = display::object::Instance::new();
         let text = app.new_view::<ensogl_text::Text>();
         if let Some(layer) = text_layer {
-            text.add_to_scene_layer(layer);
+            layer.add(&text);
         }
         let ellipsis = ellipsis::View::new();
         let separator = separator::View::new();
