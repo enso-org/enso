@@ -28,6 +28,7 @@ public class LibBenchRunner {
       System.err.println("  " + e.getMessage());
       System.exit(1);
     }
+    Runner jmhRunner = new Runner(cmdOpts);
 
     if (cmdOpts.shouldHelp()) {
       System.err.println("Enso libs benchmark runner: A modified JMH runner for Enso benchmarks.");
@@ -39,7 +40,11 @@ public class LibBenchRunner {
       System.exit(0);
     }
 
-    Runner jmhRunner = new Runner(cmdOpts);
+    if (cmdOpts.shouldList()) {
+      jmhRunner.list();
+      System.exit(0);
+    }
+
     Collection<RunResult> results;
     try {
       results = jmhRunner.run();
