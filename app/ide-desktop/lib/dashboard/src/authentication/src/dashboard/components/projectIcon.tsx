@@ -111,6 +111,9 @@ export default function ProjectIcon(props: ProjectIconProps) {
     })
     const [checkState, setCheckState] = React.useState(CheckState.notChecking)
     const [spinnerState, setSpinnerState] = React.useState(REMOTE_SPINNER_STATE[state])
+    const [onSpinnerStateChange, setOnSpinnerStateChange] = React.useState<
+        ((state: spinner.SpinnerState | null) => void) | null
+    >(null)
     const [shouldOpenWhenReady, setShouldOpenWhenReady] = React.useState(false)
     const [toastId, setToastId] = React.useState<toast.Id | null>(null)
 
@@ -165,8 +168,15 @@ export default function ProjectIcon(props: ProjectIconProps) {
                     ? REMOTE_SPINNER_STATE[state]
                     : LOCAL_SPINNER_STATE[state]
             setSpinnerState(newSpinnerState)
+            onSpinnerStateChange?.(
+                state === backendModule.ProjectState.closed ? null : newSpinnerState
+            )
         })
-    }, [state, backend.type])
+    }, [state, backend.type, onSpinnerStateChange])
+
+    React.useEffect(() => {
+        onSpinnerStateChange?.(spinner.SpinnerState.initial)
+    }, [onSpinnerStateChange])
 
     React.useEffect(() => {
         if (toastId != null && state !== backendModule.ProjectState.openInProgress) {
@@ -190,11 +200,8 @@ export default function ProjectIcon(props: ProjectIconProps) {
             case assetEventModule.AssetEventType.openProject: {
                 if (event.id !== project.id) {
                     setShouldOpenWhenReady(false)
-                    if (
-                        state !== backendModule.ProjectState.closed &&
-                        state !== backendModule.ProjectState.new
-                    ) {
-                        void closeProject()
+                    if (state !== backendModule.ProjectState.opened) {
+                        void closeProject(false)
                     }
                 } else {
                     setShouldOpenWhenReady(true)
@@ -207,11 +214,16 @@ export default function ProjectIcon(props: ProjectIconProps) {
                 // to actually cancel an open action. Instead, the project should not be opened
                 // automatically.
                 setShouldOpenWhenReady(false)
+                onSpinnerStateChange?.(null)
+                setOnSpinnerStateChange(null)
                 break
             }
             case assetEventModule.AssetEventType.createProject: {
                 if (event.placeholderId === project.id) {
                     setState(backendModule.ProjectState.openInProgress)
+                    setOnSpinnerStateChange(() => event.onSpinnerStateChange)
+                } else if (event.onSpinnerStateChange === onSpinnerStateChange) {
+                    setOnSpinnerStateChange(null)
                 }
                 break
             }
@@ -312,10 +324,14 @@ export default function ProjectIcon(props: ProjectIconProps) {
         }
     }, [checkState, project.id, project.title, backend])
 
-    const closeProject = async () => {
-        onClose()
+    const closeProject = async (triggerOnClose = true) => {
+        if (triggerOnClose) {
+            onClose()
+        }
         setShouldOpenWhenReady(false)
         setState(backendModule.ProjectState.closed)
+        onSpinnerStateChange?.(null)
+        setOnSpinnerStateChange(null)
         appRunner?.stopApp()
         setCheckState(CheckState.notChecking)
         try {

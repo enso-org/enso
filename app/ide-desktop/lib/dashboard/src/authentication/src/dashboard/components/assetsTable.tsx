@@ -512,6 +512,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     type: assetEventModule.AssetEventType.createProject,
                     placeholderId: dummyId,
                     templateId: event.templateId,
+                    onSpinnerStateChange: event.onSpinnerStateChange,
                 })
                 break
             }

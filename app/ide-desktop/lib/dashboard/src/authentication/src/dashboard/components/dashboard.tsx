@@ -19,6 +19,7 @@ import * as backendProvider from '../../providers/backend'
 import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
 
+import * as spinner from './spinner'
 import Chat, * as chat from './chat'
 import DirectoryView from './driveView'
 import Ide from './ide'
@@ -209,11 +210,15 @@ export default function Dashboard(props: DashboardProps) {
     )
 
     const doCreateProject = React.useCallback(
-        (templateId?: string) => {
+        (
+            templateId?: string | null,
+            onSpinnerStateChange?: (state: spinner.SpinnerState) => void
+        ) => {
             dispatchAssetListEvent({
                 type: assetListEventModule.AssetListEventType.createProject,
                 parentId: directoryId,
                 templateId: templateId ?? null,
+                onSpinnerStateChange: onSpinnerStateChange ?? null,
             })
         },
         [directoryId, /* should never change */ dispatchAssetListEvent]
