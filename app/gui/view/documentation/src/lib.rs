@@ -36,7 +36,6 @@ use ensogl::display::DomSymbol;
 use ensogl::system::web;
 use ensogl::Animation;
 use ensogl_component::shadow;
-use ensogl_derive_theme::FromTheme;
 use ensogl_hardcoded_theme::application::component_browser::documentation as theme;
 use graph_editor::component::visualization;
 use ide_view_graph_editor as graph_editor;
@@ -81,7 +80,7 @@ pub struct Style {
 
 /// Model of Native visualization that generates documentation for given Enso code and embeds
 /// it in a HTML container.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 #[allow(missing_docs)]
 pub struct Model {
     outer_dom:      DomSymbol,
@@ -259,10 +258,11 @@ ensogl::define_endpoints! {
 /// however we're unable to summarize methods and atoms of types.
 ///
 /// The default format is the docstring.
-#[derive(Clone, CloneRef, Debug, Deref)]
+#[derive(Clone, CloneRef, Debug, Deref, display::Object)]
 #[allow(missing_docs)]
 pub struct View {
     #[deref]
+    #[display_object]
     pub model:             Model,
     pub visualization_frp: visualization::instance::Frp,
     pub frp:               Frp,
@@ -300,8 +300,6 @@ impl View {
         let style_frp = StyleWatchFrp::new(&scene.style_sheet);
         let style = Style::from_theme(network, &style_frp);
         frp::extend! { network
-            init <- source_();
-
             // === Displaying documentation ===
 
             docs <- any(...);
@@ -317,25 +315,25 @@ impl View {
 
             // === Hovered item preview caption ===
 
-            spring_muliplier <- style.update.map(|s| s.caption_animation_spring_multiplier);
+            spring_muliplier <- style.map(|s| s.caption_animation_spring_multiplier);
             caption_anim.set_spring <+ spring_muliplier.map(|m| Spring::default() * m);
             show_caption <- frp.show_hovered_item_preview_caption.on_true();
             hide_caption <- frp.show_hovered_item_preview_caption.on_false();
             caption_anim.target <+ show_caption.constant(1.0);
             caption_anim.target <+ hide_caption.constant(0.0);
-            _eval <- all_with(&caption_anim.value, &style.update, f!((value, style) {
+            _eval <- all_with(&caption_anim.value, &style, f!((value, style) {
                 model.set_caption_height(value * style.caption_height, style)
             }));
 
 
             // === Size ===
 
-            size <- style.update.map(|s| Vector2(s.width, s.height));
+            size <- style.map(|s| Vector2(s.width, s.height));
             eval size((size) model.set_size(*size));
 
             // === Style ===
 
-            eval style.update((style) model.update_style(*style));
+            eval style((style) model.update_style(*style));
 
 
             // === Activation ===
@@ -367,8 +365,6 @@ impl View {
             frp.source.is_hovered <+ model.overlay.events_deprecated.mouse_over.constant(true);
             frp.source.is_hovered <+ model.overlay.events_deprecated.mouse_out.constant(false);
         }
-        init.emit(());
-        style.init.emit(());
         self
     }
 }
@@ -376,11 +372,5 @@ impl View {
 impl From<View> for visualization::Instance {
     fn from(t: View) -> Self {
         Self::new(&t, &t.visualization_frp, &t.frp.network, Some(t.model.outer_dom.clone_ref()))
-    }
-}
-
-impl display::Object for View {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.model.display_object
     }
 }

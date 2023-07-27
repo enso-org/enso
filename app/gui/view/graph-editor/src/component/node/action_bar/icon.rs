@@ -16,7 +16,8 @@ pub mod visibility {
     use super::*;
 
     ensogl::shape! {
-        alignment = center;
+        above = [compound::rectangle];
+        pointer_events_instanced = true;
         (style: Style, color_rgba: Vector4<f32>) {
             let fill_color  = Var::<color::Rgba>::from(color_rgba);
 
@@ -53,7 +54,8 @@ pub mod visibility2 {
     use super::*;
 
     ensogl::shape! {
-        alignment = center;
+        above = [compound::rectangle];
+        pointer_events_instanced = true;
         (style: Style, color_rgba: Vector4<f32>) {
             let fill_color   = Var::<color::Rgba>::from(color_rgba);
             let width        = Var::<Pixels>::from("input_size.x");
@@ -97,6 +99,7 @@ pub mod expand {
     use super::*;
 
     ensogl::shape! {
+        above = [compound::rectangle];
         alignment = center;
         (style: Style, color_rgba: Vector4<f32>) {
             let fill_color: Var<color::Rgba> = color_rgba.into();
@@ -131,7 +134,8 @@ pub mod freeze {
     use super::*;
 
     ensogl::shape! {
-        alignment = center;
+        above = [compound::rectangle];
+        pointer_events_instanced = true;
         (style: Style, color_rgba: Vector4<f32>) {
             let fill_color       = Var::<color::Rgba>::from(color_rgba);
             let width            = Var::<Pixels>::from("input_size.x");
@@ -146,7 +150,7 @@ pub mod freeze {
             let lock_top         = make_ring(&lock_top_radius,&lock_top_radius - &lock_top_width);
             let lock_top         = lock_top.intersection(BottomHalfPlane().rotate(right_angle*2.0));
             let lock_top         = lock_top.translate_y(lock_body_radius - &unit * 3.0);
-            let vertical_bar     = Rect((&lock_top_width,&unit * 4.0));
+            let vertical_bar     = Rect((&lock_top_width,&unit * 4.01));
             let left_bar         = vertical_bar.translate_x(&lock_top_radius-&lock_top_width/2.0);
             let right_bar        = vertical_bar.translate_x(-&lock_top_radius+&lock_top_width/2.0);
             let icon             = lock_body + lock_top + left_bar + right_bar;
@@ -169,7 +173,8 @@ pub mod skip {
     use super::*;
 
     ensogl::shape! {
-        alignment = center;
+        above = [compound::rectangle];
+        pointer_events_instanced = true;
         (style: Style, color_rgba: Vector4<f32>) {
             let fill_color   = Var::<color::Rgba>::from(color_rgba);
             let width        = Var::<Pixels>::from("input_size.x");
@@ -206,7 +211,8 @@ pub mod disable_output_context {
     use super::*;
 
     ensogl::shape! {
-        alignment = center;
+        above = [compound::rectangle];
+        pointer_events_instanced = true;
         (style: Style, color_rgba: Vector4<f32>) {
             let fill_color = Var::<color::Rgba>::from(color_rgba);
             let width = Var::<Pixels>::from("input_size.x");
@@ -237,7 +243,8 @@ pub mod enable_output_context {
     use super::*;
 
     ensogl::shape! {
-        alignment = center;
+        above = [compound::rectangle];
+        pointer_events_instanced = true;
         (style: Style, color_rgba: Vector4<f32>) {
             let fill_color = Var::<color::Rgba>::from(color_rgba);
             let width = Var::<Pixels>::from("input_size.x");

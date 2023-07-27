@@ -17,7 +17,7 @@ use ensogl::system::web;
 // ======================
 
 /// View of the visualization container meant to be used in fullscreen mode.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 #[allow(missing_docs)]
 pub struct Panel {
     display_object:     display::object::Instance,
@@ -54,11 +54,5 @@ impl Panel {
         scene.dom.layers.fullscreen_vis.manage(&background_dom);
 
         Self { display_object, background_dom }
-    }
-}
-
-impl display::Object for Panel {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
     }
 }

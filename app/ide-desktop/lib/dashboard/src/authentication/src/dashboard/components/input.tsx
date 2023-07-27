@@ -14,7 +14,7 @@ export interface InputProps extends InputAttributes {
 }
 
 /** A component for authentication from inputs, with preset styles. */
-function Input(props: InputProps) {
+export default function Input(props: InputProps) {
     const { setValue, ...passthroughProps } = props
     return (
         <input
@@ -28,5 +28,3 @@ function Input(props: InputProps) {
         />
     )
 }
-
-export default Input

@@ -1,7 +1,7 @@
 /** @file A WebSocket-based chat directly to official support on the official Discord server. */
 import * as React from 'react'
 import * as reactDom from 'react-dom'
-import toast from 'react-hot-toast'
+import * as toastify from 'react-toastify'
 
 import CloseLargeIcon from 'enso-assets/close_large.svg'
 import DefaultUserIcon from 'enso-assets/default_user.svg'
@@ -379,7 +379,7 @@ export interface ChatProps {
 }
 
 /** Chat sidebar. */
-function Chat(props: ChatProps) {
+export default function Chat(props: ChatProps) {
     const { isOpen, doClose } = props
     const { accessToken: rawAccessToken } = authProvider.useNonPartialUserSession()
     const logger = loggerProvider.useLogger()
@@ -611,7 +611,7 @@ function Chat(props: ChatProps) {
             const threadData = threads.find(thread => thread.id === newThreadId)
             if (threadData == null) {
                 const message = `Unknown thread id '${newThreadId}'.`
-                toast.error(message)
+                toastify.toast.error(message)
                 logger.error(message)
             } else {
                 sendMessage({
@@ -856,5 +856,3 @@ function Chat(props: ChatProps) {
         )
     }
 }
-
-export default Chat

@@ -49,7 +49,9 @@ interface InternalMultipleAutocompleteProps extends BaseAutocompleteProps {
 export type AutocompleteProps = InternalMultipleAutocompleteProps | InternalSingleAutocompleteProps
 
 /** A select menu with a dropdown. */
-function Autocomplete(props: InternalMultipleAutocompleteProps | InternalSingleAutocompleteProps) {
+export default function Autocomplete(
+    props: InternalMultipleAutocompleteProps | InternalSingleAutocompleteProps
+) {
     const {
         type = 'text',
         itemNamePlural = 'items',
@@ -69,7 +71,6 @@ function Autocomplete(props: InternalMultipleAutocompleteProps | InternalSingleA
     const [isDropdownVisible, setIsDropdownVisible] = React.useState(false)
     const [selectedIndex, setSelectedIndex] = React.useState<number | null>(null)
     const [valuesText, setValuesText] = React.useState('')
-
     const valuesSet = React.useMemo(() => new Set(values), [values])
 
     /** This input should only act like a multiple select only when `multiple` is true,
@@ -273,5 +274,3 @@ function Autocomplete(props: InternalMultipleAutocompleteProps | InternalSingleA
         </div>
     )
 }
-
-export default Autocomplete

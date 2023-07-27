@@ -74,7 +74,7 @@ macro_rules! kind_to_icon {
 fn component_to_entry_model(component: &component::Component) -> component_grid::EntryModel {
     let can_be_entered = component.can_be_entered();
     let match_info = component.match_info.as_ref();
-    let caption = component.label();
+    let caption = component.label_with_matched_alias();
     let highlighted =
         match_info.and_then(|info| bytes_of_matched_letters(info, &caption)).unwrap_or_default();
     let icon = match &component.suggestion {
@@ -87,7 +87,7 @@ fn component_to_entry_model(component: &component::Component) -> component_grid:
         component::Suggestion::Virtual { snippet } => snippet.icon,
     };
     component_grid::EntryModel {
-        caption: caption.into(),
+        caption,
         highlighted: Rc::new(highlighted),
         icon,
         can_be_entered,

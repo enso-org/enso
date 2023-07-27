@@ -1,7 +1,11 @@
 @import url("https://fonts.googleapis.com/css2?family=M+PLUS+1:wght@500;600;700&display=swap");
+@import "react-toastify/dist/ReactToastify.css";
 
 body {
   margin: 0;
+  backdrop-filter: blur(64px);
+  background: url("enso-assets/background.png") 0 0, rgba(255, 255, 255, 0.8);
+  background-blend-mode: lighten;
 }
 
 /* These styles MUST still be copied
@@ -57,39 +61,16 @@ body {
   @tailwind utilities;
 
   @layer components {
-    .clip-path-top-left {
-      clip-path: polygon(
-        0 0,
-        calc(50% - 2px) 0,
-        calc(50% - 2px) calc(50% - 2px),
-        0 calc(50% - 2px)
-      );
+    .clip-path-top {
+      clip-path: polygon(0 0, 100% 0, 100% calc(50% - 1px), 0 calc(50% - 1px));
     }
 
-    .clip-path-top-right {
+    .clip-path-bottom {
       clip-path: polygon(
-        calc(50% + 2px) 0,
-        100% 0,
-        100% calc(50% - 2px),
-        calc(50% + 2px) calc(50% - 2px)
-      );
-    }
-
-    .clip-path-bottom-left {
-      clip-path: polygon(
-        0 calc(50% + 2px),
-        calc(50% - 2px) calc(50% + 2px),
-        calc(50% - 2px) 100%,
-        0 100%
-      );
-    }
-
-    .clip-path-bottom-right {
-      clip-path: polygon(
-        calc(50% + 2px) calc(50% + 2px),
-        100% calc(50% + 2px),
+        0 calc(50% + 1px),
+        100% calc(50% + 1px),
         100% 100%,
-        calc(50% + 2px) 100%
+        0 100%
       );
     }
 
@@ -119,23 +100,6 @@ body {
       background-image: url("enso-assets/dashed_border.svg");
     }
 
-    .blink-background {
-      /** The duration MUST be synced with the corresponding value in `sharedWithModal.tsx`. */
-      animation: blink 0.5s ease-in-out;
-    }
-
-    @keyframes blink {
-      0% {
-        background: #f0f1f3;
-      }
-      33% {
-        background: #e2e4e9;
-      }
-      100% {
-        background: #f0f1f3;
-      }
-    }
-
     .scroll-hidden {
       -ms-overflow-style: none; /* Internet Explorer 10+ */
       scrollbar-width: none; /* Firefox */
@@ -143,6 +107,22 @@ body {
 
     .scroll-hidden::-webkit-scrollbar {
       display: none; /* Safari and Chrome */
+    }
+
+    .rounded-rows > tbody > tr:nth-child(odd) {
+      > td {
+        background-color: rgba(0, 0, 0, 0.03);
+      }
+
+      > td.bg-transparent {
+        background-color: transparent;
+      }
+    }
+
+    .rounded-rows > tbody > tr.selected {
+      > td {
+        background-color: rgba(255, 255, 255, 0.4);
+      }
     }
 
     .h-templates-custom {

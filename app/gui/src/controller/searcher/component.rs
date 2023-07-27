@@ -9,11 +9,11 @@ use crate::controller::searcher::search;
 use crate::controller::searcher::search::search;
 use crate::controller::searcher::Filter;
 use crate::model::execution_context::GroupQualifiedName;
-use crate::model::suggestion_database;
 
 use enso_doc_parser::DocSection;
 use enso_doc_parser::Tag;
 use enso_suggestion_database::entry;
+use enso_suggestion_database::Entry;
 use ensogl::data::color;
 use std::cmp;
 use superslice::Ext;
@@ -80,13 +80,13 @@ pub enum MatchInfo {
 #[derive(Clone, Debug, PartialEq)]
 pub enum Suggestion {
     /// A component from the [`suggestion_database`]. When this component is picked in the
-    /// Component Browser, the code returned by [`suggestion_database::Entry::code_to_insert`] will
+    /// Component Browser, the code returned by [`Entry::code_to_insert`] will
     /// be inserted into the program.
     FromDatabase {
         /// The ID of the component in the [`suggestion_database`].
-        id:    suggestion_database::entry::Id,
+        id:    entry::Id,
         /// The component's entry in the [`suggestion_database`].
-        entry: Rc<suggestion_database::Entry>,
+        entry: Rc<Entry>,
     },
     /// A virtual component containing a hardcoded snippet of code. When this component is picked
     /// in the Component Browser, the [`Snippet::code`] will be inserted into the program.
@@ -127,6 +127,8 @@ pub struct Component {
     pub suggestion: Suggestion,
     /// A group id, being an index of `group` field of [`List`] structure.
     pub group_id:   Option<usize>,
+    /// The component string representation that will be used during matching.
+    pub label:      ImString,
     /// Results of matching this component against the current filter, if any.
     pub match_info: Option<MatchInfo>,
 }
@@ -136,21 +138,29 @@ impl Component {
     ///
     /// The matching info will be filled for an empty pattern.
     pub fn new_from_database_entry(
-        id: suggestion_database::entry::Id,
-        entry: Rc<suggestion_database::Entry>,
+        id: entry::Id,
+        entry: Rc<Entry>,
         group_id: Option<usize>,
     ) -> Self {
+        let label = match entry.kind {
+            entry::Kind::Module
+                if entry.defined_in.is_main_module() || entry.defined_in.is_top_element() =>
+                format!("{}", entry.defined_in).into(),
+            _ => match entry.self_type.as_ref() {
+                Some(self_type) => format!("{}.{}", self_type.alias_name(), entry.name).into(),
+                None => entry.name.to_im_string(),
+            },
+        };
         let data = Suggestion::FromDatabase { id, entry };
-        Self { suggestion: data, group_id, match_info: default() }
+        Self { suggestion: data, label, group_id, match_info: default() }
     }
 
-    /// The label which should be displayed in the Component Browser.
-    pub fn label(&self) -> String {
+    /// The formatted label and alias which should be displayed in the Component Browser.
+    pub fn label_with_matched_alias(&self) -> ImString {
         match &self.match_info {
-            Some(MatchInfo::Matches { kind: MatchKind::Alias(alias), .. }) => {
-                format!("{alias} ({self})")
-            }
-            _ => self.to_string(),
+            Some(MatchInfo::Matches { kind: MatchKind::Alias(alias), .. }) =>
+                format!("{alias} ({label})", label = self.label).into(),
+            _ => self.label.clone(),
         }
     }
 
@@ -159,9 +169,9 @@ impl Component {
         self.suggestion.name()
     }
 
-    /// The [ID](suggestion_database::entry::Id) of the component in the [`suggestion_database`], or
+    /// The [ID](entry::Id) of the component in the [`suggestion_database`], or
     /// `None` if not applicable.
-    pub fn id(&self) -> Option<suggestion_database::entry::Id> {
+    pub fn id(&self) -> Option<entry::Id> {
         match &self.suggestion {
             Suggestion::FromDatabase { id, .. } => Some(*id),
             Suggestion::Virtual { .. } => None,
@@ -178,7 +188,7 @@ impl Component {
     /// Currently, only modules can be entered, and then the Browser should display content and
     /// submodules of the entered module.
     pub fn can_be_entered(&self) -> bool {
-        use suggestion_database::entry::Kind as EntryKind;
+        use entry::Kind as EntryKind;
         matches!(&self.suggestion, Suggestion::FromDatabase { entry, .. } if entry.kind == EntryKind::Module)
     }
 
@@ -208,8 +218,8 @@ impl Component {
     fn match_info_for_pattern(&self, pattern: &str) -> MatchInfo {
         // Match the input pattern to the component label.
         let target_info = search::TargetInfo { is_alias: false };
-        let label = self.to_string();
-        let label_subsequence = search(&label, pattern, target_info);
+        let label = &self.label;
+        let label_subsequence = search(label, pattern, target_info);
         let label_match_info = label_subsequence
             .map(|subsequence| MatchInfo::Matches { subsequence, kind: MatchKind::Label });
 
@@ -263,24 +273,6 @@ impl Component {
             _ => None,
         };
         aliases.into_iter().flatten()
-    }
-}
-
-impl Display for Component {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use suggestion_database::entry::Kind;
-        match &self.suggestion {
-            Suggestion::FromDatabase { entry, .. } => match entry.kind {
-                Kind::Module
-                    if entry.defined_in.is_main_module() || entry.defined_in.is_top_element() =>
-                    write!(f, "{}", entry.defined_in),
-                _ => match entry.self_type.as_ref() {
-                    Some(self_type) => write!(f, "{}.{}", self_type.alias_name(), entry.name),
-                    None => write!(f, "{}", entry.name),
-                },
-            },
-            Suggestion::Virtual { snippet } => write!(f, "{}", snippet.name),
-        }
     }
 }
 
@@ -368,7 +360,11 @@ pub(crate) mod tests {
     use enso_suggestion_database::mock_suggestion_database;
 
     pub fn check_displayed_components(list: &List, expected: Vec<&str>) {
-        let components = list.displayed().iter().map(|component| component.label()).collect_vec();
+        let components = list
+            .displayed()
+            .iter()
+            .map(|component| component.label_with_matched_alias())
+            .collect_vec();
         assert_eq!(components, expected);
     }
 
