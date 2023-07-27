@@ -137,20 +137,19 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
     NameDeduplicator outputTableNameDeduplicator = new NameDeduplicator();
 
     // Create combined index
-    Column combinedColumns[] = Stream.concat(Arrays.stream(groupingColumns), Arrays.stream(new Column[] {nameColumn}))
+    Column combinedColumns[] =
+        Stream.concat(Arrays.stream(groupingColumns), Arrays.stream(new Column[] {nameColumn}))
             .toArray(Column[]::new);
     var combinedIndex =
-            MultiValueIndex.makeUnorderedIndex(
-                    combinedColumns,
-                    nameColumn.getSize(),
-                    TextFoldingStrategy.unicodeNormalizedFold);
+        MultiValueIndex.makeUnorderedIndex(
+            combinedColumns, nameColumn.getSize(), TextFoldingStrategy.unicodeNormalizedFold);
 
     // Generate lists of combined keys and subkeys
     List<UnorderedMultiValueKey> combinedKeys = new ArrayList<>(combinedIndex.keys());
     List<UnorderedMultiValueKey> groupingSubkeys = new ArrayList<>(combinedKeys.size());
     List<UnorderedMultiValueKey> nameSubKeys = new ArrayList<>(combinedKeys.size());
     int[] groupingColumnIndices = IntStream.range(0, groupingColumns.length).toArray();
-    int[] nameColumnIndices = new int[] { groupingColumns.length };
+    int[] nameColumnIndices = new int[] {groupingColumns.length};
     for (var key : combinedKeys) {
       groupingSubkeys.add(key.subKey(groupingColumnIndices));
       nameSubKeys.add(key.subKey(nameColumnIndices));
@@ -160,7 +159,7 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
     ObjectNumberer<UnorderedMultiValueKey> nameNumberer = new ObjectNumberer<>(nameSubKeys);
     ObjectNumberer<UnorderedMultiValueKey> groupingNumberer = new ObjectNumberer<>(groupingSubkeys);
 
-    final int size = groupingNumberer.size();
+    final int numGroups = groupingNumberer.size();
 
     final int columnCount = groupingColumns.length + nameNumberer.size() * aggregates.length;
     if (columnCount > MAXIMUM_CROSS_TAB_COLUMN_COUNT) {
@@ -177,14 +176,14 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
     // Create the storage
     Builder[] storage = new Builder[columnCount];
     for (int i = 0; i < groupingColumns.length; i++) {
-      storage[i] = Builder.getForType(groupingColumns[i].getStorage().getType(), size);
+      storage[i] = Builder.getForType(groupingColumns[i].getStorage().getType(), numGroups);
       context.safepoint();
     }
 
     for (int i = 0; i < nameNumberer.size(); i++) {
       int offset = groupingColumns.length + i * aggregates.length;
       for (int j = 0; j < aggregates.length; j++) {
-        storage[offset + j] = Builder.getForType(aggregates[j].getType(), size);
+        storage[offset + j] = Builder.getForType(aggregates[j].getType(), numGroups);
         context.safepoint();
       }
     }

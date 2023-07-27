@@ -1933,7 +1933,6 @@ type Table
             _ -> Error.throw (Illegal_Argument.Error "name_column must be a column index or name.")
         matched_name = columns_helper.select_columns_helper name_column_selector Case_Sensitivity.Default True problem_builder
         grouping = columns_helper.select_columns_helper (normalize_group_by group_by) Case_Sensitivity.Default True problem_builder
-        #combined_index_columns = grouping + [matched_name]
 
         ## Validate the values
         values_vector = case values of
