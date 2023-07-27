@@ -1,10 +1,11 @@
 package org.enso.interpreter.node.callable;
 
+import static org.junit.Assert.fail;
+
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.expression.literal.LiteralNode;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
-import static org.junit.Assert.fail;
 import org.junit.Test;
 
 public class SequenceLiteralNodeTest {
