@@ -10,8 +10,6 @@ import VisualizeImage from 'enso-assets/visualize.png'
 
 import * as common from 'enso-common'
 
-import Spinner, * as spinner from './spinner'
-
 // =================
 // === Constants ===
 // =================
@@ -24,8 +22,6 @@ const MAX_WIDTH_NEEDING_SCROLL = 1031
 /** The height of the bottom padding - 8px for the grid gap, and another 8px for the height
  * of the padding div. */
 const PADDING_HEIGHT = 16
-/** The size (both width and height) of the spinner, in pixels. */
-const SPINNER_SIZE = 64
 
 // =============
 // === Types ===
@@ -107,25 +103,16 @@ interface InternalEmptyProjectButtonProps {
 /** A button that, when clicked, creates and opens a new blank project. */
 function EmptyProjectButton(props: InternalEmptyProjectButtonProps) {
     const { onTemplateClick } = props
-    const [spinnerState, setSpinnerState] = React.useState<spinner.SpinnerState | null>(null)
-
     return (
         <button
             onClick={() => {
-                setSpinnerState(spinner.SpinnerState.initial)
                 onTemplateClick()
             }}
             className="cursor-pointer relative text-primary h-40"
         >
             <div className="flex h-full w-full border-dashed-custom rounded-2xl">
                 <div className="flex flex-col text-center items-center m-auto">
-                    {spinnerState != null ? (
-                        <div className="p-2">
-                            <Spinner size={SPINNER_SIZE} state={spinnerState} />
-                        </div>
-                    ) : (
-                        <img src={PlusCircledIcon} />
-                    )}
+                    <img src={PlusCircledIcon} />
                     <p className="font-semibold text-sm">New empty project</p>
                 </div>
             </div>
@@ -146,14 +133,11 @@ interface InternalTemplateButtonProps {
 /** A button that, when clicked, creates and opens a new project based on a template. */
 function TemplateButton(props: InternalTemplateButtonProps) {
     const { template, onTemplateClick } = props
-    const [spinnerState, setSpinnerState] = React.useState<spinner.SpinnerState | null>(null)
-
     return (
         <button
             key={template.title}
             className="h-40 cursor-pointer"
             onClick={() => {
-                setSpinnerState(spinner.SpinnerState.initial)
                 onTemplateClick(template.id)
             }}
         >
@@ -167,11 +151,6 @@ function TemplateButton(props: InternalTemplateButtonProps) {
                     <h2 className="text-sm font-bold">{template.title}</h2>
                     <div className="text-xs h-16 text-ellipsis py-2">{template.description}</div>
                 </div>
-                {spinnerState != null && (
-                    <div className="absolute grid w-full h-full place-items-center">
-                        <Spinner size={SPINNER_SIZE} state={spinnerState} />
-                    </div>
-                )}
             </div>
         </button>
     )

@@ -190,6 +190,12 @@ export default function ProjectIcon(props: ProjectIconProps) {
             case assetEventModule.AssetEventType.openProject: {
                 if (event.id !== project.id) {
                     setShouldOpenWhenReady(false)
+                    if (
+                        state !== backendModule.ProjectState.closed &&
+                        state !== backendModule.ProjectState.new
+                    ) {
+                        void closeProject()
+                    }
                 } else {
                     setShouldOpenWhenReady(true)
                     void openProject()

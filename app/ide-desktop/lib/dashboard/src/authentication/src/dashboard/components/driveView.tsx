@@ -43,7 +43,7 @@ export interface DirectoryViewProps {
     nameOfProjectToImmediatelyOpen: string | null
     setNameOfProjectToImmediatelyOpen: (nameOfProjectToImmediatelyOpen: string | null) => void
     directoryId: backendModule.DirectoryId | null
-    setDirectoryId: (directoryId: backendModule.DirectoryId | null) => void
+    setDirectoryId: (directoryId: backendModule.DirectoryId) => void
     assetListEvent: assetListEventModule.AssetListEvent | null
     dispatchAssetListEvent: (directoryEvent: assetListEventModule.AssetListEvent) => void
     query: string

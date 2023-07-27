@@ -288,7 +288,6 @@ export default function AssetsTable(props: AssetsTableProps) {
 
     React.useEffect(() => {
         setInitialized(true)
-
         const extraColumnsJson = localStorage.getItem(EXTRA_COLUMNS_KEY)
         if (extraColumnsJson != null) {
             const savedExtraColumns: unknown = JSON.parse(extraColumnsJson)
