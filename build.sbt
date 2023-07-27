@@ -1784,7 +1784,6 @@ lazy val `bench-processor` = (project in file("std-bits/bench-processor"))
   .dependsOn(runtime)
 
 lazy val `bench-libs` = (project in file("std-bits/benchmarks"))
-  .configs(Benchmark)
   .settings(
     frgaalJavaCompilerSetting,
     assembly / mainClass := (Compile / run / mainClass).value,
@@ -1794,10 +1793,11 @@ lazy val `bench-libs` = (project in file("std-bits/benchmarks"))
       "org.graalvm.sdk"  % "graal-sdk"                 % graalMavenPackagesVersion   % "provided",
     ),
     commands += WithDebugCommand.withDebug,
-    (Compile / mainClass) := Some("org.enso.benchmarks.libs.LibBenchRunner"),
-    (Compile / run / fork) := true,
-    (Compile / run / connectInput) := true,
-    (Compile / javacOptions) ++= {
+    (Benchmark / run / mainClass) := Some("org.enso.benchmarks.libs.LibBenchRunner"),
+    (Benchmark / run / fork) := true,
+    (Benchmark / run / connectInput) := true,
+    // Pass -Dtruffle.class.path.append to javac
+    (Benchmark / compile / javacOptions) ++= {
       val runtimeClasspath =
         (LocalProject("runtime") / Compile / fullClasspath).value
       val runtimeInstrumentsClasspath =
@@ -1808,27 +1808,43 @@ lazy val `bench-libs` = (project in file("std-bits/benchmarks"))
         (runtimeClasspath ++ runtimeInstrumentsClasspath)
           .map(_.data)
           .mkString(File.pathSeparator)
-      // Only run ServiceProvider processor and ignore those defined in META-INF, thus
-      // fixing incremental compilation setup
       Seq(
         "-J--no-limit-modules",
         s"-J-Dtruffle.class.path.append=$appendClasspath",
       )
     },
+    (Benchmark / run / javaOptions) ++= {
+      val runtimeClasspath =
+        (LocalProject("runtime") / Compile / products).value
+      val runtimeInstrumentsClasspath =
+        (LocalProject(
+          "runtime-with-instruments"
+        ) / Compile / products).value
+      val appendClasspath =
+        (runtimeClasspath ++ runtimeInstrumentsClasspath)
+          .mkString(File.pathSeparator)
+      Seq(
+        s"-Dtruffle.class.path.append=$appendClasspath",
+      )
+    },
+  )
+  .configs(Benchmark)
+  .settings(
+    inConfig(Benchmark)(Defaults.testSettings),
   )
   .settings(
-    (Compile / javacOptions) ++= Seq(
-      "-s",
-      (Compile / sourceManaged).value.getAbsolutePath,
-      "-Xlint:unchecked"
-    )
-  )
-  .settings(
-    (Compile / compile) := (Compile / compile)
-      .dependsOn(Def.task {
-        (Compile / sourceManaged).value.mkdirs
-      })
-      .value
+    bench := (Benchmark / run).toTask("").tag(Exclusive).value,
+    benchOnly := Def.inputTaskDyn {
+      import complete.Parsers.spaceDelimited
+      val name = spaceDelimited("<name>").parsed match {
+        case List(name) => name
+        case _ => throw new IllegalArgumentException("Expected one argument.")
+      }
+      Def.task {
+        (Benchmark / run).toTask(" " + name).value
+      }
+    }.evaluated,
+    Benchmark / parallelExecution := false
   )
   .dependsOn(`bench-processor`)
   .dependsOn(runtime)
