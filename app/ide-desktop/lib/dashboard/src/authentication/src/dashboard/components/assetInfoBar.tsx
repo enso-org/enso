@@ -22,6 +22,7 @@ export default function AssetInfoBar(_props: AssetInfoBarProps) {
                 active={false}
                 disabled
                 image={DocsIcon}
+                error="Not implemented yet."
                 onClick={() => {
                     // No backend support yet.
                 }}
@@ -30,6 +31,7 @@ export default function AssetInfoBar(_props: AssetInfoBarProps) {
                 active={false}
                 disabled
                 image={SettingsIcon}
+                error="Not implemented yet."
                 onClick={() => {
                     // No backend support yet.
                 }}

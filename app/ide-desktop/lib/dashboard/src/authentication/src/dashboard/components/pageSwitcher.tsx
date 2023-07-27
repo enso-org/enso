@@ -5,6 +5,8 @@ import DriveIcon from 'enso-assets/drive.svg'
 import HomeIcon from 'enso-assets/home.svg'
 import NetworkIcon from 'enso-assets/network.svg'
 
+import Button from './button'
+
 // ====================
 // === PageSwitcher ===
 // ====================
@@ -14,6 +16,13 @@ export enum Page {
     home = 'home',
     drive = 'drive',
     editor = 'editor',
+}
+
+/** Error text for each page. */
+const ERRORS: Record<Page, string | null> = {
+    [Page.home]: 'Not implemented yet.',
+    [Page.drive]: null,
+    [Page.editor]: 'No project is currently open.',
 }
 
 /** Data describing how to display a button for a pageg. */
@@ -45,26 +54,16 @@ export default function PageSwitcher(props: PageSwitcherProps) {
                     pageData.page === Page.home ||
                     (pageData.page === Page.editor && isEditorDisabled)
                 return (
-                    <button
+                    <Button
                         key={pageData.page}
-                        disabled={page === pageData.page || isDisabled}
-                        className={`${page === pageData.page ? '' : 'opacity-50'} ${
-                            isDisabled ? 'cursor-not-allowed' : ''
-                        }`}
-                        {...(isDisabled
-                            ? {
-                                  title:
-                                      pageData.page === Page.editor
-                                          ? 'No project is currently open.'
-                                          : 'Not implemented yet.',
-                              }
-                            : {})}
+                        image={pageData.icon}
+                        active={page === pageData.page}
+                        disabled={isDisabled}
+                        error={ERRORS[pageData.page]}
                         onClick={() => {
                             setPage(pageData.page)
                         }}
-                    >
-                        <img src={pageData.icon} />
-                    </button>
+                    />
                 )
             })}
         </div>

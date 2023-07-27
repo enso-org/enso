@@ -6,6 +6,7 @@ import DefaultUserIcon from 'enso-assets/default_user.svg'
 
 import * as modalProvider from '../../providers/modal'
 
+import Button from './button'
 import UserMenu from './userMenu'
 
 // ===============
@@ -24,14 +25,13 @@ export default function UserBar(props: UserBarProps) {
     const { updateModal } = modalProvider.useSetModal()
     return (
         <div className="flex shrink-0 items-center bg-frame-bg rounded-full gap-3 h-8 pl-2 pr-0.75">
-            <button
-                className={isHelpChatOpen ? '' : 'opacity-50'}
+            <Button
+                active={isHelpChatOpen}
+                image={ChatIcon}
                 onClick={() => {
                     setIsHelpChatOpen(!isHelpChatOpen)
                 }}
-            >
-                <img src={ChatIcon} />
-            </button>
+            />
             <button
                 onClick={event => {
                     event.stopPropagation()
