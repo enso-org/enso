@@ -7,13 +7,11 @@ from Standard.Test import Bench, Faker
 
 ## Bench Utilities ============================================================
 
-num_rows = 2500
-iter_size = 1000
 num_iterations = 10
 seed=1646322139
 
 create_table : Table
-create_table =
+create_table num_rows =
     faker = Faker.new seed
     sizes = ['XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL']
     stores = ["Brixton", "Chelsea", "Fulham", "Mayfair", "Notting Hill", "Peckham", "Richmond", "Westminster", "Whitechapel", "Wimbledon"]
@@ -29,15 +27,25 @@ create_table =
 
 # The Benchmarks ==============================================================
 bench =
-    IO.println <| "Making table data..."
-    table = create_table
+    counts = [[25, 1000], [250, 1000], [2500, 100], [25000, 10]]
+    counts.map c->
+        num_rows = c.at 0
+        iter_size = c.at 1
 
-    Bench.measure (table.cross_tab [] "size") "[], size" iter_size num_iterations
-    Bench.measure (table.cross_tab [] "type") "[], type" iter_size num_iterations
-    Bench.measure (table.cross_tab [] "store") "[], store" iter_size num_iterations
-    Bench.measure (table.cross_tab ["type"] "size") "[type], size" iter_size num_iterations
-    Bench.measure (table.cross_tab ["store"] "size") "[store], size" iter_size num_iterations
-    Bench.measure (table.cross_tab ["size"] "store") "[size], store" iter_size num_iterations
-    Bench.measure (table.cross_tab ["size"] "store" values=[Count, Sum "price"]) "[size], store, [count, sum price]" iter_size num_iterations
+        table = create_table num_rows
+
+        measure group_by name_column values=[Count] =
+            operation = num_rows.to_text + "-" + (group_by.join '+') + "-" + name_column + "-" + (values.map .to_text . join "+")
+            approach = "one index"
+            name = operation + "/" + approach
+            Bench.measure (table.cross_tab group_by name_column values) name iter_size num_iterations
+
+        measure [] "size"
+        measure [] "type"
+        measure [] "store"
+        measure ["type"] "size"
+        measure ["store"] "size"
+        measure ["size"] "store"
+        measure ["size"] "store" values=[Count, Sum "price"]
 
 main = bench
