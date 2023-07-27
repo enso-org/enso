@@ -379,7 +379,7 @@ export interface ChatProps {
 }
 
 /** Chat sidebar. */
-function Chat(props: ChatProps) {
+export default function Chat(props: ChatProps) {
     const { isOpen, doClose } = props
     const { accessToken: rawAccessToken } = authProvider.useNonPartialUserSession()
     const logger = loggerProvider.useLogger()
@@ -856,5 +856,3 @@ function Chat(props: ChatProps) {
         )
     }
 }
-
-export default Chat

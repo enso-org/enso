@@ -415,6 +415,13 @@ impl display::Object for PortShapeView {
             Self::Multi(view) => view.display_object(),
         }
     }
+
+    fn focus_receiver(&self) -> &display::object::Instance {
+        match self {
+            Self::Single(view) => view.focus_receiver(),
+            Self::Multi(view) => view.focus_receiver(),
+        }
+    }
 }
 
 

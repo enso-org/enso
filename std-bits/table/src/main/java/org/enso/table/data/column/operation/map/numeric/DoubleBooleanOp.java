@@ -1,6 +1,7 @@
 package org.enso.table.data.column.operation.map.numeric;
 
-import org.enso.table.data.column.operation.map.MapOperation;
+import org.enso.base.polyglot.NumericConverter;
+import org.enso.table.data.column.operation.map.BinaryMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
@@ -12,7 +13,7 @@ import org.graalvm.polyglot.Context;
 import java.util.BitSet;
 
 /** An operation expecting a numeric argument and returning a boolean. */
-public abstract class DoubleBooleanOp extends MapOperation<Double, DoubleStorage> {
+public abstract class DoubleBooleanOp extends BinaryMapOperation<Double, DoubleStorage> {
   public DoubleBooleanOp(String name) {
     super(name);
   }
@@ -23,20 +24,10 @@ public abstract class DoubleBooleanOp extends MapOperation<Double, DoubleStorage
     throw new UnexpectedTypeException("a Number");
   }
 
-  private Double tryCast(Object arg) {
-    if (arg instanceof Long) {
-      return ((Long) arg).doubleValue();
-    } else if (arg instanceof Double) {
-      return (Double) arg;
-    } else {
-      return null;
-    }
-  }
-
   @Override
-  public BoolStorage runMap(DoubleStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
+  public BoolStorage runBinaryMap(DoubleStorage storage, Object arg, MapOperationProblemBuilder problemBuilder) {
     Context context = Context.getCurrent();
-    Double v = tryCast(arg);
+    Double v = NumericConverter.tryConvertingToDouble(arg);
     if (v != null) {
       double x = v;
       BitSet newVals = new BitSet();
@@ -103,7 +94,7 @@ public abstract class DoubleBooleanOp extends MapOperation<Double, DoubleStorage
       BitSet newMissing = new BitSet();
       for (int i = 0; i < storage.size(); i++) {
         if (!storage.isNa(i) && i < arg.size() && !arg.isNa(i)) {
-          Double x = tryCast(arg.getItemBoxed(i));
+          Double x = NumericConverter.tryConvertingToDouble(arg.getItemBoxed(i));
           if (x == null) {
             if (doObject(storage.getItem(i), arg.getItemBoxed(i))) {
               newVals.set(i);
@@ -121,5 +112,10 @@ public abstract class DoubleBooleanOp extends MapOperation<Double, DoubleStorage
       }
       return new BoolStorage(newVals, newMissing, storage.size(), false);
     }
+  }
+
+  @Override
+  public boolean reliesOnSpecializedStorage() {
+    return false;
   }
 }

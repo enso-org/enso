@@ -134,12 +134,15 @@ type Test
              example_fail = Test.fail "Something went wrong."
     fail : Text -> Nothing|Text -> Test_Result
     fail message details=Nothing =
-        clue_data = State.get Clue
-        message_with_clue = case clue_data of
+        failure = Test_Result.Failure (Test.enrich_message_with_clue message) details
+        Panic.throw failure
+
+    ## PRIVATE
+    enrich_message_with_clue : Text -> Text
+    enrich_message_with_clue message =
+        case State.get Clue of
             Clue.Value add_clue -> add_clue message
             _                   -> message
-        failure = Test_Result.Failure message_with_clue details
-        Panic.throw failure
 
     ## PRIVATE
        Reports an unexpected dataflow error has occurred.
@@ -203,8 +206,8 @@ run_spec ~behavior =
         case ex of
             Test_Result.Failure _ _ -> ex
             Finished_With.Error err stack_trace_text ->
-                Test_Result.Failure ("An unexpected error was returned: " + err.to_text) details=stack_trace_text
-            _ -> Test_Result.Failure ("An unexpected panic was thrown: " + ex.to_text) details=maybeExc.get_stack_trace_text
+                Test_Result.Failure (Test.enrich_message_with_clue ("An unexpected error was returned: " + err.to_text)) details=stack_trace_text
+            _ -> Test_Result.Failure (Test.enrich_message_with_clue ("An unexpected panic was thrown: " + ex.to_text)) details=maybeExc.get_stack_trace_text
     result
 
 ## PRIVATE

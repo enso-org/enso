@@ -46,6 +46,10 @@ impl<E: display::Object> display::Object for VisibleEntry<E> {
     fn display_object(&self) -> &display::object::Instance {
         self.entry.display_object()
     }
+
+    fn focus_receiver(&self) -> &display::object::Instance {
+        self.entry.focus_receiver()
+    }
 }
 
 

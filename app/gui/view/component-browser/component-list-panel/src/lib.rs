@@ -49,6 +49,7 @@ use ensogl_core::display::shape::*;
 use enso_frp as frp;
 use ensogl_core::application::frp::API;
 use ensogl_core::application::Application;
+use ensogl_core::control::io::mouse;
 use ensogl_core::data::bounding_box::BoundingBox;
 use ensogl_core::data::color;
 use ensogl_core::define_endpoints_2;
@@ -232,10 +233,11 @@ pub mod background {
 
 /// The Model of Select Component.
 #[allow(missing_docs)]
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 pub struct Model {
     display_object:  display::object::Instance,
     background:      background::View,
+    #[focus_receiver]
     pub grid:        grid::View,
     pub breadcrumbs: breadcrumbs::Breadcrumbs,
 }
@@ -288,12 +290,6 @@ impl Model {
         let size = style.size();
         let viewport = BoundingBox::from_center_and_size(default(), size);
         viewport.contains(pos)
-    }
-}
-
-impl display::Object for Model {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
     }
 }
 
@@ -363,10 +359,11 @@ impl component::Frp<Model> for Frp {
                 model.is_hovered(pos, style)
             })).gate(&is_visible).on_change();
             output.is_hovered <+ is_hovered;
-            // TODO[ib] Temporary solution for focus, we grab keyboard events if the
-            //   component browser is visible. The proper implementation is tracked in
-            //   https://www.pivotaltracker.com/story/show/180872763
-            model.grid.deprecated_set_focus <+ is_visible;
+
+            let mouse_down = model.on_event::<mouse::Down>();
+            eval_ mouse_down (model.focus());
+            eval_ input.show (model.focus());
+            eval_ input.hide (model.blur());
 
         }
         panel_style.init.emit(());

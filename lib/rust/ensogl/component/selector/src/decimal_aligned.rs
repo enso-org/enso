@@ -37,32 +37,32 @@ ensogl_core::define_endpoints! {
 // ===  Model ===
 // ==============
 
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 pub struct Model {
     /// Root object. Required as the rendered text label will have an offset relative to the
     /// base position of the root, depending on the position of the decimal separator.
-    root:       display::object::Instance,
+    display_object: display::object::Instance,
     /// Label containing the text to display. This is the label that will be shown.
-    label_full: text::Text,
+    label_full:     text::Text,
     /// This label contains the text to the left of the decimal. This is here, so we can get
     /// information about the text width of this portion of the label. This label will
     /// not appear in the UI.
-    label_left: text::Text,
+    label_left:     text::Text,
 }
 
 impl Model {
     fn new(app: &Application) -> Self {
-        let root = display::object::Instance::new();
+        let display_object = display::object::Instance::new();
         let label_full = app.new_view::<text::Text>();
         let label_left = app.new_view::<text::Text>();
 
         app.display.default_scene.layers.main.remove(&label_full);
         label_full.add_to_scene_layer(&app.display.default_scene.layers.label);
 
-        root.add_child(&label_full);
-        root.add_child(&label_left);
+        display_object.add_child(&label_full);
+        display_object.add_child(&label_left);
 
-        Self { root, label_full, label_left }
+        Self { display_object, label_full, label_left }
     }
 }
 
@@ -88,17 +88,13 @@ impl Frp {
     }
 }
 
-impl display::Object for Model {
-    fn display_object(&self) -> &display::object::Instance {
-        self.root.display_object()
-    }
-}
-
 /// Decimal aligned text label that shows the text representation of a floating point number.
 #[allow(missing_docs)]
-#[derive(Clone, CloneRef, Debug, Derivative)]
+#[derive(Clone, CloneRef, Debug, Deref, display::Object)]
 pub struct FloatLabel {
+    #[deref]
     pub frp: Rc<Frp>,
+    #[display_object]
     model:   Rc<Model>,
 }
 
@@ -110,19 +106,6 @@ impl FloatLabel {
         frp.init(&model);
         let frp = Rc::new(frp);
         Self { frp, model }
-    }
-}
-
-impl display::Object for FloatLabel {
-    fn display_object(&self) -> &display::object::Instance {
-        self.model.display_object()
-    }
-}
-
-impl Deref for FloatLabel {
-    type Target = Frp;
-    fn deref(&self) -> &Self::Target {
-        &self.frp
     }
 }
 

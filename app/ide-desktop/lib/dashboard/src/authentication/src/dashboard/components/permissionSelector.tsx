@@ -37,7 +37,7 @@ export interface PermissionSelectorProps {
 }
 
 /** A horizontal selector for all possible permissions. */
-function PermissionSelector(props: PermissionSelectorProps) {
+export default function PermissionSelector(props: PermissionSelectorProps) {
     const { initialPermissions, className, permissionClassName, onChange } = props
     const [permissions, setPermissions] = React.useState(() => new Set<backend.PermissionAction>())
 
@@ -65,10 +65,10 @@ function PermissionSelector(props: PermissionSelectorProps) {
                             <PermissionDisplay
                                 permissions={permission}
                                 className={`cursor-pointer ${
-                                    permissions.has(action) ? 'shadow-soft-dark' : ''
+                                    permissions.has(action) ? '' : 'opacity-50'
                                 } ${permissionClassName ?? ''}`}
                             >
-                                <div className="mx-1">{name}</div>
+                                {name}
                             </PermissionDisplay>
                         </label>
                         <input
@@ -100,5 +100,3 @@ function PermissionSelector(props: PermissionSelectorProps) {
         </div>
     )
 }
-
-export default PermissionSelector

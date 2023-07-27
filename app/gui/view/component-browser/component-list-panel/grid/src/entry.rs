@@ -139,7 +139,7 @@ pub struct Params {
 // === Data ===
 
 /// The data of Component Browser Entry [`View`], passed to its FRP nodes.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 pub struct Data {
     display_object: display::object::Instance,
     label:          text::Text,
@@ -215,9 +215,10 @@ impl Data {
 /// The entries (except [local scope entries](`Kind::LocalScopeEntry`) have width equal to the
 /// column width declared in [`Style`]. Making grid column  broader can create a nice vertical gaps
 /// between columns. The horizontal gaps are left by the header entries (having a bit lower height).
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 pub struct View {
     frp:  grid_view::entry::EntryFrp<Self>,
+    #[display_object]
     data: Data,
 }
 
@@ -285,11 +286,5 @@ impl grid_view::Entry for View {
 
     fn frp(&self) -> &grid_view::entry::EntryFrp<Self> {
         &self.frp
-    }
-}
-
-impl display::Object for View {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.data.display_object
     }
 }

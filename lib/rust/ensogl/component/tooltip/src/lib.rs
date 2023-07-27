@@ -50,20 +50,20 @@ ensogl::define_endpoints! {
 // === Model ===
 // =============
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, display::Object)]
 struct Model {
-    tooltip:   Label,
-    root:      display::object::Instance,
-    placement: Cell<Placement>,
+    tooltip:        Label,
+    display_object: display::object::Instance,
+    placement:      Cell<Placement>,
 }
 
 impl Model {
     fn new(app: &Application) -> Self {
         let tooltip = Label::new(app);
-        let root = display::object::Instance::new();
-        root.add_child(&tooltip);
+        let display_object = display::object::Instance::new();
+        display_object.add_child(&tooltip);
         let placement = default();
-        Self { tooltip, root, placement }
+        Self { tooltip, display_object, placement }
     }
 
     fn set_location(&self, position: Vector2, size: Vector2) {
@@ -89,7 +89,7 @@ impl Model {
 
     fn set_visibility(&self, visible: bool) {
         if visible {
-            self.root.add_child(&self.tooltip)
+            self.display_object.add_child(&self.tooltip)
         } else {
             self.tooltip.unset_parent()
         }
@@ -107,8 +107,9 @@ impl Model {
 // ===============
 
 /// Tooltip component that can show extra information about other UI components.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 pub struct Tooltip {
+    #[display_object]
     model:   Rc<Model>,
     #[allow(missing_docs)]
     pub frp: Rc<Frp>,
@@ -184,11 +185,5 @@ impl Tooltip {
         model.set_opacity(0.0);
         model.set_style(&Style::default());
         self
-    }
-}
-
-impl display::Object for Tooltip {
-    fn display_object(&self) -> &display::object::Instance {
-        self.model.root.display_object()
     }
 }

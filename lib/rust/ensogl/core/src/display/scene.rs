@@ -7,6 +7,9 @@ use web::traits::*;
 
 use crate::animation;
 use crate::control::callback;
+use crate::control::io::keyboard;
+use crate::control::io::keyboard::dom as dom_keyboard;
+use crate::control::io::keyboard::dom::KeyboardManager;
 use crate::control::io::mouse;
 use crate::control::io::mouse::MouseManager;
 use crate::data::dirty;
@@ -22,6 +25,7 @@ use crate::display::style;
 use crate::display::style::data::DataMatch;
 use crate::display::symbol::Symbol;
 use crate::display::world;
+use crate::frp::io::keyboard as frp_keyboard;
 use crate::system;
 use crate::system::gpu::context::profiler::Results;
 use crate::system::gpu::data::uniform::Uniform;
@@ -146,7 +150,7 @@ pub struct Mouse {
     /// the texture.
     pub hovered_objects:         Rc<RefCell<Vec<display::object::WeakInstance>>>,
     pub target:                  Rc<Cell<PointerTargetId>>,
-    pub handles:                 Rc<[callback::Handle; 6]>,
+    pub handles:                 Rc<[callback::Handle]>,
     pub scene_frp:               Frp,
     /// Stored in order to be converted to [`mouse::Over`], [`mouse::Out`], [`mouse::Enter`], and
     /// [`mouse::Leave`] when the mouse enters or leaves an element.
@@ -378,15 +382,77 @@ impl Mouse {
 
 #[derive(Clone, CloneRef, Debug)]
 pub struct Keyboard {
-    pub frp:  enso_frp::io::keyboard::Keyboard,
-    bindings: Rc<enso_frp::io::keyboard::DomBindings>,
+    pub frp:          frp_keyboard::Keyboard,
+    keyboard_manager: KeyboardManager,
+    handles:          Rc<[callback::Handle]>,
 }
 
 impl Keyboard {
-    pub fn new(target: &web::EventTarget) -> Self {
-        let frp = enso_frp::io::keyboard::Keyboard::default();
-        let bindings = Rc::new(enso_frp::io::keyboard::DomBindings::new(target, &frp));
-        Self { frp, bindings }
+    pub fn new(target: &web::EventTarget, display_object: &display::object::Instance) -> Self {
+        let keyboard_manager = KeyboardManager::new(target);
+        let frp = frp_keyboard::Keyboard::default();
+        let handles = Self::init_dom_event_handlers(&keyboard_manager, &frp);
+        Self::init_keyboard_event_dispatchers(&frp, display_object);
+        Self { frp, keyboard_manager, handles }
+    }
+
+    /// Handle DOM keyboard events. This involves some DOM-specific logic (`prevent_default`), and
+    /// using the events to drive the FRP keyboard.
+    fn init_dom_event_handlers(
+        keyboard_manager: &KeyboardManager,
+        frp: &frp_keyboard::Keyboard,
+    ) -> Rc<[callback::Handle]> {
+        let input = frp.source.clone_ref();
+        let on_keydown = keyboard_manager.on_keydown.add(f!([input](event: &dom_keyboard::KeyDown)
+            if let Some(event) = event.js_event.as_ref() {
+                if frp_keyboard::is_browser_shortcut(event) {
+                    event.prevent_default();
+                }
+                input.down.emit(frp_keyboard::KeyWithCode::from(event));
+            }
+        ));
+        let on_keyup = keyboard_manager.on_keyup.add(f!([input] (event: &dom_keyboard::KeyUp)
+            if let Some(event) = event.js_event.as_ref() {
+                if frp_keyboard::is_browser_shortcut(event) {
+                    event.prevent_default();
+                }
+                input.up.emit(frp_keyboard::KeyWithCode::from(event));
+            }
+        ));
+        let on_blur = keyboard_manager.on_blur.add(f!((_e: &_) input.window_defocused.emit(())));
+        Rc::new([on_keyup, on_keydown, on_blur])
+    }
+
+    /// Dispatch events from the global FRP keyboard to the display object hierarchy.
+    fn init_keyboard_event_dispatchers(
+        frp: &frp_keyboard::Keyboard,
+        display_object: &display::object::Instance,
+    ) {
+        let network = &frp.network;
+        frp::extend! { network
+            down <- frp.down.map4(
+                &frp.is_meta_down,
+                &frp.is_control_down,
+                &frp.is_alt_down,
+                f!([](k, m, c, a) keyboard::KeyDown::new(k.clone(), *m, *c, *a))
+            );
+            up <- frp.up.map4(
+                &frp.is_meta_down,
+                &frp.is_control_down,
+                &frp.is_alt_down,
+                f!([](k, m, c, a) keyboard::KeyUp::new(k.clone(), *m, *c, *a))
+            );
+            eval down ([display_object](event: &keyboard::KeyDown) {
+                let focused = display_object.focused_instance();
+                let receiver = focused.as_ref().unwrap_or(&display_object);
+                receiver.emit_event(event.clone());
+            });
+            eval up ([display_object](event: &keyboard::KeyUp) {
+                let focused = display_object.focused_instance();
+                let receiver = focused.as_ref().unwrap_or(&display_object);
+                receiver.emit_event(event.clone());
+            });
+        }
     }
 }
 
@@ -945,14 +1011,20 @@ pub struct UpdateStatus {
 // === SceneData ===
 // =================
 
-#[derive(Debug)]
+#[derive(Debug, display::Object)]
 pub struct SceneData {
     pub display_object: display::object::Root,
     pub dom: Rc<Dom>,
     pub context: Rc<RefCell<Option<Context>>>,
     pub variables: UniformScope,
     pub mouse: Mouse,
-    pub keyboard: Keyboard,
+    /// Keyboard that bypasses event propagation and receives all key events. Typically, this is
+    /// appropriate for monitoring the state of modifier keys (which have a logical state
+    /// independent of what was focused when they were pressed), but not other keys (which
+    /// generally should be handled by exactly one receiver). For focus-aware keyboard events,
+    /// use the events interface (`on_event`), or use the `shortcut` API with the events
+    /// interface.
+    pub global_keyboard: Keyboard,
     pub uniforms: Uniforms,
     pub stats: Stats,
     pub dirty: Dirty,
@@ -991,7 +1063,7 @@ impl SceneData {
         let frp = Frp::new(&dom.root.shape);
         let mouse = Mouse::new(&frp, &display_object, &dom.root, &variables, &display_mode);
         let disable_context_menu = Rc::new(web::ignore_context_menu(&dom.root));
-        let keyboard = Keyboard::new(&web::window);
+        let global_keyboard = Keyboard::new(&web::window, &display_object);
         let network = &frp.network;
         let extensions = Extensions::default();
         let bg_color_var = style_sheet.var("application.background");
@@ -1019,7 +1091,7 @@ impl SceneData {
             context,
             variables,
             mouse,
-            keyboard,
+            global_keyboard,
             uniforms,
             stats,
             dirty,
@@ -1211,20 +1283,14 @@ impl SceneData {
 }
 
 
-impl display::Object for SceneData {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
-    }
-}
-
-
 
 // =============
 // === Scene ===
 // =============
 
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 pub struct Scene {
+    #[display_object]
     no_mut_access:        Rc<SceneData>,
     // Context handlers keep reference to SceneData, thus cannot be put inside it.
     context_lost_handler: Rc<RefCell<Option<ContextLostHandler>>>,
@@ -1438,12 +1504,6 @@ impl Scene {
 impl AsRef<Scene> for Scene {
     fn as_ref(&self) -> &Scene {
         self
-    }
-}
-
-impl display::Object for Scene {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
     }
 }
 

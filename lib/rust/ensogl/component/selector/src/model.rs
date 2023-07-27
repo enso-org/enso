@@ -29,7 +29,7 @@ const LABEL_OFFSET: f32 = 13.0;
 
 /// A Selector Component Model.
 #[allow(missing_docs)]
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 pub struct Model {
     /// Background shape that the other UI elements are placed on.
     pub background:         background::View,
@@ -63,7 +63,7 @@ pub struct Model {
     pub caption_center:     text::Text,
     /// Shape root that all other elements are parented to. Should be used to place the shapes as
     /// a group.
-    pub root:               display::object::Instance,
+    display_object:         display::object::Instance,
 
     background_color: Rc<RefCell<color::Rgba>>,
     track_color: Rc<RefCell<color::Rgba>>,
@@ -75,7 +75,7 @@ pub struct Model {
 #[allow(missing_docs)]
 impl Model {
     pub fn new(app: &Application) -> Self {
-        let root = display::object::Instance::new();
+        let display_object = display::object::Instance::new();
         let label = FloatLabel::new(app);
         let label_left = app.new_view::<text::Text>();
         let label_right = app.new_view::<text::Text>();
@@ -95,14 +95,14 @@ impl Model {
 
         let scene = &app.display.default_scene;
 
-        root.add_child(&label);
-        root.add_child(&label_left);
-        root.add_child(&label_right);
-        root.add_child(&caption_left);
-        root.add_child(&caption_center);
-        root.add_child(&background);
-        root.add_child(&track);
-        root.add_child(&right_overflow);
+        display_object.add_child(&label);
+        display_object.add_child(&label_left);
+        display_object.add_child(&label_right);
+        display_object.add_child(&caption_left);
+        display_object.add_child(&caption_center);
+        display_object.add_child(&background);
+        display_object.add_child(&track);
+        display_object.add_child(&right_overflow);
 
         scene.layers.main.remove(&label_left);
         label_left.add_to_scene_layer(&scene.layers.label);
@@ -125,7 +125,7 @@ impl Model {
             label_right,
             caption_left,
             caption_center,
-            root,
+            display_object,
             background_color,
             track_color,
             background_left_corner_roundness,
@@ -235,17 +235,17 @@ impl Model {
 
     pub fn show_left_overflow(&self, value: bool) {
         if value {
-            self.root.add_child(&self.left_overflow);
+            self.display_object.add_child(&self.left_overflow);
         } else {
-            self.root.remove_child(&self.left_overflow);
+            self.display_object.remove_child(&self.left_overflow);
         }
     }
 
     pub fn show_right_overflow(&self, value: bool) {
         if value {
-            self.root.add_child(&self.right_overflow);
+            self.display_object.add_child(&self.right_overflow);
         } else {
-            self.root.remove_child(&self.right_overflow);
+            self.display_object.remove_child(&self.right_overflow);
         }
     }
 
@@ -300,11 +300,5 @@ impl Model {
             self.track.corner_right.set(0.0);
             self.track.corner_left.set(0.0);
         }
-    }
-}
-
-impl display::Object for Model {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.root
     }
 }

@@ -71,7 +71,7 @@ pub const CORNER_RADIUS_PX: f32 = 12.0;
 // === Shapes ===
 // ==============
 
-#[derive(Clone, Debug, Default, CloneRef)]
+#[derive(Clone, Debug, Default, CloneRef, display::Object)]
 struct Selection {
     shape: Rectangle,
 }
@@ -83,12 +83,6 @@ impl Selection {
     fn set_size_and_center_y(&self, size: Vector2<f32>, center_y: f32) {
         self.shape.set_size(size);
         self.shape.set_xy(Vector2(0.0, center_y) - size / 2.0);
-    }
-}
-
-impl display::Object for Selection {
-    fn display_object(&self) -> &display::object::Instance {
-        self.shape.display_object()
     }
 }
 
@@ -122,7 +116,7 @@ impl Default for JumpTarget {
 }
 
 /// The Model of Select Component.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 struct Model<E: Entry> {
     entries:        entry::List<E>,
     selection:      Selection,
@@ -365,18 +359,13 @@ impl StyleFrp {
 /// This is a displayed list of entries (of any type `E`) with possibility of selecting one and
 /// "choosing" by clicking or pressing enter. The basic entry types are defined in [`entry`] module.
 #[allow(missing_docs)]
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, Deref, display::Object)]
 pub struct ListView<E: Entry> {
+    #[display_object]
     model:     Model<E>,
+    #[deref]
     pub frp:   Frp<E>,
     style_frp: StyleFrp,
-}
-
-impl<E: Entry> Deref for ListView<E> {
-    type Target = Frp<E>;
-    fn deref(&self) -> &Self::Target {
-        &self.frp
-    }
 }
 
 impl<E: Entry> ListView<E>
@@ -618,12 +607,6 @@ where E::Model: Default
     }
 }
 
-impl<E: Entry> display::Object for ListView<E> {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.model.display_object
-    }
-}
-
 impl<E: Entry> FrpNetworkProvider for ListView<E> {
     fn network(&self) -> &frp::Network {
         &self.frp.network
@@ -639,7 +622,7 @@ impl<E: Entry> application::View for ListView<E> {
         ListView::new(app)
     }
 
-    fn default_shortcuts() -> Vec<shortcut::Shortcut> {
+    fn global_shortcuts() -> Vec<shortcut::Shortcut> {
         use shortcut::ActionType::*;
         [
             (PressAndRepeat, "up", "move_selection_up"),

@@ -10,6 +10,7 @@ use quote::ToTokens;
 use syn::DeriveInput;
 use syn::Path;
 use syn::Type;
+use syn_1 as syn;
 
 
 

@@ -149,14 +149,14 @@ impl display::shape::CustomSystemData<glyph_shape::Shape> for SystemData {
 // =============
 
 /// A glyph rendered on screen.
-#[derive(Clone, CloneRef, Debug, Deref)]
+#[derive(Clone, CloneRef, Debug, Deref, display::Object)]
 pub struct Glyph {
     data: Rc<GlyphData>,
 }
 
 /// Internal structure of [`Glyph`].
 #[allow(missing_docs)]
-#[derive(Debug)]
+#[derive(Debug, display::Object)]
 pub struct GlyphData {
     pub view:               glyph_shape::View,
     pub glyph_id:           Cell<GlyphId>,
@@ -419,12 +419,6 @@ impl Glyph {
                 .with_borrowed_msdf_texture_data(|data| texture.reload_with_content(data));
             self.view.data.borrow().font.atlas.set(texture);
         }
-    }
-}
-
-impl display::Object for Glyph {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
     }
 }
 

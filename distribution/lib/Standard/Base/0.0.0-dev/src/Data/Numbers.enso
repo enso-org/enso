@@ -20,6 +20,8 @@ polyglot java import java.text.DecimalFormatSymbols
 polyglot java import java.text.NumberFormat
 polyglot java import java.text.ParseException
 
+polyglot java import org.enso.polyglot.common_utils.Core_Math_Utils
+
 ## The root type of the Enso numeric hierarchy.
 
    If a Number is expected, then the program can provide either a Decimal or
@@ -580,6 +582,9 @@ type Decimal
 
        ! Error Conditions
 
+         If `self` is outside the range -99999999999999..99999999999999
+         (inclusive), an `Illegal_Argument` error is thrown.
+
          If `decimal_places` is outside the range -15..15 (inclusive), an
          `Illegal_Argument` error is thrown.
 
@@ -609,24 +614,9 @@ type Decimal
             2.5 . round use_bankers=True == 2
     round : Integer -> Boolean -> Integer | Decimal ! Illegal_Argument
     round self decimal_places=0 use_bankers=False =
-        Rounding_Helpers.check_decimal_places decimal_places <|
-            case self.is_nan || self.is_infinite of
-                True ->
-                    msg = "round cannot accept " + self.to_text
-                    Error.throw (Arithmetic_Error.Error msg)
-                False -> Rounding_Helpers.check_round_input self <|
-                    decimal_result =
-                        # Algorithm taken from https://stackoverflow.com/a/7211688
-                        scale = 10 ^ decimal_places
-                        scaled = self * scale
-                        round_base = scaled.floor
-                        round_midpoint = (round_base + 0.5) / scale
-                        even_is_up = if self >= 0 then (scaled.truncate % 2) != 0 else (scaled.truncate % 2) == 0
-                        half_goes_up = if use_bankers then even_is_up else self >= 0
-                        do_round_up = if half_goes_up then self >= round_midpoint else self > round_midpoint
-                        if do_round_up then ((round_base + 1.0) / scale) else (round_base / scale)
-                    # Convert to integer if it's really an integer anyway.
-                    if decimal_places > 0 then decimal_result else decimal_result.truncate
+        Illegal_Argument.handle_java_exception <| Arithmetic_Error.handle_java_exception <|
+            decimal_result = Core_Math_Utils.roundDouble self decimal_places use_bankers
+            if decimal_places > 0 then decimal_result else decimal_result.truncate
 
     ## Compute the negation of this.
 
@@ -903,11 +893,8 @@ type Integer
        - use_bankers: Rounds mid-point to nearest even number.
 
        ! Error Conditions
-         Throws `Illegal_Argument` if the number is 15 or more decimal places.
-         Above 14 digits, it is possible that the underlying long, converted to
-         double in the rounding process, would lose precision in the least
-         significant bits.
-         (See https://en.wikipedia.org/wiki/Double-precision_floating-point_format.)
+         If `self` is outside the range -99999999999999..99999999999999
+         (inclusive), an `Illegal_Argument` error is thrown.
 
          If `decimal_places` is outside the range -15..15 (inclusive), an
          `Illegal_Argument` error is thrown.
@@ -944,11 +931,11 @@ type Integer
                 result_unnudged = scaled_down * scale
                 case self >= 0 of
                     True ->
-                        half_goes_up = if use_bankers then (scaled_down % 2) != 0 else self >= 0
+                        half_goes_up = if use_bankers then (scaled_down % 2) != 0 else True
                         round_up = if half_goes_up then remainder >= halfway else remainder > halfway
                         if round_up  then result_unnudged + scale else result_unnudged
                     False ->
-                        half_goes_up = if use_bankers then (scaled_down % 2) == 0 else self >= 0
+                        half_goes_up = if use_bankers then (scaled_down % 2) == 0 else False
                         round_up = if half_goes_up then remainder < -halfway else remainder <= -halfway
                         if round_up then result_unnudged - scale else result_unnudged
 

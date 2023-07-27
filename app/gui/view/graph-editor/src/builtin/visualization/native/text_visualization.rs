@@ -87,12 +87,12 @@ pub struct GridWindow {
 // === Model ===
 // =============
 
-#[derive(Debug)]
+#[derive(Debug, display::Object)]
 #[allow(missing_docs)]
 pub struct Model<T> {
     app:                   Application,
     size:                  Rc<Cell<Vector2>>,
-    root:                  display::object::Instance,
+    display_object:        display::object::Instance,
     // Note that we are using a simple `GridView` and our own scrollbar, instead of the
     // `scrollable::GridView` to avoid adding `ScrollAreas` to the scene, as the clipping they
     // provide though the `mask::View` is not free in terms of performance (they add a draw call
@@ -108,7 +108,7 @@ pub struct Model<T> {
 impl<T: 'static> Model<T> {
     /// Constructor.
     fn new(app: Application) -> Self {
-        let root = display::object::Instance::new();
+        let display_object = display::object::Instance::new();
         let clipping_div = web::document.create_div_or_panic();
         let clipping_div = DomSymbol::new(&clipping_div);
         let dom_entry_root = web::document.create_div_or_panic();
@@ -116,7 +116,7 @@ impl<T: 'static> Model<T> {
         let text_provider = default();
 
         let text_grid: GridView<grid_view_entry::Entry> = GridView::new(&app);
-        root.add_child(&text_grid);
+        display_object.add_child(&text_grid);
 
         let scroll_bar_horizontal = Scrollbar::new(&app);
         let scroll_bar_vertical = Scrollbar::new(&app);
@@ -129,7 +129,7 @@ impl<T: 'static> Model<T> {
             dom_entry_root,
             scroll_bar_horizontal,
             scroll_bar_vertical,
-            root,
+            display_object,
             text_provider,
         }
         .init()
@@ -148,7 +148,7 @@ impl<T: 'static> Model<T> {
         self.clipping_div.set_style_or_warn("overflow", "hidden");
         self.clipping_div.set_style_or_warn("z-index", "2");
         scene.dom.layers.back.manage(&self.clipping_div);
-        self.root.add_child(&self.clipping_div);
+        self.display_object.add_child(&self.clipping_div);
 
         // The `dom_entry_root` is a container for the elements and its position is not managed
         // through the display object hierarchy to a avoid issues with mixing the DOM and EnsoGL
@@ -159,8 +159,8 @@ impl<T: 'static> Model<T> {
     }
 
     fn init_scrollbars(&self) {
-        self.root.add_child(&self.scroll_bar_horizontal);
-        self.root.add_child(&self.scroll_bar_vertical);
+        self.display_object.add_child(&self.scroll_bar_horizontal);
+        self.display_object.add_child(&self.scroll_bar_vertical);
         self.scroll_bar_vertical.set_rotation_z(-90.0_f32.to_radians());
     }
 
@@ -198,10 +198,11 @@ impl<T: TextProvider> Model<T> {
 // ================
 
 /// Sample visualization that renders the given data as text. Useful for debugging and testing.
-#[derive(Debug, Deref)]
+#[derive(Debug, Deref, display::Object)]
 #[allow(missing_docs)]
 pub struct TextGrid<T> {
     #[deref]
+    #[display_object]
     model:                 Rc<Model<T>>,
     pub frp:               visualization::instance::Frp,
     network:               frp::Network,
@@ -408,12 +409,6 @@ impl<T: TextProvider + 'static> TextGrid<T> {
 impl<T> From<TextGrid<T>> for visualization::Instance {
     fn from(t: TextGrid<T>) -> Self {
         Self::new(&t, &t.frp, &t.network, Some(t.model.clipping_div.clone_ref()))
-    }
-}
-
-impl<T> display::Object for TextGrid<T> {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.root
     }
 }
 

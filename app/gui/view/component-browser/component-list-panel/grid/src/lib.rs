@@ -118,6 +118,7 @@ ensogl_core::define_endpoints_2! {
         accept_suggestion(),
         /// Accept current input as expression, ignoring any active suggestion.
         accept_current_input_expression(),
+        focus(),
     }
     Output {
         active(Option<EntryId>),
@@ -193,9 +194,10 @@ impl Style {
 // === Model ===
 
 /// A [Model](component::Model) of [Component List Panel Grid View](View).
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 pub struct Model {
     display_object:     display::object::Instance,
+    #[focus_receiver]
     grid:               Grid,
     grid_layer:         Layer,
     selection_layer:    Layer,
@@ -421,15 +423,6 @@ impl Model {
 }
 
 
-// === display::Object Implementation ===
-
-impl display::Object for Model {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
-    }
-}
-
-
 
 // =================
 // === FRP Logic ===
@@ -455,6 +448,7 @@ impl component::Frp<Model> for Frp {
         let colors = entry::style::Colors::from_theme(network, style_frp);
         let selection_colors = entry::style::SelectionColors::from_theme(network, style_frp);
         frp::extend! { network
+
             // === Active and Hovered Entry ===
 
             grid.select_entry <+ grid.entry_hovered;
@@ -541,10 +535,12 @@ impl component::Frp<Model> for Frp {
             grid_scroll_frp.set_content_height <+ grid.content_size.map(|c| c.y);
 
 
-            // === Focus propagation ===
+            // === Focus ===
 
-            // The underlying grid should handle keyboard events only when any element is active.
-            grid.deprecated_set_focus <+ out.focused && out.is_active;
+            eval_ input.focus (model.focus());
+            let focused = model.on_event::<ensogl_core::event::FocusIn>();
+            let defocused = model.on_event::<ensogl_core::event::FocusOut>();
+            grid.disable_selection <+ bool(&focused, &defocused);
         }
 
         grid.resize_grid(0, COLUMN_COUNT);
@@ -562,9 +558,8 @@ impl component::Frp<Model> for Frp {
             // underlying Grid View.
             (Press, "!is_active", "enter", "accept_current_input_expression"),
             (Press, "", "cmd enter", "accept_current_input_expression"),
-            (Press, "", "cmd up", "jump_group_up"),
-            (Press, "", "cmd down", "jump_group_down"),
             (Press, "!is_active", "up", "select_first_entry"),
+            (Press, "!is_active", "up", "focus"),
         ]
         .iter()
         .map(|(a, b, c, d)| View::self_shortcut_when(*a, *c, *d, *b))

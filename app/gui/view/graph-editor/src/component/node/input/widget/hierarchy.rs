@@ -4,6 +4,7 @@
 use crate::component::node::input::widget::prelude::*;
 use crate::prelude::*;
 
+use ensogl::display;
 use ensogl::display::object;
 
 
@@ -29,7 +30,7 @@ pub type CollectedChildren = SmallVec<[object::Instance; 4]>;
 pub struct Config;
 
 /// Hierarchy widget. This widget expands each child of its span tree into a new widget.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, display::Object)]
 pub struct Widget {
     display_object: object::Instance,
 }
@@ -47,10 +48,6 @@ impl SpanWidget for Widget {
     fn default_config(ctx: &ConfigContext) -> Configuration<Self::Config> {
         let has_port = !ctx.span_node.kind.is_named_argument();
         Configuration::maybe_with_port(default(), has_port)
-    }
-
-    fn root_object(&self) -> &object::Instance {
-        &self.display_object
     }
 
     fn new(_: &Config, _: &ConfigContext) -> Self {

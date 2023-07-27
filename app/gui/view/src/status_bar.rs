@@ -107,7 +107,7 @@ ensogl::define_endpoints! {
 // =============
 
 /// An internal model of Status Bar component
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 struct Model {
     display_object:  display::object::Instance,
     root:            display::object::Instance,
@@ -219,9 +219,10 @@ impl Model {
 ///
 /// The status bar gathers information about events and processes occurring in the Application.
 // TODO: This is a stub. Extend it when doing https://github.com/enso-org/ide/issues/1193
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 pub struct View {
     frp:   Frp,
+    #[display_object]
     model: Model,
 }
 
@@ -296,12 +297,6 @@ impl View {
             finish_process.emit(id);
             result
         }
-    }
-}
-
-impl display::Object for View {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.model.display_object
     }
 }
 

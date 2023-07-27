@@ -8,6 +8,7 @@
 use crate::component::node::input::widget::prelude::*;
 use crate::prelude::*;
 
+use ensogl::display;
 use ensogl::display::object;
 
 
@@ -22,7 +23,7 @@ pub struct Config;
 
 
 /// Insertion point widget. Displays nothing when not connected.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, display::Object)]
 pub struct Widget {
     root: object::Instance,
 }
@@ -36,10 +37,6 @@ impl SpanWidget for Widget {
 
     fn default_config(_: &ConfigContext) -> Configuration<Self::Config> {
         Configuration::inert(default())
-    }
-
-    fn root_object(&self) -> &object::Instance {
-        &self.root
     }
 
     fn new(_: &Config, _: &ConfigContext) -> Self {

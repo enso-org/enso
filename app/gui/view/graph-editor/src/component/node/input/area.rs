@@ -161,7 +161,7 @@ impl From<node::Expression> for Expression {
 // =============
 
 /// Internal model of the port area.
-#[derive(Debug)]
+#[derive(Debug, display::Object)]
 pub struct Model {
     display_object:            display::object::Instance,
     edit_mode_label:           text::Text,
@@ -216,12 +216,13 @@ impl Model {
             self.display_object.remove_child(&self.widget_tree);
             self.show_edit_mode_label();
             self.edit_mode_label.set_cursor_at_mouse_position();
+            // [`ensogl_text`] has not been ported to the new focus API yet.
+            self.edit_mode_label.deprecated_focus();
         } else {
             self.hide_edit_mode_label();
             self.display_object.add_child(&self.widget_tree);
             self.edit_mode_label.set_content("");
         }
-        self.edit_mode_label.deprecated_set_focus(edit_mode_active);
     }
 
     /// A workaround to fix the cursor position calculation when clicking into the node.
@@ -253,9 +254,6 @@ impl Model {
         let text_color = self.styles.get_color(theme::graph_editor::node::text);
 
         self.edit_mode_label.set_single_line_mode(true);
-
-        app.commands.set_command_enabled(&self.edit_mode_label, "cursor_move_up", false);
-        app.commands.set_command_enabled(&self.edit_mode_label, "cursor_move_down", false);
         app.commands.set_command_enabled(
             &self.edit_mode_label,
             "add_cursor_at_mouse_position",
@@ -420,6 +418,10 @@ ensogl::define_endpoints! {
         /// `set_expression` instead. In case the usage type is set to None, ports still may be
         /// colored if the definition type was present.
         set_expression_usage_type (ast::Id,Option<Type>),
+
+        /// Signal a mouse click in the input area. The click position will be determined by the
+        /// current pointer position, and the cursor position will be updated in the text area.
+        mouse_down (),
     }
 
     Output {
@@ -458,18 +460,13 @@ ensogl::define_endpoints! {
 /// ## Origin
 /// Please note that the origin of the node is on its left side, centered vertically. To learn more
 /// about this design decision, please read the docs for the [`node::Node`].
-#[derive(Clone, Deref, CloneRef, Debug)]
+#[derive(Clone, Deref, CloneRef, Debug, display::Object)]
 pub struct Area {
     #[allow(missing_docs)]
     #[deref]
     pub frp:          Frp,
+    #[display_object]
     pub(crate) model: Rc<Model>,
-}
-
-impl display::Object for Area {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.model.display_object
-    }
 }
 
 impl Area {
