@@ -39,30 +39,28 @@ interface InternalTableRowInnerProps<T, Key extends string = string> {
 /** State and setters passed to event handlers on a {@link TableRow}. */
 export type TableRowInnerProps<
     T,
-    TableRowState = never,
+    State = never,
+    RowState = never,
     Key extends string = string
 > = InternalTableRowInnerProps<T, Key> &
-    ([TableRowState] extends never ? unknown : InternalTableRowStateProps<TableRowState>)
+    ([RowState] extends never ? unknown : InternalTableRowStateProps<RowState>) &
+    ([State] extends never ? unknown : StateProp<State>)
 
 /** Props for a {@link TableRow}. */
-interface InternalBaseTableRowProps<
-    T,
-    State = never,
-    TableRowState = never,
-    Key extends string = string
-> extends Omit<JSX.IntrinsicElements['tr'], 'onClick' | 'onContextMenu'> {
+interface InternalBaseTableRowProps<T, State = never, RowState = never, Key extends string = string>
+    extends Omit<JSX.IntrinsicElements['tr'], 'onClick' | 'onContextMenu'> {
     keyProp: Key
     item: T
     setItem?: React.Dispatch<React.SetStateAction<T>>
     state?: State
-    initialRowState?: TableRowState
-    columns: tableColumn.TableColumn<T, State, TableRowState, Key>[]
+    initialRowState?: RowState
+    columns: tableColumn.TableColumn<T, State, RowState, Key>[]
     selected: boolean
     setSelected: (selected: boolean) => void
     allowContextMenu: boolean
-    onClick: (props: TableRowInnerProps<T, TableRowState, Key>, event: React.MouseEvent) => void
+    onClick: (props: TableRowInnerProps<T, State, RowState, Key>, event: React.MouseEvent) => void
     onContextMenu?: (
-        props: TableRowInnerProps<T, TableRowState, Key>,
+        props: TableRowInnerProps<T, State, RowState, Key>,
         event: React.MouseEvent<HTMLTableRowElement>
     ) => void
 }
@@ -114,10 +112,14 @@ export default function TableRow<T, State = never, RowState = never, Key extends
         }
     }, [rawItem, /* should never change */ setItem, /* should never change */ rawSetItem])
 
-    const innerProps: TableRowInnerProps<T, RowState, Key> = {
+    const innerProps: TableRowInnerProps<T, State, RowState, Key> = {
         key,
         item,
         setItem,
+        // This is SAFE, as the type is defined such that they MUST be present when `State` is not
+        //`never`.
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        state: state!,
         rowState,
         setRowState,
     }
