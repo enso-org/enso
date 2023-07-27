@@ -14,17 +14,23 @@ import ContextMenu from './contextMenu'
 import ContextMenuEntry from './contextMenuEntry'
 
 /** Props for a {@link GlobalContextMenu}. */
-export interface GlobalContextMenuProps extends assetContextMenu.AssetContextMenuProps<backend.AnyAsset> { }
+export interface GlobalContextMenuProps
+    extends assetContextMenu.AssetContextMenuProps<backend.AnyAsset> {}
 
 /** A context menu available everywhere in the directory. */
 export default function GlobalContextMenu(props: GlobalContextMenuProps) {
-    const { innerProps: { state: { dispatchAssetListEvent } } } = props
+    const {
+        innerProps: {
+            item,
+            state: { dispatchAssetListEvent },
+        },
+    } = props
     return (
         <ContextMenu>
             <ContextMenuEntry
                 icon={DataUploadIcon}
-                onClick={event => {
-                    event.stopPropagation()
+                onClick={() => {
+                    // Ignored; the event is handled by the HTML `input` element.
                 }}
             >
                 <input
@@ -36,7 +42,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
                         if (event.currentTarget.files != null) {
                             dispatchAssetListEvent({
                                 type: assetListEventModule.AssetListEventType.uploadFiles,
-                                parentId: ,
+                                parentId: item.parentId,
                                 files: event.currentTarget.files,
                             })
                         }
@@ -44,8 +50,29 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
                 ></input>
                 <label htmlFor="context_menu_file_input">Upload Files</label>
             </ContextMenuEntry>
-            <ContextMenuEntry icon={AddNetworkIcon}>New Project</ContextMenuEntry>
-            <ContextMenuEntry icon={AddFolderIcon}>New Folder</ContextMenuEntry>
+            <ContextMenuEntry
+                icon={AddNetworkIcon}
+                onClick={() => {
+                    dispatchAssetListEvent({
+                        type: assetListEventModule.AssetListEventType.createProject,
+                        parentId: item.parentId,
+                        templateId: null,
+                    })
+                }}
+            >
+                New Project
+            </ContextMenuEntry>
+            <ContextMenuEntry
+                icon={AddFolderIcon}
+                onClick={() => {
+                    dispatchAssetListEvent({
+                        type: assetListEventModule.AssetListEventType.createDirectory,
+                        parentId: item.parentId,
+                    })
+                }}
+            >
+                New Folder
+            </ContextMenuEntry>
             <ContextMenuEntry
                 disabled
                 icon={AddConnectorIcon}

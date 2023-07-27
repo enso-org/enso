@@ -1,6 +1,8 @@
 /** @file An entry in a context menu. */
 import * as React from 'react'
 
+import * as shortcuts from '../shortcuts'
+
 // ========================
 // === ContextMenuEntry ===
 // ========================
@@ -9,7 +11,7 @@ import * as React from 'react'
 export interface ContextMenuEntryProps {
     /** The URL to the icon representing the action. */
     icon: string
-    colorClass?: string
+    shortcut: shortcuts.KeyboardShortcut
     /** The label of the {@link ContextMenuEntry}. This should usually be a string. */
     children: React.ReactNode
     disabled?: boolean
@@ -19,7 +21,7 @@ export interface ContextMenuEntryProps {
 
 /** An item in a `ContextMenu`. */
 export default function ContextMenuEntry(props: ContextMenuEntryProps) {
-    const { children, disabled = false, title, onClick } = props
+    const { icon, shortcut, children, disabled = false, title, onClick } = props
     return (
         <button
             disabled={disabled}
@@ -30,7 +32,7 @@ export default function ContextMenuEntry(props: ContextMenuEntryProps) {
                 onClick(event)
             }}
         >
-            {children}
+            <img src={icon} /> {children} {shortcut}
         </button>
     )
 }
