@@ -30,7 +30,7 @@ public class BenchProcessor extends AbstractProcessor {
   private File ensoDir;
   private final File benchRootDir;
   private final SpecCollector specCollector;
-  private static final String generatedSourcesPackagePrefix = "org.enso.benchmarks.libs.generated";
+  private static final String generatedSourcesPackagePrefix = "org.enso.benchmarks.libs";
   private static final List<String> imports = List.of(
       "import java.nio.file.Paths;",
       "import java.io.ByteArrayOutputStream;",
