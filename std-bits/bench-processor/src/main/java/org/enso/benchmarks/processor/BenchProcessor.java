@@ -13,7 +13,6 @@ import javax.annotation.processing.FilerException;
 import javax.annotation.processing.Processor;
 import javax.annotation.processing.RoundEnvironment;
 import javax.annotation.processing.SupportedAnnotationTypes;
-import javax.annotation.processing.SupportedSourceVersion;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.TypeElement;
 import javax.tools.Diagnostic.Kind;
@@ -23,7 +22,6 @@ import org.enso.benchmarks.BenchSuiteWrapper;
 import org.openide.util.lookup.ServiceProvider;
 
 @SupportedAnnotationTypes("org.enso.benchmarks.processor.GenerateBenchSources")
-@SupportedSourceVersion(SourceVersion.RELEASE_17)
 @ServiceProvider(service = Processor.class)
 public class BenchProcessor extends AbstractProcessor {
 
