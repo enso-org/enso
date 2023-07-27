@@ -108,7 +108,7 @@ export function bundlerOptions(args: Arguments) {
             '.wasm': 'copy',
             // The `file` loader copies the file, and replaces the import with the path to the file.
             '.svg': 'file',
-            '.png': 'copy',
+            '.png': 'file',
             '.ttf': 'copy',
         },
         entryPoints: [
