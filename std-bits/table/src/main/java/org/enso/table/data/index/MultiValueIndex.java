@@ -157,14 +157,8 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
     }
 
     // Fill numberings
-    ObjectNumberer<UnorderedMultiValueKey> nameNumberer = new ObjectNumberer<>();
-    for (UnorderedMultiValueKey key : nameSubKeys) {
-      nameNumberer.put(key);
-    }
-    ObjectNumberer<UnorderedMultiValueKey> groupingNumberer = new ObjectNumberer<>();
-    for (UnorderedMultiValueKey key : groupingSubkeys) {
-      groupingNumberer.put(key);
-    }
+    ObjectNumberer<UnorderedMultiValueKey> nameNumberer = new ObjectNumberer<>(nameSubKeys);
+    ObjectNumberer<UnorderedMultiValueKey> groupingNumberer = new ObjectNumberer<>(groupingSubkeys);
 
     final int size = groupingNumberer.size();
 

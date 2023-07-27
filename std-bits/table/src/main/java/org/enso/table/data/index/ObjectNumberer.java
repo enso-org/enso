@@ -21,11 +21,21 @@ public class ObjectNumberer<T> {
     private final Map<T, Integer> numbering = new HashMap<>();
     private int serial = 0;
 
+    public ObjectNumberer(Collection<T> ts) {
+        putAll(ts);
+    }
+
     public synchronized void put(T t) {
         if (!numbering.containsKey(t)) {
             //System.out.println("Putting " + t + " " + serial);
             numbering.put(t, serial);
             serial++;
+        }
+    }
+
+    public void putAll(Collection<T> ts) {
+        for (T t : ts) {
+            put(t);
         }
     }
 
