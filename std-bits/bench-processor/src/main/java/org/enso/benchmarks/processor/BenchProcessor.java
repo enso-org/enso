@@ -9,16 +9,17 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.annotation.processing.AbstractProcessor;
+import javax.annotation.processing.FilerException;
 import javax.annotation.processing.Processor;
 import javax.annotation.processing.RoundEnvironment;
 import javax.annotation.processing.SupportedAnnotationTypes;
 import javax.annotation.processing.SupportedSourceVersion;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.TypeElement;
+import javax.tools.Diagnostic.Kind;
 import org.enso.benchmarks.BenchGroup;
 import org.enso.benchmarks.BenchSpec;
 import org.enso.benchmarks.BenchSuiteWrapper;
-import org.graalvm.polyglot.Engine;
 import org.openide.util.lookup.ServiceProvider;
 
 @SupportedAnnotationTypes("org.enso.benchmarks.processor.GenerateBenchSources")
@@ -67,7 +68,7 @@ public class BenchProcessor extends AbstractProcessor {
               .toURI()
       );
     } catch (URISyntaxException e) {
-      throw new IllegalStateException("Unreachable", e);
+      failWithMessage("ensoDir not found: " + e.getMessage());
     }
     for (; ensoDir != null; ensoDir = ensoDir.getParentFile()) {
       if (ensoDir.getName().equals("enso")) {
@@ -75,7 +76,7 @@ public class BenchProcessor extends AbstractProcessor {
       }
     }
     if (ensoDir == null) {
-      throw new IllegalStateException("Unreachable: Could not find Enso root directory");
+      failWithMessage("Unreachable: Could not find Enso root directory");
     }
 
     benchRootDir = ensoDir.toPath()
@@ -83,7 +84,7 @@ public class BenchProcessor extends AbstractProcessor {
         .resolve("Benchmarks")
         .toFile();
     if (!benchRootDir.isDirectory() || !benchRootDir.canRead()) {
-      throw new IllegalStateException("Unreachable: Could not find Enso benchmarks directory");
+      failWithMessage("Unreachable: Could not find Enso benchmarks directory");
     }
 
     // Note that ensoHomeOverride does not have to exist, only its parent directory
@@ -96,14 +97,24 @@ public class BenchProcessor extends AbstractProcessor {
   }
 
   @Override
+  public SourceVersion getSupportedSourceVersion() {
+    return SourceVersion.latest();
+  }
+
+  @Override
   public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
-    Collection<BenchSuiteWrapper> benchSuites = specCollector.collectAllBenchSpecs();
-    for (BenchSuiteWrapper benchSuite : benchSuites) {
-      for (BenchGroup group : benchSuite.getGroups()) {
-        generateClassForGroup(group, benchSuite.getModuleQualifiedName());
+    try {
+      Collection<BenchSuiteWrapper> benchSuites = specCollector.collectAllBenchSpecs();
+      for (BenchSuiteWrapper benchSuite : benchSuites) {
+        for (BenchGroup group : benchSuite.getGroups()) {
+          generateClassForGroup(group, benchSuite.getModuleQualifiedName());
+        }
       }
+      return true;
+    } catch (Throwable throwable) {
+      failWithMessage("Uncaught exception in " + getClass().getName() + ": " + throwable.getMessage());
+      return false;
     }
-    return true;
   }
 
   private void generateClassForGroup(BenchGroup group, String moduleQualifiedName) {
@@ -111,8 +122,25 @@ public class BenchProcessor extends AbstractProcessor {
     try (Writer srcFileWriter = processingEnv.getFiler().createSourceFile(fullClassName).openWriter()) {
       generateClassForGroup(srcFileWriter, moduleQualifiedName, group);
     } catch (IOException e) {
-      System.err.println("Failed to generate source file for group '" + group.name() + "': " + e.getMessage());
+      if (!isResourceAlreadyExistsException(e)) {
+        failWithMessage("Failed to generate source file for group '" + group.name() + "': " + e.getMessage());
+      }
     }
+  }
+
+  /**
+   * Returns true iff the given exception is thrown because a file already exists exception.
+   * There is no better way to check this.
+   * @param e Exception to check.
+   * @return true iff the given exception is thrown because a file already exists exception.
+   */
+  private static boolean isResourceAlreadyExistsException(IOException e) {
+    List<String> messages = List.of(
+        "Source file already created",
+        "Resource already created",
+        "Attempt to recreate a file"
+    );
+    return e instanceof FilerException && messages.stream().anyMatch(msg -> e.getMessage().contains(msg));
   }
 
   private void generateClassForGroup(Writer javaSrcFileWriter, String moduleQualifiedName, BenchGroup group) throws IOException {
@@ -226,5 +254,9 @@ public class BenchProcessor extends AbstractProcessor {
     } else {
       return 0;
     }
+  }
+
+  private void failWithMessage(String msg) {
+    processingEnv.getMessager().printMessage(Kind.ERROR, msg);
   }
 }
