@@ -1813,6 +1813,11 @@ lazy val `bench-libs` = (project in file("std-bits/benchmarks"))
         s"-J-Dtruffle.class.path.append=$appendClasspath",
       )
     },
+    (Compile / javacOptions) ++= Seq(
+      "-s",
+      (Compile / sourceManaged).value.getAbsolutePath,
+      "-Xlint:unchecked"
+    ),
     (Benchmark / run / javaOptions) ++= {
       val runtimeClasspath =
         (LocalProject("runtime") / Compile / fullClasspath).value
