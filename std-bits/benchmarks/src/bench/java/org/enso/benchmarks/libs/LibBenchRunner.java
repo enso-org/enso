@@ -14,12 +14,6 @@ import org.openjdk.jmh.runner.options.CommandLineOptions;
 public class LibBenchRunner {
 
   public static void main(String[] args) {
-    System.out.println("Running LibBenchRunner.Main:");
-    var langs = Engine.create().getLanguages();
-    System.out.println("Languages: ");
-    for (var lang : langs.keySet()) {
-      System.out.println("  " + lang);
-    }
     CommandLineOptions cmdOpts = null;
     try {
       cmdOpts = new CommandLineOptions(args);

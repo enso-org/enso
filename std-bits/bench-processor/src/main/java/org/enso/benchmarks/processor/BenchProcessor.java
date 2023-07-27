@@ -58,12 +58,6 @@ public class BenchProcessor extends AbstractProcessor {
   );
 
   public BenchProcessor() {
-    System.out.println("Initializing BenchProcessor");
-    var langs = Engine.create().getLanguages();
-    System.out.println("Languages: ");
-    for (var lang : langs.keySet()) {
-      System.out.println("  " + lang);
-    }
     try {
       ensoDir = new File(
           BenchProcessor.class
@@ -103,8 +97,6 @@ public class BenchProcessor extends AbstractProcessor {
 
   @Override
   public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
-    System.out.println("[mylog] Running BenchProcessor");
-    System.out.println("[mylog] ensoRootDir: " + ensoDir);
     Collection<BenchSuiteWrapper> benchSuites = specCollector.collectAllBenchSpecs();
     for (BenchSuiteWrapper benchSuite : benchSuites) {
       for (BenchGroup group : benchSuite.getGroups()) {
@@ -125,7 +117,6 @@ public class BenchProcessor extends AbstractProcessor {
 
   private void generateClassForGroup(Writer javaSrcFileWriter, String moduleQualifiedName, BenchGroup group) throws IOException {
     String groupFullClassName = createGroupClassName(group);
-    System.out.println("[mylog] Generating spec code for group '" + groupFullClassName + "'");
     String className = groupFullClassName.substring(groupFullClassName.lastIndexOf('.') + 1);
     List<BenchSpec> specs = group.specs();
     List<String> specJavaNames = specs
