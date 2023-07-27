@@ -31,7 +31,7 @@ use ensogl::data::color::Rgba;
 use ensogl::data::text;
 use ensogl::display;
 use ensogl::display::shape::StyleWatchFrp;
-use ensogl_derive_theme::FromTheme;
+use ensogl::display::style::FromTheme;
 use ensogl_gui_component::component;
 use ensogl_hardcoded_theme::graph_editor::execution_environment_selector as theme;
 
@@ -104,7 +104,7 @@ ensogl::define_endpoints_2! {
 // =============
 
 /// The model of the execution environment selector.
-#[derive(Debug, Clone, CloneRef)]
+#[derive(Debug, Clone, CloneRef, display::Object)]
 pub struct Model {
     /// Main root object for the execution environment selector exposed for external positioning.
     display_object: display::object::Instance,
@@ -168,12 +168,6 @@ impl Model {
     }
 }
 
-impl display::Object for Model {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
-    }
-}
-
 
 
 // ====================================
@@ -225,13 +219,12 @@ impl component::Frp<Model> for Frp {
         let output = &frp.output;
 
         let style = Style::from_theme(network, style_watch);
-        let style_update = style.update;
 
         frp::extend! { network
 
             // == Layout ==
 
-            eval style_update((style) {
+            eval style((style) {
                model.update_dropdown_style(style);
                model.update_background_style(style);
                model.update_play_button_style(style);
@@ -261,11 +254,10 @@ impl component::Frp<Model> for Frp {
             // == Outputs ==
 
             output.play_press <+ play_button.pressed;
-            output.size <+ style_update.map(|style| {
-                Vector2::new(style.overall_width(),style.height)
+            output.size <+ style.map(|style| {
+                Vector2::new(style.overall_width(), style.height)
             }).on_change();
         }
-        style.init.emit(());
     }
 }
 

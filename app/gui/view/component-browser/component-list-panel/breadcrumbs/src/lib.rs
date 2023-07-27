@@ -148,7 +148,7 @@ impl Layers {
 // =============
 
 /// A breadcrumbs model.
-#[derive(Debug, Clone, CloneRef)]
+#[derive(Debug, Clone, CloneRef, display::Object)]
 pub struct Model {
     display_object: display::object::Instance,
     grid:           GridView,
@@ -173,7 +173,6 @@ impl Model {
         let entries: Entries = default();
         let show_ellipsis = Rc::new(Cell::new(false));
         frp::new_network! { network
-            init <- source_();
             requested_entry <- grid.model_for_entry_needed.map2(&grid.grid_size,
                 f!([entries, show_ellipsis]((row, col), grid_size) {
                     let (_, cols) = grid_size;
@@ -185,11 +184,9 @@ impl Model {
         let style_frp = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
         let style = entry::Style::from_theme(&network, &style_frp);
         frp::extend! { network
-            params <- style.update.map(|s| entry::Params { style: s.clone(), greyed_out_start: None });
+            params <- style.map(|s| entry::Params { style: s.clone(), greyed_out_start: None });
             grid.set_entries_params <+ params;
         }
-        init.emit(());
-        style.init.emit(());
         Self { display_object, grid, entries, network, mask, show_ellipsis, background }
     }
 
@@ -502,9 +499,8 @@ ensogl_core::define_endpoints_2! {
 /// === Widget ===
 /// ==============
 
-#[derive(Debug, Clone, CloneRef, Deref)]
+#[derive(Debug, Clone, CloneRef, Deref, display::Object)]
 pub struct Breadcrumbs {
-    #[deref]
     widget: Widget<Model, Frp>,
 }
 
@@ -512,7 +508,6 @@ impl Breadcrumbs {
     /// Constructor.
     pub fn new(app: &Application) -> Self {
         let model = Rc::new(Model::new(app));
-        let display_object = model.display_object.clone_ref();
         let frp = Frp::new();
         let network = frp.network();
         let input = &frp.private().input;
@@ -561,7 +556,7 @@ impl Breadcrumbs {
         }
         init.emit(());
 
-        let widget = Widget::new(app, frp, model, display_object);
+        let widget = Widget::new(app, frp, model);
         Self { widget }
     }
 
@@ -580,7 +575,7 @@ impl ensogl_core::application::View for Breadcrumbs {
         Self::new(app)
     }
 
-    fn default_shortcuts() -> Vec<Shortcut> {
+    fn global_shortcuts() -> Vec<Shortcut> {
         use ensogl_core::application::shortcut::ActionType::*;
         [(Press, "shift enter", "move_up"), (Press, "ctrl shift enter", "move_down")]
             .iter()
@@ -592,11 +587,5 @@ impl ensogl_core::application::View for Breadcrumbs {
 impl FrpNetworkProvider for Breadcrumbs {
     fn network(&self) -> &frp::Network {
         self.widget.frp().network()
-    }
-}
-
-impl display::Object for Breadcrumbs {
-    fn display_object(&self) -> &display::object::Instance {
-        self.widget.display_object()
     }
 }

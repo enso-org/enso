@@ -11,8 +11,8 @@ use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::scene::Layer;
+use ensogl_core::display::style::FromTheme;
 use ensogl_core::Animation;
-use ensogl_derive_theme::FromTheme;
 use ensogl_grid_view::entry::Contour;
 use ensogl_grid_view::entry::EntryFrp;
 use ensogl_grid_view::Col;
@@ -165,7 +165,7 @@ impl State {
 /// the needed representation for each entry in the grid view. For efficiency, text label and icons
 /// are allocated once the entry is created.
 #[allow(missing_docs)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, display::Object)]
 pub struct EntryData {
     display_object: display::object::Instance,
     text:           text::Text,
@@ -180,7 +180,7 @@ impl EntryData {
         let display_object = display::object::Instance::new();
         let text = app.new_view::<ensogl_text::Text>();
         if let Some(layer) = text_layer {
-            text.add_to_scene_layer(layer);
+            layer.add(&text);
         }
         let ellipsis = ellipsis::View::new();
         let separator = separator::View::new();
@@ -339,9 +339,10 @@ pub struct Params {
 // === Entry ===
 
 /// A Breadcrumbs entry.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 pub struct Entry {
     frp:  EntryFrp<Self>,
+    #[display_object]
     data: Rc<EntryData>,
 }
 
@@ -434,11 +435,5 @@ impl ensogl_grid_view::Entry for Entry {
 
     fn frp(&self) -> &EntryFrp<Self> {
         &self.frp
-    }
-}
-
-impl display::Object for Entry {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.data.display_object
     }
 }

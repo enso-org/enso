@@ -1,7 +1,6 @@
 /** @file This module defines the Project Manager endpoint.
- *
- * It should always be in sync with the Rust interface at
- * `app/gui/controller/engine-protocol/src/project_manager.rs`. */
+ * @see The protocol spec
+ * https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-project-manager.md */
 import * as dateTime from './dateTime'
 import * as newtype from '../newtype'
 
@@ -108,6 +107,12 @@ export interface OpenProject {
     projectNamespace: string
 }
 
+/** The return value of the "list available engine versions" endpoint. */
+export interface EngineVersion {
+    version: string
+    markedAsBroken: boolean
+}
+
 // ================================
 // === Parameters for endpoints ===
 // ================================
@@ -144,11 +149,6 @@ export interface RenameProjectParams {
 
 /** Parameters for the "delete project" endpoint. */
 export interface DeleteProjectParams {
-    projectId: ProjectId
-}
-
-/** Parameters for the "list samples" endpoint. */
-export interface ListSamplesParams {
     projectId: ProjectId
 }
 
@@ -267,9 +267,9 @@ export class ProjectManager extends EventTarget {
         return this.sendRequest('project/delete', params)
     }
 
-    /** Get the list of sample projects that are available to the user. */
-    public async listSamples(params: ListSamplesParams): Promise<ProjectList> {
-        return this.sendRequest<ProjectList>('project/listSample', params)
+    /** List available engine versions. */
+    public listAvailableEngineVersions(): Promise<[EngineVersion, ...EngineVersion[]]> {
+        return this.sendRequest<[EngineVersion, ...EngineVersion[]]>('engine/list-available', {})
     }
 
     /** Remove all handlers for a specified request ID. */

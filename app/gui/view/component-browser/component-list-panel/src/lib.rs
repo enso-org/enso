@@ -49,13 +49,14 @@ use ensogl_core::display::shape::*;
 use enso_frp as frp;
 use ensogl_core::application::frp::API;
 use ensogl_core::application::Application;
+use ensogl_core::control::io::mouse;
 use ensogl_core::data::bounding_box::BoundingBox;
 use ensogl_core::data::color;
 use ensogl_core::define_endpoints_2;
 use ensogl_core::display;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_core::display::shape::StyleWatchFrp;
-use ensogl_derive_theme::FromTheme;
+use ensogl_core::display::style::FromTheme;
 use ensogl_grid_view as grid_view;
 use ensogl_gui_component::component;
 use ensogl_hardcoded_theme::application::component_browser::component_list_panel as theme;
@@ -232,10 +233,11 @@ pub mod background {
 
 /// The Model of Select Component.
 #[allow(missing_docs)]
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 pub struct Model {
     display_object:  display::object::Instance,
     background:      background::View,
+    #[focus_receiver]
     pub grid:        grid::View,
     pub breadcrumbs: breadcrumbs::Breadcrumbs,
 }
@@ -288,12 +290,6 @@ impl Model {
         let size = style.size();
         let viewport = BoundingBox::from_center_and_size(default(), size);
         viewport.contains(pos)
-    }
-}
-
-impl display::Object for Model {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
     }
 }
 
@@ -350,7 +346,7 @@ impl component::Frp<Model> for Frp {
             let panel_style = Style::from_theme(network, style);
             let grid_style = grid::Style::from_theme(network, style);
             let navigator_style = navigator::Style::from_theme(network, style);
-            style <- all_with3(&panel_style.update, &grid_style.update, &navigator_style.update, |&panel, &grid, &navigator| AllStyles {panel, grid, navigator});
+            style <- all_with3(&panel_style, &grid_style, &navigator_style, |&panel, &grid, &navigator| AllStyles {panel, grid, navigator});
             eval style ((style) model.update_style(style));
             output.size <+ style.map(|style| style.size());
 
@@ -363,15 +359,13 @@ impl component::Frp<Model> for Frp {
                 model.is_hovered(pos, style)
             })).gate(&is_visible).on_change();
             output.is_hovered <+ is_hovered;
-            // TODO[ib] Temporary solution for focus, we grab keyboard events if the
-            //   component browser is visible. The proper implementation is tracked in
-            //   https://www.pivotaltracker.com/story/show/180872763
-            model.grid.deprecated_set_focus <+ is_visible;
+
+            let mouse_down = model.on_event::<mouse::Down>();
+            eval_ mouse_down (model.focus());
+            eval_ input.show (model.focus());
+            eval_ input.hide (model.blur());
 
         }
-        panel_style.init.emit(());
-        grid_style.init.emit(());
-        navigator_style.init.emit(());
     }
 }
 

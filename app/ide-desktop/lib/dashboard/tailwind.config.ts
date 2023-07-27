@@ -18,25 +18,25 @@ export const content = [THIS_PATH + '/src/**/*.tsx']
 export const theme = {
     extend: {
         colors: {
-            // Should be `#3e515fe5`, but `bg-opacity` does not work with RGBA.
             /** The default color of all text. */
-            primary: '#52636f',
+            primary: 'rgba(0, 0, 0, 0.6)',
             chat: '#484848',
             'ide-bg': '#ebeef1',
             'ide-bg-dark': '#d0d3d6',
+            selected: 'rgba(255, 255, 255, 0.40)',
             // Should be `#3e515f14`, but `bg-opacity` does not work with RGBA.
             label: '#f0f1f3',
             help: '#3f68ce',
-            warning: '#eab120',
-            'severe-warning': '#e06740',
-            'perm-owner': '#51626e',
-            'perm-admin': '#e06a50',
-            'perm-write': '#efa043',
-            'perm-read': '#b6cb34',
-            'perm-exec': '#ad69e3',
-            'perm-docs-write': '#2db1c3',
-            // Should be `#3e515f14`, but `bg-opacity` does not work with RGBA.
-            'perm-none': '#f0f1f3',
+            'frame-bg': 'rgba(255, 255, 255, 0.40)',
+            'tag-text': 'rgba(255, 255, 255, 0.90)',
+            'tag-text-2': 'rgba(0, 0, 0, 0.60)',
+            'permission-owner': 'rgba(236, 2, 2, 0.70)',
+            'permission-admin': 'rgba(252, 60, 0, 0.70)',
+            'permission-edit': 'rgba(255, 138, 0, 0.90)',
+            'permission-read': 'rgba(152, 174, 18, 0.80)',
+            'permission-exec': 'rgba(236, 2, 2, 0.70)',
+            'permission-docs': 'rgba(91, 8, 226, 0.64)',
+            'permission-view': 'rgba(0, 0, 0, 0.10)',
             'call-to-action': '#fa6c08',
             'gray-350': '#b7bcc5',
         },
@@ -48,17 +48,33 @@ export const theme = {
             vs: '0.8125rem',
         },
         spacing: {
-            '83.5': '20.875rem',
+            '1.75': '0.4375rem',
+            '3.25': '0.8125rem',
+            '5.5': '1.375rem',
+            '9.5': '2.375rem',
+            '18': '4.5rem',
+            '29': '7.25rem',
+            '30': '7.5rem',
+            '42': '10.5rem',
+            '54': '13.5rem',
             '70': '17.5rem',
-            '10lh': '10lh',
+            '83.5': '20.875rem',
             '140': '35rem',
+            '10lh': '10lh',
         },
         minWidth: {
             '20': '5rem',
             '36': '9rem',
             '40': '10rem',
             '60': '15rem',
+            '80': '20rem',
             '96': '24rem',
+        },
+        opacity: {
+            '1/3': '.33333333',
+        },
+        backdropBlur: {
+            xs: '2px',
         },
         boxShadow: {
             soft: `0 0.5px 2.2px 0px #00000008, 0 1.2px 5.3px 0px #0000000b, \

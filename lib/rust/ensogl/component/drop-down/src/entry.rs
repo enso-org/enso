@@ -81,7 +81,7 @@ impl EntryModel {
 
 /// An internal structure of [`Entry`], which may be passed to FRP network.
 #[allow(missing_docs)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, display::Object)]
 pub struct EntryData {
     display_object: display::object::Instance,
     label_thin:     text::Text,
@@ -101,8 +101,8 @@ impl EntryData {
         label_bold.set_property_default(text::Weight::Bold);
         display_object.add_child(&label_thin);
         if let Some(layer) = text_layer {
-            label_thin.add_to_scene_layer(layer);
-            label_bold.add_to_scene_layer(layer);
+            layer.add(&label_thin);
+            layer.add(&label_bold);
         }
         let selected = default();
         let deferred_label = default();
@@ -138,7 +138,7 @@ impl EntryData {
 
     fn set_content(&self, text: &ImString) {
         self.selected_label().set_content(text.clone_ref());
-        self.deferred_label.set(text.clone_ref());
+        self.deferred_label.replace(Some(text.clone_ref()));
     }
 }
 
@@ -146,9 +146,10 @@ impl EntryData {
 // === Entry ===
 
 /// A [`SimpleGridView`] entry - a label with background.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 pub struct Entry {
     frp:  EntryFrp<Self>,
+    #[display_object]
     data: Rc<EntryData>,
 }
 
@@ -221,11 +222,5 @@ impl ensogl_grid_view::Entry for Entry {
 
     fn frp(&self) -> &EntryFrp<Self> {
         &self.frp
-    }
-}
-
-impl display::Object for Entry {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.data.display_object
     }
 }

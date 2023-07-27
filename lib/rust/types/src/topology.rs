@@ -59,6 +59,12 @@ impl Min for Pixels {
     }
 }
 
+impl Max for Pixels {
+    fn max(a: Self, b: Self) -> Self {
+        Pixels::from(max(a.value, b.value))
+    }
+}
+
 impl Abs for Pixels {
     fn abs(&self) -> Self {
         Pixels::from(self.value.abs())

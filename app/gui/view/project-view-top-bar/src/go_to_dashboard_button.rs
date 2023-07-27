@@ -61,7 +61,7 @@ mod icon {
 // ============
 
 /// Provides a button to switch back from the project view to the dashboard.
-#[derive(Debug, Clone, CloneRef, Deref)]
+#[derive(Debug, Clone, CloneRef, Deref, display::Object)]
 pub struct View {
     button: ToggleButton<icon::Shape>,
 }
@@ -91,11 +91,5 @@ impl View {
             toggled_hovered: default_color_scheme.hovered,
             ..default_color_scheme
         }
-    }
-}
-
-impl display::Object for View {
-    fn display_object(&self) -> &display::object::Instance {
-        self.button.display_object()
     }
 }

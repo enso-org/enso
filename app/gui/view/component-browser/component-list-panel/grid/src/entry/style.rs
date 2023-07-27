@@ -5,8 +5,10 @@ use crate::prelude::*;
 use enso_frp as frp;
 use ensogl_core::data::color;
 use ensogl_core::display::shape::StyleWatchFrp;
+use ensogl_core::display::shape::ThemeAccess;
+use ensogl_core::display::style;
 use ensogl_core::display::style::data::DataMatch;
-use ensogl_derive_theme::FromTheme;
+use ensogl_core::display::style::FromTheme;
 use ensogl_hardcoded_theme::application::component_browser::component_list_panel as panel_theme;
 use ensogl_hardcoded_theme::application::component_browser::component_list_panel::grid as grid_theme;
 use entry_theme::highlight::selection as selection_theme;
@@ -43,40 +45,22 @@ impl Color {
             Self::Arbitrary(color) => *color,
         }
     }
+}
 
+impl ThemeAccess for Color {
     /// A custom accessor for retrieving the color from the stylesheet using the [`FromTheme`]
     /// macro. In the stylesheet, the color can be defined as either a `color::Rgba` or a `float`
     /// value for the mixing coefficient. This accessor produces the corresponding variants of
     /// [`Color`] or returns a default value ([`Color::MainColorWithAlpha(0.0)`]) if there is no
     /// such property in the stylesheet.
-    fn accessor<P: Into<ensogl_core::display::style::Path>>(
-        network: &frp::Network,
-        style: &StyleWatchFrp,
-        path: P,
-    ) -> frp::Sampler<Self> {
-        let path = path.into();
-        let value = style.get(path.clone());
-        frp::extend! { network
-            init <- source_();
-            color <- value.all_with(&init, move |data, _| {
-                data.color().map(|color| {
-                    let color = color::Lcha::from(color);
-                    Color::Arbitrary(color)
-                }).unwrap_or_else(|| {
-                    let alpha_multiplier = match data.number() {
-                        Some(number) => number,
-                        None => {
-                            error!("Neither color nor alpha defined for {path}.");
-                            0.0
-                        }
-                    };
-                    Color::ComponentGroup { alpha_multiplier }
-                })
-            });
-            sampler <- color.sampler();
-        }
-        init.emit(());
-        sampler
+    fn from_style_data(path_str: &str, data: &Option<style::Data>) -> Self {
+        data.color()
+            .map(|color| Color::Arbitrary(color::Lcha::from(color)))
+            .or_else(move || data.number().map(|a| Color::ComponentGroup { alpha_multiplier: a }))
+            .unwrap_or_else(|| {
+                warn!("Neither color nor alpha defined for {path_str}.");
+                Color::ComponentGroup { alpha_multiplier: 0.0 }
+            })
     }
 }
 
@@ -95,15 +79,12 @@ impl Color {
 #[derive(Clone, Copy, Debug, Default, PartialEq, FromTheme)]
 pub struct Colors {
     #[theme_path = "entry_theme::text::color"]
-    #[accessor = "Color::accessor"]
     pub text:                 Color,
     #[theme_path = "entry_theme::background::intensity"]
     pub background_intensity: f32,
     #[theme_path = "entry_theme::highlight::hover::color"]
-    #[accessor = "Color::accessor"]
     pub hover_highlight:      Color,
     #[theme_path = "entry_theme::icon::color"]
-    #[accessor = "Color::accessor"]
     pub icon:                 Color,
 }
 
@@ -114,12 +95,10 @@ pub struct Colors {
 #[derive(Clone, Copy, Debug, Default, PartialEq, FromTheme)]
 pub struct SelectionColors {
     #[theme_path = "selection_theme::text::color"]
-    #[accessor = "Color::accessor"]
     pub text:                 Color,
     #[theme_path = "selection_theme::background::intensity"]
     pub background_intensity: f32,
     #[theme_path = "selection_theme::icon::color"]
-    #[accessor = "Color::accessor"]
     pub icon:                 Color,
 }
 
