@@ -4360,6 +4360,8 @@ dependencies = [
  "ensogl-grid-view",
  "ensogl-hardcoded-theme",
  "ensogl-text",
+ "ide-view-component-list-panel-grid",
+ "ide-view-component-list-panel-icons",
 ]
 
 [[package]]

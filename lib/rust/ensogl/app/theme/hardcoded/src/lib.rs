@@ -345,10 +345,14 @@ define_themes! { [light:0, dark:1]
                         crop_left = 8.0, 8.0;
                         crop_right = 3.0, 3.0;
                         height = 44.0, 44.0;
+                        background_padding_x = 15.0, 15.0;
+                        background_color = Rgb(0.463, 0.69, 0.376), Rgb(0.463, 0.69, 0.376);
+                        background_height = 28.0, 28.0;
+                        background_y_offset = 2.0, 2.0;
                         separator {
                             width = 8.0, 8.0;
                             height = 6.0, 6.0;
-                            color = Rgba(0.0, 0.0, 0.0, 0.15), Rgba(0.0, 0.0, 0.0, 0.15);
+                            color = Rgba(1.0, 1.0, 1.0, 1.0), Rgba(1.0, 1.0, 1.0, 1.0);
                             offset_x = 1.0, 1.0;
                             offset_y = -2.0, -2.0;
                         }
@@ -356,8 +360,8 @@ define_themes! { [light:0, dark:1]
                             background_width = 28.0, 28.0;
                             background_height = 16.0, 16.0;
                             background_corners_radius = 100.0, 100.0;
-                            background_color = Rgba(0.0, 0.0, 0.0, 0.04), Rgba(0.0, 0.0, 0.0, 0.04);
-                            circles_color = Rgba(0.0, 0.0, 0.0, 0.17), Rgba(0.0, 0.0, 0.0, 0.17);
+                            background_color = Rgba(1.0, 1.0, 1.0, 0.16), Rgba(1.0, 1.0, 1.0, 0.16);
+                            circles_color = Rgba(1.0, 1.0, 1.0, 1.0), Rgba(1.0, 1.0, 1.0, 1.0);
                             circles_radius = 2.0, 2.0;
                             circles_gap = 2.0, 2.0;
                             offset_x = 0.0, 0.0;
@@ -370,9 +374,9 @@ define_themes! { [light:0, dark:1]
                             text_y_offset = 6.0, 6.0;
                             text_padding_left = 0.0, 0.0;
                             text_size = 11.5, 11.5;
-                            selected_color = Rgba(0.0, 0.0, 0.0, 0.46), Rgba(0.0, 0.0, 0.0, 0.46);
+                            selected_color = Rgba(1.0, 1.0, 1.0, 1.0), Rgba(1.0, 1.0, 1.0, 1.0);
                             highlight_corners_radius = 15.0, 15.0;
-                            greyed_out_color = Rgba(0.0, 0.0, 0.0, 0.15), Rgba(0.0, 0.0, 0.0, 0.15);
+                            greyed_out_color = Rgba(1.0, 1.0, 1.0, 0.15), Rgba(1.0, 1.0, 1.0, 0.15);
                         }
                     }
                 }

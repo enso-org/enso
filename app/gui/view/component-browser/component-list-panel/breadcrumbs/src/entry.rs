@@ -3,6 +3,8 @@
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 
+use crate::Icon;
+
 use ensogl_core::application::command::FrpNetworkProvider;
 use ensogl_core::application::frp::API;
 use ensogl_core::application::Application;
@@ -16,6 +18,7 @@ use ensogl_grid_view::entry::EntryFrp;
 use ensogl_grid_view::Col;
 use ensogl_hardcoded_theme::application::component_browser::component_list_panel::menu::breadcrumbs as theme;
 use ensogl_text as text;
+use ide_view_component_list_panel_icons::any as any_icon;
 
 
 
@@ -28,7 +31,7 @@ pub mod separator {
     use super::*;
     use std::f32::consts::PI;
 
-    pub const ICON_WIDTH: f32 = 30.0;
+    pub const ICON_WIDTH: f32 = 26.0;
 
     ensogl_core::shape! {
         above = [ensogl_grid_view::entry::shape];
@@ -92,6 +95,10 @@ pub mod ellipsis {
 // === Style ===
 // =============
 
+/// The width of the icon in a text [`Entry`].
+pub const ICON_WIDTH: f32 = 17.0;
+
+
 /// Stylesheet-defined portion of the entries' parameters.
 #[allow(missing_docs)]
 #[derive(Clone, Debug, Default, FromTheme)]
@@ -122,17 +129,27 @@ pub struct Style {
 pub enum Model {
     #[default]
     Ellipsis,
-    Text(ImString),
+    Text {
+        content: ImString,
+        icon:    Option<Icon>,
+    },
     Separator,
 }
 
-#[allow(missing_docs)]
-#[derive(Clone, Copy, CloneRef, Debug, Default, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
 enum State {
     #[default]
     Ellipsis,
-    Text,
+    Text {
+        has_icon: bool,
+    },
     Separator,
+}
+
+impl State {
+    pub fn is_text(&self) -> bool {
+        matches!(self, State::Text { .. })
+    }
 }
 
 
@@ -143,15 +160,16 @@ enum State {
 
 // === EntryData ===
 
-/// An internal structure of [`Entry`]. It has three visual representations: text,
-/// a separator between entries, and an ellipsis. The breadcrumbs implementation selects the needed
-/// representation for each entry in the grid view. For efficiency, text label and icons are
-/// allocated once the entry is created.
+/// An internal structure of [`Entry`]. It has three visual representations: text (optionally
+/// with icon), separator between entries, and an ellipsis. The breadcrumbs implementation selects
+/// the needed representation for each entry in the grid view. For efficiency, text label and icons
+/// are allocated once the entry is created.
 #[allow(missing_docs)]
 #[derive(Clone, Debug, display::Object)]
 pub struct EntryData {
     display_object: display::object::Instance,
     text:           text::Text,
+    icon:           any_icon::View,
     separator:      separator::View,
     ellipsis:       ellipsis::View,
     state:          Rc<Cell<State>>,
@@ -167,13 +185,22 @@ impl EntryData {
         let ellipsis = ellipsis::View::new();
         let separator = separator::View::new();
         let state = default();
+        let icon: any_icon::View = default();
+        icon.set_size((ICON_WIDTH, ICON_WIDTH));
+        ellipsis.set_size((ellipsis::ICON_WIDTH, ellipsis::ICON_WIDTH));
+        display_object.add_child(&icon);
         display_object.add_child(&ellipsis);
-        Self { display_object, state, text, ellipsis, separator }
+        Self { display_object, state, text, ellipsis, separator, icon }
     }
 
     fn hide_current_visual_representation(&self) {
         match self.state.get() {
-            State::Text => self.text.unset_parent(),
+            State::Text { has_icon } => {
+                self.text.unset_parent();
+                if has_icon {
+                    self.icon.unset_parent();
+                }
+            }
             State::Separator => self.separator.unset_parent(),
             State::Ellipsis => self.ellipsis.unset_parent(),
         }
@@ -181,19 +208,28 @@ impl EntryData {
 
     fn set_model(&self, model: &Model) {
         match model {
-            Model::Text(content) => self.switch_to_text(content),
+            Model::Text { content, icon } => self.switch_to_text(content.as_str(), icon),
             Model::Separator => self.switch_to_separator(),
             Model::Ellipsis => self.switch_to_ellipsis(),
         }
     }
 
-    fn switch_to_text(&self, content: &str) {
+    fn switch_to_text(&self, content: &str, icon: &Option<Icon>) {
         self.text.set_content(content);
-        if self.state.get() != State::Text {
+        if !self.state.get().is_text() {
             self.hide_current_visual_representation();
             self.display_object.add_child(&self.text);
-            self.state.set(State::Text);
         }
+        if let Some(icon) = icon {
+            self.display_object.add_child(&self.icon);
+            self.icon.icon.set(icon.any_cached_shape_location());
+            self.text.set_x(ICON_WIDTH);
+        } else {
+            self.icon.unset_parent();
+            self.text.set_x(0.0);
+        }
+        let has_icon = icon.is_some();
+        self.state.set(State::Text { has_icon });
     }
 
     fn switch_to_separator(&self) {
@@ -212,15 +248,34 @@ impl EntryData {
         }
     }
 
+    fn has_icon(&self) -> bool {
+        match self.state.get() {
+            State::Text { has_icon } => has_icon,
+            State::Ellipsis => false,
+            State::Separator => false,
+        }
+    }
+
     fn update_layout(&self, contour: Contour, text_padding: f32, text_y_offset: f32) {
         let size = contour.size;
-        self.text.set_xy(Vector2(text_padding - size.x / 2.0, text_y_offset));
+        let icon_offset = if self.has_icon() { ICON_WIDTH } else { 0.0 };
+        self.text.set_xy(Vector2(icon_offset + text_padding - size.x / 2.0, text_y_offset));
         self.separator.set_size(Vector2(separator::ICON_WIDTH, size.y));
         self.ellipsis.set_size(Vector2(ellipsis::ICON_WIDTH, size.y));
+        self.icon.set_size(Vector2(ICON_WIDTH, size.y));
+        self.icon.set_x(-ICON_WIDTH);
+        self.icon.set_y(-2.0);
     }
 
     fn set_default_color(&self, color: color::Lcha) {
         self.text.set_property_default(color);
+        self.set_icon_color(color.into());
+    }
+
+    fn set_icon_color(&self, color: color::Rgba) {
+        self.icon.r_component.set(Vector4::new(color.red, color.red, color.red, color.red));
+        self.icon.g_component.set(Vector4::new(color.green, color.green, color.green, color.green));
+        self.icon.b_component.set(Vector4::new(color.blue, color.blue, color.blue, color.blue));
     }
 
     fn set_font(&self, font: String) {
@@ -234,11 +289,13 @@ impl EntryData {
 
     fn is_state_change(&self, model: &Model) -> bool {
         match model {
-            Model::Text(new_text) => {
-                let previous_state_was_not_text = self.state.get() != State::Text;
+            Model::Text { content, icon } => {
+                let new_text = content;
+                let previous_state_was_not_text = !self.state.get().is_text();
                 let previous_text = String::from(self.text.content.value());
                 let text_was_different = previous_text.as_str() != new_text.as_str();
-                previous_state_was_not_text || text_was_different
+                let different_icon_state = self.has_icon() != icon.is_some();
+                previous_state_was_not_text || text_was_different || different_icon_state
             }
             Model::Separator => self.state.get() != State::Separator,
             Model::Ellipsis => self.state.get() != State::Ellipsis,
@@ -246,12 +303,12 @@ impl EntryData {
     }
 
     fn is_text_displayed(&self) -> bool {
-        self.state.get() == State::Text
+        self.state.get().is_text()
     }
 
     fn width(&self, text_padding: f32) -> f32 {
         match self.state.get() {
-            State::Text => self.text_width(self.text.width.value(), text_padding),
+            State::Text { .. } => self.text_width(self.text.width.value(), text_padding),
             State::Separator => separator::ICON_WIDTH,
             State::Ellipsis => ellipsis::ICON_WIDTH,
         }
@@ -260,7 +317,9 @@ impl EntryData {
     /// Width of the breadcrumb column filled with text of width [`text_width`] and with margin
     /// [`text_padding`].
     fn text_width(&self, text_width: f32, text_padding: f32) -> f32 {
-        text_width + text_padding * 2.0
+        let text_width = text_width + text_padding * 2.0;
+        let icon_width = if self.has_icon() { ICON_WIDTH } else { 0.0 };
+        text_width + icon_width
     }
 }
 
@@ -338,8 +397,7 @@ impl ensogl_grid_view::Entry for Entry {
                 size: *size - Vector2(*margin, *margin) * 2.0,
                 corners_radius: 0.0,
             });
-            layout <- all(contour, text_padding, text_y_offset);
-            eval layout ((&(c, to, tyo)) data.update_layout(c, to, tyo));
+
             eval color((c) data.set_default_color(*c));
             eval font((f) data.set_font(f.to_string()));
             eval text_size((s) data.set_default_text_size(*s));
@@ -367,6 +425,9 @@ impl ensogl_grid_view::Entry for Entry {
             text_width <- data.text.width.filter(f_!(data.is_text_displayed()));
             entry_width <- text_width.map2(&text_padding, f!((w, o) data.text_width(*w, *o)));
             out.override_column_width <+ entry_width;
+
+            layout <- all(contour, text_padding, text_y_offset, input.set_model);
+            eval layout ((&(c, to, tyo, _)) data.update_layout(c, to, tyo));
         }
         init.emit(());
         Self { frp, data }

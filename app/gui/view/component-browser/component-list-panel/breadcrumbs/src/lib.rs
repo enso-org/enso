@@ -46,6 +46,7 @@ use ensogl_core::application::shortcut::Shortcut;
 use ensogl_core::application::Application;
 use ensogl_core::display;
 use ensogl_core::display::scene::layer::Layer;
+use ensogl_core::display::shape::Rectangle;
 use ensogl_core::display::shape::StyleWatchFrp;
 use ensogl_core::gui::Widget;
 use ensogl_core::Animation;
@@ -54,6 +55,7 @@ use ensogl_grid_view::Viewport;
 use ensogl_hardcoded_theme::application::component_browser as component_browser_theme;
 use entry::Entry;
 use grid_view::Col;
+use ide_view_component_list_panel_grid::entry::icon;
 
 
 
@@ -121,19 +123,21 @@ mod mask {
 /// A set of layers used by the breadcrumbs.
 #[derive(Debug, Clone, CloneRef)]
 struct Layers {
-    main: Layer,
-    text: Layer,
-    mask: Layer,
+    background: Layer,
+    main:       Layer,
+    text:       Layer,
+    mask:       Layer,
 }
 
 impl Layers {
     /// Constructor.
     pub fn new(base_layer: &Layer) -> Self {
+        let background = base_layer.create_sublayer("background");
         let mask = base_layer.create_mask_sublayer("mask");
         let main = base_layer.create_sublayer("main");
         let text = main.create_sublayer("text");
         main.set_mask(&mask);
-        Layers { main, text, mask }
+        Layers { main, text, mask, background }
     }
 }
 
@@ -152,12 +156,15 @@ pub struct Model {
     network:        frp::Network,
     mask:           mask::View,
     show_ellipsis:  Rc<Cell<bool>>,
+    background:     Rectangle,
 }
 
 impl Model {
     /// Constructor.
     pub fn new(app: &Application) -> Self {
         let display_object = display::object::Instance::new();
+        let background: Rectangle = default();
+        display_object.add_child(&background);
         let mask = mask::View::new();
         display_object.add_child(&mask);
         let grid = GridView::new(app);
@@ -180,11 +187,12 @@ impl Model {
             params <- style.map(|s| entry::Params { style: s.clone(), greyed_out_start: None });
             grid.set_entries_params <+ params;
         }
-        Self { display_object, grid, entries, network, mask, show_ellipsis }
+        Self { display_object, grid, entries, network, mask, show_ellipsis, background }
     }
 
 
     fn set_layers(&self, layers: Layers) {
+        layers.background.add(&self.background);
         layers.mask.add(&self.mask);
         layers.main.add(&self.display_object);
         layers.main.add(&self.grid);
@@ -203,7 +211,22 @@ impl Model {
     /// Update the position and the viewport of the underlying Grid View. If the content does not
     /// fit into [`size`], it is cropped by the rectangular [`mask`] and shifted left. So that
     /// the user always sees the right (most important) part of the breadcrumbs.
-    fn update_layout(&self, content_size: Vector2, size: Vector2) {
+    fn update_layout(
+        &self,
+        content_size: Vector2,
+        size: Vector2,
+        background_padding_x: f32,
+        background_height: f32,
+        background_y_offset: f32,
+    ) {
+        let background_size = Vector2::new(content_size.x, background_height);
+        self.background.set_size(background_size + Vector2(2.0 * background_padding_x, 0.0));
+        self.background.set_corner_radius(background_size.y / 2.0);
+        self.background
+            .set_y(-background_height / 2.0 - content_size.y / 2.0 - background_y_offset);
+        // Note that the position of the grid, is also offset by `background_padding_x`, but this
+        // happens in the FRP network calling this function, as this layout change is animated.
+
         self.mask.set_size(size);
         let grid_view_center = Vector2(size.x / 2.0, -size.y / 2.0);
         self.mask.set_xy(grid_view_center);
@@ -239,9 +262,10 @@ impl Model {
         content_right - viewport_right
     }
 
-    /// A model for the specific entry. Every second entry of the grid view is an actual
-    /// breadcrumb. They are separated by the [`entry::Model::Separator`] entries and can have an
-    /// optional [`entry::Model::Ellipsis`] icon as the last entry (if [`show_ellipsis`] is true).
+    /// A model for the specific entry. The grid view contains a series of optional icons, followed
+    /// by the breadcrumb text. They are separated by the [`entry::Model::Separator`] entries and
+    /// can have an optional [`entry::Model::Ellipsis`] icon as the last entry (if
+    /// [`show_ellipsis`] is true).
     fn entry_model(
         entries: &Entries,
         col: Col,
@@ -256,8 +280,9 @@ impl Model {
         } else if is_separator_index {
             entry::Model::Separator
         } else if let Some(entry) = entries.borrow().get(col / 2) {
-            let text: &ImString = entry.as_ref();
-            entry::Model::Text(text.clone_ref())
+            let content = entry.text();
+            let icon = entry.icon();
+            entry::Model::Text { content, icon }
         } else {
             error!("Requested entry is missing in the breadcrumbs ({col})");
             entry::Model::default()
@@ -308,6 +333,8 @@ impl Model {
     pub fn set_entry(&self, entry: &Breadcrumb, index: BreadcrumbId) {
         if let Some(e) = self.entries.borrow_mut().get_mut(index) {
             *e = entry.clone_ref();
+        } else {
+            warn!("Tried to set a breadcrumb at an invalid index ({})", index);
         }
         self.grid.request_model_for_visible_entries();
     }
@@ -378,9 +405,57 @@ impl Model {
 
 // === Breadcrumb ===
 
-im_string_newtype_without_serde! {
-    /// A single breadcrumb.
-    Breadcrumb
+
+pub(crate) type Icon = Rc<icon::Id>;
+
+/// A single breadcrumb.
+#[derive(Clone, CloneRef, Debug, Default)]
+pub struct Breadcrumb {
+    text: ImString,
+    icon: Option<Icon>,
+}
+
+
+impl Breadcrumb {
+    /// Create a new breadcrumb with the specified text and icon.
+    pub fn new_with_icon(text: &str, icon: icon::Id) -> Self {
+        let text = ImString::new(text);
+        let icon = Some(Rc::new(icon));
+        Self { text, icon }
+    }
+
+    /// Create a new breadcrumb with the specified text. The icon will be set to [`None`].
+    pub fn new(text: &str) -> Self {
+        Self { text: ImString::new(text), icon: default() }
+    }
+
+    /// Returns the text associated with this breadcrumb.
+    pub fn text(&self) -> ImString {
+        self.text.clone_ref()
+    }
+
+    /// Returns the icon id associated with this breadcrumb.
+    pub fn icon(&self) -> Option<Icon> {
+        self.icon.clone_ref()
+    }
+}
+
+impl From<String> for Breadcrumb {
+    fn from(s: String) -> Self {
+        Self { text: ImString::new(s), icon: default() }
+    }
+}
+
+impl From<&str> for Breadcrumb {
+    fn from(s: &str) -> Self {
+        Self { text: ImString::new(s), icon: default() }
+    }
+}
+
+impl From<ImString> for Breadcrumb {
+    fn from(text: ImString) -> Self {
+        Self { text, icon: default() }
+    }
 }
 
 
@@ -438,8 +513,13 @@ impl Breadcrumbs {
         let input = &frp.private().input;
         let out = &frp.private().output;
         let grid = &model.grid;
+        let background = model.background.clone_ref();
         let style = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
         let entries_height = style.get_number(theme::height);
+        let background_padding_x = style.get_number(theme::background_padding_x);
+        let background_y_offset = style.get_number(theme::background_y_offset);
+        let background_height = style.get_number(theme::background_height);
+        let background_color = style.get_color(theme::background_color);
         let scroll_anim = Animation::new(network);
         frp::extend! { network
             init <- source_();
@@ -453,11 +533,17 @@ impl Breadcrumbs {
             eval input.set_entry(((index, entry)) model.set_entry(entry, *index));
             out.selected <+ selected;
 
-            scroll_anim.target <+ all_with3(
-                &model.grid.content_size, &input.set_size, &model.grid.entry_selected,
-                f!((content_size, size, _) {
-                    model.update_layout(*content_size, *size);
-                    model.offset(*content_size, *size)
+            scroll_anim.target <+ all_with6(
+                &model.grid.content_size,
+                &input.set_size,
+                &model.grid.entry_selected,
+                &background_padding_x,
+                &background_height,
+                &background_y_offset,
+                f!((content_size, size, _, background_padding_x, background_height, background_y_offset) {
+                    model.update_layout(
+                        *content_size, *size, *background_padding_x, *background_height, *background_y_offset);
+                    model.offset(*content_size, *size) - *background_padding_x
                 })
             );
             eval scroll_anim.value((offset) model.grid.set_x(-offset));
@@ -465,6 +551,8 @@ impl Breadcrumbs {
             eval_ input.move_down(model.move_down());
             entries_height <- all(&entries_height, &init)._0();
             eval entries_height((height) model.update_entries_height(*height));
+            background_color <- all(&background_color, &init)._0();
+            eval background_color ((color) background.set_color(*color););
         }
         init.emit(());
 
