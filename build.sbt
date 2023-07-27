@@ -1815,13 +1815,14 @@ lazy val `bench-libs` = (project in file("std-bits/benchmarks"))
     },
     (Benchmark / run / javaOptions) ++= {
       val runtimeClasspath =
-        (LocalProject("runtime") / Compile / products).value
+        (LocalProject("runtime") / Compile / fullClasspath).value
       val runtimeInstrumentsClasspath =
         (LocalProject(
           "runtime-with-instruments"
-        ) / Compile / products).value
+        ) / Compile / fullClasspath).value
       val appendClasspath =
         (runtimeClasspath ++ runtimeInstrumentsClasspath)
+          .map(_.data)
           .mkString(File.pathSeparator)
       Seq(
         s"-Dtruffle.class.path.append=$appendClasspath",
