@@ -34,10 +34,10 @@ pub struct Config;
 /// The widget that displays a separating line between top-level argument nodes, as well as prints
 /// the argument name when applicable. The name is only printed in cases where it would not be
 /// repeated as a label in the child widget.
-#[derive(Clone, Debug)]
+#[derive(Debug, display::Object)]
 pub struct Widget {
-    root:      object::Instance,
-    separator: Rectangle,
+    display_object: object::Instance,
+    separator:      Rectangle,
 }
 
 impl SpanWidget for Widget {
@@ -56,20 +56,17 @@ impl SpanWidget for Widget {
         Configuration::inert(Config)
     }
 
-    fn root_object(&self) -> &object::Instance {
-        &self.root
-    }
-
     fn new(_: &Config, ctx: &ConfigContext) -> Self {
-        let root = object::Instance::new_named("widget::Separator");
-        root.use_auto_layout()
+        let display_object = object::Instance::new_named("widget::Separator");
+        display_object
+            .use_auto_layout()
             .set_row_flow()
             .set_children_alignment_left_center()
             .justify_content_center_y();
 
         let separator = Rectangle();
 
-        let network = &root.network;
+        let network = &display_object.network;
         let style = ctx.cached_style::<Style>(network);
         frp::extend! { network
             eval style([separator] (style) {
@@ -78,7 +75,7 @@ impl SpanWidget for Widget {
                 separator.set_color(style.color);
             });
         }
-        Self { root, separator }
+        Self { display_object, separator }
     }
 
     fn configure(&mut self, _: &Config, ctx: ConfigContext) {
@@ -107,6 +104,6 @@ impl SpanWidget for Widget {
         };
 
         let separator = self.separator.display_object();
-        self.root.replace_children(&[separator, &child.root_object]);
+        self.display_object.replace_children(&[separator, &child.root_object]);
     }
 }

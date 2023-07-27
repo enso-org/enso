@@ -225,7 +225,7 @@ crate::define_endpoints_2! {
 // ===================
 
 /// Internal data for `Cursor`.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 #[allow(missing_docs)]
 pub struct CursorModel {
     pub scene:           Scene,
@@ -281,11 +281,12 @@ impl CursorModel {
 // ==============
 
 /// Cursor (mouse pointer) definition.
-#[derive(Clone, CloneRef, Debug, Deref)]
+#[derive(Clone, CloneRef, Debug, Deref, display::Object)]
 #[allow(missing_docs)]
 pub struct Cursor {
     pub frp:   Frp,
     #[deref]
+    #[display_object]
     pub model: Rc<CursorModel>,
 }
 
@@ -720,12 +721,6 @@ impl CursorModel {
     }
 }
 
-impl display::Object for Cursor {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.model.display_object
-    }
-}
-
 
 
 // ==================
@@ -838,6 +833,10 @@ mod trash {
     impl<T: display::Object> display::Object for Trash<T> {
         fn display_object(&self) -> &display::object::Instance {
             self.model.elem.display_object()
+        }
+
+        fn focus_receiver(&self) -> &display::object::Instance {
+            self.model.elem.focus_receiver()
         }
     }
 }

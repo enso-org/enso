@@ -36,9 +36,9 @@ pub struct Config;
 
 
 /// The widget that prints the argument name next to the argument value.
-#[derive(Clone, Debug)]
+#[derive(Debug, display::Object)]
 pub struct Widget {
-    root:              object::Instance,
+    display_object:    object::Instance,
     arg_label_wrapper: object::Instance,
     arg_name:          frp::Source<ImString>,
 }
@@ -54,10 +54,6 @@ impl SpanWidget for Widget {
 
     fn default_config(_: &ConfigContext) -> Configuration<Self::Config> {
         Configuration::always(Config)
-    }
-
-    fn root_object(&self) -> &object::Instance {
-        &self.root
     }
 
     fn new(_: &Config, ctx: &ConfigContext) -> Self {
@@ -93,7 +89,7 @@ impl SpanWidget for Widget {
                 arg_label.set_y(*h);
             });
         }
-        Self { root, arg_label_wrapper, arg_name }
+        Self { display_object: root, arg_label_wrapper, arg_name }
     }
 
     fn configure(&mut self, _: &Config, ctx: ConfigContext) {
@@ -105,11 +101,12 @@ impl SpanWidget for Widget {
             Some(arg_name) if !arg_name.is_empty() => {
                 self.arg_name.emit(arg_name);
                 let child = ctx.builder.child_widget(ctx.span_node, level);
-                self.root.replace_children(&[&self.arg_label_wrapper, &child.root_object]);
+                self.display_object
+                    .replace_children(&[&self.arg_label_wrapper, &child.root_object]);
             }
             _ => {
                 let child = ctx.builder.child_widget(ctx.span_node, level);
-                self.root.replace_children(&[&child.root_object]);
+                self.display_object.replace_children(&[&child.root_object]);
             }
         }
     }

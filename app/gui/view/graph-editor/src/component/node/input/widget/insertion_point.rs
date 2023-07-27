@@ -20,9 +20,9 @@ pub struct Config;
 
 
 /// Insertion point widget. Displays nothing when not connected.
-#[derive(Clone, Debug)]
+#[derive(Debug, display::Object)]
 pub struct Widget {
-    root: object::Instance,
+    display_object: object::Instance,
 }
 
 impl SpanWidget for Widget {
@@ -36,14 +36,10 @@ impl SpanWidget for Widget {
         Configuration::inert(Config)
     }
 
-    fn root_object(&self) -> &object::Instance {
-        &self.root
-    }
-
     fn new(_: &Config, _: &ConfigContext) -> Self {
-        let root = object::Instance::new_named("widget::InsertionPoint");
-        root.set_size(Vector2::<f32>::zero());
-        Self { root }
+        let display_object = object::Instance::new_named("widget::InsertionPoint");
+        display_object.set_size(Vector2::<f32>::zero());
+        Self { display_object }
     }
 
     fn configure(&mut self, _: &Config, _: ConfigContext) {}

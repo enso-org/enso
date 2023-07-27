@@ -41,6 +41,7 @@ import * as toastify from 'react-toastify'
 import * as detect from 'enso-common/src/detect'
 
 import * as authServiceModule from '../authentication/service'
+import * as backend from '../dashboard/backend'
 import * as hooks from '../hooks'
 import * as localBackend from '../dashboard/localBackend'
 
@@ -123,7 +124,7 @@ export interface AppProps {
  *
  * This component handles all the initialization and rendering of the app, and manages the app's
  * routes. It also initializes an `AuthProvider` that will be used by the rest of the app. */
-function App(props: AppProps) {
+export default function App(props: AppProps) {
     // This is a React component even though it does not contain JSX.
     // eslint-disable-next-line no-restricted-syntax
     const Router = detect.isRunningInElectron() ? router.MemoryRouter : router.BrowserRouter
@@ -168,7 +169,7 @@ function AppRouter(props: AppProps) {
     }, [navigate, props])
     const userSession = authService.cognito.userSession.bind(authService.cognito)
     const registerAuthEventListener = authService.registerAuthEventListener
-    const initialBackend: backendProvider.AnyBackendAPI = isAuthenticationDisabled
+    const initialBackend: backend.Backend = isAuthenticationDisabled
         ? new localBackend.LocalBackend()
         : // This is safe, because the backend is always set by the authentication flow.
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -221,5 +222,3 @@ function AppRouter(props: AppProps) {
         </loggerProvider.LoggerProvider>
     )
 }
-
-export default App

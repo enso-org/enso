@@ -17,7 +17,7 @@ use span_tree::node::Kind;
 pub struct Config;
 
 /// Hierarchy widget. This widget expands each child of its span tree into a new widget.
-#[derive(Clone, Debug)]
+#[derive(Debug, display::Object)]
 pub struct Widget {
     display_object: object::Instance,
     /// A temporary list of display object children to insert. Reused across reconfigurations to
@@ -43,10 +43,6 @@ impl SpanWidget for Widget {
         Configuration::maybe_with_port(Config, has_port)
     }
 
-    fn root_object(&self) -> &object::Instance {
-        &self.display_object
-    }
-
     fn new(_: &Config, _: &ConfigContext) -> Self {
         let display_object = object::Instance::new_named("widget::Hierarchy");
         display_object.use_auto_layout();
@@ -55,7 +51,7 @@ impl SpanWidget for Widget {
     }
 
     fn configure(&mut self, _: &Config, ctx: ConfigContext) {
-        let child_level = ctx.info.nesting_level.next_if(ctx.span_node.is_argument());
+        let child_level = ctx.info.nesting_level.next_if(ctx.span_node.kind.is_prefix_argument());
         let is_primary = ctx.info.nesting_level.is_primary();
 
         // When this is a top-level (primary) hierarchy widget, request children widgets to have

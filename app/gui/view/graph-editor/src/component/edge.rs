@@ -71,17 +71,12 @@ define_endpoints_2! {
 // ============
 
 /// Edge definition.
-#[derive(AsRef, Clone, CloneRef, Debug, Deref)]
+#[derive(Clone, CloneRef, Debug, Deref, display::Object)]
 pub struct Edge {
     #[deref]
     frp:   Frp,
+    #[display_object]
     model: Rc<EdgeModel>,
-}
-
-impl AsRef<Edge> for Edge {
-    fn as_ref(&self) -> &Self {
-        self
-    }
 }
 
 impl Edge {
@@ -158,12 +153,6 @@ impl Edge {
     }
 }
 
-impl display::Object for Edge {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.model.display_object
-    }
-}
-
 
 
 // =================
@@ -171,7 +160,7 @@ impl display::Object for Edge {
 // =================
 
 /// Internal data of `Edge`
-#[derive(Debug)]
+#[derive(Debug, display::Object)]
 struct EdgeModel {
     /// The parent display object of all the edge's parts.
     display_object: display::object::Instance,
@@ -342,12 +331,6 @@ impl EdgeModel {
 
 
 // === Trait implementations ===
-
-impl display::Object for EdgeModel {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
-    }
-}
 
 impl ShapeParent for EdgeModel {
     fn scene(&self) -> &Scene {

@@ -185,7 +185,7 @@ mod mask {
 }
 
 /// Internal representaton of the scroll area.
-#[derive(Debug, Clone, CloneRef)]
+#[derive(Debug, Clone, CloneRef, display::Object)]
 struct Model {
     content:        display::object::Instance,
     scrollbars:     display::object::Instance,
@@ -222,24 +222,12 @@ impl Model {
 /// left corner. All scroll coordinates describe the point of the `content` object at that corner.
 /// The scrollbars are only active when the content is actually larger than the viewport on the
 /// respective axis. The component does not have a background.
-#[derive(Debug, Clone, CloneRef)]
+#[derive(Debug, Clone, CloneRef, Deref, display::Object)]
 pub struct ScrollArea {
+    #[display_object]
     model: Model,
+    #[deref]
     frp:   Frp,
-}
-
-impl Deref for ScrollArea {
-    type Target = Frp;
-
-    fn deref(&self) -> &Self::Target {
-        &self.frp
-    }
-}
-
-impl display::Object for ScrollArea {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.model.display_object
-    }
 }
 
 impl ScrollArea {

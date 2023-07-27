@@ -37,7 +37,7 @@ const INSERTION_OFFSET: f32 = ITEMS_GAP * 0.5;
 // === Element ===
 // ===============
 
-#[derive(Debug)]
+#[derive(Debug, display::Object)]
 struct Element {
     display_object: object::Instance,
     content:        object::Instance,
@@ -73,7 +73,7 @@ enum ElementIdentity {
     FullIdentity(WidgetIdentity),
 }
 
-#[derive(Clone, CloneRef)]
+#[derive(Clone, CloneRef, display::Object)]
 struct ListItem {
     child_id:       Immutable<WidgetIdentity>,
     element_id:     Immutable<ElementIdentity>,
@@ -108,12 +108,6 @@ impl ListItem {
     }
 }
 
-impl display::Object for ListItem {
-    fn display_object(&self) -> &object::Instance {
-        &self.display_object
-    }
-}
-
 impl Element {
     fn new(layers: &CommonLayers) -> Self {
         let display_object = object::Instance::new_named("Element");
@@ -135,14 +129,8 @@ impl Element {
     }
 }
 
-impl display::Object for Element {
-    fn display_object(&self) -> &object::Instance {
-        &self.display_object
-    }
-}
-
 /// A model for the vector editor widget.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Debug, display::Object)]
 pub struct Widget {
     display_object: object::Instance,
     network:        frp::Network,
@@ -635,10 +623,6 @@ impl SpanWidget for Widget {
             }
         };
         Configuration::always(Config { item_widget: None, item_default })
-    }
-
-    fn root_object(&self) -> &object::Instance {
-        &self.display_object
     }
 
     fn new(_: &Config, ctx: &ConfigContext) -> Self {

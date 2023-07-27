@@ -119,8 +119,11 @@ export function bundlerOptions(args: Arguments) {
             // The `dataurl` loader replaces the import with the file, as a data URL. Using the
             // `file` loader, which copies the file and replaces the import with the path,
             // is an option, however this loader avoids adding extra files to the bundle.
-            // eslint-disable-next-line @typescript-eslint/naming-convention
+            /* eslint-disable @typescript-eslint/naming-convention */
             '.svg': 'dataurl',
+            // The `file` loader copies the file, and replaces the import with the path to the file.
+            '.png': 'file',
+            /* eslint-enable @typescript-eslint/naming-convention */
         },
         plugins: [
             esbuildPluginNodeModules.NodeModulesPolyfillPlugin(),

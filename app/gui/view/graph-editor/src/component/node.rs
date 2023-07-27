@@ -89,9 +89,10 @@ const UNRESOLVED_SYMBOL_TYPE: &str = "Builtins.Main.Unresolved_Symbol";
 // ==============
 
 /// A node's background area and selection.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, display::Object)]
 pub struct Background {
     _network:            frp::Network,
+    #[display_object]
     shape:               Rectangle,
     selection_shape:     Rectangle,
     selection_animation: Animation<f32>,
@@ -194,12 +195,6 @@ impl Background {
 
     fn set_size_and_center_xy(&self, size: Vector2<f32>, center: Vector2<f32>) {
         self.size_and_center.emit((size, center));
-    }
-}
-
-impl display::Object for Background {
-    fn display_object(&self) -> &display::object::Instance {
-        self.shape.display_object()
     }
 }
 
@@ -349,7 +344,7 @@ ensogl::define_endpoints_2! {
 ///    emitted back to the right node).
 ///
 /// Currently, the solution "C" (nearest to optimal) is implemented here.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 #[allow(missing_docs)]
 pub struct Node {
     widget: gui::Widget<NodeModel, Frp>,
@@ -376,7 +371,7 @@ impl Deref for Node {
 }
 
 /// Internal data of `Node`
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, display::Object)]
 #[allow(missing_docs)]
 pub struct NodeModel {
     pub layers:              GraphLayers,
@@ -631,9 +626,10 @@ impl Node {
             let background_press = model.background.on_event::<mouse::Down>();
             let input_press = model.input.on_event::<mouse::Down>();
             input_as_background_press <- input_press.gate(&input.set_edit_ready_mode);
+            background_press <- background_press.gate_not(&model.input.editing);
             any_background_press <- any(&background_press, &input_as_background_press);
             any_primary_press <- any_background_press.filter(mouse::event::is_primary);
-            out.background_press <+ any_primary_press.constant(());
+            out.background_press <+_ any_primary_press;
         }
 
         frp::extend! { network
@@ -914,8 +910,7 @@ impl Node {
         frp.set_disabled.emit(false);
         frp.show_quick_action_bar_on_hover.emit(true);
 
-        let display_object = model.display_object.clone_ref();
-        let widget = gui::Widget::new(app, frp, model, display_object);
+        let widget = gui::Widget::new(app, frp, model);
         Node { widget }
     }
 
@@ -941,11 +936,6 @@ impl Node {
     }
 }
 
-impl display::Object for Node {
-    fn display_object(&self) -> &display::object::Instance {
-        self.deref().display_object()
-    }
-}
 
 
 // === Positioning ===

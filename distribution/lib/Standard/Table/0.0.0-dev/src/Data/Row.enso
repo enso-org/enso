@@ -10,6 +10,10 @@ type Row
     ## PRIVATE
     Value (table:Table) (index:Integer)
 
+    ## Gets the set of column column_names
+    column_names : Vector Text
+    column_names self = self.table.column_names
+
     ## Gets the number of columns in the table.
     length : Integer
     length self = self.table.columns.length

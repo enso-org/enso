@@ -89,30 +89,30 @@ impl Default for Placeholder {
 
 /// A space holder for a list item. It is used to keep the list layout consistent when items are
 /// added or removed.
-#[derive(Debug, Clone, CloneRef, Deref)]
+#[derive(Debug, Clone, CloneRef, Deref, display::Object)]
 pub struct StrongPlaceholder {
     model: Rc<PlaceholderModel>,
 }
 
 /// Internal model of [`StrongPlaceholder`].
 #[allow(missing_docs)]
-#[derive(Debug, Deref)]
+#[derive(Debug, Deref, display::Object)]
 pub struct PlaceholderModel {
     #[deref]
-    pub frp:    Frp,
-    root:       display::object::Instance,
+    pub frp:        Frp,
+    display_object: display::object::Instance,
     /// A self-reference used to keep the [`WeakPlaceholder`] alive until the collapsing animation
     /// ends.
-    self_ref:   Rc<RefCell<Option<StrongPlaceholder>>>,
-    collapsing: Rc<Cell<bool>>,
-    size:       Animation<f32>,
-    _deubg_viz: Option<Rectangle>,
+    self_ref:       Rc<RefCell<Option<StrongPlaceholder>>>,
+    collapsing:     Rc<Cell<bool>>,
+    size:           Animation<f32>,
+    _debug_viz:     Option<Rectangle>,
 }
 
 impl PlaceholderModel {
     fn new() -> Self {
         let frp = Frp::new();
-        let root = display::object::Instance::new_named("Placeholder");
+        let display_object = display::object::Instance::new_named("Placeholder");
         let self_ref = default();
         let collapsing = default();
         let size = Animation::<f32>::new(frp.network());
@@ -124,13 +124,13 @@ impl PlaceholderModel {
                     .set_border_and_inset(2.0)
                     .set_border_color(color::Rgba::new(1.0, 0.0, 0.0, 1.0));
             });
-            root.add_child(&viz);
+            display_object.add_child(&viz);
             with_context(|ctx| {
                 ctx.layers.above_nodes.add(&viz);
             });
             viz
         });
-        Self { frp, root, self_ref, collapsing, size, _deubg_viz }
+        Self { frp, display_object, self_ref, collapsing, size, _debug_viz: _deubg_viz }
     }
 }
 
@@ -139,7 +139,7 @@ impl StrongPlaceholder {
     pub fn new() -> Self {
         let model = PlaceholderModel::new();
         let model = Rc::new(model);
-        let root = model.root.clone_ref();
+        let display_object = &model.display_object;
         let collapsing = &model.collapsing;
         let self_ref = &model.self_ref;
 
@@ -151,7 +151,7 @@ impl StrongPlaceholder {
             size.skip <+ model.frp.private.input.skip_animation;
             model.frp.private.output.target_size <+ model.frp.private.input.set_target_size;
 
-            eval size.value ((t) { root.set_size_x(*t); });
+            eval size.value ((t) display_object.set_size_x(*t).void());
             eval_ size.on_end ([collapsing, self_ref] {
                 if collapsing.get() {
                     self_ref.borrow_mut().take();
@@ -206,12 +206,6 @@ impl StrongPlaceholder {
 impl Default for StrongPlaceholder {
     fn default() -> Self {
         Self::new()
-    }
-}
-
-impl display::Object for StrongPlaceholder {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.root
     }
 }
 

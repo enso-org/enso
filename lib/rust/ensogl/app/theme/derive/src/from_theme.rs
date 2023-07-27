@@ -9,6 +9,7 @@ use quote::quote;
 use quote::ToTokens;
 use syn::DeriveInput;
 use syn::Path;
+use syn_1 as syn;
 
 
 

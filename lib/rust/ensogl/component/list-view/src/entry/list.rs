@@ -62,7 +62,7 @@ impl IdAtYPosition {
 pub type List<E> = ListData<E, <E as Entry>::Params>;
 
 /// Data of a [`List`].
-#[derive(CloneRef, Debug, Derivative)]
+#[derive(CloneRef, Debug, Derivative, display::Object)]
 #[derivative(Clone(bound = ""))]
 #[clone_ref(bound = "E:CloneRef")]
 pub struct ListData<E, P> {
@@ -280,11 +280,5 @@ impl<E: Entry> ListData<E, E::Params> {
             }
         };
         entry.entry.set_y(Self::position_y_of_entry(id));
-    }
-}
-
-impl<E, P> display::Object for ListData<E, P> {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
     }
 }

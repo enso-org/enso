@@ -30,7 +30,7 @@ enum State {
 
 /// Root View model. Stores both Welcome Screen and Project views and handles their
 /// visibility.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 pub struct Model {
     // Required for creating project view dynamically
     app:            Application,
@@ -121,18 +121,13 @@ ensogl::define_endpoints! {
 // ============
 
 /// Root View of the IDE. Displays either Welcome Screen or Project View.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, Deref, display::Object)]
 #[allow(missing_docs)]
 pub struct View {
+    #[display_object]
     model:   Model,
+    #[deref]
     pub frp: Frp,
-}
-
-impl Deref for View {
-    type Target = Frp;
-    fn deref(&self) -> &Self::Target {
-        &self.frp
-    }
 }
 
 impl View {
@@ -173,12 +168,6 @@ impl View {
     /// Welcome View.
     pub fn welcome_screen(&self) -> &crate::welcome_screen::View {
         &self.model.welcome_view
-    }
-}
-
-impl display::Object for View {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.model.display_object
     }
 }
 

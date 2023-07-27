@@ -160,7 +160,7 @@ impl From<node::Expression> for Expression {
 // =============
 
 /// Internal model of the port area.
-#[derive(Debug)]
+#[derive(Debug, display::Object)]
 pub struct Model {
     layers:          GraphLayers,
     display_object:  display::object::Instance,
@@ -216,6 +216,8 @@ impl Model {
             // update the node layout for label to be able to calculate cursor position properly.
             self.display_object.update(&scene());
             self.edit_mode_label.set_cursor_at_mouse_position();
+            // [`ensogl_text`] has not been ported to the new focus API yet.
+            self.edit_mode_label.deprecated_focus();
         } else {
             self.display_object.remove_child(&self.edit_mode_label);
             self.display_object.add_child(&self.widget_tree);
@@ -230,9 +232,6 @@ impl Model {
         let text_cursor_color: color::Lch = text_color.into();
 
         self.edit_mode_label.set_single_line_mode(true);
-
-        app.commands.set_command_enabled(&self.edit_mode_label, "cursor_move_up", false);
-        app.commands.set_command_enabled(&self.edit_mode_label, "cursor_move_down", false);
         app.commands.set_command_enabled(
             &self.edit_mode_label,
             "add_cursor_at_mouse_position",
@@ -433,18 +432,13 @@ ensogl::define_endpoints! {
 /// ## Origin
 /// Please note that the origin of the node is on its left side, centered vertically. To learn more
 /// about this design decision, please read the docs for the [`node::Node`].
-#[derive(Clone, Deref, CloneRef, Debug)]
+#[derive(Clone, Deref, CloneRef, Debug, display::Object)]
 pub struct Area {
     #[allow(missing_docs)]
     #[deref]
     pub frp:          Frp,
+    #[display_object]
     pub(crate) model: Rc<Model>,
-}
-
-impl display::Object for Area {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.model.display_object
-    }
 }
 
 impl Area {

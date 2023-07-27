@@ -45,12 +45,12 @@ ensogl::define_endpoints_2! {
 }
 
 /// Label widget. Always displays the span tree node's expression as text.
-#[derive(Clone, Debug)]
+#[derive(Debug, display::Object)]
 pub struct Widget {
-    frp:   Frp,
-    root:  object::Instance,
+    frp:            Frp,
+    display_object: object::Instance,
     #[allow(dead_code)]
-    label: text::Text,
+    label:          text::Text,
 }
 
 impl SpanWidget for Widget {
@@ -68,19 +68,15 @@ impl SpanWidget for Widget {
         Configuration::maybe_with_port(Config, !not_port)
     }
 
-    fn root_object(&self) -> &object::Instance {
-        &self.root
-    }
-
     fn new(_: &Config, ctx: &ConfigContext) -> Self {
         // Embed the label in a vertically centered fixed height container, so that the label's
         // baseline is properly aligned to center and lines up with other labels in the line.
         let app = ctx.app();
         let widgets_frp = ctx.frp();
-        let root = object::Instance::new_named("widget::Label");
+        let display_object = object::Instance::new_named("widget::Label");
         let label = text::Text::new(app);
         label.set_property_default(text::Size(TEXT_SIZE));
-        root.add_child(&label);
+        display_object.add_child(&label);
         let frp = Frp::new();
         let network = &frp.network;
 
@@ -118,14 +114,14 @@ impl SpanWidget for Widget {
 
             width <- label.width.on_change();
             height <- label.height.on_change();
-            eval width((w) root.set_size_x(*w); );
-            eval height([root, label] (h) {
-                root.set_size_y(*h);
+            eval width((w) display_object.set_size_x(*w); );
+            eval height([display_object, label] (h) {
+                display_object.set_size_y(*h);
                 label.set_y(*h);
             });
         }
 
-        Self { frp, root, label }
+        Self { frp, display_object, label }
     }
 
     fn configure(&mut self, _: &Config, ctx: ConfigContext) {

@@ -71,7 +71,7 @@ pub fn wrap_async_fn(func: &mut syn::ItemFn) {
             }
         }
         // Add a definition for the output lifetime.
-        let lifetime_def = syn::LifetimeDef::new(output_lifetime.clone());
+        let lifetime_def = syn::LifetimeParam::new(output_lifetime.clone());
         func.sig.generics.params.insert(0, syn::GenericParam::Lifetime(lifetime_def));
         // Apply the output lifetime to the output.
         quote::quote! {
@@ -103,8 +103,9 @@ fn explicitize_lifetimes(sig: &mut syn::Signature) -> Vec<syn::Lifetime> {
     let ExplicitizeInputLifetimes { new_lifetimes, existing_lifetimes } = input_transformer;
     let mut all_lifetimes = existing_lifetimes;
     all_lifetimes.extend_from_slice(&new_lifetimes);
-    let new_lifetimes =
-        new_lifetimes.into_iter().map(|lt| syn::GenericParam::Lifetime(syn::LifetimeDef::new(lt)));
+    let new_lifetimes = new_lifetimes
+        .into_iter()
+        .map(|lt| syn::GenericParam::Lifetime(syn::LifetimeParam::new(lt)));
     sig.generics.params.extend(new_lifetimes);
     // There are two cases where output lifetimes may be elided:
     // - There's exactly one lifetime in the inputs.

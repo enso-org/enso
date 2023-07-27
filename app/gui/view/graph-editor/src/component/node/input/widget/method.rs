@@ -30,7 +30,7 @@ pub struct Config;
 
 /// A widget for selecting a single value from a list of available options. The options can be
 /// provided as a static list of strings from argument `tag_values`, or as a dynamic expression.
-#[derive(Debug)]
+#[derive(Debug, display::Object)]
 #[allow(dead_code)]
 pub struct Widget {
     display_object: object::Instance,
@@ -53,10 +53,6 @@ impl SpanWidget for Widget {
         let matches = ctx.span_node.application.is_some()
             && ctx.get_extension::<MethodAlreadyInTree>().is_none();
         Score::only_if(matches)
-    }
-
-    fn root_object(&self) -> &object::Instance {
-        &self.display_object
     }
 
     fn new(_: &Config, _: &ConfigContext) -> Self {

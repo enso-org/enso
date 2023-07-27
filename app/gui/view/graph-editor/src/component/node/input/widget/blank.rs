@@ -34,10 +34,10 @@ struct Style {
 pub struct Config;
 
 /// Blank widget. Displays a stylized underscore shape.
-#[derive(Clone, Debug)]
+#[derive(Debug, display::Object)]
 pub struct Widget {
-    root:  object::Instance,
-    _rect: Rectangle,
+    display_object: object::Instance,
+    _rect:          Rectangle,
 }
 
 impl SpanWidget for Widget {
@@ -52,10 +52,6 @@ impl SpanWidget for Widget {
 
     fn default_config(_: &ConfigContext) -> Configuration<Self::Config> {
         Configuration::always(Config)
-    }
-
-    fn root_object(&self) -> &object::Instance {
-        &self.root
     }
 
     fn new(_: &Config, ctx: &ConfigContext) -> Self {
@@ -75,7 +71,7 @@ impl SpanWidget for Widget {
                     .set_margin_trbl(style.margin_top, style.margin_sides, 0.0, style.margin_sides);
             );
         }
-        Self { root, _rect: rect }
+        Self { display_object: root, _rect: rect }
     }
 
     fn configure(&mut self, _: &Config, _: ConfigContext) {}

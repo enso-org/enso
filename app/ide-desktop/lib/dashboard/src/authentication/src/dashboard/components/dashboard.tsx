@@ -4,14 +4,14 @@ import * as React from 'react'
 
 import * as common from 'enso-common'
 
+import * as assetListEventModule from '../events/assetListEvent'
 import * as backendModule from '../backend'
+import * as hooks from '../../hooks'
 import * as http from '../../http'
 import * as localBackend from '../localBackend'
-import * as projectListEventModule from '../events/projectListEvent'
 import * as projectManager from '../projectManager'
 import * as remoteBackendModule from '../remoteBackend'
 import * as shortcuts from '../shortcuts'
-import * as spinner from './spinner'
 import * as tabModule from '../tab'
 
 import * as authProvider from '../../authentication/providers/auth'
@@ -20,7 +20,7 @@ import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
 
 import Chat, * as chat from './chat'
-import DirectoryView from './directoryView'
+import DirectoryView from './driveView'
 import Ide from './ide'
 import Templates from './templates'
 import TheModal from './theModal'
@@ -45,11 +45,8 @@ export interface DashboardProps {
     initialProjectName: string | null
 }
 
-// TODO[sb]: Implement rename when clicking name of a selected row.
-// There is currently no way to tell whether a row is selected from a column.
-
 /** The component that contains the entire UI. */
-function Dashboard(props: DashboardProps) {
+export default function Dashboard(props: DashboardProps) {
     const { supportsLocalBackend, appRunner, initialProjectName } = props
     const logger = loggerProvider.useLogger()
     const session = authProvider.useNonPartialUserSession()
@@ -67,8 +64,8 @@ function Dashboard(props: DashboardProps) {
     const [project, setProject] = React.useState<backendModule.Project | null>(null)
     const [nameOfProjectToImmediatelyOpen, setNameOfProjectToImmediatelyOpen] =
         React.useState(initialProjectName)
-    const [projectListEvent, dispatchProjectListEvent] =
-        React.useState<projectListEventModule.ProjectListEvent | null>(null)
+    const [assetListEvent, dispatchAssetListEvent] =
+        hooks.useEvent<assetListEventModule.AssetListEvent>()
 
     const isListingLocalDirectoryAndWillFail =
         backend.type === backendModule.BackendType.local && loadingProjectManagerDidFail
@@ -202,20 +199,17 @@ function Dashboard(props: DashboardProps) {
     )
 
     const doCreateProject = React.useCallback(
-        (
-            templateId: string | null,
-            onSpinnerStateChange: ((state: spinner.SpinnerState) => void) | null
-        ) => {
-            dispatchProjectListEvent({
-                type: projectListEventModule.ProjectListEventType.create,
+        (templateId?: string) => {
+            dispatchAssetListEvent({
+                type: assetListEventModule.AssetListEventType.createProject,
+                parentId: directoryId,
                 templateId: templateId ?? null,
-                onSpinnerStateChange: onSpinnerStateChange,
             })
         },
-        [/* should never change */ dispatchProjectListEvent]
+        [directoryId, /* should never change */ dispatchAssetListEvent]
     )
 
-    const openIde = React.useCallback(
+    const doOpenIde = React.useCallback(
         async (newProject: backendModule.ProjectAsset) => {
             switchToIdeTab()
             if (project?.projectId !== newProject.id) {
@@ -225,7 +219,7 @@ function Dashboard(props: DashboardProps) {
         [backend, project?.projectId, switchToIdeTab]
     )
 
-    const closeIde = React.useCallback(() => {
+    const doCloseIde = React.useCallback(() => {
         setProject(null)
     }, [])
 
@@ -240,6 +234,10 @@ function Dashboard(props: DashboardProps) {
             className={`flex flex-col gap-2 relative select-none text-primary text-xs h-screen py-2 ${
                 tab === tabModule.Tab.dashboard ? '' : 'hidden'
             }`}
+            onContextMenu={event => {
+                event.preventDefault()
+                unsetModal()
+            }}
             onClick={closeModalIfExists}
         >
             <TopBar
@@ -284,11 +282,12 @@ function Dashboard(props: DashboardProps) {
                         setNameOfProjectToImmediatelyOpen={setNameOfProjectToImmediatelyOpen}
                         directoryId={directoryId}
                         setDirectoryId={setDirectoryId}
-                        projectListEvent={projectListEvent}
-                        dispatchProjectListEvent={dispatchProjectListEvent}
+                        assetListEvent={assetListEvent}
+                        dispatchAssetListEvent={dispatchAssetListEvent}
                         query={query}
-                        onOpenIde={openIde}
-                        onCloseIde={closeIde}
+                        doCreateProject={doCreateProject}
+                        doOpenIde={doOpenIde}
+                        doCloseIde={doCloseIde}
                         appRunner={appRunner}
                         loadingProjectManagerDidFail={loadingProjectManagerDidFail}
                         isListingRemoteDirectoryWhileOffline={isListingRemoteDirectoryWhileOffline}
@@ -311,5 +310,3 @@ function Dashboard(props: DashboardProps) {
         </div>
     )
 }
-
-export default Dashboard

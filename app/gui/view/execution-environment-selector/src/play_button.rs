@@ -91,7 +91,7 @@ ensogl::define_endpoints_2! {
 // === Model ===
 // =============
 
-#[derive(Debug, Clone, CloneRef)]
+#[derive(Debug, Clone, CloneRef, display::Object)]
 pub struct Model {
     display_object: display::object::Instance,
     play_icon:      play_icon::View,
@@ -117,12 +117,6 @@ impl Model {
             self.display_object.remove_child(&self.spinner_icon);
             self.display_object.add_child(&self.play_icon);
         }
-    }
-}
-
-impl display::Object for Model {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
     }
 }
 

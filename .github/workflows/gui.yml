@@ -362,6 +362,8 @@ jobs:
         uses: styfle/cancel-workflow-action@0.9.1
         with:
           access_token: ${{ github.token }}
+    permissions:
+      actions: write
   enso-build-ci-gen-job-lint-linux:
     name: Lint (linux)
     runs-on:

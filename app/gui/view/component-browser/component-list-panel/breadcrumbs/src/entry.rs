@@ -148,7 +148,7 @@ enum State {
 /// representation for each entry in the grid view. For efficiency, text label and icons are
 /// allocated once the entry is created.
 #[allow(missing_docs)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, display::Object)]
 pub struct EntryData {
     display_object: display::object::Instance,
     text:           text::Text,
@@ -280,9 +280,10 @@ pub struct Params {
 // === Entry ===
 
 /// A Breadcrumbs entry.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 pub struct Entry {
     frp:  EntryFrp<Self>,
+    #[display_object]
     data: Rc<EntryData>,
 }
 
@@ -373,11 +374,5 @@ impl ensogl_grid_view::Entry for Entry {
 
     fn frp(&self) -> &EntryFrp<Self> {
         &self.frp
-    }
-}
-
-impl display::Object for Entry {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.data.display_object
     }
 }

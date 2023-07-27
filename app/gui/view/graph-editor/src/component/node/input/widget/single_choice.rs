@@ -84,7 +84,7 @@ ensogl::define_endpoints_2! {
 
 /// A widget for selecting a single value from a list of available options. The options can be
 /// provided as a static list of strings from argument `tag_values`, or as a dynamic expression.
-#[derive(Debug)]
+#[derive(Debug, display::Object)]
 #[allow(dead_code)]
 pub struct Widget {
     config_frp:       Frp,
@@ -113,10 +113,6 @@ impl SpanWidget for Widget {
         let choices = Rc::new(tags.iter().map(Choice::from).collect());
         let default_config = Config { label, choices, arguments: default() };
         Configuration::always(default_config)
-    }
-
-    fn root_object(&self) -> &object::Instance {
-        &self.display_object
     }
 
     fn new(_: &Config, ctx: &ConfigContext) -> Self {

@@ -83,18 +83,18 @@ mod status_indicator_shape {
 // ==============================
 
 /// Internal data of `StatusIndicator`.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 struct StatusIndicatorModel {
-    shape: status_indicator_shape::View,
-    root:  display::object::Instance,
+    shape:          status_indicator_shape::View,
+    display_object: display::object::Instance,
 }
 
 impl StatusIndicatorModel {
     fn new() -> Self {
         let shape = status_indicator_shape::View::new();
-        let root = display::object::Instance::new();
-        root.add_child(&shape);
-        StatusIndicatorModel { shape, root }
+        let display_object = display::object::Instance::new();
+        display_object.add_child(&shape);
+        StatusIndicatorModel { shape, display_object }
     }
 
     fn hide(&self) {
@@ -102,7 +102,7 @@ impl StatusIndicatorModel {
     }
 
     fn show(&self) {
-        self.root.add_child(&self.shape);
+        self.display_object.add_child(&self.shape);
     }
 
     fn set_visibility(&self, visibility: bool) {
@@ -111,12 +111,6 @@ impl StatusIndicatorModel {
         } else {
             self.hide()
         }
-    }
-}
-
-impl display::Object for StatusIndicatorModel {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.root
     }
 }
 
@@ -137,10 +131,12 @@ ensogl::define_endpoints! {
     }
 }
 
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, Deref, display::Object)]
 #[allow(missing_docs)]
 pub struct StatusIndicator {
+    #[display_object]
     model:   Rc<StatusIndicatorModel>,
+    #[deref]
     pub frp: Frp,
 }
 
@@ -186,18 +182,5 @@ impl StatusIndicator {
         frp.set_status.emit(None);
         frp.set_visibility.emit(true);
         self
-    }
-}
-
-impl display::Object for StatusIndicator {
-    fn display_object(&self) -> &display::object::Instance {
-        self.model.display_object()
-    }
-}
-
-impl Deref for StatusIndicator {
-    type Target = Frp;
-    fn deref(&self) -> &Self::Target {
-        &self.frp
     }
 }

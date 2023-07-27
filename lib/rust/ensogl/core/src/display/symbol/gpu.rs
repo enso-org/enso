@@ -311,9 +311,10 @@ newtype_prim! {
 }
 
 /// Symbol is a [`Mesh`] with attached [`Shader`].
-#[derive(Debug, Clone, CloneRef, Deref)]
+#[derive(Debug, Clone, CloneRef, Deref, display::Object)]
 pub struct Symbol {
     #[deref]
+    #[display_object]
     data:         Rc<SymbolData>,
     shader_dirty: ShaderDirty,
     shader:       Shader,
@@ -473,12 +474,6 @@ impl Symbol {
 
 // === Conversions ===
 
-impl display::Object for Symbol {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
-    }
-}
-
 impl From<&Symbol> for SymbolId {
     fn from(t: &Symbol) -> Self {
         t.id
@@ -530,7 +525,7 @@ impl WeakElement for WeakSymbol {
 // ==================
 
 /// Internal representation of [`Symbol`]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, display::Object)]
 #[allow(missing_docs)]
 pub struct SymbolData {
     pub label:          &'static str,

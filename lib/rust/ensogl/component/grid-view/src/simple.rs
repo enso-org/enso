@@ -90,7 +90,7 @@ impl<T: Into<ImString>> From<T> for EntryModel {
 
 /// An internal structure of [`Entry`], which may be passed to FRP network.
 #[allow(missing_docs)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, display::Object)]
 pub struct EntryData {
     display_object: display::object::Instance,
     pub label:      text::Text,
@@ -122,9 +122,10 @@ impl EntryData {
 // === Entry ===
 
 /// A [`SimpleGridView`] entry - a label with background.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 pub struct Entry {
     frp:  EntryFrp<Self>,
+    #[display_object]
     data: Rc<EntryData>,
 }
 
@@ -184,12 +185,6 @@ impl crate::Entry for Entry {
 
     fn frp(&self) -> &EntryFrp<Self> {
         &self.frp
-    }
-}
-
-impl display::Object for Entry {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.data.display_object
     }
 }
 

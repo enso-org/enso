@@ -26,6 +26,8 @@
 #![feature(auto_traits)]
 #![feature(int_roundings)]
 #![feature(let_chains)]
+#![feature(type_changing_struct_update)]
+#![feature(if_let_guard)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]

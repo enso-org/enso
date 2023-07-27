@@ -104,7 +104,7 @@ ensogl::define_endpoints_2! {
 // =============
 
 /// The model of the execution environment selector.
-#[derive(Debug, Clone, CloneRef)]
+#[derive(Debug, Clone, CloneRef, display::Object)]
 pub struct Model {
     /// Main root object for the execution environment selector exposed for external positioning.
     display_object: display::object::Instance,
@@ -165,12 +165,6 @@ impl Model {
             self.inner_root.remove_child(&self.play_button);
             self.inner_root.remove_child(&self.divider);
         }
-    }
-}
-
-impl display::Object for Model {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
     }
 }
 

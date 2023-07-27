@@ -63,9 +63,10 @@ const SHOW_TYPE_AS_LABEL: bool = true;
 ///
 /// The corners are rounded to follow the node corner radius. The shape also contains an underlying
 /// hover area with a padding defined as `HOVER_AREA_PADDING`.
-#[derive(Debug)]
+#[derive(Debug, display::Object)]
 #[allow(missing_docs)]
 pub struct ShapeView {
+    #[display_object]
     pub root:            display::object::Instance,
     pub main:            Rectangle,
     /// Interactive shape above the port. Note: It is NOT a child of the `root`. Instead, it is
@@ -219,12 +220,6 @@ impl ShapeView {
         self.main.set_color(color).set_border_color(color);
         self.end_cap_left.for_each_ref(|cap| cap.set_color(color));
         self.end_cap_right.for_each_ref(|cap| cap.set_color(color));
-    }
-}
-
-impl display::Object for ShapeView {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.root
     }
 }
 
