@@ -27,6 +27,7 @@ export const theme = {
             // Should be `#3e515f14`, but `bg-opacity` does not work with RGBA.
             label: '#f0f1f3',
             help: '#3f68ce',
+            cloud: '#0666be',
             'frame-bg': 'rgba(255, 255, 255, 0.40)',
             'frame-selected-bg': 'rgba(255, 255, 255, 0.70)',
             'tag-text': 'rgba(255, 255, 255, 0.90)',
