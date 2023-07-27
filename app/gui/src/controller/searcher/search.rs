@@ -113,7 +113,9 @@ struct ScoreBuilder {
     // === State maintained to determine how further characters affect penalty ===
     word_chars_matched: bool,
     word_chars_skipped: bool,
+    word_chars_skipped_since_last_dot: bool,
     word_chars_matched_since_last_delimiter: bool,
+    word_chars_matched_since_last_dot: bool,
     // === Penalty accrued so far ===
     penalty: u32,
 }
@@ -122,34 +124,41 @@ impl score::ScoreBuilder for ScoreBuilder {
     type SubmatchScore = ScoreInfo;
 
     fn skip_word_chars(&mut self, count: core::num::NonZeroU32) {
-        // Penalty if the first time we skip word chars, we haven't matched word chars first.
-        if !self.word_chars_matched && !self.word_chars_skipped {
-            self.penalty += SUBMATCH_NOT_FROM_START_PENALTY;
-        }
         // Penalty for skipped chars in matched words.
         if self.word_chars_matched_since_last_delimiter {
             self.penalty += count.get() * CHAR_IN_MATCHED_WORD_SKIPPED_PENALTY;
         }
         self.word_chars_skipped = true;
+        self.word_chars_skipped_since_last_dot = true;
     }
 
     fn match_word_char(&mut self) {
+        if !self.word_chars_matched_since_last_dot && self.word_chars_skipped_since_last_dot {
+            self.penalty += SUBMATCH_NOT_FROM_START_PENALTY;
+        }
         self.word_chars_matched = true;
         self.word_chars_matched_since_last_delimiter = true;
+        self.word_chars_matched_since_last_dot = true;
     }
 
     fn match_delimiter(&mut self, _pattern: char, value: char) {
         self.word_chars_matched_since_last_delimiter = false;
-        // Penalty for every matched `.`.
         if value == '.' {
+            // Penalty for every matched `.`.
             self.penalty += SUBMATCH_INCLUDES_NAMESPACE_PENALTY;
+            self.word_chars_skipped_since_last_dot = false;
+            self.word_chars_matched_since_last_dot = false;
         }
     }
 
     fn skip_delimiter(&mut self, _pattern: Option<char>, value: char) {
-        // Penalty for every skipped `.` after the first matched word character.
-        if value == '.' && self.word_chars_matched {
-            self.penalty += SUBMATCH_INCLUDES_NAMESPACE_PENALTY;
+        if value == '.' {
+            // Penalty for every skipped `.` after the first matched word character.
+            if self.word_chars_matched {
+                self.penalty += SUBMATCH_INCLUDES_NAMESPACE_PENALTY;
+            }
+            self.word_chars_skipped_since_last_dot = false;
+            self.word_chars_matched_since_last_dot = false;
         }
         self.word_chars_matched_since_last_delimiter = false;
     }

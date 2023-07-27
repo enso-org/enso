@@ -220,7 +220,7 @@ pub struct Entry {
     /// A module where the suggested object is defined.
     pub defined_in:    QualifiedName,
     /// A name of suggested object.
-    pub name:          String,
+    pub name:          ImString,
     /// Argument lists of suggested object (atom or function). If the object does not take any
     /// arguments, the list is empty.
     pub arguments:     Vec<Argument>,
@@ -253,7 +253,7 @@ impl Entry {
     pub fn new(
         kind: Kind,
         defined_in: impl Into<QualifiedName>,
-        name: impl Into<String>,
+        name: impl Into<ImString>,
         return_type: impl Into<QualifiedName>,
     ) -> Self {
         Self {
@@ -278,7 +278,7 @@ impl Entry {
     /// `on_type`.
     pub fn new_nonextension_method(
         on_type: QualifiedName,
-        name: impl Into<String>,
+        name: impl Into<ImString>,
         return_type: QualifiedName,
         is_static: bool,
     ) -> Self {
@@ -295,7 +295,7 @@ impl Entry {
     /// The module method has self_type equal to module where it's defined, and is always static.
     pub fn new_module_method(
         defined_in: QualifiedName,
-        name: impl Into<String>,
+        name: impl Into<ImString>,
         return_type: QualifiedName,
     ) -> Self {
         Self {
@@ -309,7 +309,7 @@ impl Entry {
     pub fn new_method(
         defined_in: QualifiedName,
         on_type: QualifiedName,
-        name: impl Into<String>,
+        name: impl Into<ImString>,
         return_type: QualifiedName,
         is_static: bool,
     ) -> Self {
@@ -321,14 +321,14 @@ impl Entry {
     }
 
     /// Create new type entry.
-    pub fn new_type(defined_in: QualifiedName, name: impl Into<String>) -> Self {
+    pub fn new_type(defined_in: QualifiedName, name: impl Into<ImString>) -> Self {
         let name = name.into();
         let return_type = defined_in.clone().new_child(&name);
         Self::new(Kind::Type, defined_in, name, return_type)
     }
 
     /// Create new constructor entry.
-    pub fn new_constructor(of_type: QualifiedName, name: impl Into<String>) -> Self {
+    pub fn new_constructor(of_type: QualifiedName, name: impl Into<ImString>) -> Self {
         let defined_in_module = of_type.parent().unwrap_or(of_type.as_ref()).to_owned();
         Self {
             self_type: Some(of_type.clone()),
@@ -340,7 +340,7 @@ impl Entry {
     /// Create new local function entry.
     pub fn new_function(
         defined_in: QualifiedName,
-        name: impl Into<String>,
+        name: impl Into<ImString>,
         return_type: QualifiedName,
         scope_range: RangeInclusive<Location<enso_text::Utf16CodeUnit>>,
     ) -> Self {
@@ -353,7 +353,7 @@ impl Entry {
     /// Create new local variable entry.
     pub fn new_local(
         defined_in: QualifiedName,
-        name: impl Into<String>,
+        name: impl Into<ImString>,
         return_type: QualifiedName,
         scope_range: RangeInclusive<Location<enso_text::Utf16CodeUnit>>,
     ) -> Self {
@@ -365,7 +365,7 @@ impl Entry {
 
     /// Create new module entry.
     pub fn new_module(full_name: QualifiedName) -> Self {
-        let name = full_name.name().to_owned();
+        let name = full_name.name().to_im_string();
         let return_type = full_name.clone();
         Self::new(Kind::Module, full_name, name, return_type)
     }
@@ -426,7 +426,8 @@ impl Entry {
                 format!("_{}{}", opr::predefined::ACCESS, self.name).into(),
             Kind::Constructor => self.code_with_static_this(in_module).into(),
             Kind::Module => self.defined_in.alias_name().as_str().into(),
-            Kind::Method | Kind::Type | Kind::Local | Kind::Function => Cow::from(&self.name),
+            Kind::Method | Kind::Type | Kind::Local | Kind::Function =>
+                Cow::from(self.name.as_str()),
         }
     }
 
@@ -493,10 +494,7 @@ impl Entry {
                 .collect(),
             Kind::Module => {
                 let import = if let Some(reexport) = &self.reexported_in {
-                    Import::Unqualified {
-                        module: reexport.clone(),
-                        name:   self.name.as_str().into(),
-                    }
+                    Import::Unqualified { module: reexport.clone(), name: self.name.clone() }
                 } else {
                     Import::Qualified { module: self.defined_in.clone() }
                 };
@@ -507,7 +505,7 @@ impl Entry {
                 let imported_from = self.reexported_in.as_ref().unwrap_or(&self.defined_in);
                 iter::once(Import::Unqualified {
                     module: imported_from.clone(),
-                    name:   self.name.as_str().into(),
+                    name:   self.name.clone(),
                 })
                 .collect()
             }
@@ -541,7 +539,7 @@ impl Entry {
             self.self_type.as_ref().map(|self_type| MethodId {
                 module:          self.defined_in.clone(),
                 defined_on_type: self_type.clone(),
-                name:            self.name.clone(),
+                name:            self.name.to_string(),
             })
         }
     }
@@ -557,7 +555,7 @@ impl Entry {
 
     /// Checks if entry name matches the given name. The matching is case-insensitive.
     pub fn matches_name(&self, name: impl Str) -> bool {
-        self.name.to_lowercase() == name.as_ref().to_lowercase()
+        self.name.eq_ignore_ascii_case(name.as_ref())
     }
 
     /// Generate information about invoking this entity for span tree context.
@@ -610,6 +608,18 @@ impl Entry {
             Kind::Module => self.defined_in.is_main_module(),
             _ => false,
         }
+    }
+
+    /// Return an iterator over the aliases from the "ALIAS" tags in the documentation.
+    pub fn aliases(&self) -> impl Iterator<Item = &str> {
+        self.documentation
+            .iter()
+            .filter_map(|doc| match doc {
+                DocSection::Tag { tag: Tag::Alias, body } =>
+                    Some(body.as_str().split(',').map(|s| s.trim())),
+                _ => None,
+            })
+            .flatten()
     }
 }
 
@@ -722,7 +732,7 @@ impl Entry {
     ) -> Vec<failure::Error> {
         use language_server::types::SuggestionArgumentUpdate as Update;
         let error = |index| {
-            let name = self.name.clone();
+            let name = self.name.to_string();
             vec![failure::Error::from(InvalidArgumentIndex { name, index })]
         };
         match update {
@@ -833,13 +843,13 @@ impl TryFrom<&Entry> for language_server::MethodPointer {
     type Error = failure::Error;
     fn try_from(entry: &Entry) -> FallibleResult<Self> {
         let is_method_or_constructor = matches!(entry.kind, Kind::Method | Kind::Constructor);
-        is_method_or_constructor.ok_or_else(|| NotAMethod(entry.name.clone()))?;
-        let missing_this_err = || MissingSelfOnMethod(entry.name.clone());
+        is_method_or_constructor.ok_or_else(|| NotAMethod(entry.name.to_string()))?;
+        let missing_this_err = || MissingSelfOnMethod(entry.name.to_string());
         let defined_on_type = entry.self_type.clone().ok_or_else(missing_this_err)?;
         Ok(language_server::MethodPointer {
             defined_on_type: defined_on_type.into(),
             module:          entry.defined_in.to_string(),
-            name:            entry.name.clone(),
+            name:            entry.name.to_string(),
         })
     }
 }

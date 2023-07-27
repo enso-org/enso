@@ -51,23 +51,12 @@ pub struct Group {
 
 // === MatchInfo ===
 
-/// Which part of the component browser entry was best matched to the searcher input.
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub enum MatchKind {
-    /// The entry's label to be displayed in the component browser was matched.
-    Label,
-    /// The entry's name from the code was matched.
-    Name,
-    /// An alias of the entry was matched, contains the specific alias that was matched.
-    Alias(ImString),
-}
-
 /// Information how the list entry matches the filtering pattern.
 #[allow(missing_docs)]
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum MatchInfo {
     DoesNotMatch,
-    Matches { subsequence: search::Subsequence, kind: MatchKind },
+    Matches { subsequence: search::Subsequence, alias: Option<usize> },
 }
 
 
@@ -108,7 +97,7 @@ impl Suggestion {
         }
     }
 
-    /// The import requiored by this suggestion.
+    /// The import required by this suggestion.
     pub fn required_import(&self) -> Option<RequiredImport> {
         match self {
             Self::FromDatabase { entry, .. } => Some(RequiredImport::Entry(entry.clone_ref())),
@@ -127,16 +116,17 @@ pub struct Component {
     pub suggestion: Suggestion,
     /// A group id, being an index of `group` field of [`List`] structure.
     pub group_id:   Option<usize>,
-    /// The component string representation that will be used during matching.
-    pub label:      ImString,
+    /// The string representation that will be used during matching. This is the name, prefixed
+    /// with a module and type if needed.
+    label:          ImString,
+    /// Aliases for the component; used during matching.
+    aliases:        Rc<[ImString]>,
     /// Results of matching this component against the current filter, if any.
-    pub match_info: Option<MatchInfo>,
+    match_info:     Option<MatchInfo>,
 }
 
 impl Component {
     /// Construct a new component from a [`suggestion_database`] entry.
-    ///
-    /// The matching info will be filled for an empty pattern.
     pub fn new_from_database_entry(
         id: entry::Id,
         entry: Rc<Entry>,
@@ -151,22 +141,37 @@ impl Component {
                 None => entry.name.to_im_string(),
             },
         };
+        let aliases =
+            entry.aliases().map(|alias| format!("{alias} ({label})").into()).collect_vec().into();
         let data = Suggestion::FromDatabase { id, entry };
-        Self { suggestion: data, label, group_id, match_info: default() }
+        Self { suggestion: data, label, aliases, group_id, match_info: default() }
     }
 
-    /// The formatted label and alias which should be displayed in the Component Browser.
-    pub fn label_with_matched_alias(&self) -> ImString {
-        match &self.match_info {
-            Some(MatchInfo::Matches { kind: MatchKind::Alias(alias), .. }) =>
-                format!("{alias} ({label})", label = self.label).into(),
-            _ => self.label.clone(),
+    /// Construct a new component without any associated [`suggestion_database`] entry.
+    pub fn new_virtual(snippet: Rc<hardcoded::Snippet>, group_index: usize) -> Self {
+        Self {
+            label:      snippet.name.clone(),
+            aliases:    Rc::new([]),
+            suggestion: Suggestion::Virtual { snippet },
+            group_id:   Some(group_index),
+            match_info: Default::default(),
         }
     }
 
-    /// The name of the component.
-    pub fn name(&self) -> &str {
-        self.suggestion.name()
+    /// The label as should be displayed in the Component Browser. Formatting and highlighting is
+    /// determined by the current filter pattern.
+    pub fn matched_label(&self) -> HighlightedString {
+        let text = match &self.match_info {
+            Some(MatchInfo::Matches { alias: Some(i), .. }) =>
+                self.aliases.get(*i).cloned().unwrap_or_default(),
+            _ => self.label.clone(),
+        };
+        let highlights = match &self.match_info {
+            Some(MatchInfo::Matches { subsequence, .. }) =>
+                subsequence.match_indexes.byte_ranges(&text).collect(),
+            _ => default(),
+        };
+        HighlightedString { text, highlights }
     }
 
     /// The [ID](entry::Id) of the component in the [`suggestion_database`], or
@@ -217,33 +222,18 @@ impl Component {
 
     fn match_info_for_pattern(&self, pattern: &str) -> MatchInfo {
         // Match the input pattern to the component label.
-        let target_info = search::TargetInfo { is_alias: false };
-        let label = &self.label;
-        let label_subsequence = search(label, pattern, target_info);
-        let label_match_info = label_subsequence
-            .map(|subsequence| MatchInfo::Matches { subsequence, kind: MatchKind::Label });
-
-        // Match the input pattern to the component name.
-        let target_info = search::TargetInfo { is_alias: false };
-        let name = self.name();
-        let name_subsequence = search(name, pattern, target_info);
-        let name_match_info = name_subsequence
-            .map(|subsequence| MatchInfo::Matches { subsequence, kind: MatchKind::Name });
+        let label_match = search(&self.label, pattern, search::TargetInfo { is_alias: false })
+            .map(|subsequence| MatchInfo::Matches { subsequence, alias: None });
 
         // Match the input pattern to an entry's aliases and select the best alias match.
-        let target_info = search::TargetInfo { is_alias: true };
-        let alias_matches = self.aliases().filter_map(|alias| {
-            search(alias, pattern, target_info).map(|subsequence| (subsequence, alias))
-        });
-        let alias_match = alias_matches.max_by_key(|(m, _)| m.score);
-        let alias_match_info = alias_match.map(|(subsequence, alias)| MatchInfo::Matches {
-            subsequence,
-            kind: MatchKind::Alias(alias.to_im_string()),
+        let alias_matches = self.aliases.iter().enumerate().filter_map(|(i, label_with_alias)| {
+            let (alias, _) = label_with_alias.split_once(' ').unwrap_or_default();
+            search(alias, pattern, search::TargetInfo { is_alias: true })
+                .map(|subsequence| MatchInfo::Matches { subsequence, alias: Some(i) })
         });
 
-        // Select the best match of the available label-, code- and alias matches.
-        let match_info_iter = [alias_match_info, name_match_info, label_match_info].into_iter();
-        let best_match_info = match_info_iter.flatten().max();
+        // Select the best match of the available matches.
+        let best_match_info = label_match.into_iter().chain(alias_matches).max();
         best_match_info.unwrap_or(MatchInfo::DoesNotMatch)
     }
 
@@ -257,23 +247,18 @@ impl Component {
             _ => false,
         }
     }
+}
 
-    /// Return an iterator over the component's aliases from the "ALIAS" tags in the entry's
-    /// documentation.
-    pub fn aliases(&self) -> impl Iterator<Item = &str> {
-        let aliases = match &self.suggestion {
-            Suggestion::FromDatabase { entry, .. } => {
-                let aliases = entry.documentation.iter().filter_map(|doc| match doc {
-                    DocSection::Tag { tag: Tag::Alias, body } =>
-                        Some(body.as_str().split(',').map(|s| s.trim())),
-                    _ => None,
-                });
-                Some(aliases.flatten())
-            }
-            _ => None,
-        };
-        aliases.into_iter().flatten()
-    }
+
+// === Highlighted strings ===
+
+/// A string with some ranges identified for highlighting.
+#[derive(Debug)]
+pub struct HighlightedString {
+    /// The string.
+    pub text:       ImString,
+    /// The ranges of characters in the string that should be highlighted.
+    pub highlights: Vec<enso_text::Range<enso_text::Byte>>,
 }
 
 
@@ -360,11 +345,8 @@ pub(crate) mod tests {
     use enso_suggestion_database::mock_suggestion_database;
 
     pub fn check_displayed_components(list: &List, expected: Vec<&str>) {
-        let components = list
-            .displayed()
-            .iter()
-            .map(|component| component.label_with_matched_alias())
-            .collect_vec();
+        let components =
+            list.displayed().iter().map(|component| component.matched_label().text).collect_vec();
         assert_eq!(components, expected);
     }
 
