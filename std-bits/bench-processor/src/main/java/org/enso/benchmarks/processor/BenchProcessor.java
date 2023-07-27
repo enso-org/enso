@@ -109,8 +109,8 @@ public class BenchProcessor extends AbstractProcessor {
         }
       }
       return true;
-    } catch (Throwable throwable) {
-      failWithMessage("Uncaught exception in " + getClass().getName() + ": " + throwable.getMessage());
+    } catch (Exception e) {
+      failWithMessage("Uncaught exception in " + getClass().getName() + ": " + e.getMessage());
       return false;
     }
   }
