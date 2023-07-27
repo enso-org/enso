@@ -25,9 +25,10 @@ import project.Internal.Hidden_Table_Registry
 import project.Internal.IR.Context.Context
 import project.Internal.IR.Query.Query
 import project.Internal.IR.SQL_Expression.SQL_Expression
-import project.Internal.Table_Naming_Helper.Table_Naming_Helper
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
+import project.Internal.SQL_Warning_Helper
 import project.Internal.Statement_Setter.Statement_Setter
+import project.Internal.Table_Naming_Helper.Table_Naming_Helper
 from project.Errors import SQL_Error, Table_Already_Exists, Table_Not_Found
 from project.Internal.JDBC_Connection import handle_sql_errors, JDBC_Connection
 from project.Internal.Result_Set import read_column, result_set_to_table
@@ -312,7 +313,9 @@ type Connection
         type_overrides = self.dialect.get_type_mapping.prepare_type_overrides column_type_suggestions
         statement_setter = self.dialect.get_statement_setter
         self.jdbc_connection.with_prepared_statement statement statement_setter stmt->
-            result_set_to_table stmt.executeQuery self.dialect.make_column_fetcher_for_type type_overrides last_row_only
+            rs = stmt.executeQuery
+            SQL_Warning_Helper.process_warnings stmt <|
+                result_set_to_table rs self.dialect.make_column_fetcher_for_type type_overrides last_row_only
 
     ## PRIVATE
        Given a prepared statement, gets the column names and types for the
@@ -337,11 +340,13 @@ type Connection
         if Execution_Context.Output.is_enabled.not then Error.throw (Forbidden_Operation.Error "Executing update queries is forbidden as the Output context is disabled.") else
             statement_setter = self.dialect.get_statement_setter
             self.jdbc_connection.with_prepared_statement query statement_setter stmt->
-                case self.supports_large_update.get of
+                result = case self.supports_large_update.get of
                     True -> Panic.catch UnsupportedOperationException stmt.executeLargeUpdate _->
                         self.supports_large_update.put False
                         stmt.executeUpdate
                     False -> stmt.executeUpdate
+                SQL_Warning_Helper.process_warnings stmt <|
+                    result
 
     ## PRIVATE
        Drops a table.

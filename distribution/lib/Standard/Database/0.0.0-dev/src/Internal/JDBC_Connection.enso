@@ -12,6 +12,7 @@ import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
 import project.Data.Table.Table as Database_Table
 import project.Internal.In_Transaction.In_Transaction
+import project.Internal.SQL_Warning_Helper
 import project.Internal.Statement_Setter.Statement_Setter
 from project.Errors import SQL_Error, SQL_Timeout
 
@@ -120,15 +121,22 @@ type JDBC_Connection
     raw_fetch_columns : Text | SQL_Statement -> Boolean -> Statement_Setter -> Any
     raw_fetch_columns self statement execute_query statement_setter =
         self.with_prepared_statement statement statement_setter stmt->
-            metadata = if execute_query then stmt.executeQuery.getMetaData else
-                stmt.getMetaData
+            metadata = case execute_query of
+                True ->
+                    rs = stmt.executeQuery
+                    SQL_Warning_Helper.process_warnings rs <|
+                        rs.getMetaData
+                False ->
+                    stmt.getMetaData
 
             resolve_column ix =
                 name = metadata.getColumnLabel ix+1
                 sql_type = SQL_Type.from_metadata metadata ix+1
                 [name, sql_type]
 
-            Vector.new metadata.getColumnCount resolve_column
+            columns = Vector.new metadata.getColumnCount resolve_column
+            SQL_Warning_Helper.process_warnings stmt <|
+                columns
 
     ## PRIVATE
        Checks that the query has no holes, and if it does, throws an error.

@@ -320,13 +320,13 @@ append_to_existing_table source_table target_table update_action key_columns dry
                     helper.update_common_rows
         Update_Action.Update_Or_Insert ->
             helper.check_multiple_target_rows_match <|
-                helper.update_common_rows
-                helper.insert_rows helper.new_source_rows
+                helper.update_common_rows . if_not_error <|
+                    helper.insert_rows helper.new_source_rows
         Update_Action.Align_Records ->
             helper.check_multiple_target_rows_match <|
-                helper.update_common_rows
-                helper.insert_rows helper.new_source_rows
-                helper.delete_unmatched_target_rows
+                helper.update_common_rows . if_not_error <|
+                    helper.insert_rows helper.new_source_rows . if_not_error <|
+                        helper.delete_unmatched_target_rows
     upload_status.if_not_error target_table
 
 ## PRIVATE

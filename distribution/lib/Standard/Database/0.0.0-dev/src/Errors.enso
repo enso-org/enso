@@ -36,7 +36,7 @@ type SQL_Error
     to_text : Text
     to_text self =
         query = if self.related_query.is_nothing.not then " [Query was: " + self.related_query + "]" else ""
-        "There was an SQL error: " + self.java_exception.getMessage.to_text + "." + query
+        "There was an SQL error: " + self.java_exception.getMessage.to_display_text + "." + query
 
     ## PRIVATE
        Pretty print the SQL error.
@@ -71,6 +71,17 @@ type SQL_Timeout
        Pretty print the timeout error.
     to_display_text : Text
     to_display_text self = self.to_text
+
+type SQL_Warning
+    ## PRIVATE
+       Indicates that a database backend has reported a non-fatal warning when
+       executing an operation.
+    Warning java_exception
+
+    ## PRIVATE
+    to_display_text : Text
+    to_display_text self =
+        "SQL Warning: " + self.java_exception.getMessage.to_display_text
 
 type Integrity_Error
     ## PRIVATE
