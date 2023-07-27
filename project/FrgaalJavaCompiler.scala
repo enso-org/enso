@@ -29,6 +29,7 @@ object FrgaalJavaCompiler {
 
   val frgaal      = "org.frgaal" % "compiler" % "19.0.1" % "provided"
   val sourceLevel = "19"
+  val debugArg = "-J-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=localhost:8000"
 
   def compilers(
     classpath: sbt.Keys.Classpath,
@@ -87,6 +88,7 @@ object FrgaalJavaCompiler {
   ): Boolean = {
     val (jArgs, nonJArgs) = options.partition(_.startsWith("-J"))
     var noLimitModules = false
+    val debugAnotProcessorOpt = jArgs.contains(debugArg)
     val strippedJArgs: ArrayBuffer[String] = ArrayBuffer()
     for (strippedJArg <- jArgs.map(_.stripPrefix("-J"))) {
       if (strippedJArg == "--no-limit-modules") {
@@ -247,6 +249,12 @@ object FrgaalJavaCompiler {
       val cwd         = new File(new File(".").getAbsolutePath).getCanonicalFile
       val javacLogger = new JavacLogger(log, reporter, cwd)
       var exitCode    = -1
+      if (debugAnotProcessorOpt) {
+        log.info(s"Frgaal compiler is about to be launched with $debugArg, which means that" +
+          " it will wait for a debugger to attach. The output from the compiler is by default" +
+          " redirected, therefore \"Listening to the debugger\" message will not be displayed." +
+          " You should attach the debugger now.")
+      }
       try {
         exitCode = Process(exe +: forkArgs, cwd) ! javacLogger
       } finally {
