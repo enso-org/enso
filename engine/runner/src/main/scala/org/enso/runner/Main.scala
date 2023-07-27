@@ -5,13 +5,10 @@ import buildinfo.Info
 import cats.implicits._
 import com.typesafe.scalalogging.Logger
 import org.apache.commons.cli.{Option => CliOption, _}
+import org.enso.distribution.{DistributionManager, Environment}
 import org.enso.editions.DefaultEdition
 import org.enso.languageserver.boot
-import org.enso.languageserver.boot.{
-  LanguageServerConfig,
-  ProfilingConfig,
-  StartupConfig
-}
+import org.enso.languageserver.boot.{LanguageServerConfig, ProfilingConfig, StartupConfig}
 import org.enso.libraryupload.LibraryUploader.UploadFailedError
 import org.enso.loggingservice.LogLevel
 import org.enso.pkg.{Contact, PackageManager, Template}
@@ -536,7 +533,7 @@ object Main {
       packagePath,
       System.in,
       System.out,
-      Repl(TerminalIO()),
+      Repl(makeTerminalForRepl()),
       logLevel,
       logMasking,
       enableIrCaches           = true,
@@ -615,7 +612,7 @@ object Main {
       projectRoot,
       System.in,
       System.out,
-      Repl(TerminalIO()),
+      Repl(makeTerminalForRepl()),
       logLevel,
       logMasking,
       enableIrCaches,
@@ -689,7 +686,7 @@ object Main {
       path,
       System.in,
       System.out,
-      Repl(TerminalIO()),
+      Repl(makeTerminalForRepl()),
       logLevel,
       logMasking,
       enableIrCaches
@@ -892,7 +889,7 @@ object Main {
         projectRoot,
         System.in,
         System.out,
-        Repl(TerminalIO()),
+        Repl(makeTerminalForRepl()),
         logLevel,
         logMasking,
         enableIrCaches
@@ -1194,5 +1191,16 @@ object Main {
     } else {
       !isDevBuild
     }
+  }
+
+  /** Construscts a terminal interface for the REPL, initializing its properties. */
+  private def makeTerminalForRepl() : ReplIO = {
+    val env = new Environment {}
+    val distributionManager = new DistributionManager(env)
+    val historyFileName = "repl-history.txt"
+    val historyFilePath: Path =
+      distributionManager.LocallyInstalledDirectories.cacheDirectory
+        .resolve(historyFileName)
+    TerminalIO(historyFilePath)
   }
 }
