@@ -464,6 +464,7 @@ impl ContainerModel {
 
     #[profile(Debug)]
     fn set_visualization_data(&self, data: &visualization::Data) {
+        console_log!("set_visualization_data: {data:?} in {:?}", self.visualization);
         self.visualization.borrow().for_each_ref(|vis| vis.send_data.emit(data))
     }
 
@@ -581,9 +582,11 @@ impl Container {
             visualization_not_selected <- input.set_visualization.map(|t| t.is_none());
             input_type_not_set <- input.set_vis_input_type.is_some().not();
             uninitialised <- visualization_not_selected && input_type_not_set;
-            set_default_visualization <- uninitialised.on_change().on_true().map(|_| {
+            uninitialised <- uninitialised.on_change().on_true();
+            set_default_visualization <- all_with(&uninitialised, &init, |_, _| {
                 Some(visualization::Registry::default_visualization())
             });
+            trace set_default_visualization;
             vis_input_type_changed <- input.set_vis_input_type.on_change();
             vis_input_type_changed_without_selection <-
                 vis_input_type_changed.gate(&visualization_not_selected).unwrap();

@@ -644,6 +644,8 @@ ensogl::define_endpoints_2! {
         enable_quick_visualization_preview(),
         /// Show visualization previews on nodes with delay.
         disable_quick_visualization_preview(),
+        /// Enable editing preview on given node.
+        show_node_editing_preview(NodeId),
 
         /// Drop an edge that is being dragged.
         drop_dragged_edge            (),
@@ -1936,6 +1938,13 @@ impl GraphEditorModel {
         }
     }
 
+    fn show_node_editing_preview(&self, node_id: impl Into<NodeId>) {
+        let node_id = node_id.into();
+        if let Some(node) = self.nodes.get_cloned_ref(&node_id) {
+            node.show_preview();
+        }
+    }
+
     /// Get the visualization on the node, if it is enabled.
     pub fn enabled_visualization(
         &self,
@@ -2031,6 +2040,7 @@ impl GraphEditorModel {
         self.with_node(node_id, |node| {
             let node_model = node.view.model();
             if node_model.output.whole_expr_id().contains(&ast_id) {
+                console_log!("Set new type no node {node_id}: {maybe_type:?}");
                 let enso_type = maybe_type.as_ref().map(|tp| enso::Type::new(&tp.0));
                 node_model.visualization.frp.set_vis_input_type(enso_type);
             }
@@ -3145,6 +3155,7 @@ fn init_remaining_graph_editor_frp(
     // === Vis Update Data ===
 
     frp::extend! { network
+    trace inputs.set_visualization_data;
     eval inputs.set_visualization_data (((node_id,data))
         model.with_node(*node_id, |node|  node.model().visualization.frp.set_data.emit(data));
     );
@@ -3236,6 +3247,8 @@ fn init_remaining_graph_editor_frp(
     out.is_fs_visualization_displayed <+ out.visualization_fullscreen.map(Option::is_some);
 
     out.visualization_update_error <+ inputs.visualization_update_failed;
+
+    eval inputs.show_node_editing_preview ((id) model.show_node_editing_preview(id));
 
 
     // === Register Visualization ===
