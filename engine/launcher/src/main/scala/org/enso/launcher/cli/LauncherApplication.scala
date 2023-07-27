@@ -15,9 +15,11 @@ import org.enso.launcher.installation.DistributionInstaller
 import org.enso.launcher.installation.DistributionInstaller.BundleAction
 import org.enso.launcher.upgrade.LauncherUpgrader
 import org.enso.launcher.{cli, Launcher}
-import org.enso.loggingservice.{ColorMode, LogLevel}
+import org.enso.logger.ColorMode
+//import org.enso.loggingservice.{ColorMode, LogLevel}
 import org.enso.runtimeversionmanager.cli.Arguments._
 import org.enso.runtimeversionmanager.runner.LanguageServerOptions
+import org.slf4j.event.Level
 
 import java.nio.file.Path
 import java.util.UUID
@@ -127,12 +129,12 @@ object LauncherApplication {
   }
   private def engineLogLevel = {
     Opts
-      .optionalParameter[LogLevel](
+      .optionalParameter[Level](
         "log-level",
         "(error | warning | info | debug | trace)",
         "Sets logging verbosity for the engine. Defaults to info."
       )
-      .withDefault(LogLevel.Info)
+      .withDefault(Level.INFO)
   }
 
   private def runCommand: Command[Config => Int] =
@@ -606,7 +608,7 @@ object LauncherApplication {
       "running actions. May be needed if program output is piped.",
       showInUsage = false
     )
-    val logLevel = Opts.optionalParameter[LogLevel](
+    val logLevel = Opts.optionalParameter[Level](
       GlobalCLIOptions.LOG_LEVEL,
       "(error | warning | info | debug | trace)",
       "Sets logging verbosity for the launcher. If not provided, defaults to" +
@@ -638,7 +640,6 @@ object LauncherApplication {
           "Specifies if colors should be used in the output, defaults to auto."
         )
         .withDefault(ColorMode.Auto)
-
     val internalOpts = InternalOpts.topLevelOptions
 
     (
@@ -683,13 +684,13 @@ object LauncherApplication {
 
         internalOptsCallback(globalCLIOptions)
         LauncherUpgrader.setCLIOptions(globalCLIOptions)
-        LauncherLogging.setup(
+        /*LauncherLogging.setup(
           logLevel,
           connectLogger,
           globalCLIOptions.colorMode,
           !disableLogMasking,
           None
-        )
+        )*/
         initializeApp()
 
         if (version) {

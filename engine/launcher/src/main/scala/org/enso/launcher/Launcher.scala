@@ -24,7 +24,8 @@ import org.enso.launcher.installation.{
 }
 import org.enso.launcher.project.ProjectManager
 import org.enso.launcher.upgrade.LauncherUpgrader
-import org.enso.loggingservice.LogLevel
+import org.slf4j.event.Level
+//import org.enso.loggingservice.LogLevel
 import org.enso.version.{VersionDescription, VersionDescriptionParameter}
 
 /** Implements launcher commands that are run from CLI and can be affected by
@@ -207,7 +208,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
   def runRepl(
     projectPath: Option[Path],
     versionOverride: Option[SemVer],
-    logLevel: LogLevel,
+    logLevel: Level,
     useSystemJVM: Boolean,
     jvmOpts: Seq[(String, String)],
     additionalArguments: Seq[String]
@@ -251,7 +252,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
   def runRun(
     path: Option[Path],
     versionOverride: Option[SemVer],
-    logLevel: LogLevel,
+    logLevel: Level,
     useSystemJVM: Boolean,
     jvmOpts: Seq[(String, String)],
     additionalArguments: Seq[String]
@@ -293,7 +294,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     options: LanguageServerOptions,
     contentRoot: Path,
     versionOverride: Option[SemVer],
-    logLevel: LogLevel,
+    logLevel: Level,
     useSystemJVM: Boolean,
     jvmOpts: Seq[(String, String)],
     additionalArguments: Seq[String]
@@ -331,7 +332,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     */
   def runInstallDependencies(
     versionOverride: Option[SemVer],
-    logLevel: LogLevel,
+    logLevel: Level,
     useSystemJVM: Boolean,
     jvmOpts: Seq[(String, String)],
     additionalArguments: Seq[String]
@@ -396,7 +397,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     path: Option[Path],
     uploadUrl: Option[String],
     authToken: Option[String],
-    logLevel: LogLevel,
+    logLevel: Level,
     useSystemJVM: Boolean,
     jvmOpts: Seq[(String, String)],
     additionalArguments: Seq[String]

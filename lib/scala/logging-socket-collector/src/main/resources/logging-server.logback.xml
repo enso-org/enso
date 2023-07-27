@@ -1,0 +1,27 @@
+<configuration>
+
+    <appender name="rolling-file" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <activeFileName>${logging-server.logRoot}/${logging-server.logPrefix}-%d{yyyy-MM-dd}.log</activeFileName>
+            <fileNamePattern>${logging-server.logRoot}/${logging-server.logPrefix}-%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+            <maxFileSize>50MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>2GB</totalSizeCap>
+        </rollingPolicy>
+        <append>false</append>
+        <immediateFlush>true</immediateFlush>
+        <encoder>
+            <pattern>[%level] [%d{yyyy-MM-ddTHH:mm:ssXXX}] [%logger] %msg%n</pattern>
+        </encoder>
+    </appender>
+    <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>[%level] [%d{yyyy-MM-ddTHH:mm:ssXXX}] [%logger] %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <root level="${logging-server.logLevel}">
+        <appender-ref ref="${logging-server.appender:-console}"/>
+    </root>
+
+</configuration>

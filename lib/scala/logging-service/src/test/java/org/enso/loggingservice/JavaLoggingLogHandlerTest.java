@@ -41,7 +41,7 @@ public class JavaLoggingLogHandlerTest {
         };
     var h = new JavaLoggingLogHandler((v1) -> LogLevel.Debug$.MODULE$, c);
 
-    LogRecord r = new LogRecord(Level.SEVERE, "Init {0} done");
+    LogRecord r = new LogRecord(Level.SEVERE, "Init {} done");
     r.setParameters(new Object[] {"js"});
 
     h.publish(r);

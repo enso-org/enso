@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE configuration>
+
+<configuration>
+
+    <!--<appender name="file-fallback" class="ch.qos.logback.core.FileAppender">
+        <file>${language-server.logRoot}/${language-server.logPrefix}-%d{yyyy-MM-dd}.log</file>
+        <append>false</append>
+        <immediateFlush>true</immediateFlush>
+        <encoder>
+            <pattern>[%level] [%d{yyyy-MM-ddTHH:mm:ssXXX}] [%logger] %msg%n</pattern>
+        </encoder>
+    </appender>-->
+
+    <appender name="forward-via-socket" class="ch.qos.logback.classic.net.SocketAppender">
+        <remoteHost>${logging-server.host}</remoteHost>
+        <port>${logging-server.port}</port>
+        <reconnectionDelay>10000</reconnectionDelay>
+        <includeCallerData>true</includeCallerData>
+    </appender>
+
+    <!--<logger name="akka.actor" level="info"/>
+    <logger name="akka.event" level="error"/>
+    <logger name="akka.io" level="error"/>
+    <logger name="akka.stream" level="error"/>
+    <logger name="slick.jdbc.JdbcBackend.statement" level="info"/>
+    <logger name="slick" level="error"/>
+    <logger name="org.eclipse.jgit" level="error"/>
+    <logger name="io.methvin.watcher" level="error"/>-->
+
+    <root level="${language-server.logLevel:-info}">
+        <!--<appender-ref ref="${language-server.appender:-file-fallback}"/>-->
+        <appender-ref ref="${language-server.appender:-file-fallback}"/>
+    </root>
+</configuration>

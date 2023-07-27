@@ -3,8 +3,11 @@ package org.enso.runner
 import akka.http.scaladsl.model.Uri
 import com.typesafe.scalalogging.Logger
 import org.enso.logger.masking.Masking
-import org.enso.loggingservice.printers.StderrPrinter
-import org.enso.loggingservice.{LogLevel, LoggerMode, LoggingServiceManager}
+
+import scala.annotation.unused
+//import org.enso.loggingservice.printers.StderrPrinter
+import org.slf4j.event.Level
+//import org.enso.loggingservice.{LogLevel, LoggerMode, LoggingServiceManager}
 
 import scala.concurrent.Future
 import scala.util.{Failure, Success}
@@ -25,18 +28,21 @@ object RunnerLogging {
     */
   def setup(
     connectionUri: Option[Uri],
-    logLevel: LogLevel,
+    logLevel: Level,
     logMasking: Boolean
   ): Unit = {
     import scala.concurrent.ExecutionContext.Implicits.global
     Masking.setup(logMasking)
     val loggerSetup = connectionUri match {
       case Some(uri) =>
-        LoggingServiceManager
+        // TODO
+        /*LoggingServiceManager
           .setup(
             LoggerMode.Client(uri),
             logLevel
-          )
+          )*/
+        Future
+          .successful(())
           .map { _ =>
             logger.trace("Connected to logging service at [{}].", uri)
           }
@@ -58,19 +64,34 @@ object RunnerLogging {
     }
   }
 
-  private def setupLocalLogger(logLevel: LogLevel): Future[Unit] =
+  private def setupLocalLogger(@unused logLevel: Level): Future[Unit] = {
+    // TODO
+    Future.successful(())
+  }
+
+  /*LoggingServiceManager
+      .setup(
+        LoggerMode.Local(
+          Seq(StderrPrinter.create(printExceptions = true))
+        ),
+        logLevel
+      )*/
+
+  /*private def setupLocalLogger(logLevel: LogLevel): Future[Unit] =
     LoggingServiceManager
       .setup(
         LoggerMode.Local(
           Seq(StderrPrinter.create(printExceptions = true))
         ),
         logLevel
-      )
+      )*/
 
   private val logger = Logger[RunnerLogging.type]
 
   /** Shuts down the logging service gracefully.
     */
   def tearDown(): Unit =
-    LoggingServiceManager.tearDown()
+    // TODO
+    ()
+  //LoggingServiceManager.tearDown()
 }

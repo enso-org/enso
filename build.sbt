@@ -266,6 +266,10 @@ lazy val enso = (project in file("."))
     `task-progress-notifications`,
     `profiling-utils`,
     `logging-utils`,
+    `logging-jutil`,
+    `logging-logback`,
+    `logging-socket-collector`,
+    `logging-utils-akka`,
     filewatcher,
     `logging-service`,
     `logging-truffle-connector`,
@@ -679,6 +683,70 @@ lazy val `logging-utils` = project
     frgaalJavaCompilerSetting,
     version := "0.1",
     libraryDependencies ++= Seq(
+      "org.slf4j"                   % "slf4j-api"     % slf4jVersion,
+      "org.scalatest" %% "scalatest" % scalatestVersion % Test,
+      "ch.qos.logback" % "logback-classic" % logbackClassicVersion % Test
+    )
+  )
+
+lazy val `logging-socket-collector` = project
+  .in(file("lib/scala/logging-socket-collector"))
+  .configs(Test)
+  .settings(
+    frgaalJavaCompilerSetting,
+    version := "0.1",
+    libraryDependencies ++= Seq(
+      "org.slf4j"      % "slf4j-api"       % slf4jVersion,
+      "ch.qos.logback" % "logback-classic" % logbackClassicVersion,
+      "ch.qos.logback" % "logback-core" % logbackClassicVersion,
+      "com.typesafe"   % "config"       % typesafeConfigVersion,
+      "org.scalatest" %% "scalatest" % scalatestVersion % Test,
+      akkaHttp
+    )
+  )
+  .dependsOn(`logging-logback`)
+
+lazy val `logging-jutil` = project
+  .in(file("lib/scala/logging-jutil"))
+  .configs(Test)
+  .settings(
+    frgaalJavaCompilerSetting,
+    version := "0.1",
+    libraryDependencies ++= Seq(
+      "org.slf4j"                   % "slf4j-api"     % slf4jVersion,
+      "ch.qos.logback" % "logback-classic" % logbackClassicVersion,
+      "ch.qos.logback" % "logback-core" % logbackClassicVersion,
+      "com.typesafe"   % "config"       % typesafeConfigVersion,
+      "org.scalatest" %% "scalatest" % scalatestVersion % Test,
+      akkaHttp
+    )
+  ).dependsOn(`logging-logback`)
+
+lazy val `logging-logback` = project
+  .in(file("lib/scala/logging-logback"))
+  .configs(Test)
+  .settings(
+    frgaalJavaCompilerSetting,
+    version := "0.1",
+    libraryDependencies ++= Seq(
+      "org.slf4j"                   % "slf4j-api"     % slf4jVersion,
+      "ch.qos.logback" % "logback-classic" % logbackClassicVersion,
+      "ch.qos.logback" % "logback-core" % logbackClassicVersion,
+      "com.typesafe"   % "config"       % typesafeConfigVersion,
+      akkaHttp
+    )
+  )
+
+
+lazy val `logging-utils-akka` = project
+  .in(file("lib/scala/logging-utils-akka"))
+  .configs(Test)
+  .settings(
+    frgaalJavaCompilerSetting,
+    version := "0.1",
+    libraryDependencies ++= Seq(
+      "org.slf4j"                   % "slf4j-api"     % slf4jVersion,
+      "com.typesafe.akka" %% "akka-actor" % akkaVersion,
       "org.scalatest" %% "scalatest" % scalatestVersion % Test
     )
   )
@@ -880,6 +948,8 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
   .dependsOn(`polyglot-api`)
   .dependsOn(`runtime-version-manager`)
   .dependsOn(`library-manager`)
+  .dependsOn(`logging-utils-akka`)
+  .dependsOn(`logging-socket-collector`)
   .dependsOn(pkg)
   .dependsOn(`json-rpc-server`)
   .dependsOn(`json-rpc-server-test` % Test)
@@ -1081,6 +1151,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
     commands += WithDebugCommand.withDebug,
     frgaalJavaCompilerSetting,
     libraryDependencies ++= akka ++ circe ++ Seq(
+      "org.slf4j"                   % "slf4j-api"            % slf4jVersion,
       "com.typesafe.scala-logging" %% "scala-logging"        % scalaLoggingVersion,
       "io.circe"                   %% "circe-generic-extras" % circeGenericExtrasVersion,
       "io.circe"                   %% "circe-literal"        % circeVersion,
@@ -1093,7 +1164,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
       "org.scalatest"              %% "scalatest"            % scalatestVersion          % Test,
       "org.scalacheck"             %% "scalacheck"           % scalacheckVersion         % Test,
       "org.graalvm.sdk"             % "polyglot-tck"         % graalMavenPackagesVersion % "provided",
-      "org.eclipse.jgit"            % "org.eclipse.jgit"     % jgitVersion
+      "org.eclipse.jgit"            % "org.eclipse.jgit"     % jgitVersion,
     ),
     Test / testOptions += Tests
       .Argument(TestFrameworks.ScalaCheck, "-minSuccessfulTests", "1000"),
@@ -1138,7 +1209,10 @@ lazy val `language-server` = (project in file("engine/language-server"))
   .dependsOn(`library-manager`)
   .dependsOn(`connected-lock-manager`)
   .dependsOn(`edition-updater`)
-  .dependsOn(`logging-service`)
+  //.dependsOn(`logging-service`)
+  .dependsOn(`logging-utils-akka`)
+  .dependsOn(`logging-socket-collector`)
+  .dependsOn(`logging-jutil`)
   .dependsOn(`polyglot-api`)
   .dependsOn(`searcher`)
   .dependsOn(`text-buffer`)
@@ -1675,7 +1749,7 @@ lazy val `engine-runner` = project
           "org.jline.nativ.JLineLibrary",
           "io.methvin.watchservice.jna.CarbonAPI",
           "org.enso.syntax2.Parser",
-          "org.enso.loggingservice",
+          //"org.enso.loggingservice",
           "zio.internal.ZScheduler$$anon$4",
           "sun.awt",
           "sun.java2d",
@@ -1701,7 +1775,7 @@ lazy val `engine-runner` = project
   .dependsOn(`library-manager`)
   .dependsOn(`language-server`)
   .dependsOn(`polyglot-api`)
-  .dependsOn(`logging-service`)
+  //.dependsOn(`logging-service`)
 
 lazy val launcher = project
   .in(file("engine/launcher"))
@@ -1767,7 +1841,9 @@ lazy val launcher = project
   .dependsOn(`runtime-version-manager`)
   .dependsOn(`version-output`)
   .dependsOn(pkg)
-  .dependsOn(`logging-service`)
+  .dependsOn(`logging-utils` % "test->test")
+  .dependsOn(`logging-socket-collector`)
+  //.dependsOn(`logging-service`)
   .dependsOn(`distribution-manager` % Test)
   .dependsOn(`runtime-version-manager-test` % Test)
 
@@ -1996,7 +2072,7 @@ lazy val `library-manager` = project
   .dependsOn(`distribution-manager`)
   .dependsOn(downloader)
   .dependsOn(testkit % Test)
-  .dependsOn(`logging-service` % Test)
+  //.dependsOn(`logging-service` % Test)
 
 lazy val `library-manager-test` = project
   .in(file("lib/scala/library-manager-test"))
@@ -2010,8 +2086,9 @@ lazy val `library-manager-test` = project
     )
   )
   .dependsOn(`library-manager`)
+  .dependsOn(`logging-utils` % "test->test")
   .dependsOn(testkit)
-  .dependsOn(`logging-service`)
+  //.dependsOn(`logging-service`)
 
 lazy val `connected-lock-manager` = project
   .in(file("lib/scala/connected-lock-manager"))
@@ -2046,7 +2123,7 @@ lazy val `runtime-version-manager` = project
   )
   .dependsOn(pkg)
   .dependsOn(downloader)
-  .dependsOn(`logging-service`)
+  //.dependsOn(`logging-service`)
   .dependsOn(cli)
   .dependsOn(`version-output`)
   .dependsOn(`edition-updater`)
@@ -2070,7 +2147,7 @@ lazy val `runtime-version-manager-test` = project
       .value
   )
   .dependsOn(`runtime-version-manager`)
-  .dependsOn(`logging-service`)
+  //.dependsOn(`logging-service`)
   .dependsOn(testkit)
   .dependsOn(cli)
   .dependsOn(`distribution-manager`)

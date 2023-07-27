@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE configuration>
+
+<configuration>
+
+    <appender name="file-fallback" class="ch.qos.logback.core.FileAppender">
+        <file>$launcher.logRoot}/${launcher.logPrefix}-%d{yyyy-MM-dd}.log</file>
+        <append>false</append>
+        <immediateFlush>true</immediateFlush>
+        <encoder>
+            <pattern>[%level] [%d{yyyy-MM-ddTHH:mm:ssXXX}] [%logger] %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="forward-via-socket" class="ch.qos.logback.classic.net.SocketAppender">
+        <remoteHost>${logging-server.host}</remoteHost>
+        <port>${logging-server.port}</port>
+        <reconnectionDelay>10000</reconnectionDelay>
+        <includeCallerData>true</includeCallerData>
+    </appender>
+
+    <root level="${launcher.logLevel:-info}">
+        <appender-ref ref="${launcher.appender:-file-fallback}"/>
+    </root>
+</configuration>

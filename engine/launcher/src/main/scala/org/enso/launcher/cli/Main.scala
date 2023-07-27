@@ -17,7 +17,7 @@ object Main {
   private def runAppHandlingParseErrors(args: Array[String]): Int =
     LauncherApplication.application.run(args) match {
       case Left(errors) =>
-        LauncherLogging.setupFallback()
+        //TODO: LauncherLogging.setupFallback()
         CLIOutput.println(errors.mkString("\n"))
         1
       case Right(exitCode) =>
@@ -55,7 +55,7 @@ object Main {
     * @param exitCode exit code to return
     */
   def exit(exitCode: Int): Nothing = {
-    LauncherLogging.tearDown()
+    //LauncherLogging.tearDown()
     DefaultManagers.defaultResourceManager.releaseMainLock()
     sys.exit(exitCode)
   }

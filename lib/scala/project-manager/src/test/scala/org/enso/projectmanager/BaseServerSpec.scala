@@ -16,8 +16,8 @@ import org.enso.editions.Editions
 import org.enso.cli.OS
 import org.enso.jsonrpc.test.JsonRpcServerTestKit
 import org.enso.jsonrpc.{ClientControllerFactory, ProtocolFactory}
-import org.enso.loggingservice.printers.StderrPrinterWithColors
-import org.enso.loggingservice.{LogLevel, LoggerMode, LoggingServiceManager}
+//import org.enso.loggingservice.printers.StderrPrinterWithColors
+//import org.enso.loggingservice.{LogLevel, LoggerMode, LoggingServiceManager}
 import org.enso.pkg.{Config, PackageManager}
 import org.enso.projectmanager.boot.Globals.{ConfigFilename, ConfigNamespace}
 import org.enso.projectmanager.boot.configuration._
@@ -47,6 +47,7 @@ import org.enso.projectmanager.test.{ObservableGenerator, ProgrammableClock}
 import org.enso.runtimeversionmanager.components.GraalVMVersion
 import org.enso.runtimeversionmanager.test.FakeReleases
 import org.scalatest.BeforeAndAfterAll
+import org.slf4j.event.Level
 import pureconfig.ConfigSource
 import pureconfig.generic.auto._
 import zio.interop.catz.core._
@@ -85,7 +86,7 @@ class BaseServerSpec extends JsonRpcServerTestKit with BeforeAndAfterAll {
 
   val processConfig: MainProcessConfig =
     MainProcessConfig(
-      logLevel               = if (debugLogs) LogLevel.Trace else LogLevel.Off,
+      logLevel               = if (debugLogs) Level.TRACE else Level.ERROR,
       profilingPath          = profilingPath,
       profilingTime          = None,
       profilingEventsLogPath = None
@@ -239,12 +240,13 @@ class BaseServerSpec extends JsonRpcServerTestKit with BeforeAndAfterAll {
     setupEditions()
 
     if (debugLogs) {
-      LoggingServiceManager.setup(
+      // TODO
+      /*LoggingServiceManager.setup(
         LoggerMode.Local(
           Seq(StderrPrinterWithColors.colorPrinterIfAvailable(true))
         ),
         LogLevel.Trace
-      )
+      )*/
     }
 
     engineToInstall.foreach(preInstallEngine)

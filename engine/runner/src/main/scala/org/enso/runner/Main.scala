@@ -14,7 +14,8 @@ import org.enso.languageserver.boot.{
   StartupConfig
 }
 import org.enso.libraryupload.LibraryUploader.UploadFailedError
-import org.enso.loggingservice.LogLevel
+import org.slf4j.event.Level
+//import org.enso.loggingservice.LogLevel
 import org.enso.pkg.{Contact, PackageManager, Template}
 import org.enso.polyglot.{HostEnsoUtils, LanguageInfo, Module, PolyglotContext}
 import org.enso.version.VersionDescription
@@ -524,7 +525,7 @@ object Main {
     packagePath: String,
     shouldCompileDependencies: Boolean,
     shouldUseGlobalCache: Boolean,
-    logLevel: LogLevel,
+    logLevel: Level,
     logMasking: Boolean
   ): Unit = {
     val file = new File(packagePath)
@@ -575,7 +576,7 @@ object Main {
     path: String,
     additionalArgs: Array[String],
     projectPath: Option[String],
-    logLevel: LogLevel,
+    logLevel: Level,
     logMasking: Boolean,
     enableIrCaches: Boolean,
     enableAutoParallelism: Boolean,
@@ -660,7 +661,7 @@ object Main {
     */
   private def genDocs(
     projectPath: Option[String],
-    logLevel: LogLevel,
+    logLevel: Level,
     logMasking: Boolean,
     enableIrCaches: Boolean
   ): Unit = {
@@ -682,7 +683,7 @@ object Main {
     */
   private def generateDocsFrom(
     path: String,
-    logLevel: LogLevel,
+    logLevel: Level,
     logMasking: Boolean,
     enableIrCaches: Boolean
   ): Unit = {
@@ -724,7 +725,7 @@ object Main {
     */
   private def preinstallDependencies(
     projectPath: Option[String],
-    logLevel: LogLevel
+    logLevel: Level
   ): Unit = projectPath match {
     case Some(path) =>
       try {
@@ -875,7 +876,7 @@ object Main {
     */
   private def runRepl(
     projectPath: Option[String],
-    logLevel: LogLevel,
+    logLevel: Level,
     logMasking: Boolean,
     enableIrCaches: Boolean
   ): Unit = {
@@ -914,7 +915,7 @@ object Main {
     * @param line     a CLI line
     * @param logLevel log level to set for the engine runtime
     */
-  private def runLanguageServer(line: CommandLine, logLevel: LogLevel): Unit = {
+  private def runLanguageServer(line: CommandLine, logLevel: Level): Unit = {
     val maybeConfig = parseServerOptions(line)
 
     maybeConfig match {
@@ -1000,11 +1001,11 @@ object Main {
 
   /** Parses the log level option.
     */
-  def parseLogLevel(levelOption: String): LogLevel = {
+  def parseLogLevel(levelOption: String): Level = {
     val name = levelOption.toLowerCase
-    LogLevel.allLevels.find(_.toString.toLowerCase == name).getOrElse {
+    Level.values().find(_.name().toLowerCase() == name).getOrElse {
       val possible =
-        LogLevel.allLevels.map(_.toString.toLowerCase).mkString(", ")
+        Level.values().map(_.toString.toLowerCase).mkString(", ")
       System.err.println(s"Invalid log level. Possible values are $possible.")
       exitFail()
     }
@@ -1023,7 +1024,7 @@ object Main {
 
   /** Default log level to use if the LOG_LEVEL option is not provided.
     */
-  val defaultLogLevel: LogLevel = LogLevel.Error
+  val defaultLogLevel: Level = Level.ERROR
 
   /** Main entry point for the CLI program.
     *

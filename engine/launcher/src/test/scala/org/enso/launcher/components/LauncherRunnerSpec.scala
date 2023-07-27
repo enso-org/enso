@@ -10,7 +10,10 @@ import org.enso.runtimeversionmanager.config.GlobalRunnerConfigurationManager
 import org.enso.runtimeversionmanager.runner._
 import org.enso.runtimeversionmanager.test.RuntimeVersionManagerTest
 import org.enso.launcher.project.ProjectManager
-import org.enso.loggingservice.{LogLevel, TestLogger}
+//import org.enso.loggingservice.{LogLevel, TestLogger}
+import org.enso.logger.TestLogger
+import org.slf4j.event.Level
+
 import org.enso.testkit.FlakySpec
 
 import scala.concurrent.Future
@@ -178,23 +181,26 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
       val runner         = makeFakeRunner()
       val projectPath    = getTestDirectory / "project2"
       val nightlyVersion = SemVer(0, 0, 0, Some("SNAPSHOT.2000-01-01"))
-      val (_, logs) = TestLogger.gatherLogs {
-        runner
-          .newProject(
-            path                = projectPath,
-            name                = "ProjectName2",
-            engineVersion       = nightlyVersion,
-            normalizedName      = None,
-            projectTemplate     = None,
-            authorName          = None,
-            authorEmail         = None,
-            additionalArguments = Seq()
-          )
-          .get
-      }
+      val (_, logs) = TestLogger.gather[Any, Runner](
+        classOf[Runner], {
+          runner
+            .newProject(
+              path                = projectPath,
+              name                = "ProjectName2",
+              engineVersion       = nightlyVersion,
+              normalizedName      = None,
+              projectTemplate     = None,
+              authorName          = None,
+              authorEmail         = None,
+              additionalArguments = Seq()
+            )
+            .get
+        }
+      )
+      println("ALL LOGS: " + logs.size)
       assert(
         logs.exists(msg =>
-          msg.logLevel == LogLevel.Warning && msg.message.contains(
+          msg.level == Level.WARN && msg.msg.contains(
             "Consider using a stable version."
           )
         )
@@ -208,7 +214,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
           projectPath         = None,
           versionOverride     = None,
           additionalArguments = Seq("arg", "--flag"),
-          logLevel            = LogLevel.Info,
+          logLevel            = Level.INFO,
           logMasking          = true
         )
         .get
@@ -234,7 +240,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
           projectPath         = Some(projectPath),
           versionOverride     = None,
           additionalArguments = Seq(),
-          logLevel            = LogLevel.Info,
+          logLevel            = Level.INFO,
           logMasking          = true
         )
         .get
@@ -249,7 +255,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
           projectPath         = None,
           versionOverride     = None,
           additionalArguments = Seq(),
-          logLevel            = LogLevel.Info,
+          logLevel            = Level.INFO,
           logMasking          = true
         )
         .get
@@ -264,7 +270,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
           projectPath         = Some(projectPath),
           versionOverride     = Some(overridden),
           additionalArguments = Seq(),
-          logLevel            = LogLevel.Info,
+          logLevel            = Level.INFO,
           logMasking          = true
         )
         .get
@@ -293,7 +299,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
           contentRootPath     = projectPath,
           versionOverride     = None,
           additionalArguments = Seq("additional"),
-          logLevel            = LogLevel.Info,
+          logLevel            = Level.INFO,
           logMasking          = true
         )
         .get
@@ -315,7 +321,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
           contentRootPath     = projectPath,
           versionOverride     = Some(overridden),
           additionalArguments = Seq(),
-          logLevel            = LogLevel.Info,
+          logLevel            = Level.INFO,
           logMasking          = true
         )
         .get
@@ -335,7 +341,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
           path                = Some(projectPath),
           versionOverride     = None,
           additionalArguments = Seq(),
-          logLevel            = LogLevel.Info,
+          logLevel            = Level.INFO,
           logMasking          = true
         )
         .get
@@ -350,7 +356,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
           path                = None,
           versionOverride     = None,
           additionalArguments = Seq(),
-          logLevel            = LogLevel.Info,
+          logLevel            = Level.INFO,
           logMasking          = true
         )
         .get
@@ -365,7 +371,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
           path                = Some(projectPath),
           versionOverride     = Some(overridden),
           additionalArguments = Seq(),
-          logLevel            = LogLevel.Info,
+          logLevel            = Level.INFO,
           logMasking          = true
         )
         .get
@@ -380,7 +386,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
             path                = None,
             versionOverride     = None,
             additionalArguments = Seq(),
-            logLevel            = LogLevel.Info,
+            logLevel            = Level.INFO,
             logMasking          = true
           )
           .isFailure,
@@ -407,7 +413,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
           path                = Some(outsideFile),
           versionOverride     = None,
           additionalArguments = Seq(),
-          logLevel            = LogLevel.Info,
+          logLevel            = Level.INFO,
           logMasking          = true
         )
         .get
@@ -432,7 +438,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
           path                = Some(insideFile),
           versionOverride     = None,
           additionalArguments = Seq(),
-          logLevel            = LogLevel.Info,
+          logLevel            = Level.INFO,
           logMasking          = true
         )
         .get

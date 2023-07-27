@@ -42,7 +42,7 @@ final class ThreadExecutors {
         success = false;
       }
       if (!success) {
-        context.getLogger().log(Level.WARNING, "Cannot shutdown {0} thread pool", next.getValue());
+        context.getLogger().log(Level.WARNING, "Cannot shutdown {} thread pool", next.getValue());
       }
     }
   }

@@ -194,7 +194,7 @@ object MessageHandler {
     */
   case class Connected(webConnection: ActorRef)
 
-  /** A control message usef to notify the controller about
+  /** A control message used to notify the controller about
     * the connection being closed.
     */
   case object Disconnected

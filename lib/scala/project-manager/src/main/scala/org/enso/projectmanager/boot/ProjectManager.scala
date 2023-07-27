@@ -3,7 +3,9 @@ package org.enso.projectmanager.boot
 import akka.http.scaladsl.Http
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.cli.CommandLine
-import org.enso.loggingservice.{ColorMode, LogLevel}
+
+import scala.annotation.unused
+//import org.enso.loggingservice.{ColorMode, LogLevel}
 import org.enso.projectmanager.boot.Globals.{
   ConfigFilename,
   ConfigNamespace,
@@ -15,6 +17,7 @@ import org.enso.projectmanager.boot.configuration.{
   ProjectManagerConfig
 }
 import org.enso.version.VersionDescription
+import org.slf4j.event.Level
 import pureconfig.ConfigSource
 import pureconfig.generic.auto._
 import zio.Console.{printLine, printLineError, readLine}
@@ -126,7 +129,9 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
       case Right(opts) =>
         runOpts(opts).catchAll(th =>
           ZIO.succeed(
-            logger.error("An error occurred during the program startup", th)
+            System.err.println(
+              s"An error occurred during the program startup: ${th.getMessage}"
+            )
           ) *>
           ZIO.succeed(FailureExitCode)
         )
@@ -134,7 +139,9 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
         (printLine(error) *>
         ZIO.succeed(Cli.printHelp()) *>
         ZIO.succeed(FailureExitCode)).catchAll(th =>
-          ZIO.succeed(logger.error("Unexpected error", th)) *>
+          ZIO.succeed(
+            System.err.println(s"Unexpected error: ${th.getMessage}")
+          ) *>
           ZIO.succeed(FailureExitCode)
         )
     }
@@ -256,13 +263,13 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
 
   private def setupLogging(
     verbosityLevel: Int,
-    logMasking: Boolean,
-    profilingLog: Option[Path]
-  ): ZIO[ZAny, IOException, LogLevel] = {
+    @unused logMasking: Boolean,
+    @unused profilingLog: Option[Path]
+  ): ZIO[ZAny, IOException, Level] = {
     val level = verbosityLevel match {
-      case 0 => LogLevel.Info
-      case 1 => LogLevel.Debug
-      case _ => LogLevel.Trace
+      case 0 => Level.INFO
+      case 1 => Level.DEBUG
+      case _ => Level.TRACE
     }
 
     // TODO [RW] at some point we may want to allow customization of color
@@ -271,10 +278,11 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
 
     ZIO
       .attempt {
-        Logging.setup(Some(level), None, colorMode, logMasking, profilingLog)
+        Logging.setup(Some(level), None, logMasking, profilingLog)
+        ()
       }
       .catchAll { exception =>
-        printLineError(s"Failed to setup the logger: $exception")
+        printLineError(s"Failed to setup logger: ${exception.getMessage()}")
       }
       .as(level)
   }

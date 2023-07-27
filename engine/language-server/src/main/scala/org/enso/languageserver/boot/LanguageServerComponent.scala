@@ -14,8 +14,10 @@ import org.enso.languageserver.runtime.RuntimeKiller.{
   RuntimeShutdownResult,
   ShutDownRuntime
 }
-import org.enso.loggingservice.LogLevel
+
 import org.enso.profiling.{FileSampler, MethodsSampler, NoopSampler}
+import org.slf4j.event.Level
+import org.enso.logger.LoggerContextSetup
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContextExecutor, Future}
@@ -25,7 +27,7 @@ import scala.concurrent.{Await, ExecutionContextExecutor, Future}
   * @param config a LS config
   * @param logLevel log level for the Language Server
   */
-class LanguageServerComponent(config: LanguageServerConfig, logLevel: LogLevel)
+class LanguageServerComponent(config: LanguageServerConfig, logLevel: Level)
     extends LifecycleComponent
     with LazyLogging {
 
@@ -37,10 +39,16 @@ class LanguageServerComponent(config: LanguageServerConfig, logLevel: LogLevel)
 
   /** @inheritdoc */
   override def start(): Future[ComponentStarted.type] = {
+    val logConfig =
+      this.getClass.getResourceAsStream("/language-server.logback.xml")
+    if (logConfig != null) {
+      LoggerContextSetup.setupLogging(logLevel, "language-server", logConfig);
+    } else {
+      System.err.println("Unable to set up logging for Language Server.")
+    }
     logger.info("Starting Language Server...")
     val sampler = startSampling(config)
-    logger.debug("Started [{}].", sampler.getClass.getName)
-    val module = new MainModule(config, logLevel)
+    val module  = new MainModule(config, logLevel)
     val bindJsonServer =
       for {
         binding <- module.jsonRpcServer.bind(config.interface, config.rpcPort)

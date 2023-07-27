@@ -63,7 +63,7 @@ public class EpbContext {
       return;
     }
     var log = environment.getLogger(EpbContext.class);
-    log.log(Level.FINE, "Initializing languages {0}", langs);
+    log.log(Level.FINE, "Initializing languages {}", langs);
     var cdl = new CountDownLatch(1);
     var run =
         (Consumer<TruffleContext>)
@@ -73,13 +73,13 @@ public class EpbContext {
               cdl.countDown();
               try {
                 for (var l : langs.split(",")) {
-                  log.log(Level.FINEST, "Initializing language {0}", l);
+                  log.log(Level.FINEST, "Initializing language {}", l);
                   long then = System.currentTimeMillis();
                   var res = context.initializeInternal(null, l);
                   long took = System.currentTimeMillis() - then;
                   log.log(
                       Level.FINE,
-                      "Done initializing language {0} with {1} in {2} ms",
+                      "Done initializing language {} with {} in {} ms",
                       new Object[] {l, res, took});
                 }
               } finally {
