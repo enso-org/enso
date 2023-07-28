@@ -1,10 +1,11 @@
 from Standard.Base import all
+import Standard.Base.Errors.Encoding_Error.Encoding_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
 import Standard.Table.Internal.Naming_Properties.Unlimited_Naming_Properties
 
-import project.Internal.Connection.Entity_Naming_Properties
+import project.Internal.Connection.Entity_Naming_Properties.Entity_Naming_Properties
 import project.Internal.JDBC_Connection.JDBC_Connection
 
 ## PRIVATE
@@ -65,6 +66,7 @@ type Encoding_Limited_Naming_Properties
     truncate : Text -> Integer -> Text
     truncate self name size =
         # TODO!
+        _ = [name, size]
         Panic.throw (Illegal_Argument.Error "TODO")
 
     ## PRIVATE

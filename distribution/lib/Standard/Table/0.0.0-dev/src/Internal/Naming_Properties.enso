@@ -1,6 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
+import Standard.Base.Errors.Unimplemented.Unimplemented
 
 ## PRIVATE
    An interface for a helper managing limitations of entity names.
@@ -37,11 +38,13 @@ type Unlimited_Naming_Properties
     ## PRIVATE
     encoded_size : Text -> Integer
     encoded_size name =
+        _ = name
         Panic.throw (Illegal_State.Error "`In_Memory_Naming_Helper.encoded_size` but `size_limit` is `Nothing`. This is a bug in the Table library.")
 
     ## PRIVATE
     truncate : Text -> Integer -> Text
     truncate name size =
+        _ = [name, size]
         Panic.throw (Illegal_State.Error "`In_Memory_Naming_Helper.truncate` but `size_limit` is `Nothing`. This is a bug in the Table library.")
 
     ## PRIVATE
@@ -54,6 +57,6 @@ type Unlimited_Naming_Properties
    with the Java `NamingProperties` interface (handling dataflow errors would
    complicate the usage).
    This method allows to recover such panics and turn them into dataflow errors.
-recover_panics -> Any -> Any
+recover_panics : Any -> Any
 recover_panics ~action =
     Panic.recover [Illegal_State, Illegal_Argument] action

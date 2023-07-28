@@ -145,7 +145,7 @@ type JDBC_Connection
 
        It may be used for accessing simple database metadata. It should never be
        used for proper queries.
-    raw_read_statement : Text -> Table
+    raw_read_statement : Text -> Materialized_Table
     raw_read_statement self raw_sql =
         self.with_prepared_statement raw_sql Statement_Setter.null stmt->
             rs = stmt.executeQuery

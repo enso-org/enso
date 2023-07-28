@@ -21,7 +21,7 @@ import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
 import project.Data.Table as Database_Table_Module
 import project.Data.Table.Table as Database_Table
-import project.Internal.Connection.Entity_Naming_Properties
+import project.Internal.Connection.Entity_Naming_Properties.Entity_Naming_Properties
 import project.Internal.Hidden_Table_Registry
 import project.Internal.IR.Context.Context
 import project.Internal.IR.Query.Query
@@ -55,7 +55,7 @@ type Connection
          `False`.
        - hidden_table_registry: a registry of hidden tables that are not
          shown to the user, but are used internally by the dry-run system.
-    Value jdbc_connection dialect (entity_naming_properties : Entity_Naming_Properties) (supports_large_update : Ref Boolean) (hidden_table_registry : Hidden_Table_Registry)
+    Value jdbc_connection dialect (entity_naming_properties : Entity_Naming_Properties) (supports_large_update : Ref Boolean) (hidden_table_registry : Hidden_Table_Registry.Hidden_Table_Registry)
 
     ## PRIVATE
        Constructs a new Connection.
