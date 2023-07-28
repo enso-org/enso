@@ -149,5 +149,11 @@ type Text
 
        Arguments:
        - s: The `Text` to normalize.
+
+       > Example
+         Normalize a string
+
+             'aśb'.normalize
+             # ==> 'as\u0301b'
     normalize : Text -> Text
     normalize self = Text_Utils.normalize self
