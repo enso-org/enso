@@ -850,10 +850,11 @@ js_set_zone local_datetime zone =
     diff = Duration.between datetime_with_tz local_datetime (timezone_aware=False)
     datetime_with_tz + diff
 
-python_datetime year month=1 day=1 hour=0 minute=0 second=0 nanosecond=0 zone=Time_Zone.system =
-    rules = Polyglot.invoke (ZoneId.of (zone.zone_id)) "getRules" []
-    zone_offset = Polyglot.invoke rules "getOffset" [ LocalDateTime.now ]
-    delta = Polyglot.invoke zone_offset "getTotalSeconds" []
+python_datetime year month=1 day=1 hour=0 minute=0 second=0 nanosecond=0 zone=Nothing =
+    delta = if zone.is_nothing then -1 else
+        rules = Polyglot.invoke (ZoneId.of (zone.zone_id)) "getRules" []
+        zone_offset = Polyglot.invoke rules "getOffset" [ LocalDateTime.now ]
+        Polyglot.invoke zone_offset "getTotalSeconds" []
     Panic.catch Any (python_datetime_impl year month day hour minute second nanosecond delta) (err -> Error.throw (Time_Error.Error err.payload))
 
 python_parse text format="" =
@@ -890,7 +891,10 @@ foreign python python_datetime_impl year month day hour minute second nanosecond
         def utcoffset(self, dt):
             return datetime.timedelta(seconds=zone)
 
-    return datetime.datetime(year, month, day, hour, minute, second, int(nanosecond / 1000000), Zone(zone))
+    if zone == -1:
+        return datetime.datetime(year, month, day, hour, minute, second, int(nanosecond / 1000000))
+    else:
+        return datetime.datetime(year, month, day, hour, minute, second, int(nanosecond / 1000000), Zone(zone))
 
 enso_datetime year month=1 day=1 hour=0 minute=0 second=0 nanosecond=0 zone=Time_Zone.system =
     Date_Time.new year month day hour minute second nanosecond=nanosecond zone=zone
