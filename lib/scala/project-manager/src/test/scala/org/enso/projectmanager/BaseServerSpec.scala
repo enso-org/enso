@@ -37,15 +37,12 @@ import org.enso.projectmanager.protocol.{
   ManagerClientControllerFactory
 }
 import org.enso.projectmanager.service.config.GlobalConfigService
+import org.enso.projectmanager.service.validation.ProjectNameValidator
 import org.enso.projectmanager.service.versionmanagement.{
   RuntimeVersionManagementService,
   RuntimeVersionManagerFactory
 }
-import org.enso.projectmanager.service.{
-  MonadicProjectValidator,
-  ProjectCreationService,
-  ProjectService
-}
+import org.enso.projectmanager.service.{ProjectCreationService, ProjectService}
 import org.enso.projectmanager.test.{ObservableGenerator, ProgrammableClock}
 import org.enso.runtimeversionmanager.components.GraalVMVersion
 import org.enso.runtimeversionmanager.test.FakeReleases
@@ -143,7 +140,7 @@ class BaseServerSpec extends JsonRpcServerTestKit with BeforeAndAfterAll {
       gen
     )
 
-  lazy val projectValidator = new MonadicProjectValidator[ZIO[ZAny, *, *]]()
+  lazy val projectNameValidator = new ProjectNameValidator[ZIO[ZAny, *, *]]()
 
   val distributionConfiguration =
     TestDistributionConfiguration(
@@ -193,7 +190,7 @@ class BaseServerSpec extends JsonRpcServerTestKit with BeforeAndAfterAll {
 
   lazy val projectService =
     new ProjectService[ZIO[ZAny, +*, +*]](
-      projectValidator,
+      projectNameValidator,
       projectRepository,
       projectCreationService,
       globalConfigService,

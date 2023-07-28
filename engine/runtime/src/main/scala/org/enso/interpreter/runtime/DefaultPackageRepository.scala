@@ -10,7 +10,7 @@ import org.enso.editions.LibraryVersion
 import org.enso.interpreter.runtime.util.TruffleFileSystem
 import org.enso.librarymanager.published.repository.LibraryManifest
 import org.enso.librarymanager.resolved.LibraryRoot
-import org.enso.librarymanager.{ResolvingLibraryProvider}
+import org.enso.librarymanager.ResolvingLibraryProvider
 import org.enso.logger.masking.MaskedPath
 import org.enso.pkg.{
   Component,
@@ -33,8 +33,7 @@ import org.enso.editions.updater.EditionManager
 import org.enso.editions.{DefaultEdition, Editions, LibraryName}
 import org.enso.interpreter.instrument.NotificationHandler
 import org.enso.interpreter.runtime.builtin.Builtins
-import org.enso.interpreter.runtime.{EnsoContext, Module}
-import org.enso.librarymanager.{DefaultLibraryProvider}
+import org.enso.librarymanager.DefaultLibraryProvider
 import org.enso.pkg.{ComponentGroups, Package}
 
 /** The default [[PackageRepository]] implementation.
@@ -328,7 +327,7 @@ private class DefaultPackageRepository(
           Left(PackageRepository.Error.PackageLoadingError(err.getMessage()))
         case Right(componentGroups) =>
           logger.debug(
-            s"Resolving component groups of package [${pkg.name}]."
+            s"Resolving component groups of package [${pkg.module}]."
           )
 
           registerComponentGroups(pkg.libraryName, componentGroups.newGroups)

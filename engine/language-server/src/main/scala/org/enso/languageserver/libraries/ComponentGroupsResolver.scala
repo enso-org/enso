@@ -28,7 +28,10 @@ final class ComponentGroupsResolver {
   def run(packages: Iterable[Config]): Vector[LibraryComponentGroup] = {
     val libraryComponents = packages
       .map { config =>
-        LibraryName(config.namespace, config.name) -> config.componentGroups
+        LibraryName(
+          config.namespace,
+          config.moduleName
+        ) -> config.componentGroups
       }
       .collect { case (libraryName, Right(componentGroups)) =>
         libraryName -> componentGroups

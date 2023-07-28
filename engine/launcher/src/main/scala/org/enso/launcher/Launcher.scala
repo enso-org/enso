@@ -69,6 +69,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     */
   def newProject(
     name: String,
+    normalizedName: Option[String],
     projectTemplate: Option[String],
     path: Option[Path],
     versionOverride: Option[SemVer],
@@ -88,6 +89,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
             path                = actualPath,
             name                = name,
             engineVersion       = version,
+            normalizedName      = normalizedName,
             projectTemplate     = projectTemplate,
             authorName          = globalConfig.authorName,
             authorEmail         = globalConfig.authorEmail,

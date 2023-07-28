@@ -24,11 +24,11 @@ trait ProjectRepository[F[+_, +_]] {
     * If it was not set, a new path is generated for it. Otherwise, the function
     * acts as identity.
     *
-    * @param projectName the project name to find the path for
+    * @param moduleName the module name to find the path for
     * @return the project, with the updated path
     */
   def findPathForNewProject(
-    projectName: String
+    moduleName: String
   ): F[ProjectRepositoryFailure, Path]
 
   /** Saves the provided user project in the index.

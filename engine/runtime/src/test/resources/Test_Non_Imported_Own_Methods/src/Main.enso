@@ -1,5 +1,5 @@
 import Standard.Base.Nothing
-import local.TestNonImportedOwnMethods.Util
+import local.Test_Non_Imported_Own_Methods.Util
 
 type X
     Mk_X a

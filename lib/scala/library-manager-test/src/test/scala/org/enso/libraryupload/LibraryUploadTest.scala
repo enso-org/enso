@@ -67,7 +67,7 @@ class LibraryUploadTest
         PackageManager.Default
           .loadPackage(libRoot.toFile)
           .get
-          .name shouldEqual libraryName.name
+          .module shouldEqual libraryName.name
         assert(Files.exists(libRoot.resolve("manifest.yaml")))
         assert(Files.exists(libRoot.resolve("main.tgz")))
 
@@ -83,7 +83,7 @@ class LibraryUploadTest
           val pkg = PackageManager.Default
             .loadPackage(installedRoot.location.toFile)
             .get
-          pkg.name shouldEqual libraryName.name
+          pkg.module shouldEqual libraryName.name
           val sources = pkg.listSources()
           sources should have size 1
           sources.head.file.getName shouldEqual "Main.enso"
