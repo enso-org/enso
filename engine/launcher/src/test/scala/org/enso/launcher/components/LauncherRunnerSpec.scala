@@ -127,7 +127,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
           path                = projectPath,
           name                = "ProjectName",
           engineVersion       = defaultEngineVersion,
-          moduleName          = None,
+          normalizedName      = None,
           projectTemplate     = None,
           authorName          = Some(authorName),
           authorEmail         = Some(authorEmail),
@@ -147,15 +147,15 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
     }
 
     "create project with name and module name" in {
-      val runner      = makeFakeRunner()
-      val projectPath = getTestDirectory / "project"
-      val moduleName  = "Project_Name"
+      val runner         = makeFakeRunner()
+      val projectPath    = getTestDirectory / "project"
+      val normalizedName = "Project_Name"
       val runSettings = runner
         .newProject(
           path                = projectPath,
           name                = "ProjectName",
           engineVersion       = defaultEngineVersion,
-          moduleName          = Some(moduleName),
+          normalizedName      = Some(normalizedName),
           projectTemplate     = None,
           authorName          = None,
           authorEmail         = None,
@@ -169,7 +169,9 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
         s"--new ${projectPath.toAbsolutePath.normalize}"
       )
       commandLine should include("--new-project-name ProjectName")
-      commandLine should include(s"--new-project-module-name $moduleName")
+      commandLine should include(
+        s"--new-project-normalized-name $normalizedName"
+      )
     }
 
     "warn when creating a project using a nightly version" taggedAs Flaky in {
@@ -182,7 +184,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
             path                = projectPath,
             name                = "ProjectName2",
             engineVersion       = nightlyVersion,
-            moduleName          = None,
+            normalizedName      = None,
             projectTemplate     = None,
             authorName          = None,
             authorEmail         = None,

@@ -65,10 +65,10 @@ object LauncherApplication {
           "Specifies a project template when creating a project."
         )
       }
-      val moduleOpt = Opts.optionalParameter[String](
-        "new-project-module-name",
-        "MODULE-NAME",
-        "Specifies a module name when creating a project."
+      val normalizedNameOpt = Opts.optionalParameter[String](
+        "new-project-normalized-name",
+        "NORMALIZED-NAME",
+        "Specifies a normalized (Upper_Snake_Case) name when creating a project."
       )
       val additionalArgs = Opts.additionalArguments()
 
@@ -76,7 +76,7 @@ object LauncherApplication {
         nameOpt,
         pathOpt,
         projectTemplate,
-        moduleOpt,
+        normalizedNameOpt,
         versionOverride,
         systemJVMOverride,
         jvmOpts,
@@ -86,7 +86,7 @@ object LauncherApplication {
           name,
           path,
           template,
-          moduleName,
+          normalizedNameOpt,
           versionOverride,
           systemJVMOverride,
           jvmOpts,
@@ -94,7 +94,7 @@ object LauncherApplication {
         ) => (config: Config) =>
           Launcher(config).newProject(
             name                = name,
-            moduleName          = moduleName,
+            normalizedName      = normalizedNameOpt,
             projectTemplate     = template,
             path                = path,
             versionOverride     = versionOverride,
