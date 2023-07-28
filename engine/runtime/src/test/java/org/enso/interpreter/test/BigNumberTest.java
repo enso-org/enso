@@ -4,15 +4,15 @@ import java.math.BigInteger;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
+import org.junit.AfterClass;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-
-import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -38,7 +38,7 @@ public class BigNumberTest extends TestBase {
     powers n =
         go x v b = if x > n then b.to_vector else
             b.append v
-            @Tail_Call go x+1 v*2 b
+            @Tail_Call go x+1 v*3 b
         go 1 1 Vector.new_builder
     """;
     var powers = evalCode(code, "powers");
@@ -59,33 +59,20 @@ public class BigNumberTest extends TestBase {
       if (e.fitsInDouble()) {
         doubles++;
       }
-      boolean assertsOn = false;
-      // Explanation at
-      // https://github.com/enso-org/enso/pull/4074#discussion_r1086222800
-      // rewrite when proper support for BigInteger is available
-      // https://github.com/oracle/graal/pull/5490
-      assert assertsOn = true;
-      String s;
-      if (!assertsOn) {
-        var n = e.as(Number.class);
-        assertNotNull("All numbers can be seen as java.lang.Number", n);
-        s = n.toString();
-      } else {
-        s = e.toString();
-      }
-      var b = new BigInteger(s);
+      var s = e.toString();
+      var b = e.asBigInteger();
       assertNotNull("Each Enso number can be parsed as big integer", b);
       assertEquals("Textual values are the same", s, b.toString());
       values.add(b);
     }
-    assertEquals("There are few long values and rest of doubles", 63, longs);
-    assertEquals("There are few double values and rest of Numbers", 63, doubles);
+    assertEquals("There are few long values and rest of doubles", 40, longs);
+    assertEquals("There are few double values and rest of Numbers", 34, doubles);
     assertEquals("Two hundred numbers collected", 200, values.size());
     for (int i = 1; i < values.size(); i++) {
       var prev = values.get(i - 1);
       var next = values.get(i);
 
-      assertEquals("Each value is accurate", prev.multiply(BigInteger.valueOf(2)), next);
+      assertEquals("Each value is accurate", prev.multiply(BigInteger.valueOf(3)), next);
     }
   }
 
