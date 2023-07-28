@@ -74,7 +74,7 @@ export interface ProjectIconProps {
     project: backendModule.ProjectAsset
     rowState: assetsTable.AssetRowState
     setRowState: React.Dispatch<React.SetStateAction<assetsTable.AssetRowState>>
-    assetEvent: assetEventModule.AssetEvent | null
+    assetEvents: assetEventModule.AssetEvent[]
     /** Called when the project is opened via the {@link ProjectIcon}. */
     doOpenManually: (projectId: backendModule.ProjectId) => void
     onClose: () => void
@@ -88,7 +88,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
         project,
         rowState,
         setRowState,
-        assetEvent,
+        assetEvents,
         appRunner,
         doOpenManually,
         onClose,
@@ -191,7 +191,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
         }
     }, [shouldCheckIfActuallyOpen])
 
-    hooks.useEventHandler(assetEvent, event => {
+    hooks.useEventHandler(assetEvents, event => {
         switch (event.type) {
             default: {
                 // Ignore; all other events are handled by `ProjectRow`.

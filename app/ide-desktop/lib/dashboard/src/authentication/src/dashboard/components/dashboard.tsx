@@ -68,7 +68,7 @@ export default function Dashboard(props: DashboardProps) {
     const [project, setProject] = React.useState<backendModule.Project | null>(null)
     const [nameOfProjectToImmediatelyOpen, setNameOfProjectToImmediatelyOpen] =
         React.useState(initialProjectName)
-    const [assetListEvent, dispatchAssetListEvent] =
+    const [assetListEvents, dispatchAssetListEvent] =
         hooks.useEvent<assetListEventModule.AssetListEvent>()
 
     const isListingLocalDirectoryAndWillFail =
@@ -297,7 +297,7 @@ export default function Dashboard(props: DashboardProps) {
                         setNameOfProjectToImmediatelyOpen={setNameOfProjectToImmediatelyOpen}
                         directoryId={directoryId}
                         setDirectoryId={setDirectoryId}
-                        assetListEvent={assetListEvent}
+                        assetListEvents={assetListEvents}
                         dispatchAssetListEvent={dispatchAssetListEvent}
                         query={query}
                         doCreateProject={doCreateProject}

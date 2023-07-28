@@ -1,9 +1,7 @@
 /** @file Module containing common custom React hooks used throughout out Dashboard. */
 import * as React from 'react'
-import * as toastify from 'react-toastify'
-
-import * as reactDom from 'react-dom'
 import * as router from 'react-router'
+import * as toastify from 'react-toastify'
 
 import * as app from './components/app'
 import * as auth from './authentication/providers/auth'
@@ -146,32 +144,32 @@ type KnownEvent = KnownEventsMap[keyof KnownEventsMap]
 
 /** A wrapper around `useState` that calls `flushSync` after every `setState`.
  * This is required so that no events are dropped. */
-export function useEvent<T extends KnownEvent>(): [
-    event: T | null,
-    dispatchEvent: (event: T) => void
-] {
-    const [event, setEvent] = React.useState<T | null>(null)
+export function useEvent<T extends KnownEvent>(): [events: T[], dispatchEvent: (event: T) => void] {
+    const [events, setEvents] = React.useState<T[]>([])
+    // This is correct, as `useEffect` only runs once per render.
     React.useEffect(() => {
-        if (event != null) {
-            setEvent(null)
+        if (events.length !== 0) {
+            setEvents([])
         }
-    }, [event])
+    }, [events])
     const dispatchEvent = React.useCallback(
         (innerEvent: T) => {
-            setTimeout(() => {
-                reactDom.flushSync(() => {
-                    setEvent(innerEvent)
-                })
-            }, 0)
+            // This is not proper React, as it mutates state, *however* this state will be immutably
+            // replaced after every render anyway.
+            if (events.length === 0) {
+                setEvents([innerEvent])
+            } else {
+                events.push(innerEvent)
+            }
         },
-        [setEvent]
+        [events]
     )
-    return [event, dispatchEvent]
+    return [events, dispatchEvent]
 }
 
 /** A wrapper around `useEffect` that has `event` as its sole dependency. */
 export function useEventHandler<T extends KnownEvent>(
-    event: T | null,
+    events: T[],
     effect: (event: T) => Promise<void> | void
 ) {
     let hasEffectRun = false
@@ -188,10 +186,12 @@ export function useEventHandler<T extends KnownEvent>(
                 hasEffectRun = true
             }
         }
-        if (event != null) {
-            void effect(event)
-        }
-    }, [event])
+        void (async () => {
+            for (const event of events) {
+                await effect(event)
+            }
+        })()
+    }, [events])
 }
 
 // =========================================

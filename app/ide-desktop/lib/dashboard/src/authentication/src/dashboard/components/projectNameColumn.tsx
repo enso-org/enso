@@ -35,7 +35,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         setRowState,
         state: {
             appRunner,
-            assetEvent,
+            assetEvents,
             dispatchAssetEvent,
             dispatchAssetListEvent,
             doOpenManually,
@@ -65,7 +65,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         }
     }
 
-    hooks.useEventHandler(assetEvent, async event => {
+    hooks.useEventHandler(assetEvents, async event => {
         switch (event.type) {
             case assetEventModule.AssetEventType.createDirectory:
             case assetEventModule.AssetEventType.uploadFiles:
@@ -145,7 +145,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                 project={item}
                 rowState={rowState}
                 setRowState={setRowState}
-                assetEvent={assetEvent}
+                assetEvents={assetEvents}
                 doOpenManually={doOpenManually}
                 appRunner={appRunner}
                 openIde={() => {

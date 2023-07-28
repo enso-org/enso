@@ -88,7 +88,7 @@ function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
         item: rawItem,
         initialRowState,
         state: {
-            assetEvent,
+            assetEvents,
             dispatchAssetEvent,
             dispatchAssetListEvent,
             markItemAsHidden,
@@ -122,7 +122,7 @@ function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
         }
     }
 
-    hooks.useEventHandler(assetEvent, async event => {
+    hooks.useEventHandler(assetEvents, async event => {
         switch (event.type) {
             // These events are handled in the specific NameColumn files.
             case assetEventModule.AssetEventType.createProject:
@@ -215,7 +215,7 @@ function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
 /** State passed through from a {@link AssetsTable} to every cell. */
 export interface AssetsTableState {
     appRunner: AppRunner | null
-    assetEvent: assetEventModule.AssetEvent | null
+    assetEvents: assetEventModule.AssetEvent[]
     dispatchAssetEvent: (event: assetEventModule.AssetEvent) => void
     dispatchAssetListEvent: (event: assetListEventModule.AssetListEvent) => void
     markItemAsHidden: (key: string) => void
@@ -253,9 +253,9 @@ export interface AssetsTableProps {
     items: backendModule.AnyAsset[]
     filter: ((item: backendModule.AnyAsset) => boolean) | null
     isLoading: boolean
-    assetEvent: assetEventModule.AssetEvent | null
+    assetEvents: assetEventModule.AssetEvent[]
     dispatchAssetEvent: (event: assetEventModule.AssetEvent) => void
-    assetListEvent: assetListEventModule.AssetListEvent | null
+    assetListEvents: assetListEventModule.AssetListEvent[]
     dispatchAssetListEvent: (event: assetListEventModule.AssetListEvent) => void
     doOpenIde: (project: backendModule.ProjectAsset) => void
     doCloseIde: () => void
@@ -268,9 +268,9 @@ export default function AssetsTable(props: AssetsTableProps) {
         items: rawItems,
         filter,
         isLoading,
-        assetEvent,
+        assetEvents,
         dispatchAssetEvent,
-        assetListEvent,
+        assetListEvents,
         dispatchAssetListEvent,
         doOpenIde,
         doCloseIde: rawDoCloseIde,
@@ -451,7 +451,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         [items]
     )
 
-    hooks.useEventHandler(assetListEvent, event => {
+    hooks.useEventHandler(assetListEvents, event => {
         switch (event.type) {
             case assetListEventModule.AssetListEventType.createDirectory: {
                 const directoryIndices = items
@@ -607,7 +607,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         // The type MUST be here to trigger excess property errors at typecheck time.
         (): AssetsTableState => ({
             appRunner,
-            assetEvent,
+            assetEvents,
             dispatchAssetEvent,
             dispatchAssetListEvent,
             markItemAsHidden,
@@ -620,7 +620,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         }),
         [
             appRunner,
-            assetEvent,
+            assetEvents,
             doOpenManually,
             doOpenIde,
             doCloseIde,

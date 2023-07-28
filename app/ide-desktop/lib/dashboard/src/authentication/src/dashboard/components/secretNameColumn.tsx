@@ -30,7 +30,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
         item,
         setItem,
         selected,
-        state: { assetEvent, dispatchAssetListEvent, getDepth },
+        state: { assetEvents, dispatchAssetListEvent, getDepth },
         rowState,
         setRowState,
     } = props
@@ -44,7 +44,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
         await Promise.resolve(null)
     }
 
-    hooks.useEventHandler(assetEvent, async event => {
+    hooks.useEventHandler(assetEvents, async event => {
         switch (event.type) {
             case assetEventModule.AssetEventType.createProject:
             case assetEventModule.AssetEventType.createDirectory:
