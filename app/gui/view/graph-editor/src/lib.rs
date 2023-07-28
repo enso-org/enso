@@ -1934,7 +1934,8 @@ impl GraphEditorModel {
     fn disable_visualization_fullscreen(&self, node_id: impl Into<NodeId>) {
         let node_id = node_id.into();
         if let Some(node) = self.nodes.get_cloned_ref(&node_id) {
-            node.model().visualization.frp.set_view_state(visualization::ViewState::Enabled);
+            let new_state = visualization::ViewState::Enabled { has_error: false };
+            node.model().visualization.frp.set_view_state(new_state);
         }
     }
 
@@ -3155,7 +3156,6 @@ fn init_remaining_graph_editor_frp(
     // === Vis Update Data ===
 
     frp::extend! { network
-    trace inputs.set_visualization_data;
     eval inputs.set_visualization_data (((node_id,data))
         model.with_node(*node_id, |node|  node.model().visualization.frp.set_data.emit(data));
     );
