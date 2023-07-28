@@ -429,6 +429,7 @@ impl ActionBar {
 #[cfg(test)]
 mod test {
     use super::*;
+    use ensogl::event::Event;
 
     #[test]
     fn test_tooltips() {
@@ -440,7 +441,7 @@ mod test {
         assert_eq!(app.frp.tooltip.value().content(), None);
 
         // Move the mouse over the visibility button
-        visibility_icon.view().events_deprecated.mouse_over.emit(());
+        visibility_icon.view().display_object().emit_event(mouse::Enter::default());
 
         // We expect the button to be hovered by the mouse
         assert!(visibility_icon.frp.is_hovered.value());
@@ -449,7 +450,7 @@ mod test {
         assert_eq!(app.frp.tooltip.value().content(), Some("Show preview"));
 
         // Move the mouse away again
-        visibility_icon.view().events_deprecated.mouse_out.emit(());
+        visibility_icon.view().display_object().emit_event(mouse::Leave::default());
 
         // We expect the tooltip to be gone
         assert_eq!(app.frp.tooltip.value().content(), None);
