@@ -71,6 +71,7 @@ export enum CheckState {
 
 /** Props for a {@link ProjectIcon}. */
 export interface ProjectIconProps {
+    keyProp: string
     project: backendModule.ProjectAsset
     rowState: assetsTable.AssetRowState
     setRowState: React.Dispatch<React.SetStateAction<assetsTable.AssetRowState>>
@@ -85,6 +86,7 @@ export interface ProjectIconProps {
 /** An interactive icon indicating the status of a project. */
 export default function ProjectIcon(props: ProjectIconProps) {
     const {
+        keyProp: key,
         project,
         rowState,
         setRowState,
@@ -219,7 +221,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
                 break
             }
             case assetEventModule.AssetEventType.createProject: {
-                if (event.placeholderId === project.id) {
+                if (event.placeholderId === key) {
                     setState(backendModule.ProjectState.openInProgress)
                     setOnSpinnerStateChange(() => event.onSpinnerStateChange)
                 } else if (event.onSpinnerStateChange === onSpinnerStateChange) {

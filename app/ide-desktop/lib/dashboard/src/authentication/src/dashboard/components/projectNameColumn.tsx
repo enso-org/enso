@@ -145,6 +145,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
             }}
         >
             <ProjectIcon
+                keyProp={key}
                 project={item}
                 rowState={rowState}
                 setRowState={setRowState}
