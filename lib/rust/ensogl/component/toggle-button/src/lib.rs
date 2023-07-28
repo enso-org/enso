@@ -39,7 +39,7 @@ use ensogl_hardcoded_theme::component::toggle_button as theme;
 // ==================
 
 pub use display::shape::compound::from_cache::recolorized as any_cached;
-
+use ensogl_core::control::io::mouse;
 
 
 // =================
@@ -265,7 +265,10 @@ impl<Shape: ColorableShape + 'static> ToggleButton<Shape> {
         let output = &self.frp.private.output;
         let model = &self.model;
         let color = color::Animation::new(network);
-        let events = &model.hover_area.events_deprecated;
+        let mouse_down = model.icon.on_event::<mouse::Down>();
+        let mouse_up = model.icon.on_event::<mouse::Up>();
+        let mouse_enter = model.icon.on_event::<mouse::Enter>();
+        let mouse_leave = model.icon.on_event::<mouse::Leave>();
 
         // Explicitly define the tooltip placement if none was set. This ensures that this tooltip
         // is always correctly placed even when other components use tooltips as well. Otherwise,
@@ -277,10 +280,14 @@ impl<Shape: ColorableShape + 'static> ToggleButton<Shape> {
         };
 
         frp::extend! { network
+            mouse_down <- mouse_down.constant(());
+            mouse_up <- mouse_up.constant(());
+            mouse_enter <- mouse_enter.constant(());
+            mouse_leave <- mouse_leave.constant(());
 
             // === State ===
 
-            clicked <- events.mouse_down_primary.gate_not(&input.set_read_only);
+            clicked <- mouse_down.constant(()).gate_not(&input.set_read_only);
             toggle <- any_(input.toggle, clicked);
             output.state <+ output.state.not().sample(&toggle);
             output.state <+ input.set_state;
@@ -289,10 +296,10 @@ impl<Shape: ColorableShape + 'static> ToggleButton<Shape> {
 
             // === Mouse Interactions ===
 
-            output.mouse_over <+ events.mouse_over;
-            output.mouse_out  <+ events.mouse_out;
-            output.is_hovered <+ bool(&events.mouse_out, &events.mouse_over);
-            output.is_pressed <+ bool(&events.mouse_up_primary, &events.mouse_down_primary);
+            output.mouse_over <+ mouse_enter.constant(());
+            output.mouse_out  <+ mouse_leave.constant(());
+            output.is_hovered <+ bool(&mouse_leave, &mouse_enter);
+            output.is_pressed <+ bool(&mouse_up, &mouse_down);
 
 
             // === Color ===

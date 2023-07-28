@@ -415,6 +415,7 @@ impl ActionBar {
 
     /// Configure this action bar to use specific node layers.
     pub fn set_layers(&self, main: &MainNodeLayers) {
+        main.action_bar_icons.add(&self.model.icons);
         main.below_body_hover.add(&self.model.hover_area_below_nodes);
     }
 }
