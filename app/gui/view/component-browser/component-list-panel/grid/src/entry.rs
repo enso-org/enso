@@ -39,7 +39,7 @@ pub use crate::entry::style::Style;
 /// The number of pixels the entries backgrounds overlap each other.
 ///
 /// The entries need to overlap, otherwise we see artifacts at their boundaries.
-const ENTRIES_OVERLAP_PX: f32 = 2.0;
+const ENTRIES_OVERLAP_PX: f32 = 0.5;
 
 
 

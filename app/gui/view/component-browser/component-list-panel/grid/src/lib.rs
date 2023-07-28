@@ -528,10 +528,8 @@ impl component::Frp<Model> for Frp {
             grid.set_entries_size <+ style.map(|s| s.entry_size());
             grid.set_entries_params <+ entries_params;
             grid_selection_frp.set_entries_params <+ selection_entries_params;
-            trace input.set_top_margin;
             grid_extra_scroll_frp.set_margins <+
                 input.set_top_margin.map(|&top| grid_view::Margins { top, ..default() });
-            trace grid_extra_scroll_frp.set_margins;
 
 
             // === Header and Entries Models ===

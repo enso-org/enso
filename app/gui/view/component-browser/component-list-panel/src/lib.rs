@@ -253,7 +253,6 @@ impl component::Frp<Model> for Frp {
             output.size <+ style.map(|style| style.size());
 
             model.grid.set_top_margin <+ all_with(&model.button_panel.height, &style, |buttons_h, style| {
-                console_log!("{buttons_h} - ({} - {}).max(0.0)", style.panel.height, style.grid.height);
                 (buttons_h - (style.panel.height - style.grid.height - style.panel.padding_bottom)).max(0.0)
             });
 

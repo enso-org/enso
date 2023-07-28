@@ -157,7 +157,6 @@ impl Model {
 
     /// Set size of the documentation view.
     fn size_changed(&self, size: Vector2, fraction: f32) {
-        console_log!("FRACTION {fraction}");
         let visible_part = Vector2(size.x * fraction, size.y);
         self.outer_dom.set_xy(size / 2.0);
         self.overlay.set_size(visible_part);
@@ -168,10 +167,11 @@ impl Model {
     }
 
     /// Set the fraction of visible documentation panel. Used to animate showing/hiding the panel.
-    fn width_animation_changed(&self, size: Vector2, fraction: f32) {
+    fn width_animation_changed(&self, style: &Style, size: Vector2, fraction: f32) {
         let percentage = (1.0 - fraction) * 100.0;
-        self.inner_dom.set_style_or_warn("clip-path", format!("inset(0 {percentage}% 0 0)"));
-        self.outer_dom.set_style_or_warn("clip-path", format!("inset(0 {percentage}% 0 0)"));
+        let clip_path = format!("inset(0 {percentage}% 0 0 round {}px)", style.corner_radius);
+        self.inner_dom.set_style_or_warn("clip-path", &clip_path);
+        self.outer_dom.set_style_or_warn("clip-path", &clip_path);
         let actual_size = Vector2(size.x * fraction, size.y);
         self.overlay.set_size(actual_size);
         self.breadcrumbs.frp().set_size(Vector2(actual_size.x, 32.0));
@@ -331,7 +331,7 @@ impl View {
 
             width_anim.target <+ frp.set_visible.map(|&visible| if visible { 1.0 } else { 0.0 });
             width_anim.skip <+ frp.skip_animation;
-            _eval <- width_anim.value.map2(&size, f!((&f, &s) model.width_animation_changed(s, f)));
+            _eval <- width_anim.value.map3(&size, &style, f!((&f, &sz, st) model.width_animation_changed(st, sz, f)));
 
 
             // === Activation ===
