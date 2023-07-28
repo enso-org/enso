@@ -98,9 +98,9 @@ export default function ProjectIcon(props: ProjectIconProps) {
     const { unsetModal } = modalProvider.useSetModal()
 
     const shouldCheckIfActuallyOpen =
-        backend.type === backendModule.BackendType.remote &&
-        (project.projectState.type === backendModule.ProjectState.opened ||
-            project.projectState.type === backendModule.ProjectState.openInProgress)
+        project.projectState.type === backendModule.ProjectState.openInProgress ||
+        (backend.type === backendModule.BackendType.remote &&
+            project.projectState.type === backendModule.ProjectState.opened)
 
     const [state, setState] = React.useState(() => {
         if (shouldCheckIfActuallyOpen) {
@@ -286,9 +286,8 @@ export default function ProjectIcon(props: ProjectIconProps) {
                 let previousTimestamp = 0
                 const checkProjectResources = async () => {
                     if (backend.type === backendModule.BackendType.local) {
-                        // This should never happen, but still should be handled.
+                        await backend.openProject(project.id, null, project.title)
                         setState(backendModule.ProjectState.opened)
-                        setCheckState(CheckState.done)
                     } else {
                         try {
                             // This call will error if the VM is not ready yet.
