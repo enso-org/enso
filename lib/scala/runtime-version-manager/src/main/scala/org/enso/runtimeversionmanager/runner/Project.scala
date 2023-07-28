@@ -18,7 +18,7 @@ class Project(
   def edition: Option[Editions.RawEdition] = pkg.getConfig().edition
 
   /** The package name of the project. */
-  def name: String = pkg.name
+  def name: String = pkg.module
 
   /** The path to the content root of the project. */
   def path: Path = pkg.root.toPath

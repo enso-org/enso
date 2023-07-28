@@ -302,6 +302,7 @@ impl<'a> Builder<'a> {
         });
         for snippet in snippets {
             let component = Component {
+                label:      snippet.name.clone(),
                 suggestion: component::Suggestion::Virtual { snippet },
                 group_id:   Some(group_index),
                 match_info: Default::default(),
@@ -395,8 +396,12 @@ mod tests {
 
     fn check_filterable_components(list: &component::List, mut expected: Vec<&str>) {
         expected.sort();
-        let components =
-            list.components.iter().map(|component| component.label()).sorted().collect_vec();
+        let components = list
+            .components
+            .iter()
+            .map(|component| component.label_with_matched_alias())
+            .sorted()
+            .collect_vec();
         assert_eq!(components, expected);
     }
 

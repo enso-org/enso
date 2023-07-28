@@ -601,6 +601,7 @@ mock_data! { KeyboardEvent => Event
     fn alt_key(&self) -> bool;
     fn ctrl_key(&self) -> bool;
     fn shift_key(&self) -> bool;
+    fn meta_key(&self) -> bool;
 }
 
 

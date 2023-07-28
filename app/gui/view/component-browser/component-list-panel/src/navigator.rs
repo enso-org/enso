@@ -5,12 +5,8 @@
 
 use ensogl_core::prelude::*;
 
-use enso_frp as frp;
 use ensogl_core::data::color;
-use ensogl_core::display::shape::StyleWatchFrp;
-use ensogl_derive_theme::FromTheme;
-use ensogl_hardcoded_theme::application::component_browser::component_list_panel as list_panel_theme;
-use list_panel_theme::navigator as theme;
+use ensogl_hardcoded_theme::application::component_browser::component_list_panel::navigator as theme;
 
 
 

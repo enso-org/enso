@@ -70,7 +70,9 @@ class LanguageServerGatewayImpl[
     clientId: UUID,
     projectId: UUID
   ): F[ServerShutdownFailure, Unit] = {
-    implicit val timeout: Timeout = Timeout(timeoutConfig.shutdownTimeout)
+    implicit val timeout: Timeout = Timeout(
+      timeoutConfig.shutdownTimeout + timeoutConfig.delayedShutdownTimeout
+    )
     Async[F]
       .fromFuture { () =>
         (registry ? StopServer(clientId, projectId)).mapTo[ServerShutdownResult]

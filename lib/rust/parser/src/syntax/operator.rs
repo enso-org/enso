@@ -196,8 +196,7 @@ impl<'s> ExpressionBuilder<'s> {
             // it's acting as unary.
             (true, _, Some(prec)) => self.unary_operator(prec, assoc, Unary::Simple(opr)),
             // Outside of a nospace group, a unary-only operator is missing an operand.
-            (false, None, Some(_)) =>
-                self.operand(syntax::tree::apply_unary_operator(opr, None).into()),
+            (false, None, Some(_)) => self.unary_operator_section(opr),
             // Binary operator section (no LHS).
             (_, Some(prec), _) => self.binary_operator(prec, assoc, opr),
             // Failed to compute a role for the operator; this should not be possible.
@@ -211,6 +210,14 @@ impl<'s> ExpressionBuilder<'s> {
         assoc: token::Associativity,
         mut arity: Unary<'s>,
     ) {
+        if self.prev_type == Some(ItemType::Opr)
+            && let Some(prev_opr) = self.operator_stack.last_mut()
+            && let Arity::Binary { tokens, .. } = &mut prev_opr.opr
+            && !self.nospace
+            && let Unary::Simple(opr) = arity {
+            tokens.push(opr);
+            return;
+        }
         if self.prev_type == Some(ItemType::Ast) {
             self.application();
             if self.nospace {
@@ -221,6 +228,20 @@ impl<'s> ExpressionBuilder<'s> {
             }
         }
         self.push_operator(prec, assoc, Arity::Unary(arity));
+    }
+
+    fn unary_operator_section(&mut self, opr: token::Operator<'s>) {
+        if self.prev_type == Some(ItemType::Opr)
+            && let Some(prev_opr) = self.operator_stack.last_mut()
+            && let Arity::Binary { tokens, .. } = &mut prev_opr.opr {
+            // Multiple-operator error.
+            tokens.push(opr);
+        } else {
+            self.operand(Operand {
+                elided: 1,
+                ..Operand::from(syntax::tree::apply_unary_operator(opr, None))
+            });
+        }
     }
 
     /// Extend the expression with a binary operator, by pushing it to the `operator_stack` or
@@ -257,10 +278,14 @@ impl<'s> ExpressionBuilder<'s> {
         opr: Arity<'s>,
     ) {
         let opr = Operator { precedence, associativity, opr };
-        if self.prev_type != Some(ItemType::Opr) {
-            // If the previous item was also an operator, this must be a unary operator following a
-            // binary operator; we cannot reduce the stack because the unary operator must be
-            // evaluated before the binary operator, regardless of precedence.
+        // When a unary operator follows another operator, we defer reducing the stack because a
+        // unary operator's affinity for its operand is stronger than any operator precedence.
+        let defer_reducing_stack = match (&self.prev_type, &opr.opr) {
+            (Some(ItemType::Opr), Arity::Unary(Unary::Simple(_))) if self.nospace => true,
+            (Some(ItemType::Opr), Arity::Unary(Unary::Fragment { .. })) => true,
+            _ => false,
+        };
+        if !defer_reducing_stack {
             let mut rhs = self.output.pop();
             self.reduce(precedence, &mut rhs);
             if let Some(rhs) = rhs {
@@ -282,7 +307,7 @@ impl<'s> ExpressionBuilder<'s> {
             let rhs_ = rhs.take();
             let ast = match opr.opr {
                 Arity::Unary(Unary::Simple(opr)) =>
-                    Operand::from(rhs_).map(|item| syntax::tree::apply_unary_operator(opr, item)),
+                    Operand::new(rhs_).map(|item| syntax::tree::apply_unary_operator(opr, item)),
                 Arity::Unary(Unary::Invalid { token, error }) => Operand::from(rhs_)
                     .map(|item| syntax::tree::apply_unary_operator(token, item).with_error(error)),
                 Arity::Unary(Unary::Fragment { mut fragment }) => {
@@ -301,6 +326,24 @@ impl<'s> ExpressionBuilder<'s> {
                         let rhs = rhs_.map(syntax::Tree::from);
                         let ast = syntax::tree::apply_operator(lhs, tokens, rhs);
                         Operand::from(ast)
+                    } else if self.nospace
+                            && tokens.len() < 2
+                            && let Some(opr) = tokens.first()
+                            && opr.properties.can_form_section() {
+                        let mut rhs = None;
+                        let mut elided = 0;
+                        let mut wildcards = 0;
+                        if let Some(rhs_) = rhs_ {
+                            rhs = Some(rhs_.value);
+                            elided += rhs_.elided;
+                            wildcards += rhs_.wildcards;
+                        }
+                        elided += lhs.is_none() as u32 + rhs.is_none() as u32;
+                        let mut operand = Operand::from(lhs)
+                            .map(|lhs| syntax::tree::apply_operator(lhs, tokens, rhs));
+                        operand.elided += elided;
+                        operand.wildcards += wildcards;
+                        operand
                     } else {
                         let rhs = rhs_.map(syntax::Tree::from);
                         let mut elided = 0;
@@ -334,16 +377,39 @@ impl<'s> ExpressionBuilder<'s> {
         out
     }
 
+    /// Extend the expression with the contents of a [`Self`] built from a subexpression that
+    /// contains no spaces.
     pub fn extend_from(&mut self, child: &mut Self) {
-        if child.output.is_empty() && let Some(op) = child.operator_stack.pop() {
-            match op.opr {
-                Arity::Unary(Unary::Simple(un)) => self.operator(un),
-                Arity::Unary(Unary::Invalid{ .. }) => unreachable!(),
-                Arity::Unary(Unary::Fragment{ .. }) => unreachable!(),
-                Arity::Binary { tokens, .. } => tokens.into_iter().for_each(|op| self.operator(op)),
-            };
+        if child.output.is_empty() {
+            // If the unspaced subexpression doesn't contain any non-operators, promote each
+            // operator in the (unspaced) child to an operator in the (spaced) parent.
+            //
+            // The case where `child.operator_stack.len() > 1` is subtle:
+            //
+            // A sequence of operator characters without intervening whitespace is lexed as multiple
+            // operators in some cases where the last character is `-`.
+            //
+            // In such a case, an unspaced expression-builder will:
+            // 1. Push the first operator to the operator stack (composed of all the operator
+            //    characters except the trailing `-`).
+            // 2. Push `-` to the operator stack, without reducing the expression (because the `-`
+            //    should be interpreted as a unary operator if a value follows it within the
+            //    unspaced subexpression).
+            //
+            // Thus, if we encounter an unspaced subexpression consisting only of multiple
+            // operators: When we append each operator to the parent (spaced) expression-builder, it
+            // will be reinterpreted in a *spaced* context. In a spaced context, the sequence of
+            // operators will cause a multiple-operator error.
+            for op in child.operator_stack.drain(..) {
+                match op.opr {
+                    Arity::Unary(Unary::Simple(un)) => self.operator(un),
+                    Arity::Unary(Unary::Invalid { .. }) => unreachable!(),
+                    Arity::Unary(Unary::Fragment { .. }) => unreachable!(),
+                    Arity::Binary { tokens, .. } =>
+                        tokens.into_iter().for_each(|op| self.operator(op)),
+                }
+            }
             child.prev_type = None;
-            debug_assert_eq!(&child.operator_stack, &[]);
             return;
         }
         if child.prev_type == Some(ItemType::Opr)
@@ -375,6 +441,9 @@ enum ItemType {
     Ast,
     Opr,
 }
+
+
+// === Operator ===
 
 /// An operator, whose arity and precedence have been determined.
 #[derive(Debug, PartialEq, Eq)]
@@ -426,7 +495,8 @@ struct Operand<T> {
     wildcards: u32,
 }
 
-/// Transpose.
+/// Transpose. Note that an absent input will not be treated as an elided value; for that
+/// conversion, use [`Operand::new`].
 impl<T> From<Option<Operand<T>>> for Operand<Option<T>> {
     fn from(operand: Option<Operand<T>>) -> Self {
         match operand {
@@ -468,6 +538,19 @@ impl<'s> From<Operand<syntax::Tree<'s>>> for syntax::Tree<'s> {
             value = syntax::Tree::template_function(wildcards, value);
         }
         value
+    }
+}
+
+impl<T> Operand<Option<T>> {
+    /// Lift an option value to a potentially-elided operand.
+    fn new(value: Option<Operand<T>>) -> Self {
+        match value {
+            None => Self { value: None, elided: 1, wildcards: default() },
+            Some(value) => {
+                let Operand { value, elided, wildcards } = value;
+                Self { value: Some(value), elided, wildcards }
+            }
+        }
     }
 }
 

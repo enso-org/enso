@@ -234,7 +234,7 @@ ensogl_core::define_endpoints_2! {
 /// clicking inside of the text area, it allows us to binary search the place of the mouse
 /// pointer.
 #[allow(missing_docs)]
-#[derive(Debug, Deref)]
+#[derive(Debug, Deref, display::Object)]
 #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
 pub struct View {
     #[deref]
@@ -380,12 +380,6 @@ impl View {
     pub fn push_glyph(&mut self, glyph: Glyph) {
         self.add_child(&glyph);
         self.glyphs.push(glyph);
-    }
-}
-
-impl display::Object for View {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
     }
 }
 
