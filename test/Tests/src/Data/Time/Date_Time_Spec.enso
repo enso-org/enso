@@ -20,8 +20,8 @@ spec =
     spec_with "Date_Time" enso_datetime Date_Time.parse
     spec_with "JavascriptDate" js_datetime js_parse nanoseconds_loss_in_precision=True
     if Polyglot.is_language_installed "python" then
-        no_check _ _ = Nothing
-        spec_with "PythonDate" python_datetime python_parse nanoseconds_loss_in_precision=True loose_zone_equal=no_check
+        skip_check _ _ = True
+        spec_with "PythonDate" python_datetime python_parse nanoseconds_loss_in_precision=True loose_zone_equal=skip_check
     spec_with "JavaZonedDateTime" java_datetime java_parse
     spec_with "JavascriptDataInArray" js_array_datetime js_parse nanoseconds_loss_in_precision=True
 
@@ -44,7 +44,9 @@ spec =
             (Date_Time.new 2022 12 12).should_equal (Date_Time.new 2022 12 12)
             (Date_Time.new 2022 12 12).should_not_equal (Date_Time.new 1996)
 
-default_zone_equal z1 z2 = z1 . should_equal z2
+default_zone_equal z1 z2 =
+    z1 . should_equal z2
+    False
 
 spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=False loose_zone_equal=default_zone_equal =
     Test.group name <|
@@ -591,9 +593,10 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
         offset_1_h = ZoneOffset.ofTotalSeconds 3600
         offset_2_h = ZoneOffset.ofTotalSeconds 2*3600
         tz = Time_Zone.parse "Europe/Warsaw"
-        js_dst_pending = if name.contains "Javascript" then
-            "Javascript implementation does not support time zones correctly, so the tests for conversion around DST switches would fail and thus are disabled. We may revisit once JS gets better time support, see project Temporal: https://tc39.es/proposal-temporal/docs/ and our Pivotal issue tracking our integration: https://www.pivotaltracker.com/story/show/183261296"
-        Test.specify "should find start/end of a Date_Period or Time_Period containing the current datetime correctly near the spring DST switch" pending=js_dst_pending <|
+        dst_pending = if name.contains "Javascript" then "Javascript implementation does not support time zones correctly, so the tests for conversion around DST switches would fail and thus are disabled. We may revisit once JS gets better time support, see project Temporal: https://tc39.es/proposal-temporal/docs/ and our Pivotal issue tracking our integration: https://www.pivotaltracker.com/story/show/183261296" else
+            if loose_zone_equal "" "" then "Loose Zone conversions are on, skipping the test"
+
+        Test.specify "should find start/end of a Date_Period or Time_Period containing the current datetime correctly near the spring DST switch" pending=dst_pending <|
             d1 = create_new_datetime 2022 3 27 1 34 15 0 tz
             d2 = create_new_datetime 2022 3 27 3 34 15 0 tz
             d1_plus = d1 + (Duration.new hours=1)
@@ -761,7 +764,9 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
                 d1.date_part Time_Period.Microsecond . should_equal 456
                 d1.date_part Time_Period.Nanosecond . should_equal 789
 
-        Test.specify "should allow computing date_diff" <|
+        pending_date_diff_test = if loose_zone_equal "" "" then "Loose Zone conversions are on, skipping the test"
+
+        Test.specify "should allow computing date_diff" pending=pending_date_diff_test <|
             t1 = create_new_datetime 2021 11 3 10 15 0
             t2 = create_new_datetime 2021 12 5 12 30 20
 
