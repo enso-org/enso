@@ -6,10 +6,26 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Just a dummy annotation to force the {@link BenchProcessor} to generate JMH sources
- * for all the discovered Enso benchmarks.
+ * Use this annotation to force the {@link BenchProcessor} to generate JMH sources
+ * for all the collected Enso benchmarks. The location of the benchmarks is encoded
+ * by the {@code projectRootPath}, {@code moduleName} and {@code variableName} parameters.
  */
 @Retention(RetentionPolicy.CLASS)
 @Target(ElementType.TYPE)
 public @interface GenerateBenchSources {
+
+  /**
+   * Path to the project root directory.
+   */
+  String projectRootPath();
+
+  /**
+   * Fully qualified name of the module within the project that defines all the benchmark {@link org.enso.benchmarks.BenchSuite suites}.
+   */
+  String moduleName();
+
+  /**
+   * Name of the variable that holds a list of all the benchmark {@link org.enso.benchmarks.BenchSuite suites}.
+   */
+  String variableName() default "all_benchmarks";
 }

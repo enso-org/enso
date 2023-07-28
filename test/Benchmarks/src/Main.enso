@@ -1,11 +1,11 @@
 import project.Vector.Distinct
 import project.Vector.Operations
 
-collect_all =
+all_benchmarks =
     vec_ops = Operations.all
     vec_distinct = Distinct.collect_benches
     [vec_ops, vec_distinct]
 
 main =
-    collect_all.each suite->
+    all_benchmarks.each suite->
         suite.run_main
