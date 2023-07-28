@@ -73,9 +73,7 @@ spec prefix connection =
                 t2.should_fail_with Name_Too_Long
                 t2.catch.entity_kind . should_equal "table"
                 t2.catch.name . should_equal name_large
-                t2.catch.to_display_text.should_contain max_table_name_length.to_text
-                # TODO display some unit like bytes
-                # t2.catch.to_display_text.should_contain ???
+                t2.catch.to_display_text.should_contain "too long"
 
                 ## This name may be supported or not, depending on how the
                    backend encodes the names.
@@ -279,7 +277,7 @@ spec prefix connection =
                 r1.should_fail_with Name_Too_Long
                 r1.catch.entity_kind . should_equal "column"
                 r1.catch.name . should_equal name_large
-                r1.catch.to_display_text.should_contain (max_column_name_length.to_text + " code units")
+                r1.catch.to_display_text.should_contain "too long"
 
                 src2 = Table.new [[name_ok, [1, 2, 3]], [name_large, [4, 5, 6]]]
                 r2 = src2.select_into_database_table connection (Name_Generator.random_name "long-column-names") temporary=True

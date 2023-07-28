@@ -3,6 +3,8 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Errors.Unimplemented.Unimplemented
 
+from project.Errors import Name_Too_Long
+
 ## PRIVATE
    An interface for a helper managing limitations of entity names.
 
@@ -31,6 +33,15 @@ type Naming_Properties
     size_limit =
         Unimplemented.throw "This is an interface only."
 
+    ## PRIVATE
+       Raises a `Name_Too_Long` error for the given name.
+       The implementation may customize the extra message appended to the error
+       explaining the limitations.
+    raise_name_too_long_error : Text -> Text -> Nothing ! Name_Too_Long
+    raise_name_too_long_error entity_kind name =
+        _ = [entity_kind, name]
+        Unimplemented.throw "This is an interface only."
+
 ## PRIVATE
    A default singleton implementation of a `Naming_Properties` which imposes no
    length limit.
@@ -50,6 +61,12 @@ type Unlimited_Naming_Properties
     ## PRIVATE
     size_limit : Integer | Nothing
     size_limit = Nothing
+
+    ## PRIVATE
+    raise_name_too_long_error : Text -> Text -> Nothing ! Name_Too_Long
+    raise_name_too_long_error entity_kind name =
+        _ = [entity_kind, name]
+        Panic.throw (Illegal_State.Error "`In_Memory_Naming_Helper.raise_name_too_long_error` but `size_limit` is `Nothing`. This is a bug in the Table library.")
 
 ## PRIVATE
    A helper method that recovers panics thrown by `Naming_Properties`.

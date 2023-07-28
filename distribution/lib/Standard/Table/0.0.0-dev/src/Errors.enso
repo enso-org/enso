@@ -601,16 +601,13 @@ type Column_Count_Exceeded
 type Name_Too_Long
     ## PRIVATE
        Indicates that a table/column name is too long for the given backend.
-    Error (entity_kind : Text) (name : Text) (max_length : Integer)
+    Error (entity_kind : Text) (name : Text) (extra_message : Text)
 
     ## PRIVATE
        Pretty print the column name too long error.
     to_display_text : Text
     to_display_text self =
-        name_length_graphemes = self.name.length
-        name_length_codeunits = self.name.char_vector.length
-        length_suffix = if name_length_graphemes == name_length_codeunits then "" else " code units"
-        "The " + self.entity_kind + " name [" + self.name.to_display_text + "] is too long for the given backend. It spans " + name_length_graphemes.to_text + length_suffix + " but the maximum length is " + self.max_length.to_text + length_suffix + "."
+        "The " + self.entity_kind + " name [" + self.name.to_display_text + "] is too long for the given backend." + self.extra_message
 
 type Truncated_Column_Names
     ## PRIVATE

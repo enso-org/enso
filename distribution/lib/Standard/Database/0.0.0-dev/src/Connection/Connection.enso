@@ -397,10 +397,8 @@ type Connection
        Returns a helper for checking and generating column names.
     column_naming_helper : Column_Naming_Helper
     column_naming_helper self =
-        max_column_name_length =
-            reported = self.jdbc_connection.with_metadata .getMaxColumnNameLength
-            if reported == 0 then Nothing else reported
-        Column_Naming_Helper.Value max_name_length_units=max_column_name_length
+        column_naming_properties = self.entity_naming_properties.column_names
+        Column_Naming_Helper.Value column_naming_properties
 
     ## PRIVATE
        Creates a Table reference that refers to a table with the given name.

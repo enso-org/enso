@@ -2322,4 +2322,4 @@ cast_if_needed column value_type = if column.value_type == value_type then colum
 
 ## PRIVATE
 naming_helpers : Column_Naming_Helper
-naming_helpers = Column_Naming_Helper.Value max_name_length_units=Nothing
+naming_helpers = Column_Naming_Helper.in_memory
