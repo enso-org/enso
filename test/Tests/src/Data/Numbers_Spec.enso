@@ -8,6 +8,8 @@ from Standard.Base.Data.Numbers import Number_Parse_Error
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 
+polyglot java import java.math.BigInteger
+
 Integer.is_even self = self % 2 == 0
 
 Decimal.get_fun_factor self = "Wow, " + self.to_text + " is such a fun number!"
@@ -797,4 +799,46 @@ spec =
             3.truncate . should_equal 3
             -3.truncate . should_equal -3
 
+    Test.group "BigInts" <|
+        bigint_spec name create mul =
+            Test.specify name+" 6 * 7" <|
+                six = create 6
+                seven = create 7
+                six*seven . should_equal 42
+
+            Test.specify name+" power of 3 with running_fold" <|
+                three = create 3
+
+                two_hundred = 1.up_to 200 . running_fold three a->_->
+                    mul a three
+
+                sum = two_hundred.reduce (+)
+                sum/two_hundred.length . should_equal 4323
+
+            Test.specify name+" power of 3 with map" <|
+                three = create 3
+
+                two_hundred = 1.up_to 200 . map i->
+                    1.up_to i . fold three mul
+
+                sum = two_hundred.reduce (+)
+                sum/two_hundred.length . should_equal 4323
+
+        to_java_bigint n = BigInteger.valueOf n.to_text
+        java_bigint_mul a b =
+            big_a = to_java_bigint a
+            big_b = to_java_bigint b
+            big_a.mul(big_b)
+
+        bigint_spec "Enso" (x->x) (*)
+        bigint_spec "Java" to_java_bigint java_bigint_mul
+        bigint_spec "JavaScript" to_js_bigint js_bigint_mul
+
 main = Test_Suite.run_main spec
+
+
+foreign js to_js_bigint n = """
+    return BigInt(n)
+
+foreign js js_bigint_mul a b = """
+    return a * b
