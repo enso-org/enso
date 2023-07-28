@@ -79,11 +79,13 @@ export interface KeyboardShortcut extends Modifiers {
     // Every printable character is a valid value for `key`, so unions and enums are both
     // not an option here.
     key: string
+    action: KeyboardAction
 }
 
 /** A mouse shortcut. If a key is omitted, that means its value does not matter. */
 export interface MouseShortcut extends Modifiers {
     button: MouseButton
+    action: MouseAction
 }
 
 /** All possible modifier keys. */
@@ -97,6 +99,33 @@ export const MODIFIERS =
           (['Meta', 'Shift', 'Alt', 'Ctrl'] as const)
         : // eslint-disable-next-line no-restricted-syntax
           (['Ctrl', 'Shift', 'Alt', 'Meta'] as const)
+
+// =============================
+// === makeKeyboardActionMap ===
+// =============================
+
+/** Create a mapping from {@link KeyboardAction} to `T`. */
+function makeKeyboardActionMap<T>(make: () => T): Record<KeyboardAction, T> {
+    return {
+        [KeyboardAction.open]: make(),
+        [KeyboardAction.rename]: make(),
+        [KeyboardAction.snapshot]: make(),
+        [KeyboardAction.moveToTrash]: make(),
+        [KeyboardAction.moveAllToTrash]: make(),
+        [KeyboardAction.share]: make(),
+        [KeyboardAction.label]: make(),
+        [KeyboardAction.duplicate]: make(),
+        [KeyboardAction.copy]: make(),
+        [KeyboardAction.cut]: make(),
+        [KeyboardAction.download]: make(),
+        [KeyboardAction.uploadFiles]: make(),
+        [KeyboardAction.newProject]: make(),
+        [KeyboardAction.newFolder]: make(),
+        [KeyboardAction.newDataConnector]: make(),
+        [KeyboardAction.closeModal]: make(),
+        [KeyboardAction.cancelEditName]: make(),
+    }
+}
 
 // ====================
 // === ShortcutInfo ===
@@ -150,34 +179,134 @@ function modifiersMatchEvent(
 
 /** Holds all keyboard and mouse shortcuts, and provides functions to detect them. */
 export class ShortcutRegistry {
+    keyboardShortcutsByKey: Record<string, KeyboardShortcut[]> = {}
+    allKeyboardHandlers: Record<
+        KeyboardAction,
+        ((event: KeyboardEvent | React.KeyboardEvent) => void)[]
+    > = makeKeyboardActionMap(() => [])
+    /** The last handler (if any) for each action in
+     * {@link ShortcutRegistry.allKeyboardHandlers}. */
+    activeKeyboardHandlers: Record<
+        KeyboardAction,
+        ((event: KeyboardEvent | React.KeyboardEvent) => void) | null
+    > = makeKeyboardActionMap(() => null)
+
     /** Create a {@link ShortcutRegistry}. */
     constructor(
         public keyboardShortcuts: Record<KeyboardAction, KeyboardShortcut[]>,
         public mouseShortcuts: Record<MouseAction, MouseShortcut[]>,
         public keyboardShorcutInfo: Record<KeyboardAction, ShortcutInfo>
-    ) {}
+    ) {
+        this.updateKeyboardShortcutsByKey()
+    }
 
-    /** Return `true` if the specified action is being triggered by the given event. */
-    matchesKeyboardAction(action: KeyboardAction, event: KeyboardEvent | React.KeyboardEvent) {
-        return this.keyboardShortcuts[action].some(
-            shortcut =>
-                shortcut.key === event.key.toUpperCase() && modifiersMatchEvent(shortcut, event)
+    /** Return `true` if the shortcut is being triggered by the keyboard event. */
+    matchesKeyboardShortcut(
+        this: void,
+        shortcut: KeyboardShortcut,
+        event: KeyboardEvent | React.KeyboardEvent
+    ) {
+        return (
+            shortcut.key.toUpperCase() === event.key.toUpperCase() &&
+            modifiersMatchEvent(shortcut, event)
         )
     }
 
-    /** Return `true` if the specified action is being triggered by the given event. */
-    matchesMouseAction(action: MouseAction, event: MouseEvent | React.MouseEvent) {
-        return this.mouseShortcuts[action].some(
-            shortcut => shortcut.button === event.button && modifiersMatchEvent(shortcut, event)
+    /** Return `true` if the shortcut is being triggered by the mouse event. */
+    matchesMouseShortcut(
+        this: void,
+        shortcut: MouseShortcut,
+        event: MouseEvent | React.MouseEvent
+    ) {
+        return shortcut.button === event.button && modifiersMatchEvent(shortcut, event)
+    }
+
+    /** Return `true` if the action is being triggered by the keyboard event. */
+    matchesKeyboardAction(action: KeyboardAction, event: KeyboardEvent | React.KeyboardEvent) {
+        return this.keyboardShortcuts[action].some(shortcut =>
+            this.matchesKeyboardShortcut(shortcut, event)
         )
+    }
+
+    /** Return `true` if the action is being triggered by the mouse event. */
+    matchesMouseAction(action: MouseAction, event: MouseEvent | React.MouseEvent) {
+        return this.mouseShortcuts[action].some(shortcut =>
+            this.matchesMouseShortcut(shortcut, event)
+        )
+    }
+
+    /** Trigger the appropriate handler for the action matching the currently pressed shortcut
+     * (if any). Return `true` if a matching action was found, otherwise return `false`. */
+    handleKeyboardEvent(event: KeyboardEvent | React.KeyboardEvent) {
+        for (const shortcut of this.keyboardShortcutsByKey[event.key.toUpperCase()] ?? []) {
+            if (this.matchesKeyboardShortcut(shortcut, event)) {
+                this.activeKeyboardHandlers[shortcut.action]?.(event)
+                // The matching `false` return is immediately after this loop.
+                // eslint-disable-next-line no-restricted-syntax
+                return true
+            }
+        }
+        return false
+    }
+
+    /** Regenerate {@link ShortcutRegistry.keyboardShortcutsByKey}. */
+    updateKeyboardShortcutsByKey() {
+        this.keyboardShortcutsByKey = {}
+        for (const shortcuts of Object.values(this.keyboardShortcuts)) {
+            for (const shortcut of shortcuts) {
+                const byKey = this.keyboardShortcutsByKey[shortcut.key.toUpperCase()]
+                if (byKey != null) {
+                    byKey.push(shortcut)
+                } else {
+                    this.keyboardShortcutsByKey[shortcut.key.toUpperCase()] = [shortcut]
+                }
+            }
+        }
+    }
+
+    /** Regenerate {@link ShortcutRegistry.activeKeyboardHandlers}. */
+    updateActiveKeyboardHandlers() {
+        for (const action of Object.values(KeyboardAction)) {
+            const handlers = this.allKeyboardHandlers[action]
+            this.activeKeyboardHandlers[action] = handlers[handlers.length - 1] ?? null
+        }
+    }
+
+    /** Update the currently active handler for each action, and return a function to unregister
+     * these handlers. */
+    registerKeyboardHandlers(
+        handlers: Partial<
+            Record<KeyboardAction, (event: KeyboardEvent | React.KeyboardEvent) => void>
+        >
+    ) {
+        for (const action of Object.values(KeyboardAction)) {
+            const handler = handlers[action]
+            if (handler != null) {
+                this.allKeyboardHandlers[action].push(handler)
+                this.activeKeyboardHandlers[action] = handler
+            }
+        }
+        const allNewHandlers = new Set(Object.values(handlers))
+        return () => {
+            for (const handlersForCurrentAction of Object.values(this.allKeyboardHandlers)) {
+                // Remove in-place the handlers that were added.
+                handlersForCurrentAction.splice(
+                    0,
+                    handlersForCurrentAction.length,
+                    ...handlersForCurrentAction.filter(handler => !allNewHandlers.has(handler))
+                )
+            }
+            this.updateActiveKeyboardHandlers()
+        }
     }
 }
 
 /** A shorthand for creating a {@link KeyboardShortcut}. Should only be used in
  * {@link DEFAULT_KEYBOARD_SHORTCUTS}. */
-function keybind(modifiers: ModifierKey[], key: string): KeyboardShortcut {
+function keybind(action: KeyboardAction, modifiers: ModifierKey[], key: string): KeyboardShortcut {
     return {
-        key: key,
+        key,
+        action,
         ctrl: modifiers.includes('Ctrl'),
         alt: modifiers.includes('Alt'),
         shift: modifiers.includes('Shift'),
@@ -187,9 +316,14 @@ function keybind(modifiers: ModifierKey[], key: string): KeyboardShortcut {
 
 /** A shorthand for creating a {@link MouseShortcut}. Should only be used in
  * {@link DEFAULT_MOUSE_SHORTCUTS}. */
-function mousebind(modifiers: ModifierKey[], button: MouseButton): MouseShortcut {
+function mousebind(
+    action: MouseAction,
+    modifiers: ModifierKey[],
+    button: MouseButton
+): MouseShortcut {
     return {
-        button: button,
+        button,
+        action,
         ctrl: modifiers.includes('Ctrl'),
         alt: modifiers.includes('Alt'),
         shift: modifiers.includes('Shift'),
@@ -206,23 +340,25 @@ const CTRL = (detect.platform() === detect.Platform.macOS ? 'Meta' : 'Ctrl') sat
 
 /** The default keyboard shortcuts. */
 const DEFAULT_KEYBOARD_SHORTCUTS: Record<KeyboardAction, KeyboardShortcut[]> = {
-    [KeyboardAction.open]: [keybind([], 'Enter')],
-    [KeyboardAction.rename]: [keybind([CTRL], 'R')],
-    [KeyboardAction.snapshot]: [keybind([CTRL], 'S')],
-    [KeyboardAction.moveToTrash]: [keybind([], 'Delete')],
-    [KeyboardAction.moveAllToTrash]: [keybind([], 'Delete')],
-    [KeyboardAction.share]: [keybind([CTRL], 'Enter')],
-    [KeyboardAction.label]: [keybind([CTRL], 'L')],
-    [KeyboardAction.duplicate]: [keybind([CTRL], 'D')],
-    [KeyboardAction.copy]: [keybind([CTRL], 'C')],
-    [KeyboardAction.cut]: [keybind([CTRL], 'X')],
-    [KeyboardAction.download]: [keybind([CTRL, 'Shift'], 'S')],
-    [KeyboardAction.uploadFiles]: [keybind([CTRL], 'U')],
-    [KeyboardAction.newProject]: [keybind([CTRL], 'N')],
-    [KeyboardAction.newFolder]: [keybind([CTRL, 'Shift'], 'N')],
-    [KeyboardAction.newDataConnector]: [keybind([CTRL, 'Alt'], 'N')],
-    [KeyboardAction.closeModal]: [keybind([], 'Escape')],
-    [KeyboardAction.cancelEditName]: [keybind([], 'Escape')],
+    [KeyboardAction.open]: [keybind(KeyboardAction.open, [], 'Enter')],
+    [KeyboardAction.rename]: [keybind(KeyboardAction.rename, [CTRL], 'R')],
+    [KeyboardAction.snapshot]: [keybind(KeyboardAction.snapshot, [CTRL], 'S')],
+    [KeyboardAction.moveToTrash]: [keybind(KeyboardAction.moveToTrash, [], 'Delete')],
+    [KeyboardAction.moveAllToTrash]: [keybind(KeyboardAction.moveAllToTrash, [], 'Delete')],
+    [KeyboardAction.share]: [keybind(KeyboardAction.share, [CTRL], 'Enter')],
+    [KeyboardAction.label]: [keybind(KeyboardAction.label, [CTRL], 'L')],
+    [KeyboardAction.duplicate]: [keybind(KeyboardAction.duplicate, [CTRL], 'D')],
+    [KeyboardAction.copy]: [keybind(KeyboardAction.copy, [CTRL], 'C')],
+    [KeyboardAction.cut]: [keybind(KeyboardAction.cut, [CTRL], 'X')],
+    [KeyboardAction.download]: [keybind(KeyboardAction.download, [CTRL, 'Shift'], 'S')],
+    [KeyboardAction.uploadFiles]: [keybind(KeyboardAction.uploadFiles, [CTRL], 'U')],
+    [KeyboardAction.newProject]: [keybind(KeyboardAction.newProject, [CTRL], 'N')],
+    [KeyboardAction.newFolder]: [keybind(KeyboardAction.newFolder, [CTRL, 'Shift'], 'N')],
+    [KeyboardAction.newDataConnector]: [
+        keybind(KeyboardAction.newDataConnector, [CTRL, 'Alt'], 'N'),
+    ],
+    [KeyboardAction.closeModal]: [keybind(KeyboardAction.closeModal, [], 'Escape')],
+    [KeyboardAction.cancelEditName]: [keybind(KeyboardAction.cancelEditName, [], 'Escape')],
 }
 
 /** The default UI data for every keyboard shortcut. */
@@ -257,10 +393,14 @@ const DEFAULT_KEYBOARD_SHORTCUT_INFO: Record<KeyboardAction, ShortcutInfo> = {
 
 /** The default mouse shortcuts. */
 const DEFAULT_MOUSE_SHORTCUTS: Record<MouseAction, MouseShortcut[]> = {
-    [MouseAction.editName]: [mousebind([CTRL], MouseButton.left)],
-    [MouseAction.selectAdditional]: [mousebind([CTRL], MouseButton.left)],
-    [MouseAction.selectRange]: [mousebind(['Shift'], MouseButton.left)],
-    [MouseAction.selectAdditionalRange]: [mousebind([CTRL, 'Shift'], MouseButton.left)],
+    [MouseAction.editName]: [mousebind(MouseAction.editName, [CTRL], MouseButton.left)],
+    [MouseAction.selectAdditional]: [
+        mousebind(MouseAction.selectAdditional, [CTRL], MouseButton.left),
+    ],
+    [MouseAction.selectRange]: [mousebind(MouseAction.selectRange, ['Shift'], MouseButton.left)],
+    [MouseAction.selectAdditionalRange]: [
+        mousebind(MouseAction.selectAdditionalRange, [CTRL, 'Shift'], MouseButton.left),
+    ],
 }
 
 /** The global instance of the shortcut registry. */
