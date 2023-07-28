@@ -79,9 +79,13 @@ type SQL_Warning
     Warning java_exception
 
     ## PRIVATE
+    message : Text
+    message self = self.java_exception.getMessage
+
+    ## PRIVATE
     to_display_text : Text
     to_display_text self =
-        "SQL Warning: " + self.java_exception.getMessage.to_display_text
+        "SQL Warning: " + self.message.to_display_text
 
 type Integrity_Error
     ## PRIVATE
