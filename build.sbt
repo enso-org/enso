@@ -1773,8 +1773,8 @@ lazy val `bench-processor` = (project in file("lib/scala/bench-processor"))
   .settings(
     frgaalJavaCompilerSetting,
     libraryDependencies ++= Seq(
-      "jakarta.xml.bind" % "jakarta.xml.bind-api"     % jaxbVersion               % "provided",
-      "com.sun.xml.bind" % "jaxb-impl"                % jaxbVersion               % "provided",
+      "jakarta.xml.bind" % "jakarta.xml.bind-api"     % jaxbVersion,
+      "com.sun.xml.bind" % "jaxb-impl"                % jaxbVersion,
       "org.openjdk.jmh"  % "jmh-core"                 % jmhVersion                % "provided",
       "org.openjdk.jmh"  % "jmh-generator-annprocess" % jmhVersion                % "provided",
       "org.netbeans.api" % "org-openide-util-lookup"  % netbeansApiVersion        % "provided",
