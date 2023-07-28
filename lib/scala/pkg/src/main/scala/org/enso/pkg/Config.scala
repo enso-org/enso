@@ -88,7 +88,8 @@ object Contact {
 /** Represents a package configuration stored in the `package.yaml` file.
   *
   * @param name the package display name
-  * @param module the package module name
+  * @param normalizedName the name that will be used as a prefix to module names
+  *                       of the project
   * @param namespace package namespace. This field is a temporary workaround
   *                  and will be removed with further improvements to the
   *                  libraries system. The default value is `local`.
@@ -111,7 +112,7 @@ object Contact {
   */
 case class Config(
   name: String,
-  module: Option[String],
+  normalizedName: Option[String],
   namespace: String,
   version: String,
   license: String,
@@ -129,7 +130,7 @@ case class Config(
 
   /** @return the module of name. */
   def moduleName: String =
-    module.getOrElse(NameValidation.normalizeName(name))
+    normalizedName.getOrElse(NameValidation.normalizeName(name))
 
 }
 
@@ -138,23 +139,23 @@ object Config {
   val defaultNamespace: String = "local"
 
   private object JsonFields {
-    val name: String         = "name"
-    val module: String       = "module"
-    val version: String      = "version"
-    val ensoVersion: String  = "enso-version"
-    val license: String      = "license"
-    val author: String       = "authors"
-    val namespace: String    = "namespace"
-    val maintainer: String   = "maintainers"
-    val edition: String      = "edition"
-    val preferLocalLibraries = "prefer-local-libraries"
-    val componentGroups      = "component-groups"
+    val name: String           = "name"
+    val normalizedName: String = "normalized-name"
+    val version: String        = "version"
+    val ensoVersion: String    = "enso-version"
+    val license: String        = "license"
+    val author: String         = "authors"
+    val namespace: String      = "namespace"
+    val maintainer: String     = "maintainers"
+    val edition: String        = "edition"
+    val preferLocalLibraries   = "prefer-local-libraries"
+    val componentGroups        = "component-groups"
   }
 
   implicit val decoder: Decoder[Config] = { json =>
     for {
-      name   <- json.get[String](JsonFields.name)
-      module <- json.get[Option[String]](JsonFields.module)
+      name           <- json.get[String](JsonFields.name)
+      normalizedName <- json.get[Option[String]](JsonFields.normalizedName)
       namespace <- json.getOrElse[String](JsonFields.namespace)(
         defaultNamespace
       )
@@ -190,7 +191,7 @@ object Config {
 
       Config(
         name                 = name,
-        module               = module,
+        normalizedName       = normalizedName,
         namespace            = namespace,
         version              = version,
         license              = license,
@@ -220,11 +221,13 @@ object Config {
       )
     }
 
-    val module = config.module.map(value => JsonFields.module -> value.asJson)
+    val normalizedName = config.normalizedName.map(value =>
+      JsonFields.normalizedName -> value.asJson
+    )
 
     val overrides =
       Seq(JsonFields.name -> config.name.asJson) ++
-      module.toSeq ++
+      normalizedName.toSeq ++
       Seq(
         JsonFields.namespace  -> config.namespace.asJson,
         JsonFields.version    -> config.version.asJson,

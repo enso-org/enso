@@ -64,7 +64,7 @@ class Package[F](
     * @return a package with the updated name
     */
   def setPackageName(newName: String): Package[F] = {
-    new Package(root, config.copy(module = Some(newName)), fileSystem)
+    new Package(root, config.copy(normalizedName = Some(newName)), fileSystem)
   }
 
   /** Stores the package metadata on the hard drive. If the package does not exist,
@@ -129,8 +129,9 @@ class Package[F](
     */
   def rename(newName: String): Package[F] = updateConfig { config =>
     config.copy(
-      name   = newName,
-      module = config.module.map(_ => NameValidation.normalizeName(newName))
+      name = newName,
+      normalizedName =
+        config.normalizedName.map(_ => NameValidation.normalizeName(newName))
     )
   }
 
@@ -184,7 +185,7 @@ class Package[F](
     * @return the module of this package.
     */
   def module: String =
-    config.module.getOrElse(NameValidation.normalizeName(name))
+    config.normalizedName.getOrElse(NameValidation.normalizeName(name))
 
   def namespace: String = config.namespace
 
@@ -268,7 +269,7 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
     * @param root the root location of the package
     * @param name the name of the new package
     * @param namespace the package namespace
-    * @param module the module name of the new package
+    * @param normalizedName normalized name of the new package
     * @param version version of the newly-created package
     * @param template the template for the new package
     * @param edition the edition to use for the project; if not specified, it
@@ -280,7 +281,7 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
     root: F,
     name: String,
     namespace: String                    = "local",
-    module: Option[String]               = None,
+    normalizedName: Option[String]       = None,
     version: String                      = "0.0.1",
     template: Template                   = Template.Default,
     edition: Option[Editions.RawEdition] = None,
@@ -291,7 +292,7 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
   ): Package[F] = {
     val config = Config(
       name                 = name,
-      module               = module,
+      normalizedName       = normalizedName,
       namespace            = namespace,
       version              = version,
       license              = license,
