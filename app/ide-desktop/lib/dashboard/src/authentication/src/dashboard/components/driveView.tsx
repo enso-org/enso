@@ -47,7 +47,7 @@ export interface DirectoryViewProps {
     assetListEvents: assetListEventModule.AssetListEvent[]
     dispatchAssetListEvent: (directoryEvent: assetListEventModule.AssetListEvent) => void
     query: string
-    doCreateProject: (templateId?: string) => void
+    doCreateProject: (templateId: string | null) => void
     doOpenIde: (project: backendModule.ProjectAsset) => void
     doCloseIde: () => void
     appRunner: AppRunner | null

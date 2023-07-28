@@ -16,7 +16,7 @@ import * as backendProvider from '../../providers/backend'
 
 /** Props for a {@link DriveBar}. */
 export interface DriveBarProps {
-    doCreateProject: () => void
+    doCreateProject: (templateId: string | null) => void
     doCreateDirectory: () => void
     doUploadFiles: (files: FileList) => void
 }
@@ -42,7 +42,9 @@ export default function DriveBar(props: DriveBarProps) {
             <div className="flex gap-2.5">
                 <button
                     className="flex items-center bg-frame-bg rounded-full h-8 px-2.5"
-                    onClick={doCreateProject}
+                    onClick={() => {
+                        doCreateProject(null)
+                    }}
                 >
                     <span className="font-semibold leading-5 h-6 py-px">New Project</span>
                 </button>

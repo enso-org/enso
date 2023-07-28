@@ -146,7 +146,6 @@ type KnownEvent = KnownEventsMap[keyof KnownEventsMap]
  * This is required so that no events are dropped. */
 export function useEvent<T extends KnownEvent>(): [events: T[], dispatchEvent: (event: T) => void] {
     const [events, setEvents] = React.useState<T[]>([])
-    // This is correct, as `useEffect` only runs once per render.
     React.useEffect(() => {
         if (events.length !== 0) {
             setEvents([])
@@ -154,13 +153,7 @@ export function useEvent<T extends KnownEvent>(): [events: T[], dispatchEvent: (
     }, [events])
     const dispatchEvent = React.useCallback(
         (innerEvent: T) => {
-            // This is not proper React, as it mutates state, *however* this state will be immutably
-            // replaced after every render anyway.
-            if (events.length === 0) {
-                setEvents([innerEvent])
-            } else {
-                events.push(innerEvent)
-            }
+            setEvents([...events, innerEvent])
         },
         [events]
     )

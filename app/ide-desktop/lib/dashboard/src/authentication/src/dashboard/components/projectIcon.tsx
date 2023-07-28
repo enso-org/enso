@@ -335,6 +335,14 @@ export default function ProjectIcon(props: ProjectIconProps) {
         appRunner?.stopApp()
         setCheckState(CheckState.notChecking)
         try {
+            if (
+                backend.type === backendModule.BackendType.local &&
+                state === backendModule.ProjectState.openInProgress
+            ) {
+                // Projects that are not opened cannot be closed.
+                // This is the only way to wait until the project is open.
+                await backend.openProject(project.id, null, project.title)
+            }
             await backend.closeProject(project.id, project.title)
         } finally {
             // This is not 100% correct, but it is better than never setting `isRunning` to `false`,

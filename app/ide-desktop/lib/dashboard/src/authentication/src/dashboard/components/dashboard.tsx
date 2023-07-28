@@ -211,7 +211,7 @@ export default function Dashboard(props: DashboardProps) {
 
     const doCreateProject = React.useCallback(
         (
-            templateId?: string | null,
+            templateId: string | null,
             onSpinnerStateChange?: (state: spinner.SpinnerState) => void
         ) => {
             dispatchAssetListEvent({

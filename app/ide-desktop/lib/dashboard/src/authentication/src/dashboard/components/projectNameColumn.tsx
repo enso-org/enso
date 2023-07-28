@@ -78,7 +78,10 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                 break
             }
             case assetEventModule.AssetEventType.createProject: {
-                if (key === event.placeholderId) {
+                // This should only run before this project gets replaced with the actual project
+                // by this event handler. In both cases `key` will match, so using `key` here
+                // is a mistake.
+                if (item.id === event.placeholderId) {
                     rowState.setPresence(presence.Presence.inserting)
                     try {
                         const createdProject = await backend.createProject({
