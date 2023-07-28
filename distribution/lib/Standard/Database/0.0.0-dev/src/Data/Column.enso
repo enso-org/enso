@@ -356,7 +356,8 @@ type Column
     between self lower upper =
         Value_Type.expect_comparable self lower <|
             Value_Type.expect_comparable self upper <|
-                new_name = self.naming_helpers.to_expression_text self + " between " + self.naming_helpers.to_expression_text lower + " and " + self.naming_helpers.to_expression_text upper
+                new_name = self.naming_helpers.concat <|
+                    [self.naming_helpers.to_expression_text self, "between", self.naming_helpers.to_expression_text lower, "and", self.naming_helpers.to_expression_text upper]
                 self.make_op "BETWEEN" [lower, upper] new_name
 
     ## ALIAS Add, Plus, Concatenate
@@ -546,7 +547,7 @@ type Column
     not : Column
     not self =
         Value_Type.expect_boolean self <|
-            new_name = "not " + self.naming_helpers.to_expression_text self
+            new_name = self.naming_helpers.concat ["not", self.naming_helpers.to_expression_text self]
             self.make_unary_op "NOT" new_name
 
     ## ALIAS IF
@@ -562,7 +563,8 @@ type Column
         Value_Type.expect_boolean self <|
             common_type = Value_Type_Helpers.find_common_type_for_arguments [when_true, when_false]
             common_type.if_not_error <|
-                new_name = "if " + self.naming_helpers.to_expression_text self + " then " + self.naming_helpers.to_expression_text when_true + " else " + self.naming_helpers.to_expression_text when_false
+                new_name = self.naming_helpers.concat <|
+                    ["if", self.naming_helpers.to_expression_text self, "then", self.naming_helpers.to_expression_text when_true, "else", self.naming_helpers.to_expression_text when_false]
                 op_result = self.make_op "IIF" [when_true, when_false] new_name
                 adapt_unified_column op_result common_type
 
@@ -855,7 +857,7 @@ type Column
        this column contains a `Nothing`.
     is_nothing : Column
     is_nothing self =
-        new_name = self.naming_helpers.to_expression_text self + " is null"
+        new_name = self.naming_helpers.concat [self.naming_helpers.to_expression_text self, "is null"]
         self.make_unary_op "IS_NULL" new_name
 
     ## Returns a column of booleans, with `True` items at the positions where
@@ -878,7 +880,7 @@ type Column
        this column contains an empty string or `Nothing`.
     is_empty : Column
     is_empty self = Value_Type.expect_text self <|
-        new_name = self.naming_helpers.to_expression_text self + " is empty"
+        new_name = self.naming_helpers.concat [self.naming_helpers.to_expression_text self, "is empty"]
         self.make_unary_op "IS_EMPTY" new_name
 
     ## Returns a column of booleans, with `True` items at the positions where

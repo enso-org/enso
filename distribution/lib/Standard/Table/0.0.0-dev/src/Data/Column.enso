@@ -366,7 +366,8 @@ type Column
     between self lower upper =
         Value_Type.expect_comparable self lower <|
             Value_Type.expect_comparable self upper <|
-                new_name = naming_helpers.to_expression_text self + " between " + naming_helpers.to_expression_text lower + " and " + naming_helpers.to_expression_text upper
+                new_name = naming_helpers.concat <|
+                    [naming_helpers.to_expression_text self, "between", naming_helpers.to_expression_text lower, "and", naming_helpers.to_expression_text upper]
                 result = (self >= lower) && (self <= upper)
                 result.rename new_name
 
@@ -645,7 +646,7 @@ type Column
     not : Column
     not self =
         Value_Type.expect_boolean self <|
-            new_name = "not " + naming_helpers.to_expression_text self
+            new_name = naming_helpers.concat ["not", naming_helpers.to_expression_text self]
             run_vectorized_unary_op self Java_Storage.Maps.NOT new_name
 
     ## ALIAS IF
@@ -669,7 +670,8 @@ type Column
             common_type = Value_Type_Helpers.find_common_type_for_arguments [when_true, when_false] . if_nothing Value_Type.Mixed
             storage_type = Storage.from_value_type_strict common_type
             storage_type.if_not_error <|
-                new_name = "if " + naming_helpers.to_expression_text self + " then " + naming_helpers.to_expression_text when_true + " else " + naming_helpers.to_expression_text when_false
+                new_name = naming_helpers.concat <|
+                    ["if", naming_helpers.to_expression_text self, "then", naming_helpers.to_expression_text when_true, "else", naming_helpers.to_expression_text when_false]
                 # Even if we have a MixedStorage with inferred type Bool, we ensure that the effective storage is BoolStorage, only one that supports iif.
                 s = self.java_column.getStorage.tryGettingMoreSpecializedStorage
 
@@ -932,7 +934,7 @@ type Column
              example_is_nothing = Examples.decimal_column.is_nothing
     is_nothing : Column
     is_nothing self =
-        new_name = naming_helpers.to_expression_text self + " is null"
+        new_name = naming_helpers.concat [naming_helpers.to_expression_text self, "is null"]
         run_vectorized_unary_op self Java_Storage.Maps.IS_NOTHING new_name fallback_fn=(x-> x == Nothing) expected_result_type=Value_Type.Boolean skip_nulls=False
 
     ## Returns a column of booleans, with `True` items at the positions where
@@ -973,7 +975,7 @@ type Column
     ## PRIVATE
     internal_is_empty : Column
     internal_is_empty self =
-        new_name = naming_helpers.to_expression_text self + " is empty"
+        new_name = naming_helpers.concat [naming_helpers.to_expression_text self, " is empty"]
         run_vectorized_unary_op self Java_Storage.Maps.IS_EMPTY new_name fallback_fn=Filter_Condition.Is_Empty.to_predicate expected_result_type=Value_Type.Boolean skip_nulls=False
 
     ## Returns a column of booleans, with `True` items at the positions where
@@ -1398,7 +1400,7 @@ type Column
              example_contains = Examples.text_column_1.is_in [1, 2, 5]
     is_in : Column | Vector -> Column
     is_in self vector =
-        result_name = naming_helpers.to_expression_text self + " " + "in " + naming_helpers.to_expression_text vector
+        result_name = naming_helpers.concat [naming_helpers.to_expression_text self, "in", naming_helpers.to_expression_text vector]
         as_vector = case vector of
             _ : Vector -> vector
             _ : Array -> Vector.from_polyglot_array vector

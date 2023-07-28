@@ -69,3 +69,14 @@ type Column_Naming_Helper
     to_expression_text self value =
         if is_column value then "[" + value.name.replace "]" "]]" + "]" else
             value.pretty
+
+    ## PRIVATE
+       Concatenates a vector of texts that are meant to make a single column
+       name, ensuring it will fit within the limit.
+
+       It may truncate the whole text or also truncate individual parts to try
+       to display every part.
+    concat : Vector Text -> Text
+    concat self texts =
+        # TODO!
+        texts.join " "
