@@ -593,7 +593,7 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
         offset_1_h = ZoneOffset.ofTotalSeconds 3600
         offset_2_h = ZoneOffset.ofTotalSeconds 2*3600
         tz = Time_Zone.parse "Europe/Warsaw"
-        dst_pending = if name.contains "Javascript" then "Javascript implementation does not support time zones correctly, so the tests for conversion around DST switches would fail and thus are disabled. We may revisit once JS gets better time support, see project Temporal: https://tc39.es/proposal-temporal/docs/ and our Pivotal issue tracking our integration: https://www.pivotaltracker.com/story/show/183261296" else
+        dst_pending = if name.contains "Javascript" then "Javascript implementation does not support time zones correctly, so the tests for conversion around DST switches would fail and thus are disabled. We may revisit once JS gets better time support, see project Temporal: https://tc39.es/proposal-temporal/docs/ and our issue tracking our integration: https://github.com/enso-org/enso/issues/5384" else
             if loose_zone_equal "" "" then "Loose Zone conversions are on, skipping the test"
 
         Test.specify "should find start/end of a Date_Period or Time_Period containing the current datetime correctly near the spring DST switch" pending=dst_pending <|
