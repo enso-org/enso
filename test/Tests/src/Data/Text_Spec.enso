@@ -1631,4 +1631,23 @@ spec =
             "aaa".replace r_ci "b" case_sensitivity=Case_Sensitivity.Insensitive . should_equal "ba"
             "Aaa".replace r_ci "b" case_sensitivity=Case_Sensitivity.Insensitive . should_equal "ba"
 
+    Test.group "Unicode Normalization" <|
+        Test.specify "normalizes correctly" <|
+            'aśbČd'.normalize . should_equal 'as\u0301bc\u0301d'
+            'ﬃﬄ'.normalize . should_equal 'ffiffl'
+            'as\u0301bc\u0301d'.normalize . should_equal 'as\u0301bc\u0301d'
+
+        Test.specify "checks for normalization correctly" <|
+            'aśbČd'.is_normalized . should_be_false
+            'as\u0301bc\u0301d'.is_normalized . should_be_true
+            'ffiffl'.is_normalized . should_be_false
+            'ﬃﬄ'.is_normalized . should_be_true
+
+        Test.specify "compare_normalizeds with normalization correctly" <|
+            'aśbČd'.compare_normalized 'as\u0301bc\u0301d' . should_be_true
+            'ﬃﬄ'.compare_normalized 'ffiffl' . should_be_true
+            'as\u0301bc\u0301d'.compare_normalized 'as\u0301bc\u0301d' . should_be_true
+            'aśbČd'.compare_normalized 'asbccd' . should_be_false
+            'ﬃﬄ'.compare_normalized 'fifl' . should_be_true
+
 main = Test_Suite.run_main spec

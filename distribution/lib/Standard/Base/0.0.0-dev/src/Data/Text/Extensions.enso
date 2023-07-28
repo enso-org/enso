@@ -1692,6 +1692,34 @@ Text.parse_time_of_day self format:Text="" locale:Locale=Locale.default = Time_O
 Text.parse_time_zone : Time_Zone ! Time_Error
 Text.parse_time_zone self = Time_Zone.parse self
 
+## ALIAS normalise
+
+   Perform Unicode normalization on the string, using NFD decomposition.
+
+   Arguments:
+   - s: The `Text` to normalize.
+Text.normalize : Text -> Text
+Text.normalize s = Text_Utils.normalize s
+
+## ALIAS is_normalised
+
+   Determines whether the `Text` is already normalized.
+
+   Arguments:
+   - s: The `Text` to check the normalization of.
+Text.is_normalized : Text -> Boolean
+Text.is_normalized s = Text_Utils.isNormalized s
+
+## ALIAS compare_normalised
+
+   Compares two strings in normalized form, using NFD decomposition.
+
+   Arguments:
+   - a: The `Text` to compare.
+   - b: The `Text` to compare.
+Text.compare_normalized : Text -> Text -> Integer
+Text.compare_normalized a b = Text_Utils.compare_normalized a b
+
 ## PRIVATE
    Returns a new Text constructed by slicing the input according to the provided
    ranges. The ranges are assumed to have step equal to 1 and bounds within the

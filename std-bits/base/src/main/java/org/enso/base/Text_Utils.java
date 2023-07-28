@@ -607,6 +607,13 @@ public class Text_Utils {
   }
 
   /**
+   * Determines whether the string is already normalized.
+   */
+  public static boolean isNormalized(String str) {
+    return Normalizer2.isNormalized(str);
+  }
+
+  /**
    * Checks if the given string consists only of whitespace characters.
    *
    * @param text the string to check
