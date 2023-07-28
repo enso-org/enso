@@ -142,3 +142,12 @@ type Text
              "14.95€".is_normalized
     is_normalized : Boolean
     is_normalized self = @Builtin_Method "Text.is_normalized"
+
+    ## ALIAS normalise
+
+       Perform Unicode normalization on the string, using NFD decomposition.
+
+       Arguments:
+       - s: The `Text` to normalize.
+    normalize : Text -> Text
+    normalize self = Text_Utils.normalize self
