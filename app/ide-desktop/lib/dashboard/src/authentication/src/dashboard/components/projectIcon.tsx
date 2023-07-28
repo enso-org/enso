@@ -178,6 +178,9 @@ export default function ProjectIcon(props: ProjectIconProps) {
 
     React.useEffect(() => {
         onSpinnerStateChange?.(spinner.SpinnerState.initial)
+        return () => {
+            onSpinnerStateChange?.(null)
+        }
     }, [onSpinnerStateChange])
 
     React.useEffect(() => {
