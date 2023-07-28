@@ -25,8 +25,9 @@ source files. In order to change, e.g., the number of measurement iterations, yo
 modify the parameter to the `@Measurement` annotation.
 
 ### Debugging the benchmarks
-Currently, the best way to debug the benchmark is to set the `@Fork` annotation to 0, and to
-run `withDebug` command like this:
+
+Make sure your IDE listens for JDWP connection at port 5005.
+Debug the benchmark by running `withDebug` command like this:
 ```
 withDebug --debugger benchOnly -- <fully qualified benchmark name>
 ```
