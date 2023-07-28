@@ -3,15 +3,18 @@ import * as React from 'react'
 
 import * as assetEventModule from '../events/assetEvent'
 import * as backendModule from '../backend'
+import * as modalProvider from '../../providers/modal'
+import * as shortcuts from '../shortcuts'
 
 import * as assetsTable from './assetsTable'
 import * as tableRow from './tableRow'
+import ConfirmDeleteModal from './confirmDeleteModal'
+import ContextMenu from './contextMenu'
+import ContextMenuEntry from './contextMenuEntry'
+import ContextMenuSeparator from './contextMenuSeparator'
 import ContextMenus from './contextMenus'
-import DirectoryContextMenu from './directoryContextMenu'
-import FileContextMenu from './fileContextMenu'
 import GlobalContextMenu from './globalContextMenu'
-import ProjectContextMenu from './projectContextMenu'
-import SecretContextMenu from './secretContextMenu'
+import ManagePermissionsModal from './managePermissionsModal'
 
 /** Props for a {@link AssetContextMenu}. */
 export interface AssetContextMenuProps<T extends backendModule.AnyAsset> {
@@ -21,57 +24,132 @@ export interface AssetContextMenuProps<T extends backendModule.AnyAsset> {
         assetsTable.AssetRowState,
         T['id']
     >
-    event: React.MouseEvent
+    event: React.MouseEvent<HTMLElement>
+    eventTarget: HTMLElement
     dispatchAssetEvent: (assetEvent: assetEventModule.AssetEvent) => void
     doDelete: () => Promise<void>
 }
 
 /** The context menu for an arbitrary {@link backendModule.Asset}. */
 export default function AssetContextMenu(props: AssetContextMenuProps<backendModule.AnyAsset>) {
-    let contextMenu: JSX.Element | null
-    switch (props.innerProps.item.type) {
-        // The type assertions are SAFE, as the `item.type` matches.
-        /* eslint-disable no-restricted-syntax */
-        case backendModule.AssetType.directory: {
-            contextMenu = (
-                <DirectoryContextMenu
-                    {...(props as AssetContextMenuProps<backendModule.DirectoryAsset>)}
-                />
-            )
-            break
-        }
-        case backendModule.AssetType.project: {
-            contextMenu = (
-                <ProjectContextMenu
-                    {...(props as AssetContextMenuProps<backendModule.ProjectAsset>)}
-                />
-            )
-            break
-        }
-        case backendModule.AssetType.file: {
-            contextMenu = (
-                <FileContextMenu {...(props as AssetContextMenuProps<backendModule.FileAsset>)} />
-            )
-            break
-        }
-        case backendModule.AssetType.secret: {
-            contextMenu = (
-                <SecretContextMenu
-                    {...(props as AssetContextMenuProps<backendModule.SecretAsset>)}
-                />
-            )
-            break
-        }
-        case backendModule.AssetType.specialLoading:
-        case backendModule.AssetType.specialEmpty: {
-            contextMenu = null
-            break
-        }
-        /* eslint-enable no-restricted-syntax */
-    }
+    const {
+        innerProps: {
+            item,
+            state: { dispatchAssetEvent },
+            setRowState,
+        },
+        event,
+        eventTarget,
+        doDelete,
+    } = props
+    const { setModal, unsetModal } = modalProvider.useSetModal()
     return (
-        <ContextMenus key={props.innerProps.item.id} event={props.event}>
-            {contextMenu}
+        <ContextMenus key={props.innerProps.item.id} event={event}>
+            <ContextMenu>
+                {item.type === backendModule.AssetType.project && (
+                    <ContextMenuEntry
+                        action={shortcuts.KeyboardAction.open}
+                        onClick={() => {
+                            unsetModal()
+                            dispatchAssetEvent({
+                                type: assetEventModule.AssetEventType.openProject,
+                                id: item.id,
+                            })
+                        }}
+                    />
+                )}
+                <ContextMenuEntry
+                    disabled={
+                        item.type !== backendModule.AssetType.project &&
+                        item.type !== backendModule.AssetType.directory
+                    }
+                    action={shortcuts.KeyboardAction.rename}
+                    onClick={() => {
+                        setRowState(oldRowState => ({
+                            ...oldRowState,
+                            isEditingName: true,
+                        }))
+                        unsetModal()
+                    }}
+                />
+                <ContextMenuEntry
+                    disabled
+                    action={shortcuts.KeyboardAction.snapshot}
+                    onClick={() => {
+                        // No backend support yet.
+                    }}
+                />
+                <ContextMenuEntry
+                    action={shortcuts.KeyboardAction.moveToTrash}
+                    onClick={() => {
+                        setModal(
+                            <ConfirmDeleteModal
+                                description={`the ${item.type} '${item.title}'`}
+                                doDelete={doDelete}
+                            />
+                        )
+                    }}
+                />
+                <ContextMenuSeparator />
+                <ContextMenuEntry
+                    action={shortcuts.KeyboardAction.share}
+                    onClick={() => {
+                        setModal(
+                            <ManagePermissionsModal
+                                asset={item}
+                                eventTarget={eventTarget}
+                                initialPermissions={[]}
+                                emailsOfUsersWithPermission={
+                                    new Set(
+                                        item.permissions?.map(
+                                            permission => permission.user.user_email
+                                        )
+                                    )
+                                }
+                                onSubmit={() => {
+                                    // TODO[sb]: Update the asset's permissions list.
+                                }}
+                            />
+                        )
+                    }}
+                />
+                <ContextMenuEntry
+                    disabled
+                    action={shortcuts.KeyboardAction.label}
+                    onClick={() => {
+                        // No backend support yet.
+                    }}
+                />
+                <ContextMenuSeparator />
+                <ContextMenuEntry
+                    disabled
+                    action={shortcuts.KeyboardAction.duplicate}
+                    onClick={() => {
+                        // No backend support yet.
+                    }}
+                />
+                <ContextMenuEntry
+                    disabled
+                    action={shortcuts.KeyboardAction.copy}
+                    onClick={() => {
+                        // No backend support yet.
+                    }}
+                />
+                <ContextMenuEntry
+                    disabled
+                    action={shortcuts.KeyboardAction.cut}
+                    onClick={() => {
+                        // No backend support yet.
+                    }}
+                />
+                <ContextMenuEntry
+                    disabled
+                    action={shortcuts.KeyboardAction.download}
+                    onClick={() => {
+                        // No backend support yet.
+                    }}
+                />
+            </ContextMenu>
             <GlobalContextMenu {...props} />
         </ContextMenus>
     )

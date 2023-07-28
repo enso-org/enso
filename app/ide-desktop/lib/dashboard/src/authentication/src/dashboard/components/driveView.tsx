@@ -184,9 +184,9 @@ export default function DirectoryView(props: DirectoryViewProps) {
 
     React.useEffect(() => {
         if (nameOfProjectToImmediatelyOpen != null) {
-            const projectToLoad = assets.find(
-                projectAsset => projectAsset.title === nameOfProjectToImmediatelyOpen
-            )
+            const projectToLoad = assets
+                .filter(backendModule.assetIsProject)
+                .find(projectAsset => projectAsset.title === nameOfProjectToImmediatelyOpen)
             if (projectToLoad != null) {
                 dispatchAssetEvent({
                     type: assetEventModule.AssetEventType.openProject,

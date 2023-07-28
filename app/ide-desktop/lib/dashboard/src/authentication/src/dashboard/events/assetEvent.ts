@@ -32,7 +32,7 @@ interface AssetBaseEvent<Type extends AssetEventType> {
 
 /** All possible events. */
 interface AssetEvents {
-    newProject: AssetNewProjecctEvent
+    newProject: AssetNewProjectEvent
     newFolder: AssetNewFolderEvent
     uploadFiles: AssetUploadFilesEvent
     newSecret: AssetNewSecretEvent
@@ -52,7 +52,7 @@ type SanityCheck<
 > = T
 
 /** A signal to create a project. */
-export interface AssetNewProjecctEvent extends AssetBaseEvent<AssetEventType.newProject> {
+export interface AssetNewProjectEvent extends AssetBaseEvent<AssetEventType.newProject> {
     placeholderId: backendModule.ProjectId
     templateId: string | null
 }
@@ -75,7 +75,7 @@ export interface AssetNewSecretEvent extends AssetBaseEvent<AssetEventType.newSe
 
 /** A signal to open the specified project. */
 export interface AssetOpenProjectEvent extends AssetBaseEvent<AssetEventType.openProject> {
-    id: backendModule.AssetId
+    id: backendModule.ProjectId
 }
 
 /** A signal to cancel automatically opening any project that is currently opening. */

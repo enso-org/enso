@@ -41,14 +41,15 @@ export const theme = {
             'permission-view': 'rgba(0, 0, 0, 0.10)',
             'call-to-action': '#fa6c08',
             'black-a16': 'rgba(0, 0, 0, 0.16)',
+            'black-a30': 'rgba(0, 0, 0, 0.30)',
             'gray-350': '#b7bcc5',
-        },
-        flexGrow: {
-            2: '2',
         },
         fontSize: {
             xs: '0.71875rem',
             sm: '0.8125rem',
+        },
+        lineHeight: {
+            '170': '170%',
         },
         spacing: {
             '1.75': '0.4375rem',

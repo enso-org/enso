@@ -3,6 +3,7 @@ import * as React from 'react'
 
 import * as assetListEventModule from '../events/assetListEvent'
 import * as backend from '../backend'
+import * as modalProvider from '../../providers/modal'
 import * as shortcuts from '../shortcuts'
 
 import * as assetContextMenu from './assetContextMenu'
@@ -21,6 +22,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
             state: { dispatchAssetListEvent },
         },
     } = props
+    const { unsetModal } = modalProvider.useSetModal()
     const filesInputRef = React.useRef<HTMLInputElement>(null)
     return (
         <ContextMenu>
@@ -43,12 +45,14 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
             <ContextMenuEntry
                 action={shortcuts.KeyboardAction.uploadFiles}
                 onClick={() => {
+                    unsetModal()
                     filesInputRef.current?.click()
                 }}
             />
             <ContextMenuEntry
                 action={shortcuts.KeyboardAction.newProject}
                 onClick={() => {
+                    unsetModal()
                     dispatchAssetListEvent({
                         type: assetListEventModule.AssetListEventType.newProject,
                         parentId: item.parentId,
@@ -59,6 +63,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
             <ContextMenuEntry
                 action={shortcuts.KeyboardAction.newFolder}
                 onClick={() => {
+                    unsetModal()
                     dispatchAssetListEvent({
                         type: assetListEventModule.AssetListEventType.newFolder,
                         parentId: item.parentId,

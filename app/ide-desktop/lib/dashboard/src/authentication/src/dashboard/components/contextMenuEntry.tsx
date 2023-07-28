@@ -25,13 +25,13 @@ export default function ContextMenuEntry(props: ContextMenuEntryProps) {
         <button
             disabled={disabled}
             title={title}
-            className="flex place-content-between h-8 p-1 hover:bg-black-a10 first:rounded-t-2xl last:rounded-b-2xl text-left disabled:opacity-50"
+            className="flex items-center place-content-between h-8 p-1 hover:bg-black-a10 first:rounded-t-2xl last:rounded-b-2xl text-left disabled:opacity-50"
             onClick={event => {
                 event.stopPropagation()
                 onClick(event)
             }}
         >
-            <div className="flex gap-3">
+            <div className="flex items-center gap-3">
                 <SvgMask src={info.icon} className={info.colorClass} />
                 {info.name}
             </div>

@@ -49,7 +49,7 @@ export default function ContextMenus(props: ContextMenusProps) {
             <div
                 ref={contextMenuRef}
                 style={{ left, top }}
-                className="sticky flex items-start gap-0.5 w-min"
+                className="sticky flex pointer-events-none items-start gap-0.5 w-min"
                 onClick={clickEvent => {
                     clickEvent.stopPropagation()
                 }}

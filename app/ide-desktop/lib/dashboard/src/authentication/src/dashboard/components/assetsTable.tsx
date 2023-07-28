@@ -162,6 +162,7 @@ function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
                             <AssetContextMenu
                                 innerProps={innerProps}
                                 event={event}
+                                eventTarget={event.currentTarget}
                                 dispatchAssetEvent={dispatchAssetEvent}
                                 doDelete={doDelete}
                             />

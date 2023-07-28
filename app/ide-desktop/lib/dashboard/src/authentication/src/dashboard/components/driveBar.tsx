@@ -9,6 +9,7 @@ import DataUploadIcon from 'enso-assets/data_upload.svg'
 
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
+import Button from './button'
 
 // ================
 // === DriveBar ===
@@ -46,15 +47,17 @@ export default function DriveBar(props: DriveBarProps) {
                 >
                     <span className="font-semibold leading-5 h-6 py-px">New Project</span>
                 </button>
-                <div className="flex items-center bg-frame rounded-full gap-3 h-8 px-3">
+                <div className="flex items-center text-black-a30 bg-frame rounded-full gap-3 h-8 px-3">
                     {backend.type !== backendModule.BackendType.local && (
                         <>
-                            <button onClick={doCreateDirectory}>
-                                <img src={AddFolderIcon} />
-                            </button>
-                            <button disabled className="opacity-50">
-                                <img src={AddConnectorIcon} />
-                            </button>
+                            <Button active image={AddFolderIcon} onClick={doCreateDirectory} />
+                            <Button
+                                disabled
+                                image={AddConnectorIcon}
+                                onClick={() => {
+                                    // No backend support yet.
+                                }}
+                            />
                         </>
                     )}
                     <input
@@ -66,20 +69,21 @@ export default function DriveBar(props: DriveBarProps) {
                         className="hidden"
                         onInput={doUploadFiles}
                     />
-                    <button
+                    <Button
+                        active={backend.type !== backendModule.BackendType.local}
                         disabled={backend.type === backendModule.BackendType.local}
-                        className={
-                            backend.type === backendModule.BackendType.local ? 'opacity-50' : ''
-                        }
+                        image={DataUploadIcon}
                         onClick={() => {
                             uploadFilesRef.current?.click()
                         }}
-                    >
-                        <img src={DataUploadIcon} />
-                    </button>
-                    <button disabled className="opacity-50">
-                        <img src={DataDownloadIcon} />
-                    </button>
+                    />
+                    <Button
+                        disabled
+                        image={DataDownloadIcon}
+                        onClick={() => {
+                            // No backend support yet.
+                        }}
+                    />
                 </div>
             </div>
         </div>
