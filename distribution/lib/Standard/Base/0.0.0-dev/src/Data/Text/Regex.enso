@@ -62,16 +62,20 @@ type Regex
        (See https://github.com/oracle/graal/blob/master/regex/docs/README.md)
     Value (case_insensitive : Boolean) (internal_regex_object : Any)
 
+    ## Gets the original pattern used to create this `Regex`.
+    pattern : Text
+    pattern self = self.internal_regex_object.pattern
+
     ## PRIVATE
        Converts this value to a JSON serializable object.
     to_js_object : JS_Object
     to_js_object self =
-        JS_Object.from_pairs [["type", "Regex"], ["case_insensitive", self.case_insensitive], ["pattern", self.internal_regex_object.pattern]]
+        JS_Object.from_pairs [["type", "Regex"], ["case_insensitive", self.case_insensitive], ["pattern", self.pattern]]
 
     ## PRIVATE
        Provides a human-readable representation of the `Regex`.
     to_display_text : Text
-    to_display_text self = "Regex /" + self.internal_regex_object.pattern + "/" + (if self.case_insensitive then "i" else "")
+    to_display_text self = "Regex /" + self.pattern + "/" + (if self.case_insensitive then "i" else "")
 
     ## Returns `True` if the input matches against the pattern described by
        `self`, otherwise `False`.
@@ -109,7 +113,7 @@ type Regex
     match_all : Text -> Vector Match ! Type_Error | Illegal_Argument
     match_all self input =
         Helpers.expect_text input <|
-            pattern_is_empty = self.internal_regex_object.pattern == ''
+            pattern_is_empty = self.pattern == ''
             if pattern_is_empty then Error.throw (Illegal_Argument.Error "Cannot run match_all with an empty pattern") else
                 builder = Vector.new_builder
                 it = Match_Iterator.new self input
@@ -262,7 +266,7 @@ type Regex
          Replace a literal string with a replacement value.
 
              pattern = Regex.compile "aa"
-             input = "aa ab aa ac ad aa aa ax"
+             input = "aa ab aa ac ad aa aa ax"s
              match = pattern.replace input "xyz"
              match == "xyz ab xyz ac ad xyz xyz ax"
 
@@ -390,7 +394,7 @@ type Regex
             case_insensitive = case_sensitivity.is_case_insensitive_in_memory
             should_recompile = self.case_insensitive != case_insensitive
             if should_recompile.not then self else
-                Regex.compile self.internal_regex_object.pattern case_insensitive
+                Regex.compile self.pattern case_insensitive
 
     ## PRIVATE
 

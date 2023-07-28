@@ -3,15 +3,13 @@
 // FIXME[ao]: This code miss important documentation (e.g. for `Element`, `DragData` and `ListItem`)
 //  and may be unreadable at some places. It should be improved in several next debugging PRs.
 
-use crate::component::node::input::widget::prelude::*;
+use super::prelude::*;
 use crate::prelude::*;
 
 use crate::component::node::input::area::TEXT_SIZE;
+use crate::layers::CommonLayers;
 
-use ensogl::control::io::mouse;
 use ensogl::display;
-use ensogl::display::object;
-use ensogl::display::world::with_context;
 use ensogl::Animation;
 use ensogl_component::list_editor::ListEditor;
 use span_tree::node::Kind;
@@ -39,12 +37,12 @@ const INSERTION_OFFSET: f32 = ITEMS_GAP * 0.5;
 // === Element ===
 // ===============
 
-#[derive(Debug)]
+#[derive(Debug, display::Object)]
 struct Element {
     display_object: object::Instance,
     content:        object::Instance,
     #[allow(dead_code)]
-    background:     display::shape::Rectangle,
+    background:     Rectangle,
     expr_range:     Range<usize>,
     item_crumb:     usize,
     alive:          Option<()>,
@@ -75,7 +73,7 @@ enum ElementIdentity {
     FullIdentity(WidgetIdentity),
 }
 
-#[derive(Clone, CloneRef)]
+#[derive(Clone, CloneRef, display::Object)]
 struct ListItem {
     child_id:       Immutable<WidgetIdentity>,
     element_id:     Immutable<ElementIdentity>,
@@ -110,21 +108,15 @@ impl ListItem {
     }
 }
 
-impl display::Object for ListItem {
-    fn display_object(&self) -> &object::Instance {
-        &self.display_object
-    }
-}
-
 impl Element {
-    fn new() -> Self {
+    fn new(layers: &CommonLayers) -> Self {
         let display_object = object::Instance::new_named("Element");
         let content = object::Instance::new_named("Content");
-        let background = display::shape::Rectangle::new();
+        let background = Rectangle::new();
         background.set_color(display::shape::INVISIBLE_HOVER_COLOR);
         background.allow_grow().set_alignment_left_center();
         content.use_auto_layout().set_children_alignment_left_center();
-        with_context(|ctx| ctx.layers.label.add(&background));
+        layers.hover.add(&background);
         display_object.replace_children(&[background.display_object(), &content]);
         Self {
             display_object,
@@ -137,14 +129,8 @@ impl Element {
     }
 }
 
-impl display::Object for Element {
-    fn display_object(&self) -> &object::Instance {
-        &self.display_object
-    }
-}
-
 /// A model for the vector editor widget.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Debug, display::Object)]
 pub struct Widget {
     display_object: object::Instance,
     network:        frp::Network,
@@ -238,7 +224,7 @@ struct Model {
     /// It is stored in the model to allow animating its margins within the FRP network.
     append_insertion_point: Option<object::Instance>,
     #[allow(dead_code)]
-    background:             display::shape::Rectangle,
+    background:             Rectangle,
     elements:               HashMap<ElementIdentity, Element>,
     default_value:          DefaultValue,
     expression:             String,
@@ -254,10 +240,10 @@ impl Model {
         list.gap(ITEMS_GAP);
         list.set_size_hug_y(TEXT_SIZE).allow_grow_y();
         display_object.use_auto_layout().set_children_alignment_left_center();
-        let background = display::shape::Rectangle::new();
+        let background = Rectangle::new();
         background.set_color(display::shape::INVISIBLE_HOVER_COLOR);
         background.allow_grow().set_alignment_left_center();
-        background.set_margin_vh(0.0, -LIST_HOVER_MARGIN);
+        background.set_margin_xy((-LIST_HOVER_MARGIN, 0.0));
         list.add_child(&background);
 
         Self {
@@ -369,7 +355,7 @@ impl Model {
                             Some(new_items_range.map_or(i..i + 1, |r| r.start..i + 1));
                     }
 
-                    let element = entry.or_insert_with(Element::new);
+                    let element = entry.or_insert_with(|| Element::new(&ctx.layers));
                     set_margins(&insert, -INSERTION_OFFSET, INSERTION_OFFSET);
                     element.alive = Some(());
                     element.item_crumb = index;
@@ -538,7 +524,7 @@ impl Model {
     }
 }
 
-fn set_margins(object: &display::object::Instance, left: f32, right: f32) {
+fn set_margins(object: &object::Instance, left: f32, right: f32) {
     let margin = object.margin().x();
     let current_left = margin.start.as_pixels();
     let current_right = margin.end.as_pixels();
@@ -637,10 +623,6 @@ impl SpanWidget for Widget {
             }
         };
         Configuration::always(Config { item_widget: None, item_default })
-    }
-
-    fn root_object(&self) -> &object::Instance {
-        &self.display_object
     }
 
     fn new(_: &Config, ctx: &ConfigContext) -> Self {

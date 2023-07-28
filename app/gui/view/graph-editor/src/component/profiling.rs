@@ -127,19 +127,13 @@ ensogl::define_endpoints! {
 
 /// A toggle button that can be used to toggle the graph editor's view mode. It positions itself in
 /// the upper right corner of the scene.
-#[derive(Debug, Clone, CloneRef)]
+#[derive(Debug, Clone, CloneRef, Deref, display::Object)]
 pub struct Button {
+    #[deref]
     frp:    Frp,
+    #[display_object]
     button: ToggleButton<icon::Shape>,
     styles: StyleWatchFrp,
-}
-
-impl Deref for Button {
-    type Target = Frp;
-
-    fn deref(&self) -> &Self::Target {
-        &self.frp
-    }
 }
 
 impl Button {
@@ -198,11 +192,5 @@ impl Button {
 
         init_color_scheme.emit(());
         Button { frp, button, styles }
-    }
-}
-
-impl display::Object for Button {
-    fn display_object(&self) -> &display::object::Instance {
-        self.button.display_object()
     }
 }

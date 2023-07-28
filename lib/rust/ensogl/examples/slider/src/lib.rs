@@ -40,13 +40,13 @@ use ensogl_text_msdf::run_once_initialized;
 // ========================
 
 /// The slider collection model holds a set of sliders that can be instantiated and dropped.
-#[derive(Debug, Clone, CloneRef)]
+#[derive(Debug, Clone, CloneRef, display::Object)]
 pub struct Model {
     /// Vector that holds example sliders until they are dropped.
-    sliders:   Rc<RefCell<Vec<slider::Slider>>>,
-    app:       Application,
-    root:      display::object::Instance,
-    navigator: Navigator,
+    sliders:        Rc<RefCell<Vec<slider::Slider>>>,
+    app:            Application,
+    display_object: display::object::Instance,
+    navigator:      Navigator,
 }
 
 impl Model {
@@ -57,8 +57,8 @@ impl Model {
         let camera = scene.camera().clone_ref();
         let navigator = Navigator::new(scene, &camera);
         let sliders = Rc::new(RefCell::new(Vec::new()));
-        let root = display::object::Instance::new();
-        let model = Self { app, sliders, root, navigator };
+        let display_object = display::object::Instance::new();
+        let model = Self { app, sliders, display_object, navigator };
         model.init_sliders();
         model
     }
@@ -73,7 +73,7 @@ impl Model {
         slider1.frp.set_lower_limit_type(slider::SliderLimit::Soft);
         slider1.frp.set_upper_limit_type(slider::SliderLimit::Soft);
         slider1.frp.set_tooltip("Slider information tooltip.");
-        self.root.add_child(&slider1);
+        self.display_object.add_child(&slider1);
         self.sliders.borrow_mut().push(slider1);
 
         // # IMPORTANT
@@ -87,7 +87,7 @@ impl Model {
         // slider2.frp.set_value_indicator_color(color::Lcha(0.4, 0.7, 0.7, 1.0));
         // slider2.frp.set_slider_disabled(true);
         // slider2.frp.set_label("Disabled");
-        // self.root.add_child(&slider2);
+        // self.display_object.add_child(&slider2);
         // self.sliders.borrow_mut().push(slider2);
         //
         // let slider3 = self.app.new_view::<slider::Slider>();
@@ -99,7 +99,7 @@ impl Model {
         // slider3.frp.set_max_value(500.0);
         // slider3.frp.set_label("Adaptive lower limit");
         // slider3.frp.set_lower_limit_type(slider::SliderLimit::Adaptive);
-        // self.root.add_child(&slider3);
+        // self.display_object.add_child(&slider3);
         // self.sliders.borrow_mut().push(slider3);
         //
         // let slider4 = self.app.new_view::<slider::Slider>();
@@ -109,7 +109,7 @@ impl Model {
         // slider4.frp.set_label("Adaptive upper limit");
         // slider4.frp.set_label_position(slider::LabelPosition::Inside);
         // slider4.frp.set_upper_limit_type(slider::SliderLimit::Adaptive);
-        // self.root.add_child(&slider4);
+        // self.display_object.add_child(&slider4);
         // self.sliders.borrow_mut().push(slider4);
         //
         // let slider5 = self.app.new_view::<slider::Slider>();
@@ -120,7 +120,7 @@ impl Model {
         // slider5.frp.set_label("Hard limits");
         // slider5.frp.orientation(Axis2::Y);
         // slider5.frp.set_max_disp_decimal_places(4);
-        // self.root.add_child(&slider5);
+        // self.display_object.add_child(&slider5);
         // self.sliders.borrow_mut().push(slider5);
         //
         // let slider6 = self.app.new_view::<slider::Slider>();
@@ -134,7 +134,7 @@ impl Model {
         // slider6.frp.set_upper_limit_type(slider::SliderLimit::Soft);
         // slider6.frp.orientation(Axis2::Y);
         // slider6.frp.set_max_disp_decimal_places(4);
-        // self.root.add_child(&slider6);
+        // self.display_object.add_child(&slider6);
         // self.sliders.borrow_mut().push(slider6);
         //
         // let slider7 = self.app.new_view::<slider::Slider>();
@@ -145,7 +145,7 @@ impl Model {
         // slider7.frp.set_precision_adjustment_disabled(true);
         // slider7.frp.kind(slider::Kind::Scrollbar(0.1));
         // slider7.frp.set_thumb_size(0.1);
-        // self.root.add_child(&slider7);
+        // self.display_object.add_child(&slider7);
         // self.sliders.borrow_mut().push(slider7);
         //
         // let slider8 = self.app.new_view::<slider::Slider>();
@@ -156,7 +156,7 @@ impl Model {
         // slider8.frp.set_precision_adjustment_disabled(true);
         // slider8.frp.kind(slider::Kind::Scrollbar(0.25));
         // slider8.frp.set_thumb_size(0.25);
-        // self.root.add_child(&slider8);
+        // self.display_object.add_child(&slider8);
         // self.sliders.borrow_mut().push(slider8);
         //
         // let slider9 = self.app.new_view::<slider::Slider>();
@@ -167,7 +167,7 @@ impl Model {
         // slider9.frp.set_precision_adjustment_disabled(true);
         // slider9.frp.kind(slider::Kind::Scrollbar(0.5));
         // slider9.frp.set_thumb_size(0.5);
-        // self.root.add_child(&slider9);
+        // self.display_object.add_child(&slider9);
         // self.sliders.borrow_mut().push(slider9);
         //
         // let slider10 = self.app.new_view::<slider::Slider>();
@@ -179,21 +179,15 @@ impl Model {
         // slider10.frp.set_precision_adjustment_disabled(true);
         // slider10.frp.kind(slider::Kind::Scrollbar(0.1));
         // slider10.frp.orientation(Axis2::Y);
-        // self.root.add_child(&slider10);
+        // self.display_object.add_child(&slider10);
         // self.sliders.borrow_mut().push(slider10);
     }
 
     /// Drop all sliders from scene.
     fn drop_sliders(&self) {
         for slider in self.sliders.borrow_mut().drain(0..) {
-            self.root.remove_child(&slider);
+            self.display_object.remove_child(&slider);
         }
-    }
-}
-
-impl display::Object for Model {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.root
     }
 }
 
@@ -228,10 +222,11 @@ impl FrpNetworkProvider for SliderCollection {
 
 /// A component that stores an array of slider components. It receives shortcuts to either
 /// instantiate a new set of sliders or to drop the existing ones.
-#[derive(Clone, Debug, Deref)]
+#[derive(Clone, Debug, Deref, display::Object)]
 struct SliderCollection {
     #[deref]
     frp:   Frp,
+    #[display_object]
     model: Model,
 }
 
@@ -255,12 +250,6 @@ impl SliderCollection {
     }
 }
 
-impl display::Object for SliderCollection {
-    fn display_object(&self) -> &display::object::Instance {
-        self.model.display_object()
-    }
-}
-
 impl View for SliderCollection {
     fn label() -> &'static str {
         "Slider Collection"
@@ -270,7 +259,7 @@ impl View for SliderCollection {
         Self::new(app)
     }
 
-    fn default_shortcuts() -> Vec<shortcut::Shortcut> {
+    fn global_shortcuts() -> Vec<shortcut::Shortcut> {
         use shortcut::ActionType::Press;
         vec![
             Self::self_shortcut(Press, "ctrl a", "init_sliders"),

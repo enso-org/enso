@@ -47,6 +47,8 @@ use ensogl_text as text;
 use ensogl_tooltip::Tooltip;
 use ide_view_component_list_panel::grid;
 use ide_view_component_list_panel::grid::entry::icon;
+use ide_view_documentation::breadcrumbs::Breadcrumb;
+use ide_view_documentation::breadcrumbs::Breadcrumbs;
 
 
 
@@ -141,8 +143,23 @@ pub fn main() {
         let panel = app.new_view::<ide_view_component_list_panel::View>();
         scene.layers.node_searcher.add(&panel);
         panel.show();
+
+        let breadcrumbs = app.new_view::<Breadcrumbs>();
+        breadcrumbs.set_y(400.0);
+        breadcrumbs.frp().set_size(Vector2(500.0, 100.0));
+        breadcrumbs.set_entries_from((
+            vec![
+                Breadcrumb::from("home"),
+                Breadcrumb::from("data"),
+                Breadcrumb::new_with_icon("read", icon::Id::DataInput),
+            ],
+            0,
+        ));
+        breadcrumbs.set_base_layer(&app.display.default_scene.layers.node_searcher);
+
+
         let network = frp::Network::new("new_component_list_panel_view");
-        //TODO[ao] should be done by panel itself.
+        // TODO[ao] should be done by panel itself.
         let grid = &panel.model().grid;
         frp::extend! { network
             init <- source_();
@@ -166,10 +183,12 @@ pub fn main() {
         grid.reset(content_info());
         scene.add_child(&panel);
         scene.add_child(&tooltip);
+        scene.add_child(&breadcrumbs);
         panel.show();
         mem::forget(app);
         mem::forget(tooltip);
         mem::forget(panel);
+        mem::forget(breadcrumbs);
         mem::forget(network);
         mem::forget(navigator);
     })

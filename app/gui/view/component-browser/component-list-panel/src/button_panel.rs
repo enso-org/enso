@@ -13,7 +13,7 @@ use ensogl_core::display;
 use ensogl_core::display::scene::layer::LayerSymbolPartition;
 use ensogl_core::display::shape::compound::rectangle;
 use ensogl_core::display::shape::compound::rectangle::Rectangle;
-use ensogl_derive_theme::FromTheme;
+use ensogl_core::display::style::FromTheme;
 use ensogl_hardcoded_theme::application::component_browser::component_list_panel as list_panel_theme;
 use ensogl_toggle_button::ToggleButton;
 use ensogl_tooltip::tooltip::Placement;
@@ -79,8 +79,9 @@ ensogl_core::define_endpoints_2! {
 // === Model ===
 // =============
 
-#[derive(Debug, Clone, CloneRef)]
+#[derive(Debug, Clone, CloneRef, display::Object)]
 struct Model {
+    #[display_object]
     background:           Rectangle,
     local_scope:          ToggleButton<ensogl_toggle_button::any_cached::Shape>,
     shortcuts:            ToggleButton<ensogl_toggle_button::any_cached::Shape>,
@@ -161,8 +162,9 @@ impl Model {
 
 /// A narrow bar on the top of the Component List Panel that contains various buttons for
 /// controlling the Component Browser.
-#[derive(Debug, Clone, CloneRef, Deref)]
+#[derive(Debug, Clone, CloneRef, Deref, display::Object)]
 pub struct View {
+    #[display_object]
     model: Model,
     #[deref]
     frp:   Frp,
@@ -185,28 +187,21 @@ impl View {
         model.unstable.set_read_only(true);
         model.marketplace.set_read_only(true);
         frp::extend! { network
-            eval style.update((style) model.update_style(style));
+            eval style ((style) model.update_style(style));
 
             model.local_scope.set_state <+ frp.set_local_scope_mode;
             model.shortcuts.set_state <+ frp.set_show_shortcuts;
             model.unstable.set_state <+ frp.set_search_unstable;
             model.side_panel.set_state <+ frp.set_side_panel;
-            out.height <+ style.update.map(|style| style.height);
+            out.height <+ style.map(|style| style.height);
             out.local_scope_mode <+ model.local_scope.state;
             out.search_unstable <+ model.unstable.state;
             out.show_shortcuts <+ model.shortcuts.state;
             out.side_panel <+ model.side_panel.state;
         }
-        style.init.emit(());
         model.initialize_buttons_state();
 
         Self { model, frp }
-    }
-}
-
-impl display::Object for View {
-    fn display_object(&self) -> &display::object::Instance {
-        self.model.background.display_object()
     }
 }
 

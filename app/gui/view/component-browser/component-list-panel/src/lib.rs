@@ -51,6 +51,7 @@ use crate::button_panel::View as ButtonPanel;
 use enso_frp as frp;
 use ensogl_core::application::frp::API;
 use ensogl_core::application::Application;
+use ensogl_core::control::io::mouse;
 use ensogl_core::data::bounding_box::BoundingBox;
 use ensogl_core::data::color;
 use ensogl_core::define_endpoints_2;
@@ -58,7 +59,7 @@ use ensogl_core::display;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_core::display::shape::compound::rectangle::Rectangle;
 use ensogl_core::display::shape::StyleWatchFrp;
-use ensogl_derive_theme::FromTheme;
+use ensogl_core::display::style::FromTheme;
 use ensogl_grid_view as grid_view;
 use ensogl_gui_component::component;
 use ensogl_hardcoded_theme::application::component_browser::component_list_panel as theme;
@@ -131,13 +132,14 @@ impl AllStyles {
 
 /// The Model of Select Component.
 #[allow(missing_docs)]
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 pub struct Model {
     display_object:   display::object::Instance,
     /// This display object moves the origin of the grid to the bottom left corner, to support
     /// auto-layout system.
     grid_adapter:     display::object::Instance,
     background:       Rectangle,
+    #[focus_receiver]
     pub grid:         grid::View,
     pub button_panel: ButtonPanel,
 }
@@ -200,12 +202,6 @@ impl Model {
     }
 }
 
-impl display::Object for Model {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
-    }
-}
-
 impl component::Model for Model {
     fn label() -> &'static str {
         "ComponentBrowserPanel"
@@ -252,13 +248,10 @@ impl component::Frp<Model> for Frp {
 
             let panel_style = Style::from_theme(network, style);
             let grid_style = grid::Style::from_theme(network, style);
-
-            style <- all_with(&panel_style.update, &grid_style.update, |&panel, &grid| AllStyles {panel, grid});
+            style <- all_with(&panel_style, &grid_style, |&panel, &grid| AllStyles {panel, grid});
             eval style ((style) model.update_style(style));
             output.size <+ style.map(|style| style.size());
 
-            trace model.button_panel.height;
-            trace style;
             model.grid.set_top_margin <+ all_with(&model.button_panel.height, &style, |buttons_h, style| {
                 console_log!("{buttons_h} - ({} - {}).max(0.0)", style.panel.height, style.grid.height);
                 (buttons_h - (style.panel.height - style.grid.height - style.panel.padding_bottom)).max(0.0)
@@ -273,14 +266,13 @@ impl component::Frp<Model> for Frp {
                 model.is_hovered(pos, style)
             })).gate(&is_visible).on_change();
             output.is_hovered <+ is_hovered;
-            // TODO[ib] Temporary solution for focus, we grab keyboard events if the
-            //   component browser is visible. The proper implementation is tracked in
-            //   https://www.pivotaltracker.com/story/show/180872763
-            model.grid.deprecated_set_focus <+ is_visible;
+
+            let mouse_down = model.on_event::<mouse::Down>();
+            eval_ mouse_down (model.focus());
+            eval_ input.show (model.focus());
+            eval_ input.hide (model.blur());
 
         }
-        panel_style.init.emit(());
-        grid_style.init.emit(());
     }
 }
 

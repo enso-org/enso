@@ -29,10 +29,10 @@ use enso_suggestion_database::documentation_ir::LinkedDocPage;
 use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display;
+use ensogl::display::style::FromTheme;
 use ensogl::display::DomSymbol;
 use ensogl::system::web;
 use ensogl::Animation;
-use ensogl_derive_theme::FromTheme;
 use ensogl_hardcoded_theme::application::component_browser::documentation as theme;
 use graph_editor::component::visualization;
 use ide_view_graph_editor as graph_editor;
@@ -78,7 +78,7 @@ pub struct Style {
 
 /// Model of Native visualization that generates documentation for given Enso code and embeds
 /// it in a HTML container.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 #[allow(missing_docs)]
 pub struct Model {
     outer_dom:       DomSymbol,
@@ -261,10 +261,11 @@ ensogl::define_endpoints! {
 /// however we're unable to summarize methods and atoms of types.
 ///
 /// The default format is the docstring.
-#[derive(Clone, CloneRef, Debug, Deref)]
+#[derive(Clone, CloneRef, Debug, Deref, display::Object)]
 #[allow(missing_docs)]
 pub struct View {
     #[deref]
+    #[display_object]
     pub model:             Model,
     pub visualization_frp: visualization::instance::Frp,
     pub frp:               Frp,
@@ -317,13 +318,13 @@ impl View {
 
             // === Size ===
 
-            size <- style.update.map(|s| Vector2(s.width, s.height));
+            size <- style.map(|s| Vector2(s.width, s.height));
             _eval <- size.map2(&width_anim.value, f!((&s, &f) model.size_changed(s, f)));
 
 
             // === Style ===
 
-            eval style.update((style) model.update_style(*style));
+            eval style((style) model.update_style(*style));
 
 
             // === Show/hide animation ===
@@ -363,7 +364,6 @@ impl View {
             frp.source.is_hovered <+ model.overlay.events_deprecated.mouse_out.constant(false);
         }
         model.set_initial_breadcrumbs();
-        style.init.emit(());
         frp.set_visible(true);
         self
     }
@@ -372,11 +372,5 @@ impl View {
 impl From<View> for visualization::Instance {
     fn from(t: View) -> Self {
         Self::new(&t, &t.visualization_frp, &t.frp.network, Some(t.model.outer_dom.clone_ref()))
-    }
-}
-
-impl display::Object for View {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.model.display_object
     }
 }

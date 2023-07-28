@@ -331,11 +331,12 @@ ensogl_core::define_endpoints_2! {
 /// value within the specified range. Dragging the slider in a vertical direction adjusts the
 /// resolution of the slider. The resolution affects the increments by which the value changes when
 /// the mouse is moved.
-#[derive(Debug, Deref, Clone, CloneRef)]
+#[derive(Debug, Deref, Clone, CloneRef, display::Object)]
 pub struct Slider {
     /// Public FRP api of the component.
     #[deref]
     pub frp: Frp,
+    #[display_object]
     model:   Rc<Model>,
 }
 
@@ -370,7 +371,7 @@ impl Slider {
         let model = &self.model;
         let scene = &app.display.default_scene;
         let mouse = &scene.mouse.frp_deprecated;
-        let keyboard = &scene.keyboard.frp;
+        let keyboard = &scene.global_keyboard.frp;
 
         let ptr_down_any = model.background.on_event::<mouse::Down>();
         let ptr_up_any = scene.on_event::<mouse::Up>();
@@ -819,12 +820,6 @@ impl Slider {
     }
 }
 
-impl display::Object for Slider {
-    fn display_object(&self) -> &display::object::Instance {
-        self.model.display_object()
-    }
-}
-
 impl FrpNetworkProvider for Slider {
     fn network(&self) -> &enso_frp::Network {
         self.frp.network()
@@ -840,7 +835,7 @@ impl application::View for Slider {
         Self::new(app)
     }
 
-    fn default_shortcuts() -> Vec<shortcut::Shortcut> {
+    fn global_shortcuts() -> Vec<shortcut::Shortcut> {
         use shortcut::ActionType::DoublePress;
         use shortcut::ActionType::Press;
         vec![

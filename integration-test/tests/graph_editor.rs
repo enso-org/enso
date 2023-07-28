@@ -167,7 +167,7 @@ async fn adding_node_by_clicking_on_the_output_port() {
     let (node_1_id, _, node_1) = add_node_with_internal_api(&graph_editor, "1 + 1").await;
 
     let method = |editor: &GraphEditor| {
-        let port = node_1.model().output_port_shape().expect("No output port");
+        let port = node_1.model().output_port_hover_shape().expect("No output port");
         port.events_deprecated.mouse_over.emit(());
         editor.start_node_creation_from_port();
     };
@@ -293,7 +293,7 @@ async fn mouse_oriented_node_placement() {
         }
 
         fn check_edge_drop(&self) {
-            let port = self.source_node.view.model().output_port_shape().unwrap();
+            let port = self.source_node.view.model().output_port_hover_shape().unwrap();
             port.events_deprecated.emit_mouse_down(PrimaryButton);
             port.events_deprecated.emit_mouse_up(PrimaryButton);
             self.scene.mouse.frp_deprecated.position.emit(self.mouse_position);

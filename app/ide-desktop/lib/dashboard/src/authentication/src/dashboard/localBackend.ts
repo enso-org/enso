@@ -4,12 +4,13 @@
  * The functions are asynchronous and return a {@link Promise} that resolves to the response from
  * the API. */
 import * as backend from './backend'
+import * as dateTime from './dateTime'
 import * as errorModule from '../error'
 import * as projectManager from './projectManager'
 
-// ========================
-// === Helper functions ===
-// ========================
+// =============================
+// === ipWithSocketToAddress ===
+// =============================
 
 /** Convert a {@link projectManager.IpWithSocket} to a {@link backend.Address}. */
 function ipWithSocketToAddress(ipWithSocket: projectManager.IpWithSocket) {
@@ -22,7 +23,7 @@ function ipWithSocketToAddress(ipWithSocket: projectManager.IpWithSocket) {
 
 /** Class for sending requests to the Project Manager API endpoints.
  * This is used instead of the cloud backend API when managing local projects from the dashboard. */
-export class LocalBackend implements Partial<backend.Backend> {
+export class LocalBackend extends backend.Backend {
     static currentlyOpeningProjectId: backend.ProjectId | null = null
     static currentlyOpenProjects = new Map<projectManager.ProjectId, projectManager.OpenProject>()
     readonly type = backend.BackendType.local
@@ -30,6 +31,7 @@ export class LocalBackend implements Partial<backend.Backend> {
 
     /** Create a {@link LocalBackend}. */
     constructor() {
+        super()
         if (IS_DEV_MODE) {
             // @ts-expect-error This exists only for debugging purposes. It does not have types
             // because it MUST NOT be used in this codebase.
@@ -40,7 +42,7 @@ export class LocalBackend implements Partial<backend.Backend> {
     /** Return a list of assets in a directory.
      *
      * @throws An error if the JSON-RPC call fails. */
-    async listDirectory(): Promise<backend.Asset[]> {
+    async listDirectory(): Promise<backend.AnyAsset[]> {
         const result = await this.projectManager.listProjects({})
         return result.projects.map(project => ({
             type: backend.AssetType.project,
@@ -270,5 +272,132 @@ export class LocalBackend implements Partial<backend.Backend> {
                 }: ${errorModule.tryGetMessage(error) ?? 'unknown error'}.`
             )
         }
+    }
+
+    /** Do nothing. This function should never need to be called. */
+    override async listVersions(params: backend.ListVersionsRequestParams) {
+        const engineVersions = await this.projectManager.listAvailableEngineVersions()
+        const engineVersionToVersion = (
+            version: projectManager.EngineVersion
+        ): backend.Version => ({
+            ami: null,
+            created: dateTime.toRfc3339(new Date()),
+            number: {
+                value: version.version,
+                lifecycle: backend.detectVersionLifecycle(version.version),
+            },
+            // The names come from a third-party API and cannot be changed.
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            version_type: params.versionType,
+        })
+        const versions: [backend.Version, ...backend.Version[]] = [
+            engineVersionToVersion(engineVersions[0]),
+            ...engineVersions.map<backend.Version>(engineVersionToVersion),
+        ]
+        return versions
+    }
+
+    // === Endpoints that intentionally do not work on the Local Backend ===
+
+    /** @throws An error stating that the operation is intentionally unavailable on the local
+     * backend. */
+    invalidOperation(): never {
+        throw new Error('Unable to manage users, folders, files, and secrets on the local backend.')
+    }
+
+    /** Return an empty array. This function should never need to be called. */
+    override listUsers() {
+        return Promise.resolve([])
+    }
+
+    /** Invalid operation. */
+    override createUser() {
+        return this.invalidOperation()
+    }
+
+    /** Do nothing. This function should never need to be called. */
+    override inviteUser() {
+        return Promise.resolve()
+    }
+
+    /** Do nothing. This function should never need to be called. */
+    override createPermission() {
+        return Promise.resolve()
+    }
+
+    /** Return `null`. This function should never need to be called. */
+    override usersMe() {
+        return Promise.resolve(null)
+    }
+
+    /** Invalid operation. */
+    override createDirectory() {
+        return this.invalidOperation()
+    }
+
+    /** Invalid operation. */
+    override updateDirectory() {
+        return this.invalidOperation()
+    }
+
+    /** Does nothing. This function should never need to be called. */
+    override deleteDirectory() {
+        return Promise.resolve()
+    }
+
+    /** Invalid operation. */
+    override checkResources() {
+        return this.invalidOperation()
+    }
+
+    /** Return an empty array. This function should never need to be called. */
+    override listFiles() {
+        return Promise.resolve([])
+    }
+
+    /** Invalid operation. While project bundles can be uploaded to the Project Manager,
+     * they are not uploaded as file assets, and hence do not return a {@link backend.FileInfo}. */
+    override uploadFile() {
+        return this.invalidOperation()
+    }
+
+    /** Do nothing. This function should never need to be called. */
+    override deleteFile() {
+        return Promise.resolve()
+    }
+
+    /** Invalid operation. */
+    override createSecret() {
+        return this.invalidOperation()
+    }
+
+    /** Invalid operation. */
+    override getSecret() {
+        return this.invalidOperation()
+    }
+
+    /** Return an empty array. This function should never need to be called. */
+    override listSecrets() {
+        return Promise.resolve([])
+    }
+
+    /** Do nothing. This function should never need to be called. */
+    override deleteSecret() {
+        return Promise.resolve()
+    }
+
+    /** Invalid operation. */
+    override createTag() {
+        return this.invalidOperation()
+    }
+
+    /** Return an empty array. This function should never need to be called. */
+    override listTags() {
+        return Promise.resolve([])
+    }
+
+    /** Do nothing. This function should never need to be called. */
+    override deleteTag() {
+        return Promise.resolve()
     }
 }

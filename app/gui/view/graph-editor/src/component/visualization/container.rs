@@ -160,7 +160,7 @@ ensogl::define_endpoints_2! {
 /// View of the visualization container.
 ///
 /// Container has its origin in the top left corner.
-#[derive(Debug)]
+#[derive(Debug, display::Object)]
 #[allow(missing_docs)]
 pub struct View {
     display_object:  display::object::Instance,
@@ -278,12 +278,6 @@ impl View {
     }
 }
 
-impl display::Object for View {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
-    }
-}
-
 
 
 // ======================
@@ -291,7 +285,7 @@ impl display::Object for View {
 // ======================
 
 /// Internal data of a `Container`.
-#[derive(Debug)]
+#[derive(Debug, display::Object)]
 #[allow(missing_docs)]
 pub struct ContainerModel {
     display_object:     display::object::Instance,
@@ -507,7 +501,7 @@ impl ContainerModel {
         self.action_bar.frp.set_size.emit(action_bar_size);
         self.action_bar.set_y((size.y - ACTION_BAR_HEIGHT) / 2.0);
 
-        if let Some(viz) = &*self.visualization.borrow() {
+        if view_state.is_visible() && let Some(viz) = &*self.visualization.borrow() {
             viz.frp.set_size.emit(size);
         }
     }
@@ -534,12 +528,6 @@ impl ContainerModel {
     }
 }
 
-impl display::Object for ContainerModel {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
-    }
-}
-
 
 
 // =================
@@ -551,10 +539,11 @@ impl display::Object for ContainerModel {
 /// Container that wraps a `visualization::Instance` for rendering and interaction in the GUI.
 ///
 /// The API to interact with the visualization is exposed through the `Frp`.
-#[derive(Clone, CloneRef, Debug, Derivative, Deref)]
+#[derive(Clone, CloneRef, Debug, Deref, display::Object)]
 #[allow(missing_docs)]
 pub struct Container {
     #[deref]
+    #[display_object]
     pub model: Rc<ContainerModel>,
     pub frp:   Frp,
 }
@@ -748,7 +737,7 @@ impl Container {
             }));
             selection_after_click <- selected_by_click.map(|sel| if *sel {1.0} else {0.0});
             selection.target <+ selection_after_click;
-            _eval <- selection.value.all_with3(&output.size, &selection_style.update,
+            _eval <- selection.value.all_with3(&output.size, &selection_style,
                 f!((value, size, style) {
                     model.set_selection(*size, *value, style);
                 }
@@ -792,6 +781,7 @@ impl Container {
             has_data <- input.set_data.is_some();
             reset_data <- data.sample(&new_vis_definition).gate(&has_data);
             data_update <- any(&data,&reset_data);
+            data_update <- data_update.buffered_gate(&output.visible);
             eval data_update ((t) model.set_visualization_data(t));
 
         }
@@ -823,18 +813,11 @@ impl Container {
         self.frp.public.set_size(DEFAULT_SIZE);
         self.frp.public.set_visualization(None);
         init.emit(());
-        selection_style.init.emit(());
         self
     }
 
     /// Get the visualization panel view.
     pub fn fullscreen_visualization(&self) -> &fullscreen::Panel {
         &self.model.fullscreen_view
-    }
-}
-
-impl display::Object for Container {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.model.display_object
     }
 }

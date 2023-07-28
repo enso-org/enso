@@ -31,6 +31,7 @@ use ensogl::frp;
 use ensogl::system::web;
 use ide_view_graph_editor::component::edge::Edge;
 use ide_view_graph_editor::component::node;
+use ide_view_graph_editor::GraphLayers;
 
 
 
@@ -63,6 +64,8 @@ pub fn main() {
     let greenish = color::Lcha(0.5, 0.5, 0.5, 1.0);
     let lowest_layer = &scene.layers.viz;
 
+    let layers = GraphLayers::new(&scene.layers);
+
     let source = Rectangle::new();
     let source_center = SOURCE_CENTER;
     let source_size = Vector2(ARBITRARY_NODE_WIDTH, node::HEIGHT);
@@ -87,7 +90,7 @@ pub fn main() {
     world.add_child(&target);
     let target_moved = make_draggable(scene, &target);
 
-    let edge = Edge::new(&app);
+    let edge = Edge::new(&app, &layers);
     edge.set_disabled(false);
     edge.set_color(greenish);
     edge.source_size(source_size);
