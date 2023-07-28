@@ -52,7 +52,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
             case assetEventModule.AssetEventType.cancelOpeningAllProjects:
             case assetEventModule.AssetEventType.deleteMultiple: {
                 // Ignored. These events should all be unrelated to projects.
-                // `deleteMultiple` is handled in `AssetRow`.
+                // `deleteMultiple` is handled by `AssetRow`.
                 break
             }
             case assetEventModule.AssetEventType.uploadFiles: {

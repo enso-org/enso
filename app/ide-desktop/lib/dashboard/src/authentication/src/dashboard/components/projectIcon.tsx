@@ -195,8 +195,12 @@ export default function ProjectIcon(props: ProjectIconProps) {
 
     hooks.useEventHandler(assetEvents, event => {
         switch (event.type) {
-            default: {
-                // Ignore; all other events are handled by `ProjectRow`.
+            case assetEventModule.AssetEventType.createDirectory:
+            case assetEventModule.AssetEventType.uploadFiles:
+            case assetEventModule.AssetEventType.createSecret:
+            case assetEventModule.AssetEventType.deleteMultiple: {
+                // Ignored. Any missing project-related events should be handled by
+                // `ProjectNameColumn`. `deleteMultiple` is handled by `AssetRow`.
                 break
             }
             case assetEventModule.AssetEventType.openProject: {

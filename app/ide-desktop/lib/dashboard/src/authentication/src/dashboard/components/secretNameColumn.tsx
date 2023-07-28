@@ -53,7 +53,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
             case assetEventModule.AssetEventType.cancelOpeningAllProjects:
             case assetEventModule.AssetEventType.deleteMultiple: {
                 // Ignored. These events should all be unrelated to secrets.
-                // `deleteMultiple` is handled in `AssetRow`.
+                // `deleteMultiple` is handled by `AssetRow`.
                 break
             }
             case assetEventModule.AssetEventType.createSecret: {
