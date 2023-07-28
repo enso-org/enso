@@ -201,7 +201,7 @@ public class BenchProcessor extends AbstractProcessor {
       javaSrcFileWriter.append("    this.benchFunc_" + specJavaName + " = benchSpec_" + specJavaName + ".code();\n");
     }
     javaSrcFileWriter.append("    \n");
-    javaSrcFileWriter.append("    this.groupInputArg = benchSuite.getDefaultInputArgument();\n");
+    javaSrcFileWriter.append("    this.groupInputArg = Value.asValue(null);\n");
     javaSrcFileWriter.append("  } \n"); // end of setup method
     javaSrcFileWriter.append("  \n");
     for (var specJavaName : specJavaNames) {

@@ -21,10 +21,6 @@ public final class BenchSuiteWrapper {
     return moduleQualifiedName;
   }
 
-  public Value getDefaultInputArgument() {
-    return Value.asValue(null);
-  }
-
   public BenchGroup findGroupByName(String groupName) {
     return suite
         .groups()
