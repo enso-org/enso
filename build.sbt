@@ -1769,7 +1769,7 @@ lazy val `distribution-manager` = project
   .dependsOn(pkg)
   .dependsOn(`logging-utils`)
 
-lazy val `bench-processor` = (project in file("std-bits/bench-processor"))
+lazy val `bench-processor` = (project in file("lib/scala/bench-processor"))
   .settings(
     frgaalJavaCompilerSetting,
     libraryDependencies ++= Seq(
