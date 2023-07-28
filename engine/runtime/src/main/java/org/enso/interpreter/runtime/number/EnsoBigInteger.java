@@ -17,7 +17,6 @@ import com.oracle.truffle.api.library.ExportMessage;
 /** Internal wrapper for a {@link BigInteger}. */
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
-@SuppressWarnings("truffle-abstract-export")
 public final class EnsoBigInteger implements TruffleObject {
   private final BigInteger value;
 
