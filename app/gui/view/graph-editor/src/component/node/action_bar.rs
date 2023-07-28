@@ -429,7 +429,6 @@ impl ActionBar {
 #[cfg(test)]
 mod test {
     use super::*;
-    use ensogl::event::Event;
 
     #[test]
     fn test_tooltips() {
