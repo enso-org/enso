@@ -343,7 +343,7 @@ impl QueryData {
     fn new(suggestion: &enso_suggestion_database::Entry, req: &Request) -> Self {
         let node_id = req.node_id;
         let arguments = suggestion.arguments.iter().map(|arg| arg.name.clone().into()).collect();
-        let method_name = suggestion.name.clone().into();
+        let method_name = suggestion.name.clone();
         let call_expression = req.call_expression;
         let last_definitions = None;
         QueryData { node_id, arguments, method_name, call_expression, last_definitions }
@@ -355,7 +355,7 @@ impl QueryData {
         let mut visualization_modified = false;
 
         if self.method_name != suggestion.name {
-            self.method_name = suggestion.name.clone().into();
+            self.method_name = suggestion.name.clone();
             visualization_modified = true;
         }
 
