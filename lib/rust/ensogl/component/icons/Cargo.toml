@@ -8,4 +8,3 @@ edition = "2021"
 ensogl-core = { path = "../../core" }
 failure = { workspace = true }
 ensogl-hardcoded-theme = { path = "../../app/theme/hardcoded" }
-
