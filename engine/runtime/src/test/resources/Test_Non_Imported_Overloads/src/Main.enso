@@ -1,6 +1,6 @@
 import Standard.Base.Nothing
 from Standard.Base.Errors.Common import all
-from local.TestNonImportedOverloads.Util import all
+from local.Test_Non_Imported_Overloads.Util import all
 
 X.method self = 10
 
