@@ -15,8 +15,9 @@ from project.Database.Helpers.Execution_Context import run_with_and_without_outp
 
 spec prefix connection =
     Test.group prefix+"Support for Long Column/Table names" <|
-        max_table_name_length = connection.base_connection.table_naming_helper.max_name_length_units
-        max_column_name_length = connection.base_connection.column_naming_helper.max_name_length_units
+        entity_naming_properties = connection.base_connection.entity_naming_properties
+        max_table_name_length = entity_naming_properties.table_names.size_limit
+        max_column_name_length = entity_naming_properties.column_names.size_limit
         has_maximum_table_name_length = max_table_name_length.is_nothing.not
         has_maximum_column_name_length = max_column_name_length.is_nothing.not
         big_name_length = 10000
@@ -49,23 +50,50 @@ spec prefix connection =
 
                 connection.query (SQL_Query.Table_Name name) . should_fail_with Table_Not_Found
 
-            Test.specify "should ensure length is measured in code units, even if grapheme length is lower" <|
+            Test.specify "should ensure length is measured in small units, even if grapheme length is lower" <|
                 big_grapheme = '\u{1F926}\u{1F3FC}\u200D\u2642\uFE0F'
                 big_grapheme.length . should_equal 1
                 big_grapheme.char_vector . length . should_equal 7
 
+                ## This is a maximum-length ASCII name.
+                   All backends should be fine with it.
                 name_ok = "a" * max_table_name_length
-                name_large = big_grapheme * max_table_name_length
 
                 src = Table.new [["X", [1, 2, 3]]]
                 t1 = src.select_into_database_table connection name_ok temporary=True
                 Problems.assume_no_problems t1
 
+                ## This is a name that has Enso-length equal to maximum.
+                   Basically every other tool will treat it as too large - no
+                   tools that I know of measure string length by default in
+                   grapheme clusters.
+                name_large = big_grapheme * max_table_name_length
+
                 t2 = src.select_into_database_table connection name_large temporary=True
                 t2.should_fail_with Name_Too_Long
                 t2.catch.entity_kind . should_equal "table"
                 t2.catch.name . should_equal name_large
-                t2.catch.to_display_text.should_contain (max_table_name_length.to_text + " code units")
+                t2.catch.to_display_text.should_contain max_table_name_length.to_text
+                # TODO display some unit like bytes
+                # t2.catch.to_display_text.should_contain ???
+
+                ## This name may be supported or not, depending on how the
+                   backend encodes the names.
+
+                   For example, Postgres uses UTF-8, so each "ą" character is
+                   actually taking 2 spots, exceeding the limit greatly.
+
+                   If a backend uses UTF-16, or some other encoding, the name
+                   may be happily accepted.
+                   For example it seems to work fine on MySQL.
+                name_medium = "ą" * max_table_name_length
+                name_medium_encoded = entity_naming_properties.table_names.encoded_size name_medium
+                t3 = src.select_into_database_table connection name_medium temporary=True
+                case name_medium_encoded > max_table_name_length of
+                    True ->
+                        t3.should_fail_with Name_Too_Long
+                    False ->
+                        Problems.assume_no_problems t3
 
             Test.specify "should not mangle a too long name when accessing tables, returning a different table" <|
                 long_name = "z" * max_table_name_length
@@ -233,13 +261,20 @@ spec prefix connection =
                 big_grapheme.length . should_equal 1
                 big_grapheme.char_vector . length . should_equal 7
 
+                ## See the test above for more explanations.
+                   ASCII names at max length should always work.
                 name_ok = "a" * max_column_name_length
-                name_large = big_grapheme * max_column_name_length
-
                 src1 = Table.new [["X", [1, 2, 3]]]
                 db_table1 = src1.select_into_database_table connection (Name_Generator.random_name "long-column-names") temporary=True
                 Problems.assume_no_problems <|
                     db_table1.at "X" . rename name_ok
+
+
+                ## This text has Enso-length equal to the limit, but its
+                   grapheme clusters will take multiple units in basically every
+                   encoding.
+                name_large = big_grapheme * max_column_name_length
+
                 r1 = db_table1.at "X" . rename name_large
                 r1.should_fail_with Name_Too_Long
                 r1.catch.entity_kind . should_equal "column"
@@ -250,6 +285,20 @@ spec prefix connection =
                 r2 = src2.select_into_database_table connection (Name_Generator.random_name "long-column-names") temporary=True
                 r2.should_fail_with Name_Too_Long
                 r2.catch.name . should_equal name_large
+
+                ## This name may or may not fit depending on the encoding.
+                name_medium = "ą" * max_column_name_length
+                name_medium_encoded = entity_naming_properties.table_names.encoded_size name_medium
+                r3 = db_table1.at "X" . rename name_medium
+                src3 = Table.new [[name_ok, [1, 2, 3]], [name_medium, [4, 5, 6]]]
+                r4 = src3.select_into_database_table connection (Name_Generator.random_name "long-column-names") temporary=True
+                case name_medium_encoded > max_column_name_length of
+                    True ->
+                        r3.should_fail_with Name_Too_Long
+                        r4.should_fail_with Name_Too_Long
+                    False ->
+                        Problems.assume_no_problems r3
+                        Problems.assume_no_problems r4
 
             Test.specify "should truncate the column name if the resulting operation-generated name is too long, without warnings" <|
                 long_name = "a" * max_column_name_length

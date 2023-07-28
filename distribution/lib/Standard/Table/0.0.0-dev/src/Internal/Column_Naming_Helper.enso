@@ -76,7 +76,8 @@ type Column_Naming_Helper
 
        It may truncate the whole text or also truncate individual parts to try
        to display every part.
-    concat : Vector Text -> Text
-    concat self texts =
-        # TODO!
-        texts.join " "
+    concat : Vector Text -> Boolean -> Text
+    concat self texts add_spaces=True =
+        # TODO truncate!
+        separator = if add_spaces then " " else ""
+        texts.join separator

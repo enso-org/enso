@@ -1,0 +1,72 @@
+from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Illegal_State.Illegal_State
+
+import Standard.Table.Internal.Naming_Properties.Unlimited_Naming_Properties
+
+import project.Internal.Connection.Entity_Naming_Properties
+import project.Internal.JDBC_Connection.JDBC_Connection
+
+## PRIVATE
+   Creates a new instance of Entity_Naming_Properties for a given Postgres
+   connection.
+
+   It relies on the `jdbc_connection` to get the limits metadata and database
+   encoding.
+new : JDBC_Connection -> Entity_Naming_Properties
+new jdbc_connection =
+    server_encoding = get_pragma_value jdbc_connection "SHOW server_encoding"
+    encoding = case server_encoding of
+        "SQL_ASCII" ->
+            client_encoding = get_pragma_value jdbc_connection "SHOW client_encoding"
+            parse_postgres_encoding client_encoding
+        _ ->
+            parse_postgres_encoding server_encoding
+    jdbc_connection.with_metadata metadata->
+        table_limit = metadata.getMaxTableNameLength
+        column_limit = metadata.getMaxColumnNameLength
+        table_properties = Encoding_Limited_Naming_Properties.Instance encoding table_limit
+        column_properties = Encoding_Limited_Naming_Properties.Instance encoding column_limit
+        Entity_Naming_Properties.Value table_names=table_properties column_names=column_properties
+
+
+## PRIVATE
+get_pragma_value : JDBC_Connection -> Text -> Any
+get_pragma_value jdbc_connection sql =
+    table = jdbc_connection.raw_read_statement sql
+    if table.row_count != 1 then
+        Panic.throw (Illegal_State.Error "Unexpected amount of results to internal query: "+sql+"; expected 1 but got "+table.row_count.to_text+" rows.")
+    if table.columns.length != 1 then
+        Panic.throw (Illegal_State.Error "Unexpected amount of columns to internal query: "+sql+"; expected 1 but got "+table.columns.length.to_text+" columns.")
+    table.at 0 . at 0
+
+## PRIVATE
+   Translates names of encodings from https://www.postgresql.org/docs/current/multibyte.html#CHARSET-TABLE into their Java counterprats.
+parse_postgres_encoding : Text -> Encoding
+parse_postgres_encoding encoding_name =
+    # TODO [RW] edge cases - all encodings from https://www.postgresql.org/docs/current/multibyte.html#CHARSET-TABLE should work
+    Encoding.from_name encoding_name
+
+## PRIVATE
+   A `Naming_Properties` implementation which sets the size limit based on the
+   size of a string encoded in a particular encoding, in bytes.
+type Encoding_Limited_Naming_Properties
+    ## PRIVATE
+    Instance (encoding : Encoding) (limit : Integer)
+
+    ## PRIVATE
+    encoded_size : Text -> Integer
+    encoded_size self name =
+        r = name.bytes encoding=self.encoding on_problems=Problem_Behavior.Report_Error
+        r.catch Encoding_Error error->
+            Panic.throw (Illegal_Argument.Error "The name ["+name.to_display_text+"] contains characters that could not be encoded in the database server-size encoding "+self.encoding.to_display_text+"." cause=error)
+
+    ## PRIVATE
+    truncate : Text -> Integer -> Text
+    truncate self name size =
+        # TODO!
+        Panic.throw (Illegal_Argument.Error "TODO")
+
+    ## PRIVATE
+    size_limit : Integer | Nothing
+    size_limit self = self.limit

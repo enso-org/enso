@@ -1,5 +1,8 @@
 from Standard.Base import all
 
+import project.Internal.Naming_Properties.Naming_Properties
+import project.Internal.Naming_Properties as Naming_Properties_Module
+
 polyglot java import org.enso.table.util.NameDeduplicator
 
 type Unique_Name_Strategy
@@ -73,7 +76,7 @@ type Unique_Name_Strategy
              unique_second == ["second A 2", "second_B", "second A 1", "C"]
     combine_with_prefix : Vector Text -> Vector Text -> Text -> Unique_Name_Strategy
     combine_with_prefix self first second second_prefix =
-        Vector.from_polyglot_array <|
+        Naming_Properties_Module.recover_panics <| Vector.from_polyglot_array <|
             self.deduplicator.combineWithPrefix first second second_prefix
 
     ## PRIVATE
@@ -123,7 +126,8 @@ type Unique_Name_Strategy
              strategy.make_unique "A" # returns "A"
              strategy.make_unique "A" # returns "A 1"
     make_unique : Text -> Text
-    make_unique self name = self.deduplicator.makeUnique name
+    make_unique self name = Naming_Properties_Module.recover_panics <|
+        self.deduplicator.makeUnique name
 
     ## PRIVATE
        ADVANCED
@@ -132,7 +136,8 @@ type Unique_Name_Strategy
        It does not use up the name - it needs to be marked with `mark_used` if
        needed.
     is_unique : Text -> Boolean
-    is_unique self name = self.deduplicator.isUnique name
+    is_unique self name = Naming_Properties_Module.recover_panics <|
+        self.deduplicator.isUnique name
 
     ## PRIVATE
        ADVANCED
@@ -148,4 +153,5 @@ type Unique_Name_Strategy
        Takes a list of names and marks them as used, so that any further names
        clashing with those will have a prefix added.
     mark_used : Vector Text -> Nothing
-    mark_used self names = names.each (self.deduplicator.markUsed _)
+    mark_used self names = Naming_Properties_Module.recover_panics <|
+        names.each (self.deduplicator.markUsed _)

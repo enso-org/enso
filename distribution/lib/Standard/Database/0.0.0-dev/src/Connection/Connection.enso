@@ -21,6 +21,7 @@ import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
 import project.Data.Table as Database_Table_Module
 import project.Data.Table.Table as Database_Table
+import project.Internal.Connection.Entity_Naming_Properties
 import project.Internal.Hidden_Table_Registry
 import project.Internal.IR.Context.Context
 import project.Internal.IR.Query.Query
@@ -46,13 +47,15 @@ type Connection
        - jdbc_connection: the resource managing the underlying JDBC
          connection.
        - dialect: the dialect associated with the database we are connected to.
+       - entity_naming_properties: a helper allowing to manage properties of
+         entity naming rules of the given backend.
        - supports_large_update: whether the connection should try to use
          `executeLargeUpdate`. Set to `True` by default and if the operation
          fails with `UnsupportedOperationException`, it is updated to be
          `False`.
        - hidden_table_registry: a registry of hidden tables that are not
          shown to the user, but are used internally by the dry-run system.
-    Value jdbc_connection dialect supports_large_update hidden_table_registry
+    Value jdbc_connection dialect (entity_naming_properties : Entity_Naming_Properties) (supports_large_update : Ref Boolean) (hidden_table_registry : Hidden_Table_Registry)
 
     ## PRIVATE
        Constructs a new Connection.
@@ -63,10 +66,10 @@ type Connection
        - dialect: the dialect associated with the database we are connected to.
        - try_large_update: whether the connection should try to use
          `executeLargeUpdate`.
-    new : JDBC_Connection -> Dialect -> Boolean -> Connection
-    new jdbc_connection dialect try_large_update=True =
+    new : JDBC_Connection -> Dialect -> Entity_Naming_Properties -> Boolean -> Connection
+    new jdbc_connection dialect entity_naming_properties try_large_update=True =
         registry = Hidden_Table_Registry.new
-        Connection.Value jdbc_connection dialect (Ref.new try_large_update) registry
+        Connection.Value jdbc_connection dialect entity_naming_properties (Ref.new try_large_update) registry
 
     ## PRIVATE
        Closes the connection releasing the underlying database resources

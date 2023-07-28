@@ -14,10 +14,14 @@ public class NameDeduplicator {
   private final String invalidNameReplacement;
 
   public NameDeduplicator() {
-    this("Column");
+    this("Column", null);
   }
 
-  public NameDeduplicator(String invalidNameReplacement) {
+  public NameDeduplicator(Long nameLengthLimit) {
+    this("Column", nameLengthLimit);
+  }
+
+  public NameDeduplicator(String invalidNameReplacement, Long nameLengthLimit) {
     this.invalidNameReplacement = invalidNameReplacement;
   }
 
