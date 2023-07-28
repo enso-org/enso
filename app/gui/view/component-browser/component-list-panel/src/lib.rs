@@ -252,9 +252,17 @@ impl component::Frp<Model> for Frp {
 
             let panel_style = Style::from_theme(network, style);
             let grid_style = grid::Style::from_theme(network, style);
+
             style <- all_with(&panel_style.update, &grid_style.update, |&panel, &grid| AllStyles {panel, grid});
             eval style ((style) model.update_style(style));
             output.size <+ style.map(|style| style.size());
+
+            trace model.button_panel.height;
+            trace style;
+            model.grid.set_top_margin <+ all_with(&model.button_panel.height, &style, |buttons_h, style| {
+                console_log!("{buttons_h} - ({} - {}).max(0.0)", style.panel.height, style.grid.height);
+                (buttons_h - (style.panel.height - style.grid.height - style.panel.padding_bottom)).max(0.0)
+            });
 
 
             // === Hover & Focus ===

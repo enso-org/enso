@@ -24,6 +24,8 @@ use ensogl_scroll_area::ScrollArea;
 
 ensogl_core::define_endpoints_2! {
     Input {
+        /// Set margins around grid inside scroll area.
+        set_margins(crate::Margins),
         /// Set margins defining an area around an [`Entry`] that should be made visible when
         /// scrolling the GridView's viewport to display the Entry.
         set_preferred_margins_around_entry(crate::Margins),
@@ -136,9 +138,11 @@ impl<InnerGridView> GridViewTemplate<InnerGridView> {
         let network = &frp.network();
 
         frp::new_bridge_network! { [network, base_network] grid_view_scrollable_base_bridge
-            base_grid.set_viewport <+ area.viewport;
-            area.set_content_width <+ base_grid.content_size.map(|s| s.x);
-            area.set_content_height <+ base_grid.content_size.map(|s| s.y);
+            base_grid_offset <- input.set_margins.map(|m| Vector2(m.left, -m.top));
+            base_grid.set_viewport <+ all_with(&area.viewport, &base_grid_offset, |vp, off| *vp - *off);
+            area.set_content_width <+ all_with(&base_grid.content_size, &input.set_margins, |s, m| m.left + s.x + m.right);
+            area.set_content_height <+ all_with(&base_grid.content_size, &input.set_margins, |s, m| m.bottom + s.y + m.top);
+            eval base_grid_offset ((off) base_grid.set_xy(*off));
 
             // === Selecting Entry ===
 
@@ -162,9 +166,9 @@ impl<InnerGridView> GridViewTemplate<InnerGridView> {
                 input.select_and_scroll_to_entry
             );
             let scroll_margins = &input.set_preferred_margins_around_entry;
-            scroll_to <- scroll_to_entry.map2(scroll_margins,
-                f!([base_grid] ((row, col), margins)
-                    base_grid.position_of_viewport_containing_entry(*row, *col, *margins)
+            scroll_to <- scroll_to_entry.map3(scroll_margins, &base_grid_offset,
+                f!([base_grid] ((row, col), margins, offset)
+                    base_grid.position_of_viewport_containing_entry(*row, *col, *margins) + offset
                 )
             );
             area.scroll_to_x <+ scroll_to.map(|vec| vec.x);
@@ -174,9 +178,9 @@ impl<InnerGridView> GridViewTemplate<InnerGridView> {
             // === Viewport jumping ===
 
             jump_to_entry <- any(input.jump_to_entry, input.select_and_jump_to_entry);
-            jump_to <- jump_to_entry.map2(scroll_margins,
-                f!([base_grid] ((row, col), margins)
-                    base_grid.position_of_viewport_containing_entry(*row, *col, *margins)
+            jump_to <- jump_to_entry.map3(scroll_margins, &base_grid_offset,
+                f!([base_grid] ((row, col), margins, offset)
+                    base_grid.position_of_viewport_containing_entry(*row, *col, *margins) + offset
                 )
             );
             area.jump_to_x <+ jump_to.map(|vec| vec.x);

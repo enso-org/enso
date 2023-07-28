@@ -157,6 +157,30 @@ impl Viewport {
     }
 }
 
+impl Add<Vector2> for Viewport {
+    type Output = Self;
+    fn add(self, rhs: Vector2) -> Self::Output {
+        Self {
+            left:   self.left + rhs.x,
+            right:  self.right + rhs.x,
+            top:    self.top + rhs.y,
+            bottom: self.bottom + rhs.y,
+        }
+    }
+}
+
+impl Sub<Vector2> for Viewport {
+    type Output = Self;
+    fn sub(self, rhs: Vector2) -> Self::Output {
+        Self {
+            left:   self.left - rhs.x,
+            right:  self.right - rhs.x,
+            top:    self.top - rhs.y,
+            bottom: self.bottom - rhs.y,
+        }
+    }
+}
+
 
 
 // =============

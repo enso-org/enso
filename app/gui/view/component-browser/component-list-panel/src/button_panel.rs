@@ -65,6 +65,7 @@ ensogl_core::define_endpoints_2! {
         set_side_panel(bool),
     }
     Output {
+        height(f32),
         local_scope_mode(bool),
         show_shortcuts(bool),
         search_unstable(bool),
@@ -190,6 +191,7 @@ impl View {
             model.shortcuts.set_state <+ frp.set_show_shortcuts;
             model.unstable.set_state <+ frp.set_search_unstable;
             model.side_panel.set_state <+ frp.set_side_panel;
+            out.height <+ style.update.map(|style| style.height);
             out.local_scope_mode <+ model.local_scope.state;
             out.search_unstable <+ model.unstable.state;
             out.show_shortcuts <+ model.shortcuts.state;
