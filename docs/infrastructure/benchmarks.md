@@ -1,8 +1,8 @@
 # Benchmarks
 
-In this document, we describe the benchmark types used for the runtime - micro
+In this document, we describe the benchmark types used for the runtime - Engine micro
 benchmarks in the section
-[Engine JMH microbenchmarks](#engine-jmh-microbenchmarks) and meso benchmarks in
+[Engine JMH microbenchmarks](#engine-jmh-microbenchmarks) and standard library benchmarks in
 the section [Standard library benchmarks](#standard-library-benchmarks), and how
 and where are the results stored and visualized in the section
 [Visualization](#visualization).
@@ -14,7 +14,7 @@ benchmarks:
 - [micro benchmarks](#engine-jmh-microbenchmarks) located directly in the
   `runtime` SBT project. These benchmarks are written in Java, and are used to
   measure the performance of specific parts of the engine.
-- [standard library benchmarks](#standard-library-benchmarks) (meso benchmarks)
+- [standard library benchmarks](#standard-library-benchmarks) 
   located in the `test/Benchmarks` Enso project. These benchmarks are entirelly
   written in Enso, along with the harness code.
 
@@ -44,9 +44,8 @@ withDebug --debugger benchOnly -- <fully qualified benchmark name>
 
 ## Standard library benchmarks
 
-Unlike the micro benchmarks, these benchmarks are written entirelly in Enso and
-located in the `test/Benchmarks` Enso project. Sometimes, we call those _meso_
-benchmarks. There are two ways to run these benchmarks:
+Unlike the Engine micro benchmarks, these benchmarks are written entirelly in Enso and
+located in the `test/Benchmarks` Enso project. There are two ways to run these benchmarks:
 
 - [Running standalone](#running-standalone)
 - [Running via JMH launcher](#running-via-jmh-launcher)

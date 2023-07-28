@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.Optional;
 import org.graalvm.polyglot.Value;
 
-public class BenchSuiteWrapper {
+public final class BenchSuiteWrapper {
   private final BenchSuite suite;
   private final String moduleQualifiedName;
 
