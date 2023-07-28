@@ -1773,8 +1773,12 @@ lazy val `bench-processor` = (project in file("lib/scala/bench-processor"))
   .settings(
     frgaalJavaCompilerSetting,
     libraryDependencies ++= Seq(
-      "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion        % "provided",
-      "org.graalvm.sdk"  % "graal-sdk"               % graalMavenPackagesVersion % "provided"
+      "jakarta.xml.bind" % "jakarta.xml.bind-api"     % jaxbVersion               % "provided",
+      "com.sun.xml.bind" % "jaxb-impl"                % jaxbVersion               % "provided",
+      "org.openjdk.jmh"  % "jmh-core"                 % jmhVersion                % "provided",
+      "org.openjdk.jmh"  % "jmh-generator-annprocess" % jmhVersion                % "provided",
+      "org.netbeans.api" % "org-openide-util-lookup"  % netbeansApiVersion        % "provided",
+      "org.graalvm.sdk"  % "graal-sdk"                % graalMavenPackagesVersion % "provided"
     ),
     Compile / javacOptions := ((Compile / javacOptions).value ++
     // Only run ServiceProvider processor and ignore those defined in META-INF, thus
