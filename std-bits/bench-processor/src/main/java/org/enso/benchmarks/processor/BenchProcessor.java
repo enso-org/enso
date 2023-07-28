@@ -18,7 +18,7 @@ import javax.lang.model.element.TypeElement;
 import javax.tools.Diagnostic.Kind;
 import org.enso.benchmarks.BenchGroup;
 import org.enso.benchmarks.BenchSpec;
-import org.enso.benchmarks.BenchSuiteWrapper;
+import org.enso.benchmarks.ModuleBenchSuite;
 import org.openide.util.lookup.ServiceProvider;
 
 @SupportedAnnotationTypes("org.enso.benchmarks.processor.GenerateBenchSources")
@@ -51,7 +51,7 @@ public class BenchProcessor extends AbstractProcessor {
       "import org.enso.polyglot.LanguageInfo;",
       "import org.enso.polyglot.MethodNames;",
       "import org.enso.benchmarks.processor.SpecCollector;",
-      "import org.enso.benchmarks.BenchSuiteWrapper;",
+      "import org.enso.benchmarks.ModuleBenchSuite;",
       "import org.enso.benchmarks.BenchSpec;",
       "import org.enso.benchmarks.BenchGroup;"
   );
@@ -102,8 +102,8 @@ public class BenchProcessor extends AbstractProcessor {
   @Override
   public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
     try {
-      Collection<BenchSuiteWrapper> benchSuites = specCollector.collectAllBenchSpecs();
-      for (BenchSuiteWrapper benchSuite : benchSuites) {
+      Collection<ModuleBenchSuite> benchSuites = specCollector.collectAllBenchSpecs();
+      for (ModuleBenchSuite benchSuite : benchSuites) {
         for (BenchGroup group : benchSuite.getGroups()) {
           generateClassForGroup(group, benchSuite.getModuleQualifiedName());
         }
@@ -192,7 +192,7 @@ public class BenchProcessor extends AbstractProcessor {
     javaSrcFileWriter.append("    Value bindings = ctx.getBindings(LanguageInfo.ID);\n");
     javaSrcFileWriter.append("    Value module = bindings.invokeMember(MethodNames.TopScope.GET_MODULE, \"" + moduleQualifiedName + "\");\n");
     javaSrcFileWriter.append("    var specCollector = new SpecCollector(benchProjectDir, languageHomeOverride);\n");
-    javaSrcFileWriter.append("    BenchSuiteWrapper benchSuite = specCollector.collectBenchSpecFromModuleName(\"" + moduleQualifiedName + "\");\n");
+    javaSrcFileWriter.append("    ModuleBenchSuite benchSuite = specCollector.collectBenchSpecFromModuleName(\"" + moduleQualifiedName + "\");\n");
     javaSrcFileWriter.append("    \n");
     for (int i = 0; i < specs.size(); i++) {
       var specJavaName = specJavaNames.get(i);

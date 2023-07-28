@@ -2,13 +2,15 @@ package org.enso.benchmarks;
 
 import java.util.List;
 import java.util.Optional;
-import org.graalvm.polyglot.Value;
 
-public final class BenchSuiteWrapper {
+/**
+ * A {@link BenchSuite} with a qualified name of the module it is defined in.
+ */
+public final class ModuleBenchSuite {
   private final BenchSuite suite;
   private final String moduleQualifiedName;
 
-  public BenchSuiteWrapper(BenchSuite suite, String moduleQualifiedName) {
+  public ModuleBenchSuite(BenchSuite suite, String moduleQualifiedName) {
     this.suite = suite;
     this.moduleQualifiedName = moduleQualifiedName;
   }

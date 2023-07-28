@@ -10,7 +10,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.enso.benchmarks.BenchSuite;
-import org.enso.benchmarks.BenchSuiteWrapper;
+import org.enso.benchmarks.ModuleBenchSuite;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.MethodNames.Module;
 import org.enso.polyglot.MethodNames.TopScope;
@@ -51,7 +51,16 @@ public class SpecCollector {
         .build();
   }
 
-  public Collection<BenchSuiteWrapper> collectAllBenchSpecs() {
+  public ModuleBenchSuite collectBenchSpecFromModuleName(String moduleName) {
+    Objects.requireNonNull(moduleName);
+    if (!moduleName.startsWith(benchPackagePrefix)) {
+      throw new IllegalArgumentException("Module name must start with " + benchPackagePrefix);
+    }
+    Value module = ctx.getBindings(LanguageInfo.ID).invokeMember(TopScope.GET_MODULE, moduleName);
+    return collectBenchSpecFromModule(module, moduleName);
+  }
+
+  Collection<ModuleBenchSuite> collectAllBenchSpecs() {
     try (Stream<Path> stream = Files.walk(rootDir.toPath())) {
       return stream
           .map(Path::toFile)
@@ -64,22 +73,13 @@ public class SpecCollector {
     }
   }
 
-  public BenchSuiteWrapper collectBenchSpecFromModuleName(String moduleName) {
-    Objects.requireNonNull(moduleName);
-    if (!moduleName.startsWith(benchPackagePrefix)) {
-      throw new IllegalArgumentException("Module name must start with " + benchPackagePrefix);
-    }
-    Value module = ctx.getBindings(LanguageInfo.ID).invokeMember(TopScope.GET_MODULE, moduleName);
-    return collectBenchSpecFromModule(module, moduleName);
-  }
-
   /**
    * Collects benchmark specifications from a single file. Returns null if no specification
    * is found in the file.
    * @param benchFile Path to the source file.
    * @return null if there are no benchmark specs in the file.
    */
-  private BenchSuiteWrapper collectBenchSpecsFromSingleFile(File benchFile) {
+  private ModuleBenchSuite collectBenchSpecsFromSingleFile(File benchFile) {
     Path relativePath = rootDir.toPath().relativize(benchFile.toPath());
     // Strip the "src" directory
     Path modulePath = relativePath.subpath(1, relativePath.getNameCount());
@@ -89,7 +89,7 @@ public class SpecCollector {
     return collectBenchSpecFromModule(module, moduleFullName);
   }
 
-  private BenchSuiteWrapper collectBenchSpecFromModule(Value module, String moduleQualifiedName) {
+  private ModuleBenchSuite collectBenchSpecFromModule(Value module, String moduleQualifiedName) {
     Value moduleType = module.invokeMember(Module.GET_ASSOCIATED_TYPE);
     Value allSuitesVar = module.invokeMember(Module.GET_METHOD, moduleType, allSuitesVarName);
     if (!allSuitesVar.isNull()) {
@@ -98,7 +98,7 @@ public class SpecCollector {
         suite = module
             .invokeMember(Module.EVAL_EXPRESSION, "all")
             .as(BenchSuite.class);
-        return new BenchSuiteWrapper(suite, moduleQualifiedName);
+        return new ModuleBenchSuite(suite, moduleQualifiedName);
       } catch (PolyglotException e) {
         // TODO: Replace with proper logging
         System.err.println("WARN: An exception occured while evaluating benchmark suite var: " + e.getMessage());
