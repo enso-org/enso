@@ -1773,17 +1773,16 @@ lazy val `bench-processor` = (project in file("std-bits/bench-processor"))
   .settings(
     frgaalJavaCompilerSetting,
     libraryDependencies ++= Seq(
-      "org.netbeans.api" % "org-openide-util-lookup"   % netbeansApiVersion,
-      "org.graalvm.sdk"  % "graal-sdk"                 % graalMavenPackagesVersion   % "provided",
+      "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion        % "provided",
+      "org.graalvm.sdk"  % "graal-sdk"               % graalMavenPackagesVersion % "provided"
     ),
     Compile / javacOptions := ((Compile / javacOptions).value ++
-      // Only run ServiceProvider processor and ignore those defined in META-INF, thus
-      // fixing incremental compilation setup
-      Seq(
-        "-processor",
-        "org.netbeans.modules.openide.util.ServiceProviderProcessor"
-      )
-    ),
+    // Only run ServiceProvider processor and ignore those defined in META-INF, thus
+    // fixing incremental compilation setup
+    Seq(
+      "-processor",
+      "org.netbeans.modules.openide.util.ServiceProviderProcessor"
+    ))
   )
   .dependsOn(`polyglot-api`)
   .dependsOn(runtime)
@@ -1793,13 +1792,15 @@ lazy val `bench-libs` = (project in file("std-bits/benchmarks"))
     frgaalJavaCompilerSetting,
     assembly / mainClass := (Compile / run / mainClass).value,
     libraryDependencies ++= jmh ++ Seq(
-      "org.openjdk.jmh"  % "jmh-core"                  % jmhVersion,
-      "org.openjdk.jmh"  % "jmh-generator-annprocess"  % jmhVersion,
-      "org.graalvm.sdk"  % "graal-sdk"                 % graalMavenPackagesVersion   % "provided",
-      "org.graalvm.truffle" % "truffle-api"           % graalMavenPackagesVersion % Benchmark,
+      "org.openjdk.jmh"     % "jmh-core"                 % jmhVersion                % Benchmark,
+      "org.openjdk.jmh"     % "jmh-generator-annprocess" % jmhVersion                % Benchmark,
+      "org.graalvm.sdk"     % "graal-sdk"                % graalMavenPackagesVersion % "provided",
+      "org.graalvm.truffle" % "truffle-api"              % graalMavenPackagesVersion % Benchmark
     ),
     commands += WithDebugCommand.withDebug,
-    (Benchmark / run / mainClass) := Some("org.enso.benchmarks.libs.LibBenchRunner"),
+    (Benchmark / run / mainClass) := Some(
+      "org.enso.benchmarks.libs.LibBenchRunner"
+    ),
     (Benchmark / run / fork) := true,
     (Benchmark / run / connectInput) := true,
     // Pass -Dtruffle.class.path.append to javac
@@ -1816,7 +1817,7 @@ lazy val `bench-libs` = (project in file("std-bits/benchmarks"))
           .mkString(File.pathSeparator)
       Seq(
         "-J--no-limit-modules",
-        s"-J-Dtruffle.class.path.append=$appendClasspath",
+        s"-J-Dtruffle.class.path.append=$appendClasspath"
       )
     },
     (Compile / javacOptions) ++= Seq(
@@ -1841,13 +1842,13 @@ lazy val `bench-libs` = (project in file("std-bits/benchmarks"))
           .map(_.data)
           .mkString(File.pathSeparator)
       Seq(
-        s"-Dtruffle.class.path.append=$appendClasspath",
+        s"-Dtruffle.class.path.append=$appendClasspath"
       )
-    },
+    }
   )
   .configs(Benchmark)
   .settings(
-    inConfig(Benchmark)(Defaults.testSettings),
+    inConfig(Benchmark)(Defaults.testSettings)
   )
   .settings(
     bench := (Benchmark / run).toTask("").tag(Exclusive).value,
@@ -1855,7 +1856,7 @@ lazy val `bench-libs` = (project in file("std-bits/benchmarks"))
       import complete.Parsers.spaceDelimited
       val name = spaceDelimited("<name>").parsed match {
         case List(name) => name
-        case _ => throw new IllegalArgumentException("Expected one argument.")
+        case _          => throw new IllegalArgumentException("Expected one argument.")
       }
       Def.task {
         (Benchmark / run).toTask(" " + name).value
