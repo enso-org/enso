@@ -444,7 +444,7 @@ type Table
     @column_map Widget_Helpers.make_rename_name_vector_selector
     rename_columns : Map (Text | Integer | Regex) Text | Vector Text | Vector Vector -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Ambiguous_Column_Rename | Too_Many_Column_Names_Provided | Invalid_Output_Column_Names | Duplicate_Output_Column_Names
     rename_columns self (column_map:(Map | Vector)=["Column"]) (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default) (error_on_missing_columns:Boolean=True) (on_problems:Problem_Behavior=Report_Warning) =
-        new_names = Table_Helpers.rename_columns self.column_naming_helpers self.internal_columns column_map case_sensitivity error_on_missing_columns on_problems
+        new_names = Table_Helpers.rename_columns self.column_naming_helper self.internal_columns column_map case_sensitivity error_on_missing_columns on_problems
         Warning.with_suspended new_names names->
             self.updated_columns (self.internal_columns.map c-> c.rename (names.at c.name))
 
@@ -1461,7 +1461,7 @@ type Table
     @columns Widget_Helpers.make_aggregate_column_vector_selector
     aggregate : Vector Aggregate_Column -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Invalid_Aggregate_Column | Invalid_Output_Column_Names | Duplicate_Output_Column_Names | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings
     aggregate self columns (error_on_missing_columns=False) (on_problems=Report_Warning) =
-        validated = Aggregate_Column_Helper.prepare_aggregate_columns self.column_naming_helpers columns self error_on_missing_columns=error_on_missing_columns
+        validated = Aggregate_Column_Helper.prepare_aggregate_columns self.column_naming_helper columns self error_on_missing_columns=error_on_missing_columns
         key_columns = validated.key_columns
         key_problems = key_columns.flat_map internal_column->
             column = self.make_column internal_column
@@ -1949,8 +1949,8 @@ type Table
         Table_Helpers.Table_Column_Helper.Value self.internal_columns self.make_column self .read
 
     ## PRIVATE
-    column_naming_helpers : Column_Naming_Helper
-    column_naming_helpers self = self.connection.base_connection.column_naming_helper
+    column_naming_helper : Column_Naming_Helper
+    column_naming_helper self = self.connection.base_connection.column_naming_helper
 
     ## PRIVATE
 

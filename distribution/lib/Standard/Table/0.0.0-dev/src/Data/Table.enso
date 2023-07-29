@@ -565,7 +565,7 @@ type Table
     @column_map Widget_Helpers.make_rename_name_vector_selector
     rename_columns : Map (Text | Integer | Regex) Text | Vector Text | Vector Vector -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Ambiguous_Column_Rename | Too_Many_Column_Names_Provided | Invalid_Output_Column_Names | Duplicate_Output_Column_Names
     rename_columns self (column_map:(Map | Vector)=["Column"]) (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default) (error_on_missing_columns:Boolean=True) (on_problems:Problem_Behavior=Report_Warning) =
-        new_names = Table_Helpers.rename_columns self.column_naming_helpers self.columns column_map case_sensitivity error_on_missing_columns on_problems
+        new_names = Table_Helpers.rename_columns self.column_naming_helper self.columns column_map case_sensitivity error_on_missing_columns on_problems
         Warning.with_suspended new_names names->
             Table.new (self.columns.map c-> c.rename (names.at c.name))
 
@@ -650,7 +650,7 @@ type Table
     @columns Widget_Helpers.make_aggregate_column_vector_selector
     aggregate : Vector Aggregate_Column -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Invalid_Aggregate_Column | Invalid_Output_Column_Names | Duplicate_Output_Column_Names | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings
     aggregate self columns (error_on_missing_columns=False) (on_problems=Report_Warning) =
-        validated = Aggregate_Column_Helper.prepare_aggregate_columns self.column_naming_helpers columns self error_on_missing_columns=error_on_missing_columns
+        validated = Aggregate_Column_Helper.prepare_aggregate_columns self.column_naming_helper columns self error_on_missing_columns=error_on_missing_columns
 
         on_problems.attach_problems_before validated.problems <| Illegal_Argument.handle_java_exception <|
             java_key_columns = validated.key_columns.map .java_column
@@ -1357,7 +1357,7 @@ type Table
         get_column name = self.at name
         new_column = Expression.evaluate expression get_column self.make_constant_column "Standard.Table.Data.Column" "Column" Column.var_args_functions
         problems = Warning.get_all new_column . map .value
-        result = new_column.rename (self.column_naming_helpers.sanitize_name expression)
+        result = new_column.rename (self.column_naming_helper.sanitize_name expression)
         on_problems.attach_problems_before problems <|
             Warning.set result []
 
@@ -1843,7 +1843,7 @@ type Table
     transpose : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Text -> Text -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns | Duplicate_Output_Column_Names
     transpose self (key_columns = []) (attribute_column_name="Name") (value_column_name="Value") (error_on_missing_columns=True) (on_problems = Report_Warning) =
         columns_helper = self.columns_helper
-        unique = self.column_naming_helpers.create_unique_name_strategy
+        unique = self.column_naming_helper.create_unique_name_strategy
         problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns
 
         id_columns = columns_helper.select_columns_helper key_columns Case_Sensitivity.Default False problem_builder
@@ -2168,8 +2168,8 @@ type Table
         Table_Helpers.replace_columns_with_transformed_columns self columns transformer
 
     ## PRIVATE
-    column_naming_helpers : Column_Naming_Helper
-    column_naming_helpers self = Column_Naming_Helper.in_memory
+    column_naming_helper : Column_Naming_Helper
+    column_naming_helper self = Column_Naming_Helper.in_memory
 
 ## PRIVATE
 
