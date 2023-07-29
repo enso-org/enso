@@ -975,7 +975,7 @@ type Column
     ## PRIVATE
     internal_is_empty : Column
     internal_is_empty self =
-        new_name = naming_helper.concat [naming_helper.to_expression_text self, " is empty"]
+        new_name = naming_helper.concat [naming_helper.to_expression_text self, "is empty"]
         run_vectorized_unary_op self Java_Storage.Maps.IS_EMPTY new_name fallback_fn=Filter_Condition.Is_Empty.to_predicate expected_result_type=Value_Type.Boolean skip_nulls=False
 
     ## Returns a column of booleans, with `True` items at the positions where
