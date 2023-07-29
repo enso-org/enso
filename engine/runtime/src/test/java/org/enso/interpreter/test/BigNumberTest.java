@@ -161,4 +161,14 @@ public class BigNumberTest extends TestBase {
     var expect = BigInteger.TWO.pow(200).divide(BigInteger.valueOf(200));
     assertEquals("It is big enough", expect, actual);
   }
+
+  @Test
+  public void interopWithJava() throws Exception {
+    var code = """
+    mul a b = a * b
+    """;
+    var fn = evalCode(code, "mul");
+    var fourtyTwo = fn.execute(new BigInteger("6"), new BigInteger("7"));
+    assertEquals(42, fourtyTwo.asInt());
+  }
 }
