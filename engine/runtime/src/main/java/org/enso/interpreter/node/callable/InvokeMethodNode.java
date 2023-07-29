@@ -18,6 +18,7 @@ import com.oracle.truffle.api.profiles.BranchProfile;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import com.oracle.truffle.api.profiles.CountingConditionProfile;
 import com.oracle.truffle.api.source.SourceSection;
+
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
@@ -26,6 +27,7 @@ import java.util.Arrays;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.locks.Lock;
+
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.Constants.Names;
 import org.enso.interpreter.node.BaseNode;
@@ -36,6 +38,7 @@ import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.node.callable.resolver.HostMethodCallNode;
 import org.enso.interpreter.node.callable.resolver.MethodResolverNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
+import org.enso.interpreter.node.expression.builtin.number.utils.ToEnsoNumberNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
@@ -482,6 +485,34 @@ public abstract class InvokeMethodNode extends BaseNode {
       res = WithWarnings.appendTo(EnsoContext.get(this), res, accumulatedWarnings);
     }
     return res;
+  }
+
+  @Specialization(
+      guards = {
+        "!warnings.hasWarnings(self)",
+        "!types.hasType(self)",
+        "!types.hasSpecialDispatch(self)",
+        "getPolyglotCallType(self, symbol, interop) == CONVERT_TO_NUMBER"
+      })
+  Object doConvertNumber(
+      VirtualFrame frame,
+      State state,
+      UnresolvedSymbol symbol,
+      Object self,
+      Object[] arguments,
+      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
+      @Shared("types") @CachedLibrary(limit = "10") TypesLibrary types,
+      @Shared("warnings") @CachedLibrary(limit = "10") WarningsLibrary warnings,
+      @Shared("methodResolverNode") @Cached MethodResolverNode methodResolverNode,
+      @Cached ToEnsoNumberNode toEnsoNumberNode) {
+    try {
+      var big = interop.asBigInteger(self);
+      var ensoBig = toEnsoNumberNode.execute(big);
+      arguments[0] = ensoBig;
+      return execute(frame, state, symbol, ensoBig, arguments);
+    } catch (UnsupportedMessageException e) {
+      throw new IllegalStateException("Impossible, self is guaranteed to be a number.");
+    }
   }
 
   @Specialization(

@@ -162,13 +162,17 @@ public class BigNumberTest extends TestBase {
     assertEquals("It is big enough", expect, actual);
   }
 
-  @Test
-  public void interopWithJava() throws Exception {
+  private Value assertMul(Object a, Object b) throws URISyntaxException {
     var code = """
     mul a b = a * b
     """;
     var fn = evalCode(code, "mul");
-    var fourtyTwo = fn.execute(new BigInteger("6"), new BigInteger("7"));
+    return fn.execute(a, b);
+  }
+
+  @Test
+  public void bigIntegerLog() throws Exception {
+    var fourtyTwo = assertMul(new BigInteger("6"), 7);
     assertEquals(42, fourtyTwo.asInt());
   }
 }
