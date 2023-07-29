@@ -1,9 +1,12 @@
 package org.enso.interpreter.node.expression.builtin.interop.syntax;
 
 import com.oracle.truffle.api.dsl.*;
+import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
+import org.enso.interpreter.node.expression.builtin.number.utils.ToEnsoNumberNode;
 import org.enso.interpreter.node.expression.foreign.CoerceNothing;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.WarningsLibrary;
@@ -47,13 +50,20 @@ public abstract class HostValueToEnsoNode extends Node {
   }
 
   @Specialization
-  long doByte(byte i) {
+  long doChar(char i) {
     return i;
   }
 
-  @Specialization
-  long doChar(char i) {
-    return i;
+  @Specialization(guards = {"n != null", "iop.fitsInBigInteger(n)"})
+  Object doBigIntegerConversion(
+      Object n,
+      @Shared("iop") @CachedLibrary(limit = "3") InteropLibrary iop,
+      @Cached ToEnsoNumberNode to) {
+    try {
+      return to.execute(iop.asBigInteger(n));
+    } catch (UnsupportedMessageException e) {
+      throw new IllegalStateException(e);
+    }
   }
 
   @Specialization
@@ -61,10 +71,10 @@ public abstract class HostValueToEnsoNode extends Node {
     return Text.create(txt);
   }
 
-  @Specialization(guards = {"o != null", "nulls.isNull(o)"})
+  @Specialization(guards = {"o != null", "iop.isNull(o)"})
   Object doNull(
       Object o,
-      @CachedLibrary(limit = "3") InteropLibrary nulls,
+      @Shared("iop") @CachedLibrary(limit = "3") InteropLibrary iop,
       @CachedLibrary(limit = "3") WarningsLibrary warnings,
       @Cached CoerceNothing coerceNothing) {
     return coerceNothing.execute(o);

@@ -135,8 +135,8 @@ public class BigNumberTest extends TestBase {
 
     assertTrue("Got a number back " + avg,avg.isNumber());
     assertFalse("It's not a long", avg.fitsInLong());
-    assertTrue("It's a double", avg.fitsInDouble());
-    assertEquals("It is big enough", Math.pow(2, 200) / 200, avg.asDouble(), 300);
+    assertTrue("It's a big number", avg.fitsInBigInteger());
+    assertEquals("It is big enough", Math.pow(2, 200) / 200, avg.asBigInteger().doubleValue(), 300);
   }
 
   @Test
@@ -171,8 +171,32 @@ public class BigNumberTest extends TestBase {
   }
 
   @Test
-  public void bigIntegerLog() throws Exception {
+  public void bigIntegerLong() throws Exception {
     var fourtyTwo = assertMul(new BigInteger("6"), 7);
+    assertEquals(42, fourtyTwo.asInt());
+  }
+
+  @Test
+  public void bigIntegerDouble() throws Exception {
+    var fourtyTwo = assertMul(new BigInteger("6"), 7.0);
+    assertEquals(42, fourtyTwo.asInt());
+  }
+
+  @Test
+  public void bigIntegerBigInteger() throws Exception {
+    var fourtyTwo = assertMul(new BigInteger("6"), new BigInteger("7"));
+    assertEquals(42, fourtyTwo.asInt());
+  }
+
+  @Test
+  public void longBigInteger() throws Exception {
+    var fourtyTwo = assertMul(6L, new BigInteger("7"));
+    assertEquals(42, fourtyTwo.asInt());
+  }
+
+  @Test
+  public void doubleBigInteger() throws Exception {
+    var fourtyTwo = assertMul(6.0, new BigInteger("7"));
     assertEquals(42, fourtyTwo.asInt());
   }
 }
