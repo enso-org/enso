@@ -38,6 +38,7 @@ pub mod handled;
 pub mod js;
 
 pub use js::Id;
+use web_sys::console::warn;
 
 
 
@@ -180,13 +181,13 @@ impl From<String> for Content {
 }
 
 impl Content {
-    pub fn from_html(html: &str) -> FallibleResult<Self> {
+    pub fn from_html(html: impl AsRef<str>) -> FallibleResult<Self> {
         use anyhow::Context; // FIXME
         let window = ensogl::system::web::binding::wasm::get_window();
         let document =
             window.document().context("Cannot get `document` from the `window`.").unwrap();
         let div = document.create_element("div").unwrap(); // FIXME
-        div.set_inner_html(html);
+        div.set_inner_html(html.as_ref());
         Ok(Content::Element(SerializableJsValue(JsValue::from(div))))
     }
 }
@@ -270,7 +271,7 @@ pub enum Position {
 
 /// Direction that the notification can be dragged (swiped) to dismiss it.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
+#[serde(rename_all = "kebab-case")]
 #[allow(missing_docs)]
 pub enum DraggableDirection {
     X,
@@ -298,7 +299,7 @@ pub enum Theme {
 ///
 /// Note that it is not necessary to set any of these. All options marked as `None` will be
 /// auto-filled with default values.
-#[derive(Debug, Serialize, Deserialize, Default)]
+#[derive(Clone, Debug, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 #[allow(missing_docs)]
 pub struct Options {
@@ -369,11 +370,16 @@ impl Options {
     /// The only way fot this notification to disappear is to call `dismiss()` manually. Otherwise,
     /// it will stay on screen indefinitely.
     pub fn always_present(mut self) -> Self {
+        self.set_always_present();
+        self
+    }
+
+    /// Mutable version of [`Options::always_present`].
+    pub fn set_always_present(&mut self) {
         self.auto_close = Some(AutoClose::Never());
         self.close_button = Some(false);
         self.close_on_click = Some(false);
         self.draggable = Some(false);
-        self
     }
 }
 
@@ -384,7 +390,7 @@ impl Options {
 ///
 /// Just like [`Options`], but also includes a `render` field that allows to update the
 /// notification message.
-#[derive(Debug, Serialize, Deserialize, Default, Deref, DerefMut)]
+#[derive(Clone, Debug, Serialize, Deserialize, Default, Deref, DerefMut)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateOptions {
     /// New state of the toast.
@@ -426,6 +432,11 @@ impl Notification {
         Self { id: Rc::new(id), options: Rc::new(RefCell::new(options)) }
     }
 
+    pub fn init(&self, options: UpdateOptions) -> Result<(), JsValue> {
+        self.options.replace(options);
+        self.id.update(&self.options.borrow())
+    }
+
 
     // pub fn options(&self) -> UpdateOptions {
     //     self.options.deref().borrow().clone()
@@ -434,6 +445,37 @@ impl Notification {
     pub fn update(&self, f: impl FnOnce(&mut UpdateOptions)) -> Result<(), JsValue> {
         f(&mut self.options.borrow_mut());
         self.id.update(&self.options.borrow())
+    }
+
+    pub fn show(&self) -> Result<(), JsValue> {
+        warn!("Notification::show {self:?}");
+        if self.id.is_active()? {
+            warn!("Notification::show: is_active");
+            self.id.update(self.options.borrow().deref())?;
+        } else {
+            warn!("Notification::show: not is_active");
+            let options: RefMut<'_, UpdateOptions> = self.options.borrow_mut();
+            let content = options.render.as_ref();
+            let options_js = (&*options).try_into()?;
+            js_sys::Reflect::set(&options_js, &JsValue::from_str("toastId"), &self.id);
+            if let Some(content) = content {
+                warn!("Notification::show: content");
+                js::toast(content, options.r#type.unwrap_or(Type::Info), &options_js)?;
+            } else {
+                warn!("Notification::show: message");
+                let message = "";
+                js::toast(&message.into(), options.r#type.unwrap_or(Type::Info), &options_js)?;
+            }
+
+            // We should expect that ID is as-before.
+        }
+        // self.id.show()
+        Ok(())
+    }
+
+    pub fn hide(&self) -> Result<(), JsValue> {
+        warn!("Notification::hide {self:?}");
+        self.id.dismiss()
     }
 }
 

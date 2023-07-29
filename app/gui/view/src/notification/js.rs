@@ -63,7 +63,7 @@ extern "C" {
     #[derive(Clone, Debug)]
     pub type Id;
 
-    /// The unique identifier of a toast.
+    /// The unique identifier of a toast container.
     #[derive(Clone, Debug)]
     pub type ContainerId;
 
@@ -138,10 +138,13 @@ impl ToastAPI {
 }
 
 impl Id {
+    pub fn new(id: impl AsRef<str>) -> Self {
+        id.as_ref().into()
+    }
+
     pub fn new_unique() -> Self {
         let uuid = uuid::Uuid::new_v4();
-        let uuid_str = uuid.to_string();
-        JsValue::from_str(&uuid_str).into()
+        Self::new(uuid.to_string())
     }
 
     /// Dismisses the toast.

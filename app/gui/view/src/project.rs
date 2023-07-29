@@ -19,6 +19,7 @@ use ensogl::application;
 use ensogl::application::shortcut;
 use ensogl::application::Application;
 use ensogl::display;
+use ensogl::display::texture::TextureOps;
 use ensogl::display::Scene;
 use ensogl::system::web;
 use ensogl::Animation;
@@ -200,7 +201,7 @@ struct Model {
     code_editor:      code_editor::View,
     fullscreen_vis:   Rc<RefCell<Option<visualization::fullscreen::Panel>>>,
     project_list:     Rc<ProjectList>,
-    debug_mode_popup: Rc<RefCell<Option<crate::notification::handled::Id>>>,
+    debug_mode_popup: Rc<crate::debug_mode_popup::View>,
 }
 
 impl Model {
@@ -210,7 +211,7 @@ impl Model {
         let graph_editor = app.new_view::<GraphEditor>();
         let code_editor = app.new_view::<code_editor::View>();
         let fullscreen_vis = default();
-        let debug_mode_popup = default();
+        let debug_mode_popup = Rc::new(crate::debug_mode_popup::View::new(app));
         let project_view_top_bar = ProjectViewTopBar::new(app);
         let project_list = Rc::new(ProjectList::new(app));
 
@@ -748,21 +749,19 @@ impl View {
         let frp = &self.frp;
         let network = &frp.network;
         let popup = &self.model.debug_mode_popup;
-        frp::extend! { network
-            frp.source.debug_mode <+ bool(&frp.disable_debug_mode, &frp.enable_debug_mode);
 
-            eval frp.source.debug_mode ([popup](is_enabled) {
-                warn!("Debug mode is {}", if *is_enabled { "enabled" } else { "disabled" });
-                let mut popup = popup.borrow_mut();
-                warn!("Popup is {:?}", popup.as_ref());
-                if *is_enabled && popup.is_none() {
-                    let mut options = crate::notification::Options::default().always_present();
-                    options.position = Some(crate::notification::Position::BottomCenter);
-                    *popup = crate::notification::handled::info(&crate::notification::Content::from_html(DEBUG_MODE_ENABLED).unwrap(), &Some(options));
-                } else if !*is_enabled && let Some(old_popup) = popup.take() {
-                    old_popup.dismiss();
-                }
-            });
+        let mut options: crate::notification::UpdateOptions =
+            crate::notification::UpdateOptions::default();
+        options.set_always_present();
+        options.auto_close = Some(crate::notification::AutoClose::Never());
+        options.position = Some(crate::notification::Position::BottomRight);
+        options.render = Some(DEBUG_MODE_ENABLED.into());
+        popup.set_options(options);
+
+        frp::extend! { network
+            debug_mode <- bool(&frp.disable_debug_mode, &frp.enable_debug_mode);
+            frp.source.debug_mode <+ debug_mode;
+            popup.is_enabled <+ debug_mode;
         }
         self
     }
