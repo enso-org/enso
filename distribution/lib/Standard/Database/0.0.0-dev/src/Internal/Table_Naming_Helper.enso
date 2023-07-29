@@ -87,7 +87,7 @@ type Table_Naming_Helper
     generate_random_table_name : Text -> Text
     generate_random_table_name self prefix="enso-table-" =
         naming_properties = self.naming_properties
-        max_size = naming_properties.max_size
+        max_size = naming_properties.size_limit
         minimum_randomness = 5
         minimum_randomness_template = "0" * minimum_randomness
         maximum_retries = 20^minimum_randomness
