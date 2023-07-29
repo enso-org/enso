@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Errors.No_Such_Key.No_Such_Key
 
 import Standard.Table.Data.Expression.Expression_Error
 import Standard.Table.Data.Type.Value_Type.Value_Type
@@ -613,12 +614,24 @@ type Truncated_Column_Names
     ## PRIVATE
        Indicates that some column names were truncated to fit the maximum length
        supported by the backend.
-    Warning (original_names : Vector Text) (truncated_names : Vector Text) (max_length : Integer) (needed_renaming : Boolean)
+    Warning (names_map : Map Text Text)
+
+    ## PRIVATE
+       Get the original column names.
+    original_names : Vector Text
+    original_names self = self.names_map.keys.to_vector
+
+    ## PRIVATE
+       Get the truncated names.
+    truncated_names : Vector Text
+    truncated_names self = self.names_map.values.to_vector
+
+    ## PRIVATE
+    find_truncated_name : Text -> Text ! No_Such_Key
+    find_truncated_name self name = self.names_map.get name
 
     ## PRIVATE
        Pretty print the truncated column names warning.
     to_display_text : Text
     to_display_text self =
-        original_names = self.truncated_names.map .first
-        suffix = if self.needed_renaming then " Some names were clashing after being truncated. Renaming has been applied to ensure that all names are unique." else ""
-        "The column names " + original_names.to_display_text + " were truncated to fit the maximum length supported by the backend (" + self.max_length.to_text + ")." + suffix
+        "The column names " + self.original_names.to_display_text + " were truncated to fit the maximum length supported by the backend (" + self.max_length.to_text + ")."

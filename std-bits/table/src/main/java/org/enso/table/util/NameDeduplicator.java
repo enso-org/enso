@@ -44,7 +44,7 @@ public class NameDeduplicator {
   public NameDeduplicator(String invalidNameReplacement, NamingProperties namingProperties) {
     this.invalidNameReplacement = invalidNameReplacement;
     this.namingProperties = namingProperties;
-    if (namingProperties.has_size_limit()) {
+    if (hasSizeLimit()) {
       if (namingProperties.encoded_size(invalidNameReplacement) > namingProperties.size_limit()) {
         throw new IllegalArgumentException(
             "The `invalidNameReplacement` for NameDeduplicator does not fit in the " +
@@ -65,7 +65,7 @@ public class NameDeduplicator {
       return this.invalidNameReplacement;
     }
 
-    if (namingProperties.has_size_limit()) {
+    if (hasSizeLimit()) {
       long encodedSize = namingProperties.encoded_size(input);
       if (encodedSize > namingProperties.size_limit()) {
         String truncated = namingProperties.truncate(input, namingProperties.size_limit());
@@ -147,7 +147,7 @@ public class NameDeduplicator {
       }
 
       String suffix = " " + index;
-      if (namingProperties.has_size_limit()) {
+      if (hasSizeLimit()) {
         long prefixSize = namingProperties.encoded_size(initialName);
         long suffixSize = namingProperties.encoded_size(suffix);
         if (prefixSize + suffixSize > namingProperties.size_limit()) {
@@ -171,6 +171,10 @@ public class NameDeduplicator {
 
   public String[] getDuplicatedNames() {
     return this.duplicatedNames.toArray(String[]::new);
+  }
+
+  public Map<String, String> getTruncatedNames() {
+    return new HashMap<>(this.truncatedNames);
   }
 
   public List<Problem> getProblems() {
@@ -213,5 +217,9 @@ public class NameDeduplicator {
       }
     }
     return output;
+  }
+
+  private boolean hasSizeLimit() {
+    return namingProperties != null && namingProperties.size_limit() != null;
   }
 }

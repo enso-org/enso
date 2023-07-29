@@ -96,6 +96,11 @@ type Unique_Name_Strategy
     invalid_names self = Vector.from_polyglot_array self.deduplicator.getInvalidNames
 
     ## PRIVATE
+       A mapping of original names to their truncated counterpart.
+    truncated_names : Map Text Text
+    truncated_names self = self.deduplicator.getTruncatedNames
+
+    ## PRIVATE
        ADVANCED
        Takes a value and converts to a valid (but not necessarily unique) name.
 

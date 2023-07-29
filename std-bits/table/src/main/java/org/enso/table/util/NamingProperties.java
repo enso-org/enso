@@ -13,10 +13,6 @@ public interface NamingProperties {
    */
   Long size_limit();
 
-  default boolean has_size_limit() {
-    return size_limit() != null;
-  }
-
   /**
    * Returns the size of the string in the target encoding.
    * <p>

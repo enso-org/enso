@@ -312,12 +312,12 @@ spec prefix connection =
                 c2 = c0.ceil
                 c2.to_vector . should_equal [1, 2, 3]
                 # truncated
-                c2.name . should_equal (("ceil(" + long_name).take max_column_name_length)
+                c2.name . should_equal (("ceil([" + long_name).take max_column_name_length)
 
-                c3 = c1.cast Value_Type.Char . starts_with "1"
+                c3 = c1.cast Value_Type.Char . ends_with "1"
                 c3.to_vector . should_equal [True, False, False]
                 c3.name.length . should_equal max_column_name_length
-                c3.name . should_contain "starts_with"
+                c3.name . should_contain "ends_with"
 
             Test.specify "raise an error if name provided by the user in aggregate is too long" <|
                 src = Table.new [["X", [1, 2, 3]]]
@@ -335,10 +335,11 @@ spec prefix connection =
                 db_table = src.select_into_database_table connection (Name_Generator.random_name "long-column-names") temporary=True
                 t2 = db_table.aggregate [Aggregate_Column.Maximum name_a, Aggregate_Column.Maximum name_b]
                 w1 = Problems.expect_warning Truncated_Column_Names t2
-                w1.original_names . should_equal [name_a, name_b]
 
-                t2.at (w1.truncated_names.at 0) . to_vector . should_equal [3]
-                t2.at (w1.truncated_names.at 1) . to_vector . should_equal [6]
+                w1.original_names . should_contain_the_same_elements_as ["Maximum "+name_a, "Maximum "+name_b]
+
+                t2.at (w1.find_truncated_name ("Maximum "+name_a)) . to_vector . should_equal [3]
+                t2.at (w1.find_truncated_name ("Maximum "+name_b)) . to_vector . should_equal [6]
 
                 # This should work even if there is so many columns that more than one digit is needed to deduplicate
                 names = (0.up_to 15).map i->
@@ -349,10 +350,10 @@ spec prefix connection =
                 Problems.assume_no_problems db_table2
                 t3 = db_table2.aggregate (names.map name-> Aggregate_Column.Maximum name)
                 w2 = Problems.expect_warning Truncated_Column_Names t3
-                w2.original_names . should_equal (names.map name-> "Maximum " + name)
-                t3.column_names . should_equal w2.truncated_names
+                w2.original_names . should_contain_the_same_elements_as (names.map name-> "Maximum " + name)
+                t3.column_names . should_contain_the_same_elements_as w2.truncated_names
                 (0.up_to 15).each i->
-                    t3.at (w2.truncated_names.at i) . to_vector . should_equal [200 + i]
+                    t3.at (w2.find_truncated_name ("Maximum " + names.at i)) . to_vector . should_equal [200 + i]
 
             Test.specify "should truncate and deduplicate the names in join/cross_join, and issue a warning" <|
                 name_a = "x" * (max_column_name_length - 1) + "A"

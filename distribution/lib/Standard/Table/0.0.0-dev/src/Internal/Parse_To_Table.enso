@@ -32,7 +32,7 @@ parse_text_to_table text regex_or_pattern_string="." case_sensitivity=Case_Sensi
             column_values = matches.map (match-> match.text 0)
             [Column.from_vector column_name column_values]
         False ->
-            unique = Unique_Name_Strategy.new Unlimited_Naming_Properties
+            unique = Unique_Name_Strategy.new Unlimited_Naming_Properties.Instance
             ## Mark named groups used so they take precedence over
                auto-generated names.
             unique.mark_used pattern.named_groups

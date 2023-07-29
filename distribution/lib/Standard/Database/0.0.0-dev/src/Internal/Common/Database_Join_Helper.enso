@@ -6,6 +6,7 @@ import Standard.Table.Internal.Join_Helpers
 import Standard.Table.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 from Standard.Table.Errors import Floating_Point_Equality
 
+import project.Connection.Connection.Connection
 import project.Data.SQL_Type.SQL_Type
 import project.Data.Table.Table
 import project.Internal.Helpers
@@ -76,8 +77,8 @@ type Join_Subquery_Setup
 ## PRIVATE
 prepare_subqueries : Connection -> Table -> Table -> Boolean -> Boolean -> Pair Join_Subquery_Setup
 prepare_subqueries connection left right needs_left_indicator needs_right_indicator =
-    table_naming_helper = self.connection.base_connection.table_naming_helper
-    column_naming_helper = self.connection.base_connection.column_naming_helper
+    table_naming_helper = connection.base_connection.table_naming_helper
+    column_naming_helper = connection.base_connection.column_naming_helper
 
     ## If a self-join, make sure we are able to distinguish the left and
        right tables.

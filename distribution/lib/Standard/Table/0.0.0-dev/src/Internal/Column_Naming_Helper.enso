@@ -98,4 +98,4 @@ type Column_Naming_Helper
        A `Column_Naming_Helper` for the in-memory backend - having no length limits.
     in_memory : Column_Naming_Helper
     in_memory =
-        Column_Naming_Helper.Value Unlimited_Naming_Properties
+        Column_Naming_Helper.Value Unlimited_Naming_Properties.Instance
