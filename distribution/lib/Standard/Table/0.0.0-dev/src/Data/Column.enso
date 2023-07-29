@@ -2035,6 +2035,11 @@ type Column
     var_args_functions : Vector
     var_args_functions = ['is_in', 'coalesce', 'min', 'max']
 
+    ## PRIVATE
+       This is a shortcut for API compatibility.
+    naming_helpers : Column_Naming_Helper
+    naming_helpers self = naming_helpers
+
 ## PRIVATE
 
    Folds the vectorized operation over the provided column and values. When more

@@ -37,9 +37,9 @@ type Unique_Name_Strategy
              unique_names = ["A","B","A",""] . map unique_name_strategy.make_unique
              duplicates = unique_name_strategy.renames
              invalid = unique_name_strategy.invalid_names
-    new : (Integer | Nothing) -> Unique_Name_Strategy
-    new (max_name_length_units : Integer | Nothing = Nothing) =
-        deduplicator = NameDeduplicator.new max_name_length_units
+    new : Naming_Properties -> Unique_Name_Strategy
+    new (naming_properties = Naming_Properties_Module.Unlimited_Naming_Properties) =
+        deduplicator = NameDeduplicator.new naming_properties
         Unique_Name_Strategy.Value deduplicator
 
     ## PRIVATE
@@ -110,7 +110,8 @@ type Unique_Name_Strategy
     make_valid_name : Any -> Text
     make_valid_name self input =
         case input of
-            _ : Text -> self.deduplicator.makeValid input
+            _ : Text -> Naming_Properties_Module.recover_panics <|
+                self.deduplicator.makeValid input
             Nothing -> self.make_valid_name ""
             _ -> self.make_valid_name input.to_text
 

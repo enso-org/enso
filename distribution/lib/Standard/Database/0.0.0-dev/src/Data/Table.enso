@@ -444,7 +444,7 @@ type Table
     @column_map Widget_Helpers.make_rename_name_vector_selector
     rename_columns : Map (Text | Integer | Regex) Text | Vector Text | Vector Vector -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Ambiguous_Column_Rename | Too_Many_Column_Names_Provided | Invalid_Output_Column_Names | Duplicate_Output_Column_Names
     rename_columns self (column_map:(Map | Vector)=["Column"]) (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default) (error_on_missing_columns:Boolean=True) (on_problems:Problem_Behavior=Report_Warning) =
-        new_names = Table_Helpers.rename_columns self.naming_helpers self.internal_columns column_map case_sensitivity error_on_missing_columns on_problems
+        new_names = Table_Helpers.rename_columns self.column_naming_helpers self.internal_columns column_map case_sensitivity error_on_missing_columns on_problems
         Warning.with_suspended new_names names->
             self.updated_columns (self.internal_columns.map c-> c.rename (names.at c.name))
 
@@ -1101,20 +1101,24 @@ type Table
                     True
         if can_proceed then
             left = self
-            new_table_name = left.name + "_" + right.name
+            table_naming_helper = self.connection.base_connection.table_naming_helper
+            new_table_name = table_naming_helper.truncate_if_needed <|
+                left.name + "_" + right.name
 
             needed_indicators = case join_kind of
                 Join_Kind.Left_Exclusive  -> Pair.new False True
                 Join_Kind.Right_Exclusive -> Pair.new True False
                 _ -> Pair.new False False
-            subquery_setups = Database_Join_Helper.prepare_subqueries left right needed_indicators.first needed_indicators.second
+            subquery_setups = Database_Join_Helper.prepare_subqueries self.connection left right needed_indicators.first needed_indicators.second
             left_setup = subquery_setups.first
             right_setup = subquery_setups.second
 
             problem_builder = Problem_Builder.new
             join_resolution = Database_Join_Helper.make_join_helpers left right left_setup.column_mapping right_setup.column_mapping . resolve on on_problems
             right_columns_to_drop = if join_kind == Join_Kind.Inner then join_resolution.redundant_column_names else []
-            result_columns = Database_Join_Helper.select_columns_for_join join_kind left_setup.new_columns right_setup.new_columns right_columns_to_drop right_prefix problem_builder
+
+            column_naming_helper = self.connection.base_connection.column_naming_helper
+            result_columns = Database_Join_Helper.select_columns_for_join column_naming_helper join_kind left_setup.new_columns right_setup.new_columns right_columns_to_drop right_prefix problem_builder
 
             ## TODO proper equality of nulls in join conditions, see:
                https://www.pivotaltracker.com/story/show/184109759
@@ -1457,7 +1461,7 @@ type Table
     @columns Widget_Helpers.make_aggregate_column_vector_selector
     aggregate : Vector Aggregate_Column -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Invalid_Aggregate_Column | Invalid_Output_Column_Names | Duplicate_Output_Column_Names | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings
     aggregate self columns (error_on_missing_columns=False) (on_problems=Report_Warning) =
-        validated = Aggregate_Column_Helper.prepare_aggregate_columns self.naming_helpers columns self error_on_missing_columns=error_on_missing_columns
+        validated = Aggregate_Column_Helper.prepare_aggregate_columns self.column_naming_helpers columns self error_on_missing_columns=error_on_missing_columns
         key_columns = validated.key_columns
         key_problems = key_columns.flat_map internal_column->
             column = self.make_column internal_column
@@ -1945,8 +1949,8 @@ type Table
         Table_Helpers.Table_Column_Helper.Value self.internal_columns self.make_column self .read
 
     ## PRIVATE
-    naming_helpers : Column_Naming_Helper
-    naming_helpers self = self.connection.base_connection.column_naming_helper
+    column_naming_helpers : Column_Naming_Helper
+    column_naming_helpers self = self.connection.base_connection.column_naming_helper
 
     ## PRIVATE
 
@@ -2207,39 +2211,6 @@ display_dataframe df indices_count all_rows_count format_terminal =
         missing_rows_count = all_rows_count - display_rows
         missing = '\n\u2026 and ' + missing_rows_count.to_text + ' hidden rows.'
         table + missing
-
-## PRIVATE
-
-   Transforms `preferred_names` names in such a way to not collide with
-   `used_names`.
-
-   Arguments:
-   - used_names: The names that have already been used.
-   - preferred_names: The names that the user wants to use.
-
-   If a name from `preferred_names` does not collide with others, it is kept as
-   is, otherwise numerical suffixes are added.
-fresh_names : Vector Text -> Vector Text -> Vector Text
-fresh_names used_names preferred_names =
-   unique = Unique_Name_Strategy.new
-   unique.mark_used used_names
-   unique.make_all_unique preferred_names
-
-## PRIVATE
-
-   Ensures that the provided columns do not clash with the vector of names
-   provided as first argument.
-
-   Arguments:
-   - used_names: The already used names.
-   - columns: The columns to rename to avoid clashes.
-
-   Original column names are kept if possible, but if they would clash, the
-   columns are renamed.
-freshen_columns : Vector Text -> Vector Internal_Column -> Vector Internal_Column
-freshen_columns used_names columns =
-    new_names = fresh_names used_names (columns.map .name)
-    Helpers.rename_internal_columns columns new_names
 
 ## PRIVATE
 type Wrapped_Error

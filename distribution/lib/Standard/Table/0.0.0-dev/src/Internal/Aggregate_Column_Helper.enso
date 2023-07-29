@@ -65,7 +65,7 @@ prepare_aggregate_columns naming_helper aggregates table error_on_missing_column
         unique_key_columns = key_columns.distinct (on = .name)
 
         # Resolve Names
-        unique = Unique_Name_Strategy.new
+        unique = naming_helper.create_unique_name_strategy
         ## First pass ensures the custom names specified by the user are unique.
            The second pass resolves the default names, ensuring that they do not
            clash with the user-specified names (ensuring that user-specified names

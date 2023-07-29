@@ -73,6 +73,7 @@ type Encoding_Limited_Naming_Properties
     truncate self name size =
         ## I assume that `self.encoded_size` is a homomorphism
            from text with concatenation to integers with addition.
+           I.e. for every a and b, `self.encoded_size (a + b) == self.encoded_size a + self.encoded_size b`.
         clusters = name.characters
         if clusters.is_empty then name else
             cluster_sizes = clusters.map self.encoded_size

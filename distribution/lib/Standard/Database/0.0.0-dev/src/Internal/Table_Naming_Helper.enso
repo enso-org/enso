@@ -2,6 +2,7 @@ from Standard.Base import all
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
 import Standard.Table.Internal.Naming_Properties.Naming_Properties
+import Standard.Table.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 from Standard.Table.Errors import Name_Too_Long
 
 polyglot java import org.enso.base.Text_Utils
@@ -16,6 +17,13 @@ type Table_Naming_Helper
     naming_properties : Naming_Properties
     naming_properties self =
         self.connection.base_connection.entity_naming_properties.table_names
+
+    ## PRIVATE
+       Creates a `Unique_Name_Strategy` that will generate names keeping the
+       table naming limitations in mind.
+    create_unique_name_strategy : Unique_Name_Strategy
+    create_unique_name_strategy self =
+        Unique_Name_Strategy.new self.naming_properties
 
     ## PRIVATE
        Verifies if the table name is valid.
@@ -91,22 +99,6 @@ type Table_Naming_Helper
                     if self.connection.table_exists name . not then name else
                         @Tail_Call go (ix + 1)
             go 0
-
-    ## PRIVATE
-       Verifies if the column names are valid.
-       If valid, it runs the provided action, otherwise it reports an error.
-    verify_column_names : Vector Text -> Any -> Any ! Name_Too_Long
-    verify_column_names self column_names ~action =
-        case self.max_column_name_length of
-            Nothing -> action
-            max_length ->
-                is_too_long column_name =
-                    name_length = Text_Utils.char_length column_name
-                    name_length > max_length
-                case column_names.find is_too_long if_missing=Nothing of
-                    Nothing -> action
-                    too_long_name ->
-                        Error.throw (Name_Too_Long.Error "column" too_long_name max_length)
 
     ## PRIVATE
        Truncates the name to fit in the limit, if it is too long.

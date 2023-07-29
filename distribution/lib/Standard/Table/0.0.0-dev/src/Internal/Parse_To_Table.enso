@@ -6,6 +6,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import project.Data.Column.Column
 import project.Data.Data_Formatter.Data_Formatter
 import project.Data.Table.Table
+import project.Internal.Naming_Properties.Unlimited_Naming_Properties
 import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 from project import Value_Type
 from project.Errors import Duplicate_Output_Column_Names
@@ -31,7 +32,7 @@ parse_text_to_table text regex_or_pattern_string="." case_sensitivity=Case_Sensi
             column_values = matches.map (match-> match.text 0)
             [Column.from_vector column_name column_values]
         False ->
-            unique = Unique_Name_Strategy.new
+            unique = Unique_Name_Strategy.new Unlimited_Naming_Properties
             ## Mark named groups used so they take precedence over
                auto-generated names.
             unique.mark_used pattern.named_groups

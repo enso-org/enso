@@ -19,6 +19,7 @@ from Standard.Table.Internal.Cast_Helpers import check_cast_compatibility
 import project.Connection.Connection.Connection
 import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
+import project.Data.Table.Table
 import project.Internal.Helpers
 import project.Internal.IR.Context.Context
 import project.Internal.IR.Internal_Column.Internal_Column
@@ -26,7 +27,6 @@ import project.Internal.IR.Query.Query
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.Replace_Params.Replace_Params
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
-from project.Data.Table import freshen_columns, Table
 from project.Errors import Integrity_Error, Unsupported_Database_Operation
 
 polyglot java import org.enso.table.data.column.operation.map.MapOperationProblemBuilder

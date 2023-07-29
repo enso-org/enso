@@ -2,6 +2,7 @@ from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import project.Internal.Naming_Properties.Unlimited_Naming_Properties
+import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 from project.Internal.Table_Helpers import is_column
 
 polyglot java import org.enso.base.Text_Utils
@@ -16,6 +17,13 @@ type Column_Naming_Helper
     ## PRIVATE
     has_length_limit : Boolean
     has_length_limit self = self.naming_properties.size_limit.is_nothing.not
+
+    ## PRIVATE
+       Creates a `Unique_Name_Strategy` that will generate names keeping the
+       column naming limitations in mind.
+    create_unique_name_strategy : Unique_Name_Strategy
+    create_unique_name_strategy self =
+        Unique_Name_Strategy.new self.naming_properties
 
     ## PRIVATE
        Checks if the name is valid and runs the action, otherwise raises an error.
