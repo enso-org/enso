@@ -448,6 +448,27 @@ type Table
         Warning.with_suspended new_names names->
             self.updated_columns (self.internal_columns.map c-> c.rename (names.at c.name))
 
+    ## Returns a new table with the columns renamed based on entries in the
+       first row.
+
+       Arguments:
+       - on_problems: Specifies how to handle problems if they occur, reporting
+         them as warnings by default.
+
+         The following problems can occur:
+         - If any of the new names are invalid, an
+           `Invalid_Output_Column_Names`.
+         - If any of the new names clash either with existing names or each
+           other, a Duplicate_Output_Column_Names.
+
+       > Example
+         Rename the column based on the first row
+
+              table.use_first_row_as_names
+    use_first_row_as_names : Problem_Behavior -> Table
+    use_first_row_as_names self (on_problems=Report_Warning) =
+        Error.throw (Unsupported_Database_Operation.Error "Table.use_first_row_as_names is currently not implemented for the Database backend. You may download the table to memory using `.read` to use this feature.")
+
     ## PRIVATE
 
        Resolves the column name to a column within this table.
