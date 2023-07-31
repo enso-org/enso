@@ -201,3 +201,20 @@ type Multiple_Target_Rows_Matched_For_Update
     to_display_text : Text
     to_display_text self =
         "The update operation encountered input rows that matched multiple rows in the target table (for example, the key " + self.example_key.to_display_text + " matched " + self.example_count.to_text + " rows). The operation has been rolled back. You may need to use a more specific key for matching."
+
+type Unsupported_Database_Encoding
+    ## PRIVATE
+       A warning indicating that the encoding inferred to be used by the
+       database is not supported by Enso.
+
+       This should not affect data passed to/from the database, as the
+       connection driver should handle the translation. However, it affects how
+       identifier names are being handled, and it may cause trouble when the
+       length of identifier names is wrongly inferred, causing aliasing of names
+       and generating invalid queries.
+    Warning message
+
+    ## PRIVATE
+       Pretty print the unsupported database encoding warning.
+    to_display_text : Text
+    to_display_text self = self.message

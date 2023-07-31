@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Encoding_Error.Encoding_Error
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
 from Standard.Table.Errors import Name_Too_Long
@@ -7,6 +8,7 @@ from Standard.Table.Errors import Name_Too_Long
 import project.Internal.Common.Encoding_Limited_Naming_Properties.Encoding_Limited_Naming_Properties
 import project.Internal.Connection.Entity_Naming_Properties.Entity_Naming_Properties
 import project.Internal.JDBC_Connection.JDBC_Connection
+from project.Errors import Unsupported_Database_Encoding
 
 ## PRIVATE
    Creates a new instance of Entity_Naming_Properties for a given Postgres
@@ -47,8 +49,33 @@ get_pragma_value jdbc_connection sql =
     table.at 0 . at 0
 
 ## PRIVATE
-   Translates names of encodings from https://www.postgresql.org/docs/current/multibyte.html#CHARSET-TABLE into their Java counterprats.
+   Translates names of encodings from https://www.postgresql.org/docs/current/multibyte.html#CHARSET-TABLE into their Java counterparts.
 parse_postgres_encoding : Text -> Encoding
 parse_postgres_encoding encoding_name =
-    # TODO [RW] edge cases - all encodings from https://www.postgresql.org/docs/current/multibyte.html#CHARSET-TABLE should work
-    Encoding.from_name encoding_name
+    resolved_by_jvm = Encoding.from_name encoding_name
+    # If the JVM did not resolve the encoding immediately, we try a few workarounds.
+    resolved_by_jvm.catch Illegal_Argument _->
+        fallback = case encoding_name of
+            "EUC_JIS_2004" ->
+                ## Currently, I was unable to find a JVM supported encoding for
+                   JIS X 0213-2004, so I'm falling back to the closest one and
+                   adding a warning.
+                warning = Unsupported_Database_Encoding.Warning "The database is using the JIS X 0213-2004 encoding, which is currently not supported in Enso. Falling back to JIS X 0212. Column/table names may not be mapped correctly if they contain unsupported characters."
+                Warning.attach warning (Encoding.from_name "JIS_X0212-1990")
+            "KOI8R" -> Encoding.from_name "KOI8-R"
+            "KOI8U" -> Encoding.from_name "KOI8-U"
+            "LATIN7" -> Encoding.from_name "ISO-8859-13"
+            "SHIFT_JIS_2004" ->
+                ## Same issue as with EUC_JIS_2004.
+                warning = Unsupported_Database_Encoding.Warning "The database is using the Shift JIS 2004 encoding, which is currently not supported in Enso. Falling back to older Shift JIS. Column/table names may not be mapped correctly if they contain unsupported characters."
+                Warning.attach warning (Encoding.from_name "SJIS")
+            "UHC" -> Encoding.from_name "Windows949"
+            _ ->
+                if encoding_name.starts_with "ISO_" then Encoding.from_name (encoding_name.replace "_" "-") else
+                    if encoding_name.starts_with "WIN" then Encoding.from_name (encoding_name.replace "WIN" "CP") else
+                        resolved_by_jvm
+
+        # If the workaround failed, we fallback to UTF-8 and log a warning.
+        fallback.catch Any _->
+            warning = Unsupported_Database_Encoding.Warning "The database is using an encoding ("+encoding_name.to_display_text+") that is currently not supported by Enso. Falling back to UTF-8. Column/table names may not be mapped correctly if they contain unsupported characters."
+            Warning.attach warning Encoding.utf_8
