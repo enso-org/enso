@@ -110,6 +110,9 @@ pub struct EntryModel {
 
 ensogl_core::define_endpoints_2! {
     Input {
+        /// Set top margin inside scroll area. We need to leave some margin so the button panel
+        /// will not cover the topmost entry when maximally scrolled up.
+        set_top_margin(f32),
         reset(content::Info),
         select_first_entry(),
         model_for_entry(EntryId, EntryModel),
@@ -196,7 +199,8 @@ impl From<GroupColorsTheme> for GroupColors {
 pub struct Style {
     pub width:          f32,
     pub height:         f32,
-    pub padding:        f32,
+    pub padding_x:      f32,
+    pub padding_y:      f32,
     pub column_gap:     f32,
     pub entry_height:   f32,
     #[theme_path = "panel_theme::corners_radius"]
@@ -207,7 +211,7 @@ impl Style {
     /// Compute the size of grid without external paddings.
     pub fn content_size(&self) -> Vector2 {
         let size = Vector2(self.width, self.height);
-        let padding = Vector2(self.padding, self.padding) * 2.0;
+        let padding = Vector2(self.padding_x, self.padding_y) * 2.0;
         size - padding
     }
 
@@ -421,7 +425,7 @@ impl Model {
     fn grid_position(input: &(Style, Vector2)) -> Vector2 {
         let (style, _) = input;
         let y = -style.content_size().y + Self::grid_size(input).y;
-        Vector2(0.0, y)
+        Vector2(style.padding_x, y)
     }
 
     fn entries_params(
@@ -517,10 +521,14 @@ impl component::Frp<Model> for Frp {
             grid_scroll_frp.resize <+ style_and_content_size.map(Model::grid_size);
             grid_position <- style_and_content_size.map(Model::grid_position);
             eval grid_position ((pos) model.grid.set_xy(*pos));
-            grid_scroll_frp.set_corner_radius_bottom_right <+ style.map(|s| s.corners_radius);
+            corners_radius <- style.map(|s| s.corners_radius);
+            grid_scroll_frp.set_corner_radius_bottom_right <+ corners_radius;
+            grid_scroll_frp.set_corner_radius_bottom_right <+ corners_radius;
             grid.set_entries_size <+ style.map(|s| s.entry_size());
             grid.set_entries_params <+ entries_params;
             grid_selection_frp.set_entries_params <+ selection_entries_params;
+            grid_extra_scroll_frp.set_margins <+
+                input.set_top_margin.map(|&top| grid_view::Margins { top, ..default() });
 
 
             // === Header and Entries Models ===
@@ -548,10 +556,6 @@ impl component::Frp<Model> for Frp {
             grid_extra_scroll_frp.set_preferred_margins_around_entry <+ style.map(
                 f!((style) model.navigation_scroll_margins(style))
             );
-
-            // The content area is higher than just height of all entries, because there is a gap
-            // between all groups and local scope section.
-            grid_scroll_frp.set_content_height <+ grid.content_size.map(|c| c.y);
 
 
             // === Focus ===

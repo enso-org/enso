@@ -13,10 +13,12 @@ ensogl-core = { path = "../../../../../lib/rust/ensogl/core" }
 ensogl-hardcoded-theme = { path = "../../../../../lib/rust/ensogl/app/theme/hardcoded" }
 ensogl-grid-view = { path = "../../../../../lib/rust/ensogl/component/grid-view" }
 ensogl-selector = { path = "../../../../../lib/rust/ensogl/component/selector" }
+ensogl-tooltip = { path = "../../../../../lib/rust/ensogl/component/tooltip" }
 ensogl-text = { path = "../../../../../lib/rust/ensogl/component/text" }
 ensogl-icons = { path = "../../../../../lib/rust/ensogl/component/icons" }
 ensogl-text-msdf = { path = "../../../../../lib/rust/ensogl/component/text/src/font/msdf" }
 ide-view-component-list-panel = { path = "../../component-browser/component-list-panel" }
+ide-view-documentation = { path = "../../documentation" }
 wasm-bindgen = { workspace = true }
 js-sys = { workspace = true }
 

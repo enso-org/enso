@@ -1557,7 +1557,9 @@ dependencies = [
  "ensogl-selector",
  "ensogl-text",
  "ensogl-text-msdf",
+ "ensogl-tooltip",
  "ide-view-component-list-panel",
+ "ide-view-documentation",
  "js-sys",
  "wasm-bindgen",
 ]
@@ -4358,10 +4360,9 @@ dependencies = [
  "ensogl-icons",
  "ensogl-scroll-area",
  "ensogl-selector",
- "ensogl-shadow",
  "ensogl-text",
+ "ensogl-toggle-button",
  "ensogl-tooltip",
- "ide-view-component-list-panel-breadcrumbs",
  "ide-view-component-list-panel-grid",
  "ordered-float",
 ]
@@ -4391,6 +4392,7 @@ dependencies = [
  "ensogl-icons",
  "ensogl-shadow",
  "ensogl-text",
+ "ensogl-toggle-button",
  "failure",
  "num_enum",
 ]
@@ -4410,6 +4412,7 @@ dependencies = [
  "ensogl-hardcoded-theme",
  "horrorshow",
  "ide-ci",
+ "ide-view-component-list-panel-breadcrumbs",
  "ide-view-graph-editor",
  "serde_json",
  "tokio",
