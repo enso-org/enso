@@ -2,6 +2,7 @@
 //! [`react-toastify`](https://fkhadra.github.io/react-toastify/introduction) library API.
 
 use crate::prelude::*;
+use uuid::Uuid;
 use wasm_bindgen::prelude::*;
 
 use crate::notification::Content;
@@ -138,10 +139,15 @@ impl ToastAPI {
 }
 
 impl Id {
+    /// Create a new identifier, using the given string.
+    ///
+    /// The two identifiers are equal if their string representations are equal. Please note, that
+    /// identifiers of different notifications must not be equal.
     pub fn new(id: impl AsRef<str>) -> Self {
         id.as_ref().into()
     }
 
+    /// Generate a new, unique identifier.
     pub fn new_unique() -> Self {
         let uuid = uuid::Uuid::new_v4();
         Self::new(uuid.to_string())
@@ -172,6 +178,12 @@ impl From<&str> for Id {
     fn from(id: &str) -> Self {
         let js_value = JsValue::from_str(id);
         js_value.into()
+    }
+}
+
+impl From<Uuid> for Id {
+    fn from(id: Uuid) -> Self {
+        Self::new(id.to_string())
     }
 }
 

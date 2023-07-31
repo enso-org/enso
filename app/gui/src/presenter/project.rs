@@ -45,7 +45,6 @@ struct Model {
     graph_controller: controller::ExecutedGraph,
     ide_controller: controller::Ide,
     view: view::project::View,
-    status_bar: view::status_bar::View,
     graph: presenter::Graph,
     code: presenter::Code,
     searcher: RefCell<Option<Box<dyn SearcherPresenter>>>,
@@ -61,7 +60,6 @@ impl Model {
         controller: controller::Project,
         init_result: controller::project::InitializationResult,
         view: view::project::View,
-        status_bar: view::status_bar::View,
     ) -> Self {
         let graph_controller = init_result.main_graph;
         let text_controller = init_result.main_module_text;
@@ -82,7 +80,6 @@ impl Model {
             graph_controller,
             ide_controller,
             view,
-            status_bar,
             graph,
             code,
             searcher,
@@ -364,10 +361,9 @@ impl Project {
         controller: controller::Project,
         init_result: controller::project::InitializationResult,
         view: view::project::View,
-        status_bar: view::status_bar::View,
     ) -> Self {
         let network = frp::Network::new("presenter::Project");
-        let model = Model::new(ide_controller, controller, init_result, view, status_bar);
+        let model = Model::new(ide_controller, controller, init_result, view);
         let model = Rc::new(model);
         Self { network, model }.init()
     }
@@ -544,13 +540,11 @@ impl Project {
         ide_controller: controller::Ide,
         controller: controller::Project,
         view: view::project::View,
-        status_bar: view::status_bar::View,
     ) -> FallibleResult<Self> {
         debug!("Initializing project controller...");
         let init_result = controller.initialize().await?;
         debug!("Project controller initialized.");
-        let presenter =
-            Self::new(ide_controller, controller.clone(), init_result, view, status_bar);
+        let presenter = Self::new(ide_controller, controller.clone(), init_result, view);
         debug!("Project presenter created.");
         // Following the project initialization, the Undo/Redo stack should be empty.
         // This makes sure that any initial modifications resulting from the GUI initialization

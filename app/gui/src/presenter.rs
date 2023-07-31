@@ -55,19 +55,14 @@ impl Model {
         // We know the name of new project before it loads. We set it right now to avoid
         // displaying a placeholder on the scene during loading.
         let project_view = self.view.project();
-        let status_bar = self.view.status_bar().clone_ref();
         let project_name = project_view.top_bar().project_name();
         project_name.set_name(project_model.name().to_string());
 
         let status_notifications = self.controller.status_notifications().clone_ref();
         let ide_controller = self.controller.clone_ref();
         let project_controller = controller::Project::new(project_model, status_notifications);
-        let project_presenter = presenter::Project::initialize(
-            ide_controller,
-            project_controller,
-            project_view,
-            status_bar,
-        );
+        let project_presenter =
+            presenter::Project::initialize(ide_controller, project_controller, project_view);
         crate::executor::global::spawn(async move {
             match project_presenter.await {
                 Ok(project) => {
@@ -181,28 +176,27 @@ impl Presenter {
 
     fn setup_status_bar_notification_handler(&self) {
         use controller::ide::BackgroundTaskHandle as ControllerHandle;
-        use ide_view::status_bar::process::Id as ViewHandle;
+        use view::notification::handled as notification;
 
-        let process_map = SharedHashMap::<ControllerHandle, ViewHandle>::new();
-        let status_bar = self.model.view.status_bar().clone_ref();
         let status_notifications = self.model.controller.status_notifications().subscribe();
         let weak = Rc::downgrade(&self.model);
         spawn_stream_handler(weak, status_notifications, move |notification, _| {
             match notification {
                 StatusNotification::Event { label } => {
-                    status_bar.add_event(ide_view::status_bar::event::Label::new(label));
+                    notification::info(&label.into(), &None);
+                    // status_bar.add_event(ide_view::status_bar::event::Label::new(label));
                 }
                 StatusNotification::BackgroundTaskStarted { label, handle } => {
-                    status_bar.add_process(ide_view::status_bar::process::Label::new(label));
-                    let view_handle = status_bar.last_process.value();
-                    process_map.insert(handle, view_handle);
+                    let id = notification::Id::from(handle);
+                    let notification = notification::Notification::from(id);
+                    notification.update(|opts| {
+                        opts.set_always_present();
+                        opts.set_text_content(label);
+                    });
+                    notification.show();
                 }
                 StatusNotification::BackgroundTaskFinished { handle } => {
-                    if let Some(view_handle) = process_map.remove(&handle) {
-                        status_bar.finish_process(view_handle);
-                    } else {
-                        warn!("Controllers finished process not displayed in view");
-                    }
+                    notification::Id::from(handle).dismiss();
                 }
             }
             futures::future::ready(())

@@ -4,9 +4,7 @@ use crate::prelude::*;
 
 use crate::notification::UpdateOptions;
 use ensogl::application::Application;
-use ensogl::display;
 use frp::stream::EventOutput;
-use frp::HasLabel;
 
 
 // =================
@@ -37,6 +35,7 @@ ensogl::define_endpoints! {
 /// A pop-up that signals about enabling/disabling Debug Mode of Graph Editor.
 #[derive(Debug, Clone, CloneRef)]
 pub struct View {
+    #[allow(missing_docs)]
     pub frp:      Frp,
     notification: crate::notification::Notification,
 }
@@ -56,7 +55,7 @@ impl View {
                         error!("Failed to show notification: {:?}", err);
                     });
                 } else {
-                    notification.hide().handle_err(|err| {
+                    notification.dismiss().handle_err(|err| {
                         error!("Failed to hide notification: {:?}", err);
                     });
                 }
@@ -65,6 +64,8 @@ impl View {
             eval frp.set_options ([notification] (options) {
                 notification.update(|opts| {
                     *opts = options.clone();
+                }).handle_err(|err| {
+                    error!("Failed to update notification options: {:?}", err);
                 });
             });
 

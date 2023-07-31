@@ -35,7 +35,6 @@ use ide_view::graph_editor::NodeProfilingStatus;
 use ide_view::graph_editor::Type;
 use ide_view::project;
 use ide_view::root;
-use ide_view::status_bar;
 use parser::Parser;
 use span_tree::TagValue;
 
@@ -117,7 +116,6 @@ fn init(app: &Application) {
 
     code_editor.text_area().set_content(STUB_MODULE.to_owned());
 
-    root_view.status_bar().add_event(status_bar::event::Label::new("This is a status message."));
     project_view.debug_push_breadcrumb();
 
     root_view.switch_view_to_project();

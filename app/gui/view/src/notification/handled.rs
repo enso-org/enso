@@ -1,6 +1,8 @@
-/// The API is often inconvenient as it returns [`Result`]s with [`JsValue`] errors. Usually we
-/// want to send notifications and forget about them, so we don't want to deal with errors.
-/// This wrapper allows to do that.
+//! The API is often inconvenient as it returns [`Result`]s with [`JsValue`] errors. Usually we
+//! want to send notifications and forget about them, so we don't want to deal with errors.
+//! This wrapper allows to do that.
+use uuid::Uuid;
+
 use crate::prelude::*;
 
 use crate::notification;
@@ -21,6 +23,12 @@ impl From<notification::Id> for Id {
 
 impl From<&str> for Id {
     fn from(id: &str) -> Self {
+        Self(notification::Id::from(id))
+    }
+}
+
+impl From<Uuid> for Id {
+    fn from(id: Uuid) -> Self {
         Self(notification::Id::from(id))
     }
 }
@@ -84,4 +92,57 @@ pub fn error(message: &Content, options: &Option<Options>) -> Option<Id> {
 /// Send a success notification.
 pub fn success(message: &Content, options: &Option<Options>) -> Option<Id> {
     send_any(message, Type::Success, options)
+}
+
+/// Same as super::Notification, but with all errors handled by logging them using error! macro.
+
+/// A persistent notification.
+#[derive(Clone, CloneRef, Debug)]
+pub struct Notification(super::Notification);
+
+impl Default for Notification {
+    fn default() -> Self {
+        Self::new(super::default())
+    }
+}
+
+impl From<Id> for Notification {
+    fn from(id: Id) -> Self {
+        Self(super::Notification::from(id.0))
+    }
+}
+
+impl Notification {
+    /// Create a new notification archetype.
+    ///
+    /// It will not be shown until you call [`Notification::show`].
+    pub fn new(options: super::UpdateOptions) -> Self {
+        Self(super::Notification::new(options))
+    }
+
+    /// Update the notification state.
+    ///
+    /// If the visualization is being shown, it will be updated. If not, changes will appear the
+    /// next time the notification is [
+    pub fn update(&self, f: impl FnOnce(&mut super::UpdateOptions)) {
+        if let Err(err) = self.0.update(f) {
+            error!("Notification::update: {:?}", err);
+        }
+    }
+
+    /// Display the notification.
+    ///
+    /// If it is already being shown, nothing will happen.
+    pub fn show(&self) {
+        if let Err(err) = self.0.show() {
+            error!("Notification::show: {:?}", err);
+        }
+    }
+
+    /// Dismiss the notification.
+    pub fn dismiss(&self) {
+        if let Err(err) = self.0.dismiss() {
+            error!("Notification::dismiss: {:?}", err);
+        }
+    }
 }

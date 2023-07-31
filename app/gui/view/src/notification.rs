@@ -27,7 +27,6 @@ use wasm_bindgen::prelude::*;
 use gloo_utils::format::JsValueSerdeExt;
 use serde::Deserialize;
 use serde::Serialize;
-use uuid::Uuid;
 
 
 // ==============
@@ -38,7 +37,6 @@ pub mod handled;
 pub mod js;
 
 pub use js::Id;
-use web_sys::console::warn;
 
 
 
@@ -180,7 +178,14 @@ impl From<String> for Content {
     }
 }
 
+impl From<&String> for Content {
+    fn from(text: &String) -> Self {
+        Content::Text(text.to_owned())
+    }
+}
+
 impl Content {
+    /// Create a new notification content from an HTML string.
     pub fn from_html(html: impl AsRef<str>) -> FallibleResult<Self> {
         use anyhow::Context; // FIXME
         let window = ensogl::system::web::binding::wasm::get_window();
@@ -413,51 +418,84 @@ impl UpdateOptions {
         self.render = Some(message.into());
         self
     }
+
+    pub fn set_text_content(&mut self, render: impl Into<String>) {
+        let content = Content::Text(render.into());
+        self.render = Some(content);
+    }
 }
 
+/// A persistent notification.
+///
+/// It can be updated or dismissed.
 #[derive(Clone, CloneRef, Debug)]
 pub struct Notification {
-    id:      Rc<Id>,
-    options: Rc<RefCell<UpdateOptions>>,
+    /// The unique notification id. We use it to dismiss or update the notification.
+    id:         Rc<RefCell<Id>>,
+    /// The notification options. They will be used to show/update the notification.
+    options:    Rc<RefCell<UpdateOptions>>,
+    /// The options that we have used to show the notification the last time.
+    last_shown: Rc<RefCell<Option<UpdateOptions>>>,
 }
 
 impl Default for Notification {
     fn default() -> Self {
-        Self::new(Id::new_unique(), default())
+        Self::new(default())
+    }
+}
+
+impl From<Id> for Notification {
+    fn from(id: Id) -> Self {
+        let id = Rc::new(RefCell::new(id));
+        let options = default();
+        let last_shown = default();
+        Self { id, options, last_shown }
     }
 }
 
 impl Notification {
-    pub fn new(id: Id, options: UpdateOptions) -> Self {
-        Self { id: Rc::new(id), options: Rc::new(RefCell::new(options)) }
+    /// Create a new notification archetype.
+    ///
+    /// It will not be shown until you call [`Notification::show`].
+    pub fn new(options: UpdateOptions) -> Self {
+        let id = Id::new_unique();
+        let id = Rc::new(RefCell::new(id));
+        let options = Rc::new(RefCell::new(options));
+        let last_shown = default();
+        Self { id, options, last_shown }
     }
 
-    pub fn init(&self, options: UpdateOptions) -> Result<(), JsValue> {
+    fn update_inner(&self, options: UpdateOptions) -> Result<(), JsValue> {
         self.options.replace(options);
-        self.id.update(&self.options.borrow())
+        let ret = self.id.borrow().update(&self.options.borrow());
+        if ret.is_ok() {
+            self.last_shown.replace(Some(self.options.borrow().clone()));
+        }
+        ret
     }
 
-
-    // pub fn options(&self) -> UpdateOptions {
-    //     self.options.deref().borrow().clone()
-    // }
-
+    /// Update the notification state.
+    ///
+    /// If the visualization is being shown, it will be updated. If not, changes will appear the
+    /// next time the notification is [
     pub fn update(&self, f: impl FnOnce(&mut UpdateOptions)) -> Result<(), JsValue> {
-        f(&mut self.options.borrow_mut());
-        self.id.update(&self.options.borrow())
+        let mut options = self.options.take();
+        f(&mut options);
+        self.update_inner(options)
     }
 
+    /// Display the notification.
+    ///
+    /// If it is already being shown, nothing will happen.
     pub fn show(&self) -> Result<(), JsValue> {
         warn!("Notification::show {self:?}");
-        if self.id.is_active()? {
+        if self.id.borrow().is_active()? {
             warn!("Notification::show: is_active");
-            self.id.update(self.options.borrow().deref())?;
         } else {
-            warn!("Notification::show: not is_active");
             let options: RefMut<'_, UpdateOptions> = self.options.borrow_mut();
             let content = options.render.as_ref();
             let options_js = (&*options).try_into()?;
-            js_sys::Reflect::set(&options_js, &JsValue::from_str("toastId"), &self.id);
+            js_sys::Reflect::set(&options_js, &JsValue::from_str("toastId"), &self.id.borrow())?; // FIXME?
             if let Some(content) = content {
                 warn!("Notification::show: content");
                 js::toast(content, options.r#type.unwrap_or(Type::Info), &options_js)?;
@@ -473,12 +511,20 @@ impl Notification {
         Ok(())
     }
 
-    pub fn hide(&self) -> Result<(), JsValue> {
+    /// Dismiss the notification.
+    pub fn dismiss(&self) -> Result<(), JsValue> {
         warn!("Notification::hide {self:?}");
-        self.id.dismiss()
+        let ret = self.id.borrow().dismiss();
+        if ret.is_ok() {
+            // We generate a new ID. This is because we don't want to reuse the same ID.
+            // Otherwise, while the old notification is still fading out, an attempt to
+            // show a new notification with the same ID will silently fail.
+            let id = Id::new_unique();
+            self.id.replace(id);
+        }
+        ret
     }
 }
-
 
 // =============
 // === Tests ===

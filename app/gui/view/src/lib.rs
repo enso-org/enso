@@ -9,6 +9,7 @@
 #![feature(drain_filter)]
 #![feature(fn_traits)]
 #![feature(let_chains)]
+#![feature(once_cell)]
 #![feature(option_result_contains)]
 #![feature(specialization)]
 #![feature(trait_alias)]
@@ -38,7 +39,7 @@ pub mod project;
 pub mod project_list;
 pub mod root;
 pub mod searcher;
-pub mod status_bar;
+// pub mod status_bar;
 
 pub use ide_view_component_browser as component_browser;
 pub use ide_view_documentation as documentation;

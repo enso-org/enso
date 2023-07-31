@@ -19,7 +19,6 @@ use ensogl::application;
 use ensogl::application::shortcut;
 use ensogl::application::Application;
 use ensogl::display;
-use ensogl::display::texture::TextureOps;
 use ensogl::display::Scene;
 use ensogl::system::web;
 use ensogl::Animation;
