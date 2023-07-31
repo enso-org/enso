@@ -1,9 +1,11 @@
 /** @file Module containing common custom React hooks used throughout out Dashboard. */
 import * as React from 'react'
 import * as router from 'react-router'
+import * as toastify from 'react-toastify'
 
 import * as app from './components/app'
 import * as auth from './authentication/providers/auth'
+import * as errorModule from './error'
 import * as loggerProvider from './providers/logger'
 
 // ==================
@@ -18,6 +20,35 @@ export function useRefresh() {
     // Uses an empty object literal because every distinct literal
     // is a new reference and therefore is not equal to any other object literal.
     return React.useReducer((): RefreshState => ({}), {})
+}
+
+// ======================
+// === useToastAndLog ===
+// ======================
+
+/** Return a function to send a toast with rendered error message. The same message is also logged
+ * as an error. */
+export function useToastAndLog() {
+    const logger = loggerProvider.useLogger()
+    return React.useCallback(
+        <T,>(
+            messagePrefix: string,
+            error?: errorModule.MustNotBeKnown<T>,
+            options?: toastify.ToastOptions
+        ) => {
+            const message =
+                error == null
+                    ? `${messagePrefix}.`
+                    : // DO NOT explicitly pass the generic parameter anywhere else.
+                      // It is only being used here because this function also checks for
+                      // `MustNotBeKnown<T>`.
+                      `${messagePrefix}: ${errorModule.getMessageOrToString<unknown>(error)}`
+            const id = toastify.toast.error(message, options)
+            logger.error(message)
+            return id
+        },
+        [/* should never change */ logger]
+    )
 }
 
 // ======================
@@ -100,21 +131,60 @@ export function useNavigate() {
     return navigate
 }
 
-// ================
-// === useEvent ===
-// ================
+// =======================
+// === Reactive Events ===
+// =======================
 
-/** A wrapper around `useState` that sets its value to `null` after the current render. */
-export function useEvent<T>(): [event: T | null, dispatchEvent: (value: T | null) => void] {
-    const [event, setEvent] = React.useState<T | null>(null)
+/** A map containing all known event types. Names MUST be chosen carefully to avoid conflicts.
+ * The simplest way to achieve this is by namespacing names using a prefix. */
+export interface KnownEventsMap {}
 
+/** A union of all known events. */
+type KnownEvent = KnownEventsMap[keyof KnownEventsMap]
+
+/** A wrapper around `useState` that calls `flushSync` after every `setState`.
+ * This is required so that no events are dropped. */
+export function useEvent<T extends KnownEvent>(): [events: T[], dispatchEvent: (event: T) => void] {
+    const [events, setEvents] = React.useState<T[]>([])
     React.useEffect(() => {
-        if (event != null) {
-            setEvent(null)
+        if (events.length !== 0) {
+            setEvents([])
         }
-    }, [event])
+    }, [events])
+    const dispatchEvent = React.useCallback(
+        (innerEvent: T) => {
+            setEvents([...events, innerEvent])
+        },
+        [events]
+    )
+    return [events, dispatchEvent]
+}
 
-    return [event, setEvent]
+/** A wrapper around `useEffect` that has `event` as its sole dependency. */
+export function useEventHandler<T extends KnownEvent>(
+    events: T[],
+    effect: (event: T) => Promise<void> | void
+) {
+    let hasEffectRun = false
+    React.useLayoutEffect(() => {
+        if (IS_DEV_MODE) {
+            if (hasEffectRun) {
+                // This is the second time this event is being run in React Strict Mode.
+                // Event handlers are not supposed to be idempotent, so it is a mistake to execute it
+                // a second time.
+                // eslint-disable-next-line no-restricted-syntax
+                return
+            } else {
+                // eslint-disable-next-line react-hooks/exhaustive-deps
+                hasEffectRun = true
+            }
+        }
+        void (async () => {
+            for (const event of events) {
+                await effect(event)
+            }
+        })()
+    }, [events])
 }
 
 // =========================================
@@ -125,6 +195,9 @@ export function useEvent<T>(): [event: T | null, dispatchEvent: (value: T | null
 /* eslint-disable no-restricted-properties */
 
 // === useDebugState ===
+
+// `console.*` is allowed because this is for debugging purposes only.
+/* eslint-disable no-restricted-properties */
 
 /** A modified `useState` that logs the old and new values when `setState` is called. */
 export function useDebugState<T>(
@@ -138,29 +211,23 @@ export function useDebugState<T>(
     const setState = React.useCallback(
         (valueOrUpdater: React.SetStateAction<T>, source?: string) => {
             const fullDescription = `${description}${source != null ? ` from '${source}'` : ''}`
-            if (typeof valueOrUpdater === 'function') {
-                // This is UNSAFE, however React makes the same assumption.
-                // eslint-disable-next-line no-restricted-syntax
-                const updater = valueOrUpdater as (prevState: T) => T
-                rawSetState(oldState => {
+            rawSetState(oldState => {
+                const newState =
+                    typeof valueOrUpdater === 'function'
+                        ? // This is UNSAFE when `T` is itself a function type,
+                          // however React makes the same assumption.
+                          // eslint-disable-next-line no-restricted-syntax
+                          (valueOrUpdater as (prevState: T) => T)(oldState)
+                        : valueOrUpdater
+                if (!Object.is(oldState, newState)) {
                     console.group(description)
+                    console.trace(description)
                     console.log(`Old ${fullDescription}:`, oldState)
-                    const newState = updater(oldState)
                     console.log(`New ${fullDescription}:`, newState)
                     console.groupEnd()
-                    return newState
-                })
-            } else {
-                rawSetState(oldState => {
-                    if (!Object.is(oldState, valueOrUpdater)) {
-                        console.group(description)
-                        console.log(`Old ${fullDescription}:`, oldState)
-                        console.log(`New ${fullDescription}:`, valueOrUpdater)
-                        console.groupEnd()
-                    }
-                    return valueOrUpdater
-                })
-            }
+                }
+                return newState
+            })
         },
         [description]
     )
@@ -193,6 +260,8 @@ function useMonitorDependencies(
     }
     oldDependenciesRef.current = dependencies
 }
+
+/* eslint-enable no-restricted-properties */
 
 // === useDebugEffect ===
 

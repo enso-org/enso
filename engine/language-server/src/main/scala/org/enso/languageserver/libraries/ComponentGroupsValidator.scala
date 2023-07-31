@@ -25,7 +25,7 @@ final class ComponentGroupsValidator {
   ): Iterable[(LibraryName, Either[ValidationError, ComponentGroups])] = {
     val groupsMap: mutable.Map[GroupReference, ComponentGroup] = mutable.Map()
     val init = packages.map { config =>
-      val libraryName = LibraryName(config.namespace, config.name)
+      val libraryName = LibraryName(config.namespace, config.moduleName)
       libraryName -> validateInvalidComponentGroups(config)
     }
 
@@ -57,7 +57,7 @@ final class ComponentGroupsValidator {
   private def validateInvalidComponentGroups(
     config: Config
   ): Either[ValidationError, ComponentGroups] = {
-    val libraryName = LibraryName(config.namespace, config.name)
+    val libraryName = LibraryName(config.namespace, config.moduleName)
     config.componentGroups.left.map { e =>
       ValidationError.InvalidComponentGroups(libraryName, e.getMessage())
     }

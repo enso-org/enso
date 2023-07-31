@@ -17,16 +17,19 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 @Builtin(pkg = "resource", stdlibName = "Standard.Base.Runtime.Managed_Resource.Managed_Resource")
 public final class ManagedResource implements TruffleObject {
   private final Object resource;
-  private PhantomReference<ManagedResource> phantomReference;
+  private final PhantomReference<ManagedResource> phantomReference;
 
   /**
    * Creates a new managed resource.
    *
    * @param resource the underlying resource
+   * @param factory factory to create reference
    */
-  public ManagedResource(Object resource) {
+  public ManagedResource(
+      Object resource,
+      java.util.function.Function<ManagedResource, PhantomReference<ManagedResource>> factory) {
     this.resource = resource;
-    this.phantomReference = null;
+    this.phantomReference = factory.apply(this);
   }
 
   /** @return the underlying resource */
@@ -37,15 +40,6 @@ public final class ManagedResource implements TruffleObject {
   /** @return the phantom reference tracking this managed resource */
   public PhantomReference<ManagedResource> getPhantomReference() {
     return phantomReference;
-  }
-
-  /**
-   * Sets the value of the reference used to track reachability of this managed resource.
-   *
-   * @param phantomReference the phantom reference tracking this managed resource.
-   */
-  public void setPhantomReference(PhantomReference<ManagedResource> phantomReference) {
-    this.phantomReference = phantomReference;
   }
 
   @Builtin.Method(

@@ -40,14 +40,14 @@ pub mod shape {
 // ========================
 
 /// Sample implementation of a Bubble Chart.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 #[allow(missing_docs)]
 pub struct BubbleChartModel {
-    pub display_object: display::object::Instance,
-    pub scene:          Scene,
-    signature:          Signature,
-    views:              Rc<RefCell<Vec<shape::View>>>,
-    size:               Rc<Cell<Vector2>>,
+    display_object: display::object::Instance,
+    pub scene:      Scene,
+    signature:      Signature,
+    views:          Rc<RefCell<Vec<shape::View>>>,
+    size:           Rc<Cell<Vector2>>,
 }
 
 impl BubbleChartModel {
@@ -81,10 +81,11 @@ impl BubbleChartModel {
 // ===================
 
 /// Sample implementation of a Bubble Chart.
-#[derive(Debug, Deref)]
+#[derive(Debug, Deref, display::Object)]
 #[allow(missing_docs)]
 pub struct BubbleChart {
     #[deref]
+    #[display_object]
     model:   BubbleChartModel,
     network: frp::Network,
     frp:     visualization::instance::Frp,
@@ -133,11 +134,5 @@ impl BubbleChart {
 impl From<BubbleChart> for Instance {
     fn from(t: BubbleChart) -> Self {
         Self::new(&t, &t.frp, &t.network, None)
-    }
-}
-
-impl display::Object for BubbleChart {
-    fn display_object(&self) -> &display::object::Instance {
-        self.model.display_object.display_object()
     }
 }

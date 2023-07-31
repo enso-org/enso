@@ -10,9 +10,9 @@ polyglot java import java.time.temporal.ChronoUnit
 polyglot java import java.time.temporal.TemporalAdjuster
 polyglot java import java.time.temporal.TemporalAdjusters
 polyglot java import java.time.temporal.TemporalUnit
-polyglot java import org.enso.base.Time_Utils
-polyglot java import org.enso.base.time.Date_Period_Utils
 polyglot java import org.enso.base.time.CustomTemporalUnits
+polyglot java import org.enso.base.time.Date_Period_Utils
+polyglot java import org.enso.base.Time_Utils
 
 ## Represents a unit of time longer on the scale of days (longer than a day).
 type Date_Period

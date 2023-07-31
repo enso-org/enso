@@ -18,8 +18,14 @@ use ide_view::graph_editor::NodeId;
 use ide_view::project::SearcherParams;
 use ide_view::project::SearcherType;
 
+
+// ==============
+// === Export ===
+// ==============
+
 pub mod ai;
 pub mod component_browser;
+
 
 
 /// Trait for the searcher.
@@ -115,7 +121,7 @@ pub trait SearcherPresenter: Debug {
     fn expression_accepted(
         self: Box<Self>,
         node_id: NodeId,
-        entry_id: Option<component_grid::GroupEntryId>,
+        entry_id: Option<component_grid::EntryId>,
     ) -> Option<AstNodeId>;
 
     /// Abort editing, without taking any action.

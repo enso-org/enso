@@ -1,3 +1,4 @@
+import project.Any.Any
 import project.Data.Locale.Locale
 import project.Data.Text.Regex.Regex
 import project.Data.Text.Text
@@ -62,11 +63,10 @@ type Case_Sensitivity
         _ -> self
 
     ## PRIVATE
-       Create matcher function
-    create_match_function : Boolean -> (Text -> Text -> Boolean)
-    create_match_function self use_regex=False = case use_regex of
-        True -> (name-> pattern-> Regex.compile pattern case_insensitive=self.is_case_insensitive_in_memory . matches name)
-        False -> case self of
-            Case_Sensitivity.Default -> (==)
-            Case_Sensitivity.Sensitive -> (==)
-            Case_Sensitivity.Insensitive locale -> (name-> criterion-> name.equals_ignore_case criterion locale)
+       Throws an error if self is Insensitive with a non-default locale
+    disallow_non_default_locale : Any -> Any
+    disallow_non_default_locale self ~action = case self of
+        Case_Sensitivity.Insensitive locale -> if locale == Locale.default then action else
+            msg = "Custom locales are not supported for this operation."
+            Error.throw (Illegal_Argument.Error msg)
+        _ -> action

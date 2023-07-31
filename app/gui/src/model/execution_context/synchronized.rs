@@ -395,6 +395,7 @@ pub mod test {
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
     use crate::model::execution_context::plain::test::MockData;
     use crate::model::execution_context::ComponentGroup;
+    use crate::model::execution_context::GroupQualifiedName;
     use crate::model::traits::*;
 
     use double_representation::name::project;
@@ -704,7 +705,7 @@ pub mod test {
 
             // Verify that the first component group was parsed and has expected contents.
             let first_group = &groups[0];
-            assert_eq!(first_group.name, "Test Group 1".to_string());
+            assert_eq!(first_group.name.name, "Test Group 1".to_string());
             let color = first_group.color.unwrap();
             assert_eq!((color.red * 255.0) as u8, 0xC0);
             assert_eq!((color.green * 255.0) as u8, 0x47);
@@ -717,8 +718,10 @@ pub mod test {
 
             // Verify that the second component group was parsed and has expected contents.
             assert_eq!(groups[1], ComponentGroup {
-                project:    project::QualifiedName::standard_base_library(),
-                name:       "Input".into(),
+                name:       GroupQualifiedName::new(
+                    project::QualifiedName::standard_base_library(),
+                    "Input"
+                ),
                 color:      None,
                 components: vec!["Standard.Base.System.File.new".try_into().unwrap(),],
             });

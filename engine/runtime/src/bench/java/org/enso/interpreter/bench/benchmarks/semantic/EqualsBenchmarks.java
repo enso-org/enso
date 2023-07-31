@@ -12,6 +12,7 @@ import java.util.concurrent.TimeUnit;
 import org.enso.polyglot.MethodNames.Module;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
+import org.graalvm.polyglot.io.IOAccess;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -61,7 +62,7 @@ public class EqualsBenchmarks {
     var ctx = Context.newBuilder()
         .allowExperimentalOptions(true)
         .logHandler(new ByteArrayOutputStream())
-        .allowIO(true)
+        .allowIO(IOAccess.ALL)
         .allowAllAccess(true)
         .option(
             "enso.languageHomeOverride",

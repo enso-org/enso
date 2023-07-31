@@ -80,9 +80,9 @@ class ProjectFileRepository[
 
   /** @inheritdoc */
   override def findPathForNewProject(
-    project: Project
+    moduleName: String
   ): F[ProjectRepositoryFailure, Path] =
-    findTargetPath(project).map(_.toPath)
+    findTargetPath(moduleName).map(_.toPath)
 
   private def tryLoadProject(
     directory: File
@@ -106,12 +106,13 @@ class ProjectFileRepository[
       Project(
         id                    = meta.id,
         name                  = pkg.name,
+        module                = pkg.module,
         namespace             = pkg.namespace,
         kind                  = meta.kind,
         created               = meta.created,
         edition               = pkg.getConfig().edition,
         lastOpened            = meta.lastOpened,
-        path                  = Some(directory.toString),
+        path                  = directory,
         directoryCreationTime = directoryCreationTime
       )
     }
@@ -132,12 +133,7 @@ class ProjectFileRepository[
   ): F[ProjectRepositoryFailure, Unit] =
     findById(projectId).flatMap {
       case Some(project) =>
-        project.path match {
-          case Some(directory) =>
-            renamePackage(new File(directory), name)
-          case None =>
-            ErrorChannel[F].fail(ProjectNotFoundInIndex)
-        }
+        renamePackage(project.path, name)
       case None =>
         ErrorChannel[F].fail(ProjectNotFoundInIndex)
     }
@@ -155,8 +151,8 @@ class ProjectFileRepository[
   def getPackageName(projectId: UUID): F[ProjectRepositoryFailure, String] = {
     for {
       project        <- getProject(projectId)
-      projectPackage <- getPackage(new File(project.path.get))
-    } yield projectPackage.getConfig().name
+      projectPackage <- getPackage(project.path)
+    } yield projectPackage.getConfig().moduleName
   }
 
   /** @inheritdoc */
@@ -165,7 +161,7 @@ class ProjectFileRepository[
   ): F[ProjectRepositoryFailure, String] = {
     for {
       project        <- getProject(projectId)
-      projectPackage <- getPackage(new File(project.path.get))
+      projectPackage <- getPackage(project.path)
     } yield projectPackage.getConfig().namespace
   }
 
@@ -209,35 +205,25 @@ class ProjectFileRepository[
 
   /** @inheritdoc */
   def update(project: Project): F[ProjectRepositoryFailure, Unit] =
-    project.path match {
-      case Some(path) =>
-        metadataStorage(new File(path))
-          .persist(
-            ProjectMetadata(
-              id         = project.id,
-              kind       = project.kind,
-              created    = project.created,
-              lastOpened = project.lastOpened
-            )
-          )
-          .mapError(th => StorageFailure(th.toString))
-      case None =>
-        ErrorChannel[F].fail(ProjectNotFoundInIndex)
-    }
+    metadataStorage(project.path)
+      .persist(
+        ProjectMetadata(
+          id         = project.id,
+          kind       = project.kind,
+          created    = project.created,
+          lastOpened = project.lastOpened
+        )
+      )
+      .mapError(th => StorageFailure(th.toString))
 
   /** @inheritdoc */
   override def delete(projectId: UUID): F[ProjectRepositoryFailure, Unit] = {
     findById(projectId)
       .flatMap {
         case Some(project) =>
-          project.path match {
-            case Some(directory) =>
-              fileSystem
-                .removeDir(new File(directory))
-                .mapError(th => StorageFailure(th.toString))
-            case None =>
-              ErrorChannel[F].fail(ProjectNotFoundInIndex)
-          }
+          fileSystem
+            .removeDir(project.path)
+            .mapError(th => StorageFailure(th.toString))
         case None =>
           ErrorChannel[F].fail(ProjectNotFoundInIndex)
       }
@@ -250,7 +236,7 @@ class ProjectFileRepository[
   ): F[ProjectRepositoryFailure, File] = {
     def move(project: Project) =
       for {
-        targetPath <- findTargetPath(project.copy(name = newName))
+        targetPath <- findTargetPath(newName)
         _          <- moveProjectDir(project, targetPath)
       } yield targetPath
 
@@ -258,7 +244,7 @@ class ProjectFileRepository[
       project <- getProject(projectId)
       primaryPath = new File(storageConfig.userProjectsPath, newName)
       finalPath <-
-        if (isLocationOk(project.path.get, primaryPath.toString)) {
+        if (isLocationOk(project.path, primaryPath)) {
           CovariantFlatMap[F].pure(primaryPath)
         } else {
           move(project)
@@ -267,9 +253,11 @@ class ProjectFileRepository[
   }
 
   private def isLocationOk(
-    currentPath: String,
-    primaryPath: String
+    currentFile: File,
+    primaryFile: File
   ): Boolean = {
+    val currentPath = currentFile.toString
+    val primaryPath = primaryFile.toString
     if (currentPath.startsWith(primaryPath)) {
       val suffixPattern = "_\\d+"
       val suffix        = currentPath.substring(primaryPath.length, currentPath.length)
@@ -281,21 +269,21 @@ class ProjectFileRepository[
 
   private def moveProjectDir(project: Project, targetPath: File) = {
     fileSystem
-      .move(new File(project.path.get), targetPath)
+      .move(project.path, targetPath)
       .mapError[ProjectRepositoryFailure](failure =>
         StorageFailure(failure.toString)
       )
   }
 
   private def findTargetPath(
-    project: Project
+    moduleName: String
   ): F[ProjectRepositoryFailure, File] =
     CovariantFlatMap[F]
       .tailRecM[ProjectRepositoryFailure, Int, File](0) { number =>
         val path =
           new File(
             storageConfig.userProjectsPath,
-            project.name + genSuffix(number)
+            moduleName + genSuffix(number)
           )
         fileSystem
           .exists(path)

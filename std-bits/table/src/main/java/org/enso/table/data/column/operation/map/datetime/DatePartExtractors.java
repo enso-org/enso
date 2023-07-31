@@ -20,12 +20,12 @@ public class DatePartExtractors {
 
   public static <T extends Temporal, I extends Storage<T>>
       GenericUnaryIntegerOp<Temporal, T, I> year() {
-    return make_op("year", ChronoField.YEAR);
+    return make_op(Storage.Maps.YEAR, ChronoField.YEAR);
   }
 
   public static <T extends Temporal, I extends Storage<T>>
       GenericUnaryIntegerOp<Temporal, T, I> quarter() {
-    return new GenericUnaryIntegerOp<>("quarter") {
+    return new GenericUnaryIntegerOp<>(Storage.Maps.QUARTER) {
       @Override
       protected long doGenericOperation(Temporal value) {
         long month = value.get(ChronoField.MONTH_OF_YEAR);
@@ -36,42 +36,42 @@ public class DatePartExtractors {
 
   public static <T extends Temporal, I extends Storage<T>>
       GenericUnaryIntegerOp<Temporal, T, I> month() {
-    return make_op("month", ChronoField.MONTH_OF_YEAR);
+    return make_op(Storage.Maps.MONTH, ChronoField.MONTH_OF_YEAR);
   }
 
   public static <T extends Temporal, I extends Storage<T>>
       GenericUnaryIntegerOp<Temporal, T, I> week() {
-    return make_op("week", IsoFields.WEEK_OF_WEEK_BASED_YEAR);
+    return make_op(Storage.Maps.WEEK, IsoFields.WEEK_OF_WEEK_BASED_YEAR);
   }
 
   public static <T extends Temporal, I extends Storage<T>>
       GenericUnaryIntegerOp<Temporal, T, I> day() {
-    return make_op("day", ChronoField.DAY_OF_MONTH);
+    return make_op(Storage.Maps.DAY, ChronoField.DAY_OF_MONTH);
   }
 
   public static <T extends Temporal, I extends Storage<T>>
       GenericUnaryIntegerOp<Temporal, T, I> hour() {
-    return make_op("hour", ChronoField.HOUR_OF_DAY);
+    return make_op(Storage.Maps.HOUR, ChronoField.HOUR_OF_DAY);
   }
 
   public static <T extends Temporal, I extends Storage<T>>
       GenericUnaryIntegerOp<Temporal, T, I> minute() {
-    return make_op("minute", ChronoField.MINUTE_OF_HOUR);
+    return make_op(Storage.Maps.MINUTE, ChronoField.MINUTE_OF_HOUR);
   }
 
   public static <T extends Temporal, I extends Storage<T>>
       GenericUnaryIntegerOp<Temporal, T, I> second() {
-    return make_op("second", ChronoField.SECOND_OF_MINUTE);
+    return make_op(Storage.Maps.SECOND, ChronoField.SECOND_OF_MINUTE);
   }
 
   public static <T extends Temporal, I extends Storage<T>>
       GenericUnaryIntegerOp<Temporal, T, I> millisecond() {
-    return make_op("millisecond", ChronoField.MILLI_OF_SECOND);
+    return make_op(Storage.Maps.MILLISECOND, ChronoField.MILLI_OF_SECOND);
   }
 
   public static <T extends Temporal, I extends Storage<T>>
       GenericUnaryIntegerOp<Temporal, T, I> microsecond() {
-    return new GenericUnaryIntegerOp<>("microsecond") {
+    return new GenericUnaryIntegerOp<>(Storage.Maps.MICROSECOND) {
       @Override
       protected long doGenericOperation(Temporal value) {
         long micros = value.get(ChronoField.MICRO_OF_SECOND);
@@ -82,7 +82,7 @@ public class DatePartExtractors {
 
   public static <T extends Temporal, I extends Storage<T>>
       GenericUnaryIntegerOp<Temporal, T, I> nanosecond() {
-    return new GenericUnaryIntegerOp<>("nanosecond") {
+    return new GenericUnaryIntegerOp<>(Storage.Maps.NANOSECOND) {
       @Override
       protected long doGenericOperation(Temporal value) {
         long micros = value.get(ChronoField.NANO_OF_SECOND);

@@ -36,11 +36,12 @@
 
 import * as React from 'react'
 import * as router from 'react-router-dom'
-import * as toast from 'react-hot-toast'
+import * as toastify from 'react-toastify'
 
 import * as detect from 'enso-common/src/detect'
 
 import * as authServiceModule from '../authentication/service'
+import * as backend from '../dashboard/backend'
 import * as hooks from '../hooks'
 import * as localBackend from '../dashboard/localBackend'
 
@@ -52,6 +53,7 @@ import * as sessionProvider from '../authentication/providers/session'
 
 import ConfirmRegistration from '../authentication/components/confirmRegistration'
 import Dashboard from '../dashboard/components/dashboard'
+import EnterOfflineMode from '../authentication/components/enterOfflineMode'
 import ForgotPassword from '../authentication/components/forgotPassword'
 import Login from '../authentication/components/login'
 import Registration from '../authentication/components/registration'
@@ -76,6 +78,24 @@ export const FORGOT_PASSWORD_PATH = '/forgot-password'
 export const RESET_PASSWORD_PATH = '/password-reset'
 /** Path to the set username page. */
 export const SET_USERNAME_PATH = '/set-username'
+/** Path to the offline mode entrypoint. */
+export const ENTER_OFFLINE_MODE_PATH = '/offline'
+/** A {@link RegExp} matching all paths. */
+export const ALL_PATHS_REGEX = new RegExp(
+    `(?:${DASHBOARD_PATH}|${LOGIN_PATH}|${REGISTRATION_PATH}|${CONFIRM_REGISTRATION_PATH}|` +
+        `${FORGOT_PASSWORD_PATH}|${RESET_PASSWORD_PATH}|${SET_USERNAME_PATH})$`
+)
+
+// ======================
+// === getMainPageUrl ===
+// ======================
+
+/** Returns the URL to the main page. This is the current URL, with the current route removed. */
+function getMainPageUrl() {
+    const mainPageUrl = new URL(window.location.href)
+    mainPageUrl.pathname = mainPageUrl.pathname.replace(ALL_PATHS_REGEX, '')
+    return mainPageUrl
+}
 
 // ===========
 // === App ===
@@ -104,7 +124,7 @@ export interface AppProps {
  *
  * This component handles all the initialization and rendering of the app, and manages the app's
  * routes. It also initializes an `AuthProvider` that will be used by the rest of the app. */
-function App(props: AppProps) {
+export default function App(props: AppProps) {
     // This is a React component even though it does not contain JSX.
     // eslint-disable-next-line no-restricted-syntax
     const Router = detect.isRunningInElectron() ? router.MemoryRouter : router.BrowserRouter
@@ -112,12 +132,8 @@ function App(props: AppProps) {
      * will redirect the user between the login/register pages and the dashboard. */
     return (
         <>
-            <toast.Toaster
-                toastOptions={{ style: { maxWidth: '100%' } }}
-                position="top-center"
-                reverseOrder={false}
-            />
-            <Router>
+            <toastify.ToastContainer position="top-center" theme="light" closeOnClick={false} />
+            <Router basename={getMainPageUrl().pathname}>
                 <AppRouter {...props} />
             </Router>
         </>
@@ -142,20 +158,18 @@ function AppRouter(props: AppProps) {
         onAuthenticated,
     } = props
     const navigate = hooks.useNavigate()
-    // FIXME[sb]: After platform detection for Electron is merged in, `IS_DEV_MODE` should be
-    // set to true on `ide watch`.
     if (IS_DEV_MODE) {
         // @ts-expect-error This is used exclusively for debugging.
         window.navigate = navigate
     }
-    const mainPageUrl = new URL(window.location.href)
+    const mainPageUrl = getMainPageUrl()
     const authService = React.useMemo(() => {
         const authConfig = { navigate, ...props }
         return authServiceModule.initAuthService(authConfig)
     }, [navigate, props])
     const userSession = authService.cognito.userSession.bind(authService.cognito)
     const registerAuthEventListener = authService.registerAuthEventListener
-    const initialBackend: backendProvider.AnyBackendAPI = isAuthenticationDisabled
+    const initialBackend: backend.Backend = isAuthenticationDisabled
         ? new localBackend.LocalBackend()
         : // This is safe, because the backend is always set by the authentication flow.
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -183,6 +197,7 @@ function AppRouter(props: AppProps) {
                 <router.Route path={CONFIRM_REGISTRATION_PATH} element={<ConfirmRegistration />} />
                 <router.Route path={FORGOT_PASSWORD_PATH} element={<ForgotPassword />} />
                 <router.Route path={RESET_PASSWORD_PATH} element={<ResetPassword />} />
+                <router.Route path={ENTER_OFFLINE_MODE_PATH} element={<EnterOfflineMode />} />
             </React.Fragment>
         </router.Routes>
     )
@@ -207,5 +222,3 @@ function AppRouter(props: AppProps) {
         </loggerProvider.LoggerProvider>
     )
 }
-
-export default App

@@ -333,9 +333,14 @@ impl SpanTree {
                 write!(buffer, "({:?})", inner.kind).unwrap();
             }
 
-            if let Some(name) = node.kind.name() {
+            if let Some(name) = node.kind.argument_name() {
                 write!(buffer, " name={name:?}").unwrap();
             }
+
+            if let Some(icon) = node.application.as_ref().and_then(|a| a.icon_name.as_ref()) {
+                write!(buffer, " icon={icon:?}").unwrap();
+            }
+
 
             if let Some(call_id) = node.kind.call_id() {
                 write!(buffer, " call_id={call_id:?}").unwrap();

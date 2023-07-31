@@ -1,6 +1,7 @@
 package org.enso.interpreter.node.expression.builtin.error;
 
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
@@ -38,7 +39,7 @@ public abstract class ThrowPanicNode extends Node {
   Object doCaughtPanic(
       VirtualFrame frame,
       Atom payload,
-      @CachedLibrary(limit = "5") InteropLibrary interopLibrary,
+      @Shared("interop") @CachedLibrary(limit = "5") InteropLibrary interopLibrary,
       @CachedLibrary(limit = "5") StructsLibrary structs,
       @Cached BranchProfile typeErrorProfile) {
     // Note [Original Exception Type]
@@ -63,7 +64,8 @@ public abstract class ThrowPanicNode extends Node {
 
   @Specialization(guards = "interopLibrary.isException(payload)")
   Object doOtherException(
-      Object payload, @CachedLibrary(limit = "5") InteropLibrary interopLibrary) {
+      Object payload,
+      @Shared("interop") @CachedLibrary(limit = "5") InteropLibrary interopLibrary) {
     try {
       throw interopLibrary.throwException(payload);
     } catch (UnsupportedMessageException e) {

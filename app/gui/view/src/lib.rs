@@ -32,6 +32,7 @@
 #[allow(clippy::option_map_unit_fn)]
 pub mod code_editor;
 pub mod debug_mode_popup;
+pub mod notification;
 pub mod popup;
 pub mod project;
 pub mod project_list;
@@ -43,6 +44,7 @@ pub use ide_view_component_browser as component_browser;
 pub use ide_view_documentation as documentation;
 pub use ide_view_execution_environment_selector as execution_environment_selector;
 pub use ide_view_graph_editor as graph_editor;
+pub use ide_view_project_view_top_bar as project_view_top_bar;
 pub use welcome_screen;
 
 /// Common types that should be visible across the whole crate.

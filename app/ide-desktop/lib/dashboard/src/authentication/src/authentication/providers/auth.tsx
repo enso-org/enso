@@ -5,7 +5,7 @@
  * hook also provides methods for registering a user, logging in, logging out, etc. */
 import * as React from 'react'
 import * as router from 'react-router-dom'
-import toast from 'react-hot-toast'
+import * as toastify from 'react-toastify'
 
 import * as app from '../../components/app'
 import * as authServiceModule from '../service'
@@ -15,7 +15,6 @@ import * as errorModule from '../../error'
 import * as http from '../../http'
 import * as localBackend from '../../dashboard/localBackend'
 import * as loggerProvider from '../../providers/logger'
-import * as newtype from '../../newtype'
 import * as remoteBackend from '../../dashboard/remoteBackend'
 import * as sessionProvider from './session'
 
@@ -37,7 +36,7 @@ const MESSAGES = {
     resetPasswordSuccess: 'Successfully reset password!',
     signOutLoading: 'Logging out...',
     signOutSuccess: 'Successfully logged out!',
-    signOutError: 'Error logging out, please try again.',
+    signOutError: 'Could not log out, please try again.',
     pleaseWait: 'Please wait...',
 } as const
 
@@ -108,11 +107,11 @@ export type UserSession = FullUserSession | OfflineUserSession | PartialUserSess
  *
  * See {@link Cognito} for details on each of the authentication functions. */
 interface AuthContextType {
-    goOffline: () => Promise<boolean>
+    goOffline: (shouldShowToast?: boolean) => Promise<boolean>
     signUp: (email: string, password: string, organizationId: string | null) => Promise<boolean>
     confirmSignUp: (email: string, code: string) => Promise<boolean>
     setUsername: (
-        backend: backendProvider.AnyBackendAPI,
+        backend: backendModule.Backend,
         username: string,
         email: string
     ) => Promise<boolean>
@@ -208,18 +207,24 @@ export function AuthProvider(props: AuthProviderProps) {
         /* should never change */ setBackendWithoutSavingType,
     ])
 
-    const goOffline = React.useCallback(() => {
-        toast.error('You are offline, switching to offline mode.')
-        goOfflineInternal()
-        navigate(app.DASHBOARD_PATH)
-        return Promise.resolve(true)
-    }, [/* should never change */ goOfflineInternal, /* should never change */ navigate])
+    const goOffline = React.useCallback(
+        (shouldShowToast = true) => {
+            if (shouldShowToast) {
+                toastify.toast.error('You are offline, switching to offline mode.')
+            }
+            goOfflineInternal()
+            navigate(app.DASHBOARD_PATH)
+            return Promise.resolve(true)
+        },
+        [/* should never change */ goOfflineInternal, /* should never change */ navigate]
+    )
 
     // This is identical to `hooks.useOnlineCheck`, however it is inline here to avoid any possible
     // circular dependency.
     React.useEffect(() => {
-        // `navigator.onLine` is not a dependency so that the app doesn't make the remote backend
-        // completely unusable on unreliable connections.
+        // `navigator.onLine` is not a dependency of this `useEffect` (so this effect is not called
+        // when `navigator.onLine` changes) - the internet being down should not immediately disable
+        // the remote backend.
         if (!navigator.onLine) {
             void goOffline()
         }
@@ -235,12 +240,13 @@ export function AuthProvider(props: AuthProviderProps) {
             if (!navigator.onLine || forceOfflineMode) {
                 goOfflineInternal()
                 setForceOfflineMode(false)
-            } else if (session.none) {
+            } else if (session == null) {
                 setInitialized(true)
-                setUserSession(null)
+                if (!initialized) {
+                    setUserSession(null)
+                }
             } else {
-                const { accessToken, email } = session.val
-                const headers = new Headers([['Authorization', `Bearer ${accessToken}`]])
+                const headers = new Headers([['Authorization', `Bearer ${session.accessToken}`]])
                 const client = new http.Client(headers)
                 const backend = new remoteBackend.RemoteBackend(client, logger)
                 // The backend MUST be the remote backend before login is finished.
@@ -252,11 +258,11 @@ export function AuthProvider(props: AuthProviderProps) {
                 ) {
                     setBackendWithoutSavingType(backend)
                 }
-                let organization
-                // eslint-disable-next-line no-restricted-syntax
-                while (organization === undefined) {
+                let organization: backendModule.UserOrOrganization | null
+                while (true) {
                     try {
                         organization = await backend.usersMe()
+                        break
                     } catch {
                         // The value may have changed after the `await`.
                         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
@@ -277,25 +283,24 @@ export function AuthProvider(props: AuthProviderProps) {
                     history.replaceState(null, '', url.toString())
                 }
                 let newUserSession: UserSession
-                const sharedSessionData = { email, accessToken }
-                if (!organization) {
+                if (organization == null) {
                     newUserSession = {
                         type: UserSessionType.partial,
-                        ...sharedSessionData,
+                        ...session,
                     }
                 } else {
                     newUserSession = {
                         type: UserSessionType.full,
-                        ...sharedSessionData,
+                        ...session,
                         organization,
                     }
 
                     /** Save access token so can be reused by Enso backend. */
-                    cognito.saveAccessToken(accessToken)
+                    cognito.saveAccessToken(session.accessToken)
 
                     /** Execute the callback that should inform the Electron app that the user has logged in.
                      * This is done to transition the app from the authentication/dashboard view to the IDE. */
-                    onAuthenticated(accessToken)
+                    onAuthenticated(session.accessToken)
                 }
 
                 setUserSession(newUserSession)
@@ -305,13 +310,15 @@ export function AuthProvider(props: AuthProviderProps) {
 
         fetchSession().catch(error => {
             if (isUserFacingError(error)) {
-                toast.error(error.message)
+                toastify.toast.error(error.message)
+                logger.error(error.message)
             } else {
                 logger.error(error)
             }
         })
-        // `userSession` MUST NOT be a dependency as this effect always does a `setUserSession`,
-        // which would result in an infinite loop.
+        // `userSession` MUST NOT be a dependency as `setUserSession` is called every time
+        // by this effect. Because it is an object literal, it will never be equal to the previous
+        // value.
         // `initialized` MUST NOT be a dependency as it breaks offline mode.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
@@ -328,12 +335,12 @@ export function AuthProvider(props: AuthProviderProps) {
     const withLoadingToast =
         <T extends unknown[], R>(action: (...args: T) => Promise<R>) =>
         async (...args: T) => {
-            const loadingToast = toast.loading(MESSAGES.pleaseWait)
+            const loadingToast = toastify.toast.loading(MESSAGES.pleaseWait)
             let result
             try {
                 result = await action(...args)
             } finally {
-                toast.dismiss(loadingToast)
+                toastify.toast.dismiss(loadingToast)
             }
             return result
         }
@@ -341,10 +348,10 @@ export function AuthProvider(props: AuthProviderProps) {
     const signUp = async (username: string, password: string, organizationId: string | null) => {
         const result = await cognito.signUp(username, password, organizationId)
         if (result.ok) {
-            toast.success(MESSAGES.signUpSuccess)
+            toastify.toast.success(MESSAGES.signUpSuccess)
             navigate(app.LOGIN_PATH)
         } else {
-            toast.error(result.val.message)
+            toastify.toast.error(result.val.message)
         }
         return result.ok
     }
@@ -360,7 +367,7 @@ export function AuthProvider(props: AuthProviderProps) {
             }
         }
 
-        toast.success(MESSAGES.confirmSignUpSuccess)
+        toastify.toast.success(MESSAGES.confirmSignUpSuccess)
         navigate(app.LOGIN_PATH)
         return result.ok
     }
@@ -368,43 +375,39 @@ export function AuthProvider(props: AuthProviderProps) {
     const signInWithPassword = async (email: string, password: string) => {
         const result = await cognito.signInWithPassword(email, password)
         if (result.ok) {
-            toast.success(MESSAGES.signInWithPasswordSuccess)
+            toastify.toast.success(MESSAGES.signInWithPasswordSuccess)
         } else {
             if (result.val.kind === 'UserNotFound') {
                 navigate(app.REGISTRATION_PATH)
             }
 
-            toast.error(result.val.message)
+            toastify.toast.error(result.val.message)
         }
         return result.ok
     }
 
-    const setUsername = async (
-        backend: backendProvider.AnyBackendAPI,
-        username: string,
-        email: string
-    ) => {
+    const setUsername = async (backend: backendModule.Backend, username: string, email: string) => {
         if (backend.type === backendModule.BackendType.local) {
-            toast.error('You cannot set your username on the local backend.')
+            toastify.toast.error('You cannot set your username on the local backend.')
             return false
         } else {
             try {
                 const organizationId = await authService.cognito.organizationId()
-                await toast.promise(
+                // This should not omit success and error toasts as it is not possible
+                // to render this optimistically.
+                await toastify.toast.promise(
                     backend.createUser({
                         userName: username,
-                        userEmail: newtype.asNewtype<backendModule.EmailAddress>(email),
+                        userEmail: backendModule.EmailAddress(email),
                         organizationId:
                             organizationId != null
-                                ? newtype.asNewtype<backendModule.UserOrOrganizationId>(
-                                      organizationId
-                                  )
+                                ? backendModule.UserOrOrganizationId(organizationId)
                                 : null,
                     }),
                     {
                         success: MESSAGES.setUsernameSuccess,
                         error: MESSAGES.setUsernameFailure,
-                        loading: MESSAGES.setUsernameLoading,
+                        pending: MESSAGES.setUsernameLoading,
                     }
                 )
                 navigate(app.DASHBOARD_PATH)
@@ -418,10 +421,10 @@ export function AuthProvider(props: AuthProviderProps) {
     const forgotPassword = async (email: string) => {
         const result = await cognito.forgotPassword(email)
         if (result.ok) {
-            toast.success(MESSAGES.forgotPasswordSuccess)
+            toastify.toast.success(MESSAGES.forgotPasswordSuccess)
             navigate(app.RESET_PASSWORD_PATH)
         } else {
-            toast.error(result.val.message)
+            toastify.toast.error(result.val.message)
         }
         return result.ok
     }
@@ -429,10 +432,10 @@ export function AuthProvider(props: AuthProviderProps) {
     const resetPassword = async (email: string, code: string, password: string) => {
         const result = await cognito.forgotPasswordSubmit(email, code, password)
         if (result.ok) {
-            toast.success(MESSAGES.resetPasswordSuccess)
+            toastify.toast.success(MESSAGES.resetPasswordSuccess)
             navigate(app.LOGIN_PATH)
         } else {
-            toast.error(result.val.message)
+            toastify.toast.error(result.val.message)
         }
         return result.ok
     }
@@ -440,9 +443,9 @@ export function AuthProvider(props: AuthProviderProps) {
     const changePassword = async (oldPassword: string, newPassword: string) => {
         const result = await cognito.changePassword(oldPassword, newPassword)
         if (result.ok) {
-            toast.success(MESSAGES.changePasswordSuccess)
+            toastify.toast.success(MESSAGES.changePasswordSuccess)
         } else {
-            toast.error(result.val.message)
+            toastify.toast.error(result.val.message)
         }
         return result.ok
     }
@@ -451,10 +454,12 @@ export function AuthProvider(props: AuthProviderProps) {
         deinitializeSession()
         setInitialized(false)
         setUserSession(null)
-        await toast.promise(cognito.signOut(), {
+        // This should not omit success and error toasts as it is not possible
+        // to render this optimistically.
+        await toastify.toast.promise(cognito.signOut(), {
             success: MESSAGES.signOutSuccess,
             error: MESSAGES.signOutError,
-            loading: MESSAGES.signOutLoading,
+            pending: MESSAGES.signOutLoading,
         })
         return true
     }
@@ -535,7 +540,7 @@ export function ProtectedLayout() {
     const { session } = useAuth()
     const shouldPreventNavigation = getShouldPreventNavigation()
 
-    if (!shouldPreventNavigation && !session) {
+    if (!shouldPreventNavigation && session == null) {
         return <router.Navigate to={app.LOGIN_PATH} />
     } else if (!shouldPreventNavigation && session?.type === UserSessionType.partial) {
         return <router.Navigate to={app.SET_USERNAME_PATH} />

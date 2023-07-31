@@ -156,7 +156,7 @@ public class EnsoContext {
     var resourceManager = new org.enso.distribution.locking.ResourceManager(lockManager);
 
     packageRepository =
-        PackageRepository.initializeRepository(
+        DefaultPackageRepository.initializeRepository(
             OptionConverters.toScala(projectPackage),
             OptionConverters.toScala(languageHome),
             OptionConverters.toScala(editionOverride),
@@ -166,7 +166,8 @@ public class EnsoContext {
             builtins,
             notificationHandler);
     topScope = new TopLevelScope(builtins, packageRepository);
-    this.compiler = new Compiler(this, builtins, packageRepository, compilerConfig);
+    this.compiler =
+        new Compiler(new TruffleCompilerContext(this), builtins, packageRepository, compilerConfig);
 
     projectPackage.ifPresent(
         pkg -> packageRepository.registerMainProjectPackage(pkg.libraryName(), pkg));

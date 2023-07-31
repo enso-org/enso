@@ -10,7 +10,6 @@
 
 import * as crypto from 'node:crypto'
 import * as fs from 'node:fs'
-import * as fsSync from 'node:fs'
 import * as pathModule from 'node:path'
 import * as stream from 'node:stream'
 
@@ -144,11 +143,11 @@ export function importDirectory(rootPath: string): string {
     } else {
         logger.log(`Importing a project copy from '${rootPath}'.`)
         const target = generateDirectoryName(rootPath)
-        if (fsSync.existsSync(target.path)) {
+        if (fs.existsSync(target.path)) {
             throw new Error(`Project directory '${target.path}' already exists.`)
         } else {
             logger.log(`Copying: '${rootPath}' -> '${target.path}'.`)
-            fsSync.cpSync(rootPath, target.path, { recursive: true })
+            fs.cpSync(rootPath, target.path, { recursive: true })
             updateName(target.path, target.name)
             // Update the project ID, so we are certain that it is unique.
             // This would be violated, if we imported the same project multiple times.
@@ -298,7 +297,8 @@ export function generateDirectoryName(name: string): NameAndPath {
 
     // If the name already consists a suffix, reuse it.
     const matches = name.match(/^(.*)_(\d+)$/)
-    let suffix = 0
+    const initialSuffix = -1
+    let suffix = initialSuffix
     // Matches start with the whole match, so we need to skip it. Then come our two capture groups.
     const [matchedName, matchedSuffix] = matches?.slice(1) ?? []
     if (typeof matchedName !== 'undefined' && typeof matchedSuffix !== 'undefined') {
@@ -307,7 +307,8 @@ export function generateDirectoryName(name: string): NameAndPath {
     }
 
     const projectsDirectory = getProjectsDirectory()
-    for (; ; suffix++) {
+    while (true) {
+        suffix++
         const newName = `${name}${suffix === 0 ? '' : `_${suffix}`}`
         const candidatePath = pathModule.join(projectsDirectory, newName)
         if (!fs.existsSync(candidatePath)) {

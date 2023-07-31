@@ -18,6 +18,8 @@ jobs:
         uses: styfle/cancel-workflow-action@0.9.1
         with:
           access_token: ${{ github.token }}
+    permissions:
+      actions: write
   enso-build-ci-gen-job-ci-check-backend-linux:
     name: Engine (linux)
     runs-on:
@@ -27,7 +29,7 @@ jobs:
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.0.5
+        uses: s-weigand/setup-conda@v1.0.6
         with:
           update-conda: false
           conda-channels: anaconda, conda-forge
@@ -94,6 +96,8 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    permissions:
+      checks: write
   enso-build-ci-gen-job-ci-check-backend-macos:
     name: Engine (macos)
     runs-on:
@@ -101,7 +105,7 @@ jobs:
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.0.5
+        uses: s-weigand/setup-conda@v1.0.6
         with:
           update-conda: false
           conda-channels: anaconda, conda-forge
@@ -168,6 +172,8 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    permissions:
+      checks: write
   enso-build-ci-gen-job-ci-check-backend-windows:
     name: Engine (windows)
     runs-on:
@@ -177,7 +183,7 @@ jobs:
     steps:
       - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
         name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.0.5
+        uses: s-weigand/setup-conda@v1.0.6
         with:
           update-conda: false
           conda-channels: anaconda, conda-forge
@@ -244,5 +250,7 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    permissions:
+      checks: write
 env:
   ENSO_BUILD_SKIP_VERSION_CHECK: "true"

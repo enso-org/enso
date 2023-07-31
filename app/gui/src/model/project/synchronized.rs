@@ -422,13 +422,13 @@ impl Project {
         let action = MissingComponentAction::Install;
         let opened = project_manager.open_project(&id, &action).await?;
         let namespace = opened.project_namespace;
-        let name = opened.project_name;
+        let module = opened.project_module;
         let project_manager = Some(project_manager);
         let json_endpoint = opened.language_server_json_address.to_string();
         let binary_endpoint = opened.language_server_binary_address.to_string();
         let properties = Properties {
             id,
-            name: project::QualifiedName::new(namespace, name),
+            name: project::QualifiedName::new(namespace, module),
             engine_version: semver::Version::parse(&opened.engine_version)?,
         };
         Self::new_connected(project_manager, json_endpoint, binary_endpoint, properties).await
@@ -576,7 +576,7 @@ impl Project {
                 Event::Notification(Notification::ExecutionStatus(_)) => {}
                 Event::Notification(Notification::ExecutionComplete { context_id }) => {
                     execution_update_handler(context_id, ExecutionUpdate::Completed);
-                    publisher.notify(model::project::Notification::ExecutionFinished);
+                    publisher.notify(model::project::Notification::ExecutionComplete);
                 }
                 Event::Notification(Notification::ExpressionValuesComputed(_)) => {
                     // the notification is superseded by `ExpressionUpdates`.

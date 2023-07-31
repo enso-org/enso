@@ -3,6 +3,7 @@ package org.enso.interpreter.node.expression.builtin.ordering;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.GenerateUncached;
+import com.oracle.truffle.api.dsl.NeverDefault;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
@@ -65,6 +66,7 @@ public abstract class HashCallbackNode extends Node {
   /**
    * Builds an {@link InvokeFunctionNode} for a method with just one argument named {@code atom}.
    */
+  @NeverDefault
   static InvokeFunctionNode buildInvokeNodeWithAtomArgument() {
     return InvokeFunctionNode.build(
         new CallArgumentInfo[] {new CallArgumentInfo("self"), new CallArgumentInfo("atom")},
@@ -72,6 +74,7 @@ public abstract class HashCallbackNode extends Node {
         ArgumentsExecutionMode.EXECUTE);
   }
 
+  @NeverDefault
   @TruffleBoundary
   Function getHashCallbackFunction() {
     var comparableType = EnsoContext.get(this).getBuiltins().comparable().getType();

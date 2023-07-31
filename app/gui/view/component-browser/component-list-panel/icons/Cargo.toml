@@ -6,4 +6,5 @@ edition = "2021"
 
 [dependencies]
 ensogl-core = { path = "../../../../../../lib/rust/ensogl/core" }
+ensogl-hardcoded-theme = { path = "../../../../../../lib/rust/ensogl/app/theme/hardcoded" }
 failure = { workspace = true }

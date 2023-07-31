@@ -5,8 +5,10 @@ use crate::prelude::*;
 use enso_frp as frp;
 use ensogl_core::data::color;
 use ensogl_core::display::shape::StyleWatchFrp;
+use ensogl_core::display::shape::ThemeAccess;
+use ensogl_core::display::style;
 use ensogl_core::display::style::data::DataMatch;
-use ensogl_derive_theme::FromTheme;
+use ensogl_core::display::style::FromTheme;
 use ensogl_hardcoded_theme::application::component_browser::component_list_panel as panel_theme;
 use ensogl_hardcoded_theme::application::component_browser::component_list_panel::grid as grid_theme;
 use entry_theme::highlight::selection as selection_theme;
@@ -43,40 +45,22 @@ impl Color {
             Self::Arbitrary(color) => *color,
         }
     }
+}
 
+impl ThemeAccess for Color {
     /// A custom accessor for retrieving the color from the stylesheet using the [`FromTheme`]
     /// macro. In the stylesheet, the color can be defined as either a `color::Rgba` or a `float`
     /// value for the mixing coefficient. This accessor produces the corresponding variants of
     /// [`Color`] or returns a default value ([`Color::MainColorWithAlpha(0.0)`]) if there is no
     /// such property in the stylesheet.
-    fn accessor<P: Into<ensogl_core::display::style::Path>>(
-        network: &frp::Network,
-        style: &StyleWatchFrp,
-        path: P,
-    ) -> frp::Sampler<Self> {
-        let path = path.into();
-        let value = style.get(path.clone());
-        frp::extend! { network
-            init <- source_();
-            color <- value.all_with(&init, move |data, _| {
-                data.color().map(|color| {
-                    let color = color::Lcha::from(color);
-                    Color::Arbitrary(color)
-                }).unwrap_or_else(|| {
-                    let alpha_multiplier = match data.number() {
-                        Some(number) => number,
-                        None => {
-                            error!("Neither color nor alpha defined for {path}.");
-                            0.0
-                        }
-                    };
-                    Color::ComponentGroup { alpha_multiplier }
-                })
-            });
-            sampler <- color.sampler();
-        }
-        init.emit(());
-        sampler
+    fn from_style_data(path_str: &str, data: &Option<style::Data>) -> Self {
+        data.color()
+            .map(|color| Color::Arbitrary(color::Lcha::from(color)))
+            .or_else(move || data.number().map(|a| Color::ComponentGroup { alpha_multiplier: a }))
+            .unwrap_or_else(|| {
+                warn!("Neither color nor alpha defined for {path_str}.");
+                Color::ComponentGroup { alpha_multiplier: 0.0 }
+            })
     }
 }
 
@@ -95,21 +79,13 @@ impl Color {
 #[derive(Clone, Copy, Debug, Default, PartialEq, FromTheme)]
 pub struct Colors {
     #[theme_path = "entry_theme::text::color"]
-    #[accessor = "Color::accessor"]
     pub text:                 Color,
     #[theme_path = "entry_theme::background::intensity"]
     pub background_intensity: f32,
     #[theme_path = "entry_theme::highlight::hover::color"]
-    #[accessor = "Color::accessor"]
     pub hover_highlight:      Color,
     #[theme_path = "entry_theme::icon::color"]
-    #[accessor = "Color::accessor"]
     pub icon:                 Color,
-    /// The "main color" of dimmed component groups. For dimmed component groups,
-    /// [`ResolvedColors`] would use this value instead of "main" color of the component group.
-    #[theme_path = "entry_theme::dimmed"]
-    #[accessor = "Color::accessor"]
-    pub dimmed:               Color,
 }
 
 /// The colors of various parts of selected the Component Entry view. A subset of
@@ -119,27 +95,18 @@ pub struct Colors {
 #[derive(Clone, Copy, Debug, Default, PartialEq, FromTheme)]
 pub struct SelectionColors {
     #[theme_path = "selection_theme::text::color"]
-    #[accessor = "Color::accessor"]
     pub text:                 Color,
     #[theme_path = "selection_theme::background::intensity"]
     pub background_intensity: f32,
     #[theme_path = "selection_theme::icon::color"]
-    #[accessor = "Color::accessor"]
     pub icon:                 Color,
-    /// The main color of dimmed component groups. Selection is never displayed in a dimmed
-    /// component group. Still, we need to duplicate this parameter to avoid sudden color
-    /// changes while the selection shape is animated and moves through different component
-    /// groups.
-    #[theme_path = "entry_theme::dimmed"]
-    #[accessor = "Color::accessor"]
-    pub dimmed:               Color,
 }
 
 impl From<SelectionColors> for Colors {
     fn from(selection: SelectionColors) -> Self {
-        let SelectionColors { text, background_intensity, icon, dimmed } = selection;
+        let SelectionColors { text, background_intensity, icon } = selection;
         let hover_highlight = default();
-        Self { text, background_intensity, icon, dimmed, hover_highlight }
+        Self { text, background_intensity, icon, hover_highlight }
     }
 }
 
@@ -194,7 +161,6 @@ pub struct ResolvedColors {
     pub hover_highlight: frp::Sampler<color::Lcha>,
     pub text:            frp::Sampler<color::Lcha>,
     pub icon:            frp::Sampler<color::Lcha>,
-    pub skip_animations: frp::Any,
 }
 
 impl ResolvedColors {
@@ -207,45 +173,35 @@ impl ResolvedColors {
         style_watch: &StyleWatchFrp,
         main_color: &frp::Stream<color::Lcha>,
         colors: &frp::Stream<Colors>,
-        is_dimmed: &frp::Stream<bool>,
     ) -> Self {
         let panel_background = style_watch.get_color(panel_theme::background_color);
         let colors = colors.clone_ref();
-        let color_anim = color::Animation::new(network);
 
         frp::extend! { network
             init <- source_();
 
-            let is_dimmed = is_dimmed.clone_ref();
-            dimmed <- all_with3(&init, main_color, &colors,
-                |_, main, colors| colors.dimmed.resolve(main)
-            );
-            color_anim.target <+ switch(&is_dimmed, main_color, &dimmed);
-
-            // We do not support the semi-transparent background of entries. Because headers share
+            // We do not support the semi-transparent background of entries. This was needed in
+            // times when the group headers could be displayed over entries (and the headers shared
             // the same background color; therefore, the semi-transparent header's background
-            // reveals the underlying entries. Instead, we mix the color of the component browser's
-            // background and the main color of the component group.
+            // would reveal the underlying entries). It's kept for case we would return to
+            // displaying headers some day.
             panel_bg <- all_with(&panel_background, &init, |col, ()| color::Lcha::from(col));
-            panel_bg_and_main <- all(&panel_bg, &color_anim.value);
+            panel_bg_and_main <- all(&panel_bg, main_color);
             bg_intensity <- colors.map(|c| c.background_intensity);
             background <- all_with(&panel_bg_and_main, &bg_intensity,
                 |(bg, main), intensity| color::mix(*bg, *main, *intensity)
             ).sampler();
-            hover_highlight <- all_with(&color_anim.value, &colors,
+            hover_highlight <- all_with(main_color, &colors,
                 |main, colors| colors.hover_highlight.resolve(main)
             ).sampler();
-            text <- all_with(&color_anim.value, &colors,
+            text <- all_with(main_color, &colors,
                 |main, colors| colors.text.resolve(main)
             ).sampler();
-            icon <- all_with(&color_anim.value, &colors,
+            icon <- all_with(main_color, &colors,
                 |main, colors| colors.icon.resolve(main)
             ).sampler();
-
-            skip_animations <- any(...);
-            color_anim.skip <+ skip_animations;
         }
         init.emit(());
-        Self { icon, text, background, hover_highlight, skip_animations }
+        Self { icon, text, background, hover_highlight }
     }
 }

@@ -76,6 +76,7 @@ class TestDistributionConfiguration(
   override def makeRuntimeVersionManager(
     userInterface: RuntimeVersionManagementUserInterface
   ): RuntimeVersionManager = new RuntimeVersionManager(
+    environment               = environment,
     userInterface             = userInterface,
     distributionManager       = distributionManager,
     temporaryDirectoryManager = temporaryDirectoryManager,

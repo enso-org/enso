@@ -2,9 +2,11 @@ package org.enso.table.data.table;
 
 import org.enso.base.Text_Utils;
 import org.enso.base.polyglot.Polyglot_Utils;
+import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.InferredBuilder;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.index.DefaultIndex;
 import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
@@ -116,18 +118,13 @@ public class Column {
     return new Column(name, storage);
   }
 
-  /**
-   * Creates a new column with given name and elements.
-   *
-   * @param name the name to use
-   * @param items the items contained in the column
-   * @return a column with given name and items
-   */
-  public static Column fromItems(String name, List<Value> items) {
+  /** Creates a column from an Enso array, ensuring Enso dates are converted to Java dates. */
+  public static Column fromItems(String name, List<Value> items, StorageType expectedType) throws ClassCastException {
     Context context = Context.getCurrent();
-    InferredBuilder builder = new InferredBuilder(items.size());
+    int n = items.size();
+    Builder builder = expectedType == null ? new InferredBuilder(n) : Builder.getForType(expectedType, n);
+
     // ToDo: This a workaround for an issue with polyglot layer. #5590 is related.
-    // to revert replace with: for (Value item : items) {
     for (Object item : items) {
       if (item instanceof Value v) {
         Object converted = Polyglot_Utils.convertPolyglotValue(v);
@@ -136,6 +133,26 @@ public class Column {
         builder.appendNoGrow(item);
       }
 
+      context.safepoint();
+    }
+    var storage = builder.seal();
+    return new Column(name, storage);
+  }
+
+  /**
+   * Creates a column from an Enso array. No polyglot conversion happens.
+   * <p>
+   * If a date value is passed to this function, it may not be recognized as such due to the lack of conversion. So this
+   * is only safe if we guarantee that the method will not get a Date value, or will reject it right after processing
+   * it.
+   */
+  public static Column fromItemsNoDateConversion(String name, List<Object> items, StorageType expectedType) throws ClassCastException {
+    Context context = Context.getCurrent();
+    int n = items.size();
+    Builder builder = expectedType == null ? new InferredBuilder(n) : Builder.getForType(expectedType, n);
+
+    for (Object item : items) {
+      builder.appendNoGrow(item);
       context.safepoint();
     }
     var storage = builder.seal();
@@ -155,7 +172,7 @@ public class Column {
     }
 
     if (repeat == 1) {
-      return fromItems(name, items);
+      return fromItems(name, items, null);
     }
 
     Context context = Context.getCurrent();

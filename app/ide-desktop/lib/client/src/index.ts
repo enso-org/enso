@@ -7,6 +7,7 @@
 
 import * as fs from 'node:fs/promises'
 import * as fsSync from 'node:fs'
+import * as os from 'node:os'
 import * as pathModule from 'node:path'
 import process from 'node:process'
 
@@ -19,6 +20,7 @@ import * as authentication from 'authentication'
 import * as config from 'config'
 import * as configParser from 'config/parser'
 import * as debug from 'debug'
+import * as detect from 'detect'
 import * as fileAssociations from 'file-associations'
 import * as ipc from 'ipc'
 import * as log from 'log'
@@ -189,6 +191,8 @@ class App {
         // We catch all errors here. Otherwise, it might be possible that the app will run partially
         // and enter a "zombie mode", where user is not aware of the app still running.
         try {
+            // Light theme is needed for vibrancy to be light colored on Windows.
+            // electron.nativeTheme.themeSource = 'light'
             await logger.asyncGroupMeasured('Starting the application', async () => {
                 // Note that we want to do all the actions synchronously, so when the window
                 // appears, it serves the website immediately.
@@ -265,9 +269,14 @@ class App {
                     width: windowSize.width,
                     height: windowSize.height,
                     frame: useFrame,
-                    transparent: false,
                     titleBarStyle: useHiddenInsetTitleBar ? 'hiddenInset' : 'default',
-                    ...(useVibrancy ? { vibrancy: 'fullscreen-ui' } : {}),
+                    ...(useVibrancy && detect.supportsVibrancy()
+                        ? {
+                              vibrancy: 'fullscreen-ui',
+                              backgroundMaterial: 'acrylic',
+                              ...(os.platform() === 'win32' ? { transparent: true } : {}),
+                          }
+                        : {}),
                 }
                 const window = new electron.BrowserWindow(windowPreferences)
                 window.setMenuBarVisibility(false)

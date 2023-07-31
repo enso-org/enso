@@ -2,6 +2,7 @@ package org.enso.interpreter.runtime.error;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.NeverDefault;
 import com.oracle.truffle.api.exception.AbstractTruffleException;
 import com.oracle.truffle.api.interop.ExceptionType;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -30,7 +31,7 @@ import org.enso.interpreter.runtime.state.State;
 @ExportLibrary(TypesLibrary.class)
 public final class PanicException extends AbstractTruffleException {
   final Object payload;
-  String cacheMessage;
+  private String cacheMessage;
 
   /**
    * Creates an instance of this class.
@@ -45,12 +46,6 @@ public final class PanicException extends AbstractTruffleException {
       throw new IllegalArgumentException("Only interop values are supported: " + payload);
     }
     this.payload = payload;
-    InteropLibrary library = InteropLibrary.getUncached();
-    try {
-      cacheMessage = library.asString(library.getExceptionMessage(this));
-    } catch (UnsupportedMessageException e) {
-      cacheMessage = TypeToDisplayTextNodeGen.getUncached().execute(payload);
-    }
   }
 
   /**
@@ -64,7 +59,23 @@ public final class PanicException extends AbstractTruffleException {
 
   @Override
   public String getMessage() {
+    if (cacheMessage == null) {
+      return computeMessage();
+    }
     return cacheMessage;
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  private String computeMessage() {
+    String msg;
+    InteropLibrary library = InteropLibrary.getUncached();
+    try {
+      msg = library.asString(library.getExceptionMessage(this));
+    } catch (UnsupportedMessageException e) {
+      msg = TypeToDisplayTextNodeGen.getUncached().execute(payload);
+    }
+    cacheMessage = msg;
+    return msg;
   }
 
   @Override
@@ -87,6 +98,7 @@ public final class PanicException extends AbstractTruffleException {
     return true;
   }
 
+  @NeverDefault
   static UnresolvedSymbol toDisplayText(IndirectInvokeMethodNode payloads) {
     var ctx = EnsoContext.get(payloads);
     var scope = ctx.getBuiltins().panic().getDefinitionScope();

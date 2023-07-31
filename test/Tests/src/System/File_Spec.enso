@@ -67,6 +67,10 @@ spec =
             (File.new "foo").should_equal (File.new "foo")
             (File.new "bar").should_not_equal (File.new "foo")
 
+        Test.specify "should allow checking in parent path with `starts_with`" <|
+            (File.new "foo/bar").starts_with (File.new "foo") . should_be_true
+            (File.new "foo/bar").starts_with (File.new "f") . should_be_false
+
         Test.specify "should allow creating a directory" <|
             f = enso_project.data / "good_dir"
             f.delete_if_exists
@@ -719,7 +723,16 @@ spec =
             filtered1 = root.list name_filter="**.txt" recursive=True . map .to_text
             filtered1.sort.should_equal (resolve ["sample.txt", "subdirectory/a.txt", "subdirectory/nested/b.txt"])
 
+            filtered1b = root.list name_filter="*.txt" recursive=True . map .to_text
+            filtered1b.sort.should_equal (resolve ["sample.txt", "subdirectory/a.txt", "subdirectory/nested/b.txt"])
+
             filtered2 = root.list name_filter="*/*/*" recursive=True . map .to_text
             filtered2.should_equal (resolve ["subdirectory/nested/b.txt"])
+
+            filtered3 = root.list name_filter="a.txt" recursive=True . map .to_text
+            filtered3.sort.should_equal (resolve ["subdirectory/a.txt"])
+
+            filtered4 = root.list name_filter="nested/*.txt" recursive=True . map .to_text
+            filtered4.sort.should_equal (resolve ["subdirectory/nested/b.txt"])
 
 main = Test_Suite.run_main spec

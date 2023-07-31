@@ -623,7 +623,7 @@ define_prim_type! {
     BVec2 { name = "bvec2", layout_size = 1 },
     BVec3 { name = "bvec3", layout_size = 1 },
     BVec4 { name = "bvec4", layout_size = 1 },
-    UInt { name = "int", layout_size = 1 },
+    UInt { name = "uint", layout_size = 1 },
     UVec2 { name = "uvec2", layout_size = 1 },
     UVec3 { name = "uvec3", layout_size = 1 },
     UVec4 { name = "uvec4", layout_size = 1 },
