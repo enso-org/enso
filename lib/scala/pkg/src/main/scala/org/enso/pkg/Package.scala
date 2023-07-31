@@ -22,7 +22,7 @@ case class SourceFile[F](qualifiedName: QualifiedName, file: F)
 /** Represents an Enso package stored on the hard drive.
   *
   * @param root the root directory of this package
-  * @param config the metadata contained in the package configuration
+  * @param initialConfig the metadata contained in the package configuration
   * @param fileSystem the file system access module
   */
 class Package[F](
@@ -64,7 +64,7 @@ class Package[F](
     * @return a package with the updated name
     */
   def setPackageName(newName: String): Package[F] = {
-    new Package(root, config.copy(name = newName), fileSystem)
+    new Package(root, config.copy(normalizedName = Some(newName)), fileSystem)
   }
 
   /** Stores the package metadata on the hard drive. If the package does not exist,
@@ -127,7 +127,13 @@ class Package[F](
     * @return The package object with changed name. The old package is not
     *         valid anymore.
     */
-  def rename(newName: String): Package[F] = updateConfig(_.copy(name = newName))
+  def rename(newName: String): Package[F] = updateConfig { config =>
+    config.copy(
+      name = newName,
+      normalizedName =
+        config.normalizedName.map(_ => NameValidation.normalizeName(newName))
+    )
+  }
 
   /** Updates the package config.
     *
@@ -145,13 +151,13 @@ class Package[F](
 
   /** Creates the sources directory.
     */
-  def createSourceDir(): Unit = {
+  private def createSourceDir(): Unit = {
     Try(sourceDir.createDirectories()).getOrElse(throw CouldNotCreateDirectory)
   }
 
   /** Saves the config metadata into the package configuration file.
     */
-  def saveConfig(): Try[Unit] =
+  private def saveConfig(): Try[Unit] =
     Using(configFile.newBufferedWriter) { writer =>
       writer.write(config.toYaml)
     }
@@ -175,10 +181,16 @@ class Package[F](
     */
   def name: String = config.name
 
+  /** Returns the module of this package.
+    * @return the module of this package.
+    */
+  def module: String =
+    config.normalizedName.getOrElse(NameValidation.normalizeName(name))
+
   def namespace: String = config.namespace
 
   /** A [[LibraryName]] associated with the package. */
-  def libraryName: LibraryName = LibraryName(config.namespace, config.name)
+  def libraryName: LibraryName = LibraryName(config.namespace, module)
 
   /** Parses a file path into a qualified module name belonging to this
     * package.
@@ -190,7 +202,7 @@ class Package[F](
     val segments                 = sourceDir.relativize(file).getSegments.asScala.toList
     val dirSegments              = segments.take(segments.length - 1)
     val fileNameWithoutExtension = file.getName.takeWhile(_ != '.')
-    QualifiedName(namespace :: name :: dirSegments, fileNameWithoutExtension)
+    QualifiedName(namespace :: module :: dirSegments, fileNameWithoutExtension)
   }
 
   /** Lists the source files in this package.
@@ -254,10 +266,12 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
 
   /** Creates a new Package in a given location and with given name. Leaves all the other config fields blank.
     *
-    * @param root  the root location of the package.
-    * @param name the name for the new package.
-    * @param version version of the newly-created package.
-    * @param template the template for the new package.
+    * @param root the root location of the package
+    * @param name the name of the new package
+    * @param namespace the package namespace
+    * @param normalizedName normalized name of the new package
+    * @param version version of the newly-created package
+    * @param template the template for the new package
     * @param edition the edition to use for the project; if not specified, it
     *                will not specify any, meaning that the current default one
     *                will be used
@@ -267,6 +281,7 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
     root: F,
     name: String,
     namespace: String                    = "local",
+    normalizedName: Option[String]       = None,
     version: String                      = "0.0.1",
     template: Template                   = Template.Default,
     edition: Option[Editions.RawEdition] = None,
@@ -276,7 +291,8 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
     componentGroups: ComponentGroups     = ComponentGroups.empty
   ): Package[F] = {
     val config = Config(
-      name                 = NameValidation.normalizeName(name),
+      name                 = name,
+      normalizedName       = normalizedName,
       namespace            = namespace,
       version              = version,
       license              = license,

@@ -33,9 +33,10 @@ class ConfigSpec
 
     "deserialize the serialized representation to the original value" in {
       val config = Config(
-        name      = "placeholder",
-        version   = "dev",
-        namespace = "local",
+        name           = "placeholder",
+        normalizedName = None,
+        version        = "dev",
+        namespace      = "local",
         edition =
           Some(Config.makeCompatibilityEditionFromVersion(SemVer(4, 5, 6))),
         license = "none",
@@ -56,6 +57,8 @@ class ConfigSpec
     "only require the name and use defaults for everything else" in {
       val parsed = Config.fromYaml("name: FooBar").get
       parsed.name shouldEqual "FooBar"
+      parsed.normalizedName shouldEqual None
+      parsed.moduleName shouldEqual "Foo_Bar"
       parsed.edition shouldBe empty
     }
 

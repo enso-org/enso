@@ -84,6 +84,7 @@ object ProjectManagementApi {
       languageServerJsonAddress: Socket,
       languageServerBinaryAddress: Socket,
       projectName: String,
+      projectModule: String,
       projectNamespace: String
     )
 

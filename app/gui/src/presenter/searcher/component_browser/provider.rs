@@ -3,11 +3,9 @@
 use crate::prelude::*;
 
 use crate::controller::searcher::component;
-use crate::controller::searcher::component::MatchInfo;
 
 use enso_frp as frp;
 use enso_suggestion_database::entry::for_each_kind_variant;
-use enso_text as text;
 use ide_view::component_browser::component_list_panel;
 use ide_view::component_browser::component_list_panel::grid as component_grid;
 
@@ -73,9 +71,7 @@ macro_rules! kind_to_icon {
 
 fn component_to_entry_model(component: &component::Component) -> component_grid::EntryModel {
     let can_be_entered = component.can_be_entered();
-    let match_info = &component.match_info;
-    let caption = component.label_with_matched_alias();
-    let highlighted = bytes_of_matched_letters(match_info, &caption);
+    let label = component.matched_label();
     let icon = match &component.suggestion {
         component::Suggestion::FromDatabase { entry, .. } => {
             let kind = entry.kind;
@@ -85,37 +81,10 @@ fn component_to_entry_model(component: &component::Component) -> component_grid:
         }
         component::Suggestion::Virtual { snippet } => snippet.icon,
     };
-    component_grid::EntryModel {
-        caption,
-        highlighted: Rc::new(highlighted),
-        icon,
-        can_be_entered,
-        group: component.group_id,
-    }
-}
-
-fn bytes_of_matched_letters(match_info: &MatchInfo, label: &str) -> Vec<text::Range<text::Byte>> {
-    if let MatchInfo::Matches { subsequence, .. } = match_info {
-        let mut char_iter = label.char_indices().enumerate();
-        subsequence
-            .indices
-            .iter()
-            .filter_map(|idx| loop {
-                if let Some(char) = char_iter.next() {
-                    let (char_idx, (byte_id, char)) = char;
-                    if char_idx == *idx {
-                        let start = enso_text::index::Byte(byte_id);
-                        let end = enso_text::index::Byte(byte_id + char.len_utf8());
-                        break Some(enso_text::Range::new(start, end));
-                    }
-                } else {
-                    break None;
-                }
-            })
-            .collect()
-    } else {
-        default()
-    }
+    let caption = label.text;
+    let highlighted = Rc::new(label.highlights);
+    let group = component.group_id;
+    component_grid::EntryModel { caption, highlighted, icon, can_be_entered, group }
 }
 
 

@@ -6,6 +6,7 @@ import com.typesafe.scalalogging.Logger
 import nl.gn0s1s.bump.SemVer
 import org.enso.editions.DefaultEdition
 import org.enso.pkg.Config
+import org.enso.pkg.validation.NameValidation
 import org.enso.projectmanager.control.core.syntax._
 import org.enso.projectmanager.control.core.{
   Applicative,
@@ -37,16 +38,12 @@ import org.enso.projectmanager.infrastructure.time.Clock
 import org.enso.projectmanager.model.Project
 import org.enso.projectmanager.model.ProjectKind.UserProject
 import org.enso.projectmanager.service.ProjectServiceFailure._
-import org.enso.projectmanager.service.ValidationFailure.{
-  EmptyName,
-  NameContainsForbiddenCharacter,
-  NameShouldBeUpperSnakeCase,
-  NameShouldStartWithCapitalLetter
-}
 import org.enso.projectmanager.service.config.GlobalConfigServiceApi
+import org.enso.projectmanager.service.validation.ProjectNameValidator
 import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagerErrorRecoverySyntax._
 import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagerFactory
 import org.enso.projectmanager.versionmanagement.DistributionConfiguration
+
 import java.util.UUID
 
 /** Implementation of business logic for project management.
@@ -62,7 +59,7 @@ import java.util.UUID
 class ProjectService[
   F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap: Applicative
 ](
-  validator: ProjectValidator[F],
+  validator: ProjectNameValidator[F],
   repo: ProjectRepository[F],
   projectCreationService: ProjectCreationServiceApi[F],
   configurationService: GlobalConfigServiceApi[F],
@@ -95,13 +92,15 @@ class ProjectService[
     )
     name         <- getNameForNewProject(projectName, projectTemplate)
     _            <- log.info("Created project with actual name [{}].", name)
-    _            <- validateName(name)
+    _            <- validateProjectName(name)
     _            <- checkIfNameExists(name)
     creationTime <- clock.nowInUtc()
-    path         <- repo.findPathForNewProject(name).mapError(toServiceFailure)
+    moduleName = NameValidation.normalizeName(name)
+    path <- repo.findPathForNewProject(moduleName).mapError(toServiceFailure)
     project = Project(
       id        = projectId,
       name      = name,
+      module    = moduleName,
       namespace = Config.defaultNamespace,
       kind      = UserProject,
       created   = creationTime,
@@ -123,10 +122,11 @@ class ProjectService[
       missingComponentAction
     )
     _ <- log.debug(
-      "Project [{}] structure created with [{}, {}, {}].",
+      "Project [{}] structure created with [{}, {}, {}, {}].",
       projectId,
       path,
-      name
+      name,
+      moduleName
     )
     _ <- repo.update(project).mapError(toServiceFailure)
     _ <- log.debug("Project [{}] updated in repository [{}].", projectId, repo)
@@ -161,18 +161,19 @@ class ProjectService[
   /** @inheritdoc */
   override def renameProject(
     projectId: UUID,
-    newPackage: String
+    newName: String
   ): F[ProjectServiceFailure, Unit] = {
     for {
-      _          <- log.debug("Renaming project [{}] to [{}].", projectId, newPackage)
-      _          <- validateName(newPackage)
+      _          <- log.debug("Renaming project [{}] to [{}].", projectId, newName)
+      _          <- validateProjectName(newName)
       _          <- checkIfProjectExists(projectId)
-      _          <- checkIfNameExists(newPackage)
+      _          <- checkIfNameExists(newName)
       oldPackage <- repo.getPackageName(projectId).mapError(toServiceFailure)
       namespace <- repo
         .getPackageNamespace(projectId)
         .mapError(toServiceFailure)
-      _ <- repo.rename(projectId, newPackage).mapError(toServiceFailure)
+      newPackage = NameValidation.normalizeName(newName)
+      _ <- repo.rename(projectId, newName).mapError(toServiceFailure)
       _ <- renameProjectDirOrRegisterShutdownHook(projectId, newPackage)
       _ <- refactorProjectName(projectId, namespace, oldPackage, newPackage)
       _ <- log.info("Project renamed [{}].", projectId)
@@ -271,16 +272,19 @@ class ProjectService[
     projectId: UUID,
     missingComponentAction: MissingComponentAction
   ): F[ProjectServiceFailure, RunningLanguageServerInfo] = {
-    // format: off
     for {
       _        <- log.debug(s"Opening project [{}].", projectId)
       project  <- getUserProject(projectId)
       openTime <- clock.nowInUtc()
-      updated   = project.copy(lastOpened = Some(openTime))
-      _        <- repo.update(updated).mapError(toServiceFailure)
-      sockets  <- startServer(progressTracker, clientId, updated, missingComponentAction)
+      updated = project.copy(lastOpened = Some(openTime))
+      _ <- repo.update(updated).mapError(toServiceFailure)
+      sockets <- startServer(
+        progressTracker,
+        clientId,
+        updated,
+        missingComponentAction
+      )
     } yield sockets
-    // format: on
   }
 
   private def preinstallEngine(
@@ -332,6 +336,7 @@ class ProjectService[
     version,
     sockets,
     project.name,
+    project.module,
     project.namespace
   )
 
@@ -440,28 +445,15 @@ class ProjectService[
       DataStoreFailure(s"Project repository inconsistency detected [$msg].")
   }
 
-  private def validateName(
+  private def validateProjectName(
     name: String
   ): F[ProjectServiceFailure, Unit] =
     validator
-      .validateName(name)
-      .mapError {
-        case EmptyName =>
-          ProjectServiceFailure.ValidationFailure(
-            "Project name cannot be empty."
-          )
-        case NameContainsForbiddenCharacter(chars) =>
-          ProjectServiceFailure.ValidationFailure(
-            s"Project name contains forbidden characters: [${chars.mkString(",")}]."
-          )
-        case NameShouldStartWithCapitalLetter =>
-          ProjectServiceFailure.ValidationFailure(
-            "Project name should start with a capital letter."
-          )
-        case NameShouldBeUpperSnakeCase(validName) =>
-          ProjectServiceFailure.ValidationFailure(
-            s"Project name should be in upper snake case: $validName."
-          )
+      .validate(name)
+      .mapError { case ProjectNameValidator.ValidationFailure.EmptyName =>
+        ProjectServiceFailure.ValidationFailure(
+          "Project name cannot be empty."
+        )
       }
       .flatMap { _ =>
         log.debug("Project name [{}] validated by [{}].", name, validator)

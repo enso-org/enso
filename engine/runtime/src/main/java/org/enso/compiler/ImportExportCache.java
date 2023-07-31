@@ -93,7 +93,7 @@ public final class ImportExportCache extends Cache<ImportExportCache.CachedBindi
             var distribution = context.getDistributionManager();
             var pathSegments = new String[]{
                     pkg.namespace(),
-                    pkg.name(),
+                    pkg.module(),
                     pkg.getConfig().version(),
                     Info.ensoVersion(),
                     libraryName.namespace()
