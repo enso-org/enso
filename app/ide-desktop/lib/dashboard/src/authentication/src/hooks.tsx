@@ -154,12 +154,9 @@ export function useEvent<T extends KnownEvent>(): [events: T[], dispatchEvent: (
             }
         }, 0)
     }, [events])
-    const dispatchEvent = React.useCallback(
-        (event: T) => {
-            setEvents([...events, event])
-        },
-        [events]
-    )
+    const dispatchEvent = React.useCallback((event: T) => {
+        setEvents(oldEvents => [...oldEvents, event])
+    }, [])
     return [events, dispatchEvent]
 }
 
