@@ -150,7 +150,7 @@ impl Model {
     }
 
     fn set_initial_breadcrumbs(&self) {
-        let breadcrumb = breadcrumbs::Breadcrumb::new(INITIAL_SECTION_NAME);
+        let breadcrumb = breadcrumbs::Breadcrumb::new(INITIAL_SECTION_NAME, None);
         self.breadcrumbs.set_entries_from((vec![breadcrumb], 0));
         self.breadcrumbs.show_ellipsis(true);
     }

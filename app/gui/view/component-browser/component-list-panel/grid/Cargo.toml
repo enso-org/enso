@@ -13,6 +13,6 @@ ensogl-grid-view = { path = "../../../../../../lib/rust/ensogl/component/grid-vi
 ensogl-gui-component = { path = "../../../../../../lib/rust/ensogl/component/gui" }
 ensogl-shadow = { path = "../../../../../../lib/rust/ensogl/component/shadow" }
 ensogl-toggle-button = { path = "../../../../../../lib/rust/ensogl/component/toggle-button" }
-ide-view-component-list-panel-icons = { path = "../icons" }
+ensogl-icons = { path = "../../../../../../lib/rust/ensogl/component/icons" }
 failure = { workspace = true }
 num_enum = "0.5.1"

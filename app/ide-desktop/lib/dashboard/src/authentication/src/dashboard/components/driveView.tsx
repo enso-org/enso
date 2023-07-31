@@ -43,11 +43,11 @@ export interface DirectoryViewProps {
     nameOfProjectToImmediatelyOpen: string | null
     setNameOfProjectToImmediatelyOpen: (nameOfProjectToImmediatelyOpen: string | null) => void
     directoryId: backendModule.DirectoryId | null
-    setDirectoryId: (directoryId: backendModule.DirectoryId | null) => void
-    assetListEvent: assetListEventModule.AssetListEvent | null
+    setDirectoryId: (directoryId: backendModule.DirectoryId) => void
+    assetListEvents: assetListEventModule.AssetListEvent[]
     dispatchAssetListEvent: (directoryEvent: assetListEventModule.AssetListEvent) => void
     query: string
-    doCreateProject: (templateId?: string) => void
+    doCreateProject: (templateId: string | null) => void
     doOpenIde: (project: backendModule.ProjectAsset) => void
     doCloseIde: () => void
     appRunner: AppRunner | null
@@ -67,7 +67,7 @@ export default function DirectoryView(props: DirectoryViewProps) {
         directoryId,
         setDirectoryId,
         query,
-        assetListEvent,
+        assetListEvents,
         dispatchAssetListEvent,
         doCreateProject,
         doOpenIde,
@@ -87,7 +87,7 @@ export default function DirectoryView(props: DirectoryViewProps) {
     const [isLoadingAssets, setIsLoadingAssets] = React.useState(true)
     const [directoryStack, setDirectoryStack] = React.useState<backendModule.DirectoryAsset[]>([])
     const [isFileBeingDragged, setIsFileBeingDragged] = React.useState(false)
-    const [assetEvent, dispatchAssetEvent] = hooks.useEvent<assetEventModule.AssetEvent>()
+    const [assetEvents, dispatchAssetEvent] = hooks.useEvent<assetEventModule.AssetEvent>()
 
     const assetFilter = React.useMemo(() => {
         if (query === '') {
@@ -275,9 +275,9 @@ export default function DirectoryView(props: DirectoryViewProps) {
                 filter={assetFilter}
                 isLoading={isLoadingAssets}
                 appRunner={appRunner}
-                assetEvent={assetEvent}
+                assetEvents={assetEvents}
                 dispatchAssetEvent={dispatchAssetEvent}
-                assetListEvent={assetListEvent}
+                assetListEvents={assetListEvents}
                 dispatchAssetListEvent={dispatchAssetListEvent}
                 doOpenIde={doOpenIde}
                 doCloseIde={doCloseIde}

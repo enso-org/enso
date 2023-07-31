@@ -4,8 +4,6 @@
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 
-use crate::grid::entry::icon;
-
 use ensogl_core::application::tooltip;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
@@ -15,6 +13,7 @@ use ensogl_core::display::shape::compound::rectangle;
 use ensogl_core::display::shape::compound::rectangle::Rectangle;
 use ensogl_core::display::style::FromTheme;
 use ensogl_hardcoded_theme::application::component_browser::component_list_panel as list_panel_theme;
+use ensogl_icons::icon;
 use ensogl_toggle_button::ToggleButton;
 use ensogl_tooltip::tooltip::Placement;
 use list_panel_theme::button_panel as theme;

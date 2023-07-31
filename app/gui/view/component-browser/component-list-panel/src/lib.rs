@@ -74,8 +74,8 @@ use theme::button_panel as button_panel_theme;
 mod button_panel;
 
 pub use ensogl_core::prelude;
+pub use ensogl_icons::icon;
 pub use ide_view_component_list_panel_grid as grid;
-pub use ide_view_component_list_panel_grid::entry::icon;
 
 
 
@@ -167,7 +167,7 @@ impl Model {
 
         shapes_order_dependencies! {
             scene => {
-                grid_view::selectable::highlight::shape -> grid::entry::icon::any;
+                grid_view::selectable::highlight::shape -> ensogl_icons::icon::any;
             }
         }
 

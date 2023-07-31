@@ -9,6 +9,7 @@ import org.enso.distribution.locking.ResourceManager
 import org.enso.distribution.{DistributionManager, LanguageHome}
 import org.enso.editions.updater.EditionManager
 import org.enso.editions.{EditionResolver, Editions}
+import org.enso.filewatcher.{NoopWatcherFactory, WatcherAdapterFactory}
 import org.enso.jsonrpc.test.JsonRpcServerTestKit
 import org.enso.jsonrpc.{ClientControllerFactory, ProtocolFactory}
 import org.enso.languageserver.TestClock
@@ -73,6 +74,8 @@ class BaseServerTest
   import system.dispatcher
 
   val timeout: FiniteDuration = 10.seconds
+
+  def isFileWatcherEnabled: Boolean = false
 
   val testContentRootId = UUID.randomUUID()
   val testContentRoot = ContentRootWithFile(
@@ -201,10 +204,14 @@ class BaseServerTest
         ),
         s"buffer-registry-${UUID.randomUUID()}"
       )
+    val watcherFactory =
+      if (isFileWatcherEnabled) new WatcherAdapterFactory
+      else new NoopWatcherFactory
     val fileEventRegistry = system.actorOf(
       ReceivesTreeUpdatesHandler.props(
         config,
         contentRootManagerWrapper,
+        watcherFactory,
         new FileSystem,
         zioExec
       ),

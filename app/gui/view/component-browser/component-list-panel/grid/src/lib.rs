@@ -32,8 +32,6 @@
 
 use crate::prelude::*;
 
-use crate::entry::icon;
-
 use enso_frp as frp;
 use ensogl_core::application::frp::API;
 use ensogl_core::application::shortcut::Shortcut;
@@ -49,6 +47,7 @@ use ensogl_grid_view::Row;
 use ensogl_gui_component::component;
 use ensogl_hardcoded_theme::application::component_browser::component_list_panel as panel_theme;
 use ensogl_hardcoded_theme::application::component_browser::component_list_panel::grid as theme;
+use ensogl_icons::icon;
 use ensogl_text as text;
 
 

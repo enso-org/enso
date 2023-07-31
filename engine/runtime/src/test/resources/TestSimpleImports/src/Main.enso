@@ -1,3 +1,0 @@
-from local.TestSimpleImports.Atom import all
-
-main = (X.Mk_X 1).method

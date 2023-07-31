@@ -43,10 +43,10 @@ use ensogl_core::display;
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_core::frp;
+use ensogl_icons::icon;
 use ensogl_text as text;
 use ensogl_tooltip::Tooltip;
 use ide_view_component_list_panel::grid;
-use ide_view_component_list_panel::grid::entry::icon;
 use ide_view_documentation::breadcrumbs::Breadcrumb;
 use ide_view_documentation::breadcrumbs::Breadcrumbs;
 
