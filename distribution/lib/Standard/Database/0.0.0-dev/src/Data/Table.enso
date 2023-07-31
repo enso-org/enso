@@ -467,6 +467,7 @@ type Table
               table.use_first_row_as_names
     use_first_row_as_names : Problem_Behavior -> Table
     use_first_row_as_names self (on_problems=Report_Warning) =
+        _ = on_problems
         Error.throw (Unsupported_Database_Operation.Error "Table.use_first_row_as_names is currently not implemented for the Database backend. You may download the table to memory using `.read` to use this feature.")
 
     ## PRIVATE
