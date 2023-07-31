@@ -398,14 +398,17 @@ spec prefix connection =
                 Test.with_clue "zip test will have to be amended once it is implemented: " <|
                     db_a.zip db_b . should_fail_with Unsupported_Database_Operation
 
-                Test.with_clue "parse_to_columns will have to be amended once it is implemented: " <|
+                Test.with_clue "parse_to_columns test will have to be amended once it is implemented: " <|
                     db_a.parse_to_columns name_a delimiter="," . should_fail_with Unsupported_Database_Operation
 
-                Test.with_clue "split_to_columns will have to be amended once it is implemented: " <|
+                Test.with_clue "split_to_columns test will have to be amended once it is implemented: " <|
                     db_a.split_to_columns name_a delimiter="," . should_fail_with Unsupported_Database_Operation
 
-                Test.with_clue "tokenize_to_columns will have to be amended once it is implemented: " <|
+                Test.with_clue "tokenize_to_columns test will have to be amended once it is implemented: " <|
                     db_a.tokenize_to_columns name_a . should_fail_with Unsupported_Database_Operation
+
+                Test.with_clue "use_first_row_as_names test will have to be amended once it is implemented:" <|
+                    db_table.use_first_row_as_names . should_fail_with Unsupported_Database_Operation
 
             Test.specify "should fail other operations that create new columns if the column names are too long" <|
                 name_a = "x" * (max_column_name_length + 1) + "A"
