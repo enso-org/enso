@@ -122,16 +122,15 @@ export default function ProjectIcon(props: ProjectIconProps) {
     const openProject = React.useCallback(async () => {
         setState(backendModule.ProjectState.openInProgress)
         try {
+            setRowState({ ...rowState, isRunning: true })
             switch (backend.type) {
                 case backendModule.BackendType.remote:
                     setToastId(toast.toast.loading(LOADING_MESSAGE))
-                    setRowState({ ...rowState, isRunning: true })
                     await backend.openProject(project.id, null, project.title)
                     setCheckState(CheckState.checkingStatus)
                     break
                 case backendModule.BackendType.local:
                     setCheckState(CheckState.localProject)
-                    setRowState({ ...rowState, isRunning: true })
                     await backend.openProject(project.id, null, project.title)
                     setCheckState(oldCheckState => {
                         if (oldCheckState === CheckState.localProject) {
@@ -191,10 +190,11 @@ export default function ProjectIcon(props: ProjectIconProps) {
 
     React.useEffect(() => {
         if (shouldCheckIfActuallyOpen) {
+            setRowState(oldRowState => ({ ...oldRowState, isRunning: true }))
             setState(backendModule.ProjectState.openInProgress)
             setCheckState(CheckState.checkingResources)
         }
-    }, [shouldCheckIfActuallyOpen])
+    }, [shouldCheckIfActuallyOpen, /* should never change */ setRowState])
 
     hooks.useEventHandler(assetEvents, event => {
         switch (event.type) {
