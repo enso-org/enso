@@ -1,19 +1,5 @@
 package org.enso.interpreter.node.callable;
 
-import com.oracle.truffle.api.dsl.Bind;
-import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.dsl.Cached.Shared;
-import com.oracle.truffle.api.dsl.GenerateUncached;
-import com.oracle.truffle.api.dsl.ImportStatic;
-import com.oracle.truffle.api.dsl.ReportPolymorphism;
-import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.frame.MaterializedFrame;
-import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.UnsupportedMessageException;
-import com.oracle.truffle.api.library.CachedLibrary;
-import com.oracle.truffle.api.nodes.ExplodeLoop;
-import com.oracle.truffle.api.nodes.Node;
-import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.dispatch.IndirectInvokeFunctionNode;
 import org.enso.interpreter.node.callable.resolver.HostMethodCallNode;
@@ -32,6 +18,22 @@ import org.enso.interpreter.runtime.error.Warning;
 import org.enso.interpreter.runtime.error.WithWarnings;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.state.State;
+
+import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.dsl.Bind;
+import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Cached.Shared;
+import com.oracle.truffle.api.dsl.GenerateUncached;
+import com.oracle.truffle.api.dsl.ImportStatic;
+import com.oracle.truffle.api.dsl.ReportPolymorphism;
+import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.frame.MaterializedFrame;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.library.CachedLibrary;
+import com.oracle.truffle.api.nodes.ExplodeLoop;
+import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.profiles.ConditionProfile;
 
 @GenerateUncached
 @ReportPolymorphism
@@ -199,7 +201,7 @@ public abstract class IndirectInvokeMethodNode extends Node {
       guards = {
         "!methods.hasType(self)",
         "!methods.hasSpecialDispatch(self)",
-        "getPolyglotCallType(self, symbol, interop) == CONVERT_TO_TEXT"
+        "getPolyglotCallType(self, symbol, interop) == CONVERT_TO_NUMBER"
       })
   Object doConvertNumber(
       MaterializedFrame frame,
@@ -230,7 +232,7 @@ public abstract class IndirectInvokeMethodNode extends Node {
           isTail,
           thisArgumentPosition);
     } catch (UnsupportedMessageException ex) {
-      throw new IllegalStateException("Impossible, self is guaranteed to be a string.");
+      throw CompilerDirectives.shouldNotReachHere(ex);
     }
   }
 
@@ -271,8 +273,8 @@ public abstract class IndirectInvokeMethodNode extends Node {
           defaultsExecutionMode,
           argumentsExecutionMode,
           isTail);
-    } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException("Impossible, self is guaranteed to be a string.");
+    } catch (UnsupportedMessageException ex) {
+      throw CompilerDirectives.shouldNotReachHere(ex);
     }
   }
 
