@@ -24,6 +24,7 @@ use ensogl_core::prelude::*;
 use enso_frp as frp;
 use ensogl_core::application::tooltip;
 use ensogl_core::application::Application;
+use ensogl_core::control::io::mouse;
 use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::shape::system::Shape;
@@ -33,13 +34,12 @@ use ensogl_core::gui::component::ShapeView;
 use ensogl_hardcoded_theme::component::toggle_button as theme;
 
 
-
-// ==================
-// === any_cached ===
-// ==================
+// ==============
+// === Export ===
+// ==============
 
 pub use display::shape::compound::from_cache::recolorized as any_cached;
-use ensogl_core::control::io::mouse;
+
 
 
 // =================
