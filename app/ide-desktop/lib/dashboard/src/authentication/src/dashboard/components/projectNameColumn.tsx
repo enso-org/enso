@@ -90,12 +90,11 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                             projectTemplateName: event.templateId,
                         })
                         rowState.setPresence(presence.Presence.present)
-                        const newItem: backendModule.ProjectAsset = {
+                        setItem({
                             ...item,
                             id: createdProject.projectId,
                             projectState: createdProject.state,
-                        }
-                        setItem(newItem)
+                        })
                         // This MUST be delayed, otherwise the `ProjectActionButton` does not yet
                         // have the correct `Project`.
                         setTimeout(() => {

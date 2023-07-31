@@ -201,18 +201,21 @@ export default function Table<T, State = never, RowState = never, Key extends st
         </tr>
     )
 
+    const placeholderRow =
+        items.length === 0 || forceShowPlaceholder ? (
+            <tr className="h-10">
+                <td colSpan={columns.length} className="bg-transparent">
+                    {placeholder}
+                </td>
+            </tr>
+        ) : null
+
     const itemRows = isLoading ? (
         <tr className="h-10">
             <td colSpan={columns.length} className="bg-transparent">
                 <div className="grid justify-around w-full">
                     <Spinner size={LOADING_SPINNER_SIZE} state={spinnerState} />
                 </div>
-            </td>
-        </tr>
-    ) : items.length === 0 || forceShowPlaceholder ? (
-        <tr className="h-10">
-            <td colSpan={columns.length} className="bg-transparent">
-                {placeholder}
             </td>
         </tr>
     ) : (
@@ -255,7 +258,10 @@ export default function Table<T, State = never, RowState = never, Key extends st
             }}
         >
             <thead>{headerRow}</thead>
-            <tbody>{itemRows}</tbody>
+            <tbody>
+                {placeholderRow}
+                {itemRows}
+            </tbody>
         </table>
     )
 }

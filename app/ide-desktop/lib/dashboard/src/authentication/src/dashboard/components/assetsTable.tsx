@@ -87,6 +87,7 @@ function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
         keyProp: key,
         item: rawItem,
         initialRowState,
+        columns,
         state: {
             assetEvents,
             dispatchAssetEvent,
@@ -174,7 +175,7 @@ function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
         case backendModule.AssetType.specialLoading: {
             return (
                 <tr>
-                    <td colSpan={999} className="p-0 rounded-full border-r">
+                    <td colSpan={columns.length} className="p-0 rounded-full border-r">
                         <div
                             className={`flex justify-center py-2 ${indent.indentClass(
                                 getDepth(key)
@@ -192,7 +193,7 @@ function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
         case backendModule.AssetType.specialEmpty: {
             return (
                 <tr>
-                    <td colSpan={999} className="p-0 rounded-full border-r">
+                    <td colSpan={columns.length} className="p-0 rounded-full border-r">
                         <div
                             className={`flex items-center h-10 py-2 ${indent.indentClass(
                                 getDepth(key)
