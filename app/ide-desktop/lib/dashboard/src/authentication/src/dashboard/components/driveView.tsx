@@ -268,6 +268,7 @@ export default function DirectoryView(props: DirectoryViewProps) {
                     doCreateProject={doCreateProject}
                     doUploadFiles={doUploadFiles}
                     doCreateDirectory={doCreateDirectory}
+                    dispatchAssetEvent={dispatchAssetEvent}
                 />
             </div>
             <AssetsTable

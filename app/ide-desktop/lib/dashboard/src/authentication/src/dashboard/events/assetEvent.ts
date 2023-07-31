@@ -20,11 +20,13 @@ declare module '../../hooks' {
 export enum AssetEventType {
     createProject = 'create-project',
     createDirectory = 'create-directory',
+    uploadProjects = 'upload-projects',
     uploadFiles = 'upload-files',
     createSecret = 'create-secret',
     openProject = 'open-project',
     cancelOpeningAllProjects = 'cancel-opening-all-projects',
     deleteMultiple = 'delete-multiple',
+    downloadSelected = 'download-selected',
 }
 
 /** Properties common to all asset state change events. */
@@ -36,11 +38,13 @@ interface AssetBaseEvent<Type extends AssetEventType> {
 interface AssetEvents {
     createProject: AssetCreateProjectEvent
     createDirectory: AssetCreateDirectoryEvent
+    uploadProjects: AssetUploadProjectsEvent
     uploadFiles: AssetUploadFilesEvent
     createSecret: AssetCreateSecretEvent
     openProject: AssetOpenProjectEvent
     cancelOpeningAllProjects: AssetCancelOpeningAllProjectsEvent
     deleteMultiple: AssetDeleteMultipleEvent
+    downloadSelected: AssetDownloadSelectedEvent
 }
 
 /** A type to ensure that {@link AssetEvents} contains every {@link AssetLEventType}. */
@@ -70,6 +74,11 @@ export interface AssetUploadFilesEvent extends AssetBaseEvent<AssetEventType.upl
     files: Map<backendModule.FileId, File>
 }
 
+/** A signal to upload projects. */
+export interface AssetUploadProjectsEvent extends AssetBaseEvent<AssetEventType.uploadProjects> {
+    projects: Map<backendModule.ProjectId, File>
+}
+
 /** A signal to create a secret. */
 export interface AssetCreateSecretEvent extends AssetBaseEvent<AssetEventType.createSecret> {
     placeholderId: backendModule.SecretId
@@ -89,6 +98,10 @@ export interface AssetCancelOpeningAllProjectsEvent
 export interface AssetDeleteMultipleEvent extends AssetBaseEvent<AssetEventType.deleteMultiple> {
     ids: Set<backendModule.AssetId>
 }
+
+/** A signal to download the currently selected assets. */
+export interface AssetDownloadSelectedEvent
+    extends AssetBaseEvent<AssetEventType.downloadSelected> {}
 
 /** Every possible type of asset event. */
 export type AssetEvent = AssetEvents[keyof AssetEvents]
