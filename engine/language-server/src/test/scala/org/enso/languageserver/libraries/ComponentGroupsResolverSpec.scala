@@ -268,6 +268,7 @@ object ComponentGroupsResolverSpec {
   ): Config =
     Config(
       name                 = name,
+      normalizedName       = None,
       namespace            = namespace,
       version              = "0.0.1",
       license              = "",

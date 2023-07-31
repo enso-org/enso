@@ -268,8 +268,12 @@ impl<E: Entry, H: Entry<Params = E::Params>> SelectableGridViewWithHeaders<E, H>
     }
 }
 
-impl<InnerGridView> display::Object for GridViewTemplate<InnerGridView> {
+impl<InnerGridView: display::Object> display::Object for GridViewTemplate<InnerGridView> {
     fn display_object(&self) -> &display::object::Instance {
         self.area.display_object()
+    }
+
+    fn focus_receiver(&self) -> &display::object::Instance {
+        self.inner_grid.focus_receiver()
     }
 }

@@ -72,17 +72,17 @@ impl Ide {
         let network = &self.network;
         let scene = &self.ensogl_app.display.default_scene;
         let mouse = &scene.mouse.frp_deprecated;
-        let keyboard = &scene.keyboard.frp;
+        let keyboard = &scene.global_keyboard.frp;
 
         enso_frp::extend! { network
-            on_log_sent          <- source::<()>();
-            mouse_moved          <- mouse.position.constant(()).profile();
-            any_mouse_press      <- any(mouse.up,mouse.down).constant(()).profile();
-            any_mouse_event      <- any(any_mouse_press,mouse_moved,mouse.wheel).profile();
-            any_keyboard_event   <- any(keyboard.down,keyboard.up).constant(()).profile();
-            any_input_event      <- any(any_mouse_event,any_keyboard_event).profile();
+            on_log_sent <- source::<()>();
+            mouse_moved <- mouse.position.constant(()).profile();
+            any_mouse_press <- any(mouse.up, mouse.down).constant(()).profile();
+            any_mouse_event <- any(any_mouse_press, mouse_moved, mouse.wheel).profile();
+            any_keyboard_event <- keyboard.any_event.profile();
+            any_input_event <- any(any_mouse_event, any_keyboard_event).profile();
             // True if any input event was captured since the last "alive" log sending.
-            input_event_received <- bool(&on_log_sent,&any_input_event).profile().sampler();
+            input_event_received <- bool(&on_log_sent, &any_input_event).profile().sampler();
         }
         async move {
             loop {

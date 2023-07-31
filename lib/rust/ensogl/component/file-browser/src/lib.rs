@@ -75,19 +75,12 @@ ensogl_core::define_endpoints! {
 
 /// A file browser component. It allows to browse the content of a folder and it's subfolders and
 /// emits an event when an entry is chosen.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, Deref, display::Object)]
 pub struct FileBrowser {
+    #[deref]
     frp:            Frp,
     display_object: display::object::Instance,
 }
-
-impl Deref for FileBrowser {
-    type Target = Frp;
-    fn deref(&self) -> &Self::Target {
-        &self.frp
-    }
-}
-
 
 impl FileBrowser {
     /// Constructore
@@ -101,11 +94,5 @@ impl FileBrowser {
 impl Default for FileBrowser {
     fn default() -> Self {
         Self::new()
-    }
-}
-
-impl display::Object for FileBrowser {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
     }
 }

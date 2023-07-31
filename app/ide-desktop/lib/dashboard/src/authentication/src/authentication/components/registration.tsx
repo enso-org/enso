@@ -49,7 +49,7 @@ export default function Registration() {
     }
 
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-gray-300 px-4 py-8">
+        <div className="flex flex-col items-center justify-center min-h-screen px-4 py-8">
             <div
                 className={
                     'rounded-md bg-white w-full max-w-sm sm:max-w-md border border-gray-200 ' +

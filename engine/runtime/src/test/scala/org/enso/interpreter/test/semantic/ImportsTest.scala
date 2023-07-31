@@ -15,16 +15,16 @@ class ImportsTest extends PackageTest {
   }
 
   "Atoms and methods" should "be available for import" in {
-    evalTestProject("TestSimpleImports") shouldEqual 20
+    evalTestProject("Test_Simple_Imports") shouldEqual 20
   }
 
   "Methods defined together with atoms" should "be visible even if not imported" in {
-    evalTestProject("TestNonImportedOwnMethods") shouldEqual 10
+    evalTestProject("Test_Non_Imported_Own_Methods") shouldEqual 10
   }
 
   "Overloaded methods" should "not be visible when not imported" in {
     the[InterpreterException] thrownBy evalTestProject(
-      "TestNonImportedOverloads"
+      "Test_Non_Imported_Overloads"
     ) should have message "Method `method` of type X could not be found."
   }
 
@@ -100,7 +100,7 @@ class ImportsTest extends PackageTest {
   }
 
   "Import statements" should "allow for importing submodules" in {
-    evalTestProject("TestSubmodules") shouldEqual 42
+    evalTestProject("Test_Submodules") shouldEqual 42
     val outLines = consumeOut
     outLines(0) shouldEqual "(Foo 10)"
     outLines(1) shouldEqual "(Mk_C 52)"
@@ -124,11 +124,11 @@ class ImportsTest extends PackageTest {
 
   "Compiler" should "detect name conflicts preventing users from importing submodules" in {
     the[InterpreterException] thrownBy evalTestProject(
-      "TestSubmodulesNameConflict"
+      "Test_Submodules_Name_Conflict"
     ) should have message "Method `c_mod_method` of type C.type could not be found."
     val outLines = consumeOut
     outLines(1) should include
-    "Declaration of type C shadows module local.TestSubmodulesNameConflict.A.B.C making it inaccessible via a qualified name."
+    "Declaration of type C shadows module local.Test_Submodules_Name_Conflict.A.B.C making it inaccessible via a qualified name."
   }
 
   "Compiler" should "accept exports of the same module" in {

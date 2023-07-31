@@ -182,7 +182,7 @@ ensogl::define_endpoints! {
 // === Model ===
 // =============
 
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 struct Model {
     display_object:   display::object::Instance,
     top_bar:          ProjectViewTopBar,
@@ -357,8 +357,9 @@ mod js {
 
 /// The main view of single project opened in IDE.
 #[allow(missing_docs)]
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 pub struct View {
+    #[display_object]
     model:   Model,
     pub frp: Frp,
 }
@@ -818,12 +819,6 @@ impl View {
     }
 }
 
-impl display::Object for View {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.model.display_object
-    }
-}
-
 impl FrpNetworkProvider for View {
     fn network(&self) -> &frp::Network {
         &self.frp.network
@@ -839,7 +834,7 @@ impl application::View for View {
         View::new(app)
     }
 
-    fn default_shortcuts() -> Vec<application::shortcut::Shortcut> {
+    fn global_shortcuts() -> Vec<application::shortcut::Shortcut> {
         use shortcut::ActionType::*;
         [
             (Press, "!is_searcher_opened", "cmd o", "show_project_list"),

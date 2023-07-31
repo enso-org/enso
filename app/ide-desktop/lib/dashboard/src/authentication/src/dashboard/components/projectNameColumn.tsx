@@ -35,7 +35,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         setRowState,
         state: {
             appRunner,
-            assetEvent,
+            assetEvents,
             dispatchAssetEvent,
             dispatchAssetListEvent,
             doOpenManually,
@@ -65,7 +65,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         }
     }
 
-    hooks.useEventHandler(assetEvent, async event => {
+    hooks.useEventHandler(assetEvents, async event => {
         switch (event.type) {
             case assetEventModule.AssetEventType.createDirectory:
             case assetEventModule.AssetEventType.uploadFiles:
@@ -73,12 +73,15 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
             case assetEventModule.AssetEventType.openProject:
             case assetEventModule.AssetEventType.cancelOpeningAllProjects:
             case assetEventModule.AssetEventType.deleteMultiple: {
-                // Ignored. Any missing project-related events should be handled by
-                // `ProjectIcon`. `deleteMultiple` is handled in `AssetRow`.
+                // Ignored. Any missing project-related events should be handled by `ProjectIcon`.
+                // `deleteMultiple` is handled by `AssetRow`.
                 break
             }
             case assetEventModule.AssetEventType.createProject: {
-                if (key === event.placeholderId) {
+                // This should only run before this project gets replaced with the actual project
+                // by this event handler. In both cases `key` will match, so using `key` here
+                // is a mistake.
+                if (item.id === event.placeholderId) {
                     rowState.setPresence(presence.Presence.inserting)
                     try {
                         const createdProject = await backend.createProject({
@@ -142,10 +145,11 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
             }}
         >
             <ProjectIcon
+                keyProp={key}
                 project={item}
                 rowState={rowState}
                 setRowState={setRowState}
-                assetEvent={assetEvent}
+                assetEvents={assetEvents}
                 doOpenManually={doOpenManually}
                 appRunner={appRunner}
                 openIde={() => {

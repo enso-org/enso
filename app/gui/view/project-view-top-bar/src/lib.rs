@@ -49,10 +49,11 @@ mod go_to_dashboard_button;
 
 /// A container for the project name and execution environment selector.
 #[allow(missing_docs)]
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 pub struct ProjectNameWithEnvironmentSelector {
     pub project_name: ProjectName,
     pub selector:     ide_view_execution_environment_selector::ExecutionEnvironmentSelector,
+    #[display_object]
     background:       Rectangle,
     network:          frp::Network,
 }
@@ -104,21 +105,16 @@ impl ProjectNameWithEnvironmentSelector {
     }
 }
 
-impl display::Object for ProjectNameWithEnvironmentSelector {
-    fn display_object(&self) -> &display::object::Instance {
-        self.background.display_object()
-    }
-}
-
 
 
 // ============================
 // === Project View Top Bar ===
 // ============================
 
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 #[allow(missing_docs)]
 pub struct ProjectViewTopBar {
+    #[display_object]
     root: display::object::Instance,
     /// These buttons are only visible in a cloud environment.
     pub window_control_buttons: window_control_buttons::View,
@@ -181,11 +177,5 @@ impl ProjectViewTopBar {
     /// Access the project name view directly.
     pub fn project_name(&self) -> &ProjectName {
         &self.project_name_with_environment_selector.project_name
-    }
-}
-
-impl display::Object for ProjectViewTopBar {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.root
     }
 }
