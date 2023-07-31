@@ -19,6 +19,7 @@ import * as backendProvider from '../../providers/backend'
 import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
 
+import * as spinner from './spinner'
 import Chat, * as chat from './chat'
 import DirectoryView from './driveView'
 import Ide from './ide'
@@ -54,7 +55,10 @@ export default function Dashboard(props: DashboardProps) {
     const { setBackend } = backendProvider.useSetBackend()
     const { unsetModal } = modalProvider.useSetModal()
     const [directoryId, setDirectoryId] = React.useState(
-        session.organization != null ? backendModule.rootDirectoryId(session.organization.id) : null
+        session.organization != null
+            ? backendModule.rootDirectoryId(session.organization.id)
+            : // The local backend uses the empty string as the sole directory ID.
+              backendModule.DirectoryId('')
     )
     const [query, setQuery] = React.useState('')
     const [isHelpChatOpen, setIsHelpChatOpen] = React.useState(false)
@@ -64,7 +68,7 @@ export default function Dashboard(props: DashboardProps) {
     const [project, setProject] = React.useState<backendModule.Project | null>(null)
     const [nameOfProjectToImmediatelyOpen, setNameOfProjectToImmediatelyOpen] =
         React.useState(initialProjectName)
-    const [assetListEvent, dispatchAssetListEvent] =
+    const [assetListEvents, dispatchAssetListEvent] =
         hooks.useEvent<assetListEventModule.AssetListEvent>()
 
     const isListingLocalDirectoryAndWillFail =
@@ -116,6 +120,7 @@ export default function Dashboard(props: DashboardProps) {
                 backendModule.BackendType.remote
         ) {
             setBackend(new localBackend.LocalBackend())
+            setDirectoryId(backendModule.DirectoryId(''))
         }
         // This hook MUST only run once, on mount.
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -184,26 +189,36 @@ export default function Dashboard(props: DashboardProps) {
                 switch (newBackendType) {
                     case backendModule.BackendType.local:
                         setBackend(new localBackend.LocalBackend())
+                        setDirectoryId(backendModule.DirectoryId(''))
                         break
                     case backendModule.BackendType.remote: {
                         const headers = new Headers()
                         headers.append('Authorization', `Bearer ${session.accessToken ?? ''}`)
                         const client = new http.Client(headers)
                         setBackend(new remoteBackendModule.RemoteBackend(client, logger))
+                        setDirectoryId(
+                            session.organization != null
+                                ? backendModule.rootDirectoryId(session.organization.id)
+                                : backendModule.DirectoryId('')
+                        )
                         break
                     }
                 }
             }
         },
-        [backend.type, logger, session.accessToken, setBackend]
+        [backend.type, logger, session.accessToken, session.organization, setBackend]
     )
 
     const doCreateProject = React.useCallback(
-        (templateId?: string) => {
+        (
+            templateId: string | null,
+            onSpinnerStateChange?: (state: spinner.SpinnerState) => void
+        ) => {
             dispatchAssetListEvent({
                 type: assetListEventModule.AssetListEventType.createProject,
                 parentId: directoryId,
                 templateId: templateId ?? null,
+                onSpinnerStateChange: onSpinnerStateChange ?? null,
             })
         },
         [directoryId, /* should never change */ dispatchAssetListEvent]
@@ -282,7 +297,7 @@ export default function Dashboard(props: DashboardProps) {
                         setNameOfProjectToImmediatelyOpen={setNameOfProjectToImmediatelyOpen}
                         directoryId={directoryId}
                         setDirectoryId={setDirectoryId}
-                        assetListEvent={assetListEvent}
+                        assetListEvents={assetListEvents}
                         dispatchAssetListEvent={dispatchAssetListEvent}
                         query={query}
                         doCreateProject={doCreateProject}

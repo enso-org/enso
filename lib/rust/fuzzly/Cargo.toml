@@ -8,4 +8,9 @@ edition = "2021"
 crate-type = ["rlib", "cdylib"]
 
 [dependencies]
-enso-prelude = { path = "../prelude" }
+derivative = { workspace = true }
+enso-text = { path = "../text" }
+
+[dev-dependencies]
+rand = "0.8.5"
+rand_chacha = "0.3.1"
