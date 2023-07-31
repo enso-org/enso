@@ -789,16 +789,7 @@ pub struct HardcodedLayers {
     pub viz_overlay: RectLayerPartition,
     pub below_main: Layer,
     pub main: Layer,
-    pub main_edges_level: RectLayerPartition,
-    pub main_nodes_level: RectLayerPartition,
-    pub main_above_inactive_nodes_level: RectLayerPartition,
-    pub main_active_nodes_level: RectLayerPartition,
-    pub main_above_all_nodes_level: RectLayerPartition,
-    pub widget: Layer,
-    pub port: Layer,
-    pub port_selection: Layer,
     pub label: Layer,
-    pub port_hover: Layer,
     pub above_nodes: Layer,
     pub above_nodes_text: Layer,
     // `panel_*` layers contains UI elements with fixed position (not moving with the panned scene)
@@ -811,8 +802,6 @@ pub struct HardcodedLayers {
     pub panel_overlay: RectLayerPartition,
     pub node_searcher: Layer,
     pub node_searcher_text: Layer,
-    pub edited_node: Layer,
-    pub edited_node_text: Layer,
     pub tooltip: Layer,
     pub tooltip_text: Layer,
     pub cursor: Layer,
@@ -830,8 +819,6 @@ impl HardcodedLayers {
         let main_cam = Camera2d::new();
         let node_searcher_cam = Camera2d::new();
         let panel_cam = Camera2d::new();
-        let edited_node_cam = Camera2d::new();
-        let port_selection_cam = Camera2d::new();
         let cursor_cam = Camera2d::new();
 
         #[allow(non_snake_case)]
@@ -844,17 +831,7 @@ impl HardcodedLayers {
         let viz_overlay = partition_layer(&viz, "viz_overlay");
         let below_main = root.create_sublayer("below_main");
         let main = root.create_sublayer("main");
-        let main_edges_level = partition_layer(&main, "edges");
-        let main_nodes_level = partition_layer(&main, "nodes");
-        let main_above_inactive_nodes_level = partition_layer(&main, "above_inactive_nodes");
-        let main_active_nodes_level = partition_layer(&main, "active_nodes");
-        let main_above_all_nodes_level = partition_layer(&main, "above_all_nodes");
-        let widget = root.create_sublayer("widget");
-        let port = root.create_sublayer("port");
-        let port_selection =
-            root.create_sublayer_with_camera("port_selection", &port_selection_cam);
         let label = root.create_sublayer("label");
-        let port_hover = root.create_sublayer("port_hover");
         let above_nodes = root.create_sublayer("above_nodes");
         let above_nodes_text = root.create_sublayer("above_nodes_text");
 
@@ -868,9 +845,6 @@ impl HardcodedLayers {
         let node_searcher = root.create_sublayer_with_camera("node_searcher", &node_searcher_cam);
         let node_searcher_text =
             root.create_sublayer_with_camera("node_searcher_text", &node_searcher_cam);
-        let edited_node = root.create_sublayer_with_camera("edited_node", &edited_node_cam);
-        let edited_node_text =
-            root.create_sublayer_with_camera("edited_node_text", &edited_node_cam);
         let tooltip = root.create_sublayer("tooltip");
         let tooltip_text = root.create_sublayer("tooltip_text");
         let cursor = root.create_sublayer_with_camera("cursor", &cursor_cam);
@@ -884,16 +858,7 @@ impl HardcodedLayers {
             viz_overlay,
             below_main,
             main,
-            main_edges_level,
-            main_nodes_level,
-            main_above_inactive_nodes_level,
-            main_active_nodes_level,
-            main_above_all_nodes_level,
-            widget,
-            port,
-            port_selection,
             label,
-            port_hover,
             above_nodes,
             above_nodes_text,
             panel_background,
@@ -902,8 +867,6 @@ impl HardcodedLayers {
             panel_overlay,
             node_searcher,
             node_searcher_text,
-            edited_node,
-            edited_node_text,
             tooltip,
             tooltip_text,
             cursor,
@@ -1325,7 +1288,9 @@ impl Scene {
             crate::system::gpu::context::init_webgl_2_context(&self.no_mut_access);
         match context_loss_handler {
             Err(err) => error!("{err}"),
-            Ok(handler) => self.context_lost_handler.set(handler),
+            Ok(handler) => {
+                self.context_lost_handler.replace(Some(handler));
+            }
         }
     }
 

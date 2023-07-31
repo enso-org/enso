@@ -26,7 +26,7 @@
     "@typescript-eslint/eslint-plugin": "^5.49.0",
     "@typescript-eslint/parser": "^5.49.0",
     "enso-authentication": "^1.0.0",
-    "enso-chat": "git://github.com/enso-org/enso-bot#wip/sb/initial-implementation",
+    "enso-chat": "git://github.com/enso-org/enso-bot",
     "enso-content": "^1.0.0",
     "eslint": "^8.32.0",
     "eslint-plugin-jsdoc": "^39.6.8",

@@ -42,7 +42,7 @@ use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::scene::Layer;
 use ensogl_core::display::shape::StyleWatchFrp;
-use ensogl_derive_theme::FromTheme;
+use ensogl_core::display::style::FromTheme;
 use ensogl_grid_view as grid_view;
 use ensogl_grid_view::Col;
 use ensogl_grid_view::Row;
@@ -147,6 +147,20 @@ pub type Grid = grid_view::scrollable::SelectableGridView<entry::View>;
 
 // === GroupColors ===
 
+/// The grid's style structure.
+#[allow(missing_docs)]
+#[derive(Clone, Copy, Default, Debug, PartialEq, FromTheme)]
+#[base_path = "theme::group_colors"]
+struct GroupColorsTheme {
+    group_0:           color::Lcha,
+    group_1:           color::Lcha,
+    group_2:           color::Lcha,
+    group_3:           color::Lcha,
+    group_4:           color::Lcha,
+    group_5:           color::Lcha,
+    local_scope_group: color::Lcha,
+}
+
 /// Default groups colors.
 #[derive(Clone, Copy, Default, Debug, PartialEq)]
 pub struct GroupColors {
@@ -156,6 +170,23 @@ pub struct GroupColors {
     outside_group: color::Lcha,
 }
 
+impl From<GroupColorsTheme> for GroupColors {
+    fn from(theme: GroupColorsTheme) -> Self {
+        Self {
+            variants:      [
+                theme.group_0,
+                theme.group_1,
+                theme.group_2,
+                theme.group_3,
+                theme.group_4,
+                theme.group_5,
+            ],
+            outside_group: theme.local_scope_group,
+        }
+    }
+}
+
+
 
 // === Style ===
 
@@ -164,11 +195,13 @@ pub struct GroupColors {
 #[derive(Clone, Copy, Default, Debug, PartialEq, FromTheme)]
 #[base_path = "theme"]
 pub struct Style {
-    pub width:        f32,
-    pub height:       f32,
-    pub padding:      f32,
-    pub column_gap:   f32,
-    pub entry_height: f32,
+    pub width:          f32,
+    pub height:         f32,
+    pub padding:        f32,
+    pub column_gap:     f32,
+    pub entry_height:   f32,
+    #[theme_path = "panel_theme::corners_radius"]
+    pub corners_radius: f32,
 }
 
 impl Style {
@@ -442,7 +475,6 @@ impl component::Frp<Model> for Frp {
         let grid_scroll_frp = grid.scroll_frp();
         let grid_extra_scroll_frp = grid.extra_scroll_frp();
         let grid_selection_frp = grid.selection_highlight_frp();
-        let corners_radius = style_frp.get_number(panel_theme::corners_radius);
         let style = Style::from_theme(network, style_frp);
         let entry_style = entry::Style::from_theme(network, style_frp);
         let colors = entry::style::Colors::from_theme(network, style_frp);
@@ -470,36 +502,24 @@ impl component::Frp<Model> for Frp {
 
             // === Groups colors ===
 
-            let group0 = style_frp.get_color(theme::group_colors::group_0);
-            let group1 = style_frp.get_color(theme::group_colors::group_1);
-            let group2 = style_frp.get_color(theme::group_colors::group_2);
-            let group3 = style_frp.get_color(theme::group_colors::group_3);
-            let group4 = style_frp.get_color(theme::group_colors::group_4);
-            let group5 = style_frp.get_color(theme::group_colors::group_5);
-            groups <- all7(&style.init, &group0, &group1, &group2, &group3, &group4, &group5);
-            let local_scope_group = style_frp.get_color(theme::group_colors::local_scope_group);
-            group_colors <- all_with(&groups, &local_scope_group, |&((), g0, g1, g2, g3, g4, g5), ls| {
-                GroupColors {
-                    variants: [g0, g1, g2, g3, g4, g5].map(color::Lcha::from),
-                    outside_group: ls.into(),
-                }
-            });
+            let group_colors_theme = GroupColorsTheme::from_theme(network, style_frp);
+            group_colors <- group_colors_theme.map(|t| GroupColors::from(*t));
 
 
             // === Style and Entries Params ===
 
-            style_and_content_size <- all(&style.update, &grid.content_size);
+            style_and_content_size <- all(&style, &grid.content_size);
             entries_style <-
-                all4(&style.update, &entry_style.update, &colors.update, &group_colors);
+                all4(&style, &entry_style, &colors, &group_colors);
             entries_params <- entries_style.map(f!((s) model.entries_params(s)));
-            selection_entries_style <- all(entries_params, selection_colors.update);
+            selection_entries_style <- all(entries_params, selection_colors);
             selection_entries_params <-
                 selection_entries_style.map(f!((input) model.selection_entries_params(input)));
             grid_scroll_frp.resize <+ style_and_content_size.map(Model::grid_size);
             grid_position <- style_and_content_size.map(Model::grid_position);
             eval grid_position ((pos) model.grid.set_xy(*pos));
-            grid_scroll_frp.set_corner_radius_bottom_right <+ all(&corners_radius, &style.init)._0();
-            grid.set_entries_size <+ style.update.map(|s| s.entry_size());
+            grid_scroll_frp.set_corner_radius_bottom_right <+ style.map(|s| s.corners_radius);
+            grid.set_entries_size <+ style.map(|s| s.entry_size());
             grid.set_entries_params <+ entries_params;
             grid_selection_frp.set_entries_params <+ selection_entries_params;
 
@@ -526,7 +546,7 @@ impl component::Frp<Model> for Frp {
 
             // === Scrolling ===
 
-            grid_extra_scroll_frp.set_preferred_margins_around_entry <+ style.update.map(
+            grid_extra_scroll_frp.set_preferred_margins_around_entry <+ style.map(
                 f!((style) model.navigation_scroll_margins(style))
             );
 
@@ -544,10 +564,6 @@ impl component::Frp<Model> for Frp {
         }
 
         grid.resize_grid(0, COLUMN_COUNT);
-        style.init.emit(());
-        entry_style.init.emit(());
-        colors.init.emit(());
-        selection_colors.init.emit(());
     }
 
     fn default_shortcuts() -> Vec<Shortcut> {

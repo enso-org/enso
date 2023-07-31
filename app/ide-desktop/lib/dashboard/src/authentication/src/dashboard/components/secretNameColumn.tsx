@@ -32,7 +32,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
         item,
         setItem,
         selected,
-        state: { assetEvent, dispatchAssetListEvent, getDepth },
+        state: { assetEvents, dispatchAssetListEvent, getDepth },
         rowState,
         setRowState,
     } = props
@@ -47,7 +47,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
         await Promise.resolve(null)
     }
 
-    hooks.useEventHandler(assetEvent, async event => {
+    hooks.useEventHandler(assetEvents, async event => {
         switch (event.type) {
             case assetEventModule.AssetEventType.newProject:
             case assetEventModule.AssetEventType.newFolder:
@@ -56,7 +56,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
             case assetEventModule.AssetEventType.cancelOpeningAllProjects:
             case assetEventModule.AssetEventType.deleteMultiple: {
                 // Ignored. These events should all be unrelated to secrets.
-                // `deleteMultiple` is handled in `AssetRow`.
+                // `deleteMultiple` is handled by `AssetRow`.
                 break
             }
             case assetEventModule.AssetEventType.newSecret: {

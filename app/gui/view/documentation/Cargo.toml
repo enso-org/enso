@@ -15,7 +15,6 @@ enso-profiler = { path = "../../../../lib/rust/profiler" }
 ensogl = { path = "../../../../lib/rust/ensogl" }
 ensogl-component = { path = "../../../../lib/rust/ensogl/component" }
 ensogl-hardcoded-theme = { path = "../../../../lib/rust/ensogl/app/theme/hardcoded" }
-ensogl-derive-theme = { path = "../../../../lib/rust/ensogl/app/theme/derive" }
 ide-view-graph-editor = { path = "../graph-editor" }
 wasm-bindgen = { workspace = true }
 serde_json = { workspace = true }

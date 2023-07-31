@@ -101,8 +101,8 @@ impl EntryData {
         label_bold.set_property_default(text::Weight::Bold);
         display_object.add_child(&label_thin);
         if let Some(layer) = text_layer {
-            label_thin.add_to_scene_layer(layer);
-            label_bold.add_to_scene_layer(layer);
+            layer.add(&label_thin);
+            layer.add(&label_bold);
         }
         let selected = default();
         let deferred_label = default();
@@ -138,7 +138,7 @@ impl EntryData {
 
     fn set_content(&self, text: &ImString) {
         self.selected_label().set_content(text.clone_ref());
-        self.deferred_label.set(text.clone_ref());
+        self.deferred_label.replace(Some(text.clone_ref()));
     }
 }
 

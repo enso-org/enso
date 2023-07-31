@@ -48,9 +48,9 @@ impl SystemData {
     /// Defines a default material of this system.
     fn material() -> Material {
         let mut material = Material::new();
-        material.add_input_def::<texture::FloatSampler>("atlas");
-        material.add_input_def::<Vector2<f32>>("msdf_size");
-        material.add_input_def::<f32>("atlas_index");
+        material.add_input_def::<texture::FloatSamplerArray>("atlas");
+        material.add_input_def::<Vector2<u32>>("msdf_size");
+        material.add_input_def::<u32>("atlas_index");
         material.add_input("pixel_ratio", 1.0);
         material.add_input("z_zoom_1", 1.0);
         material.add_input("msdf_range", GlyphRenderInfo::MSDF_PARAMS.range as f32);
@@ -93,7 +93,8 @@ impl ShapeData {
     }
 }
 
-mod glyph_shape {
+/// The glyph shape used for rendering all text elements.
+pub mod glyph_shape {
     use super::*;
     // FIXME[WD]: We are using old shape generator here which does not use shader precompilation.
     //   To be fixed in the next PR: https://www.pivotaltracker.com/story/show/184304289
@@ -101,12 +102,13 @@ mod glyph_shape {
         type SystemData = SystemData;
         type ShapeData = ShapeData;
         flavor = ShapeData::flavor;
+        above = [ensogl_core::display::shape::compound::rectangle, ensogl_core::gui::cursor::shape];
         (
             style: Style,
             font_size: f32,
             color: Vector4<f32>,
             sdf_weight: f32,
-            atlas_index: f32
+            atlas_index: u32
         ) {
             // The shape does not matter. The [`SystemData`] defines custom GLSL code.
             Plane().into()
@@ -120,7 +122,7 @@ impl display::shape::CustomSystemData<glyph_shape::Shape> for SystemData {
         shape_data: &ShapeData,
     ) -> Self {
         let font = &shape_data.font;
-        let size = font::msdf::Texture::size();
+        let size = font.msdf_texture().size();
         let sprite_system = &data.model.sprite_system;
         let symbol = sprite_system.symbol();
 
@@ -379,7 +381,7 @@ impl Glyph {
         let opt_glyph_info =
             self.view.data.borrow().font.glyph_info(self.properties.get(), &variations, glyph_id);
         if let Some(glyph_info) = opt_glyph_info {
-            self.view.atlas_index.set(glyph_info.msdf_texture_glyph_id as f32);
+            self.view.atlas_index.set(glyph_info.msdf_texture_glyph_id);
             self.update_atlas();
             self.view.set_size(glyph_info.scale.scale(self.font_size().value));
         } else {
@@ -405,19 +407,19 @@ impl Glyph {
     fn update_atlas(&self) {}
     #[cfg(target_arch = "wasm32")]
     fn update_atlas(&self) {
-        let cpu_tex_height = self.view.data.borrow().font.msdf_texture_rows() as i32;
-        let gpu_tex_height =
-            self.view.data.borrow().font.atlas.with_item(|texture| texture.storage().height);
-        let texture_changed = cpu_tex_height != gpu_tex_height;
+        let data = self.view.data.borrow();
+        let font = &data.font;
+        let glyph_size = data.font.msdf_texture().size();
+        let num_glyphs = data.font.msdf_texture().glyphs() as i32;
+        let gpu_tex_glyphs = font.atlas.with_item(|texture| texture.storage().layers);
+        let texture_changed = gpu_tex_glyphs != num_glyphs;
         if texture_changed {
-            let cpu_tex_width = font::msdf::Texture::WIDTH as i32;
-            let texture = Texture::new(&self.context, (cpu_tex_width, cpu_tex_height));
-            self.view
-                .data
-                .borrow()
-                .font
-                .with_borrowed_msdf_texture_data(|data| texture.reload_with_content(data));
-            self.view.data.borrow().font.atlas.set(texture);
+            let texture = Texture::new(
+                &self.context,
+                ((glyph_size.x() as i32, glyph_size.y() as i32), num_glyphs),
+            );
+            font.with_borrowed_msdf_texture_data(|data| texture.reload_with_content(data));
+            font.atlas.set(texture);
         }
     }
 }
@@ -508,7 +510,7 @@ impl System {
         let attached_to_cursor = default();
         let view = glyph_shape::View::new_with_data(ShapeData { font });
         view.color.set(Vector4::new(0.0, 0.0, 0.0, 0.0));
-        view.atlas_index.set(0.0);
+        view.atlas_index.set(0);
         display_object.add_child(&view);
         Glyph {
             data: Rc::new(GlyphData {

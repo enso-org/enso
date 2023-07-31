@@ -90,19 +90,19 @@ pub struct GridWindow {
 #[derive(Debug, display::Object)]
 #[allow(missing_docs)]
 pub struct Model<T> {
-    app:                   Application,
-    size:                  Rc<Cell<Vector2>>,
-    display_object:        display::object::Instance,
+    app:            Application,
+    size:           Rc<Cell<Vector2>>,
+    display_object: display::object::Instance,
     // Note that we are using a simple `GridView` and our own scrollbar, instead of the
     // `scrollable::GridView` to avoid adding `ScrollAreas` to the scene, as the clipping they
     // provide though the `mask::View` is not free in terms of performance (they add a draw call
     // cost) and we don't need it here because we need to clip DOM elements anyway.
-    text_grid:             GridView<grid_view_entry::Entry>,
-    dom_entry_root:        web::HtmlDivElement,
-    clipping_div:          DomSymbol,
-    scroll_bar_horizontal: Scrollbar,
-    scroll_bar_vertical:   Scrollbar,
-    text_provider:         Rc<RefCell<Option<T>>>,
+    text_grid:      GridView<grid_view_entry::Entry>,
+    dom_entry_root: web::HtmlDivElement,
+    clipping_div:   DomSymbol,
+    h_scrollbar:    Scrollbar,
+    v_scrollbar:    Scrollbar,
+    text_provider:  Rc<RefCell<Option<T>>>,
 }
 
 impl<T: 'static> Model<T> {
@@ -118,8 +118,8 @@ impl<T: 'static> Model<T> {
         let text_grid: GridView<grid_view_entry::Entry> = GridView::new(&app);
         display_object.add_child(&text_grid);
 
-        let scroll_bar_horizontal = Scrollbar::new(&app);
-        let scroll_bar_vertical = Scrollbar::new(&app);
+        let h_scrollbar = Scrollbar::new(&app);
+        let v_scrollbar = Scrollbar::new(&app);
 
         Model {
             app,
@@ -127,8 +127,8 @@ impl<T: 'static> Model<T> {
             clipping_div,
             size,
             dom_entry_root,
-            scroll_bar_horizontal,
-            scroll_bar_vertical,
+            h_scrollbar,
+            v_scrollbar,
             display_object,
             text_provider,
         }
@@ -159,19 +159,18 @@ impl<T: 'static> Model<T> {
     }
 
     fn init_scrollbars(&self) {
-        self.display_object.add_child(&self.scroll_bar_horizontal);
-        self.display_object.add_child(&self.scroll_bar_vertical);
-        self.scroll_bar_vertical.set_rotation_z(-90.0_f32.to_radians());
+        self.display_object.add_child(&self.h_scrollbar);
+        self.display_object.add_child(&self.v_scrollbar);
+        self.v_scrollbar.set_rotation_z(-90.0_f32.to_radians());
     }
 
     fn set_size(&self, size: Vector2) {
-        let scrollbar_width = scrollbar::WIDTH - scrollbar::PADDING;
-        let h_y = -size.y / 2.0 + scrollbar_width / 2.0;
-        self.scroll_bar_horizontal.set_y(h_y);
-        self.scroll_bar_horizontal.set_length(size.x);
-        let v_x = size.x / 2.0 - scrollbar_width / 2.0;
-        self.scroll_bar_vertical.set_x(v_x);
-        self.scroll_bar_vertical.set_length(size.y);
+        self.v_scrollbar.set_xy((size.x / 2.0 - scrollbar::WIDTH, size.y / 2.0));
+        self.h_scrollbar.set_xy((-size.x / 2.0, -size.y / 2.0));
+        self.v_scrollbar.set_length(size.y);
+        self.h_scrollbar.set_length(size.x);
+        self.v_scrollbar.set_thumb_size(size.y - 2.0 * PADDING_TEXT);
+        self.h_scrollbar.set_thumb_size(size.x - 2.0 * PADDING_TEXT);
         let text_padding = Vector2::new(PADDING_TEXT, PADDING_TEXT);
         self.clipping_div.set_dom_size(size - 2.0 * text_padding);
         self.size.set(size);
@@ -312,8 +311,8 @@ impl<T: TextProvider + 'static> TextGrid<T> {
     ) {
         let network = &self.network;
         let text_grid = &self.text_grid;
-        let scrollbar_h = &self.model.scroll_bar_horizontal;
-        let scrollbar_v = &self.model.scroll_bar_vertical;
+        let h_scrollbar = &self.model.h_scrollbar;
+        let v_scrollbar = &self.model.v_scrollbar;
         let dom_entry_root = &self.model.dom_entry_root;
         let on_data_update = on_data_update.clone_ref();
         let frp = &self.frp;
@@ -321,7 +320,7 @@ impl<T: TextProvider + 'static> TextGrid<T> {
 
         frp::extend! { network
 
-            scroll_position <- all(&scrollbar_h.thumb_position, &scrollbar_v.thumb_position);
+            scroll_position <- all(&h_scrollbar.thumb_position, &v_scrollbar.thumb_position);
 
             longest_line_with_init <- all(&init, &text_provider.longest_line)._1();
             lines_with_init        <- all(&init, &text_provider.line_count)._1();
@@ -346,31 +345,28 @@ impl<T: TextProvider + 'static> TextGrid<T> {
             text_grid_content_size_y <- text_grid.content_size.map(|size| size.y).on_change();
             text_grid_content_size_y_previous <- text_grid_content_size_y.previous();
 
-            scrollbar_h.set_max <+ text_grid_content_size_x;
-            scrollbar_v.set_max <+ text_grid_content_size_y;
-
-            scrollbar_h.set_thumb_size <+ frp.set_size.map(|size| size.x - 2.0 * PADDING_TEXT);
-            scrollbar_v.set_thumb_size <+ frp.set_size.map(|size| size.y - 2.0 * PADDING_TEXT);
+            h_scrollbar.set_max <+ text_grid_content_size_x;
+            v_scrollbar.set_max <+ text_grid_content_size_y;
 
             horizontal_scrollbar_change_args <- all(
                 text_grid_content_size_x,
                 text_grid_content_size_x_previous,
-                scrollbar_h.thumb_position
+                h_scrollbar.thumb_position
             );
             on_content_size_x_change <- horizontal_scrollbar_change_args
                 .sample(&text_grid_content_size_x);
-            scrollbar_h.jump_to <+ on_content_size_x_change.map(
+            h_scrollbar.jump_to <+ on_content_size_x_change.map(
                 |(content_size_x, content_size_x_previous, thumb_position)| {
                 thumb_position * content_size_x_previous / content_size_x
             });
 
             vertical_scrollbar_change_args <- all(text_grid_content_size_y,
                 text_grid_content_size_y_previous,
-                scrollbar_v.thumb_position
+                v_scrollbar.thumb_position
             );
             on_content_size_y_change <- vertical_scrollbar_change_args
                 .sample(&text_grid_content_size_y);
-            scrollbar_v.jump_to <+ on_content_size_y_change.map(
+            v_scrollbar.jump_to <+ on_content_size_y_change.map(
                 |(content_size_y, content_size_y_previous, thumb_position)| {
                 thumb_position * content_size_y_previous / content_size_y
             });
@@ -459,7 +455,7 @@ impl FontLoadedNotifier {
             *callback.borrow_mut() = None;
         }));
 
-        callback.set(_closure);
+        callback.replace(Some(_closure));
 
         let _promise = match web::document.fonts().ready() {
             Ok(promise) => callback.borrow().as_ref().map(|closure| promise.then(closure)),

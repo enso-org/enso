@@ -57,7 +57,7 @@ impl Model {
         let label_left = app.new_view::<text::Text>();
 
         app.display.default_scene.layers.main.remove(&label_full);
-        label_full.add_to_scene_layer(&app.display.default_scene.layers.label);
+        app.display.default_scene.layers.label.add(&label_full);
 
         display_object.add_child(&label_full);
         display_object.add_child(&label_left);

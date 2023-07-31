@@ -64,7 +64,7 @@ mod background {
         (style:Style) {
             let width              = Var::<Pixels>::from("input_size.x");
             let height             = Var::<Pixels>::from("input_size.y");
-            let radius             = node::RADIUS.px() ;
+            let radius             = node::CORNER_RADIUS.px() ;
             let background_rounded = Rect((&width,&height)).corners_radius(radius);
             let background_sharp   = Rect((&width,&height/2.0)).translate_y(-&height/4.0);
             let background         = background_rounded + background_sharp;

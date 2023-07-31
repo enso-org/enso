@@ -57,6 +57,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
                         type: assetListEventModule.AssetListEventType.newProject,
                         parentId: item.parentId,
                         templateId: null,
+                        onSpinnerStateChange: null,
                     })
                 }}
             />

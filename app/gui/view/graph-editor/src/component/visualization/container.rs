@@ -501,7 +501,7 @@ impl ContainerModel {
         self.action_bar.frp.set_size.emit(action_bar_size);
         self.action_bar.set_y((size.y - ACTION_BAR_HEIGHT) / 2.0);
 
-        if let Some(viz) = &*self.visualization.borrow() {
+        if view_state.is_visible() && let Some(viz) = &*self.visualization.borrow() {
             viz.frp.set_size.emit(size);
         }
     }
@@ -737,7 +737,7 @@ impl Container {
             }));
             selection_after_click <- selected_by_click.map(|sel| if *sel {1.0} else {0.0});
             selection.target <+ selection_after_click;
-            _eval <- selection.value.all_with3(&output.size, &selection_style.update,
+            _eval <- selection.value.all_with3(&output.size, &selection_style,
                 f!((value, size, style) {
                     model.set_selection(*size, *value, style);
                 }
@@ -781,6 +781,7 @@ impl Container {
             has_data <- input.set_data.is_some();
             reset_data <- data.sample(&new_vis_definition).gate(&has_data);
             data_update <- any(&data,&reset_data);
+            data_update <- data_update.buffered_gate(&output.visible);
             eval data_update ((t) model.set_visualization_data(t));
 
         }
@@ -812,7 +813,6 @@ impl Container {
         self.frp.public.set_size(DEFAULT_SIZE);
         self.frp.public.set_visualization(None);
         init.emit(());
-        selection_style.init.emit(());
         self
     }
 

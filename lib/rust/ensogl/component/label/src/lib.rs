@@ -85,7 +85,7 @@ impl Model {
         //  Temporary solution. The depth management needs to allow defining relative position of
         //  the text and background and let the whole component to be set to am an arbitrary layer.
         background_layer.add(&self.background);
-        self.label.add_to_scene_layer(text_layer);
+        text_layer.add(&self.label);
     }
 
     /// Change the size based on the size of the contained text, returning the new size including
@@ -149,9 +149,7 @@ impl Label {
         Label { model, frp }.init()
     }
 
-    /// Set layers for Label's background and text respectively. This is needed because
-    /// `text::Text` uses its own `add_to_scene_layer` method instead of utilizing more common
-    /// [`Layer::add_exclusive`].
+    /// Set layers for Label's background and text respectively.
     pub fn set_layers(&self, background_layer: &Layer, text_layer: &Layer) {
         self.model.set_layers(background_layer, text_layer);
     }

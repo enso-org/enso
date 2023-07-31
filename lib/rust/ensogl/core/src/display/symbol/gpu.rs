@@ -559,7 +559,7 @@ impl SymbolData {
         let bindings = default();
         let stats = SymbolStats::new(stats);
         let context = default();
-        let display_object = display::object::Instance::new_no_debug();
+        let display_object = display::object::Instance::new_named(label);
         let is_hidden = Rc::new(Cell::new(false));
 
         let instance_scope = surface.instance_scope();
@@ -772,6 +772,11 @@ impl RenderGroup {
     pub fn set(&mut self, symbols: Vec<SymbolId>) {
         self.ids = symbols;
         self.symbols.borrow_mut().take();
+    }
+
+    /// Check if this render group has no symbols to render.
+    pub fn is_empty(&self) -> bool {
+        self.ids.is_empty()
     }
 }
 

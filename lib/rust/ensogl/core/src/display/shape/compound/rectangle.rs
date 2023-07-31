@@ -321,21 +321,25 @@ impl Rectangle {
 
     /// Set the style properties from the given [`StyleWatchFrp`].
     pub fn set_style(&self, path: impl Into<Path>, style: &StyleWatchFrp) {
-        let path = path.into();
         macro_rules! set_property {
-            ($name:ident: $ty:ident) => {{
-                let value = style.get(path.sub(stringify!($name))).value();
-                let value = value.and_then(|value| value.$ty());
-                if let Some(value) = value {
-                    self.view.$name.set(value.into());
-                }
+            ($path:ident $style:ident $($name:ident: $ty:ident)*) => {{
+                $(
+                    let value = $style.get($path.sub(stringify!($name))).value();
+                    if let Some(value) = value.$ty() {
+                        self.view.$name.set(value.into());
+                    }
+                )*
             }};
         }
-        set_property!(corner_radius: number);
-        set_property!(color: color);
-        set_property!(border_color: color);
-        set_property!(inset: number);
-        set_property!(border: number);
+
+        let path = path.into();
+        set_property!(path style
+            corner_radius: number
+            color: color
+            border_color: color
+            inset: number
+            border: number
+        );
     }
 }
 
@@ -432,25 +436,38 @@ pub fn RightTriangle() -> Rectangle {
 /// achieve any angle with correct borders and rounding. However, this approach requires two
 /// `Rectangle`s to draw each triangle, and as of this writing we have no need for triangles with
 /// borders.)
-#[derive(Debug, Clone, display::Object)]
+#[derive(Debug, Clone, display::Object, CloneRef, Deref)]
 pub struct SimpleTriangle {
+    #[deref]
     shape: Rectangle,
 }
 
+/// Simple isosceles triangle constructor. Based on [`Rectangle`] shape.
+#[allow(non_snake_case)]
+pub fn SimpleTriangle() -> SimpleTriangle {
+    SimpleTriangle { shape: RightTriangle() }
+}
+
 impl SimpleTriangle {
-    /// Return an upward-pointing isosceles rectangle with the given base width and altitude.
+    /// Return an upward-pointing isosceles triangle with the given base width and altitude.
     pub fn from_base_and_altitude(base: f32, altitude: f32) -> Self {
-        let shape = RightTriangle();
-        shape.set_size(Vector2(base, base));
-        shape.set_scale_y(altitude / (base / 2.0));
-        shape.set_border_color(color::Rgba::transparent());
-        Self { shape }
+        let this = SimpleTriangle();
+        this.set_base_and_altitude(base, altitude);
+        this
     }
 
     /// Return an upward-pointing isosceles rectangle sized to fit a bounding box of the given size.
     pub fn from_size(size: Vector2) -> Self {
         let (base, altitude) = (size.x(), size.y());
         Self::from_base_and_altitude(base, altitude)
+    }
+
+    /// Set size and altitude of this triangle. Use negative altitude for downward-pointing
+    /// isosceles triangle.
+    pub fn set_base_and_altitude(&self, base: f32, altitude: f32) {
+        self.shape.set_size(Vector2(base, base));
+        self.shape.set_scale_y(altitude / (base / 2.0));
+        self.shape.set_border_color(color::Rgba::transparent());
     }
 
     /// Set whether the shape receives pointer events.

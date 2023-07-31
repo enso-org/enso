@@ -6,7 +6,7 @@ use ensogl::application::Application;
 use ensogl::control::io::mouse;
 use ensogl::display;
 use ensogl::display::shape::StyleWatchFrp;
-use ensogl_derive_theme::FromTheme;
+use ensogl::display::style::FromTheme;
 use ensogl_gui_component::component;
 use ensogl_hardcoded_theme::graph_editor::execution_mode_selector::play_button as theme;
 
@@ -157,7 +157,7 @@ impl component::Frp<Model> for Frp {
         let style = Style::from_theme(network, style_watch);
 
         frp::extend! { network
-            eval style.update ((style) model.update_style(style));
+            eval style ((style) model.update_style(style));
 
             eval_ input.reset (model.set_playing(false));
 
@@ -166,7 +166,6 @@ impl component::Frp<Model> for Frp {
 
             eval_ output.pressed (model.set_playing(true));
         }
-        style.init.emit(());
     }
 }
 

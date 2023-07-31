@@ -40,6 +40,7 @@ pub trait Sampler = Into<AnySampler> + PhantomInto<glsl::PrimType>;
 
 define_samplers! {
     FloatSampler => Self::Sampler2d,
+    FloatSamplerArray => Self::Sampler2dArray,
     IntSampler   => Self::ISampler2d,
     UIntSampler  => Self::USampler2d,
 }

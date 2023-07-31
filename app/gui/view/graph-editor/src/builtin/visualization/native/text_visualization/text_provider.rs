@@ -15,6 +15,7 @@ use crate::component::visualization::instance::PreprocessorConfiguration;
 use super::GridPosition;
 use super::GridSize;
 use super::GridWindow;
+
 use enso_prelude::serde_reexports::Deserialize;
 
 

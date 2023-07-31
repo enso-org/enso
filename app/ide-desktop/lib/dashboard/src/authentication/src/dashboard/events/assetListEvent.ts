@@ -1,6 +1,8 @@
 /** @file Events related to changes in the asset list. */
 import * as backend from '../backend'
 
+import * as spinner from '../components/spinner'
+
 // This is required, to whitelist this event.
 // eslint-disable-next-line no-restricted-syntax
 declare module '../../hooks' {
@@ -54,6 +56,7 @@ interface AssetListNewFolderEvent extends AssetListBaseEvent<AssetListEventType.
 interface AssetListNewProjectEvent extends AssetListBaseEvent<AssetListEventType.newProject> {
     parentId: backend.DirectoryId | null
     templateId: string | null
+    onSpinnerStateChange: ((state: spinner.SpinnerState) => void) | null
 }
 
 /** A signal to upload files. */

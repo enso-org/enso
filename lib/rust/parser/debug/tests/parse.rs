@@ -1,5 +1,7 @@
 //! Parse expressions and compare their results to expected values.
 
+// === Features ===
+#![feature(cell_update)]
 // === Non-Standard Linter Configuration ===
 #![allow(clippy::option_map_unit_fn)]
 #![allow(clippy::precedence)]
@@ -698,21 +700,34 @@ fn unevaluated_argument() {
 
 #[test]
 fn unary_operator_missing_operand() {
-    test_invalid("main ~ = x");
+    expect_invalid_node("main ~ = x");
 }
 
 #[test]
 fn unary_operator_at_end_of_expression() {
-    test_invalid("foo ~");
+    expect_invalid_node("foo ~");
 }
 
 #[test]
-fn plus_negative() {
-    let code = ["x = x+-x"];
-    let expected = block![
-        (Assignment (Ident x) "=" (OprApp (Ident x) (Ok "+") (UnaryOprApp "-" (Ident x))))
+fn unspaced_operator_sequence() {
+    let cases = [
+        // Add a negated value.
+        ("x = y+-z", block![
+            (Assignment (Ident x) "=" (OprApp (Ident y) (Ok "+") (UnaryOprApp "-" (Ident z))))]),
+        // Create an operator section that adds a negated value to its input.
+        ("x = +-z", block![
+            (Assignment (Ident x) "=" (OprSectionBoundary 1
+                (OprApp () (Ok "+") (UnaryOprApp "-" (Ident z)))))]),
+        // Create an operator section that adds its input, negated, to a value.
+        ("x = y+-", block![
+            (Assignment (Ident x) "=" (OprSectionBoundary 1
+                (OprApp (Ident y) (Ok "+") (UnaryOprApp "-" ()))))]),
+        // Assign a negative number to x.
+        ("x=-1", block![(Assignment (Ident x) "=" (UnaryOprApp "-" (Number () "1" ())))]),
+        // Assign a negated value to x.
+        ("x=-y", block![(Assignment (Ident x) "=" (UnaryOprApp "-" (Ident y)))]),
     ];
-    test(&code.join("\n"), expected);
+    cases.into_iter().for_each(|(code, expected)| test(code, expected));
 }
 
 #[test]
@@ -819,7 +834,7 @@ fn import() {
              () () ())]),
     ];
     cases.into_iter().for_each(|(code, expected)| test(code, expected));
-    test_invalid("from Standard.Base.Data.Array import new as array_new");
+    expect_invalid_node("from Standard.Base.Data.Array import new as array_new");
 }
 
 #[test]
@@ -1251,8 +1266,8 @@ fn trailing_whitespace() {
 
 #[test]
 fn at_operator() {
-    test_invalid("foo@bar");
-    test_invalid("foo @ bar");
+    expect_invalid_node("foo@bar");
+    expect_invalid_node("foo @ bar");
 }
 
 #[test]
@@ -1320,89 +1335,119 @@ fn skip() {
 
 #[test]
 fn space_required() {
-    test_invalid("foo = if cond.x else.y");
+    expect_invalid_node("foo = if cond.x else.y");
 }
 
 #[test]
 fn incomplete_type_definition() {
-    test_invalid("type");
+    expect_invalid_node("type");
 }
 
 #[test]
 fn bad_case() {
-    test_invalid("foo = case x of\n 4");
-    test_invalid("foo = case x of\n 4 ->");
-    test_invalid("foo = case x of\n 4->");
+    expect_invalid_node("foo = case x of\n 4");
+    expect_invalid_node("foo = case x of\n 4 ->");
+    expect_invalid_node("foo = case x of\n 4->");
 }
 
 #[test]
 fn malformed_sequence() {
-    test_invalid("(1, )");
-    test_invalid("foo = (1, )");
+    expect_invalid_node("(1, )");
+    expect_invalid_node("foo = (1, )");
 }
 
 #[test]
 fn unmatched_delimiter() {
-    test_invalid("(");
-    test_invalid(")");
-    test_invalid("[");
-    test_invalid("]");
-    test_invalid("foo = (");
-    test_invalid("foo = )");
-    test_invalid("foo = [");
-    test_invalid("foo = ]");
+    expect_invalid_node("(");
+    expect_invalid_node(")");
+    expect_invalid_node("[");
+    expect_invalid_node("]");
+    expect_invalid_node("foo = (");
+    expect_invalid_node("foo = )");
+    expect_invalid_node("foo = [");
+    expect_invalid_node("foo = ]");
 }
 
 #[test]
 fn unexpected_special_operator() {
-    test_invalid("foo = 1, 2");
+    expect_invalid_node("foo = 1, 2");
 }
 
 #[test]
 fn malformed_import() {
-    test_invalid("import");
-    test_invalid("import as Foo");
-    test_invalid("import Foo as Foo, Bar");
-    test_invalid("import Foo as Foo.Bar");
-    test_invalid("import Foo as");
-    test_invalid("import Foo as Bar.Baz");
-    test_invalid("import Foo hiding");
-    test_invalid("import Foo hiding X,");
-    test_invalid("polyglot import Foo");
-    test_invalid("polyglot java import");
-    test_invalid("from import all");
-    test_invalid("from Foo import all hiding");
-    test_invalid("from Foo import all hiding X.Y");
-    test_invalid("export");
-    test_invalid("export as Foo");
-    test_invalid("export Foo as Foo, Bar");
-    test_invalid("export Foo as Foo.Bar");
-    test_invalid("export Foo as");
-    test_invalid("export Foo as Bar.Baz");
-    test_invalid("export Foo hiding");
-    test_invalid("export Foo hiding X,");
-    test_invalid("from export all");
-    test_invalid("from Foo export all hiding");
-    test_invalid("from Foo export all hiding X.Y");
+    expect_invalid_node("import");
+    expect_invalid_node("import as Foo");
+    expect_invalid_node("import Foo as Foo, Bar");
+    expect_invalid_node("import Foo as Foo.Bar");
+    expect_invalid_node("import Foo as");
+    expect_invalid_node("import Foo as Bar.Baz");
+    expect_invalid_node("import Foo hiding");
+    expect_invalid_node("import Foo hiding X,");
+    expect_invalid_node("polyglot import Foo");
+    expect_invalid_node("polyglot java import");
+    expect_invalid_node("from import all");
+    expect_invalid_node("from Foo import all hiding");
+    expect_invalid_node("from Foo import all hiding X.Y");
+    expect_invalid_node("export");
+    expect_invalid_node("export as Foo");
+    expect_invalid_node("export Foo as Foo, Bar");
+    expect_invalid_node("export Foo as Foo.Bar");
+    expect_invalid_node("export Foo as");
+    expect_invalid_node("export Foo as Bar.Baz");
+    expect_invalid_node("export Foo hiding");
+    expect_invalid_node("export Foo hiding X,");
+    expect_invalid_node("from export all");
+    expect_invalid_node("from Foo export all hiding");
+    expect_invalid_node("from Foo export all hiding X.Y");
 }
 
 #[test]
 fn invalid_token() {
-    test_invalid("`");
-    test_invalid("splice_outside_text = `");
+    expect_invalid_node("`");
+    expect_invalid_node("splice_outside_text = `");
 }
 
 #[test]
 fn illegal_foreign_body() {
-    test_invalid("foreign 4");
-    test_invalid("foreign 4 * 4");
-    test_invalid("foreign foo = \"4\"");
-    test_invalid("foreign js foo = 4");
+    expect_invalid_node("foreign 4");
+    expect_invalid_node("foreign 4 * 4");
+    expect_invalid_node("foreign foo = \"4\"");
+    expect_invalid_node("foreign js foo = 4");
 }
 
 #[test]
 fn unexpected_tokens_in_inner_macro_segment() {
-    test_invalid("from Foo import all What_Is_This_Doing_Here hiding Bar");
+    expect_invalid_node("from Foo import all What_Is_This_Doing_Here hiding Bar");
+}
+
+#[test]
+fn invalid_unspaced_operator_sequence() {
+    // Typically, a sequence of operator identifiers is lexed as a single operator. However, an
+    // exception is made for some sequences of operator characters ending in the `-` character: An
+    // expression such as `x+-x` is accepted, and read equivalently to `x + -x` (see
+    // [`unspaced_operator_sequence`]).
+    //
+    // Due to this special case, there is no reasonable way to interpret this type of expression as
+    // valid when spaces are added in the following way:
+    expect_multiple_operator_error("x = y +- z");
+    expect_multiple_operator_error("x =- y");
+    //
+    // Treating the `-` as a unary operator applied to `z` would be confusing, as it would be in
+    // contradiction to the associativity implied by the whitespace rules.
+    //
+    // However, it would also be confusing to lex a sequence of characters like `+-` as a single
+    // operator in spaced expressions, but as two operators in unspaced expressions.
+    //
+    // Lacking any reasonable valid interpretation, we treat this case as a multiple-operator error.
+    // This is the only case in which we yield a multiple-operator error when there are no spaces
+    // between the operators.
+    //
+    // Similar expressions with missing operands should be treated likewise:
+    expect_multiple_operator_error("x = y +-");
+    expect_multiple_operator_error("x = +- z");
+    expect_multiple_operator_error("x =-");
+    expect_multiple_operator_error("=- y");
+    expect_multiple_operator_error("=-");
 }
 
 
@@ -1410,6 +1455,23 @@ fn unexpected_tokens_in_inner_macro_segment() {
 // ====================
 // === Test Support ===
 // ====================
+
+
+// === Testing helpers ===
+
+/// Check that the given [`Tree`] is a valid representation of the given source code:
+/// - Assert that the given [`Tree`] is composed of tokens that concatenate back to the given source
+/// code.
+/// - Assert that the given [`Tree`] can be serialized and deserialized without error.
+fn expect_tree_representing_code(code: &str, ast: &enso_parser::syntax::Tree) {
+    assert_eq!(ast.code(), code, "{:?}", &ast);
+    let serialized = enso_parser::serialization::serialize_tree(ast).unwrap();
+    let deserialized = enso_parser::serialization::deserialize_tree(&serialized);
+    deserialized.unwrap();
+}
+
+
+// === Testing valid inputs ===
 
 /// Given a block of input Enso code, test that:
 /// - The given code parses to the AST represented by the given S-expression.
@@ -1427,24 +1489,44 @@ fn test(code: &str, expect: lexpr::Value) {
     let ast = enso_parser::Parser::new().run(code);
     let ast_s_expr = to_s_expr(&ast, code);
     assert_eq!(ast_s_expr.to_string(), expect.to_string(), "{:?}", &ast);
-    assert_eq!(ast.code(), code, "{:?}", &ast);
-    let serialized = enso_parser::serialization::serialize_tree(&ast).unwrap();
-    let deserialized = enso_parser::serialization::deserialize_tree(&serialized);
-    deserialized.unwrap();
+    expect_tree_representing_code(code, &ast);
+}
+
+
+// === Testing inputs containing syntax errors ===
+
+#[derive(Debug, Eq, PartialEq, Default, Copy, Clone)]
+struct Errors {
+    invalid_node:      bool,
+    multiple_operator: bool,
+}
+
+impl Errors {
+    fn collect(code: &str) -> Self {
+        let ast = enso_parser::Parser::new().run(code);
+        expect_tree_representing_code(code, &ast);
+        let errors = core::cell::Cell::new(Errors::default());
+        ast.map(|tree| match &*tree.variant {
+            enso_parser::syntax::tree::Variant::Invalid(_) => {
+                errors.update(|e| Self { invalid_node: true, ..e });
+            }
+            enso_parser::syntax::tree::Variant::OprApp(opr_app) if opr_app.opr.is_err() => {
+                errors.update(|e| Self { multiple_operator: true, ..e });
+            }
+            _ => (),
+        });
+        errors.into_inner()
+    }
 }
 
 /// Checks that an input contains an `Invalid` node somewhere.
-fn test_invalid(code: &str) {
-    let ast = enso_parser::Parser::new().run(code);
-    let invalid = std::sync::atomic::AtomicBool::new(false);
-    ast.map(|tree| {
-        if matches!(&*tree.variant, enso_parser::syntax::tree::Variant::Invalid(_)) {
-            invalid.store(true, std::sync::atomic::Ordering::Release)
-        }
-    });
-    assert!(invalid.load(std::sync::atomic::Ordering::Acquire), "{:?}", &ast);
-    assert_eq!(ast.code(), code, "{:?}", &ast);
-    let serialized = enso_parser::serialization::serialize_tree(&ast).unwrap();
-    let deserialized = enso_parser::serialization::deserialize_tree(&serialized);
-    deserialized.unwrap();
+fn expect_invalid_node(code: &str) {
+    let errors = Errors::collect(code);
+    assert!(errors.invalid_node, "{:?}", enso_parser::Parser::new().run(code));
+}
+
+/// Checks that an input contains a multiple-operator error somewhere.
+fn expect_multiple_operator_error(code: &str) {
+    let errors = Errors::collect(code);
+    assert!(errors.multiple_operator, "{:?}", enso_parser::Parser::new().run(code));
 }
