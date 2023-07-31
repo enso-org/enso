@@ -179,7 +179,7 @@ class Main implements AppRunner {
 
         const newApp = new app.App({
             config,
-            configOptions: contentConfig.OPTIONS,
+            configOptions: contentConfig.OPTIONS.clone(),
             packageInfo: {
                 version: BUILD_INFO.version,
                 engineVersion: BUILD_INFO.engineVersion,

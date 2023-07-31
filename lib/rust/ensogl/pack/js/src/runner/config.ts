@@ -49,7 +49,7 @@ export interface OptionObject<T> {
     value: T
     valueEval?: string
     description: string
-    defaultDescription?: string
+    defaultDescription?: string | null
     hidden?: boolean
     primary?: boolean
     passToWebApplication?: boolean
@@ -96,6 +96,11 @@ export class Option<T> {
         } else {
             this.type = 'string'
         }
+    }
+
+    /** Return a copy of this option. */
+    clone(): Option<T> {
+        return Object.assign(new Option<T>(this), this)
     }
 
     /** Names of all parent groups and name of this option intercalated with dots. */
@@ -172,6 +177,7 @@ export interface AnyGroup {
     options: OptionsRecord
     groups: GroupsRecord
     setPath(path: string[]): void
+    clone(): this
     merge<Other extends AnyGroup>(other: Other): this & Other
     load(config: StringConfig, stack?: string[]): string[]
     stringify(): StringConfig
@@ -233,6 +239,18 @@ export class Group<Options extends OptionsRecord, Groups extends GroupsRecord> {
         for (const [name, group] of Object.entries(this.groups)) {
             group.setPath(path.concat([name]))
         }
+    }
+
+    /** Return a deep copy of this group definition. */
+    clone(): this {
+        const result: AnyGroup = new Group()
+        for (const [name, group] of Object.entries(this.groups)) {
+            result.groups[name] = group.clone()
+        }
+        for (const [name, option] of Object.entries(this.options)) {
+            result.options[name] = option.clone()
+        }
+        return result as this
     }
 
     /** Merge this group definition with another group definition. Returns a deeply merged group. In
