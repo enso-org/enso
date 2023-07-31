@@ -94,6 +94,7 @@ pub struct SelectionStyle {
 // ===========
 
 /// Indicates the visibility state of the visualization.
+#[allow(missing_docs)]
 #[derive(Clone, Copy, Debug, PartialEq, Derivative)]
 #[derivative(Default)]
 pub enum ViewState {
@@ -130,6 +131,7 @@ impl ViewState {
         matches!(self, ViewState::Fullscreen)
     }
 
+    /// Return a new state after considering (lack of) presence of the error.
     pub fn error_status_updated(mut self, new_has_error: bool) -> Self {
         if let Self::Enabled { has_error } | Self::Preview { has_error } = &mut self {
             *has_error = new_has_error;
