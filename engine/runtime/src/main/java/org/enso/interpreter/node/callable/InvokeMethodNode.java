@@ -1,24 +1,5 @@
 package org.enso.interpreter.node.callable;
 
-import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.dsl.Bind;
-import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.dsl.Cached.Shared;
-import com.oracle.truffle.api.dsl.ImportStatic;
-import com.oracle.truffle.api.dsl.NonIdempotent;
-import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.UnsupportedMessageException;
-import com.oracle.truffle.api.library.CachedLibrary;
-import com.oracle.truffle.api.nodes.ExplodeLoop;
-import com.oracle.truffle.api.nodes.Node;
-import com.oracle.truffle.api.nodes.RootNode;
-import com.oracle.truffle.api.profiles.BranchProfile;
-import com.oracle.truffle.api.profiles.ConditionProfile;
-import com.oracle.truffle.api.profiles.CountingConditionProfile;
-import com.oracle.truffle.api.source.SourceSection;
-
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
@@ -28,7 +9,6 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.locks.Lock;
 
-import org.enso.interpreter.Constants;
 import org.enso.interpreter.Constants.Names;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.MethodRootNode;
@@ -62,6 +42,24 @@ import org.enso.interpreter.runtime.error.WarningsLibrary;
 import org.enso.interpreter.runtime.error.WithWarnings;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.state.State;
+
+import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.dsl.Bind;
+import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Cached.Shared;
+import com.oracle.truffle.api.dsl.ImportStatic;
+import com.oracle.truffle.api.dsl.NonIdempotent;
+import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.library.CachedLibrary;
+import com.oracle.truffle.api.nodes.ExplodeLoop;
+import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.nodes.RootNode;
+import com.oracle.truffle.api.profiles.BranchProfile;
+import com.oracle.truffle.api.profiles.CountingConditionProfile;
+import com.oracle.truffle.api.source.SourceSection;
 
 @ImportStatic({HostMethodCallNode.PolyglotCallType.class, HostMethodCallNode.class})
 public abstract class InvokeMethodNode extends BaseNode {
@@ -492,7 +490,7 @@ public abstract class InvokeMethodNode extends BaseNode {
         "!warnings.hasWarnings(self)",
         "!types.hasType(self)",
         "!types.hasSpecialDispatch(self)",
-        "getPolyglotCallType(self, symbol, interop) == CONVERT_TO_NUMBER"
+        "getPolyglotCallType(self, symbol, interop) == CONVERT_TO_BIG_INT"
       })
   Object doConvertNumber(
       VirtualFrame frame,

@@ -35,7 +35,7 @@ public class PolyglotCallTypeTest extends TestBase {
     var val = unwrapValue(ctx, ctx.asValue(big));
     var sym = UnresolvedSymbol.build("+", null);
     var typ = HostMethodCallNode.getPolyglotCallType(val, sym, InteropLibrary.getUncached());
-    assertEquals(HostMethodCallNode.PolyglotCallType.CONVERT_TO_NUMBER, typ);
+    assertEquals(HostMethodCallNode.PolyglotCallType.CONVERT_TO_BIG_INT, typ);
     assertFalse(typ.isInteropLibrary());
   }
 
@@ -53,7 +53,7 @@ public class PolyglotCallTypeTest extends TestBase {
     var val = 4L;
     var sym = UnresolvedSymbol.build("+", null);
     var typ = HostMethodCallNode.getPolyglotCallType(val, sym, InteropLibrary.getUncached());
-    assertEquals(HostMethodCallNode.PolyglotCallType.CONVERT_TO_NUMBER, typ);
+    assertEquals(HostMethodCallNode.PolyglotCallType.CONVERT_TO_BIG_INT, typ);
     assertFalse(typ.isInteropLibrary());
   }
 }

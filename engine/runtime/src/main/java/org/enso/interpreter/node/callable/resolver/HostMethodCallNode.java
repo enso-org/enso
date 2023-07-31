@@ -47,10 +47,10 @@ public abstract class HostMethodCallNode extends Node {
      */
     CONVERT_TO_TEXT,
     /**
-     * The method call should be handled by converting {@code self} to a {@link
-     * org.enso.interpreter.runtime.data.Number} and dispatching natively.
+     * The method call should be handled by converting {@code self} to a {@link EnsoBigInteger} and
+     * dispatching natively.
      */
-    CONVERT_TO_NUMBER,
+    CONVERT_TO_BIG_INT,
     /**
      * The method call should be handled by converting {@code self} dispatching natively to methods
      * of {@link org.enso.interpreter.runtime.data.Array}
@@ -105,7 +105,7 @@ public abstract class HostMethodCallNode extends Node {
       return this != NOT_SUPPORTED
           && this != CONVERT_TO_ARRAY
           && this != CONVERT_TO_TEXT
-          && this != CONVERT_TO_NUMBER
+          && this != CONVERT_TO_BIG_INT
           && this != CONVERT_TO_DATE
           && this != CONVERT_TO_DATE_TIME
           && this != CONVERT_TO_DURATION
@@ -166,7 +166,7 @@ public abstract class HostMethodCallNode extends Node {
     } else if (library.isTimeZone(self)) {
       return PolyglotCallType.CONVERT_TO_TIME_ZONE;
     } else if (library.fitsInBigInteger(self)) {
-      return PolyglotCallType.CONVERT_TO_NUMBER;
+      return PolyglotCallType.CONVERT_TO_BIG_INT;
     } else if (library.isString(self)) {
       return PolyglotCallType.CONVERT_TO_TEXT;
     } else if (library.hasArrayElements(self)) {
