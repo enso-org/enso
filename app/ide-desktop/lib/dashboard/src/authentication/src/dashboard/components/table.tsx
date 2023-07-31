@@ -44,8 +44,7 @@ interface InternalTableProps<T, State = never, RowState = never, Key extends str
     getKey: (item: T) => Key
     columns: tableColumn.TableColumn<T, State, RowState, Key>[]
     isLoading: boolean
-    placeholder: JSX.Element
-    forceShowPlaceholder?: boolean
+    placeholder?: JSX.Element
     className?: string
     onContextMenu: (
         selectedKeys: Set<Key>,
@@ -75,7 +74,6 @@ export default function Table<T, State = never, RowState = never, Key extends st
         columns,
         isLoading,
         placeholder,
-        forceShowPlaceholder = false,
         onContextMenu,
         ...rowProps
     } = props
@@ -201,15 +199,6 @@ export default function Table<T, State = never, RowState = never, Key extends st
         </tr>
     )
 
-    const placeholderRow =
-        items.length === 0 || forceShowPlaceholder ? (
-            <tr className="h-10">
-                <td colSpan={columns.length} className="bg-transparent">
-                    {placeholder}
-                </td>
-            </tr>
-        ) : null
-
     const itemRows = isLoading ? (
         <tr className="h-10">
             <td colSpan={columns.length} className="bg-transparent">
@@ -259,8 +248,14 @@ export default function Table<T, State = never, RowState = never, Key extends st
         >
             <thead>{headerRow}</thead>
             <tbody>
-                {placeholderRow}
                 {itemRows}
+                {placeholder && (
+                    <tr className="h-10 hidden first:table-row">
+                        <td colSpan={columns.length} className="bg-transparent">
+                            {placeholder}
+                        </td>
+                    </tr>
+                )}
             </tbody>
         </table>
     )

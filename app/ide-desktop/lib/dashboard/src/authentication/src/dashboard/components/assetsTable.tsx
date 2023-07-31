@@ -88,14 +88,7 @@ function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
         item: rawItem,
         initialRowState,
         columns,
-        state: {
-            assetEvents,
-            dispatchAssetEvent,
-            dispatchAssetListEvent,
-            markItemAsHidden,
-            markItemAsVisible,
-            getDepth,
-        },
+        state: { assetEvents, dispatchAssetEvent, dispatchAssetListEvent, getDepth },
     } = props
     const { backend } = backendProvider.useBackend()
     const { setModal } = modalProvider.useSetModal()
@@ -109,7 +102,6 @@ function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
 
     const doDelete = async () => {
         setPresence(presenceModule.Presence.deleting)
-        markItemAsHidden(key)
         try {
             await backend.deleteAsset(item)
             dispatchAssetListEvent({
@@ -118,7 +110,6 @@ function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
             })
         } catch (error) {
             setPresence(presenceModule.Presence.present)
-            markItemAsVisible(key)
             toastAndLog('Unable to delete project', error)
         }
     }
@@ -219,8 +210,6 @@ export interface AssetsTableState {
     assetEvents: assetEventModule.AssetEvent[]
     dispatchAssetEvent: (event: assetEventModule.AssetEvent) => void
     dispatchAssetListEvent: (event: assetListEventModule.AssetListEvent) => void
-    markItemAsHidden: (key: string) => void
-    markItemAsVisible: (key: string) => void
     getDepth: (id: backendModule.AssetId) => number
     doToggleDirectoryExpansion: (
         directory: backendModule.DirectoryAsset,
@@ -328,42 +317,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 return depth != null ? [[key, depth]] : []
             })
         )
-        const oldKeys = keysOfHiddenItemsRef.current
-        keysOfHiddenItemsRef.current = new Set(
-            items.map(backendModule.getAssetId).filter(key => oldKeys.has(key))
-        )
     }, [items])
-
-    // === Tracking number of visually hidden items ===
-
-    const [shouldForceShowPlaceholder, setShouldForceShowPlaceholder] = React.useState(false)
-    const keysOfHiddenItemsRef = React.useRef(new Set<string>())
-
-    const updateShouldForceShowPlaceholder = React.useCallback(() => {
-        setShouldForceShowPlaceholder(
-            visibleItems.every(item => keysOfHiddenItemsRef.current.has(item.id))
-        )
-    }, [visibleItems])
-
-    React.useEffect(updateShouldForceShowPlaceholder, [updateShouldForceShowPlaceholder])
-
-    const markItemAsHidden = React.useCallback(
-        (key: string) => {
-            keysOfHiddenItemsRef.current.add(key)
-            updateShouldForceShowPlaceholder()
-        },
-        [updateShouldForceShowPlaceholder]
-    )
-
-    const markItemAsVisible = React.useCallback(
-        (key: string) => {
-            keysOfHiddenItemsRef.current.delete(key)
-            updateShouldForceShowPlaceholder()
-        },
-        [updateShouldForceShowPlaceholder]
-    )
-
-    // === End tracking number of visually hidden items ===
 
     const expandedDirectoriesRef = React.useRef(new Set<backendModule.DirectoryId>())
     const doToggleDirectoryExpansion = React.useCallback(
@@ -611,8 +565,6 @@ export default function AssetsTable(props: AssetsTableProps) {
             assetEvents,
             dispatchAssetEvent,
             dispatchAssetListEvent,
-            markItemAsHidden,
-            markItemAsVisible,
             getDepth,
             doToggleDirectoryExpansion,
             doOpenManually,
@@ -625,8 +577,6 @@ export default function AssetsTable(props: AssetsTableProps) {
             doOpenManually,
             doOpenIde,
             doCloseIde,
-            markItemAsHidden,
-            markItemAsVisible,
             getDepth,
             doToggleDirectoryExpansion,
             /* should never change */ dispatchAssetEvent,
@@ -672,7 +622,6 @@ export default function AssetsTable(props: AssetsTableProps) {
                     initialRowState={INITIAL_ROW_STATE}
                     getKey={backendModule.getAssetId}
                     placeholder={PLACEHOLDER}
-                    forceShowPlaceholder={shouldForceShowPlaceholder}
                     columns={columnModule.getColumnList(backend.type, extraColumns).map(column => ({
                         id: column,
                         className: columnModule.COLUMN_CSS_CLASS[column],
