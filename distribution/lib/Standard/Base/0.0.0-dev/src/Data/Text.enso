@@ -156,6 +156,7 @@ type Text
 
              'aśb'.normalize
              # ==> 'as\u0301b'
+    @normalization Normalization.default_widget
     normalize : Text -> Normalization -> Text
     normalize self normalization=Normalization.NFD =
         mode = normalization.get_java_mode

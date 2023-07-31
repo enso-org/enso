@@ -1,5 +1,11 @@
 import project.Any.Any
 
+import project.Data.Vector.Vector
+import project.Metadata.Display
+import project.Metadata.Widget
+from project.Metadata.Choice import Option
+from project.Metadata.Widget import Single_Choice
+
 polyglot java import com.ibm.icu.text.Normalizer2.Mode
 
 ## Enso representations of `com.ibm.icu.text.Normalizer2.Mode`. Does not
@@ -31,3 +37,21 @@ type Normalization
         Normalization.NFKC -> "nfkc"
         Normalization.NFKD -> "nfkc"
         Normalization.NFKCCasefold -> "nfkc_cf"
+
+    ## PRIVATE
+    options : Vector Option
+    options =
+        o1 = Option "NFC" "Normalization.NFC"
+        o2 = Option "NFD" "Normalization.NFD"
+        o3 = Option "NFKC" "Normalization.NFKC"
+        o4 = Option "NFKD" "Normalization.NFKD"
+        o5 = Option "NFKCCasefold" "Normalization.NFKCCasefold"
+        [o1, o2, o3, o4, o5]
+
+    ## PRIVATE
+       The widget for `Text_Sub_Range` also displays options for
+       `Index_Sub_Range` since the former is supposed to 'expand' the latter and
+       is always used together with it.
+    default_widget : Widget
+    default_widget =
+        Single_Choice display=Display.Always Normalization.options
