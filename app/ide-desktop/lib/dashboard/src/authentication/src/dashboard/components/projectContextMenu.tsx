@@ -29,7 +29,7 @@ export interface ProjectContextMenuProps
 /** The context menu for a {@link backendModule.ProjectAsset}. */
 export default function ProjectContextMenu(props: ProjectContextMenuProps) {
     const {
-        innerProps: { item, rowState, setRowState },
+        innerProps: { item, setRowState },
         event,
         dispatchAssetEvent,
         doDelete,
@@ -37,7 +37,9 @@ export default function ProjectContextMenu(props: ProjectContextMenuProps) {
     const { backend } = backendProvider.useBackend()
     const { setModal, unsetModal } = modalProvider.useSetModal()
 
-    const isDeleteDisabled = backend.type === backendModule.BackendType.local && rowState.isRunning
+    const isDeleteDisabled =
+        backend.type === backendModule.BackendType.local &&
+        item.projectState.type !== backendModule.ProjectState.closed
     const doOpenForEditing = () => {
         unsetModal()
         dispatchAssetEvent({
@@ -60,7 +62,7 @@ export default function ProjectContextMenu(props: ProjectContextMenuProps) {
                 disabled={isDeleteDisabled}
                 {...(isDeleteDisabled
                     ? {
-                          title: 'A running local project cannot be removed.',
+                          title: 'This project is still running.',
                       }
                     : {})}
                 onClick={() => {

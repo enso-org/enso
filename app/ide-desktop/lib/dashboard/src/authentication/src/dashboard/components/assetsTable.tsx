@@ -234,7 +234,6 @@ export interface AssetsTableState {
 /** Data associated with a {@link AssetRow}, used for rendering. */
 export interface AssetRowState {
     setPresence: (presence: presenceModule.Presence) => void
-    isRunning: boolean
     isEditingName: boolean
 }
 
@@ -243,7 +242,6 @@ export const INITIAL_ROW_STATE: AssetRowState = Object.freeze({
     setPresence: () => {
         // Ignored. This MUST be replaced by the row component. It should also update `presence`.
     },
-    isRunning: false,
     isEditingName: false,
 })
 

@@ -111,6 +111,9 @@ export enum ProjectState {
     openInProgress = 'OpenInProgress',
     opened = 'Opened',
     closed = 'Closed',
+    /** A frontend-specific state, representing a project that should be displayed as closed,
+     * but is still in the process of shutting down. */
+    closing = 'Closing',
 }
 
 /** Wrapper around a project state value. */
