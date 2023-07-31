@@ -2,6 +2,7 @@ import project.Any.Any
 import project.Data.Locale.Locale
 import project.Data.Numbers.Integer
 import project.Data.Ordering.Ordering
+import project.Data.Text.Normalization.Normalization
 import project.Error.Error
 import project.Errors.Common.Type_Error
 import project.Meta
@@ -155,5 +156,8 @@ type Text
 
              'aśb'.normalize
              # ==> 'as\u0301b'
-    normalize : Text -> Text
-    normalize self = Text_Utils.normalize self
+    normalize : Text -> Normalization -> Text
+    normalize self normalization=Normalization.NFD =
+        mode = normalization.get_java_mode
+        name = normalization.get_mode_name
+        Text_Utils.normalizeWithMode self name mode
