@@ -8,7 +8,9 @@ import ShiftKeyIcon from 'enso-assets/shift_key.svg'
 import WindowsKeyIcon from 'enso-assets/windows_key.svg'
 
 import * as detect from 'enso-common/src/detect'
-import * as shortcuts from '../shortcuts'
+import * as shortcutsModule from '../shortcuts'
+import * as shortcutsProvider from '../../providers/shortcuts'
+
 import SvgMask from '../../authentication/components/svgMask'
 
 // ========================
@@ -16,7 +18,7 @@ import SvgMask from '../../authentication/components/svgMask'
 // ========================
 
 /** Icons for modifier keys (if they exist). */
-const MODIFIER_MAPPINGS: Partial<Record<shortcuts.ModifierKey, React.ReactNode>> =
+const MODIFIER_MAPPINGS: Partial<Record<shortcutsModule.ModifierKey, React.ReactNode>> =
     detect.platform() === detect.Platform.macOS
         ? // The names are intentionally not in `camelCase`.
           /* eslint-disable @typescript-eslint/naming-convention */
@@ -38,19 +40,20 @@ const MODIFIER_MAPPINGS: Partial<Record<shortcuts.ModifierKey, React.ReactNode>>
 
 /** Props for a {@link KeyboardShortcut} */
 export interface KeyboardShortcutProps {
-    action: shortcuts.KeyboardAction
+    action: shortcutsModule.KeyboardAction
 }
 
 /** A visual representation of a keyboard shortcut. */
 export default function KeyboardShortcut(props: KeyboardShortcutProps) {
     const { action } = props
-    const shortcut = shortcuts.SHORTCUT_REGISTRY.keyboardShortcuts[action][0]
+    const { shortcuts } = shortcutsProvider.useShortcuts()
+    const shortcut = shortcuts.keyboardShortcuts[action][0]
     if (shortcut == null) {
         return null
     } else {
         return (
             <div className="flex items-center h-6 gap-0.5">
-                {shortcuts.getModifierKeysOfShortcut(shortcut).map(
+                {shortcutsModule.getModifierKeysOfShortcut(shortcut).map(
                     modifier =>
                         MODIFIER_MAPPINGS[modifier] ?? (
                             <span key={modifier} className="leading-170 h-6 py-px">

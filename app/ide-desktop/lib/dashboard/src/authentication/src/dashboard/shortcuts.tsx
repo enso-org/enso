@@ -200,6 +200,15 @@ export class ShortcutRegistry {
         this.updateKeyboardShortcutsByKey()
     }
 
+    /** Create a new {@link ShortcutRegistry} with default values. */
+    static createWithDefaults() {
+        return new this(
+            { ...DEFAULT_KEYBOARD_SHORTCUTS },
+            { ...DEFAULT_MOUSE_SHORTCUTS },
+            { ...DEFAULT_KEYBOARD_SHORTCUT_INFO }
+        )
+    }
+
     /** Return `true` if the shortcut is being triggered by the keyboard event. */
     matchesKeyboardShortcut(
         this: void,
@@ -402,10 +411,3 @@ const DEFAULT_MOUSE_SHORTCUTS: Record<MouseAction, MouseShortcut[]> = {
         mousebind(MouseAction.selectAdditionalRange, [CTRL, 'Shift'], MouseButton.left),
     ],
 }
-
-/** The global instance of the shortcut registry. */
-export const SHORTCUT_REGISTRY = new ShortcutRegistry(
-    DEFAULT_KEYBOARD_SHORTCUTS,
-    DEFAULT_MOUSE_SHORTCUTS,
-    DEFAULT_KEYBOARD_SHORTCUT_INFO
-)

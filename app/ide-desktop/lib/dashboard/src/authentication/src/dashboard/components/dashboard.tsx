@@ -11,13 +11,14 @@ import * as http from '../../http'
 import * as localBackend from '../localBackend'
 import * as projectManager from '../projectManager'
 import * as remoteBackendModule from '../remoteBackend'
-import * as shortcuts from '../shortcuts'
+import * as shortcutsModule from '../shortcuts'
 import * as tabModule from '../tab'
 
 import * as authProvider from '../../authentication/providers/auth'
 import * as backendProvider from '../../providers/backend'
 import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
+import * as shortcutsProvider from '../../providers/shortcuts'
 
 import Chat, * as chat from './chat'
 import DirectoryView from './driveView'
@@ -53,6 +54,7 @@ export default function Dashboard(props: DashboardProps) {
     const { backend } = backendProvider.useBackend()
     const { setBackend } = backendProvider.useSetBackend()
     const { unsetModal } = modalProvider.useSetModal()
+    const { shortcuts } = shortcutsProvider.useShortcuts()
     const [directoryId, setDirectoryId] = React.useState(
         session.organization != null ? backendModule.rootDirectoryId(session.organization.id) : null
     )
@@ -162,12 +164,7 @@ export default function Dashboard(props: DashboardProps) {
 
     React.useEffect(() => {
         const onKeyDown = (event: KeyboardEvent) => {
-            if (
-                shortcuts.SHORTCUT_REGISTRY.matchesKeyboardAction(
-                    shortcuts.KeyboardAction.closeModal,
-                    event
-                )
-            ) {
+            if (shortcuts.matchesKeyboardAction(shortcutsModule.KeyboardAction.closeModal, event)) {
                 event.preventDefault()
                 unsetModal()
             }
@@ -176,7 +173,7 @@ export default function Dashboard(props: DashboardProps) {
         return () => {
             document.removeEventListener('keydown', onKeyDown)
         }
-    }, [unsetModal])
+    }, [unsetModal, shortcuts])
 
     const setBackendType = React.useCallback(
         (newBackendType: backendModule.BackendType) => {

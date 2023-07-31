@@ -6,14 +6,14 @@ import DirectoryIcon from 'enso-assets/folder.svg'
 import * as assetEventModule from '../events/assetEvent'
 import * as assetListEventModule from '../events/assetListEvent'
 import * as backendModule from '../backend'
+import * as backendProvider from '../../providers/backend'
 import * as column from '../column'
 import * as eventModule from '../event'
 import * as hooks from '../../hooks'
 import * as indent from '../indent'
 import * as presence from '../presence'
-import * as shortcuts from '../shortcuts'
-
-import * as backendProvider from '../../providers/backend'
+import * as shortcutsModule from '../shortcuts'
+import * as shortcutsProvider from '../../providers/shortcuts'
 
 import EditableSpan from './editableSpan'
 import SvgMask from '../../authentication/components/svgMask'
@@ -38,8 +38,9 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         rowState,
         setRowState,
     } = props
-    const { backend } = backendProvider.useBackend()
     const toastAndLog = hooks.useToastAndLog()
+    const { backend } = backendProvider.useBackend()
+    const { shortcuts } = shortcutsProvider.useShortcuts()
 
     const doRename = async (newName: string) => {
         if (backend.type !== backendModule.BackendType.local) {
@@ -104,10 +105,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
                 if (
                     eventModule.isSingleClick(event) &&
                     (selected ||
-                        shortcuts.SHORTCUT_REGISTRY.matchesMouseAction(
-                            shortcuts.MouseAction.editName,
-                            event
-                        ))
+                        shortcuts.matchesMouseAction(shortcutsModule.MouseAction.editName, event))
                 ) {
                     setRowState(oldRowState => ({
                         ...oldRowState,

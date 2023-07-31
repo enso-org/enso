@@ -4,7 +4,8 @@ import * as React from 'react'
 import CrossIcon from 'enso-assets/cross.svg'
 import TickIcon from 'enso-assets/tick.svg'
 
-import * as shortcuts from '../shortcuts'
+import * as shortcutsModule from '../shortcuts'
+import * as shortcutsProvider from '../../providers/shortcuts'
 
 // ====================
 // === EditableSpan ===
@@ -34,6 +35,7 @@ export default function EditableSpan(props: EditableSpanProps) {
         inputTitle,
         ...passthroughProps
     } = props
+    const { shortcuts } = shortcutsProvider.useShortcuts()
 
     // This is incorrect, but SAFE, as the value is always set by the time it is used.
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -57,8 +59,8 @@ export default function EditableSpan(props: EditableSpanProps) {
                     onBlur={event => event.currentTarget.form?.requestSubmit()}
                     onKeyUp={event => {
                         if (
-                            shortcuts.SHORTCUT_REGISTRY.matchesKeyboardAction(
-                                shortcuts.KeyboardAction.cancelEditName,
+                            shortcuts.matchesKeyboardAction(
+                                shortcutsModule.KeyboardAction.cancelEditName,
                                 event
                             )
                         ) {

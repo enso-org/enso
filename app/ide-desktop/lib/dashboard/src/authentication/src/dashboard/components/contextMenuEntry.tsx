@@ -1,7 +1,9 @@
 /** @file An entry in a context menu. */
 import * as React from 'react'
 
-import * as shortcuts from '../shortcuts'
+import * as shortcutsModule from '../shortcuts'
+import * as shortcutsProvider from '../../providers/shortcuts'
+
 import KeyboardShortcut from './keyboardShortcut'
 import SvgMask from '../../authentication/components/svgMask'
 
@@ -11,7 +13,7 @@ import SvgMask from '../../authentication/components/svgMask'
 
 /** Props for a {@link ContextMenuEntry}. */
 export interface ContextMenuEntryProps {
-    action: shortcuts.KeyboardAction
+    action: shortcutsModule.KeyboardAction
     disabled?: boolean
     title?: string
     onClick: (event: React.MouseEvent<HTMLButtonElement>) => void
@@ -20,7 +22,8 @@ export interface ContextMenuEntryProps {
 /** An item in a `ContextMenu`. */
 export default function ContextMenuEntry(props: ContextMenuEntryProps) {
     const { action, disabled = false, title, onClick } = props
-    const info = shortcuts.SHORTCUT_REGISTRY.keyboardShorcutInfo[action]
+    const { shortcuts } = shortcutsProvider.useShortcuts()
+    const info = shortcuts.keyboardShorcutInfo[action]
     return (
         <button
             disabled={disabled}

@@ -4,7 +4,8 @@
 import * as React from 'react'
 
 import * as set from '../../set'
-import * as shortcuts from '../shortcuts'
+import * as shortcutsModule from '../shortcuts'
+import * as shortcutsProvider from '../../providers/shortcuts'
 
 import * as tableColumn from './tableColumn'
 import Spinner, * as spinner from './spinner'
@@ -79,7 +80,7 @@ export default function Table<T, State = never, RowState = never, Key extends st
         onContextMenu,
         ...rowProps
     } = props
-
+    const { shortcuts } = shortcutsProvider.useShortcuts()
     const [spinnerState, setSpinnerState] = React.useState(spinner.SpinnerState.initial)
     // This should not be made mutable for the sake of optimization, otherwise its value may
     // be different after `await`ing an I/O operation. Also, a change in its value should trigger
@@ -90,12 +91,12 @@ export default function Table<T, State = never, RowState = never, Key extends st
     React.useEffect(() => {
         const onDocumentClick = (event: MouseEvent) => {
             if (
-                !shortcuts.SHORTCUT_REGISTRY.matchesMouseAction(
-                    shortcuts.MouseAction.selectAdditional,
+                !shortcuts.matchesMouseAction(
+                    shortcutsModule.MouseAction.selectAdditional,
                     event
                 ) &&
-                !shortcuts.SHORTCUT_REGISTRY.matchesMouseAction(
-                    shortcuts.MouseAction.selectAdditionalRange,
+                !shortcuts.matchesMouseAction(
+                    shortcutsModule.MouseAction.selectAdditionalRange,
                     event
                 ) &&
                 selectedKeys.size !== 0
@@ -107,7 +108,7 @@ export default function Table<T, State = never, RowState = never, Key extends st
         return () => {
             document.removeEventListener('click', onDocumentClick)
         }
-    }, [selectedKeys])
+    }, [selectedKeys, shortcuts])
 
     React.useEffect(() => {
         if (isLoading) {
@@ -143,16 +144,11 @@ export default function Table<T, State = never, RowState = never, Key extends st
                     return selectedItems.map(getKey)
                 }
             }
-            if (
-                shortcuts.SHORTCUT_REGISTRY.matchesMouseAction(
-                    shortcuts.MouseAction.selectRange,
-                    event
-                )
-            ) {
+            if (shortcuts.matchesMouseAction(shortcutsModule.MouseAction.selectRange, event)) {
                 setSelectedKeys(new Set(getNewlySelectedKeys()))
             } else if (
-                shortcuts.SHORTCUT_REGISTRY.matchesMouseAction(
-                    shortcuts.MouseAction.selectAdditionalRange,
+                shortcuts.matchesMouseAction(
+                    shortcutsModule.MouseAction.selectAdditionalRange,
                     event
                 )
             ) {
@@ -160,10 +156,7 @@ export default function Table<T, State = never, RowState = never, Key extends st
                     oldSelectedItems => new Set([...oldSelectedItems, ...getNewlySelectedKeys()])
                 )
             } else if (
-                shortcuts.SHORTCUT_REGISTRY.matchesMouseAction(
-                    shortcuts.MouseAction.selectAdditional,
-                    event
-                )
+                shortcuts.matchesMouseAction(shortcutsModule.MouseAction.selectAdditional, event)
             ) {
                 setSelectedKeys(oldSelectedItems => {
                     const newItems = new Set(oldSelectedItems)
@@ -179,7 +172,7 @@ export default function Table<T, State = never, RowState = never, Key extends st
             }
             setPreviouslySelectedKey(key)
         },
-        [items, previouslySelectedKey, /* should never change */ getKey]
+        [items, previouslySelectedKey, shortcuts, /* should never change */ getKey]
     )
 
     const headerRow = (
