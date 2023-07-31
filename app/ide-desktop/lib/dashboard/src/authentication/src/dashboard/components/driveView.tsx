@@ -83,7 +83,7 @@ export default function DirectoryView(props: DirectoryViewProps) {
     const { backend } = backendProvider.useBackend()
     const toastAndLog = hooks.useToastAndLog()
     const [initialized, setInitialized] = React.useState(false)
-    const [assets, setAssets] = React.useState<backendModule.AnyAsset[]>([])
+    const [assets, rawSetAssets] = React.useState<backendModule.AnyAsset[]>([])
     const [isLoadingAssets, setIsLoadingAssets] = React.useState(true)
     const [directoryStack, setDirectoryStack] = React.useState<backendModule.DirectoryAsset[]>([])
     const [isFileBeingDragged, setIsFileBeingDragged] = React.useState(false)
@@ -144,6 +144,40 @@ export default function DirectoryView(props: DirectoryViewProps) {
         }
     }, [directoryStack, directoryId, organization])
 
+    const setAssets = React.useCallback(
+        (newAssets: backendModule.AnyAsset[]) => {
+            rawSetAssets(newAssets)
+            if (nameOfProjectToImmediatelyOpen != null) {
+                const projectToLoad = newAssets.find(
+                    projectAsset => projectAsset.title === nameOfProjectToImmediatelyOpen
+                )
+                if (projectToLoad != null) {
+                    dispatchAssetEvent({
+                        type: assetEventModule.AssetEventType.openProject,
+                        id: projectToLoad.id,
+                    })
+                }
+                setNameOfProjectToImmediatelyOpen(null)
+            }
+            if (!initialized && initialProjectName != null) {
+                setInitialized(true)
+                if (!newAssets.some(asset => asset.title === initialProjectName)) {
+                    const errorMessage = `No project named '${initialProjectName}' was found.`
+                    toastify.toast.error(errorMessage)
+                    logger.error(`Error opening project on startup: ${errorMessage}`)
+                }
+            }
+        },
+        [
+            initialized,
+            initialProjectName,
+            logger,
+            nameOfProjectToImmediatelyOpen,
+            /* should never change */ setNameOfProjectToImmediatelyOpen,
+            /* should never change */ dispatchAssetEvent,
+        ]
+    )
+
     hooks.useAsyncEffect(
         null,
         async signal => {
@@ -181,38 +215,6 @@ export default function DirectoryView(props: DirectoryViewProps) {
         },
         [accessToken, directoryId, backend]
     )
-
-    React.useEffect(() => {
-        if (nameOfProjectToImmediatelyOpen != null) {
-            const projectToLoad = assets.find(
-                projectAsset => projectAsset.title === nameOfProjectToImmediatelyOpen
-            )
-            if (projectToLoad != null) {
-                dispatchAssetEvent({
-                    type: assetEventModule.AssetEventType.openProject,
-                    id: projectToLoad.id,
-                })
-            }
-            setNameOfProjectToImmediatelyOpen(null)
-        }
-        if (!initialized && initialProjectName != null) {
-            setInitialized(true)
-            if (!assets.some(asset => asset.title === initialProjectName)) {
-                const errorMessage = `No project named '${initialProjectName}' was found.`
-                toastify.toast.error(errorMessage)
-                logger.error(`Error opening project on startup: ${errorMessage}`)
-            }
-        }
-        // `nameOfProjectToImmediatelyOpen` must NOT trigger this effect.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [
-        assets,
-        initialized,
-        initialProjectName,
-        logger,
-        /* should never change */ setNameOfProjectToImmediatelyOpen,
-        /* should never change */ dispatchAssetEvent,
-    ])
 
     const doUploadFiles = React.useCallback(
         (files: FileList) => {
