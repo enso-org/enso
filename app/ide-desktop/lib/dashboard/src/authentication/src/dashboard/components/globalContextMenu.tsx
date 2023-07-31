@@ -44,14 +44,14 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
             ></input>
             <ContextMenuEntry
                 action={shortcuts.KeyboardAction.uploadFiles}
-                onClick={() => {
+                doAction={() => {
                     unsetModal()
                     filesInputRef.current?.click()
                 }}
             />
             <ContextMenuEntry
                 action={shortcuts.KeyboardAction.newProject}
-                onClick={() => {
+                doAction={() => {
                     unsetModal()
                     dispatchAssetListEvent({
                         type: assetListEventModule.AssetListEventType.newProject,
@@ -62,7 +62,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
             />
             <ContextMenuEntry
                 action={shortcuts.KeyboardAction.newFolder}
-                onClick={() => {
+                doAction={() => {
                     unsetModal()
                     dispatchAssetListEvent({
                         type: assetListEventModule.AssetListEventType.newFolder,
@@ -73,7 +73,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
             <ContextMenuEntry
                 disabled
                 action={shortcuts.KeyboardAction.newDataConnector}
-                onClick={() => {
+                doAction={() => {
                     // No backend support yet.
                 }}
             />

@@ -49,7 +49,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps<backendMod
                 {item.type === backendModule.AssetType.project && (
                     <ContextMenuEntry
                         action={shortcuts.KeyboardAction.open}
-                        onClick={() => {
+                        doAction={() => {
                             unsetModal()
                             dispatchAssetEvent({
                                 type: assetEventModule.AssetEventType.openProject,
@@ -64,7 +64,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps<backendMod
                         item.type !== backendModule.AssetType.directory
                     }
                     action={shortcuts.KeyboardAction.rename}
-                    onClick={() => {
+                    doAction={() => {
                         setRowState(oldRowState => ({
                             ...oldRowState,
                             isEditingName: true,
@@ -75,13 +75,13 @@ export default function AssetContextMenu(props: AssetContextMenuProps<backendMod
                 <ContextMenuEntry
                     disabled
                     action={shortcuts.KeyboardAction.snapshot}
-                    onClick={() => {
+                    doAction={() => {
                         // No backend support yet.
                     }}
                 />
                 <ContextMenuEntry
                     action={shortcuts.KeyboardAction.moveToTrash}
-                    onClick={() => {
+                    doAction={() => {
                         setModal(
                             <ConfirmDeleteModal
                                 description={`the ${item.type} '${item.title}'`}
@@ -93,7 +93,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps<backendMod
                 <ContextMenuSeparator />
                 <ContextMenuEntry
                     action={shortcuts.KeyboardAction.share}
-                    onClick={() => {
+                    doAction={() => {
                         setModal(
                             <ManagePermissionsModal
                                 asset={item}
@@ -116,7 +116,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps<backendMod
                 <ContextMenuEntry
                     disabled
                     action={shortcuts.KeyboardAction.label}
-                    onClick={() => {
+                    doAction={() => {
                         // No backend support yet.
                     }}
                 />
@@ -124,28 +124,28 @@ export default function AssetContextMenu(props: AssetContextMenuProps<backendMod
                 <ContextMenuEntry
                     disabled
                     action={shortcuts.KeyboardAction.duplicate}
-                    onClick={() => {
+                    doAction={() => {
                         // No backend support yet.
                     }}
                 />
                 <ContextMenuEntry
                     disabled
                     action={shortcuts.KeyboardAction.copy}
-                    onClick={() => {
+                    doAction={() => {
                         // No backend support yet.
                     }}
                 />
                 <ContextMenuEntry
                     disabled
                     action={shortcuts.KeyboardAction.cut}
-                    onClick={() => {
+                    doAction={() => {
                         // No backend support yet.
                     }}
                 />
                 <ContextMenuEntry
                     disabled
                     action={shortcuts.KeyboardAction.download}
-                    onClick={() => {
+                    doAction={() => {
                         // No backend support yet.
                     }}
                 />

@@ -16,14 +16,24 @@ export interface ContextMenuEntryProps {
     action: shortcutsModule.KeyboardAction
     disabled?: boolean
     title?: string
-    onClick: (event: React.MouseEvent<HTMLButtonElement>) => void
+    doAction: () => void
 }
 
 /** An item in a `ContextMenu`. */
 export default function ContextMenuEntry(props: ContextMenuEntryProps) {
-    const { action, disabled = false, title, onClick } = props
+    const { action, disabled = false, title, doAction } = props
     const { shortcuts } = shortcutsProvider.useShortcuts()
     const info = shortcuts.keyboardShortcutInfo[action]
+    React.useEffect(() => {
+        // This is slower than registering every shortcut in the context menu at once.
+        if (!disabled) {
+            return shortcuts.registerKeyboardHandlers({
+                [action]: doAction,
+            })
+        } else {
+            return
+        }
+    }, [disabled, shortcuts, action, doAction])
     return (
         <button
             disabled={disabled}
@@ -31,7 +41,7 @@ export default function ContextMenuEntry(props: ContextMenuEntryProps) {
             className="flex items-center place-content-between h-8 p-1 hover:bg-black-a10 first:rounded-t-2xl last:rounded-b-2xl text-left disabled:opacity-50"
             onClick={event => {
                 event.stopPropagation()
-                onClick(event)
+                doAction()
             }}
         >
             <div className="flex items-center gap-3">

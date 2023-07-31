@@ -707,7 +707,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                                 <ContextMenu>
                                     <ContextMenuEntry
                                         action={shortcuts.KeyboardAction.moveAllToTrash}
-                                        onClick={doDeleteAll}
+                                        doAction={doDeleteAll}
                                     />
                                 </ContextMenu>
                             </ContextMenus>
