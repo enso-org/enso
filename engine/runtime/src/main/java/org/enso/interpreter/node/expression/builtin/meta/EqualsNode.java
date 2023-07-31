@@ -19,6 +19,7 @@ import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.WarningsLibrary;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
+import org.enso.polyglot.common_utils.Core_Text_Utils;
 
 @BuiltinMethod(
     type = "Any",
@@ -209,7 +210,7 @@ public abstract class EqualsNode extends Node {
     } catch (UnsupportedMessageException e) {
       throw new IllegalStateException(e);
     }
-    return Normalizer.compare(selfJavaString, otherJavaString, Normalizer.FOLD_CASE_DEFAULT) == 0;
+    return Core_Text_Utils.equals(selfJavaString, otherJavaString);
   }
 
   @Specialization(guards = "isPrimitive(self, interop) != isPrimitive(other, interop)")

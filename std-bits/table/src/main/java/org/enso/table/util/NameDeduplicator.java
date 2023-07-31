@@ -1,13 +1,20 @@
 package org.enso.table.util;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
+
+import org.enso.base.text.UnicodeNormalizedTextEquivalence;
 import org.enso.table.problems.Problem;
 import org.enso.table.util.problems.DuplicateNames;
 import org.enso.table.util.problems.InvalidNames;
+import org.graalvm.collections.EconomicSet;
 
 public class NameDeduplicator {
-  private final Set<String> usedNames = new HashSet<>();
+  private final EconomicSet<String> usedNames = EconomicSet.create(new UnicodeNormalizedTextEquivalence());
   private final List<String> invalidNames = new ArrayList<>();
   private final Map<String, String> truncatedNames = new HashMap<>();
   private final List<String> duplicatedNames = new ArrayList<>();
