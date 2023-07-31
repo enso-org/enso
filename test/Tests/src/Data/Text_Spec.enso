@@ -1,5 +1,4 @@
 from Standard.Base import all hiding First, Last
-import Standard.Base.Data.Text.Normalization.Normalization
 import Standard.Base.Data.Text.Regex.No_Such_Group
 import Standard.Base.Data.Text.Regex.Regex_Syntax_Error
 import Standard.Base.Data.Text.Span.Span
