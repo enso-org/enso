@@ -23,7 +23,7 @@ export interface ContextMenuEntryProps {
 export default function ContextMenuEntry(props: ContextMenuEntryProps) {
     const { action, disabled = false, title, onClick } = props
     const { shortcuts } = shortcutsProvider.useShortcuts()
-    const info = shortcuts.keyboardShorcutInfo[action]
+    const info = shortcuts.keyboardShortcutInfo[action]
     return (
         <button
             disabled={disabled}

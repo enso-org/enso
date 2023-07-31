@@ -165,6 +165,17 @@ function AppRouter(props: AppProps) {
         window.navigate = navigate
     }
     const [shortcuts] = React.useState(() => shortcutsModule.ShortcutRegistry.createWithDefaults())
+    React.useEffect(() => {
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (shortcuts.handleKeyboardEvent(event)) {
+                event.preventDefault()
+            }
+        }
+        document.body.addEventListener('keydown', onKeyDown)
+        return () => {
+            document.body.removeEventListener('keydown', onKeyDown)
+        }
+    }, [shortcuts])
     const mainPageUrl = getMainPageUrl()
     const authService = React.useMemo(() => {
         const authConfig = { navigate, ...props }

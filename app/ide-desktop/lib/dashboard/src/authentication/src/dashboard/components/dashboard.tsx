@@ -163,17 +163,10 @@ export default function Dashboard(props: DashboardProps) {
     }, [])
 
     React.useEffect(() => {
-        const onKeyDown = (event: KeyboardEvent) => {
-            if (shortcuts.matchesKeyboardAction(shortcutsModule.KeyboardAction.closeModal, event)) {
-                event.preventDefault()
-                unsetModal()
-            }
-        }
-        document.addEventListener('keydown', onKeyDown)
-        return () => {
-            document.removeEventListener('keydown', onKeyDown)
-        }
-    }, [unsetModal, shortcuts])
+        return shortcuts.registerKeyboardHandlers({
+            [shortcutsModule.KeyboardAction.closeModal]: unsetModal,
+        })
+    }, [shortcuts, unsetModal])
 
     const setBackendType = React.useCallback(
         (newBackendType: backendModule.BackendType) => {

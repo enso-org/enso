@@ -195,7 +195,7 @@ export class ShortcutRegistry {
     constructor(
         public keyboardShortcuts: Record<KeyboardAction, KeyboardShortcut[]>,
         public mouseShortcuts: Record<MouseAction, MouseShortcut[]>,
-        public keyboardShorcutInfo: Record<KeyboardAction, ShortcutInfo>
+        public keyboardShortcutInfo: Record<KeyboardAction, ShortcutInfo>
     ) {
         this.updateKeyboardShortcutsByKey()
     }
@@ -249,10 +249,13 @@ export class ShortcutRegistry {
     handleKeyboardEvent(event: KeyboardEvent | React.KeyboardEvent) {
         for (const shortcut of this.keyboardShortcutsByKey[event.key.toUpperCase()] ?? []) {
             if (this.matchesKeyboardShortcut(shortcut, event)) {
-                this.activeKeyboardHandlers[shortcut.action]?.(event)
-                // The matching `false` return is immediately after this loop.
-                // eslint-disable-next-line no-restricted-syntax
-                return true
+                const handler = this.activeKeyboardHandlers[shortcut.action]
+                if (handler != null) {
+                    handler(event)
+                    // The matching `false` return is immediately after this loop.
+                    // eslint-disable-next-line no-restricted-syntax
+                    return true
+                }
             }
         }
         return false
@@ -265,7 +268,7 @@ export class ShortcutRegistry {
             for (const shortcut of shortcuts) {
                 const byKey = this.keyboardShortcutsByKey[shortcut.key.toUpperCase()]
                 if (byKey != null) {
-                    byKey.push(shortcut)
+                    byKey.unshift(shortcut)
                 } else {
                     this.keyboardShortcutsByKey[shortcut.key.toUpperCase()] = [shortcut]
                 }

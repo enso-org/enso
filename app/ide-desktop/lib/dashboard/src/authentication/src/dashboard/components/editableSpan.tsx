@@ -37,9 +37,20 @@ export default function EditableSpan(props: EditableSpanProps) {
     } = props
     const { shortcuts } = shortcutsProvider.useShortcuts()
 
-    // This is incorrect, but SAFE, as the value is always set by the time it is used.
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const inputRef = React.useRef<HTMLInputElement>(null!)
+    const inputRef = React.useRef<HTMLInputElement>(null)
+
+    React.useEffect(() => {
+        if (editable) {
+            return shortcuts.registerKeyboardHandlers({
+                [shortcutsModule.KeyboardAction.cancelEditName]: () => {
+                    onCancel()
+                    inputRef.current?.blur()
+                },
+            })
+        } else {
+            return
+        }
+    }, [editable, shortcuts, onCancel])
 
     if (editable) {
         return (
@@ -47,7 +58,9 @@ export default function EditableSpan(props: EditableSpanProps) {
                 className="flex grow"
                 onSubmit={event => {
                     event.preventDefault()
-                    onSubmit(inputRef.current.value)
+                    if (inputRef.current != null) {
+                        onSubmit(inputRef.current.value)
+                    }
                 }}
             >
                 <input
@@ -57,16 +70,6 @@ export default function EditableSpan(props: EditableSpanProps) {
                     size={1}
                     defaultValue={children}
                     onBlur={event => event.currentTarget.form?.requestSubmit()}
-                    onKeyUp={event => {
-                        if (
-                            shortcuts.matchesKeyboardAction(
-                                shortcutsModule.KeyboardAction.cancelEditName,
-                                event
-                            )
-                        ) {
-                            onCancel()
-                        }
-                    }}
                     {...(inputPattern != null ? { pattern: inputPattern } : {})}
                     {...(inputTitle != null ? { title: inputTitle } : {})}
                     {...passthroughProps}
