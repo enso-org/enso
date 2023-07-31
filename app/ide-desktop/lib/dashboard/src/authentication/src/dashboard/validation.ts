@@ -20,8 +20,8 @@ export const PREVIOUS_PASSWORD_TITLE =
 // The Project Manager has restrictions on names of projects.
 /** Regex pattern for valid names for local projects.
  *
- *  Validation rules:
- *  - allow any non-empty string
+ * Validation rules:
+ * - allow any non-empty string
  */
 export const LOCAL_PROJECT_NAME_PATTERN = '.*\\S.*'
 /** Human readable explanation of project name restrictions for local projects. */
