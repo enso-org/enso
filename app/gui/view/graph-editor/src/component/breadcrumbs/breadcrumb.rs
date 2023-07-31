@@ -10,6 +10,7 @@ use crate::MethodPointer;
 use super::GLYPH_WIDTH;
 use super::HORIZONTAL_MARGIN;
 use super::TEXT_SIZE;
+
 use enso_frp as frp;
 use ensogl::application::Application;
 use ensogl::data::color;

@@ -4,6 +4,7 @@ use crate::prelude::*;
 use ensogl::display::shape::*;
 
 use crate::layers::MainNodeLayers;
+
 use engine_protocol::language_server::ExecutionEnvironment;
 use enso_config::ARGS;
 use enso_frp as frp;

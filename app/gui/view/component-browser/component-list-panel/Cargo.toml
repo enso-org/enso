@@ -18,9 +18,9 @@ ensogl-selector = { path = "../../../../../lib/rust/ensogl/component/selector" }
 ensogl-shadow = { path = "../../../../../lib/rust/ensogl/component/shadow" }
 ensogl-text = { path = "../../../../../lib/rust/ensogl/component/text" }
 ensogl-tooltip = { path = "../../../../../lib/rust/ensogl/component/tooltip/" }
-ide-view-component-list-panel-breadcrumbs = { path = "breadcrumbs" }
+ide-view-component-list-panel-breadcrumbs = { path = "../../../../../lib/rust/ensogl/component/breadcrumbs" }
 ide-view-component-list-panel-grid = { path = "grid" }
-ide-view-component-list-panel-icons = { path = "icons" }
+ensogl-icons = { path = "../../../../../lib/rust/ensogl/component/icons" }
 ordered-float = { workspace = true }
 
 [dev-dependencies]

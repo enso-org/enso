@@ -5,6 +5,7 @@ use crate::index::*;
 use crate::prelude::*;
 use enso_text::index::*;
 use enso_text::unit::*;
+use ensogl_core::control::io::keyboard::event::*;
 
 use crate::buffer;
 use crate::buffer::formatting;
@@ -30,14 +31,12 @@ use ensogl_core::application;
 use ensogl_core::application::command::FrpNetworkProvider;
 use ensogl_core::application::shortcut;
 use ensogl_core::application::Application;
-use ensogl_core::control::io::keyboard::event::*;
 use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::gui::cursor;
 use ensogl_core::system::web::clipboard;
 use ensogl_text_font_family::NonVariableFaceHeader;
 use owned_ttf_parser::AsFaceRef;
-
 
 
 // ==============
