@@ -142,7 +142,7 @@ export function bundlerOptions(args: Arguments) {
                     // `.png` files not in the `assets` module should not use the `file` loader.
                     build.onLoad({ filter: /\.png$/ }, async info => {
                         const { path } = info
-                        if (/[/\\](?!assets[/\\])[^/\\]*[/\\][^/\\]*\.png$/.test(path)) {
+                        if (!/[/\\]assets[/\\][^/\\]*\.png$/.test(path)) {
                             return {
                                 contents: await fs.readFile(path),
                                 loader: 'copy',
