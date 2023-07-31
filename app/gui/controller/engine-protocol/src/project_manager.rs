@@ -111,8 +111,7 @@ pub struct ProjectName(String);
 impl ProjectName {
     /// Create new ProjectName without any validation.
     ///
-    /// The caller is responsible for making sure that provided string is a valid project name
-    /// (e.g. not empty and starts with a capital letter).
+    /// The caller is responsible for making sure that provided string is a valid project name.
     pub fn new_unchecked(name: impl Str) -> Self {
         Self(name.into())
     }
@@ -132,6 +131,38 @@ impl From<ProjectName> for String {
 
 impl From<ProjectName> for ImString {
     fn from(name: ProjectName) -> Self {
+        name.0.into()
+    }
+}
+
+/// Project module.
+#[derive(Clone, Debug, Deserialize, Display, Eq, From, Hash, PartialEq, Serialize)]
+pub struct ProjectModule(String);
+
+impl ProjectModule {
+    /// Create new ProjectModule without any validation.
+    ///
+    /// The caller is responsible for making sure that provided string is a valid project module
+    /// name (e.g. not empty and starts with a capital letter).
+    pub fn new_unchecked(name: impl Str) -> Self {
+        Self(name.into())
+    }
+}
+
+impl AsRef<str> for ProjectModule {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
+impl From<ProjectModule> for String {
+    fn from(name: ProjectModule) -> Self {
+        name.0
+    }
+}
+
+impl From<ProjectModule> for ImString {
+    fn from(name: ProjectModule) -> Self {
         name.0.into()
     }
 }
@@ -196,6 +227,8 @@ pub mod response {
         pub language_server_binary_address: IpWithSocket,
         /// The name of the project as it is opened.
         pub project_name:                   ProjectName,
+        /// The module name of the project.
+        pub project_module:                 ProjectModule,
         /// The namespace of the project.
         pub project_namespace:              String,
     }
@@ -245,6 +278,7 @@ mod mock_client_tests {
             language_server_json_address:   language_server_address.clone(),
             language_server_binary_address: language_server_address,
             project_name:                   ProjectName::new_unchecked("Test"),
+            project_module:                 ProjectModule::new_unchecked("Test"),
             project_namespace:              "local".to_owned(),
         };
         let open_result = Ok(expected_open_result.clone());
@@ -413,12 +447,14 @@ mod remote_client_tests {
         let language_server_binary_address =
             IpWithSocket { host: "localhost".to_string(), port: 27016 };
         let project_name = ProjectName::new_unchecked("Test");
+        let project_module = ProjectModule::new_unchecked("Test");
         let project_namespace = "test_ns".to_owned();
         let open_result = response::OpenProject {
             engine_version,
             language_server_json_address,
             language_server_binary_address,
             project_name,
+            project_module,
             project_namespace,
         };
         let open_result_json = json!({
@@ -432,6 +468,7 @@ mod remote_client_tests {
                 "port" : 27016
             },
             "projectName"      : "Test",
+            "projectModule"    : "Test",
             "projectNamespace" : "test_ns",
         });
         let project_name = ProjectName::new_unchecked("HelloWorld");

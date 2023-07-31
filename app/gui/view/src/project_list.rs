@@ -10,9 +10,9 @@ use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::scene::Layer;
+use ensogl::display::style::FromTheme;
 use ensogl_component::grid_view;
 use ensogl_component::shadow;
-use ensogl_derive_theme::FromTheme;
 use ensogl_hardcoded_theme::application::project_list as theme;
 use ensogl_text as text;
 
@@ -87,7 +87,7 @@ impl Data {
         display_object.add_child(&text);
 
         if let Some(text_layer) = text_layer {
-            text.add_to_scene_layer(text_layer);
+            text_layer.add(&text);
         }
         Self { display_object, text }
     }
@@ -124,13 +124,13 @@ impl grid_view::Entry for Entry {
         let style = EntryStyle::from_theme(network, &style_frp);
 
         frp::extend! { network
-            corners_radius <- style.update.map(|s| s.corners_radius);
-            hover_color <- style.update.map(|s| s.hover_color.into());
-            selection_color <- style.update.map(|s| s.selection_color.into());
-            text_padding_left <- style.update.map(|s| s.text_padding_left);
-            text_padding_bottom <- style.update.map(|s| s.text_padding_bottom);
-            text_size <- style.update.map(|s| s.text_size);
-            text_color <- style.update.map(|s| color::Lcha::from(s.text_color));
+            corners_radius <- style.map(|s| s.corners_radius);
+            hover_color <- style.map(|s| s.hover_color.into());
+            selection_color <- style.map(|s| s.selection_color.into());
+            text_padding_left <- style.map(|s| s.text_padding_left);
+            text_padding_bottom <- style.map(|s| s.text_padding_bottom);
+            text_size <- style.map(|s| s.text_size);
+            text_color <- style.map(|s| color::Lcha::from(s.text_color));
 
             eval input.set_model((text) data.set_text(text.clone_ref()));
             contour <- input.set_size.map(|s| grid_view::entry::Contour::rectangular(*s));
@@ -144,7 +144,6 @@ impl grid_view::Entry for Entry {
             data.text.set_property_default <+ text_size.map(|s| text::Size(*s)).cloned_into_some();
             data.text.set_property_default <+ text_color.cloned_into_some();
         }
-        style.init.emit(());
         Self { data, frp }
     }
 
@@ -220,23 +219,23 @@ impl ProjectList {
         display_object.add_child(&grid);
         app.display.default_scene.layers.panel.add(&display_object);
         caption.set_content("Open Project");
-        caption.add_to_scene_layer(&app.display.default_scene.layers.panel_text);
+        app.display.default_scene.layers.panel_text.add(&caption);
 
         let style_frp = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
         let style = Style::from_theme(&network, &style_frp);
 
         frp::extend! { network
             init <- source::<()>();
-            width <- style.update.map(|s| s.width);
-            height <- style.update.map(|s| s.height);
-            shadow_extent <- style.update.map(|s| s.shadow_extent);
-            bar_height <- style.update.map(|s| s.bar_height);
-            label_padding <- style.update.map(|s| s.label_padding);
-            label_color <- style.update.map(|s| s.bar_label_color);
-            label_size <- style.update.map(|s| s.bar_label_size);
-            corners_radius <- style.update.map(|s| s.corners_radius);
-            entry_height <- style.update.map(|s| s.entry_height);
-            paddings <- style.update.map(|s| s.paddings);
+            width <- style.map(|s| s.width);
+            height <- style.map(|s| s.height);
+            shadow_extent <- style.map(|s| s.shadow_extent);
+            bar_height <- style.map(|s| s.bar_height);
+            label_padding <- style.map(|s| s.label_padding);
+            label_color <- style.map(|s| s.bar_label_color);
+            label_size <- style.map(|s| s.bar_label_size);
+            corners_radius <- style.map(|s| s.corners_radius);
+            entry_height <- style.map(|s| s.entry_height);
+            paddings <- style.map(|s| s.paddings);
             content_size <- all_with3(&width, &height, &init, |w,h,()| Vector2(*w,*h));
             size <- all_with3(&width, &height, &shadow_extent, |w, h, s|
                 Vector2(w + s * 2.0, h + s * 2.0)
@@ -262,7 +261,6 @@ impl ProjectList {
             grid_y <- all_with3(&content_size, &bar_height, &paddings, |s,h,p| s.y / 2.0 - *h - *p);
             _eval <- all_with(&grid_x, &grid_y, f!((x, y) grid.set_xy(Vector2(*x, *y))));
         }
-        style.init.emit(());
         init.emit(());
 
         Self { network, display_object, background, caption, grid }

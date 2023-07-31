@@ -11,6 +11,7 @@ use crate::node::input::widget::OverrideKey;
 use crate::node::profiling;
 use crate::view;
 use crate::CallWidgetsConfig;
+use crate::GraphLayers;
 use crate::Type;
 
 use enso_frp as frp;
@@ -18,9 +19,7 @@ use enso_frp;
 use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display;
-use ensogl::display::world::with_context;
 use ensogl::gui::cursor;
-use ensogl::Animation;
 use ensogl_component::text;
 use ensogl_component::text::buffer::selection::Selection;
 use ensogl_component::text::FromInContextSnapped;
@@ -39,7 +38,7 @@ pub const TEXT_OFFSET: f32 = 10.0;
 pub const NODE_HEIGHT: f32 = 18.0;
 
 /// Text size used for input area text.
-pub const TEXT_SIZE: f32 = 12.0;
+pub const TEXT_SIZE: f32 = 11.5;
 
 
 
@@ -163,14 +162,13 @@ impl From<node::Expression> for Expression {
 /// Internal model of the port area.
 #[derive(Debug, display::Object)]
 pub struct Model {
-    display_object:            display::object::Instance,
-    edit_mode_label:           text::Text,
-    label_layer:               RefCell<display::scene::layer::WeakLayer>,
-    edit_mode_label_displayed: Cell<bool>,
-    expression:                RefCell<Expression>,
-    styles:                    StyleWatch,
-    styles_frp:                StyleWatchFrp,
-    widget_tree:               widget::Tree,
+    layers:          GraphLayers,
+    display_object:  display::object::Instance,
+    edit_mode_label: text::Text,
+    expression:      RefCell<Expression>,
+    styles:          StyleWatch,
+    styles_frp:      StyleWatchFrp,
+    widget_tree:     widget::Tree,
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
@@ -182,23 +180,20 @@ struct WidgetBind {
 impl Model {
     /// Constructor.
     #[profile(Debug)]
-    pub fn new(app: &Application) -> Self {
+    pub fn new(app: &Application, layers: &GraphLayers) -> Self {
         let display_object = display::object::Instance::new_named("input");
 
         let edit_mode_label = app.new_view::<text::Text>();
-        let label_layer = RefCell::new(app.display.default_scene.layers.label.downgrade());
-        let edit_mode_label_displayed = default();
         let expression = default();
         let styles = StyleWatch::new(&app.display.default_scene.style_sheet);
         let styles_frp = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
         display_object.add_child(&edit_mode_label);
         let widget_tree = widget::Tree::new(app);
-        with_context(|ctx| ctx.layers.widget.add(&widget_tree));
+        let layers = layers.clone_ref();
         Self {
+            layers,
             display_object,
             edit_mode_label,
-            edit_mode_label_displayed,
-            label_layer,
             expression,
             styles,
             styles_frp,
@@ -214,44 +209,27 @@ impl Model {
             let expression = self.expression.borrow();
             self.edit_mode_label.set_content(expression.code.clone());
             self.display_object.remove_child(&self.widget_tree);
-            self.show_edit_mode_label();
+            self.display_object.add_child(&self.edit_mode_label);
+
+            // A workaround to fix the cursor position calculation when clicking into the node:
+            // Since the object is not updated immediately after `add_child`, we need to force
+            // update the node layout for label to be able to calculate cursor position properly.
+            self.display_object.update(&scene());
             self.edit_mode_label.set_cursor_at_mouse_position();
             // [`ensogl_text`] has not been ported to the new focus API yet.
             self.edit_mode_label.deprecated_focus();
         } else {
-            self.hide_edit_mode_label();
+            self.display_object.remove_child(&self.edit_mode_label);
             self.display_object.add_child(&self.widget_tree);
             self.edit_mode_label.set_content("");
         }
-    }
-
-    /// A workaround to fix the cursor position calculation when clicking into the node.
-    ///
-    /// Using standard [`ObjectOps::add_child`] and [`ObjectOps::remove_child`] for
-    /// [`edit_mode_label`] does not allow setting the cursor position in the same frame after
-    /// showing the label, as the position of the display object is not updated yet. To fix this,
-    /// we hide the label by using the `DETACHED` layer so that its position is always kept up to
-    /// date. To show the label, one can use [`Self::show_edit_mode_label`]. (which will move it
-    /// back to the correct scene layer)
-    fn hide_edit_mode_label(&self) {
-        self.edit_mode_label_displayed.set(false);
-        scene().layers.DETACHED.add(&self.edit_mode_label);
-    }
-
-    /// Show the edit mode label by placing it in the correct layer.
-    /// See [`Self::hide_edit_mode_label`].
-    fn show_edit_mode_label(&self) {
-        if let Some(layer) = self.label_layer.borrow().upgrade() {
-            self.edit_mode_label_displayed.set(true);
-            self.edit_mode_label.add_to_scene_layer(&layer);
-        } else {
-            error!("Cannot show edit mode label, the layer is missing.");
-        }
+        self.edit_mode_label.deprecated_set_focus(edit_mode_active);
     }
 
     #[profile(Debug)]
     fn init(self, app: &Application) -> Self {
         let text_color = self.styles.get_color(theme::graph_editor::node::text);
+        let text_cursor_color: color::Lch = text_color.into();
 
         self.edit_mode_label.set_single_line_mode(true);
         app.commands.set_command_enabled(
@@ -260,6 +238,7 @@ impl Model {
             false,
         );
         self.edit_mode_label.set_property_default(text_color);
+        self.edit_mode_label.set_selection_color(text_cursor_color);
         self.edit_mode_label.set_property_default(text::Size(TEXT_SIZE));
         self.edit_mode_label.remove_all_cursors();
 
@@ -268,19 +247,7 @@ impl Model {
         self.widget_tree.set_xy(widgets_origin);
         self.edit_mode_label.set_xy(label_origin);
         self.set_edit_mode(false);
-        self.hide_edit_mode_label();
-
         self
-    }
-
-    fn set_label_layer(&self, layer: &display::scene::Layer) {
-        *self.label_layer.borrow_mut() = layer.downgrade();
-        // Currently, we never sets label layer when it's already displayed, but - as
-        // `set_label_layer` is a public method of this component - we're taking extra measures.
-        // See [`Self::show_edit_mode_label`] and [`Self::hide_edit_mode_label`].
-        if self.edit_mode_label_displayed.get() {
-            self.show_edit_mode_label();
-        }
     }
 
     fn set_connections(&self, map: &HashMap<PortId, color::Lcha>) {
@@ -325,7 +292,12 @@ impl Model {
     /// If the widget tree was marked as dirty since its last update, rebuild it.
     fn rebuild_widget_tree_if_dirty(&self) {
         let expr = self.expression.borrow();
-        self.widget_tree.rebuild_tree_if_dirty(&expr.span_tree, &expr.code, &self.styles);
+        self.widget_tree.rebuild_tree_if_dirty(
+            &expr.span_tree,
+            &expr.code,
+            &self.layers,
+            &self.styles_frp,
+        );
     }
 
     /// Scan node expressions for all known method calls, for which the language server can provide
@@ -354,7 +326,8 @@ impl Model {
         self.widget_tree.rebuild_tree(
             &new_expression.span_tree,
             &new_expression.code,
-            &self.styles,
+            &self.layers,
+            &self.styles_frp,
         );
 
         *self.expression.borrow_mut() = new_expression;
@@ -362,7 +335,7 @@ impl Model {
 
     /// Get hover shapes for all input ports of a node. Mainly used in tests to manually dispatch
     /// mouse events.
-    pub fn port_hover_shapes(&self) -> Vec<super::port::HoverShape> {
+    pub fn port_hover_shapes(&self) -> Vec<Rectangle> {
         self.widget_tree.port_hover_shapes()
     }
 }
@@ -419,9 +392,8 @@ ensogl::define_endpoints! {
         /// colored if the definition type was present.
         set_expression_usage_type (ast::Id,Option<Type>),
 
-        /// Signal a mouse click in the input area. The click position will be determined by the
-        /// current pointer position, and the cursor position will be updated in the text area.
-        mouse_down (),
+        /// Set the primary (background) and secondary (port) node colors.
+        set_node_colors ((color::Lcha, color::Lcha)),
     }
 
     Output {
@@ -472,11 +444,10 @@ pub struct Area {
 impl Area {
     /// Constructor.
     #[profile(Debug)]
-    pub fn new(app: &Application) -> Self {
-        let model = Rc::new(Model::new(app));
+    pub fn new(app: &Application, layers: &GraphLayers) -> Self {
+        let model = Rc::new(Model::new(app, layers));
         let frp = Frp::new();
         let network = &frp.network;
-        let selection_color = Animation::new(network);
 
         frp::extend! { network
             init <- source::<()>();
@@ -582,22 +553,11 @@ impl Area {
             // === View Mode ===
 
             frp.output.source.view_mode <+ frp.set_view_mode;
-
-            in_profiling_mode <- frp.view_mode.map(|m| m.is_profiling());
-            finished          <- frp.set_profiling_status.map(|s| s.is_finished());
-            profiled          <- in_profiling_mode && finished;
-
             model.widget_tree.set_read_only <+ frp.set_read_only;
             model.widget_tree.set_view_mode <+ frp.set_view_mode;
             model.widget_tree.set_profiling_status <+ frp.set_profiling_status;
-
-            use theme::code::syntax;
-            let std_selection_color      = model.styles_frp.get_color(syntax::selection);
-            let profiled_selection_color = model.styles_frp.get_color(syntax::profiling::selection);
-            selection_color_rgba <- profiled.switch(&std_selection_color,&profiled_selection_color);
-
-            selection_color.target          <+ selection_color_rgba.map(|c| color::Lcha::from(c));
-            model.edit_mode_label.set_selection_color <+ selection_color.value.map(|c| color::Lch::from(c));
+            model.widget_tree.node_base_color <+ frp.set_node_colors._0();
+            model.widget_tree.node_port_color <+ frp.set_node_colors._1();
         }
 
         init.emit(());
@@ -623,6 +583,11 @@ impl Area {
         })
     }
 
+    /// An the computed layout size of a specific port.
+    pub fn port_size(&self, port: PortId) -> Vector2<f32> {
+        self.model.port_hover_pointer_style(&Switch::On(port)).map_or_default(|s| s.get_size())
+    }
+
     /// A type of the specified port.
     pub fn port_type(&self, port: PortId) -> Option<Type> {
         self.model.port_type(port)
@@ -631,10 +596,5 @@ impl Area {
     /// Get the span-tree crumbs for the specified port.
     pub fn port_crumbs(&self, port: PortId) -> Option<Crumbs> {
         self.model.expression.borrow().ports_map.get(&port).cloned()
-    }
-
-    /// Set a scene layer for text rendering.
-    pub fn set_label_layer(&self, layer: &display::scene::Layer) {
-        self.model.set_label_layer(layer);
     }
 }

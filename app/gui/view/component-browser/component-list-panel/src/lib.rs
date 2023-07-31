@@ -56,7 +56,7 @@ use ensogl_core::define_endpoints_2;
 use ensogl_core::display;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_core::display::shape::StyleWatchFrp;
-use ensogl_derive_theme::FromTheme;
+use ensogl_core::display::style::FromTheme;
 use ensogl_grid_view as grid_view;
 use ensogl_gui_component::component;
 use ensogl_hardcoded_theme::application::component_browser::component_list_panel as theme;
@@ -346,7 +346,7 @@ impl component::Frp<Model> for Frp {
             let panel_style = Style::from_theme(network, style);
             let grid_style = grid::Style::from_theme(network, style);
             let navigator_style = navigator::Style::from_theme(network, style);
-            style <- all_with3(&panel_style.update, &grid_style.update, &navigator_style.update, |&panel, &grid, &navigator| AllStyles {panel, grid, navigator});
+            style <- all_with3(&panel_style, &grid_style, &navigator_style, |&panel, &grid, &navigator| AllStyles {panel, grid, navigator});
             eval style ((style) model.update_style(style));
             output.size <+ style.map(|style| style.size());
 
@@ -366,9 +366,6 @@ impl component::Frp<Model> for Frp {
             eval_ input.hide (model.blur());
 
         }
-        panel_style.init.emit(());
-        grid_style.init.emit(());
-        navigator_style.init.emit(());
     }
 }
 

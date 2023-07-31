@@ -4,15 +4,16 @@ use crate::display::shape::*;
 use crate::gui::style::*;
 use crate::prelude::*;
 
+use crate::animation::linear_interpolation;
 use crate::application::command::FrpNetworkProvider;
 use crate::control::io::mouse;
 use crate::data::color;
 use crate::define_style;
 use crate::display;
 use crate::display::scene::Scene;
+use crate::display::shape::compound::rectangle;
 use crate::frp;
 use crate::Animation;
-use crate::DEPRECATED_Animation;
 use crate::Easing;
 
 use std::f32::consts::PI;
@@ -48,13 +49,13 @@ define_style! {
     /// label selection. After setting the host to the label, cursor will not follow mouse anymore,
     /// it will inherit its position from the label instead.
     host: display::object::Instance,
+    use_host_layer : bool,
     pointer_events: bool,
     size: Vector2<f32>,
     offset: Vector2<f32>,
     color: color::Lcha,
     radius: f32,
     press: f32,
-    port_selection_layer : bool,
     trash: f32,
     plus: f32,
 }
@@ -69,8 +70,8 @@ impl Style {
         let size = Some(StyleValue::new(size));
         let radius = Some(StyleValue::new(radius));
         let press = Some(StyleValue::new(0.0));
-        let port_selection_layer = Some(StyleValue::new_no_animation(true));
-        Self { host, size, radius, port_selection_layer, press, ..default() }
+        let use_host_layer = Some(StyleValue::new_no_animation(true));
+        Self { host, size, radius, use_host_layer, press, ..default() }
     }
 
     pub fn new_color(color: color::Lcha) -> Self {
@@ -126,6 +127,15 @@ impl Style {
     }
 }
 
+// === Getters ===
+
+impl Style {
+    /// Get the computed cursor size given this style.
+    pub fn get_size(&self) -> Vector2<f32> {
+        self.size.as_ref().and_then(|s| s.value).unwrap_or(DEFAULT_SIZE())
+    }
+}
+
 
 
 // ==================
@@ -136,6 +146,7 @@ impl Style {
 pub mod shape {
     use super::*;
     crate::shape! {
+        below = [rectangle];
         pointer_events_instanced = true;
         alignment = center; (
             style: Style,
@@ -200,6 +211,7 @@ crate::define_endpoints_2! {
         scene_position        (Vector3),
          /// Change between the current and the previous scene position.
         scene_position_delta  (Vector3),
+        box_size              (Vector2),
         start_drag(),
         stop_drag(),
         is_dragging(bool),
@@ -216,14 +228,14 @@ crate::define_endpoints_2! {
 #[derive(Clone, CloneRef, Debug, display::Object)]
 #[allow(missing_docs)]
 pub struct CursorModel {
-    pub scene:          Scene,
-    pub display_object: display::object::Instance,
-    pub dragged_elem:   display::object::Instance,
-    pub view:           shape::View,
-    pub port_selection: shape::View,
-    pub style:          Rc<RefCell<Style>>,
-    pub dragged_item:   Rc<RefCell<Option<(Box<dyn Any>, display::object::Instance)>>>,
-    frp:                WeakFrp,
+    pub scene:           Scene,
+    pub display_object:  display::object::Instance,
+    pub dragged_elem:    display::object::Instance,
+    pub view:            shape::View,
+    pub host_layer_view: shape::View,
+    pub style:           Rc<RefCell<Style>>,
+    pub dragged_item:    Rc<RefCell<Option<(Box<dyn Any>, display::object::Instance)>>>,
+    frp:                 WeakFrp,
 }
 
 impl CursorModel {
@@ -233,23 +245,30 @@ impl CursorModel {
         let display_object = display::object::Instance::new_no_debug();
         let dragged_elem = display::object::Instance::new_named("dragged_elem");
         let view = shape::View::new();
-        let port_selection = shape::View::new();
+        let host_layer_view = shape::View::new();
         let style = default();
 
         display_object.add_child(&view);
-        display_object.add_child(&port_selection);
         scene.add_child(&dragged_elem);
-        let tgt_layer = &scene.layers.cursor;
-        let port_selection_layer = &scene.layers.port_selection;
-        tgt_layer.add(&view);
-        port_selection_layer.add(&port_selection);
+        scene.layers.cursor.add(&view);
+        // host_layer_view is intentionally not assigned to any layer yet. Instead, it is assigned
+        // on demand once a cursor is in host-attached mode.
 
         let dragged_item = default();
-        Self { scene, display_object, dragged_elem, view, port_selection, style, dragged_item, frp }
+        Self {
+            scene,
+            display_object,
+            dragged_elem,
+            view,
+            host_layer_view,
+            style,
+            dragged_item,
+            frp,
+        }
     }
 
     fn for_each_view(&self, f: impl Fn(&shape::View)) {
-        for view in &[&self.view, &self.port_selection] {
+        for view in &[&self.view, &self.host_layer_view] {
             f(view)
         }
     }
@@ -297,29 +316,25 @@ impl Cursor {
         //     attached, cursor moves with the same speed as the scene when panning.
         //
         let press = Animation::<f32>::new(network);
-        let radius = DEPRECATED_Animation::<f32>::new(network);
-        let size = DEPRECATED_Animation::<Vector2>::new(network);
-        let offset = DEPRECATED_Animation::<Vector2>::new(network);
-        let color_lab = DEPRECATED_Animation::<Vector3>::new(network);
-        let color_alpha = DEPRECATED_Animation::<f32>::new(network);
-        let inactive_fade = DEPRECATED_Animation::<f32>::new(network);
-        let host_position = DEPRECATED_Animation::<Vector3>::new(network);
-        let host_follow_weight = DEPRECATED_Animation::<f32>::new(network);
+        let radius = Animation::<f32>::new(network);
+        let size = Animation::<Vector2>::new(network);
+        let offset = Animation::<Vector2>::new(network);
+        let color = color::Animation::new(network);
+        let inactive_fade = Animation::<f32>::new(network);
+        let host_position = Animation::<Vector3>::new(network);
+        let host_follow_weight = Animation::<f32>::new(network);
         let host_attached_weight = Easing::new(network);
-        let port_selection_layer_weight = Animation::<f32>::new(network);
+        let custom_layer_weight = Animation::<f32>::new(network);
         let trash = Animation::<f32>::new(network);
         let plus = Animation::<f32>::new(network);
 
-        host_attached_weight.set_duration(300.0);
-        color_lab.set_target_value(DEFAULT_COLOR.opaque.into());
-        color_alpha.set_target_value(DEFAULT_COLOR.alpha);
-        radius.set_target_value(DEFAULT_RADIUS);
-        size.set_target_value(DEFAULT_SIZE());
 
-        let fade_out_spring = inactive_fade.spring() * 0.2;
-        let fade_in_spring = inactive_fade.spring();
+        let fade_out_spring = inactive_fade.simulator.spring() * 0.2;
+        let fade_in_spring = inactive_fade.simulator.spring();
 
         let on_up = scene.on_event::<mouse::Up>();
+
+        let cursor_camera = scene.layers.cursor.camera();
 
         frp::extend! { network
 
@@ -370,20 +385,13 @@ impl Cursor {
             eval trash.value ((v) model.for_each_view(|vw| vw.trash.set(*v)));
             eval plus.value ((v) model.for_each_view(|vw| vw.plus.set(*v)));
 
-            alpha <- all_with(&color_alpha.value,&inactive_fade.value,|s,t| s*t);
-
-            anim_color <- all_with(&color_lab.value,&alpha,
-                |lab,alpha| color::Rgba::from(color::Laba::new(lab.x,lab.y,lab.z,*alpha))
-            );
-            front_color <- all_with(&anim_color,&port_selection_layer_weight.value, |color,w| {
-                color::Rgba::new(color.red,color.green,color.blue,color.alpha*(1.0 - w))
-            });
-            port_selection_color <- all_with(&anim_color,&port_selection_layer_weight.value, |color,w| {
-                color::Rgba::new(color.red,color.green,color.blue,color.alpha*w)
-            });
+            let weight = &custom_layer_weight.value;
+            anim_color <- color.value.all_with(&inactive_fade.value, |c, f| c.multiply_alpha(*f));
+            front_color <- anim_color.all_with(weight, |c, w| c.multiply_alpha(1.0 - w));
+            custom_layer_color <- anim_color.all_with(weight, |c,w| c.multiply_alpha(*w));
 
             style <- frp.set_style_override.unwrap_or(&frp.set_style);
-            eval style([host_attached_weight,size,offset,model] (new_style) {
+            eval style([host_attached_weight,size,offset,color,radius,model] (new_style) {
                 host_attached_weight.stop_and_rewind(0.0);
                 if new_style.host.is_some() { host_attached_weight.target(1.0) }
 
@@ -401,45 +409,41 @@ impl Cursor {
 
                 match &new_style.color {
                     None => {
-                        color_lab.set_target_value(DEFAULT_COLOR.opaque.into());
-                        color_alpha.set_target_value(DEFAULT_COLOR.alpha);
+                        color.target.emit(DEFAULT_COLOR);
                     }
                     Some(t) => {
                         let value = t.value.unwrap_or(DEFAULT_COLOR);
-                        let lab = color::Laba::from(value);
-                        color_lab.set_target_value(Vector3::new(lab.lightness,lab.a,lab.b));
-                        color_alpha.set_target_value(lab.alpha);
+                        color.target.emit(value);
                         if !t.animate {
-                            color_lab.skip();
-                            color_alpha.skip();
+                            color.skip.emit(());
                         }
                     }
                 }
 
                 match &new_style.size {
-                    None => size.set_target_value(DEFAULT_SIZE()),
+                    None => size.target.emit(DEFAULT_SIZE()),
                     Some(t) => {
                         let value = t.value.unwrap_or_else(DEFAULT_SIZE);
-                        size.set_target_value(Vector2(value.x,value.y));
-                        if !t.animate { size.skip() }
+                        size.target.emit(Vector2(value.x,value.y));
+                        if !t.animate { size.skip.emit(()) }
                     }
                 }
 
                 match &new_style.offset {
-                    None => offset.set_target_value(default()),
+                    None => offset.target.emit(Vector2::zero()),
                     Some(t) => {
                         let value = t.value.unwrap_or_default();
-                        offset.set_target_value(Vector2(value.x,value.y));
-                        if !t.animate { offset.skip() }
+                        offset.target.emit(Vector2(value.x,value.y));
+                        if !t.animate { offset.skip.emit(()) }
                     }
                 }
 
                 match &new_style.radius {
-                    None => radius.set_target_value(DEFAULT_RADIUS),
+                    None => radius.target.emit(DEFAULT_RADIUS),
                     Some(t) => {
                         let value = t.value.unwrap_or(DEFAULT_RADIUS);
-                        radius.set_target_value(value);
-                        if !t.animate { radius.skip() }
+                        radius.target.emit(value);
+                        if !t.animate { radius.skip.emit(()) }
                     }
                 }
 
@@ -463,59 +467,69 @@ impl Cursor {
                 *model.style.borrow_mut() = new_style.clone();
             });
 
-            port_selection_layer_weight.target <+ frp.set_style.map(|new_style| {
-                let val_opt = new_style.port_selection_layer.as_ref().and_then(|t| t.value);
-                let val     = val_opt.unwrap_or(false);
-                if val {1.0} else {0.0}
+            host_instance <- frp.set_style.map(|style| style.host.clone()?.value).on_change();
+            host_layer_to_use <- frp.set_style.map(|new_style| {
+                let true = new_style.use_host_layer.clone()?.value? else { return None };
+                let host = new_style.host.as_ref()?.value.as_ref()?;
+                let host_layer = host.display_layer()?;
+                Some(host_layer.downgrade())
             });
-            port_selection_layer_weight.skip <+ frp.set_style.filter(|new_style|
-                new_style.port_selection_layer.as_ref().map_or(false, |t| !t.animate)
+            host_camera <- host_layer_to_use.and_then(|layer| Some(layer.upgrade()?.camera()));
+            set_host_layer <- host_layer_to_use.unwrap().on_change();
+            eval set_host_layer([model] (layer) {
+                if let Some(layer) = layer.upgrade() {
+                    layer.add(&model.host_layer_view)
+                }
+            });
+
+            custom_layer_weight.target <+ host_layer_to_use.is_some().switch_constant(0.0, 1.0);
+            custom_layer_weight.skip <+ frp.set_style.filter(|new_style|
+                new_style.use_host_layer.as_ref().map_or(false, |t| !t.animate)
             ).constant(());
-
-            host_changed    <- any_(frp.set_style,scene.frp.camera_changed);
-            is_not_hosted   <- host_changed.map(f!((_) model.style.borrow().host.is_none()));
-            mouse_pos_rt    <- mouse.position.gate(&is_not_hosted);
-            host_moved      <- host_changed.flat_map(f!([model] (_) {
-                match model.style.borrow().host.as_ref().and_then(|t|t.value.as_ref()) {
-                    None       => frp::Source::<()>::new().into(),
-                    Some(host) => host.on_transformed.clone(),
-                }
-            }));
-
-            host_needs_update <- any(host_moved, host_changed);
-            eval_ host_needs_update([model,host_position,host_follow_weight] {
-                match model.style.borrow().host.as_ref().and_then(|t|t.value.as_ref()) {
-                    None       => host_follow_weight.set_target_value(0.0),
-                    Some(host) => {
-                        host_follow_weight.set_target_value(1.0);
-                        let m1       = model.scene.layers.cursor.camera().inversed_view_matrix();
-                        let m2       = model.scene.camera().view_matrix();
-                        let position = host.global_position();
-                        let size = host.computed_size();
-                        let position = Vector4::new(
-                            position.x + size.x * 0.5,
-                            position.y + size.y * 0.5,
-                            position.z,
-                            1.0
-                        );
-                        let position = m2 * (m1 * position);
-                        host_position.set_target_value(position.xyz());
-                    }
+            show_host_layer_view <- custom_layer_weight.value.map(|w| *w >= 0.01).on_change();
+            eval show_host_layer_view([model, scene] (show) {
+                if *show {
+                    scene.add_child(&model.host_layer_view);
+                } else {
+                    scene.remove_child(&model.host_layer_view);
                 }
             });
 
-            host_attached <- host_changed.all_with3
-                (&host_attached_weight.value,&host_position.value, f!((_,weight,pos_anim) {
-                    host_position.target_value() * *weight + pos_anim * (1.0 - weight)
+            is_not_hosted   <- host_instance.is_none();
+            mouse_pos_rt    <- mouse.position.gate(&is_not_hosted);
+            host_moved      <- host_instance.flat_map(|host| match host {
+                None => frp::Source::<()>::new().into(),
+                Some(host) => host.on_transformed.clone(),
+            });
+            last_known_host_camera <- host_camera.unwrap();
+            transformed_host_position <- all_with4(
+                &host_moved, &scene.frp.camera_changed,
+                &host_instance, &last_known_host_camera,
+                f!([cursor_camera] (_, _, host, host_camera) {
+                    let host = host.as_ref()?;
+                    let m1 = cursor_camera.inversed_view_matrix();
+                    let m2 = host_camera.view_matrix();
+                    let half_size = host.computed_size() * 0.5;
+                    let position = host.global_position() + half_size.push(0.0);
+                    let transformed = m2 * (m1 * position.push(1.0));
+                    Some(transformed.xyz())
                 })
+            ).unwrap();
+
+            host_follow_weight.target <+ host_camera.is_some().switch_constant(0.0, 1.0);
+            host_position.target <+ transformed_host_position;
+            host_position.target <+ mouse_pos_rt.map(|t| Vector3(t.x,t.y,0.0));
+
+            host_attached <- all_with3(
+                &host_attached_weight.value, &host_position.value, &transformed_host_position,
+                |weight, animated, target| linear_interpolation(*animated, *target, *weight)
             );
 
-            position <- mouse.position.all_with4
-                (&host_attached,&host_follow_weight.value,&offset.value,
+            position <- mouse.position.all_with4(
+                &host_attached, &host_follow_weight.value, &offset.value,
                 |pos_rt,pos_attached,weight,offset| {
-                    let pos_rt = Vector2(pos_rt.x,pos_rt.y) + *offset;
-                    let pos_rt = Vector3(pos_rt.x,pos_rt.y,0.0);
-                    *pos_attached * *weight + pos_rt * (1.0 - weight)
+                    let pos_rt = pos_rt.xy() + *offset;
+                    linear_interpolation(pos_rt.push(0.0), *pos_attached, *weight)
                 }
             );
 
@@ -528,8 +542,8 @@ impl Cursor {
             //   ╲──┤ z = position.z
             //    ╲ │
             //     ╲│ z = camera.z
-            screen_position <- position.map(f!([model](position) {
-                let cam_pos = model.scene.layers.cursor.camera().position();
+            screen_position <- position.map(f!([cursor_camera] (position) {
+                let cam_pos = cursor_camera.position();
                 let z_diff = cam_pos.z - position.z;
                 if z_diff == 0.0 {
                     Vector3::zero()
@@ -539,7 +553,9 @@ impl Cursor {
                 }
             }));
 
-            scene_position       <- screen_position.map(f!((p) scene.screen_to_scene_coordinates(*p)));
+            scene_position <- screen_position.all_with(&scene.frp.camera_changed,
+                f!((p, _) scene.screen_to_scene_coordinates(*p))
+            ).on_change();
             scene_position_prev  <- scene_position.previous();
             scene_position_delta <- scene_position.map2(&scene_position_prev, |p1,p2| p2 - p1);
 
@@ -551,22 +567,32 @@ impl Cursor {
             check_fade_time        <- time_since_last_action.gate(&mouse.ever_moved);
             _eval <- check_fade_time.map2(&frp.set_style, f!([inactive_fade](time,style) {
                 if *time > FADE_OUT_TIME && style.is_default() {
-                    inactive_fade.set_spring(fade_out_spring);
-                    inactive_fade.set_target_value(0.0)
+                    inactive_fade.set_spring.emit(fade_out_spring);
+                    inactive_fade.target.emit(0.0)
                 } else {
-                    inactive_fade.set_spring(fade_in_spring);
-                    inactive_fade.set_target_value(1.0)
+                    inactive_fade.set_spring.emit(fade_in_spring);
+                    inactive_fade.target.emit(1.0)
                 }
             }));
+
+            position_in_host_camera <- map2(&position, &last_known_host_camera,
+                f!([cursor_camera] (position, host_camera) {
+                    let m1 = cursor_camera.view_matrix();
+                    let m2 = host_camera.inversed_view_matrix();
+                    let position = m2 * (m1 * position.push(1.0));
+                    Some(position.xyz())
+                })
+            ).unwrap();
+
 
 
             // === Evals ===
 
-            eval mouse_pos_rt         ((t) host_position.set_target_value(Vector3(t.x,t.y,0.0)));
-            eval position             ((t) model.display_object.set_position(*t));
-            eval front_color          ((t) model.view.color.set(t.into()));
-            eval port_selection_color ((t) model.port_selection.color.set(t.into()));
-            eval_ screen_position     (model.update_drag_position());
+            eval position ((t) model.display_object.set_position(*t));
+            eval position_in_host_camera ((t) model.host_layer_view.set_position(*t));
+            eval front_color ((t) model.view.color.set(color::Rgba::from(t).into()));
+            eval custom_layer_color ((t) model.host_layer_view.color.set(color::Rgba::from(t).into()));
+            eval_ screen_position (model.update_drag_position());
 
             // === Outputs ===
 
@@ -575,11 +601,15 @@ impl Cursor {
             frp.private.output.scene_position       <+ scene_position;
             frp.private.output.scene_position_delta <+ scene_position_delta;
             frp.private.output.is_dragging <+ bool(&frp.stop_drag, &frp.start_drag);
+            frp.private.output.box_size <+ size.value;
         }
 
         // Hide on init.
-        inactive_fade.set_target_value(0.0);
-        inactive_fade.skip();
+        host_attached_weight.set_duration(300.0);
+        color.target.emit(DEFAULT_COLOR);
+        radius.target.emit(DEFAULT_RADIUS);
+        size.target.emit(DEFAULT_SIZE());
+        inactive_fade.target.emit(0.0);
 
         frp.set_style.emit(Style::default());
         let model = Rc::new(model);

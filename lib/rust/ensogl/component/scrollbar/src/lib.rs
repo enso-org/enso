@@ -25,14 +25,33 @@ use ensogl_core::animation::delayed::DelayedAnimation;
 use ensogl_core::animation::overshoot::OvershootAnimation;
 use ensogl_core::application;
 use ensogl_core::application::Application;
+use ensogl_core::control::io::mouse;
 use ensogl_core::data::color;
 use ensogl_core::display;
+use ensogl_core::display::shape::Rectangle;
 use ensogl_core::display::shape::StyleWatchFrp;
 use ensogl_hardcoded_theme as theme;
-use ensogl_selector as selector;
-use ensogl_selector::model::Model;
 use ensogl_selector::Bounds;
 
+
+
+// =============
+// === Style ===
+// =============
+
+#[derive(Debug, Clone, Copy, Default, FromTheme)]
+struct Style {
+    #[theme_path = "theme::component::slider::overshoot_limit"]
+    overshoot_limit:  f32,
+    #[theme_path = "theme::component::slider::track::color"]
+    default_color:    color::Lcha,
+    #[theme_path = "theme::component::slider::track::hover_color"]
+    hover_color:      color::Lcha,
+    #[theme_path = "theme::component::slider::background::color"]
+    bg_default_color: color::Lcha,
+    #[theme_path = "theme::component::slider::background::hover_color"]
+    bg_hover_color:   color::Lcha,
+}
 
 
 // =================
@@ -98,38 +117,16 @@ ensogl_core::define_endpoints! {
 
 impl Frp {
     /// Initialize the FRP network.
-    pub fn init(&self, app: &Application, model: &Model, style: &StyleWatchFrp) {
+    fn init(&self, app: &Application, model: &Rc<Model>, style: &StyleWatchFrp) {
         let frp = &self;
         let network = &frp.network;
         let scene = &app.display.default_scene;
-        let mouse = &scene.mouse.frp_deprecated;
         let thumb_position = OvershootAnimation::new(network);
-        let thumb_color = color::Animation::new(network);
-        let background_color = color::Animation::new(network);
         let activity_cool_off = DelayedAnimation::new(network);
         activity_cool_off.frp.set_delay(HIDE_DELAY);
         activity_cool_off.frp.set_duration(0.0);
 
-
-        frp::extend! { network
-            resize <- frp.set_length.map(|&length| Vector2::new(length,WIDTH));
-        }
-
-        let base_frp = selector::Frp::new(app, model, style, network, resize.clone(), mouse);
-
-        model.use_track_handles(false);
-        model.set_track_corner_round(true);
-        model.show_background(true);
-        model.show_shadow(false);
-        model.show_left_overflow(false);
-        model.show_right_overflow(false);
-        model.set_padding(PADDING);
-
-        let overshoot_limit = style.get_number(theme::component::slider::overshoot_limit);
-        let default_color = style.get_color(theme::component::slider::track::color);
-        let hover_color = style.get_color(theme::component::slider::track::hover_color);
-        let bg_default_color = style.get_color(theme::component::slider::background::color);
-        let bg_hover_color = style.get_color(theme::component::slider::background::hover_color);
+        let style = Style::from_theme(network, style);
 
         let click_and_hold_timer = frp::io::timer::DelayedInterval::new(network);
         let click_and_hold_config = frp::io::timer::DelayedIntervalConfig::new(
@@ -139,14 +136,28 @@ impl Frp {
 
         frp::extend! { network
 
-            init_theme <- any_mut::<()>();
+            // == Mouse events ==
+
+            let track_over = model.track.on_event::<mouse::Over>();
+            let track_out = model.track.on_event::<mouse::Out>();
+            let track_down = model.track.on_event::<mouse::Down>();
+            let background_down = model.background.on_event::<mouse::Down>();
+            let scene_up = scene.on_event::<mouse::Up>();
+            let mouse_move = scene.on_event::<mouse::Move>();
+
+            track_hover <- bool(&track_out, &track_over).on_change();
+            is_dragging_track <- bool(&scene_up, &track_down).on_change();
+            is_dragging_background <- bool(&scene_up, &background_down).on_change();
+
+
+            // == Thumb position ==
 
             // Overshoot control
             bar_not_filled <- all_with(&frp.set_thumb_size, &frp.set_max, |&size, &max| size < max);
             overshoot_enabled <- frp.set_overshoot_enabled && bar_not_filled;
 
             // Scrolling and Jumping
-            thumb_position.set_overshoot_limit <+ all(&overshoot_limit, &init_theme)._0();
+            thumb_position.set_overshoot_limit <+ style.map(|s| s.overshoot_limit);
             thumb_position.soft_change_by <+ frp.scroll_by.gate(&overshoot_enabled);
             thumb_position.hard_change_by <+ frp.scroll_by.gate_not(&overshoot_enabled);
             thumb_position.hard_change_to <+ any(&frp.scroll_to,&frp.jump_to);
@@ -159,8 +170,9 @@ impl Frp {
 
             // === Mouse position in local coordinates ===
 
-            mouse_position <- mouse.position.map(f!([scene,model](pos)
-                scene.screen_to_object_space(&model,*pos)));
+            mouse_position <- mouse_move.map(f!([scene, model] (event)
+                scene.screen_to_object_space(&model.display_object, event.client_centered())
+            ));
 
             // We will initialize the mouse position with `Vector2(f32::NAN,f32::NAN)`, because the
             // default `Vector2(0.0,0.0)` would reveal the scrollbar before we get the actual mouse
@@ -168,19 +180,6 @@ impl Frp {
             init_mouse_position <- source::<Vector2>();
             mouse_position      <- any(&mouse_position,&init_mouse_position);
 
-
-            // === Color ===
-
-            default_color <- all(&default_color,&init_theme)._0().map(|c| color::Lcha::from(*c));
-            hover_color   <- all(&hover_color,&init_theme)._0().map(|c| color::Lcha::from(*c));
-            bg_default_color <- all(&bg_default_color,&init_theme)._0().map(|c| color::Lcha::from(*c));
-            bg_hover_color   <- all(&bg_hover_color,&init_theme)._0().map(|c| color::Lcha::from(*c));
-
-            engaged                  <- base_frp.track_hover || base_frp.is_dragging_track;
-            thumb_color.target_color <+ engaged.switch(&default_color,&hover_color).map(|c| c.opaque);
-            background_color.target_color <+ engaged.switch(&bg_default_color,&bg_hover_color).map(|c| c.opaque);;
-            eval thumb_color.value((c) model.set_track_color(color::Rgba::from(*c)));
-            eval background_color.value((c) model.set_background_color(color::Rgba::from(*c)));
 
             // === Hiding ===
 
@@ -203,19 +202,31 @@ impl Frp {
             // from the sides. This could be handled differently, but the solution was chosen for
             // the simplicity of the implementation and the feeling of the interaction.
             vert_mouse_distance <- all_with(&mouse_position,&frp.set_length,|&pos,&length| {
-                let scrollbar_x_range = (-length/2.0)..=(length/2.0);
+                let scrollbar_x_range = 0.0..=length;
                 if scrollbar_x_range.contains(&pos.x) {
-                    pos.y.abs() - WIDTH / 2.0
+                    (pos.y - WIDTH / 2.0).abs() - WIDTH / 2.0
                 } else {
                     f32::INFINITY
                 }
             });
 
-            target_alpha <- all_with5(&recently_active,&base_frp.is_dragging_track,
-                &vert_mouse_distance,&frp.set_thumb_size,&frp.set_max,Self::compute_target_alpha);
-            thumb_color.target_alpha <+ target_alpha.map2(&default_color, |target_alpha,base_color| target_alpha*base_color.alpha);
-            background_color.target_alpha <+ target_alpha.map2(&bg_default_color, |target_alpha,base_color| target_alpha*base_color.alpha);;
 
+            // === Color ===
+
+            engaged <- track_hover || is_dragging_track;
+            alpha <- all_with5(&recently_active,&is_dragging_track,
+                &vert_mouse_distance,&frp.set_thumb_size,&frp.set_max,Self::compute_target_alpha);
+            target_colors <- all_with3(&style, &engaged, &alpha, |s, &engaged, &alpha| {
+                let thumb = if engaged { s.hover_color } else { s.default_color };
+                let bg = if engaged { s.bg_hover_color } else { s.bg_default_color };
+                (thumb.multiply_alpha(alpha), bg.multiply_alpha(alpha))
+            });
+            let thumb_color = color::Animation::new(network);
+            let background_color = color::Animation::new(network);
+            thumb_color.target <+ target_colors._0();
+            background_color.target <+ target_colors._1();
+            eval thumb_color.value((c) model.set_track_color(c.into()));
+            eval background_color.value((c) model.set_background_color(c.into()));
         }
         frp::extend! { network
 
@@ -233,28 +244,30 @@ impl Frp {
             // The size at which we render the thumb on screen, in normalized units. Can differ from
             // the actual thumb size if the thumb is smaller than the min.
             visual_size         <- all_with(&normalized_size,&min_visual_size,|&size,&min|
-                size.clamp(min, 1.0));
+                size.min(1.0).max(min));
             // The position at which we render the thumb on screen, in normalized units.
             visual_start        <- all_with(&normalized_position,&visual_size,|&pos,&size|
                 pos * (1.0 - size));
             visual_bounds       <- all_with(&visual_start,&visual_size,|&start,&size|
                 Bounds::new(start,start+size));
             visual_center       <- visual_bounds.map(|bounds| bounds.center());
-            thumb_center_px     <- all_with(&visual_center,&inner_length, |normalized,length|
-                (normalized - 0.5) * length);
+            thumb_center_px     <- all_with(&visual_center,&inner_length,
+                |normalized,length| normalized * length);
 
             // Because of overshoot, we want to further clamp true visual bounds, so the thumb does
             // not go outside the bar. We want to only limit the bounds we use for drawing the thumb
             // itself, without influencing other logic that depends on true thumb size or position.
             clamped_visual_bounds <- visual_bounds.map(|bounds|
                 Bounds::new(bounds.start.max(0.0), bounds.end.min(1.0)));
-            update_slider <- all(&clamped_visual_bounds,&resize);
-            eval update_slider(((value,size)) model.set_background_range(*value,*size));
+            size <- frp.set_length.map(|&length| Vector2::new(length,WIDTH));
+            update_slider <- all(&clamped_visual_bounds,&size);
+            eval update_slider(((value,size)) model.update_layout(*value,*size));
 
 
             // === Clicking ===
 
-            frp.scroll_by <+ base_frp.background_click.map3(&thumb_center_px,&frp.set_thumb_size,
+            background_click <- mouse_position.sample(&background_down);
+            frp.scroll_by <+ background_click.map3(&thumb_center_px,&frp.set_thumb_size,
                 |click_position,thumb_center,thumb_size| {
                     let direction = if click_position.x > *thumb_center { 1.0 } else { -1.0 };
                     direction * thumb_size * CLICK_JUMP_PERCENTAGE
@@ -263,9 +276,9 @@ impl Frp {
 
             // === Click and hold repeated scrolling ===
 
-            background_drag_start <- base_frp.is_dragging_background.on_true();
+            background_drag_start <- is_dragging_background.on_true();
             click_and_hold_timer.restart <+ background_drag_start.constant(click_and_hold_config);
-            click_and_hold_timer.stop <+ base_frp.is_dragging_background.on_false();
+            click_and_hold_timer.stop <+ is_dragging_background.on_false();
 
             mouse_pos_at_timer_trigger <- mouse_position.sample(&click_and_hold_timer.on_trigger);
             offset_from_thumb_px <- mouse_pos_at_timer_trigger.map2(&thumb_center_px,
@@ -284,7 +297,7 @@ impl Frp {
 
             // === Dragging ===
 
-            drag_started <- base_frp.is_dragging_track.on_change().on_true().constant(());
+            drag_started <- is_dragging_track.on_change().on_true().constant(());
             x            <- all4(&mouse_position,&inner_length,&frp.set_max,&frp.thumb_position);
             x            <- x.sample(&drag_started);
             drag_offset  <- x.map(|(mouse_px,length_px,max,thumb_pos)| {
@@ -292,7 +305,7 @@ impl Frp {
                     mouse_px.x - thumb_position_px
                 });
             x           <- all4(&mouse_position,&drag_offset,&inner_length,&frp.set_max);
-            x           <- x.gate(&base_frp.is_dragging_track);
+            x           <- x.gate(&is_dragging_track);
             frp.jump_to <+ x.map(|(mouse_px,offset_px,length_px,max)| {
                     let target_px = mouse_px.x - offset_px;
                     target_px / length_px * max
@@ -307,7 +320,6 @@ impl Frp {
         frp.set_thumb_size(0.2);
         frp.set_max(1.0);
         init_mouse_position.emit(Vector2(f32::NAN, f32::NAN));
-        init_theme.emit(());
     }
 
     fn compute_target_alpha(
@@ -364,7 +376,7 @@ pub struct Scrollbar {
 impl Scrollbar {
     /// Constructor.
     pub fn new(app: &Application) -> Self {
-        let model = Rc::new(Model::new(app));
+        let model = Rc::new(Model::new());
         let frp = Frp::default();
         let style = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
         frp.init(app, &model, &style);
@@ -393,5 +405,42 @@ impl application::View for Scrollbar {
 
     fn new(app: &Application) -> Self {
         Scrollbar::new(app)
+    }
+}
+
+#[derive(Debug, display::Object)]
+struct Model {
+    display_object: display::object::Instance,
+    background:     Rectangle,
+    track:          Rectangle,
+}
+
+impl Model {
+    fn new() -> Self {
+        let display_object = display::object::Instance::new_named("Scrollbar");
+        let track = Rectangle();
+        let background = Rectangle();
+        background.allow_grow().set_alignment_center();
+        track.set_inset(PADDING).set_corner_radius_max();
+        display_object.add_child(&background);
+        display_object.add_child(&track);
+        Self { display_object, background, track }
+    }
+
+    fn set_track_color(&self, color: color::Rgba) {
+        self.track.set_color(color);
+    }
+
+    fn set_background_color(&self, color: color::Rgba) {
+        self.background.set_color(color);
+    }
+
+    fn update_layout(&self, value: Bounds, size: Vector2) {
+        let start_px = value.start * size.x;
+        let end_px = value.end * size.x;
+        let length_px = end_px - start_px;
+        self.display_object.set_size(size);
+        self.track.set_size(Vector2(length_px, size.y));
+        self.track.set_xy((start_px, 0.0));
     }
 }

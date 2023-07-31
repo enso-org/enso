@@ -104,14 +104,10 @@ impl Model {
         display_object.add_child(&track);
         display_object.add_child(&right_overflow);
 
-        scene.layers.main.remove(&label_left);
-        label_left.add_to_scene_layer(&scene.layers.label);
-        scene.layers.main.remove(&label_right);
-        label_right.add_to_scene_layer(&scene.layers.label);
-        scene.layers.main.remove(&caption_left);
-        caption_left.add_to_scene_layer(&scene.layers.label);
-        scene.layers.main.remove(&caption_center);
-        caption_center.add_to_scene_layer(&scene.layers.label);
+        scene.layers.label.add(&label_left);
+        scene.layers.label.add(&label_right);
+        scene.layers.label.add(&caption_left);
+        scene.layers.label.add(&caption_center);
 
         Self {
             background,

@@ -25,10 +25,14 @@ enso-shapely = { path = "../../shapely" }
 enso-shortcuts = { path = "../../shortcuts" }
 enso-types = { path = "../../types" }
 enso-web = { path = "../../web" }
+# FIXME: This derive should not be in "app", since it is part of the core theme system. Likely the whole theme system
+# should be moved to its own dedicated crate.
+ensogl-derive-theme = { path = "../app/theme/derive" }
 ensogl-derive = { path = "../derive" }
 ensogl-text-embedded-fonts = { path = "../component/text/src/font/embedded" }
 bit_field = { version = "0.10.0" }
 bitflags = { workspace = true }
+bytemuck = { workspace = true }
 console_error_panic_hook = { workspace = true }
 enum_dispatch = { version = "0.3.6" }
 failure = { workspace = true }

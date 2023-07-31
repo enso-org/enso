@@ -301,11 +301,7 @@ impl<'a> Builder<'a> {
             groups.len() - 1
         });
         for snippet in snippets {
-            let component = Component {
-                suggestion: component::Suggestion::Virtual { snippet },
-                group_id:   Some(group_index),
-                match_info: Default::default(),
-            };
+            let component = Component::new_virtual(snippet, group_index);
             self.built_list.displayed_by_default.push(component.clone());
             self.built_list.components.push(component);
         }
@@ -395,8 +391,12 @@ mod tests {
 
     fn check_filterable_components(list: &component::List, mut expected: Vec<&str>) {
         expected.sort();
-        let components =
-            list.components.iter().map(|component| component.label()).sorted().collect_vec();
+        let components = list
+            .components
+            .iter()
+            .map(|component| component.matched_label().text)
+            .sorted()
+            .collect_vec();
         assert_eq!(components, expected);
     }
 

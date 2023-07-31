@@ -516,11 +516,11 @@ impl Font {
         }
     }
 
-    /// Get number of rows in MSDF texture.
-    pub fn msdf_texture_rows(&self) -> usize {
+    /// Get the font MSDF atlas texture.
+    pub fn msdf_texture(&self) -> &msdf::Texture {
         match self {
-            Font::NonVariable(font) => font.msdf_texture_rows(),
-            Font::Variable(font) => font.msdf_texture_rows(),
+            Font::NonVariable(font) => &font.atlas,
+            Font::Variable(font) => &font.atlas,
         }
     }
 
@@ -693,11 +693,6 @@ impl<F: Family> FontTemplate<F> {
     /// A whole MSDF texture bound for this font.
     pub fn with_borrowed_msdf_texture_data<R>(&self, operation: impl FnOnce(&[u8]) -> R) -> R {
         self.atlas.with_borrowed_data(operation)
-    }
-
-    /// Get number of rows in MSDF texture.
-    pub fn msdf_texture_rows(&self) -> usize {
-        self.atlas.rows()
     }
 }
 

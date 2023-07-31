@@ -162,7 +162,7 @@ impl Data {
         icon.set_size((icon::SIZE, icon::SIZE));
         label.set_long_text_truncation_mode(true);
         if let Some(layer) = text_layer {
-            label.add_to_scene_layer(layer);
+            layer.add(&label);
         }
         Self { display_object, label, background, icon, style }
     }
