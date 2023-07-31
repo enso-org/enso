@@ -2041,7 +2041,6 @@ impl GraphEditorModel {
         self.with_node(node_id, |node| {
             let node_model = node.view.model();
             if node_model.output.whole_expr_id().contains(&ast_id) {
-                console_log!("Set new type no node {node_id}: {maybe_type:?}");
                 let enso_type = maybe_type.as_ref().map(|tp| enso::Type::new(&tp.0));
                 node_model.visualization.frp.set_vis_input_type(enso_type);
             }
