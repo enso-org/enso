@@ -147,13 +147,16 @@ type KnownEvent = KnownEventsMap[keyof KnownEventsMap]
 export function useEvent<T extends KnownEvent>(): [events: T[], dispatchEvent: (event: T) => void] {
     const [events, setEvents] = React.useState<T[]>([])
     React.useEffect(() => {
-        if (events.length !== 0) {
-            setEvents([])
-        }
+        // This must be delayed to allow new items to render first.
+        setTimeout(() => {
+            if (events.length !== 0) {
+                setEvents([])
+            }
+        }, 0)
     }, [events])
     const dispatchEvent = React.useCallback(
-        (innerEvent: T) => {
-            setEvents([...events, innerEvent])
+        (event: T) => {
+            setEvents([...events, event])
         },
         [events]
     )
