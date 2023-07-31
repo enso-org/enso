@@ -1,6 +1,7 @@
 //! A proc-macro supporting generation of `ensogl_core::display::Object` implementations.
 //! Invoked as: `#[derive(display::Object)]` (after importing `ensogl_core::display`).
 
+// === Features ===
 #![feature(let_chains)]
 #![feature(if_let_guard)]
 #![feature(proc_macro_span)]

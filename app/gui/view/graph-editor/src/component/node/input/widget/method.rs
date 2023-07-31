@@ -4,10 +4,9 @@
 use super::prelude::*;
 use crate::prelude::*;
 
-use icons::any::View as AnyIcon;
-use icons::component_icons::Id as IconId;
-use icons::SIZE;
-use ide_view_component_list_panel_icons as icons;
+use ensogl_icons::any::View as AnyIcon;
+use ensogl_icons::component_icons::Id as IconId;
+use ensogl_icons::SIZE;
 
 
 

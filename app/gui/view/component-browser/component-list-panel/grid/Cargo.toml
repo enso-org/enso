@@ -12,6 +12,6 @@ ensogl-text = { path = "../../../../../../lib/rust/ensogl/component/text" }
 ensogl-grid-view = { path = "../../../../../../lib/rust/ensogl/component/grid-view" }
 ensogl-gui-component = { path = "../../../../../../lib/rust/ensogl/component/gui" }
 ensogl-shadow = { path = "../../../../../../lib/rust/ensogl/component/shadow" }
-ide-view-component-list-panel-icons = { path = "../icons" }
+ensogl-icons = { path = "../../../../../../lib/rust/ensogl/component/icons" }
 failure = { workspace = true }
 num_enum = "0.5.1"
