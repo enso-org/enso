@@ -9,6 +9,7 @@ from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all hiding Fir
 import Standard.Database.Data.Column.Column
 import Standard.Database.Data.SQL_Type.SQL_Type
 import Standard.Database.Internal.Postgres.Pgpass
+import Standard.Database.Internal.Postgres.Postgres_Entity_Naming_Properties
 import Standard.Database.Internal.Replace_Params.Replace_Params
 from Standard.Database import all
 from Standard.Database.Errors import SQL_Error, SQL_Warning, Unsupported_Database_Operation
@@ -100,6 +101,15 @@ postgres_specific_spec connection db_name setup =
 
         connection.execute_update 'DROP VIEW "'+vinfo+'";'
         connection.execute_update 'DROP TABLE "'+tinfo+'";'
+
+    Test.group "[PostgreSQL] Database Encoding" <|
+        Test.specify "connector should support all known Postgres encodings" <|
+            known_encodings = enso_project.data / "postgres_known_encodings.txt" . read . lines
+            known_encodings.length . should_equal 41
+
+            known_encodings.each encoding_name->
+                encoding = Postgres_Entity_Naming_Properties.parse_postgres_encoding encoding_name
+                encoding.should_be_a Encoding
 
     tinfo = Name_Generator.random_name "Tinfo"
     connection.execute_update 'CREATE TEMPORARY TABLE "'+tinfo+'" ("strs" VARCHAR, "ints" BIGINT, "bools" BOOLEAN, "doubles" DOUBLE PRECISION)'

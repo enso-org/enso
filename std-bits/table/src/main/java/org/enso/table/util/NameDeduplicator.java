@@ -16,10 +16,10 @@ public class NameDeduplicator {
   private final NamingProperties namingProperties;
 
   public NameDeduplicator() {
-    this("Column", null);
+    this("Column", new DefaultNamingProperties());
   }
 
-  private class DefaultNamingProperties implements NamingProperties {
+  private static class DefaultNamingProperties implements NamingProperties {
 
     @Override
     public Long size_limit() {
@@ -42,35 +42,45 @@ public class NameDeduplicator {
   }
 
   public NameDeduplicator(String invalidNameReplacement, NamingProperties namingProperties) {
-    this.invalidNameReplacement = invalidNameReplacement;
     this.namingProperties = namingProperties;
     if (hasSizeLimit()) {
       if (namingProperties.encoded_size(invalidNameReplacement) > namingProperties.size_limit()) {
-        throw new IllegalArgumentException(
-            "The `invalidNameReplacement` for NameDeduplicator does not fit in the " +
-                "size limit of " + namingProperties + " (" + namingProperties.size_limit() + ")."
-        );
+        invalidNameReplacement = namingProperties.truncate(invalidNameReplacement, namingProperties.size_limit());
+        if (invalidNameReplacement.isEmpty()) {
+          throw new IllegalStateException("The size limit of naming properties (" + namingProperties.size_limit() +  ") is too small to fit the invalid name replacement in NameDeduplicator.");
+        }
       }
     }
+
+    this.invalidNameReplacement = invalidNameReplacement;
   }
 
-  public String makeValid(String input) {
-    if (input == null || input.isEmpty()) {
+  private boolean isInvalid(String name) {
+    return (name == null) || name.isEmpty() || (name.indexOf('\0') >= 0);
+  }
+
+  public String makeValidAndTruncate(String input) {
+    if (isInvalid(input)) {
       this.invalidNames.add(input);
-      return this.invalidNameReplacement;
+      input = this.invalidNameReplacement;
     }
 
     if (input.indexOf('\0') >= 0) {
       this.invalidNames.add(input);
-      return this.invalidNameReplacement;
+      input = this.invalidNameReplacement;
     }
 
     if (hasSizeLimit()) {
       long encodedSize = namingProperties.encoded_size(input);
       if (encodedSize > namingProperties.size_limit()) {
         String truncated = namingProperties.truncate(input, namingProperties.size_limit());
+        if (truncated.isEmpty()) {
+          // This is a very rare edge case, but with a low (but still >0) limit, we can get an empty string after truncation if it was using non-ASCII characters for example. In this case, we use the replacement and re-truncate.
+          truncated = namingProperties.truncate(this.invalidNameReplacement, namingProperties.size_limit());
+        }
+
         this.truncatedNames.put(input, truncated);
-        return truncated;
+        input = truncated;
       }
     }
 
@@ -102,13 +112,16 @@ public class NameDeduplicator {
    * @return unique name following above rules.
    */
   public String makeUnique(String name) {
-    String validName = makeValid(name);
-    boolean isTruncated = truncatedNames.containsKey(name);
+    String validName = makeValidAndTruncate(name);
+    boolean wasInvalid = isInvalid(name);
+    boolean wasTruncated = truncatedNames.containsKey(name);
 
-    // If an invalid name then starts as `Column_1`.
-    int currentIndex = validName.equals(name) ? 0 : 1;
+    // Only if the name was invalid and it was replaced with the replacement sequence, we start with the suffix.
+    // Otherwise (if th name was truncated only), the first attempt is done withot suffix.
+    boolean tryNoSuffixFirst = !wasInvalid;
+    int currentIndex = tryNoSuffixFirst ? 0 : 1;
 
-    NameIterator nameIterator = new NameIterator(validName, isTruncated);
+    NameIterator nameIterator = new NameIterator(validName, wasTruncated);
 
     String currentName = nameIterator.getName(currentIndex);
     while (usedNames.contains(currentName)) {
@@ -148,9 +161,17 @@ public class NameDeduplicator {
 
       String suffix = " " + index;
       if (hasSizeLimit()) {
+        long sizeLimit = namingProperties.size_limit();
         long prefixSize = namingProperties.encoded_size(initialName);
         long suffixSize = namingProperties.encoded_size(suffix);
-        if (prefixSize + suffixSize > namingProperties.size_limit()) {
+
+        if (suffixSize > sizeLimit) {
+          throw new IllegalArgumentException("When trying to generate a unique name based on `" + initialName + "`, " +
+              "the suffix length `" + suffix + "` has exceeded the maximum name size. There are too many taken names " +
+              "and the algorithm is unable to generate a fresh name fitting the limit.");
+        }
+
+        if (prefixSize + suffixSize > sizeLimit) {
           wasLastGeneratedNameTruncated = true;
           long maxPrefixSize = namingProperties.size_limit() - suffixSize;
           return namingProperties.truncate(initialName, maxPrefixSize) + suffix;
@@ -199,6 +220,7 @@ public class NameDeduplicator {
     // First pass - we add only the names that are already unique, and mark them as used in
     // preparation for the second pass.
     for (String name : second) {
+      name = makeValidAndTruncate(name);
       if (isUnique(name)) {
         output.add(name);
         markUsed(name);
