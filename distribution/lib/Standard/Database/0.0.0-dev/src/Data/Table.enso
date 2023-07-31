@@ -402,13 +402,13 @@ type Table
            `Missing_Input_Columns` is raised as an error, unless
            `error_on_missing_columns` is set to `False`, in which case the
            problem is reported according to the `on_problems` setting.
+         - If any of the new names are invalid, an `Invalid_Output_Column_Names`
+           error is raised.
          - Other problems are reported according to the `on_problems` setting:
              - If a column is matched by two selectors resulting in a different
                name mapping, a `Ambiguous_Column_Rename`.
              - If in `By_Position` mode and more names than columns are
                provided, a `Too_Many_Column_Names_Provided`.
-             - If any of the new names are invalid, an
-               `Invalid_Output_Column_Names`.
              - If any of the new names clash either with existing names or each
                other, a `Duplicate_Output_Column_Names`.
 
