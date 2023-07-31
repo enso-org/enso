@@ -89,26 +89,34 @@ function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
         keyProp: key,
         item: rawItem,
         initialRowState,
-        state: {
-            assetEvent,
-            dispatchAssetEvent,
-            dispatchAssetListEvent,
-            markItemAsHidden,
-            markItemAsVisible,
-            getDepth,
-        },
+        selected,
+        allowContextMenu,
+        state,
     } = props
+    const {
+        assetEvent,
+        dispatchAssetEvent,
+        dispatchAssetListEvent,
+        markItemAsHidden,
+        markItemAsVisible,
+        getDepth,
+    } = state
     const { backend } = backendProvider.useBackend()
     const { setModal } = modalProvider.useSetModal()
     const toastAndLog = hooks.useToastAndLog()
     const [item, setItem] = React.useState(rawItem)
     const [presence, setPresence] = React.useState(presenceModule.Presence.present)
+    const [rowState, setRowState] = React.useState<AssetRowState>(() => ({
+        ...initialRowState,
+        setPresence,
+    }))
+    const [isContextMenuVisible, setIsContextMenuVisible] = React.useState(false)
 
     React.useEffect(() => {
         setItem(rawItem)
     }, [rawItem])
 
-    const doDelete = async () => {
+    const doDelete = React.useCallback(async () => {
         setPresence(presenceModule.Presence.deleting)
         markItemAsHidden(key)
         try {
@@ -122,7 +130,54 @@ function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
             markItemAsVisible(key)
             toastAndLog('Unable to delete project', error)
         }
-    }
+    }, [
+        backend,
+        dispatchAssetListEvent,
+        item,
+        key,
+        markItemAsHidden,
+        markItemAsVisible,
+        toastAndLog,
+    ])
+
+    const tableRowRef = React.useRef<HTMLTableRowElement>(null)
+    React.useEffect(() => {
+        if (selected && allowContextMenu && !isContextMenuVisible) {
+            // This is a copy of the context menu, since the context menu registers keyboard
+            // shortcut handlers. This is a bit of a hack, however it is preferable to duplicating
+            // the entire context menu (once for the keyboard actions, once for the JSX).
+            setModal(
+                <div className="hidden">
+                    <AssetContextMenu
+                        innerProps={{
+                            key,
+                            item,
+                            setItem,
+                            state,
+                            rowState,
+                            setRowState,
+                        }}
+                        event={{ pageX: 0, pageY: 0 }}
+                        eventTarget={tableRowRef.current}
+                        dispatchAssetEvent={dispatchAssetEvent}
+                        doDelete={doDelete}
+                    />
+                </div>
+            )
+        }
+    }, [
+        selected,
+        allowContextMenu,
+        isContextMenuVisible,
+        key,
+        item,
+        state,
+        rowState,
+        setRowState,
+        dispatchAssetEvent,
+        doDelete,
+        /* should never change */ setModal,
+    ])
 
     hooks.useEventHandler(assetEvent, async event => {
         switch (event.type) {
@@ -152,26 +207,34 @@ function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
             return presence === presenceModule.Presence.deleting ? (
                 <></>
             ) : (
-                <TableRow
-                    className={presenceModule.CLASS_NAME[presence]}
-                    {...props}
-                    onContextMenu={(innerProps, event) => {
-                        event.preventDefault()
-                        event.stopPropagation()
-                        setModal(
-                            <AssetContextMenu
-                                innerProps={innerProps}
-                                event={event}
-                                eventTarget={event.currentTarget}
-                                dispatchAssetEvent={dispatchAssetEvent}
-                                doDelete={doDelete}
-                            />
-                        )
-                    }}
-                    item={item}
-                    setItem={setItem}
-                    initialRowState={{ ...initialRowState, setPresence }}
-                />
+                <>
+                    <TableRow
+                        tableRowRef={tableRowRef}
+                        className={presenceModule.CLASS_NAME[presence]}
+                        {...props}
+                        onContextMenu={(innerProps, event) => {
+                            event.preventDefault()
+                            event.stopPropagation()
+                            setIsContextMenuVisible(true)
+                            setModal(
+                                <AssetContextMenu
+                                    innerProps={innerProps}
+                                    event={event}
+                                    eventTarget={event.currentTarget}
+                                    dispatchAssetEvent={dispatchAssetEvent}
+                                    doDelete={doDelete}
+                                />,
+                                () => {
+                                    setIsContextMenuVisible(false)
+                                }
+                            )
+                        }}
+                        item={item}
+                        setItem={setItem}
+                        initialRowState={rowState}
+                        setRowState={setRowState}
+                    />
+                </>
             )
         }
         case backendModule.AssetType.specialLoading: {

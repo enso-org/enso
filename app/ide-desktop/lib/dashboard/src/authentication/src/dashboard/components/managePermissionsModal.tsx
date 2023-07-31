@@ -73,7 +73,7 @@ export interface ManagePermissionsModalProps {
         users: backendModule.SimpleUser[],
         permissions: backendModule.PermissionAction[]
     ) => void
-    eventTarget: HTMLElement
+    eventTarget: HTMLElement | null
 }
 
 /** A modal with inputs for user email and permission level.
@@ -94,7 +94,10 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
     const { backend } = backendProvider.useBackend()
     const { unsetModal } = modalProvider.useSetModal()
 
-    const position = React.useMemo(() => eventTarget.getBoundingClientRect(), [eventTarget])
+    const position = React.useMemo(
+        () => eventTarget?.getBoundingClientRect() ?? { left: 0, top: 0 },
+        [eventTarget]
+    )
     const [willInviteNewUser, setWillInviteNewUser] = React.useState(false)
     const [users, setUsers] = React.useState<backendModule.SimpleUser[]>([])
     const [matchingUsers, setMatchingUsers] = React.useState(users)

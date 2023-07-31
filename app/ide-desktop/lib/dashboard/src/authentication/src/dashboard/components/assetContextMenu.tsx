@@ -24,8 +24,8 @@ export interface AssetContextMenuProps<T extends backendModule.AnyAsset> {
         assetsTable.AssetRowState,
         T['id']
     >
-    event: React.MouseEvent<HTMLElement>
-    eventTarget: HTMLElement
+    event: Pick<React.MouseEvent, 'pageX' | 'pageY'>
+    eventTarget: HTMLElement | null
     dispatchAssetEvent: (assetEvent: assetEventModule.AssetEvent) => void
     doDelete: () => Promise<void>
 }

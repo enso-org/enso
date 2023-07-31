@@ -17,10 +17,7 @@ const SCROLL_MARGIN = 12
 /** Props for a {@link ContextMenus}. */
 export interface ContextMenusProps extends React.PropsWithChildren {
     key: string
-    // `left: number` and `top: number` may be more correct,
-    // however passing an event eliminates the chance
-    // of passing the wrong coordinates from the event.
-    event: React.MouseEvent
+    event: Pick<React.MouseEvent, 'pageX' | 'pageY'>
 }
 
 /** A context menu that opens at the current mouse position. */
