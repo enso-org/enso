@@ -2,6 +2,7 @@ package org.enso.table.data.column.storage.numeric;
 
 import java.util.BitSet;
 import java.util.List;
+import org.enso.polyglot.common_utils.Core_Math_Utils;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.NumericBuilder;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
@@ -287,6 +288,13 @@ public final class DoubleStorage extends NumericStorage<Double> {
               @Override
               protected long doOperation(double a) {
                 return (long) Math.floor(a);
+              }
+            })
+        .add(
+            new DoubleNumericOp(Maps.ROUND) {
+              @Override
+              protected double doDouble(double n, int decimalPlaces, boolean useBankers) {
+                return Core_Math_Utils.roundDouble(n, decimalPlaces, use_bankers);
               }
             })
         .add(

@@ -5,8 +5,8 @@ from Standard.Test import Bench, Faker
 
 ## Bench Utilities ============================================================
 
-vector_size = 1000000
-iter_size = 100
+vector_size = 10000
+iter_size = 10
 num_iterations = 10
 
 # The Benchmarks ==============================================================
@@ -25,22 +25,28 @@ bench =
     ints = Column.from_vector "ints" ints_vec
 
     IO.println <| ".round floats"
-    Bench.measure floats.round "Column.round floats" iter_size num_iterations
+    Bench.measure floats.old_round "old Column.round floats" iter_size num_iterations
+    Bench.measure floats.round "new Column.round floats" iter_size num_iterations
 
-    IO.println <| ".truncate floats"
-    Bench.measure floats.truncate "Column.truncate floats" iter_size num_iterations
-    IO.println <| ".ceil floats"
-    Bench.measure floats.ceil "Column.ceil floats" iter_size num_iterations
-    IO.println <| ".floor floats"
-    Bench.measure floats.floor "Column.floor floats" iter_size num_iterations
+    ##
+        IO.println <| ".truncate floats"
+        Bench.measure floats.truncate "Column.truncate floats" iter_size num_iterations
+        IO.println <| ".ceil floats"
+        Bench.measure floats.ceil "Column.ceil floats" iter_size num_iterations
+        IO.println <| ".floor floats"
+        Bench.measure floats.floor "Column.floor floats" iter_size num_iterations
 
-    IO.println <| ".round ints"
-    Bench.measure ints.round "Column.round ints" iter_size num_iterations
-    IO.println <| ".truncate ints"
-    Bench.measure ints.truncate "Column.truncate ints" iter_size num_iterations
-    IO.println <| ".ceil ints"
-    Bench.measure ints.ceil "Column.ceil ints" iter_size num_iterations
-    IO.println <| ".floor ints"
-    Bench.measure ints.floor "Column.floor ints" iter_size num_iterations
+    ##
+        IO.println <| ".round ints"
+        Bench.measure ints.old_round "old Column.round ints" iter_size num_iterations
+        Bench.measure ints.round "new Column.round ints" iter_size num_iterations
+
+    ##
+        IO.println <| ".truncate ints"
+        Bench.measure ints.truncate "Column.truncate ints" iter_size num_iterations
+        IO.println <| ".ceil ints"
+        Bench.measure ints.ceil "Column.ceil ints" iter_size num_iterations
+        IO.println <| ".floor ints"
+        Bench.measure ints.floor "Column.floor ints" iter_size num_iterations
 
 main = bench

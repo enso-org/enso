@@ -80,6 +80,7 @@ public abstract class Storage<T> {
     public static final String TRUNCATE = "truncate";
     public static final String CEIL = "ceil";
     public static final String FLOOR = "floor";
+    public static final String ROUND = "round";
     public static final String NOT = "not";
     public static final String AND = "&&";
     public static final String OR = "||";

@@ -758,8 +758,8 @@ type Column
          Round a column of `Decimal` values`.
 
              Column.from_vector "foo" [1.2, 2.3, 3.6] . round == (Column.from_vector "foo" [1, 2, 4])
-    round : Integer -> Boolean -> Column | Illegal_Argument | Invalid_Value_Type
-    round self decimal_places=0 use_bankers=False =
+    old_round : Integer -> Boolean -> Column | Illegal_Argument | Invalid_Value_Type
+    old_round self decimal_places=0 use_bankers=False =
         Rounding_Helpers.check_decimal_places decimal_places <| Value_Type.expect_numeric self <|
             # If it's an integer column and decimal_places >=0 then it's a no-op.
             new_name = Naming_Helpers.function_name "round" [self]
@@ -793,6 +793,19 @@ type Column
             warning = Illegal_Argument.Error <| "Error: `round` can only accept values between " + min.to_text + " and " + max.to_text + " (inclusive)"
             result = action (within_range.iif self Nothing)
             Warning.attach warning result
+
+    round : Column ! Invalid_Value_Type
+    round self = Value_Type.expect_numeric self <|
+        Illegal_Argument.handle_java_exception <| Arithmetic_Error.handle_java_exception <|
+            new_name = Naming_Helpers.function_name "round" [self]
+            is_integer = self.inferred_precise_value_type.is_integer
+            if is_integer && decimal_places >= 0 then self.rename new_name else
+                should_cast_to_integer = decimal_places <= 0 || is_integer
+                target_value_type = if should_cast_to_integer then Value_Type.Integer else self.value_type
+                result =
+                    result_float = simple_unary_op self Java_Storage.Maps.CEIL
+                    cast_if_needed result_float target_value_type
+                result.rename new_name
 
     ## ALIAS int
 
