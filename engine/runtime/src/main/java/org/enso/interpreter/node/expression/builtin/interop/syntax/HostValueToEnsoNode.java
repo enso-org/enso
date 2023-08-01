@@ -1,7 +1,12 @@
 package org.enso.interpreter.node.expression.builtin.interop.syntax;
 
-import com.oracle.truffle.api.dsl.*;
+import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Cached.Shared;
+import com.oracle.truffle.api.dsl.Fallback;
+import com.oracle.truffle.api.dsl.GenerateUncached;
+import com.oracle.truffle.api.dsl.NeverDefault;
+import com.oracle.truffle.api.dsl.ReportPolymorphism;
+import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
@@ -46,6 +51,11 @@ public abstract class HostValueToEnsoNode extends Node {
 
   @Specialization
   long doShort(short i) {
+    return i;
+  }
+
+  @Specialization
+  long doByte(byte i) {
     return i;
   }
 
