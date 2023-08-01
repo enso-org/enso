@@ -87,4 +87,11 @@ public class TestSpecCollector {
     }
     assertFalse(moduleBenchSuites.isEmpty());
   }
+
+  @Test
+  public void testCollectSuitesNonExistendVarName() {
+    List<ModuleBenchSuite> moduleBenchSuites =
+        SpecCollector.collectBenchSpecsFromModule(testCollectorMainModule, "NOOOON_existent_FOO");
+    assertTrue(moduleBenchSuites.isEmpty());
+  }
 }
