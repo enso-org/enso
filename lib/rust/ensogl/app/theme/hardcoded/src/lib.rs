@@ -186,9 +186,7 @@ impl Default for Theme {
 
 define_themes! { [light:0, dark:1]
     application {
-        // Original RGB values (for reference after fixing color-conversion issues)
-        // light: rgb(231,235,238), old-dark: Lcha(0.13,0.014,0.18,1.0), dark: rgb(32,34,36)
-        background = Rgb::from_base_255(231.0, 235.0, 238.0) , Rgba(0.125,0.133,0.141,1.0);
+        background = Rgb::from_base_255(210.0, 206.0, 203.0) , Rgba(0.125,0.133,0.141,1.0);
         tooltip {
             show_delay_duration_ms = 500.0, 500.0;
             hide_delay_duration_ms = 0.0, 0.0;
@@ -235,22 +233,37 @@ define_themes! { [light:0, dark:1]
             }
         }
         component_browser {
-            panels_gap = 3.0, 3.0;
+            panels_gap = 4.0, 4.0;
             documentation {
-                width = 400.0, 400.0;
-                height = 459.0, 459.0;
-                background = graph_editor::node::background, graph_editor::node::background;
-                caption_height = 30.0, 30.0;
-                caption_animation_spring_multiplier = 1.5, 1.5;
+                width = 406.0, 406.0;
+                height = 380.0, 380.0;
+                background = application::component_browser::component_list_panel::background_color, application::component_browser::component_list_panel::background_color;
                 corner_radius = 14.0, 14.0;
             }
             component_list_panel {
-                background_color = Rgb::from_base_255(236.0, 240.0, 242.0),Rgb::from_base_255(236.0, 240.0, 242.0);
-                corners_radius = 16.0, 16.0;
+                width = 190.0, 190.0;
+                height = 380.0, 380.0;
+                background_color = Rgb::from_base_255(234.0, 234.0, 234.0),Rgb::from_base_255(236.0, 240.0, 242.0);
+                corners_radius = 20.0, 20.0;
+                padding_bottom = 4.0, 4.0;
+                button_panel {
+                    margin_bottom = -22.0, -22.0;
+                    width = 190.0, 190.0;
+                    height = 40.0, 40.0;
+                    corner_radius = 20.0, 20.0;
+                    inner_border_distance = 4.0, 4.0;
+                    border_width = 0.5, 0.5;
+                    background_color = application::component_browser::component_list_panel::background_color, application::component_browser::component_list_panel::background_color;
+                    border_color = Rgba(0.76, 0.76, 0.76, 1.0), Rgba(0.76, 0.76, 0.76, 1.0);
+                    padding = 12.0, 12.0;
+                    gap = 12.0, 12.0;
+                    right_side_margin = 38.0, 38.0;
+                }
                 grid {
-                    width = 196.0, 196.0;
-                    height = 414.0, 414.0;
-                    padding = 4.0, 4.0;
+                    width = 190.0, 190.0;
+                    height = 358.0, 358.0;
+                    padding_x = 4.0, 4.0;
+                    padding_y = 0.0, 0.0;
                     column_gap = 3.0, 3.0;
                     entry_height = 32.0, 32.0;
 
@@ -335,11 +348,6 @@ define_themes! { [light:0, dark:1]
                         local_scope_group = Rgba::new(0.0, 0.42, 0.64, 1.0),Rgba::new(0.0, 0.42, 0.64, 1.0);
                     }
                 }
-                menu_height = 45.0, 45.0;
-                menu_divider_color = Rgb(0.7804, 0.7804, 0.7804), Rgb(0.7804, 0.7804, 0.7804);
-                navigator_divider_color = Rgb(0.7804, 0.7804, 0.7804), Rgb(0.7804, 0.7804, 0.7804);
-                menu_divider_height = 0.5,0.5;
-                navigator_divider_width = 0.5,0.5;
                 menu {
                     breadcrumbs {
                         crop_left = 8.0, 8.0;
@@ -378,26 +386,6 @@ define_themes! { [light:0, dark:1]
                             highlight_corners_radius = 15.0, 15.0;
                             greyed_out_color = Rgba(1.0, 1.0, 1.0, 0.15), Rgba(1.0, 1.0, 1.0, 0.15);
                         }
-                    }
-                }
-                navigator {
-                    width = 41.0, 41.0;
-                    button_size = 32.0, 32.0;
-                    top_padding = 8.0, 8.0;
-                    bottom_padding = 4.0, 4.0;
-                    hover_color = Rgba::transparent(), Rgba::transparent();
-                    highlight {
-                        color = Rgb(0.96,0.85,0.725) , Rgb(0.96,0.85,0.725); // rgb(245,217,185)
-                        size = 29.0, 29.0;
-                        corners_radius = 12.0, 12.0;
-                    }
-                    buttons {
-                        active {
-                            local_scope = Rgb::from_base_255(250.0, 149.0, 31.0), Rgb::from_base_255(250.0, 149.0, 31.0);
-                            submodules = Rgb::from_base_255(250.0, 149.0, 31.0), Rgb::from_base_255(250.0, 149.0, 31.0);
-                            popular = Rgb::from_base_255(250.0, 149.0, 31.0), Rgb::from_base_255(250.0, 149.0, 31.0);
-                        }
-                        inactive = Rgba(0.0, 0.0, 0.0, 0.15), Rgba(0.0, 0.0, 0.0, 0.15);
                     }
                 }
             }

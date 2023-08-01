@@ -358,7 +358,7 @@ impl Model {
                 frp.source.tooltip <+ all_with(&type_description,&frp.on_hover,|text,&hovering| {
                     if hovering {
                         if let Some(text) = text.clone() {
-                            tooltip::Style::set_label(text.into()).with_placement(TOOLTIP_LOCATION)
+                            tooltip::Style::set_label(text).with_placement(TOOLTIP_LOCATION)
                         } else {
                             tooltip::Style::unset_label()
                         }

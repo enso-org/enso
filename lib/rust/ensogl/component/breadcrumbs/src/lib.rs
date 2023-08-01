@@ -53,9 +53,9 @@ use ensogl_core::Animation;
 use ensogl_grid_view as grid_view;
 use ensogl_grid_view::Viewport;
 use ensogl_hardcoded_theme::application::component_browser as component_browser_theme;
+use ensogl_icons::icon;
 use entry::Entry;
 use grid_view::Col;
-use ide_view_component_list_panel_grid::entry::icon;
 
 
 
@@ -418,15 +418,20 @@ pub struct Breadcrumb {
 
 impl Breadcrumb {
     /// Create a new breadcrumb with the specified text and icon.
-    pub fn new_with_icon(text: &str, icon: icon::Id) -> Self {
+    pub fn new(text: &str, icon: Option<icon::Id>) -> Self {
         let text = ImString::new(text);
-        let icon = Some(Rc::new(icon));
+        let icon = icon.map(Rc::new);
         Self { text, icon }
     }
 
+    /// Create a new breadcrumb with the specified text and icon.
+    pub fn new_with_icon(text: &str, icon: icon::Id) -> Self {
+        Self::new(text, Some(icon))
+    }
+
     /// Create a new breadcrumb with the specified text. The icon will be set to [`None`].
-    pub fn new(text: &str) -> Self {
-        Self { text: ImString::new(text), icon: default() }
+    pub fn new_without_icon(text: &str) -> Self {
+        Self::new(text, None)
     }
 
     /// Returns the text associated with this breadcrumb.

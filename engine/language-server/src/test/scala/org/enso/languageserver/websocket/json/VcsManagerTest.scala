@@ -314,8 +314,6 @@ class VcsManagerTest extends BaseServerTest with RetrySpec with FlakySpec {
         fooPath,
         "123456789".getBytes(StandardCharsets.UTF_8)
       )
-      // Ensure that the file handler is released on Windows
-      Thread.sleep(2000)
       client.send(json"""
           { "jsonrpc": "2.0",
             "method": "text/openFile",

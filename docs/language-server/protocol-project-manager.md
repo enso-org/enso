@@ -225,8 +225,8 @@ the action.
   // The name of the project as it is opened.
   projectName: String;
 
-  // The module name of the project.
-  projectModule: String;
+  // The normalized name of the project.
+  projectNormalizedName: String;
 
   // The namespace of the project.
   projectNamespace: String;

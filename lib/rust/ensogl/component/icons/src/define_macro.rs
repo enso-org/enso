@@ -17,7 +17,7 @@
 /// use ensogl_core::prelude::*;
 /// use ensogl_core::display::shape::*;
 /// use ensogl_core::data::color;
-/// use ide_view_component_list_panel_icons::define_icons;
+/// use ensogl_icons::define_icons;
 ///
 /// define_icons! {
 ///     /// The example of icon.

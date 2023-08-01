@@ -19,7 +19,7 @@ export const theme = {
     extend: {
         colors: {
             /** The default color of all text. */
-            primary: 'rgba(0, 0, 0, 0.6)',
+            primary: 'rgba(0, 0, 0, 0.60)',
             chat: '#484848',
             'ide-bg': '#ebeef1',
             'ide-bg-dark': '#d0d3d6',
@@ -28,11 +28,12 @@ export const theme = {
             label: '#f0f1f3',
             help: '#3f68ce',
             invite: '#0e81d4',
-            'frame': 'rgba(255, 255, 255, 0.40)',
+            cloud: '#0666be',
+            dim: 'rgba(0, 0, 0, 0.25)',
+            frame: 'rgba(255, 255, 255, 0.40)',
             'frame-selected': 'rgba(255, 255, 255, 0.70)',
             'black-a5': 'rgba(0, 0, 0, 0.05)',
             'black-a10': 'rgba(0, 0, 0, 0.10)',
-            dim: 'rgba(0, 0, 0, 0.25)',
             'tag-text': 'rgba(255, 255, 255, 0.90)',
             'tag-text-2': 'rgba(0, 0, 0, 0.60)',
             'permission-owner': 'rgba(236, 2, 2, 0.70)',
@@ -53,8 +54,11 @@ export const theme = {
             sm: '0.8125rem',
         },
         spacing: {
+            '0.75': '0.1875rem',
             '1.75': '0.4375rem',
+            '2.25': '0.5625rem',
             '3.25': '0.8125rem',
+            '4.75': '1.1875rem',
             '5.5': '1.375rem',
             '6.5': '1.625rem',
             '9.5': '2.375rem',
@@ -67,6 +71,7 @@ export const theme = {
             '54': '13.5rem',
             '70': '17.5rem',
             '83.5': '20.875rem',
+            '98.25': '24.5625rem',
             '109.75': '27.4375rem',
             '115.25': '28.8125rem',
             '140': '35rem',
