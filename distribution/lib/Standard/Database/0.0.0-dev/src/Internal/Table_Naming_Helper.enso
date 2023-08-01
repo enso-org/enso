@@ -16,7 +16,7 @@ type Table_Naming_Helper
     ## PRIVATE
     naming_properties : Naming_Properties
     naming_properties self =
-        self.connection.base_connection.entity_naming_properties.table_names
+        self.connection.base_connection.entity_naming_properties.for_table_names
 
     ## PRIVATE
        Creates a `Unique_Name_Strategy` that will generate names keeping the

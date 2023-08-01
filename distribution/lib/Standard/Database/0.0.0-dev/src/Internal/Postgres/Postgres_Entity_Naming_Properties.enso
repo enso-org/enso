@@ -35,7 +35,7 @@ new jdbc_connection =
 
         table_properties = Encoding_Limited_Naming_Properties.Instance encoding table_limit
         column_properties = Encoding_Limited_Naming_Properties.Instance encoding column_limit
-        Entity_Naming_Properties.Value table_names=table_properties column_names=column_properties
+        Entity_Naming_Properties.Value for_table_names=table_properties for_column_names=column_properties
 
 
 ## PRIVATE

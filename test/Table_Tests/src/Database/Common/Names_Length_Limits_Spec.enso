@@ -16,8 +16,8 @@ from project.Database.Helpers.Execution_Context import run_with_and_without_outp
 spec prefix connection =
     Test.group prefix+"Support for Long Column/Table names" <|
         entity_naming_properties = connection.base_connection.entity_naming_properties
-        max_table_name_length = entity_naming_properties.table_names.size_limit
-        max_column_name_length = entity_naming_properties.column_names.size_limit
+        max_table_name_length = entity_naming_properties.for_table_names.size_limit
+        max_column_name_length = entity_naming_properties.for_column_names.size_limit
         has_maximum_table_name_length = max_table_name_length.is_nothing.not
         has_maximum_column_name_length = max_column_name_length.is_nothing.not
         big_name_length = 10000
@@ -85,7 +85,7 @@ spec prefix connection =
                    may be happily accepted.
                    For example it seems to work fine on MySQL.
                 name_medium = "ą" * max_table_name_length
-                name_medium_encoded = entity_naming_properties.table_names.encoded_size name_medium
+                name_medium_encoded = entity_naming_properties.for_table_names.encoded_size name_medium
                 t3 = src.select_into_database_table connection name_medium temporary=True
                 case name_medium_encoded > max_table_name_length of
                     True ->
@@ -304,7 +304,7 @@ spec prefix connection =
 
                 ## This name may or may not fit depending on the encoding.
                 name_medium = "ą" * max_column_name_length
-                name_medium_encoded = entity_naming_properties.table_names.encoded_size name_medium
+                name_medium_encoded = entity_naming_properties.for_table_names.encoded_size name_medium
                 r3 = db_table1.at "X" . rename name_medium
                 src3 = Table.new [[name_ok, [1, 2, 3]], [name_medium, [4, 5, 6]]]
                 r4 = src3.select_into_database_table connection (Name_Generator.random_name "long-column-names") temporary=True

@@ -397,7 +397,7 @@ type Connection
        Returns a helper for checking and generating column names.
     column_naming_helper : Column_Naming_Helper
     column_naming_helper self =
-        column_naming_properties = self.entity_naming_properties.column_names
+        column_naming_properties = self.entity_naming_properties.for_column_names
         Column_Naming_Helper.Value column_naming_properties
 
     ## PRIVATE

@@ -9,4 +9,4 @@ new : Entity_Naming_Properties
 new =
     # TODO for #7412 we will customize this to indicate the case insensitivity
     default = Unlimited_Naming_Properties.Instance
-    Entity_Naming_Properties.Value table_names=default column_names=default
+    Entity_Naming_Properties.Value for_table_names=default for_column_names=default

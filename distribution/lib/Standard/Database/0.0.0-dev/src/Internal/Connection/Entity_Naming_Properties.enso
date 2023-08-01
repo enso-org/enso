@@ -7,8 +7,8 @@ type Entity_Naming_Properties
        Describes naming properties of database tables and columns.
 
        Arguments:
-       - table_names: properties of naming database tables. Should implement the
-         `Naming_Properties` interface.
-       - column_names: properties of naming database columns. Should implement
+       - for_table_names: properties of naming database tables. Should implement
          the `Naming_Properties` interface.
-    Value table_names column_names
+       - for_column_names: properties of naming database columns. Should
+         implement the `Naming_Properties` interface.
+    Value for_table_names for_column_names
