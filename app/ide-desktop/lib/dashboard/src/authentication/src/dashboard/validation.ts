@@ -17,11 +17,13 @@ export const PREVIOUS_PASSWORD_TITLE =
     'Your password must neither start nor end with whitespace, and must contain ' +
     'at least two characters.'
 
+export const CONFIRM_PASSWORD_TITLE = 'Passwords must match.'
+
 // The Project Manager has restrictions on names of projects.
 /** Regex pattern for valid names for local projects.
  *
- *  Validation rules:
- *  - allow any non-empty string
+ * Validation rules:
+ * - allow any non-empty string
  */
 export const LOCAL_PROJECT_NAME_PATTERN = '.*\\S.*'
 /** Human readable explanation of project name restrictions for local projects. */

@@ -9,13 +9,14 @@ import AtIcon from 'enso-assets/at.svg'
 import CreateAccountIcon from 'enso-assets/create_account.svg'
 import LockIcon from 'enso-assets/lock.svg'
 
-import * as app from '../../components/app'
 import * as auth from '../providers/auth'
-import SvgMask from './svgMask'
+import * as validation from '../../dashboard/validation'
 
+import * as app from '../../components/app'
 import FontAwesomeIcon from './fontAwesomeIcon'
 import Input from './input'
 import SvgIcon from './svgIcon'
+import SvgMask from './svgMask'
 
 // =================
 // === Constants ===
@@ -38,6 +39,10 @@ export default function Login() {
 
     const [email, setEmail] = React.useState(initialEmail ?? '')
     const [password, setPassword] = React.useState('')
+    const [isEmailValid, setIsEmailValid] = React.useState(false)
+    const [isPasswordValid, setIsPasswordValid] = React.useState(false)
+    const [isSubmitting, setIsSubmitting] = React.useState(false)
+    const canSubmit = isEmailValid && isPasswordValid && !isSubmitting
 
     return (
         <div className="min-h-screen flex flex-col items-center justify-center">
@@ -58,7 +63,7 @@ export default function Login() {
                     className="relative mt-6 border rounded-md py-2 text-sm text-gray-800 bg-gray-100 hover:bg-gray-200"
                 >
                     <FontAwesomeIcon icon={fontawesomeIcons.faGoogle} />
-                    <span>Login with Google</span>
+                    <span>Sign Up or Login with Google</span>
                 </button>
                 <button
                     onClick={async event => {
@@ -68,7 +73,7 @@ export default function Login() {
                     className="relative mt-6 border rounded-md py-2 text-sm text-gray-800 bg-gray-100 hover:bg-gray-200"
                 >
                     <FontAwesomeIcon icon={fontawesomeIcons.faGithub} />
-                    <span>Login with Github</span>
+                    <span>Sign Up or Login with Github</span>
                 </button>
                 <div className="relative mt-10 h-px bg-gray-300">
                     <div className="absolute left-0 top-0 flex justify-center w-full -mt-2">
@@ -81,7 +86,9 @@ export default function Login() {
                     <form
                         onSubmit={async event => {
                             event.preventDefault()
+                            setIsSubmitting(true)
                             await signInWithPassword(email, password)
+                            setIsSubmitting(false)
                         }}
                     >
                         <div className="flex flex-col mb-6">
@@ -103,6 +110,9 @@ export default function Login() {
                                     placeholder="E-Mail Address"
                                     value={email}
                                     setValue={setEmail}
+                                    onChange={event => {
+                                        setIsEmailValid(event.currentTarget.reportValidity())
+                                    }}
                                 />
                             </div>
                         </div>
@@ -123,8 +133,13 @@ export default function Login() {
                                     type="password"
                                     name="password"
                                     placeholder="Password"
+                                    pattern={validation.PASSWORD_PATTERN}
+                                    title={validation.PASSWORD_TITLE}
                                     value={password}
                                     setValue={setPassword}
+                                    onChange={event => {
+                                        setIsPasswordValid(event.currentTarget.reportValidity())
+                                    }}
                                 />
                             </div>
                         </div>
@@ -142,11 +157,12 @@ export default function Login() {
 
                         <div className="flex w-full">
                             <button
+                                disabled={!canSubmit}
                                 type="submit"
                                 className={
                                     'flex items-center justify-center focus:outline-none text-white ' +
                                     'text-sm sm:text-base bg-blue-600 hover:bg-blue-700 rounded py-2 w-full ' +
-                                    'transition duration-150 ease-in'
+                                    'transition duration-150 ease-in disabled:opacity-50'
                                 }
                             >
                                 <span className="mr-2 uppercase">Login</span>

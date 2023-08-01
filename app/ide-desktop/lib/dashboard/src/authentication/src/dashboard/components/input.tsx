@@ -15,11 +15,12 @@ export interface InputProps extends InputAttributes {
 
 /** A component for authentication from inputs, with preset styles. */
 export default function Input(props: InputProps) {
-    const { setValue, ...passthroughProps } = props
+    const { setValue, onChange, ...passthroughProps } = props
     return (
         <input
             {...passthroughProps}
             onChange={event => {
+                onChange?.(event)
                 setValue(event.target.value)
             }}
             onBlur={() => {
