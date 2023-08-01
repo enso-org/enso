@@ -7,12 +7,12 @@ edition = "2021"
 [dependencies]
 enso-frp = { path = "../../../../../../lib/rust/frp" }
 ensogl-core = { path = "../../../../../../lib/rust/ensogl/core" }
-ensogl-derive-theme = { path = "../../../../../../lib/rust/ensogl/app/theme/derive" }
 ensogl-hardcoded-theme = { path = "../../../../../../lib/rust/ensogl/app/theme/hardcoded" }
 ensogl-text = { path = "../../../../../../lib/rust/ensogl/component/text" }
 ensogl-grid-view = { path = "../../../../../../lib/rust/ensogl/component/grid-view" }
 ensogl-gui-component = { path = "../../../../../../lib/rust/ensogl/component/gui" }
 ensogl-shadow = { path = "../../../../../../lib/rust/ensogl/component/shadow" }
-ide-view-component-list-panel-icons = { path = "../icons" }
+ensogl-toggle-button = { path = "../../../../../../lib/rust/ensogl/component/toggle-button" }
+ensogl-icons = { path = "../../../../../../lib/rust/ensogl/component/icons" }
 failure = { workspace = true }
 num_enum = "0.5.1"

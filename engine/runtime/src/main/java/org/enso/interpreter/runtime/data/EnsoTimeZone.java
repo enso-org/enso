@@ -102,4 +102,9 @@ public final class EnsoTimeZone implements TruffleObject {
   Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
     return EnsoContext.get(thisLib).getBuiltins().timeZone();
   }
+
+  @ExportMessage
+  String toDisplayString(boolean ignore) {
+    return zone.toString();
+  }
 }

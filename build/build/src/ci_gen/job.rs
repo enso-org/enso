@@ -5,8 +5,10 @@ use crate::ci_gen::secret;
 use crate::ci_gen::step;
 
 use ide_ci::actions::workflow::definition::cancel_workflow_action;
+use ide_ci::actions::workflow::definition::Access;
 use ide_ci::actions::workflow::definition::Job;
 use ide_ci::actions::workflow::definition::JobArchetype;
+use ide_ci::actions::workflow::definition::Permission;
 use ide_ci::actions::workflow::definition::RunnerLabel;
 use ide_ci::actions::workflow::definition::Step;
 use ide_ci::actions::workflow::definition::Strategy;
@@ -81,6 +83,9 @@ impl JobArchetype for CancelWorkflow {
             steps: vec![cancel_workflow_action()],
             ..default()
         }
+        // Necessary permission to cancel a run, as per:
+        // https://docs.github.com/en/rest/actions/workflow-runs?apiVersion=2022-11-28#cancel-a-workflow-run
+        .with_permission(Permission::Actions, Access::Write)
     }
 }
 
@@ -178,7 +183,8 @@ impl JobArchetype for DeployGui {
                 .with_secret_exposed_as(
                     secret::ARTEFACT_S3_SECRET_ACCESS_KEY,
                     "AWS_SECRET_ACCESS_KEY",
-                );
+                )
+                .with_secret_exposed_as(secret::ENSO_ADMIN_TOKEN, crate::env::ENSO_ADMIN_TOKEN);
             vec![step]
         })
     }
@@ -234,5 +240,6 @@ impl JobArchetype for CiCheckBackend {
         plain_job_customized(&os, "Engine", "backend ci-check", |main_step| {
             vec![main_step, step::engine_test_reporter(os), step::stdlib_test_reporter(os)]
         })
+        .with_permission(Permission::Checks, Access::Write)
     }
 }

@@ -208,6 +208,8 @@ export class LocalBackend extends backend.Backend {
                         title != null ? `'${title}'` : `with ID '${projectId}'`
                     }: ${errorModule.tryGetMessage(error) ?? 'unknown error'}.`
                 )
+            } finally {
+                LocalBackend.currentlyOpeningProjectId = null
             }
         }
     }

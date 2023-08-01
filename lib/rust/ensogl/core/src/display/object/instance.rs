@@ -1,10 +1,28 @@
 //! # Display Objects
 //! Display objects are essential structures used to build elements visible on the screen. They are
 //! used to build objects hierarchy, computing elements transformations within this hierarchy
-//! (position, rotation, and scale), passing events trough that hierarchy, and layouting the
+//! (position, rotation, and scale), passing events through that hierarchy, and layouting the
 //! elements on the screen (e.g. with horizontal or vertical layout). The implementation is very
 //! performance-oriented, it tracks the transformation changes and updates only the needed
 //! subset of the display object tree on demand.
+//!
+//! ## Associating a component with a display object
+//! The [`Object`] trait is used to associate a display object with a component, and endow the
+//! component with a set of display-object mediated behaviors (see [`ObjectOps`]).
+//!
+//! There are generally two different ways for a type to implement this association:
+//! - *Represented* types: Some types need their instances to be represented in the display object
+//!   hierarchy; such a type owns an [`object::Instance`].
+//! - *Delegating* types: Some types add application logic to another component present in a field,
+//!   but don't need to participate in the display object hierarchy themselves; in this case, it is
+//!   simpler and more efficient to pass all display object operations through to the field.
+//!
+//! A macro, used as `#[derive(display::Object)]`, supports both behaviors:
+//! - Represented types: If a type has its own [`object::Instance`], by convention this value is
+//!   called `display_object`. If the derive macro finds a field with this name, the field will be
+//!   used as the type's display object.
+//! - Delegating types: Annotating a field with `#[display_object]` will cause all object operations
+//!   to pass to it. (If the type has only one field, the annotation can be omitted.)
 //!
 //! ## Lazy updates of display objects
 //! Some operations on display objects are very expensive. For example, after moving the root object
@@ -23,6 +41,8 @@
 //! to a layer will also move all of its children there, until they are assigned with a different
 //! layer explicitly.
 //!
+//!
+//! # Display object layout computation
 //!
 //! ## Terminology and Concepts
 //! Before diving into the concepts of Grid it’s important to understand the terminology. Since the
@@ -1098,11 +1118,40 @@
 //! function and you set the size to fixed pixel value, the computed size will be updated
 //! immediately. This is done only for convenience, as reading the size is a common operation.
 //! Please note that this still can provide incorrect value if the object can grow.
+//!
+//!
+//! # Focus
+//! At any time, there may be a single *focus* path from the root of the display object to some
+//! descendant. Nodes in this path are considered *focused*. Each child node in the path is more
+//! focused than its parent; during [`event::Event`] delivery, the most focused object has the
+//! first chance to handle an event.
+//!
+//! ## Focus receivers
+//! Many components have descendants with their own event handlers. In some cases, it does not make
+//! sense to focus a component without focusing some descendant.
+//!
+//! For example, the Component Browser owns a Component List Panel, which owns a Grid View; the Grid
+//! View provides some of the Component Browser's key bindings. When focus is given to the Component
+//! Browser, it should also be given to its descendant Grid View so that it can handle events such
+//! as arrow keys.
+//!
+//! The *focus receiver* concept addresses this case. When focus is given to a component by
+//! [`ObjectOps::focus()`], the object's focus receiver will be focused; this object should be a
+//! descendant of the object receiving `focus()`, so the target of `focus()` will also be focused.
+//!
+//! It is possible for a type to be focused without its focus receiver being focused: A type can
+//! also be focused by some other descendant receiving focus. A focus receiver is the *default*
+//! descendant to receive focus, if a type is focused directly.
+//!
+//! When using `#[derive(display::Object)]` to implement [`Object`], a focus receiver can be
+//! specified by annotating a field with `#[focus_receiver]`. If no field is annotated, the same
+//! field that provides the display object will provide be delegated to to provide a focus receiver.
 
 use crate::data::dirty::traits::*;
 use crate::display::object::layout::*;
 use crate::prelude::*;
 
+use crate::display;
 use crate::display::layout::alignment;
 use crate::display::object::event;
 use crate::display::object::transformation;
@@ -1138,6 +1187,10 @@ pub const ENABLE_DOM_DEBUG_ALL: bool = true;
 /// The name of a display object when not specified. Object names are visible in the DOM inspector.
 pub const DEFAULT_NAME: &str = "UnnamedDisplayObject";
 
+/// The size of a smallvec used to temporarily store children of a display object. Most display
+/// objects on the scene should have at less children than this. The object instances stored in that
+/// smallvec are a size of a single pointer, so this value can be relatively generous.
+const NUM_CHILDREN_IN_SMALLVEC: usize = 12;
 
 
 // ==========
@@ -1417,7 +1470,7 @@ impl Hash for WeakInstance {
 
 /// A root element of a display object hierarchy. Unlike [`Instance`], [`Root`] is visible by
 /// default and has explicit methods to hide and show it.
-#[derive(Clone, CloneRef, Debug, Deref)]
+#[derive(Clone, CloneRef, Debug, Deref, display::Object)]
 #[repr(transparent)]
 pub struct Root {
     def: Instance,
@@ -1456,12 +1509,6 @@ impl Root {
 impl Default for Root {
     fn default() -> Self {
         Self::new()
-    }
-}
-
-impl Object for Root {
-    fn display_object(&self) -> &Instance {
-        &self.def
     }
 }
 
@@ -1813,28 +1860,34 @@ impl Model {
     }
 
     fn set_display_layer(&self, layer: &Layer, symbol_partition: Option<AnySymbolPartition>) {
-        let layer = LayerAssignment { layer: layer.downgrade(), symbol_partition };
         let mut assigned_layer = self.assigned_layer.borrow_mut();
-        if assigned_layer.as_ref() != Some(&layer) {
+
+        // TODO: replace with [`Option::is_some_and`] once we bump rust version.
+        let already_assigned = matches!(
+            &*assigned_layer,
+            Some(a) if &a.layer == layer && a.symbol_partition == symbol_partition
+        );
+        if !already_assigned {
+            *assigned_layer = Some(LayerAssignment { layer: layer.downgrade(), symbol_partition });
             self.dirty.new_layer.set();
-            *assigned_layer = Some(layer);
         }
     }
 
     /// Remove this object from the provided scene layer. Do not use this method explicitly. Use
     /// layers' methods instead.
     pub(crate) fn remove_from_display_layer(&self, layer: &Layer) {
-        let layer = layer.downgrade();
-        if self.assigned_layer.borrow().as_ref().map(|assignment| &assignment.layer) == Some(&layer)
-        {
+        let mut assigned_layer = self.assigned_layer.borrow_mut();
+
+        // TODO: replace with [`Option::is_some_and`] once we bump rust version.
+        if matches!(&*assigned_layer, Some(a) if &a.layer == layer) {
+            *assigned_layer = None;
             self.dirty.new_layer.set();
-            *self.assigned_layer.borrow_mut() = None;
         }
     }
 }
 
 impl Model {
-    fn children(&self) -> Vec<Instance> {
+    fn children(&self) -> SmallVec<[Instance; NUM_CHILDREN_IN_SMALLVEC]> {
         self.children.borrow().values().filter_map(|t| t.upgrade()).collect()
     }
 
@@ -1843,7 +1896,6 @@ impl Model {
         self.visible.get()
     }
 
-    /// Hide the object. This is a helper API. Used by tests and the [`Root`] object.
     fn hide(&self) {
         self.set_vis_false(None)
     }
@@ -1925,7 +1977,8 @@ impl Model {
         if let Some(parent) = bind.parent() {
             self.parent_bind.set_bind(bind);
             self.dirty.new_parent.set();
-            if let Some(focus_instance) = &*self.event.focused_descendant.borrow() {
+            let focus_instance = self.event.focused_descendant.borrow().clone_ref();
+            if let Some(focus_instance) = focus_instance {
                 parent.blur_tree();
                 parent.propagate_up_new_focus_instance(focus_instance);
             }
@@ -2509,28 +2562,27 @@ impl InstanceDef {
         }
 
         let style_string = RefCell::new(String::new());
-        let display = Rc::new(Cell::new(""));
         let last_parent_node = RefCell::new(None);
         let weak = self.downgrade();
         let network = &self.network;
         frp::extend! { network
-            eval_ self.on_show (display.set(""));
-            eval_ self.on_hide (display.set("display:none;"));
-            eval_ self.on_transformed ([display] {
+            is_visible <- bool(&self.on_hide, &self.on_show);
+            class <- is_visible.switch_constant("hidden", "");
+            _eval <- all_with(&self.on_transformed, &class, move |_, class| {
                 let Some(object) = weak.upgrade() else { return };
                 let Some(dom) = object.debug_dom.as_ref() else { return };
                 let mut parent_node = last_parent_node.borrow_mut();
                 let transform;
                 let new_parent;
 
-                let upgrade = |l: &LayerAssignment| l.layer.upgrade();
-                if let Some(layer) = object.assigned_layer.borrow().as_ref().and_then(upgrade) {
-                    transform = object.transformation.borrow().matrix();
-                    new_parent = layer.debug_dom.clone();
-                } else if let Some(parent) = object.parent().and_then(|p| p.debug_dom.clone()) {
+                let layer = object.display_layer();
+                let parent = object.parent();
+                let parent_layer = parent.as_ref().and_then(|p| p.display_layer());
+                let parent_dom = parent.as_ref().and_then(|p| p.debug_dom.as_ref());
+                if layer == parent_layer && let Some(dom) = parent_dom {
                     transform = object.transformation.borrow().local_matrix();
-                    new_parent = Some(parent);
-                } else if let Some(layer) = object.layer.borrow().as_ref().and_then(upgrade) {
+                    new_parent = Some(dom.clone());
+                } else if let Some(layer) = layer {
                     transform = object.transformation.borrow().matrix();
                     new_parent = layer.debug_dom.clone();
                 } else {
@@ -2549,21 +2601,17 @@ impl InstanceDef {
                 }
 
                 let size = object.computed_size();
-                let transform = transform.as_slice();
-                let mut style_string = style_string.borrow_mut();
                 let x = size.x();
                 let y = size.y();
-                let display = display.get();
-                let (first, rest) = transform.split_first().unwrap();
+                let transform = transformation::CssTransformFormatter(&transform);
+                let mut style_string = style_string.borrow_mut();
                 write!(style_string, "\
-                    {display}\
                     width:{x}px;\
                     height:{y}px;\
-                    transform:matrix3d({first:.4}"
+                    transform:{transform};"
                 ).unwrap();
-                rest.iter().for_each(|f| write!(style_string, ",{f:.4}").unwrap());
-                style_string.write_str(");").unwrap();
                 dom.set_attribute_or_warn("style", &*style_string);
+                dom.set_attribute_or_warn("class", class);
                 style_string.clear();
             });
         }
@@ -2684,7 +2732,7 @@ impl InstanceDef {
 
     fn focus(&self) {
         self.blur_tree();
-        self.propagate_up_new_focus_instance(&self.downgrade());
+        self.propagate_up_new_focus_instance(self.downgrade());
         let focus_event = self.new_event(event::Focus);
         let focus_in_event = self.new_event(event::FocusIn);
         focus_event.bubbles.set(false);
@@ -2728,7 +2776,7 @@ impl InstanceDef {
 
     /// Set the focus instance to the provided one here and in all instances on the path to the
     /// root.
-    fn propagate_up_new_focus_instance(&self, instance: &WeakInstance) {
+    fn propagate_up_new_focus_instance(&self, instance: WeakInstance) {
         debug_assert!(self.event.focused_descendant.borrow().is_none());
         *self.event.focused_descendant.borrow_mut() = Some(instance.clone());
         self.parent().for_each(|parent| parent.propagate_up_new_focus_instance(instance));
@@ -3086,10 +3134,10 @@ pub trait LayoutOps: Object {
         self.display_object().layout.margin.set(Vector2(margin, margin));
     }
 
-    /// Set vertical and horizontal margins of the object. Margin is the free space around the
+    /// Set horizontal and vertical margins of the object. Margin is the free space around the
     /// object.
-    fn set_margin_vh(&self, vertical: impl Into<Unit>, horizontal: impl Into<Unit>) -> &Self {
-        let margin = Vector2(horizontal.into().into(), vertical.into().into());
+    fn set_margin_xy(&self, margin: impl IntoVectorTrans2<Unit>) -> &Self {
+        let margin = margin.into_vector_trans().into_vector_trans();
         self.display_object().layout.margin.set(margin);
         self
     }
@@ -3128,10 +3176,10 @@ pub trait LayoutOps: Object {
         self.display_object().layout.padding.set(Vector2(horizontal, vertical));
     }
 
-    /// Set vertical and horizontal padding of the object. Padding is the free space inside the
+    /// Set horizontal and vertical padding of the object. Padding is the free space inside the
     /// object.
-    fn set_padding_vh(&self, vertical: impl Into<Unit>, horizontal: impl Into<Unit>) -> &Self {
-        let padding = Vector2(horizontal.into().into(), vertical.into().into());
+    fn set_padding_xy(&self, padding: impl IntoVectorTrans2<Unit>) -> &Self {
+        let padding = padding.into_vector_trans().into_vector_trans();
         self.display_object().layout.padding.set(padding);
         self
     }
@@ -3661,7 +3709,7 @@ impl Model {
         let hug_children = pass_cfg != PassConfig::DoNotHugDirectChildren;
         let hug_children = hug_children && self.layout.size.get_dim(x).is_hug();
         let children = self.children();
-        let old_child_computed_sizes: Vec<f32> =
+        let old_child_computed_sizes: SmallVec<[f32; NUM_CHILDREN_IN_SMALLVEC]> =
             children.iter().map(|child| child.layout.computed_size.get_dim(x)).collect();
 
         let mut max_x = 0.0f32;
@@ -3698,6 +3746,8 @@ impl Model {
             self.layout.computed_size.set_dim(x, max_x);
         }
 
+        let padding = self.layout.padding.get_dim(x).resolve_pixels_or_default();
+
         // Resolve aligned children and hug them again.
         if has_aligned_non_grow_children {
             let base_size = self.layout.computed_size.get_dim(x);
@@ -3706,10 +3756,13 @@ impl Model {
                 if let Some(alignment) = *child.layout.alignment.get().get_dim(x) && !to_grow {
                     let child_size = child.computed_size().get_dim(x);
                     let child_margin = child.layout.margin.get_dim(x).resolve_pixels_or_default();
-                    let remaining_size = base_size - child_size - child_margin.total();
-                    let aligned_x = remaining_size * alignment.normalized() + child_margin.start;
+                    let remaining_size =
+                        base_size - child_size - child_margin.total() - padding.total();
+                    let aligned_x = remaining_size * alignment.normalized()
+                        + child_margin.start
+                        + padding.start;
                     child.set_position_dim(x, aligned_x);
-                    max_x = max_x.max(aligned_x + child_size + child_margin.end);
+                    max_x = max_x.max(aligned_x + child_size + child_margin.end + padding.end);
                 }
             }
             if hug_children {
@@ -3740,9 +3793,11 @@ impl Model {
                     }
 
                     if let Some(alignment) = *child.layout.alignment.get().get_dim(x) {
-                        let remaining_size = self_size - desired_child_size - child_margin.total();
-                        let aligned_x =
-                            remaining_size * alignment.normalized() + child_margin.start;
+                        let remaining_size =
+                            self_size - desired_child_size - child_margin.total() - padding.total();
+                        let aligned_x = remaining_size * alignment.normalized()
+                            + child_margin.start
+                            + padding.start;
                         child.set_position_dim(x, aligned_x);
                     }
                 }
@@ -4098,6 +4153,18 @@ impl Model {
 #[allow(missing_docs)]
 pub trait Object {
     fn display_object(&self) -> &Instance;
+
+    /// Return an object that should be focused if this object is the target of
+    /// [`ObjectOps::focus()`]. The returned instance should be a child (or descendant) of the
+    /// object returned by [`display_object()`].
+    ///
+    /// Note that the implementation should never have the same body as [`display_object()`]. A leaf
+    /// implementation that returns its own [`Instance`] can be derived with
+    /// [`derive(display::Object)`], so hand-written implementations are only needed in (certain
+    /// cases of) delegation to another [`Object`] implementation. When delegating to another
+    /// implementation, [`focus_receiver`] should delegate to [`focus_receiver`].
+    fn focus_receiver(&self) -> &Instance;
+
     fn weak_display_object(&self) -> WeakInstance {
         self.display_object().downgrade()
     }
@@ -4107,28 +4174,47 @@ pub trait Object {
     where Self: Sized + 'static {
         Any { wrapped: Rc::new(self) }
     }
+
+    /// If present, uniquely identifies the type implementing the trait for debug purposes.
+    fn object_type(&self) -> Option<&'static str> {
+        None
+    }
 }
 
 impl Object for Instance {
     fn display_object(&self) -> &Instance {
         self
     }
-}
 
-impl<T: Object + ?Sized> Object for &T {
-    fn display_object(&self) -> &Instance {
-        let t: &T = self;
-        t.display_object()
+    fn focus_receiver(&self) -> &Instance {
+        // [`Instance`] is a leaf in the focus-receiver tree. This is the only case where a
+        // non-derivable [`Object`] implementation should use the same expression for both display
+        // object and focus receiver.
+        self
+    }
+
+    fn object_type(&self) -> Option<&'static str> {
+        Some("Instance")
     }
 }
 
-impl<T> Object for std::mem::ManuallyDrop<T>
-where T: Object
-{
-    fn display_object(&self) -> &Instance {
-        self.deref().display_object()
-    }
+macro_rules! deref_impl {
+    ($param:ident, $ty:ty) => {
+        impl<$param: Object + ?Sized> Object for $ty {
+            fn display_object(&self) -> &Instance {
+                self.deref().display_object()
+            }
+
+            fn focus_receiver(&self) -> &Instance {
+                self.deref().focus_receiver()
+            }
+        }
+    };
 }
+
+deref_impl!(T, &T);
+deref_impl!(T, core::mem::ManuallyDrop<T>);
+
 
 
 // ==================
@@ -4140,7 +4226,7 @@ where T: Object
 /// You can convert structure into `Any` using `Object::into_any`. Unfortunately it is not possible
 /// to make general `From` implementation, because `Any` itself would use it as well, and it clashes
 /// with base implementation `From<T> for T`.
-#[derive(CloneRef)]
+#[derive(CloneRef, display::Object)]
 pub struct Any {
     wrapped: Rc<dyn Object>,
 }
@@ -4154,12 +4240,6 @@ impl Clone for Any {
 impl Debug for Any {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "display::object::Any")
-    }
-}
-
-impl Object for Any {
-    fn display_object(&self) -> &Instance {
-        self.wrapped.display_object()
     }
 }
 
@@ -4416,9 +4496,10 @@ pub trait ObjectOps: Object + AutoLayoutOps + LayoutOps {
         self.display_object().def.is_focused()
     }
 
-    /// Focus this object. See docs of [`Event::Focus`] to learn more.
+    /// Focus this object, and some descendant if this object has a `focus_receiver()`.
+    /// See docs of [`Event::Focus`] to learn more about focus.
     fn focus(&self) {
-        self.display_object().def.focus()
+        self.focus_receiver().def.focus()
     }
 
     /// Blur ("unfocus") this object. See docs of [`Event::Blur`] to learn more.
@@ -4730,7 +4811,7 @@ mod hierarchy_tests {
 
         let new_nodes: [_; 10] = std::array::from_fn(|_| Instance::new());
         root.replace_children(&new_nodes);
-        assert_eq!(root.children(), &new_nodes);
+        assert_eq!(&*root.children(), &new_nodes);
         assert.child_indices(&[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
         assert.modified_children(&[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
         assert.removed_children(&nodes);
@@ -4832,18 +4913,13 @@ mod hierarchy_tests {
     }
 
     /// A utility to test display object instances' visibility.
-    #[derive(Clone, CloneRef, Debug, Deref)]
+    #[derive(Clone, CloneRef, Debug, Deref, display::Object)]
     struct TestedNode {
         #[deref]
+        #[display_object]
         node:         Instance,
         show_counter: Rc<Cell<usize>>,
         hide_counter: Rc<Cell<usize>>,
-    }
-
-    impl Object for TestedNode {
-        fn display_object(&self) -> &Instance {
-            &self.node
-        }
     }
 
     impl TestedNode {

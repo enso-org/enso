@@ -15,6 +15,8 @@ pub trait WeakOps {
     where F: FnOnce(Self::Target) -> U;
     fn for_each_ref<U, F>(&self, f: F)
     where F: FnOnce(&Self::Target) -> U;
+    /// Check for pointer equality between the strong and weak pointer.
+    fn strong_ptr_eq(&self, strong: &Self::Target) -> bool;
 }
 
 impl<T> WeakOps for Weak<T> {
@@ -28,5 +30,9 @@ impl<T> WeakOps for Weak<T> {
     fn for_each_ref<U, F>(&self, f: F)
     where F: FnOnce(&Self::Target) -> U {
         self.upgrade().for_each_ref(f)
+    }
+
+    fn strong_ptr_eq(&self, strong: &Rc<T>) -> bool {
+        std::ptr::eq(Rc::as_ptr(strong), self.as_ptr())
     }
 }

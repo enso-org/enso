@@ -126,8 +126,8 @@ impl<Metric: Default, Str: Default> Default for Change<Metric, Str> {
 
 ensogl_core::define_endpoints! {
     Input {
-        cursors_move               (Option<Transform>),
-        cursors_select             (Option<Transform>),
+        cursors_move               (Transform),
+        cursors_select             (Transform),
         set_cursor                 (Location),
         add_cursor                 (Location),
         set_single_selection       (selection::Shape),

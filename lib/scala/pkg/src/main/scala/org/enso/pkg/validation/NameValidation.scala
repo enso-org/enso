@@ -10,9 +10,14 @@ object NameValidation {
     * @return the transformed name conforming to the specification.
     */
   def normalizeName(name: String): String = {
-    val startingWithLetter =
-      if (name.isEmpty || !name.head.isLetter) "Project_" ++ name else name
-    val startingWithUppercase = startingWithLetter.capitalize
+    val starting =
+      if (
+        name.isEmpty ||
+        name.filter(_ != '_').forall(c => !isAllowedNameCharacter(c))
+      ) "Project"
+      else if (!name.head.isLetter) "Project_" ++ name
+      else name
+    val startingWithUppercase = starting.capitalize
     val onlyAlphanumeric      = startingWithUppercase.filter(isAllowedNameCharacter)
     toUpperSnakeCase(onlyAlphanumeric)
   }

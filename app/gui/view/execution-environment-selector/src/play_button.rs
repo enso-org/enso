@@ -6,7 +6,7 @@ use ensogl::application::Application;
 use ensogl::control::io::mouse;
 use ensogl::display;
 use ensogl::display::shape::StyleWatchFrp;
-use ensogl_derive_theme::FromTheme;
+use ensogl::display::style::FromTheme;
 use ensogl_gui_component::component;
 use ensogl_hardcoded_theme::graph_editor::execution_environment_selector::play_button as theme;
 
@@ -91,7 +91,7 @@ ensogl::define_endpoints_2! {
 // === Model ===
 // =============
 
-#[derive(Debug, Clone, CloneRef)]
+#[derive(Debug, Clone, CloneRef, display::Object)]
 pub struct Model {
     display_object: display::object::Instance,
     play_icon:      play_icon::View,
@@ -117,12 +117,6 @@ impl Model {
             self.display_object.remove_child(&self.spinner_icon);
             self.display_object.add_child(&self.play_icon);
         }
-    }
-}
-
-impl display::Object for Model {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
     }
 }
 
@@ -163,7 +157,7 @@ impl component::Frp<Model> for Frp {
         let style = Style::from_theme(network, style_watch);
 
         frp::extend! { network
-            eval style.update ((style) model.update_style(style));
+            eval style ((style) model.update_style(style));
 
             eval_ input.reset (model.set_playing(false));
 
@@ -172,7 +166,6 @@ impl component::Frp<Model> for Frp {
 
             eval_ output.pressed (model.set_playing(true));
         }
-        style.init.emit(());
     }
 }
 
