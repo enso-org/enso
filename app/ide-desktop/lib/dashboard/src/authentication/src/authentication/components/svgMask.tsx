@@ -9,6 +9,7 @@ import * as React from 'react'
 export interface SvgMaskProps {
     /** The URL of the SVG to use as the mask. */
     src: string
+    title?: string
     // Allowing `undefined` is fine here as this prop is being transparently passed through to the
     // underlying `div`.
     // eslint-disable-next-line no-restricted-syntax
@@ -18,11 +19,12 @@ export interface SvgMaskProps {
 
 /** Use an SVG as a mask. This lets the SVG use the text color (`currentColor`). */
 export default function SvgMask(props: SvgMaskProps) {
-    const { src, className, onClick } = props
+    const { src, title, className, onClick } = props
     const urlSrc = `url(${JSON.stringify(src)})`
 
     return (
         <div
+            title={title}
             style={{
                 backgroundColor: 'currentcolor',
                 mask: urlSrc,

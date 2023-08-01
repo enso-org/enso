@@ -19,7 +19,7 @@ export const theme = {
     extend: {
         colors: {
             /** The default color of all text. */
-            primary: 'rgba(0, 0, 0, 0.6)',
+            primary: 'rgba(0, 0, 0, 0.60)',
             chat: '#484848',
             'ide-bg': '#ebeef1',
             'ide-bg-dark': '#d0d3d6',
@@ -27,6 +27,7 @@ export const theme = {
             // Should be `#3e515f14`, but `bg-opacity` does not work with RGBA.
             label: '#f0f1f3',
             help: '#3f68ce',
+            cloud: '#0666be',
             delete: 'rgba(243, 24, 10, 0.87)',
             frame: 'rgba(255, 255, 255, 0.40)',
             'frame-selected': 'rgba(255, 255, 255, 0.70)',
@@ -52,8 +53,11 @@ export const theme = {
             '170': '170%',
         },
         spacing: {
+            '0.75': '0.1875rem',
             '1.75': '0.4375rem',
+            '2.25': '0.5625rem',
             '3.25': '0.8125rem',
+            '4.75': '1.1875rem',
             '5.5': '1.375rem',
             '9.5': '2.375rem',
             '18': '4.5rem',
@@ -64,6 +68,7 @@ export const theme = {
             '57.5': '14.375rem',
             '70': '17.5rem',
             '83.5': '20.875rem',
+            '98.25': '24.5625rem',
             '140': '35rem',
             '10lh': '10lh',
         },

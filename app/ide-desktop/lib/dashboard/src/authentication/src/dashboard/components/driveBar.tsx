@@ -42,7 +42,7 @@ export default function DriveBar(props: DriveBarProps) {
         <div className="flex py-0.5">
             <div className="flex gap-2.5">
                 <button
-                    className="flex items-center bg-frame-bg rounded-full h-8 px-2.5"
+                    className="flex items-center bg-frame rounded-full h-8 px-2.5"
                     onClick={() => {
                         doCreateProject(null)
                     }}
@@ -54,8 +54,10 @@ export default function DriveBar(props: DriveBarProps) {
                         <>
                             <Button active image={AddFolderIcon} onClick={doCreateDirectory} />
                             <Button
+                                active
                                 disabled
                                 image={AddConnectorIcon}
+                                error="Not implemented yet."
                                 onClick={() => {
                                     // No backend support yet.
                                 }}
@@ -72,16 +74,19 @@ export default function DriveBar(props: DriveBarProps) {
                         onInput={doUploadFiles}
                     />
                     <Button
-                        active={backend.type !== backendModule.BackendType.local}
+                        active
                         disabled={backend.type === backendModule.BackendType.local}
                         image={DataUploadIcon}
+                        error="Cannot upload files from the local backend."
                         onClick={() => {
                             uploadFilesRef.current?.click()
                         }}
                     />
                     <Button
+                        active
                         disabled
                         image={DataDownloadIcon}
+                        error="Not implemented yet."
                         onClick={() => {
                             // No backend support yet.
                         }}
