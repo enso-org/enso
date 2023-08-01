@@ -61,14 +61,16 @@ public class BenchRunner {
       throw new RuntimeException(e);
     }
 
-    // TODO[pm]: Process the results in the same way as we do in `runtime/bench`.
-    System.out.println("Results:");
     for (RunResult result : results) {
-      System.out.println(result.toString());
+      try {
+        reportResult(result.getParams().getBenchmark(), result);
+      } catch (JAXBException e) {
+        throw new IllegalStateException("Unreachable", e);
+      }
     }
+    System.out.println("Benchmark results reported into " + REPORT_FILE.getAbsolutePath());
   }
 
-  // TODO: Accept additional arguments
   public static BenchmarkItem runSingle(String label) throws RunnerException, JAXBException {
     ChainedOptionsBuilder builder = new OptionsBuilder()
         .jvmArgsAppend("-Xss16M", "-Dpolyglot.engine.MultiTier=false")
@@ -84,6 +86,9 @@ public class BenchRunner {
     Options benchmarkOptions = builder.build();
     RunResult benchmarksResult = new Runner(benchmarkOptions).runSingle();
 
+    return reportResult(label, benchmarksResult);
+  }
+  private static BenchmarkItem reportResult(String label, RunResult result) throws JAXBException {
     Report report;
     if (REPORT_FILE.exists()) {
       report = Report.readFromFile(REPORT_FILE);
@@ -92,7 +97,7 @@ public class BenchRunner {
     }
 
     BenchmarkItem benchItem =
-        new BenchmarkResultProcessor().processResult(label, report, benchmarksResult);
+        new BenchmarkResultProcessor().processResult(label, report, result);
 
     Report.writeToFile(report, REPORT_FILE);
     return benchItem;
