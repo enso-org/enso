@@ -67,11 +67,3 @@ impl View {
         Self { frp, notification }
     }
 }
-
-impl Deref for View {
-    type Target = Frp;
-
-    fn deref(&self) -> &Self::Target {
-        &self.frp
-    }
-}
