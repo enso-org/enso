@@ -4,6 +4,10 @@ import * as React from 'react'
 import PlusCircledIcon from 'enso-assets/plus_circled.svg'
 import RotatingArrowIcon from 'enso-assets/rotating_arrow.svg'
 
+import GeoImage from 'enso-assets/geo.png'
+import SpreadsheetsImage from 'enso-assets/spreadsheets.png'
+import VisualizeImage from 'enso-assets/visualize.png'
+
 import * as common from 'enso-common'
 
 import Spinner, * as spinner from './spinner'
@@ -77,19 +81,19 @@ export const TEMPLATES: [Template, ...Template[]] = [
         title: 'Combine spreadsheets',
         id: 'Orders',
         description: 'Glue multiple spreadsheets together to analyse all your data at once.',
-        background: 'url("./spreadsheets.png") 50% 20% / 80% no-repeat, #479366',
+        background: `url("${SpreadsheetsImage}") 50% 11% / 50% no-repeat, #479366`,
     },
     {
         title: 'Geospatial analysis',
         id: 'Restaurants',
         description: 'Learn where to open a coffee shop to maximize your income.',
-        background: 'url("./geo.png") center / cover, #6b7280',
+        background: `url("${GeoImage}") 50% 0% / 186.7768% no-repeat, #181818`,
     },
     {
         title: 'Analyze GitHub stars',
         id: 'Stargazers',
         description: "Find out which of Enso's repositories are most popular over time.",
-        background: 'url("./visualize.png") center / cover, #6b7280',
+        background: `url("${VisualizeImage}") center / cover, #dddddd`,
     },
 ]
 
@@ -150,7 +154,7 @@ interface InternalTemplateButtonProps {
     template: Template
     onTemplateClick: (
         name: string | null,
-        onSpinnerStateChange: (state: spinner.SpinnerState | null) => void
+        onSpinnerStateChange: (spinnerState: spinner.SpinnerState | null) => void
     ) => void
 }
 
@@ -158,6 +162,7 @@ interface InternalTemplateButtonProps {
 function TemplateButton(props: InternalTemplateButtonProps) {
     const { template, onTemplateClick } = props
     const [spinnerState, setSpinnerState] = React.useState<spinner.SpinnerState | null>(null)
+
     const onSpinnerStateChange = React.useCallback(
         (newSpinnerState: spinner.SpinnerState | null) => {
             setSpinnerState(newSpinnerState)
@@ -244,7 +249,7 @@ export interface TemplatesProps {
 }
 
 /** A container for a {@link TemplatesRender} which passes it a list of templates. */
-function Templates(props: TemplatesProps) {
+export default function Templates(props: TemplatesProps) {
     const { onTemplateClick } = props
 
     const [shadowClass, setShadowClass] = React.useState(
@@ -339,4 +344,3 @@ function Templates(props: TemplatesProps) {
         </div>
     )
 }
-export default Templates

@@ -3,8 +3,8 @@ package org.enso.table.data.column.storage;
 import java.util.AbstractList;
 import java.util.BitSet;
 import java.util.List;
-import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.MapOperationProblemBuilder;
+import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
@@ -24,7 +24,8 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
    * @param data the underlying data
    * @param size the number of items stored
    */
-  protected SpecializedStorage(T[] data, int size, MapOpStorage<T, SpecializedStorage<T>> ops) {
+  protected SpecializedStorage(
+      T[] data, int size, MapOperationStorage<T, SpecializedStorage<T>> ops) {
     this.data = data;
     this.size = size;
     this.ops = ops;
@@ -32,7 +33,7 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
 
   protected final T[] data;
   protected final int size;
-  private final MapOpStorage<T, SpecializedStorage<T>> ops;
+  private final MapOperationStorage<T, SpecializedStorage<T>> ops;
 
   /** @inheritDoc */
   @Override
@@ -75,18 +76,28 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
   }
 
   @Override
-  public boolean isOpVectorized(String name) {
-    return ops.isSupported(name);
+  public boolean isUnaryOpVectorized(String name) {
+    return ops.isSupportedUnary(name);
   }
 
   @Override
-  protected Storage<?> runVectorizedMap(
+  public Storage<?> runVectorizedUnaryMap(String name, MapOperationProblemBuilder problemBuilder) {
+    return ops.runUnaryMap(name, this, problemBuilder);
+  }
+
+  @Override
+  public boolean isBinaryOpVectorized(String name) {
+    return ops.isSupportedBinary(name);
+  }
+
+  @Override
+  public Storage<?> runVectorizedBinaryMap(
       String name, Object argument, MapOperationProblemBuilder problemBuilder) {
-    return ops.runMap(name, this, argument, problemBuilder);
+    return ops.runBinaryMap(name, this, argument, problemBuilder);
   }
 
   @Override
-  protected Storage<?> runVectorizedZip(
+  public Storage<?> runVectorizedZip(
       String name, Storage<?> argument, MapOperationProblemBuilder problemBuilder) {
     return ops.runZip(name, this, argument, problemBuilder);
   }

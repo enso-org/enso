@@ -55,36 +55,42 @@ class ProjectManagementApiSpec
           """)
     }
 
-    "validate project name for forbidden characters" in {
-      val client = new WsTestClient(address)
+    "validate project name should allow arbitrary characters" in {
+      implicit val client: WsTestClient = new WsTestClient(address)
+      val projectName                   = "Enso-test-roject4/#$$%^@!"
+
       client.send(json"""
             { "jsonrpc": "2.0",
               "method": "project/create",
               "id": 1,
               "params": {
-                "name": "Enso-test-roject4/#$$%^@!"
+                "name": $projectName
               }
             }
           """)
+      val projectId = getGeneratedUUID
       client.expectJson(json"""
           {"jsonrpc":"2.0",
           "id":1,
-          "error":{
-            "code":4001,
-            "message":"Project name contains forbidden characters: [-,/,#,$$,%,^,@,!]."
+          "result":{
+            "projectId":$projectId,
+            "projectName":$projectName
             }
           }
           """)
+
+      //teardown
+      deleteProject(projectId)
     }
 
-    "validate project name should start with a capital letter" in {
+    "validate project name should not be empty" in {
       val client = new WsTestClient(address)
       client.send(json"""
             { "jsonrpc": "2.0",
               "method": "project/create",
               "id": 1,
               "params": {
-                "name": "enso-test-project"
+                "name": "   "
               }
             }
           """)
@@ -93,29 +99,7 @@ class ProjectManagementApiSpec
           "id":1,
           "error":{
             "code":4001,
-            "message":"Project name should start with a capital letter."
-            }
-          }
-          """)
-    }
-
-    "validate project name should be in upper snake case" in {
-      val client = new WsTestClient(address)
-      client.send(json"""
-            { "jsonrpc": "2.0",
-              "method": "project/create",
-              "id": 1,
-              "params": {
-                "name": "EnsoTestProject"
-              }
-            }
-          """)
-      client.expectJson(json"""
-          {"jsonrpc":"2.0",
-          "id":1,
-          "error":{
-            "code":4001,
-            "message":"Project name should be in upper snake case: Enso_Test_Project."
+            "message":"Project name cannot be empty."
             }
           }
           """)
@@ -165,7 +149,6 @@ class ProjectManagementApiSpec
 
       //teardown
       deleteProject(projectId)
-
     }
 
     "create project structure" in {
@@ -1142,33 +1125,7 @@ class ProjectManagementApiSpec
           """)
     }
 
-    "check if project name is not empty" in {
-      implicit val client: WsTestClient = new WsTestClient(address)
-      //given
-      val projectId = createProject("Foo")
-      //when
-      client.send(json"""
-            { "jsonrpc": "2.0",
-              "method": "project/rename",
-              "id": 0,
-              "params": {
-                "projectId": $projectId,
-                "name": ""
-              }
-            }
-          """)
-      //then
-      client.expectJson(json"""
-          { "jsonrpc": "2.0",
-            "id": 0,
-            "error": { "code": 4001, "message": "Project name cannot be empty." }
-          }
-          """)
-      //teardown
-      deleteProject(projectId)
-    }
-
-    "validate project name for forbidden characters" in {
+    "validate project name allow arbitrary characters" in {
       implicit val client: WsTestClient = new WsTestClient(address)
       //given
       val projectId = createProject("Foo")
@@ -1187,17 +1144,14 @@ class ProjectManagementApiSpec
       client.expectJson(json"""
           {"jsonrpc":"2.0",
           "id":0,
-          "error":{
-            "code":4001,
-            "message":"Project name contains forbidden characters: [-,/,#,$$,%,^,@,!]."
-            }
+          "result":null
           }
           """)
       //teardown
       deleteProject(projectId)
     }
 
-    "validate project name should start with a capital letter" in {
+    "validate project name should not be empty" in {
       implicit val client: WsTestClient = new WsTestClient(address)
       //given
       val projectId = createProject("Foo")
@@ -1208,7 +1162,7 @@ class ProjectManagementApiSpec
               "id": 0,
               "params": {
                 "projectId": $projectId,
-                "name": "enso-test-project"
+                "name": "   "
               }
             }
           """)
@@ -1218,36 +1172,7 @@ class ProjectManagementApiSpec
           "id":0,
           "error":{
             "code":4001,
-            "message":"Project name should start with a capital letter."
-            }
-          }
-          """)
-      //teardown
-      deleteProject(projectId)
-    }
-
-    "validate project name should be in upper snake case" in {
-      implicit val client: WsTestClient = new WsTestClient(address)
-      //given
-      val projectId = createProject("Foo")
-      //when
-      client.send(json"""
-            { "jsonrpc": "2.0",
-              "method": "project/rename",
-              "id": 0,
-              "params": {
-                "projectId": $projectId,
-                "name": "EnsoTestProject"
-              }
-            }
-          """)
-      //then
-      client.expectJson(json"""
-          {"jsonrpc":"2.0",
-          "id":0,
-          "error":{
-            "code":4001,
-            "message":"Project name should be in upper snake case: Enso_Test_Project."
+            "message":"Project name cannot be empty."
             }
           }
           """)

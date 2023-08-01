@@ -36,7 +36,7 @@ function UserMenuItem(props: React.PropsWithChildren<UserMenuItemProps>) {
 }
 
 /** Handling the UserMenuItem click event logic and displaying its content. */
-function UserMenu() {
+export default function UserMenu() {
     const { signOut } = auth.useAuth()
     const { accessToken, organization } = auth.useNonPartialUserSession()
     const navigate = hooks.useNavigate()
@@ -60,7 +60,7 @@ function UserMenu() {
 
     return (
         <div
-            className="absolute right-2 top-11 z-10 flex flex-col rounded-md bg-white py-1 border"
+            className="absolute right-4.75 top-11 z-10 flex flex-col rounded-md bg-white py-1 border"
             onClick={event => {
                 event.stopPropagation()
             }}
@@ -93,5 +93,3 @@ function UserMenu() {
         </div>
     )
 }
-
-export default UserMenu

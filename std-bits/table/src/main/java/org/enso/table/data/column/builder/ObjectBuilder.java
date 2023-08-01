@@ -10,8 +10,8 @@ import java.util.Arrays;
 
 /** A builder for boxed object columns. */
 public class ObjectBuilder extends TypedBuilder {
-  private Object[] data;
-  private int currentSize = 0;
+  protected Object[] data;
+  protected int currentSize = 0;
 
   public ObjectBuilder(int size) {
     this.data = new Object[size];
@@ -124,7 +124,7 @@ public class ObjectBuilder extends TypedBuilder {
     resize(desiredCapacity);
   }
 
-  private void resize(int desiredCapacity) {
+  protected void resize(int desiredCapacity) {
     this.data = Arrays.copyOf(data, desiredCapacity);
   }
 }

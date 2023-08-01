@@ -379,7 +379,7 @@ export interface ChatProps {
 }
 
 /** Chat sidebar. */
-function Chat(props: ChatProps) {
+export default function Chat(props: ChatProps) {
     const { isOpen, doClose } = props
     const { accessToken: rawAccessToken } = authProvider.useNonPartialUserSession()
     const logger = loggerProvider.useLogger()
@@ -693,7 +693,7 @@ function Chat(props: ChatProps) {
         return reactDom.createPortal(
             <div
                 style={{ right }}
-                className="text-xs-mini text-chat flex flex-col fixed top-0 right-0 h-screen bg-ide-bg border-ide-bg-dark border-l-2 w-83.5 py-1 z-10"
+                className="text-xs text-chat flex flex-col fixed top-0 right-0 h-screen bg-ide-bg border-ide-bg-dark border-l-2 w-83.5 py-1 z-10"
             >
                 <ChatHeader
                     threads={threads}
@@ -856,5 +856,3 @@ function Chat(props: ChatProps) {
         )
     }
 }
-
-export default Chat

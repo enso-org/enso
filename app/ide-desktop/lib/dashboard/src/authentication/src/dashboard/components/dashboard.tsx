@@ -4,34 +4,28 @@ import * as React from 'react'
 
 import * as common from 'enso-common'
 
+import * as assetListEventModule from '../events/assetListEvent'
 import * as backendModule from '../backend'
+import * as hooks from '../../hooks'
 import * as http from '../../http'
 import * as localBackend from '../localBackend'
-import * as projectListEventModule from '../events/projectListEvent'
 import * as projectManager from '../projectManager'
 import * as remoteBackendModule from '../remoteBackend'
 import * as shortcuts from '../shortcuts'
-import * as spinner from './spinner'
-import * as tabModule from '../tab'
 
 import * as authProvider from '../../authentication/providers/auth'
 import * as backendProvider from '../../providers/backend'
 import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
 
+import * as pageSwitcher from './pageSwitcher'
+import * as spinner from './spinner'
 import Chat, * as chat from './chat'
-import DirectoryView from './directoryView'
-import Ide from './ide'
+import DriveView from './driveView'
+import Editor from './editor'
 import Templates from './templates'
 import TheModal from './theModal'
 import TopBar from './topBar'
-
-// =================
-// === Constants ===
-// =================
-
-/** The `id` attribute of the element into which the IDE will be rendered. */
-const IDE_ELEMENT_ID = 'root'
 
 // =================
 // === Dashboard ===
@@ -45,11 +39,8 @@ export interface DashboardProps {
     initialProjectName: string | null
 }
 
-// TODO[sb]: Implement rename when clicking name of a selected row.
-// There is currently no way to tell whether a row is selected from a column.
-
 /** The component that contains the entire UI. */
-function Dashboard(props: DashboardProps) {
+export default function Dashboard(props: DashboardProps) {
     const { supportsLocalBackend, appRunner, initialProjectName } = props
     const logger = loggerProvider.useLogger()
     const session = authProvider.useNonPartialUserSession()
@@ -57,18 +48,21 @@ function Dashboard(props: DashboardProps) {
     const { setBackend } = backendProvider.useSetBackend()
     const { unsetModal } = modalProvider.useSetModal()
     const [directoryId, setDirectoryId] = React.useState(
-        session.organization != null ? backendModule.rootDirectoryId(session.organization.id) : null
+        session.organization != null
+            ? backendModule.rootDirectoryId(session.organization.id)
+            : // The local backend uses the empty string as the sole directory ID.
+              backendModule.DirectoryId('')
     )
     const [query, setQuery] = React.useState('')
     const [isHelpChatOpen, setIsHelpChatOpen] = React.useState(false)
     const [isHelpChatVisible, setIsHelpChatVisible] = React.useState(false)
     const [loadingProjectManagerDidFail, setLoadingProjectManagerDidFail] = React.useState(false)
-    const [tab, setTab] = React.useState(tabModule.Tab.dashboard)
+    const [page, setPage] = React.useState(pageSwitcher.Page.drive)
     const [project, setProject] = React.useState<backendModule.Project | null>(null)
     const [nameOfProjectToImmediatelyOpen, setNameOfProjectToImmediatelyOpen] =
         React.useState(initialProjectName)
-    const [projectListEvent, dispatchProjectListEvent] =
-        React.useState<projectListEventModule.ProjectListEvent | null>(null)
+    const [assetListEvents, dispatchAssetListEvent] =
+        hooks.useEvent<assetListEventModule.AssetListEvent>()
 
     const isListingLocalDirectoryAndWillFail =
         backend.type === backendModule.BackendType.local && loadingProjectManagerDidFail
@@ -79,37 +73,9 @@ function Dashboard(props: DashboardProps) {
         session.type === authProvider.UserSessionType.offline &&
         backend.type === backendModule.BackendType.remote
 
-    const switchToIdeTab = React.useCallback(() => {
-        setTab(tabModule.Tab.ide)
+    React.useEffect(() => {
         unsetModal()
-        const ideElement = document.getElementById(IDE_ELEMENT_ID)
-        if (ideElement) {
-            ideElement.style.top = ''
-            ideElement.style.display = 'absolute'
-        }
-    }, [/* should never change */ unsetModal])
-
-    const switchToDashboardTab = React.useCallback(() => {
-        setTab(tabModule.Tab.dashboard)
-        const ideElement = document.getElementById(IDE_ELEMENT_ID)
-        if (ideElement) {
-            ideElement.style.top = '-100vh'
-            ideElement.style.display = 'fixed'
-        }
-    }, [])
-
-    const toggleTab = React.useCallback(() => {
-        if (project != null && tab === tabModule.Tab.dashboard) {
-            switchToIdeTab()
-        } else {
-            switchToDashboardTab()
-        }
-    }, [
-        project,
-        tab,
-        /* should never change */ switchToDashboardTab,
-        /* should never change */ switchToIdeTab,
-    ])
+    }, [page, /* should never change */ unsetModal])
 
     React.useEffect(() => {
         if (
@@ -119,17 +85,21 @@ function Dashboard(props: DashboardProps) {
                 backendModule.BackendType.remote
         ) {
             setBackend(new localBackend.LocalBackend())
+            setDirectoryId(backendModule.DirectoryId(''))
         }
         // This hook MUST only run once, on mount.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
     React.useEffect(() => {
-        document.addEventListener('show-dashboard', switchToDashboardTab)
-        return () => {
-            document.removeEventListener('show-dashboard', switchToDashboardTab)
+        const goToDrive = () => {
+            setPage(pageSwitcher.Page.drive)
         }
-    }, [switchToDashboardTab])
+        document.addEventListener('show-dashboard', goToDrive)
+        return () => {
+            document.removeEventListener('show-dashboard', goToDrive)
+        }
+    }, [])
 
     React.useEffect(() => {
         // The types come from a third-party API and cannot be changed.
@@ -187,45 +157,52 @@ function Dashboard(props: DashboardProps) {
                 switch (newBackendType) {
                     case backendModule.BackendType.local:
                         setBackend(new localBackend.LocalBackend())
+                        setDirectoryId(backendModule.DirectoryId(''))
                         break
                     case backendModule.BackendType.remote: {
                         const headers = new Headers()
                         headers.append('Authorization', `Bearer ${session.accessToken ?? ''}`)
                         const client = new http.Client(headers)
                         setBackend(new remoteBackendModule.RemoteBackend(client, logger))
+                        setDirectoryId(
+                            session.organization != null
+                                ? backendModule.rootDirectoryId(session.organization.id)
+                                : backendModule.DirectoryId('')
+                        )
                         break
                     }
                 }
             }
         },
-        [backend.type, logger, session.accessToken, setBackend]
+        [backend.type, logger, session.accessToken, session.organization, setBackend]
     )
 
     const doCreateProject = React.useCallback(
         (
             templateId: string | null,
-            onSpinnerStateChange: ((state: spinner.SpinnerState) => void) | null
+            onSpinnerStateChange?: (state: spinner.SpinnerState) => void
         ) => {
-            dispatchProjectListEvent({
-                type: projectListEventModule.ProjectListEventType.create,
+            dispatchAssetListEvent({
+                type: assetListEventModule.AssetListEventType.createProject,
+                parentId: directoryId,
                 templateId: templateId ?? null,
-                onSpinnerStateChange: onSpinnerStateChange,
+                onSpinnerStateChange: onSpinnerStateChange ?? null,
             })
         },
-        [/* should never change */ dispatchProjectListEvent]
+        [directoryId, /* should never change */ dispatchAssetListEvent]
     )
 
-    const openIde = React.useCallback(
+    const openEditor = React.useCallback(
         async (newProject: backendModule.ProjectAsset) => {
-            switchToIdeTab()
+            setPage(pageSwitcher.Page.editor)
             if (project?.projectId !== newProject.id) {
                 setProject(await backend.getProjectDetails(newProject.id, newProject.title))
             }
         },
-        [backend, project?.projectId, switchToIdeTab]
+        [backend, project?.projectId, setPage]
     )
 
-    const closeIde = React.useCallback(() => {
+    const closeEditor = React.useCallback(() => {
         setProject(null)
     }, [])
 
@@ -237,18 +214,24 @@ function Dashboard(props: DashboardProps) {
 
     return (
         <div
-            className={`flex flex-col gap-2 relative select-none text-primary text-xs h-screen py-2 ${
-                tab === tabModule.Tab.dashboard ? '' : 'hidden'
+            className={`flex flex-col gap-2 relative select-none text-primary text-xs h-screen pb-2 ${
+                page === pageSwitcher.Page.drive ? '' : 'hidden'
             }`}
+            onContextMenu={event => {
+                event.preventDefault()
+                unsetModal()
+            }}
             onClick={closeModalIfExists}
         >
             <TopBar
                 supportsLocalBackend={supportsLocalBackend}
                 projectName={project?.name ?? null}
-                tab={tab}
+                page={page}
+                setPage={setPage}
+                asset={null}
+                isEditorDisabled={project == null}
                 isHelpChatOpen={isHelpChatOpen}
                 setIsHelpChatOpen={setIsHelpChatOpen}
-                toggleTab={toggleTab}
                 setBackendType={setBackendType}
                 query={query}
                 setQuery={setQuery}
@@ -277,18 +260,19 @@ function Dashboard(props: DashboardProps) {
             ) : (
                 <>
                     <Templates onTemplateClick={doCreateProject} />
-                    <DirectoryView
-                        tab={tab}
+                    <DriveView
+                        page={page}
                         initialProjectName={initialProjectName}
                         nameOfProjectToImmediatelyOpen={nameOfProjectToImmediatelyOpen}
                         setNameOfProjectToImmediatelyOpen={setNameOfProjectToImmediatelyOpen}
                         directoryId={directoryId}
                         setDirectoryId={setDirectoryId}
-                        projectListEvent={projectListEvent}
-                        dispatchProjectListEvent={dispatchProjectListEvent}
+                        assetListEvents={assetListEvents}
+                        dispatchAssetListEvent={dispatchAssetListEvent}
                         query={query}
-                        onOpenIde={openIde}
-                        onCloseIde={closeIde}
+                        doCreateProject={doCreateProject}
+                        doOpenEditor={openEditor}
+                        doCloseEditor={closeEditor}
                         appRunner={appRunner}
                         loadingProjectManagerDidFail={loadingProjectManagerDidFail}
                         isListingRemoteDirectoryWhileOffline={isListingRemoteDirectoryWhileOffline}
@@ -298,7 +282,11 @@ function Dashboard(props: DashboardProps) {
                 </>
             )}
             <TheModal />
-            {project && <Ide project={project} appRunner={appRunner} />}
+            <Editor
+                visible={page === pageSwitcher.Page.editor}
+                project={project}
+                appRunner={appRunner}
+            />
             {/* `session.accessToken` MUST be present in order for the `Chat` component to work. */}
             {isHelpChatVisible && session.accessToken != null && (
                 <Chat
@@ -311,5 +299,3 @@ function Dashboard(props: DashboardProps) {
         </div>
     )
 }
-
-export default Dashboard

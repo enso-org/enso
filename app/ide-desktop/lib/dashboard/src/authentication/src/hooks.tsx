@@ -1,10 +1,11 @@
 /** @file Module containing common custom React hooks used throughout out Dashboard. */
 import * as React from 'react'
-import * as reactDom from 'react-dom'
 import * as router from 'react-router'
+import * as toastify from 'react-toastify'
 
 import * as app from './components/app'
 import * as auth from './authentication/providers/auth'
+import * as errorModule from './error'
 import * as loggerProvider from './providers/logger'
 
 // ==================
@@ -19,6 +20,35 @@ export function useRefresh() {
     // Uses an empty object literal because every distinct literal
     // is a new reference and therefore is not equal to any other object literal.
     return React.useReducer((): RefreshState => ({}), {})
+}
+
+// ======================
+// === useToastAndLog ===
+// ======================
+
+/** Return a function to send a toast with rendered error message. The same message is also logged
+ * as an error. */
+export function useToastAndLog() {
+    const logger = loggerProvider.useLogger()
+    return React.useCallback(
+        <T,>(
+            messagePrefix: string,
+            error?: errorModule.MustNotBeKnown<T>,
+            options?: toastify.ToastOptions
+        ) => {
+            const message =
+                error == null
+                    ? `${messagePrefix}.`
+                    : // DO NOT explicitly pass the generic parameter anywhere else.
+                      // It is only being used here because this function also checks for
+                      // `MustNotBeKnown<T>`.
+                      `${messagePrefix}: ${errorModule.getMessageOrToString<unknown>(error)}`
+            const id = toastify.toast.error(message, options)
+            logger.error(message)
+            return id
+        },
+        [/* should never change */ logger]
+    )
 }
 
 // ======================
@@ -114,28 +144,25 @@ type KnownEvent = KnownEventsMap[keyof KnownEventsMap]
 
 /** A wrapper around `useState` that calls `flushSync` after every `setState`.
  * This is required so that no events are dropped. */
-export function useEvent<T extends KnownEvent>(): [
-    event: T | null,
-    dispatchEvent: (event: T) => void
-] {
-    const [event, rawDispatchEvent] = React.useState<T | null>(null)
+export function useEvent<T extends KnownEvent>(): [events: T[], dispatchEvent: (event: T) => void] {
+    const [events, setEvents] = React.useState<T[]>([])
+    React.useEffect(() => {
+        if (events.length !== 0) {
+            setEvents([])
+        }
+    }, [events])
     const dispatchEvent = React.useCallback(
         (innerEvent: T) => {
-            setTimeout(() => {
-                reactDom.flushSync(() => {
-                    rawDispatchEvent(innerEvent)
-                })
-            }, 0)
+            setEvents([...events, innerEvent])
         },
-
-        [rawDispatchEvent]
+        [events]
     )
-    return [event, dispatchEvent]
+    return [events, dispatchEvent]
 }
 
 /** A wrapper around `useEffect` that has `event` as its sole dependency. */
 export function useEventHandler<T extends KnownEvent>(
-    event: T | null,
+    events: T[],
     effect: (event: T) => Promise<void> | void
 ) {
     let hasEffectRun = false
@@ -152,10 +179,12 @@ export function useEventHandler<T extends KnownEvent>(
                 hasEffectRun = true
             }
         }
-        if (event != null) {
-            void effect(event)
-        }
-    }, [event])
+        void (async () => {
+            for (const event of events) {
+                await effect(event)
+            }
+        })()
+    }, [events])
 }
 
 // =========================================

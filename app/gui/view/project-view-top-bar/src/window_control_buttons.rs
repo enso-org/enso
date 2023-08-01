@@ -59,7 +59,7 @@ mod shape {
 // =============
 
 /// An internal model of Status Bar component
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 pub struct Model {
     display_object: display::object::Instance,
     shape:          shape::View,
@@ -132,10 +132,11 @@ ensogl::define_endpoints! {
 ///
 /// The panel contains two buttons: one for closing IDE and one for toggling the fullscreen mode.
 /// The panel is meant to be displayed only when IDE runs in a cloud environment.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 pub struct View {
     #[allow(missing_docs)]
     pub frp: Frp,
+    #[display_object]
     model:   Model,
     style:   StyleWatchFrp,
 }
@@ -179,12 +180,6 @@ impl View {
         model.set_layout(spacing.value());
 
         Self { frp, model, style }
-    }
-}
-
-impl display::Object for View {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.model.display_object
     }
 }
 

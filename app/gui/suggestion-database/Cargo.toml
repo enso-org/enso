@@ -19,6 +19,7 @@ enso-text = { path = "../../../lib/rust/text" }
 double-representation = { path = "../controller/double-representation" }
 engine-protocol = { path = "../controller/engine-protocol" }
 enso-data-structures = { path = "../../../lib/rust/data-structures" }
+ensogl-icons = { path = "../../../lib/rust/ensogl/component/icons" }
 flo_stream = { version = "0.4.0" }
 failure = { workspace = true }
 enso-notification = { path = "../../../lib/rust/notification" }

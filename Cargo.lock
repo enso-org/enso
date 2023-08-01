@@ -1553,10 +1553,13 @@ dependencies = [
  "ensogl-core",
  "ensogl-grid-view",
  "ensogl-hardcoded-theme",
+ "ensogl-icons",
  "ensogl-selector",
  "ensogl-text",
  "ensogl-text-msdf",
+ "ensogl-tooltip",
  "ide-view-component-list-panel",
+ "ide-view-documentation",
  "js-sys",
  "wasm-bindgen",
 ]
@@ -1594,10 +1597,10 @@ dependencies = [
  "convert_case 0.6.0",
  "ensogl",
  "ensogl-hardcoded-theme",
+ "ensogl-icons",
  "ensogl-text-msdf",
  "ensogl-tooltip",
  "ide-view-component-list-panel-grid",
- "ide-view-component-list-panel-icons",
  "ide-view-graph-editor",
  "wasm-bindgen",
 ]
@@ -2202,6 +2205,7 @@ dependencies = [
  "ensogl-dynamic-assets",
  "ensogl-examples",
  "ensogl-hardcoded-theme",
+ "ensogl-icons",
  "ensogl-text-msdf",
  "failure",
  "flo_stream",
@@ -2272,7 +2276,7 @@ dependencies = [
  "Inflector",
  "proc-macro2",
  "quote",
- "syn 1.0.107",
+ "syn 2.0.15",
 ]
 
 [[package]]
@@ -2473,7 +2477,7 @@ dependencies = [
  "Inflector",
  "proc-macro2",
  "quote",
- "syn 1.0.107",
+ "syn 2.0.15",
 ]
 
 [[package]]
@@ -2555,6 +2559,7 @@ dependencies = [
  "enso-prelude",
  "enso-profiler",
  "enso-text",
+ "ensogl-icons",
  "failure",
  "flo_stream",
  "futures",
@@ -2661,6 +2666,7 @@ dependencies = [
  "Inflector",
  "bit_field",
  "bitflags 2.2.1",
+ "bytemuck",
  "code-builder",
  "console_error_panic_hook",
  "enso-callback",
@@ -2674,6 +2680,8 @@ dependencies = [
  "enso-shortcuts",
  "enso-types",
  "enso-web",
+ "ensogl-derive",
+ "ensogl-derive-theme",
  "ensogl-text-embedded-fonts",
  "enum_dispatch",
  "failure",
@@ -2697,9 +2705,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "ensogl-derive"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.15",
+]
+
+[[package]]
 name = "ensogl-derive-theme"
 version = "0.1.0"
 dependencies = [
+ "proc-macro-crate",
  "proc-macro2",
  "quote",
  "syn 1.0.107",
@@ -3112,6 +3130,15 @@ dependencies = [
  "enso-shapely",
  "ensogl-core",
  "ensogl-text",
+]
+
+[[package]]
+name = "ensogl-icons"
+version = "0.1.0"
+dependencies = [
+ "ensogl-core",
+ "ensogl-hardcoded-theme",
+ "failure",
 ]
 
 [[package]]
@@ -3681,7 +3708,10 @@ dependencies = [
 name = "fuzzly"
 version = "0.1.0"
 dependencies = [
- "enso-prelude",
+ "derivative",
+ "enso-text",
+ "rand 0.8.5",
+ "rand_chacha 0.3.1",
 ]
 
 [[package]]
@@ -4243,7 +4273,7 @@ dependencies = [
  "sha2",
  "strum",
  "symlink",
- "syn 1.0.107",
+ "syn 2.0.15",
  "sysinfo",
  "tar",
  "tempfile",
@@ -4275,7 +4305,6 @@ dependencies = [
  "enso-shapely",
  "ensogl",
  "ensogl-component",
- "ensogl-derive-theme",
  "ensogl-gui-component",
  "ensogl-hardcoded-theme",
  "ensogl-text",
@@ -4325,18 +4354,16 @@ dependencies = [
  "approx 0.5.1",
  "enso-frp",
  "ensogl-core",
- "ensogl-derive-theme",
  "ensogl-grid-view",
  "ensogl-gui-component",
  "ensogl-hardcoded-theme",
+ "ensogl-icons",
  "ensogl-scroll-area",
  "ensogl-selector",
- "ensogl-shadow",
  "ensogl-text",
+ "ensogl-toggle-button",
  "ensogl-tooltip",
- "ide-view-component-list-panel-breadcrumbs",
  "ide-view-component-list-panel-grid",
- "ide-view-component-list-panel-icons",
  "ordered-float",
 ]
 
@@ -4349,6 +4376,7 @@ dependencies = [
  "ensogl-derive-theme",
  "ensogl-grid-view",
  "ensogl-hardcoded-theme",
+ "ensogl-icons",
  "ensogl-text",
 ]
 
@@ -4358,23 +4386,15 @@ version = "0.1.0"
 dependencies = [
  "enso-frp",
  "ensogl-core",
- "ensogl-derive-theme",
  "ensogl-grid-view",
  "ensogl-gui-component",
  "ensogl-hardcoded-theme",
+ "ensogl-icons",
  "ensogl-shadow",
  "ensogl-text",
+ "ensogl-toggle-button",
  "failure",
- "ide-view-component-list-panel-icons",
  "num_enum",
-]
-
-[[package]]
-name = "ide-view-component-list-panel-icons"
-version = "0.1.0"
-dependencies = [
- "ensogl-core",
- "failure",
 ]
 
 [[package]]
@@ -4389,10 +4409,10 @@ dependencies = [
  "enso-suggestion-database",
  "ensogl",
  "ensogl-component",
- "ensogl-derive-theme",
  "ensogl-hardcoded-theme",
  "horrorshow",
  "ide-ci",
+ "ide-view-component-list-panel-breadcrumbs",
  "ide-view-graph-editor",
  "serde_json",
  "tokio",
@@ -4408,7 +4428,6 @@ dependencies = [
  "enso-frp",
  "enso-prelude",
  "ensogl",
- "ensogl-derive-theme",
  "ensogl-drop-down-menu",
  "ensogl-gui-component",
  "ensogl-hardcoded-theme",
@@ -4436,6 +4455,7 @@ dependencies = [
  "ensogl-derive-theme",
  "ensogl-drop-manager",
  "ensogl-hardcoded-theme",
+ "ensogl-icons",
  "ensogl-text-msdf",
  "failure",
  "ide-view-execution-environment-selector",

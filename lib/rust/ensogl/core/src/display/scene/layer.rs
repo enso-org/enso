@@ -3,6 +3,7 @@
 use crate::data::dirty::traits::*;
 use crate::prelude::*;
 
+use crate::data::color;
 use crate::data::dirty;
 use crate::data::OptVec;
 use crate::display;
@@ -15,6 +16,7 @@ use crate::display::shape::system::ShapeSystemId;
 use crate::display::symbol;
 use crate::display::symbol::RenderGroup;
 use crate::display::symbol::SymbolId;
+use crate::display::Context;
 
 use enso_data_structures::dependency_graph::DependencyGraph;
 use enso_shapely::shared;
@@ -321,10 +323,8 @@ impl Layer {
 
     fn iter_sublayers_and_masks_nested_internal(&self, f: &mut impl FnMut(&Layer)) {
         f(self);
-        if let Some(mask) = &*self.mask.borrow() {
-            if let Some(layer) = mask.upgrade() {
-                layer.iter_sublayers_and_masks_nested_internal(f)
-            }
+        if let Some(mask) = self.mask() {
+            mask.layer.iter_sublayers_and_masks_nested_internal(f)
         }
         self.for_each_sublayer(|layer| layer.iter_sublayers_and_masks_nested_internal(f));
     }
@@ -362,7 +362,7 @@ impl PartialEq for Layer {
 // =================
 
 /// A weak version of [`Layer`].
-#[derive(Clone, CloneRef)]
+#[derive(Clone, CloneRef, Default)]
 pub struct WeakLayer {
     model: Weak<LayerModel>,
 }
@@ -405,6 +405,12 @@ impl PartialEq for WeakLayer {
     }
 }
 
+impl PartialEq<Layer> for WeakLayer {
+    fn eq(&self, other: &Layer) -> bool {
+        self.model.strong_ptr_eq(&other.model)
+    }
+}
+
 
 
 // ==================
@@ -431,8 +437,9 @@ pub struct LayerModel {
     global_element_depth_order: RefCell<DependencyGraph<LayerOrderItem>>,
     sublayers: Sublayers,
     symbol_buffer_partitions: RefCell<HashMap<ShapeSystemId, usize>>,
-    mask: RefCell<Option<WeakLayer>>,
+    mask: Cell<Option<Mask<WeakLayer>>>,
     scissor_box: RefCell<Option<ScissorBox>>,
+    blend_mode: Cell<BlendMode>,
     mem_mark: Rc<()>,
     pub flags: LayerFlags,
     /// When [`display::object::ENABLE_DOM_DEBUG`] is enabled all display objects on this layer
@@ -475,9 +482,19 @@ impl LayerModel {
             if let Some(document) = enso_web::window.document() {
                 let root = document.get_html_element_by_id("debug-root").unwrap_or_else(|| {
                     let root = document.create_html_element_or_panic("div");
+                    let checkbox = document.create_html_element_or_panic("input");
+                    checkbox.set_attribute_or_warn("type", "checkbox");
+                    let label = document.create_html_element_or_panic("label");
+                    label.set_inner_text("DOM Debug");
+                    label.set_id("debug-enable-checkbox");
+                    label.append_child(&checkbox).unwrap();
+
                     root.set_id("debug-root");
-                    root.set_style_or_warn("z-index", "100");
-                    document.body().unwrap().append_child(&root).unwrap();
+                    // Dashboard uses z-index 9999 for toasts full-screen div already...
+                    root.set_style_or_warn("z-index", "10000");
+                    let body = document.body().unwrap();
+                    body.append_child(&label).unwrap();
+                    body.append_child(&root).unwrap();
                     root
                 });
 
@@ -506,6 +523,7 @@ impl LayerModel {
             symbol_buffer_partitions: default(),
             mask: default(),
             scissor_box: default(),
+            blend_mode: default(),
             mem_mark: default(),
             debug_dom,
         }
@@ -523,6 +541,19 @@ impl LayerModel {
     /// at least once per animation frame.
     pub fn symbols(&self) -> impl Deref<Target = RenderGroup> + '_ {
         self.symbols_renderable.borrow()
+    }
+
+    /// Check if this layer has any symbols to render.
+    pub fn has_symbols(&self) -> bool {
+        !self.symbols_renderable.borrow().is_empty()
+    }
+
+    /// Check if this layer has any sublayers that are renderable in the main pass.
+    pub fn has_main_pass_sublayers(&self) -> bool {
+        self.sublayers
+            .borrow()
+            .iter_all()
+            .any(|sublayer| sublayer.flags.contains(LayerFlags::MAIN_PASS_VISIBLE))
     }
 
     /// Add depth-order dependency between two [`LayerOrderItem`]s in this layer.
@@ -598,6 +629,26 @@ impl LayerModel {
                 layer.set_camera(camera.clone_ref());
             }
         });
+    }
+
+
+    /// Set the blend mode used during rendering of this layer. See [`BlendMode`] for more
+    /// information. By default, the blend mode is set to [`BlendMode::PREMULTIPLIED_ALPHA_OVER`].
+    ///
+    /// NOTE: Due to a limitation of WebGL, the set blend mode is also applied to object ID buffer
+    /// for all objects on this layer. If you use a blend mode that is not preserving fully opaque
+    /// pixels unchanged (e.g. additive blending), the object ID buffer will contain invalid values.
+    /// In such cases, make sure to use that layer only for objects with pointer events disabled.
+    /// This limitation may be lifted in the future, since other rendering APIs allow setting the
+    /// blend mode for each render target separately.
+    pub fn set_blend_mode(&self, blend_mode: BlendMode) {
+        self.blend_mode.replace(blend_mode);
+    }
+
+    /// Get the blend mode used during rendering of this layer. See [`Self::set_blend_mode`] for
+    /// more information.
+    pub fn blend_mode(&self) -> BlendMode {
+        self.blend_mode.get()
     }
 
     /// Add the symbol to this layer.
@@ -684,11 +735,9 @@ impl LayerModel {
                 let global_order = self.global_element_depth_order.borrow();
                 layer.update_internal(Some(&*global_order), true);
             });
-            if let Some(layer) = &*self.mask.borrow() {
-                if let Some(layer) = layer.upgrade() {
-                    let global_order = self.global_element_depth_order.borrow();
-                    layer.update_internal(Some(&*global_order), true);
-                }
+            if let Some(mask) = self.mask() {
+                let global_order = self.global_element_depth_order.borrow();
+                mask.layer.update_internal(Some(&*global_order), true);
             }
         }
 
@@ -703,7 +752,6 @@ impl LayerModel {
 
         use display::camera::camera2d::Projection;
         use enso_web::prelude::*;
-        use std::fmt::Write;
 
         let Some(dom) = &self.debug_dom else { return };
         let camera = self.camera.borrow();
@@ -721,13 +769,9 @@ impl LayerModel {
             Projection::Orthographic => {}
         }
         trans_cam.append_nonuniform_scaling_mut(&Vector3(1.0, -1.0, 1.0));
-
-        let mut transform = String::with_capacity(100);
-        let (first, rest) = trans_cam.as_slice().split_first().unwrap();
-        write!(transform, "perspective({near}px) matrix3d({first:.4}").unwrap();
-        rest.iter().for_each(|f| write!(transform, ",{f:.4}").unwrap());
-        transform.write_str(")").unwrap();
-        dom.set_style_or_warn("transform", transform);
+        let matrix_fmt = display::object::transformation::CssTransformFormatter(&trans_cam);
+        let style = format!("transform:perspective({near}px) {matrix_fmt};");
+        dom.set_attribute_or_warn("style", style);
     }
 
     /// Compute a combined [`DependencyGraph`] for the layer taking into consideration the global
@@ -891,10 +935,6 @@ impl LayerModel {
         }
     }
 
-    fn remove_mask(&self) {
-        mem::take(&mut *self.mask.borrow_mut());
-    }
-
     /// Set all sublayers layer of this layer. Old sublayers layers will be unregistered.
     pub fn set_sublayers(&self, layers: &[&Layer]) {
         self.remove_all_sublayers();
@@ -919,6 +959,19 @@ impl LayerModel {
         let layer = Layer::new_with_camera(name, camera);
         self.add_sublayer(&layer);
         layer
+    }
+
+    /// Create a new sublayer to this layer, optionally providing a camera override. See
+    /// [`Self::create_sublayer_with_camera`] and [`Self::create_sublayer`] for more information.
+    pub fn create_sublayer_with_optional_camera(
+        &self,
+        name: impl Into<String>,
+        camera: Option<&Camera2d>,
+    ) -> Layer {
+        match camera {
+            Some(camera) => self.create_sublayer_with_camera(name, camera),
+            None => self.create_sublayer(name),
+        }
     }
 
     /// Create a new sublayer to this layer. It will inherit this layer's camera, but will not be
@@ -954,14 +1007,31 @@ impl LayerModel {
     }
 
     /// The layer's mask, if any.
-    pub fn mask(&self) -> Option<Layer> {
-        self.mask.borrow().as_ref().and_then(|t| t.upgrade())
+    pub fn mask(&self) -> Option<Mask> {
+        let weak_mask = self.mask.take()?;
+        let layer = weak_mask.layer.upgrade()?;
+        let inverted = weak_mask.inverted;
+        self.mask.set(Some(weak_mask));
+        Some(Mask { layer, inverted })
     }
 
     /// Set a mask layer of this layer. Old mask layer will be unregistered.
     pub fn set_mask(&self, mask: &Layer) {
-        self.remove_mask();
-        *self.mask.borrow_mut() = Some(mask.downgrade());
+        self.mask.set(Some(Mask { layer: mask.downgrade(), inverted: false }))
+    }
+
+    /// Set an inverted mask layer of this layer. Old mask layer will be unregistered.
+    ///
+    /// NOTE: When using an inverted mask, the mask layer's own blend mode is ignored. Instead,
+    /// the mask layer is always rendered with the blend mode [`BlendMode::ALPHA_CUTOUT`], carving
+    /// out the shape of the mask from the layer it masks.
+    pub fn set_inverted_mask(&self, mask: &Layer) {
+        self.mask.set(Some(Mask { layer: mask.downgrade(), inverted: true }))
+    }
+
+    /// Remove a previously set mask from this layer.
+    pub fn remove_mask(&self) {
+        self.mask.take();
     }
 
     /// The layer's [`ScissorBox`], if any.
@@ -1073,7 +1143,7 @@ impl std::borrow::Borrow<LayerModel> for Layer {
 pub struct LayerSymbolPartition<S> {
     layer: WeakLayer,
     id:    Immutable<SymbolPartitionId>,
-    shape: ZST<*const S>,
+    shape: ZST<S>,
 }
 
 /// Identifies a symbol partition, for some [`Symbol`], relative to some [`Layer`].
@@ -1100,7 +1170,6 @@ impl<S: Shape> LayerSymbolPartition<S> {
         }
     }
 }
-
 
 // === Type-erased symbol partitions ===
 
@@ -1522,6 +1591,24 @@ impl ShapeSystemRegistryData {
     }
 }
 
+// ============
+// === Mask ===
+// ============
+
+/// A definition of mask operation to perform on a layer. The mask is another layer, which is used
+/// to filter out parts of the layer it is assigned to it. When mask is not inverted, the parts of
+/// the layer that are covered by the mask are kept, and the rest is discarded. When mask is
+/// inverted, the parts covered by mask are discarded. Only the alpha channel of the mask is used.
+#[derive(Debug, Clone)]
+pub struct Mask<L = Layer> {
+    /// The alpha channel of this layer is used as a mask.
+    pub layer:    L,
+    /// Whether the mask should be inverted. For non-inverted mask, the mask's alpha will multiply
+    /// the alpha of the layer it is assigned to. For inverted mask, the mask's alpha will be
+    /// subtracted from 1.0, and then multiplied by the alpha of the layer it is assigned to.
+    pub inverted: bool,
+}
+
 
 
 // =======================
@@ -1682,5 +1769,157 @@ impl PartialSemigroup<ScissorBox> for ScissorBox {
 impl PartialSemigroup<&ScissorBox> for ScissorBox {
     fn concat_mut(&mut self, other: &Self) {
         self.concat_mut(*other)
+    }
+}
+
+// =================
+// === BlendMode ===
+// =================
+
+/// Description of color blending that is used during rendering of this layer. Specifies how shape
+/// colors rendered on this layer will be combined with ones drawn before them, including on all
+/// layers below them. Blend modes can be used for many visual effects, especially involving
+/// different interpretation of transparency, without any additional performance cost. Blending is
+/// set up on webgl context using [`blendFuncSeparate`][func], [`blendEquationSeparate`][equation],
+/// and [`blendColor`][color].
+///
+/// By default, each layer is set up in "alpha over" blending mode (assuming premultiplied alpha in
+/// shader output), which corresponds to equation [`BlendEquation::Add`], source
+/// [`BlendEquation::One`] and destination [`BlendEquation::OneMinusSrcAlpha`].
+///
+///
+/// To learn more about blending in general, see a [Learn OpenGL tutorial about blending][tutorial].
+///
+/// [func]: https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext/blendFuncSeparate
+/// [equation]: https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext/blendEquationSeparate
+/// [color]: https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext/blendColor
+/// [tutorial]: https://learnopengl.com/Advanced-OpenGL/Blending
+#[derive(Debug, Clone, Copy)]
+pub struct BlendMode {
+    /// Blend equation used for RGB components.
+    pub equation_color: BlendEquation,
+    /// Blend equation used for Alpha component.
+    pub equation_alpha: BlendEquation,
+    /// Blend factor used for source RGB components.
+    pub src_color:      BlendFactor,
+    /// Blend factor used for source Alpha component.
+    pub src_alpha:      BlendFactor,
+    /// Blend factor used for source RGB components.
+    pub dst_color:      BlendFactor,
+    /// Blend factor used for source RGB components.
+    pub dst_alpha:      BlendFactor,
+    /// Constant color value used in [`BlendFactor::ConstantColor`] and
+    /// [`BlendFactor::OneMinusConstantColor`]. It is shared by all set blend factors with either
+    /// of those variants.
+    pub constant:       color::Rgba,
+}
+
+/// Blend equation used for either color or alpha blending, used as an argument to
+/// [`gl.blendEquationSeparate`][mdn] before rendering this layer. See [`BlendMode`] for more
+/// information.
+///
+/// Blending is computed using following formula: `f(s * S, d * D)`, where `s` and `d` are
+/// respective src and dst blend factors (see [`BlendFactor`]), and `S` and `D` are the source and
+/// destination pixel values. [`BlendEquation`] selects what function `f` is used.
+///
+/// [mdn]: https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext/blendEquationSeparate
+#[derive(Debug, Clone, Copy, Default)]
+#[repr(u32)]
+pub enum BlendEquation {
+    #[default]
+    /// `O = s * S + d * D`
+    Add             = *Context::FUNC_ADD,
+    /// `O = s * S - d * D`
+    Subtract        = *Context::FUNC_SUBTRACT,
+    /// `O = s * S - d * D`
+    ReverseSubtract = *Context::FUNC_REVERSE_SUBTRACT,
+    /// `O = min(s * S, d * D)`
+    Min             = *Context::MIN,
+    /// `O = max(s * S, d * D)`
+    Max             = *Context::MAX,
+}
+
+/// Blend factor for particular color component, used as an argument to
+/// [`gl.blendFuncSeparate`][mdn] before rendering this layer. See [`BlendMode`] for more
+/// information.
+///
+/// [mdn]: https://developer.mozilla.org/en-US/docs/Web/API/WebGLRendering*Context/blendFuncSepare
+#[derive(Debug, Clone, Copy)]
+#[repr(u32)]
+pub enum BlendFactor {
+    /// Always `0.0`. Will effectively remove given color component from the blend equation.
+    Zero             = *Context::ZERO,
+    /// Always `1.0`.
+    One              = *Context::ONE,
+    /// value of corresponding component in source pixel (either rgb or alpha).
+    SrcColor         = *Context::SRC_COLOR,
+    /// inverse of value of corresponding component in source pixel (either rgb or alpha).
+    OneMinusSrcColor = *Context::ONE_MINUS_SRC_COLOR,
+    /// value of corresponding component in destination pixel (either rgb or alpha).
+    DstColor         = *Context::DST_COLOR,
+    /// inverse of value of corresponding component in destination pixel (either rgb or alpha).
+    OneMinusDstColor = *Context::ONE_MINUS_DST_COLOR,
+    /// value of alpha component in source pixel
+    SrcAlpha         = *Context::SRC_ALPHA,
+    /// inverse of value of alpha component in source pixel
+    OneMinusSrcAlpha = *Context::ONE_MINUS_SRC_ALPHA,
+    /// value of alpha component in destination pixel
+    DstAlpha         = *Context::DST_ALPHA,
+    /// inverse of value of alpha component in destination pixel
+    OneMinusDstAlpha = *Context::ONE_MINUS_DST_ALPHA,
+    /// value of corresponding component in constant value (['BlendMode.constant']).
+    ConstantColor    = *Context::CONSTANT_COLOR,
+    /// inverse of value of corresponding component in constant value (['BlendMode.constant']).
+    OneMinusConstantColor = *Context::ONE_MINUS_CONSTANT_COLOR,
+}
+
+impl BlendMode {
+    /// Alpha over blending, assuming premultiplied alpha in shader output.
+    pub const PREMULTIPLIED_ALPHA_OVER: BlendMode =
+        BlendMode::simple(BlendEquation::Add, BlendFactor::One, BlendFactor::OneMinusSrcAlpha);
+
+    /// Pick maximum value for each color component.
+    pub const MAX: BlendMode =
+        BlendMode::simple(BlendEquation::Max, BlendFactor::One, BlendFactor::One);
+
+    /// Wherever the source alpha is non-zero, it will cut out the destination color and alpha
+    /// proportionally to its value.
+    pub const ALPHA_CUTOUT: BlendMode =
+        BlendMode::simple(BlendEquation::Add, BlendFactor::Zero, BlendFactor::OneMinusSrcAlpha);
+
+    /// Create a blend mode with the same settings for color and alpha channels.
+    const fn simple(equation: BlendEquation, src: BlendFactor, dst: BlendFactor) -> Self {
+        BlendMode {
+            equation_color: equation,
+            equation_alpha: equation,
+            src_color:      src,
+            src_alpha:      src,
+            dst_color:      dst,
+            dst_alpha:      dst,
+            constant:       color::Rgba::transparent(),
+        }
+    }
+
+    /// Apply this blend mode settings to the rendering context.
+    pub fn apply_to_context(&self, context: &Context) {
+        context.blend_equation_separate(self.equation_color as _, self.equation_alpha as _);
+        context.blend_func_separate(
+            self.src_color as _,
+            self.dst_color as _,
+            self.src_alpha as _,
+            self.dst_alpha as _,
+        );
+        context.blend_color(
+            self.constant.red,
+            self.constant.green,
+            self.constant.blue,
+            self.constant.alpha,
+        );
+    }
+}
+
+impl Default for BlendMode {
+    fn default() -> Self {
+        Self::PREMULTIPLIED_ALPHA_OVER
     }
 }

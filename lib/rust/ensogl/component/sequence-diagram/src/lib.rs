@@ -87,7 +87,7 @@ impl component::Frp<Model> for Frp {
 // =============
 
 /// Internal model of the SequenceDiagram.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 pub struct Model {
     // Required for dynamically creating new lines.
     app:            Application,
@@ -197,12 +197,6 @@ impl Model {
             .deref()
             .iter()
             .for_each(|line| line.update_x(|x| x + delta))
-    }
-}
-
-impl display::Object for Model {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
     }
 }
 

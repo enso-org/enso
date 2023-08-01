@@ -154,7 +154,7 @@ impl Builder {
     /// The method self type will be taken from the context.
     pub fn add_method(
         &mut self,
-        name: impl Into<String>,
+        name: impl Into<ImString>,
         arguments: Vec<Argument>,
         return_type: impl TryInto<QualifiedName, Error: Debug>,
         is_static: bool,
@@ -175,7 +175,7 @@ impl Builder {
     /// Context should be inside a type, otherwise this function will panic.
     pub fn add_constructor(
         &mut self,
-        name: impl Into<String>,
+        name: impl Into<ImString>,
         arguments: Vec<Argument>,
         modifier: impl FnOnce(Entry) -> Entry,
     ) {
@@ -191,7 +191,7 @@ impl Builder {
     /// Context should be inside a module, otherwise this function will panic.
     pub fn add_function(
         &mut self,
-        name: impl Into<String>,
+        name: impl Into<ImString>,
         arguments: Vec<Argument>,
         return_type: impl TryInto<QualifiedName, Error: Debug>,
         scope: RangeInclusive<Location<enso_text::Utf16CodeUnit>>,
@@ -209,7 +209,7 @@ impl Builder {
     /// Context should be inside a module, otherwise this function will panic.
     pub fn add_local(
         &mut self,
-        name: impl Into<String>,
+        name: impl Into<ImString>,
         return_type: impl TryInto<QualifiedName, Error: Debug>,
         scope: RangeInclusive<Location<enso_text::Utf16CodeUnit>>,
         modifier: impl FnOnce(Entry) -> Entry,

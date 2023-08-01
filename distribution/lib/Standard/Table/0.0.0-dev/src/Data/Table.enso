@@ -1081,7 +1081,7 @@ type Table
        If the new name is already in use it will be renamed following the normal
        suffixing strategy.
     @column Widget_Helpers.make_column_name_selector
-    parse_to_columns : Text | Integer -> Text -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table
+    parse_to_columns : Text | Integer -> Text | Regex -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table
     parse_to_columns self column pattern="." case_sensitivity=Case_Sensitivity.Sensitive parse_values=True on_problems=Report_Error =
         Split_Tokenize.parse_to_columns self column pattern case_sensitivity parse_values on_problems
 

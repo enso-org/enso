@@ -16,9 +16,9 @@
 #![warn(missing_debug_implementations)]
 
 use enso_prelude::*;
+use ensogl_core::prelude::*;
 
 use enso_shapely::before_main;
-use ensogl_core::prelude::ImString;
 use ensogl_text::font::DEFAULT_FONT;
 use ensogl_text::font::DEFAULT_FONT_MONO;
 
@@ -37,11 +37,11 @@ macro_rules! _define_theme_literals {
                 $id $theme [$($path)*] $qual { $($var).+ = $($e),* } $($($rest)*)?
             }
     };
-    ($id:tt $theme:ident [$($path:ident)*] $var:ident = $($e:expr),* $(;$($rest:tt)*)?) => {
+    ($id:tt $theme:ident [$($path:ident)*] $(#[$meta:meta])* $var:ident = $($e:expr),* $(;$($rest:tt)*)?) => {
         $theme.set(stringify!($($path.)*$var), _select_theme_expr!{$id $($e),*});
         _define_theme_literals!{$id $theme [$($path)*] $($($rest)*)?}
     };
-    ($id:tt $theme:ident [$($path:ident)*] $path_segment:ident {$($t:tt)*} $($rest:tt)*) => {
+    ($id:tt $theme:ident [$($path:ident)*] $(#[$meta:meta])* $path_segment:ident {$($t:tt)*} $($rest:tt)*) => {
         _define_theme_literals!{$id $theme [$($path)* $path_segment] $($t)*}
         _define_theme_literals!{$id $theme [$($path)*] $($rest)*}
     };
@@ -56,11 +56,13 @@ macro_rules! _define_theme_modules {
                 [$($path)*] $qual {$($var).+ = $($e),*} $($($rest)*)?
             }
     };
-    ([$($path:ident)*] $var:ident = $($e:expr),* $(;$($rest:tt)*)?) => {
+    ([$($path:ident)*] $(#[$meta:meta])* $var:ident = $($e:expr),* $(;$($rest:tt)*)?) => {
+        $(#[$meta])*
         pub const $var : StaticPath = StaticPath::new(stringify!($($path.)*$var));
         _define_theme_modules!{[$($path)*] $($($rest)*)?}
     };
-    ([$($path:ident)*] $path_segment:ident {$($t:tt)*} $($rest:tt)*) => {
+    ([$($path:ident)*] $(#[$meta:meta])* $path_segment:ident {$($t:tt)*} $($rest:tt)*) => {
+        $(#[$meta])*
         pub mod $path_segment {
             use ensogl_core::display::style::StaticPath;
             pub const HERE : StaticPath = StaticPath::new(stringify!($($path.)*$path_segment));
@@ -72,6 +74,10 @@ macro_rules! _define_theme_modules {
 
 /// Select the theme expression by its number.
 macro_rules! _select_theme_expr {
+    // when only one expression is specified, use it for all numbers.
+    ($_id:tt $e0:expr) => {
+        $e0
+    };
     (0 $e0:expr                                         $(,$rest:tt)*) => {
         $e0
     };
@@ -180,9 +186,7 @@ impl Default for Theme {
 
 define_themes! { [light:0, dark:1]
     application {
-        // Original RGB values (for reference after fixing color-conversion issues)
-        // light: rgb(231,235,238), old-dark: Lcha(0.13,0.014,0.18,1.0), dark: rgb(32,34,36)
-        background = Rgb::from_base_255(231.0, 235.0, 238.0) , Rgba(0.125,0.133,0.141,1.0);
+        background = Rgb::from_base_255(210.0, 206.0, 203.0) , Rgba(0.125,0.133,0.141,1.0);
         tooltip {
             show_delay_duration_ms = 500.0, 500.0;
             hide_delay_duration_ms = 0.0, 0.0;
@@ -229,22 +233,37 @@ define_themes! { [light:0, dark:1]
             }
         }
         component_browser {
-            panels_gap = 3.0, 3.0;
+            panels_gap = 4.0, 4.0;
             documentation {
-                width = 400.0, 400.0;
-                height = 459.0, 459.0;
-                background = graph_editor::node::background, graph_editor::node::background;
-                caption_height = 30.0, 30.0;
-                caption_animation_spring_multiplier = 1.5, 1.5;
+                width = 406.0, 406.0;
+                height = 380.0, 380.0;
+                background = application::component_browser::component_list_panel::background_color, application::component_browser::component_list_panel::background_color;
                 corner_radius = 14.0, 14.0;
             }
             component_list_panel {
-                background_color = Rgb::from_base_255(236.0, 240.0, 242.0),Rgb::from_base_255(236.0, 240.0, 242.0);
-                corners_radius = 16.0, 16.0;
+                width = 190.0, 190.0;
+                height = 380.0, 380.0;
+                background_color = Rgb::from_base_255(234.0, 234.0, 234.0),Rgb::from_base_255(236.0, 240.0, 242.0);
+                corners_radius = 20.0, 20.0;
+                padding_bottom = 4.0, 4.0;
+                button_panel {
+                    margin_bottom = -22.0, -22.0;
+                    width = 190.0, 190.0;
+                    height = 40.0, 40.0;
+                    corner_radius = 20.0, 20.0;
+                    inner_border_distance = 4.0, 4.0;
+                    border_width = 0.5, 0.5;
+                    background_color = application::component_browser::component_list_panel::background_color, application::component_browser::component_list_panel::background_color;
+                    border_color = Rgba(0.76, 0.76, 0.76, 1.0), Rgba(0.76, 0.76, 0.76, 1.0);
+                    padding = 12.0, 12.0;
+                    gap = 12.0, 12.0;
+                    right_side_margin = 38.0, 38.0;
+                }
                 grid {
-                    width = 196.0, 196.0;
-                    height = 414.0, 414.0;
-                    padding = 4.0, 4.0;
+                    width = 190.0, 190.0;
+                    height = 358.0, 358.0;
+                    padding_x = 4.0, 4.0;
+                    padding_y = 0.0, 0.0;
                     column_gap = 3.0, 3.0;
                     entry_height = 32.0, 32.0;
 
@@ -329,20 +348,19 @@ define_themes! { [light:0, dark:1]
                         local_scope_group = Rgba::new(0.0, 0.42, 0.64, 1.0),Rgba::new(0.0, 0.42, 0.64, 1.0);
                     }
                 }
-                menu_height = 45.0, 45.0;
-                menu_divider_color = Rgb(0.7804, 0.7804, 0.7804), Rgb(0.7804, 0.7804, 0.7804);
-                navigator_divider_color = Rgb(0.7804, 0.7804, 0.7804), Rgb(0.7804, 0.7804, 0.7804);
-                menu_divider_height = 0.5,0.5;
-                navigator_divider_width = 0.5,0.5;
                 menu {
                     breadcrumbs {
                         crop_left = 8.0, 8.0;
                         crop_right = 3.0, 3.0;
                         height = 44.0, 44.0;
+                        background_padding_x = 15.0, 15.0;
+                        background_color = Rgb(0.463, 0.69, 0.376), Rgb(0.463, 0.69, 0.376);
+                        background_height = 28.0, 28.0;
+                        background_y_offset = 2.0, 2.0;
                         separator {
                             width = 8.0, 8.0;
                             height = 6.0, 6.0;
-                            color = Rgba(0.0, 0.0, 0.0, 0.15), Rgba(0.0, 0.0, 0.0, 0.15);
+                            color = Rgba(1.0, 1.0, 1.0, 1.0), Rgba(1.0, 1.0, 1.0, 1.0);
                             offset_x = 1.0, 1.0;
                             offset_y = -2.0, -2.0;
                         }
@@ -350,8 +368,8 @@ define_themes! { [light:0, dark:1]
                             background_width = 28.0, 28.0;
                             background_height = 16.0, 16.0;
                             background_corners_radius = 100.0, 100.0;
-                            background_color = Rgba(0.0, 0.0, 0.0, 0.04), Rgba(0.0, 0.0, 0.0, 0.04);
-                            circles_color = Rgba(0.0, 0.0, 0.0, 0.17), Rgba(0.0, 0.0, 0.0, 0.17);
+                            background_color = Rgba(1.0, 1.0, 1.0, 0.16), Rgba(1.0, 1.0, 1.0, 0.16);
+                            circles_color = Rgba(1.0, 1.0, 1.0, 1.0), Rgba(1.0, 1.0, 1.0, 1.0);
                             circles_radius = 2.0, 2.0;
                             circles_gap = 2.0, 2.0;
                             offset_x = 0.0, 0.0;
@@ -364,30 +382,10 @@ define_themes! { [light:0, dark:1]
                             text_y_offset = 6.0, 6.0;
                             text_padding_left = 0.0, 0.0;
                             text_size = 11.5, 11.5;
-                            selected_color = Rgba(0.0, 0.0, 0.0, 0.46), Rgba(0.0, 0.0, 0.0, 0.46);
+                            selected_color = Rgba(1.0, 1.0, 1.0, 1.0), Rgba(1.0, 1.0, 1.0, 1.0);
                             highlight_corners_radius = 15.0, 15.0;
-                            greyed_out_color = Rgba(0.0, 0.0, 0.0, 0.15), Rgba(0.0, 0.0, 0.0, 0.15);
+                            greyed_out_color = Rgba(1.0, 1.0, 1.0, 0.15), Rgba(1.0, 1.0, 1.0, 0.15);
                         }
-                    }
-                }
-                navigator {
-                    width = 41.0, 41.0;
-                    button_size = 32.0, 32.0;
-                    top_padding = 8.0, 8.0;
-                    bottom_padding = 4.0, 4.0;
-                    hover_color = Rgba::transparent(), Rgba::transparent();
-                    highlight {
-                        color = Rgb(0.96,0.85,0.725) , Rgb(0.96,0.85,0.725); // rgb(245,217,185)
-                        size = 29.0, 29.0;
-                        corners_radius = 12.0, 12.0;
-                    }
-                    buttons {
-                        active {
-                            local_scope = Rgb::from_base_255(250.0, 149.0, 31.0), Rgb::from_base_255(250.0, 149.0, 31.0);
-                            submodules = Rgb::from_base_255(250.0, 149.0, 31.0), Rgb::from_base_255(250.0, 149.0, 31.0);
-                            popular = Rgb::from_base_255(250.0, 149.0, 31.0), Rgb::from_base_255(250.0, 149.0, 31.0);
-                        }
-                        inactive = Rgba(0.0, 0.0, 0.0, 0.15), Rgba(0.0, 0.0, 0.0, 0.15);
                     }
                 }
             }
@@ -479,24 +477,12 @@ define_themes! { [light:0, dark:1]
         }
     }
     code {
-        syntax {
-            base      = Lcha(0.09,0.0,0.0,1.0) , Lcha(1.0,0.0,0.0,0.7);
-            disabled  = Lcha(0.7,0.0,0.0,1.0) , Lcha(1.0,0.0,0.0,0.2);
-            expected  = Lcha(0.7,0.0,0.0,1.0) , Lcha(1.0,0.0,0.0,0.3);
-            selection = Lcha(0.7,0.0,0.125,0.7) , Lcha(0.7,0.0,0.125,0.7);
-            profiling {
-                base      = Lcha(1.0,0.0,0.0,0.9) , Lcha(0.0,0.0,0.0,0.7);
-                disabled  = Lcha(1.0,0.0,0.0,0.5) , Lcha(0.0,0.0,0.0,0.2);
-                expected  = Lcha(1.0,0.0,0.0,0.5) , Lcha(0.0,0.0,0.0,0.3);
-                selection = Lcha(1.0,0.0,0.0,1.0) , Lcha(0.0,0.0,0.0,1.0);
-            }
-        }
         types {
             hue_steps     = 512.0 , 512.0;
             hue_shift     = 0.0, 0.0;
             lightness     = 0.72 , 0.7;
             chroma        = 0.7 , 0.4;
-            any           = code::syntax::base , code::syntax::base;
+            any           = Lcha(0.09,0.0,0.0,1.0) , Lcha(1.0,0.0,0.0,0.7);
             any.selection = Lcha(0.8,0.0,0.0,1.0) , Lcha(0.5,0.0,0.0,1.0);
             selected      = graph_editor::node::background , graph_editor::node::background;
             overriden {
@@ -537,21 +523,14 @@ define_themes! { [light:0, dark:1]
             right = 300.0, 300.0;
         }
         node {
-            // Original RGB values (for reference after fixing color-conversion issues)
-            // light: rgb(253,254,255), old-dark: Lcha(0.2,0.014,0.18,1.0), dark: rgb(47,48,50)
             background         = Rgba(0.992,0.996,1.0,1.0), Rgba(0.182,0.188,0.196,1.0);
-            background.skipped = graph_editor::node::background , graph_editor::node::background;
-            selection          = selection, selection;
+            port_color_tint    = Rgba(1.0,1.0,1.0,0.15), Rgba(1.0,1.0,1.0,0.15);
+            text               = Lcha(0.09,0.0,0.0,1.0), Lcha(1.0,0.0,0.0,0.7);
             corner_radius = 14.0, 14.0;
             selection {
-                size = 3.5 , 3.5;
-                offset = 3.75 , 3.75;
-            }
-            text           = Rgba(0.078,0.067,0.137,0.85) , Lcha(1.0,0.0,0.0,0.7);
-            text {
-                missing_arg    = Rgba(0.078,0.067,0.137,0.25) , Lcha(1.0,0.0,0.0,0.3);
-                variant.dimmed = Lcha(0.7,0.0,0.0,0.7) , Lcha(0.25,0.014,0.18,1.0);
-                selection      = Lcha(0.7,0.0,0.125,0.7) , Lcha(0.7,0.0,0.125,0.7);
+                size = 20.0 , 20.0;
+                opacity = 0.2 , 0.2;
+                hover_opacity = 0.1 , 0.1;
             }
             actions {
                 context_switch {
@@ -565,14 +544,13 @@ define_themes! { [light:0, dark:1]
                 edited    = Lcha::yellow(0.9,1.0), Lcha::yellow(0.9,1.0);
             }
             error {
-                dataflow     = Rgba(1.0,0.341,0.125,1.0), Rgba(1.0,0.341,0.125,1.0);
+                dataflow     = Lcha(0.566,0.564,0.082,1.0), Lcha(0.566,0.564,0.082,1.0);
                 panic        = Rgba(0.7,0.235,0.08,1.0), Rgba(0.7,0.235,0.08,1.0);
                 warning      = Rgba(1.0,0.655,0.141,1.0), Rgba(1.0,0.655,0.141,1.0);
                 width        = 4.0  , 4.0;
-                repeat_x     = 20.0 , 20.0;
-                repeat_y     = 20.0 , 20.0;
                 stripe_width = 10.0 , 10.0;
-                stripe_angle = 45.0 , 45.0;
+                stripe_gap   = 20.0 , 20.0;
+                stripe_angle = 135.0 , 135.0;
             }
             profiling {
                 lightness    = code::types::lightness , code::types::lightness;
@@ -582,6 +560,12 @@ define_themes! { [light:0, dark:1]
             }
             type_label {
                 offset_y = -23.0, -23.0;
+            }
+
+            temp_colors {
+                color_0 = Lch(0.491, 0.339, 0.727), Lch(0.491, 0.339, 0.727);
+                color_1 = Lch(0.447, 0.379, 0.968), Lch(0.447, 0.379, 0.968);
+                color_2 = Lch(0.444, 0.124, 0.701), Lch(0.444, 0.124, 0.701);
             }
         }
         visualization {
@@ -616,6 +600,7 @@ define_themes! { [light:0, dark:1]
             }
         }
         edge {
+            disabled_color = Lcha(0.95,0.0,0.0,1.0), Lcha(0.95,0.0,0.0,1.0);
             split {
                 lightness_factor = 1.2 , 0.2;
                 chroma_factor    = 0.8 , 1.0;
@@ -661,35 +646,79 @@ define_themes! { [light:0, dark:1]
             }
         }
     }
+    /// Styles dedicated for each individual node widget kind. The name of the style group should
+    /// match the widget module name in `node::input::widget`.
     widget {
-        activation_shape {
-            base      = Lcha(0.56708, 0.23249, 0.71372, 1.0), Lcha(0.56708, 0.23249, 0.71372, 1.0);
-            connected = graph_editor::node::background , graph_editor::node::background;
+        single_choice {
+            triangle_base = Lcha(1.0,0.0,0.0,0.5);
+            triangle_connected = Lcha(1.0,0.0,0.0,1.0);
+            triangle_size = Vector2(8.0, 6.0);
+            /// Additional space around the triangle shape that will detect mouse hover.
+            triangle_offset = Vector2(0.0, -7.0);
+            dropdown_offset = Vector2(0.0, -20.0);
+            dropdown_max_size = Vector2(300.0, 500.0);
+            dropdown_tint = Rgba(0.0,0.0,0.0,0.1);
         }
         list_view {
-            background = graph_editor::node::background , graph_editor::node::background;
-            highlight  = Rgba(0.906,0.914,0.922,1.0) , Lcha(1.0,0.0,0.0,0.15); // rgb(231,233,235)
-            text = Lcha(0.0,0.0,0.0,0.7) , Lcha(1.0,0.0,0.0,0.7);
+            background = graph_editor::node::background;
+            highlight  = Rgba(0.906,0.914,0.922,1.0), Lcha(1.0,0.0,0.0,0.15); // rgb(231,233,235)
+            text = Lcha(0.0,0.0,0.0,0.7), Lcha(1.0,0.0,0.0,0.7);
             text {
-                selection = Lcha(0.7,0.0,0.125,0.7) , Lcha(0.7,0.0,0.125,0.7);
-                font      = DEFAULT_FONT_MONO, DEFAULT_FONT_MONO;
-                size      = 12.0, 12.0;
-                highlight_bold = 0.02, 0.02;
+                selection = Lcha(0.7,0.0,0.125,0.7);
+                font      = DEFAULT_FONT_MONO;
+                size      = 12.0;
+                highlight_bold = 0.02;
             }
             entry {
-                padding = 10.0, 10.0;
+                padding = 10.0;
             }
             highlight {
-                height = 24.0, 24.0;
-                corner_radius = 12.0, 12.0;
+                height = 24.0;
+                corner_radius = 12.0;
             }
-            padding = 5.0, 5.0;
+            padding = 5.0;
+        }
+        blank {
+            color = Lcha(0.0,0.0,0.0,0.33);
+            size = Vector2(20.0, 4.0);
+            margin_sides = 2.0;
+            margin_top = 8.0;
+            corner_radius = 4.0;
+        }
+        label {
+            /// Base label style, used when the label doesn't belong to any of the groups defined
+            /// below.
+            base_color = Lcha(1.0,0.0,0.0,1.0), Lcha(1.0,0.0,0.0,0.7);
+            base_weight = 400.0;
+            /// Label style when the node is disabled. For disabled nodes, all labels are rendered
+            /// with this style.
+            disabled_color = Lcha(0.95,0.0,0.0,0.9);
+            disabled_weight = 400.0;
+            /// Label style for placeholder argument names. Implies that the argument value is
+            /// using default value.
+            placeholder_color = Lcha(1.0,0.0,0.0,0.7);
+            placeholder_weight = 700.0;
+            /// Label style for connected ports. In connected ports, all labels are rendered with
+            /// this style.
+            connected_color = Lcha(1.0,0.0,0.0,1.0);
+            connected_weight = 400.0;
+        }
+        separator {
+            color = Rgba(0.0, 0.0, 0.0, 0.12);
+            margin = 7.5;
+            width = 1.0;
+        }
+        argument_name {
+            /// Label style for argument names.
+            color = Lcha(1.0,0.0,0.0,0.7);
+            margin = widget::separator::margin;
+            weight = 400.0;
         }
     }
     colors {
         dimming {
-            lightness_factor = 1.1 , 1.1;
-            chroma_factor    = 0.2 , 0.2;
+            lightness_factor = 1.1;
+            chroma_factor = 0.2;
         }
     }
     component {

@@ -32,8 +32,6 @@
 
 use crate::prelude::*;
 
-use crate::entry::icon;
-
 use enso_frp as frp;
 use ensogl_core::application::frp::API;
 use ensogl_core::application::shortcut::Shortcut;
@@ -42,13 +40,14 @@ use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::scene::Layer;
 use ensogl_core::display::shape::StyleWatchFrp;
-use ensogl_derive_theme::FromTheme;
+use ensogl_core::display::style::FromTheme;
 use ensogl_grid_view as grid_view;
 use ensogl_grid_view::Col;
 use ensogl_grid_view::Row;
 use ensogl_gui_component::component;
 use ensogl_hardcoded_theme::application::component_browser::component_list_panel as panel_theme;
 use ensogl_hardcoded_theme::application::component_browser::component_list_panel::grid as theme;
+use ensogl_icons::icon;
 use ensogl_text as text;
 
 
@@ -111,6 +110,9 @@ pub struct EntryModel {
 
 ensogl_core::define_endpoints_2! {
     Input {
+        /// Set top margin inside scroll area. We need to leave some margin so the button panel
+        /// will not cover the topmost entry when maximally scrolled up.
+        set_top_margin(f32),
         reset(content::Info),
         select_first_entry(),
         model_for_entry(EntryId, EntryModel),
@@ -118,6 +120,7 @@ ensogl_core::define_endpoints_2! {
         accept_suggestion(),
         /// Accept current input as expression, ignoring any active suggestion.
         accept_current_input_expression(),
+        focus(),
     }
     Output {
         active(Option<EntryId>),
@@ -146,6 +149,20 @@ pub type Grid = grid_view::scrollable::SelectableGridView<entry::View>;
 
 // === GroupColors ===
 
+/// The grid's style structure.
+#[allow(missing_docs)]
+#[derive(Clone, Copy, Default, Debug, PartialEq, FromTheme)]
+#[base_path = "theme::group_colors"]
+struct GroupColorsTheme {
+    group_0:           color::Lcha,
+    group_1:           color::Lcha,
+    group_2:           color::Lcha,
+    group_3:           color::Lcha,
+    group_4:           color::Lcha,
+    group_5:           color::Lcha,
+    local_scope_group: color::Lcha,
+}
+
 /// Default groups colors.
 #[derive(Clone, Copy, Default, Debug, PartialEq)]
 pub struct GroupColors {
@@ -155,6 +172,23 @@ pub struct GroupColors {
     outside_group: color::Lcha,
 }
 
+impl From<GroupColorsTheme> for GroupColors {
+    fn from(theme: GroupColorsTheme) -> Self {
+        Self {
+            variants:      [
+                theme.group_0,
+                theme.group_1,
+                theme.group_2,
+                theme.group_3,
+                theme.group_4,
+                theme.group_5,
+            ],
+            outside_group: theme.local_scope_group,
+        }
+    }
+}
+
+
 
 // === Style ===
 
@@ -163,18 +197,21 @@ pub struct GroupColors {
 #[derive(Clone, Copy, Default, Debug, PartialEq, FromTheme)]
 #[base_path = "theme"]
 pub struct Style {
-    pub width:        f32,
-    pub height:       f32,
-    pub padding:      f32,
-    pub column_gap:   f32,
-    pub entry_height: f32,
+    pub width:          f32,
+    pub height:         f32,
+    pub padding_x:      f32,
+    pub padding_y:      f32,
+    pub column_gap:     f32,
+    pub entry_height:   f32,
+    #[theme_path = "panel_theme::corners_radius"]
+    pub corners_radius: f32,
 }
 
 impl Style {
     /// Compute the size of grid without external paddings.
     pub fn content_size(&self) -> Vector2 {
         let size = Vector2(self.width, self.height);
-        let padding = Vector2(self.padding, self.padding) * 2.0;
+        let padding = Vector2(self.padding_x, self.padding_y) * 2.0;
         size - padding
     }
 
@@ -193,9 +230,10 @@ impl Style {
 // === Model ===
 
 /// A [Model](component::Model) of [Component List Panel Grid View](View).
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, display::Object)]
 pub struct Model {
     display_object:     display::object::Instance,
+    #[focus_receiver]
     grid:               Grid,
     grid_layer:         Layer,
     selection_layer:    Layer,
@@ -387,7 +425,7 @@ impl Model {
     fn grid_position(input: &(Style, Vector2)) -> Vector2 {
         let (style, _) = input;
         let y = -style.content_size().y + Self::grid_size(input).y;
-        Vector2(0.0, y)
+        Vector2(style.padding_x, y)
     }
 
     fn entries_params(
@@ -421,15 +459,6 @@ impl Model {
 }
 
 
-// === display::Object Implementation ===
-
-impl display::Object for Model {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
-    }
-}
-
-
 
 // =================
 // === FRP Logic ===
@@ -449,12 +478,12 @@ impl component::Frp<Model> for Frp {
         let grid_scroll_frp = grid.scroll_frp();
         let grid_extra_scroll_frp = grid.extra_scroll_frp();
         let grid_selection_frp = grid.selection_highlight_frp();
-        let corners_radius = style_frp.get_number(panel_theme::corners_radius);
         let style = Style::from_theme(network, style_frp);
         let entry_style = entry::Style::from_theme(network, style_frp);
         let colors = entry::style::Colors::from_theme(network, style_frp);
         let selection_colors = entry::style::SelectionColors::from_theme(network, style_frp);
         frp::extend! { network
+
             // === Active and Hovered Entry ===
 
             grid.select_entry <+ grid.entry_hovered;
@@ -476,38 +505,30 @@ impl component::Frp<Model> for Frp {
 
             // === Groups colors ===
 
-            let group0 = style_frp.get_color(theme::group_colors::group_0);
-            let group1 = style_frp.get_color(theme::group_colors::group_1);
-            let group2 = style_frp.get_color(theme::group_colors::group_2);
-            let group3 = style_frp.get_color(theme::group_colors::group_3);
-            let group4 = style_frp.get_color(theme::group_colors::group_4);
-            let group5 = style_frp.get_color(theme::group_colors::group_5);
-            groups <- all7(&style.init, &group0, &group1, &group2, &group3, &group4, &group5);
-            let local_scope_group = style_frp.get_color(theme::group_colors::local_scope_group);
-            group_colors <- all_with(&groups, &local_scope_group, |&((), g0, g1, g2, g3, g4, g5), ls| {
-                GroupColors {
-                    variants: [g0, g1, g2, g3, g4, g5].map(color::Lcha::from),
-                    outside_group: ls.into(),
-                }
-            });
+            let group_colors_theme = GroupColorsTheme::from_theme(network, style_frp);
+            group_colors <- group_colors_theme.map(|t| GroupColors::from(*t));
 
 
             // === Style and Entries Params ===
 
-            style_and_content_size <- all(&style.update, &grid.content_size);
+            style_and_content_size <- all(&style, &grid.content_size);
             entries_style <-
-                all4(&style.update, &entry_style.update, &colors.update, &group_colors);
+                all4(&style, &entry_style, &colors, &group_colors);
             entries_params <- entries_style.map(f!((s) model.entries_params(s)));
-            selection_entries_style <- all(entries_params, selection_colors.update);
+            selection_entries_style <- all(entries_params, selection_colors);
             selection_entries_params <-
                 selection_entries_style.map(f!((input) model.selection_entries_params(input)));
             grid_scroll_frp.resize <+ style_and_content_size.map(Model::grid_size);
             grid_position <- style_and_content_size.map(Model::grid_position);
             eval grid_position ((pos) model.grid.set_xy(*pos));
-            grid_scroll_frp.set_corner_radius_bottom_right <+ all(&corners_radius, &style.init)._0();
-            grid.set_entries_size <+ style.update.map(|s| s.entry_size());
+            corners_radius <- style.map(|s| s.corners_radius);
+            grid_scroll_frp.set_corner_radius_bottom_right <+ corners_radius;
+            grid_scroll_frp.set_corner_radius_bottom_right <+ corners_radius;
+            grid.set_entries_size <+ style.map(|s| s.entry_size());
             grid.set_entries_params <+ entries_params;
             grid_selection_frp.set_entries_params <+ selection_entries_params;
+            grid_extra_scroll_frp.set_margins <+
+                input.set_top_margin.map(|&top| grid_view::Margins { top, ..default() });
 
 
             // === Header and Entries Models ===
@@ -532,26 +553,20 @@ impl component::Frp<Model> for Frp {
 
             // === Scrolling ===
 
-            grid_extra_scroll_frp.set_preferred_margins_around_entry <+ style.update.map(
+            grid_extra_scroll_frp.set_preferred_margins_around_entry <+ style.map(
                 f!((style) model.navigation_scroll_margins(style))
             );
 
-            // The content area is higher than just height of all entries, because there is a gap
-            // between all groups and local scope section.
-            grid_scroll_frp.set_content_height <+ grid.content_size.map(|c| c.y);
 
+            // === Focus ===
 
-            // === Focus propagation ===
-
-            // The underlying grid should handle keyboard events only when any element is active.
-            grid.deprecated_set_focus <+ out.focused && out.is_active;
+            eval_ input.focus (model.focus());
+            let focused = model.on_event::<ensogl_core::event::FocusIn>();
+            let defocused = model.on_event::<ensogl_core::event::FocusOut>();
+            grid.disable_selection <+ bool(&focused, &defocused);
         }
 
         grid.resize_grid(0, COLUMN_COUNT);
-        style.init.emit(());
-        entry_style.init.emit(());
-        colors.init.emit(());
-        selection_colors.init.emit(());
     }
 
     fn default_shortcuts() -> Vec<Shortcut> {
@@ -562,9 +577,8 @@ impl component::Frp<Model> for Frp {
             // underlying Grid View.
             (Press, "!is_active", "enter", "accept_current_input_expression"),
             (Press, "", "cmd enter", "accept_current_input_expression"),
-            (Press, "", "cmd up", "jump_group_up"),
-            (Press, "", "cmd down", "jump_group_down"),
             (Press, "!is_active", "up", "select_first_entry"),
+            (Press, "!is_active", "up", "focus"),
         ]
         .iter()
         .map(|(a, b, c, d)| View::self_shortcut_when(*a, *c, *d, *b))

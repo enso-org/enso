@@ -11,67 +11,80 @@ import * as backend from '../backend'
 export enum Permission {
     owner = 'owner',
     admin = 'admin',
-    regular = 'regular',
+    edit = 'edit',
+    read = 'read',
+    view = 'view',
 }
 
-/** Base interface for all permissions. */
-interface BasePermissions {
-    type: Permission
+/** Properties common to all permissions. */
+interface BasePermissions<T extends Permission> {
+    type: T
 }
 
-/** Owner permissions over an asset. */
-interface OwnerPermissions extends BasePermissions {
-    type: Permission.owner
+/** Owner permissions for an asset. */
+interface OwnerPermissions extends BasePermissions<Permission.owner> {}
+
+/** Admin permissions for an asset. */
+interface AdminPermissions extends BasePermissions<Permission.admin> {}
+
+/** Editor permissions for an asset. */
+interface EditPermissions extends BasePermissions<Permission.edit> {}
+
+/** Reader permissions for an asset. */
+interface ReadPermissions extends BasePermissions<Permission.read> {
+    execute: boolean
+    docs: boolean
 }
 
-/** Admin permissions over an asset. */
-interface AdminPermissions extends BasePermissions {
-    type: Permission.admin
-}
-
-/** Regular permissions over an asset. */
-interface RegularPermissions extends BasePermissions {
-    type: Permission.regular
-    read: boolean
-    write: boolean
-    docsWrite: boolean
-    exec: boolean
+/** Viewer permissions for an asset. */
+interface ViewPermissions extends BasePermissions<Permission.view> {
+    execute: boolean
+    docs: boolean
 }
 
 /** Detailed permission information. This is used to draw the border. */
-export type Permissions = AdminPermissions | OwnerPermissions | RegularPermissions
+export type Permissions =
+    | AdminPermissions
+    | EditPermissions
+    | OwnerPermissions
+    | ReadPermissions
+    | ViewPermissions
 
 // =================
 // === Constants ===
 // =================
 
-/** Classes common between all permission borders. */
-const PERMISSION_BORDER_SHARED_CLASSES = 'border-2 rounded-full absolute w-full h-full'
+/** CSS classes for each permission. */
+export const PERMISSION_CLASS_NAME: Record<Permission, string> = {
+    [Permission.owner]: 'text-tag-text bg-permission-owner',
+    [Permission.admin]: 'text-tag-text bg-permission-admin',
+    [Permission.edit]: 'text-tag-text bg-permission-edit',
+    [Permission.read]: 'text-tag-text bg-permission-read',
+    [Permission.view]: 'text-tag-text-2 bg-permission-view',
+} as const
+
+/** Precedences for each permission. A lower number means a higher priority. */
+const PERMISSION_PRECEDENCE: Record<Permission, number> = {
+    // These are not magic numbers - they are just a sequence of numbers.
+    /* eslint-disable @typescript-eslint/no-magic-numbers */
+    [Permission.owner]: 0,
+    [Permission.admin]: 1,
+    [Permission.edit]: 2,
+    [Permission.read]: 3,
+    [Permission.view]: 4,
+    /* eslint-enable @typescript-eslint/no-magic-numbers */
+}
 
 /** The corresponding `Permissions` for each backend `PermissionAction`. */
 export const PERMISSION: Record<backend.PermissionAction, Permissions> = {
     [backend.PermissionAction.own]: { type: Permission.owner },
     [backend.PermissionAction.execute]: {
-        type: Permission.regular,
-        read: false,
-        write: false,
-        docsWrite: false,
-        exec: true,
+        type: Permission.read,
+        execute: true,
+        docs: false,
     },
-    [backend.PermissionAction.edit]: {
-        type: Permission.regular,
-        read: false,
-        write: true,
-        docsWrite: false,
-        exec: false,
-    },
-    [backend.PermissionAction.view]: {
-        type: Permission.regular,
-        read: true,
-        write: false,
-        docsWrite: false,
-        exec: false,
-    },
+    [backend.PermissionAction.edit]: { type: Permission.edit },
+    [backend.PermissionAction.view]: { type: Permission.view, execute: false, docs: false },
 }
 
 // ======================
@@ -82,38 +95,15 @@ export const PERMISSION: Record<backend.PermissionAction, Permissions> = {
 export function permissionActionsToPermissions(
     permissions: backend.PermissionAction[]
 ): Permissions {
-    if (permissions.some(permission => permission === backend.PermissionAction.own)) {
-        return { type: Permission.owner }
-    } else {
-        const result: Permissions = {
-            type: Permission.regular,
-            read: false,
-            write: false,
-            docsWrite: false,
-            exec: false,
-        }
-        for (const permission of permissions) {
-            switch (permission) {
-                case backend.PermissionAction.own: {
-                    // Ignored. This should never happen because of the `permissions.some` above.
-                    break
-                }
-                case backend.PermissionAction.execute: {
-                    result.exec = true
-                    break
-                }
-                case backend.PermissionAction.edit: {
-                    result.write = true
-                    break
-                }
-                case backend.PermissionAction.view: {
-                    result.read = true
-                    break
-                }
-            }
-        }
-        return result
-    }
+    return permissions.reduce<Permissions>(
+        (result, action) => {
+            const actionResult = PERMISSION[action]
+            return PERMISSION_PRECEDENCE[actionResult.type] <= PERMISSION_PRECEDENCE[result.type]
+                ? actionResult
+                : result
+        },
+        { type: Permission.view, execute: false, docs: false }
+    )
 }
 
 // =================
@@ -130,62 +120,50 @@ export interface PermissionDisplayProps extends React.PropsWithChildren {
 }
 
 /** Colored border around icons and text indicating permissions. */
-function PermissionDisplay(props: PermissionDisplayProps) {
+export default function PermissionDisplay(props: PermissionDisplayProps) {
     const { permissions, className, onClick, onMouseEnter, onMouseLeave, children } = props
-    let permissionBorder
+
     switch (permissions.type) {
-        case Permission.owner: {
-            permissionBorder = (
-                <div className={`border-perm-owner ${PERMISSION_BORDER_SHARED_CLASSES}`}></div>
+        case Permission.owner:
+        case Permission.admin:
+        case Permission.edit: {
+            return (
+                <div
+                    className={`${
+                        PERMISSION_CLASS_NAME[permissions.type]
+                    } inline-block rounded-full h-6 px-1.75 py-0.5 ${className ?? ''}`}
+                    onClick={onClick}
+                    onMouseEnter={onMouseEnter}
+                    onMouseLeave={onMouseLeave}
+                >
+                    {children}
+                </div>
             )
-            break
         }
-        case Permission.admin: {
-            permissionBorder = (
-                <div className={`border-perm-admin ${PERMISSION_BORDER_SHARED_CLASSES}`}></div>
+        case Permission.read:
+        case Permission.view: {
+            return (
+                <div
+                    className={`relative inline-block rounded-full ${className ?? ''}`}
+                    onClick={onClick}
+                    onMouseEnter={onMouseEnter}
+                    onMouseLeave={onMouseLeave}
+                >
+                    {permissions.docs && (
+                        <div className="border-permission-docs clip-path-top border-2 rounded-full absolute w-full h-full" />
+                    )}
+                    {permissions.execute && (
+                        <div className="border-permission-exec clip-path-bottom border-2 rounded-full absolute w-full h-full" />
+                    )}
+                    <div
+                        className={`${
+                            PERMISSION_CLASS_NAME[permissions.type]
+                        } rounded-full h-6 px-1.75 py-0.5 m-1`}
+                    >
+                        {children}
+                    </div>
+                </div>
             )
-            break
-        }
-        case Permission.regular: {
-            permissionBorder = (
-                <>
-                    <div
-                        className={`${
-                            permissions.write ? 'border-perm-write' : 'border-perm-none'
-                        } clip-path-top-left ${PERMISSION_BORDER_SHARED_CLASSES}`}
-                    ></div>
-                    <div
-                        className={`${
-                            permissions.read ? 'border-perm-read' : 'border-perm-none'
-                        } clip-path-top-right ${PERMISSION_BORDER_SHARED_CLASSES}`}
-                    ></div>
-                    <div
-                        className={`${
-                            permissions.exec ? 'border-perm-exec' : 'border-perm-none'
-                        } clip-path-bottom-left ${PERMISSION_BORDER_SHARED_CLASSES}`}
-                    ></div>
-                    <div
-                        className={`${
-                            permissions.docsWrite ? 'border-perm-docs-write' : 'border-perm-none'
-                        } clip-path-bottom-right ${PERMISSION_BORDER_SHARED_CLASSES}`}
-                    ></div>
-                </>
-            )
-            break
         }
     }
-
-    return (
-        <div
-            className={`mx-1 bg-white relative inline-block rounded-full ${className ?? ''}`}
-            onClick={onClick}
-            onMouseEnter={onMouseEnter}
-            onMouseLeave={onMouseLeave}
-        >
-            {permissionBorder}
-            <div className="bg-label rounded-full m-1">{children}</div>
-        </div>
-    )
 }
-
-export default PermissionDisplay

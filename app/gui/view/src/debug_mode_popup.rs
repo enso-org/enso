@@ -33,10 +33,10 @@ ensogl::define_endpoints! {
 // ============
 
 /// A pop-up that signals about enabling/disabling Debug Mode of Graph Editor.
-#[derive(Debug, Clone, CloneRef)]
+#[derive(Debug, Clone, CloneRef, Deref, display::Object)]
 pub struct View {
-    #[allow(missing_docs)]
-    pub frp:      Frp,
+    #[deref]
+    frp:      Frp,
     notification: Notification,
 }
 

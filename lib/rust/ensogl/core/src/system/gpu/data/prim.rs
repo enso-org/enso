@@ -13,6 +13,11 @@ macro_rules! gen_unsupported_types {
     ( $($name:ident),* $(,)? ) => {$(
         #[derive(Copy,Clone,Debug)]
         pub struct $name {}
+
+        #[allow(unsafe_code)]
+        unsafe impl bytemuck::Pod for $name {}
+        #[allow(unsafe_code)]
+        unsafe impl bytemuck::Zeroable for $name {}
     )*}
 }
 
