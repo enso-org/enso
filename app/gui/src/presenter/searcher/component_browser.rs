@@ -17,7 +17,7 @@ use enso_text as text;
 use ide_view as view;
 use ide_view::component_browser;
 use ide_view::component_browser::component_list_panel::grid as component_grid;
-use ide_view::component_browser::component_list_panel::BreadcrumbId;
+use ide_view::documentation::breadcrumbs::BreadcrumbId;
 use ide_view::graph_editor::NodeId;
 use ide_view::project::SearcherParams;
 
@@ -108,7 +108,7 @@ impl Model {
         // one is reserved as a section name.
         let from = 1;
         let breadcrumbs_from = (names.map(Into::into).collect(), from);
-        browser.model().list.model().breadcrumbs.set_entries_from(breadcrumbs_from);
+        browser.model().documentation.breadcrumbs.set_entries_from(breadcrumbs_from);
     }
 
     fn module_entered(&self, entry: component_grid::EntryId) {
@@ -250,7 +250,7 @@ impl ComponentBrowserSearcher {
         }
 
         let grid = &browser.model().list.model().grid;
-        let breadcrumbs = &browser.model().list.model().breadcrumbs;
+        let breadcrumbs = &browser.model().documentation.breadcrumbs;
         let documentation = &browser.model().documentation;
         frp::extend! { network
             eval_ action_list_changed ([model, grid] {

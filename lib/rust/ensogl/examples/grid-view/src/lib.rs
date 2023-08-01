@@ -185,6 +185,12 @@ fn init(app: &Application) {
     let view = &grid_views_with_headers[0];
     for i in (0..1000).step_by(2) {
         view.set_column_width((i, 60.0));
+        view.extra_scroll_frp().set_margins(Margins {
+            left:   0.0,
+            right:  0.0,
+            top:    15.0,
+            bottom: 0.0,
+        });
     }
 
     for view in with_hover_mask {

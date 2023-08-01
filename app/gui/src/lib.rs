@@ -210,6 +210,9 @@ pub fn drop() {
         // The presenter need to be dropped first, so all visible components should hide themselves
         // and be pushed to the garbage collector before we clear it.
         mem::drop(ide.presenter);
+        // Some IDE elements may be still captured in async tasks. We need to clear executor before
+        // dropping scene.
+        EXECUTOR.with(RefCell::take);
         //TODO[ao] As widgets which are garbage-collected may (and ofter do) keep references to
         // [`Application`] or [`World`], we need to force dropping them. This is not an ideal
         // solution, but the garbage collector will be removed soon anyway - see
@@ -217,7 +220,6 @@ pub fn drop() {
         ide.ensogl_app.display.force_garbage_drop();
         mem::drop(ide.ensogl_app)
     };
-    EXECUTOR.with(RefCell::take);
     leak_detector::TRACKED_OBJECTS.with(|objects| {
         let objects = objects.borrow();
         if !objects.is_empty() {

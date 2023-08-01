@@ -26,16 +26,13 @@ use ensogl::system::web::traits::*;
 use enso_frp as frp;
 use enso_suggestion_database::documentation_ir::EntryDocumentation;
 use enso_suggestion_database::documentation_ir::LinkedDocPage;
-use ensogl::animation::physics::inertia::Spring;
 use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display;
-use ensogl::display::scene::Scene;
-use ensogl::display::shape::primitive::StyleWatch;
+use ensogl::display::style::FromTheme;
 use ensogl::display::DomSymbol;
 use ensogl::system::web;
 use ensogl::Animation;
-use ensogl_component::shadow;
 use ensogl_hardcoded_theme::application::component_browser::documentation as theme;
 use graph_editor::component::visualization;
 use ide_view_graph_editor as graph_editor;
@@ -47,14 +44,17 @@ use ide_view_graph_editor as graph_editor;
 
 pub mod html;
 
+pub use ide_view_component_list_panel_breadcrumbs as breadcrumbs;
+
 
 
 // =================
 // === Constants ===
 // =================
 
-/// The caption is hidden if its height is less than this value.
-const MIN_CAPTION_HEIGHT: f32 = 1.0;
+
+
+const INITIAL_SECTION_NAME: &str = "Popular";
 /// Delay before updating the displayed documentation.
 const DISPLAY_DELAY_MS: i32 = 0;
 
@@ -65,11 +65,9 @@ const DISPLAY_DELAY_MS: i32 = 0;
 #[base_path = "theme"]
 #[allow(missing_docs)]
 pub struct Style {
-    width: f32,
-    height: f32,
-    background: color::Rgba,
-    caption_height: f32,
-    caption_animation_spring_multiplier: f32,
+    width:         f32,
+    height:        f32,
+    background:    color::Rgba,
     corner_radius: f32,
 }
 
@@ -83,19 +81,20 @@ pub struct Style {
 #[derive(Clone, CloneRef, Debug, display::Object)]
 #[allow(missing_docs)]
 pub struct Model {
-    outer_dom:      DomSymbol,
-    caption_dom:    DomSymbol,
-    inner_dom:      DomSymbol,
+    outer_dom:       DomSymbol,
+    inner_dom:       DomSymbol,
+    pub breadcrumbs: breadcrumbs::Breadcrumbs,
     /// The purpose of this overlay is stop propagating mouse events under the documentation panel
     /// to EnsoGL shapes, and pass them to the DOM instead.
-    overlay:        Rectangle,
-    display_object: display::object::Instance,
-    event_handlers: Rc<RefCell<Vec<web::EventListenerHandle>>>,
+    overlay:         Rectangle,
+    display_object:  display::object::Instance,
+    event_handlers:  Rc<RefCell<Vec<web::EventListenerHandle>>>,
 }
 
 impl Model {
     /// Constructor.
-    fn new(scene: &Scene) -> Self {
+    fn new(app: &Application) -> Self {
+        let scene = &app.display.default_scene;
         let display_object = display::object::Instance::new();
         let outer_div = web::document.create_div_or_panic();
         let outer_dom = DomSymbol::new(&outer_div);
@@ -104,19 +103,15 @@ impl Model {
         let overlay = Rectangle::new().build(|r| {
             r.set_color(INVISIBLE_HOVER_COLOR);
         });
-        let caption_div = web::document.create_div_or_panic();
-        let caption_dom = DomSymbol::new(&caption_div);
-        caption_dom.set_inner_html(&html::caption_html());
 
-        // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
-        // system (#795)
-        let styles = StyleWatch::new(&scene.style_sheet);
+        let breadcrumbs = app.new_view::<breadcrumbs::Breadcrumbs>();
+        breadcrumbs.set_base_layer(&app.display.default_scene.layers.node_searcher);
+        display_object.add_child(&breadcrumbs);
 
         outer_dom.dom().set_style_or_warn("white-space", "normal");
         outer_dom.dom().set_style_or_warn("overflow-y", "auto");
         outer_dom.dom().set_style_or_warn("overflow-x", "auto");
         outer_dom.dom().set_style_or_warn("pointer-events", "auto");
-        shadow::add_to_dom_element(&outer_dom, &styles);
 
         inner_dom.dom().set_attribute_or_warn("class", "scrollable");
         inner_dom.dom().set_style_or_warn("white-space", "normal");
@@ -125,17 +120,15 @@ impl Model {
         inner_dom.dom().set_style_or_warn("pointer-events", "auto");
 
         display_object.add_child(&outer_dom);
-        outer_dom.add_child(&caption_dom);
         outer_dom.add_child(&inner_dom);
         display_object.add_child(&overlay);
         scene.dom.layers.node_searcher.manage(&outer_dom);
         scene.dom.layers.node_searcher.manage(&inner_dom);
-        scene.dom.layers.node_searcher.manage(&caption_dom);
 
         Model {
             outer_dom,
             inner_dom,
-            caption_dom,
+            breadcrumbs,
             overlay,
             display_object,
             event_handlers: default(),
@@ -156,11 +149,32 @@ impl Model {
         self.outer_dom.append_or_warn(&element);
     }
 
+    fn set_initial_breadcrumbs(&self) {
+        let breadcrumb = breadcrumbs::Breadcrumb::new(INITIAL_SECTION_NAME, None);
+        self.breadcrumbs.set_entries_from((vec![breadcrumb], 0));
+        self.breadcrumbs.show_ellipsis(true);
+    }
+
     /// Set size of the documentation view.
-    fn set_size(&self, size: Vector2) {
-        self.overlay.set_size(size);
-        self.overlay.set_xy(Vector2(-size.x / 2.0, -size.y / 2.0));
+    fn size_changed(&self, size: Vector2, fraction: f32) {
+        let visible_part = Vector2(size.x * fraction, size.y);
+        self.outer_dom.set_xy(size / 2.0);
+        self.overlay.set_size(visible_part);
         self.outer_dom.set_dom_size(Vector2(size.x, size.y));
+        self.inner_dom.set_dom_size(Vector2(size.x, size.y));
+        self.breadcrumbs.set_xy(Vector2(0.0, size.y + 36.0));
+        self.breadcrumbs.frp().set_size(Vector2(visible_part.x, 32.0));
+    }
+
+    /// Set the fraction of visible documentation panel. Used to animate showing/hiding the panel.
+    fn width_animation_changed(&self, style: &Style, size: Vector2, fraction: f32) {
+        let percentage = (1.0 - fraction) * 100.0;
+        let clip_path = format!("inset(0 {percentage}% 0 0 round {}px)", style.corner_radius);
+        self.inner_dom.set_style_or_warn("clip-path", &clip_path);
+        self.outer_dom.set_style_or_warn("clip-path", &clip_path);
+        let actual_size = Vector2(size.x * fraction, size.y);
+        self.overlay.set_size(actual_size);
+        self.breadcrumbs.frp().set_size(Vector2(actual_size.x, 32.0));
     }
 
     /// Display the documentation and scroll to the qualified name if needed.
@@ -202,26 +216,12 @@ impl Model {
     }
 
     fn update_style(&self, style: Style) {
-        self.set_size(Vector2(style.width, style.height));
+        // Size is updated separately in [`size_changed`] method.
         self.overlay.set_corner_radius(style.corner_radius);
         self.outer_dom.set_style_or_warn("border-radius", format!("{}px", style.corner_radius));
         self.inner_dom.set_style_or_warn("border-radius", format!("{}px", style.corner_radius));
         let bg_color = style.background.to_javascript_string();
         self.outer_dom.set_style_or_warn("background-color", bg_color);
-        self.set_caption_height(0.0, &style);
-    }
-
-    fn set_caption_height(&self, height: f32, style: &Style) {
-        let panel_size = Vector2(style.width, style.height);
-        self.inner_dom.set_dom_size(Vector2(panel_size.x, panel_size.y - height));
-        self.inner_dom.set_xy(Vector2(0.0, -height / 2.0));
-        self.caption_dom.set_dom_size(Vector2(panel_size.x, height));
-        self.caption_dom.set_xy(Vector2(0.0, panel_size.y / 2.0 - height / 2.0));
-        if height < MIN_CAPTION_HEIGHT {
-            self.outer_dom.remove_child(&self.caption_dom);
-        } else {
-            self.outer_dom.add_child(&self.caption_dom);
-        }
     }
 }
 
@@ -235,7 +235,10 @@ ensogl::define_endpoints! {
     Input {
         /// Display documentation of the specific entry from the suggestion database.
         display_documentation (EntryDocumentation),
-        show_hovered_item_preview_caption(bool),
+        /// Set documentation visibility. It will appear or disappear with animation.
+        set_visible(bool),
+        /// Skip show/hide animation.
+        skip_animation(),
     }
     Output {
         /// Indicates whether the documentation panel has been selected through clicking into
@@ -280,10 +283,9 @@ impl View {
 
     /// Constructor.
     pub fn new(app: &Application) -> Self {
-        let scene = &app.display.default_scene;
         let frp = Frp::new();
         let visualization_frp = visualization::instance::Frp::new(&frp.network);
-        let model = Model::new(scene);
+        let model = Model::new(app);
         model.load_waiting_screen();
         Self { model, visualization_frp, frp }.init(app)
     }
@@ -296,10 +298,11 @@ impl View {
         let visualization = &self.visualization_frp;
         let frp = &self.frp;
         let display_delay = frp::io::timer::Timeout::new(network);
-        let caption_anim = Animation::<f32>::new(network);
         let style_frp = StyleWatchFrp::new(&scene.style_sheet);
         let style = Style::from_theme(network, &style_frp);
+        let width_anim = Animation::new(network);
         frp::extend! { network
+
             // === Displaying documentation ===
 
             docs <- any(...);
@@ -313,27 +316,22 @@ impl View {
             );
 
 
-            // === Hovered item preview caption ===
-
-            spring_muliplier <- style.map(|s| s.caption_animation_spring_multiplier);
-            caption_anim.set_spring <+ spring_muliplier.map(|m| Spring::default() * m);
-            show_caption <- frp.show_hovered_item_preview_caption.on_true();
-            hide_caption <- frp.show_hovered_item_preview_caption.on_false();
-            caption_anim.target <+ show_caption.constant(1.0);
-            caption_anim.target <+ hide_caption.constant(0.0);
-            _eval <- all_with(&caption_anim.value, &style, f!((value, style) {
-                model.set_caption_height(value * style.caption_height, style)
-            }));
-
-
             // === Size ===
 
             size <- style.map(|s| Vector2(s.width, s.height));
-            eval size((size) model.set_size(*size));
+            _eval <- size.map2(&width_anim.value, f!((&s, &f) model.size_changed(s, f)));
+
 
             // === Style ===
 
             eval style((style) model.update_style(*style));
+
+
+            // === Show/hide animation ===
+
+            width_anim.target <+ frp.set_visible.map(|&visible| if visible { 1.0 } else { 0.0 });
+            width_anim.skip <+ frp.skip_animation;
+            _eval <- width_anim.value.map3(&size, &style, f!((&f, &sz, st) model.width_animation_changed(st, sz, f)));
 
 
             // === Activation ===
@@ -365,6 +363,8 @@ impl View {
             frp.source.is_hovered <+ model.overlay.events_deprecated.mouse_over.constant(true);
             frp.source.is_hovered <+ model.overlay.events_deprecated.mouse_out.constant(false);
         }
+        model.set_initial_breadcrumbs();
+        frp.set_visible(true);
         self
     }
 }

@@ -2,7 +2,7 @@ package org.enso.languageserver.filemanager
 
 import java.io.File
 import enumeratum._
-import org.enso.filewatcher.WatcherAdapter
+import org.enso.filewatcher.Watcher
 
 /** A representation of filesystem event.
   *
@@ -23,7 +23,7 @@ object FileEvent {
   def fromWatcherEvent(
     root: File,
     base: Path,
-    event: WatcherAdapter.WatcherEvent
+    event: Watcher.WatcherEvent
   ): FileEvent =
     FileEvent(
       Path.getRelativePath(root, base, event.path),
@@ -51,15 +51,15 @@ object FileEventKind extends Enum[FileEventKind] with CirceEnum[FileEventKind] {
 
   override val values = findValues
 
-  /** Create [[FileEventKind]] from [[WatcherAdapter.EventType]].
+  /** Create [[FileEventKind]] from [[Watcher.EventType]].
     *
     * @param eventType file system event type
     * @return file event kind
     */
-  def apply(eventType: WatcherAdapter.EventType): FileEventKind =
+  def apply(eventType: Watcher.EventType): FileEventKind =
     eventType match {
-      case WatcherAdapter.EventTypeCreate => FileEventKind.Added
-      case WatcherAdapter.EventTypeModify => FileEventKind.Modified
-      case WatcherAdapter.EventTypeDelete => FileEventKind.Removed
+      case Watcher.EventTypeCreate => FileEventKind.Added
+      case Watcher.EventTypeModify => FileEventKind.Modified
+      case Watcher.EventTypeDelete => FileEventKind.Removed
     }
 }
