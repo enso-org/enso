@@ -621,9 +621,9 @@ type Decimal
     round : Integer -> Boolean -> Integer | Decimal ! Illegal_Argument
     round self decimal_places=0 use_bankers=False =
         Illegal_Argument.handle_java_exception <| Arithmetic_Error.handle_java_exception <|
-            Decimal.round_builtin self decimal_places use_bankers
+            Decimal.round_builtin_2 self decimal_places use_bankers
 
-    round_builtin n decimal_places use_bankers = @Builtin_Method "Decimal.round"
+    round_builtin_2 n decimal_places use_bankers = @Builtin_Method "Decimal.round"
 
     ## Compute the negation of this.
 
@@ -946,8 +946,12 @@ type Integer
                         round_up = if half_goes_up then remainder < -halfway else remainder <= -halfway
                         if round_up then result_unnudged - scale else result_unnudged
 
-    round : Integer
-    round self = @Builtin_Method "Integer.round"
+    round : Integer -> Boolean -> Integer ! Illegal_Argument
+    round self decimal_places=0 use_bankers=False =
+        Illegal_Argument.handle_java_exception <| Arithmetic_Error.handle_java_exception <|
+            Integer.round_builtin self decimal_places use_bankers
+
+    round_builtin n decimal_places use_bankers = @Builtin_Method "Integer.round"
 
     ## Compute the negation of this.
 

@@ -4,8 +4,8 @@ from Standard.Test import Bench, Faker
 
 ## Bench Utilities ============================================================
 
-vector_size = 100000
-iter_size = 10
+vector_size = 1000000
+iter_size = 100
 num_iterations = 10
 
 # The Benchmarks ==============================================================
@@ -19,7 +19,7 @@ bench =
     IO.println <| "Creating decimals"
     decimals = Vector.new vector_size _-> faker.decimal -1000000000 1000000000
     IO.println <| "Creating integers"
-    #integers = Vector.new vector_size _-> faker.integer -1000000000 1000000000
+    integers = Vector.new vector_size _-> faker.integer -1000000000 1000000000
 
     ##
         funs.map pair->
@@ -42,9 +42,8 @@ bench =
             IO.println <| "Benchmarking decimal " + name
             Bench.measure (decimals.map fun) "old "+name iter_size num_iterations
             Bench.measure (decimals.map new_fun) "new "+name iter_size num_iterations
-            ##
-                IO.println <| "Benchmarking integer " + name
-                Bench.measure (integers.map fun) "old "+name iter_size num_iterations
-                Bench.measure (integers.map new_fun) "new "+name iter_size num_iterations
+            IO.println <| "Benchmarking integer " + name
+            Bench.measure (integers.map fun) "old "+name iter_size num_iterations
+            Bench.measure (integers.map new_fun) "new "+name iter_size num_iterations
 
 main = bench
