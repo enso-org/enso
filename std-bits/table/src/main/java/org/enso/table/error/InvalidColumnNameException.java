@@ -11,7 +11,7 @@ public class InvalidColumnNameException extends RuntimeException {
 
   @Override
   public String getMessage() {
-    String message =  "Invalid column name: " + name + ".";
+    String message = "Invalid column name: " + name + ".";
     if (extraMessage != null) {
       message += " " + extraMessage;
     }

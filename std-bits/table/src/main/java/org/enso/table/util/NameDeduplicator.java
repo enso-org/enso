@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
-
 import org.enso.base.text.UnicodeNormalizedTextEquivalence;
 import org.enso.table.data.table.Column;
 import org.enso.table.problems.Problem;
@@ -15,7 +14,8 @@ import org.graalvm.collections.EconomicSet;
 import org.graalvm.collections.Pair;
 
 public class NameDeduplicator {
-  private final EconomicSet<String> usedNames = EconomicSet.create(UnicodeNormalizedTextEquivalence.INSTANCE);
+  private final EconomicSet<String> usedNames =
+      EconomicSet.create(UnicodeNormalizedTextEquivalence.INSTANCE);
   private final List<String> invalidNames = new ArrayList<>();
   private final EconomicMap<String, String> truncatedNames =
       EconomicMap.create(UnicodeNormalizedTextEquivalence.INSTANCE);
@@ -37,12 +37,14 @@ public class NameDeduplicator {
 
     @Override
     public long encoded_size(String name) {
-      throw new IllegalStateException("`DefaultNamingProperties.encoded_size` called but no limit is set.");
+      throw new IllegalStateException(
+          "`DefaultNamingProperties.encoded_size` called but no limit is set.");
     }
 
     @Override
     public String truncate(String name, long max_encoded_size) {
-      throw new IllegalStateException("`DefaultNamingProperties.encoded_size` called but no limit is set.");
+      throw new IllegalStateException(
+          "`DefaultNamingProperties.encoded_size` called but no limit is set.");
     }
   }
 
@@ -54,10 +56,13 @@ public class NameDeduplicator {
     this.namingProperties = namingProperties;
     if (hasSizeLimit()) {
       if (namingProperties.encoded_size(invalidNameReplacement) > namingProperties.size_limit()) {
-        invalidNameReplacement = namingProperties.truncate(invalidNameReplacement, namingProperties.size_limit());
+        invalidNameReplacement =
+            namingProperties.truncate(invalidNameReplacement, namingProperties.size_limit());
         if (invalidNameReplacement.isEmpty()) {
-          throw new IllegalStateException("The size limit of naming properties (" + namingProperties.size_limit() +
-              ") is too small to fit the invalid name replacement in NameDeduplicator.");
+          throw new IllegalStateException(
+              "The size limit of naming properties ("
+                  + namingProperties.size_limit()
+                  + ") is too small to fit the invalid name replacement in NameDeduplicator.");
         }
       }
     }
@@ -81,10 +86,13 @@ public class NameDeduplicator {
       if (encodedSize > namingProperties.size_limit()) {
         String truncated = namingProperties.truncate(input, namingProperties.size_limit());
         if (truncated.isEmpty()) {
-          // This is a very rare edge case, but with a low (but still >0) limit, we can get an empty string after
-          // truncation if it was using non-ASCII characters for example. In this case, we use the replacement and
+          // This is a very rare edge case, but with a low (but still >0) limit, we can get an empty
+          // string after
+          // truncation if it was using non-ASCII characters for example. In this case, we use the
+          // replacement and
           // re-truncate.
-          truncated = namingProperties.truncate(this.invalidNameReplacement, namingProperties.size_limit());
+          truncated =
+              namingProperties.truncate(this.invalidNameReplacement, namingProperties.size_limit());
         }
 
         this.truncatedNames.put(input, truncated);
@@ -124,7 +132,8 @@ public class NameDeduplicator {
     boolean wasValid = Column.isColumnNameValid(name);
     boolean wasTruncated = truncatedNames.containsKey(name);
 
-    // Only if the name was invalid and it was replaced with the replacement sequence, we start with the suffix.
+    // Only if the name was invalid and it was replaced with the replacement sequence, we start with
+    // the suffix.
     // Otherwise (if th name was truncated only), the first attempt is done withot suffix.
     int currentIndex = wasValid ? 0 : 1;
 
@@ -174,9 +183,14 @@ public class NameDeduplicator {
         long suffixSize = namingProperties.encoded_size(suffix);
 
         if (suffixSize > sizeLimit) {
-          throw new IllegalArgumentException("When trying to generate a unique name based on `" + initialName + "`, " +
-              "the suffix length `" + suffix + "` has exceeded the maximum name size. There are too many taken names " +
-              "and the algorithm is unable to generate a fresh name fitting the limit.");
+          throw new IllegalArgumentException(
+              "When trying to generate a unique name based on `"
+                  + initialName
+                  + "`, "
+                  + "the suffix length `"
+                  + suffix
+                  + "` has exceeded the maximum name size. There are too many taken names "
+                  + "and the algorithm is unable to generate a fresh name fitting the limit.");
         }
 
         if (prefixSize + suffixSize > sizeLimit) {
@@ -223,7 +237,8 @@ public class NameDeduplicator {
   }
 
   /**
-   * Changes names from the second list so that they do not clash with names from the first list and with each other.
+   * Changes names from the second list so that they do not clash with names from the first list and
+   * with each other.
    */
   public List<String> combineWithPrefix(
       List<String> first, List<String> second, String secondPrefix) {
