@@ -1123,8 +1123,9 @@ type Table
                     True
         if can_proceed then
             left = self
-            table_naming_helper = self.connection.base_connection.table_naming_helper
-            new_table_name = table_naming_helper.truncate_if_needed <|
+            table_name_deduplicator = self.connection.base_connection.table_naming_helper.create_unique_name_strategy
+            table_name_deduplicator.mark_used [left.name, right.name]
+            new_table_name = table_name_deduplicator.make_unique <|
                 left.name + "_" + right.name
 
             needed_indicators = case join_kind of
@@ -1404,7 +1405,10 @@ type Table
                             [c.name, c.expression]
                         Query.Select pairs t.context
 
-                    union_alias = all_tables.map .name . join "_"
+                    table_name_deduplicator = self.connection.base_connection.table_naming_helper.create_unique_name_strategy
+                    table_name_deduplicator.mark_used (all_tables.map .name)
+                    union_alias = table_name_deduplicator.make_unique <|
+                        all_tables.map .name . join "_"
                     new_from = From_Spec.Union queries union_alias
                     new_ctx = Context.for_subquery new_from
                     ## TODO [RW] The result type is currently fetched
