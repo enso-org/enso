@@ -15,6 +15,7 @@ import org.enso.interpreter.node.expression.builtin.number.utils.ToEnsoNumberNod
 import org.enso.interpreter.node.expression.foreign.CoerceNothing;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.WarningsLibrary;
+import org.enso.interpreter.runtime.error.WithWarnings;
 
 /**
  * Converts a value returned by a polyglot call back to a value that can be further used within Enso
@@ -70,6 +71,9 @@ public abstract class HostValueToEnsoNode extends Node {
       @Shared("iop") @CachedLibrary(limit = "3") InteropLibrary iop,
       @Cached ToEnsoNumberNode to) {
     try {
+      if (n instanceof WithWarnings) {
+        return n;
+      }
       return to.execute(iop.asBigInteger(n));
     } catch (UnsupportedMessageException e) {
       throw new IllegalStateException(e);
