@@ -21,7 +21,7 @@ import * as modalProvider from '../../providers/modal'
 
 import * as spinner from './spinner'
 import Chat, * as chat from './chat'
-import DirectoryView from './driveView'
+import DriveView from './driveView'
 import Ide from './ide'
 import Templates from './templates'
 import TheModal from './theModal'
@@ -66,8 +66,6 @@ export default function Dashboard(props: DashboardProps) {
     const [loadingProjectManagerDidFail, setLoadingProjectManagerDidFail] = React.useState(false)
     const [tab, setTab] = React.useState(tabModule.Tab.dashboard)
     const [project, setProject] = React.useState<backendModule.Project | null>(null)
-    const [nameOfProjectToImmediatelyOpen, setNameOfProjectToImmediatelyOpen] =
-        React.useState(initialProjectName)
     const [assetListEvents, dispatchAssetListEvent] =
         hooks.useEvent<assetListEventModule.AssetListEvent>()
 
@@ -290,11 +288,9 @@ export default function Dashboard(props: DashboardProps) {
             ) : (
                 <>
                     <Templates onTemplateClick={doCreateProject} />
-                    <DirectoryView
+                    <DriveView
                         tab={tab}
                         initialProjectName={initialProjectName}
-                        nameOfProjectToImmediatelyOpen={nameOfProjectToImmediatelyOpen}
-                        setNameOfProjectToImmediatelyOpen={setNameOfProjectToImmediatelyOpen}
                         directoryId={directoryId}
                         setDirectoryId={setDirectoryId}
                         assetListEvents={assetListEvents}

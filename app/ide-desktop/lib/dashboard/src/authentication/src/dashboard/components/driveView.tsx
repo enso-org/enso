@@ -32,16 +32,14 @@ function regexEscape(string: string) {
     return string.replace(/[\\^$.|?*+()[{]/g, '\\$&')
 }
 
-// =====================
-// === DirectoryView ===
-// =====================
+// =================
+// === DriveView ===
+// =================
 
-/** Props for a {@link DirectoryView}. */
-export interface DirectoryViewProps {
+/** Props for a {@link DriveView}. */
+export interface DriveViewProps {
     tab: tabModule.Tab
     initialProjectName: string | null
-    nameOfProjectToImmediatelyOpen: string | null
-    setNameOfProjectToImmediatelyOpen: (nameOfProjectToImmediatelyOpen: string | null) => void
     directoryId: backendModule.DirectoryId | null
     setDirectoryId: (directoryId: backendModule.DirectoryId) => void
     assetListEvents: assetListEventModule.AssetListEvent[]
@@ -58,12 +56,10 @@ export interface DirectoryViewProps {
 }
 
 /** Contains directory path and directory contents (projects, folders, secrets and files). */
-export default function DirectoryView(props: DirectoryViewProps) {
+export default function DriveView(props: DriveViewProps) {
     const {
         tab,
         initialProjectName,
-        nameOfProjectToImmediatelyOpen,
-        setNameOfProjectToImmediatelyOpen,
         directoryId,
         setDirectoryId,
         query,
@@ -88,6 +84,8 @@ export default function DirectoryView(props: DirectoryViewProps) {
     const [directoryStack, setDirectoryStack] = React.useState<backendModule.DirectoryAsset[]>([])
     const [isFileBeingDragged, setIsFileBeingDragged] = React.useState(false)
     const [assetEvents, dispatchAssetEvent] = hooks.useEvent<assetEventModule.AssetEvent>()
+    const [nameOfProjectToImmediatelyOpen, setNameOfProjectToImmediatelyOpen] =
+        React.useState(initialProjectName)
 
     const assetFilter = React.useMemo(() => {
         if (query === '') {
