@@ -176,7 +176,7 @@ impl Model {
         self.breadcrumbs.frp().set_size(Vector2(actual_size.x, 32.0));
     }
 
-    /// Display the documentation and scroll to the qualified name if needed.
+    /// Display the documentation and scroll to default position.
     fn display_doc(&self, docs: EntryDocumentation, display_doc: &frp::Source<EntryDocumentation>) {
         let linked_pages = docs.linked_doc_pages();
         let html = html::render(&docs);
