@@ -17,8 +17,8 @@ use ensogl_grid_view::entry::Contour;
 use ensogl_grid_view::entry::EntryFrp;
 use ensogl_grid_view::Col;
 use ensogl_hardcoded_theme::application::component_browser::component_list_panel::menu::breadcrumbs as theme;
+use ensogl_icons::any as any_icon;
 use ensogl_text as text;
-use ide_view_component_list_panel_icons::any as any_icon;
 
 
 
