@@ -419,7 +419,10 @@ impl UpdateOptions {
         self
     }
 
-    pub fn set_text_content(&mut self, render: impl Into<String>) {
+    /// Allows set a new message in the notification.
+    ///
+    /// This sets is as plain text (it will not be interpreted as HTML).
+    pub fn set_raw_text_content(&mut self, render: impl Into<String>) {
         let content = Content::Text(render.into());
         self.render = Some(content);
     }
@@ -453,6 +456,12 @@ impl From<Id> for Notification {
     }
 }
 
+impl Display for Notification {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        Display::fmt(&*self.id.borrow(), f)
+    }
+}
+
 impl Notification {
     /// Create a new notification archetype.
     ///
@@ -469,7 +478,12 @@ impl Notification {
         self.options.replace(options);
         let ret = self.id.borrow().update(&self.options.borrow());
         if ret.is_ok() {
-            self.last_shown.replace(Some(self.options.borrow().clone()));
+            let new_options = self.options.borrow().clone();
+            // If the ID was updated, we need to keep track of it.
+            if let Some(new_id) = new_options.toast_id.as_ref() {
+                self.id.replace(new_id.as_str().into());
+            }
+            self.last_shown.replace(Some(new_options));
         }
         ret
     }

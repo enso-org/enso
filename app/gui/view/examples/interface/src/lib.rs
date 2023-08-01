@@ -19,7 +19,6 @@ use ensogl::prelude::*;
 
 use enso_frp as frp;
 use ensogl::application::Application;
-use ensogl::control::io::mouse;
 use ensogl::display::object::ObjectOps;
 use ensogl::display::shape::StyleWatch;
 use ensogl::gui::text;

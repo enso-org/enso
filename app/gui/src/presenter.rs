@@ -10,7 +10,6 @@ use crate::presenter;
 
 use enso_frp as frp;
 use ide_view as view;
-use ide_view::graph_editor::SharedHashMap;
 
 
 // ==============
@@ -167,15 +166,14 @@ impl Presenter {
 
     #[profile(Detail)]
     fn init(self) -> Self {
-        self.setup_status_bar_notification_handler();
-        self.setup_controller_notification_handler();
+        self.setup_user_facing_notification_handler();
+        self.setup_controller_internal_notification_handler();
         self.model.clone_ref().setup_and_display_new_project();
         executor::global::spawn(self.clone_ref().set_projects_list_on_welcome_screen());
         self
     }
 
-    fn setup_status_bar_notification_handler(&self) {
-        use controller::ide::BackgroundTaskHandle as ControllerHandle;
+    fn setup_user_facing_notification_handler(&self) {
         use view::notification::handled as notification;
 
         let status_notifications = self.model.controller.status_notifications().subscribe();
@@ -191,7 +189,7 @@ impl Presenter {
                     let notification = notification::Notification::from(id);
                     notification.update(|opts| {
                         opts.set_always_present();
-                        opts.set_text_content(label);
+                        opts.set_raw_text_content(label);
                     });
                     notification.show();
                 }
@@ -203,7 +201,7 @@ impl Presenter {
         });
     }
 
-    fn setup_controller_notification_handler(&self) {
+    fn setup_controller_internal_notification_handler(&self) {
         let stream = self.model.controller.subscribe();
         let weak = Rc::downgrade(&self.model);
         spawn_stream_handler(weak, stream, move |notification, model| {
