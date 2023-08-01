@@ -50,17 +50,16 @@ const PERMISSION_TYPE_DATA: PermissionTypeData[] = [
 export interface PermissionTypeSelectorProps {
     type: permissions.Permission
     style?: React.CSSProperties
-    className?: string
     onChange: (permission: permissions.Permission) => void
 }
 
 /** A selector for all possible permission types. */
 export default function PermissionTypeSelector(props: PermissionTypeSelectorProps) {
-    const { type, style, className, onChange } = props
+    const { type, style, onChange } = props
     return (
         <div
             style={style}
-            className={`w-min ${className ?? 'relative'}`}
+            className="sticky pointer-events-auto w-min"
             onClick={event => {
                 event.stopPropagation()
             }}
