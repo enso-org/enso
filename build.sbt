@@ -1806,9 +1806,9 @@ lazy val `bench-processor` = (project in file("lib/scala/bench-processor"))
   .dependsOn(runtime)
 
 lazy val `bench-libs` = (project in file("std-bits/benchmarks"))
+  .configs(Benchmark)
   .settings(
     frgaalJavaCompilerSetting,
-    assembly / mainClass := (Compile / run / mainClass).value,
     libraryDependencies ++= jmh ++ Seq(
       "org.openjdk.jmh"     % "jmh-core"                 % jmhVersion                % Benchmark,
       "org.openjdk.jmh"     % "jmh-generator-annprocess" % jmhVersion                % Benchmark,
@@ -1816,9 +1816,6 @@ lazy val `bench-libs` = (project in file("std-bits/benchmarks"))
       "org.graalvm.truffle" % "truffle-api"              % graalMavenPackagesVersion % Benchmark
     ),
     commands += WithDebugCommand.withDebug,
-    (Benchmark / run / mainClass) := Some(
-      "org.enso.benchmarks.libs.LibBenchRunner"
-    ),
     (Benchmark / run / fork) := true,
     (Benchmark / run / connectInput) := true,
     // Pass -Dtruffle.class.path.append to javac
@@ -1838,16 +1835,11 @@ lazy val `bench-libs` = (project in file("std-bits/benchmarks"))
         s"-J-Dtruffle.class.path.append=$appendClasspath"
       )
     },
-    (Compile / javacOptions) ++= Seq(
+    (Benchmark / compile / javacOptions) ++= Seq(
       "-s",
-      (Compile / sourceManaged).value.getAbsolutePath,
+      (Benchmark / sourceManaged).value.getAbsolutePath,
       "-Xlint:unchecked"
     ),
-    (Compile / logManager) :=
-      sbt.internal.util.CustomLogManager.excludeMsg(
-        "Could not determine source for class ",
-        Level.Warn
-      ),
     (Benchmark / run / javaOptions) ++= {
       val runtimeClasspath =
         (LocalProject("runtime") / Compile / fullClasspath).value
@@ -1864,7 +1856,6 @@ lazy val `bench-libs` = (project in file("std-bits/benchmarks"))
       )
     }
   )
-  .configs(Benchmark)
   .settings(
     inConfig(Benchmark)(Defaults.testSettings)
   )
@@ -1882,8 +1873,8 @@ lazy val `bench-libs` = (project in file("std-bits/benchmarks"))
     }.evaluated,
     Benchmark / parallelExecution := false
   )
-  .dependsOn(`bench-processor`)
-  .dependsOn(runtime)
+  .dependsOn(`bench-processor` % Benchmark)
+  .dependsOn(runtime % Benchmark)
 
 lazy val editions = project
   .in(file("lib/scala/editions"))
