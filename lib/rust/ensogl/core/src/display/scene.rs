@@ -802,6 +802,7 @@ pub struct HardcodedLayers {
     pub panel_overlay: RectLayerPartition,
     pub node_searcher: Layer,
     pub node_searcher_text: Layer,
+    pub node_searcher_button_panel: Layer,
     pub tooltip: Layer,
     pub tooltip_text: Layer,
     pub cursor: Layer,
@@ -845,6 +846,8 @@ impl HardcodedLayers {
         let node_searcher = root.create_sublayer_with_camera("node_searcher", &node_searcher_cam);
         let node_searcher_text =
             root.create_sublayer_with_camera("node_searcher_text", &node_searcher_cam);
+        let node_searcher_button_panel =
+            root.create_sublayer_with_camera("node_searcher_button_panel", &node_searcher_cam);
         let tooltip = root.create_sublayer("tooltip");
         let tooltip_text = root.create_sublayer("tooltip_text");
         let cursor = root.create_sublayer_with_camera("cursor", &cursor_cam);
@@ -867,6 +870,7 @@ impl HardcodedLayers {
             panel_overlay,
             node_searcher,
             node_searcher_text,
+            node_searcher_button_panel,
             tooltip,
             tooltip_text,
             cursor,
@@ -1030,12 +1034,14 @@ impl SceneData {
         let network = &frp.network;
         let extensions = Extensions::default();
         let bg_color_var = style_sheet.var("application.background");
-        let bg_color_change = bg_color_var.on_change(f!([dom](change){
+        let bg_color_change_callback = f!([dom](change: &Option<display::style::Data>) {
             change.color().for_each(|color| {
                 let color = color.to_javascript_string();
                 dom.root.set_style_or_warn("background-color",color);
             })
-        }));
+        });
+        bg_color_change_callback(&bg_color_var.value());
+        let bg_color_change = bg_color_var.on_change(bg_color_change_callback);
 
         layers.main.add(&display_object);
         frp::extend! { network

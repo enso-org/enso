@@ -1553,10 +1553,13 @@ dependencies = [
  "ensogl-core",
  "ensogl-grid-view",
  "ensogl-hardcoded-theme",
+ "ensogl-icons",
  "ensogl-selector",
  "ensogl-text",
  "ensogl-text-msdf",
+ "ensogl-tooltip",
  "ide-view-component-list-panel",
+ "ide-view-documentation",
  "js-sys",
  "wasm-bindgen",
 ]
@@ -1594,10 +1597,10 @@ dependencies = [
  "convert_case 0.6.0",
  "ensogl",
  "ensogl-hardcoded-theme",
+ "ensogl-icons",
  "ensogl-text-msdf",
  "ensogl-tooltip",
  "ide-view-component-list-panel-grid",
- "ide-view-component-list-panel-icons",
  "ide-view-graph-editor",
  "wasm-bindgen",
 ]
@@ -2202,6 +2205,7 @@ dependencies = [
  "ensogl-dynamic-assets",
  "ensogl-examples",
  "ensogl-hardcoded-theme",
+ "ensogl-icons",
  "ensogl-text-msdf",
  "failure",
  "flo_stream",
@@ -2555,6 +2559,7 @@ dependencies = [
  "enso-prelude",
  "enso-profiler",
  "enso-text",
+ "ensogl-icons",
  "failure",
  "flo_stream",
  "futures",
@@ -3125,6 +3130,15 @@ dependencies = [
  "enso-shapely",
  "ensogl-core",
  "ensogl-text",
+]
+
+[[package]]
+name = "ensogl-icons"
+version = "0.1.0"
+dependencies = [
+ "ensogl-core",
+ "ensogl-hardcoded-theme",
+ "failure",
 ]
 
 [[package]]
@@ -4343,14 +4357,13 @@ dependencies = [
  "ensogl-grid-view",
  "ensogl-gui-component",
  "ensogl-hardcoded-theme",
+ "ensogl-icons",
  "ensogl-scroll-area",
  "ensogl-selector",
- "ensogl-shadow",
  "ensogl-text",
+ "ensogl-toggle-button",
  "ensogl-tooltip",
- "ide-view-component-list-panel-breadcrumbs",
  "ide-view-component-list-panel-grid",
- "ide-view-component-list-panel-icons",
  "ordered-float",
 ]
 
@@ -4360,11 +4373,11 @@ version = "0.1.0"
 dependencies = [
  "enso-frp",
  "ensogl-core",
+ "ensogl-derive-theme",
  "ensogl-grid-view",
  "ensogl-hardcoded-theme",
+ "ensogl-icons",
  "ensogl-text",
- "ide-view-component-list-panel-grid",
- "ide-view-component-list-panel-icons",
 ]
 
 [[package]]
@@ -4376,20 +4389,12 @@ dependencies = [
  "ensogl-grid-view",
  "ensogl-gui-component",
  "ensogl-hardcoded-theme",
+ "ensogl-icons",
  "ensogl-shadow",
  "ensogl-text",
+ "ensogl-toggle-button",
  "failure",
- "ide-view-component-list-panel-icons",
  "num_enum",
-]
-
-[[package]]
-name = "ide-view-component-list-panel-icons"
-version = "0.1.0"
-dependencies = [
- "ensogl-core",
- "ensogl-hardcoded-theme",
- "failure",
 ]
 
 [[package]]
@@ -4407,6 +4412,7 @@ dependencies = [
  "ensogl-hardcoded-theme",
  "horrorshow",
  "ide-ci",
+ "ide-view-component-list-panel-breadcrumbs",
  "ide-view-graph-editor",
  "serde_json",
  "tokio",
@@ -4449,9 +4455,9 @@ dependencies = [
  "ensogl-derive-theme",
  "ensogl-drop-manager",
  "ensogl-hardcoded-theme",
+ "ensogl-icons",
  "ensogl-text-msdf",
  "failure",
- "ide-view-component-list-panel-icons",
  "ide-view-execution-environment-selector",
  "indexmap",
  "js-sys",
