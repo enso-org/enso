@@ -23,4 +23,6 @@ public class UnicodeNormalizedTextEquivalence extends Equivalence {
 
     throw new IllegalStateException("UnicodeNormalizedTextEquivalence can only hash Strings.");
   }
+
+  public static final UnicodeNormalizedTextEquivalence INSTANCE = new UnicodeNormalizedTextEquivalence();
 }

@@ -2,9 +2,7 @@ package org.enso.table.util;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.enso.base.text.UnicodeNormalizedTextEquivalence;
@@ -12,12 +10,15 @@ import org.enso.table.data.table.Column;
 import org.enso.table.problems.Problem;
 import org.enso.table.util.problems.DuplicateNames;
 import org.enso.table.util.problems.InvalidNames;
+import org.graalvm.collections.EconomicMap;
 import org.graalvm.collections.EconomicSet;
+import org.graalvm.collections.Pair;
 
 public class NameDeduplicator {
-  private final EconomicSet<String> usedNames = EconomicSet.create(new UnicodeNormalizedTextEquivalence());
+  private final EconomicSet<String> usedNames = EconomicSet.create(UnicodeNormalizedTextEquivalence.INSTANCE);
   private final List<String> invalidNames = new ArrayList<>();
-  private final Map<String, String> truncatedNames = new HashMap<>();
+  private final EconomicMap<String, String> truncatedNames =
+      EconomicMap.create(UnicodeNormalizedTextEquivalence.INSTANCE);
   private final List<String> duplicatedNames = new ArrayList<>();
 
   private final String invalidNameReplacement;
@@ -55,7 +56,8 @@ public class NameDeduplicator {
       if (namingProperties.encoded_size(invalidNameReplacement) > namingProperties.size_limit()) {
         invalidNameReplacement = namingProperties.truncate(invalidNameReplacement, namingProperties.size_limit());
         if (invalidNameReplacement.isEmpty()) {
-          throw new IllegalStateException("The size limit of naming properties (" + namingProperties.size_limit() +  ") is too small to fit the invalid name replacement in NameDeduplicator.");
+          throw new IllegalStateException("The size limit of naming properties (" + namingProperties.size_limit() +
+              ") is too small to fit the invalid name replacement in NameDeduplicator.");
         }
       }
     }
@@ -79,7 +81,9 @@ public class NameDeduplicator {
       if (encodedSize > namingProperties.size_limit()) {
         String truncated = namingProperties.truncate(input, namingProperties.size_limit());
         if (truncated.isEmpty()) {
-          // This is a very rare edge case, but with a low (but still >0) limit, we can get an empty string after truncation if it was using non-ASCII characters for example. In this case, we use the replacement and re-truncate.
+          // This is a very rare edge case, but with a low (but still >0) limit, we can get an empty string after
+          // truncation if it was using non-ASCII characters for example. In this case, we use the replacement and
+          // re-truncate.
           truncated = namingProperties.truncate(this.invalidNameReplacement, namingProperties.size_limit());
         }
 
@@ -152,6 +156,7 @@ public class NameDeduplicator {
   private class NameIterator {
     private final String initialName;
     private boolean wasLastGeneratedNameTruncated;
+
     NameIterator(String initialName, boolean isTruncated) {
       this.initialName = initialName;
       wasLastGeneratedNameTruncated = isTruncated;
@@ -197,8 +202,13 @@ public class NameDeduplicator {
     return this.duplicatedNames.toArray(String[]::new);
   }
 
-  public Map<String, String> getTruncatedNames() {
-    return new HashMap<>(this.truncatedNames);
+  public List<Pair<String, String>> getTruncatedNames() {
+    ArrayList<Pair<String, String>> output = new ArrayList<>(truncatedNames.size());
+    var cursor = truncatedNames.getEntries();
+    while (cursor.advance()) {
+      output.add(Pair.create(cursor.getKey(), cursor.getValue()));
+    }
+    return output;
   }
 
   public List<Problem> getProblems() {
@@ -213,8 +223,7 @@ public class NameDeduplicator {
   }
 
   /**
-   * Changes names from the second list so that they do not clash with names from the first list and
-   * with each other.
+   * Changes names from the second list so that they do not clash with names from the first list and with each other.
    */
   public List<String> combineWithPrefix(
       List<String> first, List<String> second, String secondPrefix) {
