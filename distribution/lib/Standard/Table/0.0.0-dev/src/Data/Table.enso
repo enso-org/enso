@@ -590,7 +590,12 @@ type Table
     use_first_row_as_names self (on_problems=Report_Warning) =
         new_names = self.first_row.to_vector.map c->
             if c.is_nothing then Nothing else c.to_text
-        self.drop (First 1) . rename_columns new_names on_problems=on_problems
+        unique = self.column_naming_helper.create_unique_name_strategy
+        new_names_cleaned = unique.make_all_unique new_names
+        problem_builder = Problem_Builder.new
+        problem_builder.report_unique_name_strategy unique
+        problem_builder.attach_problems_before on_problems <|
+            self.drop (First 1) . rename_columns new_names_cleaned on_problems=on_problems
 
     ## ALIAS group by, summarize
 
