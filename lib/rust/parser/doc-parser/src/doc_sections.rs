@@ -186,7 +186,7 @@ impl<L> TokenConsumer<L> for DocSectionCollector {
     fn enter_keyed_section(&mut self, header: Span<'_, L>) {
         self.finish_section();
         let key = header.to_string();
-        if key.to_lowercase() == "arguments" {
+        if key.eq_ignore_ascii_case("Arguments") {
             self.inside_arguments = true;
         }
         let body = Default::default();
