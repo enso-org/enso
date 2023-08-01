@@ -16,7 +16,7 @@ use crate::display::shape::AnyCachedShape;
 crate::shape! {
     above = [rectangle];
     pointer_events = false;
-    alignment = center;
+    alignment = left_bottom;
     (style: Style, icon: AnyCachedShape) {
         icon.into()
     }
@@ -36,7 +36,7 @@ pub mod recolorized {
     crate::shape! {
         above = [rectangle];
         pointer_events = false;
-        alignment = center;
+        alignment = left_bottom;
         (style: Style, icon: AnyCachedShape, r_component: Vector4, g_component: Vector4, b_component: Vector4) {
             let r: Var<color::Rgba> = r_component.into();
             let g: Var<color::Rgba> = g_component.into();

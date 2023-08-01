@@ -609,7 +609,7 @@ impl Slider {
                 );
                 let prec_text = prec_text.trim_end_matches('0');
                 let prec_text = prec_text.trim_end_matches('.');
-                tooltip::Style::set_label(prec_text.into())
+                tooltip::Style::set_label(prec_text)
             });
             precision_changed <- resolution.constant(());
             popup_anim.reset <+ precision_changed;

@@ -11,6 +11,7 @@ import * as assetEventModule from '../events/assetEvent'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as modalProvider from '../../providers/modal'
+import Button from './button'
 
 // ================
 // === DriveBar ===
@@ -61,17 +62,23 @@ export default function DriveBar(props: DriveBarProps) {
                 <div className="flex items-center bg-frame-bg rounded-full gap-3 h-8 px-3">
                     {backend.type !== backendModule.BackendType.local && (
                         <>
-                            <button
+                            <Button
+                                active
+                                image={AddFolderIcon}
                                 onClick={() => {
                                     unsetModal()
                                     doCreateDirectory()
                                 }}
-                            >
-                                <img src={AddFolderIcon} />
-                            </button>
-                            <button disabled className="opacity-50">
-                                <img src={AddConnectorIcon} />
-                            </button>
+                            />
+                            <Button
+                                active
+                                disabled
+                                image={AddConnectorIcon}
+                                error="Not implemented yet."
+                                onClick={() => {
+                                    // No backend support yet.
+                                }}
+                            />
                         </>
                     )}
                     <input
@@ -91,19 +98,19 @@ export default function DriveBar(props: DriveBarProps) {
                             doUploadFiles(event)
                         }}
                     />
-                    <button
+                    <Button
+                        active
+                        image={DataUploadIcon}
                         onClick={() => {
                             unsetModal()
                             uploadFilesRef.current?.click()
                         }}
-                    >
-                        <img src={DataUploadIcon} />
-                    </button>
-                    <button
+                    />
+                    <Button
+                        active
                         disabled={backend.type !== backendModule.BackendType.local}
-                        className={
-                            backend.type === backendModule.BackendType.local ? '' : 'opacity-50'
-                        }
+                        image={DataDownloadIcon}
+                        error="Not implemented yet."
                         onClick={event => {
                             event.stopPropagation()
                             unsetModal()
@@ -111,9 +118,7 @@ export default function DriveBar(props: DriveBarProps) {
                                 type: assetEventModule.AssetEventType.downloadSelected,
                             })
                         }}
-                    >
-                        <img src={DataDownloadIcon} />
-                    </button>
+                    />
                 </div>
             </div>
         </div>

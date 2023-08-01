@@ -6,6 +6,8 @@ import io.circe.literal._
 
 class ReceivesTreeUpdatesHandlerTest extends BaseServerTest {
 
+  override val isFileWatcherEnabled = true
+
   "ReceivesTreeUpdatesHandler" must {
 
     "acquire capability receivesTreeUpdates" in {
