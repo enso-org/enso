@@ -1773,12 +1773,15 @@ lazy val `bench-processor` = (project in file("lib/scala/bench-processor"))
   .settings(
     frgaalJavaCompilerSetting,
     libraryDependencies ++= Seq(
-      "jakarta.xml.bind" % "jakarta.xml.bind-api"     % jaxbVersion,
-      "com.sun.xml.bind" % "jaxb-impl"                % jaxbVersion,
-      "org.openjdk.jmh"  % "jmh-core"                 % jmhVersion                % "provided",
-      "org.openjdk.jmh"  % "jmh-generator-annprocess" % jmhVersion                % "provided",
-      "org.netbeans.api" % "org-openide-util-lookup"  % netbeansApiVersion        % "provided",
-      "org.graalvm.sdk"  % "graal-sdk"                % graalMavenPackagesVersion % "provided"
+      "jakarta.xml.bind"    % "jakarta.xml.bind-api"     % jaxbVersion,
+      "com.sun.xml.bind"    % "jaxb-impl"                % jaxbVersion,
+      "org.openjdk.jmh"     % "jmh-core"                 % jmhVersion                % "provided",
+      "org.openjdk.jmh"     % "jmh-generator-annprocess" % jmhVersion                % "provided",
+      "org.netbeans.api"    % "org-openide-util-lookup"  % netbeansApiVersion        % "provided",
+      "org.graalvm.sdk"     % "graal-sdk"                % graalMavenPackagesVersion % "provided",
+      "junit"               % "junit"                    % junitVersion              % Test,
+      "com.github.sbt"      % "junit-interface"          % junitIfVersion            % Test,
+      "org.graalvm.truffle" % "truffle-api"              % graalMavenPackagesVersion % Test
     ),
     Compile / javacOptions := ((Compile / javacOptions).value ++
     // Only run ServiceProvider processor and ignore those defined in META-INF, thus
@@ -1786,7 +1789,18 @@ lazy val `bench-processor` = (project in file("lib/scala/bench-processor"))
     Seq(
       "-processor",
       "org.netbeans.modules.openide.util.ServiceProviderProcessor"
-    ))
+    )),
+    commands += WithDebugCommand.withDebug,
+    (Test / fork) := true,
+    (Test / parallelExecution) := false,
+    (Test / javaOptions) ++= {
+      val runtimeJars =
+        (LocalProject("runtime") / Compile / fullClasspath).value
+      val jarsStr = runtimeJars.map(_.data).mkString(File.pathSeparator)
+      Seq(
+        s"-Dtruffle.class.path.append=${jarsStr}"
+      )
+    }
   )
   .dependsOn(`polyglot-api`)
   .dependsOn(runtime)
