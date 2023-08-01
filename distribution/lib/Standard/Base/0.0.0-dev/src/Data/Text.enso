@@ -146,16 +146,15 @@ type Text
 
     ## ALIAS normalise
 
-       Perform Unicode normalization on the string, using NFD decomposition.
+       Perform Unicode normalization on the string, using the specified method.
 
        Arguments:
-       - s: The `Text` to normalize.
+       - normalization: The `Normalization` method to use.
 
        > Example
-         Normalize a string
+         Normalize a string.
 
-             'aśb'.normalize
-             # ==> 'as\u0301b'
+             'aśb'.normalize == 'as\u0301b'
     @normalization Normalization.default_widget
     normalize : Text -> Normalization -> Text
     normalize self normalization=Normalization.NFD =

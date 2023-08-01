@@ -1,10 +1,6 @@
 import project.Any.Any
 
 import project.Data.Vector.Vector
-import project.Metadata.Display
-import project.Metadata.Widget
-from project.Metadata.Choice import Option
-from project.Metadata.Widget import Single_Choice
 
 polyglot java import com.ibm.icu.text.Normalizer2.Mode
 
@@ -13,15 +9,20 @@ polyglot java import com.ibm.icu.text.Normalizer2.Mode
 type Normalization
     ## Unicode NFC normalization mode.
     NFC
+
     ## Unicode NFD normalization mode.
     NFD
+
     ## Unicode NFKC normalization mode.
     NFKC
+
     ## Unicode NFKD normalization mode.
     NFKD
+
     ## Unicode NFKC_CF normalization mode.
     NFKCCasefold
 
+    ## PRIVATE
     get_java_mode : Any
     get_java_mode self = case self of
         Normalization.NFC -> Mode.COMPOSE
@@ -30,6 +31,7 @@ type Normalization
         Normalization.NFKD -> Mode.DECOMPOSE
         Normalization.NFKCCasefold -> Mode.COMPOSE
 
+    ## PRIVATE
     get_mode_name : Any
     get_mode_name self = case self of
         Normalization.NFC -> "nfc"
@@ -37,18 +39,3 @@ type Normalization
         Normalization.NFKC -> "nfkc"
         Normalization.NFKD -> "nfkc"
         Normalization.NFKCCasefold -> "nfkc_cf"
-
-    ## PRIVATE
-    options : Vector Option
-    options =
-        o1 = Option "NFC" "Normalization.NFC"
-        o2 = Option "NFD" "Normalization.NFD"
-        o3 = Option "NFKC" "Normalization.NFKC"
-        o4 = Option "NFKD" "Normalization.NFKD"
-        o5 = Option "NFKCCasefold" "Normalization.NFKCCasefold"
-        [o1, o2, o3, o4, o5]
-
-    ## PRIVATE
-    default_widget : Widget
-    default_widget =
-        Single_Choice display=Display.Always Normalization.options
