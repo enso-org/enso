@@ -15,7 +15,6 @@ use enso_suggestion_database::documentation_ir::Examples;
 use enso_suggestion_database::documentation_ir::Function;
 use enso_suggestion_database::documentation_ir::LocalDocumentation;
 use enso_suggestion_database::documentation_ir::ModuleDocumentation;
-use enso_suggestion_database::documentation_ir::Placeholder;
 use enso_suggestion_database::documentation_ir::Synopsis;
 use enso_suggestion_database::documentation_ir::Tag;
 use enso_suggestion_database::documentation_ir::TypeDocumentation;
@@ -57,9 +56,7 @@ fn svg_icon(content: &'static str, class: &'static str) -> impl Render {
 #[profile(Detail)]
 pub fn render(docs: &EntryDocumentation) -> String {
     let html = match docs {
-        EntryDocumentation::Placeholder(placeholder) => match placeholder {
-            Placeholder::NoDocumentation => String::from("No documentation available."),
-        },
+        EntryDocumentation::Placeholder => String::from("No documentation available."),
         EntryDocumentation::Docs(docs) => render_documentation(docs.clone_ref()),
     };
     match validate_utf8(&html) {

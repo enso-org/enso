@@ -54,14 +54,14 @@ pub struct NoParentModule(String);
 #[derive(Debug, PartialEq, From, Clone, CloneRef)]
 pub enum EntryDocumentation {
     /// No documentation available.
-    Placeholder(Placeholder),
+    Placeholder,
     /// Documentation for the entry.
     Docs(Documentation),
 }
 
 impl Default for EntryDocumentation {
     fn default() -> Self {
-        Placeholder::NoDocumentation.into()
+        EntryDocumentation::Placeholder
     }
 }
 
@@ -99,7 +99,7 @@ impl EntryDocumentation {
             },
             Err(_) => {
                 error!("No entry found for id: {id:?}");
-                Self::Placeholder(Placeholder::NoDocumentation)
+                EntryDocumentation::Placeholder
             }
         };
         Ok(result)
@@ -194,7 +194,7 @@ impl EntryDocumentation {
                 Documentation::Local(_) => default(),
                 Documentation::Builtin(_) => default(),
             },
-            EntryDocumentation::Placeholder(_) => default(),
+            EntryDocumentation::Placeholder => default(),
         }
     }
 
@@ -232,7 +232,7 @@ impl EntryDocumentation {
             Some(self_type) => self_type,
             None => {
                 error!("Method without self type: {}.", entry.qualified_name());
-                return Ok(Placeholder::NoDocumentation.into());
+                return Ok(EntryDocumentation::Placeholder);
             }
         };
         let self_type = db.lookup_by_qualified_name(self_type);
@@ -251,12 +251,12 @@ impl EntryDocumentation {
                 }
                 _ => {
                     error!("Unexpected parent kind for method {}.", entry.qualified_name());
-                    Ok(Placeholder::NoDocumentation.into())
+                    Ok(EntryDocumentation::Placeholder)
                 }
             },
             Err(err) => {
                 error!("Parent entry for method {} not found: {}", entry.qualified_name(), err);
-                Ok(Self::Placeholder(Placeholder::NoDocumentation))
+                Ok(EntryDocumentation::Placeholder)
             }
         }
     }
@@ -277,21 +277,12 @@ impl EntryDocumentation {
             }
             Err(err) => {
                 error!("No return type found for constructor {}: {}", entry.qualified_name(), err);
-                Ok(Placeholder::NoDocumentation.into())
+                Ok(EntryDocumentation::Placeholder)
             }
         }
     }
 }
 
-// === Placeholder ===
-
-/// No documentation is available for the entry.
-#[derive(Debug, Clone, Copy, CloneRef, PartialEq)]
-#[allow(missing_docs)]
-pub enum Placeholder {
-    /// Documentation is empty.
-    NoDocumentation,
-}
 
 // === Documentation ===
 
@@ -752,7 +743,7 @@ mod tests {
         // Arbitrary non-existing entry id.
         let entry_id = 10;
         let docs = EntryDocumentation::new(&db, &entry_id).unwrap();
-        assert_eq!(docs, EntryDocumentation::Placeholder(Placeholder::NoDocumentation));
+        assert_eq!(docs, EntryDocumentation::Placeholder);
     }
 
     fn assert_docs(db: &SuggestionDatabase, name: Rc<QualifiedName>, expected: Documentation) {
