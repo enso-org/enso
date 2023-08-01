@@ -2110,6 +2110,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "enso-enso-font"
+version = "0.1.0"
+dependencies = [
+ "enso-build",
+ "flate2",
+ "ide-ci",
+ "owned_ttf_parser",
+ "tar",
+]
+
+[[package]]
 name = "enso-executor"
 version = "0.1.0"
 dependencies = [
@@ -3301,13 +3312,12 @@ name = "ensogl-text-embedded-fonts"
 version = "0.1.0"
 dependencies = [
  "enso-build",
- "enso-build-utilities",
+ "enso-enso-font",
  "enso-prelude",
  "ensogl-text-font-family",
  "ide-ci",
  "owned_ttf_parser",
  "tokio",
- "zip",
 ]
 
 [[package]]

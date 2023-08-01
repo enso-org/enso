@@ -2,13 +2,24 @@
 
 // === Features ===
 #![feature(const_trait_impl)]
+#![feature(let_chains)]
 
 use ide_ci::prelude::*;
 
 use ide_ci::log::setup_logging;
+use owned_ttf_parser as ttf;
 use owned_ttf_parser::AsFaceRef;
 use owned_ttf_parser::OwnedFace;
 use std::fmt::Write as FmtWrite;
+
+
+
+// =================
+// === Constants ===
+// =================
+
+/// The name of the Rust source file that will be generated from the downloaded font data.
+const GENERATED_SOURCE_FILE_NAME: &str = "embedded_fonts_data.rs";
 
 
 
@@ -21,6 +32,55 @@ macro_rules! ln {
     ($ident:expr, $out:expr, $($ts:tt)*) => {
         writeln!($out, "{}", format!("{}{}", "    ".repeat($ident), format!($($ts)*))).ok();
     };
+}
+
+
+
+// ====================================
+// === Non variable font definition ===
+// ====================================
+
+struct NonVariableFontDefinition {
+    variations: Vec<NonVariableVariation>,
+}
+
+impl NonVariableFontDefinition {
+    fn files(&self) -> impl Iterator<Item=&str> {
+        self.variations.iter().map(|v| v.file.as_str())
+    }
+}
+
+struct NonVariableVariation {
+    file:   String,
+    header: NonVariableFaceHeader,
+}
+
+#[derive(Default)]
+struct NonVariableFaceHeader {
+    width:  ttf::Width,
+    weight: ttf::Weight,
+    style:  ttf::Style,
+}
+
+impl Display for NonVariableFontDefinition {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let fam_def = "family::Definition::NonVariable";
+        ln!(1, f, "{}(family::NonVariableDefinition::from_iter([", fam_def);
+        for variation in &self.variations {
+            let file_name = &variation.file;
+            let header = &variation.header;
+            ln!(2, f, "(");
+            ln!(3, f, "family::NonVariableFaceHeader::new(");
+            ln!(4, f, "family::Width::{:?},", &header.width);
+            ln!(4, f, "family::Weight::{:?},", &header.weight);
+            ln!(4, f, "family::Style::{:?},", &header.style);
+            ln!(3, f, "),");
+            ln!(3, f, "\"{file_name}\".to_string(),");
+            ln!(2, f, "),");
+        }
+        ln!(1, f, "]))");
+        Ok(())
+    }
 }
 
 
@@ -74,56 +134,39 @@ impl CodeGenerator {
 
 
 
-// ===================
-// === DejaVu Font ===
-// ===================
+// =================
+// === Enso Font ===
+// =================
 
-mod deja_vu {
+mod enso_font {
     use super::*;
-
     use crate::CodeGenerator;
-    use enso_build_utilities::GithubRelease;
 
-    pub const PACKAGE: GithubRelease<&str> = GithubRelease {
-        project_url: "https://github.com/dejavu-fonts/dejavu-fonts/",
-        version:     "version_2_37",
-        filename:    "dejavu-fonts-ttf-2.37.zip",
-    };
-
-    pub const PACKAGE_FONTS_PREFIX: &str = "dejavu-fonts-ttf-2.37/ttf";
-
-    const FILE_NAMES: [&str; 4] =
-        ["DejaVuSans.ttf", "DejaVuSans-Bold.ttf", "DejaVuSansMono.ttf", "DejaVuSansMono-Bold.ttf"];
-
-    pub fn extract_all_fonts(package_path: &Path) -> Result {
-        let archive_file = ide_ci::fs::open(package_path)?;
-        let mut archive = zip::ZipArchive::new(archive_file).unwrap();
-        for file_name in FILE_NAMES {
-            let font_in_package_path = format!("{PACKAGE_FONTS_PREFIX}/{file_name}");
-            let mut input_stream = archive.by_name(&font_in_package_path).with_context(|| {
-                format!(
-                    "Cannot find font file {} in the package {}",
-                    file_name,
-                    package_path.display()
-                )
-            })?;
-            let output_path = package_path.with_file_name(file_name);
-            let mut output_stream = ide_ci::fs::create(&output_path)?;
-            std::io::copy(&mut input_stream, &mut output_stream).with_context(|| {
-                format!("Cannot extract font file {} to {}", file_name, output_path.display())
-            })?;
-        }
+    pub async fn load(out_dir: impl AsRef<Path>, code_gen: &mut CodeGenerator) -> Result {
+        let font_family = enso_enso_font::FontFamily::enso();
+        font_family.download_fonts(&out_dir).await?;
+        add_entries_to_fill_map_rs(&font_family, code_gen);
         Ok(())
     }
 
-    pub async fn download_and_extract_all_fonts(out_dir: &Path) -> Result {
-        let package_path = ide_ci::io::download_to_dir(PACKAGE.url()?, out_dir).await?;
-        extract_all_fonts(package_path.as_path())
-    }
-
-    pub fn add_entries_to_fill_map_rs(file: &mut CodeGenerator) {
-        for file_name in FILE_NAMES {
-            file.add_font_data(file_name);
+    fn add_entries_to_fill_map_rs(family: &enso_enso_font::FontFamily, code_gen: &mut CodeGenerator) {
+        let variations: Vec<NonVariableVariation> = family
+            .fonts()
+            .map(|variant| {
+                let file = variant.filename();
+                let header = NonVariableFaceHeader {
+                    width: variant.width(),
+                    weight: variant.weight(),
+                    style: variant.style(),
+                };
+                NonVariableVariation { file, header }
+            })
+            .collect();
+        let definition = NonVariableFontDefinition { variations };
+        let def_code = definition.to_string();
+        code_gen.add_non_variable_font_definition(family.name(), &def_code);
+        for file in definition.files() {
+            code_gen.add_font_data(file);
         }
     }
 }
@@ -144,6 +187,20 @@ mod google_fonts {
     pub struct FaceDefinition {
         file_name: String,
         face:      OwnedFace,
+    }
+
+    impl From<FaceDefinition> for NonVariableVariation {
+        fn from(def: FaceDefinition) -> Self {
+            let face = def.face.as_face_ref();
+            Self {
+                file:   def.file_name,
+                header: NonVariableFaceHeader {
+                    width:  face.width(),
+                    weight: face.weight(),
+                    style:  face.style(),
+                },
+            }
+        }
     }
 
     /// A description of downloaded file.
@@ -194,22 +251,8 @@ mod google_fonts {
                 let err4 = "see: https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face";
                 bail!("Family {} {} {} {} {}", family_name, err1, err2, err3, err4);
             }
-            let mut code = String::new();
-            let fam_def = "family::Definition::NonVariable";
-            ln!(1, code, "{}(family::NonVariableDefinition::from_iter([", fam_def);
-            for def in font_faces {
-                let file_name = &def.file_name;
-                let face_ref = def.face.as_face_ref();
-                ln!(2, code, "(");
-                ln!(3, code, "family::NonVariableFaceHeader::new(");
-                ln!(4, code, "family::Width::{:?},", face_ref.width());
-                ln!(4, code, "family::Weight::{:?},", face_ref.weight());
-                ln!(4, code, "family::Style::{:?},", face_ref.style());
-                ln!(3, code, "),");
-                ln!(3, code, "\"{file_name}\".to_string(),");
-                ln!(2, code, "),");
-            }
-            ln!(1, code, "]))");
+            let variations = font_faces.into_iter().map(|def| def.into()).collect();
+            let code = NonVariableFontDefinition { variations }.to_string();
             buffer.add_non_variable_font_definition(family_name, &code);
         };
         Ok(())
@@ -226,16 +269,14 @@ async fn main() -> Result {
     println!("cargo:rerun-if-changed=build.rs");
     setup_logging()?;
     let out_dir = ide_ci::programs::cargo::build_env::OUT_DIR.get()?;
-    deja_vu::download_and_extract_all_fonts(&out_dir).await?;
-
     let mut code_gen = CodeGenerator::default();
-    google_fonts::load(&out_dir, &mut code_gen, "mplus1").await?;
+
     google_fonts::load(&out_dir, &mut code_gen, "mplus1p").await?;
 
-    deja_vu::add_entries_to_fill_map_rs(&mut code_gen);
+    enso_font::load(&out_dir, &mut code_gen).await?;
 
     let body = code_gen.body();
-    let out_path = out_dir.join("embedded_fonts_data.rs");
+    let out_path = out_dir.join(GENERATED_SOURCE_FILE_NAME);
     ide_ci::fs::tokio::write(&out_path, body).await?;
     Ok(())
 }

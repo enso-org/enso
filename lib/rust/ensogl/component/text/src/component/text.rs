@@ -726,7 +726,7 @@ impl TextModel {
         let scene = &app.display.default_scene;
         let selection_map = default();
         let display_object = display::object::Instance::new_named("Text");
-        let glyph_system = font::glyph::System::new(scene, font::DEFAULT_FONT_MONO);
+        let glyph_system = font::glyph::System::new(scene, font::DEFAULT_FONT_CODE);
         frp.private.output.glyph_system.emit(Some(glyph_system.clone()));
         let glyph_system = RefCell::new(glyph_system);
         let buffer = buffer::Buffer::new(buffer::BufferModel::new());

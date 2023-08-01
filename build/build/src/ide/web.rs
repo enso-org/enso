@@ -26,6 +26,7 @@ use tracing::Span;
 // === Export ===
 // ==============
 
+pub mod download;
 pub mod google_font;
 
 

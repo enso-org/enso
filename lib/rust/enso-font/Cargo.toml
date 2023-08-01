@@ -1,0 +1,12 @@
+[package]
+name = "enso-enso-font"
+version = "0.1.0"
+authors = ["Enso Team <contact@enso.org>"]
+edition = "2021"
+
+[dependencies]
+enso-build = { path = "../../../build/build" }
+ide-ci = { path = "../../../build/ci_utils" }
+owned_ttf_parser = { workspace = true }
+flate2 = { version = "1.0" }
+tar = { version = "0.4" }

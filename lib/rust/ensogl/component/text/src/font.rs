@@ -44,11 +44,11 @@ pub use ttf::Width;
 /// most web browsers (you cannot define `@font-face` in CSS for multiple faces of the same file).
 const TTF_FONT_FACE_INDEX: u32 = 0;
 
-/// The name of the default proportional font family.
+/// The name of the default font family for general text.
 pub const DEFAULT_FONT: &str = "mplus1p";
 
-/// The name of the default monospace font family.
-pub const DEFAULT_FONT_MONO: &str = "dejavusansmono";
+/// The name of the default font family for code.
+pub const DEFAULT_FONT_CODE: &str = "enso";
 
 
 
