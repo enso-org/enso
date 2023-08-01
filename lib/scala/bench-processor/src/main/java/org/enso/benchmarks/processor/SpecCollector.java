@@ -1,108 +1,58 @@
 package org.enso.benchmarks.processor;
 
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Collection;
-import java.util.Objects;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import java.util.ArrayList;
+import java.util.List;
+import org.enso.benchmarks.BenchGroup;
 import org.enso.benchmarks.BenchSuite;
 import org.enso.benchmarks.ModuleBenchSuite;
-import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.MethodNames.Module;
-import org.enso.polyglot.MethodNames.TopScope;
-import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
-import org.graalvm.polyglot.io.IOAccess;
 
 /**
  * Collect benchmark specifications from source files.
  */
 public class SpecCollector {
+  private SpecCollector() {}
 
-  private final File rootDir;
-  private final Context ctx;
-  private static final String allSuitesVarName = "all";
-  private final String benchPackagePrefix = "local.Benchmarks";
-  private final String ensoSuffix = ".enso";
-
-  public SpecCollector(File benchProjectDir, File languageHomeOverride) {
-    if (!benchProjectDir.exists() || !benchProjectDir.isDirectory()) {
-      throw new IllegalArgumentException(benchProjectDir + " is not a directory.");
+  /**
+   * Collects all the bench specifications from the given module in a variable with the given name.
+   * @param varName Name of the variable that holds all the collected bench suites.
+   * @return Empty list if no such variable exists, or if it is not a vector.
+   */
+  public static List<ModuleBenchSuite> collectBenchSpecsFromModule(Value module, String varName) {
+    Value moduleType = module.invokeMember(Module.GET_ASSOCIATED_TYPE);
+    Value allSuitesVar = module.invokeMember(Module.GET_METHOD, moduleType, varName);
+    String moduleQualifiedName = module.invokeMember(Module.GET_NAME).asString();
+    if (!allSuitesVar.isNull()) {
+      Value suitesValue = module.invokeMember(Module.EVAL_EXPRESSION, varName);
+      if (!suitesValue.hasArrayElements()) {
+        return List.of();
+      }
+      List<ModuleBenchSuite> suites = new ArrayList<>();
+      for (long i = 0; i < suitesValue.getArraySize(); i++) {
+        Value suite = suitesValue.getArrayElement(i);
+        BenchSuite benchSuite = suite.as(BenchSuite.class);
+        suites.add(
+            new ModuleBenchSuite(benchSuite, moduleQualifiedName)
+        );
+      }
+      return suites;
     }
-    this.rootDir = benchProjectDir;
-    this.ctx = Context.newBuilder()
-        .allowExperimentalOptions(true)
-        .allowIO(IOAccess.ALL)
-        .allowAllAccess(true)
-        .logHandler(new ByteArrayOutputStream())
-        .option(
-            "enso.projectRoot",
-            benchProjectDir.getAbsolutePath()
-        )
-        .option(
-            "enso.languageHomeOverride",
-            languageHomeOverride.getAbsolutePath()
-        )
-        .build();
-  }
-
-  public ModuleBenchSuite collectBenchSpecFromModuleName(String moduleName) {
-    Objects.requireNonNull(moduleName);
-    if (!moduleName.startsWith(benchPackagePrefix)) {
-      throw new IllegalArgumentException("Module name must start with " + benchPackagePrefix);
-    }
-    Value module = ctx.getBindings(LanguageInfo.ID).invokeMember(TopScope.GET_MODULE, moduleName);
-    return collectBenchSpecFromModule(module, moduleName);
-  }
-
-  Collection<ModuleBenchSuite> collectAllBenchSpecs() {
-    try (Stream<Path> stream = Files.walk(rootDir.toPath())) {
-      return stream
-          .map(Path::toFile)
-          .filter(file -> file.isFile() && file.canRead() && file.getName().endsWith(ensoSuffix))
-          .map(this::collectBenchSpecsFromSingleFile)
-          .filter(Objects::nonNull)
-          .collect(Collectors.toList());
-    } catch (IOException e) {
-      throw new IllegalStateException("Unreachable", e);
-    }
+    return List.of();
   }
 
   /**
-   * Collects benchmark specifications from a single file. Returns null if no specification
-   * is found in the file.
-   * @param benchFile Path to the source file.
-   * @return null if there are no benchmark specs in the file.
+   * Collects all the bench specifications from the given module in a variable with the given name.
+   * @param groupName Name of the benchmark group
+   * @param varName Name of the variable that holds all the collected bench suites.
+   * @return null if no such group exists.
    */
-  private ModuleBenchSuite collectBenchSpecsFromSingleFile(File benchFile) {
-    Path relativePath = rootDir.toPath().relativize(benchFile.toPath());
-    // Strip the "src" directory
-    Path modulePath = relativePath.subpath(1, relativePath.getNameCount());
-    String moduleFullName = benchPackagePrefix + "." + modulePath.toString().replace(File.separatorChar, '.');
-    moduleFullName = moduleFullName.substring(0, moduleFullName.length() - ensoSuffix.length());
-    Value module = ctx.getBindings(LanguageInfo.ID).invokeMember(TopScope.GET_MODULE, moduleFullName);
-    return collectBenchSpecFromModule(module, moduleFullName);
-  }
-
-  private ModuleBenchSuite collectBenchSpecFromModule(Value module, String moduleQualifiedName) {
-    Value moduleType = module.invokeMember(Module.GET_ASSOCIATED_TYPE);
-    Value allSuitesVar = module.invokeMember(Module.GET_METHOD, moduleType, allSuitesVarName);
-    if (!allSuitesVar.isNull()) {
-      BenchSuite suite;
-      try {
-        suite = module
-            .invokeMember(Module.EVAL_EXPRESSION, "all")
-            .as(BenchSuite.class);
-        return new ModuleBenchSuite(suite, moduleQualifiedName);
-      } catch (PolyglotException e) {
-        // TODO: Replace with proper logging
-        System.err.println("WARN: An exception occured while evaluating benchmark suite var: " + e.getMessage());
-        return null;
+  public static BenchGroup collectBenchGroupFromModule(Value module, String groupName, String varName) {
+    var specs = collectBenchSpecsFromModule(module, varName);
+    for (ModuleBenchSuite suite : specs) {
+      BenchGroup group = suite.findGroupByName(groupName);
+      if (group != null) {
+        return group;
       }
     }
     return null;

@@ -1,10 +1,10 @@
 package org.enso.benchmarks.processor;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
 import java.net.URISyntaxException;
-import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -19,6 +19,13 @@ import javax.tools.Diagnostic.Kind;
 import org.enso.benchmarks.BenchGroup;
 import org.enso.benchmarks.BenchSpec;
 import org.enso.benchmarks.ModuleBenchSuite;
+import org.enso.polyglot.LanguageInfo;
+import org.enso.polyglot.MethodNames.TopScope;
+import org.enso.polyglot.RuntimeOptions;
+import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.PolyglotException;
+import org.graalvm.polyglot.Value;
+import org.graalvm.polyglot.io.IOAccess;
 import org.openide.util.lookup.ServiceProvider;
 
 @SupportedAnnotationTypes("org.enso.benchmarks.processor.GenerateBenchSources")
@@ -26,72 +33,59 @@ import org.openide.util.lookup.ServiceProvider;
 public class BenchProcessor extends AbstractProcessor {
 
   private final File ensoHomeOverride;
-  private File ensoDir;
-  private final File benchRootDir;
-  private final SpecCollector specCollector;
-  private static final String generatedSourcesPackagePrefix = "org.enso.benchmarks.libs";
-  private static final List<String> imports = List.of(
-      "import java.nio.file.Paths;",
-      "import java.io.ByteArrayOutputStream;",
-      "import java.io.File;",
-      "import org.openjdk.jmh.annotations.Benchmark;",
-      "import org.openjdk.jmh.annotations.BenchmarkMode;",
-      "import org.openjdk.jmh.annotations.Mode;",
-      "import org.openjdk.jmh.annotations.Fork;",
-      "import org.openjdk.jmh.annotations.Measurement;",
-      "import org.openjdk.jmh.annotations.OutputTimeUnit;",
-      "import org.openjdk.jmh.annotations.Setup;",
-      "import org.openjdk.jmh.annotations.State;",
-      "import org.openjdk.jmh.annotations.Scope;",
-      "import org.openjdk.jmh.infra.BenchmarkParams;",
-      "import org.openjdk.jmh.infra.Blackhole;",
-      "import org.graalvm.polyglot.Context;",
-      "import org.graalvm.polyglot.Value;",
-      "import org.graalvm.polyglot.io.IOAccess;",
-      "import org.enso.polyglot.LanguageInfo;",
-      "import org.enso.polyglot.MethodNames;",
-      "import org.enso.benchmarks.processor.SpecCollector;",
-      "import org.enso.benchmarks.ModuleBenchSuite;",
-      "import org.enso.benchmarks.BenchSpec;",
-      "import org.enso.benchmarks.BenchGroup;"
-  );
+  private final File ensoDir;
+  private File projectRootDir;
+  private static final String generatedSourcesPackagePrefix = "org.enso.benchmarks.generated";
+  private static final List<String> imports =
+      List.of(
+          "import java.nio.file.Paths;",
+          "import java.io.ByteArrayOutputStream;",
+          "import java.io.File;",
+          "import java.util.List;",
+          "import org.openjdk.jmh.annotations.Benchmark;",
+          "import org.openjdk.jmh.annotations.BenchmarkMode;",
+          "import org.openjdk.jmh.annotations.Mode;",
+          "import org.openjdk.jmh.annotations.Fork;",
+          "import org.openjdk.jmh.annotations.Measurement;",
+          "import org.openjdk.jmh.annotations.OutputTimeUnit;",
+          "import org.openjdk.jmh.annotations.Setup;",
+          "import org.openjdk.jmh.annotations.State;",
+          "import org.openjdk.jmh.annotations.Scope;",
+          "import org.openjdk.jmh.infra.BenchmarkParams;",
+          "import org.openjdk.jmh.infra.Blackhole;",
+          "import org.graalvm.polyglot.Context;",
+          "import org.graalvm.polyglot.Value;",
+          "import org.graalvm.polyglot.io.IOAccess;",
+          "import org.enso.polyglot.LanguageInfo;",
+          "import org.enso.polyglot.MethodNames;",
+          "import org.enso.polyglot.RuntimeOptions;",
+          "import org.enso.benchmarks.processor.SpecCollector;",
+          "import org.enso.benchmarks.ModuleBenchSuite;",
+          "import org.enso.benchmarks.BenchSpec;",
+          "import org.enso.benchmarks.BenchGroup;",
+          "import org.enso.benchmarks.Utils;");
 
   public BenchProcessor() {
+    File currentDir = null;
     try {
-      ensoDir = new File(
-          BenchProcessor.class
-              .getProtectionDomain()
-              .getCodeSource()
-              .getLocation()
-              .toURI()
-      );
+      currentDir =
+          new File(
+              BenchProcessor.class.getProtectionDomain().getCodeSource().getLocation().toURI());
     } catch (URISyntaxException e) {
       failWithMessage("ensoDir not found: " + e.getMessage());
     }
-    for (; ensoDir != null; ensoDir = ensoDir.getParentFile()) {
-      if (ensoDir.getName().equals("enso")) {
+    for (; currentDir != null; currentDir = currentDir.getParentFile()) {
+      if (currentDir.getName().equals("enso")) {
         break;
       }
     }
-    if (ensoDir == null) {
+    if (currentDir == null) {
       failWithMessage("Unreachable: Could not find Enso root directory");
     }
-
-    benchRootDir = ensoDir.toPath()
-        .resolve("test")
-        .resolve("Benchmarks")
-        .toFile();
-    if (!benchRootDir.isDirectory() || !benchRootDir.canRead()) {
-      failWithMessage("Unreachable: Could not find Enso benchmarks directory");
-    }
+    ensoDir = currentDir;
 
     // Note that ensoHomeOverride does not have to exist, only its parent directory
-    ensoHomeOverride = ensoDir.toPath()
-        .resolve("distribution")
-        .resolve("component")
-        .toFile();
-    specCollector =
-        new SpecCollector(benchRootDir, ensoHomeOverride);
+    ensoHomeOverride = ensoDir.toPath().resolve("distribution").resolve("component").toFile();
   }
 
   @Override
@@ -101,54 +95,89 @@ public class BenchProcessor extends AbstractProcessor {
 
   @Override
   public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
-    try {
-      Collection<ModuleBenchSuite> benchSuites = specCollector.collectAllBenchSpecs();
-      for (ModuleBenchSuite benchSuite : benchSuites) {
-        for (BenchGroup group : benchSuite.getGroups()) {
-          generateClassForGroup(group, benchSuite.getModuleQualifiedName());
-        }
+    var elements = roundEnv.getElementsAnnotatedWith(GenerateBenchSources.class);
+    for (var element : elements) {
+      GenerateBenchSources annotation = element.getAnnotation(GenerateBenchSources.class);
+      projectRootDir = new File(annotation.projectRootPath());
+      if (!projectRootDir.exists() || !projectRootDir.isDirectory() || !projectRootDir.canRead()) {
+        failWithMessage(
+            "Project root dir '"
+                + projectRootDir.getAbsolutePath()
+                + "' specified in the annotation does not exist or is not readable");
       }
-      return true;
-    } catch (Exception e) {
-      failWithMessage("Uncaught exception in " + getClass().getName() + ": " + e.getMessage());
-      return false;
+      try (var ctx =
+          Context.newBuilder()
+              .allowExperimentalOptions(true)
+              .allowIO(IOAccess.ALL)
+              .allowAllAccess(true)
+              .logHandler(new ByteArrayOutputStream())
+              .option(RuntimeOptions.PROJECT_ROOT, projectRootDir.getAbsolutePath())
+              .option(RuntimeOptions.LANGUAGE_HOME_OVERRIDE, ensoHomeOverride.getAbsolutePath())
+              .build()) {
+        Value module = getModule(ctx, annotation.moduleName());
+        assert module != null;
+        List<ModuleBenchSuite> benchSuites =
+            SpecCollector.collectBenchSpecsFromModule(module, annotation.variableName());
+        for (ModuleBenchSuite benchSuite : benchSuites) {
+          for (BenchGroup group : benchSuite.getGroups()) {
+            generateClassForGroup(group, benchSuite.getModuleQualifiedName(), annotation.variableName());
+          }
+        }
+        return true;
+      } catch (Exception e) {
+        failWithMessage("Uncaught exception in " + getClass().getName() + ": " + e.getMessage());
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private Value getModule(Context ctx, String moduleName) {
+    try {
+      return ctx.getBindings(LanguageInfo.ID).invokeMember(TopScope.GET_MODULE, moduleName);
+    } catch (PolyglotException e) {
+      failWithMessage("Cannot get module '" + moduleName + "': " + e.getMessage());
+      return null;
     }
   }
 
-  private void generateClassForGroup(BenchGroup group, String moduleQualifiedName) {
+  private void generateClassForGroup(BenchGroup group, String moduleQualifiedName, String varName) {
     String fullClassName = createGroupClassName(group);
-    try (Writer srcFileWriter = processingEnv.getFiler().createSourceFile(fullClassName).openWriter()) {
-      generateClassForGroup(srcFileWriter, moduleQualifiedName, group);
+    try (Writer srcFileWriter =
+        processingEnv.getFiler().createSourceFile(fullClassName).openWriter()) {
+      generateClassForGroup(srcFileWriter, moduleQualifiedName, varName, group);
     } catch (IOException e) {
       if (!isResourceAlreadyExistsException(e)) {
-        failWithMessage("Failed to generate source file for group '" + group.name() + "': " + e.getMessage());
+        failWithMessage(
+            "Failed to generate source file for group '" + group.name() + "': " + e.getMessage());
       }
     }
   }
 
   /**
-   * Returns true iff the given exception is thrown because a file already exists exception.
-   * There is no better way to check this.
+   * Returns true iff the given exception is thrown because a file already exists exception. There
+   * is no better way to check this.
+   *
    * @param e Exception to check.
    * @return true iff the given exception is thrown because a file already exists exception.
    */
   private static boolean isResourceAlreadyExistsException(IOException e) {
-    List<String> messages = List.of(
-        "Source file already created",
-        "Resource already created",
-        "Attempt to recreate a file"
-    );
-    return e instanceof FilerException && messages.stream().anyMatch(msg -> e.getMessage().contains(msg));
+    List<String> messages =
+        List.of(
+            "Source file already created",
+            "Resource already created",
+            "Attempt to recreate a file");
+    return e instanceof FilerException
+        && messages.stream().anyMatch(msg -> e.getMessage().contains(msg));
   }
 
-  private void generateClassForGroup(Writer javaSrcFileWriter, String moduleQualifiedName, BenchGroup group) throws IOException {
+  private void generateClassForGroup(
+      Writer javaSrcFileWriter, String moduleQualifiedName, String varName, BenchGroup group) throws IOException {
     String groupFullClassName = createGroupClassName(group);
     String className = groupFullClassName.substring(groupFullClassName.lastIndexOf('.') + 1);
     List<BenchSpec> specs = group.specs();
-    List<String> specJavaNames = specs
-        .stream()
-        .map(spec -> normalize(spec.name()))
-        .collect(Collectors.toUnmodifiableList());
+    List<String> specJavaNames =
+        specs.stream().map(spec -> normalize(spec.name())).collect(Collectors.toUnmodifiableList());
 
     javaSrcFileWriter.append("package " + generatedSourcesPackagePrefix + ";\n");
     javaSrcFileWriter.append("\n");
@@ -172,51 +201,69 @@ public class BenchProcessor extends AbstractProcessor {
     javaSrcFileWriter.append("  \n");
     javaSrcFileWriter.append("  @Setup\n");
     javaSrcFileWriter.append("  public void setup(BenchmarkParams params) throws Exception {\n");
-    javaSrcFileWriter.append("    File benchProjectDir = new File(\"" + benchRootDir.getAbsolutePath() + "\");\n");
-    javaSrcFileWriter.append("    File languageHomeOverride = new File(\"" + ensoHomeOverride.getAbsolutePath() + "\");\n");
+    javaSrcFileWriter.append(
+        "    File projectRootDir = new File(\"" + projectRootDir.getAbsolutePath() + "\");\n");
+    javaSrcFileWriter.append(
+        "    File languageHomeOverride = new File(\""
+            + ensoHomeOverride.getAbsolutePath()
+            + "\");\n");
     javaSrcFileWriter.append("    var ctx = Context.newBuilder()\n");
     javaSrcFileWriter.append("      .allowExperimentalOptions(true)\n");
     javaSrcFileWriter.append("      .allowIO(IOAccess.ALL)\n");
     javaSrcFileWriter.append("      .allowAllAccess(true)\n");
     javaSrcFileWriter.append("      .logHandler(new ByteArrayOutputStream())\n");
     javaSrcFileWriter.append("      .option(\n");
-    javaSrcFileWriter.append("        \"enso.languageHomeOverride\",\n");
-    javaSrcFileWriter.append("        Paths.get(\"../../distribution/component\").toFile().getAbsolutePath()\n");
+    javaSrcFileWriter.append("        RuntimeOptions.LANGUAGE_HOME_OVERRIDE,\n");
+    javaSrcFileWriter.append("        languageHomeOverride.getAbsolutePath()\n");
     javaSrcFileWriter.append("      )\n");
     javaSrcFileWriter.append("      .option(\n");
-    javaSrcFileWriter.append("        \"enso.projectRoot\",\n");
-    javaSrcFileWriter.append("        benchProjectDir.getAbsolutePath()\n");
+    javaSrcFileWriter.append("        RuntimeOptions.PROJECT_ROOT,\n");
+    javaSrcFileWriter.append("        projectRootDir.getAbsolutePath()\n");
     javaSrcFileWriter.append("      )\n");
     javaSrcFileWriter.append("      .build();\n");
     javaSrcFileWriter.append("    \n");
     javaSrcFileWriter.append("    Value bindings = ctx.getBindings(LanguageInfo.ID);\n");
-    javaSrcFileWriter.append("    Value module = bindings.invokeMember(MethodNames.TopScope.GET_MODULE, \"" + moduleQualifiedName + "\");\n");
-    javaSrcFileWriter.append("    var specCollector = new SpecCollector(benchProjectDir, languageHomeOverride);\n");
-    javaSrcFileWriter.append("    ModuleBenchSuite benchSuite = specCollector.collectBenchSpecFromModuleName(\"" + moduleQualifiedName + "\");\n");
+    javaSrcFileWriter.append(
+        "    Value module = bindings.invokeMember(MethodNames.TopScope.GET_MODULE, \""
+            + moduleQualifiedName
+            + "\");\n");
+    javaSrcFileWriter.append(
+        "    BenchGroup group = SpecCollector.collectBenchGroupFromModule(module, \""
+            + group.name()
+            + "\", \"" + varName + "\");\n");
     javaSrcFileWriter.append("    \n");
     for (int i = 0; i < specs.size(); i++) {
       var specJavaName = specJavaNames.get(i);
       var specName = specs.get(i).name();
-      javaSrcFileWriter.append("    BenchSpec benchSpec_" + specJavaName + " = benchSuite.findSpecByName(\"" + group.name() + "\", \"" + specName + "\");\n");
-      javaSrcFileWriter.append("    this.benchFunc_" + specJavaName + " = benchSpec_" + specJavaName + ".code();\n");
+      javaSrcFileWriter.append(
+          "    BenchSpec benchSpec_"
+              + specJavaName
+              + " = Utils.findSpecByName(group, \"" + specName + "\");\n");
+      javaSrcFileWriter.append(
+          "    this.benchFunc_" + specJavaName + " = benchSpec_" + specJavaName + ".code();\n");
     }
     javaSrcFileWriter.append("    \n");
     javaSrcFileWriter.append("    this.groupInputArg = Value.asValue(null);\n");
     javaSrcFileWriter.append("  } \n"); // end of setup method
     javaSrcFileWriter.append("  \n");
+
+    // Benchmark methods
     for (var specJavaName : specJavaNames) {
       javaSrcFileWriter.append("  \n");
       javaSrcFileWriter.append("  @Benchmark\n");
       javaSrcFileWriter.append("  public void " + specJavaName + "(Blackhole blackhole) {\n");
-      javaSrcFileWriter.append("    Value result = this.benchFunc_" + specJavaName + ".execute(this.groupInputArg);\n");
+      javaSrcFileWriter.append(
+          "    Value result = this.benchFunc_" + specJavaName + ".execute(this.groupInputArg);\n");
       javaSrcFileWriter.append("    blackhole.consume(result);\n");
       javaSrcFileWriter.append("  }\n"); // end of benchmark method
     }
+
     javaSrcFileWriter.append("}\n"); // end of class className
   }
 
   /**
    * Returns Java FQN for a benchmark spec.
+   *
    * @param group Group name will be converted to Java package name.
    * @return
    */
@@ -231,6 +278,7 @@ public class BenchProcessor extends AbstractProcessor {
 
   /**
    * Converts Text to valid Java identifier.
+   *
    * @param name Text to convert.
    * @return Valid Java identifier, non null.
    */
@@ -239,7 +287,7 @@ public class BenchProcessor extends AbstractProcessor {
     for (char c : name.toCharArray()) {
       if (isValidChar(c)) {
         normalizedNameSb.append(c);
-      } else if (Character.isWhitespace(c) &&  (peekLastChar(normalizedNameSb) != '_')) {
+      } else if (Character.isWhitespace(c) && (peekLastChar(normalizedNameSb) != '_')) {
         normalizedNameSb.append('_');
       }
     }
