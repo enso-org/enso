@@ -11,15 +11,15 @@ polyglot java import com.ibm.icu.text.Normalizer2.Mode
 ## Enso representations of `com.ibm.icu.text.Normalizer2.Mode`. Does not
    include all values of `Mode`.
 type Normalization
-    # Unicode standard NFC
+    ## Unicode NFC normalization mode.
     NFC
-    # Unicode standard NFD
+    ## Unicode NFD normalization mode.
     NFD
-    # Unicode standard NFKC
+    ## Unicode NFKC normalization mode.
     NFKC
-    # Unicode standard NFKD
+    ## Unicode NFKD normalization mode.
     NFKD
-    # Unicode standard NFKC_CF
+    ## Unicode NFKC_CF normalization mode.
     NFKCCasefold
 
     get_java_mode : Any
@@ -49,9 +49,6 @@ type Normalization
         [o1, o2, o3, o4, o5]
 
     ## PRIVATE
-       The widget for `Text_Sub_Range` also displays options for
-       `Index_Sub_Range` since the former is supposed to 'expand' the latter and
-       is always used together with it.
     default_widget : Widget
     default_widget =
         Single_Choice display=Display.Always Normalization.options
