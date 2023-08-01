@@ -39,10 +39,7 @@ export default function Login() {
 
     const [email, setEmail] = React.useState(initialEmail ?? '')
     const [password, setPassword] = React.useState('')
-    const [isEmailValid, setIsEmailValid] = React.useState(false)
-    const [isPasswordValid, setIsPasswordValid] = React.useState(false)
     const [isSubmitting, setIsSubmitting] = React.useState(false)
-    const canSubmit = isEmailValid && isPasswordValid && !isSubmitting
 
     return (
         <div className="min-h-screen flex flex-col items-center justify-center">
@@ -104,15 +101,13 @@ export default function Login() {
                                 </SvgIcon>
                                 <Input
                                     required
+                                    validate
                                     id="email"
                                     type="email"
                                     name="email"
                                     placeholder="E-Mail Address"
                                     value={email}
                                     setValue={setEmail}
-                                    onChange={event => {
-                                        setIsEmailValid(event.currentTarget.reportValidity())
-                                    }}
                                 />
                             </div>
                         </div>
@@ -128,22 +123,19 @@ export default function Login() {
                                     <SvgMask src={LockIcon} />
                                 </SvgIcon>
                                 <Input
-                                    required={true}
+                                    required
+                                    validate
                                     id="password"
                                     type="password"
                                     name="password"
                                     placeholder="Password"
                                     pattern={validation.PASSWORD_PATTERN}
-                                    title={validation.PASSWORD_TITLE}
+                                    error={validation.PASSWORD_ERROR}
                                     value={password}
                                     setValue={setPassword}
-                                    onChange={event => {
-                                        setIsPasswordValid(event.currentTarget.reportValidity())
-                                    }}
                                 />
                             </div>
                         </div>
-
                         <div className="flex items-center mb-6 -mt-4">
                             <div className="flex ml-auto">
                                 <router.Link
@@ -154,10 +146,9 @@ export default function Login() {
                                 </router.Link>
                             </div>
                         </div>
-
                         <div className="flex w-full">
                             <button
-                                disabled={!canSubmit}
+                                disabled={isSubmitting}
                                 type="submit"
                                 className={
                                     'flex items-center justify-center focus:outline-none text-white ' +

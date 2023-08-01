@@ -35,11 +35,7 @@ export default function Registration() {
     const [email, setEmail] = React.useState('')
     const [password, setPassword] = React.useState('')
     const [confirmPassword, setConfirmPassword] = React.useState('')
-    const [isEmailValid, setIsEmailValid] = React.useState(false)
-    const [isPasswordValid, setIsPasswordValid] = React.useState(false)
-    const [isConfirmPasswordValid, setIsConfirmPasswordValid] = React.useState(false)
     const [isSubmitting, setIsSubmitting] = React.useState(false)
-    const canSubmit = isEmailValid && isPasswordValid && isConfirmPasswordValid && !isSubmitting
     const { organizationId } = parseUrlSearchParams(location.search)
 
     return (
@@ -74,15 +70,14 @@ export default function Registration() {
                                 <SvgMask src={AtIcon} />
                             </SvgIcon>
                             <Input
+                                required
+                                validate
                                 id="email"
                                 type="email"
                                 name="email"
                                 placeholder="E-Mail Address"
                                 value={email}
                                 setValue={setEmail}
-                                onChange={event => {
-                                    setIsEmailValid(event.currentTarget.reportValidity())
-                                }}
                             />
                         </div>
                     </div>
@@ -99,17 +94,15 @@ export default function Registration() {
                             </SvgIcon>
                             <Input
                                 required
+                                validate
                                 id="password"
                                 type="password"
                                 name="password"
                                 placeholder="Password"
                                 pattern={validation.PASSWORD_PATTERN}
-                                title={validation.PASSWORD_TITLE}
+                                error={validation.PASSWORD_ERROR}
                                 value={password}
                                 setValue={setPassword}
-                                onChange={event => {
-                                    setIsPasswordValid(event.currentTarget.reportValidity())
-                                }}
                             />
                         </div>
                     </div>
@@ -126,24 +119,21 @@ export default function Registration() {
                             </SvgIcon>
                             <Input
                                 required
+                                validate
                                 id="password_confirmation"
                                 type="password"
                                 name="password_confirmation"
                                 placeholder="Confirm Password"
                                 pattern={string.regexEscape(password)}
-                                title={validation.CONFIRM_PASSWORD_TITLE}
+                                error={validation.CONFIRM_PASSWORD_ERROR}
                                 value={confirmPassword}
                                 setValue={setConfirmPassword}
-                                onChange={event => {
-                                    setIsConfirmPasswordValid(event.currentTarget.reportValidity())
-                                }}
                             />
                         </div>
                     </div>
-
                     <div className="flex w-full mt-6">
                         <button
-                            disabled={!canSubmit}
+                            disabled={isSubmitting}
                             type="submit"
                             className={
                                 'flex items-center justify-center focus:outline-none text-white text-sm ' +
