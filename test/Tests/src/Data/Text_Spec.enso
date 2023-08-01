@@ -142,7 +142,7 @@ spec =
 
         Test.specify "normalizes correctly using different standard Unicode normalization modes" <|
             ## GREEK UPSILON WITH ACUTE AND HOOK SYMBOL behaves differently with each mode.
-               See https://unicode.org/faq/normalization.html.
+               See https://unicode.org/faq/normalization.html
             s = 'ϓ'
             s.normalize . codepoints . should_equal [978, 769]
             s.normalize Normalization.NFC . codepoints . should_equal [979]
