@@ -210,7 +210,7 @@ export class ProjectManager extends EventTarget {
                     } else {
                         const delay =
                             RETRY_INTERVAL_MS - (Number(new Date()) - lastConnectionStartMs)
-                        setTimeout(() => {
+                        window.setTimeout(() => {
                             void createSocket().then(resolve)
                         }, Math.max(0, delay))
                     }

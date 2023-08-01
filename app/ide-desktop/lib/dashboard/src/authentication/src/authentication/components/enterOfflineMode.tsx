@@ -18,11 +18,11 @@ export default function EnterOfflineMode() {
     React.useEffect(() => {
         void (async () => {
             await goOffline(false)
-            setTimeout(() => {
+            window.setTimeout(() => {
                 navigate(app.DASHBOARD_PATH)
             }, 0)
         })()
-        // This MUST only run once - this is fine because the above function *always* `navigate`s
+        // This MUST only run once. This is fine because the above function *always* `navigate`s
         // away.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])

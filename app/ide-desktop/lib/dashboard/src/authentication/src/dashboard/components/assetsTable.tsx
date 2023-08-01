@@ -461,14 +461,12 @@ export default function AssetsTable(props: AssetsTableProps) {
                             backendModule.ASSET_TYPE_ORDER[item.type] >= typeOrder
                     )
                 )
-                setTimeout(() => {
-                    dispatchAssetEvent({
-                        type: assetEventModule.AssetEventType.createProject,
-                        placeholderId: dummyId,
-                        templateId: event.templateId,
-                        onSpinnerStateChange: event.onSpinnerStateChange,
-                    })
-                }, 0)
+                dispatchAssetEvent({
+                    type: assetEventModule.AssetEventType.createProject,
+                    placeholderId: dummyId,
+                    templateId: event.templateId,
+                    onSpinnerStateChange: event.onSpinnerStateChange,
+                })
                 break
             }
             case assetListEventModule.AssetListEventType.uploadFiles: {

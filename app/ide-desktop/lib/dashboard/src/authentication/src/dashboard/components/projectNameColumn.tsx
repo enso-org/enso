@@ -95,14 +95,10 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                             id: createdProject.projectId,
                             projectState: createdProject.state,
                         })
-                        // This MUST be delayed, otherwise the `ProjectActionButton` does not yet
-                        // have the correct `Project`.
-                        setTimeout(() => {
-                            dispatchAssetEvent({
-                                type: assetEventModule.AssetEventType.openProject,
-                                id: createdProject.projectId,
-                            })
-                        }, 0)
+                        dispatchAssetEvent({
+                            type: assetEventModule.AssetEventType.openProject,
+                            id: createdProject.projectId,
+                        })
                     } catch (error) {
                         dispatchAssetListEvent({
                             type: assetListEventModule.AssetListEventType.delete,

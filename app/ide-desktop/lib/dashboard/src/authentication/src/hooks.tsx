@@ -148,7 +148,10 @@ export function useEvent<T extends KnownEvent>(): [events: T[], dispatchEvent: (
     const [events, setEvents] = React.useState<T[]>([])
     React.useEffect(() => {
         if (events.length !== 0) {
-            setEvents([])
+            // This must run after the current render, but before the next.
+            queueMicrotask(() => {
+                setEvents([])
+            })
         }
     }, [events])
     const dispatchEvent = React.useCallback((event: T) => {
