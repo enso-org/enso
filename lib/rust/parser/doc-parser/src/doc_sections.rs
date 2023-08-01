@@ -245,7 +245,7 @@ impl<L> TokenConsumer<L> for DocSectionCollector {
                 }
             }
             ScopeType::ListItem => {
-                self.current_list.push(mem::take(&mut self.current_body));
+                self.current_list.push(self.current_body.drain(..).collect());
             }
             ScopeType::Paragraph => (),
             ScopeType::Raw => self.current_body.push_str("</pre>"),
