@@ -3,6 +3,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import project.Internal.Naming_Properties.Unlimited_Naming_Properties
 import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
+from project.Errors import Invalid_Output_Column_Names
 from project.Internal.Table_Helpers import is_column
 
 polyglot java import org.enso.base.Text_Utils
@@ -28,7 +29,7 @@ type Column_Naming_Helper
     ## PRIVATE
        Checks if the name is valid and runs the action, otherwise raises an error.
     ensure_name_is_valid self name ~action =
-        checked = Illegal_Argument.handle_java_exception <|
+        checked = Invalid_Output_Column_Names.handle_java_exception <|
             Java_Column.ensureNameIsValid name
         checked.if_not_error <| case self.naming_properties.size_limit of
             Nothing -> action

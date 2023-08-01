@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.enso.base.text.UnicodeNormalizedTextEquivalence;
+import org.enso.table.data.table.Column;
 import org.enso.table.problems.Problem;
 import org.enso.table.util.problems.DuplicateNames;
 import org.enso.table.util.problems.InvalidNames;
@@ -62,12 +63,8 @@ public class NameDeduplicator {
     this.invalidNameReplacement = invalidNameReplacement;
   }
 
-  private boolean isInvalid(String name) {
-    return (name == null) || name.isEmpty() || (name.indexOf('\0') >= 0);
-  }
-
   public String makeValidAndTruncate(String input) {
-    if (isInvalid(input)) {
+    if (!Column.isColumnNameValid(input)) {
       this.invalidNames.add(input);
       input = this.invalidNameReplacement;
     }
@@ -120,13 +117,12 @@ public class NameDeduplicator {
    */
   public String makeUnique(String name) {
     String validName = makeValidAndTruncate(name);
-    boolean wasInvalid = isInvalid(name);
+    boolean wasValid = Column.isColumnNameValid(name);
     boolean wasTruncated = truncatedNames.containsKey(name);
 
     // Only if the name was invalid and it was replaced with the replacement sequence, we start with the suffix.
     // Otherwise (if th name was truncated only), the first attempt is done withot suffix.
-    boolean tryNoSuffixFirst = !wasInvalid;
-    int currentIndex = tryNoSuffixFirst ? 0 : 1;
+    int currentIndex = wasValid ? 0 : 1;
 
     NameIterator nameIterator = new NameIterator(validName, wasTruncated);
 

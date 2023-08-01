@@ -8,6 +8,7 @@ polyglot java import org.enso.table.error.ColumnCountMismatchException
 polyglot java import org.enso.table.error.ColumnNameMismatchException
 polyglot java import org.enso.table.error.EmptyFileException
 polyglot java import org.enso.table.error.EmptySheetException
+polyglot java import org.enso.table.error.InvalidColumnNameException
 
 
 type Missing_Input_Columns
@@ -51,15 +52,27 @@ type Too_Many_Column_Names_Provided
 
 ## One or more column names were invalid during a rename operation.
 type Invalid_Output_Column_Names
-    Error (column_names : Vector Text)
+    Error (column_names : Vector Text) (extra_message : Text | Nothing = Nothing)
 
     ## PRIVATE
 
        Pretty prints the invalid output columns error.
     to_display_text : Text
-    to_display_text self = case self.column_names.length == 1 of
-        True -> "The name " + (self.column_names.at 0).to_text + " is invalid."
-        False -> "The names "+self.column_names.short_display_text+" are invalid."
+    to_display_text self =
+        suffix = case self.extra_message of
+            Nothing -> ""
+            message -> " "+message
+        case self.column_names.length == 1 of
+            True -> "The name " + (self.column_names.at 0).to_display_text.pretty + " is invalid."+suffix
+            False -> "The names "+self.column_names.short_display_text+" are invalid."+suffix
+
+    ## PRIVATE
+       Handles the Java counterpart `InvalidColumnNameException` and converts it into a dataflow error.
+    handle_java_exception ~action =
+        Panic.catch InvalidColumnNameException action caught_panic->
+            exception = caught_panic.payload
+            error = Invalid_Output_Column_Names.Error [exception.name] exception.extraMessage
+            Error.throw error
 
 ## One or more column names clashed during a rename operation.
 type Duplicate_Output_Column_Names
@@ -70,7 +83,7 @@ type Duplicate_Output_Column_Names
        Pretty prints the duplicate output column names error.
     to_display_text : Text
     to_display_text self = case self.column_names.length == 1 of
-        True -> "The name " + (self.column_names.at 0).to_text + " was repeated in the output, so was renamed."
+        True -> "The name " + (self.column_names.at 0).to_display_text + " was repeated in the output, so it was renamed."
         False -> "The names "+self.column_names.short_display_text+" were repeated in the output, and were renamed."
 
 ## No columns in the output result.

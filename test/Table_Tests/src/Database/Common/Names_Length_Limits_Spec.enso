@@ -408,6 +408,10 @@ spec prefix connection =
                     db_a.tokenize_to_columns name_a . should_fail_with Unsupported_Database_Operation
 
                 Test.with_clue "use_first_row_as_names test will have to be amended once it is implemented:" <|
+                    name_1 = "x" * (max_column_name_length + 1) + "A"
+                    name_2 = "x" * (max_column_name_length + 1) + "D"
+                    src = Table.new [["X", [name_1, "B", "C"]], ["Y", [name_2, "E", "F"]]]
+                    db_table = src.select_into_database_table connection (Name_Generator.random_name "first-row-as-names") temporary=True primary_key=[]
                     db_table.use_first_row_as_names . should_fail_with Unsupported_Database_Operation
 
             Test.specify "should fail other operations that create new columns if the column names are too long" <|

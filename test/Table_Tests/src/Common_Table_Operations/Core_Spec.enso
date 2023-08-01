@@ -107,8 +107,8 @@ spec setup =
             t3.column_names . should_equal ["foo", "bar", "Baz", "foo 1", "foo 2", "ab.+123", "abcd123", "bar2", "bar3"]
 
         Test.specify "should not allow illegal column names" <|
-            table.set (table.get "bar") new_name="" . should_fail_with Illegal_Argument
-            table.set (table.get "bar") new_name='a\0b' . should_fail_with Illegal_Argument
+            table.set (table.get "bar") new_name="" . should_fail_with Invalid_Output_Column_Names
+            table.set (table.get "bar") new_name='a\0b' . should_fail_with Invalid_Output_Column_Names
 
         Test.specify "should allow replacing a column" <|
             foo = table.get "bar" . rename "foo"

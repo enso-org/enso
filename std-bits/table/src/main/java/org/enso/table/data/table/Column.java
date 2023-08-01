@@ -11,6 +11,7 @@ import org.enso.table.data.index.DefaultIndex;
 import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
+import org.enso.table.error.InvalidColumnNameException;
 import org.enso.table.error.UnexpectedColumnTypeException;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
@@ -36,20 +37,20 @@ public class Column {
     this.storage = storage;
   }
 
-  public static IllegalArgumentException raiseNothingName() throws IllegalArgumentException {
-    throw new IllegalArgumentException("Column name cannot be Nothing.");
+  public static boolean isColumnNameValid(String name) {
+    boolean invalid = (name == null) || name.isEmpty() || (name.indexOf('\0') >= 0);
+    return !invalid;
   }
 
   public static void ensureNameIsValid(String name) {
-    if (name == null) {
-      raiseNothingName();
-    }
-    if (name.isEmpty()) {
-      throw new IllegalArgumentException("Column name cannot be empty.");
-    }
-    if (name.indexOf('\0') >= 0) {
-      String pretty = Text_Utils.pretty_print(name);
-      throw new IllegalArgumentException("Column name "+pretty+" must not contain the NUL character.");
+    if (!isColumnNameValid(name)) {
+      String extraMessage = switch (name) {
+        case null -> "Column name cannot be Nothing.";
+        case "" -> "Column name cannot be empty.";
+        default ->
+            (name.indexOf('\0') >= 0) ? "Column name cannot contain the NUL character." : null;
+      };
+      throw new InvalidColumnNameException(name, extraMessage);
     }
   }
 
