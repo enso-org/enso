@@ -144,10 +144,9 @@ impl DocSectionCollector {
             Some(DocSection::Paragraph { body, .. })
             | Some(DocSection::Keyed { body, .. })
             | Some(DocSection::Marked { body, .. }) => *body = text,
-            Some(DocSection::Tag { .. })
-            | Some(DocSection::List { .. })
-            | Some(DocSection::Arguments { .. })
-            | None => self.sections.push(DocSection::Paragraph { body: text }),
+            Some(DocSection::List { .. }) | Some(DocSection::Arguments { .. }) => (),
+            Some(DocSection::Tag { .. }) | None =>
+                self.sections.push(DocSection::Paragraph { body: text }),
         }
     }
 
