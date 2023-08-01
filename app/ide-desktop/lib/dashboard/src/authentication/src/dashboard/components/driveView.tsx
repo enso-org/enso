@@ -2,8 +2,6 @@
 import * as React from 'react'
 import * as toastify from 'react-toastify'
 
-import * as common from 'enso-common'
-
 import * as assetEventModule from '../events/assetEvent'
 import * as assetListEventModule from '../events/assetListEvent'
 import * as authProvider from '../../authentication/providers/auth'
@@ -15,13 +13,6 @@ import * as tabModule from '../tab'
 
 import AssetsTable from './assetsTable'
 import DriveBar from './driveBar'
-
-// =================
-// === Constants ===
-// =================
-
-/** The `localStorage` key under which the ID of the current directory is stored. */
-const DIRECTORY_STACK_KEY = `${common.PRODUCT_NAME.toLowerCase()}-dashboard-directory-stack`
 
 // ========================
 // === Helper functions ===
@@ -43,7 +34,6 @@ export interface DirectoryViewProps {
     nameOfProjectToImmediatelyOpen: string | null
     setNameOfProjectToImmediatelyOpen: (nameOfProjectToImmediatelyOpen: string | null) => void
     directoryId: backendModule.DirectoryId | null
-    setDirectoryId: (directoryId: backendModule.DirectoryId) => void
     assetListEvents: assetListEventModule.AssetListEvent[]
     dispatchAssetListEvent: (directoryEvent: assetListEventModule.AssetListEvent) => void
     query: string
@@ -65,7 +55,6 @@ export default function DirectoryView(props: DirectoryViewProps) {
         nameOfProjectToImmediatelyOpen,
         setNameOfProjectToImmediatelyOpen,
         directoryId,
-        setDirectoryId,
         query,
         assetListEvents,
         dispatchAssetListEvent,
@@ -79,13 +68,12 @@ export default function DirectoryView(props: DirectoryViewProps) {
         isListingRemoteDirectoryAndWillFail,
     } = props
     const logger = loggerProvider.useLogger()
-    const { organization, accessToken } = authProvider.useNonPartialUserSession()
+    const { accessToken } = authProvider.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
     const toastAndLog = hooks.useToastAndLog()
     const [initialized, setInitialized] = React.useState(false)
     const [assets, rawSetAssets] = React.useState<backendModule.AnyAsset[]>([])
     const [isLoadingAssets, setIsLoadingAssets] = React.useState(true)
-    const [directoryStack, setDirectoryStack] = React.useState<backendModule.DirectoryAsset[]>([])
     const [isFileBeingDragged, setIsFileBeingDragged] = React.useState(false)
     const [assetEvents, dispatchAssetEvent] = hooks.useEvent<assetEventModule.AssetEvent>()
 
@@ -117,32 +105,6 @@ export default function DirectoryView(props: DirectoryViewProps) {
             setIsLoadingAssets(false)
         }
     }, [loadingProjectManagerDidFail, backend.type])
-
-    React.useEffect(() => {
-        const cachedDirectoryStackJson = localStorage.getItem(DIRECTORY_STACK_KEY)
-        if (cachedDirectoryStackJson != null) {
-            // The JSON was inserted by the code below, so it will always have the right type.
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-            const cachedDirectoryStack: backendModule.DirectoryAsset[] =
-                JSON.parse(cachedDirectoryStackJson)
-            setDirectoryStack(cachedDirectoryStack)
-            const cachedDirectoryId = cachedDirectoryStack[cachedDirectoryStack.length - 1]?.id
-            if (cachedDirectoryId) {
-                setDirectoryId(cachedDirectoryId)
-            }
-        }
-    }, [setDirectoryId])
-
-    React.useEffect(() => {
-        if (
-            organization != null &&
-            directoryId === backendModule.rootDirectoryId(organization.id)
-        ) {
-            localStorage.removeItem(DIRECTORY_STACK_KEY)
-        } else {
-            localStorage.setItem(DIRECTORY_STACK_KEY, JSON.stringify(directoryStack))
-        }
-    }, [directoryStack, directoryId, organization])
 
     const setAssets = React.useCallback(
         (newAssets: backendModule.AnyAsset[]) => {
@@ -200,7 +162,7 @@ export default function DirectoryView(props: DirectoryViewProps) {
                     ) {
                         const newAssets = await backend.listDirectory(
                             { parentId: directoryId },
-                            directoryStack[0]?.title ?? null
+                            null
                         )
                         if (!signal.aborted) {
                             setIsLoadingAssets(false)

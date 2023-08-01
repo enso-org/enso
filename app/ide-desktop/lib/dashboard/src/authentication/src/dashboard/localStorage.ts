@@ -2,15 +2,20 @@
 import * as common from 'enso-common'
 
 import * as backend from './backend'
+import * as column from './column'
 
 /** All possible keys for a {@link LocalStorage}. */
 export enum LocalStorageKey {
     backendType = 'backend-type',
+    extraColumns = 'extra-columns',
+    isTemplatesListOpen = 'is-templates-list-open',
 }
 
 /** The data that can be stored in a {@link LocalStorage}. */
 interface LocalStorageData {
     [LocalStorageKey.backendType]: backend.BackendType
+    [LocalStorageKey.extraColumns]: column.ExtraColumn[]
+    [LocalStorageKey.isTemplatesListOpen]: boolean
 }
 
 /** A LocalStorage data manager. */

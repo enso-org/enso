@@ -9,6 +9,7 @@ import * as backendModule from '../backend'
 import * as hooks from '../../hooks'
 import * as http from '../../http'
 import * as localBackend from '../localBackend'
+import * as localStorageModule from '../localStorage'
 import * as projectManager from '../projectManager'
 import * as remoteBackendModule from '../remoteBackend'
 import * as shortcuts from '../shortcuts'
@@ -16,6 +17,7 @@ import * as tabModule from '../tab'
 
 import * as authProvider from '../../authentication/providers/auth'
 import * as backendProvider from '../../providers/backend'
+import * as localStorageProvider from '../../providers/localStorage'
 import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
 
@@ -54,6 +56,7 @@ export default function Dashboard(props: DashboardProps) {
     const { backend } = backendProvider.useBackend()
     const { setBackend } = backendProvider.useSetBackend()
     const { unsetModal } = modalProvider.useSetModal()
+    const { localStorage } = localStorageProvider.useLocalStorage()
     const [directoryId, setDirectoryId] = React.useState(
         session.organization != null
             ? backendModule.rootDirectoryId(session.organization.id)
@@ -116,7 +119,7 @@ export default function Dashboard(props: DashboardProps) {
         if (
             supportsLocalBackend &&
             session.type !== authProvider.UserSessionType.offline &&
-            localStorage.getItem(backendProvider.BACKEND_TYPE_KEY) !==
+            localStorage.get(localStorageModule.LocalStorageKey.backendType) !==
                 backendModule.BackendType.remote
         ) {
             setBackend(new localBackend.LocalBackend())
@@ -296,7 +299,6 @@ export default function Dashboard(props: DashboardProps) {
                         nameOfProjectToImmediatelyOpen={nameOfProjectToImmediatelyOpen}
                         setNameOfProjectToImmediatelyOpen={setNameOfProjectToImmediatelyOpen}
                         directoryId={directoryId}
-                        setDirectoryId={setDirectoryId}
                         assetListEvents={assetListEvents}
                         dispatchAssetListEvent={dispatchAssetListEvent}
                         query={query}
