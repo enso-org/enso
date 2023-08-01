@@ -741,7 +741,6 @@ mod tests {
                 }].to_vec()
             },
             List { items: ["List item 1".into(), "List item 2".into(), "List item 3".into()].to_vec() },
-            Paragraph { body: "".into() },
             Marked {
                 mark: Example,
                 header: Some("Example".into()), 
