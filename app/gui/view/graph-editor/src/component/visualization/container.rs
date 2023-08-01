@@ -115,8 +115,7 @@ pub enum ViewState {
 }
 
 impl ViewState {
-    /// Indicates whether the visualization is visible in the graph editor. It is always visible
-    /// when not disabled.
+    /// Indicates whether the visualization is visible in the graph editor.
     pub fn is_visible(&self) -> bool {
         matches!(
             self,
