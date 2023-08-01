@@ -102,7 +102,7 @@ type Unique_Name_Strategy
     truncated_names : Map Text Text
     truncated_names self =
         entries = Vector.from_polyglot_array self.deduplicator.getTruncatedNames
-        Map.from_vector <| entries.map e-> [e.left, e.right]
+        Map.from_vector <| entries.map e-> [e.getLeft, e.getRight]
 
     ## PRIVATE
        ADVANCED
