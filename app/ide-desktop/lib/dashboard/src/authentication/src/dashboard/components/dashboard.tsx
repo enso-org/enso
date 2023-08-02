@@ -87,22 +87,24 @@ export default function Dashboard(props: DashboardProps) {
 
     const switchToIdeTab = React.useCallback(() => {
         setTab(tabModule.Tab.ide)
+        localStorage.set(localStorageModule.LocalStorageKey.page, tabModule.Tab.ide)
         unsetModal()
         const ideElement = document.getElementById(IDE_ELEMENT_ID)
         if (ideElement) {
             ideElement.style.top = ''
             ideElement.style.display = 'absolute'
         }
-    }, [/* should never change */ unsetModal])
+    }, [/* should never change */ localStorage, /* should never change */ unsetModal])
 
     const switchToDashboardTab = React.useCallback(() => {
         setTab(tabModule.Tab.dashboard)
+        localStorage.set(localStorageModule.LocalStorageKey.page, tabModule.Tab.dashboard)
         const ideElement = document.getElementById(IDE_ELEMENT_ID)
         if (ideElement) {
             ideElement.style.top = '-100vh'
             ideElement.style.display = 'fixed'
         }
-    }, [])
+    }, [/* should never change */ localStorage])
 
     const toggleTab = React.useCallback(() => {
         if (project != null && tab === tabModule.Tab.dashboard) {
@@ -118,33 +120,48 @@ export default function Dashboard(props: DashboardProps) {
     ])
 
     React.useEffect(() => {
+        const savedPage = localStorage.get(localStorageModule.LocalStorageKey.page)
+        if (savedPage != null) {
+            switch (savedPage) {
+                case tabModule.Tab.ide: {
+                    switchToIdeTab()
+                    break
+                }
+                case tabModule.Tab.dashboard: {
+                    // Do nothing; this is the default tab.
+                    break
+                }
+            }
+        }
         const savedProject = localStorage.get(
             localStorageModule.LocalStorageKey.currentlyOpenProject
         )
         if (savedProject != null) {
             setProject(savedProject)
-            // A workaround to hide the spinner, when the previous project is being loaded in the
-            // background. This `MutationObserver` is disconnected when the loader is removed from
-            // the DOM.
-            const observer = new MutationObserver(mutations => {
-                for (const mutation of mutations) {
-                    for (const node of Array.from(mutation.addedNodes)) {
-                        if (node instanceof HTMLElement && node.id === LOADER_ELEMENT_ID) {
-                            document.body.style.cursor = 'auto'
-                            node.style.display = 'none'
+            if (savedPage !== tabModule.Tab.ide) {
+                // A workaround to hide the spinner, when the previous project is being loaded in
+                // the background. This `MutationObserver` is disconnected when the loader is
+                // removed from the DOM.
+                const observer = new MutationObserver(mutations => {
+                    for (const mutation of mutations) {
+                        for (const node of Array.from(mutation.addedNodes)) {
+                            if (node instanceof HTMLElement && node.id === LOADER_ELEMENT_ID) {
+                                document.body.style.cursor = 'auto'
+                                node.style.display = 'none'
+                            }
+                        }
+                        for (const node of Array.from(mutation.removedNodes)) {
+                            if (node instanceof HTMLElement && node.id === LOADER_ELEMENT_ID) {
+                                document.body.style.cursor = 'auto'
+                                observer.disconnect()
+                            }
                         }
                     }
-                    for (const node of Array.from(mutation.removedNodes)) {
-                        if (node instanceof HTMLElement && node.id === LOADER_ELEMENT_ID) {
-                            document.body.style.cursor = 'auto'
-                            observer.disconnect()
-                        }
-                    }
-                }
-            })
-            observer.observe(document.body, { childList: true })
+                })
+                observer.observe(document.body, { childList: true })
+            }
         }
-    }, [/* should never change */ localStorage])
+    }, [/* should never change */ localStorage, /* should never change */ switchToIdeTab])
 
     React.useEffect(() => {
         if (project != null) {
