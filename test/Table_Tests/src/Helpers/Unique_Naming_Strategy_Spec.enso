@@ -10,7 +10,7 @@ from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 
 spec =
-    no_limit = Unlimited_Naming_Properties.Instance
+    no_limit = Unlimited_Naming_Properties
     Test.group 'Unique_Name_Strategy Helper' <|
         Test.specify 'should change an empty name to "Column"' <|
             strategy = Unique_Name_Strategy.new no_limit
