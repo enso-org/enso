@@ -13,6 +13,14 @@ import Modal from './modal'
 import PermissionSelector from './permissionSelector'
 import UserPermissions from './userPermissions'
 
+// =================
+// === Constants ===
+// =================
+
+/** The maximum number of items to show in the {@link Autocomplete} before it switches to showing
+ * "X items selected". */
+const MAX_AUTOCOMPLETE_ITEMS_TO_SHOW = 3
+
 // ==============================
 // === ManagePermissionsModal ===
 // ==============================
@@ -43,7 +51,9 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
     const { organization } = auth.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
     const toastAndLog = hooks.useToastAndLog()
-    const [usernameOrEmail, setUsernameOrEmail] = React.useState(rawUser?.user_name ?? '')
+    const [usernamesOrEmails, setUsernamesOrEmails] = React.useState(
+        rawUser != null ? [rawUser.user_name] : []
+    )
     const [permissions, setPermissions] = React.useState(initialPermissions)
     const emailValidityRef = React.useRef<HTMLInputElement>(null)
     const position = React.useMemo(() => eventTarget.getBoundingClientRect(), [eventTarget])
@@ -66,6 +76,10 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
         throw new Error('Unable to share projects on the local backend.')
     } else {
         const listedUsers = hooks.useAsyncEffect([], () => backend.listUsers(), [])
+        const emailToUsername = React.useMemo(
+            () => Object.fromEntries(listedUsers.map(user => [user.email, user.name])),
+            [listedUsers]
+        )
         const users = React.useMemo(
             () =>
                 listedUsers.filter(
@@ -76,20 +90,33 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
             [emailsOfUsersWithPermission, usernamesOfUsersWithPermission, listedUsers]
         )
         const matchingUsers = React.useMemo(() => {
-            const lowercase = usernameOrEmail.toLowerCase()
-            return users.filter(
-                newUser =>
-                    newUser.name.toLowerCase().includes(lowercase) ||
-                    newUser.email.toLowerCase().includes(lowercase)
-            )
-        }, [usernameOrEmail, users])
+            const firstUsernameOrEmail = usernamesOrEmails[0]
+            const lowercase = firstUsernameOrEmail?.toLowerCase() ?? null
+            if (
+                usernamesOrEmails.length === 1 &&
+                lowercase != null &&
+                !users.some(
+                    user =>
+                        user.name.toLowerCase() === lowercase ||
+                        user.email.toLowerCase() === lowercase
+                )
+            ) {
+                return users.filter(
+                    newUser =>
+                        newUser.name.toLowerCase().includes(lowercase) ||
+                        newUser.email.toLowerCase().includes(lowercase)
+                )
+            } else {
+                return users
+            }
+        }, [usernamesOrEmails, users])
         const willInviteNewUser = React.useMemo(() => {
-            if (usernameOrEmail === '') {
+            const firstUsernameOrEmail = usernamesOrEmails[0]
+            if (firstUsernameOrEmail == null || firstUsernameOrEmail === '') {
                 return true
             } else {
-                const lowercase = usernameOrEmail.toLowerCase()
+                const lowercase = firstUsernameOrEmail.toLowerCase()
                 return (
-                    emailValidityRef.current?.checkValidity() === true &&
                     lowercase !== '' &&
                     !usernamesOfUsersWithPermission.has(lowercase) &&
                     !emailsOfUsersWithPermission.has(lowercase) &&
@@ -100,31 +127,40 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
                     )
                 )
             }
-        }, [usernameOrEmail, emailsOfUsersWithPermission, usernamesOfUsersWithPermission, users])
+        }, [usernamesOrEmails, emailsOfUsersWithPermission, usernamesOfUsersWithPermission, users])
 
         const doSubmit = async () => {
             if (willInviteNewUser) {
                 try {
-                    setUsernameOrEmail('')
-                    await backend.inviteUser({
-                        organizationId: organization.id,
-                        userEmail: backendModule.EmailAddress(usernameOrEmail),
-                    })
-                    toast.toast.success(`You've invited ${usernameOrEmail} to join Enso!`)
+                    const firstUsernameOrEmail = usernamesOrEmails[0]
+                    setUsernamesOrEmails([])
+                    if (firstUsernameOrEmail != null) {
+                        await backend.inviteUser({
+                            organizationId: organization.id,
+                            userEmail: backendModule.EmailAddress(firstUsernameOrEmail),
+                        })
+                        toast.toast.success(`You've invited ${firstUsernameOrEmail} to join Enso!`)
+                    }
                 } catch (error) {
                     toastAndLog('Could not invite user', error)
                 }
             } else {
-                setUsernameOrEmail('')
-                const newUser = users.find(
-                    currentUser =>
-                        currentUser.name === usernameOrEmail ||
-                        currentUser.email === usernameOrEmail
+                setUsernamesOrEmails([])
+                const usersMap = Object.fromEntries(
+                    users.flatMap(theUser => [
+                        [theUser.name.toLowerCase(), theUser],
+                        [theUser.email.toLowerCase(), theUser],
+                    ])
                 )
-                if (newUser != null) {
-                    const userPermissions: backendModule.UserPermissions = {
+                const addedUsersPermissions = usernamesOrEmails
+                    .flatMap(usernameOrEmail => {
+                        const newUser = usersMap[usernameOrEmail]
+                        return newUser != null ? [newUser] : []
+                    })
+                    .map<backendModule.UserPermissions>(newUser => ({
                         user: {
-                            // The names come from a third-party API and cannot be changed.
+                            // The names come from a third-party API and cannot be
+                            // changed.
                             /* eslint-disable @typescript-eslint/naming-convention */
                             organization_id: organization.id,
                             pk: newUser.id,
@@ -133,36 +169,38 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
                             /* eslint-enable @typescript-eslint/naming-convention */
                         },
                         permissions,
-                    }
-                    const oldUsersPermissions = usersPermissions
-                    try {
-                        // This type assertion is SAFE. It is required to avoid TypeScript's overly
-                        // eager narrowing.
-                        // eslint-disable-next-line no-restricted-syntax
-                        let found = false as boolean
-                        const newUsersPermissions = [
-                            ...usersPermissions.map(oldUserPermissions => {
-                                if (oldUserPermissions.user.pk === userPermissions.user.pk) {
-                                    found = true
-                                    return userPermissions
-                                } else {
-                                    return oldUserPermissions
-                                }
-                            }),
-                            ...(found ? [] : [userPermissions]),
-                        ]
-                        setUsersPermissions(newUsersPermissions)
-                        outerSetUsersPermissions(newUsersPermissions)
-                        await backend.createPermission({
-                            userSubjects: [userPermissions.user.pk],
-                            resourceId: asset.id,
-                            actions: backendModule.permissionsToPermissionActions(permissions),
-                        })
-                    } catch (error) {
-                        setUsersPermissions(oldUsersPermissions)
-                        outerSetUsersPermissions(oldUsersPermissions)
-                        toastAndLog(`Unable to set permissions of '${newUser.email}'`, error)
-                    }
+                    }))
+                const addedUsersPermissionsMap = new Map(
+                    addedUsersPermissions.map(newUser => [newUser.user.pk, newUser])
+                )
+                const oldUsersPermissions = usersPermissions
+                try {
+                    const newUsersPermissions = [
+                        ...usersPermissions.map(oldUserPermissions => {
+                            const newUserPermissions = addedUsersPermissionsMap.get(
+                                oldUserPermissions.user.pk
+                            )
+                            if (newUserPermissions != null) {
+                                addedUsersPermissionsMap.delete(oldUserPermissions.user.pk)
+                                return newUserPermissions
+                            } else {
+                                return oldUserPermissions
+                            }
+                        }),
+                        ...addedUsersPermissionsMap.values(),
+                    ]
+                    setUsersPermissions(newUsersPermissions)
+                    outerSetUsersPermissions(newUsersPermissions)
+                    await backend.createPermission({
+                        userSubjects: Object.values(usersMap).map(user => user.id),
+                        resourceId: asset.id,
+                        actions: backendModule.permissionsToPermissionActions(permissions),
+                    })
+                } catch (error) {
+                    setUsersPermissions(oldUsersPermissions)
+                    outerSetUsersPermissions(oldUsersPermissions)
+                    const userEmails = Object.values(usersMap).map(user => `'${user.email}'`)
+                    toastAndLog(`Unable to set permissions of ${userEmails.join(', ')}`, error)
                 }
             }
         }
@@ -187,6 +225,8 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
             }
         }
 
+        const onlyUsernameOrEmail =
+            usernamesOrEmails.length === 1 ? usernamesOrEmails[0] ?? null : null
         return (
             <Modal className="absolute overflow-hidden bg-dim w-full h-full top-0 left-0 z-10">
                 <div
@@ -222,28 +262,41 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
                                     ref={emailValidityRef}
                                     type="email"
                                     className="hidden"
-                                    value={usernameOrEmail}
+                                    value={usernamesOrEmails[0] ?? ''}
                                 />
                                 <Autocomplete
+                                    multiple
+                                    maxItemsToShow={MAX_AUTOCOMPLETE_ITEMS_TO_SHOW}
                                     autoFocus
                                     placeholder="Type usernames or emails to search or invite"
                                     disabled={rawUser != null}
                                     type="text"
-                                    initialValue={usernameOrEmail}
+                                    itemNamePlural="users"
+                                    values={usernamesOrEmails}
+                                    setValues={newUsernamesOrEmails => {
+                                        setUsernamesOrEmails(
+                                            newUsernamesOrEmails.map(
+                                                usernameOrEmail =>
+                                                    emailToUsername[usernameOrEmail] ??
+                                                    usernameOrEmail
+                                            )
+                                        )
+                                    }}
                                     items={matchingUsers.map(matchingUser =>
-                                        matchingUser.name.includes(usernameOrEmail)
-                                            ? matchingUser.name
-                                            : matchingUser.email
+                                        onlyUsernameOrEmail != null &&
+                                        matchingUser.email.includes(onlyUsernameOrEmail)
+                                            ? matchingUser.email
+                                            : matchingUser.name
                                     )}
                                     className="grow"
-                                    inputClassName="bg-transparent h-6 py-px"
-                                    onChange={setUsernameOrEmail}
+                                    inputClassName="bg-transparent leading-170 h-6 py-px"
                                 />
                             </div>
                             <button
                                 disabled={
-                                    usernameOrEmail === '' ||
-                                    emailValidityRef.current?.checkValidity() !== true
+                                    usernamesOrEmails.length === 0 ||
+                                    (willInviteNewUser &&
+                                        emailValidityRef.current?.validity.valid !== true)
                                 }
                                 className="text-tag-text bg-invite rounded-full px-2 py-1 disabled:opacity-30"
                                 onClick={doSubmit}

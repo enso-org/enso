@@ -1,15 +1,26 @@
 /** @file A select menu with a dropdown. */
 import * as React from 'react'
 
+// =================
+// === Constants ===
+// =================
+
+/** A zero-width space. Useful to make a `div` take up at least one line. */
+const ZWSP = '\u200b'
+
+// ====================
 // === Autocomplete ===
 // ====================
 
 /** Base props for a {@link Autocomplete}. */
-export interface AutocompleteProps {
+export interface BaseAutocompleteProps {
+    multiple?: boolean
+    maxItemsToShow?: number
     type?: React.HTMLInputTypeAttribute
+    itemNamePlural?: string
     inputRef?: React.MutableRefObject<HTMLInputElement | null>
     placeholder?: string
-    initialValue?: string | null
+    values: string[]
     autoFocus?: boolean
     disabled?: boolean
     /** This may change as the user types in the input. */
@@ -17,27 +28,74 @@ export interface AutocompleteProps {
     className?: string
     inputClassName?: string
     optionsClassName?: string
-    onChange: (value: string) => void
+    /** This callback is called with the raw text of the text input. */
+    onInput?: (value: string) => void
 }
+
+/** {@link AutocompleteProps} when `multiple` is `false`. */
+interface InternalSingleAutocompleteProps extends BaseAutocompleteProps {
+    /** Whether selecting multiple values is allowed. */
+    multiple?: false
+    setValues: (value: [string]) => void
+}
+
+/** {@link AutocompleteProps} when `multiple` is `true`. */
+interface InternalMultipleAutocompleteProps extends BaseAutocompleteProps {
+    /** Whether selecting multiple values is allowed. */
+    multiple: true
+    /** This is `null` when multiple values are selected, causing the input to switch to a
+     * {@link HTMLTextAreaElement}. */
+    inputRef?: React.MutableRefObject<HTMLInputElement | null>
+    setValues: (value: string[]) => void
+}
+
+/** Props for a {@link Autocomplete}. */
+export type AutocompleteProps = InternalMultipleAutocompleteProps | InternalSingleAutocompleteProps
 
 /** A select menu with a dropdown. */
 export default function Autocomplete(props: AutocompleteProps) {
     const {
+        multiple,
+        maxItemsToShow = 1,
+        itemNamePlural = 'items',
         type = 'text',
         inputRef: rawInputRef,
         placeholder,
-        initialValue,
+        values,
+        setValues,
         autoFocus,
         disabled = false,
         items,
-        onChange,
+        setValues: onChange,
         className,
         inputClassName,
         optionsClassName,
     } = props
-    const [value, setValue] = React.useState(initialValue ?? null)
     const [isDropdownVisible, setIsDropdownVisible] = React.useState(false)
     const [selectedIndex, setSelectedIndex] = React.useState<number | null>(null)
+    const valuesText = React.useMemo(
+        () =>
+            values.length <= maxItemsToShow
+                ? values.join(', ')
+                : `${values.length} ${itemNamePlural} selected`,
+        [values, maxItemsToShow, itemNamePlural]
+    )
+    const valuesSet = React.useMemo(() => new Set(values), [values])
+    const canEditText = multiple !== true || values.length <= 1
+    const isMultipleAndCustomValue = React.useMemo(
+        () =>
+            multiple === true &&
+            values.length === 1 &&
+            values[0] != null &&
+            !items.includes(values[0]),
+        [items, values, /* should never change */ multiple]
+    )
+
+    React.useEffect(() => {
+        if (!canEditText) {
+            setIsDropdownVisible(true)
+        }
+    }, [canEditText])
 
     React.useEffect(() => {
         const onClick = () => {
@@ -49,35 +107,44 @@ export default function Autocomplete(props: AutocompleteProps) {
         }
     }, [])
 
-    // This is required. React emits an error when conditionally setting `value`. See:
-    // https://react.dev/reference/react-dom/components/input#im-getting-an-error-a-component-is-changing-an-uncontrolled-input-to-be-controlled
-    // `rawInputRef` MUST either alwoys be set, or always not be set, otherwise this `useRef` hook
-    // is called conditionally, which is not allowed in React.
-    // This is INCORRECT, but SAFE to use in hooks as its value will be set by the time any hook
-    // runs.
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const inputRef = rawInputRef ?? React.useRef<HTMLInputElement>(null)
+    const fallbackInputRef = React.useRef<HTMLInputElement>(null)
+    const inputRef = rawInputRef ?? fallbackInputRef
 
     React.useEffect(() => {
         if (inputRef.current != null) {
-            inputRef.current.value = initialValue ?? ''
+            inputRef.current.value = values[0] ?? ''
         }
         // `inputRef` is NOT a dependency as it is a React ref (a mutable value).
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [initialValue])
+    }, [values])
 
+    // This type is a little too wide but it is unavoidable.
     /** Set values, while also changing the input text. */
-    const overrideValue = React.useCallback(
-        (newItem: string) => {
+    const overrideValues = (newItems: string[] | [string]) => {
+        if (multiple !== true || !items.includes(newItems[0])) {
             setIsDropdownVisible(false)
-            setValue(newItem)
-            if (inputRef.current != null) {
-                inputRef.current.value = newItem
-            }
-            onChange(newItem)
-        },
-        [onChange, inputRef]
-    )
+        }
+        if (inputRef.current != null) {
+            inputRef.current.value = newItems[0]
+        }
+        if (multiple === true) {
+            setValues(newItems)
+            onChange(newItems)
+        } else {
+            setValues([newItems[0]])
+            onChange([newItems[0]])
+        }
+    }
+
+    const toggleItem = (item: string) => {
+        overrideValues(
+            multiple === true && !isMultipleAndCustomValue
+                ? valuesSet.has(item)
+                    ? values.filter(theItem => theItem !== item)
+                    : [...values, item]
+                : [item]
+        )
+    }
 
     const onKeyDown = (event: React.KeyboardEvent) => {
         switch (event.key) {
@@ -107,10 +174,10 @@ export default function Autocomplete(props: AutocompleteProps) {
                 // Do not prevent default; the input needs to handle the event too.
                 if (selectedIndex != null) {
                     const item = items[selectedIndex]
-                    // If `item` is `null`, silently error. If it *is* `null`, it is out of range
+                    // If `item` is `null`, silently error. This is because it is out of range
                     // anyway, so no item will be selected in the UI.
                     if (item != null) {
-                        overrideValue(item)
+                        toggleItem(item)
                     }
                     setSelectedIndex(null)
                 }
@@ -130,30 +197,48 @@ export default function Autocomplete(props: AutocompleteProps) {
     return (
         <div onKeyDown={onKeyDown} className={className}>
             <div className={`flex flex-1 ${disabled ? 'cursor-not-allowed' : ''}`}>
-                <input
-                    type={type}
-                    ref={inputRef}
-                    autoFocus={autoFocus}
-                    disabled={disabled}
-                    size={1}
-                    placeholder={placeholder}
-                    // The types come from a third-party API and cannot be changed.
-                    // eslint-disable-next-line no-restricted-syntax
-                    defaultValue={value ?? undefined}
-                    className={`grow ${disabled ? 'opacity-50' : ''} ${inputClassName ?? ''}`}
-                    onFocus={() => {
-                        setIsDropdownVisible(true)
-                    }}
-                    onBlur={() => {
-                        requestAnimationFrame(() => {
-                            setIsDropdownVisible(false)
-                        })
-                    }}
-                    onChange={event => {
-                        setIsDropdownVisible(true)
-                        onChange(event.target.value)
-                    }}
-                />
+                {canEditText ? (
+                    <input
+                        type={type}
+                        ref={inputRef}
+                        autoFocus={autoFocus}
+                        disabled={disabled}
+                        size={1}
+                        defaultValue={values[0]}
+                        placeholder={placeholder}
+                        className={`grow ${disabled ? 'pointer-events-none opacity-50' : ''} ${
+                            inputClassName ?? ''
+                        }`}
+                        onFocus={() => {
+                            setIsDropdownVisible(true)
+                        }}
+                        onBlur={() => {
+                            requestAnimationFrame(() => {
+                                setIsDropdownVisible(false)
+                            })
+                        }}
+                        onChange={event => {
+                            setIsDropdownVisible(true)
+                            onChange([event.target.value])
+                        }}
+                    />
+                ) : (
+                    <div
+                        ref={element => element?.focus()}
+                        tabIndex={-1}
+                        className={`grow cursor-pointer ${inputClassName ?? ''}`}
+                        onClick={() => {
+                            setIsDropdownVisible(true)
+                        }}
+                        onBlur={() => {
+                            requestAnimationFrame(() => {
+                                setIsDropdownVisible(false)
+                            })
+                        }}
+                    >
+                        {valuesText.replace(/-/g, '\u2060-\u2060') || ZWSP}
+                    </div>
+                )}
             </div>
             <div className={`relative h-0 ${optionsClassName ?? ''}`}>
                 <div
@@ -166,14 +251,18 @@ export default function Autocomplete(props: AutocompleteProps) {
                         <div
                             key={item}
                             className={`relative cursor-pointer first:rounded-t-2xl last:rounded-b-2xl hover:bg-black-a5 p-1 z-10 ${
-                                index === selectedIndex ? 'bg-gray-100' : ''
+                                index === selectedIndex
+                                    ? 'bg-black-a5'
+                                    : valuesSet.has(item)
+                                    ? 'bg-black-a10'
+                                    : ''
                             }`}
                             onMouseDown={event => {
                                 event.preventDefault()
                             }}
                             onClick={event => {
                                 event.stopPropagation()
-                                overrideValue(item)
+                                toggleItem(item)
                             }}
                         >
                             {item}
