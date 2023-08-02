@@ -94,33 +94,48 @@ pub struct SelectionStyle {
 // ===========
 
 /// Indicates the visibility state of the visualization.
+#[allow(missing_docs)]
 #[derive(Clone, Copy, Debug, PartialEq, Derivative)]
 #[derivative(Default)]
 pub enum ViewState {
-    /// Visualization is permanently enabled and visible in the graph editor. It is attached to a
-    /// single node and can be moved and interacted with when selected.
-    Enabled,
+    /// Visualization is permanently enabled in the graph editor. It is attached to a single node
+    /// and can be moved and interacted with when selected. It's always visible except when the
+    /// node has an error.
+    Enabled { has_error: bool },
     /// Visualization is disabled and hidden in the graph editor.
     #[derivative(Default)]
     Disabled,
-    /// Visualization is temporarily enabled and visible in the graph editor. It should be placed
-    /// above other scene elements to allow quick inspection.
-    Preview,
+    /// Visualization is temporarily enabled in the graph editor. It should be placed
+    /// above other scene elements to allow quick inspection. It is visible only when the node has
+    /// no error.
+    Preview { has_error: bool },
     /// Visualization is enabled and visible in the graph editor in fullscreen mode. It occludes
     /// the whole graph and can be interacted with.
     Fullscreen,
 }
 
 impl ViewState {
-    /// Indicates whether the visualization is visible in the graph editor. It is always visible
-    /// when not disabled.
+    /// Indicates whether the visualization is visible in the graph editor.
     pub fn is_visible(&self) -> bool {
-        !matches!(self, ViewState::Disabled)
+        matches!(
+            self,
+            Self::Enabled { has_error: false }
+                | Self::Preview { has_error: false }
+                | Self::Fullscreen
+        )
     }
 
     /// Indicates whether the visualization is fullscreen mode.
     pub fn is_fullscreen(&self) -> bool {
         matches!(self, ViewState::Fullscreen)
+    }
+
+    /// Return a new state after considering (lack of) presence of the error.
+    pub fn error_status_updated(mut self, new_has_error: bool) -> Self {
+        if let Self::Enabled { has_error } | Self::Preview { has_error } = &mut self {
+            *has_error = new_has_error;
+        }
+        self
     }
 }
 
@@ -408,10 +423,10 @@ impl ContainerModel {
         }
 
         match view_state {
-            ViewState::Enabled => self.enable_default_view(),
-            ViewState::Disabled => {}
-            ViewState::Preview => self.enable_preview(),
+            ViewState::Enabled { has_error: false } => self.enable_default_view(),
+            ViewState::Preview { has_error: false } => self.enable_preview(),
             ViewState::Fullscreen => self.enable_fullscreen(),
+            _ => {}
         }
     }
 
@@ -493,7 +508,7 @@ impl ContainerModel {
             bg_dom.set_style_or_warn("height", "0");
             self.drag_root.set_xy(Vector2(size.x / 2.0, -size.y / 2.0));
         }
-        let action_bar_size = if matches!(view_state, ViewState::Enabled) {
+        let action_bar_size = if matches!(view_state, ViewState::Enabled { has_error: false }) {
             Vector2::new(size.x, ACTION_BAR_HEIGHT)
         } else {
             Vector2::zero()
@@ -581,7 +596,8 @@ impl Container {
             visualization_not_selected <- input.set_visualization.map(|t| t.is_none());
             input_type_not_set <- input.set_vis_input_type.is_some().not();
             uninitialised <- visualization_not_selected && input_type_not_set;
-            set_default_visualization <- uninitialised.on_change().on_true().map(|_| {
+            uninitialised <- uninitialised.on_change().on_true();
+            set_default_visualization <- all_with(&uninitialised, &init, |_, _| {
                 Some(visualization::Registry::default_visualization())
             });
             vis_input_type_changed <- input.set_vis_input_type.on_change();
