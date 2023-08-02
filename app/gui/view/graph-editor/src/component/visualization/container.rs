@@ -31,7 +31,6 @@ use ensogl::application::Application;
 use ensogl::control::io::mouse;
 use ensogl::data::color::Rgba;
 use ensogl::display;
-use ensogl::display::scene;
 use ensogl::display::scene::Scene;
 use ensogl::display::scene::Shape;
 use ensogl::display::shape::StyleWatchFrp;
@@ -549,6 +548,22 @@ impl ContainerModel {
             None => false,
         }
     }
+
+    fn deactivated_by_click(&self, event: &display::object::Event<mouse::Down>) -> bool {
+        event.target().map_or(false, |target| {
+            let vis = &self.visualization;
+            let vis_area = self.view.hover_area.display_object();
+            let inside_me = target.rev_parent_chain().iter().any(|instance| instance == vis_area);
+            let deactivate = vis.borrow().as_ref().map(|v| v.deactivate.clone_ref());
+            match deactivate {
+                Some(deactivate) if !inside_me => {
+                    deactivate.emit(());
+                    true
+                }
+                _ => false,
+            }
+        })
+    }
 }
 
 
@@ -740,17 +755,15 @@ impl Container {
 
         // === Selecting Visualization ===
 
-        let viz_clicked = model.on_event::<mouse::Down>();
+        let viz_clicked = model.view.hover_area.on_event::<mouse::Down>();
+        let scene_clicked = scene.on_event::<mouse::Down>();
         frp::extend! { network
             selected_by_click <- viz_clicked.map(f_!(model.activate()));
-            trace selected_by_click;
-            mouse_down_target <- scene.mouse.frp_deprecated.down.map(f_!(scene.mouse.target.get()));
-
-            is_selected <- selected_by_click.on_change().on_true().constant(true);
-            trace is_selected;
+            deselected_by_click <- scene_clicked.map(f!([model](event) model.deactivated_by_click(event)));
+            selected <- selected_by_click.on_true();
+            deselected <- deselected_by_click.on_true();
+            is_selected <- bool(&deselected, &selected).on_change();
             selection.target <+ is_selected.map(|s| if *s { 1.0 } else { 0.0 });
-             // FIXME how to deselect?
-            trace selection.value;
             _eval <- selection.value.all_with3(&output.size, &selection_style,
                 f!((value, size, style) {
                     model.set_selection(*size, *value, style);
