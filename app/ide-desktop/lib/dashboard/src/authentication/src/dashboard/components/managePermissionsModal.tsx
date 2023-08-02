@@ -61,8 +61,8 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
     )
 
     const willInviteNewUser = React.useMemo(() => {
-        if (email == null) {
-            return false
+        if (email == null || email === '') {
+            return true
         } else {
             const lowercaseUser = email.toLowerCase()
             return (
@@ -240,7 +240,9 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
                                 className="text-tag-text bg-invite rounded-full px-2 py-1 disabled:opacity-30"
                                 onClick={doSubmit}
                             >
-                                <div className="h-6 py-0.5">Invite</div>
+                                <div className="h-6 py-0.5">
+                                    {willInviteNewUser ? 'Invite' : 'Share'}
+                                </div>
                             </button>
                         </div>
                         <div className="pl-1 pr-12">
