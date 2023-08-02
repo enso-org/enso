@@ -98,18 +98,20 @@ export default function ProjectIcon(props: ProjectIconProps) {
     const { backend } = backendProvider.useBackend()
     const { unsetModal } = modalProvider.useSetModal()
 
-    const shouldCheckIfActuallyOpen =
-        item.projectState.type === backendModule.ProjectState.openInProgress ||
-        (backend.type === backendModule.BackendType.remote &&
-            item.projectState.type === backendModule.ProjectState.opened)
-
-    const [state, setState] = React.useState(() => {
-        if (shouldCheckIfActuallyOpen) {
-            return backendModule.ProjectState.created
-        } else {
-            return item.projectState.type
-        }
-    })
+    const state = item.projectState.type
+    const setState = React.useCallback(
+        (stateOrUpdater: React.SetStateAction<backendModule.ProjectState>) => {
+            if (typeof stateOrUpdater === 'function') {
+                setItem(oldItem => ({
+                    ...oldItem,
+                    projectState: { type: stateOrUpdater(oldItem.projectState.type) },
+                }))
+            } else {
+                setItem(oldItem => ({ ...oldItem, projectState: { type: stateOrUpdater } }))
+            }
+        },
+        [/* should never change */ setItem]
+    )
     const [checkState, setCheckState] = React.useState(CheckState.notChecking)
     const [spinnerState, setSpinnerState] = React.useState(REMOTE_SPINNER_STATE[state])
     const [onSpinnerStateChange, setOnSpinnerStateChange] = React.useState<
@@ -117,6 +119,19 @@ export default function ProjectIcon(props: ProjectIconProps) {
     >(null)
     const [shouldOpenWhenReady, setShouldOpenWhenReady] = React.useState(false)
     const [toastId, setToastId] = React.useState<toast.Id | null>(null)
+
+    React.useEffect(() => {
+        const isOpening =
+            item.projectState.type === backendModule.ProjectState.openInProgress ||
+            (backend.type === backendModule.BackendType.remote &&
+                item.projectState.type === backendModule.ProjectState.opened)
+        if (isOpening) {
+            setState(backendModule.ProjectState.openInProgress)
+            void openProject()
+        }
+        // This MUST only run once, when the component is initially mounted.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
 
     const openProject = React.useCallback(async () => {
         setState(backendModule.ProjectState.openInProgress)
@@ -151,7 +166,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
             )
             setState(backendModule.ProjectState.closed)
         }
-    }, [backend, item.id, item.title])
+    }, [backend, item.id, item.title, /* should never change */ setState])
 
     React.useEffect(() => {
         setItem(oldItem => ({ ...oldItem, projectState: { type: state } }))
@@ -194,13 +209,6 @@ export default function ProjectIcon(props: ProjectIconProps) {
         }
     }, [state, toastId])
 
-    React.useEffect(() => {
-        if (shouldCheckIfActuallyOpen) {
-            setState(backendModule.ProjectState.openInProgress)
-            setCheckState(CheckState.checkingResources)
-        }
-    }, [shouldCheckIfActuallyOpen])
-
     hooks.useEventHandler(assetEvents, event => {
         switch (event.type) {
             case assetEventModule.AssetEventType.createDirectory:
@@ -228,7 +236,9 @@ export default function ProjectIcon(props: ProjectIconProps) {
                 onSpinnerStateChange?.(null)
                 setOnSpinnerStateChange(null)
                 setCheckState(CheckState.notChecking)
-                void closeProject(false)
+                if (state !== backendModule.ProjectState.closed) {
+                    void closeProject(false)
+                }
                 break
             }
             case assetEventModule.AssetEventType.createProject: {
@@ -338,7 +348,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
                 }
             }
         }
-    }, [checkState, item.id, item.title, backend])
+    }, [checkState, item.id, item.title, backend, /* should never change */ setState])
 
     const closeProject = async (triggerOnClose = true) => {
         if (triggerOnClose) {
