@@ -9,19 +9,11 @@ import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as hooks from '../../hooks'
 import * as loggerProvider from '../../providers/logger'
+import * as string from '../../string'
 
 import * as pageSwitcher from './pageSwitcher'
 import AssetsTable from './assetsTable'
 import DriveBar from './driveBar'
-
-// ========================
-// === Helper functions ===
-// ========================
-
-/** Sanitizes a string for use as a regex. */
-function regexEscape(string: string) {
-    return string.replace(/[\\^$.|?*+()[{]/g, '\\$&')
-}
 
 // =====================
 // === DirectoryView ===
@@ -81,7 +73,7 @@ export default function DirectoryView(props: DirectoryViewProps) {
         if (query === '') {
             return null
         } else {
-            const regex = new RegExp(regexEscape(query), 'i')
+            const regex = new RegExp(string.regexEscape(query), 'i')
             return (asset: backendModule.AnyAsset) => regex.test(asset.title)
         }
     }, [query])
