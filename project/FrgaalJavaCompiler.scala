@@ -9,7 +9,7 @@
  * (http://www.apache.org/licenses/LICENSE-2.0).
  */
 
-import sbt.*
+import sbt._
 import sbt.internal.inc.CompilerArguments
 import sbt.internal.inc.javac.JavacLogger
 import sbt.io.IO
