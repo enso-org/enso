@@ -109,10 +109,10 @@ spec make_new_connection prefix persistent_connector=True =
         Test.specify "should not allow to create a table with duplicated column names" <|
             run_with_and_without_output <|
                 r1 = connection.create_table (Name_Generator.random_name "creating-invalid-table") structure=[Column_Description.Value "X" Value_Type.Integer, Column_Description.Value "X" Value_Type.Char] temporary=True
-                r1.should_fail_with Illegal_Argument
+                r1.should_fail_with Duplicate_Output_Column_Names
 
         Test.specify "should not allow to create a table with invalid column names" <|
-            Panic.expect_panic_with (Column_Description.Value Nothing Value_Type.Char) Type_Error
+            Test.expect_panic_with (Column_Description.Value Nothing Value_Type.Char) Type_Error
 
             run_with_and_without_output <|
                 r1 = connection.create_table (Name_Generator.random_name "creating-invalid-table") structure=[Column_Description.Value "" Value_Type.Integer] temporary=True
@@ -126,7 +126,7 @@ spec make_new_connection prefix persistent_connector=True =
                 a = 'ś'
                 b = 's\u0301'
                 r1 = connection.create_table (Name_Generator.random_name "creating-invalid-table") structure=[Column_Description.Value a Value_Type.Integer, Column_Description.Value b Value_Type.Char] temporary=True
-                r1.should_fail_with Illegal_Argument
+                r1.should_fail_with Duplicate_Output_Column_Names
 
         Test.specify "should include the created table in the tables directory" <|
             name = Name_Generator.random_name "persistent_table 1"
