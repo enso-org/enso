@@ -644,6 +644,8 @@ ensogl::define_endpoints_2! {
         enable_quick_visualization_preview(),
         /// Show visualization previews on nodes with delay.
         disable_quick_visualization_preview(),
+        /// Enable editing preview on given node.
+        show_node_editing_preview(NodeId),
 
         /// Drop an edge that is being dragged.
         drop_dragged_edge            (),
@@ -1932,7 +1934,15 @@ impl GraphEditorModel {
     fn disable_visualization_fullscreen(&self, node_id: impl Into<NodeId>) {
         let node_id = node_id.into();
         if let Some(node) = self.nodes.get_cloned_ref(&node_id) {
-            node.model().visualization.frp.set_view_state(visualization::ViewState::Enabled);
+            let new_state = visualization::ViewState::Enabled { has_error: false };
+            node.model().visualization.frp.set_view_state(new_state);
+        }
+    }
+
+    fn show_node_editing_preview(&self, node_id: impl Into<NodeId>) {
+        let node_id = node_id.into();
+        if let Some(node) = self.nodes.get_cloned_ref(&node_id) {
+            node.show_preview();
         }
     }
 
@@ -3236,6 +3246,8 @@ fn init_remaining_graph_editor_frp(
     out.is_fs_visualization_displayed <+ out.visualization_fullscreen.map(Option::is_some);
 
     out.visualization_update_error <+ inputs.visualization_update_failed;
+
+    eval inputs.show_node_editing_preview ((id) model.show_node_editing_preview(id));
 
 
     // === Register Visualization ===
