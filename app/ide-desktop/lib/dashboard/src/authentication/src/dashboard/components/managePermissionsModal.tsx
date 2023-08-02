@@ -178,14 +178,18 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
                     ]
                     setItem(oldItem => ({ ...oldItem, permissions: newUsersPermissions }))
                     await backend.createPermission({
-                        userSubjects: [...addedUsersPermissionsMap.keys()],
+                        userSubjects: addedUsersPermissions.map(
+                            userPermissions => userPermissions.user.pk
+                        ),
                         resourceId: item.id,
                         action: action,
                     })
                 } catch (error) {
                     setItem(oldItem => ({ ...oldItem, permissions: oldUsersPermissions }))
-                    const userEmails = Object.values(usersMap).map(user => `'${user.email}'`)
-                    toastAndLog(`Unable to set permissions of ${userEmails.join(', ')}`, error)
+                    const usernames = addedUsersPermissions.map(
+                        userPermissions => userPermissions.user.user_name
+                    )
+                    toastAndLog(`Unable to set permissions for ${usernames.join(', ')}`, error)
                 }
             }
         }

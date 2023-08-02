@@ -114,7 +114,7 @@ export function toPermissionAction(permissions: Permissions): backend.Permission
                 ? permissions.docs
                     ? /* should never happen, but use a fallback value */
                       backend.PermissionAction.readAndExec
-                    : backend.PermissionAction.readAndDocs
+                    : backend.PermissionAction.readAndExec
                 : permissions.docs
                 ? backend.PermissionAction.readAndDocs
                 : backend.PermissionAction.read
@@ -124,7 +124,7 @@ export function toPermissionAction(permissions: Permissions): backend.Permission
                 ? permissions.docs
                     ? /* should never happen, but use a fallback value */
                       backend.PermissionAction.viewAndExec
-                    : backend.PermissionAction.viewAndDocs
+                    : backend.PermissionAction.viewAndExec
                 : permissions.docs
                 ? backend.PermissionAction.viewAndDocs
                 : backend.PermissionAction.view

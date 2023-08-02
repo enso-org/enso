@@ -141,7 +141,7 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
                             setAction(
                                 permissionsModule.toPermissionAction({
                                     type: permission.type,
-                                    execute: permission.execute && !permission.docs,
+                                    execute: false,
                                     docs: !permission.docs,
                                 })
                             )
@@ -163,7 +163,7 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
                                 permissionsModule.toPermissionAction({
                                     type: permission.type,
                                     execute: !permission.execute,
-                                    docs: permission.docs && !permission.execute,
+                                    docs: false,
                                 })
                             )
                         }}
