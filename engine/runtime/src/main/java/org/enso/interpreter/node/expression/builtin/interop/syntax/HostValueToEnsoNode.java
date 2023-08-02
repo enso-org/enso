@@ -74,6 +74,9 @@ public abstract class HostValueToEnsoNode extends Node {
       if (n instanceof WithWarnings) {
         return n;
       }
+      if (InteropLibrary.isValidProtocolValue(n)) {
+        return n;
+      }
       return to.execute(iop.asBigInteger(n));
     } catch (UnsupportedMessageException e) {
       throw new IllegalStateException(e);
