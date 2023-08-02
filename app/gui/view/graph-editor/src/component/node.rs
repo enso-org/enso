@@ -752,20 +752,20 @@ impl Node {
                 ));
 
             viz_enabled <- enabled && no_error_set;
-            visualization.set_view_state <+ viz_enabled.on_true().constant(visualization::ViewState::Enabled);
+            visualization.set_view_state <+ viz_enabled.on_true().constant(visualization::ViewState::Enabled { has_error: false });
             visualization.set_view_state <+ viz_enabled.on_false().constant(visualization::ViewState::Disabled);
         }
         frp::extend! { network
             // Integration between visualization and action bar.
             visualization.set_visualization <+ input.set_visualization;
             is_enabled <- visualization.view_state.map(|state|{
-                matches!(state,visualization::ViewState::Enabled)
+                matches!(state,visualization::ViewState::Enabled { has_error: false })
             });
             action_bar.set_action_visibility_state <+ is_enabled;
             button_set_to_true <- action_bar.user_action_visibility.on_true();
             button_set_to_true_without_error <- button_set_to_true.gate_not(&is_error_set);
             button_set_to_true_with_error <- button_set_to_true.gate(&is_error_set);
-            visualization.set_view_state <+ button_set_to_true_without_error.constant(visualization::ViewState::Enabled);
+            visualization.set_view_state <+ button_set_to_true_without_error.constant(visualization::ViewState::Enabled { has_error: false });
             action_bar.set_action_visibility_state <+ button_set_to_true_with_error.constant(false);
 
             visualization.set_view_state <+ action_bar.user_action_visibility.on_false().constant(visualization::ViewState::Disabled);
@@ -809,7 +809,7 @@ impl Node {
             preview_visible <- hover_preview_visible || preview_enabled;
             vis_preview_visible <- preview_visible && no_error_set;
             vis_preview_visible <- vis_preview_visible.on_change();
-            visualization.set_view_state <+ vis_preview_visible.on_true().constant(visualization::ViewState::Preview);
+            visualization.set_view_state <+ vis_preview_visible.on_true().constant(visualization::ViewState::Preview { has_error: false });
             visualization.set_view_state <+ vis_preview_visible.on_false().constant(visualization::ViewState::Disabled);
         }
         frp::extend! { network
@@ -823,7 +823,7 @@ impl Node {
             });
 
             eval error_color_anim.value ((value) model.set_error_color(value));
-            visualization.set_view_state <+ input.set_error.is_some().constant(visualization::ViewState::Disabled);
+            visualization.set_view_state <+ input.set_error.is_some().map2(&visualization.view_state, |&has_error, state| state.error_status_updated(has_error));
 
             enable_fullscreen <- frp.enable_fullscreen_visualization.gate(&no_error_set);
             visualization.set_view_state <+ enable_fullscreen.constant(visualization::ViewState::Fullscreen);
