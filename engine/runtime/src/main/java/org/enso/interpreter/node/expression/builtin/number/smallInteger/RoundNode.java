@@ -1,12 +1,16 @@
 package org.enso.interpreter.node.expression.builtin.number.smallInteger;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.CountingConditionProfile;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
+import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.builtin.Builtins;
+import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(
@@ -24,14 +28,7 @@ public class RoundNode extends Node {
 
     Object execute(long n, long decimalPlaces, boolean useBankers) {
         if (decimalPlaces < ROUND_MIN_DECIMAL_PLACES || decimalPlaces > ROUND_MAX_DECIMAL_PLACES) {
-            String msg =
-                    "round: decimalPlaces must be between "
-                            + ROUND_MIN_DECIMAL_PLACES
-                            + " and "
-                            + ROUND_MAX_DECIMAL_PLACES
-                            + " (inclusive), but was "
-                            + decimalPlaces;
-            throw new IllegalArgumentException(msg);
+            decimalPlacesOutOfRangePanic(decimalPlaces);
         }
 
         if (decimalPlaces >= 0) {
@@ -54,5 +51,18 @@ public class RoundNode extends Node {
             boolean roundUp = halfGoesUp ? remainder < -halfway : remainder <= -halfway;
             return roundUp ? resultUnnudged - scale : resultUnnudged;
         }
+    }
+
+    @TruffleBoundary
+    private void decimalPlacesOutOfRangePanic(long decimalPlaces) {
+        String msg =
+                "round: decimalPlaces must be between "
+                        + ROUND_MIN_DECIMAL_PLACES
+                        + " and "
+                        + ROUND_MAX_DECIMAL_PLACES
+                        + " (inclusive), but was "
+                        + decimalPlaces;
+        Builtins builtins = EnsoContext.get(this).getBuiltins();
+        throw new PanicException(builtins.error().makeUnsupportedArgumentsError(new Object[] { decimalPlaces }, msg), this);
     }
 }

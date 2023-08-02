@@ -47,8 +47,11 @@ public final class Error {
 
   @CompilerDirectives.CompilationFinal private Atom arithmeticErrorDivideByZero;
 
+  @CompilerDirectives.CompilationFinal private Atom arithmeticErrorDecimalPlacesTooBig;
+
   private static final Text shiftTooBigMessage = Text.create("Shift amount too large.");
   private static final Text divideByZeroMessage = Text.create("Cannot divide by zero.");
+  private static final Text decimalPlacesTooBigMessage = Text.create("decimalPlaces argument too large.");
 
   /** Creates builders for error Atom Constructors. */
   public Error(Builtins builtins, EnsoContext context) {
@@ -181,6 +184,15 @@ public final class Error {
       arithmeticErrorDivideByZero = makeArithmeticError(divideByZeroMessage);
     }
     return arithmeticErrorDivideByZero;
+  }
+
+  /** @return An arithmetic error representing a too-large decimalPlaces argument to round(). */
+  public Atom getDecimalPlacesTooBigError() {
+    if (arithmeticErrorDecimalPlacesTooBig == null) {
+      transferToInterpreterAndInvalidate();
+      arithmeticErrorDecimalPlacesTooBig = makeArithmeticError(decimalPlacesTooBigMessage);
+    }
+    return arithmeticErrorDecimalPlacesTooBig;
   }
 
   /**
