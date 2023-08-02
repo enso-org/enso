@@ -1805,7 +1805,7 @@ lazy val `bench-processor` = (project in file("lib/scala/bench-processor"))
   .dependsOn(`polyglot-api`)
   .dependsOn(runtime)
 
-lazy val `bench-libs` = (project in file("std-bits/benchmarks"))
+lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
   .settings(
     frgaalJavaCompilerSetting,
     libraryDependencies ++= jmh ++ Seq(
