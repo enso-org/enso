@@ -42,6 +42,7 @@ public class BenchProcessor extends AbstractProcessor {
           "import java.io.ByteArrayOutputStream;",
           "import java.io.File;",
           "import java.util.List;",
+          "import java.util.Objects;",
           "import org.openjdk.jmh.annotations.Benchmark;",
           "import org.openjdk.jmh.annotations.BenchmarkMode;",
           "import org.openjdk.jmh.annotations.Mode;",
@@ -120,7 +121,8 @@ public class BenchProcessor extends AbstractProcessor {
             SpecCollector.collectBenchSpecsFromModule(module, annotation.variableName());
         for (ModuleBenchSuite benchSuite : benchSuites) {
           for (BenchGroup group : benchSuite.getGroups()) {
-            generateClassForGroup(group, benchSuite.getModuleQualifiedName(), annotation.variableName());
+            generateClassForGroup(
+                group, benchSuite.getModuleQualifiedName(), annotation.variableName());
           }
         }
         return true;
@@ -172,7 +174,8 @@ public class BenchProcessor extends AbstractProcessor {
   }
 
   private void generateClassForGroup(
-      Writer javaSrcFileWriter, String moduleQualifiedName, String varName, BenchGroup group) throws IOException {
+      Writer javaSrcFileWriter, String moduleQualifiedName, String varName, BenchGroup group)
+      throws IOException {
     String groupFullClassName = createGroupClassName(group);
     String className = groupFullClassName.substring(groupFullClassName.lastIndexOf('.') + 1);
     List<BenchSpec> specs = group.specs();
@@ -201,12 +204,16 @@ public class BenchProcessor extends AbstractProcessor {
     javaSrcFileWriter.append("  \n");
     javaSrcFileWriter.append("  @Setup\n");
     javaSrcFileWriter.append("  public void setup(BenchmarkParams params) throws Exception {\n");
+    javaSrcFileWriter
+        .append("    File projectRootDir = Utils.findRepoRootDir().toPath().resolve(\"")
+        .append(projectRootDir.toString())
+        .append("\").toFile();\n");
     javaSrcFileWriter.append(
-        "    File projectRootDir = new File(\"" + projectRootDir.getAbsolutePath() + "\");\n");
+        "    if (projectRootDir == null || !projectRootDir.exists() || !projectRootDir.canRead()) {\n");
     javaSrcFileWriter.append(
-        "    File languageHomeOverride = new File(\""
-            + ensoHomeOverride.getAbsolutePath()
-            + "\");\n");
+        "      throw new IllegalStateException(\"Project root directory does not exist or cannot be read: \" + Objects.toString(projectRootDir));\n");
+    javaSrcFileWriter.append("    }\n");
+    javaSrcFileWriter.append("    File languageHomeOverride = Utils.findLanguageHomeOverride();\n");
     javaSrcFileWriter.append("    var ctx = Context.newBuilder()\n");
     javaSrcFileWriter.append("      .allowExperimentalOptions(true)\n");
     javaSrcFileWriter.append("      .allowIO(IOAccess.ALL)\n");
@@ -230,7 +237,9 @@ public class BenchProcessor extends AbstractProcessor {
     javaSrcFileWriter.append(
         "    BenchGroup group = SpecCollector.collectBenchGroupFromModule(module, \""
             + group.name()
-            + "\", \"" + varName + "\");\n");
+            + "\", \""
+            + varName
+            + "\");\n");
     javaSrcFileWriter.append("    \n");
     for (int i = 0; i < specs.size(); i++) {
       var specJavaName = specJavaNames.get(i);
@@ -238,7 +247,9 @@ public class BenchProcessor extends AbstractProcessor {
       javaSrcFileWriter.append(
           "    BenchSpec benchSpec_"
               + specJavaName
-              + " = Utils.findSpecByName(group, \"" + specName + "\");\n");
+              + " = Utils.findSpecByName(group, \""
+              + specName
+              + "\");\n");
       javaSrcFileWriter.append(
           "    this.benchFunc_" + specJavaName + " = benchSpec_" + specJavaName + ".code();\n");
     }

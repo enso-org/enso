@@ -15,7 +15,7 @@ import java.lang.annotation.Target;
 public @interface GenerateBenchSources {
 
   /**
-   * Path to the project root directory.
+   * Path to the project root directory. Relative to the Enso repository root.
    */
   String projectRootPath();
 
