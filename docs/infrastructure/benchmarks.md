@@ -78,11 +78,6 @@ name does not have to be specified as a fully qualified name, but as a regular
 expression. To access the full flexibility of the JMH launcher, run it via
 `Bench/run` - for example, to see the help message: `Bench/run -h`.
 
-To debug a single benchmark, set the `javaOptions` with something like
-`set javaOptions += "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=localhost:8000"`,
-and launch a single benchmark without forking with
-`Bench/run -f 0 <bench name>`. Then, attach to the debugger with your IDE.
-
 ## Visualization
 
 The benchmarks are invoked as a daily
@@ -94,5 +89,3 @@ for collecting and processing the results. See the README in that directory for
 more information about how to run that script. This script is invoked regularly
 on a private machine and the results are published in
 [https://enso-org.github.io/engine-benchmark-results/](https://enso-org.github.io/engine-benchmark-results/).
-
-This is not meant as a permanent solution.

@@ -2,6 +2,7 @@ package org.enso.benchmarks.libs;
 
 import org.enso.benchmarks.processor.GenerateBenchSources;
 import org.enso.benchmarks.runner.BenchRunner;
+import org.openjdk.jmh.runner.RunnerException;
 
 @GenerateBenchSources(
     projectRootPath = "test/Benchmarks",
@@ -9,7 +10,7 @@ import org.enso.benchmarks.runner.BenchRunner;
 )
 public class LibBenchRunner {
 
-  public static void main(String[] args) {
+  public static void main(String[] args) throws RunnerException {
     BenchRunner.run(args);
   }
 }
