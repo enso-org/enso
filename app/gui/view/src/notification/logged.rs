@@ -13,12 +13,21 @@ use crate::prelude::*;
 use crate::notification;
 use crate::notification::js::HandleJsError;
 
-pub use crate::notification::Content;
-pub use crate::notification::Options;
-pub use crate::notification::Type;
-pub use crate::notification::UpdateOptions;
-
 use uuid::Uuid;
+
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub use crate::notification::api::Content;
+pub use crate::notification::api::AutoClose;
+pub use crate::notification::api::Options;
+pub use crate::notification::api::Type;
+pub use crate::notification::api::UpdateOptions;
+
+
 
 // ===================
 // === Primary API ===
@@ -26,8 +35,13 @@ use uuid::Uuid;
 
 /// Send any kind of notification.
 pub fn send_any(message: &Content, r#type: Type, options: &Option<Options>) -> Option<Id> {
-    warn!("Sending notification with message {message:?} and type {type:?}");
-    notification::send_any(message, r#type, options).map(Id).handle_js_err_with(|| {
+    let log_content = format!("Sending notification with message {message:?} and type {type:?}");
+    match r#type {
+        Type::Warning => warn!("{log_content}"),
+        Type::Error => error!("{log_content}"),
+        _ => info!("{log_content}"),
+    };
+    notification::api::send_any(message, r#type, options).map(Id).handle_js_err_with(|| {
         format!("Failed to send {type} notification with message {message:?}.")
     })
 }
@@ -120,7 +134,7 @@ impl Id {
 
 /// A persistent notification.
 #[derive(Clone, CloneRef, Debug, Display)]
-pub struct Notification(super::Notification);
+pub struct Notification(notification::api::Notification);
 
 impl Default for Notification {
     fn default() -> Self {
@@ -130,7 +144,7 @@ impl Default for Notification {
 
 impl From<Id> for Notification {
     fn from(id: Id) -> Self {
-        Self(super::Notification::from(id.0))
+        Self(notification::api::Notification::from(id.0))
     }
 }
 impl Notification {
@@ -139,7 +153,7 @@ impl Notification {
     /// It will not be shown until you call [`Notification::show`].
     pub fn new(options: UpdateOptions) -> Self {
         info!("Creating a new notification with options {options:?}.");
-        Self(super::Notification::new(options))
+        Self(notification::api::Notification::new(options))
     }
 
     /// Update the notification state.

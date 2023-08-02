@@ -4,9 +4,9 @@
 use crate::prelude::*;
 use wasm_bindgen::prelude::*;
 
-use crate::notification::Content;
-use crate::notification::Type;
-use crate::notification::UpdateOptions;
+use crate::notification::api::Content;
+use crate::notification::api::Type;
+use crate::notification::api::UpdateOptions;
 
 use gloo_utils::format::JsValueSerdeExt;
 use uuid::Uuid;
@@ -175,7 +175,19 @@ impl ToastAPI {
 
 impl Display for Id {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Id({})", pretty_print(self))
+        Display::fmt(&pretty_print(self), f)
+    }
+}
+impl From<&str> for Id {
+    fn from(id: &str) -> Self {
+        let js_value = JsValue::from_str(id);
+        js_value.into()
+    }
+}
+
+impl From<Uuid> for Id {
+    fn from(id: Uuid) -> Self {
+        Self::new(id.to_string())
     }
 }
 
@@ -215,19 +227,6 @@ impl Id {
     }
 }
 
-impl From<&str> for Id {
-    fn from(id: &str) -> Self {
-        let js_value = JsValue::from_str(id);
-        js_value.into()
-    }
-}
-
-impl From<Uuid> for Id {
-    fn from(id: Uuid) -> Self {
-        Self::new(id.to_string())
-    }
-}
-
 impl ContainerId {
     /// Clear queue of notifications for this container (relevant if limit is set).
     pub fn clear_waiting_queue(&self) -> Result<(), JsValue> {
@@ -253,10 +252,10 @@ pub trait HandleJsError<T>: Sized {
     fn pretty_print_error(message: Option<&str>, error: &JsValue) -> String {
         let mut ret = String::from("Error received from JavaScript.");
         if let Some(message) = message {
-            ret.push_str(" ");
+            ret.push(' ');
             ret.push_str(message);
         }
-        ret.push_str(" ");
+        ret.push(' ');
         ret.push_str(&pretty_print(error));
         ret
     }
@@ -272,7 +271,7 @@ pub trait HandleJsError<T>: Sized {
 
 impl<T> HandleJsError<T> for Result<T, JsValue> {
     fn handle_js_err(self, message: &str) -> Option<T> {
-        self.handle_err(|e: JsValue| {
+        self.handle_err(|e| {
             error!("{}", Self::pretty_print_error(Some(message), &e));
         })
     }

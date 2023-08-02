@@ -200,7 +200,7 @@ struct Model {
     code_editor:      code_editor::View,
     fullscreen_vis:   Rc<RefCell<Option<visualization::fullscreen::Panel>>>,
     project_list:     Rc<ProjectList>,
-    debug_mode_popup: Rc<crate::debug_mode_popup::View>,
+    debug_mode_popup: Rc<crate::notification::View>,
 }
 
 impl Model {
@@ -210,7 +210,7 @@ impl Model {
         let graph_editor = app.new_view::<GraphEditor>();
         let code_editor = app.new_view::<code_editor::View>();
         let fullscreen_vis = default();
-        let debug_mode_popup = Rc::new(crate::debug_mode_popup::View::new(app));
+        let debug_mode_popup = Rc::new(crate::notification::View::new(app));
         let project_view_top_bar = ProjectViewTopBar::new(app);
         let project_list = Rc::new(ProjectList::new(app));
 
@@ -749,10 +749,10 @@ impl View {
         let network = &frp.network;
         let popup = &self.model.debug_mode_popup;
 
-        let mut options = crate::notification::UpdateOptions::default();
+        let mut options = crate::notification::api::UpdateOptions::default();
         options.set_always_present();
         options.set_raw_text_content(DEBUG_MODE_ENABLED);
-        options.position = Some(crate::notification::Position::BottomRight);
+        options.position = Some(crate::notification::api::Position::BottomRight);
         popup.set_options(options);
 
         frp::extend! { network

@@ -2,13 +2,13 @@
 //! about presenters in general.
 
 use crate::prelude::*;
-use crate::EXECUTION_FAILED_MESSAGE;
 
 use crate::executor::global::spawn_stream_handler;
 use crate::presenter;
 use crate::presenter::searcher::ai::AISearcher;
 use crate::presenter::searcher::SearcherPresenter;
 use crate::presenter::ComponentBrowserSearcher;
+use crate::EXECUTION_FAILED_MESSAGE;
 
 use engine_protocol::language_server::ExecutionEnvironment;
 use enso_frp as frp;
@@ -477,8 +477,8 @@ impl Project {
             match notification {
                 Notification::ConnectionLost(_) => {
                     let message = crate::BACKEND_DISCONNECTED_MESSAGE;
-                    let options = view::notification::Options {
-                        auto_close: Some(view::notification::AutoClose::Never()),
+                    let options = notification::Options {
+                        auto_close: Some(notification::AutoClose::Never()),
                         toast_id: Some("backend-disconnected-toast".into()),
                         ..Default::default()
                     };
