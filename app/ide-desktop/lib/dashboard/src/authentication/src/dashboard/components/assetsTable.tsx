@@ -107,7 +107,10 @@ function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
                 item.type === backendModule.AssetType.project &&
                 backend.type === backendModule.BackendType.local
             ) {
-                if (item.projectState.type !== backendModule.ProjectState.closed) {
+                if (
+                    item.projectState.type !== backendModule.ProjectState.placeholder &&
+                    item.projectState.type !== backendModule.ProjectState.closed
+                ) {
                     await backend.openProject(item.id, null, item.title)
                 }
                 try {
@@ -461,7 +464,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     modifiedAt: dateTime.toRfc3339(new Date()),
                     parentId: event.parentId ?? backendModule.DirectoryId(''),
                     permissions: permissions.tryGetSingletonOwnerPermission(organization),
-                    projectState: { type: backendModule.ProjectState.new },
+                    projectState: { type: backendModule.ProjectState.placeholder },
                     type: backendModule.AssetType.project,
                 }
                 const typeOrder = backendModule.ASSET_TYPE_ORDER[placeholderItem.type]

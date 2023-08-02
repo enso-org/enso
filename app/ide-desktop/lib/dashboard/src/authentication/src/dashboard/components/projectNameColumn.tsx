@@ -93,7 +93,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                         setItem({
                             ...item,
                             id: createdProject.projectId,
-                            projectState: { type: backendModule.ProjectState.openInProgress },
+                            projectState: { type: backendModule.ProjectState.placeholder },
                         })
                         dispatchAssetEvent({
                             type: assetEventModule.AssetEventType.openProject,
