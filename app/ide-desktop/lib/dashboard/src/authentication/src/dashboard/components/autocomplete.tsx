@@ -157,14 +157,15 @@ export default function Autocomplete(props: AutocompleteProps) {
             </div>
             <div className={`relative h-0 ${optionsClassName ?? ''}`}>
                 <div
-                    className={`absolute bg-frame-selected w-full rounded-2xl max-h-10lh ${
+                    className={`absolute rounded-2xl w-full max-h-10lh ${
                         isDropdownVisible ? 'overflow-auto' : 'overflow-hidden h-0'
                     }`}
                 >
+                    <div className="absolute bg-frame-selected rounded-2xl backdrop-blur-3xl w-full h-full" />
                     {items.map((item, index) => (
                         <div
                             key={item}
-                            className={`cursor-pointer first:rounded-t-2xl last:rounded-b-2xl hover:bg-black-a5 p-1 ${
+                            className={`relative cursor-pointer first:rounded-t-2xl last:rounded-b-2xl hover:bg-black-a5 p-1 z-10 ${
                                 index === selectedIndex ? 'bg-gray-100' : ''
                             }`}
                             onMouseDown={event => {
