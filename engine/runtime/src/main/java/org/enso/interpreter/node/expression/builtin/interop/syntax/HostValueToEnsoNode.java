@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.expression.builtin.interop.syntax;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.Fallback;
@@ -16,7 +17,6 @@ import org.enso.interpreter.node.expression.builtin.number.utils.ToEnsoNumberNod
 import org.enso.interpreter.node.expression.foreign.CoerceNothing;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.WarningsLibrary;
-import org.enso.interpreter.runtime.error.WithWarnings;
 
 /**
  * Converts a value returned by a polyglot call back to a value that can be further used within Enso
@@ -66,18 +66,16 @@ public abstract class HostValueToEnsoNode extends Node {
     return i;
   }
 
-  @Specialization(guards = {"n != null", "iop.fitsInBigInteger(n)"})
+  @Specialization(guards = {"n != null", "iop.fitsInBigInteger(n)", "!warnings.hasWarnings(n)"})
   Object doBigIntegerConversion(
       TruffleObject n,
       @Shared("iop") @CachedLibrary(limit = "3") InteropLibrary iop,
+      @CachedLibrary(limit = "3") WarningsLibrary warnings,
       @Cached ToEnsoNumberNode to) {
     try {
-      if (n instanceof WithWarnings) {
-        return n;
-      }
       return to.execute(iop.asBigInteger(n));
     } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException(e);
+      throw CompilerDirectives.shouldNotReachHere(e);
     }
   }
 
@@ -90,7 +88,6 @@ public abstract class HostValueToEnsoNode extends Node {
   Object doNull(
       Object o,
       @Shared("iop") @CachedLibrary(limit = "3") InteropLibrary iop,
-      @CachedLibrary(limit = "3") WarningsLibrary warnings,
       @Cached CoerceNothing coerceNothing) {
     return coerceNothing.execute(o);
   }
