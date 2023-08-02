@@ -8,6 +8,7 @@ import com.oracle.truffle.api.dsl.NeverDefault;
 import com.oracle.truffle.api.dsl.ReportPolymorphism;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
@@ -67,14 +68,11 @@ public abstract class HostValueToEnsoNode extends Node {
 
   @Specialization(guards = {"n != null", "iop.fitsInBigInteger(n)"})
   Object doBigIntegerConversion(
-      Object n,
+      TruffleObject n,
       @Shared("iop") @CachedLibrary(limit = "3") InteropLibrary iop,
       @Cached ToEnsoNumberNode to) {
     try {
       if (n instanceof WithWarnings) {
-        return n;
-      }
-      if (InteropLibrary.isValidProtocolValue(n)) {
         return n;
       }
       return to.execute(iop.asBigInteger(n));
