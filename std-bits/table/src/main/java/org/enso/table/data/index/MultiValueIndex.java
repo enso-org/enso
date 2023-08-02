@@ -52,6 +52,23 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
     return makeUnorderedIndex(keyColumns, tableSize, strategies);
   }
 
+  public static MultiValueIndex<UnorderedMultiValueKey> makeUnorderedIndexWithMask(
+          Column[] keyColumns, int tableSize, List<Integer> indexMask, List<TextFoldingStrategy> textFoldingStrategies) {
+    HashMap<UnorderedMultiValueKey, List<Integer>> locs = new HashMap<>();
+    final Storage<?>[] storage =
+            Arrays.stream(keyColumns).map(Column::getStorage).toArray(Storage[]::new);
+    IntFunction<UnorderedMultiValueKey> keyFactory =
+            i -> new UnorderedMultiValueKey(storage, i, textFoldingStrategies);
+    return new MultiValueIndex<>(keyColumns, tableSize, indexMask, locs, keyFactory);
+  }
+
+  public static MultiValueIndex<UnorderedMultiValueKey> makeUnorderedIndexWithMask(
+          Column[] keyColumns, int tableSize, List<Integer> indexMask, TextFoldingStrategy commonTextFoldingStrategy) {
+    List<TextFoldingStrategy> strategies =
+            ConstantList.make(commonTextFoldingStrategy, keyColumns.length);
+    return makeUnorderedIndex(keyColumns, tableSize, indexMask, strategies);
+  }
+
   private MultiValueIndex(
       Column[] keyColumns,
       int tableSize,
@@ -84,6 +101,42 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
     } else {
       this.locs.put(
           keyFactory.apply(0), IntStream.range(0, tableSize).boxed().collect(Collectors.toList()));
+    }
+  }
+
+  private MultiValueIndex(
+          Column[] keyColumns,
+          int tableSize,
+          List<Integer> indexMask,
+          Map<KeyType, List<Integer>> initialLocs,
+          IntFunction<KeyType> keyFactory) {
+    this.keyColumnsLength = keyColumns.length;
+    this.problems = new AggregatedProblems();
+    this.locs = initialLocs;
+
+    if (keyColumns.length != 0) {
+      int size = keyColumns[0].getSize();
+
+      Context context = Context.getCurrent();
+      for (int i : indexMask) {
+        KeyType key = keyFactory.apply(i);
+
+        if (key.hasFloatValues()) {
+          final int row = i;
+          key.floatColumnPositions()
+                  .forEach(
+                          columnIx ->
+                                  problems.add(new FloatingPointGrouping(keyColumns[columnIx].getName(), row)));
+        }
+
+        List<Integer> ids = this.locs.computeIfAbsent(key, x -> new ArrayList<>());
+        ids.add(i);
+
+        context.safepoint();
+      }
+    } else {
+      this.locs.put(
+              keyFactory.apply(0), IntStream.range(0, tableSize).boxed().collect(Collectors.toList()));
     }
   }
 
@@ -136,6 +189,40 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
     Context context = Context.getCurrent();
     NameDeduplicator outputTableNameDeduplicator = new NameDeduplicator();
 
+    var groupingIndex =
+            MultiValueIndex.makeUnorderedIndex(
+                    groupingColumns, groupingColums[0].getSize(), TextFoldingStrategy.unicodeNormalizedFold);
+
+    Map<UnorderedMultiValueKey, Map<UnorderedMultiValueKey, List<Integer>>> twoLevelIndex = new HashMap<>();
+    for (UnorderedMultiValueKey groupingKey : groupingIndex.keys()) {
+      // Build two-level map: from groupingKey to nameKey to ID list
+      twoLevelIndex.computeIfAbsent(groupingKey, k -> new HashMap<>());
+      Map<UnorderedMultiValueKey, List<Integer>> subMap = twoLevelIndex.get(groupingKey);
+
+      List<Integer> groupingPartitionIds = groupingIndex.get(groupingKey);
+
+      var nameIndex =
+              MultiValueIndex.makeUnorderedIndexWithMask(
+                      new Column[]{nameColumn}, nameColumn.getSize(), groupingPartitionIds, TextFoldingStrategy.unicodeNormalizedFold);
+
+      for (UnorderedMultiValueKey nameKey : nameIndex.keys()) {
+        List<Integer> ids = nameIndex.get(nameKey);
+        subMap.put(newKey, ids);
+      }
+    }
+
+    // Build canonical ordering for both axes
+    ObjectNumberer<UnorderedMultiValueKey> nameNumberer = new ObjectNumberer<>();
+    ObjectNumberer<UnorderedMultiValueKey> groupingNumberer = new ObjectNumberer<>();
+    for (UnorderedMultiValueKey groupingKey : twoLevelMap.keySet()) {
+      groupingNumberer.put(groupingKey);
+      Map<UnorderedMultiValueKey, List<Integer>> subMap = twoLevelIndex.get(groupingKey);
+      for (UnorderedMultiValueKey nameKey : subMap.keySet()) {
+        nameNumberer.put(nameKey);
+      }
+    }
+
+    /*
     // Create combined index
     Column combinedColumns[] =
         Stream.concat(Arrays.stream(groupingColumns), Arrays.stream(new Column[] {nameColumn}))
@@ -158,6 +245,7 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
     // Fill numberings
     ObjectNumberer<UnorderedMultiValueKey> nameNumberer = new ObjectNumberer<>(nameSubKeys);
     ObjectNumberer<UnorderedMultiValueKey> groupingNumberer = new ObjectNumberer<>(groupingSubkeys);
+    */
 
     final int numGroups = groupingNumberer.size();
 
@@ -188,6 +276,7 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
       }
     }
 
+    /*
     // Create grid of cells, with grouping column tuples as the vertical axis
     // and name column tuples as the horizontal axis.
     int numNames = nameNumberer.size();
@@ -211,11 +300,12 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
 
       grid[groupingCoordinate][nameCoordinate] = combinedKey;
     }
+     */
 
     // Fill the columns.
     var emptyList = new ArrayList<Integer>();
     for (UnorderedMultiValueKey groupingSubKey : groupingNumberer.getObjects()) {
-      int groupingCoordinate = groupingNumberer.getNumber(groupingSubKey);
+      //int groupingCoordinate = groupingNumberer.getNumber(groupingSubKey);
 
       // Fill the grouping columns.
       IntStream.range(0, groupingColumns.length)
@@ -223,11 +313,15 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
 
       int offset = groupingColumns.length;
 
+      var twoLevelSubMap = twoLevelIndex.get(groupingSubKey);
+
       // Fill the aggregate columns.
       for (UnorderedMultiValueKey nameSubKey : nameNumberer.getObjects()) {
-        int nameCoordinate = nameNumberer.getNumber(nameSubKey);
-        List<Integer> rowIds = combinedIndex.get(grid[groupingCoordinate][nameCoordinate]);
-        if (rowIds == null) {
+        //int nameCoordinate = nameNumberer.getNumber(nameSubKey);
+        List<Integer> rowIds = null;
+        if (twoLevelSubMap.containsKey(nameSubKey)) {
+          rowIds = twoLevelSubMap.get(nameSubKey);
+        } else {
           rowIds = emptyList;
         }
 
