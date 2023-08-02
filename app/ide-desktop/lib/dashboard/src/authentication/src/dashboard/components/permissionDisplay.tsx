@@ -8,27 +8,6 @@ import * as permissionsModule from '../permissions'
 // === Constants ===
 // =================
 
-/** CSS classes for each permission. */
-export const PERMISSION_CLASS_NAME: Record<permissionsModule.Permission, string> = {
-    [permissionsModule.Permission.owner]: 'text-tag-text bg-permission-owner',
-    [permissionsModule.Permission.admin]: 'text-tag-text bg-permission-admin',
-    [permissionsModule.Permission.edit]: 'text-tag-text bg-permission-edit',
-    [permissionsModule.Permission.read]: 'text-tag-text bg-permission-read',
-    [permissionsModule.Permission.view]: 'text-tag-text-2 bg-permission-view',
-} as const
-
-/** Precedences for each permission. A lower number means a higher priority. */
-const PERMISSION_PRECEDENCE: Record<permissionsModule.Permission, number> = {
-    // These are not magic numbers - they are just a sequence of numbers.
-    /* eslint-disable @typescript-eslint/no-magic-numbers */
-    [permissionsModule.Permission.owner]: 0,
-    [permissionsModule.Permission.admin]: 1,
-    [permissionsModule.Permission.edit]: 2,
-    [permissionsModule.Permission.read]: 3,
-    [permissionsModule.Permission.view]: 4,
-    /* eslint-enable @typescript-eslint/no-magic-numbers */
-}
-
 /** The corresponding `Permissions` for each backend `PermissionAction`. */
 export const PERMISSION: Record<backend.PermissionAction, permissionsModule.Permissions> = {
     [backend.PermissionAction.own]: { type: permissionsModule.Permission.owner },
@@ -56,7 +35,8 @@ export function permissionActionsToPermissions(
     return permissionActions.reduce<permissionsModule.Permissions>(
         (result, action) => {
             const actionResult = PERMISSION[action]
-            return PERMISSION_PRECEDENCE[actionResult.type] <= PERMISSION_PRECEDENCE[result.type]
+            return permissionsModule.PERMISSION_PRECEDENCE[actionResult.type] <=
+                permissionsModule.PERMISSION_PRECEDENCE[result.type]
                 ? actionResult
                 : result
         },
@@ -88,7 +68,7 @@ export default function PermissionDisplay(props: PermissionDisplayProps) {
             return (
                 <div
                     className={`${
-                        PERMISSION_CLASS_NAME[permissions.type]
+                        permissionsModule.PERMISSION_CLASS_NAME[permissions.type]
                     } inline-block rounded-full h-6 px-1.75 py-0.5 ${className ?? ''}`}
                     onClick={onClick}
                     onMouseEnter={onMouseEnter}
@@ -115,7 +95,7 @@ export default function PermissionDisplay(props: PermissionDisplayProps) {
                     )}
                     <div
                         className={`${
-                            PERMISSION_CLASS_NAME[permissions.type]
+                            permissionsModule.PERMISSION_CLASS_NAME[permissions.type]
                         } rounded-full h-6 px-1.75 py-0.5 m-1`}
                     >
                         {children}

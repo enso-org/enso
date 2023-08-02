@@ -9,17 +9,19 @@ import PermissionSelector from './permissionSelector'
 
 /** Props for a {@link UserPermissions}. */
 export interface UserPermissionsProps {
-    userPermissions: backendModule.UserPermissions
     asset: backendModule.Asset
+    userPermissions: backendModule.UserPermissions
     setUserPermissions: (userPermissions: backendModule.UserPermissions) => void
+    doDelete: (user: backendModule.User) => void
 }
 
 /** A user and their permissions for a specific asset. */
 export default function UserPermissions(props: UserPermissionsProps) {
     const {
+        asset,
         userPermissions: initialUserPermissions,
         setUserPermissions: outerSetUserPermissions,
-        asset,
+        doDelete,
     } = props
     const { backend } = backendProvider.useBackend()
     const toastAndLog = hooks.useToastAndLog()
@@ -53,6 +55,7 @@ export default function UserPermissions(props: UserPermissionsProps) {
     return (
         <div className="flex gap-3 items-center">
             <PermissionSelector
+                allowDelete
                 initialPermissions={userPermissions.permissions}
                 assetType={asset.type}
                 onChange={async permissions => {
@@ -60,6 +63,9 @@ export default function UserPermissions(props: UserPermissionsProps) {
                         ...userPermissions,
                         permissions,
                     })
+                }}
+                doDelete={() => {
+                    doDelete(userPermissions.user)
                 }}
             />
             <span className="leading-170 h-6 py-px">{userPermissions.user.user_name}</span>

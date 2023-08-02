@@ -29,6 +29,7 @@ export const theme = {
             help: '#3f68ce',
             invite: '#0e81d4',
             cloud: '#0666be',
+            delete: 'rgba(243, 24, 10, 0.87)',
             dim: 'rgba(0, 0, 0, 0.25)',
             frame: 'rgba(255, 255, 255, 0.40)',
             'frame-selected': 'rgba(255, 255, 255, 0.70)',

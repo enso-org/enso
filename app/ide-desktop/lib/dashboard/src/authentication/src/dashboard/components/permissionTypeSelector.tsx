@@ -56,6 +56,11 @@ const PERMISSION_TYPE_DATA: PermissionTypeData[] = [
         previous: permissions.Permission.admin,
         description: type => CAPITALIZED_ASSET_TYPE[type] + ' removal permission.',
     },
+    {
+        type: permissions.Permission.delete,
+        previous: null,
+        description: () => 'Remove all permissions from this user.',
+    },
 ]
 
 // ==============================
@@ -64,6 +69,7 @@ const PERMISSION_TYPE_DATA: PermissionTypeData[] = [
 
 /** Props for a {@link PermissionTypeSelector}. */
 export interface PermissionTypeSelectorProps {
+    allowDelete?: boolean
     type: permissions.Permission
     assetType: backend.AssetType
     style?: React.CSSProperties
@@ -72,7 +78,7 @@ export interface PermissionTypeSelectorProps {
 
 /** A selector for all possible permission types. */
 export default function PermissionTypeSelector(props: PermissionTypeSelectorProps) {
-    const { type, assetType, style, onChange } = props
+    const { allowDelete = false, type, assetType, style, onChange } = props
     return (
         <div
             style={style}
@@ -83,7 +89,9 @@ export default function PermissionTypeSelector(props: PermissionTypeSelectorProp
         >
             <div className="absolute bg-frame-selected rounded-2xl backdrop-blur-3xl w-full h-full -z-10" />
             <div className="flex flex-col w-112.5 p-1">
-                {PERMISSION_TYPE_DATA.map(data => (
+                {PERMISSION_TYPE_DATA.filter(data =>
+                    allowDelete ? true : data.type !== permissions.Permission.delete
+                ).map(data => (
                     <button
                         key={data.type}
                         disabled={type === data.type}

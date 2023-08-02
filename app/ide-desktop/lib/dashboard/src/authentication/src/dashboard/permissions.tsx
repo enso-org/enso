@@ -15,6 +15,7 @@ export enum Permission {
     edit = 'edit',
     read = 'read',
     view = 'view',
+    delete = 'delete',
 }
 
 /** CSS classes for each permission. */
@@ -24,7 +25,21 @@ export const PERMISSION_CLASS_NAME: Record<Permission, string> = {
     [Permission.edit]: 'text-tag-text bg-permission-edit',
     [Permission.read]: 'text-tag-text bg-permission-read',
     [Permission.view]: 'text-tag-text-2 bg-permission-view',
+    [Permission.delete]: 'text-tag-text bg-delete',
 } as const
+
+/** Precedences for each permission. A lower number means a higher priority. */
+export const PERMISSION_PRECEDENCE: Record<Permission, number> = {
+    // These are not magic numbers - they are just a sequence of numbers.
+    /* eslint-disable @typescript-eslint/no-magic-numbers */
+    [Permission.owner]: 0,
+    [Permission.admin]: 1,
+    [Permission.edit]: 2,
+    [Permission.read]: 3,
+    [Permission.view]: 4,
+    [Permission.delete]: 1000,
+    /* eslint-enable @typescript-eslint/no-magic-numbers */
+}
 
 /** CSS classes for the docs permission. */
 export const DOCS_CLASS_NAME = 'text-tag-text bg-permission-docs'

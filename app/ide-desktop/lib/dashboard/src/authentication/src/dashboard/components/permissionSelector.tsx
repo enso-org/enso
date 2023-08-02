@@ -26,17 +26,27 @@ const LABEL_STRAIGHT_WIDTH_PX = 97
 
 /** Props for a {@link PermissionSelector}. */
 export interface PermissionSelectorProps {
+    allowDelete?: boolean
     disabled?: boolean
     /** If this prop changes, the internal state will be updated too. */
     initialPermissions?: permissionsModule.Permissions | null
     assetType: backend.AssetType
     className?: string
     onChange: (permissions: permissionsModule.Permissions) => void
+    doDelete?: () => void
 }
 
 /** A horizontal selector for all possible permissions. */
 export default function PermissionSelector(props: PermissionSelectorProps) {
-    const { disabled = false, initialPermissions, assetType, className, onChange } = props
+    const {
+        allowDelete = false,
+        disabled = false,
+        initialPermissions,
+        assetType,
+        className,
+        onChange,
+        doDelete,
+    } = props
     const [permissions, rawSetPermissions] = React.useState<permissionsModule.Permissions>(
         initialPermissions ?? permissionsModule.DEFAULT_PERMISSIONS
     )
@@ -81,6 +91,7 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
                           >
                               <div style={{ clipPath }} className="absolute bg-dim w-full h-full" />
                               <PermissionTypeSelector
+                                  allowDelete={allowDelete}
                                   type={permissions.type}
                                   assetType={assetType}
                                   style={{ left, top }}
@@ -96,6 +107,10 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
                                                   execute: false,
                                               }
                                               break
+                                          }
+                                          case permissionsModule.Permission.delete: {
+                                              doDelete?.()
+                                              return
                                           }
                                           default: {
                                               newPermissions = { type }

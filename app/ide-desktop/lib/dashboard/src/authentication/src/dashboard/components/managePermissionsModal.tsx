@@ -154,12 +154,12 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
                         // eslint-disable-next-line no-restricted-syntax
                         let found = false as boolean
                         const newUsersPermissions = [
-                            ...usersPermissions.map(oldUserPermission => {
-                                if (oldUserPermission.user.pk === userPermissions.user.pk) {
+                            ...usersPermissions.map(oldUserPermissions => {
+                                if (oldUserPermissions.user.pk === userPermissions.user.pk) {
                                     found = true
                                     return userPermissions
                                 } else {
-                                    return oldUserPermission
+                                    return oldUserPermissions
                                 }
                             }),
                             ...(found ? [] : [userPermissions]),
@@ -177,6 +177,26 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
                         toastAndLog(`Unable to set permissions of '${newUser.email}'`, error)
                     }
                 }
+            }
+        }
+
+        const doDelete = async (userToDelete: backendModule.User) => {
+            const oldUsersPermissions = usersPermissions
+            try {
+                const newUsersPermissions = usersPermissions.filter(
+                    oldUserPermissions => oldUserPermissions.user.pk !== userToDelete.pk
+                )
+                setUsersPermissions(newUsersPermissions)
+                outerSetUsersPermissions(newUsersPermissions)
+                await backend.createPermission({
+                    userSubjects: [userToDelete.pk],
+                    resourceId: asset.id,
+                    actions: [],
+                })
+            } catch (error) {
+                setUsersPermissions(oldUsersPermissions)
+                outerSetUsersPermissions(oldUsersPermissions)
+                toastAndLog(`Unable to set permissions of '${userToDelete.user_email}'`, error)
             }
         }
 
@@ -269,6 +289,7 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
                                                 return newUsersPermissions
                                             })
                                         }}
+                                        doDelete={doDelete}
                                     />
                                 </div>
                             ))}
