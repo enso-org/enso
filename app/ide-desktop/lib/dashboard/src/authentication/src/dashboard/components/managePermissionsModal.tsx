@@ -42,48 +42,20 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
     const { organization } = auth.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
     const toastAndLog = hooks.useToastAndLog()
-    const [users, setUsers] = React.useState<backendModule.SimpleUser[]>([])
-    const [matchingUsers, setMatchingUsers] = React.useState(users)
-    const [email, setEmail] = React.useState<string | null>(rawUser?.user_email ?? null)
+    const [usernameOrEmail, setUsernameOrEmail] = React.useState(rawUser?.user_name ?? '')
     const [permissions, setPermissions] = React.useState(initialPermissions)
-    const userEmailRef = React.useRef<HTMLInputElement>(null)
+    const emailValidityRef = React.useRef<HTMLInputElement>(null)
     const position = React.useMemo(() => eventTarget.getBoundingClientRect(), [eventTarget])
     const [usersPermissions, setUsersPermissions] = React.useState(initialUsersPermissions)
+    const usernamesOfUsersWithPermission = React.useMemo(
+        () => new Set(usersPermissions.map(userPermission => userPermission.user.user_name)),
+        [usersPermissions]
+    )
     const emailsOfUsersWithPermission = React.useMemo(
         () =>
-            new Set(usersPermissions.map<string>(userPermission => userPermission.user.user_email)),
+            new Set<string>(usersPermissions.map(userPermission => userPermission.user.user_email)),
         [usersPermissions]
     )
-    const usernamesOfUsersWithPermission = React.useMemo(
-        () =>
-            new Set(usersPermissions.map<string>(userPermission => userPermission.user.user_name)),
-        [usersPermissions]
-    )
-
-    const willInviteNewUser = React.useMemo(() => {
-        if (email == null || email === '') {
-            return true
-        } else {
-            const lowercaseUser = email.toLowerCase()
-            return (
-                userEmailRef.current?.validity.valid === true &&
-                lowercaseUser !== '' &&
-                !emailsOfUsersWithPermission.has(lowercaseUser) &&
-                !usernamesOfUsersWithPermission.has(lowercaseUser) &&
-                !users.some(innerUser => innerUser.email.toLowerCase() === lowercaseUser)
-            )
-        }
-    }, [email, emailsOfUsersWithPermission, usernamesOfUsersWithPermission, users])
-
-    const user = React.useMemo(() => {
-        if (rawUser != null) {
-            return rawUser
-        } else if (email != null) {
-            return asset.permissions?.find(permission => permission.user.user_email === email)?.user
-        } else {
-            return null
-        }
-    }, [rawUser, email, /* should never change */ asset.permissions])
 
     if (backend.type === backendModule.BackendType.local || organization == null) {
         // This should never happen - the local backend does not have the "shared with" column,
@@ -92,48 +64,61 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
         // This MUST be an error, otherwise the hooks below are considered as conditionally called.
         throw new Error('Unable to share projects on the local backend.')
     } else {
-        React.useEffect(() => {
-            if (user == null) {
-                void (async () => {
-                    const listedUsers = await backend.listUsers()
-                    const newUsers = listedUsers.filter(
-                        listedUser => !emailsOfUsersWithPermission.has(listedUser.email)
+        const listedUsers = hooks.useAsyncEffect([], () => backend.listUsers(), [])
+        const users = React.useMemo(
+            () =>
+                listedUsers.filter(
+                    listedUser =>
+                        !usernamesOfUsersWithPermission.has(listedUser.name) &&
+                        !emailsOfUsersWithPermission.has(listedUser.email)
+                ),
+            [emailsOfUsersWithPermission, usernamesOfUsersWithPermission, listedUsers]
+        )
+        const matchingUsers = React.useMemo(() => {
+            const lowercase = usernameOrEmail.toLowerCase()
+            return users.filter(
+                newUser =>
+                    newUser.name.toLowerCase().includes(lowercase) ||
+                    newUser.email.toLowerCase().includes(lowercase)
+            )
+        }, [usernameOrEmail, users])
+        const willInviteNewUser = React.useMemo(() => {
+            if (usernameOrEmail === '') {
+                return true
+            } else {
+                const lowercase = usernameOrEmail.toLowerCase()
+                return (
+                    emailValidityRef.current?.checkValidity() === true &&
+                    lowercase !== '' &&
+                    !usernamesOfUsersWithPermission.has(lowercase) &&
+                    !emailsOfUsersWithPermission.has(lowercase) &&
+                    !users.some(
+                        innerUser =>
+                            innerUser.name.toLowerCase() === lowercase ||
+                            innerUser.email.toLowerCase() === lowercase
                     )
-                    setUsers(newUsers)
-                    const lowercaseEmail = email?.toLowerCase() ?? ''
-                    setMatchingUsers(
-                        newUsers.filter(newUser =>
-                            newUser.email.toLowerCase().includes(lowercaseEmail)
-                        )
-                    )
-                })()
+                )
             }
-            // `emails` is NOT a dependency. `matchingUsers` is updated based on `email` elsewhere.
-            // eslint-disable-next-line react-hooks/exhaustive-deps
-        }, [
-            rawUser,
-            /* should never change */ backend,
-            /* should never change */ emailsOfUsersWithPermission,
-        ])
+        }, [usernameOrEmail, emailsOfUsersWithPermission, usernamesOfUsersWithPermission, users])
 
         const doSubmit = async () => {
             if (willInviteNewUser) {
                 try {
-                    // If the email address is `null`, then the "Invite" button should be disabled,
-                    // meaning this callback should never run.
-                    if (email != null) {
-                        setEmail(null)
-                        await backend.inviteUser({
-                            organizationId: organization.id,
-                            userEmail: backendModule.EmailAddress(email),
-                        })
-                    }
+                    setUsernameOrEmail('')
+                    await backend.inviteUser({
+                        organizationId: organization.id,
+                        userEmail: backendModule.EmailAddress(usernameOrEmail),
+                    })
                 } catch (error) {
                     toastAndLog('Could not invite user', error)
                 }
             } else {
-                setEmail(null)
-                const newUser = users.find(currentUser => currentUser.email === email)
+                setUsernameOrEmail('')
+                const newUser = users.find(
+                    currentUser =>
+                        currentUser.name === usernameOrEmail ||
+                        currentUser.email === usernameOrEmail
+                )
                 if (newUser != null) {
                     const userPermissions: backendModule.UserPermissions = {
                         user: {
@@ -230,32 +215,33 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
                                     assetType={asset.type}
                                     onChange={setPermissions}
                                 />
+                                <input
+                                    readOnly
+                                    ref={emailValidityRef}
+                                    type="email"
+                                    className="hidden"
+                                    value={usernameOrEmail}
+                                />
                                 <Autocomplete
                                     autoFocus
                                     placeholder="Type usernames or emails to search or invite"
                                     disabled={rawUser != null}
-                                    inputRef={userEmailRef}
-                                    type="email"
-                                    initialValue={email ?? null}
-                                    items={matchingUsers.map(matchingUser => matchingUser.email)}
+                                    type="text"
+                                    initialValue={usernameOrEmail}
+                                    items={matchingUsers.map(matchingUser =>
+                                        matchingUser.name.includes(usernameOrEmail)
+                                            ? matchingUser.name
+                                            : matchingUser.email
+                                    )}
                                     className="grow"
                                     inputClassName="bg-transparent h-6 py-px"
-                                    onInput={newEmail => {
-                                        const lowercaseEmail = newEmail.toLowerCase()
-                                        setMatchingUsers(
-                                            users.filter(innerUser =>
-                                                innerUser.email.includes(lowercaseEmail)
-                                            )
-                                        )
-                                    }}
-                                    onChange={setEmail}
+                                    onChange={setUsernameOrEmail}
                                 />
                             </div>
                             <button
                                 disabled={
-                                    email == null ||
-                                    email === '' ||
-                                    userEmailRef.current?.validity.valid !== true
+                                    usernameOrEmail === '' ||
+                                    emailValidityRef.current?.checkValidity() !== true
                                 }
                                 className="text-tag-text bg-invite rounded-full px-2 py-1 disabled:opacity-30"
                                 onClick={doSubmit}

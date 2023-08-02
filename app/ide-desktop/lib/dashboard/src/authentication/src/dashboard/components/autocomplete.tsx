@@ -18,8 +18,6 @@ export interface AutocompleteProps {
     inputClassName?: string
     optionsClassName?: string
     onChange: (value: string) => void
-    /** This callback is only called when the text is changed. */
-    onInput?: (value: string) => void
 }
 
 /** A select menu with a dropdown. */
@@ -32,7 +30,6 @@ export default function Autocomplete(props: AutocompleteProps) {
         autoFocus,
         disabled = false,
         items,
-        onInput,
         onChange,
         className,
         inputClassName,
@@ -70,7 +67,7 @@ export default function Autocomplete(props: AutocompleteProps) {
     }, [initialValue])
 
     /** Set values, while also changing the input text. */
-    const overrideValues = React.useCallback(
+    const overrideValue = React.useCallback(
         (newItem: string) => {
             setIsDropdownVisible(false)
             setValue(newItem)
@@ -78,9 +75,8 @@ export default function Autocomplete(props: AutocompleteProps) {
                 inputRef.current.value = newItem
             }
             onChange(newItem)
-            onInput?.('')
         },
-        [onChange, onInput, inputRef]
+        [onChange, inputRef]
     )
 
     const onKeyDown = (event: React.KeyboardEvent) => {
@@ -114,7 +110,7 @@ export default function Autocomplete(props: AutocompleteProps) {
                     // If `item` is `null`, silently error. If it *is* `null`, it is out of range
                     // anyway, so no item will be selected in the UI.
                     if (item != null) {
-                        overrideValues(item)
+                        overrideValue(item)
                     }
                     setSelectedIndex(null)
                 }
@@ -153,11 +149,8 @@ export default function Autocomplete(props: AutocompleteProps) {
                             setIsDropdownVisible(false)
                         })
                     }}
-                    onInput={event => {
-                        setIsDropdownVisible(true)
-                        onInput?.(event.currentTarget.value)
-                    }}
                     onChange={event => {
+                        setIsDropdownVisible(true)
                         onChange(event.target.value)
                     }}
                 />
@@ -179,7 +172,7 @@ export default function Autocomplete(props: AutocompleteProps) {
                             }}
                             onClick={event => {
                                 event.stopPropagation()
-                                overrideValues(item)
+                                overrideValue(item)
                             }}
                         >
                             {item}
