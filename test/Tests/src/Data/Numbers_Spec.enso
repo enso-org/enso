@@ -843,6 +843,18 @@ spec =
         bigint_spec "Java" to_java_bigint java_bigint_mul
         bigint_spec "JavaScript" to_js_bigint js_bigint_mul
 
+        Test.specify "Matrix of values" <|
+            x = to_java_bigint 10
+            y = 10
+            z = 10.0
+            w = to_js_bigint 10
+
+            [x, y, z, w].each a->
+                [x, y, z, w].each b->
+                    a+b . should_equal 20
+
+
+
 main = Test_Suite.run_main spec
 
 
