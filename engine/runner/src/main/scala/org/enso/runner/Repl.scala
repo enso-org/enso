@@ -2,7 +2,14 @@ package org.enso.runner
 
 import com.typesafe.scalalogging.Logger
 
-import java.io.{IOException, InputStream, OutputStream, PrintStream, PrintWriter, Writer}
+import java.io.{
+  IOException,
+  InputStream,
+  OutputStream,
+  PrintStream,
+  PrintWriter,
+  Writer
+}
 import java.util.Scanner
 import org.enso.polyglot.debugger.{ReplExecutor, SessionManager}
 import org.jline.reader.impl.DefaultParser
@@ -95,7 +102,8 @@ case class TerminalIO(historyFilePath: Path) extends ReplIO {
   parser.setEscapeChars(null)
   private val history = new DefaultHistory()
   private val lineReader: LineReader =
-    LineReaderBuilder.builder()
+    LineReaderBuilder
+      .builder()
       .parser(parser)
       .variable(LineReader.HISTORY_FILE, historyFilePath)
       .history(history)
