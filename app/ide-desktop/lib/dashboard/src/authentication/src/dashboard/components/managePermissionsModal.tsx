@@ -207,6 +207,7 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
                                 <PermissionSelector
                                     disabled={willInviteNewUser}
                                     initialPermissions={initialPermissions}
+                                    assetType={asset.type}
                                     onChange={setPermissions}
                                 />
                                 <Autocomplete

@@ -1,7 +1,9 @@
 /** @file A selector for all possible permissions. */
 import * as React from 'react'
 
+import * as backend from '../backend'
 import * as permissionsModule from '../permissions'
+
 import Modal from './modal'
 import PermissionTypeSelector from './permissionTypeSelector'
 
@@ -27,13 +29,14 @@ export interface PermissionSelectorProps {
     disabled?: boolean
     /** If this prop changes, the internal state will be updated too. */
     initialPermissions?: permissionsModule.Permissions | null
+    assetType: backend.AssetType
     className?: string
     onChange: (permissions: permissionsModule.Permissions) => void
 }
 
 /** A horizontal selector for all possible permissions. */
 export default function PermissionSelector(props: PermissionSelectorProps) {
-    const { disabled = false, initialPermissions, className, onChange } = props
+    const { disabled = false, initialPermissions, assetType, className, onChange } = props
     const [permissions, rawSetPermissions] = React.useState<permissionsModule.Permissions>(
         initialPermissions ?? permissionsModule.DEFAULT_PERMISSIONS
     )
@@ -79,6 +82,7 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
                               <div style={{ clipPath }} className="absolute bg-dim w-full h-full" />
                               <PermissionTypeSelector
                                   type={permissions.type}
+                                  assetType={assetType}
                                   style={{ left, top }}
                                   onChange={type => {
                                       setTheChild(null)

@@ -1,44 +1,60 @@
 /** @file A selector for all possible permission types. */
 import * as React from 'react'
+
+import * as backend from '../backend'
 import * as permissions from '../permissions'
 
 // =================
 // === Constants ===
 // =================
 
-/** Data for */
+const CAPITALIZED_ASSET_TYPE: Record<backend.AssetType, string> = {
+    [backend.AssetType.directory]: 'Folder',
+    [backend.AssetType.project]: 'Project',
+    [backend.AssetType.file]: 'File',
+    [backend.AssetType.secret]: 'Secret',
+    // These assets should never be visible, since they don't have columns.
+    [backend.AssetType.specialEmpty]: 'Empty asset',
+    [backend.AssetType.specialLoading]: 'Loading asset',
+} as const
+
+/** Data needed to display a single permission type. */
 interface PermissionTypeData {
     type: permissions.Permission
     previous: permissions.Permission | null
-    description: string
+    description: (type: backend.AssetType) => string
 }
 
-/** Data needed to display each permission type */
+/** Data needed to display each permission type. */
 const PERMISSION_TYPE_DATA: PermissionTypeData[] = [
     {
         type: permissions.Permission.view,
         previous: null,
-        description: 'File visibility only. Optionally, edit docs and execute project.',
+        description: type =>
+            CAPITALIZED_ASSET_TYPE[type] +
+            ` visibility only. Optionally, edit docs${
+                type === backend.AssetType.project ? ' and execute project' : ''
+            }.`,
     },
     {
         type: permissions.Permission.read,
         previous: permissions.Permission.view,
-        description: 'File content reading.',
+        description: type => CAPITALIZED_ASSET_TYPE[type] + ' content reading.',
     },
     {
         type: permissions.Permission.edit,
         previous: permissions.Permission.read,
-        description: 'File editing.',
+        description: type => CAPITALIZED_ASSET_TYPE[type] + ' editing.',
     },
     {
         type: permissions.Permission.admin,
         previous: permissions.Permission.edit,
-        description: 'Sharing management.',
+        description: () => 'Sharing management.',
     },
     {
         type: permissions.Permission.owner,
         previous: permissions.Permission.admin,
-        description: 'File removal permission.',
+        description: type => CAPITALIZED_ASSET_TYPE[type] + ' removal permission.',
     },
 ]
 
@@ -49,13 +65,14 @@ const PERMISSION_TYPE_DATA: PermissionTypeData[] = [
 /** Props for a {@link PermissionTypeSelector}. */
 export interface PermissionTypeSelectorProps {
     type: permissions.Permission
+    assetType: backend.AssetType
     style?: React.CSSProperties
     onChange: (permission: permissions.Permission) => void
 }
 
 /** A selector for all possible permission types. */
 export default function PermissionTypeSelector(props: PermissionTypeSelectorProps) {
-    const { type, style, onChange } = props
+    const { type, assetType, style, onChange } = props
     return (
         <div
             style={style}
@@ -65,7 +82,7 @@ export default function PermissionTypeSelector(props: PermissionTypeSelectorProp
             }}
         >
             <div className="absolute bg-frame-selected rounded-2xl backdrop-blur-3xl w-full h-full -z-10" />
-            <div className="flex flex-col w-109.75 p-1">
+            <div className="flex flex-col w-112.5 p-1">
                 {PERMISSION_TYPE_DATA.map(data => (
                     <button
                         key={data.type}
@@ -102,7 +119,7 @@ export default function PermissionTypeSelector(props: PermissionTypeSelectorProp
                             </>
                         )}
                         <div className="leading-170 h-6.5 pt-1">
-                            <span className="h-5.5 py-px">{data.description}</span>
+                            <span className="h-5.5 py-px">{data.description(assetType)}</span>
                         </div>
                     </button>
                 ))}

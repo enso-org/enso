@@ -54,6 +54,7 @@ export default function UserPermissions(props: UserPermissionsProps) {
         <div className="flex gap-3 items-center">
             <PermissionSelector
                 initialPermissions={userPermissions.permissions}
+                assetType={asset.type}
                 onChange={async permissions => {
                     await doSetUserPermissions({
                         ...userPermissions,
