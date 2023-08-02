@@ -101,7 +101,7 @@ impl Initializer {
             }
             Err(error) => {
                 let message = format!("Failed to initialize application: {error}");
-                ide_view::notification::handled::error(&message.into(), &None);
+                ide_view::notification::logged::error(&message.into(), &None);
                 Err(FailedIde { view })
             }
         }

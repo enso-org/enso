@@ -2,6 +2,7 @@
 //! about presenters in general.
 
 use crate::prelude::*;
+use crate::EXECUTION_FAILED_MESSAGE;
 
 use crate::executor::global::spawn_stream_handler;
 use crate::presenter;
@@ -18,7 +19,7 @@ use ide_view::project::SearcherType;
 use model::module::NotificationKind;
 use model::project::Notification;
 use model::project::VcsStatus;
-use view::notification::handled as notification;
+use view::notification::logged as notification;
 
 
 
@@ -50,7 +51,7 @@ struct Model {
     searcher: RefCell<Option<Box<dyn SearcherPresenter>>>,
     available_projects: Rc<RefCell<Vec<(ImString, Uuid)>>>,
     shortcut_transaction: RefCell<Option<Rc<model::undo_redo::Transaction>>>,
-    execution_failed_process_id: Rc<RefCell<Option<notification::Id>>>,
+    execution_failed_notification: notification::Notification,
 }
 
 impl Model {
@@ -73,7 +74,11 @@ impl Model {
         let searcher = default();
         let available_projects = default();
         let shortcut_transaction = default();
-        let execution_failed_process_id = default();
+        let options = notification::UpdateOptions {
+            render: Some(EXECUTION_FAILED_MESSAGE.into()),
+            ..default()
+        };
+        let execution_failed_notification = notification::Notification::new(options);
         Model {
             controller,
             module_model,
@@ -85,7 +90,7 @@ impl Model {
             searcher,
             available_projects,
             shortcut_transaction,
-            execution_failed_process_id,
+            execution_failed_notification,
         }
     }
 
@@ -218,17 +223,11 @@ impl Model {
     fn execution_complete(&self) {
         self.view.graph().frp.set_read_only(false);
         self.view.graph().frp.execution_complete.emit(());
-        with(self.execution_failed_process_id.borrow(), |id| {
-            id.as_ref().map(|id| id.dismiss());
-        });
+        self.execution_failed_notification.dismiss();
     }
 
     fn execution_failed(&self) {
-        let message = crate::EXECUTION_FAILED_MESSAGE;
-        let id = notification::error(&message.into(), &None);
-        if let Some(old_id) = self.execution_failed_process_id.replace(id) {
-            old_id.dismiss();
-        }
+        self.execution_failed_notification.show();
     }
 
     fn execution_context_interrupt(&self) {

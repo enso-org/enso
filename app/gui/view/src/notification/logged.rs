@@ -1,68 +1,28 @@
-//! The API is often inconvenient as it returns [`Result`]s with [`JsValue`] errors. Usually we
-//! want to send notifications and forget about them, so we don't want to deal with errors.
-//! This wrapper allows to do that.
+//! The API is often inconvenient as it returns [`Result`]s with [`JsValue`] errors. This is
+//! inconvenient for our typical use-cases. We often use notifications to display errors and
+//! we don't have a way to handle errors from the notifications themselves.
+//!
+//! This module provides a notification API wrapper that:
+//! * Logs most of the actions.
+//! * Handles errors by logging and dropping them.
+//!
+//! In general, where the original API returns [`Result`]s, this wrapper returns [`Option`]s.
 
 use crate::prelude::*;
 
 use crate::notification;
 use crate::notification::js::HandleJsError;
-use crate::notification::Content;
-use crate::notification::Options;
-use crate::notification::Type;
-use crate::notification::UpdateOptions;
+
+pub use crate::notification::Content;
+pub use crate::notification::Options;
+pub use crate::notification::Type;
+pub use crate::notification::UpdateOptions;
 
 use uuid::Uuid;
 
-
-
-/// The unique identifier of a toast.
-#[derive(Clone, Debug)]
-pub struct Id(notification::Id);
-
-impl From<notification::Id> for Id {
-    fn from(id: notification::Id) -> Self {
-        Self(id)
-    }
-}
-
-impl From<&str> for Id {
-    fn from(id: &str) -> Self {
-        Self(notification::Id::from(id))
-    }
-}
-
-impl From<Uuid> for Id {
-    fn from(id: Uuid) -> Self {
-        Self(notification::Id::from(id))
-    }
-}
-
-impl Id {
-    /// Close the notification.
-    pub fn dismiss(&self) {
-        self.0.dismiss().handle_js_err_with(|| format!("Failed to dismiss notification {self:?}."));
-    }
-
-    /// Completes the controlled progress bar.
-    pub fn done(&self) {
-        self.0.done().handle_js_err_with(|| format!("Failed to complete notification {self:?}."));
-    }
-
-    /// Check if a toast is displayed or not.
-    pub fn is_active(&self) -> bool {
-        self.0
-            .is_active()
-            .handle_js_err_with(|| format!("Failed to check if notification {self:?} is active."))
-            .unwrap_or(false)
-    }
-
-    /// Update a toast.
-    pub fn update(&self, options: &UpdateOptions) {
-        self.0
-            .update(options)
-            .handle_js_err_with(|| format!("Failed to update notification {self:?}."));
-    }
-}
+// ===================
+// === Primary API ===
+// ===================
 
 /// Send any kind of notification.
 pub fn send_any(message: &Content, r#type: Type, options: &Option<Options>) -> Option<Id> {
@@ -92,6 +52,70 @@ pub fn success(message: &Content, options: &Option<Options>) -> Option<Id> {
     send_any(message, Type::Success, options)
 }
 
+
+
+// ==========
+// === Id ===
+// ==========
+
+/// The unique identifier of a toast.
+#[derive(Clone, Debug, Display)]
+pub struct Id(notification::Id);
+
+impl From<notification::Id> for Id {
+    fn from(id: notification::Id) -> Self {
+        Self(id)
+    }
+}
+
+impl From<&str> for Id {
+    fn from(id: &str) -> Self {
+        Self(notification::Id::from(id))
+    }
+}
+
+impl From<Uuid> for Id {
+    fn from(id: Uuid) -> Self {
+        Self(notification::Id::from(id))
+    }
+}
+
+impl Id {
+    /// Close the notification.
+    pub fn dismiss(&self) {
+        info!("Dismissing the notification {self}.");
+        self.0.dismiss().handle_js_err_with(|| format!("Failed to dismiss notification {self:?}."));
+    }
+
+    /// Completes the controlled progress bar.
+    pub fn done(&self) {
+        info!("Completing the notification {self}.");
+        self.0.done().handle_js_err_with(|| format!("Failed to complete notification {self:?}."));
+    }
+
+    /// Check if a toast is displayed or not.
+    pub fn is_active(&self) -> bool {
+        self.0
+            .is_active()
+            .handle_js_err_with(|| format!("Failed to check if notification {self:?} is active."))
+            .unwrap_or(false)
+    }
+
+    /// Update a toast.
+    pub fn update(&self, options: &UpdateOptions) {
+        info!("Updating the notification {self} with new options {options:?}.");
+        self.0
+            .update(options)
+            .handle_js_err_with(|| format!("Failed to update notification {self:?}."));
+    }
+}
+
+
+
+// ====================
+// === Notification ===
+// ====================
+
 /// Same as super::Notification, but with all errors handled by logging them using error! macro.
 
 /// A persistent notification.
@@ -114,6 +138,7 @@ impl Notification {
     ///
     /// It will not be shown until you call [`Notification::show`].
     pub fn new(options: UpdateOptions) -> Self {
+        info!("Creating a new notification with options {options:?}.");
         Self(super::Notification::new(options))
     }
 
@@ -122,6 +147,7 @@ impl Notification {
     /// If the visualization is being shown, it will be updated. If not, changes will appear the
     /// next time the notification is [
     pub fn update(&self, f: impl FnOnce(&mut UpdateOptions)) {
+        info!("Updating the notification {self}.");
         self.0.update(f).handle_js_err_with(|| format!("Failed to update notification {self}."));
     }
 
@@ -129,11 +155,13 @@ impl Notification {
     ///
     /// If it is already being shown, nothing will happen.
     pub fn show(&self) {
+        info!("Showing the notification {self}.");
         self.0.show().handle_js_err_with(|| format!("Failed to show notification {self}."));
     }
 
     /// Dismiss the notification.
     pub fn dismiss(&self) {
+        info!("Dismissing the notification {self}.");
         self.0.dismiss().handle_js_err_with(|| format!("Failed to dismiss notification {self}."));
     }
 }

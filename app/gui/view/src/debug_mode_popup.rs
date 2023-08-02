@@ -2,7 +2,7 @@
 
 use crate::prelude::*;
 
-use crate::notification::handled::Notification;
+use crate::notification::logged::Notification;
 use crate::notification::UpdateOptions;
 
 use ensogl::application::Application;
@@ -45,7 +45,7 @@ impl View {
     pub fn new(_app: &Application) -> Self {
         let frp = Frp::new();
         let network = &frp.network;
-        let notification = crate::notification::handled::Notification::default();
+        let notification = crate::notification::logged::Notification::default();
 
         frp::extend! { network
             eval frp.is_enabled ([notification] (enabled) {

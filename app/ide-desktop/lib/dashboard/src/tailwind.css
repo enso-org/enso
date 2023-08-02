@@ -1,10 +1,6 @@
 @import url("https://fonts.googleapis.com/css2?family=M+PLUS+1:wght@500;600;700&display=swap");
 @import "react-toastify/dist/ReactToastify.css";
 
-/*:root {*/
-/*  --toastify-toast-width: 75vw;*/
-/*}*/
-
 body {
   margin: 0;
   backdrop-filter: blur(64px);

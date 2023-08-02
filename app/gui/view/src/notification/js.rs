@@ -242,14 +242,23 @@ pub fn toast(message: &Content, r#type: Type, options: &JsValue) -> Result<Id, J
 }
 
 
+
+// ======================
+// === Error handling ===
+// ======================
+
 /// Extension trait for `Result<T, JsValue>` that provides a method for handling JavaScript errors.
 pub trait HandleJsError<T>: Sized {
     /// Format pretty error message.
     fn pretty_print_error(message: Option<&str>, error: &JsValue) -> String {
-        let base_message = "Error received from JavaScript.";
-        let message = message.unwrap_or("");
-        let error = pretty_print(error);
-        format!("{base_message} {message} {error}")
+        let mut ret = String::from("Error received from JavaScript.");
+        if let Some(message) = message {
+            ret.push_str(" ");
+            ret.push_str(message);
+        }
+        ret.push_str(" ");
+        ret.push_str(&pretty_print(error));
+        ret
     }
 
     /// Handle JS error by logging it and returning `None`.

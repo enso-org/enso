@@ -174,7 +174,7 @@ impl Presenter {
     }
 
     fn setup_user_facing_notification_handler(&self) {
-        use view::notification::handled as notification;
+        use view::notification::logged as notification;
 
         let status_notifications = self.model.controller.status_notifications().subscribe();
         let weak = Rc::downgrade(&self.model);

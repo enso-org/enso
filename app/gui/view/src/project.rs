@@ -53,7 +53,7 @@ macro_rules! define_debug_mode_shortcut {
         /// A keyboard shortcut used to enable/disable Debug Mode.
         pub const DEBUG_MODE_SHORTCUT: &str = $shortcut;
         const DEBUG_MODE_ENABLED: &str =
-            concat!("Debug Mode enabled. To disable, press `<b>", $shortcut, "</b>`.");
+            concat!("Debug Mode enabled. To disable, press `", $shortcut, "`.");
     };
 }
 
@@ -469,7 +469,6 @@ impl View {
             disable_navigation <- searcher_active || frp.project_list_shown;
             graph.set_navigator_disabled <+ disable_navigation;
 
-            // model.popup.set_label <+ graph.visualization_update_error._1();
             graph.set_read_only <+ frp.set_read_only;
             graph.set_debug_mode <+ frp.source.debug_mode;
 
@@ -750,12 +749,10 @@ impl View {
         let network = &frp.network;
         let popup = &self.model.debug_mode_popup;
 
-        let mut options: crate::notification::UpdateOptions =
-            crate::notification::UpdateOptions::default();
+        let mut options = crate::notification::UpdateOptions::default();
         options.set_always_present();
-        options.auto_close = Some(crate::notification::AutoClose::Never());
+        options.set_raw_text_content(DEBUG_MODE_ENABLED);
         options.position = Some(crate::notification::Position::BottomRight);
-        options.render = Some(DEBUG_MODE_ENABLED.into());
         popup.set_options(options);
 
         frp::extend! { network

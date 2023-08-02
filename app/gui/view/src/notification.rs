@@ -16,7 +16,7 @@
 //!         ..Default::default()
 //!     }),
 //! )?;
-//! handle.update(&UpdateOptions::default().render_string("Undo done."))?;
+//! handle.update(&UpdateOptions::default().raw_text_content("Undo done."))?;
 //! # Ok(())
 //! # }
 //! ```
@@ -33,8 +33,8 @@ use serde::Serialize;
 // === Export ===
 // ==============
 
-pub mod handled;
 pub mod js;
+pub mod logged;
 
 pub use js::Id;
 
@@ -116,22 +116,6 @@ macro_rules! impl_try_from_jsvalue {
     };
 }
 
-// macro_rules! options_update_with {
-//     ($($field:ident),+ $(,)?) => {
-
-//             pub fn update_with(&mut self, other: &Self) -> &mut Self {
-//                 let Options { $(ref $field,)* .. } = other;
-
-//                 $(
-//                     if let Some($field) = $field {
-//                         self.$field = Some($field.clone());
-//                     }
-//                 )*
-//                 self
-//             }
-//         }
-// }
-
 // === SerializableJsValue ===
 
 /// A wrapper around a `JsValue` that implements the `Serialize` and `Deserialize` traits.
@@ -156,14 +140,18 @@ impl<'de> Deserialize<'de> for SerializableJsValue {
     }
 }
 
+
+
+// ===============
+// === Content ===
+// ===============
+
 /// The notification content.
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[serde(untagged)]
 pub enum Content {
     /// Plain text.
     Text(String),
-    /// An HTML element.
-    Element(SerializableJsValue),
 }
 
 impl From<&str> for Content {
@@ -181,19 +169,6 @@ impl From<String> for Content {
 impl From<&String> for Content {
     fn from(text: &String) -> Self {
         Content::Text(text.to_owned())
-    }
-}
-
-impl Content {
-    /// Create a new notification content from an HTML string.
-    pub fn from_html(html: impl AsRef<str>) -> FallibleResult<Self> {
-        use anyhow::Context; // FIXME
-        let window = ensogl::system::web::binding::wasm::get_window();
-        let document =
-            window.document().context("Cannot get `document` from the `window`.").unwrap();
-        let div = document.create_element("div").unwrap(); // FIXME
-        div.set_inner_html(html.as_ref());
-        Ok(Content::Element(SerializableJsValue(JsValue::from(div))))
     }
 }
 
@@ -413,7 +388,7 @@ impl UpdateOptions {
     /// Allows set a new message in the notification.
     ///
     /// Useful only for update a toast.
-    pub fn render_string(mut self, render: impl AsRef<str>) -> Self {
+    pub fn raw_text_content(mut self, render: impl AsRef<str>) -> Self {
         let message = render.as_ref();
         self.render = Some(message.into());
         self
@@ -427,6 +402,12 @@ impl UpdateOptions {
         self.render = Some(content);
     }
 }
+
+
+
+// ====================
+// === Notification ===
+// ====================
 
 /// A persistent notification.
 ///

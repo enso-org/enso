@@ -131,7 +131,7 @@ impl View {
             eval_ frp.switch_view_to_welcome_screen(model.switch_view_to_welcome_screen());
             eval app.frp.show_notification([](message) {
                 let content = message.into();
-                crate::notification::handled::info(&content, &None);
+                crate::notification::logged::info(&content, &None);
             });
         }
         init.emit(());
