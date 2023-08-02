@@ -94,6 +94,7 @@ export default function PermissionTypeSelector(props: PermissionTypeSelectorProp
                 ).map(data => (
                     <button
                         key={data.type}
+                        type="button"
                         disabled={type === data.type}
                         className={`flex items-center rounded-full gap-2 h-8 px-1 ${
                             type === data.type ? 'bg-black-a5' : ''

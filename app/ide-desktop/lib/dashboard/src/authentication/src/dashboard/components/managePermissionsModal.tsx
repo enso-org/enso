@@ -192,7 +192,7 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
                     setUsersPermissions(newUsersPermissions)
                     outerSetUsersPermissions(newUsersPermissions)
                     await backend.createPermission({
-                        userSubjects: Object.values(usersMap).map(user => user.id),
+                        userSubjects: [...addedUsersPermissionsMap.keys()],
                         resourceId: asset.id,
                         actions: backendModule.permissionsToPermissionActions(permissions),
                     })
@@ -249,7 +249,13 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
                             <h2 className="text-sm font-bold">Invite</h2>
                             {/* Space reserved for other tabs. */}
                         </div>
-                        <div className="flex gap-1">
+                        <form
+                            className="flex gap-1"
+                            onSubmit={event => {
+                                event.preventDefault()
+                                void doSubmit()
+                            }}
+                        >
                             <div className="flex items-center grow rounded-full border border-black-a10 gap-2 px-1">
                                 <PermissionSelector
                                     disabled={willInviteNewUser}
@@ -259,6 +265,7 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
                                 />
                                 <input
                                     readOnly
+                                    hidden
                                     ref={emailValidityRef}
                                     type="email"
                                     className="hidden"
@@ -284,7 +291,7 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
                                     }}
                                     items={matchingUsers.map(matchingUser =>
                                         onlyUsernameOrEmail != null &&
-                                        matchingUser.email.includes(onlyUsernameOrEmail)
+                                        !matchingUser.name.includes(onlyUsernameOrEmail)
                                             ? matchingUser.email
                                             : matchingUser.name
                                     )}
@@ -293,19 +300,23 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
                                 />
                             </div>
                             <button
+                                type="submit"
                                 disabled={
                                     usernamesOrEmails.length === 0 ||
+                                    (onlyUsernameOrEmail != null &&
+                                        usernamesOfUsersWithPermission.has(onlyUsernameOrEmail)) ||
+                                    (onlyUsernameOrEmail != null &&
+                                        emailsOfUsersWithPermission.has(onlyUsernameOrEmail)) ||
                                     (willInviteNewUser &&
                                         emailValidityRef.current?.validity.valid !== true)
                                 }
                                 className="text-tag-text bg-invite rounded-full px-2 py-1 disabled:opacity-30"
-                                onClick={doSubmit}
                             >
                                 <div className="h-6 py-0.5">
                                     {willInviteNewUser ? 'Invite' : 'Share'}
                                 </div>
                             </button>
-                        </div>
+                        </form>
                         <div className="overflow-auto pl-1 pr-12 max-h-80">
                             {usersPermissions.map(userPermissions => (
                                 <div

@@ -121,7 +121,7 @@ export default function Autocomplete(props: AutocompleteProps) {
     // This type is a little too wide but it is unavoidable.
     /** Set values, while also changing the input text. */
     const overrideValues = (newItems: string[] | [string]) => {
-        if (multiple !== true || !items.includes(newItems[0])) {
+        if (multiple !== true || (newItems.length === 1 && !items.includes(newItems[0]))) {
             setIsDropdownVisible(false)
         }
         if (inputRef.current != null) {

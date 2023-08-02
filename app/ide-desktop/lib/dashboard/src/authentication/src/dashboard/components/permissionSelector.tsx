@@ -134,6 +134,7 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
             permissionDisplay = (
                 <div className="flex gap-px w-30.25">
                     <button
+                        type="button"
                         disabled={disabled}
                         className={`${
                             permissionsModule.PERMISSION_CLASS_NAME[permissions.type]
@@ -143,6 +144,7 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
                         {permissions.type}
                     </button>
                     <button
+                        type="button"
                         disabled={disabled}
                         className={`${
                             permissionsModule.DOCS_CLASS_NAME
@@ -157,6 +159,7 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
                         docs
                     </button>
                     <button
+                        type="button"
                         disabled={disabled}
                         className={`${
                             permissionsModule.EXEC_CLASS_NAME
@@ -177,6 +180,7 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
         default: {
             permissionDisplay = (
                 <button
+                    type="button"
                     disabled={disabled}
                     className={`${
                         permissionsModule.PERMISSION_CLASS_NAME[permissions.type]
