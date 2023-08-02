@@ -18,6 +18,7 @@ import * as backendProvider from '../../providers/backend'
 import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
 
+import * as app from '../../components/app'
 import * as pageSwitcher from './pageSwitcher'
 import * as spinner from './spinner'
 import Chat, * as chat from './chat'
@@ -42,6 +43,7 @@ export interface DashboardProps {
 /** The component that contains the entire UI. */
 export default function Dashboard(props: DashboardProps) {
     const { supportsLocalBackend, appRunner, initialProjectName } = props
+    const navigate = hooks.useNavigate()
     const logger = loggerProvider.useLogger()
     const session = authProvider.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
@@ -238,9 +240,16 @@ export default function Dashboard(props: DashboardProps) {
             />
             {isListingRemoteDirectoryWhileOffline ? (
                 <div className="grow grid place-items-center mx-2">
-                    <div className="text-base text-center">
-                        You are offline. Please connect to the internet and refresh to access the
-                        cloud backend.
+                    <div className="flex flex-col gap-4">
+                        <div className="text-base text-center">You are not signed in.</div>
+                        <button
+                            className="text-base text-white bg-help rounded-full self-center leading-170 h-8 py-px w-16"
+                            onClick={() => {
+                                navigate(app.LOGIN_PATH)
+                            }}
+                        >
+                            Login
+                        </button>
                     </div>
                 </div>
             ) : isListingLocalDirectoryAndWillFail ? (
