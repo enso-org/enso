@@ -1835,6 +1835,11 @@ lazy val `bench-libs` = (project in file("std-bits/benchmarks"))
         s"-J-Dtruffle.class.path.append=$appendClasspath"
       )
     },
+    (Compile / logManager) :=
+      sbt.internal.util.CustomLogManager.excludeMsg(
+        "Could not determine source for class ",
+        Level.Warn
+    ),
     (Benchmark / compile / javacOptions) ++= Seq(
       "-s",
       (Benchmark / sourceManaged).value.getAbsolutePath,
