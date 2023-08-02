@@ -100,7 +100,6 @@ impl Widget {
         self.icon_id = icon_id;
         self.icon = icon_id.cached_view();
         self.icon.set_size((SIZE, SIZE));
-        self.icon.set_xy((SIZE / 2.0, SIZE / 2.0));
         self.icon.r_component.set(Vector4(1.0, 1.0, 1.0, 1.0));
         self.icon_wrapper.replace_children(&[self.icon.display_object()]);
     }

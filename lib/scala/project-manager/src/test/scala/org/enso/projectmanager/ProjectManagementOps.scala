@@ -79,17 +79,17 @@ trait ProjectManagementOps { this: BaseServerSpec =>
   def openProjectData(implicit client: WsTestClient): ProjectOpen.Result = {
     val Right(openReply) = parse(client.expectMessage(20.seconds.dilated))
     val openResult = for {
-      result        <- openReply.hcursor.downExpectedField("result")
-      engineVer     <- result.downField("engineVersion").as[SemVer]
-      jsonAddr      <- result.downExpectedField("languageServerJsonAddress")
-      jsonHost      <- jsonAddr.downField("host").as[String]
-      jsonPort      <- jsonAddr.downField("port").as[Int]
-      binAddr       <- result.downExpectedField("languageServerBinaryAddress")
-      binHost       <- binAddr.downField("host").as[String]
-      binPort       <- binAddr.downField("port").as[Int]
-      projectName   <- result.downField("projectName").as[String]
-      projectModule <- result.downField("projectModule").as[String]
-      namespace     <- result.downField("projectNamespace").as[String]
+      result         <- openReply.hcursor.downExpectedField("result")
+      engineVer      <- result.downField("engineVersion").as[SemVer]
+      jsonAddr       <- result.downExpectedField("languageServerJsonAddress")
+      jsonHost       <- jsonAddr.downField("host").as[String]
+      jsonPort       <- jsonAddr.downField("port").as[Int]
+      binAddr        <- result.downExpectedField("languageServerBinaryAddress")
+      binHost        <- binAddr.downField("host").as[String]
+      binPort        <- binAddr.downField("port").as[Int]
+      projectName    <- result.downField("projectName").as[String]
+      normalizedName <- result.downField("projectNormalizedName").as[String]
+      namespace      <- result.downField("projectNamespace").as[String]
     } yield {
       val jsonSock = Socket(jsonHost, jsonPort)
       val binSock  = Socket(binHost, binPort)
@@ -98,7 +98,7 @@ trait ProjectManagementOps { this: BaseServerSpec =>
         jsonSock,
         binSock,
         projectName,
-        projectModule,
+        normalizedName,
         namespace
       )
     }

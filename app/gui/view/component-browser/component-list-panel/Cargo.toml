@@ -15,10 +15,9 @@ ensogl-grid-view = { path = "../../../../../lib/rust/ensogl/component/grid-view/
 ensogl-hardcoded-theme = { path = "../../../../../lib/rust/ensogl/app/theme/hardcoded" }
 ensogl-scroll-area = { path = "../../../../../lib/rust/ensogl/component/scroll-area" }
 ensogl-selector = { path = "../../../../../lib/rust/ensogl/component/selector" }
-ensogl-shadow = { path = "../../../../../lib/rust/ensogl/component/shadow" }
+ensogl-toggle-button = { path = "../../../../../lib/rust/ensogl/component/toggle-button" }
 ensogl-text = { path = "../../../../../lib/rust/ensogl/component/text" }
 ensogl-tooltip = { path = "../../../../../lib/rust/ensogl/component/tooltip/" }
-ide-view-component-list-panel-breadcrumbs = { path = "../../../../../lib/rust/ensogl/component/breadcrumbs" }
 ide-view-component-list-panel-grid = { path = "grid" }
 ensogl-icons = { path = "../../../../../lib/rust/ensogl/component/icons" }
 ordered-float = { workspace = true }

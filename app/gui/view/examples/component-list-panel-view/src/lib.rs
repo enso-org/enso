@@ -45,9 +45,10 @@ use ensogl_core::display::object::ObjectOps;
 use ensogl_core::frp;
 use ensogl_icons::icon;
 use ensogl_text as text;
-use ide_view_component_list_panel::breadcrumbs::Breadcrumb;
-use ide_view_component_list_panel::breadcrumbs::Breadcrumbs;
+use ensogl_tooltip::Tooltip;
 use ide_view_component_list_panel::grid;
+use ide_view_documentation::breadcrumbs::Breadcrumb;
+use ide_view_documentation::breadcrumbs::Breadcrumbs;
 
 
 
@@ -134,6 +135,7 @@ fn snap_to_pixel_offset(size: Vector2, scene_shape: &display::scene::Shape) -> V
 pub fn main() {
     ensogl_text_msdf::run_once_initialized(|| {
         let app = Application::new("root");
+        let tooltip = Tooltip::new(&app);
 
         let world = &app.display;
         let scene = &world.default_scene;
@@ -170,14 +172,21 @@ pub fn main() {
             // === Disable navigator on hover ===
 
             navigator.frp.set_enabled <+ panel.is_hovered.not();
+
+
+            // === Tooltip ===
+
+            tooltip.frp.set_style <+ app.frp.tooltip;
         }
         init.emit(());
 
         grid.reset(content_info());
         scene.add_child(&panel);
+        scene.add_child(&tooltip);
         scene.add_child(&breadcrumbs);
         panel.show();
         mem::forget(app);
+        mem::forget(tooltip);
         mem::forget(panel);
         mem::forget(breadcrumbs);
         mem::forget(network);
