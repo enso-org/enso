@@ -1831,7 +1831,7 @@ lazy val `bench-libs` = (project in file("std-bits/benchmarks"))
           .map(_.data)
           .mkString(File.pathSeparator)
       Seq(
-        "-J--no-limit-modules",
+        FrgaalJavaCompiler.noLimitModulesArg,
         s"-J-Dtruffle.class.path.append=$appendClasspath"
       )
     },
