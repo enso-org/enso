@@ -3,7 +3,8 @@ import * as common from 'enso-common'
 
 import * as backend from './backend'
 import * as column from './column'
-import * as tab from './tab'
+
+import * as pageSwitcher from './components/pageSwitcher'
 
 // ====================
 // === LocalStorage ===
@@ -20,7 +21,7 @@ export enum LocalStorageKey {
 
 /** The data that can be stored in a {@link LocalStorage}. */
 interface LocalStorageData {
-    [LocalStorageKey.page]: tab.Tab
+    [LocalStorageKey.page]: pageSwitcher.Page
     [LocalStorageKey.backendType]: backend.BackendType
     [LocalStorageKey.extraColumns]: column.ExtraColumn[]
     [LocalStorageKey.isTemplatesListOpen]: boolean
