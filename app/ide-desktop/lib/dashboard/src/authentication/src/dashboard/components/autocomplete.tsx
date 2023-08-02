@@ -22,7 +22,6 @@ export interface BaseAutocompleteProps {
     placeholder?: string
     values: string[]
     autoFocus?: boolean
-    disabled?: boolean
     /** This may change as the user types in the input. */
     items: string[]
     className?: string
@@ -64,7 +63,6 @@ export default function Autocomplete(props: AutocompleteProps) {
         values,
         setValues,
         autoFocus,
-        disabled = false,
         items,
         setValues: onChange,
         className,
@@ -196,19 +194,16 @@ export default function Autocomplete(props: AutocompleteProps) {
 
     return (
         <div onKeyDown={onKeyDown} className={className}>
-            <div className={`flex flex-1 ${disabled ? 'cursor-not-allowed' : ''}`}>
+            <div className="flex flex-1">
                 {canEditText ? (
                     <input
                         type={type}
                         ref={inputRef}
                         autoFocus={autoFocus}
-                        disabled={disabled}
                         size={1}
                         defaultValue={values[0]}
                         placeholder={placeholder}
-                        className={`grow ${disabled ? 'pointer-events-none opacity-50' : ''} ${
-                            inputClassName ?? ''
-                        }`}
+                        className={`grow ${inputClassName ?? ''}`}
                         onFocus={() => {
                             setIsDropdownVisible(true)
                         }}

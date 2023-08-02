@@ -46,22 +46,90 @@ export const DOCS_CLASS_NAME = 'text-tag-text bg-permission-docs'
 /** CSS classes for the execute permission. */
 export const EXEC_CLASS_NAME = 'text-tag-text bg-permission-exec'
 
-/** The corresponding `Permissions` for each backend `PermissionAction`. */
+/** The corresponding {@link Permissions} for each {@link backend.PermissionAction}. */
 export const FROM_PERMISSION_ACTION: Readonly<
     Record<backend.PermissionAction, Readonly<Permissions>>
 > = {
     [backend.PermissionAction.own]: { type: Permission.owner },
-    [backend.PermissionAction.execute]: {
+    [backend.PermissionAction.admin]: { type: Permission.admin },
+    [backend.PermissionAction.edit]: { type: Permission.edit },
+    [backend.PermissionAction.read]: {
+        type: Permission.read,
+        execute: false,
+        docs: false,
+    },
+    [backend.PermissionAction.readAndDocs]: {
+        type: Permission.read,
+        execute: false,
+        docs: true,
+    },
+    [backend.PermissionAction.readAndExec]: {
         type: Permission.read,
         execute: true,
         docs: false,
     },
-    [backend.PermissionAction.edit]: { type: Permission.edit },
     [backend.PermissionAction.view]: {
         type: Permission.view,
         execute: false,
         docs: false,
     },
+    [backend.PermissionAction.viewAndDocs]: {
+        type: Permission.view,
+        execute: false,
+        docs: true,
+    },
+    [backend.PermissionAction.viewAndExec]: {
+        type: Permission.view,
+        execute: true,
+        docs: false,
+    },
+}
+
+/** The corresponding {@link backend.PermissionAction} for each {@link Permission}.
+ * Assumes no docs sub-permission and no execute sub-permission. */
+export const TYPE_TO_PERMISSION_ACTION: Readonly<Record<Permission, backend.PermissionAction>> = {
+    [Permission.owner]: backend.PermissionAction.own,
+    [Permission.admin]: backend.PermissionAction.admin,
+    [Permission.edit]: backend.PermissionAction.edit,
+    [Permission.read]: backend.PermissionAction.read,
+    [Permission.view]: backend.PermissionAction.view,
+    // SHould never happen, but provide a fallback just in case.
+    [Permission.delete]: backend.PermissionAction.view,
+}
+
+/** The equivalent backend `PermissionAction` for a `Permissions`. */
+export function toPermissionAction(permissions: Permissions): backend.PermissionAction {
+    switch (permissions.type) {
+        case Permission.owner: {
+            return backend.PermissionAction.own
+        }
+        case Permission.admin: {
+            return backend.PermissionAction.admin
+        }
+        case Permission.edit: {
+            return backend.PermissionAction.edit
+        }
+        case Permission.read: {
+            return permissions.execute
+                ? permissions.docs
+                    ? /* should never happen, but use a fallback value */
+                      backend.PermissionAction.readAndExec
+                    : backend.PermissionAction.readAndDocs
+                : permissions.docs
+                ? backend.PermissionAction.readAndDocs
+                : backend.PermissionAction.read
+        }
+        case Permission.view: {
+            return permissions.execute
+                ? permissions.docs
+                    ? /* should never happen, but use a fallback value */
+                      backend.PermissionAction.viewAndExec
+                    : backend.PermissionAction.viewAndDocs
+                : permissions.docs
+                ? backend.PermissionAction.viewAndDocs
+                : backend.PermissionAction.view
+        }
+    }
 }
 
 // ===================

@@ -10,8 +10,8 @@ import PermissionSelector from './permissionSelector'
 /** Props for a {@link UserPermissions}. */
 export interface UserPermissionsProps {
     asset: backendModule.Asset
-    userPermissions: backendModule.UserPermissions
-    setUserPermissions: (userPermissions: backendModule.UserPermissions) => void
+    userPermission: backendModule.UserPermission
+    setUserPermission: (userPermissions: backendModule.UserPermission) => void
     doDelete: (user: backendModule.User) => void
 }
 
@@ -19,32 +19,30 @@ export interface UserPermissionsProps {
 export default function UserPermissions(props: UserPermissionsProps) {
     const {
         asset,
-        userPermissions: initialUserPermissions,
-        setUserPermissions: outerSetUserPermissions,
+        userPermission: initialUserPermission,
+        setUserPermission: outerSetUserPermission,
         doDelete,
     } = props
     const { backend } = backendProvider.useBackend()
     const toastAndLog = hooks.useToastAndLog()
-    const [userPermissions, setUserPermissions] = React.useState(initialUserPermissions)
+    const [userPermissions, setUserPermissions] = React.useState(initialUserPermission)
 
     React.useEffect(() => {
-        setUserPermissions(initialUserPermissions)
-    }, [initialUserPermissions])
+        setUserPermissions(initialUserPermission)
+    }, [initialUserPermission])
 
-    const doSetUserPermissions = async (newUserPermissions: backendModule.UserPermissions) => {
+    const doSetUserPermission = async (newUserPermissions: backendModule.UserPermission) => {
         try {
             setUserPermissions(newUserPermissions)
-            outerSetUserPermissions(newUserPermissions)
+            outerSetUserPermission(newUserPermissions)
             await backend.createPermission({
                 userSubjects: [newUserPermissions.user.pk],
                 resourceId: asset.id,
-                actions: backendModule.permissionsToPermissionActions(
-                    newUserPermissions.permissions
-                ),
+                action: newUserPermissions.permission,
             })
         } catch (error) {
             setUserPermissions(userPermissions)
-            outerSetUserPermissions(userPermissions)
+            outerSetUserPermission(userPermissions)
             toastAndLog(
                 `Unable to set permissions of '${newUserPermissions.user.user_email}'`,
                 error
@@ -56,12 +54,12 @@ export default function UserPermissions(props: UserPermissionsProps) {
         <div className="flex gap-3 items-center">
             <PermissionSelector
                 allowDelete
-                initialPermissions={userPermissions.permissions}
+                action={userPermissions.permission}
                 assetType={asset.type}
                 onChange={async permissions => {
-                    await doSetUserPermissions({
+                    await doSetUserPermission({
                         ...userPermissions,
-                        permissions,
+                        permission: permissions,
                     })
                 }}
                 doDelete={() => {

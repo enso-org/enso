@@ -6,7 +6,6 @@ import * as auth from '../../authentication/providers/auth'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as hooks from '../../hooks'
-import * as permissionsModule from '../permissions'
 
 import Autocomplete from './autocomplete'
 import Modal from './modal'
@@ -27,12 +26,8 @@ const MAX_AUTOCOMPLETE_ITEMS_TO_SHOW = 3
 
 /** Props for a {@link ManagePermissionsModal}. */
 export interface ManagePermissionsModalProps {
-    asset: backendModule.Asset
-    initialPermissions: permissionsModule.Permissions
-    usersPermissions: backendModule.UserPermissions[]
-    setUsersPermissions: (usersPermissions: backendModule.UserPermissions[]) => void
-    /* If present, the user cannot be changed. */
-    user?: backendModule.User
+    item: backendModule.AnyAsset
+    setItem: React.Dispatch<React.SetStateAction<backendModule.AnyAsset>>
     eventTarget: HTMLElement
 }
 
@@ -40,32 +35,24 @@ export interface ManagePermissionsModalProps {
  * @throws {Error} when the current backend is the local backend, or when the user is offline.
  * This should never happen, as this modal should not be accessible in either case. */
 export default function ManagePermissionsModal(props: ManagePermissionsModalProps) {
-    const {
-        asset,
-        initialPermissions,
-        usersPermissions: initialUsersPermissions,
-        setUsersPermissions: outerSetUsersPermissions,
-        user: rawUser,
-        eventTarget,
-    } = props
+    const { item, setItem, eventTarget } = props
     const { organization } = auth.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
     const toastAndLog = hooks.useToastAndLog()
-    const [usernamesOrEmails, setUsernamesOrEmails] = React.useState(
-        rawUser != null ? [rawUser.user_name] : []
-    )
-    const [permissions, setPermissions] = React.useState(initialPermissions)
+    const [usernamesOrEmails, setUsernamesOrEmails] = React.useState<string[]>([])
+    const [action, setAction] = React.useState(backendModule.PermissionAction.view)
     const emailValidityRef = React.useRef<HTMLInputElement>(null)
     const position = React.useMemo(() => eventTarget.getBoundingClientRect(), [eventTarget])
-    const [usersPermissions, setUsersPermissions] = React.useState(initialUsersPermissions)
     const usernamesOfUsersWithPermission = React.useMemo(
-        () => new Set(usersPermissions.map(userPermission => userPermission.user.user_name)),
-        [usersPermissions]
+        () => new Set(item.permissions?.map(userPermission => userPermission.user.user_name)),
+        [item.permissions]
     )
     const emailsOfUsersWithPermission = React.useMemo(
         () =>
-            new Set<string>(usersPermissions.map(userPermission => userPermission.user.user_email)),
-        [usersPermissions]
+            new Set<string>(
+                item.permissions?.map(userPermission => userPermission.user.user_email)
+            ),
+        [item.permissions]
     )
 
     if (backend.type === backendModule.BackendType.local || organization == null) {
@@ -157,7 +144,7 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
                         const newUser = usersMap[usernameOrEmail]
                         return newUser != null ? [newUser] : []
                     })
-                    .map<backendModule.UserPermissions>(newUser => ({
+                    .map<backendModule.UserPermission>(newUser => ({
                         user: {
                             // The names come from a third-party API and cannot be
                             // changed.
@@ -168,15 +155,15 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
                             user_name: newUser.name,
                             /* eslint-enable @typescript-eslint/naming-convention */
                         },
-                        permissions,
+                        permission: action,
                     }))
                 const addedUsersPermissionsMap = new Map(
                     addedUsersPermissions.map(newUser => [newUser.user.pk, newUser])
                 )
-                const oldUsersPermissions = usersPermissions
+                const oldUsersPermissions = item.permissions
                 try {
                     const newUsersPermissions = [
-                        ...usersPermissions.map(oldUserPermissions => {
+                        ...(item.permissions ?? []).map(oldUserPermissions => {
                             const newUserPermissions = addedUsersPermissionsMap.get(
                                 oldUserPermissions.user.pk
                             )
@@ -189,16 +176,14 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
                         }),
                         ...addedUsersPermissionsMap.values(),
                     ]
-                    setUsersPermissions(newUsersPermissions)
-                    outerSetUsersPermissions(newUsersPermissions)
+                    setItem(oldItem => ({ ...oldItem, permissions: newUsersPermissions }))
                     await backend.createPermission({
                         userSubjects: [...addedUsersPermissionsMap.keys()],
-                        resourceId: asset.id,
-                        actions: backendModule.permissionsToPermissionActions(permissions),
+                        resourceId: item.id,
+                        action: action,
                     })
                 } catch (error) {
-                    setUsersPermissions(oldUsersPermissions)
-                    outerSetUsersPermissions(oldUsersPermissions)
+                    setItem(oldItem => ({ ...oldItem, permissions: oldUsersPermissions }))
                     const userEmails = Object.values(usersMap).map(user => `'${user.email}'`)
                     toastAndLog(`Unable to set permissions of ${userEmails.join(', ')}`, error)
                 }
@@ -206,21 +191,20 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
         }
 
         const doDelete = async (userToDelete: backendModule.User) => {
-            const oldUsersPermissions = usersPermissions
+            const oldUsersPermissions = item.permissions
             try {
-                const newUsersPermissions = usersPermissions.filter(
-                    oldUserPermissions => oldUserPermissions.user.pk !== userToDelete.pk
-                )
-                setUsersPermissions(newUsersPermissions)
-                outerSetUsersPermissions(newUsersPermissions)
+                const newUsersPermissions =
+                    item.permissions?.filter(
+                        oldUserPermissions => oldUserPermissions.user.pk !== userToDelete.pk
+                    ) ?? []
+                setItem(oldItem => ({ ...oldItem, permissions: newUsersPermissions }))
                 await backend.createPermission({
                     userSubjects: [userToDelete.pk],
-                    resourceId: asset.id,
-                    actions: [],
+                    resourceId: item.id,
+                    action: null,
                 })
             } catch (error) {
-                setUsersPermissions(oldUsersPermissions)
-                outerSetUsersPermissions(oldUsersPermissions)
+                setItem(oldItem => ({ ...oldItem, permissions: oldUsersPermissions }))
                 toastAndLog(`Unable to set permissions of '${userToDelete.user_email}'`, error)
             }
         }
@@ -259,9 +243,9 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
                             <div className="flex items-center grow rounded-full border border-black-a10 gap-2 px-1">
                                 <PermissionSelector
                                     disabled={willInviteNewUser}
-                                    initialPermissions={initialPermissions}
-                                    assetType={asset.type}
-                                    onChange={setPermissions}
+                                    action={backendModule.PermissionAction.view}
+                                    assetType={item.type}
+                                    onChange={setAction}
                                 />
                                 <input
                                     readOnly
@@ -276,7 +260,6 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
                                     maxItemsToShow={MAX_AUTOCOMPLETE_ITEMS_TO_SHOW}
                                     autoFocus
                                     placeholder="Type usernames or emails to search or invite"
-                                    disabled={rawUser != null}
                                     type="text"
                                     itemNamePlural="users"
                                     values={usernamesOrEmails}
@@ -318,27 +301,28 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
                             </button>
                         </form>
                         <div className="overflow-auto pl-1 pr-12 max-h-80">
-                            {usersPermissions.map(userPermissions => (
+                            {(item.permissions ?? []).map(userPermissions => (
                                 <div
                                     key={userPermissions.user.pk}
                                     className="flex items-center h-8"
                                 >
                                     <UserPermissions
-                                        asset={asset}
-                                        userPermissions={userPermissions}
-                                        setUserPermissions={newUserPermissions => {
-                                            setUsersPermissions(oldUsersPermissions => {
-                                                const newUsersPermissions = oldUsersPermissions.map(
-                                                    oldUserPermissions =>
-                                                        oldUserPermissions.user.pk ===
-                                                        newUserPermissions.user.pk
-                                                            ? newUserPermissions
-                                                            : oldUserPermissions
+                                        asset={item}
+                                        userPermission={userPermissions}
+                                        setUserPermission={newUserPermission => {
+                                            setItem(oldItem => {
+                                                const newUsersPermissions = (
+                                                    oldItem.permissions ?? []
+                                                ).map(oldUserPermissions =>
+                                                    oldUserPermissions.user.pk ===
+                                                    newUserPermission.user.pk
+                                                        ? newUserPermission
+                                                        : oldUserPermissions
                                                 )
-                                                setTimeout(() => {
-                                                    outerSetUsersPermissions(newUsersPermissions)
-                                                }, 0)
-                                                return newUsersPermissions
+                                                return {
+                                                    ...oldItem,
+                                                    permissions: newUsersPermissions,
+                                                }
                                             })
                                         }}
                                         doDelete={doDelete}

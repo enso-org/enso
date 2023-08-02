@@ -2,7 +2,6 @@
 
 import * as dateTime from './dateTime'
 import * as newtype from '../newtype'
-import * as permissionsModule from './permissions'
 
 // =============
 // === Types ===
@@ -289,21 +288,20 @@ export interface SimpleUser {
 /** Backend representation of user permission types. */
 export enum PermissionAction {
     own = 'Own',
-    execute = 'Execute',
+    admin = 'Admin',
     edit = 'Edit',
+    read = 'Read',
+    readAndDocs = 'Read_docs',
+    readAndExec = 'Read_exec',
     view = 'View',
+    viewAndDocs = 'View_docs',
+    viewAndExec = 'View_exec',
 }
 
 /** User permission for a specific user. */
 export interface UserPermission {
     user: User
     permission: PermissionAction
-}
-
-/** User permissions for a specific user. This is only returned by {@link groupPermissionsByUser}. */
-export interface UserPermissions {
-    user: User
-    permissions: permissionsModule.Permissions
 }
 
 /** The type returned from the "update directory" endpoint. */
@@ -448,7 +446,7 @@ export interface InviteUserRequestBody {
 export interface CreatePermissionRequestBody {
     userSubjects: Subject[]
     resourceId: AssetId
-    actions: PermissionAction[]
+    action: PermissionAction | null
 }
 
 /** HTTP request body for the "create directory" endpoint. */
@@ -554,83 +552,6 @@ export function rootDirectoryId(userOrOrganizationId: UserOrOrganizationId) {
  * This is useful to avoid React re-renders as it is not re-created on each function call. */
 export function getAssetId<Type extends AssetType>(asset: Asset<Type>) {
     return asset.id
-}
-
-// ==============================
-// === groupPermissionsByUser ===
-// ==============================
-
-/** Converts an array of {@link UserPermission}s to an array of {@link UserPermissions}. */
-export function groupPermissionsByUser(permissions: UserPermission[]) {
-    const users: UserPermissions[] = []
-    const userMap: Record<Subject, UserPermissions> = {}
-    for (const permission of permissions) {
-        let user = userMap[permission.user.pk]
-        if (user == null) {
-            user = {
-                user: permission.user,
-                permissions: { ...permissionsModule.DEFAULT_PERMISSIONS },
-            }
-            userMap[permission.user.pk] = user
-            users.push(user)
-        }
-        switch (permission.permission) {
-            case PermissionAction.own: {
-                user.permissions = { type: permissionsModule.Permission.owner }
-                break
-            }
-            case PermissionAction.execute: {
-                if ('execute' in user.permissions) {
-                    user.permissions.execute = true
-                }
-                break
-            }
-            case PermissionAction.edit: {
-                user.permissions = { type: permissionsModule.Permission.edit }
-                break
-            }
-            case PermissionAction.view: {
-                user.permissions = {
-                    type: permissionsModule.Permission.view,
-                    docs: false,
-                    execute: 'execute' in user.permissions && user.permissions.execute,
-                }
-                break
-            }
-        }
-    }
-    return users
-}
-
-// ======================================
-// === permissionsToPermissionActions ===
-// ======================================
-
-/** Converts a {@link Permissions} to a list of backend {@link PermissionAction}s. */
-export function permissionsToPermissionActions(
-    permissions: permissionsModule.Permissions
-): PermissionAction[] {
-    switch (permissions.type) {
-        case permissionsModule.Permission.admin:
-        case permissionsModule.Permission.owner: {
-            return [PermissionAction.own]
-        }
-        case permissionsModule.Permission.edit: {
-            return [PermissionAction.edit]
-        }
-        case permissionsModule.Permission.read: {
-            return [
-                PermissionAction.view,
-                ...(permissions.execute ? [PermissionAction.execute] : []),
-            ]
-        }
-        case permissionsModule.Permission.view: {
-            return [
-                PermissionAction.view,
-                ...(permissions.execute ? [PermissionAction.execute] : []),
-            ]
-        }
-    }
 }
 
 // ===============

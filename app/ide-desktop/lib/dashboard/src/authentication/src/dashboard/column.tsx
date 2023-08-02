@@ -13,7 +13,6 @@ import * as authProvider from '../authentication/providers/auth'
 import * as backend from './backend'
 import * as dateTime from './dateTime'
 import * as modalProvider from '../providers/modal'
-import * as permissionsModule from './permissions'
 import * as tableColumn from './components/tableColumn'
 import * as uniqueString from '../uniqueString'
 
@@ -141,7 +140,7 @@ function LastModifiedColumn(props: AssetColumnProps<backend.AnyAsset>) {
 
 /** Props for a {@link UserPermissionDisplay}. */
 interface InternalUserPermissionDisplayProps {
-    user: backend.UserPermissions
+    user: backend.UserPermission
 }
 
 // =============================
@@ -151,14 +150,14 @@ interface InternalUserPermissionDisplayProps {
 /** Displays permissions for a user on a specific asset. */
 function UserPermissionDisplay(props: InternalUserPermissionDisplayProps) {
     const { user } = props
-    const [permissions, setPermissions] = React.useState(user.permissions)
+    const [permissions, setPermissions] = React.useState(user.permission)
 
     React.useEffect(() => {
-        setPermissions(user.permissions)
-    }, [user.permissions])
+        setPermissions(user.permission)
+    }, [user.permission])
 
     return (
-        <PermissionDisplay key={user.user.pk} permissions={permissions}>
+        <PermissionDisplay key={user.user.pk} action={permissions}>
             {user.user.user_name}
         </PermissionDisplay>
     )
@@ -170,12 +169,9 @@ function UserPermissionDisplay(props: InternalUserPermissionDisplayProps) {
 
 /** A column listing the users with which this asset is shared. */
 function SharedWithColumn(props: AssetColumnProps<backend.AnyAsset>) {
-    const { item } = props
+    const { item, setItem } = props
     const session = authProvider.useNonPartialUserSession()
     const { setModal } = modalProvider.useSetModal()
-    const [usersPermissions, setUsersPermissions] = React.useState(() =>
-        backend.groupPermissionsByUser(item.permissions ?? [])
-    )
     const [isHovered, setIsHovered] = React.useState(false)
     const selfPermission = item.permissions?.find(
         permission => permission.user.user_email === session.organization?.email
@@ -191,7 +187,7 @@ function SharedWithColumn(props: AssetColumnProps<backend.AnyAsset>) {
                 setIsHovered(false)
             }}
         >
-            {usersPermissions.map(user => (
+            {(item.permissions ?? []).map(user => (
                 <UserPermissionDisplay key={user.user.user_email} user={user} />
             ))}
             {ownsThisAsset && isHovered && (
@@ -201,10 +197,8 @@ function SharedWithColumn(props: AssetColumnProps<backend.AnyAsset>) {
                         setModal(
                             <ManagePermissionsModal
                                 key={uniqueString.uniqueString()}
-                                asset={item}
-                                initialPermissions={permissionsModule.DEFAULT_PERMISSIONS}
-                                usersPermissions={usersPermissions}
-                                setUsersPermissions={setUsersPermissions}
+                                item={item}
+                                setItem={setItem}
                                 eventTarget={event.currentTarget}
                             />
                         )

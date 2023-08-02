@@ -29,10 +29,10 @@ export interface PermissionSelectorProps {
     allowDelete?: boolean
     disabled?: boolean
     /** If this prop changes, the internal state will be updated too. */
-    initialPermissions?: permissionsModule.Permissions | null
+    action: backend.PermissionAction
     assetType: backend.AssetType
     className?: string
-    onChange: (permissions: permissionsModule.Permissions) => void
+    onChange: (action: backend.PermissionAction) => void
     doDelete?: () => void
 }
 
@@ -41,20 +41,19 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
     const {
         allowDelete = false,
         disabled = false,
-        initialPermissions,
+        action: actionRaw,
         assetType,
         className,
         onChange,
         doDelete,
     } = props
-    const [permissions, rawSetPermissions] = React.useState<permissionsModule.Permissions>(
-        initialPermissions ?? permissionsModule.DEFAULT_PERMISSIONS
-    )
+    const [action, setActionRaw] = React.useState(actionRaw)
     const [TheChild, setTheChild] = React.useState<(() => JSX.Element) | null>()
+    const permission = permissionsModule.FROM_PERMISSION_ACTION[action]
 
-    const setPermissions = (newPermissions: permissionsModule.Permissions) => {
-        rawSetPermissions(newPermissions)
-        onChange(newPermissions)
+    const setAction = (newAction: backend.PermissionAction) => {
+        setActionRaw(newAction)
+        onChange(newAction)
     }
 
     const doShowPermissionTypeSelector = (event: React.SyntheticEvent<HTMLElement>) => {
@@ -92,32 +91,18 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
                               <div style={{ clipPath }} className="absolute bg-dim w-full h-full" />
                               <PermissionTypeSelector
                                   allowDelete={allowDelete}
-                                  type={permissions.type}
+                                  type={permission.type}
                                   assetType={assetType}
                                   style={{ left, top }}
                                   onChange={type => {
                                       setTheChild(null)
-                                      let newPermissions: permissionsModule.Permissions
-                                      switch (type) {
-                                          case permissionsModule.Permission.read:
-                                          case permissionsModule.Permission.view: {
-                                              newPermissions = {
-                                                  type,
-                                                  docs: false,
-                                                  execute: false,
-                                              }
-                                              break
-                                          }
-                                          case permissionsModule.Permission.delete: {
-                                              doDelete?.()
-                                              return
-                                          }
-                                          default: {
-                                              newPermissions = { type }
-                                              break
-                                          }
+                                      if (type === permissionsModule.Permission.delete) {
+                                          doDelete?.()
+                                      } else {
+                                          setAction(
+                                              permissionsModule.TYPE_TO_PERMISSION_ACTION[type]
+                                          )
                                       }
-                                      setPermissions(newPermissions)
                                   }}
                               />
                           </Modal>
@@ -128,7 +113,7 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
 
     let permissionDisplay: JSX.Element
 
-    switch (permissions.type) {
+    switch (permission.type) {
         case permissionsModule.Permission.read:
         case permissionsModule.Permission.view: {
             permissionDisplay = (
@@ -137,11 +122,11 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
                         type="button"
                         disabled={disabled}
                         className={`${
-                            permissionsModule.PERMISSION_CLASS_NAME[permissions.type]
+                            permissionsModule.PERMISSION_CLASS_NAME[permission.type]
                         } grow rounded-l-full h-6 px-1.75 py-0.5 disabled:opacity-30`}
                         onClick={doShowPermissionTypeSelector}
                     >
-                        {permissions.type}
+                        {permission.type}
                     </button>
                     <button
                         type="button"
@@ -149,11 +134,17 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
                         className={`${
                             permissionsModule.DOCS_CLASS_NAME
                         } grow h-6 px-1.75 py-0.5 disabled:opacity-30 ${
-                            permissions.docs ? '' : 'opacity-30'
+                            permission.docs ? '' : 'opacity-30'
                         }`}
                         onClick={event => {
                             event.stopPropagation()
-                            setPermissions({ ...permissions, docs: !permissions.docs })
+                            setAction(
+                                permissionsModule.toPermissionAction({
+                                    type: permission.type,
+                                    execute: permission.execute && !permission.docs,
+                                    docs: !permission.docs,
+                                })
+                            )
                         }}
                     >
                         docs
@@ -164,11 +155,17 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
                         className={`${
                             permissionsModule.EXEC_CLASS_NAME
                         } grow rounded-r-full h-6 px-1.75 py-0.5 disabled:opacity-30 ${
-                            permissions.execute ? '' : 'opacity-30'
+                            permission.execute ? '' : 'opacity-30'
                         }`}
                         onClick={event => {
                             event.stopPropagation()
-                            setPermissions({ ...permissions, execute: !permissions.execute })
+                            setAction(
+                                permissionsModule.toPermissionAction({
+                                    type: permission.type,
+                                    execute: !permission.execute,
+                                    docs: permission.docs && !permission.execute,
+                                })
+                            )
                         }}
                     >
                         exec
@@ -183,11 +180,11 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
                     type="button"
                     disabled={disabled}
                     className={`${
-                        permissionsModule.PERMISSION_CLASS_NAME[permissions.type]
+                        permissionsModule.PERMISSION_CLASS_NAME[permission.type]
                     } rounded-full h-6 w-30.25 disabled:opacity-30`}
                     onClick={doShowPermissionTypeSelector}
                 >
-                    {permissions.type}
+                    {permission.type}
                 </button>
             )
             break
