@@ -47,6 +47,7 @@ import * as localBackend from '../dashboard/localBackend'
 
 import * as authProvider from '../authentication/providers/auth'
 import * as backendProvider from '../providers/backend'
+import * as localStorageProvider from '../providers/localStorage'
 import * as loggerProvider from '../providers/logger'
 import * as modalProvider from '../providers/modal'
 import * as sessionProvider from '../authentication/providers/session'
@@ -215,7 +216,11 @@ function AppRouter(props: AppProps) {
                         authService={authService}
                         onAuthenticated={onAuthenticated}
                     >
-                        <modalProvider.ModalProvider>{routes}</modalProvider.ModalProvider>
+                        <modalProvider.ModalProvider>
+                            <localStorageProvider.LocalStorageProvider>
+                                {routes}
+                            </localStorageProvider.LocalStorageProvider>
+                        </modalProvider.ModalProvider>
                     </authProvider.AuthProvider>
                 </backendProvider.BackendProvider>
             </sessionProvider.SessionProvider>

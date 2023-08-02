@@ -13,7 +13,7 @@ export interface LocalStorageContextType {
     localStorage: localStorageModule.LocalStorage
 }
 
-// @ts-expect-error The default value will never be exposed as using this without a `Provider`
+// @ts-expect-error The default value will never be exposed, as using this without a `Provider`
 // is a mistake.
 const LocalStorageContext = React.createContext<LocalStorageContextType>(null)
 

@@ -116,6 +116,24 @@ export default function Dashboard(props: DashboardProps) {
     ])
 
     React.useEffect(() => {
+        const savedProject = localStorage.get(
+            localStorageModule.LocalStorageKey.currentlyOpenProject
+        )
+        if (savedProject != null) {
+            setProject(savedProject)
+        }
+    }, [/* should never change */ localStorage])
+
+    React.useEffect(() => {
+        if (project != null) {
+            localStorage.set(localStorageModule.LocalStorageKey.currentlyOpenProject, project)
+        }
+        return () => {
+            localStorage.delete(localStorageModule.LocalStorageKey.currentlyOpenProject)
+        }
+    }, [project, /* should never change */ localStorage])
+
+    React.useEffect(() => {
         if (
             supportsLocalBackend &&
             session.type !== authProvider.UserSessionType.offline &&
