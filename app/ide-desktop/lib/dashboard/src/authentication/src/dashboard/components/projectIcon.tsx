@@ -214,7 +214,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
             case assetEventModule.AssetEventType.openProject: {
                 if (event.id !== item.id) {
                     setShouldOpenWhenReady(false)
-                    if (state === backendModule.ProjectState.opened) {
+                    if (state !== backendModule.ProjectState.closed) {
                         void closeProject(false)
                     }
                 } else {
@@ -224,12 +224,11 @@ export default function ProjectIcon(props: ProjectIconProps) {
                 break
             }
             case assetEventModule.AssetEventType.cancelOpeningAllProjects: {
-                // `CheckState` should not be set to `notChecking`, as there is currently no way
-                // to actually cancel an open action. Instead, the project should not be opened
-                // automatically.
                 setShouldOpenWhenReady(false)
                 onSpinnerStateChange?.(null)
                 setOnSpinnerStateChange(null)
+                setCheckState(CheckState.notChecking)
+                void closeProject(false)
                 break
             }
             case assetEventModule.AssetEventType.createProject: {

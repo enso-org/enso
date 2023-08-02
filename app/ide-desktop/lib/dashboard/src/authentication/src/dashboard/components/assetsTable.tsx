@@ -109,7 +109,11 @@ function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
             ) {
                 if (item.projectState.type !== backendModule.ProjectState.closed) {
                     await backend.openProject(item.id, null, item.title)
+                }
+                try {
                     await backend.closeProject(item.id, item.title)
+                } catch {
+                    // Ignored. The project was already closed.
                 }
             }
             await backend.deleteAsset(item)
