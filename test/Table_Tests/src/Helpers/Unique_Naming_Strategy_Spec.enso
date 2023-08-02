@@ -10,6 +10,7 @@ from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 
 spec =
+    no_limit = Unlimited_Naming_Properties.Instance
     Test.group 'Unique_Name_Strategy Helper' <|
         Test.specify 'should change an empty name to "Column"' <|
             strategy = Unique_Name_Strategy.new no_limit
@@ -234,7 +235,5 @@ spec =
             third = ["B", "A", "P_B", "X", "P_B 1", "P_B 2"]
             r3 = Unique_Name_Strategy.new no_limit . combine_with_prefix first third "P_"
             r3 . should_equal ["P_B 3", "P_A", "P_B", "X", "P_B 1", "P_B 2"]
-
-no_limit = Unlimited_Naming_Properties.Instance
 
 main = Test_Suite.run_main spec
