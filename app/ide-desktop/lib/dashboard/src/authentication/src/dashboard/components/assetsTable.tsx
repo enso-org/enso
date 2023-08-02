@@ -103,6 +103,15 @@ function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
     const doDelete = async () => {
         setPresence(presenceModule.Presence.deleting)
         try {
+            if (
+                item.type === backendModule.AssetType.project &&
+                backend.type === backendModule.BackendType.local
+            ) {
+                if (item.projectState.type !== backendModule.ProjectState.closed) {
+                    await backend.openProject(item.id, null, item.title)
+                    await backend.closeProject(item.id, item.title)
+                }
+            }
             await backend.deleteAsset(item)
             dispatchAssetListEvent({
                 type: assetListEventModule.AssetListEventType.delete,

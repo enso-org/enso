@@ -3,7 +3,6 @@ import * as React from 'react'
 
 import * as assetEventModule from '../events/assetEvent'
 import * as backendModule from '../backend'
-import * as backendProvider from '../../providers/backend'
 import * as modalProvider from '../../providers/modal'
 
 import * as assetContextMenu from './assetContextMenu'
@@ -34,12 +33,8 @@ export default function ProjectContextMenu(props: ProjectContextMenuProps) {
         dispatchAssetEvent,
         doDelete,
     } = props
-    const { backend } = backendProvider.useBackend()
     const { setModal, unsetModal } = modalProvider.useSetModal()
 
-    const isDeleteDisabled =
-        backend.type === backendModule.BackendType.local &&
-        item.projectState.type !== backendModule.ProjectState.closed
     const doOpenForEditing = () => {
         unsetModal()
         dispatchAssetEvent({
@@ -59,12 +54,6 @@ export default function ProjectContextMenu(props: ProjectContextMenuProps) {
             <ContextMenuEntry onClick={doOpenForEditing}>Open for editing</ContextMenuEntry>
             <ContextMenuEntry onClick={doRename}>Rename</ContextMenuEntry>
             <ContextMenuEntry
-                disabled={isDeleteDisabled}
-                {...(isDeleteDisabled
-                    ? {
-                          title: 'This project is still running.',
-                      }
-                    : {})}
                 onClick={() => {
                     setModal(
                         <ConfirmDeleteModal
