@@ -1,5 +1,6 @@
 /** @file A modal with inputs for user email and permission level. */
 import * as React from 'react'
+import * as toast from 'react-toastify'
 
 import * as auth from '../../authentication/providers/auth'
 import * as backendModule from '../backend'
@@ -109,6 +110,7 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
                         organizationId: organization.id,
                         userEmail: backendModule.EmailAddress(usernameOrEmail),
                     })
+                    toast.toast.success(`You've invited ${usernameOrEmail} to join Enso!`)
                 } catch (error) {
                     toastAndLog('Could not invite user', error)
                 }
