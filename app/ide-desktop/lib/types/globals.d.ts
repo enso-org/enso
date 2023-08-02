@@ -48,6 +48,7 @@ interface AuthenticationApi {
 
 // JSDocs here are intentionally empty as these interfaces originate from elsewhere.
 declare global {
+    // Documentation is already inherited.
     /** */
     interface Window {
         enso?: AppRunner & Enso
@@ -55,7 +56,7 @@ declare global {
     }
 
     namespace NodeJS {
-        /** */
+        /** Environment variables. */
         interface ProcessEnv {
             /* eslint-disable @typescript-eslint/naming-convention */
             APPLEID: string

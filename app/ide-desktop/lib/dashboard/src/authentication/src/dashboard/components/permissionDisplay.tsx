@@ -4,9 +4,9 @@ import * as React from 'react'
 import * as backend from '../backend'
 import * as permissionsModule from '../permissions'
 
-// ======================
-// === permissionsToX ===
-// ======================
+// ======================================
+// === permissionActionsToPermissions ===
+// ======================================
 
 /** Converts an array of {@link backend.PermissionAction} to a {@link permissionsModule.Permissions}. */
 export function permissionActionsToPermissions(

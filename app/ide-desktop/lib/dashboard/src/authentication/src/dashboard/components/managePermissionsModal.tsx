@@ -205,7 +205,7 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
                     <div className="flex flex-col rounded-2xl gap-2 p-2">
                         <div>
                             <h2 className="text-sm font-bold">Invite</h2>
-                            {/* Space reserved for other tabs */}
+                            {/* Space reserved for other tabs. */}
                         </div>
                         <div className="flex gap-1">
                             <div className="flex items-center grow rounded-full border border-black-a10 gap-2 px-1">

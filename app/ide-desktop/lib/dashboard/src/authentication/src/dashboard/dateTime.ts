@@ -1,4 +1,4 @@
-/** @file Utilities for manipulating and displaying dates and times */
+/** @file Utilities for manipulating and displaying dates and times. */
 import * as newtype from '../newtype'
 
 // =================
@@ -19,7 +19,7 @@ export type Rfc3339DateTime = newtype.Newtype<string, 'Rfc3339DateTime'>
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const Rfc3339DateTime = newtype.newtypeConstructor<Rfc3339DateTime>()
 
-/** Formats date time into the preferred format: `YYYY-MM-DD, hh:mm`. */
+/** Format a {@link Date} into the preferred format: `YYYY-MM-DD, hh:mm`. */
 export function formatDateTime(date: Date) {
     const year = date.getFullYear()
     const month = (date.getMonth() + 1).toString().padStart(2, '0')
@@ -29,8 +29,7 @@ export function formatDateTime(date: Date) {
     return `${year}-${month}-${dayOfMonth}, ${hour}:${minute}`
 }
 
-// TODO[sb]: Is this DD/MM/YYYY or MM/DD/YYYY?
-/** Formats date time into the preferred chat-frienly format: `DD/MM/YYYY, hh:mm PM`. */
+/** Format a {@link Date} into the preferred chat-frienly format: `DD/MM/YYYY, hh:mm PM`. */
 export function formatDateTimeChatFriendly(date: Date) {
     const year = date.getFullYear()
     const month = (date.getMonth() + 1).toString().padStart(2, '0')
@@ -46,7 +45,7 @@ export function formatDateTimeChatFriendly(date: Date) {
     return `${dayOfMonth}/${month}/${year} ${hour}:${minute} ${amOrPm}`
 }
 
-/** Formats a {@link Date} as a {@link Rfc3339DateTime}  */
+/** Format a {@link Date} as a {@link Rfc3339DateTime}. */
 export function toRfc3339(date: Date) {
     return Rfc3339DateTime(date.toISOString())
 }

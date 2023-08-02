@@ -108,7 +108,7 @@ export interface AuthConfig {
 export interface AuthService {
     /** @see {@link cognito.Cognito}. */
     cognito: cognito.Cognito
-    /** @see {@link listen.ListenFunction} */
+    /** @see {@link listen.ListenFunction}. */
     registerAuthEventListener: listen.ListenFunction
 }
 

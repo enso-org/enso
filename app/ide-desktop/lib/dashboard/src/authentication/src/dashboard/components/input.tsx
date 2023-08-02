@@ -5,7 +5,7 @@ import * as React from 'react'
 // === Input ===
 // =============
 
-/** Props for an `<input>` HTML element/ */
+/** Props for an `<input>` HTML element. */
 type InputAttributes = JSX.IntrinsicElements['input']
 
 /** Props for an {@link Input}. */

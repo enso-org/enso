@@ -53,7 +53,7 @@ export type SecretId = newtype.Newtype<string, 'SecretId'>
 /** Create a {@link SecretId}. */
 export const SecretId = newtype.newtypeConstructor<SecretId>()
 
-/** Unique identifier for an arbitrary asset */
+/** Unique identifier for an arbitrary asset. */
 export type AssetId = IdType[keyof IdType]
 
 /** Unique identifier for a file tag or project tag. */
@@ -119,7 +119,7 @@ export interface ProjectStateType {
     type: ProjectState
 }
 
-/** Common `Project` fields returned by all `Project`-related endpoints.  */
+/** Common `Project` fields returned by all `Project`-related endpoints. */
 export interface BaseProject {
     organizationId: string
     projectId: ProjectId

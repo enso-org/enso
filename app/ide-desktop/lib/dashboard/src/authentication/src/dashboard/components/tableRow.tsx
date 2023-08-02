@@ -14,7 +14,7 @@ interface StateProp<State> {
     state: State
 }
 
-/** `tablerowState` and `setTableRowState` */
+/** `tablerowState` and `setTableRowState`. */
 interface InternalTableRowStateProps<TableRowState> {
     rowState: TableRowState
     setRowState: React.Dispatch<React.SetStateAction<TableRowState>>
@@ -153,8 +153,8 @@ export default function TableRow<T, State = never, RowState = never, Key extends
                             setSelected={setSelected}
                             /** This is SAFE, as the type is defined such that they MUST be
                              * present if it is specified as a generic parameter.
-                             * See the type definitions of {@link TableRowProps} and {@link TableProps}.
-                             */
+                             * See the type definitions of {@link TableRowProps} and
+                             * {@link TableProps}. */
                             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                             state={state!}
                             rowState={rowState}

@@ -22,7 +22,7 @@ import Twemoji from './twemoji'
 // === Newtypes ===
 // ================
 
-/** Create a {@link chat.MessageId} */
+/** Create a {@link chat.MessageId}. */
 const MessageId = newtype.newtypeConstructor<chat.MessageId>()
 
 // =================

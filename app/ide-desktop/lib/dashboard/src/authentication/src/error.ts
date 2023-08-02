@@ -35,7 +35,7 @@ export function tryGetMessage(error: unknown): string | null {
 }
 
 /** Like {@link tryGetMessage} but return the string representation of the value if it is not an
- * {@link Error} */
+ * {@link Error}. */
 export function getMessageOrToString<T>(error: MustNotBeKnown<T>) {
     return tryGetMessage(error) ?? String(error)
 }
