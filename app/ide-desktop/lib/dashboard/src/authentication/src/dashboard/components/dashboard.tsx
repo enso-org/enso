@@ -35,6 +35,8 @@ import TopBar from './topBar'
 
 /** The `id` attribute of the element into which the IDE will be rendered. */
 const IDE_ELEMENT_ID = 'root'
+/** The `id` attribute of the loading spinner element. */
+const LOADER_ELEMENT_ID = 'loader'
 
 // =================
 // === Dashboard ===
@@ -121,6 +123,26 @@ export default function Dashboard(props: DashboardProps) {
         )
         if (savedProject != null) {
             setProject(savedProject)
+            // A workaround to hide the spinner, when the previous project is being loaded in the
+            // background. This `MutationObserver` is disconnected when the loader is removed from
+            // the DOM.
+            const observer = new MutationObserver(mutations => {
+                for (const mutation of mutations) {
+                    for (const node of Array.from(mutation.addedNodes)) {
+                        if (node instanceof HTMLElement && node.id === LOADER_ELEMENT_ID) {
+                            document.body.style.cursor = 'auto'
+                            node.style.display = 'none'
+                        }
+                    }
+                    for (const node of Array.from(mutation.removedNodes)) {
+                        if (node instanceof HTMLElement && node.id === LOADER_ELEMENT_ID) {
+                            document.body.style.cursor = 'auto'
+                            observer.disconnect()
+                        }
+                    }
+                }
+            })
+            observer.observe(document.body, { childList: true })
         }
     }, [/* should never change */ localStorage])
 
