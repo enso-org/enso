@@ -71,10 +71,11 @@ export enum CheckState {
 
 /** Props for a {@link ProjectIcon}. */
 export interface ProjectIconProps {
+    keyProp: string
     project: backendModule.ProjectAsset
     rowState: assetsTable.AssetRowState
     setRowState: React.Dispatch<React.SetStateAction<assetsTable.AssetRowState>>
-    assetEvent: assetEventModule.AssetEvent | null
+    assetEvents: assetEventModule.AssetEvent[]
     /** Called when the project is opened via the {@link ProjectIcon}. */
     doOpenManually: (projectId: backendModule.ProjectId) => void
     onClose: () => void
@@ -85,10 +86,11 @@ export interface ProjectIconProps {
 /** An interactive icon indicating the status of a project. */
 export default function ProjectIcon(props: ProjectIconProps) {
     const {
+        keyProp: key,
         project,
         rowState,
         setRowState,
-        assetEvent,
+        assetEvents,
         appRunner,
         doOpenManually,
         onClose,
@@ -98,9 +100,9 @@ export default function ProjectIcon(props: ProjectIconProps) {
     const { unsetModal } = modalProvider.useSetModal()
 
     const shouldCheckIfActuallyOpen =
-        backend.type === backendModule.BackendType.remote &&
-        (project.projectState.type === backendModule.ProjectState.opened ||
-            project.projectState.type === backendModule.ProjectState.openInProgress)
+        project.projectState.type === backendModule.ProjectState.openInProgress ||
+        (backend.type === backendModule.BackendType.remote &&
+            project.projectState.type === backendModule.ProjectState.opened)
 
     const [state, setState] = React.useState(() => {
         if (shouldCheckIfActuallyOpen) {
@@ -111,6 +113,9 @@ export default function ProjectIcon(props: ProjectIconProps) {
     })
     const [checkState, setCheckState] = React.useState(CheckState.notChecking)
     const [spinnerState, setSpinnerState] = React.useState(REMOTE_SPINNER_STATE[state])
+    const [onSpinnerStateChange, setOnSpinnerStateChange] = React.useState<
+        ((state: spinner.SpinnerState | null) => void) | null
+    >(null)
     const [shouldOpenWhenReady, setShouldOpenWhenReady] = React.useState(false)
     const [toastId, setToastId] = React.useState<toast.Id | null>(null)
 
@@ -165,8 +170,18 @@ export default function ProjectIcon(props: ProjectIconProps) {
                     ? REMOTE_SPINNER_STATE[state]
                     : LOCAL_SPINNER_STATE[state]
             setSpinnerState(newSpinnerState)
+            onSpinnerStateChange?.(
+                state === backendModule.ProjectState.closed ? null : newSpinnerState
+            )
         })
-    }, [state, backend.type])
+    }, [state, backend.type, onSpinnerStateChange])
+
+    React.useEffect(() => {
+        onSpinnerStateChange?.(spinner.SpinnerState.initial)
+        return () => {
+            onSpinnerStateChange?.(null)
+        }
+    }, [onSpinnerStateChange])
 
     React.useEffect(() => {
         if (toastId != null && state !== backendModule.ProjectState.openInProgress) {
@@ -181,15 +196,22 @@ export default function ProjectIcon(props: ProjectIconProps) {
         }
     }, [shouldCheckIfActuallyOpen])
 
-    hooks.useEventHandler(assetEvent, event => {
+    hooks.useEventHandler(assetEvents, event => {
         switch (event.type) {
-            default: {
-                // Ignore; all other events are handled by `ProjectRow`.
+            case assetEventModule.AssetEventType.createDirectory:
+            case assetEventModule.AssetEventType.uploadFiles:
+            case assetEventModule.AssetEventType.createSecret:
+            case assetEventModule.AssetEventType.deleteMultiple: {
+                // Ignored. Any missing project-related events should be handled by
+                // `ProjectNameColumn`. `deleteMultiple` is handled by `AssetRow`.
                 break
             }
             case assetEventModule.AssetEventType.openProject: {
                 if (event.id !== project.id) {
                     setShouldOpenWhenReady(false)
+                    if (state === backendModule.ProjectState.opened) {
+                        void closeProject(false)
+                    }
                 } else {
                     setShouldOpenWhenReady(true)
                     void openProject()
@@ -201,11 +223,16 @@ export default function ProjectIcon(props: ProjectIconProps) {
                 // to actually cancel an open action. Instead, the project should not be opened
                 // automatically.
                 setShouldOpenWhenReady(false)
+                onSpinnerStateChange?.(null)
+                setOnSpinnerStateChange(null)
                 break
             }
             case assetEventModule.AssetEventType.createProject: {
-                if (event.placeholderId === project.id) {
+                if (event.placeholderId === key) {
                     setState(backendModule.ProjectState.openInProgress)
+                    setOnSpinnerStateChange(() => event.onSpinnerStateChange)
+                } else if (event.onSpinnerStateChange === onSpinnerStateChange) {
+                    setOnSpinnerStateChange(null)
                 }
                 break
             }
@@ -268,9 +295,8 @@ export default function ProjectIcon(props: ProjectIconProps) {
                 let previousTimestamp = 0
                 const checkProjectResources = async () => {
                     if (backend.type === backendModule.BackendType.local) {
-                        // This should never happen, but still should be handled.
+                        await backend.openProject(project.id, null, project.title)
                         setState(backendModule.ProjectState.opened)
-                        setCheckState(CheckState.done)
                     } else {
                         try {
                             // This call will error if the VM is not ready yet.
@@ -306,13 +332,25 @@ export default function ProjectIcon(props: ProjectIconProps) {
         }
     }, [checkState, project.id, project.title, backend])
 
-    const closeProject = async () => {
-        onClose()
+    const closeProject = async (triggerOnClose = true) => {
+        if (triggerOnClose) {
+            onClose()
+        }
         setShouldOpenWhenReady(false)
         setState(backendModule.ProjectState.closed)
+        onSpinnerStateChange?.(null)
+        setOnSpinnerStateChange(null)
         appRunner?.stopApp()
         setCheckState(CheckState.notChecking)
         try {
+            if (
+                backend.type === backendModule.BackendType.local &&
+                state === backendModule.ProjectState.openInProgress
+            ) {
+                // Projects that are not opened cannot be closed.
+                // This is the only way to wait until the project is open.
+                await backend.openProject(project.id, null, project.title)
+            }
             await backend.closeProject(project.id, project.title)
         } finally {
             // This is not 100% correct, but it is better than never setting `isRunning` to `false`,

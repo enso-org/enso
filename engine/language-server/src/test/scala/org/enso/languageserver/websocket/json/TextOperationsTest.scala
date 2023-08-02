@@ -14,6 +14,8 @@ import scala.concurrent.duration._
 
 class TextOperationsTest extends BaseServerTest with FlakySpec {
 
+  override def isFileWatcherEnabled = true
+
   "text/openFile" must {
     "fail opening a file if it does not exist" taggedAs Flaky in {
       // Interaction:

@@ -3,6 +3,8 @@
 //!
 //! See the [define_style] for more information.
 
+use enso_prelude::*;
+
 
 
 // =================
@@ -42,8 +44,8 @@ define_style! {
 
 impl Style {
     /// Create a `TooltipUpdate` that sets the label of the tooltip.
-    pub fn set_label(text: String) -> Self {
-        let text = Some(StyleValue::new(Some(text)));
+    pub fn set_label(text: impl Str) -> Self {
+        let text = Some(StyleValue::new(Some(text.into())));
         Self { text, ..default() }
     }
     /// Create a `TooltipUpdate` that unsets the label of the tooltip.

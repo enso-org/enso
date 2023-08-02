@@ -149,7 +149,7 @@ impl Button {
             .with_placement(tooltip::Placement::Left);
         let button = ToggleButton::<icon::Shape>::new(app, tooltip_style);
         scene.layers.panel.add(&button);
-        button.frp.set_size(Vector2(32.0, 32.0));
+        button.set_size(Vector2(32.0, 32.0));
 
         frp::extend! { network
 

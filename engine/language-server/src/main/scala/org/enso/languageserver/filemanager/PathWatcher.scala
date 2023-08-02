@@ -4,7 +4,7 @@ import akka.actor.{Actor, ActorRef, Props}
 import akka.pattern.pipe
 import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
-import org.enso.filewatcher.WatcherAdapter
+import org.enso.filewatcher.{Watcher, WatcherFactory}
 import org.enso.languageserver.capability.CapabilityProtocol.{
   CapabilityAcquired,
   CapabilityAcquisitionFileSystemFailure,
@@ -26,17 +26,19 @@ import java.io.File
 import scala.concurrent.Await
 import scala.util.{Failure, Success}
 
-/** Starts [[WatcherAdapter]], handles errors, converts and sends
+/** Starts [[Watcher]], handles errors, converts and sends
   * events to the client.
   *
   * @param config configuration
   * @param contentRootManager the content root manager
+  * @param watcherFactory the factory creating the file watcher
   * @param fs file system
   * @param exec executor of file system effects
   */
 final class PathWatcher(
   config: PathWatcherConfig,
   contentRootManager: ContentRootManager,
+  watcherFactory: WatcherFactory,
   fs: FileSystemApi[BlockingIO],
   exec: Exec[BlockingIO]
 ) extends Actor
@@ -48,7 +50,7 @@ final class PathWatcher(
 
   private val restartCounter =
     new PathWatcher.RestartCounter(config.maxRestarts)
-  private var fileWatcher: Option[WatcherAdapter] = None
+  private var fileWatcher: Option[Watcher] = None
 
   override def preStart(): Unit = {
     context.system.eventStream
@@ -86,7 +88,7 @@ final class PathWatcher(
 
     pathToWatchResult.onComplete {
       case Success(Right(root)) =>
-        logger.info("Initialized for [{}]", path)
+        logger.info("Initialized [{}] for [{}].", watcherFactory.getClass, path)
         context.become(initializedStage(root, path, clients))
       case Success(Left(err)) =>
         logger.error("Failed to resolve the path [{}]. {}", path, err)
@@ -114,13 +116,13 @@ final class PathWatcher(
         if clients.contains(client.rpcController) =>
       unregisterClient(root, base, clients - client.rpcController)
 
-    case e: WatcherAdapter.WatcherEvent =>
+    case e: Watcher.WatcherEvent =>
       restartCounter.reset()
       val event = FileEvent.fromWatcherEvent(root, base, e)
       clients.foreach(_ ! FileEventResult(event))
       context.system.eventStream.publish(event)
 
-    case WatcherAdapter.WatcherError(e) =>
+    case Watcher.WatcherError(e) =>
       stopWatcher()
       restartCounter.inc()
       if (restartCounter.canRestart) {
@@ -161,13 +163,13 @@ final class PathWatcher(
 
   private def buildWatcher(
     path: File
-  ): Either[FileSystemFailure, WatcherAdapter] =
+  ): Either[FileSystemFailure, Watcher] =
     Either
-      .catchNonFatal(WatcherAdapter.build(path.toPath, self ! _, self ! _))
+      .catchNonFatal(watcherFactory.build(path.toPath, self ! _, self ! _))
       .leftMap(errorHandler)
 
   private def startWatcher(
-    watcher: WatcherAdapter
+    watcher: Watcher
   ): Either[FileSystemFailure, Unit] =
     Either
       .catchNonFatal {
@@ -225,14 +227,16 @@ object PathWatcher {
     *
     * @param config configuration
     * @param contentRootManager the content root manager
+    * @param watcherFactory the factory creating a watcher instance
     * @param fs file system
     * @param exec executor of file system effects
     */
   def props(
     config: PathWatcherConfig,
     contentRootManager: ContentRootManager,
+    watcherFactory: WatcherFactory,
     fs: FileSystemApi[BlockingIO],
     exec: Exec[BlockingIO]
   ): Props =
-    Props(new PathWatcher(config, contentRootManager, fs, exec))
+    Props(new PathWatcher(config, contentRootManager, watcherFactory, fs, exec))
 }

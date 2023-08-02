@@ -29,6 +29,7 @@ use flo_stream::Subscriber;
 pub mod breadcrumbs;
 pub mod component;
 pub mod input;
+pub mod search;
 
 
 
@@ -1424,7 +1425,7 @@ pub mod test {
             let picked_method = PickedSuggestion { suggestion, inserted_code: default(), import };
             with(searcher.data.borrow_mut(), |mut data| {
                 data.picked_suggestions.push(picked_method);
-                data.input = input::Input::parse(&parser, &expression, default());
+                data.input = input::Input::parse(&parser, expression.as_str(), default());
             });
 
             // Add new node.

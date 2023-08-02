@@ -60,7 +60,7 @@ export default function UserMenu() {
 
     return (
         <div
-            className="absolute right-2 top-11 z-10 flex flex-col rounded-md bg-white py-1 border"
+            className="absolute right-4.75 top-11 z-10 flex flex-col rounded-md bg-white py-1 border"
             onClick={event => {
                 event.stopPropagation()
             }}
