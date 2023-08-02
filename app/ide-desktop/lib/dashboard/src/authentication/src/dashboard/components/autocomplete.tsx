@@ -235,34 +235,36 @@ export default function Autocomplete(props: AutocompleteProps) {
                     </div>
                 )}
             </div>
-            <div className={`relative h-0 ${optionsClassName ?? ''}`}>
-                <div
-                    className={`absolute rounded-2xl w-full max-h-10lh ${
-                        isDropdownVisible ? 'overflow-auto' : 'overflow-hidden h-0'
-                    }`}
-                >
-                    <div className="absolute bg-frame-selected rounded-2xl backdrop-blur-3xl w-full h-full" />
-                    {items.map((item, index) => (
-                        <div
-                            key={item}
-                            className={`relative cursor-pointer first:rounded-t-2xl last:rounded-b-2xl hover:bg-black-a5 p-1 z-10 ${
-                                index === selectedIndex
-                                    ? 'bg-black-a5'
-                                    : valuesSet.has(item)
-                                    ? 'bg-black-a10'
-                                    : ''
-                            }`}
-                            onMouseDown={event => {
-                                event.preventDefault()
-                            }}
-                            onClick={event => {
-                                event.stopPropagation()
-                                toggleItem(item)
-                            }}
-                        >
-                            {item}
-                        </div>
-                    ))}
+            <div className={`h-0 ${optionsClassName ?? ''}`}>
+                <div className="relative w-full h-max">
+                    <div className="absolute bg-frame-selected rounded-2xl backdrop-blur-3xl top-0 w-full h-full" />
+                    <div
+                        className={`relative rounded-2xl overflow-auto w-full max-h-10lh ${
+                            isDropdownVisible ? '' : 'h-0'
+                        }`}
+                    >
+                        {items.map((item, index) => (
+                            <div
+                                key={item}
+                                className={`relative cursor-pointer first:rounded-t-2xl last:rounded-b-2xl hover:bg-black-a5 p-1 z-10 ${
+                                    index === selectedIndex
+                                        ? 'bg-black-a5'
+                                        : valuesSet.has(item)
+                                        ? 'bg-black-a10'
+                                        : ''
+                                }`}
+                                onMouseDown={event => {
+                                    event.preventDefault()
+                                }}
+                                onClick={event => {
+                                    event.stopPropagation()
+                                    toggleItem(item)
+                                }}
+                            >
+                                {item}
+                            </div>
+                        ))}
+                    </div>
                 </div>
             </div>
         </div>
