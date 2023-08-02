@@ -831,6 +831,9 @@ spec =
 
                 sum = two_hundred.reduce (+)
                 sum.is_a Integer . should_be_true
+                case sum of
+                    _ : Integer -> Nothing
+                    v -> Test.fail "Expecting Integer, but got: "+(Meta.type_of v).to_text
                 sum.div two_hundred.length . should_equal expected_value
 
         to_java_bigint n = BigInteger.new n.to_text
