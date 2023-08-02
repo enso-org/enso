@@ -806,7 +806,12 @@ spec =
             Test.specify name+" 6 * 7" <|
                 six = create 6
                 seven = create 7
-                six*seven . should_equal 42
+                both = six*seven
+                both . should_equal 42
+
+                six.is_a Integer . should_be_true
+                seven.is_a Integer . should_be_true
+                both.is_a Integer . should_be_true
 
             Test.specify name+" power of 3 with running_fold" <|
                 three = create 3
@@ -815,6 +820,7 @@ spec =
                     mul a three
 
                 sum = two_hundred.reduce (+)
+                sum.is_a Integer . should_be_true
                 sum.div two_hundred.length . should_equal expected_value
 
             Test.specify name+" power of 3 with map" <|
@@ -824,6 +830,7 @@ spec =
                     0.up_to i . fold three (v-> _-> mul v three)
 
                 sum = two_hundred.reduce (+)
+                sum.is_a Integer . should_be_true
                 sum.div two_hundred.length . should_equal expected_value
 
         to_java_bigint n = BigInteger.new n.to_text
