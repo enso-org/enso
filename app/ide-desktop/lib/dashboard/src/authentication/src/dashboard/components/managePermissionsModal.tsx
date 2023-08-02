@@ -306,7 +306,7 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
                                 </div>
                             </button>
                         </div>
-                        <div className="pl-1 pr-12">
+                        <div className="overflow-auto pl-1 pr-12 max-h-80">
                             {usersPermissions.map(userPermissions => (
                                 <div
                                     key={userPermissions.user.pk}
