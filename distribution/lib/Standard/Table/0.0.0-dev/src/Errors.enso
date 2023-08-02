@@ -648,3 +648,14 @@ type Truncated_Column_Names
     to_display_text : Text
     to_display_text self =
         "The column names " + self.original_names.to_display_text + " were truncated to fit the maximum length supported by the backend (" + self.max_length.to_text + ")."
+
+type Clashing_Column_Name
+    ## PRIVATE
+       Indicates that a provided column name is clashing with another column name.
+    Error (provided_name : Text) (clashing_name : Text)
+
+    ## PRIVATE
+       Pretty print the clashing column name error.
+    to_display_text : Text
+    to_display_text self =
+        "The column name [" + self.provided_name.to_display_text + "] is clashing with the column name [" + self.clashing_name.to_display_text + "] - they cannot be distinguished because the backend is not case sensitive, so only one of these can exist within a single table. If you wanted to replace the column, use the exact (case sensitive) name of the column to replace."
