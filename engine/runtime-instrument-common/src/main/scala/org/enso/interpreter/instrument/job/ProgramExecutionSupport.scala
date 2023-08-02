@@ -330,11 +330,15 @@ object ProgramExecutionSupport {
     val expressionId  = value.getExpressionId
     val methodPointer = toMethodCall(value)
     if (
-      !syncState.isExpressionSync(expressionId) ||
-      (
-        methodPointer.isDefined && !syncState.isMethodPointerSync(expressionId)
-      ) ||
-      Types.isPanic(value.getType)
+      value.getValue != null && (
+        !syncState.isExpressionSync(expressionId) ||
+        (
+          methodPointer.isDefined && !syncState.isMethodPointerSync(
+            expressionId
+          )
+        ) ||
+        Types.isPanic(value.getType)
+      )
     ) {
       val payload = value.getValue match {
         case sentinel: PanicSentinel =>
