@@ -24,7 +24,7 @@ mod prelude {
 pub mod common_part;
 pub mod component_icons;
 mod define_macro;
-
+pub mod icon;
 
 
 // =================

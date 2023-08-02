@@ -128,8 +128,16 @@ body {
     .h-templates-custom {
       height: 21.5rem;
 
-      @media screen and (min-width: 1771px) {
+      @media screen and (min-width: 110.6875rem) {
         height: 11rem;
+      }
+    }
+
+    .search-bar.search-bar {
+      @media screen and (max-width: 59rem) {
+        position: unset;
+        transform: unset;
+        left: unset;
       }
     }
   }
