@@ -1806,7 +1806,6 @@ lazy val `bench-processor` = (project in file("lib/scala/bench-processor"))
   .dependsOn(runtime)
 
 lazy val `bench-libs` = (project in file("std-bits/benchmarks"))
-  .configs(Benchmark)
   .settings(
     frgaalJavaCompilerSetting,
     libraryDependencies ++= jmh ++ Seq(
@@ -1816,6 +1815,18 @@ lazy val `bench-libs` = (project in file("std-bits/benchmarks"))
       "org.graalvm.truffle" % "truffle-api"              % graalMavenPackagesVersion % Benchmark
     ),
     commands += WithDebugCommand.withDebug,
+    (Compile / logManager) :=
+      sbt.internal.util.CustomLogManager.excludeMsg(
+        "Could not determine source for class ",
+        Level.Warn
+      )
+  )
+  .configs(Benchmark)
+  .settings(
+    inConfig(Benchmark)(Defaults.testSettings)
+  )
+  .settings(
+    (Benchmark / parallelExecution) := false,
     (Benchmark / run / fork) := true,
     (Benchmark / run / connectInput) := true,
     // Pass -Dtruffle.class.path.append to javac
@@ -1835,11 +1846,6 @@ lazy val `bench-libs` = (project in file("std-bits/benchmarks"))
         s"-J-Dtruffle.class.path.append=$appendClasspath"
       )
     },
-    (Compile / logManager) :=
-      sbt.internal.util.CustomLogManager.excludeMsg(
-        "Could not determine source for class ",
-        Level.Warn
-    ),
     (Benchmark / compile / javacOptions) ++= Seq(
       "-s",
       (Benchmark / sourceManaged).value.getAbsolutePath,
@@ -1862,9 +1868,6 @@ lazy val `bench-libs` = (project in file("std-bits/benchmarks"))
     }
   )
   .settings(
-    inConfig(Benchmark)(Defaults.testSettings)
-  )
-  .settings(
     bench := (Benchmark / run).toTask("").tag(Exclusive).value,
     benchOnly := Def.inputTaskDyn {
       import complete.Parsers.spaceDelimited
@@ -1875,8 +1878,7 @@ lazy val `bench-libs` = (project in file("std-bits/benchmarks"))
       Def.task {
         (Benchmark / run).toTask(" " + name).value
       }
-    }.evaluated,
-    Benchmark / parallelExecution := false
+    }.evaluated
   )
   .dependsOn(`bench-processor` % Benchmark)
   .dependsOn(runtime % Benchmark)
