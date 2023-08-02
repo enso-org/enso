@@ -4,26 +4,6 @@ import * as React from 'react'
 import * as backend from '../backend'
 import * as permissionsModule from '../permissions'
 
-// =================
-// === Constants ===
-// =================
-
-/** The corresponding `Permissions` for each backend `PermissionAction`. */
-export const PERMISSION: Record<backend.PermissionAction, permissionsModule.Permissions> = {
-    [backend.PermissionAction.own]: { type: permissionsModule.Permission.owner },
-    [backend.PermissionAction.execute]: {
-        type: permissionsModule.Permission.read,
-        execute: true,
-        docs: false,
-    },
-    [backend.PermissionAction.edit]: { type: permissionsModule.Permission.edit },
-    [backend.PermissionAction.view]: {
-        type: permissionsModule.Permission.view,
-        execute: false,
-        docs: false,
-    },
-}
-
 // ======================
 // === permissionsToX ===
 // ======================
@@ -34,7 +14,7 @@ export function permissionActionsToPermissions(
 ): permissionsModule.Permissions {
     return permissionActions.reduce<permissionsModule.Permissions>(
         (result, action) => {
-            const actionResult = PERMISSION[action]
+            const actionResult = permissionsModule.FROM_PERMISSION_ACTION[action]
             return permissionsModule.PERMISSION_PRECEDENCE[actionResult.type] <=
                 permissionsModule.PERMISSION_PRECEDENCE[result.type]
                 ? actionResult

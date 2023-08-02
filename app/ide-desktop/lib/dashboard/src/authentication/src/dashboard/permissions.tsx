@@ -19,7 +19,7 @@ export enum Permission {
 }
 
 /** CSS classes for each permission. */
-export const PERMISSION_CLASS_NAME: Record<Permission, string> = {
+export const PERMISSION_CLASS_NAME: Readonly<Record<Permission, string>> = {
     [Permission.owner]: 'text-tag-text bg-permission-owner',
     [Permission.admin]: 'text-tag-text bg-permission-admin',
     [Permission.edit]: 'text-tag-text bg-permission-edit',
@@ -29,7 +29,7 @@ export const PERMISSION_CLASS_NAME: Record<Permission, string> = {
 } as const
 
 /** Precedences for each permission. A lower number means a higher priority. */
-export const PERMISSION_PRECEDENCE: Record<Permission, number> = {
+export const PERMISSION_PRECEDENCE: Readonly<Record<Permission, number>> = {
     // These are not magic numbers - they are just a sequence of numbers.
     /* eslint-disable @typescript-eslint/no-magic-numbers */
     [Permission.owner]: 0,
@@ -45,6 +45,24 @@ export const PERMISSION_PRECEDENCE: Record<Permission, number> = {
 export const DOCS_CLASS_NAME = 'text-tag-text bg-permission-docs'
 /** CSS classes for the execute permission. */
 export const EXEC_CLASS_NAME = 'text-tag-text bg-permission-exec'
+
+/** The corresponding `Permissions` for each backend `PermissionAction`. */
+export const FROM_PERMISSION_ACTION: Readonly<
+    Record<backend.PermissionAction, Readonly<Permissions>>
+> = {
+    [backend.PermissionAction.own]: { type: Permission.owner },
+    [backend.PermissionAction.execute]: {
+        type: Permission.read,
+        execute: true,
+        docs: false,
+    },
+    [backend.PermissionAction.edit]: { type: Permission.edit },
+    [backend.PermissionAction.view]: {
+        type: Permission.view,
+        execute: false,
+        docs: false,
+    },
+}
 
 // ===================
 // === Permissions ===
@@ -84,18 +102,18 @@ export type Permissions =
     | ReadPermissions
     | ViewPermissions
 
-export const DEFAULT_PERMISSIONS = Object.freeze<Permissions>({
+export const DEFAULT_PERMISSIONS: Readonly<Permissions> = {
     type: Permission.view,
     docs: false,
     execute: false,
-})
+}
 
 // ======================================
 // === tryGetSingletonOwnerPermission ===
 // ======================================
 
-/** Returns an array containing the owner permission if `owner` is not `null`;
- * else returns an empty array (`[]`). */
+/** Return an array containing the owner permission if `owner` is not `null`,
+ * else return an empty array (`[]`). */
 export function tryGetSingletonOwnerPermission(owner: backend.UserOrOrganization | null) {
     return owner != null
         ? [
