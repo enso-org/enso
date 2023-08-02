@@ -394,8 +394,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       selfWithoutWarnings = warnings.removeWarnings(self);
       arrOfWarnings = warnings.getWarnings(self, this);
     } catch (UnsupportedMessageException e) {
-      // Can't throw `CompilerDirectives.shouldNotReachHere` as it crashes native-image build
-      throw new IllegalStateException(e);
+      throw CompilerDirectives.shouldNotReachHere(e);
     }
 
     // Cannot use @Cached for childDispatch, because we need to call notifyInserted.
@@ -471,7 +470,7 @@ public abstract class InvokeMethodNode extends BaseNode {
           accumulatedWarnings = accumulatedWarnings.append(warnings.getWarnings(r, this));
           args[i] = warnings.removeWarnings(r);
         } catch (UnsupportedMessageException e) {
-          throw new IllegalStateException(e);
+          throw CompilerDirectives.shouldNotReachHere(e);
         }
       } else {
         args[i] = r;
@@ -509,7 +508,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       arguments[0] = ensoBig;
       return execute(frame, state, symbol, ensoBig, arguments);
     } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException("Impossible, self is guaranteed to be a number.");
+      throw CompilerDirectives.shouldNotReachHere(e);
     }
   }
 
@@ -539,7 +538,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       arguments[0] = text;
       return invokeFunctionNode.execute(function, frame, state, arguments);
     } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException("Impossible, self is guaranteed to be a string.");
+      throw CompilerDirectives.shouldNotReachHere(e);
     }
   }
 
