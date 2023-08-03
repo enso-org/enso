@@ -47,8 +47,8 @@ public class CrossTabIndex {
 
         // Generate lists of combined keys and subkeys
         List<UnorderedMultiValueKey> combinedKeys = new ArrayList<>(combinedIndex.keys());
-        List<UnorderedMultiValueKey> ySubKeys = new ArrayList<>(combinedKeys.size());
         List<UnorderedMultiValueKey> xSubKeys = new ArrayList<>(combinedKeys.size());
+        List<UnorderedMultiValueKey> ySubKeys = new ArrayList<>(combinedKeys.size());
         int[] xColumnIndices = IntStream.range(0, xColumns.length).toArray();
         int[] yColumnIndices = IntStream.range(xColumns.length, xColumns.length+yColumns.length).toArray();
         for (var key : combinedKeys) {

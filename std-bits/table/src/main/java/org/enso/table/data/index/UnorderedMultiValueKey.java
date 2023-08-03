@@ -60,6 +60,7 @@ public class UnorderedMultiValueKey extends MultiValueKeyBase {
     Storage<?>[] newStorages = Arrays.stream(storageIndices).mapToObj(i -> storages[i]).toArray(Storage<?>[]::new);
     return new UnorderedMultiValueKey(newStorages, rowIndex, textFoldingStrategy);
   }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
