@@ -181,7 +181,7 @@ pub struct View {
     selection:       Rectangle,
     hover_area:      Rectangle,
     /// Resize grip is a rectangle with the size of the container but with a slight offset from the
-    /// hover_area shape so that it extends beyond the container at the bottom and right sides.
+    /// `hover_area` shape so that it extends beyond the container at the bottom and right sides.
     /// The ordering of `hover_area`, `selection`, and `resize_grip` is controlled by partition
     /// layers (see [`View::init`]).
     resize_grip:     Rectangle,
