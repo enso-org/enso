@@ -102,42 +102,6 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
     }
   }
 
-  private MultiValueIndex(
-          Column[] keyColumns,
-          int tableSize,
-          List<Integer> indexMask,
-          Map<KeyType, List<Integer>> initialLocs,
-          IntFunction<KeyType> keyFactory) {
-    this.keyColumnsLength = keyColumns.length;
-    this.problems = new AggregatedProblems();
-    this.locs = initialLocs;
-
-    if (keyColumns.length != 0) {
-      int size = keyColumns[0].getSize();
-
-      Context context = Context.getCurrent();
-      for (int i : indexMask) {
-        KeyType key = keyFactory.apply(i);
-
-        if (key.hasFloatValues()) {
-          final int row = i;
-          key.floatColumnPositions()
-                  .forEach(
-                          columnIx ->
-                                  problems.add(new FloatingPointGrouping(keyColumns[columnIx].getName(), row)));
-        }
-
-        List<Integer> ids = this.locs.computeIfAbsent(key, x -> new ArrayList<>());
-        ids.add(i);
-
-        context.safepoint();
-      }
-    } else {
-      this.locs.put(
-              keyFactory.apply(0), IntStream.range(0, tableSize).boxed().collect(Collectors.toList()));
-    }
-  }
-
   public Table makeTable(Aggregator[] columns) {
     Context context = Context.getCurrent();
     final int length = columns.length;
