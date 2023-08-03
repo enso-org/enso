@@ -82,7 +82,8 @@ spec setup =
                     Problems.assume_no_problems t3
                 False ->
                     t3.column_names . should_equal ["X", "a", "Right A"]
-                    Problems.expect_only_warning Duplicate_Output_Column_Names t3
+                    # No warning here as well, as 'just' adding the prefix is not considered enough to issue a `Duplicate_Output_Column_Names` in join.
+                    Problems.assume_no_problems t3
 
             t4 = t1.cross_join t2
             case is_case_sensitive of
@@ -91,7 +92,8 @@ spec setup =
                     Problems.assume_no_problems t4
                 False ->
                     t4.column_names . should_equal ["X", "a", "Right X", "Right A"]
-                    Problems.expect_only_warning Duplicate_Output_Column_Names t4
+                    # As above with join, no warning.
+                    Problems.assume_no_problems t4
 
             t5 = t1.join t2 on="X" join_kind=Join_Kind.Left_Exclusive
             t5.column_names . should_equal ["X", "a"]
