@@ -38,8 +38,7 @@ bench =
             operation = num_rows.to_text + "-" + (group_by.join '+') + "-" + name_column + "-" + (values.map .to_text . join "+")
             approach = "one index"
             name = operation + "/" + approach
-            Bench.measure (table.cross_tab0 group_by name_column values) 'old '+name iter_size num_iterations
-            Bench.measure (table.cross_tab group_by name_column values) 'new '+name iter_size num_iterations
+            Bench.measure (table.cross_tab0 group_by name_column values) name iter_size num_iterations
 
         measure [] "size"
         measure [] "type"
