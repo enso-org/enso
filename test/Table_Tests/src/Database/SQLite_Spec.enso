@@ -106,12 +106,12 @@ sqlite_specific_spec prefix connection setup =
             Problems.assume_no_problems <|
                 connection.execute_update 'CREATE TEMPORARY TABLE "clashing-unicode-names" ("ś" VARCHAR, "s\u0301" INTEGER)'
             Problems.assume_no_problems <|
-                connection.execute_update 'INSERT INTO "clashing-unicode-names" VALUES (1, 2)'
+                connection.execute_update 'INSERT INTO "clashing-unicode-names" VALUES (\'A\', 2)'
             t2 = connection.query (SQL_Query.Table_Name "clashing-unicode-names")
             Problems.expect_only_warning Duplicate_Output_Column_Names t2
             t2.column_names . should_equal ["ś", "ś 1"]
             m2 = t2.read
-            m2.at "ś"   . to_vector . should_equal [1]
+            m2.at "ś"   . to_vector . should_equal ["A"]
             m2.at "ś 1" . to_vector . should_equal [2]
 
             t3 = connection.query 'SELECT 1 AS "A", 2 AS "A"'
