@@ -226,8 +226,7 @@ impl Component {
             .map(|subsequence| MatchInfo::Matches { subsequence, alias: None });
 
         // Match the input pattern to an entry's aliases and select the best alias match.
-        let alias_matches = self.aliases.iter().enumerate().filter_map(|(i, label_with_alias)| {
-            let (alias, _) = label_with_alias.split_once(' ').unwrap_or_default();
+        let alias_matches = self.matchable_aliases().enumerate().filter_map(|(i, alias)| {
             search(alias, pattern, search::TargetInfo { is_alias: true })
                 .map(|subsequence| MatchInfo::Matches { subsequence, alias: Some(i) })
         });
@@ -235,6 +234,14 @@ impl Component {
         // Select the best match of the available matches.
         let best_match_info = label_match.into_iter().chain(alias_matches).max();
         best_match_info.unwrap_or(MatchInfo::DoesNotMatch)
+    }
+
+    /// Returns an iterator over the part of each alias in `self.aliases` that is used for
+    /// filtering (this includes the alias itself, but not the parenthesized canonical name).
+    fn matchable_aliases(&self) -> impl Iterator<Item = &str> {
+        self.aliases
+            .iter()
+            .map(|label_with_alias| label_with_alias.rsplit_once(' ').unwrap_or_default().0)
     }
 
     /// Check whether the component contains the "PRIVATE" tag.
@@ -342,6 +349,7 @@ pub(crate) mod tests {
     use super::*;
 
     use double_representation::name::QualifiedName;
+    use enso_suggestion_database::doc_section;
     use enso_suggestion_database::mock_suggestion_database;
 
     pub fn check_displayed_components(list: &List, expected: Vec<&str>) {
@@ -392,5 +400,34 @@ pub(crate) mod tests {
         check_displayed_components(&list, vec!["TopModule1.bar", "SubModule1.bazz"]);
         list.update_filtering(make_filter(""));
         check_displayed_components(&list, vec!["test.Test.TopModule1"]);
+    }
+
+    #[test]
+    fn alias_matching() {
+        let db = mock_suggestion_database! {
+            Standard.Base {
+                type Table {
+                    #[with_doc_section(doc_section!(@ Alias, "Join by Joining"))]
+                    fn join() -> Standard.Base.Table;
+                }
+            }
+        };
+
+        let mut builder = Builder::new_empty(&db);
+        builder.add_components_from_db(db.keys());
+        let mut list = builder.build();
+
+        let module_name = Rc::new(QualifiedName::from_text("local.Project").unwrap());
+        let make_filter = |pat: &str| Filter {
+            pattern:     pat.into(),
+            context:     None,
+            module_name: module_name.clone_ref(),
+        };
+        list.update_filtering(make_filter("join by joining"));
+        check_displayed_components(&list, vec!["Join by Joining (Table.join)"]);
+        let components = list.displayed().iter().cloned().collect_vec();
+        let join = components.into_iter().next().unwrap();
+        let aliases = join.matchable_aliases().collect_vec();
+        assert_eq!(aliases, vec!["Join by Joining"]);
     }
 }
