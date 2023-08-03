@@ -1919,7 +1919,71 @@ type Table
     @group_by Widget_Helpers.make_column_name_vector_selector
     @name_column Widget_Helpers.make_column_name_selector
     @values (Widget_Helpers.make_aggregate_column_selector include_group_by=False)
-    cross_tab : Vector (Integer | Text | Regex | Aggregate_Column) | Text | Integer | Regex -> (Text | Integer) -> Aggregate_Column | Vector Aggregate_Column -> Problem_Behavior -> Table ! Missing_Input_Columns | Invalid_Aggregate_Column | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings | Invalid_Output_Column_Names
+    cross_tab0 : Vector (Integer | Text | Regex | Aggregate_Column) | Text | Integer | Regex -> (Text | Integer) -> Aggregate_Column | Vector Aggregate_Column -> Problem_Behavior -> Table ! Missing_Input_Columns | Invalid_Aggregate_Column | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings | Invalid_Output_Column_Names
+    cross_tab0 self group_by name_column values=Aggregate_Column.Count (on_problems=Report_Warning) =
+        columns_helper = self.columns_helper
+        problem_builder = Problem_Builder.new error_on_missing_columns=True
+
+        ## Normalize the group_by parameter to select columns
+        normalize_group_by input = case input of
+            Aggregate_Column.Group_By c _ -> c
+            _ : Aggregate_Column -> Error.throw (Illegal_Argument.Error "Only Aggregate_Column.Group_By can be used for cross_tab group_by clause.")
+            _ : Vector -> input.map normalize_group_by
+            _ -> input
+
+        ## validate the name and group_by columns
+        name_column_selector = case name_column of
+            ix : Integer -> [ix]
+            name : Text -> [name]
+            _ -> Error.throw (Illegal_Argument.Error "name_column must be a column index or name.")
+        matched_name = columns_helper.select_columns_helper name_column_selector Case_Sensitivity.Default True problem_builder
+        grouping = columns_helper.select_columns_helper (normalize_group_by group_by) Case_Sensitivity.Default True problem_builder
+
+        ## Validate the values
+        values_vector = case values of
+            _ : Vector -> values
+            _ -> [values]
+        resolved_values = values_vector.map (Aggregate_Column_Helper.resolve_aggregate self problem_builder)
+        is_group_by c = case c of
+            Aggregate_Column.Group_By _ _ -> True
+            _ -> False
+        validated_values = if resolved_values.any is_group_by then Error.throw (Illegal_Argument.Error "Cannot use group_by for a cross_tab value.") else
+            resolved_values.filter c->(c!=Nothing)
+
+        problem_builder.attach_problems_before on_problems <| Illegal_Argument.handle_java_exception <|
+            java_key_columns = grouping.map .java_column
+
+            name_mapper = if matched_name.is_empty then Aggregate_Column_Helper.default_aggregate_column_name else
+                if validated_values.length == 1 then (_ -> "") else
+                    all_same = Aggregate_Column_Helper.all_same_column validated_values
+                    include_column_name = all_same.not
+                    c -> Aggregate_Column_Helper.default_aggregate_column_name c include_column_name
+
+            data_columns = validated_values.map c->
+                col_name = if c.new_name != "" then c.new_name else
+                    Aggregate_Column_Helper.default_aggregate_column_name c
+                Aggregate_Column_Helper.java_aggregator col_name c
+
+            result = case matched_name.is_empty of
+                True ->
+                    group_by = grouping.map g->(Aggregate_Column_Helper.java_aggregator g.name (Aggregate_Column.Group_By g))
+                    index = self.java_table.indexFromColumns java_key_columns
+                    index.makeTable (group_by + data_columns)
+                False ->
+                    aggregate_names = validated_values.map c->
+                        if c.new_name != "" then c.new_name else (name_mapper c)
+
+                    too_many_columns caught_panic =
+                        inner_panic = caught_panic.payload
+                        Error.throw (Column_Count_Exceeded.Error inner_panic.getMaximumColumnCount inner_panic.getColumnCount)
+                    Panic.catch TooManyColumnsException handler=too_many_columns <|
+                        Invalid_Output_Column_Names.handle_java_exception <|
+                            MultiValueIndex.makeCrossTabTable0 java_key_columns matched_name.first.java_column data_columns aggregate_names
+
+            on_problems.attach_problems_after (Table.Value result) <|
+                problems = result.getProblems
+                Java_Problems.parse_aggregated_problems problems
+
     cross_tab self group_by name_column values=Aggregate_Column.Count (on_problems=Report_Warning) =
         columns_helper = self.columns_helper
         problem_builder = Problem_Builder.new error_on_missing_columns=True
