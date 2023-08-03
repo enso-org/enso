@@ -503,7 +503,7 @@ export class RemoteBackend extends backend.Backend {
         params: backend.UploadFileRequestParams,
         body: Blob
     ): Promise<backend.FileInfo> {
-        const response = await this.postBase64<backend.FileInfo>(
+        const response = await this.postBinary<backend.FileInfo>(
             UPLOAD_FILE_PATH +
                 '?' +
                 new URLSearchParams({
@@ -679,8 +679,8 @@ export class RemoteBackend extends backend.Backend {
     }
 
     /** Send a binary HTTP POST request to the given path. */
-    private postBase64<T = void>(path: string, payload: Blob) {
-        return this.client.postBase64<T>(`${config.ACTIVE_CONFIG.apiUrl}/${path}`, payload)
+    private postBinary<T = void>(path: string, payload: Blob) {
+        return this.client.postBinary<T>(`${config.ACTIVE_CONFIG.apiUrl}/${path}`, payload)
     }
 
     /** Send a JSON HTTP PUT request to the given path. */
