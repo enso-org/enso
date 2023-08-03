@@ -780,11 +780,11 @@ type Table
 
         renamed.if_not_error <|
             index = self.internal_columns.index_of (c -> c.name == renamed.name)
-            to_add = case set_mode of
+            check_add = case set_mode of
                 Set_Mode.Add_Or_Update -> True
                 Set_Mode.Add -> if index.is_nothing then True else Error.throw (Existing_Column.Error renamed.name)
                 Set_Mode.Update -> if index.is_nothing then Error.throw (Missing_Column.Error renamed.name) else True
-            if to_add then
+            check_add.if_not_error <|
                 new_col = renamed.as_internal
                 new_cols = if index.is_nothing then self.internal_columns + [new_col] else
                     Vector.new self.column_count i-> if i == index then new_col else self.internal_columns.at i
