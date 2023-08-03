@@ -1,0 +1,81 @@
+from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Illegal_State.Illegal_State
+import Standard.Base.Errors.Unimplemented.Unimplemented
+
+from project.Errors import Name_Too_Long
+
+## PRIVATE
+   An interface for a helper managing limitations of entity names.
+
+   It extends the API of the Java counterpart `NamingProperties`.
+type Naming_Properties
+    ## PRIVATE
+       Returns the size of the string in the target encoding.
+       It may throw a panic if `size_limit` is `Nothing`.
+    encoded_size : Text -> Integer ! Illegal_State
+    encoded_size name =
+        _ = name
+        Unimplemented.throw "This is an interface only."
+
+    ## PRIVATE
+       Truncates the string to the given size in the target encoding.
+       It may throw a panic if `size_limit` is `Nothing`.
+    truncate : Text -> Integer -> Text ! Illegal_State
+    truncate name size =
+        _ = [name, size]
+        Unimplemented.throw "This is an interface only."
+
+    ## PRIVATE
+       Returns the maximum size of an entity name in the target encoding,
+       or `Nothing` if there is no limit.
+    size_limit : Integer | Nothing
+    size_limit =
+        Unimplemented.throw "This is an interface only."
+
+    ## PRIVATE
+       Raises a `Name_Too_Long` error for the given name.
+       The implementation may customize the extra message appended to the error
+       explaining the limitations.
+    raise_name_too_long_error : Text -> Text -> Nothing ! Name_Too_Long
+    raise_name_too_long_error entity_kind name =
+        _ = [entity_kind, name]
+        Unimplemented.throw "This is an interface only."
+
+## PRIVATE
+   A default singleton implementation of a `Naming_Properties` which imposes no
+   length limit.
+type Unlimited_Naming_Properties
+    Instance
+
+    ## PRIVATE
+    encoded_size : Text -> Integer
+    encoded_size self name =
+        _ = name
+        Panic.throw (Illegal_State.Error "`In_Memory_Naming_Helper.encoded_size` but `size_limit` is `Nothing`. This is a bug in the Table library.")
+
+    ## PRIVATE
+    truncate : Text -> Integer -> Text
+    truncate self name size =
+        _ = [name, size]
+        Panic.throw (Illegal_State.Error "`In_Memory_Naming_Helper.truncate` but `size_limit` is `Nothing`. This is a bug in the Table library.")
+
+    ## PRIVATE
+    size_limit : Integer | Nothing
+    size_limit self = Nothing
+
+    ## PRIVATE
+    raise_name_too_long_error : Text -> Text -> Nothing ! Name_Too_Long
+    raise_name_too_long_error self entity_kind name =
+        _ = [entity_kind, name]
+        Panic.throw (Illegal_State.Error "`In_Memory_Naming_Helper.raise_name_too_long_error` but `size_limit` is `Nothing`. This is a bug in the Table library.")
+
+## PRIVATE
+   A helper method that recovers panics thrown by `Naming_Properties`.
+   The `Naming_Properties` must throw panics and not dataflow errors to comply
+   with the Java `NamingProperties` interface (handling dataflow errors would
+   complicate the usage).
+   This method allows to recover such panics and turn them into dataflow errors.
+recover_panics : Any -> Any
+recover_panics ~action =
+    Panic.recover [Illegal_State, Illegal_Argument] action

@@ -9,11 +9,12 @@ from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all hiding Fir
 import Standard.Database.Data.Column.Column
 import Standard.Database.Data.SQL_Type.SQL_Type
 import Standard.Database.Internal.Postgres.Pgpass
+import Standard.Database.Internal.Postgres.Postgres_Entity_Naming_Properties
 import Standard.Database.Internal.Replace_Params.Replace_Params
 from Standard.Database import all
-from Standard.Database.Errors import SQL_Error, Unsupported_Database_Operation
+from Standard.Database.Errors import all
 
-from Standard.Test import Test, Test_Suite
+from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions
 import Standard.Test.Test_Environment
 
@@ -101,6 +102,32 @@ postgres_specific_spec connection db_name setup =
         connection.execute_update 'DROP VIEW "'+vinfo+'";'
         connection.execute_update 'DROP TABLE "'+tinfo+'";'
 
+    Test.group "[PostgreSQL] Database Encoding" <|
+        Test.specify "connector should support all known Postgres encodings" <|
+            known_encodings = (enso_project.data / "postgres_known_encodings.txt") . read . lines
+            known_encodings.length . should_equal 41
+
+            ## For these encoding there is no JVM counterpart currently
+               available, so we fallback either to the closest similar one
+               (like EUC_JIS_2004 falling back to JIS_X0212) or just to UTF-8.
+               Given that the encoding is only used to check for validity of
+               column/table names and their lengths, this should not be a big
+               problem usually, so only a warning is issued. It may however lead
+               to data integrity issues in some very rare edge cases.
+            unsupported_encodings = Set.from_vector <|
+                ["EUC_JIS_2004", "LATIN6", "LATIN8", "MULE_INTERNAL", "SHIFT_JIS_2004"]
+
+            known_encodings.each encoding_name->
+                encoding = Postgres_Entity_Naming_Properties.parse_postgres_encoding encoding_name
+                encoding.should_be_a Encoding
+
+                case unsupported_encodings.contains encoding_name of
+                    True ->
+                        Problems.expect_warning Unsupported_Database_Encoding encoding
+                    False ->
+                        Problems.assume_no_problems encoding
+
+
     tinfo = Name_Generator.random_name "Tinfo"
     connection.execute_update 'CREATE TEMPORARY TABLE "'+tinfo+'" ("strs" VARCHAR, "ints" BIGINT, "bools" BOOLEAN, "doubles" DOUBLE PRECISION)'
     Test.group "[PostgreSQL] Info" <|
@@ -172,6 +199,23 @@ postgres_specific_spec connection db_name setup =
             r.columns.at 5 . value_type . should_equal Value_Type.Float
 
         connection.execute_update 'DROP TABLE "'+name+'"'
+
+    Test.group "[PostgreSQL] Warning/Error handling" <|
+        Test.specify "query warnings should be propagated" <|
+            long_name = (Name_Generator.random_name "T") + ("a" * 100)
+            r = connection.execute_update 'CREATE TEMPORARY TABLE "'+long_name+'" ("A" VARCHAR)'
+            w1 = Problems.expect_only_warning SQL_Warning r
+            # The display text may itself be truncated, so we just check the first words.
+            w1.to_display_text . should_contain "identifier"
+            # And check the full message for words that could be truncated in short message.
+            w1.message . should_contain "truncated to"
+
+            table = connection.query (SQL_Query.Raw_SQL 'SELECT 1 AS "'+long_name+'"')
+            w2 = Problems.expect_only_warning SQL_Warning table
+            w2.message . should_contain "truncated"
+            effective_name = table.column_names . at 0
+            effective_name . should_not_equal long_name
+            long_name.should_contain effective_name
 
     table_builder = setup.table_builder
     materialize = setup.materialize

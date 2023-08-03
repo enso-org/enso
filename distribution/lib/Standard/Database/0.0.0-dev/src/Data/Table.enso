@@ -23,6 +23,7 @@ import Standard.Table.Data.Table.Table as Materialized_Table
 import Standard.Table.Data.Type.Value_Type_Helpers
 import Standard.Table.Internal.Add_Row_Number
 import Standard.Table.Internal.Aggregate_Column_Helper
+import Standard.Table.Internal.Column_Naming_Helper.Column_Naming_Helper
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 import Standard.Table.Internal.Table_Helpers
 import Standard.Table.Internal.Table_Helpers.Table_Column_Helper
@@ -52,7 +53,7 @@ import project.Internal.IR.Query.Query
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
-from project.Errors import Integrity_Error, Table_Not_Found, Unsupported_Database_Operation, Unsupported_Name
+from project.Errors import Integrity_Error, Table_Not_Found, Unsupported_Database_Operation
 
 polyglot java import java.sql.JDBCType
 polyglot java import java.util.UUID
@@ -401,13 +402,13 @@ type Table
            `Missing_Input_Columns` is raised as an error, unless
            `error_on_missing_columns` is set to `False`, in which case the
            problem is reported according to the `on_problems` setting.
+         - If any of the new names are invalid, an `Invalid_Output_Column_Names`
+           error is raised.
          - Other problems are reported according to the `on_problems` setting:
              - If a column is matched by two selectors resulting in a different
                name mapping, a `Ambiguous_Column_Rename`.
              - If in `By_Position` mode and more names than columns are
                provided, a `Too_Many_Column_Names_Provided`.
-             - If any of the new names are invalid, an
-               `Invalid_Output_Column_Names`.
              - If any of the new names clash either with existing names or each
                other, a `Duplicate_Output_Column_Names`.
 
@@ -443,9 +444,31 @@ type Table
     @column_map Widget_Helpers.make_rename_name_vector_selector
     rename_columns : Map (Text | Integer | Regex) Text | Vector Text | Vector Vector -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Ambiguous_Column_Rename | Too_Many_Column_Names_Provided | Invalid_Output_Column_Names | Duplicate_Output_Column_Names
     rename_columns self (column_map:(Map | Vector)=["Column"]) (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default) (error_on_missing_columns:Boolean=True) (on_problems:Problem_Behavior=Report_Warning) =
-        new_names = Table_Helpers.rename_columns self.internal_columns column_map case_sensitivity error_on_missing_columns on_problems
+        new_names = Table_Helpers.rename_columns self.column_naming_helper self.internal_columns column_map case_sensitivity error_on_missing_columns on_problems
         Warning.with_suspended new_names names->
             self.updated_columns (self.internal_columns.map c-> c.rename (names.at c.name))
+
+    ## Returns a new table with the columns renamed based on entries in the
+       first row.
+
+       Arguments:
+       - on_problems: Specifies how to handle problems if they occur, reporting
+         them as warnings by default.
+
+         The following problems can occur:
+         - If any of the new names are invalid, an
+           `Invalid_Output_Column_Names`.
+         - If any of the new names clash either with existing names or each
+           other, a Duplicate_Output_Column_Names.
+
+       > Example
+         Rename the column based on the first row
+
+              table.use_first_row_as_names
+    use_first_row_as_names : Problem_Behavior -> Table
+    use_first_row_as_names self (on_problems=Report_Warning) =
+        _ = on_problems
+        Error.throw (Unsupported_Database_Operation.Error "Table.use_first_row_as_names is currently not implemented for the Database backend. You may download the table to memory using `.read` to use this feature.")
 
     ## PRIVATE
 
@@ -712,8 +735,6 @@ type Table
 
        ! Error Conditions
 
-         - In the Database backend, if the column name is not valid, an
-           `Unsupported_Name` dataflow error is raised.
          - If the column name is already present and `set_mode` is `Add`, a
            `Existing_Column` dataflow error is raised.
          - If the column name is not present and `set_mode` is `Update`, a
@@ -743,7 +764,7 @@ type Table
                  table.set double_inventory new_name="total_stock"
                  table.set "2 * [total_stock]" new_name="total_stock_expr"
     @new_name Widget_Helpers.make_column_name_selector
-    set : Column | Text | Array | Vector | Range | Date_Range -> Text | Nothing -> Set_Mode -> Problem_Behavior -> Table ! Unsupported_Name | Existing_Column | Missing_Column | No_Such_Column | Expression_Error
+    set : Column | Text | Array | Vector | Range | Date_Range -> Text | Nothing -> Set_Mode -> Problem_Behavior -> Table ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error
     set self column new_name=Nothing set_mode=Set_Mode.Add_Or_Update on_problems=Report_Warning =
         resolved = case column of
             _ : Text -> self.evaluate_expression column on_problems
@@ -796,7 +817,7 @@ type Table
         get_column name = self.at name
         new_column = Expression.evaluate expression get_column self.make_constant_column "Standard.Database.Data.Column" "Column" Column.var_args_functions
         problems = Warning.get_all new_column . map .value
-        result = new_column.rename (self.connection.dialect.get_naming_helpers.sanitize_name expression)
+        result = new_column.rename (self.connection.base_connection.column_naming_helper.sanitize_name expression)
         on_problems.attach_problems_before problems <|
             Warning.set result []
 
@@ -1102,20 +1123,25 @@ type Table
                     True
         if can_proceed then
             left = self
-            new_table_name = left.name + "_" + right.name
+            table_name_deduplicator = self.connection.base_connection.table_naming_helper.create_unique_name_strategy
+            table_name_deduplicator.mark_used [left.name, right.name]
+            new_table_name = table_name_deduplicator.make_unique <|
+                left.name + "_" + right.name
 
             needed_indicators = case join_kind of
                 Join_Kind.Left_Exclusive  -> Pair.new False True
                 Join_Kind.Right_Exclusive -> Pair.new True False
                 _ -> Pair.new False False
-            subquery_setups = Database_Join_Helper.prepare_subqueries left right needed_indicators.first needed_indicators.second
+            subquery_setups = Database_Join_Helper.prepare_subqueries self.connection left right needed_indicators.first needed_indicators.second
             left_setup = subquery_setups.first
             right_setup = subquery_setups.second
 
             problem_builder = Problem_Builder.new
             join_resolution = Database_Join_Helper.make_join_helpers left right left_setup.column_mapping right_setup.column_mapping . resolve on on_problems
             right_columns_to_drop = if join_kind == Join_Kind.Inner then join_resolution.redundant_column_names else []
-            result_columns = Database_Join_Helper.select_columns_for_join join_kind left_setup.new_columns right_setup.new_columns right_columns_to_drop right_prefix problem_builder
+
+            column_naming_helper = self.connection.base_connection.column_naming_helper
+            result_columns = Database_Join_Helper.select_columns_for_join column_naming_helper join_kind left_setup.new_columns right_setup.new_columns right_columns_to_drop right_prefix problem_builder
 
             ## TODO proper equality of nulls in join conditions, see:
                https://www.pivotaltracker.com/story/show/184109759
@@ -1379,7 +1405,10 @@ type Table
                             [c.name, c.expression]
                         Query.Select pairs t.context
 
-                    union_alias = all_tables.map .name . join "_"
+                    table_name_deduplicator = self.connection.base_connection.table_naming_helper.create_unique_name_strategy
+                    table_name_deduplicator.mark_used (all_tables.map .name)
+                    union_alias = table_name_deduplicator.make_unique <|
+                        all_tables.map .name . join "_"
                     new_from = From_Spec.Union queries union_alias
                     new_ctx = Context.for_subquery new_from
                     ## TODO [RW] The result type is currently fetched
@@ -1458,7 +1487,7 @@ type Table
     @columns Widget_Helpers.make_aggregate_column_vector_selector
     aggregate : Vector Aggregate_Column -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Invalid_Aggregate_Column | Invalid_Output_Column_Names | Duplicate_Output_Column_Names | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings
     aggregate self columns (error_on_missing_columns=False) (on_problems=Report_Warning) =
-        validated = Aggregate_Column_Helper.prepare_aggregate_columns columns self error_on_missing_columns=error_on_missing_columns
+        validated = Aggregate_Column_Helper.prepare_aggregate_columns self.column_naming_helper columns self error_on_missing_columns=error_on_missing_columns
         key_columns = validated.key_columns
         key_problems = key_columns.flat_map internal_column->
             column = self.make_column internal_column
@@ -1583,6 +1612,8 @@ type Table
          - If a column selector in `values` given as a `Text` and it does not
            match any columns in the input table nor is it a valid expression, an
            `Invalid_Aggregate_Column` dataflow error is raised.
+         - If a column name generated from the input data is invalid,
+           `Invalid_Output_Column_Names` error is raised.
          - If an aggregation fails, an `Invalid_Aggregation` dataflow error is
            raised.
          - Additionally, the following problems may be reported according to the
@@ -1611,7 +1642,7 @@ type Table
     @group_by Widget_Helpers.make_column_name_vector_selector
     @name_column Widget_Helpers.make_column_name_selector
     @values (Widget_Helpers.make_aggregate_column_selector include_group_by=False)
-    cross_tab : Vector (Integer | Text | Regex | Aggregate_Column) | Text | Integer | Regex -> (Text | Integer) -> Aggregate_Column | Vector Aggregate_Column -> Problem_Behavior -> Table ! Missing_Input_Columns | Invalid_Aggregate_Column | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings
+    cross_tab : Vector (Integer | Text | Regex | Aggregate_Column) | Text | Integer | Regex -> (Text | Integer) -> Aggregate_Column | Vector Aggregate_Column -> Problem_Behavior -> Table ! Missing_Input_Columns | Invalid_Aggregate_Column | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings | Invalid_Output_Column_Names
     cross_tab self group_by name_column values=Aggregate_Column.Count (on_problems=Report_Warning) =
         ## Avoid unused arguments warning. We cannot rename arguments to `_`,
            because we need to keep the API consistent with the in-memory table.
@@ -1695,7 +1726,7 @@ type Table
     @delimiter make_delimiter_selector
     split_to_columns : Text | Integer -> Text -> Integer | Nothing -> Problem_Behavior -> Table
     split_to_columns self column delimiter="," column_count=Nothing on_problems=Report_Error =
-        _ = [column delimiter column_count on_problems]
+        _ = [column, delimiter, column_count, on_problems]
         Error.throw (Unsupported_Database_Operation.Error "Table.split_to_columns is not implemented yet for the Database backends.")
 
     ## Splits a column of text into a set of new rows.
@@ -1708,7 +1739,7 @@ type Table
     @delimiter make_delimiter_selector
     split_to_rows : Text | Integer -> Text -> Table
     split_to_rows self column delimiter="," =
-        _ = [column delimiter]
+        _ = [column, delimiter]
         Error.throw (Unsupported_Database_Operation.Error "Table.split_to_rows is not implemented yet for the Database backends.")
 
     ## Tokenizes a column of text into a set of new columns using a regular
@@ -1734,7 +1765,7 @@ type Table
     @column Widget_Helpers.make_column_name_selector
     tokenize_to_columns : Text | Integer -> Text -> Case_Sensitivity -> Integer | Nothing -> Problem_Behavior -> Table
     tokenize_to_columns self column pattern="." case_sensitivity=Case_Sensitivity.Sensitive column_count=Nothing on_problems=Report_Error =
-        _ = [column pattern case_sensitivity column_count on_problems]
+        _ = [column, pattern, case_sensitivity, column_count, on_problems]
         Error.throw (Unsupported_Database_Operation.Error "Table.tokenize_to_columns is not implemented yet for the Database backends.")
 
     ## Tokenizes a column of text into a set of new rows using a regular
@@ -1944,6 +1975,10 @@ type Table
     columns_helper : Table_Column_Helper
     columns_helper self =
         Table_Helpers.Table_Column_Helper.Value self.internal_columns self.make_column self .read
+
+    ## PRIVATE
+    column_naming_helper : Column_Naming_Helper
+    column_naming_helper self = self.connection.base_connection.column_naming_helper
 
     ## PRIVATE
 
@@ -2204,39 +2239,6 @@ display_dataframe df indices_count all_rows_count format_terminal =
         missing_rows_count = all_rows_count - display_rows
         missing = '\n\u2026 and ' + missing_rows_count.to_text + ' hidden rows.'
         table + missing
-
-## PRIVATE
-
-   Transforms `preferred_names` names in such a way to not collide with
-   `used_names`.
-
-   Arguments:
-   - used_names: The names that have already been used.
-   - preferred_names: The names that the user wants to use.
-
-   If a name from `preferred_names` does not collide with others, it is kept as
-   is, otherwise numerical suffixes are added.
-fresh_names : Vector Text -> Vector Text -> Vector Text
-fresh_names used_names preferred_names =
-   unique = Unique_Name_Strategy.new
-   unique.mark_used used_names
-   unique.make_all_unique preferred_names
-
-## PRIVATE
-
-   Ensures that the provided columns do not clash with the vector of names
-   provided as first argument.
-
-   Arguments:
-   - used_names: The already used names.
-   - columns: The columns to rename to avoid clashes.
-
-   Original column names are kept if possible, but if they would clash, the
-   columns are renamed.
-freshen_columns : Vector Text -> Vector Internal_Column -> Vector Internal_Column
-freshen_columns used_names columns =
-    new_names = fresh_names used_names (columns.map .name)
-    Helpers.rename_internal_columns columns new_names
 
 ## PRIVATE
 type Wrapped_Error
