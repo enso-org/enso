@@ -115,11 +115,9 @@ expect_only_warning expected_warning result =
         (x == expected_warning) || (x.is_a expected_warning)
     found = warnings.find if_missing=Nothing is_expected
     if found.is_nothing then
-        loc = Meta.get_source_location 3
         Test.fail "Expected the result to contain a warning: "+expected_warning.to_text+", but it did not. The warnings were "+warnings.short_display_text+' (at '+loc+').'
     invalid = warnings.filter x-> is_expected x . not
     if invalid.not_empty then
-        loc = Meta.get_source_location 3
         Test.fail "Expected the result to contain only the warning: "+found.to_text+", but it also contained: "+invalid.to_text+' (at '+loc+').'
     found
 
