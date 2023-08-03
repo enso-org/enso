@@ -1978,7 +1978,7 @@ type Table
                         Error.throw (Column_Count_Exceeded.Error inner_panic.getMaximumColumnCount inner_panic.getColumnCount)
                     Panic.catch TooManyColumnsException handler=too_many_columns <|
                         Invalid_Output_Column_Names.handle_java_exception <|
-                            MultiValueIndex.makeCrossTabTable0 java_key_columns matched_name.first.java_column data_columns aggregate_names
+                            self.java_table.makeCrossTabTable java_key_columns matched_name.first.java_column data_columns aggregate_names
 
             on_problems.attach_problems_after (Table.Value result) <|
                 problems = result.getProblems
