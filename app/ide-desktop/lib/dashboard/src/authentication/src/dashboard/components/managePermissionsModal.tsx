@@ -284,14 +284,12 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
                                         userPermission={userPermissions}
                                         setUserPermission={newUserPermission => {
                                             setPermissions(oldPermissions =>
-                                                oldPermissions
-                                                    .map(oldUserPermission =>
-                                                        oldUserPermission.user.pk ===
-                                                        newUserPermission.user.pk
-                                                            ? newUserPermission
-                                                            : oldUserPermission
-                                                    )
-                                                    .sort(backendModule.compareUserPermissions)
+                                                oldPermissions.map(oldUserPermission =>
+                                                    oldUserPermission.user.pk ===
+                                                    newUserPermission.user.pk
+                                                        ? newUserPermission
+                                                        : oldUserPermission
+                                                )
                                             )
                                         }}
                                         doDelete={doDelete}
