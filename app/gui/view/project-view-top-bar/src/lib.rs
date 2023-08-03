@@ -18,7 +18,6 @@
 
 use ensogl::prelude::*;
 
-use enso_config::ARGS;
 use ensogl::application::Application;
 use ensogl::display;
 use ensogl::display::shape::compound::rectangle::Rectangle;
@@ -144,10 +143,13 @@ impl ProjectViewTopBar {
             init <- source_();
             let gap = style_watch.get_number(theme::gap);
             let padding_left = style_watch.get_number(theme::padding_left);
+            let padding_top = style_watch.get_number(theme::padding_top);
             gap <- all(init, gap)._1();
             padding_left <- all(init, padding_left)._1();
+            padding_top <- all(init, padding_top)._1();
             eval gap([root](g) { root.set_gap((*g, 0.0)); });
             eval padding_left([root](p) { root.set_padding_left(*p); });
+            eval padding_top([root](p) { root.set_padding_top(*p); });
         }
         init.emit(());
         self

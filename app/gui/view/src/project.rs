@@ -29,7 +29,6 @@ use ensogl_component::text;
 use ensogl_component::text::selection::Selection;
 use ensogl_hardcoded_theme::Theme;
 use ide_view_graph_editor::NodeSource;
-use ide_view_project_view_top_bar::window_control_buttons;
 use ide_view_project_view_top_bar::ProjectViewTopBar;
 
 
@@ -281,18 +280,10 @@ impl Model {
         project_view_top_bar_size: Vector2,
     ) {
         let top_left = Vector2(-scene_shape.width, scene_shape.height) / 2.0;
-        let buttons_y = window_control_buttons::MACOS_TRAFFIC_LIGHTS_VERTICAL_CENTER;
-        let y = buttons_y - project_view_top_bar_size.y / 2.0;
-        let project_view_top_bar_origin = Vector2(0.0, y);
+        let y = -project_view_top_bar_size.y;
+        let x = ARGS.groups.window.options.top_bar_offset.value;
+        let project_view_top_bar_origin = Vector2(x as f32, y);
         self.top_bar.set_xy(top_left + project_view_top_bar_origin);
-    }
-
-    fn on_close_clicked(&self) {
-        js::close(enso_config::window_app_scope_name);
-    }
-
-    fn on_fullscreen_clicked(&self) {
-        js::fullscreen();
     }
 
     fn show_project_list(&self) {
@@ -420,12 +411,6 @@ impl View {
         let project_view_top_bar = &model.top_bar;
         frp::extend! { network
             init <- source_();
-            let window_control_buttons = &project_view_top_bar.window_control_buttons;
-            eval_ window_control_buttons.close (model.on_close_clicked());
-            eval_ window_control_buttons.fullscreen (model.on_fullscreen_clicked());
-            let go_to_dashboard_button = &project_view_top_bar.go_to_dashboard_button;
-            frp.source.go_to_dashboard_button_pressed <+
-                go_to_dashboard_button.is_pressed.on_true();
 
             let project_view_top_bar_display_object = project_view_top_bar.display_object();
             _eval <- all_with3(
