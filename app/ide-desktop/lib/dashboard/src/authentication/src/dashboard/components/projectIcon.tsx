@@ -126,26 +126,30 @@ export default function ProjectIcon(props: ProjectIconProps) {
         try {
             switch (backend.type) {
                 case backendModule.BackendType.remote:
-                    setToastId(toast.toast.loading(LOADING_MESSAGE))
-                    await backend.openProject(item.id, null, item.title)
+                    if (
+                        state !== backendModule.ProjectState.openInProgress &&
+                        state !== backendModule.ProjectState.opened
+                    ) {
+                        setToastId(oldToastId =>
+                            toast.toast.loading(
+                                LOADING_MESSAGE,
+                                // This is a workaround to make the duplicate toast (from React
+                                // Strict Mode) replace the original toast.
+                                oldToastId != null ? { toastId: oldToastId } : {}
+                            )
+                        )
+                        await backend.openProject(item.id, null, item.title)
+                    }
                     setCheckState(CheckState.checkingStatus)
                     break
                 case backendModule.BackendType.local:
                     setCheckState(CheckState.localProject)
                     await backend.openProject(item.id, null, item.title)
-                    // This MUST use the updater form, to get the current value.
-                    setCheckState(oldCheckState => {
-                        if (oldCheckState === CheckState.localProject) {
-                            setTimeout(() => {
-                                setState(oldState =>
-                                    oldState === backendModule.ProjectState.openInProgress
-                                        ? backendModule.ProjectState.opened
-                                        : oldState
-                                )
-                            }, 0)
-                        }
-                        return oldCheckState
-                    })
+                    setState(oldState =>
+                        oldState === backendModule.ProjectState.openInProgress
+                            ? backendModule.ProjectState.opened
+                            : oldState
+                    )
                     break
             }
         } catch (error) {
@@ -157,7 +161,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
             )
             setState(backendModule.ProjectState.closed)
         }
-    }, [backend, item.id, item.title, /* should never change */ setState])
+    }, [state, backend, item.id, item.title, /* should never change */ setState])
 
     React.useEffect(() => {
         const isOpening =
@@ -206,12 +210,6 @@ export default function ProjectIcon(props: ProjectIconProps) {
             onSpinnerStateChange?.(null)
         }
     }, [onSpinnerStateChange])
-
-    React.useEffect(() => {
-        if (toastId != null && state !== backendModule.ProjectState.openInProgress) {
-            toast.toast.dismiss(toastId)
-        }
-    }, [state, toastId])
 
     hooks.useEventHandler(assetEvents, event => {
         switch (event.type) {
@@ -310,6 +308,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
                     try {
                         // This call will error if the VM is not ready yet.
                         await backend.checkResources(item.id, item.title)
+                        setToastId(null)
                         handle = null
                         if (continuePolling) {
                             continuePolling = false
@@ -341,6 +340,13 @@ export default function ProjectIcon(props: ProjectIconProps) {
     }, [checkState, item.id, item.title, backend, /* should never change */ setState])
 
     const closeProject = async (triggerOnClose = true) => {
+        setToastId(null)
+        setShouldOpenWhenReady(false)
+        setState(backendModule.ProjectState.closing)
+        onSpinnerStateChange?.(null)
+        setOnSpinnerStateChange(null)
+        appRunner?.stopApp()
+        setCheckState(CheckState.notChecking)
         if (
             state !== backendModule.ProjectState.closing &&
             state !== backendModule.ProjectState.closed
@@ -348,12 +354,6 @@ export default function ProjectIcon(props: ProjectIconProps) {
             if (triggerOnClose) {
                 onClose()
             }
-            setShouldOpenWhenReady(false)
-            setState(backendModule.ProjectState.closing)
-            onSpinnerStateChange?.(null)
-            setOnSpinnerStateChange(null)
-            appRunner?.stopApp()
-            setCheckState(CheckState.notChecking)
             try {
                 if (
                     backend.type === backendModule.BackendType.local &&
