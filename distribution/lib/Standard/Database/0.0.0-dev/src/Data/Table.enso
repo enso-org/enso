@@ -2205,11 +2205,20 @@ type Table
 make_table : Connection -> Text -> Vector -> Context -> Table
 make_table connection table_name columns ctx =
     if columns.is_empty then Error.throw (Illegal_State.Error "Unexpectedly attempting to create a Database Table with no columns. This is a bug in the Database library.") else
+        problem_builder = Problem_Builder.new
+        column_names_validator = connection.base_connection.column_naming_helper.create_unique_name_strategy
         cols = columns.map p->
-            name = p.first
+            raw_name = p.first
             sql_type = p.second
-            Internal_Column.Value name (SQL_Type_Reference.from_constant sql_type) (SQL_Expression.Column table_name name)
-        Table.Value table_name connection cols ctx
+            # We ensure that the name used in the Enso table is a valid name for Enso column and is unique, possibly changing the input name slightly.
+            enso_name = column_names_validator.make_unique raw_name
+            # The expression keeps the original 'raw' name coming from the database.
+            expression = SQL_Expression.Column table_name raw_name
+            Internal_Column.Value enso_name (SQL_Type_Reference.from_constant sql_type) expression
+        problem_builder.report_unique_name_strategy column_names_validator
+        # We do not want to stop the table from being fetched, so we report the issues as warnings.
+        problem_builder.attach_problems_before Problem_Behavior.Report_Warning <|
+            Table.Value table_name connection cols ctx
 
 ## PRIVATE
 

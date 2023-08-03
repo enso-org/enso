@@ -99,7 +99,7 @@ sqlite_specific_spec prefix connection setup =
                 connection.execute_update 'CREATE TEMPORARY TABLE "empty-column-name" ("" VARCHAR)'
             t1 = connection.query (SQL_Query.Table_Name "empty-column-name")
             Problems.expect_only_warning Invalid_Column_Names t1
-            t1.column_names . should_equal "Column 1"
+            t1.column_names . should_equal ["Column 1"]
             m1 = t1.read
             m1.at "Column 1" . to_vector . should_equal []
 
