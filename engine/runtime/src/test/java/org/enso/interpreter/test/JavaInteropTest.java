@@ -3,15 +3,14 @@ package org.enso.interpreter.test;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
-
-import org.junit.After;
 import org.junit.AfterClass;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -72,7 +71,7 @@ public class JavaInteropTest extends TestBase {
   public void testImportStaticInnerClass() {
     var code = """
         polyglot java import org.enso.example.TestClass.StaticInnerClass
-        
+
         main =
             instance = StaticInnerClass.new "my_data"
             instance.add 1 2
@@ -87,7 +86,7 @@ public class JavaInteropTest extends TestBase {
         from Standard.Base import IO
         polyglot java import org.enso.example.TestClass
         polyglot java import org.enso.example.TestClass.InnerEnum
-        
+
         main =
             IO.println <| TestClass.enumToString InnerEnum.ENUM_VALUE_1
             IO.println <| TestClass.enumToString TestClass.InnerEnum.ENUM_VALUE_2
@@ -99,7 +98,7 @@ public class JavaInteropTest extends TestBase {
   public void testImportOuterClassAndReferenceInner() {
     var code = """
         polyglot java import org.enso.example.TestClass
-        
+
         main =
             instance = TestClass.StaticInnerClass.new "my_data"
             instance.getData
@@ -114,7 +113,7 @@ public class JavaInteropTest extends TestBase {
         from Standard.Base import IO
         polyglot java import org.enso.example.TestClass
         polyglot java import org.enso.example.TestClass.StaticInnerClass
-        
+
         main =
             inner_value = TestClass.StaticInnerClass.new "my_data"
             other_inner_value = StaticInnerClass.new "my_data"
@@ -128,7 +127,7 @@ public class JavaInteropTest extends TestBase {
   public void testImportNestedInnerClass() {
     var code = """
         polyglot java import org.enso.example.TestClass.StaticInnerClass.StaticInnerInnerClass
-        
+
         main =
             inner_inner_value = StaticInnerInnerClass.new
             inner_inner_value.mul 3 5
@@ -163,12 +162,45 @@ public class JavaInteropTest extends TestBase {
   public void testImportOuterClassAndAccessNestedInnerClass() {
     var code = """
         polyglot java import org.enso.example.TestClass
-        
+
         main =
             instance = TestClass.StaticInnerClass.StaticInnerInnerClass.new
             instance.mul 3 5
         """;
     var res = evalModule(ctx, code);
     assertEquals(15, res.asInt());
+  }
+
+  @Test
+  public void testToStringBehavior() {
+    var code = """
+    from Standard.Base import all
+
+    polyglot java import org.enso.example.ToString as Foo
+
+    type My_Fooable_Implementation
+        Instance x
+
+        foo : Integer
+        foo self = 100+self.x
+
+    main =
+        fooable = My_Fooable_Implementation.Instance 23
+        a = fooable.foo
+        b = fooable.to_text
+        c = Foo.callFoo fooable
+        d = Foo.showObject fooable
+        e = Foo.callFooAndShow fooable
+        [a, b, c, d, e]
+    """;
+
+    var res = evalModule(ctx, code);
+    assertTrue("It is an array", res.hasArrayElements());
+    assertEquals("Array with five elements", 5, res.getArraySize());
+    assertEquals(123, res.getArrayElement(0).asInt());
+    assertEquals("(Instance 23)", res.getArrayElement(1).asString());
+    assertEquals("Fooable.foo() = 123", res.getArrayElement(2).asString());
+    assertEquals("obj.toString() = (Instance 23)", res.getArrayElement(3).asString());
+    assertEquals("{(Instance 23)}.foo() = 123", res.getArrayElement(4).asString());
   }
 }

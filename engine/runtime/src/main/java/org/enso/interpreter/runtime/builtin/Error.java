@@ -1,11 +1,29 @@
 package org.enso.interpreter.runtime.builtin;
 
-import static com.oracle.truffle.api.CompilerDirectives.transferToInterpreterAndInvalidate;
-
-import com.oracle.truffle.api.CompilerDirectives;
-import org.enso.interpreter.node.expression.builtin.error.*;
+import org.enso.interpreter.node.expression.builtin.error.ArithmeticError;
+import org.enso.interpreter.node.expression.builtin.error.ArityError;
+import org.enso.interpreter.node.expression.builtin.error.CaughtPanic;
+import org.enso.interpreter.node.expression.builtin.error.CompileError;
+import org.enso.interpreter.node.expression.builtin.error.ForbiddenOperation;
+import org.enso.interpreter.node.expression.builtin.error.IncomparableValues;
+import org.enso.interpreter.node.expression.builtin.error.IndexOutOfBounds;
+import org.enso.interpreter.node.expression.builtin.error.InexhaustivePatternMatch;
+import org.enso.interpreter.node.expression.builtin.error.InvalidArrayIndex;
+import org.enso.interpreter.node.expression.builtin.error.InvalidConversionTarget;
+import org.enso.interpreter.node.expression.builtin.error.ModuleDoesNotExist;
+import org.enso.interpreter.node.expression.builtin.error.ModuleNotInPackageError;
+import org.enso.interpreter.node.expression.builtin.error.NoConversionCurrying;
+import org.enso.interpreter.node.expression.builtin.error.NoSuchConversion;
 import org.enso.interpreter.node.expression.builtin.error.NoSuchField;
 import org.enso.interpreter.node.expression.builtin.error.NoSuchMethod;
+import org.enso.interpreter.node.expression.builtin.error.NotInvokable;
+import org.enso.interpreter.node.expression.builtin.error.NumberParseError;
+import org.enso.interpreter.node.expression.builtin.error.Panic;
+import org.enso.interpreter.node.expression.builtin.error.SyntaxError;
+import org.enso.interpreter.node.expression.builtin.error.TypeError;
+import org.enso.interpreter.node.expression.builtin.error.Unimplemented;
+import org.enso.interpreter.node.expression.builtin.error.UninitializedState;
+import org.enso.interpreter.node.expression.builtin.error.UnsupportedArgumentTypes;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
@@ -13,6 +31,10 @@ import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
+
+import com.oracle.truffle.api.CompilerDirectives;
+import static com.oracle.truffle.api.CompilerDirectives.transferToInterpreterAndInvalidate;
+import com.oracle.truffle.api.interop.UnknownIdentifierException;
 
 /** Container for builtin Error types */
 public final class Error {
@@ -124,6 +146,24 @@ public final class Error {
    */
   public Atom makeNoSuchMethod(Object target, UnresolvedSymbol symbol) {
     return noSuchMethod.newInstance(target, symbol);
+  }
+
+
+  /** Verifies payload whether it represents {@link #makeNoSuchMethod(Object, UnresolvedSymbol)} atom.
+   * @param payload object to check
+   * @return {@code null} if the {@code payload} isn't recognized name of the unresolved symbol otherwise
+  */
+  public String findNoSuchMethod(Object payload) {
+    if (payload instanceof Atom atom && atom.getConstructor() == noSuchMethod.getUniqueConstructor()) {
+      try {
+        if (atom.readMember("symbol") instanceof UnresolvedSymbol symbol) {
+          return symbol.getName();
+        }
+      } catch (UnknownIdentifierException ex) {
+        throw CompilerDirectives.shouldNotReachHere(ex);
+      }
+    }
+    return null;
   }
 
   public NoSuchField getNoSuchFieldError() {
