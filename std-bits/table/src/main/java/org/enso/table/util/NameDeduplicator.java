@@ -5,7 +5,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
-
 import org.enso.base.text.CaseInsensitiveUnicodeNormalizedTextEquivalence;
 import org.enso.base.text.UnicodeNormalizedTextEquivalence;
 import org.enso.table.data.table.Column;

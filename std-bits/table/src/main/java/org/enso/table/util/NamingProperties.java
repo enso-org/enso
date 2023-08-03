@@ -29,8 +29,8 @@ public interface NamingProperties {
 
   /**
    * Specifies if names are case-sensitive.
-   * <p>
-   * If not, names that are equal case insensitively, need to be deduplicated.
+   *
+   * <p>If not, names that are equal case insensitively, need to be deduplicated.
    */
   boolean is_case_sensitive();
 }
