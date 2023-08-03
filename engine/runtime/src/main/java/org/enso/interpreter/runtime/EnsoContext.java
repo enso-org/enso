@@ -1,5 +1,6 @@
 package org.enso.interpreter.runtime;
 
+import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.TruffleFile;
@@ -11,17 +12,6 @@ import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.object.Shape;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.PrintStream;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.atomic.AtomicLong;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.PackageRepository;
 import org.enso.compiler.PackageRepositoryUtils;
@@ -179,7 +169,11 @@ public class EnsoContext {
    *     com.oracle.truffle.api.TruffleContext}.
    */
   public static EnsoContext get(Node node) {
-    return REFERENCE.get(node);
+    CompilerAsserts.partialEvaluationConstant(node);
+    CompilerAsserts.partialEvaluationConstant(REFERENCE);
+    var ctx = REFERENCE.get(node);
+    CompilerAsserts.partialEvaluationConstant(ctx);
+    return ctx;
   }
 
   public static TruffleLanguage.ContextReference<EnsoContext> getReference() {
