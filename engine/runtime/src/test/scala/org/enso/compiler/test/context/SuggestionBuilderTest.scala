@@ -54,10 +54,6 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
     Vector()
   )
 
-  @annotation.nowarn
-  def endOfLine(line: Int, character: Int): Suggestion.Position =
-    Suggestion.Position(line + 1, 0)
-
   "SuggestionBuilder" should {
 
     "build method without explicit arguments" in {

@@ -282,7 +282,6 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
     *
     * @param changeset the [[Changeset]] object capturing the previous
     * version of IR
-    * @param ctx the runtime context
     * @return the list of cache invalidation commands
     */
   private def buildCacheInvalidationCommands(
@@ -291,7 +290,7 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
   ): Seq[CacheInvalidation] = {
     val invalidateExpressionsCommand =
       CacheInvalidation.Command.InvalidateKeys(changeset.invalidated)
-    val scopeIds = splitMeta(source.toString())._2.map(_._2)
+    val scopeIds = splitMeta(source.toString)._2.map(_._2)
     val invalidateStaleCommand =
       CacheInvalidation.Command.InvalidateStale(scopeIds)
     Seq(
