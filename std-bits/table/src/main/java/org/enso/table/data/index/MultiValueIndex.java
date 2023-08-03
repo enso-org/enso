@@ -192,7 +192,7 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
     AggregatedProblems indexProblems = new AggregatedProblems();
     var groupingIndex =
             MultiValueIndex.makeUnorderedIndex(
-                    groupingColumns, groupingColumns[0].getSize(), TextFoldingStrategy.unicodeNormalizedFold);
+                    groupingColumns, nameColumn.getSize(), TextFoldingStrategy.unicodeNormalizedFold);
     indexProblems.addAll(groupingIndex.problems);
     Map<UnorderedMultiValueKey, Map<UnorderedMultiValueKey, List<Integer>>> twoLevelIndex = new HashMap<>();
     for (UnorderedMultiValueKey groupingKey : groupingIndex.keys()) {
