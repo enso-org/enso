@@ -50,7 +50,7 @@ type Too_Many_Column_Names_Provided
     to_display_text self =
         "Too many column names provided. " + (self.column_names.at 0).to_text + " are unused."
 
-## One or more column names were invalid during a rename operation.
+## One or more column names were invalid.
 type Invalid_Column_Names
     Error (column_names : Vector Text) (extra_message : Text | Nothing = Nothing)
 
@@ -63,8 +63,8 @@ type Invalid_Column_Names
             Nothing -> ""
             message -> " "+message
         case self.column_names.length == 1 of
-            True -> "The name " + (self.column_names.at 0).to_display_text.pretty + " is invalid."+suffix
-            False -> "The names "+self.column_names.short_display_text+" are invalid."+suffix
+            True -> "The name " + (self.column_names.at 0).to_display_text.pretty + " is invalid and may be replaced in the resulting table."+suffix
+            False -> "The names "+self.column_names.short_display_text+" are invalid and may be replaced in the resulting table."+suffix
 
     ## PRIVATE
        Handles the Java counterpart `InvalidColumnNameException` and converts it into a dataflow error.
