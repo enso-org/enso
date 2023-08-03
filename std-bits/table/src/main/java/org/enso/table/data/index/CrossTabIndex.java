@@ -1,8 +1,6 @@
 package org.enso.table.data.index;
 
 import java.util.*;
-import java.util.function.IntFunction;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.enso.base.text.TextFoldingStrategy;
@@ -11,7 +9,6 @@ import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
-import org.enso.table.data.table.problems.FloatingPointGrouping;
 import org.enso.table.error.TooManyColumnsException;
 import org.enso.table.problems.AggregatedProblems;
 import org.enso.table.util.ConstantList;
@@ -63,20 +60,17 @@ public class CrossTabIndex {
         xKeyNumberer = new ObjectNumberer<>(xSubKeys);
         yKeyNumberer = new ObjectNumberer<>(ySubKeys);
 
-        // Create grid of cells, with grouping column tuples as the vertical axis
-        // and name column tuples as the horizontal axis.
+        // Create grid of cells, mapping x and y key indices to combined keys.
         grid = new UnorderedMultiValueKey[numXKeys()][numYKeys()];
 
         // For each combined key, use the two subkeys to determine row+col
         // coordinates, and put the key at those coordinates.
         for (int i = 0; i < combinedIndex.size(); ++i) {
             UnorderedMultiValueKey combinedKey = combinedKeys.get(i);
-            UnorderedMultiValueKey ySubKey = ySubKeys.get(i);
-            UnorderedMultiValueKey xSubKey = xSubKeys.get(i);
-            int xCoordinate = getXCoordinate(xSubKey);
-            int yCoordinate = getYCoordinate(ySubKey);
+            int xCoordinate = getXCoordinate(xSubKeys.get(i));
+            int yCoordinate = getYCoordinate(ySubKeys.get(i));
 
-            // The pair (groupingCoordinate, nameCoordinate) must be unique so this
+            // The pair (xCoordinate, yCoordinate) must be unique so this
             // check is not really necessary.
             if (grid[xCoordinate][yCoordinate] != null) {
                 throw new IllegalStateException("Internal error: makeCrossTabTable coordinate conflict");
@@ -151,7 +145,7 @@ public class CrossTabIndex {
         var emptyList = new ArrayList<Integer>();
         for (UnorderedMultiValueKey ySubKey : getYKeys()) {
 
-            // Fill the grouping columns.
+            // Fill the y key columns.
             IntStream.range(0, yColumns.length)
                     .forEach(i -> storage[i].appendNoGrow(ySubKey.get(i)));
 
