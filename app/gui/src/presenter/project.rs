@@ -75,8 +75,8 @@ impl Model {
         let available_projects = default();
         let shortcut_transaction = default();
         let options = notification::UpdateOptions {
-            render: Some(EXECUTION_FAILED_MESSAGE.into()),
-            ..default()
+            render:  Some(EXECUTION_FAILED_MESSAGE.into()),
+            options: notification::Options { r#type: Some(notification::Type::Error), ..default() },
         };
         let execution_failed_notification = notification::Notification::new(options);
         Model {
@@ -295,7 +295,10 @@ impl Model {
                     notification::error(format!("Project with id {id} not found."), &None);
                 }
             } else {
-                notification::error("Project Manager API not available, cannot open project.", &None);
+                notification::error(
+                    "Project Manager API not available, cannot open project.",
+                    &None,
+                );
             }
             app.hide_progress_indicator();
             view.show_graph_editor();

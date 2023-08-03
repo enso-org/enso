@@ -6,7 +6,7 @@
 //! use ide_view::notification::api::*;
 //! # fn main() -> Result<(), wasm_bindgen::JsValue> {
 //! let handle = info(
-//!     &"Undo triggered in UI.".into(),
+//!     "Undo triggered in UI.",
 //!     &Some(Options {
 //!         theme: Some(Theme::Dark),
 //!         auto_close: Some(AutoClose::Never()),
