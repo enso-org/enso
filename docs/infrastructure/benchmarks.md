@@ -58,12 +58,12 @@ other Enso source file, for example via
 `runEngineDistribution --in-project test/Benchmarks --run <source file>`. The
 harness within the project is not meant for any sophisticated benchmarking, but
 rather for quick local evaluation. See the `Bench.measure` method documentation
-for more details. For more sophisticated approach, run the benchmarks via JMH
+for more details. For more sophisticated approach, run the benchmarks via the JMH
 launcher.
 
 ### Running via JMH launcher
 
-The JMH launcher is located in `std-bits/benchmarks` directory, as `bench-libs`
+The JMH launcher is located in `std-bits/benchmarks` directory, as `std-benchmarks`
 SBT project. It is a single Java class with a `main` method that just delegates
 to the
 [standard JMH launcher](https://github.com/openjdk/jmh/blob/master/jmh-core/src/main/java/org/openjdk/jmh/Main.java),
@@ -72,11 +72,19 @@ the full options summary, either see the
 [JMH source code](https://github.com/openjdk/jmh/blob/master/jmh-core/src/main/java/org/openjdk/jmh/runner/options/CommandLineOptions.java),
 or run the launcher with `-h` option.
 
-The `bench-libs` SBT project supports `bench` and `benchOnly` commands, that
+The `std-benchmarks` SBT project supports `bench` and `benchOnly` commands, that
 work the same as in the `runtime` project, with the exception that the benchmark
 name does not have to be specified as a fully qualified name, but as a regular
 expression. To access the full flexibility of the JMH launcher, run it via
 `Bench/run` - for example, to see the help message: `Bench/run -h`.
+For example, you can run all the benchmarks that have "New_Vector" in their name
+with just 3 seconds for warmup iterations and 2 measurement iterations with
+`Bench/run -w 3 -i 2 New_Vector`.
+
+Whenever you add or delete any benchmarks from `test/Benchmarks` project, the
+generated JMH sources need to be recompiled with `Bench/clean; Bench/compile`.
+You do not need to recompile the `std-benchmarks` project if you only modify the
+benchmark sources.
 
 ## Visualization
 
@@ -85,7 +93,7 @@ The benchmarks are invoked as a daily
 that can be invoked manually on a specific branch as well. The results are kept
 in the artifacts produced from the actions. In
 `tools/performance/engine-benchmarks` directory, there is a simple Python script
-for collecting and processing the results. See the README in that directory for
-more information about how to run that script. This script is invoked regularly
+for collecting and processing the results. See the [README in that directory](../../tools/performance/engine-benchmarks/README.md)
+for more information about how to run that script. This script is invoked regularly
 on a private machine and the results are published in
 [https://enso-org.github.io/engine-benchmark-results/](https://enso-org.github.io/engine-benchmark-results/).

@@ -9,7 +9,7 @@ import org.enso.polyglot.MethodNames.Module;
 import org.graalvm.polyglot.Value;
 
 /**
- * Collect benchmark specifications from source files.
+ * Collect benchmark specifications from Enso source files.
  */
 public class SpecCollector {
   private SpecCollector() {}

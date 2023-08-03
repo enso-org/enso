@@ -21,6 +21,7 @@ public @interface GenerateBenchSources {
 
   /**
    * Fully qualified name of the module within the project that defines all the benchmark {@link org.enso.benchmarks.BenchSuite suites}.
+   * For example {@code local.Benchmarks.Main}.
    */
   String moduleName();
 
