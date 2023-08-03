@@ -275,7 +275,7 @@ export default function AssetsTable(props: AssetsTableProps) {
         doOpenIde,
         doCloseIde: rawDoCloseIde,
     } = props
-    const { organization } = authProvider.useNonPartialUserSession()
+    const { organization, user } = authProvider.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
     const { setModal } = modalProvider.useSetModal()
     const [initialized, setInitialized] = React.useState(false)
@@ -466,7 +466,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     title,
                     modifiedAt: dateTime.toRfc3339(new Date()),
                     parentId: event.parentId ?? backendModule.DirectoryId(''),
-                    permissions: permissions.tryGetSingletonOwnerPermission(organization),
+                    permissions: permissions.tryGetSingletonOwnerPermission(organization, user),
                     projectState: null,
                     type: backendModule.AssetType.directory,
                 }
@@ -494,7 +494,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     title: projectName,
                     modifiedAt: dateTime.toRfc3339(new Date()),
                     parentId: event.parentId ?? backendModule.DirectoryId(''),
-                    permissions: permissions.tryGetSingletonOwnerPermission(organization),
+                    permissions: permissions.tryGetSingletonOwnerPermission(organization, user),
                     projectState: { type: backendModule.ProjectState.new },
                     type: backendModule.AssetType.project,
                 }
@@ -524,7 +524,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                         id: backendModule.FileId(uniqueString.uniqueString()),
                         title: file.name,
                         parentId: event.parentId ?? backendModule.DirectoryId(''),
-                        permissions: permissions.tryGetSingletonOwnerPermission(organization),
+                        permissions: permissions.tryGetSingletonOwnerPermission(organization, user),
                         modifiedAt: dateTime.toRfc3339(new Date()),
                         projectState: null,
                     }))
@@ -558,7 +558,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     title: event.name,
                     modifiedAt: dateTime.toRfc3339(new Date()),
                     parentId: event.parentId ?? backendModule.DirectoryId(''),
-                    permissions: permissions.tryGetSingletonOwnerPermission(organization),
+                    permissions: permissions.tryGetSingletonOwnerPermission(organization, user),
                     projectState: null,
                     type: backendModule.AssetType.secret,
                 }

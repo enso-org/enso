@@ -67,14 +67,15 @@ interface BaseUserSession<Type extends UserSessionType> {
 export interface OfflineUserSession extends Pick<BaseUserSession<UserSessionType.offline>, 'type'> {
     accessToken: null
     organization: null
+    user: null
 }
 
-/** The singleton instance of {@link OfflineUserSession}.
- * Minimizes React re-renders. */
-const OFFLINE_USER_SESSION: OfflineUserSession = {
+/** The singleton instance of {@link OfflineUserSession}. Minimizes React re-renders. */
+const OFFLINE_USER_SESSION: Readonly<OfflineUserSession> = {
     type: UserSessionType.offline,
     accessToken: null,
     organization: null,
+    user: null,
 }
 
 /** Object containing the currently signed-in user's session data, if the user has not yet set their
@@ -89,6 +90,7 @@ export interface PartialUserSession extends BaseUserSession<UserSessionType.part
 export interface FullUserSession extends BaseUserSession<UserSessionType.full> {
     /** User's organization information. */
     organization: backendModule.UserOrOrganization
+    user: backendModule.SimpleUser
 }
 
 /** A user session for a user that may be either fully registered,
@@ -259,9 +261,14 @@ export function AuthProvider(props: AuthProviderProps) {
                     setBackendWithoutSavingType(backend)
                 }
                 let organization: backendModule.UserOrOrganization | null
+                let user: backendModule.SimpleUser | null
                 while (true) {
                     try {
                         organization = await backend.usersMe()
+                        user =
+                            (await backend.listUsers()).find(
+                                listedUser => listedUser.email === organization?.email
+                            ) ?? null
                         break
                     } catch {
                         // The value may have changed after the `await`.
@@ -283,7 +290,7 @@ export function AuthProvider(props: AuthProviderProps) {
                     history.replaceState(null, '', url.toString())
                 }
                 let newUserSession: UserSession
-                if (organization == null) {
+                if (organization == null || user == null) {
                     newUserSession = {
                         type: UserSessionType.partial,
                         ...session,
@@ -293,6 +300,7 @@ export function AuthProvider(props: AuthProviderProps) {
                         type: UserSessionType.full,
                         ...session,
                         organization,
+                        user,
                     }
 
                     /** Save access token so can be reused by Enso backend. */

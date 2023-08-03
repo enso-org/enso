@@ -198,14 +198,17 @@ export const DEFAULT_PERMISSIONS: Readonly<Permissions> = {
 
 /** Return an array containing the owner permission if `owner` is not `null`,
  * else return an empty array (`[]`). */
-export function tryGetSingletonOwnerPermission(owner: backend.UserOrOrganization | null) {
+export function tryGetSingletonOwnerPermission(
+    owner: backend.UserOrOrganization | null,
+    user: backend.SimpleUser | null
+) {
     return owner != null
         ? [
               {
                   user: {
                       // The names are defined by the backend and cannot be changed.
                       /* eslint-disable @typescript-eslint/naming-convention */
-                      pk: backend.Subject(''),
+                      pk: user?.id ?? backend.Subject(''),
                       organization_id: owner.id,
                       user_email: owner.email,
                       user_name: owner.name,
