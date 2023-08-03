@@ -121,7 +121,10 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
 
   private final List<String> necessaryImports =
       Arrays.asList(
+          "com.oracle.truffle.api.CompilerDirectives",
+          "com.oracle.truffle.api.dsl.UnsupportedSpecializationException",
           "com.oracle.truffle.api.frame.VirtualFrame",
+          "com.oracle.truffle.api.nodes.Node",
           "com.oracle.truffle.api.nodes.NodeInfo",
           "com.oracle.truffle.api.nodes.RootNode",
           "com.oracle.truffle.api.nodes.UnexpectedResultException",
@@ -135,6 +138,7 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
           "org.enso.interpreter.runtime.callable.function.Function",
           "org.enso.interpreter.runtime.callable.function.FunctionSchema",
           "org.enso.interpreter.runtime.EnsoContext",
+          "org.enso.interpreter.runtime.builtin.Builtins",
           "org.enso.interpreter.runtime.data.ArrayRope",
           "org.enso.interpreter.runtime.error.PanicException",
           "org.enso.interpreter.runtime.error.Warning",
@@ -300,14 +304,27 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
       if (warningsPossible) {
         out.println("    if (anyWarnings) {");
         out.println("      internals.anyWarningsProfile.enter();");
-        out.println("      Object result = " + executeCall + ";");
+        out.println("      Object result;");
+        out.println("      try {");
+        out.println("        result = " + executeCall + ";");
+        out.println("      } catch (Throwable t) {");
+        out.println("        return handleThrowable(t, bodyNode);");
+        out.println("      }");
         out.println("      EnsoContext ctx = EnsoContext.get(bodyNode);");
         out.println("      return WithWarnings.appendTo(ctx, result, gatheredWarnings);");
         out.println("    } else {");
-        out.println("      return " + executeCall + ";");
+        out.println("      try {");
+        out.println("        return " + executeCall + ";");
+        out.println("      } catch (Throwable t) {");
+        out.println("        return handleThrowable(t, bodyNode);");
+        out.println("      }");
         out.println("    }");
       } else {
-        out.println("    return " + executeCall + ";");
+        out.println("    try {");
+        out.println("      return " + executeCall + ";");
+        out.println("    } catch (Throwable t) {");
+        out.println("      return handleThrowable(t, bodyNode);");
+        out.println("    }");
       }
       out.println("  }");
 
@@ -337,6 +354,23 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
       out.println("  @Override");
       out.println("  protected RootNode cloneUninitialized() {");
       out.println("    return new " + methodDefinition.getClassName() + "(EnsoLanguage.get(this), internals.staticOfInstanceMethod);");
+      out.println("  }");
+
+      out.println();
+
+      out.println("  /**");
+      out.println("   * Transforms a Java Throwable into either a dataflow-error or a Panic exception.");
+      out.println("   * @param t The Throwable thrown from the {@code execute} method.");
+      out.println("   */");
+      out.println("  private static Object handleThrowable(Throwable t, Node locationNode) {");
+      out.println("    CompilerDirectives.transferToInterpreterAndInvalidate();");
+      out.println("    Builtins builtins = EnsoContext.get(locationNode).getBuiltins();");
+      out.println("    if (t instanceof UnsupportedSpecializationException unsupSpecEx) {");
+      out.println("      var unimplErr = builtins.error().makeUnimplemented(\"Unsupported specialization: \" + unsupSpecEx.getMessage());");
+      out.println("      throw new PanicException(unimplErr, locationNode);");
+      out.println("    } else {");
+      out.println("      throw new PanicException(t, locationNode);");
+      out.println("    }");
       out.println("  }");
 
       out.println();
@@ -471,7 +505,7 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
     out.println(
         "      " + varName + " = " + castName + "(" + argsArray + "[arg" + arg.getPosition() + "Idx]);");
     out.println("    } catch (UnexpectedResultException e) {");
-    out.println("      com.oracle.truffle.api.CompilerDirectives.transferToInterpreter();");
+    out.println("      CompilerDirectives.transferToInterpreter();");
     out.println("      var builtins = EnsoContext.get(bodyNode).getBuiltins();");
     out.println("      var ensoTypeName = org.enso.interpreter.runtime.type.ConstantsGen.getEnsoTypeName(\"" + builtinName + "\");");
     out.println("      var error = (ensoTypeName != null)");
