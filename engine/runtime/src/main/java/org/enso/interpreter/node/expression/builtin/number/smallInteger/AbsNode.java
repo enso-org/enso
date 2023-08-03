@@ -8,7 +8,7 @@ import org.enso.interpreter.node.expression.builtin.number.utils.ToEnsoNumberNod
 
 @BuiltinMethod(type = "Small_Integer", name = "abs", description = "Absolute value of a number")
 public abstract class AbsNode extends Node {
-  private @Child ToEnsoNumberNode toEnsoNumberNode = ToEnsoNumberNode.build();
+  private @Child ToEnsoNumberNode toEnsoNumberNode = ToEnsoNumberNode.create();
 
   static AbsNode build() {
     return AbsNodeGen.create();

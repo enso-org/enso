@@ -5,6 +5,7 @@ import project.Data.Column.Column
 import project.Data.Sort_Column.Sort_Column
 import project.Data.Table.Table
 import project.Data.Type.Value_Type.Value_Type
+import project.Internal.Column_Naming_Helper.Column_Naming_Helper
 import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Table_Helpers
 import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
@@ -40,8 +41,8 @@ type Validated_Aggregate_Columns
    - resolves the column descriptors, reporting any issues,
    - ensures that the output names are unique,
    - finds the key columns.
-prepare_aggregate_columns : Vector Aggregate_Column -> Table -> Boolean -> Validated_Aggregate_Columns
-prepare_aggregate_columns aggregates table error_on_missing_columns =
+prepare_aggregate_columns : Column_Naming_Helper -> Vector Aggregate_Column -> Table -> Boolean -> Validated_Aggregate_Columns
+prepare_aggregate_columns naming_helper aggregates table error_on_missing_columns =
     is_a_key c = case c of
         Aggregate_Column.Group_By _ _ -> True
         _ -> False
@@ -64,12 +65,15 @@ prepare_aggregate_columns aggregates table error_on_missing_columns =
         unique_key_columns = key_columns.distinct (on = .name)
 
         # Resolve Names
-        unique = Unique_Name_Strategy.new
+        unique = naming_helper.create_unique_name_strategy
         ## First pass ensures the custom names specified by the user are unique.
            The second pass resolves the default names, ensuring that they do not
            clash with the user-specified names (ensuring that user-specified names
            take precedence).
-        pass_1 = valid_resolved_aggregate_columns.map c-> if c.new_name == "" then "" else unique.make_unique c.new_name
+        pass_1 = valid_resolved_aggregate_columns.map c-> if c.new_name == "" then "" else
+            # Verify if the user-provided name is valid and if not, throw an error.
+            naming_helper.ensure_name_is_valid c.new_name <|
+                unique.make_unique c.new_name
         renamed_columns = pass_1.map_with_index i->name->
             agg = valid_resolved_aggregate_columns.at i
             new_name = if name != "" then name else unique.make_unique (default_aggregate_column_name agg)

@@ -10,6 +10,7 @@ import project.Data.Sort_Column.Sort_Column
 import project.Data.Table.Table
 import project.Data.Type.Value_Type.Value_Type
 import project.Data.Type.Value_Type_Helpers
+import project.Internal.Column_Naming_Helper.Column_Naming_Helper
 import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 from project.Errors import Ambiguous_Column_Rename, Column_Type_Mismatch, Invalid_Aggregate_Column, Missing_Input_Columns, No_Common_Type, No_Input_Columns_Selected, No_Output_Columns, Too_Many_Column_Names_Provided
@@ -263,8 +264,8 @@ type Table_Column_Helper
      operation. By default, a warning is issued, but the operation proceeds.
      If set to `Report_Error`, the operation fails with a dataflow error.
      If set to `Ignore`, the operation proceeds without errors or warnings.
-rename_columns : Vector -> Map (Text | Integer | Regex) Text | Vector Text -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Map Text Text
-rename_columns (internal_columns:Vector) (mapping:(Map | Vector)) (case_sensitivity:Case_Sensitivity) (error_on_missing_columns:Boolean) (on_problems:Problem_Behavior) =
+rename_columns : Column_Naming_Helper -> Vector -> Map (Text | Integer | Regex) Text | Vector Text -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Map Text Text
+rename_columns (naming_helper : Column_Naming_Helper) (internal_columns:Vector) (mapping:(Map | Vector)) (case_sensitivity:Case_Sensitivity) (error_on_missing_columns:Boolean) (on_problems:Problem_Behavior) =
     ## Convert Vector of Pairs to Map
     is_vec_pairs = mapping.is_a Vector && mapping.length > 0 && (mapping.first.is_a Text . not)
     case is_vec_pairs of
@@ -272,9 +273,9 @@ rename_columns (internal_columns:Vector) (mapping:(Map | Vector)) (case_sensitiv
             ## Attempt to treat as Map
             map = Map.from_vector mapping
             if map.is_error then Error.throw (Illegal_Argument.Error "A mapping Vector must be either a list of names or a list of pairs (old name to new name).") else
-                rename_columns internal_columns map case_sensitivity error_on_missing_columns on_problems
+                rename_columns naming_helper internal_columns map case_sensitivity error_on_missing_columns on_problems
         False ->
-            unique = Unique_Name_Strategy.new
+            unique = naming_helper.create_unique_name_strategy
             problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns
 
             ## Computes a vector of pairs, where each pairs is one of the columns from
@@ -306,29 +307,31 @@ rename_columns (internal_columns:Vector) (mapping:(Map | Vector)) (case_sensitiv
                     builder = mapping.to_vector.fold Vector.new_builder builder-> pair-> builder.append_vector_range (resolve_rename pair.first pair.second)
                     builder.to_vector
 
-            ## Resolves actual new names for renamed columns.
-               If a column received ambiguous new names, an error is raised.
-            name_map = columns_with_new_names.fold Map.empty current-> pair->
-                old_name = pair.first.name
-                case current.contains_key old_name of
-                    False -> current.insert old_name pair.second
-                    True -> if current.get old_name == pair.second then current else
-                        new_names = columns_with_new_names.filter p->p.first.name==old_name . map p-> p.second
-                        Error.throw (Ambiguous_Column_Rename.Error old_name new_names)
+            all_new_names = columns_with_new_names.map .second
+            naming_helper.validate_many_column_names all_new_names <|
+                ## Resolves actual new names for renamed columns.
+                   If a column received ambiguous new names, an error is raised.
+                name_map = columns_with_new_names.fold Map.empty current-> pair->
+                    old_name = pair.first.name
+                    case current.contains_key old_name of
+                        False -> current.insert old_name pair.second
+                        True -> if current.get old_name == pair.second then current else
+                            new_names = columns_with_new_names.filter p->p.first.name==old_name . map p-> p.second
+                            Error.throw (Ambiguous_Column_Rename.Error old_name new_names)
 
-            ## Renamed names take precedence, so we first deduplicate those.
-            resolved_name_map = name_map.map unique.make_unique
+                ## Renamed names take precedence, so we first deduplicate those.
+                resolved_name_map = name_map.map unique.make_unique
 
-            ## Then we ensure that the names of not-renamed columns are also unique and
-               return the effective column names for each column.
-            not_renamed = internal_columns.filter c-> resolved_name_map.contains_key c.name . not
-            new_column_names = not_renamed.fold resolved_name_map current-> column->
-                new_name = unique.make_unique column.name
-                current.insert column.name new_name
+                ## Then we ensure that the names of not-renamed columns are also unique and
+                   return the effective column names for each column.
+                not_renamed = internal_columns.filter c-> resolved_name_map.contains_key c.name . not
+                new_column_names = not_renamed.fold resolved_name_map current-> column->
+                    new_name = unique.make_unique column.name
+                    current.insert column.name new_name
 
-            ## Attach any problems
-            problem_builder.report_unique_name_strategy unique
-            problem_builder.attach_problems_before on_problems new_column_names
+                ## Attach any problems
+                problem_builder.report_unique_name_strategy unique
+                problem_builder.attach_problems_before on_problems new_column_names
 
 ## PRIVATE
    An internal marker type for `rename_columns`.

@@ -189,7 +189,7 @@ fan_out_to_rows table input_column_id function at_least_one_row=False on_problem
 fan_out_to_rows_and_columns : Table -> Text | Integer -> (Any -> Vector (Vector Any)) -> Vector Text -> Boolean -> Problem_Behavior -> Table
 fan_out_to_rows_and_columns table input_column_id function column_names at_least_one_row=False on_problems=Report_Error =
     problem_builder = Problem_Builder.new
-    unique = Unique_Name_Strategy.new
+    unique = table.column_naming_helper.create_unique_name_strategy
 
     input_column = table.at input_column_id
     input_storage = input_column.java_column.getStorage
@@ -333,7 +333,7 @@ map_columns_to_multiple input_column function column_count problem_builder =
    Rename a vector of columns to be unique when added to a table.
 rename_new_columns : Table -> Text -> Vector Column -> Problem_Builder -> Vector Column
 rename_new_columns table removed_column_name columns problem_builder =
-    unique = Unique_Name_Strategy.new
+    unique = table.column_naming_helper.create_unique_name_strategy
     remaining_columns = table.columns . filter (c-> c.name != removed_column_name) . map .name
     unique.mark_used remaining_columns
     new_columns = columns.map column->

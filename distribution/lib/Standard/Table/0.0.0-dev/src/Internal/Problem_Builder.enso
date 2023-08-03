@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Runtime.Ref.Ref
 
 import project.Internal.Vector_Builder.Vector_Builder
-from project.Errors import Duplicate_Output_Column_Names, Invalid_Aggregate_Column, Invalid_Output_Column_Names, Missing_Input_Columns
+from project.Errors import Duplicate_Output_Column_Names, Invalid_Aggregate_Column, Invalid_Output_Column_Names, Missing_Input_Columns, Truncated_Column_Names
 
 ## PRIVATE
 type Problem_Builder
@@ -23,6 +23,9 @@ type Problem_Builder
             self.report_other_warning (Invalid_Output_Column_Names.Error unique_name_strategy.invalid_names)
         if unique_name_strategy.renames.not_empty then
             self.report_other_warning (Duplicate_Output_Column_Names.Error unique_name_strategy.renames)
+        truncated_map = unique_name_strategy.truncated_names
+        if truncated_map.not_empty then
+            self.report_other_warning (Truncated_Column_Names.Warning truncated_map)
 
     ## PRIVATE
     report_other_warning self warning =
