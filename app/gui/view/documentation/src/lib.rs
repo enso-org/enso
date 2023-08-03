@@ -64,12 +64,16 @@ const DISPLAY_DELAY_MS: i32 = 0;
 #[base_path = "theme"]
 #[allow(missing_docs)]
 pub struct Style {
-    width:              f32,
-    height:             f32,
-    background:         color::Rgba,
-    corner_radius:      f32,
+    width:                 f32,
+    height:                f32,
+    background:            color::Rgba,
+    corner_radius:         f32,
     #[theme_path = "theme::breadcrumbs::height"]
-    breadcrumbs_height: f32,
+    breadcrumbs_height:    f32,
+    #[theme_path = "theme::breadcrumbs::padding_x"]
+    breadcrumbs_padding_x: f32,
+    #[theme_path = "theme::breadcrumbs::padding_y"]
+    breadcrumbs_padding_y: f32,
 }
 
 
@@ -157,16 +161,15 @@ impl Model {
     }
 
     /// Set size of the documentation view.
-    fn size_changed(&self, size: Vector2, width_fraction: f32, breadcrumbs_height: f32) {
+    fn size_changed(&self, size: Vector2, width_fraction: f32, style: &Style) {
         let visible_part = Vector2(size.x * width_fraction, size.y);
-        let breadcrumbs_padding_y = 8.0;
-        let dom_size = Vector2(size.x, size.y - breadcrumbs_height - breadcrumbs_padding_y);
+        let dom_size =
+            Vector2(size.x, size.y - style.breadcrumbs_height - style.breadcrumbs_padding_y);
         self.dom.set_dom_size(dom_size);
         self.dom.set_xy(dom_size / 2.0);
         self.overlay.set_size(visible_part);
-        let breadcrumbs_padding_x = 10.0;
-        self.breadcrumbs.set_xy(Vector2(breadcrumbs_padding_x, size.y));
-        self.breadcrumbs.frp().set_size(Vector2(size.x, breadcrumbs_height));
+        self.breadcrumbs.set_xy(Vector2(style.breadcrumbs_padding_x, size.y));
+        self.breadcrumbs.frp().set_size(Vector2(size.x, style.breadcrumbs_height));
         self.background.set_size(size);
     }
 
@@ -174,11 +177,11 @@ impl Model {
     fn width_animation_changed(&self, style: &Style, size: Vector2, fraction: f32) {
         let percentage = (1.0 - fraction) * 100.0;
         let clip_path =
-            format!("inset(0 {percentage}% 0 0 round 0px 0px {}px 0px)", style.corner_radius);
+            format!("inset(0 {percentage}% 0 0 round 0px 0px {0}px {0}px)", style.corner_radius);
         self.dom.set_style_or_warn("clip-path", &clip_path);
         self.style_container.set_style_or_warn("clip-path", &clip_path);
         let actual_size = Vector2(size.x * fraction, size.y);
-        self.size_changed(actual_size, fraction, style.breadcrumbs_height);
+        self.size_changed(actual_size, fraction, style);
     }
 
     /// Display the documentation and scroll to default position.
@@ -314,9 +317,6 @@ impl View {
             // === Size ===
 
             size <- style.map(|s| Vector2(s.width, s.height));
-            breadcrumbs_height <- style.map(|s| s.breadcrumbs_height);
-            _eval <- size.map3(&width_anim.value, &breadcrumbs_height,
-                f!((&s, &f, &bh) model.size_changed(s, f, bh)));
 
 
             // === Style ===
@@ -328,7 +328,8 @@ impl View {
 
             width_anim.target <+ frp.set_visible.map(|&visible| if visible { 1.0 } else { 0.0 });
             width_anim.skip <+ frp.skip_animation;
-            _eval <- width_anim.value.map3(&size, &style, f!((&f, &sz, st) model.width_animation_changed(st, sz, f)));
+            size_change <- all3(&width_anim.value, &size, &style);
+            eval size_change(((f, sz, st)) model.width_animation_changed(st, *sz, *f));
 
 
             // === Activation ===
