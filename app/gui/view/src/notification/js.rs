@@ -47,7 +47,6 @@ pub fn get_toast() -> Result<ToastAPI, JsValue> {
 /// Wrappers for [`toast`](https://react-hot-toast.com/docs/toast) API and related helpers.
 #[wasm_bindgen(inline_js = r#"
     export function sendToast(toast, message, method, options) {
-        console.warn("sendToast", toast, message, method, options);
         const target = toast[method];
         return target(message, options);
     }

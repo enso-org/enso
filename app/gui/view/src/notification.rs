@@ -16,7 +16,6 @@ use frp::stream::EventOutput;
 pub mod api;
 pub mod js;
 pub mod logged;
-pub use js::Id;
 
 
 
@@ -30,7 +29,7 @@ ensogl::define_endpoints! {
         is_enabled(bool),
         /// Customize notification.
         set_options(UpdateOptions),
-    } 
+    }
     Output {}
 }
 
@@ -40,7 +39,7 @@ ensogl::define_endpoints! {
 // === View ===
 // ============
 
-/// A pop-up that signals about enabling/disabling Debug Mode of Graph Editor.
+/// A reusable popup notification.
 #[derive(Debug, Clone, CloneRef, Deref)]
 pub struct View {
     #[deref]
@@ -57,7 +56,6 @@ impl View {
 
         frp::extend! { network
             eval frp.is_enabled ([notification] (enabled) {
-                error!("Enabled: {:?}", enabled);
                 if *enabled {
                     notification.show()
                 } else {

@@ -16,13 +16,12 @@ use crate::notification::js::HandleJsError;
 use uuid::Uuid;
 
 
-
 // ==============
 // === Export ===
 // ==============
 
-pub use crate::notification::api::Content;
 pub use crate::notification::api::AutoClose;
+pub use crate::notification::api::Content;
 pub use crate::notification::api::Options;
 pub use crate::notification::api::Type;
 pub use crate::notification::api::UpdateOptions;
@@ -74,23 +73,23 @@ pub fn success(message: &Content, options: &Option<Options>) -> Option<Id> {
 
 /// The unique identifier of a toast.
 #[derive(Clone, Debug, Display)]
-pub struct Id(notification::Id);
+pub struct Id(notification::api::Id);
 
-impl From<notification::Id> for Id {
-    fn from(id: notification::Id) -> Self {
+impl From<notification::api::Id> for Id {
+    fn from(id: notification::api::Id) -> Self {
         Self(id)
     }
 }
 
 impl From<&str> for Id {
     fn from(id: &str) -> Self {
-        Self(notification::Id::from(id))
+        Self(id.into())
     }
 }
 
 impl From<Uuid> for Id {
     fn from(id: Uuid) -> Self {
-        Self(notification::Id::from(id))
+        Self(id.into())
     }
 }
 
