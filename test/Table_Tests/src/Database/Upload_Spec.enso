@@ -108,25 +108,35 @@ spec make_new_connection prefix persistent_connector=True =
 
         Test.specify "should not allow to create a table with duplicated column names" <|
             run_with_and_without_output <|
-                r1 = connection.create_table (Name_Generator.random_name "creating-invalid-table") structure=[Column_Description.Value "X" Value_Type.Integer, Column_Description.Value "X" Value_Type.Char] temporary=True
+                table_name = Name_Generator.random_name "creating-invalid-table"
+                r1 = connection.create_table table_name structure=[Column_Description.Value "X" Value_Type.Integer, Column_Description.Value "X" Value_Type.Char] temporary=True
                 r1.should_fail_with Duplicate_Output_Column_Names
+
+                # Ensure that the table was not created.
+                connection.tables . at "Name" . to_vector . should_not_contain table_name
 
         Test.specify "should not allow to create a table with invalid column names" <|
             Test.expect_panic_with (Column_Description.Value Nothing Value_Type.Char) Type_Error
 
             run_with_and_without_output <|
-                r1 = connection.create_table (Name_Generator.random_name "creating-invalid-table") structure=[Column_Description.Value "" Value_Type.Integer] temporary=True
+                table_name = Name_Generator.random_name "creating-invalid-table"
+                r1 = connection.create_table table_name structure=[Column_Description.Value "" Value_Type.Integer] temporary=True
                 r1.should_fail_with Invalid_Output_Column_Names
+                # Ensure that the table was not created.
+                connection.tables . at "Name" . to_vector . should_not_contain table_name
 
-                r2 = connection.create_table (Name_Generator.random_name "creating-invalid-table") structure=[Column_Description.Value 'a\0b' Value_Type.Integer] temporary=True
+                r2 = connection.create_table table_name structure=[Column_Description.Value 'a\0b' Value_Type.Integer] temporary=True
                 r2.should_fail_with Invalid_Output_Column_Names
+                connection.tables . at "Name" . to_vector . should_not_contain table_name
 
         Test.specify "should not allow to create a table with duplicated column names, if the difference is just in Unicode normalization form" <|
             run_with_and_without_output <|
                 a = 'ś'
                 b = 's\u0301'
-                r1 = connection.create_table (Name_Generator.random_name "creating-invalid-table") structure=[Column_Description.Value a Value_Type.Integer, Column_Description.Value b Value_Type.Char] temporary=True
+                table_name = Name_Generator.random_name "creating-invalid-table"
+                r1 = connection.create_table table_name structure=[Column_Description.Value a Value_Type.Integer, Column_Description.Value b Value_Type.Char] temporary=True
                 r1.should_fail_with Duplicate_Output_Column_Names
+                connection.tables . at "Name" . to_vector . should_not_contain table_name
 
         Test.specify "should include the created table in the tables directory" <|
             name = Name_Generator.random_name "persistent_table 1"
