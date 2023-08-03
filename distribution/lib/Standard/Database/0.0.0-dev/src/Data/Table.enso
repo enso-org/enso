@@ -768,7 +768,9 @@ type Table
     set self column new_name=Nothing set_mode=Set_Mode.Add_Or_Update on_problems=Report_Warning =
         resolved = case column of
             _ : Text -> self.evaluate_expression column on_problems
-            _ : Column -> column
+            _ : Column ->
+                if Helpers.check_integrity self column then column else
+                    Error.throw (Integrity_Error.Error "Column "+column.name)
             _ : Vector -> Error.throw (Unsupported_Database_Operation.Error "Cannot use `Vector` for `set` in the database.")
             _ : Array -> Error.throw (Unsupported_Database_Operation.Error "Cannot use `Array` for `set` in the database.")
             _ : Range -> Error.throw (Unsupported_Database_Operation.Error "Cannot use `Range` for `set` in the database.")
