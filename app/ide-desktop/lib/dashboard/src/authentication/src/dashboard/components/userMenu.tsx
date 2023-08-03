@@ -25,9 +25,11 @@ function UserMenuItem(props: React.PropsWithChildren<UserMenuItemProps>) {
 
     return (
         <div
-            className={`whitespace-nowrap px-4 py-2 ${disabled ? 'opacity-50' : ''} ${
-                onClick ? 'hover:bg-blue-500 hover:text-white' : ''
-            } ${onClick != null && !disabled ? 'cursor-pointer' : ''}`}
+            className={`whitespace-nowrap first:rounded-t-2xl last:rounded-b-2xl px-4 py-2 ${
+                disabled ? 'opacity-50' : ''
+            } ${onClick ? 'hover:bg-blue-500 hover:text-white' : ''} ${
+                onClick != null && !disabled ? 'cursor-pointer' : ''
+            }`}
             onClick={onClick}
         >
             {children}
@@ -60,7 +62,7 @@ export default function UserMenu() {
 
     return (
         <div
-            className="absolute right-4.75 top-11 z-10 flex flex-col rounded-md bg-white py-1 border"
+            className="absolute bg-frame-selected right-2.25 top-11 z-10 flex flex-col rounded-2xl bg-white border"
             onClick={event => {
                 event.stopPropagation()
             }}
@@ -86,7 +88,7 @@ export default function UserMenu() {
                 </>
             ) : (
                 <>
-                    <UserMenuItem>You are offline.</UserMenuItem>
+                    <UserMenuItem>You are not signed in.</UserMenuItem>
                     <UserMenuItem onClick={goToLoginPage}>Login</UserMenuItem>
                 </>
             )}
