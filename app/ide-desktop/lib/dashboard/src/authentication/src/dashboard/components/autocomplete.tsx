@@ -13,80 +13,93 @@ const ZWSP = '\u200b'
 // ====================
 
 /** Base props for a {@link Autocomplete}. */
-export interface BaseAutocompleteProps {
+interface InternalBaseAutocompleteProps<T> {
     multiple?: boolean
-    maxItemsToShow?: number
     type?: React.HTMLInputTypeAttribute
-    itemNamePlural?: string
     inputRef?: React.MutableRefObject<HTMLInputElement | null>
     placeholder?: string
-    values: string[]
+    values: T[]
     autoFocus?: boolean
     /** This may change as the user types in the input. */
-    items: string[]
+    items: T[]
+    itemToKey: (item: T) => string
+    itemToString: (item: T) => string
+    itemsToString?: (items: T[]) => string
+    matches: (item: T, text: string) => boolean
     className?: string
     inputClassName?: string
     optionsClassName?: string
-    /** This callback is called with the raw text of the text input. */
-    onInput?: (value: string) => void
+    text?: string | null
+    setText?: (text: string | null) => void
 }
 
 /** {@link AutocompleteProps} when `multiple` is `false`. */
-interface InternalSingleAutocompleteProps extends BaseAutocompleteProps {
+interface InternalSingleAutocompleteProps<T> extends InternalBaseAutocompleteProps<T> {
     /** Whether selecting multiple values is allowed. */
     multiple?: false
-    setValues: (value: [string]) => void
+    setValues: (value: [T]) => void
+    itemsToString?: never
 }
 
 /** {@link AutocompleteProps} when `multiple` is `true`. */
-interface InternalMultipleAutocompleteProps extends BaseAutocompleteProps {
+interface InternalMultipleAutocompleteProps<T> extends InternalBaseAutocompleteProps<T> {
     /** Whether selecting multiple values is allowed. */
     multiple: true
     /** This is `null` when multiple values are selected, causing the input to switch to a
      * {@link HTMLTextAreaElement}. */
     inputRef?: React.MutableRefObject<HTMLInputElement | null>
-    setValues: (value: string[]) => void
+    setValues: (value: T[]) => void
+    itemsToString: (items: T[]) => string
+}
+
+/** {@link AutocompleteProps} when the text cannot be edited. */
+interface WithoutText {
+    text?: never
+    setText?: never
+}
+
+/** {@link AutocompleteProps} when the text can be edited. */
+interface WithText {
+    text: string | null
+    setText: (text: string | null) => void
 }
 
 /** Props for a {@link Autocomplete}. */
-export type AutocompleteProps = InternalMultipleAutocompleteProps | InternalSingleAutocompleteProps
+export type AutocompleteProps<T> = (
+    | InternalMultipleAutocompleteProps<T>
+    | InternalSingleAutocompleteProps<T>
+) &
+    (WithoutText | WithText)
 
 /** A select menu with a dropdown. */
-export default function Autocomplete(props: AutocompleteProps) {
+export default function Autocomplete<T>(props: AutocompleteProps<T>) {
     const {
         multiple,
-        maxItemsToShow = 1,
-        itemNamePlural = 'items',
         type = 'text',
         inputRef: rawInputRef,
         placeholder,
         values,
         setValues,
+        text,
+        setText,
         autoFocus,
         items,
-        setValues: onChange,
+        itemToKey,
+        itemToString,
+        itemsToString,
+        matches,
         className,
         inputClassName,
         optionsClassName,
     } = props
     const [isDropdownVisible, setIsDropdownVisible] = React.useState(false)
     const [selectedIndex, setSelectedIndex] = React.useState<number | null>(null)
-    const valuesText = React.useMemo(
-        () =>
-            values.length <= maxItemsToShow
-                ? values.join(', ')
-                : `${values.length} ${itemNamePlural} selected`,
-        [values, maxItemsToShow, itemNamePlural]
-    )
     const valuesSet = React.useMemo(() => new Set(values), [values])
-    const canEditText = multiple !== true || values.length <= 1
-    const isMultipleAndCustomValue = React.useMemo(
-        () =>
-            multiple === true &&
-            values.length === 1 &&
-            values[0] != null &&
-            !items.includes(values[0]),
-        [items, values, /* should never change */ multiple]
+    const canEditText = setText != null && values.length === 0
+    const isMultipleAndCustomValue = multiple === true && text != null
+    const matchingItems = React.useMemo(
+        () => (text == null ? items : items.filter(item => matches(item, text))),
+        [items, matches, text]
     )
 
     React.useEffect(() => {
@@ -108,39 +121,27 @@ export default function Autocomplete(props: AutocompleteProps) {
     const fallbackInputRef = React.useRef<HTMLInputElement>(null)
     const inputRef = rawInputRef ?? fallbackInputRef
 
-    React.useEffect(() => {
-        if (inputRef.current != null) {
-            inputRef.current.value = values[0] ?? ''
-        }
-        // `inputRef` is NOT a dependency as it is a React ref (a mutable value).
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [values])
-
     // This type is a little too wide but it is unavoidable.
     /** Set values, while also changing the input text. */
-    const overrideValues = (newItems: string[] | [string]) => {
+    const overrideValues = (newItems: T[] | [T]) => {
         if (multiple !== true || (newItems.length === 1 && !items.includes(newItems[0]))) {
             setIsDropdownVisible(false)
         }
-        if (inputRef.current != null) {
-            inputRef.current.value = newItems[0]
-        }
         if (multiple === true) {
             setValues(newItems)
-            onChange(newItems)
         } else {
             setValues([newItems[0]])
-            onChange([newItems[0]])
         }
+        setText?.(null)
     }
 
-    const toggleItem = (item: string) => {
+    const toggleValue = (value: T) => {
         overrideValues(
             multiple === true && !isMultipleAndCustomValue
-                ? valuesSet.has(item)
-                    ? values.filter(theItem => theItem !== item)
-                    : [...values, item]
-                : [item]
+                ? valuesSet.has(value)
+                    ? values.filter(theItem => theItem !== value)
+                    : [...values, value]
+                : [value]
         )
     }
 
@@ -175,7 +176,7 @@ export default function Autocomplete(props: AutocompleteProps) {
                     // If `item` is `null`, silently error. This is because it is out of range
                     // anyway, so no item will be selected in the UI.
                     if (item != null) {
-                        toggleItem(item)
+                        toggleValue(item)
                     }
                     setSelectedIndex(null)
                 }
@@ -201,7 +202,7 @@ export default function Autocomplete(props: AutocompleteProps) {
                         ref={inputRef}
                         autoFocus={autoFocus}
                         size={1}
-                        defaultValue={values[0]}
+                        value={text ?? ''}
                         placeholder={placeholder}
                         className={`grow ${inputClassName ?? ''}`}
                         onFocus={() => {
@@ -214,7 +215,9 @@ export default function Autocomplete(props: AutocompleteProps) {
                         }}
                         onChange={event => {
                             setIsDropdownVisible(true)
-                            onChange([event.target.value])
+                            setText(
+                                event.currentTarget.value === '' ? null : event.currentTarget.value
+                            )
                         }}
                     />
                 ) : (
@@ -231,7 +234,7 @@ export default function Autocomplete(props: AutocompleteProps) {
                             })
                         }}
                     >
-                        {valuesText.replace(/-/g, '\u2060-\u2060') || ZWSP}
+                        {itemsToString?.(values) ?? ZWSP}
                     </div>
                 )}
             </div>
@@ -243,9 +246,9 @@ export default function Autocomplete(props: AutocompleteProps) {
                             isDropdownVisible ? '' : 'h-0'
                         }`}
                     >
-                        {items.map((item, index) => (
+                        {matchingItems.map((item, index) => (
                             <div
-                                key={item}
+                                key={itemToKey(item)}
                                 className={`relative cursor-pointer first:rounded-t-2xl last:rounded-b-2xl hover:bg-black-a5 p-1 z-10 ${
                                     index === selectedIndex
                                         ? 'bg-black-a5'
@@ -258,10 +261,10 @@ export default function Autocomplete(props: AutocompleteProps) {
                                 }}
                                 onClick={event => {
                                     event.stopPropagation()
-                                    toggleItem(item)
+                                    toggleValue(item)
                                 }}
                             >
-                                {item}
+                                {itemToString(item)}
                             </div>
                         ))}
                     </div>

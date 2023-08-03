@@ -12,14 +12,6 @@ import Modal from './modal'
 import PermissionSelector from './permissionSelector'
 import UserPermissions from './userPermissions'
 
-// =================
-// === Constants ===
-// =================
-
-/** The maximum number of items to show in the {@link Autocomplete} before it switches to showing
- * "X items selected". */
-const MAX_AUTOCOMPLETE_ITEMS_TO_SHOW = 3
-
 // ==============================
 // === ManagePermissionsModal ===
 // ==============================
@@ -40,7 +32,8 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
     const { backend } = backendProvider.useBackend()
     const toastAndLog = hooks.useToastAndLog()
     const [permissions, setPermissions] = React.useState(item.permissions ?? [])
-    const [usernamesOrEmails, setUsernamesOrEmails] = React.useState<string[]>([])
+    const [users, setUsers] = React.useState<backendModule.SimpleUser[]>([])
+    const [email, setEmail] = React.useState<string | null>(null)
     const [action, setAction] = React.useState(backendModule.PermissionAction.view)
     const emailValidityRef = React.useRef<HTMLInputElement>(null)
     const position = React.useMemo(() => eventTarget.getBoundingClientRect(), [eventTarget])
@@ -68,11 +61,7 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
         throw new Error('Unable to share projects on the local backend.')
     } else {
         const listedUsers = hooks.useAsyncEffect([], () => backend.listUsers(), [])
-        const emailToUsername = React.useMemo(
-            () => Object.fromEntries(listedUsers.map(user => [user.email, user.name])),
-            [listedUsers]
-        )
-        const users = React.useMemo(
+        const allUsers = React.useMemo(
             () =>
                 listedUsers.filter(
                     listedUser =>
@@ -81,87 +70,61 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
                 ),
             [emailsOfUsersWithPermission, usernamesOfUsersWithPermission, listedUsers]
         )
-        const matchingUsers = React.useMemo(() => {
-            const firstUsernameOrEmail = usernamesOrEmails[0]
-            const lowercase = firstUsernameOrEmail?.toLowerCase() ?? null
-            if (
-                usernamesOrEmails.length === 1 &&
-                lowercase != null &&
-                !users.some(
-                    user =>
-                        user.name.toLowerCase() === lowercase ||
-                        user.email.toLowerCase() === lowercase
-                )
-            ) {
-                return users.filter(
-                    newUser =>
-                        newUser.name.toLowerCase().includes(lowercase) ||
-                        newUser.email.toLowerCase().includes(lowercase)
-                )
-            } else {
-                return users
-            }
-        }, [usernamesOrEmails, users])
         const willInviteNewUser = React.useMemo(() => {
-            const firstUsernameOrEmail = usernamesOrEmails[0]
-            if (firstUsernameOrEmail == null || firstUsernameOrEmail === '') {
+            if (users.length !== 0) {
+                return false
+            } else if (email == null || email === '') {
                 return true
             } else {
-                const lowercase = firstUsernameOrEmail.toLowerCase()
+                const lowercase = email.toLowerCase()
                 return (
                     lowercase !== '' &&
                     !usernamesOfUsersWithPermission.has(lowercase) &&
                     !emailsOfUsersWithPermission.has(lowercase) &&
-                    !users.some(
+                    !allUsers.some(
                         innerUser =>
                             innerUser.name.toLowerCase() === lowercase ||
                             innerUser.email.toLowerCase() === lowercase
                     )
                 )
             }
-        }, [usernamesOrEmails, emailsOfUsersWithPermission, usernamesOfUsersWithPermission, users])
+        }, [
+            users.length,
+            email,
+            emailsOfUsersWithPermission,
+            usernamesOfUsersWithPermission,
+            allUsers,
+        ])
 
         const doSubmit = async () => {
             if (willInviteNewUser) {
                 try {
-                    const firstUsernameOrEmail = usernamesOrEmails[0]
-                    setUsernamesOrEmails([])
-                    if (firstUsernameOrEmail != null) {
+                    setUsers([])
+                    if (email != null) {
                         await backend.inviteUser({
                             organizationId: organization.id,
-                            userEmail: backendModule.EmailAddress(firstUsernameOrEmail),
+                            userEmail: backendModule.EmailAddress(email),
                         })
-                        toast.toast.success(`You've invited ${firstUsernameOrEmail} to join Enso!`)
+                        toast.toast.success(`You've invited ${email} to join Enso!`)
                     }
                 } catch (error) {
                     toastAndLog('Could not invite user', error)
                 }
             } else {
-                setUsernamesOrEmails([])
-                const usersMap = Object.fromEntries(
-                    users.flatMap(theUser => [
-                        [theUser.name.toLowerCase(), theUser],
-                        [theUser.email.toLowerCase(), theUser],
-                    ])
-                )
-                const addedUsersPermissions = usernamesOrEmails
-                    .flatMap(usernameOrEmail => {
-                        const newUser = usersMap[usernameOrEmail]
-                        return newUser != null ? [newUser] : []
-                    })
-                    .map<backendModule.UserPermission>(newUser => ({
-                        user: {
-                            // The names come from a third-party API and cannot be
-                            // changed.
-                            /* eslint-disable @typescript-eslint/naming-convention */
-                            organization_id: organization.id,
-                            pk: newUser.id,
-                            user_email: newUser.email,
-                            user_name: newUser.name,
-                            /* eslint-enable @typescript-eslint/naming-convention */
-                        },
-                        permission: action,
-                    }))
+                setUsers([])
+                const addedUsersPermissions = users.map<backendModule.UserPermission>(newUser => ({
+                    user: {
+                        // The names come from a third-party API and cannot be
+                        // changed.
+                        /* eslint-disable @typescript-eslint/naming-convention */
+                        organization_id: organization.id,
+                        pk: newUser.id,
+                        user_email: newUser.email,
+                        user_name: newUser.name,
+                        /* eslint-enable @typescript-eslint/naming-convention */
+                    },
+                    permission: action,
+                }))
                 const addedUsersPks = new Set(addedUsersPermissions.map(newUser => newUser.user.pk))
                 const oldUsersPermissions = permissions
                 try {
@@ -207,8 +170,6 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
             }
         }
 
-        const onlyUsernameOrEmail =
-            usernamesOrEmails.length === 1 ? usernamesOrEmails[0] ?? null : null
         return (
             <Modal className="absolute overflow-hidden bg-dim w-full h-full top-0 left-0 z-10">
                 <div
@@ -251,43 +212,38 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
                                     ref={emailValidityRef}
                                     type="email"
                                     className="hidden"
-                                    value={usernamesOrEmails[0] ?? ''}
+                                    value={email ?? ''}
                                 />
                                 <Autocomplete
                                     multiple
-                                    maxItemsToShow={MAX_AUTOCOMPLETE_ITEMS_TO_SHOW}
                                     autoFocus
                                     placeholder="Type usernames or emails to search or invite"
                                     type="text"
-                                    itemNamePlural="users"
-                                    values={usernamesOrEmails}
-                                    setValues={newUsernamesOrEmails => {
-                                        setUsernamesOrEmails(
-                                            newUsernamesOrEmails.map(
-                                                usernameOrEmail =>
-                                                    emailToUsername[usernameOrEmail] ??
-                                                    usernameOrEmail
-                                            )
-                                        )
-                                    }}
-                                    items={matchingUsers.map(matchingUser =>
-                                        onlyUsernameOrEmail != null &&
-                                        !matchingUser.name.includes(onlyUsernameOrEmail)
-                                            ? matchingUser.email
-                                            : matchingUser.name
-                                    )}
+                                    itemsToString={items =>
+                                        items.length === 1 && items[0] != null
+                                            ? items[0].email
+                                            : `${items.length} users selected`
+                                    }
+                                    values={users}
+                                    setValues={setUsers}
+                                    items={allUsers}
+                                    itemToKey={user => user.id}
+                                    itemToString={user => user.email}
+                                    matches={(user, text) =>
+                                        user.email.toLowerCase().includes(text.toLowerCase()) ||
+                                        user.name.toLowerCase().includes(text.toLowerCase())
+                                    }
                                     className="grow"
                                     inputClassName="bg-transparent leading-170 h-6 py-px"
+                                    text={email}
+                                    setText={setEmail}
                                 />
                             </div>
                             <button
                                 type="submit"
                                 disabled={
-                                    usernamesOrEmails.length === 0 ||
-                                    (onlyUsernameOrEmail != null &&
-                                        usernamesOfUsersWithPermission.has(onlyUsernameOrEmail)) ||
-                                    (onlyUsernameOrEmail != null &&
-                                        emailsOfUsersWithPermission.has(onlyUsernameOrEmail)) ||
+                                    users.length === 0 ||
+                                    (email != null && emailsOfUsersWithPermission.has(email)) ||
                                     (willInviteNewUser &&
                                         emailValidityRef.current?.validity.valid !== true)
                                 }
