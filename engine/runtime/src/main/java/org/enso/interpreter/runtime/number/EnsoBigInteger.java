@@ -1,5 +1,11 @@
 package org.enso.interpreter.runtime.number;
 
+import java.math.BigInteger;
+
+import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
+
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
@@ -7,17 +13,11 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
-import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.data.Type;
-import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
-
-import java.math.BigInteger;
 
 /** Internal wrapper for a {@link BigInteger}. */
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
-@SuppressWarnings("truffle-abstract-export")
-public final class EnsoBigInteger extends Number implements TruffleObject {
+public final class EnsoBigInteger implements TruffleObject {
   private final BigInteger value;
 
   /**
@@ -83,39 +83,49 @@ public final class EnsoBigInteger extends Number implements TruffleObject {
   }
 
   @ExportMessage
+  final boolean fitsInBigInteger() {
+    return true;
+  }
+
+  @ExportMessage
   @CompilerDirectives.TruffleBoundary
   final byte asByte() throws UnsupportedMessageException {
-    return byteValue();
+    return value.byteValue();
   }
 
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
   final short asShort() throws UnsupportedMessageException {
-    return shortValue();
+    return value.shortValue();
   }
 
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
   final int asInt() throws UnsupportedMessageException {
-    return intValue();
+    return value.intValue();
   }
 
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
   final long asLong() throws UnsupportedMessageException {
-    return longValue();
+    return value.longValue();
   }
 
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
-  final float asFloat() throws UnsupportedMessageException {
-    return floatValue();
+  final float asFloat() {
+    return value.floatValue();
   }
 
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
-  final double asDouble() throws UnsupportedMessageException {
-    return doubleValue();
+  public final double asDouble() {
+    return value.doubleValue();
+  }
+
+  @ExportMessage
+  public final BigInteger asBigInteger() {
+    return value;
   }
 
   @ExportMessage
@@ -136,26 +146,6 @@ public final class EnsoBigInteger extends Number implements TruffleObject {
   @ExportMessage
   Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
     return EnsoContext.get(thisLib).getBuiltins().number().getBigInteger();
-  }
-
-  @Override
-  public int intValue() {
-    return value.intValue();
-  }
-
-  @Override
-  public long longValue() {
-    return value.longValue();
-  }
-
-  @Override
-  public float floatValue() {
-    return value.floatValue();
-  }
-
-  @Override
-  public double doubleValue() {
-    return value.doubleValue();
   }
 
   @Override

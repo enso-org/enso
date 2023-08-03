@@ -4,6 +4,7 @@ import Standard.Table.Data.Table.Table as Materialized_Table
 
 import project.Data.SQL_Type.SQL_Type
 import project.Internal.Column_Fetcher.Column_Fetcher
+from project.Internal.SQL_Warning_Helper import extract_warnings_into_builder
 
 polyglot java import java.sql.ResultSet
 
@@ -44,6 +45,7 @@ result_set_to_table result_set make_column_fetcher type_overrides=Nothing last_r
     column_builders = column_fetchers.map fetcher->
         fetcher.make_builder initial_size
     fetchers_and_builders = column_fetchers.zip column_builders
+    warnings_builder = Vector.new_builder
     case last_row_only of
         True ->
             ## Not using the `ResultSet.last` as not supported by all connection types.
@@ -54,6 +56,7 @@ result_set_to_table result_set make_column_fetcher type_overrides=Nothing last_r
                         Nothing
                 False ->
                     values = column_fetchers.map_with_index ix-> fetcher-> fetcher.fetch_value result_set ix+1
+                    extract_warnings_into_builder warnings_builder result_set
                     @Tail_Call go result_set.next values
             go result_set.next Nothing
         False ->
@@ -63,8 +66,10 @@ result_set_to_table result_set make_column_fetcher type_overrides=Nothing last_r
                     builder = pair.second
                     value = fetcher.fetch_value result_set ix+1
                     builder.append value
+                extract_warnings_into_builder warnings_builder result_set
                 @Tail_Call go result_set.next
             go result_set.next
-    columns = column_builders.zip column_names builder-> name->
-        builder.make_column name
-    Materialized_Table.new columns
+    Problem_Behavior.Report_Warning.attach_problems_before warnings_builder.to_vector <|
+        columns = column_builders.zip column_names builder-> name->
+            builder.make_column name
+        Materialized_Table.new columns
