@@ -181,8 +181,7 @@ impl Presenter {
         spawn_stream_handler(weak, status_notifications, move |notification, _| {
             match notification {
                 StatusNotification::Event { label } => {
-                    notification::info(&label.into(), &None);
-                    // status_bar.add_event(ide_view::status_bar::event::Label::new(label));
+                    notification::info(label, &None);
                 }
                 StatusNotification::BackgroundTaskStarted { label, handle } => {
                     let id = notification::Id::from(handle);

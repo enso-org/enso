@@ -52,23 +52,23 @@ pub fn send_any(message: &Content, r#type: Type, options: &Option<Options>) -> R
 }
 
 /// Send an info notification.
-pub fn info(message: &Content, options: &Option<Options>) -> Result<Id, JsValue> {
-    send_any(message, Type::Info, options)
+pub fn info(message: impl Into<Content>, options: &Option<Options>) -> Result<Id, JsValue> {
+    send_any(&message.into(), Type::Info, options)
 }
 
 /// Send a warning notification.
-pub fn warning(message: &Content, options: &Option<Options>) -> Result<Id, JsValue> {
-    send_any(message, Type::Warning, options)
+pub fn warning(message: impl Into<Content>, options: &Option<Options>) -> Result<Id, JsValue> {
+    send_any(&message.into(), Type::Warning, options)
 }
 
 /// Send a error notification.
-pub fn error(message: &Content, options: &Option<Options>) -> Result<Id, JsValue> {
-    send_any(message, Type::Error, options)
+pub fn error(message: impl Into<Content>, options: &Option<Options>) -> Result<Id, JsValue> {
+    send_any(&message.into(), Type::Error, options)
 }
 
 /// Send a success notification.
-pub fn success(message: &Content, options: &Option<Options>) -> Result<Id, JsValue> {
-    send_any(message, Type::Success, options)
+pub fn success(message: impl Into<Content>, options: &Option<Options>) -> Result<Id, JsValue> {
+    send_any(&message.into(), Type::Success, options)
 }
 
 

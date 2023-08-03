@@ -289,14 +289,13 @@ impl Model {
                 if let Some(uuid) = uuid {
                     if let Err(error) = api.open_project(uuid).await {
                         let message = format!("Error opening project: {error}");
-                        error!("{message}");
-                        notification::error(&message.into(), &None);
+                        notification::error(message, &None);
                     }
                 } else {
-                    error!("Project with id {id} not found.");
+                    notification::error(format!("Project with id {id} not found."), &None);
                 }
             } else {
-                error!("Project Manager API not available, cannot open project.");
+                notification::error("Project Manager API not available, cannot open project.", &None);
             }
             app.hide_progress_indicator();
             view.show_graph_editor();
@@ -479,10 +478,10 @@ impl Project {
                     let message = crate::BACKEND_DISCONNECTED_MESSAGE;
                     let options = notification::Options {
                         auto_close: Some(notification::AutoClose::Never()),
-                        toast_id: Some("backend-disconnected-toast".into()),
+                        toast_id: Some(crate::BACKEND_DISCONNECTED_NOTIFICATION_ID.into()),
                         ..Default::default()
                     };
-                    notification::error(&message.into(), &Some(options));
+                    notification::error(message, &Some(options));
                 }
                 Notification::VcsStatusChanged(VcsStatus::Dirty) => {
                     model.set_project_changed(true);
