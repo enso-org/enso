@@ -1,4 +1,8 @@
 from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
+import project.Internal.Naming_Properties.Naming_Properties
+import project.Internal.Naming_Properties as Naming_Properties_Module
 
 polyglot java import org.enso.table.util.NameDeduplicator
 
@@ -18,6 +22,15 @@ type Unique_Name_Strategy
        of columns names and making them unique. It will track any duplicates or
        invalid names that are passed to it.
 
+       Arguments:
+       - max_name_length_units: The maximum length of a name in code units.
+         If this is specified, longer names will be truncated and any suffixes
+         added will also ensure to not exceed this limit (truncating the prefix
+         if necessary). The truncation is aware of grapheme clusters and will
+         not break them into parts, but remove as many whole grapheme clusters
+         as necessary to fit the limit. Defaults to `Nothing`, meaning that the
+         length is not limited.
+
        > Example
          Construct a set of unique names from two duplicate lists
 
@@ -25,8 +38,10 @@ type Unique_Name_Strategy
              unique_names = ["A","B","A",""] . map unique_name_strategy.make_unique
              duplicates = unique_name_strategy.renames
              invalid = unique_name_strategy.invalid_names
-    new : Unique_Name_Strategy
-    new = Unique_Name_Strategy.Value NameDeduplicator.new
+    new : Naming_Properties -> Unique_Name_Strategy
+    new naming_properties =
+        deduplicator = NameDeduplicator.new naming_properties
+        Unique_Name_Strategy.Value deduplicator
 
     ## PRIVATE
        ADVANCED
@@ -62,8 +77,9 @@ type Unique_Name_Strategy
              unique_second == ["second A 2", "second_B", "second A 1", "C"]
     combine_with_prefix : Vector Text -> Vector Text -> Text -> Unique_Name_Strategy
     combine_with_prefix self first second second_prefix =
-        Vector.from_polyglot_array <|
-            self.deduplicator.combineWithPrefix first second second_prefix
+        Naming_Properties_Module.recover_panics <| Vector.from_polyglot_array <|
+            Illegal_Argument.handle_java_exception <|
+                self.deduplicator.combineWithPrefix first second second_prefix
 
     ## PRIVATE
        ADVANCED
@@ -82,6 +98,13 @@ type Unique_Name_Strategy
     invalid_names self = Vector.from_polyglot_array self.deduplicator.getInvalidNames
 
     ## PRIVATE
+       A mapping of original names to their truncated counterpart.
+    truncated_names : Map Text Text
+    truncated_names self =
+        entries = Vector.from_polyglot_array self.deduplicator.getTruncatedNames
+        Map.from_vector <| entries.map e-> [e.getLeft, e.getRight]
+
+    ## PRIVATE
        ADVANCED
        Takes a value and converts to a valid (but not necessarily unique) name.
 
@@ -96,7 +119,8 @@ type Unique_Name_Strategy
     make_valid_name : Any -> Text
     make_valid_name self input =
         case input of
-            _ : Text -> self.deduplicator.makeValid input
+            _ : Text -> Naming_Properties_Module.recover_panics <|
+                self.deduplicator.makeValidAndTruncate input
             Nothing -> self.make_valid_name ""
             _ -> self.make_valid_name input.to_text
 
@@ -112,7 +136,9 @@ type Unique_Name_Strategy
              strategy.make_unique "A" # returns "A"
              strategy.make_unique "A" # returns "A 1"
     make_unique : Text -> Text
-    make_unique self name = self.deduplicator.makeUnique name
+    make_unique self name = Naming_Properties_Module.recover_panics <|
+        Illegal_Argument.handle_java_exception <|
+            self.deduplicator.makeUnique name
 
     ## PRIVATE
        ADVANCED
@@ -121,7 +147,8 @@ type Unique_Name_Strategy
        It does not use up the name - it needs to be marked with `mark_used` if
        needed.
     is_unique : Text -> Boolean
-    is_unique self name = self.deduplicator.isUnique name
+    is_unique self name = Naming_Properties_Module.recover_panics <|
+        self.deduplicator.isUnique name
 
     ## PRIVATE
        ADVANCED
@@ -137,4 +164,5 @@ type Unique_Name_Strategy
        Takes a list of names and marks them as used, so that any further names
        clashing with those will have a prefix added.
     mark_used : Vector Text -> Nothing
-    mark_used self names = names.each (self.deduplicator.markUsed _)
+    mark_used self names = Naming_Properties_Module.recover_panics <|
+        names.each (self.deduplicator.markUsed _)

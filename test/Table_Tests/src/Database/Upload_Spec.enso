@@ -19,6 +19,7 @@ from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions
 
 import project.Database.Helpers.Name_Generator
+from project.Database.Helpers.Execution_Context import run_with_and_without_output
 
 polyglot java import org.enso.table_test_helpers.ExplodingStorage
 polyglot java import org.enso.table_test_helpers.ExplodingStoragePayload
@@ -1030,17 +1031,6 @@ spec make_new_connection prefix persistent_connector=True =
 make_mock_column name values exploding_index =
     storage = ExplodingStorage.new values exploding_index
     Column.from_storage name storage
-
-## PRIVATE
-   Runs the action twice, once with the Output context enabled and once with it
-   disabled, to check that the behaviour is the same regardless of context.
-run_with_and_without_output ~action =
-    Context.Output.with_enabled <|
-        Test.with_clue "(normal mode - Output context enabled) " <|
-            action
-    Context.Output.with_disabled <|
-        Test.with_clue "(dry run - Output context disabled) " <|
-            action
 
 ## PRIVATE
 cleanup_sentinel ref _ =

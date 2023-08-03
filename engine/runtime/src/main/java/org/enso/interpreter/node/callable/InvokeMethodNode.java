@@ -1,23 +1,5 @@
 package org.enso.interpreter.node.callable;
 
-import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.dsl.Bind;
-import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.dsl.Cached.Shared;
-import com.oracle.truffle.api.dsl.ImportStatic;
-import com.oracle.truffle.api.dsl.NonIdempotent;
-import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.UnsupportedMessageException;
-import com.oracle.truffle.api.library.CachedLibrary;
-import com.oracle.truffle.api.nodes.ExplodeLoop;
-import com.oracle.truffle.api.nodes.Node;
-import com.oracle.truffle.api.nodes.RootNode;
-import com.oracle.truffle.api.profiles.BranchProfile;
-import com.oracle.truffle.api.profiles.ConditionProfile;
-import com.oracle.truffle.api.profiles.CountingConditionProfile;
-import com.oracle.truffle.api.source.SourceSection;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
@@ -26,7 +8,7 @@ import java.util.Arrays;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.locks.Lock;
-import org.enso.interpreter.Constants;
+
 import org.enso.interpreter.Constants.Names;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.MethodRootNode;
@@ -36,6 +18,7 @@ import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.node.callable.resolver.HostMethodCallNode;
 import org.enso.interpreter.node.callable.resolver.MethodResolverNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
+import org.enso.interpreter.node.expression.builtin.number.utils.ToEnsoNumberNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
@@ -59,6 +42,24 @@ import org.enso.interpreter.runtime.error.WarningsLibrary;
 import org.enso.interpreter.runtime.error.WithWarnings;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.state.State;
+
+import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.dsl.Bind;
+import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Cached.Shared;
+import com.oracle.truffle.api.dsl.ImportStatic;
+import com.oracle.truffle.api.dsl.NonIdempotent;
+import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.library.CachedLibrary;
+import com.oracle.truffle.api.nodes.ExplodeLoop;
+import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.nodes.RootNode;
+import com.oracle.truffle.api.profiles.BranchProfile;
+import com.oracle.truffle.api.profiles.CountingConditionProfile;
+import com.oracle.truffle.api.source.SourceSection;
 
 @ImportStatic({HostMethodCallNode.PolyglotCallType.class, HostMethodCallNode.class})
 public abstract class InvokeMethodNode extends BaseNode {
@@ -393,8 +394,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       selfWithoutWarnings = warnings.removeWarnings(self);
       arrOfWarnings = warnings.getWarnings(self, this);
     } catch (UnsupportedMessageException e) {
-      // Can't throw `CompilerDirectives.shouldNotReachHere` as it crashes native-image build
-      throw new IllegalStateException(e);
+      throw CompilerDirectives.shouldNotReachHere(e);
     }
 
     // Cannot use @Cached for childDispatch, because we need to call notifyInserted.
@@ -470,7 +470,7 @@ public abstract class InvokeMethodNode extends BaseNode {
           accumulatedWarnings = accumulatedWarnings.append(warnings.getWarnings(r, this));
           args[i] = warnings.removeWarnings(r);
         } catch (UnsupportedMessageException e) {
-          throw new IllegalStateException(e);
+          throw CompilerDirectives.shouldNotReachHere(e);
         }
       } else {
         args[i] = r;
@@ -482,6 +482,34 @@ public abstract class InvokeMethodNode extends BaseNode {
       res = WithWarnings.appendTo(EnsoContext.get(this), res, accumulatedWarnings);
     }
     return res;
+  }
+
+  @Specialization(
+      guards = {
+        "!warnings.hasWarnings(self)",
+        "!types.hasType(self)",
+        "!types.hasSpecialDispatch(self)",
+        "getPolyglotCallType(self, symbol, interop) == CONVERT_TO_BIG_INT"
+      })
+  Object doConvertNumber(
+      VirtualFrame frame,
+      State state,
+      UnresolvedSymbol symbol,
+      Object self,
+      Object[] arguments,
+      @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop,
+      @Shared("types") @CachedLibrary(limit = "10") TypesLibrary types,
+      @Shared("warnings") @CachedLibrary(limit = "10") WarningsLibrary warnings,
+      @Shared("methodResolverNode") @Cached MethodResolverNode methodResolverNode,
+      @Cached ToEnsoNumberNode toEnsoNumberNode) {
+    try {
+      var big = interop.asBigInteger(self);
+      var ensoBig = toEnsoNumberNode.execute(big);
+      arguments[0] = ensoBig;
+      return execute(frame, state, symbol, ensoBig, arguments);
+    } catch (UnsupportedMessageException e) {
+      throw CompilerDirectives.shouldNotReachHere(e);
+    }
   }
 
   @Specialization(
@@ -510,7 +538,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       arguments[0] = text;
       return invokeFunctionNode.execute(function, frame, state, arguments);
     } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException("Impossible, self is guaranteed to be a string.");
+      throw CompilerDirectives.shouldNotReachHere(e);
     }
   }
 
