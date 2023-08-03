@@ -1,6 +1,8 @@
 package org.enso.polyglot.common_utils;
 
 import com.ibm.icu.text.BreakIterator;
+import com.ibm.icu.text.Normalizer;
+import com.ibm.icu.text.Normalizer2;
 
 public class Core_Text_Utils {
   private Core_Text_Utils() {
@@ -15,6 +17,36 @@ public class Core_Text_Utils {
       len++;
     }
     return len;
+  }
+
+  /** Computes a hashcode of a string that is insensitive to Unicode normalization. */
+  public static int unicodeNormalizedHashCode(String str) {
+    Normalizer2 normalizer = Normalizer2.getNFDInstance();
+    return normalizer.normalize(str).hashCode();
+  }
+
+  /**
+   * Checks whether two strings are equal up to Unicode canonicalization.
+   *
+   * @param str1 the first string
+   * @param str2 the second string
+   * @return the result of comparison
+   */
+  public static boolean equals(String str1, String str2) {
+    return compare_normalized(str1, str2) == 0;
+  }
+
+  /**
+   * Compares {@code a} to {@code b} according to the lexicographical order, handling Unicode
+   * normalization.
+   *
+   * @param a the left operand
+   * @param b the right operand
+   * @return a negative value if {@code a} is before {@code b}, 0 if both values are equal and a
+   *     positive value if {@code a} is after {@code b}
+   */
+  public static int compare_normalized(String a, String b) {
+    return Normalizer.compare(a, b, Normalizer.FOLD_CASE_DEFAULT);
   }
 
   /** Returns a prefix of the string not exceeding the provided grapheme length. */

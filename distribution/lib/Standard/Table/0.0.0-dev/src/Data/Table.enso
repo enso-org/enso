@@ -33,7 +33,7 @@ import project.Internal.Add_Row_Number
 import project.Internal.Aggregate_Column_Helper
 import project.Internal.Java_Problems
 import project.Internal.Join_Helpers
-import project.Internal.Naming_Helpers.Naming_Helpers
+import project.Internal.Column_Naming_Helper.Column_Naming_Helper
 import project.Internal.Parse_Values_Helper
 import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Split_Tokenize
@@ -523,13 +523,13 @@ type Table
            `Missing_Input_Columns` is raised as an error, unless
            `error_on_missing_columns` is set to `False`, in which case the
            problem is reported according to the `on_problems` setting.
+         - If any of the new names are invalid, an `Invalid_Output_Column_Names`
+           error is raised.
          - Other problems are reported according to the `on_problems` setting:
              - If a column is matched by two selectors resulting in a different
                name mapping, a `Ambiguous_Column_Rename`.
              - If in `By_Position` mode and more names than columns are
                provided, a `Too_Many_Column_Names_Provided`.
-             - If any of the new names are invalid, an
-               `Invalid_Output_Column_Names`.
              - If any of the new names clash either with existing names or each
                other, a `Duplicate_Output_Column_Names`.
 
@@ -565,7 +565,7 @@ type Table
     @column_map Widget_Helpers.make_rename_name_vector_selector
     rename_columns : Map (Text | Integer | Regex) Text | Vector Text | Vector Vector -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Ambiguous_Column_Rename | Too_Many_Column_Names_Provided | Invalid_Output_Column_Names | Duplicate_Output_Column_Names
     rename_columns self (column_map:(Map | Vector)=["Column"]) (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default) (error_on_missing_columns:Boolean=True) (on_problems:Problem_Behavior=Report_Warning) =
-        new_names = Table_Helpers.rename_columns self.columns column_map case_sensitivity error_on_missing_columns on_problems
+        new_names = Table_Helpers.rename_columns self.column_naming_helper self.columns column_map case_sensitivity error_on_missing_columns on_problems
         Warning.with_suspended new_names names->
             Table.new (self.columns.map c-> c.rename (names.at c.name))
 
@@ -590,7 +590,12 @@ type Table
     use_first_row_as_names self (on_problems=Report_Warning) =
         new_names = self.first_row.to_vector.map c->
             if c.is_nothing then Nothing else c.to_text
-        self.drop (First 1) . rename_columns new_names on_problems=on_problems
+        unique = self.column_naming_helper.create_unique_name_strategy
+        new_names_cleaned = unique.make_all_unique new_names
+        problem_builder = Problem_Builder.new
+        problem_builder.report_unique_name_strategy unique
+        problem_builder.attach_problems_before on_problems <|
+            self.drop (First 1) . rename_columns new_names_cleaned on_problems=on_problems
 
     ## ALIAS group by, summarize
 
@@ -650,7 +655,7 @@ type Table
     @columns Widget_Helpers.make_aggregate_column_vector_selector
     aggregate : Vector Aggregate_Column -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Invalid_Aggregate_Column | Invalid_Output_Column_Names | Duplicate_Output_Column_Names | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings
     aggregate self columns (error_on_missing_columns=False) (on_problems=Report_Warning) =
-        validated = Aggregate_Column_Helper.prepare_aggregate_columns columns self error_on_missing_columns=error_on_missing_columns
+        validated = Aggregate_Column_Helper.prepare_aggregate_columns self.column_naming_helper columns self error_on_missing_columns=error_on_missing_columns
 
         on_problems.attach_problems_before validated.problems <| Illegal_Argument.handle_java_exception <|
             java_key_columns = validated.key_columns.map .java_column
@@ -1276,8 +1281,6 @@ type Table
 
        ! Error Conditions
 
-         - In the Database backend, if the column name is not valid, an
-           `Unsupported_Name` dataflow error is raised.
          - If the column name is already present and `set_mode` is `Add`, a
            `Existing_Column` dataflow error is raised.
          - If the column name is not present and `set_mode` is `Update`, a
@@ -1359,7 +1362,7 @@ type Table
         get_column name = self.at name
         new_column = Expression.evaluate expression get_column self.make_constant_column "Standard.Table.Data.Column" "Column" Column.var_args_functions
         problems = Warning.get_all new_column . map .value
-        result = new_column.rename (Naming_Helpers.sanitize_name expression)
+        result = new_column.rename (self.column_naming_helper.sanitize_name expression)
         on_problems.attach_problems_before problems <|
             Warning.set result []
 
@@ -1845,7 +1848,7 @@ type Table
     transpose : Vector (Integer | Text | Regex) | Text | Integer | Regex -> Text -> Text -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Missing_Input_Columns | Duplicate_Output_Column_Names
     transpose self (key_columns = []) (attribute_column_name="Name") (value_column_name="Value") (error_on_missing_columns=True) (on_problems = Report_Warning) =
         columns_helper = self.columns_helper
-        unique = Unique_Name_Strategy.new
+        unique = self.column_naming_helper.create_unique_name_strategy
         problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns
 
         id_columns = columns_helper.select_columns_helper key_columns Case_Sensitivity.Default False problem_builder
@@ -1885,6 +1888,8 @@ type Table
          - If a column selector in `values` given as a `Text` and it does not
            match any columns in the input table nor is it a valid expression, an
            `Invalid_Aggregate_Column` dataflow error is raised.
+         - If a column name generated from the input data is invalid,
+           `Invalid_Output_Column_Names` error is raised.
          - If an aggregation fails, an `Invalid_Aggregation` dataflow error is
            raised.
          - Additionally, the following problems may be reported according to the
@@ -1913,7 +1918,7 @@ type Table
     @group_by Widget_Helpers.make_column_name_vector_selector
     @name_column Widget_Helpers.make_column_name_selector
     @values (Widget_Helpers.make_aggregate_column_selector include_group_by=False)
-    cross_tab : Vector (Integer | Text | Regex | Aggregate_Column) | Text | Integer | Regex -> (Text | Integer) -> Aggregate_Column | Vector Aggregate_Column -> Problem_Behavior -> Table ! Missing_Input_Columns | Invalid_Aggregate_Column | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings
+    cross_tab : Vector (Integer | Text | Regex | Aggregate_Column) | Text | Integer | Regex -> (Text | Integer) -> Aggregate_Column | Vector Aggregate_Column -> Problem_Behavior -> Table ! Missing_Input_Columns | Invalid_Aggregate_Column | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings | Invalid_Output_Column_Names
     cross_tab self group_by name_column values=Aggregate_Column.Count (on_problems=Report_Warning) =
         columns_helper = self.columns_helper
         problem_builder = Problem_Builder.new error_on_missing_columns=True
@@ -1971,7 +1976,8 @@ type Table
                         inner_panic = caught_panic.payload
                         Error.throw (Column_Count_Exceeded.Error inner_panic.getMaximumColumnCount inner_panic.getColumnCount)
                     Panic.catch TooManyColumnsException handler=too_many_columns <|
-                        index.makeCrossTabTable java_key_columns matched_name.first.java_column data_columns aggregate_names
+                        Invalid_Output_Column_Names.handle_java_exception <|
+                            index.makeCrossTabTable java_key_columns matched_name.first.java_column data_columns aggregate_names
 
             on_problems.attach_problems_after (Table.Value result) <|
                 problems = result.getProblems
@@ -2168,6 +2174,10 @@ type Table
     replace self columns term="" new_text="" case_sensitivity=Case_Sensitivity.Sensitive only_first=False =
         transformer col = col.replace term new_text case_sensitivity only_first
         Table_Helpers.replace_columns_with_transformed_columns self columns transformer
+
+    ## PRIVATE
+    column_naming_helper : Column_Naming_Helper
+    column_naming_helper self = Column_Naming_Helper.in_memory
 
 ## PRIVATE
 

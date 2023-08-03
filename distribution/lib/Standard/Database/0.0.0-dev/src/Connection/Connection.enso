@@ -2,7 +2,6 @@ from Standard.Base import all
 import Standard.Base.Errors.Common.Dry_Run_Operation
 import Standard.Base.Errors.Common.Forbidden_Operation
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
-import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Metadata.Display
 import Standard.Base.Metadata.Widget
 import Standard.Base.Runtime.Context as Execution_Context
@@ -13,6 +12,7 @@ from Standard.Base.Metadata.Widget import Single_Choice, Vector_Editor
 
 import Standard.Table.Data.Table.Table as Materialized_Table
 import Standard.Table.Data.Type.Value_Type.Value_Type
+import Standard.Table.Internal.Column_Naming_Helper.Column_Naming_Helper
 
 import project.Data.Column_Description.Column_Description
 import project.Data.Dialect.Dialect
@@ -21,12 +21,15 @@ import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
 import project.Data.Table as Database_Table_Module
 import project.Data.Table.Table as Database_Table
+import project.Internal.Connection.Entity_Naming_Properties.Entity_Naming_Properties
 import project.Internal.Hidden_Table_Registry
 import project.Internal.IR.Context.Context
 import project.Internal.IR.Query.Query
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
+import project.Internal.SQL_Warning_Helper
 import project.Internal.Statement_Setter.Statement_Setter
+import project.Internal.Table_Naming_Helper.Table_Naming_Helper
 from project.Errors import SQL_Error, Table_Already_Exists, Table_Not_Found
 from project.Internal.JDBC_Connection import handle_sql_errors, JDBC_Connection
 from project.Internal.Result_Set import read_column, result_set_to_table
@@ -44,13 +47,15 @@ type Connection
        - jdbc_connection: the resource managing the underlying JDBC
          connection.
        - dialect: the dialect associated with the database we are connected to.
+       - entity_naming_properties: a helper allowing to manage properties of
+         entity naming rules of the given backend.
        - supports_large_update: whether the connection should try to use
          `executeLargeUpdate`. Set to `True` by default and if the operation
          fails with `UnsupportedOperationException`, it is updated to be
          `False`.
        - hidden_table_registry: a registry of hidden tables that are not
          shown to the user, but are used internally by the dry-run system.
-    Value jdbc_connection dialect supports_large_update hidden_table_registry
+    Value jdbc_connection dialect (entity_naming_properties : Entity_Naming_Properties) (supports_large_update : Ref Boolean) (hidden_table_registry : Hidden_Table_Registry.Hidden_Table_Registry)
 
     ## PRIVATE
        Constructs a new Connection.
@@ -61,10 +66,10 @@ type Connection
        - dialect: the dialect associated with the database we are connected to.
        - try_large_update: whether the connection should try to use
          `executeLargeUpdate`.
-    new : JDBC_Connection -> Dialect -> Boolean -> Connection
-    new jdbc_connection dialect try_large_update=True =
+    new : JDBC_Connection -> Dialect -> Entity_Naming_Properties -> Boolean -> Connection
+    new jdbc_connection dialect entity_naming_properties try_large_update=True =
         registry = Hidden_Table_Registry.new
-        Connection.Value jdbc_connection dialect (Ref.new try_large_update) registry
+        Connection.Value jdbc_connection dialect entity_naming_properties (Ref.new try_large_update) registry
 
     ## PRIVATE
        Closes the connection releasing the underlying database resources
@@ -223,7 +228,10 @@ type Connection
                 ctx = Context.for_query raw_sql name
                 Database_Table_Module.make_table self name columns ctx
         SQL_Query.Table_Name name ->
-            make_table_for_name self name alias
+            case self.table_naming_helper.is_table_name_valid name of
+                True -> make_table_for_name self name alias
+                False ->
+                    Error.throw (Table_Not_Found.Error name related_query_error=Nothing treated_as_query=False extra_message="")
 
 
     ## PRIVATE
@@ -308,7 +316,9 @@ type Connection
         type_overrides = self.dialect.get_type_mapping.prepare_type_overrides column_type_suggestions
         statement_setter = self.dialect.get_statement_setter
         self.jdbc_connection.with_prepared_statement statement statement_setter stmt->
-            result_set_to_table stmt.executeQuery self.dialect.make_column_fetcher_for_type type_overrides last_row_only
+            rs = stmt.executeQuery
+            SQL_Warning_Helper.process_warnings stmt <|
+                result_set_to_table rs self.dialect.make_column_fetcher_for_type type_overrides last_row_only
 
     ## PRIVATE
        Given a prepared statement, gets the column names and types for the
@@ -333,11 +343,13 @@ type Connection
         if Execution_Context.Output.is_enabled.not then Error.throw (Forbidden_Operation.Error "Executing update queries is forbidden as the Output context is disabled.") else
             statement_setter = self.dialect.get_statement_setter
             self.jdbc_connection.with_prepared_statement query statement_setter stmt->
-                case self.supports_large_update.get of
+                result = case self.supports_large_update.get of
                     True -> Panic.catch UnsupportedOperationException stmt.executeLargeUpdate _->
                         self.supports_large_update.put False
                         stmt.executeUpdate
                     False -> stmt.executeUpdate
+                SQL_Warning_Helper.process_warnings stmt <|
+                    result
 
     ## PRIVATE
        Drops a table.
@@ -377,66 +389,16 @@ type Connection
         self.jdbc_connection.run_maintenance_action_if_possible callback
 
     ## PRIVATE
-    max_table_name_length : Integer | Nothing
-    max_table_name_length self =
-        reported = self.jdbc_connection.with_metadata .getMaxTableNameLength
-        if reported == 0 then Nothing else reported
+       Returns a helper for checking and generating table names.
+    table_naming_helper : Table_Naming_Helper
+    table_naming_helper self = Table_Naming_Helper.Value self
 
     ## PRIVATE
-       Generates a temporary table name for the given table name, used for dry
-       runs.
-
-       The table name is 'stable', meaning that the same name will be returned
-       for the given input `table_name` on subsequent calls, unless the user
-       creates a clashing table in the meantime.
-
-       The table name is guaranteed to be unique for the database at the time it
-       is generated - this is used to ensure that the dry run tables never
-       overwrite pre-existing user data.
-
-       ! Safety
-
-         It is safe to drop/overwrite the table returned by this method, as it
-         can be assumed that it was not created by the user. It either does not
-         (yet) exist, or if it exists, it is present in our hidden table
-         registry - but that means it was created by Enso as a hidden table.
-    generate_dry_run_table_name : Text -> Text
-    generate_dry_run_table_name self table_name =
-        max_length = (self.max_table_name_length.if_nothing 60) - 1
-        go ix =
-            prefix = "enso-dry-run-" + if ix == 0 then "" else ix.to_text + "-"
-            ## This check ensures that if all possible names are taken, the
-               method will not loop forever but report an error. It should never
-               occur in practice - it would mean that the Database contains
-               unimaginable amounts of dry run tables or has impractically small
-               table name length limit.
-            if prefix.length > max_length then Error.throw (Illegal_State.Error "Reached the table name length limit ("+max_length.to_text+") while trying to find a unused table name. It seems that all possible names are already taken. The Database may need to be cleaned up for dry run to work.") else
-                name = (prefix + table_name) . take max_length
-                ## The dry run name is ok if it is already registered (that means it
-                   may exist in the Database, but it was created by other dry runs
-                   and is safe to overwrite) or if it does not exist in the database.
-                name_ok = (self.hidden_table_registry.is_registered name) || (self.table_exists name . not)
-                if name_ok then name else
-                    @Tail_Call go (ix + 1)
-        go 0
-
-    ## PRIVATE
-       Generates a random table name that does not currently exist in the
-       database.
-    generate_random_table_name : Text -> Text
-    generate_random_table_name self prefix="enso-table-" =
-        max_length = self.max_table_name_length
-        minimum_randomness = 5
-        maximum_retries = 20^minimum_randomness
-        if max_length.is_nothing.not && (prefix.length + minimum_randomness > max_length) then Error.throw (Illegal_State.Error "The prefix has length "+prefix.length.to_text+" while max table name is "+max_length.to_text+" - there is not enough space to safely generate random names.") else
-            go ix =
-                if ix > maximum_retries then Error.throw (Illegal_State.Error "Could not generate a non-assigned random table name after "+maximum_retries+". Giving up.") else
-                    base_name = prefix + Random.random_uuid
-                    name = if max_length.is_nothing then base_name else base_name.take max_length
-                    if self.table_exists name . not then name else
-                        @Tail_Call go (ix + 1)
-            go 0
-
+       Returns a helper for checking and generating column names.
+    column_naming_helper : Column_Naming_Helper
+    column_naming_helper self =
+        column_naming_properties = self.entity_naming_properties.for_column_names
+        Column_Naming_Helper.Value column_naming_properties
 
     ## PRIVATE
        Creates a Table reference that refers to a table with the given name.

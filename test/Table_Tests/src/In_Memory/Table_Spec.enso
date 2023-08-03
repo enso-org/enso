@@ -96,7 +96,7 @@ spec =
             Table.from_rows [] [] . should_fail_with Illegal_Argument
             Table.from_rows [] [[]] . should_fail_with Illegal_Argument
 
-            Table.new [["X", [1,2,3]], ["", [4,5,6]]] . should_fail_with Illegal_Argument
+            Table.new [["X", [1,2,3]], ["", [4,5,6]]] . should_fail_with Invalid_Output_Column_Names
 
         Test.specify "should be internally guarded against creating a table without columns" <|
             Test.expect_panic_with (Java_Table.new []) IllegalArgumentException
@@ -157,6 +157,10 @@ spec =
             t.at 'cafe\u0301' . to_vector . should_equal [4, 5, 6]
             t.at 'café' . to_vector . should_equal [4, 5, 6]
             t.at 'sciana' . should_fail_with No_Such_Column
+
+            # Cannot create two columns with the same name modulo normalization.
+            r2 = Table.new [['ściana', [1, 2, 3]], ['s\u0301ciana', [4, 5, 6]]]
+            r2.should_fail_with Illegal_Argument
 
     Test.group "Vector conversion" <|
         Test.specify "should allow converting columns to valid vectors" <|

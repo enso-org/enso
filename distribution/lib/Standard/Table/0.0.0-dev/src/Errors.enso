@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Errors.No_Such_Key.No_Such_Key
 
 import Standard.Table.Data.Expression.Expression_Error
 import Standard.Table.Data.Type.Value_Type.Value_Type
@@ -7,6 +8,7 @@ polyglot java import org.enso.table.error.ColumnCountMismatchException
 polyglot java import org.enso.table.error.ColumnNameMismatchException
 polyglot java import org.enso.table.error.EmptyFileException
 polyglot java import org.enso.table.error.EmptySheetException
+polyglot java import org.enso.table.error.InvalidColumnNameException
 
 
 type Missing_Input_Columns
@@ -50,15 +52,27 @@ type Too_Many_Column_Names_Provided
 
 ## One or more column names were invalid during a rename operation.
 type Invalid_Output_Column_Names
-    Error (column_names : Vector Text)
+    Error (column_names : Vector Text) (extra_message : Text | Nothing = Nothing)
 
     ## PRIVATE
 
        Pretty prints the invalid output columns error.
     to_display_text : Text
-    to_display_text self = case self.column_names.length == 1 of
-        True -> "The name " + (self.column_names.at 0).to_text + " is invalid."
-        False -> "The names "+self.column_names.short_display_text+" are invalid."
+    to_display_text self =
+        suffix = case self.extra_message of
+            Nothing -> ""
+            message -> " "+message
+        case self.column_names.length == 1 of
+            True -> "The name " + (self.column_names.at 0).to_display_text.pretty + " is invalid."+suffix
+            False -> "The names "+self.column_names.short_display_text+" are invalid."+suffix
+
+    ## PRIVATE
+       Handles the Java counterpart `InvalidColumnNameException` and converts it into a dataflow error.
+    handle_java_exception ~action =
+        Panic.catch InvalidColumnNameException action caught_panic->
+            exception = caught_panic.payload
+            error = Invalid_Output_Column_Names.Error [exception.name] exception.extraMessage
+            Error.throw error
 
 ## One or more column names clashed during a rename operation.
 type Duplicate_Output_Column_Names
@@ -69,7 +83,7 @@ type Duplicate_Output_Column_Names
        Pretty prints the duplicate output column names error.
     to_display_text : Text
     to_display_text self = case self.column_names.length == 1 of
-        True -> "The name " + (self.column_names.at 0).to_text + " was repeated in the output, so was renamed."
+        True -> "The name " + (self.column_names.at 0).to_display_text + " was repeated in the output, so it was renamed."
         False -> "The names "+self.column_names.short_display_text+" were repeated in the output, and were renamed."
 
 ## No columns in the output result.
@@ -597,3 +611,40 @@ type Column_Count_Exceeded
     to_display_text : Text
     to_display_text self =
         "The operation produced more columns than the specified limit. The limit is "+self.limit.to_text+" and the number of new columns was "+self.column_count.to_text+"."
+
+type Name_Too_Long
+    ## PRIVATE
+       Indicates that a table/column name is too long for the given backend.
+    Error (entity_kind : Text) (name : Text) (extra_message : Text)
+
+    ## PRIVATE
+       Pretty print the column name too long error.
+    to_display_text : Text
+    to_display_text self =
+        "The " + self.entity_kind + " name [" + self.name.to_display_text + "] is too long for the given backend." + self.extra_message
+
+type Truncated_Column_Names
+    ## PRIVATE
+       Indicates that some column names were truncated to fit the maximum length
+       supported by the backend.
+    Warning (names_map : Map Text Text)
+
+    ## PRIVATE
+       Get the original column names.
+    original_names : Vector Text
+    original_names self = self.names_map.keys.to_vector
+
+    ## PRIVATE
+       Get the truncated names.
+    truncated_names : Vector Text
+    truncated_names self = self.names_map.values.to_vector
+
+    ## PRIVATE
+    find_truncated_name : Text -> Text ! No_Such_Key
+    find_truncated_name self name = self.names_map.get name
+
+    ## PRIVATE
+       Pretty print the truncated column names warning.
+    to_display_text : Text
+    to_display_text self =
+        "The column names " + self.original_names.to_display_text + " were truncated to fit the maximum length supported by the backend (" + self.max_length.to_text + ")."
