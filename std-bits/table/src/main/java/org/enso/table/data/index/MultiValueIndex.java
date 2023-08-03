@@ -66,7 +66,7 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
           Column[] keyColumns, int tableSize, List<Integer> indexMask, TextFoldingStrategy commonTextFoldingStrategy) {
     List<TextFoldingStrategy> strategies =
             ConstantList.make(commonTextFoldingStrategy, keyColumns.length);
-    return makeUnorderedIndex(keyColumns, tableSize, indexMask, strategies);
+    return makeUnorderedIndexWithMask(keyColumns, tableSize, indexMask, strategies);
   }
 
   private MultiValueIndex(
@@ -189,10 +189,11 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
     Context context = Context.getCurrent();
     NameDeduplicator outputTableNameDeduplicator = new NameDeduplicator();
 
+    AggregatedProblems indexProblems = new AggregatedProblems();
     var groupingIndex =
             MultiValueIndex.makeUnorderedIndex(
-                    groupingColumns, groupingColums[0].getSize(), TextFoldingStrategy.unicodeNormalizedFold);
-
+                    groupingColumns, groupingColumns[0].getSize(), TextFoldingStrategy.unicodeNormalizedFold);
+    indexProblems.addAll(groupingIndex.problems);
     Map<UnorderedMultiValueKey, Map<UnorderedMultiValueKey, List<Integer>>> twoLevelIndex = new HashMap<>();
     for (UnorderedMultiValueKey groupingKey : groupingIndex.keys()) {
       // Build two-level map: from groupingKey to nameKey to ID list
@@ -205,16 +206,17 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
               MultiValueIndex.makeUnorderedIndexWithMask(
                       new Column[]{nameColumn}, nameColumn.getSize(), groupingPartitionIds, TextFoldingStrategy.unicodeNormalizedFold);
 
+      indexProblems.addAll(nameIndex.problems);
       for (UnorderedMultiValueKey nameKey : nameIndex.keys()) {
         List<Integer> ids = nameIndex.get(nameKey);
-        subMap.put(newKey, ids);
+        subMap.put(nameKey, ids);
       }
     }
 
     // Build canonical ordering for both axes
-    ObjectNumberer<UnorderedMultiValueKey> nameNumberer = new ObjectNumberer<>();
+    ObjectNumberer<UnorderedMultiValueKey> nameNumberer = new ObjectNumberer<UnorderedMultiValueKey>();
     ObjectNumberer<UnorderedMultiValueKey> groupingNumberer = new ObjectNumberer<>();
-    for (UnorderedMultiValueKey groupingKey : twoLevelMap.keySet()) {
+    for (UnorderedMultiValueKey groupingKey : twoLevelIndex.keySet()) {
       groupingNumberer.put(groupingKey);
       Map<UnorderedMultiValueKey, List<Integer>> subMap = twoLevelIndex.get(groupingKey);
       for (UnorderedMultiValueKey nameKey : subMap.keySet()) {
@@ -376,7 +378,7 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
 
     // Merge Problems
     AggregatedProblems[] problems = new AggregatedProblems[aggregates.length + 2];
-    problems[0] = combinedIndex.problems;
+    problems[0] = indexProblems;
     problems[1] = AggregatedProblems.of(outputTableNameDeduplicator.getProblems());
     for (int i = 0; i < aggregates.length; i++) {
       problems[i + 2] = aggregates[i].getProblems();

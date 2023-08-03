@@ -1,4 +1,4 @@
-<<<<from Standard.Base import all
+from Standard.Base import all
 import Standard.Base.Data.Array_Proxy.Array_Proxy
 import Standard.Base.Data.Filter_Condition as Filter_Condition_Module
 import Standard.Base.Data.Index_Sub_Range as Index_Sub_Range_Module
@@ -2273,4 +2273,3 @@ concat_columns column_set all_tables result_type result_row_count on_problems =
                 storage = parent_table.at i . java_column . getStorage
                 storage_builder.appendBulkStorage storage
     Column.from_storage column_set.name storage_builder.seal
->>>>

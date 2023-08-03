@@ -7,6 +7,8 @@ public class ObjectNumberer<T> {
   private final Map<T, Integer> numbering = new HashMap<>();
   private int serial = 0;
 
+  public ObjectNumberer() {}
+
   public ObjectNumberer(Collection<T> ts) {
     putAll(ts);
   }
