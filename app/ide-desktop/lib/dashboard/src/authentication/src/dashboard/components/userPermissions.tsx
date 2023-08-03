@@ -10,6 +10,8 @@ import PermissionSelector from './permissionSelector'
 /** Props for a {@link UserPermissions}. */
 export interface UserPermissionsProps {
     asset: backendModule.Asset
+    self: backendModule.UserPermission
+    isOnlyOwner: boolean
     userPermission: backendModule.UserPermission
     setUserPermission: (userPermissions: backendModule.UserPermission) => void
     doDelete: (user: backendModule.User) => void
@@ -19,6 +21,8 @@ export interface UserPermissionsProps {
 export default function UserPermissions(props: UserPermissionsProps) {
     const {
         asset,
+        self,
+        isOnlyOwner,
         userPermission: initialUserPermission,
         setUserPermission: outerSetUserPermission,
         doDelete,
@@ -53,7 +57,16 @@ export default function UserPermissions(props: UserPermissionsProps) {
     return (
         <div className="flex gap-3 items-center">
             <PermissionSelector
-                allowDelete
+                showDelete
+                disabled={isOnlyOwner && userPermissions.user.pk === self.user.pk}
+                error={
+                    isOnlyOwner
+                        ? `This ${
+                              backendModule.ASSET_TYPE_NAME[asset.type]
+                          } must have at least one owner.`
+                        : null
+                }
+                selfPermission={self.permission}
                 action={userPermissions.permission}
                 assetType={asset.type}
                 onChange={async permissions => {

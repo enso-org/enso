@@ -25,6 +25,7 @@ export enum AssetEventType {
     openProject = 'open-project',
     cancelOpeningAllProjects = 'cancel-opening-all-projects',
     deleteMultiple = 'delete-multiple',
+    removeSelf = 'remove-self',
 }
 
 /** Properties common to all asset state change events. */
@@ -41,6 +42,7 @@ interface AssetEvents {
     openProject: AssetOpenProjectEvent
     cancelOpeningAllProjects: AssetCancelOpeningAllProjectsEvent
     deleteMultiple: AssetDeleteMultipleEvent
+    removeSelf: AssetRemoveSelfEvent
 }
 
 /** A type to ensure that {@link AssetEvents} contains every {@link AssetLEventType}. */
@@ -88,6 +90,11 @@ export interface AssetCancelOpeningAllProjectsEvent
 /** A signal to delete multiple assets. */
 export interface AssetDeleteMultipleEvent extends AssetBaseEvent<AssetEventType.deleteMultiple> {
     ids: Set<backendModule.AssetId>
+}
+
+/** A signal to remove the current user's permissions for an asset.. */
+export interface AssetRemoveSelfEvent extends AssetBaseEvent<AssetEventType.removeSelf> {
+    id: backendModule.AssetId
 }
 
 /** Every possible type of asset event. */

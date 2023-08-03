@@ -342,16 +342,25 @@ export interface IdType {
     [AssetType.specialEmpty]: EmptyAssetId
 }
 
+/** The english name of each asset type. */
+export const ASSET_TYPE_NAME: Record<AssetType, string> = {
+    [AssetType.directory]: 'folder',
+    [AssetType.project]: 'project',
+    [AssetType.file]: 'file',
+    [AssetType.secret]: 'secret',
+    [AssetType.specialLoading]: 'special loading asset',
+    [AssetType.specialEmpty]: 'special empty asset',
+} as const
+
 /** Integers (starting from 0) corresponding to the order in which each asset type should appear
  * in a directory listing. */
 export const ASSET_TYPE_ORDER: Record<AssetType, number> = {
+    // This is a sequence of numbers, not magic numbers. `999` and `1000` are arbitrary numbers
+    // that are higher than the number of possible asset types.
+    /* eslint-disable @typescript-eslint/no-magic-numbers */
     [AssetType.directory]: 0,
     [AssetType.project]: 1,
     [AssetType.file]: 2,
-    // These are not magic constants; `3` is simply the next number after `2`.
-    // `999` and `1000` are arbitrary numbers chosen to be higher than the number of possible
-    // asset types.
-    /* eslint-disable @typescript-eslint/no-magic-numbers */
     [AssetType.secret]: 3,
     [AssetType.specialLoading]: 999,
     [AssetType.specialEmpty]: 1000,

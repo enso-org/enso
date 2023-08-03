@@ -98,6 +98,7 @@ function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
     } = props
     const { backend } = backendProvider.useBackend()
     const { setModal } = modalProvider.useSetModal()
+    const { user } = authProvider.useNonPartialUserSession()
     const toastAndLog = hooks.useToastAndLog()
     const [item, setItem] = React.useState(rawItem)
     const [presence, setPresence] = React.useState(presenceModule.Presence.present)
@@ -138,6 +139,28 @@ function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
                     await doDelete()
                 }
                 break
+            }
+            case assetEventModule.AssetEventType.removeSelf: {
+                // This is not triggered from the asset list, so it uses `item.id` instead of `key`.
+                if (event.id === item.id && user != null) {
+                    setPresence(presenceModule.Presence.deleting)
+                    markItemAsHidden(key)
+                    try {
+                        await backend.createPermission({
+                            action: null,
+                            resourceId: item.id,
+                            userSubjects: [user.id],
+                        })
+                        dispatchAssetListEvent({
+                            type: assetListEventModule.AssetListEventType.delete,
+                            id: key,
+                        })
+                    } catch (error) {
+                        setPresence(presenceModule.Presence.present)
+                        markItemAsVisible(key)
+                        toastAndLog('Unable to delete project', error)
+                    }
+                }
             }
         }
     })

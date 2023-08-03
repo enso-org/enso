@@ -69,7 +69,8 @@ const PERMISSION_TYPE_DATA: PermissionTypeData[] = [
 
 /** Props for a {@link PermissionTypeSelector}. */
 export interface PermissionTypeSelectorProps {
-    allowDelete?: boolean
+    showDelete?: boolean
+    selfPermission: backend.PermissionAction
     type: permissions.Permission
     assetType: backend.AssetType
     style?: React.CSSProperties
@@ -78,7 +79,7 @@ export interface PermissionTypeSelectorProps {
 
 /** A selector for all possible permission types. */
 export default function PermissionTypeSelector(props: PermissionTypeSelectorProps) {
-    const { allowDelete = false, type, assetType, style, onChange } = props
+    const { showDelete = false, selfPermission, type, assetType, style, onChange } = props
     return (
         <div
             style={style}
@@ -89,8 +90,12 @@ export default function PermissionTypeSelector(props: PermissionTypeSelectorProp
         >
             <div className="absolute bg-frame-selected rounded-2xl backdrop-blur-3xl w-full h-full -z-10" />
             <div className="flex flex-col w-112.5 p-1">
-                {PERMISSION_TYPE_DATA.filter(data =>
-                    allowDelete ? true : data.type !== permissions.Permission.delete
+                {PERMISSION_TYPE_DATA.filter(
+                    data =>
+                        (showDelete ? true : data.type !== permissions.Permission.delete) &&
+                        (selfPermission === backend.PermissionAction.own
+                            ? true
+                            : data.type !== permissions.Permission.owner)
                 ).map(data => (
                     <button
                         key={data.type}

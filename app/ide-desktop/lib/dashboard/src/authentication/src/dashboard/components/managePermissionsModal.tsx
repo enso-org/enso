@@ -6,6 +6,7 @@ import * as auth from '../../authentication/providers/auth'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as hooks from '../../hooks'
+import * as modalProvider from '../../providers/modal'
 
 import Autocomplete from './autocomplete'
 import Modal from './modal'
@@ -20,6 +21,10 @@ import UserPermissions from './userPermissions'
 export interface ManagePermissionsModalProps {
     item: backendModule.AnyAsset
     setItem: React.Dispatch<React.SetStateAction<backendModule.AnyAsset>>
+    self: backendModule.UserPermission
+    /** Remove the current user's permissions from this asset. This MUST be a prop because it should
+     * change the assets list. */
+    doRemoveSelf: () => void
     eventTarget: HTMLElement
 }
 
@@ -27,9 +32,10 @@ export interface ManagePermissionsModalProps {
  * @throws {Error} when the current backend is the local backend, or when the user is offline.
  * This should never happen, as this modal should not be accessible in either case. */
 export default function ManagePermissionsModal(props: ManagePermissionsModalProps) {
-    const { item, setItem, eventTarget } = props
+    const { item, setItem, self, doRemoveSelf, eventTarget } = props
     const { organization } = auth.useNonPartialUserSession()
     const { backend } = backendProvider.useBackend()
+    const { unsetModal } = modalProvider.useSetModal()
     const toastAndLog = hooks.useToastAndLog()
     const [permissions, setPermissions] = React.useState(item.permissions ?? [])
     const [users, setUsers] = React.useState<backendModule.SimpleUser[]>([])
@@ -47,6 +53,16 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
                 item.permissions?.map(userPermission => userPermission.user.user_email)
             ),
         [item.permissions]
+    )
+    const isOnlyOwner = React.useMemo(
+        () =>
+            self.permission === backendModule.PermissionAction.own &&
+            permissions.every(
+                permission =>
+                    permission.permission !== backendModule.PermissionAction.own ||
+                    permission.user.user_email === organization?.email
+            ),
+        [organization?.email, permissions, self.permission]
     )
 
     React.useEffect(() => {
@@ -163,29 +179,33 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
         }
 
         const doDelete = async (userToDelete: backendModule.User) => {
-            const oldPermission = permissions.find(
-                userPermission => userPermission.user.pk === userToDelete.pk
-            )
-            try {
-                setPermissions(oldPermissions =>
-                    oldPermissions.filter(
-                        oldUserPermissions => oldUserPermissions.user.pk !== userToDelete.pk
-                    )
+            if (userToDelete.pk === self.user.pk) {
+                doRemoveSelf()
+            } else {
+                const oldPermission = permissions.find(
+                    userPermission => userPermission.user.pk === userToDelete.pk
                 )
-                await backend.createPermission({
-                    userSubjects: [userToDelete.pk],
-                    resourceId: item.id,
-                    action: null,
-                })
-            } catch (error) {
-                if (oldPermission != null) {
+                try {
                     setPermissions(oldPermissions =>
-                        [...oldPermissions, oldPermission].sort(
-                            backendModule.compareUserPermissions
+                        oldPermissions.filter(
+                            oldUserPermissions => oldUserPermissions.user.pk !== userToDelete.pk
                         )
                     )
+                    await backend.createPermission({
+                        userSubjects: [userToDelete.pk],
+                        resourceId: item.id,
+                        action: null,
+                    })
+                } catch (error) {
+                    if (oldPermission != null) {
+                        setPermissions(oldPermissions =>
+                            [...oldPermissions, oldPermission].sort(
+                                backendModule.compareUserPermissions
+                            )
+                        )
+                    }
+                    toastAndLog(`Unable to set permissions of '${userToDelete.user_email}'`, error)
                 }
-                toastAndLog(`Unable to set permissions of '${userToDelete.user_email}'`, error)
             }
         }
 
@@ -221,6 +241,7 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
                             <div className="flex items-center grow rounded-full border border-black-a10 gap-2 px-1">
                                 <PermissionSelector
                                     disabled={willInviteNewUser}
+                                    selfPermission={self.permission}
                                     action={backendModule.PermissionAction.view}
                                     assetType={item.type}
                                     onChange={setAction}
@@ -281,6 +302,8 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
                                 >
                                     <UserPermissions
                                         asset={item}
+                                        self={self}
+                                        isOnlyOwner={isOnlyOwner}
                                         userPermission={userPermissions}
                                         setUserPermission={newUserPermission => {
                                             setPermissions(oldPermissions =>
@@ -291,8 +314,16 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
                                                         : oldUserPermission
                                                 )
                                             )
+                                            if (newUserPermission.user.pk === self.user.pk) {
+                                                unsetModal()
+                                            }
                                         }}
-                                        doDelete={doDelete}
+                                        doDelete={userToDelete => {
+                                            if (userToDelete.pk === self.user.pk) {
+                                                unsetModal()
+                                            }
+                                            void doDelete(userToDelete)
+                                        }}
                                     />
                                 </div>
                             ))}

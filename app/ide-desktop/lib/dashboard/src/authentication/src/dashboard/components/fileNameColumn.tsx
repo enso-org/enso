@@ -50,7 +50,8 @@ export default function FileNameColumn(props: FileNameColumnProps) {
             case assetEventModule.AssetEventType.createSecret:
             case assetEventModule.AssetEventType.openProject:
             case assetEventModule.AssetEventType.cancelOpeningAllProjects:
-            case assetEventModule.AssetEventType.deleteMultiple: {
+            case assetEventModule.AssetEventType.deleteMultiple:
+            case assetEventModule.AssetEventType.removeSelf: {
                 // Ignored. These events should all be unrelated to projects.
                 // `deleteMultiple` is handled by `AssetRow`.
                 break

@@ -9,6 +9,7 @@ import PlusIcon from 'enso-assets/plus.svg'
 import TagIcon from 'enso-assets/tag.svg'
 import TimeIcon from 'enso-assets/time.svg'
 
+import * as assetEvent from './events/assetEvent'
 import * as authProvider from '../authentication/providers/auth'
 import * as backend from './backend'
 import * as dateTime from './dateTime'
@@ -169,14 +170,20 @@ function UserPermissionDisplay(props: InternalUserPermissionDisplayProps) {
 
 /** A column listing the users with which this asset is shared. */
 function SharedWithColumn(props: AssetColumnProps<backend.AnyAsset>) {
-    const { item, setItem } = props
+    const {
+        item,
+        setItem,
+        state: { dispatchAssetEvent },
+    } = props
     const session = authProvider.useNonPartialUserSession()
     const { setModal } = modalProvider.useSetModal()
     const [isHovered, setIsHovered] = React.useState(false)
-    const selfPermission = item.permissions?.find(
+    const self = item.permissions?.find(
         permission => permission.user.user_email === session.organization?.email
-    )?.permission
-    const ownsThisAsset = selfPermission === backend.PermissionAction.own
+    )
+    const managesThisAsset =
+        self?.permission === backend.PermissionAction.own ||
+        self?.permission === backend.PermissionAction.admin
     return (
         <div
             className="flex items-center gap-1"
@@ -190,7 +197,7 @@ function SharedWithColumn(props: AssetColumnProps<backend.AnyAsset>) {
             {(item.permissions ?? []).map(user => (
                 <UserPermissionDisplay key={user.user.user_email} user={user} />
             ))}
-            {ownsThisAsset && isHovered && (
+            {managesThisAsset && isHovered && (
                 <button
                     onClick={event => {
                         event.stopPropagation()
@@ -199,7 +206,14 @@ function SharedWithColumn(props: AssetColumnProps<backend.AnyAsset>) {
                                 key={uniqueString.uniqueString()}
                                 item={item}
                                 setItem={setItem}
+                                self={self}
                                 eventTarget={event.currentTarget}
+                                doRemoveSelf={() => {
+                                    dispatchAssetEvent({
+                                        type: assetEvent.AssetEventType.removeSelf,
+                                        id: item.id,
+                                    })
+                                }}
                             />
                         )
                     }}
