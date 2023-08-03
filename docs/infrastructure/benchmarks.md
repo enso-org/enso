@@ -45,7 +45,7 @@ withDebug --debugger benchOnly -- <fully qualified benchmark name>
 
 ## Standard library benchmarks
 
-Unlike the Engine micro benchmarks, these benchmarks are written entirelly in
+Unlike the Engine micro benchmarks, these benchmarks are written entirely in
 Enso and located in the `test/Benchmarks` Enso project. There are two ways to
 run these benchmarks:
 

@@ -758,7 +758,7 @@ Below are options uses by the Language Server:
 
 - `--server`: Runs the Language Server
 - `--root-id <uuid>`: Content root id. The Language Server chooses one randomly,
-  so can pass any valid UUID.
+  so any valid UUID can be passed.
 - `--path <path>`: Path to the content root.
 - `--interface <interface>`: Interface for processing all incoming connections.
   Default value is 127.0.0.1
