@@ -56,7 +56,6 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         switch (event.type) {
             case assetEventModule.AssetEventType.createProject:
             case assetEventModule.AssetEventType.uploadFiles:
-            case assetEventModule.AssetEventType.uploadProjects:
             case assetEventModule.AssetEventType.createSecret:
             case assetEventModule.AssetEventType.openProject:
             case assetEventModule.AssetEventType.cancelOpeningAllProjects:

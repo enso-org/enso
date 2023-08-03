@@ -200,7 +200,6 @@ export default function ProjectIcon(props: ProjectIconProps) {
         switch (event.type) {
             case assetEventModule.AssetEventType.createDirectory:
             case assetEventModule.AssetEventType.uploadFiles:
-            case assetEventModule.AssetEventType.uploadProjects:
             case assetEventModule.AssetEventType.createSecret:
             case assetEventModule.AssetEventType.deleteMultiple:
             case assetEventModule.AssetEventType.downloadSelected: {

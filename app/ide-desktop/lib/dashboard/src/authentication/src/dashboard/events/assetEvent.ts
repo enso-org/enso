@@ -20,7 +20,6 @@ declare module '../../hooks' {
 export enum AssetEventType {
     createProject = 'create-project',
     createDirectory = 'create-directory',
-    uploadProjects = 'upload-projects',
     uploadFiles = 'upload-files',
     createSecret = 'create-secret',
     openProject = 'open-project',
@@ -38,7 +37,6 @@ interface AssetBaseEvent<Type extends AssetEventType> {
 interface AssetEvents {
     createProject: AssetCreateProjectEvent
     createDirectory: AssetCreateDirectoryEvent
-    uploadProjects: AssetUploadProjectsEvent
     uploadFiles: AssetUploadFilesEvent
     createSecret: AssetCreateSecretEvent
     openProject: AssetOpenProjectEvent
@@ -71,12 +69,7 @@ export interface AssetCreateDirectoryEvent extends AssetBaseEvent<AssetEventType
 
 /** A signal to upload files. */
 export interface AssetUploadFilesEvent extends AssetBaseEvent<AssetEventType.uploadFiles> {
-    files: Map<backendModule.FileId, File>
-}
-
-/** A signal to upload projects. */
-export interface AssetUploadProjectsEvent extends AssetBaseEvent<AssetEventType.uploadProjects> {
-    projects: Map<backendModule.ProjectId, File>
+    files: Map<backendModule.FileId | backendModule.ProjectId, File>
 }
 
 /** A signal to create a secret. */

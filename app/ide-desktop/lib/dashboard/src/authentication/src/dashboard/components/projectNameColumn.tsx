@@ -68,7 +68,6 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
     hooks.useEventHandler(assetEvents, async event => {
         switch (event.type) {
             case assetEventModule.AssetEventType.createDirectory:
-            case assetEventModule.AssetEventType.uploadFiles:
             case assetEventModule.AssetEventType.createSecret:
             case assetEventModule.AssetEventType.openProject:
             case assetEventModule.AssetEventType.cancelOpeningAllProjects:
@@ -115,38 +114,61 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                 }
                 break
             }
-            case assetEventModule.AssetEventType.uploadProjects: {
-                const file = event.projects.get(key)
+            case assetEventModule.AssetEventType.uploadFiles: {
+                const file = event.files.get(key)
                 if (file != null) {
                     rowState.setPresence(presence.Presence.inserting)
                     try {
                         if (backend.type === backendModule.BackendType.local) {
                             // This non-standard property is defined in Electron.
+                            let id
                             if (
                                 'backendApi' in window &&
                                 'path' in file &&
                                 typeof file.path === 'string'
                             ) {
-                                await window.backendApi.importProjectFromPath(file.path)
+                                id = await window.backendApi.importProjectFromPath(file.path)
                             } else {
-                                await fetch('./api/upload-project', {
+                                const response = await fetch('./api/upload-project', {
                                     method: 'POST',
                                     // Ideally this would use `file.stream()`, to minimize RAM
                                     // requirements. for uploading large projects. Unfortunately,
-                                    // this is not possible, as streaming the request body requires
-                                    // HTTP/2, which is HTTPS-only, meaning it will not work on
-                                    // `http://localhost`.
+                                    // this requires HTTP/2, which is HTTPS-only, so it will not
+                                    // work on `http://localhost`.
                                     body: await file.arrayBuffer(),
                                 })
+                                id = await response.text()
                             }
                             rowState.setPresence(presence.Presence.present)
+                            setItem({ ...item, id: backendModule.ProjectId(id) })
+                        } else {
+                            const createdFile = await backend.uploadFile(
+                                {
+                                    fileId: null,
+                                    fileName: item.title,
+                                    parentDirectoryId: item.parentId,
+                                },
+                                file
+                            )
+                            const project = createdFile.project
+                            if (project == null) {
+                                throw new Error('The uploaded file was not a project.')
+                            } else {
+                                rowState.setPresence(presence.Presence.present)
+                                setItem({
+                                    ...item,
+                                    id: project.projectId,
+                                    projectState: project.state,
+                                })
+                                return
+                            }
                         }
                     } catch (error) {
                         dispatchAssetListEvent({
                             type: assetListEventModule.AssetListEventType.delete,
                             id: key,
                         })
-                        toastAndLog('Error uploading project', error)
+                        toastAndLog('Could not upload project', error)
                     }
                 }
                 break

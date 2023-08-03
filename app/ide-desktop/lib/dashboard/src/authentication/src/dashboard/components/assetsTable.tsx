@@ -130,7 +130,6 @@ function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
             case assetEventModule.AssetEventType.createProject:
             case assetEventModule.AssetEventType.createDirectory:
             case assetEventModule.AssetEventType.uploadFiles:
-            case assetEventModule.AssetEventType.uploadProjects:
             case assetEventModule.AssetEventType.createSecret:
             case assetEventModule.AssetEventType.openProject:
             case assetEventModule.AssetEventType.cancelOpeningAllProjects: {
@@ -529,77 +528,61 @@ export default function AssetsTable(props: AssetsTableProps) {
                 break
             }
             case assetListEventModule.AssetListEventType.uploadFiles: {
-                if (backend.type !== backendModule.BackendType.local) {
-                    const placeholderItems: backendModule.FileAsset[] = Array.from(event.files)
-                        .reverse()
-                        .map(file => ({
-                            type: backendModule.AssetType.file,
-                            id: backendModule.FileId(uniqueString.uniqueString()),
-                            title: file.name,
-                            parentId: event.parentId ?? backendModule.DirectoryId(''),
-                            permissions: permissions.tryGetSingletonOwnerPermission(organization),
-                            modifiedAt: dateTime.toRfc3339(new Date()),
-                            projectState: null,
-                        }))
-                    const fileTypeOrder =
-                        backendModule.ASSET_TYPE_ORDER[backendModule.AssetType.file]
-                    setItems(oldItems =>
+                const reversedFiles = Array.from(event.files).reverse()
+                const placeholderFiles: backendModule.FileAsset[] = reversedFiles
+                    .filter(backendModule.fileIsNotProject)
+                    .map(file => ({
+                        type: backendModule.AssetType.file,
+                        id: backendModule.FileId(uniqueString.uniqueString()),
+                        title: file.name,
+                        parentId: event.parentId ?? backendModule.DirectoryId(''),
+                        permissions: permissions.tryGetSingletonOwnerPermission(organization),
+                        modifiedAt: dateTime.toRfc3339(new Date()),
+                        projectState: null,
+                    }))
+                const placeholderProjects: backendModule.ProjectAsset[] = reversedFiles
+                    .filter(file => !backendModule.fileIsProject(file))
+                    .map(file => ({
+                        type: backendModule.AssetType.project,
+                        id: backendModule.ProjectId(uniqueString.uniqueString()),
+                        title: file.name,
+                        parentId: event.parentId ?? backendModule.DirectoryId(''),
+                        permissions: permissions.tryGetSingletonOwnerPermission(organization),
+                        modifiedAt: dateTime.toRfc3339(new Date()),
+                        projectState: {
+                            type: backendModule.ProjectState.new,
+                        },
+                    }))
+                const fileTypeOrder = backendModule.ASSET_TYPE_ORDER[backendModule.AssetType.file]
+                const projectTypeOrder =
+                    backendModule.ASSET_TYPE_ORDER[backendModule.AssetType.project]
+                setItems(oldItems =>
+                    array.spliceBefore(
                         array.splicedBefore(
                             oldItems,
-                            placeholderItems,
+                            placeholderFiles,
                             item =>
                                 item.parentId === event.parentId &&
                                 backendModule.ASSET_TYPE_ORDER[item.type] >= fileTypeOrder
-                        )
-                    )
-                    dispatchAssetEvent({
-                        type: assetEventModule.AssetEventType.uploadFiles,
-                        files: new Map(
-                            placeholderItems.map((placeholderItem, i) => [
-                                placeholderItem.id,
-                                // This is SAFE, as `placeholderItems` is created using a map on
-                                // `event.files`.
-                                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                                event.files[i]!,
-                            ])
                         ),
-                    })
-                } else {
-                    const placeholderItems: backendModule.ProjectAsset[] = Array.from(event.files)
-                        .reverse()
-                        .map(file => ({
-                            type: backendModule.AssetType.project,
-                            id: backendModule.ProjectId(uniqueString.uniqueString()),
-                            title: file.name,
-                            parentId: event.parentId ?? backendModule.DirectoryId(''),
-                            permissions: permissions.tryGetSingletonOwnerPermission(organization),
-                            modifiedAt: dateTime.toRfc3339(new Date()),
-                            projectState: { type: backendModule.ProjectState.new },
-                        }))
-                    const projectTypeOrder =
-                        backendModule.ASSET_TYPE_ORDER[backendModule.AssetType.project]
-                    setItems(oldItems =>
-                        array.splicedBefore(
-                            oldItems,
-                            placeholderItems,
-                            item =>
-                                item.parentId === event.parentId &&
-                                backendModule.ASSET_TYPE_ORDER[item.type] >= projectTypeOrder
-                        )
+                        placeholderProjects,
+                        item =>
+                            item.parentId === event.parentId &&
+                            backendModule.ASSET_TYPE_ORDER[item.type] >= projectTypeOrder
                     )
-                    dispatchAssetEvent({
-                        type: assetEventModule.AssetEventType.uploadProjects,
-                        projects: new Map(
-                            placeholderItems.map((placeholderItem, i) => [
-                                placeholderItem.id,
-                                // This is SAFE, as `placeholderItems` is created using a map on
-                                // `event.files`.
-                                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                                event.files[i]!,
-                            ])
-                        ),
-                    })
-                }
+                )
+                dispatchAssetEvent({
+                    type: assetEventModule.AssetEventType.uploadFiles,
+                    files: new Map(
+                        placeholderFiles.map((placeholderItem, i) => [
+                            placeholderItem.id,
+                            // This is SAFE, as `placeholderItems` is created using a map on
+                            // `event.files`.
+                            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                            event.files[i]!,
+                        ])
+                    ),
+                })
                 break
             }
             case assetListEventModule.AssetListEventType.createSecret: {

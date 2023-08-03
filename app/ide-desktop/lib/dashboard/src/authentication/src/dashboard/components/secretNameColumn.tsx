@@ -49,7 +49,6 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
             case assetEventModule.AssetEventType.createProject:
             case assetEventModule.AssetEventType.createDirectory:
             case assetEventModule.AssetEventType.uploadFiles:
-            case assetEventModule.AssetEventType.uploadProjects:
             case assetEventModule.AssetEventType.openProject:
             case assetEventModule.AssetEventType.cancelOpeningAllProjects:
             case assetEventModule.AssetEventType.deleteMultiple:

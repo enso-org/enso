@@ -152,15 +152,19 @@ export class Server {
                 // When accessing the app from Electron, the file input event will have the
                 // full system path.
                 case '/api/upload-project': {
-                    void this.config.externalFunctions.uploadProjectBundle(request).then(() => {
-                        response.writeHead(HTTP_STATUS_OK)
-                        response.end()
+                    void this.config.externalFunctions.uploadProjectBundle(request).then(id => {
+                        response
+                            .writeHead(HTTP_STATUS_OK, [
+                                ['Content-Length', `${id.length}`],
+                                ['Content-Type', 'text/plain'],
+                                ...common.COOP_COEP_CORP_HEADERS,
+                            ])
+                            .end(id)
                     })
                     break
                 }
                 default: {
-                    response.writeHead(HTTP_STATUS_NOT_FOUND)
-                    response.end()
+                    response.writeHead(HTTP_STATUS_NOT_FOUND, common.COOP_COEP_CORP_HEADERS).end()
                     break
                 }
             }
