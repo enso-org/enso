@@ -126,15 +126,18 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
                     permission: action,
                 }))
                 const addedUsersPks = new Set(addedUsersPermissions.map(newUser => newUser.user.pk))
-                const oldUsersPermissions = permissions
+                const oldUsersPermissions = permissions.filter(userPermission =>
+                    addedUsersPks.has(userPermission.user.pk)
+                )
                 try {
-                    const newUsersPermissions = [
-                        ...permissions.filter(
-                            oldUserPermissions => !addedUsersPks.has(oldUserPermissions.user.pk)
-                        ),
-                        ...addedUsersPermissions,
-                    ].sort(backendModule.compareUserPermissions)
-                    setPermissions(newUsersPermissions)
+                    setPermissions(oldPermissions =>
+                        [
+                            ...oldPermissions.filter(
+                                oldUserPermissions => !addedUsersPks.has(oldUserPermissions.user.pk)
+                            ),
+                            ...addedUsersPermissions,
+                        ].sort(backendModule.compareUserPermissions)
+                    )
                     await backend.createPermission({
                         userSubjects: addedUsersPermissions.map(
                             userPermissions => userPermissions.user.pk
@@ -143,7 +146,14 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
                         action: action,
                     })
                 } catch (error) {
-                    setPermissions(oldUsersPermissions)
+                    setPermissions(oldPermissions =>
+                        [
+                            ...oldPermissions.filter(
+                                permission => !addedUsersPks.has(permission.user.pk)
+                            ),
+                            ...oldUsersPermissions,
+                        ].sort(backendModule.compareUserPermissions)
+                    )
                     const usernames = addedUsersPermissions.map(
                         userPermissions => userPermissions.user.user_name
                     )
@@ -153,19 +163,28 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
         }
 
         const doDelete = async (userToDelete: backendModule.User) => {
-            const oldUsersPermissions = permissions
+            const oldPermission = permissions.find(
+                userPermission => userPermission.user.pk === userToDelete.pk
+            )
             try {
-                const newUsersPermissions = permissions.filter(
-                    oldUserPermissions => oldUserPermissions.user.pk !== userToDelete.pk
+                setPermissions(oldPermissions =>
+                    oldPermissions.filter(
+                        oldUserPermissions => oldUserPermissions.user.pk !== userToDelete.pk
+                    )
                 )
-                setPermissions(newUsersPermissions)
                 await backend.createPermission({
                     userSubjects: [userToDelete.pk],
                     resourceId: item.id,
                     action: null,
                 })
             } catch (error) {
-                setPermissions(oldUsersPermissions)
+                if (oldPermission != null) {
+                    setPermissions(oldPermissions =>
+                        [...oldPermissions, oldPermission].sort(
+                            backendModule.compareUserPermissions
+                        )
+                    )
+                }
                 toastAndLog(`Unable to set permissions of '${userToDelete.user_email}'`, error)
             }
         }
@@ -264,8 +283,8 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
                                         asset={item}
                                         userPermission={userPermissions}
                                         setUserPermission={newUserPermission => {
-                                            setPermissions(
-                                                permissions
+                                            setPermissions(oldPermissions =>
+                                                oldPermissions
                                                     .map(oldUserPermission =>
                                                         oldUserPermission.user.pk ===
                                                         newUserPermission.user.pk

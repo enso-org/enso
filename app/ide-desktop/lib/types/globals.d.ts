@@ -55,6 +55,13 @@ declare global {
         authenticationApi: AuthenticationApi
     }
 
+    // Documentation is already inherited.
+    /** */
+    interface Object {
+        /** Log self and return self. Only available in development mode. */
+        $d$: <T>(this: T, message?: string) => T
+    }
+
     namespace NodeJS {
         /** Environment variables. */
         interface ProcessEnv {
@@ -75,6 +82,7 @@ declare global {
     // eslint-disable-next-line no-restricted-syntax
     const REDIRECT_OVERRIDE: string | undefined
     /* eslint-disable @typescript-eslint/naming-convention */
+    /** Only exists in development mode. */
     // This is a function.
     // eslint-disable-next-line no-restricted-syntax
     const assert: (invariant: boolean, message: string) => void

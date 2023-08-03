@@ -11,3 +11,29 @@ export function assert(invariant: boolean, message: string, logger: Logger = con
         logger.error('assertion failed: ' + message)
     }
 }
+
+// This is required to make the definition `Object.prototype.d` not error.
+// eslint-disable-next-line no-restricted-syntax
+declare global {
+    // Documentation is already inherited.
+    /** */
+    interface Object {
+        /** Log self and return self. */
+        $d$: <T>(this: T, message?: string) => T
+    }
+}
+
+Object.defineProperty(Object.prototype, '$d$', {
+    /** Log self and return self. */
+    value: function <T>(this: T, message?: string) {
+        if (message != null) {
+            console.log(message, this)
+        } else {
+            console.log(this)
+        }
+        return this
+    },
+    enumerable: false,
+    writable: false,
+    configurable: false,
+})
