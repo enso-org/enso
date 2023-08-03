@@ -4,7 +4,6 @@ import java.util.*;
 import java.util.function.IntFunction;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.aggregations.Aggregator;
 import org.enso.table.data.column.builder.Builder;
@@ -12,10 +11,8 @@ import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
 import org.enso.table.data.table.problems.FloatingPointGrouping;
-import org.enso.table.error.TooManyColumnsException;
 import org.enso.table.problems.AggregatedProblems;
 import org.enso.table.util.ConstantList;
-import org.enso.table.util.NameDeduplicator;
 import org.graalvm.polyglot.Context;
 
 public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
@@ -51,19 +48,25 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
   }
 
   public static MultiValueIndex<UnorderedMultiValueKey> makeUnorderedIndexWithMask(
-          Column[] keyColumns, int tableSize, List<Integer> indexMask, List<TextFoldingStrategy> textFoldingStrategies) {
+      Column[] keyColumns,
+      int tableSize,
+      List<Integer> indexMask,
+      List<TextFoldingStrategy> textFoldingStrategies) {
     HashMap<UnorderedMultiValueKey, List<Integer>> locs = new HashMap<>();
     final Storage<?>[] storage =
-            Arrays.stream(keyColumns).map(Column::getStorage).toArray(Storage[]::new);
+        Arrays.stream(keyColumns).map(Column::getStorage).toArray(Storage[]::new);
     IntFunction<UnorderedMultiValueKey> keyFactory =
-            i -> new UnorderedMultiValueKey(storage, i, textFoldingStrategies);
+        i -> new UnorderedMultiValueKey(storage, i, textFoldingStrategies);
     return new MultiValueIndex<>(keyColumns, tableSize, indexMask, locs, keyFactory);
   }
 
   public static MultiValueIndex<UnorderedMultiValueKey> makeUnorderedIndexWithMask(
-          Column[] keyColumns, int tableSize, List<Integer> indexMask, TextFoldingStrategy commonTextFoldingStrategy) {
+      Column[] keyColumns,
+      int tableSize,
+      List<Integer> indexMask,
+      TextFoldingStrategy commonTextFoldingStrategy) {
     List<TextFoldingStrategy> strategies =
-            ConstantList.make(commonTextFoldingStrategy, keyColumns.length);
+        ConstantList.make(commonTextFoldingStrategy, keyColumns.length);
     return makeUnorderedIndexWithMask(keyColumns, tableSize, indexMask, strategies);
   }
 
