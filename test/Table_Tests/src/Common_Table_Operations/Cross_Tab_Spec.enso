@@ -227,23 +227,23 @@ spec setup =
         Test.specify "should fail gracefully if an effective column name would contain invalid characters" <|
             table = table_builder [["Key", ['x', 'x', 'y\0', '\0', 'y\0', 'z', 'z', 'z', 'z']], ["Value", [1, 2, 3, 4, 5, 6, 7, 8, 9]]]
             r1 = table.cross_tab [] "Key"
-            r1.should_fail_with Invalid_Output_Column_Names
+            r1.should_fail_with Invalid_Column_Names
             r1.catch.to_display_text . should_contain "cannot contain the NUL character"
 
             r2 = table2.cross_tab [] "Key" values=[Average "Value" new_name='x\0']
             r2.print
-            r2.should_fail_with Invalid_Output_Column_Names
+            r2.should_fail_with Invalid_Column_Names
             r2.catch.to_display_text . should_contain "cannot contain the NUL character"
 
         Test.specify "should fail gracefully if an effective column name would be empty or null" <|
             table = table_builder [["Key", [" ", "x", "x", "x", "", "", "", "y", "y"]], ["Value", [1, 2, 3, 4, 5, 6, 7, 8, 9]]]
             r1 = table.cross_tab [] "Key"
-            r1.should_fail_with Invalid_Output_Column_Names
+            r1.should_fail_with Invalid_Column_Names
             r1.catch.to_display_text . should_contain "cannot be empty"
 
             table2 = table_builder [["Key", [" ", "x", "x", "x", Nothing, Nothing, Nothing, "y", "y"]], ["Value", [1, 2, 3, 4, 5, 6, 7, 8, 9]]]
             r2 = table2.cross_tab [] "Key"
-            r2 . should_fail_with Invalid_Output_Column_Names
+            r2 . should_fail_with Invalid_Column_Names
             r2.catch.to_display_text . should_contain "cannot be Nothing"
 
         Test.specify "should fail gracefully if producing too many columns in a table" <|

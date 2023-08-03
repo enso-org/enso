@@ -51,7 +51,7 @@ type Too_Many_Column_Names_Provided
         "Too many column names provided. " + (self.column_names.at 0).to_text + " are unused."
 
 ## One or more column names were invalid during a rename operation.
-type Invalid_Output_Column_Names
+type Invalid_Column_Names
     Error (column_names : Vector Text) (extra_message : Text | Nothing = Nothing)
 
     ## PRIVATE
@@ -71,7 +71,7 @@ type Invalid_Output_Column_Names
     handle_java_exception ~action =
         Panic.catch InvalidColumnNameException action caught_panic->
             exception = caught_panic.payload
-            error = Invalid_Output_Column_Names.Error [exception.name] exception.extraMessage
+            error = Invalid_Column_Names.Error [exception.name] exception.extraMessage
             Error.throw error
 
 ## One or more column names clashed during a rename operation.

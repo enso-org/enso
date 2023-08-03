@@ -121,12 +121,12 @@ spec make_new_connection prefix persistent_connector=True =
             run_with_and_without_output <|
                 table_name = Name_Generator.random_name "creating-invalid-table"
                 r1 = connection.create_table table_name structure=[Column_Description.Value "" Value_Type.Integer] temporary=True
-                r1.should_fail_with Invalid_Output_Column_Names
+                r1.should_fail_with Invalid_Column_Names
                 # Ensure that the table was not created.
                 connection.tables . at "Name" . to_vector . should_not_contain table_name
 
                 r2 = connection.create_table table_name structure=[Column_Description.Value 'a\0b' Value_Type.Integer] temporary=True
-                r2.should_fail_with Invalid_Output_Column_Names
+                r2.should_fail_with Invalid_Column_Names
                 connection.tables . at "Name" . to_vector . should_not_contain table_name
 
         Test.specify "should not allow to create a table with duplicated column names, if the difference is just in Unicode normalization form" <|
