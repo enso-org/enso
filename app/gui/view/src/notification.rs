@@ -1,4 +1,6 @@
-//! A pop-up that signals about enabling/disabling Debug Mode of Graph Editor.
+//! A pop-up notification that can be controlled by FRP.
+//!
+//! Non-FRP, foundational API is available in the [api](crate::notification::api) module.
 
 use crate::prelude::*;
 
@@ -6,7 +8,7 @@ use crate::notification::logged::Notification;
 use crate::notification::logged::UpdateOptions;
 
 use ensogl::application::Application;
-use frp::stream::EventOutput;
+
 
 
 // ==============

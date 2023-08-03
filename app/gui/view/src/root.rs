@@ -142,7 +142,6 @@ impl View {
         self.model.get_or_init_project_view()
     }
 
-
     /// Welcome View.
     pub fn welcome_screen(&self) -> &crate::welcome_screen::View {
         &self.model.welcome_view

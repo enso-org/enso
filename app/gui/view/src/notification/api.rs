@@ -455,7 +455,11 @@ impl Notification {
         Self { id, options, last_shown }
     }
 
-    fn update_inner(&self, options: UpdateOptions) -> Result<(), JsValue> {
+    /// Update the notification state.
+    ///
+    /// If the visualization is being shown, it will be updated. If not, changes will appear the
+    /// next time the notification is [`shown`](Notification::show).
+    pub fn set_options(&self, options: UpdateOptions) -> Result<(), JsValue> {
         self.options.replace(options);
         let ret = self.id.borrow().update(&self.options.borrow());
         if ret.is_ok() {
@@ -469,46 +473,39 @@ impl Notification {
         ret
     }
 
-    /// Update the notification state.
+    /// Convenience wrapper for [`Notification::set_options`].
     ///
-    /// If the visualization is being shown, it will be updated. If not, changes will appear the
-    /// next time the notification is [
+    /// Allows to modify the options in place.
     pub fn update(&self, f: impl FnOnce(&mut UpdateOptions)) -> Result<(), JsValue> {
         let mut options = self.options.take();
         f(&mut options);
-        self.update_inner(options)
+        self.set_options(options)
     }
 
     /// Display the notification.
     ///
     /// If it is already being shown, nothing will happen.
     pub fn show(&self) -> Result<(), JsValue> {
-        warn!("Notification::show {self:?}");
-        if self.id.borrow().is_active()? {
-            warn!("Notification::show: is_active");
-        } else {
-            let options: RefMut<'_, UpdateOptions> = self.options.borrow_mut();
+        if !self.id.borrow().is_active()? {
+            let options = self.options.borrow_mut();
             let content = options.render.as_ref();
             let options_js = (&*options).try_into()?;
-            js_sys::Reflect::set(&options_js, &JsValue::from_str("toastId"), &self.id.borrow())?; // FIXME?
+            let toast_id_field = JsValue::from_str(js::TOAST_ID_FIELD_IN_OPTIONS);
+            let toast_type = options.r#type.unwrap_or(Type::Info);
+            js_sys::Reflect::set(&options_js, &toast_id_field, &self.id.borrow())?;
+            let toast = |content| js::toast(content, toast_type, &options_js);
             if let Some(content) = content {
-                warn!("Notification::show: content");
-                js::toast(content, options.r#type.unwrap_or(Type::Info), &options_js)?;
+                toast(content)?;
             } else {
-                warn!("Notification::show: message");
-                let message = "";
-                js::toast(&message.into(), options.r#type.unwrap_or(Type::Info), &options_js)?;
+                const EMPTY_MESSAGE: &str = "";
+                toast(&EMPTY_MESSAGE.into())?;
             }
-
-            // We should expect that ID is as-before.
         }
-        // self.id.show()
         Ok(())
     }
 
     /// Dismiss the notification.
     pub fn dismiss(&self) -> Result<(), JsValue> {
-        warn!("Notification::hide {self:?}");
         let ret = self.id.borrow().dismiss();
         if ret.is_ok() {
             // We generate a new ID. This is because we don't want to reuse the same ID.
@@ -520,6 +517,8 @@ impl Notification {
         ret
     }
 }
+
+
 
 // =============
 // === Tests ===
@@ -534,21 +533,21 @@ mod tests {
     wasm_bindgen_test_configure!(run_in_browser);
 
     #[test]
-    fn test_auto_close_delay() {
+    fn auto_close_delay() {
         let auto_close = AutoClose::After(5000);
         let serialized = serde_json::to_string(&auto_close).unwrap();
         assert_eq!(serialized, "5000");
     }
 
     #[test]
-    fn test_auto_close_never() {
+    fn auto_close_never() {
         let auto_close = AutoClose::Never();
         let serialized = serde_json::to_string(&auto_close).unwrap();
         assert_eq!(serialized, "false");
     }
 
     #[wasm_bindgen_test]
-    fn test_options_marshalling() {
+    fn options_marshalling() {
         let options = Options { theme: Some(Theme::Dark), ..default() };
         let js_value = JsValue::try_from(&options).unwrap();
         // Make sure that `js_value` is a valid JS object.
@@ -565,7 +564,7 @@ mod tests {
     }
 
     #[wasm_bindgen_test]
-    fn test_contents_marshalling() {
+    fn contents_marshalling() {
         let text_contents = Content::Text("Hello, world!".into());
         let js_value = JsValue::from_serde(&text_contents).unwrap();
         // Make sure that `js_value` is a valid JS String.

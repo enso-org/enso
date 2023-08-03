@@ -1,10 +1,10 @@
-//! The API is often inconvenient as it returns [`Result`]s with [`JsValue`] errors. This is
-//! inconvenient for our typical use-cases. We often use notifications to display errors and
-//! we don't have a way to handle errors from the notifications themselves.
-//!
-//! This module provides a notification API wrapper that:
+//! This module provides a [notification API](crate::notification::api) wrapper that:
 //! * Logs most of the actions.
 //! * Handles errors by logging and dropping them.
+//!
+//! The API returns [`Result`]s with [`JsValue`] as an error type which is often inconvenient for
+//! our use-cases. We often use notifications to display errors and we don't have a way to handle
+//! errors from the notifications themselves.
 //!
 //! In general, where the original API returns [`Result`]s, this wrapper returns [`Option`]s.
 
@@ -14,6 +14,7 @@ use crate::notification;
 use crate::notification::js::HandleJsError;
 
 use uuid::Uuid;
+
 
 
 // ==============

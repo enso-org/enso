@@ -19,8 +19,12 @@ use uuid::Uuid;
 
 /// Toastify's [`toast API`](https://fkhadra.github.io/react-toastify/api/toast) field name within
 /// our application JS object.
-const TOAST_FIELD_NAME: &str = "toast";
+pub const TOAST_FIELD_NAME: &str = "toast";
 
+/// The name of the field with the toast ID in the options object.
+///
+/// See [the documentation](https://fkhadra.github.io/react-toastify/api/toast/#props) for details.
+pub const TOAST_ID_FIELD_IN_OPTIONS: &str = "toastId";
 
 
 // ========================
@@ -168,7 +172,9 @@ extern "C" {
 impl ToastAPI {
     /// Send the toast notification.
     pub fn send(&self, message: &Content, method: &str, options: &JsValue) -> Result<Id, JsValue> {
-        sendToast(self, &JsValue::from_serde(message).unwrap(), method, options) // FIXME
+        let message =
+            JsValue::from_serde(message).map_err(crate::notification::api::to_js_error)?;
+        sendToast(self, &message, method, options)
     }
 }
 

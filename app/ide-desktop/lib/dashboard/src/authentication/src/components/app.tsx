@@ -136,6 +136,8 @@ export default function App(props: AppProps) {
                 position="top-center"
                 theme="light"
                 closeOnClick={false}
+                draggable={false}
+                toastClassName="text-sm leading-170 bg-frame-selected rounded-2xl backdrop-blur-3xl"
                 transition={toastify.Zoom}
             />
             <Router basename={getMainPageUrl().pathname}>
