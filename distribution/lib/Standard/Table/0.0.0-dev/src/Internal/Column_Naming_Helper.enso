@@ -64,7 +64,7 @@ type Column_Naming_Helper
             # Nothing to check for case-sensitive backends.
             True -> continuation
             False ->
-                case_insensitive_match = existing_names.find name-> name.equals_ignore_case new_name
+                case_insensitive_match = existing_names.find if_missing=Nothing name-> name.equals_ignore_case new_name
                 case case_insensitive_match of
                     # No matches at all, so we can continue.
                     Nothing -> continuation
