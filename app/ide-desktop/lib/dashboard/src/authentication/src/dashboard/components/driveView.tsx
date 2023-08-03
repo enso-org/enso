@@ -31,6 +31,7 @@ const DIRECTORY_STACK_KEY = `${common.PRODUCT_NAME.toLowerCase()}-dashboard-dire
 /** Props for a {@link DirectoryView}. */
 export interface DirectoryViewProps {
     page: pageSwitcher.Page
+    hidden: boolean
     initialProjectName: string | null
     nameOfProjectToImmediatelyOpen: string | null
     setNameOfProjectToImmediatelyOpen: (nameOfProjectToImmediatelyOpen: string | null) => void
@@ -53,6 +54,7 @@ export interface DirectoryViewProps {
 export default function DirectoryView(props: DirectoryViewProps) {
     const {
         page,
+        hidden,
         initialProjectName,
         nameOfProjectToImmediatelyOpen,
         setNameOfProjectToImmediatelyOpen,
@@ -251,7 +253,11 @@ export default function DirectoryView(props: DirectoryViewProps) {
     }, [page])
 
     return (
-        <div className="flex flex-col flex-1 overflow-hidden gap-2.5 px-3.25">
+        <div
+            className={`flex flex-col flex-1 overflow-hidden gap-2.5 px-3.25 ${
+                hidden ? 'hidden' : ''
+            }`}
+        >
             <div className="flex flex-col self-start gap-3">
                 <h1 className="text-xl font-bold h-9.5 pl-1.5">
                     {backend.type === backendModule.BackendType.remote

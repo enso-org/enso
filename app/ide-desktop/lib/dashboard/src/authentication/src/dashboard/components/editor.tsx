@@ -11,6 +11,8 @@ import GLOBAL_CONFIG from '../../../../../../../../gui/config.yaml' assert { typ
 // === Constants ===
 // =================
 
+/** The horizontal offset of the editor's top bar from the left edge of the window. */
+const TOP_BAR_X_OFFSET = 96
 /** The `id` attribute of the element into which the IDE will be rendered. */
 const IDE_ELEMENT_ID = 'root'
 const IDE_CDN_URL = 'https://cdn.enso.org/ide'
@@ -124,6 +126,9 @@ export default function Editor(props: EditorProps) {
                                 },
                                 startup: {
                                     project: project.packageName,
+                                },
+                                window: {
+                                    topBarOffset: `${TOP_BAR_X_OFFSET}`,
                                 },
                             },
                             // Here we actually need explicit undefined.

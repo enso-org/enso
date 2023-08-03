@@ -8,6 +8,12 @@ body {
   background-blend-mode: lighten;
 }
 
+.enso-dashboard {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
+
 /* These styles MUST still be copied
  * as `.enso-dashboard body` and `.enso-dashboard html` make no sense. */
 .enso-dashboard,
@@ -61,6 +67,11 @@ body {
   @tailwind utilities;
 
   @layer components {
+    .cursor-none-recursive,
+    .cursor-none-recursive * {
+      cursor: none;
+    }
+
     .clip-path-top {
       clip-path: polygon(0 0, 100% 0, 100% calc(50% - 1px), 0 calc(50% - 1px));
     }

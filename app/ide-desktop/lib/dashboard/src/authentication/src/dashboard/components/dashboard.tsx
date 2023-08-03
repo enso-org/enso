@@ -94,16 +94,6 @@ export default function Dashboard(props: DashboardProps) {
     }, [])
 
     React.useEffect(() => {
-        const goToDrive = () => {
-            setPage(pageSwitcher.Page.drive)
-        }
-        document.addEventListener('show-dashboard', goToDrive)
-        return () => {
-            document.removeEventListener('show-dashboard', goToDrive)
-        }
-    }, [])
-
-    React.useEffect(() => {
         // The types come from a third-party API and cannot be changed.
         // eslint-disable-next-line no-restricted-syntax
         let handle: number | undefined
@@ -214,10 +204,11 @@ export default function Dashboard(props: DashboardProps) {
         }
     }, [/* should never change */ unsetModal])
 
+    const driveHiddenClass = page === pageSwitcher.Page.drive ? '' : 'hidden'
     return (
         <div
             className={`flex flex-col gap-2 relative select-none text-primary text-xs h-screen pb-2 ${
-                page === pageSwitcher.Page.drive ? '' : 'hidden'
+                page === pageSwitcher.Page.editor ? 'cursor-none-recursive' : ''
             }`}
             onContextMenu={event => {
                 event.preventDefault()
@@ -239,7 +230,7 @@ export default function Dashboard(props: DashboardProps) {
                 setQuery={setQuery}
             />
             {isListingRemoteDirectoryWhileOffline ? (
-                <div className="grow grid place-items-center mx-2">
+                <div className={`grow grid place-items-center mx-2 ${driveHiddenClass}`}>
                     <div className="flex flex-col gap-4">
                         <div className="text-base text-center">You are not signed in.</div>
                         <button
@@ -253,14 +244,14 @@ export default function Dashboard(props: DashboardProps) {
                     </div>
                 </div>
             ) : isListingLocalDirectoryAndWillFail ? (
-                <div className="grow grid place-items-center mx-2">
+                <div className={`grow grid place-items-center mx-2 ${driveHiddenClass}`}>
                     <div className="text-base text-center">
                         Could not connect to the Project Manager. Please try restarting{' '}
                         {common.PRODUCT_NAME}, or manually launching the Project Manager.
                     </div>
                 </div>
             ) : isListingRemoteDirectoryAndWillFail ? (
-                <div className="grow grid place-items-center mx-2">
+                <div className={`grow grid place-items-center mx-2 ${driveHiddenClass}`}>
                     <div className="text-base text-center">
                         We will review your user details and enable the cloud experience for you
                         shortly.
@@ -268,8 +259,12 @@ export default function Dashboard(props: DashboardProps) {
                 </div>
             ) : (
                 <>
-                    <Templates onTemplateClick={doCreateProject} />
+                    <Templates
+                        hidden={page !== pageSwitcher.Page.drive}
+                        onTemplateClick={doCreateProject}
+                    />
                     <DriveView
+                        hidden={page !== pageSwitcher.Page.drive}
                         page={page}
                         initialProjectName={initialProjectName}
                         nameOfProjectToImmediatelyOpen={nameOfProjectToImmediatelyOpen}
@@ -290,12 +285,12 @@ export default function Dashboard(props: DashboardProps) {
                     />
                 </>
             )}
-            <TheModal />
             <Editor
                 visible={page === pageSwitcher.Page.editor}
                 project={project}
                 appRunner={appRunner}
             />
+            <TheModal />
             {/* `session.accessToken` MUST be present in order for the `Chat` component to work. */}
             {isHelpChatVisible && session.accessToken != null && (
                 <Chat
