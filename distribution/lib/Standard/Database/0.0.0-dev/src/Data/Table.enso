@@ -2202,8 +2202,9 @@ type Table
    - columns: List of columns to fetch. Each column is represented by a pair of
      column name and its expected SQL Type.
    - ctx: The context to use for the table.
-make_table : Connection -> Text -> Vector -> Context -> Table
-make_table connection table_name columns ctx =
+   - on_problems: The behavior to use when problems are encountered.
+make_table : Connection -> Text -> Vector -> Context -> Problem_Behavior -> Table
+make_table connection table_name columns ctx on_problems =
     if columns.is_empty then Error.throw (Illegal_State.Error "Unexpectedly attempting to create a Database Table with no columns. This is a bug in the Database library.") else
         problem_builder = Problem_Builder.new
         column_names_validator = connection.base_connection.column_naming_helper.create_unique_name_strategy
@@ -2217,7 +2218,7 @@ make_table connection table_name columns ctx =
             Internal_Column.Value enso_name (SQL_Type_Reference.from_constant sql_type) expression
         problem_builder.report_unique_name_strategy column_names_validator
         # We do not want to stop the table from being fetched, so we report the issues as warnings.
-        problem_builder.attach_problems_before Problem_Behavior.Report_Warning <|
+        problem_builder.attach_problems_before on_problems <|
             Table.Value table_name connection cols ctx
 
 ## PRIVATE

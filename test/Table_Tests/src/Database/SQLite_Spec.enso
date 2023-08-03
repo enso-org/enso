@@ -1,7 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Runtime.Ref.Ref
 import Standard.Base.Errors.File_Error.File_Error
-import Standard.Base.Errors.Illegal_State.Illegal_State
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import Standard.Table.Data.Type.Value_Type.Bits
 from Standard.Table import Table, Value_Type
@@ -114,9 +114,13 @@ sqlite_specific_spec prefix connection setup =
             m2.at "ś"   . to_vector . should_equal ["A"]
             m2.at "ś 1" . to_vector . should_equal [2]
 
-            t3 = connection.query 'SELECT 1 AS "A", 2 AS "A"'
-            # We specifically fail the query, because it is bound to give invalid results (the columns will not be distinguishable by the backend, so after any of Enso transformations, both columns will have value 1).
-            t3.should_fail_with Illegal_State
+            r3 = connection.query 'SELECT 1 AS "A", 2 AS "A"'
+            r3.should_fail_with Illegal_Argument
+            r3.catch.cause . should_be_a Duplicate_Output_Column_Names
+
+            r4 = connection.query 'SELECT 1 AS ""'
+            r4.should_fail_with Illegal_Argument
+            r4.catch.cause . should_be_a Invalid_Column_Names
 
     tinfo = Name_Generator.random_name "Tinfo"
     connection.execute_update 'CREATE TABLE "'+tinfo+'" ("strs" VARCHAR, "ints" INTEGER, "bools" BOOLEAN, "reals" REAL)'

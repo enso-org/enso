@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Ref.Ref
 
@@ -232,8 +233,12 @@ postgres_specific_spec connection db_name setup =
             m2.at "ś"   . to_vector . should_equal ["A"]
             m2.at "ś 1" . to_vector . should_equal [2]
 
-            t3 = connection.query 'SELECT 1 AS "A", 2 AS "A"'
-            t3.should_fail_with Illegal_State
+            r3 = connection.query 'SELECT 1 AS "A", 2 AS "A"'
+            r3.should_fail_with Illegal_Argument
+            r3.catch.cause . should_be_a Duplicate_Output_Column_Names
+
+            r4 = connection.query 'SELECT 1 AS ""'
+            r4.should_fail_with SQL_Error
 
     table_builder = setup.table_builder
     materialize = setup.materialize
