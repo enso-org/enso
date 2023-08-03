@@ -780,7 +780,7 @@ type Table
            Nothing -> resolved
            _ : Text -> resolved.rename new_name
 
-        renamed.if_not_error <|
+        renamed.if_not_error <| self.column_naming_helper.check_ambiguity self.column_names new_name <|
             index = self.internal_columns.index_of (c -> c.name == renamed.name)
             check_add = case set_mode of
                 Set_Mode.Add_Or_Update -> True

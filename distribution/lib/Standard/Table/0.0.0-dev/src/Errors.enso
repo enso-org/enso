@@ -651,7 +651,8 @@ type Truncated_Column_Names
 
 type Clashing_Column_Name
     ## PRIVATE
-       Indicates that a provided column name is clashing with another column name.
+       Indicates that a provided column name is clashing with another column
+       name in the `Table.set` operation.
     Error (provided_name : Text) (clashing_name : Text)
 
     ## PRIVATE
