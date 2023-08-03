@@ -18,7 +18,7 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 @ImportStatic(BigIntegerOps.class)
 @BuiltinMethod(type = "Big_Integer", name = "bit_shift", description = "Bitwise shift.")
 public abstract class BitShiftNode extends Node {
-  private @Child ToEnsoNumberNode toEnsoNumberNode = ToEnsoNumberNode.build();
+  private @Child ToEnsoNumberNode toEnsoNumberNode = ToEnsoNumberNode.create();
   private final CountingConditionProfile fitsInIntProfileLeftShift =
       CountingConditionProfile.create();
   private final CountingConditionProfile fitsInIntProfileRightShift =
