@@ -286,7 +286,7 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
                                     setValues={setUsers}
                                     items={allUsers}
                                     itemToKey={user => user.id}
-                                    itemToString={user => user.email}
+                                    itemToString={user => `${user.name} (${user.email})`}
                                     matches={(user, text) =>
                                         user.email.toLowerCase().includes(text.toLowerCase()) ||
                                         user.name.toLowerCase().includes(text.toLowerCase())
