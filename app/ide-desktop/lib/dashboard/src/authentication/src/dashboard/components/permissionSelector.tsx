@@ -30,6 +30,8 @@ const LABEL_STRAIGHT_WIDTH_PX = 97
 export interface PermissionSelectorProps {
     showDelete?: boolean
     disabled?: boolean
+    /** Overrides the vertical offset of the {@link PermissionTypeSelector}. */
+    typeSelectorYOffsetPx?: number
     error?: string | null
     selfPermission: backend.PermissionAction
     /** If this prop changes, the internal state will be updated too. */
@@ -45,6 +47,7 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
     const {
         showDelete = false,
         disabled = false,
+        typeSelectorYOffsetPx,
         error,
         selfPermission,
         action: actionRaw,
@@ -67,7 +70,7 @@ export default function PermissionSelector(props: PermissionSelectorProps) {
         const originalLeft = position.left + window.scrollX
         const originalTop = position.top + window.scrollY
         const left = originalLeft + TYPE_SELECTOR_X_OFFSET_PX
-        const top = originalTop + TYPE_SELECTOR_Y_OFFSET_PX
+        const top = originalTop + (typeSelectorYOffsetPx ?? TYPE_SELECTOR_Y_OFFSET_PX)
         // The border radius of the label. This is half of the label's height.
         const r = LABEL_BORDER_RADIUS_PX
         const clipPath =

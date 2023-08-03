@@ -13,6 +13,14 @@ import Modal from './modal'
 import PermissionSelector from './permissionSelector'
 import UserPermissions from './userPermissions'
 
+// =================
+// === Constants ===
+// =================
+
+/** The vertical offset of the {@link PermissionTypeSelector} from its parent element, for the
+ * input to invite new users. */
+const TYPE_SELECTOR_Y_OFFSET_PX = 32
+
 // ==============================
 // === ManagePermissionsModal ===
 // ==============================
@@ -43,6 +51,15 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
     const [action, setAction] = React.useState(backendModule.PermissionAction.view)
     const emailValidityRef = React.useRef<HTMLInputElement>(null)
     const position = React.useMemo(() => eventTarget.getBoundingClientRect(), [eventTarget])
+    const editablePermissions = React.useMemo(
+        () =>
+            self.permission === backendModule.PermissionAction.own
+                ? permissions
+                : permissions.filter(
+                      permission => permission.permission !== backendModule.PermissionAction.own
+                  ),
+        [permissions, self.permission]
+    )
     const usernamesOfUsersWithPermission = React.useMemo(
         () => new Set(item.permissions?.map(userPermission => userPermission.user.user_name)),
         [item.permissions]
@@ -242,6 +259,7 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
                                 <PermissionSelector
                                     disabled={willInviteNewUser}
                                     selfPermission={self.permission}
+                                    typeSelectorYOffsetPx={TYPE_SELECTOR_Y_OFFSET_PX}
                                     action={backendModule.PermissionAction.view}
                                     assetType={item.type}
                                     onChange={setAction}
@@ -295,7 +313,7 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
                             </button>
                         </form>
                         <div className="overflow-auto pl-1 pr-12 max-h-80">
-                            {permissions.map(userPermissions => (
+                            {editablePermissions.map(userPermissions => (
                                 <div
                                     key={userPermissions.user.pk}
                                     className="flex items-center h-8"
@@ -315,7 +333,11 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
                                                 )
                                             )
                                             if (newUserPermission.user.pk === self.user.pk) {
-                                                unsetModal()
+                                                // This must run only after the permissions have
+                                                // been updated through `setItem`.
+                                                setTimeout(() => {
+                                                    unsetModal()
+                                                }, 0)
                                             }
                                         }}
                                         doDelete={userToDelete => {
