@@ -5,6 +5,10 @@ import org.graalvm.collections.Equivalence;
 
 import java.util.Locale;
 
+/**
+ * An {@link Equivalence} for Text that ensures the same behaviour as Enso case-insensitive equality
+ * (`equals_ignore_case`) on the Text type.
+ */
 public class CaseInsensitiveUnicodeNormalizedTextEquivalence extends Equivalence {
   private final Locale locale;
 
