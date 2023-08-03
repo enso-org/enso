@@ -51,6 +51,26 @@ spec setup =
                         t6.at "Right X" . to_vector . should_equal [1, 1, 1, 1]
                         t6.at "Right x" . to_vector . should_equal [101, 101, 101, 101]
 
+        Test.specify "case insensitive name collisions - rename" <|
+            t1 = table_builder [["X", [1]], ["Y", [2]]]
+            t2 = t1.rename_columns [["X", "A"], ["Y", "a"]]
+            case is_case_sensitive of
+                True ->
+                    t2.column_names . should_equal ["A", "a"]
+                    Problems.assume_no_problems t2
+                False ->
+                    t2.column_names . should_equal ["A", "a 1"]
+                    Problems.expect_only_warning Duplicate_Output_Column_Names t2
+
+            t3 = t1.rename_columns [["Y", "x"]]
+            case is_case_sensitive of
+                True ->
+                    t3.column_names . should_equal ["X", "x"]
+                    Problems.assume_no_problems t3
+                False ->
+                    t3.column_names . should_equal ["X 1", "x"]
+                    Problems.expect_only_warning Duplicate_Output_Column_Names t3
+
         Test.specify "case insensitive name collisions - aggregate" <|
             t1 = table_builder [["X", [2, 1, 3, 2]]]
             t2 = t1.aggregate [Aggregate_Column.Maximum "X" "A", Aggregate_Column.Minimum "X" "a"]
