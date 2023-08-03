@@ -2,6 +2,7 @@
 
 import * as dateTime from './dateTime'
 import * as newtype from '../newtype'
+import * as permissions from './permissions'
 
 // =============
 // === Types ===
@@ -424,6 +425,39 @@ export const assetIsSecret = assetIsType(AssetType.secret)
 /** A type guard that returns whether an {@link Asset} is a {@link FileAsset}. */
 export const assetIsFile = assetIsType(AssetType.file)
 /* eslint-disable no-restricted-syntax */
+
+// ==============================
+// === compareUserPermissions ===
+// ==============================
+
+/** A value returned from a compare function passed to {@link Array.sort}, indicating that the
+ * first argument was less than the second argument. */
+const COMPARE_LESS_THAN = -1
+
+/** Return a positive number when `a > b`, a negative number when `a < b`, and `0`
+ * when `a === b`. */
+export function compareUserPermissions(a: UserPermission, b: UserPermission) {
+    const relativePermissionPrecedence =
+        permissions.PERMISSION_ACTION_PRECEDENCE[a.permission] -
+        permissions.PERMISSION_ACTION_PRECEDENCE[b.permission]
+    if (relativePermissionPrecedence !== 0) {
+        return relativePermissionPrecedence
+    } else {
+        const aName = a.user.user_name
+        const bName = b.user.user_name
+        const aEmail = a.user.user_email
+        const bEmail = b.user.user_email
+        return aName < bName
+            ? COMPARE_LESS_THAN
+            : aName > bName
+            ? 1
+            : aEmail < bEmail
+            ? COMPARE_LESS_THAN
+            : aEmail > bEmail
+            ? 1
+            : 0
+    }
+}
 
 // =================
 // === Endpoints ===

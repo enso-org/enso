@@ -41,6 +41,22 @@ export const PERMISSION_PRECEDENCE: Readonly<Record<Permission, number>> = {
     /* eslint-enable @typescript-eslint/no-magic-numbers */
 }
 
+/** Precedences for each permission action. A lower number means a higher priority. */
+export const PERMISSION_ACTION_PRECEDENCE: Readonly<Record<backend.PermissionAction, number>> = {
+    // These are not magic numbers - they are just a sequence of numbers.
+    /* eslint-disable @typescript-eslint/no-magic-numbers */
+    [backend.PermissionAction.own]: 0,
+    [backend.PermissionAction.admin]: 1,
+    [backend.PermissionAction.edit]: 2,
+    [backend.PermissionAction.read]: 3,
+    [backend.PermissionAction.readAndDocs]: 4,
+    [backend.PermissionAction.readAndExec]: 5,
+    [backend.PermissionAction.view]: 6,
+    [backend.PermissionAction.viewAndDocs]: 7,
+    [backend.PermissionAction.viewAndExec]: 8,
+    /* eslint-enable @typescript-eslint/no-magic-numbers */
+}
+
 /** CSS classes for the docs permission. */
 export const DOCS_CLASS_NAME = 'text-tag-text bg-permission-docs'
 /** CSS classes for the execute permission. */
