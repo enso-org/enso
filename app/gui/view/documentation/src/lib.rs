@@ -118,8 +118,10 @@ impl Model {
         dom.dom().set_style_or_warn("pointer-events", "auto");
 
         display_object.add_child(&background);
+        display_object.add_child(&style_container);
         display_object.add_child(&dom);
         display_object.add_child(&overlay);
+
         scene.dom.layers.node_searcher.manage(&style_container);
         scene.dom.layers.node_searcher.manage(&dom);
 
@@ -155,25 +157,28 @@ impl Model {
     }
 
     /// Set size of the documentation view.
-    fn size_changed(&self, size: Vector2, fraction: f32) {
-        let visible_part = Vector2(size.x * fraction, size.y);
-        self.outer_dom.set_xy(size / 2.0);
+    fn size_changed(&self, size: Vector2, width_fraction: f32, breadcrumbs_height: f32) {
+        let visible_part = Vector2(size.x * width_fraction, size.y);
+        let breadcrumbs_padding_y = 8.0;
+        let dom_size = Vector2(size.x, size.y - breadcrumbs_height - breadcrumbs_padding_y);
+        self.dom.set_dom_size(dom_size);
+        self.dom.set_xy(dom_size / 2.0);
         self.overlay.set_size(visible_part);
-        self.outer_dom.set_dom_size(Vector2(size.x, size.y));
-        self.inner_dom.set_dom_size(Vector2(size.x, size.y));
-        self.breadcrumbs.set_xy(Vector2(0.0, size.y + 36.0));
-        self.breadcrumbs.frp().set_size(Vector2(visible_part.x, 32.0));
+        let breadcrumbs_padding_x = 10.0;
+        self.breadcrumbs.set_xy(Vector2(breadcrumbs_padding_x, size.y));
+        self.breadcrumbs.frp().set_size(Vector2(size.x, breadcrumbs_height));
+        self.background.set_size(size);
     }
 
     /// Set the fraction of visible documentation panel. Used to animate showing/hiding the panel.
     fn width_animation_changed(&self, style: &Style, size: Vector2, fraction: f32) {
         let percentage = (1.0 - fraction) * 100.0;
-        let clip_path = format!("inset(0 {percentage}% 0 0 round {}px)", style.corner_radius);
-        self.inner_dom.set_style_or_warn("clip-path", &clip_path);
-        self.outer_dom.set_style_or_warn("clip-path", &clip_path);
+        let clip_path =
+            format!("inset(0 {percentage}% 0 0 round 0px 0px {}px 0px)", style.corner_radius);
+        self.dom.set_style_or_warn("clip-path", &clip_path);
+        self.style_container.set_style_or_warn("clip-path", &clip_path);
         let actual_size = Vector2(size.x * fraction, size.y);
-        self.overlay.set_size(actual_size);
-        self.breadcrumbs.frp().set_size(Vector2(actual_size.x, 32.0));
+        self.size_changed(actual_size, fraction, style.breadcrumbs_height);
     }
 
     /// Display the documentation and scroll to default position.
@@ -219,8 +224,8 @@ impl Model {
         self.overlay.set_corner_radius(style.corner_radius);
         self.dom.set_style_or_warn("border-radius", format!("{}px", style.corner_radius));
 
-        self.breadcrumbs.set_xy(Vector2(0.0, size.y));
-        self.breadcrumbs.frp().set_size(Vector2(size.x, style.breadcrumbs_height));
+        self.background.set_color(style.background);
+        self.background.set_corner_radius(style.corner_radius);
     }
 }
 
@@ -309,7 +314,9 @@ impl View {
             // === Size ===
 
             size <- style.map(|s| Vector2(s.width, s.height));
-            _eval <- size.map2(&width_anim.value, f!((&s, &f) model.size_changed(s, f)));
+            breadcrumbs_height <- style.map(|s| s.breadcrumbs_height);
+            _eval <- size.map3(&width_anim.value, &breadcrumbs_height,
+                f!((&s, &f, &bh) model.size_changed(s, f, bh)));
 
 
             // === Style ===
@@ -361,6 +368,11 @@ impl View {
 
 impl From<View> for visualization::Instance {
     fn from(t: View) -> Self {
-        Self::new(&t, &t.visualization_frp, &t.frp.network, Some(t.model.outer_dom.clone_ref()))
+        Self::new(
+            &t,
+            &t.visualization_frp,
+            &t.frp.network,
+            Some(t.model.style_container.clone_ref()),
+        )
     }
 }
