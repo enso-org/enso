@@ -140,6 +140,7 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
           "org.enso.interpreter.runtime.EnsoContext",
           "org.enso.interpreter.runtime.builtin.Builtins",
           "org.enso.interpreter.runtime.data.ArrayRope",
+          "org.enso.interpreter.runtime.data.text.Text",
           "org.enso.interpreter.runtime.error.PanicException",
           "org.enso.interpreter.runtime.error.Warning",
           "org.enso.interpreter.runtime.error.WithWarnings",
@@ -369,7 +370,8 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
       out.println("      var unimplErr = builtins.error().makeUnimplemented(\"Unsupported specialization: \" + unsupSpecEx.getMessage());");
       out.println("      throw new PanicException(unimplErr, locationNode);");
       out.println("    } else {");
-      out.println("      throw new PanicException(t, locationNode);");
+      out.println("      var messageText = Text.create(t.getMessage());");
+      out.println("      throw new PanicException(messageText, locationNode);");
       out.println("    }");
       out.println("  }");
 
