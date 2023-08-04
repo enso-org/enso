@@ -10,7 +10,7 @@ import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Table_Helpers
 import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 from project.Data.Aggregate_Column.Aggregate_Column import all
-from project.Errors import Duplicate_Output_Column_Names, Invalid_Aggregation, Invalid_Output_Column_Names, No_Output_Columns
+from project.Errors import Duplicate_Output_Column_Names, Invalid_Aggregation, Invalid_Column_Names, No_Output_Columns
 
 polyglot java import org.enso.table.aggregations.Aggregator
 polyglot java import org.enso.table.aggregations.Concatenate as ConcatenateAggregator

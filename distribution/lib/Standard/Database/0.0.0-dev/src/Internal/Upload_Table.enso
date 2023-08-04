@@ -6,6 +6,7 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Context
 
 import Standard.Table.Data.Table.Table as In_Memory_Table
+import Standard.Table.Internal.Problem_Builder.Problem_Builder
 from Standard.Table import Aggregate_Column, Join_Kind, Value_Type
 from Standard.Table.Errors import all
 
@@ -60,8 +61,7 @@ create_table_implementation connection table_name structure primary_key temporar
 internal_create_table_structure connection table_name structure primary_key temporary on_problems =
     aligned_structure = align_structure structure
     resolved_primary_key = resolve_primary_key aligned_structure primary_key
-    column_names = aligned_structure.map .name
-    connection.base_connection.column_naming_helper.validate_many_column_names column_names <|
+    validate_structure connection.base_connection.column_naming_helper aligned_structure <|
         create_table_statement = prepare_create_table_statement connection table_name aligned_structure resolved_primary_key temporary on_problems
         check_transaction_ddl_support connection
         update_result = create_table_statement.if_not_error <|
@@ -232,6 +232,24 @@ align_structure table_or_columns = case table_or_columns of
 structure_from_existing_table table =
     table.columns.map column->
         Column_Description.Value column.name column.value_type
+
+## PRIVATE
+   Verifies that the provided structure is valid, and runs the provided action
+   or raises an error.
+
+   In particular it checks if there are no clashing column names.
+validate_structure column_naming_helper structure ~action =
+    column_names = structure.map .name
+    # We first check if the names are valid, to throw a more specific error.
+    column_naming_helper.validate_many_column_names column_names <|
+        problem_builder = Problem_Builder.new
+        ## Then we run the deduplication logic. We discard the results, because
+           if anything is wrong we will fail anyway.
+        unique = column_naming_helper.create_unique_name_strategy
+        column_names.each unique.make_unique
+        problem_builder.report_unique_name_strategy unique
+        problem_builder.attach_problems_before Problem_Behavior.Report_Error <|
+            action
 
 ## PRIVATE
    Returns the name of the first column in the provided table structure.

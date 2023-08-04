@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Errors.Common.Arithmetic_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-from project.Errors import Additional_Invalid_Rows, Additional_Warnings, Duplicate_Output_Column_Names, Floating_Point_Equality, Invalid_Aggregation, Invalid_Output_Column_Names, Invalid_Row, Unquoted_Characters_In_Output, Unquoted_Delimiter
+from project.Errors import Additional_Invalid_Rows, Additional_Warnings, Duplicate_Output_Column_Names, Floating_Point_Equality, Invalid_Aggregation, Invalid_Column_Names, Invalid_Row, Unquoted_Characters_In_Output, Unquoted_Delimiter
 
 polyglot java import org.enso.table.data.table.problems.ArithmeticError
 polyglot java import org.enso.table.data.table.problems.FloatingPointGrouping
@@ -36,7 +36,7 @@ translate_problem p = case p of
     _ : DuplicateNames ->
         Duplicate_Output_Column_Names.Error (Vector.from_polyglot_array p.duplicatedNames)
     _ : InvalidNames ->
-        Invalid_Output_Column_Names.Error (Vector.from_polyglot_array p.invalidNames)
+        Invalid_Column_Names.Error (Vector.from_polyglot_array p.invalidNames)
     _ : InvalidFormat ->
         Panic.throw (Illegal_Argument.Error "InvalidFormat should be translated using the Parse_Values_Helper.translate_parsing_problem instead. This is a bug in the Table library.")
     _ ->

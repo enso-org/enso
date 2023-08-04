@@ -3,6 +3,9 @@ package org.enso.base.text;
 import org.enso.base.Text_Utils;
 import org.graalvm.collections.Equivalence;
 
+/**
+ * An {@link Equivalence} for Text that ensures the same behaviour as Enso equality (`==`) on the Text type.
+ */
 public class UnicodeNormalizedTextEquivalence extends Equivalence {
   @Override
   public boolean equals(Object a, Object b) {
