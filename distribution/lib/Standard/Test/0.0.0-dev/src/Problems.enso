@@ -32,7 +32,7 @@ test_problem_handling action expected_problems result_checker =
         ## TODO [RW] we are not checking if there are no duplicate warnings, because the warnings are in fact duplicated - we should figure out how to handle that and then possibly modify the test
         Test.with_clue "The warnings were "+warnings.to_text+'.\n' <|
             warnings . should_contain_the_same_elements_as expected_problems frames_to_skip=3
-    test_advanced_problem_handling action error_checker warnings_checker result_checker
+    test_advanced_problem_handling action error_checker warnings_checker result_checker frames_to_skip=1
 
 ## UNSTABLE
    Tests how a specific operation behaves depending on the requested
@@ -51,11 +51,11 @@ test_problem_handling action expected_problems result_checker =
      the action is correct. It does not return anything, instead it should use
      the standard testing approach, like `x.should_equal y`.
 test_advanced_problem_handling : (Problem_Behavior -> Any) -> (Any -> Nothing) -> (Vector Any -> Nothing) -> (Any -> Nothing) -> Nothing
-test_advanced_problem_handling action error_checker warnings_checker result_checker =
+test_advanced_problem_handling action error_checker warnings_checker result_checker frames_to_skip=0 =
     # First, we check the action ignoring any warnings.
     result_ignoring = action Problem_Behavior.Ignore
     result_checker result_ignoring
-    Warning.get_all result_ignoring . should_equal [] frames_to_skip=1
+    get_attached_warnings result_ignoring . should_equal [] frames_to_skip=frames_to_skip+1
 
     # Then, we check the fail-on-first-error mode.
     error_result = action Problem_Behavior.Report_Error

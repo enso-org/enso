@@ -1,0 +1,102 @@
+from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
+import project.Internal.Naming_Properties.Unlimited_Naming_Properties
+import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
+from project.Errors import Invalid_Output_Column_Names
+from project.Internal.Table_Helpers import is_column
+
+polyglot java import org.enso.base.Text_Utils
+polyglot java import org.enso.table.data.table.Column as Java_Column
+
+## PRIVATE
+   An utility module for validating and generating column names.
+type Column_Naming_Helper
+    ## PRIVATE
+    Value naming_properties
+
+    ## PRIVATE
+    has_length_limit : Boolean
+    has_length_limit self = self.naming_properties.size_limit.is_nothing.not
+
+    ## PRIVATE
+       Creates a `Unique_Name_Strategy` that will generate names keeping the
+       column naming limitations in mind.
+    create_unique_name_strategy : Unique_Name_Strategy
+    create_unique_name_strategy self =
+        Unique_Name_Strategy.new self.naming_properties
+
+    ## PRIVATE
+       Checks if the name is valid and runs the action, otherwise raises an error.
+    ensure_name_is_valid self name ~action =
+        checked = Invalid_Output_Column_Names.handle_java_exception <|
+            Java_Column.ensureNameIsValid name
+        checked.if_not_error <| case self.naming_properties.size_limit of
+            Nothing -> action
+            max_size ->
+                name_size = self.naming_properties.encoded_size name
+                if name_size <= max_size then action else
+                    self.naming_properties.raise_name_too_long_error "column" name
+
+    ## PRIVATE
+       Checks if the names are valid and runs the action, otherwise raises an error.
+    validate_many_column_names self names ~action =
+        names.all (name-> self.ensure_name_is_valid name True) . if_not_error action
+
+    ## PRIVATE
+       Ensures that the name does not contain the null character.
+    sanitize_name : Text -> Text
+    sanitize_name self name =
+        # Using the regex matcher due to the #5831 bug.
+        cleaned = name.replace '\0'.to_regex '\\0'
+        case self.naming_properties.size_limit of
+            Nothing  -> cleaned
+            max_size -> self.naming_properties.truncate cleaned max_size
+
+    ## PRIVATE
+       Generates a column name for a binary operation.
+    binary_operation_name : Text -> Any -> Any -> Text
+    binary_operation_name self operation_name left right =
+        lhs = self.to_expression_text left
+        rhs = self.to_expression_text right
+        self.concat add_spaces=True [lhs, operation_name, rhs]
+
+    ## PRIVATE
+       Generates a column name for a function-like transformation.
+    function_name : Text -> Vector Any -> Text
+    function_name self function_name arguments =
+        arguments_as_expr = arguments.map self.to_expression_text
+        arguments_with_commas = [arguments_as_expr.first] + (arguments_as_expr.drop 1).flat_map arg-> [", ", arg]
+        self.concat add_spaces=False <|
+            [function_name, "("] + arguments_with_commas + [")"]
+
+    ## PRIVATE
+       Serializes a given object into an expression-like text approximation.
+
+       For columns, it will return its name wrapped in `[` and `]`, with the `]`
+       symbols in the name escaped as `]]`, according to the expression rules.
+       For other objects, it will return its pretty-printed representation.
+    to_expression_text self value =
+        if is_column value then "[" + value.name.replace "]" "]]" + "]" else
+            value.pretty
+
+    ## PRIVATE
+       Concatenates a vector of texts that are meant to make a single column
+       name, ensuring it will fit within the limit.
+
+       It may truncate the whole text or also truncate individual parts to try
+       to display every part.
+    concat : Vector Text -> Boolean -> Text
+    concat self texts add_spaces=True =
+        # TODO truncate parts smarter way
+        separator = if add_spaces then " " else ""
+        joined = texts.join separator
+        case self.naming_properties.size_limit of
+            Nothing  -> joined
+            max_size -> self.naming_properties.truncate joined max_size
+
+    ## PRIVATE
+       A `Column_Naming_Helper` for the in-memory backend - having no length limits.
+    in_memory : Column_Naming_Helper
+    in_memory =
+        Column_Naming_Helper.Value Unlimited_Naming_Properties.Instance
