@@ -58,7 +58,7 @@ public class MultiValueIndex<KeyType extends MultiValueKey> {
     IntFunction<CombinedKey<UnorderedMultiValueKey, UnorderedMultiValueKey>> keyFactory =
             i -> {
               var subKeyA = new UnorderedMultiValueKey(storagesA, i, textFoldingStrategies);
-              var subKeyB = new UnorderedMultiValueKey(storagesA, i, textFoldingStrategies);
+              var subKeyB = new UnorderedMultiValueKey(storagesB, i, textFoldingStrategies);
               return new CombinedKey<UnorderedMultiValueKey, UnorderedMultiValueKey>(subKeyA, subKeyB);
             };
     Column combinedColumns[] =

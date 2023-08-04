@@ -38,8 +38,8 @@ public class CrossTabIndex {
             xColumns, yColumns, tableSize, TextFoldingStrategy.unicodeNormalizedFold);
 
     // Fill numberings
-    ObjectNumberer<UnorderedMultiValueKey> xKeyNumberer = new ObjectNumberer<>();
-    ObjectNumberer<UnorderedMultiValueKey> yKeyNumberer = new ObjectNumberer<>();
+    xKeyNumberer = new ObjectNumberer<>();
+    yKeyNumberer = new ObjectNumberer<>();
     combinedIndex.keys().stream().map(ck -> ck.getKeyA()).forEach(k -> xKeyNumberer.add(k));
     combinedIndex.keys().stream().map(ck -> ck.getKeyB()).forEach(k -> yKeyNumberer.add(k));
 
