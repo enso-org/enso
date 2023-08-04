@@ -42,7 +42,9 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
         builder.appendNulls(1);
       } else if (o instanceof Boolean b) {
         builder.appendDouble(booleanAsDouble(b));
-      } else if (NumericConverter.isCoercibleToDouble(o)) {
+      } else if (NumericConverter.isCoercibleToLong(o)) {
+        builder.appendLong(NumericConverter.coerceToLong(o));
+      } else if (NumericConverter.isDecimalLike(o)) {
         double x = NumericConverter.coerceToDouble(o);
         builder.appendDouble(x);
       } else {
@@ -63,8 +65,8 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
       if (longStorage.isNa(i)) {
         builder.appendNulls(1);
       } else {
-        double value = longStorage.getItemDouble(i);
-        builder.appendDouble(value);
+        long value = longStorage.getItem(i);
+        builder.appendLong(value);
       }
     }
     return builder.seal();

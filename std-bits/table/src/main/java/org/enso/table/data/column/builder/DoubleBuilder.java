@@ -10,6 +10,8 @@ import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
+import org.enso.table.problems.AggregatedProblems;
+import org.enso.table.problems.Problem;
 import org.enso.table.util.BitSets;
 
 import java.util.BitSet;
@@ -53,9 +55,16 @@ public class DoubleBuilder extends NumericBuilder {
   public void appendNoGrow(Object o) {
     if (o == null) {
       isMissing.set(currentSize++);
-    } else {
+    } else if (NumericConverter.isDecimalLike(o)){
       double value = NumericConverter.coerceToDouble(o);
       data[currentSize++] = Double.doubleToRawLongBits(value);
+    } else if (NumericConverter.isCoercibleToLong(o)) {
+      long value = NumericConverter.coerceToLong(o);
+      double converted = convertIntegerToDouble(value);
+      data[currentSize++] = Double.doubleToRawLongBits(converted);
+    } else {
+      throw new IllegalStateException("Unexpected value type when appending to a DoubleBuilder: " + o.getClass().getCanonicalName() + "." +
+          " This is a bug in the Table library.");
     }
   }
 
@@ -84,7 +93,9 @@ public class DoubleBuilder extends NumericBuilder {
         int n = longStorage.size();
         BitSets.copy(longStorage.getIsMissing(), isMissing, currentSize, n);
         for (int i = 0; i < n; i++) {
-          data[currentSize++] = Double.doubleToRawLongBits((double) longStorage.getItem(i));
+          long item = longStorage.getItem(i);
+          double converted = convertIntegerToDouble(item);
+          data[currentSize++] = Double.doubleToRawLongBits(converted);
         }
       } else {
         throw new IllegalStateException(
@@ -126,8 +137,70 @@ public class DoubleBuilder extends NumericBuilder {
     appendRawNoGrow(Double.doubleToRawLongBits(data));
   }
 
+  /**
+   * Append a new integer value to this builder, converting it to a double value.
+   * <p>
+   * It ensures that any loss of precision is reported.
+   */
+  public void appendLong(long integer) {
+    if (currentSize >= this.data.length) {
+      grow();
+    }
+
+    double converted = convertIntegerToDouble(integer);
+    appendRawNoGrow(Double.doubleToRawLongBits(converted));
+  }
+
   @Override
   public Storage<Double> seal() {
     return new DoubleStorage(data, currentSize, isMissing);
+  }
+
+  private double convertIntegerToDouble(long integer) {
+    double floatingPointValue = (double) integer;
+    boolean isLosingPrecision = (long) floatingPointValue != integer;
+    if (isLosingPrecision) {
+      if (precisionLoss == null) {
+        precisionLoss = new LossOfIntegerPrecision(integer, floatingPointValue);
+      } else {
+        precisionLoss.affectedRows++;
+      }
+    }
+    return floatingPointValue;
+  }
+
+  private LossOfIntegerPrecision precisionLoss = null;
+
+  @Override
+  public AggregatedProblems getProblems() {
+    AggregatedProblems problems = new AggregatedProblems(1);
+    if (precisionLoss != null) {
+      problems.add(precisionLoss);
+    }
+    return problems;
+  }
+
+  public static class LossOfIntegerPrecision implements Problem {
+    private final long exampleValue;
+    private final double exampleValueConverted;
+    private long affectedRows;
+
+    public LossOfIntegerPrecision(long exampleValue, double exampleValueConverted) {
+      this.exampleValue = exampleValue;
+      this.exampleValueConverted = exampleValueConverted;
+      this.affectedRows = 1;
+    }
+
+    public long getExampleValue() {
+      return exampleValue;
+    }
+
+    public double getExampleValueConverted() {
+      return exampleValueConverted;
+    }
+
+    public long getAffectedRows() {
+      return affectedRows;
+    }
   }
 }

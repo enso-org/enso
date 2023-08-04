@@ -100,7 +100,7 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
       if (doubleStorage.isNa(i)) {
         builder.appendNulls(1);
       } else {
-        double value = doubleStorage.getItemDouble(i);
+        double value = doubleStorage.getItem(i);
         if (fitsInTargetRange(value)) {
           long converted = (long) value;
           builder.appendLong(converted);
