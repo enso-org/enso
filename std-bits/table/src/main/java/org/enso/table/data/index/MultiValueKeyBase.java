@@ -6,7 +6,7 @@ import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.Storage;
 
 /** The base class for keys used for sorting/grouping rows by a set of columns. */
-public abstract class MultiValueKeyBase {
+public abstract class MultiValueKeyBase implements MultiValueKey {
   protected final Storage<?>[] storages;
   protected final int rowIndex;
   protected boolean hasFloatValues = false;

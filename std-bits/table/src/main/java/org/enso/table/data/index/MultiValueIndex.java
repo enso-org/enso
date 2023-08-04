@@ -15,7 +15,7 @@ import org.enso.table.problems.AggregatedProblems;
 import org.enso.table.util.ConstantList;
 import org.graalvm.polyglot.Context;
 
-public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
+public class MultiValueIndex<KeyType extends MultiValueKey> {
   private final int keyColumnsLength;
   private final Map<KeyType, List<Integer>> locs;
   private final AggregatedProblems problems;
@@ -45,29 +45,6 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
     List<TextFoldingStrategy> strategies =
         ConstantList.make(commonTextFoldingStrategy, keyColumns.length);
     return makeUnorderedIndex(keyColumns, tableSize, strategies);
-  }
-
-  public static MultiValueIndex<UnorderedMultiValueKey> makeUnorderedIndexWithMask(
-      Column[] keyColumns,
-      int tableSize,
-      List<Integer> indexMask,
-      List<TextFoldingStrategy> textFoldingStrategies) {
-    HashMap<UnorderedMultiValueKey, List<Integer>> locs = new HashMap<>();
-    final Storage<?>[] storage =
-        Arrays.stream(keyColumns).map(Column::getStorage).toArray(Storage[]::new);
-    IntFunction<UnorderedMultiValueKey> keyFactory =
-        i -> new UnorderedMultiValueKey(storage, i, textFoldingStrategies);
-    return new MultiValueIndex<>(keyColumns, tableSize, indexMask, locs, keyFactory);
-  }
-
-  public static MultiValueIndex<UnorderedMultiValueKey> makeUnorderedIndexWithMask(
-      Column[] keyColumns,
-      int tableSize,
-      List<Integer> indexMask,
-      TextFoldingStrategy commonTextFoldingStrategy) {
-    List<TextFoldingStrategy> strategies =
-        ConstantList.make(commonTextFoldingStrategy, keyColumns.length);
-    return makeUnorderedIndexWithMask(keyColumns, tableSize, indexMask, strategies);
   }
 
   private MultiValueIndex(
