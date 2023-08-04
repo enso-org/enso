@@ -26,4 +26,11 @@ public interface NamingProperties {
    * <p>If there is no size limit, this function may panic.
    */
   String truncate(String name, long max_encoded_size);
+
+  /**
+   * Specifies if names are case-sensitive.
+   *
+   * <p>If not, names that are equal case insensitively, need to be deduplicated.
+   */
+  boolean is_case_sensitive();
 }

@@ -475,14 +475,6 @@ define_themes! { [light:0, dark:1]
                 }
             }
         }
-        status_bar {
-            offset_y = -30.0, -30.0;
-            text = text, text;
-            background {
-                color = graph_editor::node::background , graph_editor::node::background;
-                corner_radius = 14.0 , 14.0;
-            }
-        }
     }
     code {
         types {

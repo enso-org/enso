@@ -34,6 +34,13 @@ type Naming_Properties
         Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
+       Specifies if names are case sensitive.
+       If not, names that are equal case insensitively, need to be deduplicated.
+    is_case_sensitive : Boolean
+    is_case_sensitive =
+        Unimplemented.throw "This is an interface only."
+
+    ## PRIVATE
        Raises a `Name_Too_Long` error for the given name.
        The implementation may customize the extra message appended to the error
        explaining the limitations.
@@ -45,20 +52,23 @@ type Naming_Properties
 ## PRIVATE
    A default singleton implementation of a `Naming_Properties` which imposes no
    length limit.
+
+   Its case sensitivity may be customized. By default it is case sensitive, as
+   that is the behaviour for the in-memory backend.
 type Unlimited_Naming_Properties
-    Instance
+    Instance (is_case_sensitive : Boolean = True)
 
     ## PRIVATE
     encoded_size : Text -> Integer
     encoded_size self name =
         _ = name
-        Panic.throw (Illegal_State.Error "`In_Memory_Naming_Helper.encoded_size` but `size_limit` is `Nothing`. This is a bug in the Table library.")
+        Panic.throw (Illegal_State.Error "`Unlimited_Naming_Properties.encoded_size` but `size_limit` is `Nothing`. This is a bug in the Table library.")
 
     ## PRIVATE
     truncate : Text -> Integer -> Text
     truncate self name size =
         _ = [name, size]
-        Panic.throw (Illegal_State.Error "`In_Memory_Naming_Helper.truncate` but `size_limit` is `Nothing`. This is a bug in the Table library.")
+        Panic.throw (Illegal_State.Error "`Unlimited_Naming_Properties.truncate` but `size_limit` is `Nothing`. This is a bug in the Table library.")
 
     ## PRIVATE
     size_limit : Integer | Nothing
@@ -68,7 +78,7 @@ type Unlimited_Naming_Properties
     raise_name_too_long_error : Text -> Text -> Nothing ! Name_Too_Long
     raise_name_too_long_error self entity_kind name =
         _ = [entity_kind, name]
-        Panic.throw (Illegal_State.Error "`In_Memory_Naming_Helper.raise_name_too_long_error` but `size_limit` is `Nothing`. This is a bug in the Table library.")
+        Panic.throw (Illegal_State.Error "`Unlimited_Naming_Properties.raise_name_too_long_error` but `size_limit` is `Nothing`. This is a bug in the Table library.")
 
 ## PRIVATE
    A helper method that recovers panics thrown by `Naming_Properties`.
