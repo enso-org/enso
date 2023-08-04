@@ -197,11 +197,11 @@ public class EnsoContext {
 
   private static final Assumption checkNodes = Truffle.getRuntime().createAssumption("context check");
   private static final Set<Node> reportedNulllRootNodes = new HashSet<>();
-  private static int checkNodesCount = Integer.MAX_VALUE;
+  private static long checkUntil = Long.MAX_VALUE;
 
   @TruffleBoundary
   private static void reportSlowContextAccess(Node n) {
-    if (checkNodesCount-- <= 0) {
+    if (System.currentTimeMillis() > checkUntil) {
       checkNodes.invalidate();
     }
     if (reportedNulllRootNodes.add(n)) {
@@ -215,6 +215,7 @@ public class EnsoContext {
           .replace("{r}", "" + n.getRootNode())
       );
       ex.printStackTrace();
+      checkUntil = System.currentTimeMillis() + 10000;
     }
   }
 
