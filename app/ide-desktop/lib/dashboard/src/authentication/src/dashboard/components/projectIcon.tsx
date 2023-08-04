@@ -9,7 +9,6 @@ import StopIcon from 'enso-assets/stop.svg'
 import * as assetEventModule from '../events/assetEvent'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
-import * as errorModule from '../../error'
 import * as hooks from '../../hooks'
 import * as modalProvider from '../../providers/modal'
 
@@ -99,6 +98,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
     } = props
     const { backend } = backendProvider.useBackend()
     const { unsetModal } = modalProvider.useSetModal()
+    const toastAndLog = hooks.useToastAndLog()
     const state = item.projectState.type
     const setState = React.useCallback(
         (stateOrUpdater: React.SetStateAction<backendModule.ProjectState>) => {
@@ -147,14 +147,17 @@ export default function ProjectIcon(props: ProjectIconProps) {
             }
         } catch (error) {
             setCheckState(CheckState.notChecking)
-            toast.toast.error(
-                `Error opening project '${item.title}': ${
-                    errorModule.tryGetMessage(error) ?? 'unknown error'
-                }.`
-            )
+            toastAndLog(`Could not open project '${item.title}'`, error)
             setState(backendModule.ProjectState.closed)
         }
-    }, [state, backend, item.id, item.title, /* should never change */ setState])
+    }, [
+        state,
+        backend,
+        item.id,
+        item.title,
+        /* should never change */ toastAndLog,
+        /* should never change */ setState,
+    ])
 
     React.useEffect(() => {
         if (item.projectState.type === backendModule.ProjectState.openInProgress) {
