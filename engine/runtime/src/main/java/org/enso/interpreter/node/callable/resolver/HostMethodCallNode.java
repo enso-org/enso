@@ -1,11 +1,13 @@
 package org.enso.interpreter.node.callable.resolver;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.ImportStatic;
 import com.oracle.truffle.api.dsl.ReportPolymorphism;
 import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.exception.AbstractTruffleException;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
@@ -224,6 +226,17 @@ public abstract class HostMethodCallNode extends Node {
               .error()
               .makeUnsupportedArgumentsError(e.getSuppliedValues(), e.getMessage()),
           this);
+    } catch (AbstractTruffleException ex) {
+      CompilerDirectives.transferToInterpreter();
+      if (ex.getMessage().contains("Unsupported operation identifier")) {
+        throw new PanicException(
+            EnsoContext.get(this)
+                .getBuiltins()
+                .error()
+                .makeNoSuchMethod(self, UnresolvedSymbol.build("hi", null)),
+            this);
+      }
+      throw ex;
     }
   }
 
