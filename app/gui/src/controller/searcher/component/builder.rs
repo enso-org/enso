@@ -242,10 +242,9 @@ impl WhenDisplayed {
     }
 
     fn consider_tags(self, entry: &suggestion_database::Entry) -> Self {
-        let is_private = entry
-            .documentation
-            .iter()
-            .any(|doc| matches!(doc, DocSection::Tag { tag: Tag::Private, .. }));
+        let is_private_tag =
+            |doc: &DocSection| matches!(doc, DocSection::Tag { tag: Tag::Private, .. });
+        let is_private = entry.documentation.iter().any(is_private_tag);
         if is_private {
             Self::Never
         } else {
