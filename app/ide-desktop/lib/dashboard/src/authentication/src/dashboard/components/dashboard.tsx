@@ -158,7 +158,6 @@ export default function Dashboard(props: DashboardProps) {
                     case backendModule.BackendType.local:
                         setBackend(new localBackend.LocalBackend())
                         setDirectoryId(backendModule.DirectoryId(''))
-                        setProject(null)
                         break
                     case backendModule.BackendType.remote: {
                         const headers = new Headers()
@@ -170,7 +169,6 @@ export default function Dashboard(props: DashboardProps) {
                                 ? backendModule.rootDirectoryId(session.organization.id)
                                 : backendModule.DirectoryId('')
                         )
-                        setProject(null)
                         break
                     }
                 }
