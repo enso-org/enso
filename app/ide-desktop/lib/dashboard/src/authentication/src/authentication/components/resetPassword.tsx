@@ -11,6 +11,7 @@ import LockIcon from 'enso-assets/lock.svg'
 
 import * as app from '../../components/app'
 import * as auth from '../providers/auth'
+import * as string from '../../string'
 import * as validation from '../../dashboard/validation'
 
 import Input from './input'
@@ -150,6 +151,8 @@ export default function ResetPassword() {
                                     type="password"
                                     name="new_password_confirm"
                                     placeholder="Confirm New Password"
+                                    pattern={string.regexEscape(newPassword)}
+                                    error={validation.CONFIRM_PASSWORD_ERROR}
                                     value={newPasswordConfirm}
                                     setValue={setNewPasswordConfirm}
                                 />
