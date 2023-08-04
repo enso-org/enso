@@ -50,8 +50,8 @@ type Too_Many_Column_Names_Provided
     to_display_text self =
         "Too many column names provided. " + (self.column_names.at 0).to_text + " are unused."
 
-## One or more column names were invalid during a rename operation.
-type Invalid_Output_Column_Names
+## One or more column names were invalid.
+type Invalid_Column_Names
     Error (column_names : Vector Text) (extra_message : Text | Nothing = Nothing)
 
     ## PRIVATE
@@ -63,15 +63,15 @@ type Invalid_Output_Column_Names
             Nothing -> ""
             message -> " "+message
         case self.column_names.length == 1 of
-            True -> "The name " + (self.column_names.at 0).to_display_text.pretty + " is invalid."+suffix
-            False -> "The names "+self.column_names.short_display_text+" are invalid."+suffix
+            True -> "The name " + (self.column_names.at 0).to_display_text.pretty + " is invalid and may be replaced in the resulting table."+suffix
+            False -> "The names "+self.column_names.short_display_text+" are invalid and may be replaced in the resulting table."+suffix
 
     ## PRIVATE
        Handles the Java counterpart `InvalidColumnNameException` and converts it into a dataflow error.
     handle_java_exception ~action =
         Panic.catch InvalidColumnNameException action caught_panic->
             exception = caught_panic.payload
-            error = Invalid_Output_Column_Names.Error [exception.name] exception.extraMessage
+            error = Invalid_Column_Names.Error [exception.name] exception.extraMessage
             Error.throw error
 
 ## One or more column names clashed during a rename operation.
@@ -648,3 +648,15 @@ type Truncated_Column_Names
     to_display_text : Text
     to_display_text self =
         "The column names " + self.original_names.to_display_text + " were truncated to fit the maximum length supported by the backend (" + self.max_length.to_text + ")."
+
+type Clashing_Column_Name
+    ## PRIVATE
+       Indicates that a provided column name is clashing with another column
+       name in the `Table.set` operation.
+    Error (provided_name : Text) (clashing_name : Text)
+
+    ## PRIVATE
+       Pretty print the clashing column name error.
+    to_display_text : Text
+    to_display_text self =
+        "The column name [" + self.provided_name.to_display_text + "] is clashing with the column name [" + self.clashing_name.to_display_text + "] - they cannot be distinguished because the backend is not case sensitive, so only one of these can exist within a single table. If you wanted to replace the column, use the exact (case sensitive) name of the column to replace."

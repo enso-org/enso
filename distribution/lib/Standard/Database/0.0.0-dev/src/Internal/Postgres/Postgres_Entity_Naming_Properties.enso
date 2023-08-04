@@ -33,10 +33,13 @@ new jdbc_connection =
         if column_limit == 0 then
             Panic.throw (Illegal_State.Error "Unexpected: The database server does not report the maximum column name length.")
 
-        table_properties = Encoding_Limited_Naming_Properties.Instance encoding table_limit
-        column_properties = Encoding_Limited_Naming_Properties.Instance encoding column_limit
+        ## Postgres column/table names may be lowercased if unquoted, but when
+           quoted we have full case sensitivity and can distinguish columns
+           `A` from `a` as different.
+           Our generator is supposed to always quote identifiers.
+        table_properties = Encoding_Limited_Naming_Properties.Instance encoding table_limit is_case_sensitive=True
+        column_properties = Encoding_Limited_Naming_Properties.Instance encoding column_limit is_case_sensitive=True
         Entity_Naming_Properties.Value for_table_names=table_properties for_column_names=column_properties
-
 
 ## PRIVATE
 get_pragma_value : JDBC_Connection -> Text -> Any

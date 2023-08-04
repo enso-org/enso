@@ -24,7 +24,7 @@ import project.Internal.Parse_Values_Helper
 import project.Internal.Widget_Helpers
 from project.Data.Table import print_table
 from project.Data.Type.Value_Type import Auto, Value_Type
-from project.Errors import Conversion_Failure, Floating_Point_Equality, Inexact_Type_Coercion, Invalid_Value_Type, No_Index_Set_Error, Invalid_Output_Column_Names
+from project.Errors import Conversion_Failure, Floating_Point_Equality, Inexact_Type_Coercion, Invalid_Value_Type, No_Index_Set_Error, Invalid_Column_Names
 from project.Internal.Column_Format import all
 from project.Internal.Java_Exports import make_date_builder_adapter, make_double_builder, make_long_builder, make_string_builder
 
@@ -54,14 +54,14 @@ type Column
         ## TODO [RW] in #6111 use a more specific storage type, and if it is a
            type that does not allow date/time values, use `fromItemsNoDateConversion` instead.
         expected_storage_type = Nothing
-        Invalid_Output_Column_Names.handle_java_exception <| Polyglot_Helpers.handle_polyglot_dataflow_errors <|
+        Invalid_Column_Names.handle_java_exception <| Polyglot_Helpers.handle_polyglot_dataflow_errors <|
             Column.Value (Java_Column.fromItems name items expected_storage_type)
 
     ## PRIVATE
        Creates a new column given a name and an internal Java storage.
     from_storage : Text -> Java_Storage -> Column
     from_storage name storage =
-        Invalid_Output_Column_Names.handle_java_exception <|
+        Invalid_Column_Names.handle_java_exception <|
             Column.Value (Java_Column.new name storage)
 
     ## PRIVATE
@@ -74,7 +74,7 @@ type Column
        - repeats: The number of times to repeat the vector.
     from_vector_repeated : Text -> Vector -> Integer -> Column
     from_vector_repeated name items repeats =
-        Invalid_Output_Column_Names.handle_java_exception <| Illegal_Argument.handle_java_exception <|
+        Invalid_Column_Names.handle_java_exception <| Illegal_Argument.handle_java_exception <|
             Column.Value (Java_Column.fromRepeatedItems name items repeats)
 
     ## PRIVATE

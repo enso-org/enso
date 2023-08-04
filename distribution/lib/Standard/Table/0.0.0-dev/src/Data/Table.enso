@@ -523,7 +523,7 @@ type Table
            `Missing_Input_Columns` is raised as an error, unless
            `error_on_missing_columns` is set to `False`, in which case the
            problem is reported according to the `on_problems` setting.
-         - If any of the new names are invalid, an `Invalid_Output_Column_Names`
+         - If any of the new names are invalid, an `Invalid_Column_Names`
            error is raised.
          - Other problems are reported according to the `on_problems` setting:
              - If a column is matched by two selectors resulting in a different
@@ -563,7 +563,7 @@ type Table
 
               table.rename_columns (Map.from_vector [["name=(.*)".to_regex, "key:$1"]])
     @column_map Widget_Helpers.make_rename_name_vector_selector
-    rename_columns : Map (Text | Integer | Regex) Text | Vector Text | Vector Vector -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Ambiguous_Column_Rename | Too_Many_Column_Names_Provided | Invalid_Output_Column_Names | Duplicate_Output_Column_Names
+    rename_columns : Map (Text | Integer | Regex) Text | Vector Text | Vector Vector -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Ambiguous_Column_Rename | Too_Many_Column_Names_Provided | Invalid_Column_Names | Duplicate_Output_Column_Names
     rename_columns self (column_map:(Map | Vector)=["Column"]) (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default) (error_on_missing_columns:Boolean=True) (on_problems:Problem_Behavior=Report_Warning) =
         new_names = Table_Helpers.rename_columns self.column_naming_helper self.columns column_map case_sensitivity error_on_missing_columns on_problems
         Warning.with_suspended new_names names->
@@ -578,7 +578,7 @@ type Table
 
          The following problems can occur:
          - If any of the new names are invalid, an
-           `Invalid_Output_Column_Names`.
+           `Invalid_Column_Names`.
          - If any of the new names clash either with existing names or each
            other, a Duplicate_Output_Column_Names.
 
@@ -638,7 +638,7 @@ type Table
          - Additionally, the following problems may be reported according to the
            `on_problems` setting:
            - If there are invalid column names in the output table,
-             a `Invalid_Output_Column_Names`.
+             a `Invalid_Column_Names`.
            - If there are duplicate column names in the output table,
              a `Duplicate_Output_Column_Names`.
            - If grouping on or computing the `Mode` on a floating point number,
@@ -653,7 +653,7 @@ type Table
 
               table.aggregate [Aggregate_Column.Group_By "Key", Aggregate_Column.Count]
     @columns Widget_Helpers.make_aggregate_column_vector_selector
-    aggregate : Vector Aggregate_Column -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Invalid_Aggregate_Column | Invalid_Output_Column_Names | Duplicate_Output_Column_Names | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings
+    aggregate : Vector Aggregate_Column -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Invalid_Aggregate_Column | Invalid_Column_Names | Duplicate_Output_Column_Names | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings
     aggregate self columns (error_on_missing_columns=False) (on_problems=Report_Warning) =
         validated = Aggregate_Column_Helper.prepare_aggregate_columns self.column_naming_helper columns self error_on_missing_columns=error_on_missing_columns
 
@@ -1321,10 +1321,10 @@ type Table
             _ : Date_Range -> Column.from_vector (new_name.if_nothing "Date Range") column.to_vector
             _ -> Error.throw (Illegal_Argument.Error "Unsupported type for `Table.set`.")
 
-        if resolved.length != self.row_count then Error.throw (Row_Count_Mismatch.Error self.row_count resolved.length) else
-            renamed = case new_name of
-               Nothing -> resolved
-               _ : Text -> resolved.rename new_name
+        renamed = case new_name of
+           Nothing -> resolved
+           _ : Text -> resolved.rename new_name
+        renamed.if_not_error <| self.column_naming_helper.check_ambiguity self.column_names new_name <|
             check_add_mode = case set_mode of
                 Set_Mode.Add_Or_Update -> True
                 Set_Mode.Add -> if self.java_table.getColumnByName renamed.name . is_nothing then True else
@@ -1333,7 +1333,8 @@ type Table
                     Error.throw (Missing_Column.Error renamed.name)
 
             check_add_mode.if_not_error <|
-                Table.Value (self.java_table.addOrReplaceColumn renamed.java_column)
+                if resolved.length != self.row_count then Error.throw (Row_Count_Mismatch.Error self.row_count resolved.length) else
+                    Table.Value (self.java_table.addOrReplaceColumn renamed.java_column)
 
     ## Given an expression, create a derived column where each value is the
        result of evaluating the expression for the row.
@@ -1889,7 +1890,7 @@ type Table
            match any columns in the input table nor is it a valid expression, an
            `Invalid_Aggregate_Column` dataflow error is raised.
          - If a column name generated from the input data is invalid,
-           `Invalid_Output_Column_Names` error is raised.
+           `Invalid_Column_Names` error is raised.
          - If an aggregation fails, an `Invalid_Aggregation` dataflow error is
            raised.
          - Additionally, the following problems may be reported according to the
@@ -1918,7 +1919,7 @@ type Table
     @group_by Widget_Helpers.make_column_name_vector_selector
     @name_column Widget_Helpers.make_column_name_selector
     @values (Widget_Helpers.make_aggregate_column_selector include_group_by=False)
-    cross_tab : Vector (Integer | Text | Regex | Aggregate_Column) | Text | Integer | Regex -> (Text | Integer) -> Aggregate_Column | Vector Aggregate_Column -> Problem_Behavior -> Table ! Missing_Input_Columns | Invalid_Aggregate_Column | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings | Invalid_Output_Column_Names
+    cross_tab : Vector (Integer | Text | Regex | Aggregate_Column) | Text | Integer | Regex -> (Text | Integer) -> Aggregate_Column | Vector Aggregate_Column -> Problem_Behavior -> Table ! Missing_Input_Columns | Invalid_Aggregate_Column | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings | Invalid_Column_Names
     cross_tab self group_by name_column values=Aggregate_Column.Count (on_problems=Report_Warning) =
         columns_helper = self.columns_helper
         problem_builder = Problem_Builder.new error_on_missing_columns=True
@@ -1976,7 +1977,7 @@ type Table
                         inner_panic = caught_panic.payload
                         Error.throw (Column_Count_Exceeded.Error inner_panic.getMaximumColumnCount inner_panic.getColumnCount)
                     Panic.catch TooManyColumnsException handler=too_many_columns <|
-                        Invalid_Output_Column_Names.handle_java_exception <|
+                        Invalid_Column_Names.handle_java_exception <|
                             index.makeCrossTabTable java_key_columns matched_name.first.java_column data_columns aggregate_names
 
             on_problems.attach_problems_after (Table.Value result) <|

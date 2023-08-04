@@ -3,7 +3,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import project.Internal.Naming_Properties.Unlimited_Naming_Properties
 import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
-from project.Errors import Invalid_Output_Column_Names
+from project.Errors import Invalid_Column_Names, Clashing_Column_Name
 from project.Internal.Table_Helpers import is_column
 
 polyglot java import org.enso.base.Text_Utils
@@ -29,7 +29,7 @@ type Column_Naming_Helper
     ## PRIVATE
        Checks if the name is valid and runs the action, otherwise raises an error.
     ensure_name_is_valid self name ~action =
-        checked = Invalid_Output_Column_Names.handle_java_exception <|
+        checked = Invalid_Column_Names.handle_java_exception <|
             Java_Column.ensureNameIsValid name
         checked.if_not_error <| case self.naming_properties.size_limit of
             Nothing -> action
@@ -52,6 +52,28 @@ type Column_Naming_Helper
         case self.naming_properties.size_limit of
             Nothing  -> cleaned
             max_size -> self.naming_properties.truncate cleaned max_size
+
+    ## PRIVATE
+       Checks if the new name is unambiguously different from the existing ones.
+       In particular, it is used for case-insensitive backends to ensure that
+       there are no two columns that while not equal, are equal ignoring case -
+       which could introduce problems.
+    check_ambiguity : Vector Text -> Text -> Any -> Any ! Clashing_Column_Name
+    check_ambiguity self existing_names new_name ~continuation =
+        case self.naming_properties.is_case_sensitive of
+            # Nothing to check for case-sensitive backends.
+            True -> continuation
+            False ->
+                case_insensitive_match = existing_names.find if_missing=Nothing name-> name.equals_ignore_case new_name
+                case case_insensitive_match of
+                    # No matches at all, so we can continue.
+                    Nothing -> continuation
+                    # We've got a match.
+                    existing_name ->
+                        is_exact = existing_name == new_name
+                        if is_exact then continuation else
+                            # If the match was not exact, we have ambiguity.
+                            Error.throw (Clashing_Column_Name.Error new_name existing_name)
 
     ## PRIVATE
        Generates a column name for a binary operation.
