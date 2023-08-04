@@ -1,9 +1,13 @@
 /** @file Container that launches the editor. */
 import * as React from 'react'
 
+import * as detect from 'enso-common/src/detect'
+
 import * as auth from '../../authentication/providers/auth'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
+
+import * as topBar from './topBar'
 
 import GLOBAL_CONFIG from '../../../../../../../../gui/config.yaml' assert { type: 'yaml' }
 
@@ -12,7 +16,11 @@ import GLOBAL_CONFIG from '../../../../../../../../gui/config.yaml' assert { typ
 // =================
 
 /** The horizontal offset of the editor's top bar from the left edge of the window. */
-const TOP_BAR_X_OFFSET = 96
+const TOP_BAR_X_OFFSET_PX = 96
+/** The horizontal offset of the editor's top bar from the left edge of the window, taking into
+ * account the width of the macOS window controls. */
+const MACOS_TOP_BAR_X_OFFSET_PX =
+    TOP_BAR_X_OFFSET_PX + topBar.MACOS_TRAFFIC_LIGHTS_WIDTH_PX + topBar.TOP_BAR_GAP_PX
 /** The `id` attribute of the element into which the IDE will be rendered. */
 const IDE_ELEMENT_ID = 'root'
 const IDE_CDN_URL = 'https://cdn.enso.org/ide'
@@ -113,6 +121,11 @@ export default function Editor(props: EditorProps) {
                                 : {
                                       projectManagerUrl: GLOBAL_CONFIG.projectManagerEndpoint,
                                   }
+                        const areMacOSWindowControlsVisible =
+                            detect.isOnMacOS() && detect.isRunningInElectron()
+                        const topBarXOffset = areMacOSWindowControlsVisible
+                            ? MACOS_TOP_BAR_X_OFFSET_PX
+                            : TOP_BAR_X_OFFSET_PX
                         await appRunner.runApp(
                             {
                                 loader: {
@@ -128,7 +141,7 @@ export default function Editor(props: EditorProps) {
                                     project: project.packageName,
                                 },
                                 window: {
-                                    topBarOffset: `${TOP_BAR_X_OFFSET}`,
+                                    topBarOffset: `${topBarXOffset}`,
                                 },
                             },
                             // Here we actually need explicit undefined.

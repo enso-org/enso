@@ -3,12 +3,24 @@ import * as React from 'react'
 
 import FindIcon from 'enso-assets/find.svg'
 
+import * as detect from 'enso-common/src/detect'
+
 import * as backendModule from '../backend'
 
 import PageSwitcher, * as pageSwitcher from './pageSwitcher'
 import AssetInfoBar from './assetInfoBar'
 import BackendSwitcher from './backendSwitcher'
 import UserBar from './userBar'
+
+// =================
+// === Constants ===
+// =================
+
+/** The width, in pixels, of the macOS window traffic light buttons. */
+export const MACOS_TRAFFIC_LIGHTS_WIDTH_PX = 52
+/** The width, in pixels, of the gap between each child of the top bar.
+ * This is 4 times the `gap-<x>` value in the top-level div below. */
+export const TOP_BAR_GAP_PX = 24
 
 // ==============
 // === TopBar ===
@@ -48,6 +60,9 @@ export default function TopBar(props: TopBarProps) {
 
     return (
         <div className="relative flex ml-4.75 mr-2.25 mt-2.25 h-8 gap-6 z-10">
+            {detect.isOnMacOS() && detect.isRunningInElectron() && (
+                <div style={{ width: MACOS_TRAFFIC_LIGHTS_WIDTH_PX }} />
+            )}
             <PageSwitcher page={page} setPage={setPage} isEditorDisabled={isEditorDisabled} />
             {supportsLocalBackend && page === pageSwitcher.Page.drive && (
                 <BackendSwitcher setBackendType={setBackendType} />
