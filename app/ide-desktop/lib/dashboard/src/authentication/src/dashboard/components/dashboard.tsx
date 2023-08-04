@@ -209,7 +209,7 @@ export default function Dashboard(props: DashboardProps) {
         <>
             <div
                 className={`flex flex-col gap-2 relative select-none text-primary text-xs h-screen pb-2 ${
-                    page === pageSwitcher.Page.editor ? 'cursor-none-recursive' : ''
+                    page === pageSwitcher.Page.editor ? 'cursor-none' : ''
                 }`}
                 onContextMenu={event => {
                     event.preventDefault()
@@ -229,6 +229,12 @@ export default function Dashboard(props: DashboardProps) {
                     setBackendType={setBackendType}
                     query={query}
                     setQuery={setQuery}
+                    onSignOut={() => {
+                        if (page === pageSwitcher.Page.editor) {
+                            setPage(pageSwitcher.Page.drive)
+                        }
+                        setProject(null)
+                    }}
                 />
                 {isListingRemoteDirectoryWhileOffline ? (
                     <div className={`grow grid place-items-center mx-2 ${driveHiddenClass}`}>

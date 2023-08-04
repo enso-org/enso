@@ -40,6 +40,7 @@ export interface TopBarProps {
     setIsHelpChatOpen: (isHelpChatOpen: boolean) => void
     query: string
     setQuery: (value: string) => void
+    onSignOut: () => void
 }
 
 /** The {@link TopBarProps.setQuery} parameter is used to communicate with the parent component,
@@ -56,6 +57,7 @@ export default function TopBar(props: TopBarProps) {
         setIsHelpChatOpen,
         query,
         setQuery,
+        onSignOut,
     } = props
 
     return (
@@ -91,7 +93,11 @@ export default function TopBar(props: TopBarProps) {
             )}
             <div className="flex gap-2">
                 <AssetInfoBar asset={asset} />
-                <UserBar isHelpChatOpen={isHelpChatOpen} setIsHelpChatOpen={setIsHelpChatOpen} />
+                <UserBar
+                    isHelpChatOpen={isHelpChatOpen}
+                    setIsHelpChatOpen={setIsHelpChatOpen}
+                    onSignOut={onSignOut}
+                />
             </div>
         </div>
     )
