@@ -2,8 +2,9 @@ from Standard.Base import all
 import Standard.Base.Errors.Common.Arithmetic_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-from project.Errors import Additional_Invalid_Rows, Additional_Warnings, Duplicate_Output_Column_Names, Floating_Point_Equality, Invalid_Aggregation, Invalid_Column_Names, Invalid_Row, Unquoted_Characters_In_Output, Unquoted_Delimiter
+from project.Errors import Additional_Invalid_Rows, Additional_Warnings, Duplicate_Output_Column_Names, Floating_Point_Equality, Invalid_Aggregation, Invalid_Column_Names, Invalid_Row, Unquoted_Characters_In_Output, Unquoted_Delimiter, Loss_Of_Integer_Precision
 
+polyglot java import org.enso.table.data.column.builder.LossOfIntegerPrecision
 polyglot java import org.enso.table.data.table.problems.ArithmeticError
 polyglot java import org.enso.table.data.table.problems.FloatingPointGrouping
 polyglot java import org.enso.table.data.table.problems.InvalidAggregation
@@ -24,7 +25,9 @@ translate_problem p = case p of
     _ : ArithmeticError ->
         Arithmetic_Error.Error p.getMessage
     _ : FloatingPointGrouping ->
-        Floating_Point_Equality.Error p.getLocationName
+        Floating_Point_Equality.Error p.getAffectedRowsCount p.getExampleValue p.getExampleValueConverted
+    _ : LossOfIntegerPrecision ->
+        Loss_Of_Integer_Precision.Warning
     _ : UnquotedCharactersInOutput ->
         Unquoted_Characters_In_Output.Warning p.getLocationName (Vector.from_polyglot_array p.getRows)
     _ : UnquotedDelimiter ->

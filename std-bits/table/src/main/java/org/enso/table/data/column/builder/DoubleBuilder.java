@@ -163,7 +163,7 @@ public class DoubleBuilder extends NumericBuilder {
       if (precisionLoss == null) {
         precisionLoss = new LossOfIntegerPrecision(integer, floatingPointValue);
       } else {
-        precisionLoss.affectedRows++;
+        precisionLoss.increaseAffectedRows();
       }
     }
     return floatingPointValue;
@@ -178,29 +178,5 @@ public class DoubleBuilder extends NumericBuilder {
       problems.add(precisionLoss);
     }
     return problems;
-  }
-
-  public static class LossOfIntegerPrecision implements Problem {
-    private final long exampleValue;
-    private final double exampleValueConverted;
-    private long affectedRows;
-
-    public LossOfIntegerPrecision(long exampleValue, double exampleValueConverted) {
-      this.exampleValue = exampleValue;
-      this.exampleValueConverted = exampleValueConverted;
-      this.affectedRows = 1;
-    }
-
-    public long getExampleValue() {
-      return exampleValue;
-    }
-
-    public double getExampleValueConverted() {
-      return exampleValueConverted;
-    }
-
-    public long getAffectedRows() {
-      return affectedRows;
-    }
   }
 }

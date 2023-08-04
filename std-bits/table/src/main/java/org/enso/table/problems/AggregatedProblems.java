@@ -33,6 +33,10 @@ public class AggregatedProblems {
     return problems.toArray(Problem[]::new);
   }
 
+  public List<Problem> asList() {
+    return problems;
+  }
+
   public int getCount() {
     return count;
   }
