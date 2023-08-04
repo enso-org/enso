@@ -393,7 +393,6 @@ impl ContainerModel {
 
     /// Update the selection shape. `value` is a selection width factor in range `[0, 1]`.
     fn set_selection(&self, container_size: Vector2, value: f32, style: &SelectionStyle) {
-        console_log!("set_selection({container_size:?}, {value}, {style:?}");
         let border_width = style.width * value;
         let overall_size = container_size + Vector2(border_width * 2.0, border_width * 2.0);
         if value > 0.0 {
