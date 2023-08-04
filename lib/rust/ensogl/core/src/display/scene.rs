@@ -783,10 +783,11 @@ pub struct HardcodedLayers {
     /// rendered. You should not need to use it directly.
     pub DETACHED: Layer,
     pub root: Layer,
-    pub viz: Layer,
+    pub viz_background: Layer,
     pub viz_selection: RectLayerPartition,
     pub viz_resize_grip: RectLayerPartition,
-    pub viz_overlay: RectLayerPartition,
+    pub viz_hover_area: RectLayerPartition,
+    pub viz: Layer,
     pub below_main: Layer,
     pub main: Layer,
     pub label: Layer,
@@ -802,6 +803,7 @@ pub struct HardcodedLayers {
     pub panel_overlay: RectLayerPartition,
     pub node_searcher: Layer,
     pub node_searcher_text: Layer,
+    pub node_searcher_button_panel: Layer,
     pub tooltip: Layer,
     pub tooltip_text: Layer,
     pub cursor: Layer,
@@ -825,10 +827,11 @@ impl HardcodedLayers {
         let DETACHED = Layer::new("DETACHED");
         let root = Layer::new_with_camera("root", &main_cam);
 
+        let viz_background = root.create_sublayer("viz_background");
+        let viz_selection = partition_layer(&viz_background, "viz_selection");
+        let viz_resize_grip = partition_layer(&viz_background, "viz_resize_grip");
+        let viz_hover_area = partition_layer(&viz_background, "viz_overlay");
         let viz = root.create_sublayer("viz");
-        let viz_selection = partition_layer(&viz, "viz_selection");
-        let viz_resize_grip = partition_layer(&viz, "viz_resize_grip");
-        let viz_overlay = partition_layer(&viz, "viz_overlay");
         let below_main = root.create_sublayer("below_main");
         let main = root.create_sublayer("main");
         let label = root.create_sublayer("label");
@@ -845,6 +848,8 @@ impl HardcodedLayers {
         let node_searcher = root.create_sublayer_with_camera("node_searcher", &node_searcher_cam);
         let node_searcher_text =
             root.create_sublayer_with_camera("node_searcher_text", &node_searcher_cam);
+        let node_searcher_button_panel =
+            root.create_sublayer_with_camera("node_searcher_button_panel", &node_searcher_cam);
         let tooltip = root.create_sublayer("tooltip");
         let tooltip_text = root.create_sublayer("tooltip_text");
         let cursor = root.create_sublayer_with_camera("cursor", &cursor_cam);
@@ -852,10 +857,11 @@ impl HardcodedLayers {
         Self {
             DETACHED,
             root,
-            viz,
+            viz_background,
             viz_selection,
             viz_resize_grip,
-            viz_overlay,
+            viz_hover_area,
+            viz,
             below_main,
             main,
             label,
@@ -867,6 +873,7 @@ impl HardcodedLayers {
             panel_overlay,
             node_searcher,
             node_searcher_text,
+            node_searcher_button_panel,
             tooltip,
             tooltip_text,
             cursor,
@@ -1030,12 +1037,14 @@ impl SceneData {
         let network = &frp.network;
         let extensions = Extensions::default();
         let bg_color_var = style_sheet.var("application.background");
-        let bg_color_change = bg_color_var.on_change(f!([dom](change){
+        let bg_color_change_callback = f!([dom](change: &Option<display::style::Data>) {
             change.color().for_each(|color| {
                 let color = color.to_javascript_string();
                 dom.root.set_style_or_warn("background-color",color);
             })
-        }));
+        });
+        bg_color_change_callback(&bg_color_var.value());
+        let bg_color_change = bg_color_var.on_change(bg_color_change_callback);
 
         layers.main.add(&display_object);
         frp::extend! { network

@@ -177,9 +177,11 @@ class Main implements AppRunner {
             inputConfig
         )
 
+        const configOptions = contentConfig.OPTIONS.clone()
+
         const newApp = new app.App({
             config,
-            configOptions: contentConfig.OPTIONS,
+            configOptions,
             packageInfo: {
                 version: BUILD_INFO.version,
                 engineVersion: BUILD_INFO.engineVersion,
@@ -207,10 +209,10 @@ class Main implements AppRunner {
         if (!this.app.initialized) {
             console.error('Failed to initialize the application.')
         } else {
-            if (!(await checkMinSupportedVersion(contentConfig.OPTIONS))) {
+            if (!(await checkMinSupportedVersion(configOptions))) {
                 displayDeprecatedVersionDialog()
             } else {
-                const email = contentConfig.OPTIONS.groups.authentication.options.email.value
+                const email = configOptions.groups.authentication.options.email.value
                 // The default value is `""`, so a truthiness check is most appropriate here.
                 if (email) {
                     logger.log(`User identified as '${email}'.`)
@@ -234,21 +236,21 @@ class Main implements AppRunner {
         if (isInAuthenticationFlow) {
             history.replaceState(null, '', localStorage.getItem(INITIAL_URL_KEY))
         }
-        const parseOk = contentConfig.OPTIONS.loadAllAndDisplayHelpIfUnsuccessful([app.urlParams()])
+        const configOptions = contentConfig.OPTIONS.clone()
+        const parseOk = configOptions.loadAllAndDisplayHelpIfUnsuccessful([app.urlParams()])
         if (isInAuthenticationFlow) {
             history.replaceState(null, '', authenticationUrl)
         } else {
             localStorage.setItem(INITIAL_URL_KEY, location.href)
         }
         if (parseOk) {
-            const shouldUseAuthentication = contentConfig.OPTIONS.options.authentication.value
+            const shouldUseAuthentication = configOptions.options.authentication.value
             const shouldUseNewDashboard =
-                contentConfig.OPTIONS.groups.featurePreview.options.newDashboard.value
+                configOptions.groups.featurePreview.options.newDashboard.value
             const isOpeningMainEntryPoint =
-                contentConfig.OPTIONS.groups.startup.options.entry.value ===
-                contentConfig.OPTIONS.groups.startup.options.entry.default
-            const initialProjectName =
-                contentConfig.OPTIONS.groups.startup.options.project.value || null
+                configOptions.groups.startup.options.entry.value ===
+                configOptions.groups.startup.options.entry.default
+            const initialProjectName = configOptions.groups.startup.options.project.value || null
             // This MUST be removed as it would otherwise override the `startup.project` passed
             // explicitly in `ide.tsx`.
             if (isOpeningMainEntryPoint && url.searchParams.has('startup.project')) {

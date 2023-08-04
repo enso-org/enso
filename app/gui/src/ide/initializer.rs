@@ -259,8 +259,7 @@ pub fn register_views(app: &Application) {
     app.views.register::<ide_view::component_browser::View>();
     app.views.register::<ide_view::component_browser::component_list_panel::View>();
     app.views.register::<ide_view::component_browser::component_list_panel::grid::View>();
-    app.views
-        .register::<ide_view::component_browser::component_list_panel::breadcrumbs::Breadcrumbs>();
+    app.views.register::<ide_view::documentation::breadcrumbs::Breadcrumbs>();
     app.views.register::<ensogl_component::text::Text>();
     app.views.register::<ensogl_component::selector::NumberPicker>();
     app.views.register::<ensogl_component::selector::NumberRangePicker>();

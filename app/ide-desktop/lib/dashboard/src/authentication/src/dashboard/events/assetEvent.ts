@@ -1,6 +1,8 @@
 /** @file Events related to changes in asset state. */
 import * as backendModule from '../backend'
 
+import * as spinner from '../components/spinner'
+
 // This is required, to whitelist this event.
 // eslint-disable-next-line no-restricted-syntax
 declare module '../../hooks' {
@@ -55,6 +57,7 @@ type SanityCheck<
 export interface AssetCreateProjectEvent extends AssetBaseEvent<AssetEventType.createProject> {
     placeholderId: backendModule.ProjectId
     templateId: string | null
+    onSpinnerStateChange: ((state: spinner.SpinnerState) => void) | null
 }
 
 /** A signal to create a directory. */

@@ -9,6 +9,7 @@ import DataUploadIcon from 'enso-assets/data_upload.svg'
 
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
+import Button from './button'
 
 // ================
 // === DriveBar ===
@@ -16,7 +17,7 @@ import * as backendProvider from '../../providers/backend'
 
 /** Props for a {@link DriveBar}. */
 export interface DriveBarProps {
-    doCreateProject: () => void
+    doCreateProject: (templateId: string | null) => void
     doCreateDirectory: () => void
     doUploadFiles: (files: FileList) => void
 }
@@ -42,19 +43,25 @@ export default function DriveBar(props: DriveBarProps) {
             <div className="flex gap-2.5">
                 <button
                     className="flex items-center bg-frame-bg rounded-full h-8 px-2.5"
-                    onClick={doCreateProject}
+                    onClick={() => {
+                        doCreateProject(null)
+                    }}
                 >
                     <span className="font-semibold leading-5 h-6 py-px">New Project</span>
                 </button>
                 <div className="flex items-center bg-frame-bg rounded-full gap-3 h-8 px-3">
                     {backend.type !== backendModule.BackendType.local && (
                         <>
-                            <button onClick={doCreateDirectory}>
-                                <img src={AddFolderIcon} />
-                            </button>
-                            <button disabled className="opacity-50">
-                                <img src={AddConnectorIcon} />
-                            </button>
+                            <Button active image={AddFolderIcon} onClick={doCreateDirectory} />
+                            <Button
+                                active
+                                disabled
+                                image={AddConnectorIcon}
+                                error="Not implemented yet."
+                                onClick={() => {
+                                    // No backend support yet.
+                                }}
+                            />
                         </>
                     )}
                     <input
@@ -66,20 +73,24 @@ export default function DriveBar(props: DriveBarProps) {
                         className="hidden"
                         onInput={doUploadFiles}
                     />
-                    <button
+                    <Button
+                        active
                         disabled={backend.type === backendModule.BackendType.local}
-                        className={
-                            backend.type === backendModule.BackendType.local ? 'opacity-50' : ''
-                        }
+                        image={DataUploadIcon}
+                        error="Cannot upload files from the local backend."
                         onClick={() => {
                             uploadFilesRef.current?.click()
                         }}
-                    >
-                        <img src={DataUploadIcon} />
-                    </button>
-                    <button disabled className="opacity-50">
-                        <img src={DataDownloadIcon} />
-                    </button>
+                    />
+                    <Button
+                        active
+                        disabled
+                        image={DataDownloadIcon}
+                        error="Not implemented yet."
+                        onClick={() => {
+                            // No backend support yet.
+                        }}
+                    />
                 </div>
             </div>
         </div>

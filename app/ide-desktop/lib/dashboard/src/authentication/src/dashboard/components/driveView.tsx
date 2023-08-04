@@ -11,8 +11,9 @@ import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as hooks from '../../hooks'
 import * as loggerProvider from '../../providers/logger'
-import * as tabModule from '../tab'
+import * as string from '../../string'
 
+import * as pageSwitcher from './pageSwitcher'
 import AssetsTable from './assetsTable'
 import DriveBar from './driveBar'
 
@@ -23,33 +24,24 @@ import DriveBar from './driveBar'
 /** The `localStorage` key under which the ID of the current directory is stored. */
 const DIRECTORY_STACK_KEY = `${common.PRODUCT_NAME.toLowerCase()}-dashboard-directory-stack`
 
-// ========================
-// === Helper functions ===
-// ========================
-
-/** Sanitizes a string for use as a regex. */
-function regexEscape(string: string) {
-    return string.replace(/[\\^$.|?*+()[{]/g, '\\$&')
-}
-
 // =====================
 // === DirectoryView ===
 // =====================
 
 /** Props for a {@link DirectoryView}. */
 export interface DirectoryViewProps {
-    tab: tabModule.Tab
+    page: pageSwitcher.Page
     initialProjectName: string | null
     nameOfProjectToImmediatelyOpen: string | null
     setNameOfProjectToImmediatelyOpen: (nameOfProjectToImmediatelyOpen: string | null) => void
     directoryId: backendModule.DirectoryId | null
-    setDirectoryId: (directoryId: backendModule.DirectoryId | null) => void
-    assetListEvent: assetListEventModule.AssetListEvent | null
+    setDirectoryId: (directoryId: backendModule.DirectoryId) => void
+    assetListEvents: assetListEventModule.AssetListEvent[]
     dispatchAssetListEvent: (directoryEvent: assetListEventModule.AssetListEvent) => void
     query: string
-    doCreateProject: (templateId?: string) => void
-    doOpenIde: (project: backendModule.ProjectAsset) => void
-    doCloseIde: () => void
+    doCreateProject: (templateId: string | null) => void
+    doOpenEditor: (project: backendModule.ProjectAsset) => void
+    doCloseEditor: () => void
     appRunner: AppRunner | null
     loadingProjectManagerDidFail: boolean
     isListingRemoteDirectoryWhileOffline: boolean
@@ -60,18 +52,18 @@ export interface DirectoryViewProps {
 /** Contains directory path and directory contents (projects, folders, secrets and files). */
 export default function DirectoryView(props: DirectoryViewProps) {
     const {
-        tab,
+        page,
         initialProjectName,
         nameOfProjectToImmediatelyOpen,
         setNameOfProjectToImmediatelyOpen,
         directoryId,
         setDirectoryId,
         query,
-        assetListEvent,
+        assetListEvents,
         dispatchAssetListEvent,
         doCreateProject,
-        doOpenIde,
-        doCloseIde,
+        doOpenEditor,
+        doCloseEditor,
         appRunner,
         loadingProjectManagerDidFail,
         isListingRemoteDirectoryWhileOffline,
@@ -83,17 +75,17 @@ export default function DirectoryView(props: DirectoryViewProps) {
     const { backend } = backendProvider.useBackend()
     const toastAndLog = hooks.useToastAndLog()
     const [initialized, setInitialized] = React.useState(false)
-    const [assets, setAssets] = React.useState<backendModule.AnyAsset[]>([])
+    const [assets, rawSetAssets] = React.useState<backendModule.AnyAsset[]>([])
     const [isLoadingAssets, setIsLoadingAssets] = React.useState(true)
     const [directoryStack, setDirectoryStack] = React.useState<backendModule.DirectoryAsset[]>([])
     const [isFileBeingDragged, setIsFileBeingDragged] = React.useState(false)
-    const [assetEvent, dispatchAssetEvent] = hooks.useEvent<assetEventModule.AssetEvent>()
+    const [assetEvents, dispatchAssetEvent] = hooks.useEvent<assetEventModule.AssetEvent>()
 
     const assetFilter = React.useMemo(() => {
         if (query === '') {
             return null
         } else {
-            const regex = new RegExp(regexEscape(query), 'i')
+            const regex = new RegExp(string.regexEscape(query), 'i')
             return (asset: backendModule.AnyAsset) => regex.test(asset.title)
         }
     }, [query])
@@ -144,6 +136,40 @@ export default function DirectoryView(props: DirectoryViewProps) {
         }
     }, [directoryStack, directoryId, organization])
 
+    const setAssets = React.useCallback(
+        (newAssets: backendModule.AnyAsset[]) => {
+            rawSetAssets(newAssets)
+            if (nameOfProjectToImmediatelyOpen != null) {
+                const projectToLoad = newAssets.find(
+                    projectAsset => projectAsset.title === nameOfProjectToImmediatelyOpen
+                )
+                if (projectToLoad != null) {
+                    dispatchAssetEvent({
+                        type: assetEventModule.AssetEventType.openProject,
+                        id: projectToLoad.id,
+                    })
+                }
+                setNameOfProjectToImmediatelyOpen(null)
+            }
+            if (!initialized && initialProjectName != null) {
+                setInitialized(true)
+                if (!newAssets.some(asset => asset.title === initialProjectName)) {
+                    const errorMessage = `No project named '${initialProjectName}' was found.`
+                    toastify.toast.error(errorMessage)
+                    logger.error(`Error opening project on startup: ${errorMessage}`)
+                }
+            }
+        },
+        [
+            initialized,
+            initialProjectName,
+            logger,
+            nameOfProjectToImmediatelyOpen,
+            /* should never change */ setNameOfProjectToImmediatelyOpen,
+            /* should never change */ dispatchAssetEvent,
+        ]
+    )
+
     hooks.useAsyncEffect(
         null,
         async signal => {
@@ -182,38 +208,6 @@ export default function DirectoryView(props: DirectoryViewProps) {
         [accessToken, directoryId, backend]
     )
 
-    React.useEffect(() => {
-        if (nameOfProjectToImmediatelyOpen != null) {
-            const projectToLoad = assets.find(
-                projectAsset => projectAsset.title === nameOfProjectToImmediatelyOpen
-            )
-            if (projectToLoad != null) {
-                dispatchAssetEvent({
-                    type: assetEventModule.AssetEventType.openProject,
-                    id: projectToLoad.id,
-                })
-            }
-            setNameOfProjectToImmediatelyOpen(null)
-        }
-        if (!initialized && initialProjectName != null) {
-            setInitialized(true)
-            if (!assets.some(asset => asset.title === initialProjectName)) {
-                const errorMessage = `No project named '${initialProjectName}' was found.`
-                toastify.toast.error(errorMessage)
-                logger.error(`Error opening project on startup: ${errorMessage}`)
-            }
-        }
-        // `nameOfProjectToImmediatelyOpen` must NOT trigger this effect.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [
-        assets,
-        initialized,
-        initialProjectName,
-        logger,
-        /* should never change */ setNameOfProjectToImmediatelyOpen,
-        /* should never change */ dispatchAssetEvent,
-    ])
-
     const doUploadFiles = React.useCallback(
         (files: FileList) => {
             if (backend.type === backendModule.BackendType.local) {
@@ -244,7 +238,7 @@ export default function DirectoryView(props: DirectoryViewProps) {
     React.useEffect(() => {
         const onDragEnter = (event: DragEvent) => {
             if (
-                tab === tabModule.Tab.dashboard &&
+                page === pageSwitcher.Page.drive &&
                 event.dataTransfer?.types.includes('Files') === true
             ) {
                 setIsFileBeingDragged(true)
@@ -254,7 +248,7 @@ export default function DirectoryView(props: DirectoryViewProps) {
         return () => {
             document.body.removeEventListener('dragenter', onDragEnter)
         }
-    }, [tab])
+    }, [page])
 
     return (
         <div className="flex flex-col flex-1 overflow-hidden gap-2.5 px-3.25">
@@ -275,12 +269,12 @@ export default function DirectoryView(props: DirectoryViewProps) {
                 filter={assetFilter}
                 isLoading={isLoadingAssets}
                 appRunner={appRunner}
-                assetEvent={assetEvent}
+                assetEvents={assetEvents}
                 dispatchAssetEvent={dispatchAssetEvent}
-                assetListEvent={assetListEvent}
+                assetListEvents={assetListEvents}
                 dispatchAssetListEvent={dispatchAssetListEvent}
-                doOpenIde={doOpenIde}
-                doCloseIde={doCloseIde}
+                doOpenIde={doOpenEditor}
+                doCloseIde={doCloseEditor}
             />
             {isFileBeingDragged &&
             directoryId != null &&

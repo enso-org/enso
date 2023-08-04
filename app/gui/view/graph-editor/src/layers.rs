@@ -107,6 +107,9 @@ pub struct MainNodeLayers {
     /// The layer used for the action bar, which is rendered above all other node shapes.
     pub action_bar: LayerSymbolPartition<rectangle::Shape>,
 
+    /// The layer for action bar's icons, which should be above any hover area.
+    pub action_bar_icons: LayerSymbolPartition<rectangle::Shape>,
+
     /// The stack of hover areas used by the node port. The ports at given tree depth are rendered
     /// above the ports at lower depths.
     pub port_hover: PartitionStack<rectangle::Shape>,
@@ -173,6 +176,7 @@ impl MainNodeLayers {
             body_hover: node_base.create_symbol_partition("body_hover"),
             widget_rectangles: PartitionStack::new(&widget_base),
             action_bar: above_base.create_symbol_partition("action_bar"),
+            action_bar_icons: above_base.create_symbol_partition("action_bar_icons"),
             port_hover: PartitionStack::new(&above_base),
             node_base,
             widget_base,

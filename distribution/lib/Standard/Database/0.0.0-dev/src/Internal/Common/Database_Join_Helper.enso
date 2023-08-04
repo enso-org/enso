@@ -6,6 +6,7 @@ import Standard.Table.Internal.Join_Helpers
 import Standard.Table.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 from Standard.Table.Errors import Floating_Point_Equality
 
+import project.Connection.Connection.Connection
 import project.Data.SQL_Type.SQL_Type
 import project.Data.Table.Table
 import project.Internal.Helpers
@@ -44,7 +45,7 @@ make_join_helpers left_table right_table left_column_mapping right_column_mappin
    names and returns a list of new columns that should be present in the join
    result (depending on the kind of performed join), ensuring that any colliding
    columns are properly renamed.
-select_columns_for_join join_kind left_new_columns right_new_columns right_columns_to_drop right_prefix problem_builder =
+select_columns_for_join column_naming_helper join_kind left_new_columns right_new_columns right_columns_to_drop right_prefix problem_builder =
     case join_kind of
         Join_Kind.Left_Exclusive -> left_new_columns
         Join_Kind.Right_Exclusive -> right_new_columns
@@ -52,7 +53,7 @@ select_columns_for_join join_kind left_new_columns right_new_columns right_colum
             left_names = left_new_columns.map .name
             right_kept_columns = right_new_columns.filter c-> right_columns_to_drop.contains c.name . not
             right_names = right_kept_columns.map .name
-            renaming_strategy = Unique_Name_Strategy.new
+            renaming_strategy = column_naming_helper.create_unique_name_strategy
 
             right_new_names = renaming_strategy.combine_with_prefix left_names right_names right_prefix
             problem_builder.report_unique_name_strategy renaming_strategy
@@ -74,24 +75,25 @@ type Join_Subquery_Setup
                 [old.name, new]
 
 ## PRIVATE
-prepare_subqueries : Table -> Table -> Boolean -> Boolean -> Pair Join_Subquery_Setup
-prepare_subqueries left right needs_left_indicator needs_right_indicator =
+prepare_subqueries : Connection -> Table -> Table -> Boolean -> Boolean -> Pair Join_Subquery_Setup
+prepare_subqueries connection left right needs_left_indicator needs_right_indicator =
+    table_naming_helper = connection.base_connection.table_naming_helper
+    column_naming_helper = connection.base_connection.column_naming_helper
+
     ## If a self-join, make sure we are able to distinguish the left and
        right tables.
-    aliases = case left.name == right.name of
-        True -> [left.name+"_left", right.name+"_right"]
-        False -> [left.name, right.name]
-    left_alias = aliases.first
-    right_alias = aliases.second
+    table_name_deduplicator = table_naming_helper.create_unique_name_strategy
+    left_alias = table_name_deduplicator.make_unique left.name
+    right_alias = table_name_deduplicator.make_unique right.name
 
     left_indicators = if needs_left_indicator.not then [] else
-        renamer = Unique_Name_Strategy.new
+        renamer = column_naming_helper.create_unique_name_strategy
         renamer.mark_used (left.internal_columns.map .name)
         # This is an operation, not a constant to avoid adding unnecessary interpolations to the query.
         [Internal_Column.Value (renamer.make_unique "left_indicator") SQL_Type_Reference.null (SQL_Expression.Literal "TRUE")]
 
     right_indicators = if needs_right_indicator.not then [] else
-        renamer = Unique_Name_Strategy.new
+        renamer = column_naming_helper.create_unique_name_strategy
         renamer.mark_used (right.internal_columns.map .name)
         [Internal_Column.Value (renamer.make_unique "right_indicator") SQL_Type_Reference.null (SQL_Expression.Literal "TRUE")]
 

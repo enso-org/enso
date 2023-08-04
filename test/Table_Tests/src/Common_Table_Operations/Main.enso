@@ -4,6 +4,7 @@ import Standard.Database.Internal.Replace_Params.Replace_Params
 
 import project.Common_Table_Operations.Add_Row_Number_Spec
 import project.Common_Table_Operations.Aggregate_Spec
+import project.Common_Table_Operations.Column_Name_Edge_Cases_Spec
 import project.Common_Table_Operations.Column_Operations_Spec
 import project.Common_Table_Operations.Core_Spec
 import project.Common_Table_Operations.Cross_Tab_Spec
@@ -109,6 +110,7 @@ type Test_Selection
 spec setup =
     Core_Spec.spec setup
     Select_Columns_Spec.spec setup
+    Column_Name_Edge_Cases_Spec.spec setup
     Column_Operations_Spec.spec setup
     Date_Time_Spec.spec setup
     Conversion_Spec.spec setup

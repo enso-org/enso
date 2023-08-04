@@ -1,7 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Unimplemented.Unimplemented
 
-import Standard.Table.Internal.Naming_Helpers.Naming_Helpers
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 from Standard.Table import Aggregate_Column, Join_Kind, Value_Type
 
@@ -77,13 +76,6 @@ type Dialect
     is_probably_a_query : Text -> Boolean
     is_probably_a_query self text =
         _ = [text]
-        Unimplemented.throw "This is an interface only."
-
-    ## PRIVATE
-       Returns an utility that allows ensuring column names are valid for the
-       given backend.
-    get_naming_helpers : Naming_Helpers
-    get_naming_helpers self =
         Unimplemented.throw "This is an interface only."
 
     ## PRIVATE

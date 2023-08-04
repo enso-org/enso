@@ -33,7 +33,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         setItem,
         selected,
         setSelected,
-        state: { assetEvent, dispatchAssetListEvent, doToggleDirectoryExpansion, getDepth },
+        state: { assetEvents, dispatchAssetListEvent, doToggleDirectoryExpansion, getDepth },
         rowState,
         setRowState,
     } = props
@@ -52,7 +52,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         }
     }
 
-    hooks.useEventHandler(assetEvent, async event => {
+    hooks.useEventHandler(assetEvents, async event => {
         switch (event.type) {
             case assetEventModule.AssetEventType.createProject:
             case assetEventModule.AssetEventType.uploadFiles:

@@ -10,3 +10,8 @@ export function makePluralize(singular: string, plural: string) {
 export function capitalizeFirst(string: string) {
     return string.replace(/^./, match => match.toUpperCase())
 }
+
+/** Sanitizes a string for use as a regex. */
+export function regexEscape(string: string) {
+    return string.replace(/[\\^$.|?*+()[{]/g, '\\$&')
+}

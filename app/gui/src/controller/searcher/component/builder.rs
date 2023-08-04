@@ -301,12 +301,7 @@ impl<'a> Builder<'a> {
             groups.len() - 1
         });
         for snippet in snippets {
-            let component = Component {
-                label:      snippet.name.clone(),
-                suggestion: component::Suggestion::Virtual { snippet },
-                group_id:   Some(group_index),
-                match_info: Default::default(),
-            };
+            let component = Component::new_virtual(snippet, group_index);
             self.built_list.displayed_by_default.push(component.clone());
             self.built_list.components.push(component);
         }
@@ -399,7 +394,7 @@ mod tests {
         let components = list
             .components
             .iter()
-            .map(|component| component.label_with_matched_alias())
+            .map(|component| component.matched_label().text)
             .sorted()
             .collect_vec();
         assert_eq!(components, expected);

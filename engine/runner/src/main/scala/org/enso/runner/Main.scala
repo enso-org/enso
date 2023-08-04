@@ -5,6 +5,7 @@ import buildinfo.Info
 import cats.implicits._
 import com.typesafe.scalalogging.Logger
 import org.apache.commons.cli.{Option => CliOption, _}
+import org.enso.distribution.{DistributionManager, Environment}
 import org.enso.editions.DefaultEdition
 import org.enso.languageserver.boot
 import org.enso.languageserver.boot.{
@@ -39,6 +40,7 @@ object Main {
   private val HELP_OPTION                    = "help"
   private val NEW_OPTION                     = "new"
   private val PROJECT_NAME_OPTION            = "new-project-name"
+  private val PROJECT_NORMALIZED_NAME_OPTION = "new-project-normalized-name"
   private val PROJECT_TEMPLATE_OPTION        = "new-project-template"
   private val PROJECT_AUTHOR_NAME_OPTION     = "new-project-author-name"
   private val PROJECT_AUTHOR_EMAIL_OPTION    = "new-project-author-email"
@@ -134,6 +136,15 @@ object Main {
       .longOpt(PROJECT_NAME_OPTION)
       .desc(
         s"Specifies a project name when creating a project using --$NEW_OPTION."
+      )
+      .build
+    val newProjectModuleNameOpt = CliOption.builder
+      .hasArg(true)
+      .numberOfArgs(1)
+      .argName("name")
+      .longOpt(PROJECT_NORMALIZED_NAME_OPTION)
+      .desc(
+        s"Specifies a normalized (Upper_Snake_Case) name when creating a project using --$NEW_OPTION."
       )
       .build
     val newProjectTemplateOpt = CliOption.builder
@@ -388,6 +399,7 @@ object Main {
       .addOption(preinstall)
       .addOption(newOpt)
       .addOption(newProjectNameOpt)
+      .addOption(newProjectModuleNameOpt)
       .addOption(newProjectTemplateOpt)
       .addOption(newProjectAuthorNameOpt)
       .addOption(newProjectAuthorEmailOpt)
@@ -449,15 +461,17 @@ object Main {
     * specifies the project name, otherwise the name is generated automatically.
     * The Enso version used in the project is set to the version of this runner.
     *
-    * @param path           root path of the newly created project
-    * @param nameOption     specifies the name of the created project
+    * @param path root path of the newly created project
+    * @param nameOption specifies the name of the created project
+    * @param normalizedNameOption specifies the normalized name of the created project
     * @param templateOption specifies the template of the created project
-    * @param authorName     if set, sets the name of the author and maintainer
-    * @param authorEmail    if set, sets the email of the author and maintainer
+    * @param authorName if set, sets the name of the author and maintainer
+    * @param authorEmail if set, sets the email of the author and maintainer
     */
   private def createNew(
     path: String,
     nameOption: Option[String],
+    normalizedNameOption: Option[String],
     templateOption: Option[String],
     authorName: Option[String],
     authorEmail: Option[String]
@@ -485,12 +499,13 @@ object Main {
       }
 
     PackageManager.Default.create(
-      root        = root,
-      name        = name,
-      edition     = Some(edition),
-      authors     = authors,
-      maintainers = authors,
-      template    = template.getOrElse(Template.Default)
+      root           = root,
+      name           = name,
+      normalizedName = normalizedNameOption,
+      edition        = Some(edition),
+      authors        = authors,
+      maintainers    = authors,
+      template       = template.getOrElse(Template.Default)
     )
     exitSuccess()
   }
@@ -522,7 +537,7 @@ object Main {
       packagePath,
       System.in,
       System.out,
-      Repl(TerminalIO()),
+      Repl(makeTerminalForRepl()),
       logLevel,
       logMasking,
       enableIrCaches           = true,
@@ -601,7 +616,7 @@ object Main {
       projectRoot,
       System.in,
       System.out,
-      Repl(TerminalIO()),
+      Repl(makeTerminalForRepl()),
       logLevel,
       logMasking,
       enableIrCaches,
@@ -675,7 +690,7 @@ object Main {
       path,
       System.in,
       System.out,
-      Repl(TerminalIO()),
+      Repl(makeTerminalForRepl()),
       logLevel,
       logMasking,
       enableIrCaches
@@ -878,7 +893,7 @@ object Main {
         projectRoot,
         System.in,
         System.out,
-        Repl(TerminalIO()),
+        Repl(makeTerminalForRepl()),
         logLevel,
         logMasking,
         enableIrCaches
@@ -1040,8 +1055,10 @@ object Main {
 
     if (line.hasOption(NEW_OPTION)) {
       createNew(
-        path           = line.getOptionValue(NEW_OPTION),
-        nameOption     = Option(line.getOptionValue(PROJECT_NAME_OPTION)),
+        path       = line.getOptionValue(NEW_OPTION),
+        nameOption = Option(line.getOptionValue(PROJECT_NAME_OPTION)),
+        normalizedNameOption =
+          Option(line.getOptionValue(PROJECT_NORMALIZED_NAME_OPTION)),
         authorName     = Option(line.getOptionValue(PROJECT_AUTHOR_NAME_OPTION)),
         authorEmail    = Option(line.getOptionValue(PROJECT_AUTHOR_EMAIL_OPTION)),
         templateOption = Option(line.getOptionValue(PROJECT_TEMPLATE_OPTION))
@@ -1178,5 +1195,16 @@ object Main {
     } else {
       !isDevBuild
     }
+  }
+
+  /** Construscts a terminal interface for the REPL, initializing its properties. */
+  private def makeTerminalForRepl(): ReplIO = {
+    val env                 = new Environment {}
+    val distributionManager = new DistributionManager(env)
+    val historyFileName     = "repl-history.txt"
+    val historyFilePath: Path =
+      distributionManager.LocallyInstalledDirectories.cacheDirectory
+        .resolve(historyFileName)
+    TerminalIO(historyFilePath)
   }
 }
