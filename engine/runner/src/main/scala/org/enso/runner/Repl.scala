@@ -1,13 +1,23 @@
 package org.enso.runner
 
-import java.io.{InputStream, OutputStream, PrintStream, PrintWriter, Writer}
-import java.util.Scanner
+import com.typesafe.scalalogging.Logger
 
+import java.io.{
+  IOException,
+  InputStream,
+  OutputStream,
+  PrintStream,
+  PrintWriter,
+  Writer
+}
+import java.util.Scanner
 import org.enso.polyglot.debugger.{ReplExecutor, SessionManager}
 import org.jline.reader.impl.DefaultParser
+import org.jline.reader.impl.history.DefaultHistory
 import org.jline.reader.{LineReader, LineReaderBuilder}
 import org.jline.terminal.{Terminal, TerminalBuilder}
 
+import java.nio.file.Path
 import scala.util.Try
 
 /** Represents user console input.
@@ -85,13 +95,31 @@ case class SimpleReplIO(in: InputStream, out: OutputStream) extends ReplIO {
 
 /** An implementation of [[ReplIO]] using system terminal capabilities.
   */
-case class TerminalIO() extends ReplIO {
+case class TerminalIO(historyFilePath: Path) extends ReplIO {
   private val terminal: Terminal =
     TerminalBuilder.builder().system(true).build()
   private val parser: DefaultParser = new DefaultParser()
   parser.setEscapeChars(null)
+  private val history = new DefaultHistory()
   private val lineReader: LineReader =
-    LineReaderBuilder.builder().parser(parser).terminal(terminal).build()
+    LineReaderBuilder
+      .builder()
+      .parser(parser)
+      .variable(LineReader.HISTORY_FILE, historyFilePath)
+      .history(history)
+      .terminal(terminal)
+      .build()
+
+  Runtime.getRuntime.addShutdownHook(new Thread() {
+    override def run(): Unit = {
+      try {
+        history.save()
+      } catch {
+        case e: IOException =>
+          Logger[TerminalIO].warn("Failed to save REPL history.", e)
+      }
+    }
+  })
 
   /** Ask user for a line of input, using given prompt
     * @param prompt the prompt to display to the user

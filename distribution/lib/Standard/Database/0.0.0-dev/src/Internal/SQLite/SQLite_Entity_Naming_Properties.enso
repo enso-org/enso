@@ -1,0 +1,11 @@
+from Standard.Base import all
+
+import Standard.Table.Internal.Naming_Properties.Unlimited_Naming_Properties
+
+import project.Internal.Connection.Entity_Naming_Properties.Entity_Naming_Properties
+
+## PRIVATE
+new : Entity_Naming_Properties
+new =
+    default = Unlimited_Naming_Properties.Instance is_case_sensitive=False
+    Entity_Naming_Properties.Value for_table_names=default for_column_names=default

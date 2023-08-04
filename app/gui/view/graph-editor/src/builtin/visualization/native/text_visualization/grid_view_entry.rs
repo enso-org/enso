@@ -78,6 +78,10 @@ impl Entry {
         let mut style = "position: absolute; white-space: pre; pointer-events: auto;".to_string();
         write!(style, "left: {left}px; top: {top}px;").ok();
         write!(style, "width: {width}px; height: {height}px;").ok();
+        // This prevents a fallback font from being used. Using any other font than the one
+        // specified will break the layout mechanism because the calculated width of the chunks no
+        // longer matches the rendered width of the chunks.
+        write!(style, "font-display: block;").ok();
         // The default line height in browsers is 1.2, which is great for multi-line text and
         // elements whose height is greater than the line height. In this case, however, where the
         // height and the font size are set to the same value, the default setting of 1.2 pushes

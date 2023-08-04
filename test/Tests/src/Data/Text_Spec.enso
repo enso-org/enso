@@ -134,6 +134,23 @@ spec =
             Ordering.compare common_prefix+complex_letter_3+later_suffix  common_prefix+complex_letter_1+earlier_suffix . should_equal Ordering.Greater
             Ordering.compare common_prefix+complex_letter_1+later_suffix  common_prefix+complex_letter_2+earlier_suffix . should_equal Ordering.Greater
 
+        Test.specify "normalizes correctly" <|
+            'aśb'.codepoints . should_equal [97, 347, 98]
+            'as\u0301b'.codepoints . should_equal [97, 115, 769, 98]
+            'aśb'.normalize.codepoints . should_equal [97, 115, 769, 98]
+            'as\u0301b'.normalize.codepoints . should_equal [97, 115, 769, 98]
+
+        Test.specify "normalizes correctly using different standard Unicode normalization modes" <|
+            ## GREEK UPSILON WITH ACUTE AND HOOK SYMBOL behaves differently with each mode.
+               See https://unicode.org/faq/normalization.html
+            s = 'ϓ'
+            s.normalize . codepoints . should_equal [978, 769]
+            s.normalize Normalization.NFC . codepoints . should_equal [979]
+            s.normalize Normalization.NFD . codepoints . should_equal [978, 769]
+            s.normalize Normalization.NFKC . codepoints . should_equal [910]
+            s.normalize Normalization.NFKD . codepoints . should_equal [933, 769]
+            s.normalize Normalization.NFKCCasefold . codepoints . should_equal [973]
+
         Test.specify "should correctly handle case-insensitive equality" <|
             "aBc" . equals_ignore_case "Abc" . should_be_true
             "abc" . equals_ignore_case "abd" . should_be_false

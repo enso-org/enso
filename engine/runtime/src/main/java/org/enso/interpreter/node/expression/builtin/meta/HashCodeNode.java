@@ -54,6 +54,7 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.state.State;
+import org.enso.polyglot.common_utils.Core_Text_Utils;
 
 /**
  * Implements {@code hash_code} functionality.
@@ -486,12 +487,7 @@ public abstract class HashCodeNode extends Node {
     } catch (UnsupportedMessageException e) {
       throw new IllegalStateException(e);
     }
-    Normalizer2 normalizer = Normalizer2.getNFDInstance();
-    if (normalizer.isNormalized(str)) {
-      return str.hashCode();
-    } else {
-      return normalizer.normalize(str).hashCode();
-    }
+    return Core_Text_Utils.unicodeNormalizedHashCode(str);
   }
 
   @Specialization(

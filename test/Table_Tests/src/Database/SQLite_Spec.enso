@@ -1,16 +1,18 @@
 from Standard.Base import all
 import Standard.Base.Runtime.Ref.Ref
 import Standard.Base.Errors.File_Error.File_Error
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import Standard.Table.Data.Type.Value_Type.Bits
 from Standard.Table import Table, Value_Type
+from Standard.Table.Errors import Invalid_Column_Names, Duplicate_Output_Column_Names
 
 import Standard.Database.Data.Column.Column
 import Standard.Database.Internal.Replace_Params.Replace_Params
 from Standard.Database import all
 from Standard.Database.Errors import SQL_Error, Unsupported_Database_Operation
 
-from Standard.Test import Test, Test_Suite
+from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions
 
 import project.Database.Common.Common_Spec
@@ -91,6 +93,34 @@ sqlite_specific_spec prefix connection setup =
             action = connection.read (SQL_Query.Raw_SQL "SELECT A FROM undefined_table")
             action . should_fail_with SQL_Error
             action.catch.to_text . should_equal "There was an SQL error: [SQLITE_ERROR] SQL error or missing database (no such table: undefined_table). [Query was: SELECT A FROM undefined_table]"
+
+        Test.specify "is capable of handling weird tables" <|
+            Problems.assume_no_problems <|
+                connection.execute_update 'CREATE TEMPORARY TABLE "empty-column-name" ("" VARCHAR)'
+            t1 = connection.query (SQL_Query.Table_Name "empty-column-name")
+            Problems.expect_only_warning Invalid_Column_Names t1
+            t1.column_names . should_equal ["Column 1"]
+            m1 = t1.read
+            m1.at "Column 1" . to_vector . should_equal []
+
+            Problems.assume_no_problems <|
+                connection.execute_update 'CREATE TEMPORARY TABLE "clashing-unicode-names" ("ś" VARCHAR, "s\u0301" INTEGER)'
+            Problems.assume_no_problems <|
+                connection.execute_update 'INSERT INTO "clashing-unicode-names" VALUES (\'A\', 2)'
+            t2 = connection.query (SQL_Query.Table_Name "clashing-unicode-names")
+            Problems.expect_only_warning Duplicate_Output_Column_Names t2
+            t2.column_names . should_equal ["ś", "ś 1"]
+            m2 = t2.read
+            m2.at "ś"   . to_vector . should_equal ["A"]
+            m2.at "ś 1" . to_vector . should_equal [2]
+
+            r3 = connection.query 'SELECT 1 AS "A", 2 AS "A"'
+            r3.should_fail_with Illegal_Argument
+            r3.catch.cause . should_be_a Duplicate_Output_Column_Names
+
+            r4 = connection.query 'SELECT 1 AS ""'
+            r4.should_fail_with Illegal_Argument
+            r4.catch.cause . should_be_a Invalid_Column_Names
 
     tinfo = Name_Generator.random_name "Tinfo"
     connection.execute_update 'CREATE TABLE "'+tinfo+'" ("strs" VARCHAR, "ints" INTEGER, "bools" BOOLEAN, "reals" REAL)'

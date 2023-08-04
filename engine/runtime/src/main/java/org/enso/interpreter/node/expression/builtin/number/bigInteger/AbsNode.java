@@ -8,7 +8,7 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(type = "Big_Integer", name = "abs", description = "Big integer absolute value.")
 public class AbsNode extends Node {
-  private @Child ToEnsoNumberNode toEnsoNumberNode = ToEnsoNumberNode.build();
+  private @Child ToEnsoNumberNode toEnsoNumberNode = ToEnsoNumberNode.create();
 
   Object execute(EnsoBigInteger self) {
     return toEnsoNumberNode.execute(BigIntegerOps.abs(self.getValue()));

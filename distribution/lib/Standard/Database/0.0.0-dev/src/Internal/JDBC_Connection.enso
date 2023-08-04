@@ -11,14 +11,16 @@ import Standard.Table.Data.Type.Value_Type.Value_Type
 import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
 import project.Data.Table.Table as Database_Table
+import project.Internal.Column_Fetcher as Column_Fetcher_Module
 import project.Internal.In_Transaction.In_Transaction
+import project.Internal.SQL_Warning_Helper
 import project.Internal.Statement_Setter.Statement_Setter
 from project.Errors import SQL_Error, SQL_Timeout
+from project.Internal.Result_Set import result_set_to_table
 
 polyglot java import java.sql.Connection
 polyglot java import java.sql.DatabaseMetaData
 polyglot java import java.sql.PreparedStatement
-polyglot java import java.sql.ResultSet
 polyglot java import java.sql.SQLException
 polyglot java import java.sql.SQLTimeoutException
 polyglot java import java.util.Properties
@@ -120,15 +122,38 @@ type JDBC_Connection
     raw_fetch_columns : Text | SQL_Statement -> Boolean -> Statement_Setter -> Any
     raw_fetch_columns self statement execute_query statement_setter =
         self.with_prepared_statement statement statement_setter stmt->
-            metadata = if execute_query then stmt.executeQuery.getMetaData else
-                stmt.getMetaData
+            metadata = case execute_query of
+                True ->
+                    rs = stmt.executeQuery
+                    SQL_Warning_Helper.process_warnings rs <|
+                        rs.getMetaData
+                False ->
+                    stmt.getMetaData
 
             resolve_column ix =
                 name = metadata.getColumnLabel ix+1
                 sql_type = SQL_Type.from_metadata metadata ix+1
                 [name, sql_type]
 
-            Vector.new metadata.getColumnCount resolve_column
+            columns = Vector.new metadata.getColumnCount resolve_column
+            SQL_Warning_Helper.process_warnings stmt <|
+                columns
+
+    ## PRIVATE
+       Reads a raw SQL statement, using a very simple dialect-agnostic type
+       mapping.
+
+       It may be used for accessing simple database metadata. It should never be
+       used for proper queries.
+    raw_read_statement : Text -> Materialized_Table
+    raw_read_statement self raw_sql =
+        self.with_prepared_statement raw_sql Statement_Setter.null stmt->
+            rs = stmt.executeQuery
+            make_fallback_fetcher _ =
+                Column_Fetcher_Module.fallback_fetcher
+            table = result_set_to_table rs make_fallback_fetcher
+            SQL_Warning_Helper.process_warnings stmt <|
+                table
 
     ## PRIVATE
        Checks that the query has no holes, and if it does, throws an error.
