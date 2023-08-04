@@ -22,24 +22,25 @@ public class Core_Math_Utils {
    *
    * <p>If the argument is `NaN` or `+/-Inf`, an `Arithmetic_Error` error is thrown.
    *
-   * @param n the number to round.
+   * @param n             the number to round.
    * @param decimalPlaces the number of decimal places to round to. Can be negative, which results
-   *     in rounding to positive integer powers of 10. Must be between -15 and 15 (inclusive).
-   * @param useBankers rounds mid-point to nearest even number.
+   *                      in rounding to positive integer powers of 10. Must be between -15 and 15 (inclusive).
+   * @param useBankers    rounds mid-point to nearest even number.
    * @return the rounded number.
-   * @throws ArithmeticException if the input is NaN/Inf.
+   * @throws ArithmeticException      if the input is NaN/Inf.
    * @throws IllegalArgumentException if `n` is outside the allowed range.
    * @throws IllegalArgumentException if `decimalPlaces` is outside the allowed range.
    */
   public static double roundDouble(double n, int decimalPlaces, boolean useBankers) {
+
     if (decimalPlaces < ROUND_MIN_DECIMAL_PLACES || decimalPlaces > ROUND_MAX_DECIMAL_PLACES) {
       String msg =
-          "round: decimalPlaces must be between "
-              + ROUND_MIN_DECIMAL_PLACES
-              + " and "
-              + ROUND_MAX_DECIMAL_PLACES
-              + " (inclusive), but was "
-              + decimalPlaces;
+              "round: decimalPlaces must be between "
+                      + ROUND_MIN_DECIMAL_PLACES
+                      + " and "
+                      + ROUND_MAX_DECIMAL_PLACES
+                      + " (inclusive), but was "
+                      + decimalPlaces;
       throw new IllegalArgumentException(msg);
     }
     if (Double.isNaN(n) || Double.isInfinite(n)) {
@@ -48,12 +49,12 @@ public class Core_Math_Utils {
     }
     if (n < ROUND_MIN_DOUBLE || n > ROUND_MAX_DOUBLE) {
       String msg =
-          "Error: `round` can only accept values between "
-              + ROUND_MIN_DOUBLE
-              + " and "
-              + ROUND_MAX_DOUBLE
-              + " (inclusive), but was "
-              + n;
+              "Error: `round` can only accept values between "
+                      + ROUND_MIN_DOUBLE
+                      + " and "
+                      + ROUND_MAX_DOUBLE
+                      + " (inclusive), but was "
+                      + n;
       throw new IllegalArgumentException(msg);
     }
 

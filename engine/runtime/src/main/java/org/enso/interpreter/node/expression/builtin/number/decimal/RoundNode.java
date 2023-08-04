@@ -4,6 +4,7 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.CountingConditionProfile;
+import com.oracle.truffle.api.profiles.ValueProfile;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import org.enso.interpreter.dsl.BuiltinMethod;
@@ -33,7 +34,14 @@ public class RoundNode extends Node {
     /** Minimum value for the `n` parameter to `roundDouble`. */
     private static final double ROUND_MAX_DOUBLE = 99999999999999.0;
 
+    private final ValueProfile constantPlacesDecimalPlaces = ValueProfile.createIdentityProfile();
+
+    private final ValueProfile constantPlacesUseBankers = ValueProfile.createIdentityProfile();
+
     Object execute(double n, long decimalPlaces, boolean useBankers) {
+        decimalPlaces = constantPlacesDecimalPlaces.profile(decimalPlaces);
+        useBankers = constantPlacesUseBankers.profile(useBankers);
+
         if (decimalPlaces < ROUND_MIN_DECIMAL_PLACES || decimalPlaces > ROUND_MAX_DECIMAL_PLACES) {
             decimalPlacesOutOfRangePanic(decimalPlaces);
         }
@@ -70,7 +78,7 @@ public class RoundNode extends Node {
     }
 
     @TruffleBoundary
-    private void decimalPlacesOutOfRangePanic(long decimalPlaces) {
+    private void decimalPlacesOutOfRangePanic(long decimalPlaces) throws PanicException {
         String msg =
                 "round: decimalPlaces must be between "
                         + ROUND_MIN_DECIMAL_PLACES
@@ -83,7 +91,7 @@ public class RoundNode extends Node {
     }
 
     @TruffleBoundary
-    private void argumentOutOfRangePanic(double n) {
+    private void argumentOutOfRangePanic(double n) throws PanicException {
         String msg =
                 "Error: `round` can only accept values between "
                         + ROUND_MIN_DOUBLE
@@ -96,7 +104,7 @@ public class RoundNode extends Node {
     }
 
     @TruffleBoundary
-    private void specialValuePanic(double n) {
+    private void specialValuePanic(double n) throws PanicException {
         Builtins builtins = EnsoContext.get(this).getBuiltins();
         throw new PanicException(builtins.error().getDecimalPlacesTooBigError(), this);
     }
