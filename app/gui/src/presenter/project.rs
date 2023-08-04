@@ -76,7 +76,11 @@ impl Model {
         let shortcut_transaction = default();
         let options = notification::UpdateOptions {
             render:  Some(EXECUTION_FAILED_MESSAGE.into()),
-            options: notification::Options { r#type: Some(notification::Type::Error), ..default() },
+            options: notification::Options {
+                auto_close: Some(notification::AutoClose::Never()),
+                r#type: Some(notification::Type::Error),
+                ..default()
+            },
         };
         let execution_failed_notification = notification::Notification::new(options);
         Model {
