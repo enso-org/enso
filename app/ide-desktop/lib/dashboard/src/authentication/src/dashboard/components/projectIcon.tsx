@@ -328,7 +328,9 @@ export default function ProjectIcon(props: ProjectIconProps) {
                 }
             }
         }
-    }, [checkState, item.id, item.title, backend, /* should never change */ setState])
+        // `backend` is NOT a dependency as an asset belongs to a specific backend.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [checkState, item.id, item.title, /* should never change */ setState])
 
     const closeProject = async (triggerOnClose = true) => {
         setToastId(null)
