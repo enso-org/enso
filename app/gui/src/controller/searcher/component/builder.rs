@@ -13,6 +13,8 @@ use crate::model::suggestion_database;
 use double_representation::name::project::STANDARD_NAMESPACE;
 use double_representation::name::QualifiedName;
 use double_representation::name::QualifiedNameRef;
+use enso_doc_parser::DocSection;
+use enso_doc_parser::Tag;
 use enso_suggestion_database::SuggestionDatabase;
 
 
@@ -238,6 +240,18 @@ impl WhenDisplayed {
         // Currently, the engine does the filtering.
         Self::Always
     }
+
+    fn consider_tags(self, entry: &suggestion_database::Entry) -> Self {
+        let is_private = entry
+            .documentation
+            .iter()
+            .any(|doc| matches!(doc, DocSection::Tag { tag: Tag::Private, .. }));
+        if is_private {
+            Self::Never
+        } else {
+            self
+        }
+    }
 }
 
 impl<'a> Builder<'a> {
@@ -272,6 +286,7 @@ impl<'a> Builder<'a> {
             None if self.this_type.is_some() => WhenDisplayed::with_self_type(),
             None => WhenDisplayed::in_base_mode(&entry, group_id.is_some()),
         };
+        let when_displayed = when_displayed.consider_tags(&entry);
         let component = Component::new_from_database_entry(id, entry, group_id);
         if matches!(when_displayed, WhenDisplayed::Always) {
             self.built_list.displayed_by_default.push(component.clone());
@@ -348,6 +363,9 @@ mod tests {
                     #[in_group("First Group")]
                     fn fun2() -> Standard.Base.Any;
 
+                    #[with_doc_section(DocSection::Tag { tag: Tag::Private, body: default() })]
+                    fn private() -> Standard.Base.Any;
+
                     mod SubModule1 {
                         fn fun4() -> Standard.Base.Any;
                     }
@@ -422,7 +440,8 @@ mod tests {
             "test.Test.TopModule1",
             "test.Test.TopModule2",
         ]);
-        assert_eq!(list.components.len(), database.keys().len());
+        // We subtract a single private component.
+        assert_eq!(list.components.len(), database.keys().len() - 1);
 
         assert_eq!(list.groups.len(), 2);
         check_groups(&list, vec![Some(0), Some(0), Some(0), Some(1), None, None]);
