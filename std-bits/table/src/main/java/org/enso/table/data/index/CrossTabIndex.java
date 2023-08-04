@@ -20,50 +20,37 @@ public class CrossTabIndex {
 
   private Column[] yColumns;
 
-  private MultiValueIndex<UnorderedMultiValueKey> combinedIndex;
+  private MultiValueIndex<CombinedKey<UnorderedMultiValueKey, UnorderedMultiValueKey>> combinedIndex;
 
   private ObjectNumberer<UnorderedMultiValueKey> xKeyNumberer;
 
   private ObjectNumberer<UnorderedMultiValueKey> yKeyNumberer;
 
-  private UnorderedMultiValueKey[][] grid;
+  private CombinedKey<UnorderedMultiValueKey, UnorderedMultiValueKey>[][] grid;
 
   public CrossTabIndex(Column[] xColumns, Column[] yColumns, int tableSize) {
     this.xColumns = xColumns;
     this.yColumns = yColumns;
 
     // Create combined index
-    Column combinedColumns[] =
-        Stream.concat(Arrays.stream(xColumns), Arrays.stream(yColumns)).toArray(Column[]::new);
     combinedIndex =
-        MultiValueIndex.makeUnorderedIndex(
-            combinedColumns, tableSize, TextFoldingStrategy.unicodeNormalizedFold);
-
-    // Generate lists of combined keys and subkeys
-    List<UnorderedMultiValueKey> combinedKeys = new ArrayList<>(combinedIndex.keys());
-    List<UnorderedMultiValueKey> xSubKeys = new ArrayList<>(combinedKeys.size());
-    List<UnorderedMultiValueKey> ySubKeys = new ArrayList<>(combinedKeys.size());
-    int[] xColumnIndices = IntStream.range(0, xColumns.length).toArray();
-    int[] yColumnIndices =
-        IntStream.range(xColumns.length, xColumns.length + yColumns.length).toArray();
-    for (var key : combinedKeys) {
-      xSubKeys.add(key.subKey(xColumnIndices));
-      ySubKeys.add(key.subKey(yColumnIndices));
-    }
+        MultiValueIndex.makeCombinedIndex(
+            xColumns, yColumns, tableSize, TextFoldingStrategy.unicodeNormalizedFold);
 
     // Fill numberings
-    xKeyNumberer = new ObjectNumberer<>(xSubKeys);
-    yKeyNumberer = new ObjectNumberer<>(ySubKeys);
+    ObjectNumberer<UnorderedMultiValueKey> xKeyNumberer = new ObjectNumberer<>();
+    ObjectNumberer<UnorderedMultiValueKey> yKeyNumberer = new ObjectNumberer<>();
+    combinedIndex.keys().stream().map(ck -> ck.getKeyA()).forEach(k -> xKeyNumberer.add(k));
+    combinedIndex.keys().stream().map(ck -> ck.getKeyB()).forEach(k -> yKeyNumberer.add(k));
 
     // Create grid of cells, mapping x and y key indices to combined keys.
-    grid = new UnorderedMultiValueKey[numXKeys()][numYKeys()];
+    grid = new CombinedKey<UnorderedMultiValueKey, UnorderedMultiValueKey>[numXKeys()][numYKeys()];
 
     // For each combined key, use the two subkeys to determine row+col
     // coordinates, and put the key at those coordinates.
-    for (int i = 0; i < combinedIndex.size(); ++i) {
-      UnorderedMultiValueKey combinedKey = combinedKeys.get(i);
-      int xCoordinate = getXCoordinate(xSubKeys.get(i));
-      int yCoordinate = getYCoordinate(ySubKeys.get(i));
+    for (var combinedKey : combinedIndex.keys()) {
+      int xCoordinate = getXCoordinate(combinedKey.getKeyA());
+      int yCoordinate = getYCoordinate(combinedKey.getKeyB());
 
       // The pair (xCoordinate, yCoordinate) must be unique so this
       // check is not really necessary.

@@ -10,19 +10,19 @@ public class ObjectNumberer<T> {
   public ObjectNumberer() {}
 
   public ObjectNumberer(Collection<T> ts) {
-    putAll(ts);
+    addAll(ts);
   }
 
-  public synchronized void put(T t) {
+  public synchronized void add(T t) {
     if (!numbering.containsKey(t)) {
       numbering.put(t, serial);
       serial++;
     }
   }
 
-  public void putAll(Collection<T> ts) {
+  public void addAll(Collection<T> ts) {
     for (T t : ts) {
-      put(t);
+      add(t);
     }
   }
 

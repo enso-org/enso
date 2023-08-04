@@ -4,6 +4,7 @@ import java.util.*;
 import java.util.function.IntFunction;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.aggregations.Aggregator;
 import org.enso.table.data.column.builder.Builder;
@@ -23,20 +24,20 @@ public class MultiValueIndex<KeyType extends MultiValueKey> {
   public static MultiValueIndex<OrderedMultiValueKey> makeOrderedIndex(
       Column[] keyColumns, int tableSize, int[] ordering, Comparator<Object> objectComparator) {
     TreeMap<OrderedMultiValueKey, List<Integer>> locs = new TreeMap<>();
-    final Storage<?>[] storage =
+    final Storage<?>[] storages =
         Arrays.stream(keyColumns).map(Column::getStorage).toArray(Storage[]::new);
     IntFunction<OrderedMultiValueKey> keyFactory =
-        i -> new OrderedMultiValueKey(storage, i, ordering, objectComparator);
+        i -> new OrderedMultiValueKey(storages, i, ordering, objectComparator);
     return new MultiValueIndex<>(keyColumns, tableSize, locs, keyFactory);
   }
 
   public static MultiValueIndex<UnorderedMultiValueKey> makeUnorderedIndex(
       Column[] keyColumns, int tableSize, List<TextFoldingStrategy> textFoldingStrategies) {
     HashMap<UnorderedMultiValueKey, List<Integer>> locs = new HashMap<>();
-    final Storage<?>[] storage =
+    final Storage<?>[] storages =
         Arrays.stream(keyColumns).map(Column::getStorage).toArray(Storage[]::new);
     IntFunction<UnorderedMultiValueKey> keyFactory =
-        i -> new UnorderedMultiValueKey(storage, i, textFoldingStrategies);
+        i -> new UnorderedMultiValueKey(storages, i, textFoldingStrategies);
     return new MultiValueIndex<>(keyColumns, tableSize, locs, keyFactory);
   }
 
@@ -45,6 +46,31 @@ public class MultiValueIndex<KeyType extends MultiValueKey> {
     List<TextFoldingStrategy> strategies =
         ConstantList.make(commonTextFoldingStrategy, keyColumns.length);
     return makeUnorderedIndex(keyColumns, tableSize, strategies);
+  }
+
+  public static MultiValueIndex<CombinedKey<UnorderedMultiValueKey, UnorderedMultiValueKey>> makeCombinedIndex(
+          Column[] keyColumnsA, Column[] keyColumnsB, int tableSize, List<TextFoldingStrategy> textFoldingStrategies) {
+    HashMap<CombinedKey<UnorderedMultiValueKey, UnorderedMultiValueKey>, List<Integer>> locs = new HashMap<>();
+    final Storage<?>[] storagesA =
+            Arrays.stream(keyColumnsA).map(Column::getStorage).toArray(Storage[]::new);
+    final Storage<?>[] storagesB =
+            Arrays.stream(keyColumnsB).map(Column::getStorage).toArray(Storage[]::new);
+    IntFunction<CombinedKey<UnorderedMultiValueKey, UnorderedMultiValueKey>> keyFactory =
+            i -> {
+              var subKeyA = new UnorderedMultiValueKey(storagesA, i, textFoldingStrategies);
+              var subKeyB = new UnorderedMultiValueKey(storagesA, i, textFoldingStrategies);
+              return new CombinedKey<UnorderedMultiValueKey, UnorderedMultiValueKey>(subKeyA, subKeyB);
+            };
+    Column combinedColumns[] =
+        Stream.concat(Arrays.stream(keyColumnsA), Arrays.stream(keyColumnsB)).toArray(Column[]::new);
+    return new MultiValueIndex<CombinedKey<UnorderedMultiValueKey, UnorderedMultiValueKey>>(combinedColumns, tableSize, locs, keyFactory);
+  }
+
+  public static MultiValueIndex<CombinedKey<UnorderedMultiValueKey, UnorderedMultiValueKey>> makeCombinedIndex(
+          Column[] keyColumnsA, Column[] keyColumnsB, int tableSize, TextFoldingStrategy commonTextFoldingStrategy) {
+    List<TextFoldingStrategy> strategies =
+            ConstantList.make(commonTextFoldingStrategy, keyColumnsA.length + keyColumnsB.length);
+    return makeCombinedIndex(keyColumnsA, keyColumnsB, tableSize, strategies);
   }
 
   private MultiValueIndex(
