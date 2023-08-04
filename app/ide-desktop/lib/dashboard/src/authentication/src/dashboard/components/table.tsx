@@ -86,6 +86,34 @@ export default function Table<T, State = never, RowState = never, Key extends st
     // a re-render.
     const [selectedKeys, setSelectedKeys] = React.useState(() => new Set<Key>())
     const [previouslySelectedKey, setPreviouslySelectedKey] = React.useState<Key | null>(null)
+    const bodyRef = React.useRef<HTMLTableSectionElement>(null)
+
+    // This is required to prevent the table body from overlapping the table header, because
+    // the table header is transparent.
+    React.useEffect(() => {
+        const body = bodyRef.current
+        const scrollContainer = bodyRef.current?.parentElement?.parentElement?.parentElement
+        if (body != null && scrollContainer != null) {
+            let isClipPathUpdateQueued = false
+            const updateClipPath = () => {
+                isClipPathUpdateQueued = false
+                body.style.clipPath = `inset(${scrollContainer.scrollTop}px 0 0 0)`
+            }
+            const onScroll = () => {
+                if (!isClipPathUpdateQueued) {
+                    isClipPathUpdateQueued = true
+                    requestAnimationFrame(updateClipPath)
+                }
+            }
+            updateClipPath()
+            scrollContainer.addEventListener('scroll', onScroll)
+            return () => {
+                scrollContainer.removeEventListener('scroll', onScroll)
+            }
+        } else {
+            return
+        }
+    }, [])
 
     React.useEffect(() => {
         const onDocumentClick = (event: MouseEvent) => {
@@ -180,7 +208,7 @@ export default function Table<T, State = never, RowState = never, Key extends st
     )
 
     const headerRow = (
-        <tr>
+        <tr className="sticky top-2">
             {columns.map(column => {
                 // This is a React component, even though it does not contain JSX.
                 // eslint-disable-next-line no-restricted-syntax
@@ -255,7 +283,7 @@ export default function Table<T, State = never, RowState = never, Key extends st
             }}
         >
             <thead>{headerRow}</thead>
-            <tbody>{itemRows}</tbody>
+            <tbody ref={bodyRef}>{itemRows}</tbody>
         </table>
     )
 }

@@ -636,28 +636,30 @@ export default function AssetsTable(props: AssetsTableProps) {
     return (
         <div className="flex-1 overflow-auto">
             <div className="flex flex-col w-min min-w-full">
-                <div className="h-0">
-                    <div className="block sticky right-0 px-2 py-1 ml-auto mt-3 w-29 z-10">
-                        <div className="inline-flex gap-3">
-                            {columnModule.EXTRA_COLUMNS.map(column => (
-                                <Button
-                                    key={column}
-                                    active={extraColumns.has(column)}
-                                    image={columnModule.EXTRA_COLUMN_IMAGES[column]}
-                                    onClick={() => {
-                                        const newExtraColumns = new Set(extraColumns)
-                                        if (extraColumns.has(column)) {
-                                            newExtraColumns.delete(column)
-                                        } else {
-                                            newExtraColumns.add(column)
-                                        }
-                                        setExtraColumns(newExtraColumns)
-                                    }}
-                                />
-                            ))}
+                {backend.type !== backendModule.BackendType.local && (
+                    <div className="h-0">
+                        <div className="block sticky right-0 px-2 py-1 ml-auto mt-3 w-29 z-10">
+                            <div className="inline-flex gap-3">
+                                {columnModule.EXTRA_COLUMNS.map(column => (
+                                    <Button
+                                        key={column}
+                                        active={extraColumns.has(column)}
+                                        image={columnModule.EXTRA_COLUMN_IMAGES[column]}
+                                        onClick={() => {
+                                            const newExtraColumns = new Set(extraColumns)
+                                            if (extraColumns.has(column)) {
+                                                newExtraColumns.delete(column)
+                                            } else {
+                                                newExtraColumns.add(column)
+                                            }
+                                            setExtraColumns(newExtraColumns)
+                                        }}
+                                    />
+                                ))}
+                            </div>
                         </div>
                     </div>
-                </div>
+                )}
                 <Table<
                     backendModule.AnyAsset,
                     AssetsTableState,
