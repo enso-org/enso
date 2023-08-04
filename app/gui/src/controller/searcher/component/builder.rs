@@ -362,7 +362,7 @@ mod tests {
                     #[in_group("First Group")]
                     fn fun2() -> Standard.Base.Any;
 
-                    #[with_doc_section(DocSection::Tag { tag: Tag::Private, body: default() })]
+                    #[with_doc_section(doc_section!(@ Private, ""))]
                     fn private() -> Standard.Base.Any;
 
                     mod SubModule1 {
