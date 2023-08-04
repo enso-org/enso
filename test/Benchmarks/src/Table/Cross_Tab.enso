@@ -26,19 +26,13 @@ create_table num_rows =
     Table.new [size, store, typ, price]
 
 # The Benchmarks ==============================================================
-bench =
-    counts = [[25, 1000], [250, 1000], [2500, 100], [25000, 10]]
-    counts.map c->
-        num_rows = c.at 0
-        iter_size = c.at 1
-
+collect_benches group_builder num_rows =
+        bench_measure ~act name = group_builder.specify name act
         table = create_table num_rows
 
         measure group_by name_column values=[Count] =
-            operation = num_rows.to_text + "-" + (group_by.join '+') + "-" + name_column + "-" + (values.map .to_text . join "+")
-            approach = "one index"
-            name = operation + "/" + approach
-            Bench.measure (table.cross_tab0 group_by name_column values) name iter_size num_iterations
+            name = num_rows.to_text + "__" + (group_by.join '_') + "__" + name_column + "_" + (values.map .to_text . join "_")
+            bench_measure (table.cross_tab group_by name_column values) name
 
         measure [] "size"
         measure [] "type"
@@ -47,5 +41,20 @@ bench =
         measure ["store"] "size"
         measure ["size"] "store"
         measure ["size"] "store" values=[Count, Sum "price"]
+
+bench =
+    counts = [[25, 1000], [250, 1000], [2500, 100], [25000, 10]]
+
+    all = Bench.build builder->
+        counts.map c->
+            num_rows = c.at 0
+            iter_size = c.at 1
+
+            group_name = "CrossTab_" + num_rows.to_text + "_" + iter_size.to_text
+            options = Bench.options . size iter_size . iter num_iterations
+            builder.group group_name options group_builder->
+                collect_benches group_builder num_rows
+
+    all . run_main
 
 main = bench
