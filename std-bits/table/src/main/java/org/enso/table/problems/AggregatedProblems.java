@@ -53,16 +53,6 @@ public class AggregatedProblems {
     count++;
   }
 
-  public void addAll(List<Problem> problems) {
-    for (Problem p : problems) {
-      add(p);
-    }
-  }
-
-  public void addAll(AggregatedProblems that) {
-    addAll(that.problems);
-  }
-
   public static AggregatedProblems merge(AggregatedProblems... problems) {
     List<Problem> merged = new ArrayList<>();
     int count = 0;

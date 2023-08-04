@@ -56,7 +56,7 @@ public class CrossTabIndex {
     yKeyNumberer = new ObjectNumberer<>(ySubKeys);
 
     // Create grid of cells, mapping x and y key indices to combined keys.
-    grid = new UnorderedMultiValueKey[numXKeys()][numYKeys()];
+    grid = new UnorderedMultiValueKey[xKeysCount()][yKeysCount()];
 
     // For each combined key, use the two subkeys to determine row+col
     // coordinates, and put the key at those coordinates.
@@ -95,11 +95,11 @@ public class CrossTabIndex {
     return yKeyNumberer.getNumber(key);
   }
 
-  public int numXKeys() {
+  public int xKeysCount() {
     return xKeyNumberer.size();
   }
 
-  public int numYKeys() {
+  public int yKeysCount() {
     return yKeyNumberer.size();
   }
 
@@ -107,7 +107,7 @@ public class CrossTabIndex {
     Context context = Context.getCurrent();
     NameDeduplicator outputTableNameDeduplicator = new NameDeduplicator();
 
-    final int columnCount = yColumns.length + numXKeys() * aggregates.length;
+    final int columnCount = yColumns.length + xKeysCount() * aggregates.length;
     if (columnCount > MAXIMUM_CROSS_TAB_COLUMN_COUNT) {
       throw new TooManyColumnsException(
           "The cross_tab contained too many columns. Maximum allowed is "
@@ -122,20 +122,19 @@ public class CrossTabIndex {
     // Create the storage
     Builder[] storage = new Builder[columnCount];
     for (int i = 0; i < yColumns.length; i++) {
-      storage[i] = Builder.getForType(yColumns[i].getStorage().getType(), numYKeys());
+      storage[i] = Builder.getForType(yColumns[i].getStorage().getType(), yKeysCount());
       context.safepoint();
     }
 
-    for (int i = 0; i < numXKeys(); i++) {
+    for (int i = 0; i < xKeysCount(); i++) {
       int offset = yColumns.length + i * aggregates.length;
       for (int j = 0; j < aggregates.length; j++) {
-        storage[offset + j] = Builder.getForType(aggregates[j].getType(), numYKeys());
+        storage[offset + j] = Builder.getForType(aggregates[j].getType(), yKeysCount());
         context.safepoint();
       }
     }
 
     // Fill the columns.
-    var emptyList = new ArrayList<Integer>();
     for (UnorderedMultiValueKey ySubKey : getYKeys()) {
 
       // Fill the y key columns.
@@ -147,7 +146,7 @@ public class CrossTabIndex {
       for (UnorderedMultiValueKey xSubKey : getXKeys()) {
         List<Integer> rowIds = get(xSubKey, ySubKey);
         if (rowIds == null) {
-          rowIds = emptyList;
+          rowIds = List.of();
         }
 
         for (int i = 0; i < aggregates.length; i++) {
