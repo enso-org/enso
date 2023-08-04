@@ -63,7 +63,7 @@ spec =
             w2.column_name . should_equal "Y"
 
             t3 = Table.new [["X", [1, x, x+1, 1.5]]]
-            w3 = Problems.expect_only_warning Loss_Of_Integer_Precision t
+            w3 = Problems.expect_only_warning Loss_Of_Integer_Precision t3
             w3.affected_rows_count . should_equal 1
 
             c4 = Column.from_vector "X" [1.0, x, x+1, x+2, 100]
@@ -115,13 +115,13 @@ spec =
             t = (enso_project.data / "lossy_int.csv") . read
             t.column_names . should_equal ["X", "Y", "Z"]
             t.at "X" . value_type . should_equal Value_Type.Char
-            t.at "X" . should_equal ["a", "b", "c", "d"]
+            t.at "X" . to_vector . should_equal ["a", "b", "c", "d"]
             t.at "Y" . value_type . should_equal Value_Type.Float
             # Loss of precision here - the 3rd value is really x+1
-            t.at "Y" . should_equal [1, x, x, 1]
+            t.at "Y" . to_vector . should_equal [1, x, x, 1]
             w = Problems.expect_only_warning Loss_Of_Integer_Precision t
             w.column_name . should_equal "Y"
 
             # No loss of precision if Mixed type is used early enough:
             t.at "Z" . value_type . should_equal Value_Type.Mixed
-            t.at "Z" . map .to_text . should_equal (["a", 1.0, (x+1), 23].map .to_text)
+            t.at "Z" . map .to_text . to_vector . should_equal (["a", 1.0, (x+1), 23].map .to_text)
