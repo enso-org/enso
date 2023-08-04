@@ -597,7 +597,7 @@ type Loss_Of_Integer_Precision
        Create a human-readable version of the error.
     to_display_text : Text
     to_display_text self =
-        affected_rows_count.to_text+" rows contained integers that are too large to represent exactly as a floating-point number. Some loss of precision will occur. For example, the number "+self.example_value.to_text+" gets converted to "+self.example_value_converted.to_text+"."
+        self.affected_rows_count.to_text+" rows contained integers that are too large to represent exactly as a floating-point number. Some loss of precision will occur. For example, the number "+self.example_value.to_text+" gets converted to "+self.example_value_converted.to_text+"."
 
 
 type Invalid_Value_For_Type
