@@ -1,10 +1,16 @@
 /** @file The context menu for a {@link backendModule.ProjectAsset}. */
 import * as React from 'react'
+import * as toast from 'react-toastify'
 
 import * as assetEventModule from '../events/assetEvent'
+import * as authProvider from '../../authentication/providers/auth'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
+import * as hooks from '../../hooks'
+import * as http from '../../http'
+import * as loggerProvider from '../../providers/logger'
 import * as modalProvider from '../../providers/modal'
+import * as remoteBackendModule from '../remoteBackend'
 
 import * as assetContextMenu from './assetContextMenu'
 import ConfirmDeleteModal from './confirmDeleteModal'
@@ -34,8 +40,11 @@ export default function ProjectContextMenu(props: ProjectContextMenuProps) {
         dispatchAssetEvent,
         doDelete,
     } = props
+    const logger = loggerProvider.useLogger()
     const { backend } = backendProvider.useBackend()
     const { setModal, unsetModal } = modalProvider.useSetModal()
+    const { accessToken } = authProvider.useNonPartialUserSession()
+    const toastAndLog = hooks.useToastAndLog()
 
     const isDeleteDisabled = backend.type === backendModule.BackendType.local && rowState.isRunning
     const doOpenForEditing = () => {
@@ -44,6 +53,30 @@ export default function ProjectContextMenu(props: ProjectContextMenuProps) {
             type: assetEventModule.AssetEventType.openProject,
             id: item.id,
         })
+    }
+    const doUploadToCloud = async () => {
+        unsetModal()
+        if (accessToken == null) {
+            toastAndLog('Cannot upload to cloud in offline mode')
+        } else {
+            try {
+                const headers = new Headers([['Authorization', `Bearer ${accessToken}`]])
+                const client = new http.Client(headers)
+                const remoteBackend = new remoteBackendModule.RemoteBackend(client, logger)
+                const projectResponse = await fetch(`./projects/${item.id}/enso-project`)
+                await remoteBackend.uploadFile(
+                    {
+                        fileName: `${item.title}.enso-project`,
+                        fileId: null,
+                        parentDirectoryId: null,
+                    },
+                    await projectResponse.blob()
+                )
+                toast.toast.success('Successfully uploaded local project to cloud!')
+            } catch (error) {
+                toastAndLog('Could not upload local project to cloud', error)
+            }
+        }
     }
     const doRename = () => {
         setRowState(oldRowState => ({
@@ -55,6 +88,9 @@ export default function ProjectContextMenu(props: ProjectContextMenuProps) {
     return (
         <ContextMenu key={item.id} event={event}>
             <ContextMenuEntry onClick={doOpenForEditing}>Open for editing</ContextMenuEntry>
+            {backend.type === backendModule.BackendType.local && (
+                <ContextMenuEntry onClick={doUploadToCloud}>Upload to cloud</ContextMenuEntry>
+            )}
             <ContextMenuEntry onClick={doRename}>Rename</ContextMenuEntry>
             <ContextMenuEntry
                 disabled={isDeleteDisabled}
