@@ -1883,6 +1883,7 @@ dependencies = [
  "dirs",
  "enso-build-base",
  "enso-build-macros-lib",
+ "enso-enso-font",
  "ensogl-pack",
  "filetime",
  "flate2",
@@ -2113,7 +2114,6 @@ dependencies = [
 name = "enso-enso-font"
 version = "0.1.0"
 dependencies = [
- "enso-build",
  "flate2",
  "ide-ci",
  "owned_ttf_parser",

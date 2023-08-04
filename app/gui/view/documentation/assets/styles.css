@@ -28,6 +28,10 @@
   padding-bottom: 0.5rem;
 }
 
+.enso-docs code {
+  font-family: EnsoRegular;
+}
+
 /* It's better to use `.unordered-list` class here instead of `ul`, but it will break the keyed lists that a provided by the engine.
  * We need a separate way to represent keyed lists without embedded HTML tags. */
 .enso-docs ul {
@@ -196,6 +200,7 @@ div.enso-docs .marked-icon-info {
 }
 
 .enso-docs .example {
+  font-family: EnsoRegular;
   white-space: pre;
   overflow-x: auto;
   margin: 0.05rem 0.1rem;

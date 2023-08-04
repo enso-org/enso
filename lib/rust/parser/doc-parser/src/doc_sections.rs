@@ -179,7 +179,7 @@ impl<L> TokenConsumer<L> for DocSectionCollector {
     }
 
     fn start_raw(&mut self) {
-        self.current_body.push_str("<pre>");
+        self.current_body.push_str("<div class=\"example\">");
     }
 
     fn start_quote(&mut self) {
@@ -206,7 +206,7 @@ impl<L> TokenConsumer<L> for DocSectionCollector {
             ScopeType::List => self.current_body.push_str("</ul>"),
             ScopeType::ListItem => (),
             ScopeType::Paragraph => (),
-            ScopeType::Raw => self.current_body.push_str("</pre>"),
+            ScopeType::Raw => self.current_body.push_str("</div>"),
         }
     }
 }

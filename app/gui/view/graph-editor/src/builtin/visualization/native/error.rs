@@ -185,7 +185,7 @@ impl Model {
         dom.dom().set_attribute_or_warn("class", "visualization scrollable");
         dom.dom().set_style_or_warn("overflow-x", "hidden");
         dom.dom().set_style_or_warn("overflow-y", "auto");
-        dom.dom().set_style_or_warn("font-family", "DejaVuSansMonoBook");
+        dom.dom().set_style_or_warn("font-family", "EnsoRegular");
         dom.dom().set_style_or_warn("font-size", "12px");
         dom.dom().set_style_or_warn("border-radius", "14px");
         dom.dom().set_style_or_warn("padding-left", &padding_text);

@@ -27,6 +27,7 @@ use tracing::Span;
 // ==============
 
 pub mod download;
+pub mod fonts;
 pub mod google_font;
 
 
@@ -170,8 +171,7 @@ impl<Output: AsRef<Path>> ContentEnvironment<TempDir, Output> {
         let installation = ide.install();
         let asset_dir = TempDir::new()?;
         let assets_download = download_js_assets(&asset_dir);
-        let fonts_download =
-            google_font::download_google_font(&ide.cache, &ide.octocrab, "mplus1", &asset_dir);
+        let fonts_download = fonts::install_html_fonts(&ide.cache, &ide.octocrab, &asset_dir);
         let (wasm, _, _, _) =
             try_join4(wasm, installation, assets_download, fonts_download).await?;
         wasm.symlink_ensogl_dist(&ide.linked_dist)?;

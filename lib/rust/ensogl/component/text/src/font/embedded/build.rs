@@ -45,7 +45,7 @@ struct NonVariableFontDefinition {
 }
 
 impl NonVariableFontDefinition {
-    fn files(&self) -> impl Iterator<Item=&str> {
+    fn files(&self) -> impl Iterator<Item = &str> {
         self.variations.iter().map(|v| v.file.as_str())
     }
 }
@@ -142,22 +142,28 @@ mod enso_font {
     use super::*;
     use crate::CodeGenerator;
 
+    use enso_build::ide::web::fonts::get_enso_font_package;
+
     pub async fn load(out_dir: impl AsRef<Path>, code_gen: &mut CodeGenerator) -> Result {
         let font_family = enso_enso_font::FontFamily::enso();
-        font_family.download_fonts(&out_dir).await?;
+        let archive = get_enso_font_package().await?;
+        font_family.extract_fonts(archive, &out_dir).await?;
         add_entries_to_fill_map_rs(&font_family, code_gen);
         Ok(())
     }
 
-    fn add_entries_to_fill_map_rs(family: &enso_enso_font::FontFamily, code_gen: &mut CodeGenerator) {
+    fn add_entries_to_fill_map_rs(
+        family: &enso_enso_font::FontFamily,
+        code_gen: &mut CodeGenerator,
+    ) {
         let variations: Vec<NonVariableVariation> = family
             .fonts()
             .map(|variant| {
                 let file = variant.filename();
                 let header = NonVariableFaceHeader {
-                    width: variant.width(),
+                    width:  variant.width(),
                     weight: variant.weight(),
-                    style: variant.style(),
+                    style:  variant.style(),
                 };
                 NonVariableVariation { file, header }
             })

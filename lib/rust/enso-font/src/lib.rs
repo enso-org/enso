@@ -1,3 +1,6 @@
+//! The Enso Font. This crate supports downloading and unpacking the font family, as well as
+//! constructing a reduced font family from a subset of the fonts.
+
 // === Features ===
 #![feature(let_chains)]
 // === Standard Linter Configuration ===
@@ -15,9 +18,7 @@
 #![warn(unused_import_braces)]
 
 use ide_ci::prelude::*;
-use owned_ttf_parser as ttf;
-
-use enso_build::ide::web::download::get_file_from_cache_or_download;
+pub use owned_ttf_parser as ttf;
 
 
 
@@ -39,8 +40,10 @@ const ENSO_FONT_FAMILY_FONTS: &[Font] = &[
     Font { name: "Thin", weight: ttf::Weight::Thin },
 ];
 
-const PACKAGE_BASE_URL: &str = "https://github.com/enso-org/font/releases/download/1.0/";
-const PACKAGE_FILE: &str = "enso-font-1.0.tar.gz";
+/// The URL for the Enso Font package, excluding the final component.
+pub const PACKAGE_BASE_URL: &str = "https://github.com/enso-org/font/releases/download/1.0/";
+/// The final (filename) component of the URL for the Enso Font package.
+pub const PACKAGE_FILE: &str = "enso-font-1.0.tar.gz";
 const PACKAGE_FONTS_PREFIX: &str = "ttf";
 
 
@@ -49,39 +52,29 @@ const PACKAGE_FONTS_PREFIX: &str = "ttf";
 // === Font Family ===
 // ===================
 
+/// A collection of fonts.
 #[derive(Debug)]
 pub struct FontFamily {
     fonts: Vec<Font>,
 }
 
 impl FontFamily {
+    /// Returns the Enso Font.
     pub fn enso() -> Self {
-        FontFamily { fonts: ENSO_FONT_FAMILY_FONTS.iter().cloned().collect() }
+        FontFamily { fonts: ENSO_FONT_FAMILY_FONTS.to_vec() }
     }
 
+    /// This font family's name.
     pub fn name(&self) -> &'static str {
         ENSO_FONT_FAMILY_NAME
     }
 
-    pub async fn download_fonts(&self, out_dir: impl AsRef<Path>) -> Result {
-        let archive_file = Self::get_archive().await?;
-        self.extract_fonts(archive_file, out_dir)
-    }
-
-    pub fn fonts(&self) -> impl Iterator<Item=&Font> {
-        self.fonts.iter()
-    }
-}
-
-impl FontFamily {
-    async fn get_archive() -> Result<std::fs::File> {
-        let octocrab = ide_ci::github::setup_octocrab().await?;
-        let cache = ide_ci::cache::Cache::new_default().await?;
-        let url = format!("{}{}", PACKAGE_BASE_URL, PACKAGE_FILE);
-        get_file_from_cache_or_download(Path::new(PACKAGE_FILE), &cache, octocrab, url).await
-    }
-
-    fn extract_fonts(&self, archive_file: impl Read, out_dir: impl AsRef<Path>) -> Result {
+    /// Extract the fonts from the given archive file, and write them in the given directory.
+    pub async fn extract_fonts(
+        &self,
+        archive_file: impl Read,
+        out_dir: impl AsRef<Path>,
+    ) -> Result {
         let tar = flate2::read::GzDecoder::new(archive_file);
         let mut archive = tar::Archive::new(tar);
         let mut files_expected: HashSet<_> = self.fonts.iter().map(|v| v.filename()).collect();
@@ -101,6 +94,69 @@ impl FontFamily {
         );
         Ok(())
     }
+
+    /// Returns an iterator of the fonts in this family.
+    pub fn fonts(&self) -> impl Iterator<Item = &Font> {
+        self.fonts.iter()
+    }
+
+    /// Creates a [`SubfamilyBuilder`], which can be used to construct a new [`FontFamily`]
+    /// containing a subset of the fonts from this family.
+    pub fn subfamily_builder(&self) -> SubfamilyBuilder {
+        SubfamilyBuilder::new(self)
+    }
+
+    /// Return the font in this family that exactly matches the given parameters, if any is found.
+    pub fn get(&self, width: ttf::Width, weight: ttf::Weight, style: ttf::Style) -> Option<&Font> {
+        self.fonts
+            .iter()
+            .find(|font| font.width() == width && font.weight() == weight && font.style() == style)
+    }
+}
+
+
+
+// =========================
+// === Subfamily Builder ===
+// =========================
+
+/// Supports construct a [`FontFamily`] containing a subset of the fonts from a parent family.
+#[derive(Debug)]
+pub struct SubfamilyBuilder<'a> {
+    base:       &'a FontFamily,
+    referenced: HashSet<&'static str>,
+}
+
+impl<'a> SubfamilyBuilder<'a> {
+    /// Mark the font meeting the given specifications to be included in the subfamily, and return a
+    /// reference to it.
+    pub fn require(
+        &mut self,
+        width: ttf::Width,
+        weight: ttf::Weight,
+        style: ttf::Style,
+    ) -> Option<&Font> {
+        let font = self.base.get(width, weight, style);
+        if let Some(font) = font {
+            self.referenced.insert(font.name);
+        }
+        font
+    }
+
+    /// Create a new font family containing the fonts in the base family that were referenced by
+    /// [`require`].
+    pub fn finish(self) -> FontFamily {
+        let fonts_referenced =
+            self.base.fonts.iter().filter(|font| self.referenced.contains(font.name));
+        let fonts = fonts_referenced.cloned().collect();
+        FontFamily { fonts }
+    }
+}
+
+impl<'a> SubfamilyBuilder<'a> {
+    fn new(base: &'a FontFamily) -> Self {
+        Self { base, referenced: Default::default() }
+    }
 }
 
 
@@ -109,6 +165,8 @@ impl FontFamily {
 // === Font ===
 // ============
 
+/// A font, for rendering text with specific parameters (e.g. weight), in the style of a
+/// [`FontFamily`].
 #[derive(Debug, Clone, Copy)]
 pub struct Font {
     name:   &'static str,
@@ -116,18 +174,22 @@ pub struct Font {
 }
 
 impl Font {
+    /// Return the font's filename.
     pub fn filename(&self) -> String {
         format!("Enso-{}.ttf", self.name)
     }
 
+    /// Return the font's width.
     pub fn width(&self) -> ttf::Width {
         Default::default()
     }
 
+    /// Return the font's weight.
     pub fn weight(&self) -> ttf::Weight {
         self.weight
     }
 
+    /// Return the font's style.
     pub fn style(&self) -> ttf::Style {
         Default::default()
     }
