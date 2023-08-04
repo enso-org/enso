@@ -67,11 +67,6 @@ body {
   @tailwind utilities;
 
   @layer components {
-    .cursor-none-recursive,
-    .cursor-none-recursive * {
-      cursor: none;
-    }
-
     .clip-path-top {
       clip-path: polygon(0 0, 100% 0, 100% calc(50% - 1px), 0 calc(50% - 1px));
     }
@@ -156,5 +151,11 @@ body {
   .pointer-events-none-recursive,
   .pointer-events-none-recursive * {
     pointer-events: none;
+  }
+
+  /* The class is repeated to make this take precedence over most Tailwind classes. */
+  .cursor-none-recursive.cursor-none-recursive,
+  .cursor-none-recursive.cursor-none-recursive * {
+    cursor: none;
   }
 }
