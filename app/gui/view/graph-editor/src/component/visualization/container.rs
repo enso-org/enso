@@ -393,6 +393,7 @@ impl ContainerModel {
 
     /// Update the selection shape. `value` is a selection width factor in range `[0, 1]`.
     fn set_selection(&self, container_size: Vector2, value: f32, style: &SelectionStyle) {
+        console_log!("set_selection({container_size:?}, {value}, {style:?}");
         let border_width = style.width * value;
         let overall_size = container_size + Vector2(border_width * 2.0, border_width * 2.0);
         if value > 0.0 {
@@ -497,9 +498,10 @@ impl ContainerModel {
             bg_dom.set_style_or_warn("width", format!("{}px", size[0]));
             bg_dom.set_style_or_warn("height", format!("{}px", size[1]));
         } else {
+            // We don't resize `selection` here, because it's handled in "set_selection" method,
+            // which in turn is called on every size change anyway.
             self.view.hover_area.set_size(size);
             self.view.resize_grip.set_size(size);
-            self.view.selection.set_size(size);
             self.view.loading_spinner.set_size(size);
             dom.set_style_or_warn("width", format!("{}px", size[0]));
             dom.set_style_or_warn("height", format!("{}px", size[1]));
