@@ -38,6 +38,8 @@ interface InitialRowStateProp<RowState> {
 /** Props for a {@link Table}. */
 interface InternalTableProps<T, State = never, RowState = never, Key extends string = string> {
     rowComponent?: (props: tableRow.TableRowProps<T, State, RowState, Key>) => JSX.Element
+    scrollContainerRef?: React.RefObject<HTMLDivElement>
+    headerRowRef?: React.RefObject<HTMLTableRowElement>
     items: T[]
     state?: State
     initialRowState?: RowState
@@ -70,6 +72,8 @@ export default function Table<T, State = never, RowState = never, Key extends st
 ) {
     const {
         rowComponent: RowComponent = TableRow,
+        scrollContainerRef,
+        headerRowRef,
         items,
         getKey,
         columns,
@@ -92,7 +96,7 @@ export default function Table<T, State = never, RowState = never, Key extends st
     // the table header is transparent.
     React.useEffect(() => {
         const body = bodyRef.current
-        const scrollContainer = bodyRef.current?.parentElement?.parentElement?.parentElement
+        const scrollContainer = scrollContainerRef?.current
         if (body != null && scrollContainer != null) {
             let isClipPathUpdateQueued = false
             const updateClipPath = () => {
@@ -113,7 +117,7 @@ export default function Table<T, State = never, RowState = never, Key extends st
         } else {
             return
         }
-    }, [])
+    }, [/* should never change */ scrollContainerRef])
 
     React.useEffect(() => {
         const onDocumentClick = (event: MouseEvent) => {
@@ -208,7 +212,7 @@ export default function Table<T, State = never, RowState = never, Key extends st
     )
 
     const headerRow = (
-        <tr className="sticky top-2">
+        <tr ref={headerRowRef} className="sticky top-2">
             {columns.map(column => {
                 // This is a React component, even though it does not contain JSX.
                 // eslint-disable-next-line no-restricted-syntax

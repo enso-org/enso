@@ -19,6 +19,7 @@ import * as modalProvider from '../../providers/modal'
 import * as permissions from '../permissions'
 import * as presenceModule from '../presence'
 import * as string from '../../string'
+import * as style from '../style'
 import * as uniqueString from '../../uniqueString'
 
 import StatelessSpinner, * as statelessSpinner from './statelessSpinner'
@@ -38,6 +39,8 @@ import Table from './table'
 const EXTRA_COLUMNS_KEY =
     common.PRODUCT_NAME.toLowerCase() + '-dashboard-directory-list-extra-columns'
 
+/** The number of pixels the header bar should shrink when the extra tab selector is visible. */
+const TABLE_HEADER_WIDTH_SHRINKAGE_PX = 142
 /** The user-facing name of this asset type. */
 const ASSET_TYPE_NAME = 'item'
 /** The user-facing plural name of this asset type. */
@@ -285,6 +288,8 @@ export default function AssetsTable(props: AssetsTableProps) {
     )
     // Items in the root directory have a depth of 0.
     const itemDepthsRef = React.useRef(new Map<backendModule.AssetId, number>())
+    const scrollContainerRef = React.useRef<HTMLDivElement>(null)
+    const headerRowRef = React.useRef<HTMLTableRowElement>(null)
 
     React.useEffect(() => {
         setInitialized(true)
@@ -299,6 +304,42 @@ export default function AssetsTable(props: AssetsTableProps) {
             }
         }
     }, [])
+
+    // Clip the header bar so that the background behind the extra colums selector is visible.
+    React.useEffect(() => {
+        const headerRow = headerRowRef.current
+        const scrollContainer = scrollContainerRef.current
+        if (
+            backend.type === backendModule.BackendType.remote &&
+            headerRow != null &&
+            scrollContainer != null
+        ) {
+            let isClipPathUpdateQueued = false
+            const updateClipPath = () => {
+                isClipPathUpdateQueued = false
+                const hasVerticalScrollbar =
+                    scrollContainer.scrollHeight > scrollContainer.clientHeight
+                const shrinkage =
+                    TABLE_HEADER_WIDTH_SHRINKAGE_PX +
+                    (hasVerticalScrollbar ? style.SCROLLBAR_WIDTH_PX : 0)
+                const rightOffset = `calc(100vw - ${shrinkage}px + ${scrollContainer.scrollLeft}px)`
+                headerRow.style.clipPath = `polygon(0 0, ${rightOffset} 0, ${rightOffset} 100%, 0 100%)`
+            }
+            const onScroll = () => {
+                if (!isClipPathUpdateQueued) {
+                    isClipPathUpdateQueued = true
+                    requestAnimationFrame(updateClipPath)
+                }
+            }
+            updateClipPath()
+            scrollContainer.addEventListener('scroll', onScroll)
+            return () => {
+                scrollContainer.removeEventListener('scroll', onScroll)
+            }
+        } else {
+            return
+        }
+    }, [backend.type])
 
     React.useEffect(() => {
         if (initialized) {
@@ -634,10 +675,10 @@ export default function AssetsTable(props: AssetsTableProps) {
     )
 
     return (
-        <div className="flex-1 overflow-auto">
+        <div ref={scrollContainerRef} className="flex-1 overflow-auto">
             <div className="flex flex-col w-min min-w-full">
                 {backend.type !== backendModule.BackendType.local && (
-                    <div className="h-0">
+                    <div className="sticky top-0 h-0">
                         <div className="block sticky right-0 px-2 py-1 ml-auto mt-3 w-29 z-10">
                             <div className="inline-flex gap-3">
                                 {columnModule.EXTRA_COLUMNS.map(column => (
@@ -666,6 +707,8 @@ export default function AssetsTable(props: AssetsTableProps) {
                     AssetRowState,
                     backendModule.AssetId
                 >
+                    scrollContainerRef={scrollContainerRef}
+                    headerRowRef={headerRowRef}
                     rowComponent={AssetRow}
                     items={visibleItems}
                     isLoading={isLoading}
