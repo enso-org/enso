@@ -1,5 +1,6 @@
 package org.enso.interpreter.dsl;
 
+import com.google.common.base.Strings;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.Writer;
@@ -124,6 +125,7 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
           "com.oracle.truffle.api.CompilerDirectives",
           "com.oracle.truffle.api.dsl.UnsupportedSpecializationException",
           "com.oracle.truffle.api.frame.VirtualFrame",
+          "com.oracle.truffle.api.nodes.ControlFlowException",
           "com.oracle.truffle.api.nodes.Node",
           "com.oracle.truffle.api.nodes.NodeInfo",
           "com.oracle.truffle.api.nodes.RootNode",
@@ -141,11 +143,19 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
           "org.enso.interpreter.runtime.builtin.Builtins",
           "org.enso.interpreter.runtime.data.ArrayRope",
           "org.enso.interpreter.runtime.data.text.Text",
+          "org.enso.interpreter.runtime.error.DataflowError",
           "org.enso.interpreter.runtime.error.PanicException",
           "org.enso.interpreter.runtime.error.Warning",
           "org.enso.interpreter.runtime.error.WithWarnings",
           "org.enso.interpreter.runtime.state.State",
           "org.enso.interpreter.runtime.type.TypesGen");
+
+  /**
+   * List of exception types that should be caught from the builtin's execute method.
+   */
+  private static final List<String> handleExceptionTypes = List.of(
+      "UnsupportedSpecializationException"
+  );
 
   private void generateCode(MethodDefinition methodDefinition) throws IOException {
     JavaFileObject gen =
@@ -306,26 +316,14 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
         out.println("    if (anyWarnings) {");
         out.println("      internals.anyWarningsProfile.enter();");
         out.println("      Object result;");
-        out.println("      try {");
-        out.println("        result = " + executeCall + ";");
-        out.println("      } catch (Throwable t) {");
-        out.println("        return handleThrowable(t, bodyNode);");
-        out.println("      }");
+        out.println(wrapInTryCatch("result = " + executeCall + ";", 6));
         out.println("      EnsoContext ctx = EnsoContext.get(bodyNode);");
         out.println("      return WithWarnings.appendTo(ctx, result, gatheredWarnings);");
         out.println("    } else {");
-        out.println("      try {");
-        out.println("        return " + executeCall + ";");
-        out.println("      } catch (Throwable t) {");
-        out.println("        return handleThrowable(t, bodyNode);");
-        out.println("      }");
+        out.println(wrapInTryCatch("return " + executeCall + ";", 6));
         out.println("    }");
       } else {
-        out.println("    try {");
-        out.println("      return " + executeCall + ";");
-        out.println("    } catch (Throwable t) {");
-        out.println("      return handleThrowable(t, bodyNode);");
-        out.println("    }");
+        out.println(wrapInTryCatch("return " + executeCall + ";", 6));
       }
       out.println("  }");
 
@@ -359,26 +357,21 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
 
       out.println();
 
-      out.println("  /**");
-      out.println("   * Transforms a Java Throwable into either a dataflow-error or a Panic exception.");
-      out.println("   * @param t The Throwable thrown from the {@code execute} method.");
-      out.println("   */");
-      out.println("  private static Object handleThrowable(Throwable t, Node locationNode) {");
-      out.println("    CompilerDirectives.transferToInterpreterAndInvalidate();");
-      out.println("    Builtins builtins = EnsoContext.get(locationNode).getBuiltins();");
-      out.println("    if (t instanceof UnsupportedSpecializationException unsupSpecEx) {");
-      out.println("      var unimplErr = builtins.error().makeUnimplemented(\"Unsupported specialization: \" + unsupSpecEx.getMessage());");
-      out.println("      throw new PanicException(unimplErr, locationNode);");
-      out.println("    } else {");
-      out.println("      var messageText = Text.create(t.getMessage());");
-      out.println("      throw new PanicException(messageText, locationNode);");
-      out.println("    }");
-      out.println("  }");
-
-      out.println();
-
       out.println("}");
     }
+  }
+
+  private String wrapInTryCatch(String statement, int indent) {
+    var indentStr = Strings.repeat(" ", indent);
+    var sb = new StringBuilder();
+    sb.append(indentStr).append("try {").append("\n");
+    sb.append(indentStr).append("  " + statement).append("\n");
+    sb.append(indentStr).append("} catch (UnsupportedSpecializationException unsupSpecEx) {").append("\n");
+    sb.append(indentStr).append("  Builtins builtins = EnsoContext.get(bodyNode).getBuiltins();").append("\n");
+    sb.append(indentStr).append("  var unimplErr = builtins.error().makeUnimplemented(\"Unsupported specialization: \" + unsupSpecEx.getMessage());").append("\n");
+    sb.append(indentStr).append("  throw new PanicException(unimplErr, bodyNode);").append("\n");
+    sb.append(indentStr).append("}").append("\n");
+    return sb.toString();
   }
 
   private List<String> generateMakeFunctionArgs(boolean staticInstance, List<ArgumentDefinition> args) {
