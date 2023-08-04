@@ -545,7 +545,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     .map(file => ({
                         type: backendModule.AssetType.project,
                         id: backendModule.ProjectId(uniqueString.uniqueString()),
-                        title: backendModule.stripProjectExtension(file.name),
+                        title: file.name,
                         parentId: event.parentId ?? backendModule.DirectoryId(''),
                         permissions: permissions.tryGetSingletonOwnerPermission(organization),
                         modifiedAt: dateTime.toRfc3339(new Date()),

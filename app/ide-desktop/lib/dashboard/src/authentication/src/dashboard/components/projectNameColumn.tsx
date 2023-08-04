@@ -153,10 +153,16 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                                 id: backendModule.ProjectId(info.id),
                             })
                         } else {
+                            const fileName = item.title
+                            const title = backendModule.stripProjectExtension(item.title)
+                            setItem({
+                                ...item,
+                                title,
+                            })
                             const createdFile = await backend.uploadFile(
                                 {
                                     fileId: null,
-                                    fileName: item.title,
+                                    fileName,
                                     parentDirectoryId: item.parentId,
                                 },
                                 file
@@ -168,6 +174,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                                 rowState.setPresence(presence.Presence.present)
                                 setItem({
                                     ...item,
+                                    title,
                                     id: project.projectId,
                                     projectState: project.state,
                                 })

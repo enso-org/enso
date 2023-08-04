@@ -5,6 +5,7 @@
  * the response from the API. */
 import * as backend from './backend'
 import * as config from '../config'
+import * as errorModule from '../error'
 import * as http from '../http'
 import * as loggerProvider from '../providers/logger'
 
@@ -518,12 +519,21 @@ export class RemoteBackend extends backend.Backend {
             body
         )
         if (!responseIsSuccessful(response)) {
+            let suffix = '.'
+            try {
+                const error = errorModule.tryGetError<unknown>(await response.json())
+                if (error != null) {
+                    suffix = `: ${error}`
+                }
+            } catch {
+                // Ignored.
+            }
             if (params.fileName != null) {
-                return this.throw(`Unable to upload file with name '${params.fileName}'.`)
+                return this.throw(`Could not upload file with name '${params.fileName}'${suffix}`)
             } else if (params.fileId != null) {
-                return this.throw(`Unable to upload file with ID '${params.fileId}'.`)
+                return this.throw(`Could not upload file with ID '${params.fileId}'${suffix}`)
             } else {
-                return this.throw('Unable to upload file.')
+                return this.throw(`Could not upload file${suffix}`)
             }
         } else {
             return await response.json()
