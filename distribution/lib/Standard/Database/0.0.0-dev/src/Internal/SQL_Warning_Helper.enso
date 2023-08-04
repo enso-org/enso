@@ -1,0 +1,37 @@
+from Standard.Base import all
+from Standard.Base.Data.Vector import Builder
+
+from project.Errors import SQL_Warning
+
+## PRIVATE
+   A helper method used to gather any warnings reported during an SQL operation.
+   It will gather any warnings attached to the `jdbc_object`, then run the
+   provided `action` and attach any warnings to the result.
+process_warnings : Any -> Any -> Any
+process_warnings jdbc_object ~action =
+    warnings = extract_warnings jdbc_object
+    Problem_Behavior.Report_Warning.attach_problems_before warnings action
+
+## PRIVATE
+   Returns a vector of warnings reported by a JDBC object.
+
+   This works with any object that has a `getWarnings` method, returning a `SQLWarning`.
+extract_warnings : Any -> Vector SQL_Warning
+extract_warnings jdbc_object =
+    builder = Vector.new_builder
+    extract_warnings_into_builder builder jdbc_object
+    builder.to_vector
+
+## PRIVATE
+   Extracts warnings from a JDBC object and appends them into a provided vector
+   builder.
+
+   This works with any object that has a `getWarnings` method, returning a `SQLWarning`.
+extract_warnings_into_builder : Builder -> Any -> Nothing
+extract_warnings_into_builder builder jdbc_object =
+    go current_warning =
+        if current_warning.is_nothing then Nothing else
+            enso_warning = SQL_Warning.Warning current_warning
+            builder.append enso_warning
+            @Tail_Call go current_warning.getNextWarning
+    go jdbc_object.getWarnings

@@ -30,12 +30,13 @@ from project.Internal.Result_Set import result_set_to_table
    The user-facing function that handles the dry-run logic.
 create_table_implementation connection table_name structure primary_key temporary allow_existing on_problems = Panic.recover SQL_Error <|
     connection.base_connection.maybe_run_maintenance
-    case connection.base_connection.table_exists table_name of
+    table_naming_helper = connection.base_connection.table_naming_helper
+    table_naming_helper.verify_table_name table_name <| case connection.base_connection.table_exists table_name of
         True ->
             if allow_existing then connection.query (SQL_Query.Table_Name table_name) else Error.throw (Table_Already_Exists.Error table_name)
         False ->
             dry_run = Context.Output.is_enabled.not
-            effective_table_name = if dry_run.not then table_name else connection.base_connection.generate_dry_run_table_name table_name
+            effective_table_name = if dry_run.not then table_name else table_naming_helper.generate_dry_run_table_name table_name
             effective_temporary = temporary || dry_run
             created_table_name = Context.Output.with_enabled <|
                 connection.jdbc_connection.run_within_transaction <|
@@ -59,12 +60,14 @@ create_table_implementation connection table_name structure primary_key temporar
 internal_create_table_structure connection table_name structure primary_key temporary on_problems =
     aligned_structure = align_structure structure
     resolved_primary_key = resolve_primary_key aligned_structure primary_key
-    create_table_statement = prepare_create_table_statement connection table_name aligned_structure resolved_primary_key temporary on_problems
-    check_transaction_ddl_support connection
-    update_result = create_table_statement.if_not_error <|
-        connection.execute_update create_table_statement
-    update_result.if_not_error <|
-        table_name
+    column_names = aligned_structure.map .name
+    connection.base_connection.column_naming_helper.validate_many_column_names column_names <|
+        create_table_statement = prepare_create_table_statement connection table_name aligned_structure resolved_primary_key temporary on_problems
+        check_transaction_ddl_support connection
+        update_result = create_table_statement.if_not_error <|
+            connection.execute_update create_table_statement
+        update_result.if_not_error <|
+            table_name
 
 ## PRIVATE
    A helper that can upload a table from any backend to a database.
@@ -81,26 +84,28 @@ internal_upload_table source_table connection table_name primary_key temporary o
 ## PRIVATE
 select_into_table_implementation source_table connection table_name primary_key temporary on_problems =
     connection.base_connection.maybe_run_maintenance
-    real_target_already_exists = connection.base_connection.table_exists table_name
-    if real_target_already_exists then Error.throw (Table_Already_Exists.Error table_name) else
-        Panic.recover SQL_Error <| handle_upload_errors <|
-            dry_run = Context.Output.is_enabled.not
-            connection.jdbc_connection.run_within_transaction <| case dry_run of
-                False ->
-                    internal_upload_table source_table connection table_name primary_key temporary on_problems=on_problems row_limit=Nothing
-                True ->
-                    tmp_table_name = connection.base_connection.generate_dry_run_table_name table_name
-                    table = Context.Output.with_enabled <|
-                        ## This temporary table can be safely dropped if it
-                           exists, because it only existed if it was created by
-                           a previous dry run. `generate_dry_run_table_name`
-                           will never return a name of a table that exists but
-                           was created outside of a dry run.
-                        connection.drop_table tmp_table_name if_exists=True
-                        internal_upload_table source_table connection tmp_table_name primary_key temporary on_problems=on_problems row_limit=dry_run_row_limit
-                    temporary_table = connection.base_connection.internal_allocate_dry_run_table table.name
-                    warning = Dry_Run_Operation.Warning "Only a dry run of `select_into_database_table` was performed - a temporary table ("+tmp_table_name+") was created, containing a sample of the data."
-                    Warning.attach warning temporary_table
+    table_naming_helper = connection.base_connection.table_naming_helper
+    table_naming_helper.verify_table_name table_name <|
+        real_target_already_exists = connection.base_connection.table_exists table_name
+        if real_target_already_exists then Error.throw (Table_Already_Exists.Error table_name) else
+            Panic.recover SQL_Error <| handle_upload_errors <|
+                dry_run = Context.Output.is_enabled.not
+                connection.jdbc_connection.run_within_transaction <| case dry_run of
+                    False ->
+                        internal_upload_table source_table connection table_name primary_key temporary on_problems=on_problems row_limit=Nothing
+                    True ->
+                        tmp_table_name = table_naming_helper.generate_dry_run_table_name table_name
+                        table = Context.Output.with_enabled <|
+                            ## This temporary table can be safely dropped if it
+                               exists, because it only existed if it was created by
+                               a previous dry run. `generate_dry_run_table_name`
+                               will never return a name of a table that exists but
+                               was created outside of a dry run.
+                            connection.drop_table tmp_table_name if_exists=True
+                            internal_upload_table source_table connection tmp_table_name primary_key temporary on_problems=on_problems row_limit=dry_run_row_limit
+                        temporary_table = connection.base_connection.internal_allocate_dry_run_table table.name
+                        warning = Dry_Run_Operation.Warning "Only a dry run of `select_into_database_table` was performed - a temporary table ("+tmp_table_name+") was created, containing a sample of the data."
+                        Warning.attach warning temporary_table
 
 ## PRIVATE
    It should be run within a transaction and wrapped in `handle_upload_errors`.
@@ -275,7 +280,7 @@ common_update_table (source_table : In_Memory_Table | Database_Table) (target_ta
             connection.jdbc_connection.run_within_transaction <|
                 effective_key_columns = if key_columns.is_nothing then [] else key_columns
                 check_update_arguments_structure_match source_table target_table effective_key_columns update_action error_on_missing_columns on_problems <|
-                    tmp_table_name = connection.base_connection.generate_random_table_name "enso-temp-source-table-"
+                    tmp_table_name = connection.base_connection.table_naming_helper.generate_random_table_name "enso-temp-source-table-"
                     dry_run = Context.Output.is_enabled.not
                     row_limit = if dry_run then dry_run_row_limit else Nothing
                     Context.Output.with_enabled <|
@@ -315,13 +320,13 @@ append_to_existing_table source_table target_table update_action key_columns dry
                     helper.update_common_rows
         Update_Action.Update_Or_Insert ->
             helper.check_multiple_target_rows_match <|
-                helper.update_common_rows
-                helper.insert_rows helper.new_source_rows
+                helper.update_common_rows . if_not_error <|
+                    helper.insert_rows helper.new_source_rows
         Update_Action.Align_Records ->
             helper.check_multiple_target_rows_match <|
-                helper.update_common_rows
-                helper.insert_rows helper.new_source_rows
-                helper.delete_unmatched_target_rows
+                helper.update_common_rows . if_not_error <|
+                    helper.insert_rows helper.new_source_rows . if_not_error <|
+                        helper.delete_unmatched_target_rows
     upload_status.if_not_error target_table
 
 ## PRIVATE

@@ -1432,10 +1432,10 @@ spec setup =
             t = table_builder [["a", [1, 2, 3]]]
             c = t.at "a"
 
-            c.rename Nothing . should_fail_with Illegal_Argument
-            c.rename '' . should_fail_with Illegal_Argument
-            c.rename 'a\0b' . should_fail_with Illegal_Argument
-            c.rename '\0' . should_fail_with Illegal_Argument
+            c.rename Nothing . should_fail_with Invalid_Output_Column_Names
+            c.rename '' . should_fail_with Invalid_Output_Column_Names
+            c.rename 'a\0b' . should_fail_with Invalid_Output_Column_Names
+            c.rename '\0' . should_fail_with Invalid_Output_Column_Names
 
     Test.group prefix+"Column.const" <|
         Test.specify "Should allow the creation of constant columns" <|

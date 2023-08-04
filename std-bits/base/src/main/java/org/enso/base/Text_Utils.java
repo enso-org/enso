@@ -115,7 +115,12 @@ public class Text_Utils {
    * @return the result of comparison
    */
   public static boolean equals(String str1, String str2) {
-      return compare_normalized(str1, str2) == 0;
+      return Core_Text_Utils.equals(str1, str2);
+  }
+
+  /** Computes a hashcode of a string that is insensitive to Unicode normalization. */
+  public static int unicodeNormalizedHashCode(String str) {
+    return Core_Text_Utils.unicodeNormalizedHashCode(str);
   }
 
   /**
@@ -164,7 +169,7 @@ public class Text_Utils {
    *     positive value if {@code a} is after {@code b}
    */
   public static int compare_normalized(String a, String b) {
-    return Normalizer.compare(a, b, Normalizer.FOLD_CASE_DEFAULT);
+    return Core_Text_Utils.compare_normalized(a, b);
   }
 
   /**

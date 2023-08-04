@@ -29,11 +29,11 @@ check_period_aligned_with_value_type value_type period ~action = case value_type
 
 ## PRIVATE
    Common logic for `Column.date_part`.
-make_date_part_function column period make_unary_op naming_helpers =
+make_date_part_function column period make_unary_op naming_helper =
     Value_Type.expect_type column .is_date_or_time "date/time" <|
         my_type = column.inferred_precise_value_type
         check_period_aligned_with_value_type my_type period <|
-            new_name = naming_helpers.function_name "date_part" [column, period]
+            new_name = naming_helper.function_name "date_part" [column, period]
             result = case period of
                 Date_Period.Year -> make_unary_op column "year"
                 Date_Period.Quarter -> make_unary_op column "quarter"

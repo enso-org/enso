@@ -9,7 +9,7 @@ import Standard.Examples
 import Standard.Test.Extensions
 
 from Standard.Table import Column, Value_Type
-from Standard.Table.Errors import Invalid_Value_Type
+from Standard.Table.Errors import Invalid_Value_Type, Invalid_Output_Column_Names
 from Standard.Test import Test, Test_Suite, Problems
 
 main = Test_Suite.run_main spec
@@ -87,16 +87,16 @@ spec =
 
         Test.specify "should not allow invalid column names" <|
             c1 = Column.from_vector "" [1, 2, 3]
-            c1.should_fail_with Illegal_Argument
+            c1.should_fail_with Invalid_Output_Column_Names
 
             c2 = Column.from_vector Nothing [1, 2, 3]
-            c2.should_fail_with Illegal_Argument
+            c2.should_fail_with Invalid_Output_Column_Names
 
             c3 = Column.from_vector '\0' [1, 2, 3]
-            c3.should_fail_with Illegal_Argument
+            c3.should_fail_with Invalid_Output_Column_Names
 
             c4 = Column.from_vector 'foo\0bar' [1, 2, 3]
-            c4.should_fail_with Illegal_Argument
+            c4.should_fail_with Invalid_Output_Column_Names
 
         Test.specify "will coerce integers to decimals by default, to get a numeric column" <|
             c1 = Column.from_vector "X" [1, 2.0]

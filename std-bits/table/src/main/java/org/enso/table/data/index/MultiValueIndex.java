@@ -206,15 +206,10 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
     int offset = groupingColumns.length;
     for (List<Integer> name_locs : nameIndex.locs.values()) {
       Object boxed = nameColumn.getStorage().getItemBoxed(name_locs.get(0));
-      String name;
-      if (boxed == null) {
-        throw Column.raiseNothingName();
-      } else {
-        name = boxed.toString();
-        // We want to fail hard on invalid colum names stemming from invalid input values and make
-        // the user fix the data before cross_tab, to avoid data corruption.
-        Column.ensureNameIsValid(name);
-      }
+      String name = boxed == null ? null : boxed.toString();
+      // We want to fail hard on invalid colum names stemming from invalid input values and make
+      // the user fix the data before cross_tab, to avoid data corruption.
+      Column.ensureNameIsValid(name);
 
       for (int i = 0; i < aggregates.length; i++) {
         String effectiveName;
