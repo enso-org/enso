@@ -130,14 +130,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
                         state !== backendModule.ProjectState.openInProgress &&
                         state !== backendModule.ProjectState.opened
                     ) {
-                        setToastId(oldToastId =>
-                            toast.toast.loading(
-                                LOADING_MESSAGE,
-                                // This is a workaround to make the duplicate toast (from React
-                                // Strict Mode) replace the original toast.
-                                oldToastId != null ? { toastId: oldToastId } : {}
-                            )
-                        )
+                        setToastId(toast.toast.loading(LOADING_MESSAGE))
                         await backend.openProject(item.id, null, item.title)
                     }
                     setCheckState(CheckState.checkingStatus)
@@ -164,12 +157,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
     }, [state, backend, item.id, item.title, /* should never change */ setState])
 
     React.useEffect(() => {
-        const isOpening =
-            item.projectState.type === backendModule.ProjectState.openInProgress ||
-            (backend.type === backendModule.BackendType.remote &&
-                item.projectState.type === backendModule.ProjectState.opened)
-        if (isOpening) {
-            setState(backendModule.ProjectState.openInProgress)
+        if (item.projectState.type === backendModule.ProjectState.openInProgress) {
             void openProject()
         }
         // This MUST only run once, when the component is initially mounted.
