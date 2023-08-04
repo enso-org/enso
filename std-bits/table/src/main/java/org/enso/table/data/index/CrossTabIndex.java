@@ -26,7 +26,7 @@ public class CrossTabIndex {
 
   private ObjectNumberer<UnorderedMultiValueKey> yKeyNumberer;
 
-  private CombinedKey<UnorderedMultiValueKey, UnorderedMultiValueKey>[][] grid;
+  private CombinedKey<?, ?>[][] grid;
 
   public CrossTabIndex(Column[] xColumns, Column[] yColumns, int tableSize) {
     this.xColumns = xColumns;
@@ -44,7 +44,7 @@ public class CrossTabIndex {
     combinedIndex.keys().stream().map(ck -> ck.getKeyB()).forEach(k -> yKeyNumberer.add(k));
 
     // Create grid of cells, mapping x and y key indices to combined keys.
-    grid = new CombinedKey<UnorderedMultiValueKey, UnorderedMultiValueKey>[numXKeys()][numYKeys()];
+    grid = new CombinedKey<?, ?>[numXKeys()][numYKeys()];
 
     // For each combined key, use the two subkeys to determine row+col
     // coordinates, and put the key at those coordinates.
@@ -63,7 +63,9 @@ public class CrossTabIndex {
   }
 
   public List<Integer> get(UnorderedMultiValueKey xKey, UnorderedMultiValueKey yKey) {
-    return combinedIndex.get(grid[getXCoordinate(xKey)][getYCoordinate(yKey)]);
+    @SuppressWarnings("unchecked")
+    List<Integer> result = combinedIndex.get((CombinedKey<UnorderedMultiValueKey, UnorderedMultiValueKey>) grid[getXCoordinate(xKey)][getYCoordinate(yKey)]);
+    return result;
   }
 
   public Set<UnorderedMultiValueKey> getXKeys() {
