@@ -12,6 +12,8 @@ import createServer from 'create-servers'
 import * as common from 'enso-common'
 import * as contentConfig from 'enso-content-config'
 
+import * as projectManagement from 'project-management'
+
 import * as paths from '../paths'
 
 import GLOBAL_CONFIG from '../../../../../gui/config.yaml' assert { type: 'yaml' }
@@ -31,7 +33,7 @@ const HTTP_STATUS_NOT_FOUND = 404
 
 /** External functions for a {@link Server}. */
 export interface ExternalFunctions {
-    uploadProjectBundle: (project: stream.Readable) => Promise<string>
+    uploadProjectBundle: (project: stream.Readable) => Promise<projectManagement.BundleInfo>
 }
 
 /** Constructor parameter for the server configuration. */
@@ -152,14 +154,15 @@ export class Server {
                 // When accessing the app from Electron, the file input event will have the
                 // full system path.
                 case '/api/upload-project': {
-                    void this.config.externalFunctions.uploadProjectBundle(request).then(id => {
+                    void this.config.externalFunctions.uploadProjectBundle(request).then(info => {
+                        const body = JSON.stringify(info)
                         response
                             .writeHead(HTTP_STATUS_OK, [
-                                ['Content-Length', `${id.length}`],
-                                ['Content-Type', 'text/plain'],
+                                ['Content-Length', `${body.length}`],
+                                ['Content-Type', 'application/json'],
                                 ...common.COOP_COEP_CORP_HEADERS,
                             ])
-                            .end(id)
+                            .end(body)
                     })
                     break
                 }

@@ -217,12 +217,8 @@ export default function DirectoryView(props: DirectoryViewProps) {
     )
 
     const doUploadFiles = React.useCallback(
-        (files: FileList) => {
-            if (backend.type === backendModule.BackendType.local) {
-                // TODO[sb]: Allow uploading `.enso-project`s
-                // https://github.com/enso-org/cloud-v2/issues/510
-                toastAndLog('Files cannot be uploaded to the local backend')
-            } else if (directoryId == null) {
+        (files: File[]) => {
+            if (backend.type !== backendModule.BackendType.local && directoryId == null) {
                 // This should never happen, however display a nice error message in case it does.
                 toastAndLog('Files cannot be uploaded while offline')
             } else {
@@ -302,7 +298,7 @@ export default function DirectoryView(props: DirectoryViewProps) {
                         dispatchAssetListEvent({
                             type: assetListEventModule.AssetListEventType.uploadFiles,
                             parentId: directoryId,
-                            files: event.dataTransfer.files,
+                            files: Array.from(event.dataTransfer.files),
                         })
                     }}
                 >

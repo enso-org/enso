@@ -541,11 +541,11 @@ export default function AssetsTable(props: AssetsTableProps) {
                         projectState: null,
                     }))
                 const placeholderProjects: backendModule.ProjectAsset[] = reversedFiles
-                    .filter(file => !backendModule.fileIsProject(file))
+                    .filter(backendModule.fileIsProject)
                     .map(file => ({
                         type: backendModule.AssetType.project,
                         id: backendModule.ProjectId(uniqueString.uniqueString()),
-                        title: file.name,
+                        title: backendModule.stripProjectExtension(file.name),
                         parentId: event.parentId ?? backendModule.DirectoryId(''),
                         permissions: permissions.tryGetSingletonOwnerPermission(organization),
                         modifiedAt: dateTime.toRfc3339(new Date()),
@@ -556,8 +556,8 @@ export default function AssetsTable(props: AssetsTableProps) {
                 const fileTypeOrder = backendModule.ASSET_TYPE_ORDER[backendModule.AssetType.file]
                 const projectTypeOrder =
                     backendModule.ASSET_TYPE_ORDER[backendModule.AssetType.project]
-                setItems(oldItems =>
-                    array.spliceBefore(
+                setItems(oldItems => {
+                    const ret = array.spliceBefore(
                         array.splicedBefore(
                             oldItems,
                             placeholderFiles,
@@ -570,11 +570,12 @@ export default function AssetsTable(props: AssetsTableProps) {
                             item.parentId === event.parentId &&
                             backendModule.ASSET_TYPE_ORDER[item.type] >= projectTypeOrder
                     )
-                )
+                    return ret
+                })
                 dispatchAssetEvent({
                     type: assetEventModule.AssetEventType.uploadFiles,
                     files: new Map(
-                        placeholderFiles.map((placeholderItem, i) => [
+                        [...placeholderFiles, ...placeholderProjects].map((placeholderItem, i) => [
                             placeholderItem.id,
                             // This is SAFE, as `placeholderItems` is created using a map on
                             // `event.files`.

@@ -21,31 +21,17 @@ import Button from './button'
 export interface DriveBarProps {
     doCreateProject: (templateId: string | null) => void
     doCreateDirectory: () => void
-    doUploadFiles: (files: FileList) => void
+    doUploadFiles: (files: File[]) => void
     dispatchAssetEvent: (event: assetEventModule.AssetEvent) => void
 }
 
 /** Displays the current directory path and permissions, upload and download buttons,
  * and a column display mode switcher. */
 export default function DriveBar(props: DriveBarProps) {
-    const {
-        doCreateProject,
-        doCreateDirectory,
-        doUploadFiles: doUploadFilesRaw,
-        dispatchAssetEvent,
-    } = props
+    const { doCreateProject, doCreateDirectory, doUploadFiles, dispatchAssetEvent } = props
     const { backend } = backendProvider.useBackend()
     const { unsetModal } = modalProvider.useSetModal()
     const uploadFilesRef = React.useRef<HTMLInputElement>(null)
-
-    const doUploadFiles = React.useCallback(
-        (event: React.FormEvent<HTMLInputElement>) => {
-            if (event.currentTarget.files != null) {
-                doUploadFilesRaw(event.currentTarget.files)
-            }
-        },
-        [/* should never change */ doUploadFilesRaw]
-    )
 
     return (
         <div className="flex py-0.5">
@@ -92,10 +78,12 @@ export default function DriveBar(props: DriveBarProps) {
                             : { accept: '.enso-project' })}
                         className="hidden"
                         onInput={event => {
+                            if (event.currentTarget.files != null) {
+                                doUploadFiles(Array.from(event.currentTarget.files))
+                            }
                             // Clear the list of selected files. Otherwise, `onInput` will not be
                             // dispatched again if the same file is selected.
                             event.currentTarget.value = ''
-                            doUploadFiles(event)
                         }}
                     />
                     <Button

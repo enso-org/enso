@@ -235,6 +235,10 @@ const RESTRICTED_SYNTAXES = [
         selector: 'VariableDeclarator[id.name=ENVIRONMENT][init.value!=production]',
         message: "Environment must be 'production' when committing",
     },
+    {
+        selector: 'CallExpression[callee.name=toastAndLog][arguments.0.value=/\\.$/]',
+        message: '`toastAndLog` already includes a trailing `.`',
+    },
 ]
 
 // ============================

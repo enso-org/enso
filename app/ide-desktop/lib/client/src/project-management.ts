@@ -28,13 +28,19 @@ const logger = config.logger
 // === Project Import ===
 // ======================
 
+/** Information required to display a project bundle. */
+export interface BundleInfo {
+    name: string
+    id: string
+}
+
 /** Open a project from the given path. Path can be either a source file under the project root,
  * or the project bundle. If needed, the project will be imported into the Project Manager-enabled
  * location.
  *
  * @returns Project ID (from Project Manager's metadata) identifying the imported project.
  * @throws {Error} if the path does not belong to a valid project. */
-export function importProjectFromPath(openedPath: string): string {
+export function importProjectFromPath(openedPath: string): BundleInfo {
     if (pathModule.extname(openedPath).endsWith(fileAssociations.BUNDLED_PROJECT_SUFFIX)) {
         logger.log(`Path '${openedPath}' denotes a bundled project.`)
         // The second part of condition is for the case when someone names a directory
@@ -64,7 +70,7 @@ export function importProjectFromPath(openedPath: string): string {
 /** Import the project from a bundle.
  *
  * @returns Project ID (from Project Manager's metadata) identifying the imported project. */
-export function importBundle(bundlePath: string): string {
+export function importBundle(bundlePath: string): BundleInfo {
     logger.log(`Importing project '${bundlePath}' from bundle.`)
     // The bundle is a tarball, so we just need to extract it to the right location.
     const bundleRoot = directoryWithinBundle(bundlePath)
@@ -87,13 +93,11 @@ export function importBundle(bundlePath: string): string {
         strip: bundleRoot != null ? 1 : 0,
     })
     updateName(target.path, target.name)
-    return updateIdAndDate(target.path)
+    return { name: target.name, id: updateIdAndDate(target.path) }
 }
 
-/** Import the project from a bundle.
- *
- * @returns Project ID (from Project Manager's metadata) identifying the imported project. */
-export async function uploadBundle(bundle: stream.Readable): Promise<string> {
+/** Upload the project from a bundle. */
+export async function uploadBundle(bundle: stream.Readable): Promise<BundleInfo> {
     logger.log(`Uploading project from bundle.`)
     let target = generateDirectoryName('Project')
     fs.mkdirSync(target.path, { recursive: true })
@@ -122,7 +126,7 @@ export async function uploadBundle(bundle: stream.Readable): Promise<string> {
         }
     }
     updateName(target.path, target.name)
-    return updateIdAndDate(target.path)
+    return { name: target.name, id: updateIdAndDate(target.path) }
 }
 
 /** Import the project so it becomes visible to the Project Manager.
@@ -130,13 +134,13 @@ export async function uploadBundle(bundle: stream.Readable): Promise<string> {
  * @param rootPath - The path to the project root.
  * @returns The project ID (from the Project Manager's metadata) identifying the imported project.
  * @throws {Error} if a race condition occurs when generating a unique project directory name. */
-export function importDirectory(rootPath: string): string {
+export function importDirectory(rootPath: string): BundleInfo {
     if (isProjectInstalled(rootPath)) {
         // Project is already visible to Project Manager, so we can just return its ID.
         logger.log(`Project already installed at '${rootPath}'.`)
         const id = getProjectId(rootPath)
         if (id != null) {
-            return id
+            return { name: getProjectName(rootPath), id }
         } else {
             throw new Error(`Project already installed, but missing metadata.`)
         }
@@ -151,7 +155,7 @@ export function importDirectory(rootPath: string): string {
             updateName(target.path, target.name)
             // Update the project ID, so we are certain that it is unique.
             // This would be violated, if we imported the same project multiple times.
-            return updateIdAndDate(target.path)
+            return { name: target.name, id: updateIdAndDate(target.path) }
         }
     }
 }
@@ -347,6 +351,13 @@ export function isProjectInstalled(projectRoot: string): boolean {
     const projectRootParent = pathModule.dirname(projectRoot)
     // Should resolve symlinks and relative paths. Normalize before comparison.
     return pathModule.resolve(projectRootParent) === pathModule.resolve(projectsDirectory)
+}
+
+/** Get the name of the project from the bundle metadata (`package.yaml`). */
+export function getProjectName(projectRoot: string) {
+    const metadataPath = pathModule.join(projectRoot, paths.BUNDLE_METADATA_RELATIVE)
+    const metadata = fs.readFileSync(metadataPath, 'utf-8')
+    return metadata.match(/^name: (.+)$/)?.[1] ?? ''
 }
 
 /** Update the name of the project in the bundle metadata (`package.yaml`). */

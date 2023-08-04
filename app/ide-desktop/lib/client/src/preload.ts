@@ -6,6 +6,7 @@
 import * as electron from 'electron'
 
 import * as ipc from 'ipc'
+import * as projectManagement from 'project-management'
 
 // =================
 // === Constants ===
@@ -22,12 +23,15 @@ const AUTHENTICATION_API_KEY = 'authenticationApi'
 // === importProjectFromPath ===
 // =============================
 
-const IMPORT_PROJECT_RESOLVE_FUNCTIONS = new Map<string, (projectId: string) => void>()
+const IMPORT_PROJECT_RESOLVE_FUNCTIONS = new Map<
+    string,
+    (projectId: projectManagement.BundleInfo) => void
+>()
 
 electron.contextBridge.exposeInMainWorld(BACKEND_API_KEY, {
     importProjectFromPath: (projectPath: string) => {
         electron.ipcRenderer.send(ipc.Channel.importProjectFromPath, projectPath)
-        return new Promise<string>(resolve => {
+        return new Promise<projectManagement.BundleInfo>(resolve => {
             IMPORT_PROJECT_RESOLVE_FUNCTIONS.set(projectPath, resolve)
         })
     },
@@ -35,10 +39,10 @@ electron.contextBridge.exposeInMainWorld(BACKEND_API_KEY, {
 
 electron.ipcRenderer.on(
     ipc.Channel.importProjectFromPath,
-    (_event, projectPath: string, projectId: string) => {
+    (_event, projectPath: string, projectInfo: projectManagement.BundleInfo) => {
         const resolveFunction = IMPORT_PROJECT_RESOLVE_FUNCTIONS.get(projectPath)
         IMPORT_PROJECT_RESOLVE_FUNCTIONS.delete(projectPath)
-        resolveFunction?.(projectId)
+        resolveFunction?.(projectInfo)
     }
 )
 

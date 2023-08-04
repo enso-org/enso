@@ -120,14 +120,19 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                     rowState.setPresence(presence.Presence.inserting)
                     try {
                         if (backend.type === backendModule.BackendType.local) {
+                            /** Information required to display a bundle. */
+                            interface BundleInfo {
+                                name: string
+                                id: string
+                            }
                             // This non-standard property is defined in Electron.
-                            let id
+                            let info: BundleInfo
                             if (
                                 'backendApi' in window &&
                                 'path' in file &&
                                 typeof file.path === 'string'
                             ) {
-                                id = await window.backendApi.importProjectFromPath(file.path)
+                                info = await window.backendApi.importProjectFromPath(file.path)
                             } else {
                                 const response = await fetch('./api/upload-project', {
                                     method: 'POST',
@@ -137,10 +142,16 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
                                     // work on `http://localhost`.
                                     body: await file.arrayBuffer(),
                                 })
-                                id = await response.text()
+                                // This is SAFE, as the types of this API are statically known.
+                                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                                info = await response.json()
                             }
                             rowState.setPresence(presence.Presence.present)
-                            setItem({ ...item, id: backendModule.ProjectId(id) })
+                            setItem({
+                                ...item,
+                                title: info.name,
+                                id: backendModule.ProjectId(info.id),
+                            })
                         } else {
                             const createdFile = await backend.uploadFile(
                                 {

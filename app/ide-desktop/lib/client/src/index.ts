@@ -349,8 +349,8 @@ class App {
             electron.app.quit()
         })
         electron.ipcMain.on(ipc.Channel.importProjectFromPath, (event, path: string) => {
-            const id = projectManagement.importProjectFromPath(path)
-            event.reply(ipc.Channel.importProjectFromPath, path, id)
+            const info = projectManagement.importProjectFromPath(path)
+            event.reply(ipc.Channel.importProjectFromPath, path, info)
         })
     }
 

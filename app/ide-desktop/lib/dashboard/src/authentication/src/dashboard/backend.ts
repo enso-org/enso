@@ -580,6 +580,17 @@ export function fileIsNotProject(file: JSFile) {
     return !fileIsProject(file)
 }
 
+// =============================
+// === stripProjectExtension ===
+// =============================
+
+/** Remove the extension of the project file name (if any). */
+
+/** Whether a `File` is a project. */
+export function stripProjectExtension(name: string) {
+    return name.replace(/\.tar\.gz$|\.zip$|\.enso-project/, '')
+}
+
 // ==============================
 // === groupPermissionsByUser ===
 // ==============================
