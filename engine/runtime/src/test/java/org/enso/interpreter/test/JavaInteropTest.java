@@ -219,9 +219,9 @@ public class JavaInteropTest extends TestBase {
   @Test
   public void testInterfaceProxyFailuresB() {
     var result = evalInterfaceProxyFailures("b");
-    assertEquals("nonexistent_text_method", result.asString());
+    assertEquals("foo", result.asString());
     var stdout = getStdOutLines();
-    var expectedLines = List.of("Executing Fooable_Panic.foo", "Executing Fooable_Unresolved.foo");
+    var expectedLines = List.of("Executing Fooable_Unresolved.foo", "Executing Fooable_Unresolved.foo");
     assertArrayEquals(expectedLines.toArray(), stdout);
   }
 

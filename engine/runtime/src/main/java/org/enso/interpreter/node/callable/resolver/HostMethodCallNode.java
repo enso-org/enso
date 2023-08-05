@@ -229,12 +229,15 @@ public abstract class HostMethodCallNode extends Node {
     } catch (AbstractTruffleException ex) {
       CompilerDirectives.transferToInterpreter();
       if (ex.getMessage().contains("Unsupported operation identifier")) {
-        throw new PanicException(
-            EnsoContext.get(this)
-                .getBuiltins()
-                .error()
-                .makeNoSuchMethod(self, UnresolvedSymbol.build("hi", null)),
-            this);
+        var parts = ex.getMessage().split("'");
+        if (parts.length > 2) {
+          throw new PanicException(
+              EnsoContext.get(this)
+                  .getBuiltins()
+                  .error()
+                  .makeNoSuchMethod(self, UnresolvedSymbol.build(parts[1], null)),
+              this);
+        }
       }
       throw ex;
     }
