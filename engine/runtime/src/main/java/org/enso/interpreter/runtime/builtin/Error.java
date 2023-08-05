@@ -1,5 +1,8 @@
 package org.enso.interpreter.runtime.builtin;
 
+import static com.oracle.truffle.api.CompilerDirectives.transferToInterpreterAndInvalidate;
+
+import com.oracle.truffle.api.CompilerDirectives;
 import org.enso.interpreter.node.expression.builtin.error.ArithmeticError;
 import org.enso.interpreter.node.expression.builtin.error.ArityError;
 import org.enso.interpreter.node.expression.builtin.error.CaughtPanic;
@@ -31,10 +34,6 @@ import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
-
-import com.oracle.truffle.api.CompilerDirectives;
-import static com.oracle.truffle.api.CompilerDirectives.transferToInterpreterAndInvalidate;
-import com.oracle.truffle.api.interop.UnknownIdentifierException;
 
 /** Container for builtin Error types */
 public final class Error {
@@ -146,24 +145,6 @@ public final class Error {
    */
   public Atom makeNoSuchMethod(Object target, UnresolvedSymbol symbol) {
     return noSuchMethod.newInstance(target, symbol);
-  }
-
-
-  /** Verifies payload whether it represents {@link #makeNoSuchMethod(Object, UnresolvedSymbol)} atom.
-   * @param payload object to check
-   * @return {@code null} if the {@code payload} isn't recognized name or the unresolved symbol otherwise
-  */
-  public String findNoSuchMethod(Object payload) {
-    if (payload instanceof Atom atom && atom.getConstructor() == noSuchMethod.getUniqueConstructor()) {
-      try {
-        if (atom.readMember("symbol") instanceof UnresolvedSymbol symbol) {
-          return symbol.getName();
-        }
-      } catch (UnknownIdentifierException ex) {
-        throw CompilerDirectives.shouldNotReachHere(ex);
-      }
-    }
-    return null;
   }
 
   public NoSuchField getNoSuchFieldError() {

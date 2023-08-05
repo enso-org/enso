@@ -1,13 +1,16 @@
 package org.enso.interpreter.node.callable.resolver;
 
-import com.oracle.truffle.api.CompilerDirectives;
+import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
+import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
+import org.enso.interpreter.runtime.error.PanicException;
+
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.ImportStatic;
 import com.oracle.truffle.api.dsl.ReportPolymorphism;
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.exception.AbstractTruffleException;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
@@ -16,10 +19,6 @@ import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.BranchProfile;
-import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
-import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
-import org.enso.interpreter.runtime.error.PanicException;
 
 /** Discovers and performs method calls on foreign values. */
 @GenerateUncached
@@ -226,20 +225,6 @@ public abstract class HostMethodCallNode extends Node {
               .error()
               .makeUnsupportedArgumentsError(e.getSuppliedValues(), e.getMessage()),
           this);
-    } catch (AbstractTruffleException ex) {
-      CompilerDirectives.transferToInterpreter();
-      if (ex.getMessage().contains("Unsupported operation identifier")) {
-        var parts = ex.getMessage().split("'");
-        if (parts.length > 2) {
-          throw new PanicException(
-              EnsoContext.get(this)
-                  .getBuiltins()
-                  .error()
-                  .makeNoSuchMethod(self, UnresolvedSymbol.build(parts[1], null)),
-              this);
-        }
-      }
-      throw ex;
     }
   }
 

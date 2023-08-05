@@ -6,7 +6,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.enso.interpreter.EnsoLanguage;
-import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Array;
@@ -213,10 +212,8 @@ public abstract class Atom implements TruffleObject {
       try {
         return symbols.execute(cachedSym, args);
       } catch (PanicException ex) {
-        var ctx = EnsoContext.get(symbols);
-        var name = ctx.getBuiltins().error().findNoSuchMethod(ex.getPayload());
-        if (name != null) {
-          throw UnknownIdentifierException.create(name);
+        if (ex.getCause() instanceof UnknownIdentifierException interopEx) {
+          throw interopEx;
         } else {
           throw ex;
         }

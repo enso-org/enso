@@ -34,13 +34,24 @@ public final class PanicException extends AbstractTruffleException {
   private String cacheMessage;
 
   /**
-   * Creates an instance of this class.
+   * Creates new user visible panic.
    *
    * @param payload arbitrary, user-provided payload carried by this exception
    * @param location the node throwing this exception, for use in guest stack traces
    */
   public PanicException(Object payload, Node location) {
-    super(location);
+    this(payload, null, location);
+  }
+
+  /**
+   * Creates user visible panic with additional cause.
+   *
+   * @param payload arbitrary, user-provided payload carried by this exception
+   * @param cause additional exception to carry information about the panic
+   * @param location the node throwing this exception, for use in guest stack traces
+   */
+  public PanicException(Object payload, Throwable cause, Node location) {
+    super(null, cause, UNLIMITED_STACK_TRACE, location);
     if (!InteropLibrary.isValidValue(payload)) {
       CompilerDirectives.transferToInterpreter();
       throw new IllegalArgumentException("Only interop values are supported: " + payload);
