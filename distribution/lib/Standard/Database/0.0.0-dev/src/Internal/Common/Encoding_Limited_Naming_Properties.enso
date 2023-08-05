@@ -10,7 +10,7 @@ from Standard.Table.Errors import Name_Too_Long
    size of a string encoded in a particular encoding, in bytes.
 type Encoding_Limited_Naming_Properties
     ## PRIVATE
-    Instance (encoding : Encoding) (limit : Integer)
+    Instance (encoding : Encoding) (limit : Integer) (is_case_sensitive : Boolean = True)
 
     ## PRIVATE
     encoded_size : Text -> Integer

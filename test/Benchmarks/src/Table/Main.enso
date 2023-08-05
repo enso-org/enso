@@ -1,8 +1,10 @@
 import project.Table.Aggregate
+import project.Table.Cross_Tab
 import project.Table.Sorting
 
 bench =
     Aggregate.bench
+    Cross_Tab.bench
     Sorting.bench
 
 main = bench

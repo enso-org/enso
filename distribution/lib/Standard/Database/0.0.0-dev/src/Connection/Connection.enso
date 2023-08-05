@@ -221,12 +221,23 @@ type Connection
                     True -> result
                     False ->
                         Error.throw (Table_Not_Found.Error query sql_error treated_as_query=True extra_message="")
-        SQL_Query.Raw_SQL raw_sql -> handle_sql_errors <|
+        SQL_Query.Raw_SQL raw_sql -> handle_sql_errors <| alias.if_not_error <|
             self.jdbc_connection.ensure_query_has_no_holes raw_sql . if_not_error <|
                 columns = self.fetch_columns raw_sql Statement_Setter.null
                 name = if alias == "" then (UUID.randomUUID.to_text) else alias
                 ctx = Context.for_query raw_sql name
-                Database_Table_Module.make_table self name columns ctx
+                ## Any problems are treated as errors - e.g. if the query
+                   contains clashing column names, it may very likely lead to
+                   data corruption. Our renaming mechanism is used to fix issues
+                   with existing tables with problematic names, but that
+                   mechanism will only provide a false-sense of security in case
+                   of a query, whereas a query like `SELECT 1 AS "A", 2 AS "A"`
+                   will actually result in both columns `A` and `A 1` containing
+                   the value 1; and value 2 being lost. That is why such queries
+                   must fail.
+                r = Database_Table_Module.make_table self name columns ctx on_problems=Problem_Behavior.Report_Error
+                r.catch Any error->
+                    Error.throw (Illegal_Argument.Error "The provided custom SQL query is invalid and may suffer data corruption when being processed, especially if it contains aliased column names, it may not be interpreted correctly. Please ensure the names are unique. The original error was: "+error.to_display_text cause=error)
         SQL_Query.Table_Name name ->
             case self.table_naming_helper.is_table_name_valid name of
                 True -> make_table_for_name self name alias
@@ -440,6 +451,12 @@ make_table_for_name connection name alias internal_temporary_keep_alive_referenc
         statement = connection.dialect.generate_sql (Query.Select Nothing ctx)
         statement_setter = connection.dialect.get_statement_setter
         columns = connection.fetch_columns statement statement_setter
-        Database_Table_Module.make_table connection name columns ctx
+        ## In case of accessing an existing table, we assume that column names
+           are distinguishable by the backend, so any issues that are caught
+           only affect Enso columns, and just renaming Enso columns is enough to
+           fix that - so we are good with just attaching the problems as a
+           warning. We do not want to fail, as we do want to allow the user to
+           access any table already present in the database.
+        Database_Table_Module.make_table connection name columns ctx on_problems=Problem_Behavior.Report_Warning
     result.catch SQL_Error sql_error->
         Error.throw (Table_Not_Found.Error name sql_error treated_as_query=False extra_message="")

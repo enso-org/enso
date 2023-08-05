@@ -36,12 +36,10 @@ public class TestClass {
     return sum / arr.length;
   }
 
-  public static String exactArrayAverage(Number[] arr) {
+  public static String exactArrayAverage(BigInteger[] arr) {
     var sum = BigInteger.ZERO;
     for (int i = 0; i < arr.length; i++) {
-      var n = arr[i] instanceof Long l ? BigInteger.valueOf(l) :
-          new BigInteger(arr[i].toString());
-      sum = sum.add(n);
+      sum = sum.add(arr[i]);
     }
     return sum.divide(BigInteger.valueOf(arr.length)).toString();
   }

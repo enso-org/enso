@@ -416,14 +416,14 @@ impl Model {
 // === Updating Style ===
 
 impl Model {
-    fn grid_size((style, content_size): &(Style, Vector2)) -> Vector2 {
+    fn grid_size((style, content_size, top_margin): &(Style, Vector2, f32)) -> Vector2 {
         let x = min(style.content_size().x, content_size.x);
-        let y = min(style.content_size().y, content_size.y);
+        let y = min(style.content_size().y, content_size.y + top_margin);
         Vector2(x, y)
     }
 
-    fn grid_position(input: &(Style, Vector2)) -> Vector2 {
-        let (style, _) = input;
+    fn grid_position(input: &(Style, Vector2, f32)) -> Vector2 {
+        let (style, _, _) = input;
         let y = -style.content_size().y + Self::grid_size(input).y;
         Vector2(style.padding_x, y)
     }
@@ -511,15 +511,15 @@ impl component::Frp<Model> for Frp {
 
             // === Style and Entries Params ===
 
-            style_and_content_size <- all(&style, &grid.content_size);
+            size_and_position_factors <- all(style, grid.content_size, input.set_top_margin);
             entries_style <-
                 all4(&style, &entry_style, &colors, &group_colors);
             entries_params <- entries_style.map(f!((s) model.entries_params(s)));
             selection_entries_style <- all(entries_params, selection_colors);
             selection_entries_params <-
                 selection_entries_style.map(f!((input) model.selection_entries_params(input)));
-            grid_scroll_frp.resize <+ style_and_content_size.map(Model::grid_size);
-            grid_position <- style_and_content_size.map(Model::grid_position);
+            grid_scroll_frp.resize <+ size_and_position_factors.map(Model::grid_size);
+            grid_position <- size_and_position_factors.map(Model::grid_position);
             eval grid_position ((pos) model.grid.set_xy(*pos));
             corners_radius <- style.map(|s| s.corners_radius);
             grid_scroll_frp.set_corner_radius_bottom_right <+ corners_radius;
