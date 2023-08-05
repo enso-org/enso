@@ -179,7 +179,6 @@ function UserPermissionDisplay(props: InternalUserPermissionDisplayProps) {
         <PermissionDisplay
             key={user.user.pk}
             permissions={permissionDisplay.permissionActionsToPermissions(permissions)}
-            className={ownsThisAsset ? 'cursor-pointer hover:shadow-soft hover:z-10' : ''}
             onClick={event => {
                 event.stopPropagation()
                 if (ownsThisAsset) {
@@ -223,7 +222,7 @@ function UserPermissionDisplay(props: InternalUserPermissionDisplayProps) {
         >
             {isHovered && (
                 <div className="relative">
-                    <div className="absolute text-primary bottom-2 left-1/2 -translate-x-1/2 rounded-full shadow-soft bg-white px-2 py-1">
+                    <div className="absolute text-primary bg-frame-selected-bg backdrop-blur-3xl rounded-full shadow-soft pointer-events-none right-full px-2 py-1 mx-3 -my-0.5 z-10">
                         {user.user.user_email}
                     </div>
                 </div>
