@@ -39,7 +39,7 @@ export default function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
     return (
         <Modal centered className="bg-dim">
             <div className="relative rounded-2xl pointer-events-auto">
-                <div className="absolute rounded-2xl bg-frame-selected backdrop-blur-3xl w-full h-full -z-10" />
+                <div className="absolute rounded-2xl bg-frame-selected backdrop-blur-3xl w-full h-full" />
                 <form
                     onClick={event => {
                         event.stopPropagation()

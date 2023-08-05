@@ -41,6 +41,7 @@ export const theme = {
             'permission-docs': 'rgba(91, 8, 226, 0.64)',
             'permission-view': 'rgba(0, 0, 0, 0.10)',
             'call-to-action': '#fa6c08',
+            'black-a10': 'rgba(0, 0, 0, 0.10)',
             'black-a16': 'rgba(0, 0, 0, 0.16)',
             'black-a30': 'rgba(0, 0, 0, 0.30)',
             'gray-350': '#b7bcc5',
