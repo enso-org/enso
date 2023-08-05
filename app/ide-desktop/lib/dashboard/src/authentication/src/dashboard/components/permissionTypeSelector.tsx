@@ -88,8 +88,8 @@ export default function PermissionTypeSelector(props: PermissionTypeSelectorProp
                 event.stopPropagation()
             }}
         >
-            <div className="absolute bg-frame-selected rounded-2xl backdrop-blur-3xl w-full h-full -z-10" />
-            <div className="flex flex-col w-112.5 p-1">
+            <div className="absolute bg-frame-selected rounded-2xl backdrop-blur-3xl w-full h-full" />
+            <div className="relative flex flex-col w-112.5 p-1">
                 {PERMISSION_TYPE_DATA.filter(
                     data =>
                         (showDelete ? true : data.type !== permissions.Permission.delete) &&

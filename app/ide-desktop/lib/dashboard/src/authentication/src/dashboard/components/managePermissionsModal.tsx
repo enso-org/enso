@@ -242,8 +242,8 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
                         mouseEvent.preventDefault()
                     }}
                 >
-                    <div className="absolute bg-frame-selected backdrop-blur-3xl rounded-2xl h-full w-full -z-10" />
-                    <div className="flex flex-col rounded-2xl gap-2 p-2">
+                    <div className="absolute bg-frame-selected backdrop-blur-3xl rounded-2xl h-full w-full" />
+                    <div className="relative flex flex-col rounded-2xl gap-2 p-2">
                         <div>
                             <h2 className="text-sm font-bold">Invite</h2>
                             {/* Space reserved for other tabs. */}
