@@ -289,8 +289,9 @@ function SharedWithColumn(props: AssetColumnProps<backend.AnyAsset>) {
                     }}
                 />
             ))}
-            {ownsThisAsset && isHovered && (
+            {ownsThisAsset && (
                 <button
+                    className={`w-max ${isHovered ? '' : 'invisible'}`}
                     onClick={event => {
                         event.stopPropagation()
                         setModal(
