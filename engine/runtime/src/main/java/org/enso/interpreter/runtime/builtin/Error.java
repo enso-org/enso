@@ -151,7 +151,7 @@ public final class Error {
 
   /** Verifies payload whether it represents {@link #makeNoSuchMethod(Object, UnresolvedSymbol)} atom.
    * @param payload object to check
-   * @return {@code null} if the {@code payload} isn't recognized name of the unresolved symbol otherwise
+   * @return {@code null} if the {@code payload} isn't recognized name or the unresolved symbol otherwise
   */
   public String findNoSuchMethod(Object payload) {
     if (payload instanceof Atom atom && atom.getConstructor() == noSuchMethod.getUniqueConstructor()) {
