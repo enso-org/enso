@@ -2,7 +2,6 @@ package org.enso.interpreter.test;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.List;
 
 import org.graalvm.polyglot.Context;
@@ -209,7 +208,24 @@ public class JavaInteropTest extends TestBase {
   }
 
   @Test
-  public void testInterfaceProxyFailures() {
+  public void testInterfaceProxyFailuresA() {
+    var payload = evalInterfaceProxyFailures("a");
+    assertEquals("My_Exc", payload.getMetaObject().getMetaSimpleName());
+    var stdout = getStdOutLines();
+    var expectedLines = List.of("Executing Fooable_Panic.foo");
+    assertArrayEquals(expectedLines.toArray(), stdout);
+  }
+
+  @Test
+  public void testInterfaceProxyFailuresB() {
+    var result = evalInterfaceProxyFailures("b");
+    assertEquals("nonexistent_text_method", result.asString());
+    var stdout = getStdOutLines();
+    var expectedLines = List.of("Executing Fooable_Panic.foo", "Executing Fooable_Unresolved.foo");
+    assertArrayEquals(expectedLines.toArray(), stdout);
+  }
+
+  private Value evalInterfaceProxyFailures(String methodToEval) {
     var code = """
         from Standard.Base import all
         import Standard.Base.Errors.Common.No_Such_Method
@@ -235,27 +251,10 @@ public class JavaInteropTest extends TestBase {
                 IO.println "Executing Fooable_Unresolved.foo"
                 "".nonexistent_text_method
 
-        main =
-            a = Panic.catch My_Exc (Foo.callFoo Fooable_Panic.Value) (.payload)
-            b = Panic.catch No_Such_Method (Foo.callFoo Fooable_Unresolved.Value) (caught-> caught.payload.method_name)
-            [a, b]
+        a = Panic.catch My_Exc (Foo.callFoo Fooable_Panic.Value) (.payload)
+        b = Panic.catch No_Such_Method (Foo.callFoo Fooable_Unresolved.Value) (caught-> caught.payload.method_name)
         """;
 
-    Value res;
-    try {
-      res = evalModule(ctx, code);
-    } catch (Exception e) {
-      System.err.println("The test code failed to execute with exception: " + e);
-      System.err.println("It has produced the following stdout so far:");
-      Arrays.stream(getStdOutLines()).forEach(System.err::println);
-      throw e;
-    }
-    assertTrue("It is an array", res.hasArrayElements());
-    assertEquals("Array with 2 elements", 2, res.getArraySize());
-    assertEquals("my panic payload message 1", res.getArrayElement(0).asString());
-    assertEquals("nonexistent_text_method", res.getArrayElement(1).asString());
-    var stdout = getStdOutLines();
-    var expectedLines = List.of("Executing Fooable_Panic.foo", "Executing Fooable_Unresolved.foo");
-    assertArrayEquals(expectedLines.toArray(), stdout);
+    return evalModule(ctx, code + "\nmain = " + methodToEval);
   }
 }
