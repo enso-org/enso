@@ -8,6 +8,10 @@ body {
   background-blend-mode: lighten;
 }
 
+.Toastify--animate {
+  animation-duration: 0.2s;
+}
+
 /* These styles MUST still be copied
  * as `.enso-dashboard body` and `.enso-dashboard html` make no sense. */
 .enso-dashboard,

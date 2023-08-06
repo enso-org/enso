@@ -118,7 +118,7 @@ export default function TableRow<T, State = never, RowState = never, Key extends
             : [fallbackRowState, fallbackSetRowState]
 
     React.useEffect(() => {
-        if (rawSetItem != null) {
+        if (rawSetItem == null) {
             setItem(rawItem)
         }
     }, [rawItem, /* should never change */ setItem, /* should never change */ rawSetItem])

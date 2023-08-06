@@ -56,9 +56,7 @@ export class LocalBackend extends backend.Backend {
                     ? backend.ProjectState.opened
                     : project.id === LocalBackend.currentlyOpeningProjectId
                     ? backend.ProjectState.openInProgress
-                    : project.lastOpened != null
-                    ? backend.ProjectState.closed
-                    : backend.ProjectState.created,
+                    : backend.ProjectState.closed,
             },
         }))
     }
@@ -74,7 +72,7 @@ export class LocalBackend extends backend.Backend {
             projectId: project.id,
             packageName: project.name,
             state: {
-                type: backend.ProjectState.created,
+                type: backend.ProjectState.closed,
             },
             jsonAddress: null,
             binaryAddress: null,
@@ -98,7 +96,7 @@ export class LocalBackend extends backend.Backend {
             projectId: project.projectId,
             packageName: body.projectName,
             state: {
-                type: backend.ProjectState.created,
+                type: backend.ProjectState.closed,
             },
         }
     }

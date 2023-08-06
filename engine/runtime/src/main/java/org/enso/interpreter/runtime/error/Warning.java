@@ -182,6 +182,12 @@ public final class Warning implements TruffleObject {
     }
   }
 
+  @CompilerDirectives.TruffleBoundary
+  @Override
+  public String toString() {
+    return value.toString();
+  }
+
   @ExportLibrary(InteropLibrary.class)
   public static final class Reassignment implements TruffleObject {
     private final String methodName;

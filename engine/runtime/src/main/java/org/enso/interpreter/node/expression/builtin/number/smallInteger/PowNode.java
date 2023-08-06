@@ -14,7 +14,7 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(type = "Small_Integer", name = "^", description = "Exponentiation of numbers.")
 public abstract class PowNode extends Node {
-  private @Child ToEnsoNumberNode toEnsoNumberNode = ToEnsoNumberNode.build();
+  private @Child ToEnsoNumberNode toEnsoNumberNode = ToEnsoNumberNode.create();
   private @Child org.enso.interpreter.node.expression.builtin.number.smallInteger.MultiplyNode
       longMultiplyNode =
           org.enso.interpreter.node.expression.builtin.number.smallInteger.MultiplyNode.build();
