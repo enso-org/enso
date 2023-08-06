@@ -7,6 +7,5 @@ import project.Internal.Connection.Entity_Naming_Properties.Entity_Naming_Proper
 ## PRIVATE
 new : Entity_Naming_Properties
 new =
-    # TODO for #7412 we will customize this to indicate the case insensitivity
-    default = Unlimited_Naming_Properties.Instance
+    default = Unlimited_Naming_Properties.Instance is_case_sensitive=False
     Entity_Naming_Properties.Value for_table_names=default for_column_names=default

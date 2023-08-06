@@ -442,19 +442,19 @@ spec setup =
             map = Map.from_vector [[1, ""]]
             [Problem_Behavior.Ignore, Problem_Behavior.Report_Warning, Problem_Behavior.Report_Error].each pb->
                 r = table.rename_columns map on_problems=pb
-                r.should_fail_with Invalid_Output_Column_Names
+                r.should_fail_with Invalid_Column_Names
 
         Test.specify "should correctly handle problems: invalid names Nothing" <|
             map = ["alpha", Nothing]
             [Problem_Behavior.Ignore, Problem_Behavior.Report_Warning, Problem_Behavior.Report_Error].each pb->
                 r = table.rename_columns map on_problems=pb
-                r.should_fail_with Invalid_Output_Column_Names
+                r.should_fail_with Invalid_Column_Names
 
         Test.specify "should correctly handle problems: invalid names null character" <|
             map = ["alpha", 'a\0b']
             [Problem_Behavior.Ignore, Problem_Behavior.Report_Warning, Problem_Behavior.Report_Error].each pb->
                 r = table.rename_columns map on_problems=pb
-                r.should_fail_with Invalid_Output_Column_Names
+                r.should_fail_with Invalid_Column_Names
 
         Test.specify "should correctly handle problems: duplicate names" <|
             map = ["Test", "Test", "Test", "Test"]

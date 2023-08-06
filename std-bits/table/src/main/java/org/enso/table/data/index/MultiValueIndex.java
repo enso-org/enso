@@ -11,15 +11,11 @@ import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
 import org.enso.table.data.table.problems.FloatingPointGrouping;
-import org.enso.table.error.TooManyColumnsException;
 import org.enso.table.problems.AggregatedProblems;
 import org.enso.table.util.ConstantList;
-import org.enso.table.util.NameDeduplicator;
 import org.graalvm.polyglot.Context;
 
 public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
-  private static final int MAXIMUM_CROSS_TAB_COLUMN_COUNT = 10000;
-
   private final int keyColumnsLength;
   private final Map<KeyType, List<Integer>> locs;
   private final AggregatedProblems problems;
@@ -127,127 +123,6 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
         merged);
   }
 
-  public Table makeCrossTabTable(
-      Column[] groupingColumns,
-      Column nameColumn,
-      Aggregator[] aggregates,
-      String[] aggregateNames) {
-    Context context = Context.getCurrent();
-    NameDeduplicator outputTableNameDeduplicator = new NameDeduplicator();
-
-    final int size = locs.size();
-
-    var nameIndex =
-        MultiValueIndex.makeUnorderedIndex(
-            new Column[] {nameColumn},
-            nameColumn.getSize(),
-            TextFoldingStrategy.unicodeNormalizedFold);
-    final int columnCount = groupingColumns.length + nameIndex.locs.size() * aggregates.length;
-    if (columnCount > MAXIMUM_CROSS_TAB_COLUMN_COUNT) {
-      throw new TooManyColumnsException(
-          "The cross_tab contained too many columns. Maximum allowed is "
-              + MAXIMUM_CROSS_TAB_COLUMN_COUNT
-              + " but was "
-              + columnCount
-              + ".",
-          columnCount,
-          MAXIMUM_CROSS_TAB_COLUMN_COUNT);
-    }
-
-    // Create the storage
-    Builder[] storage = new Builder[columnCount];
-    for (int i = 0; i < groupingColumns.length; i++) {
-      storage[i] = Builder.getForType(groupingColumns[i].getStorage().getType(), size);
-      context.safepoint();
-    }
-
-    for (int i = 0; i < nameIndex.locs.size(); i++) {
-      int offset = groupingColumns.length + i * aggregates.length;
-      for (int j = 0; j < aggregates.length; j++) {
-        storage[offset + j] = Builder.getForType(aggregates[j].getType(), size);
-        context.safepoint();
-      }
-    }
-
-    // Fill the storage
-    for (List<Integer> group_locs : this.locs.values()) {
-      // Fill the grouping columns
-      IntStream.range(0, groupingColumns.length)
-          .forEach(
-              i ->
-                  storage[i].appendNoGrow(
-                      groupingColumns[i].getStorage().getItemBoxed(group_locs.get(0))));
-
-      // Make a Set
-      var groupSet = new HashSet<>(group_locs);
-
-      // Fill the aggregates
-      int offset = groupingColumns.length;
-      for (List<Integer> name_locs : nameIndex.locs.values()) {
-        var filtered = name_locs.stream().filter(groupSet::contains).collect(Collectors.toList());
-
-        for (int i = 0; i < aggregates.length; i++) {
-          storage[offset + i].appendNoGrow(aggregates[i].aggregate(filtered));
-        }
-
-        offset += aggregates.length;
-        context.safepoint();
-      }
-    }
-
-    // Create Columns
-    Column[] output = new Column[columnCount];
-    for (int i = 0; i < groupingColumns.length; i++) {
-      outputTableNameDeduplicator.markUsed(groupingColumns[i].getName());
-      output[i] = new Column(groupingColumns[i].getName(), storage[i].seal());
-      context.safepoint();
-    }
-
-    int offset = groupingColumns.length;
-    for (List<Integer> name_locs : nameIndex.locs.values()) {
-      Object boxed = nameColumn.getStorage().getItemBoxed(name_locs.get(0));
-      String name = boxed == null ? null : boxed.toString();
-      // We want to fail hard on invalid colum names stemming from invalid input values and make
-      // the user fix the data before cross_tab, to avoid data corruption.
-      Column.ensureNameIsValid(name);
-
-      for (int i = 0; i < aggregates.length; i++) {
-        String effectiveName;
-        if (aggregateNames[i].isEmpty()) {
-          effectiveName = name;
-        } else if (name.isEmpty()) {
-          effectiveName = aggregateNames[i];
-        } else {
-          effectiveName = name + " " + aggregateNames[i];
-        }
-
-        // Check again to ensure that the appended aggregate name does not invalidate the name.
-        // We do not check aggregateName itself before, because it _is_ allowed for it to be empty -
-        // meaning just key names will be used and that is fine.
-        Column.ensureNameIsValid(effectiveName);
-        effectiveName = outputTableNameDeduplicator.makeUnique(effectiveName);
-
-        output[offset + i] = new Column(effectiveName, storage[offset + i].seal());
-        context.safepoint();
-      }
-
-      offset += aggregates.length;
-    }
-
-    // Merge Problems
-    AggregatedProblems[] problems = new AggregatedProblems[aggregates.length + 3];
-    problems[0] = this.problems;
-    problems[1] = AggregatedProblems.of(outputTableNameDeduplicator.getProblems());
-    problems[2] = nameIndex.getProblems();
-    for (int i = 0; i < aggregates.length; i++) {
-      problems[i + 3] = aggregates[i].getProblems();
-      context.safepoint();
-    }
-    AggregatedProblems merged = AggregatedProblems.merge(problems);
-
-    return new Table(output, merged);
-  }
-
   public AggregatedProblems getProblems() {
     return problems;
   }
@@ -281,5 +156,9 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
 
   public List<Integer> get(KeyType key) {
     return this.locs.get(key);
+  }
+
+  public int size() {
+    return this.locs.size();
   }
 }

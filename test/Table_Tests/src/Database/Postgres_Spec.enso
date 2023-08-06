@@ -1,10 +1,12 @@
 from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Ref.Ref
 
 import Standard.Table.Data.Type.Value_Type.Bits
 from Standard.Table import Table, Value_Type
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all hiding First, Last
+from Standard.Table.Errors import Invalid_Column_Names, Duplicate_Output_Column_Names
 
 import Standard.Database.Data.Column.Column
 import Standard.Database.Data.SQL_Type.SQL_Type
@@ -216,6 +218,27 @@ postgres_specific_spec connection db_name setup =
             effective_name = table.column_names . at 0
             effective_name . should_not_equal long_name
             long_name.should_contain effective_name
+
+        Test.specify "is capable of handling weird tables" <|
+            connection.execute_update 'CREATE TEMPORARY TABLE "empty-column-name" ("" VARCHAR)' . should_fail_with SQL_Error
+
+            Problems.assume_no_problems <|
+                connection.execute_update 'CREATE TEMPORARY TABLE "clashing-unicode-names" ("ś" VARCHAR, "s\u0301" INTEGER)'
+            Problems.assume_no_problems <|
+                connection.execute_update 'INSERT INTO "clashing-unicode-names" VALUES (\'A\', 2)'
+            t2 = connection.query (SQL_Query.Table_Name "clashing-unicode-names")
+            Problems.expect_only_warning Duplicate_Output_Column_Names t2
+            t2.column_names . should_equal ["ś", "ś 1"]
+            m2 = t2.read
+            m2.at "ś"   . to_vector . should_equal ["A"]
+            m2.at "ś 1" . to_vector . should_equal [2]
+
+            r3 = connection.query 'SELECT 1 AS "A", 2 AS "A"'
+            r3.should_fail_with Illegal_Argument
+            r3.catch.cause . should_be_a Duplicate_Output_Column_Names
+
+            r4 = connection.query 'SELECT 1 AS ""'
+            r4.should_fail_with SQL_Error
 
     table_builder = setup.table_builder
     materialize = setup.materialize
