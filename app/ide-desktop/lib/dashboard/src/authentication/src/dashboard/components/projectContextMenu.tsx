@@ -62,7 +62,9 @@ export default function ProjectContextMenu(props: ProjectContextMenuProps) {
                 const headers = new Headers([['Authorization', `Bearer ${accessToken}`]])
                 const client = new http.Client(headers)
                 const remoteBackend = new remoteBackendModule.RemoteBackend(client, logger)
-                const projectResponse = await fetch(`./projects/${item.id}/enso-project`)
+                const projectResponse = await fetch(
+                    `./api/project-manager/projects/${item.id}/enso-project`
+                )
                 await remoteBackend.uploadFile(
                     {
                         fileName: `${item.title}.enso-project`,
