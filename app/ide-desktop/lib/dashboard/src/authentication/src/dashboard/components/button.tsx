@@ -18,7 +18,7 @@ export default function Button(props: ButtonProps) {
     return (
         <button
             disabled={disabled}
-            {...(error != null ? { title: error } : {})}
+            {...(disabled && error != null ? { title: error } : {})}
             className={`cursor-pointer disabled:cursor-default disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-100 ${
                 active ? '' : 'opacity-50'
             }`}

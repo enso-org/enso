@@ -283,6 +283,12 @@ export class RemoteBackend extends backend.Backend {
                         // eslint-disable-next-line no-restricted-syntax
                         ({ ...asset, type: asset.id.match(/^(.+?)-/)?.[1] } as backend.AnyAsset)
                 )
+                .map(asset =>
+                    asset.type === backend.AssetType.project &&
+                    asset.projectState.type === backend.ProjectState.opened
+                        ? { ...asset, projectState: { type: backend.ProjectState.openInProgress } }
+                        : asset
+                )
                 .map(asset => ({
                     ...asset,
                     permissions: (asset.permissions ?? []).sort(backend.compareUserPermissions),

@@ -144,8 +144,10 @@ impl score::ScoreBuilder for ScoreBuilder {
     fn match_delimiter(&mut self, _pattern: char, value: char) {
         self.word_chars_matched_since_last_delimiter = false;
         if value == '.' {
-            // Penalty for every matched `.`.
-            self.penalty += SUBMATCH_INCLUDES_NAMESPACE_PENALTY;
+            if self.word_chars_matched {
+                // Penalty for every matched `.` after the first matched character.
+                self.penalty += SUBMATCH_INCLUDES_NAMESPACE_PENALTY;
+            }
             self.word_chars_skipped_since_last_dot = false;
             self.word_chars_matched_since_last_dot = false;
         }
@@ -267,6 +269,8 @@ mod test_score {
             ("abx", TargetInfo { is_alias: false }),
             // Prefix match, first-word: Name (Lower % of word used)
             ("abxx", TargetInfo { is_alias: false }),
+            // Prefix match, first-word: Name (Type not used in match)
+            ("x.abxyz", TargetInfo { is_alias: false }),
             // Prefix match, first-word: Type (Exact match)
             ("ab.x", TargetInfo { is_alias: false }),
             // Prefix match, first-word: Type

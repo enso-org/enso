@@ -7,6 +7,7 @@ from Standard.Base.Widget_Helpers import make_regex_text_widget
 import Standard.Table.Data.Column.Column as Materialized_Column
 import Standard.Table.Data.Type.Enso_Types
 import Standard.Table.Data.Type.Value_Type_Helpers
+import Standard.Table.Internal.Column_Naming_Helper.Column_Naming_Helper
 import Standard.Table.Internal.Date_Time_Helpers
 import Standard.Table.Internal.Java_Problems
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
@@ -18,6 +19,7 @@ from Standard.Table.Internal.Cast_Helpers import check_cast_compatibility
 import project.Connection.Connection.Connection
 import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
+import project.Data.Table.Table
 import project.Internal.Helpers
 import project.Internal.IR.Context.Context
 import project.Internal.IR.Internal_Column.Internal_Column
@@ -25,8 +27,7 @@ import project.Internal.IR.Query.Query
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.Replace_Params.Replace_Params
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
-from project.Data.Table import freshen_columns, Table
-from project.Errors import Integrity_Error, Unsupported_Database_Operation, Unsupported_Name
+from project.Errors import Integrity_Error, Unsupported_Database_Operation
 
 polyglot java import org.enso.table.data.column.operation.map.MapOperationProblemBuilder
 
@@ -170,7 +171,7 @@ type Column
     make_binary_op : Text -> Text -> (Text | Nothing) -> Column
     make_binary_op self op_kind operand new_name=Nothing =
         effective_new_name = new_name.if_nothing <|
-            self.naming_helpers.binary_operation_name op_kind self operand
+            self.naming_helper.binary_operation_name op_kind self operand
         self.make_op op_kind [operand] effective_new_name
 
     ## PRIVATE
@@ -184,7 +185,7 @@ type Column
     make_unary_op : Text -> Text|Nothing -> Column
     make_unary_op self op_kind new_name=Nothing =
         effective_new_name = new_name.if_nothing <|
-            self.naming_helpers.function_name op_kind [self]
+            self.naming_helper.function_name op_kind [self]
         self.make_op op_kind [] effective_new_name
 
     ## Returns the length of this column.
@@ -250,7 +251,7 @@ type Column
         Value_Type.expect_text self <|
             Value_Type.expect_text other <|
                 Helpers.assume_default_locale locale <|
-                    new_name = self.naming_helpers.function_name "equals_ignore_case" [self, other]
+                    new_name = self.naming_helper.function_name "equals_ignore_case" [self, other]
                     self.make_binary_op "equals_ignore_case" other new_name
 
     ## ALIAS Not Equals
@@ -355,7 +356,8 @@ type Column
     between self lower upper =
         Value_Type.expect_comparable self lower <|
             Value_Type.expect_comparable self upper <|
-                new_name = self.naming_helpers.to_expression_text self + " between " + self.naming_helpers.to_expression_text lower + " and " + self.naming_helpers.to_expression_text upper
+                new_name = self.naming_helper.concat <|
+                    [self.naming_helper.to_expression_text self, "between", self.naming_helper.to_expression_text lower, "and", self.naming_helper.to_expression_text upper]
                 self.make_op "BETWEEN" [lower, upper] new_name
 
     ## ALIAS Add, Plus, Concatenate
@@ -373,7 +375,7 @@ type Column
             Value_Type_Helpers.Addition_Kind.Numeric_Add -> "ADD_NUMBER"
             Value_Type_Helpers.Addition_Kind.Text_Concat -> "ADD_TEXT"
         op.if_not_error <|
-            new_name = self.naming_helpers.binary_operation_name "+" self other
+            new_name = self.naming_helper.binary_operation_name "+" self other
             self.make_binary_op op other new_name
 
     ## ALIAS Subtract, Minus, Time Difference
@@ -477,7 +479,7 @@ type Column
             other_type = Value_Type_Helpers.find_argument_type other
             # Different implementation may be used for integer types.
             op = if self.value_type.is_integer && (other_type.is_nothing || other_type.is_integer) then "%" else "mod"
-            new_name = self.naming_helpers.binary_operation_name "%" self other
+            new_name = self.naming_helper.binary_operation_name "%" self other
             self.make_binary_op op other new_name
 
     ## ALIAS Power
@@ -522,7 +524,7 @@ type Column
     && : Column | Any -> Column
     && self other =
         Value_Type_Helpers.check_binary_boolean_op self other <|
-            new_name = self.naming_helpers.binary_operation_name "&&" self other
+            new_name = self.naming_helper.binary_operation_name "&&" self other
             self.make_binary_op "AND" other new_name
 
     ## ALIAS Or
@@ -538,14 +540,14 @@ type Column
     || : Column | Any -> Column
     || self other =
         Value_Type_Helpers.check_binary_boolean_op self other <|
-            new_name = self.naming_helpers.binary_operation_name "||" self other
+            new_name = self.naming_helper.binary_operation_name "||" self other
             self.make_binary_op "OR" other new_name
 
     ## Boolean negation of each element in this column.
     not : Column
     not self =
         Value_Type.expect_boolean self <|
-            new_name = "not " + self.naming_helpers.to_expression_text self
+            new_name = self.naming_helper.concat ["not", self.naming_helper.to_expression_text self]
             self.make_unary_op "NOT" new_name
 
     ## ALIAS IF
@@ -561,7 +563,8 @@ type Column
         Value_Type.expect_boolean self <|
             common_type = Value_Type_Helpers.find_common_type_for_arguments [when_true, when_false]
             common_type.if_not_error <|
-                new_name = "if " + self.naming_helpers.to_expression_text self + " then " + self.naming_helpers.to_expression_text when_true + " else " + self.naming_helpers.to_expression_text when_false
+                new_name = self.naming_helper.concat <|
+                    ["if", self.naming_helper.to_expression_text self, "then", self.naming_helper.to_expression_text when_true, "else", self.naming_helper.to_expression_text when_false]
                 op_result = self.make_op "IIF" [when_true, when_false] new_name
                 adapt_unified_column op_result common_type
 
@@ -655,7 +658,7 @@ type Column
        Round a float-like column using the backend's builtin ROUND function.
     round_builtin : Integer -> Column
     round_builtin self decimal_places =
-        new_name = self.naming_helpers.function_name "round" [self]
+        new_name = self.naming_helper.function_name "round" [self]
         case decimal_places == 0 of
             True ->
                 self.make_unary_op "ROUND" new_name
@@ -666,7 +669,7 @@ type Column
        Round a float-like column.
     round_float : Integer -> Boolean -> Column
     round_float self decimal_places use_bankers =
-        new_name = self.naming_helpers.function_name "round" [self]
+        new_name = self.naming_helper.function_name "round" [self]
         scale = 10 ^ decimal_places
         scaled = self * scale
         round_base = scaled.floor . rename "rb"
@@ -683,7 +686,7 @@ type Column
     round_decimal self decimal_places use_bankers =
         # Construct a constant Decimal column.
         k x = self.const x . cast Value_Type.Decimal
-        new_name = self.naming_helpers.function_name "round" [self]
+        new_name = self.naming_helper.function_name "round" [self]
         scale = k 10 ^ decimal_places
         scaled = self * scale
         round_base = scaled.floor . rename "rb"
@@ -698,7 +701,7 @@ type Column
        Round an integer column.
     round_integer : Integer -> Boolean -> Column
     round_integer self decimal_places use_bankers =
-        new_name = self.naming_helpers.function_name "round" [self]
+        new_name = self.naming_helper.function_name "round" [self]
         scale = 10 ^ -decimal_places
         halfway = scale.div 2
         remainder = self % scale
@@ -735,7 +738,7 @@ type Column
     truncate : Column ! Invalid_Value_Type
     truncate self =
         Value_Type.expect_numeric self <| self.short_circuit_special_floating_point <|
-            new_name = self.naming_helpers.function_name "truncate" [self]
+            new_name = self.naming_helper.function_name "truncate" [self]
             self.make_unary_op "TRUNCATE" new_name
 
     ## Takes the ceiling of floating-point values, returning integer values.
@@ -753,7 +756,7 @@ type Column
     ceil : Column ! Invalid_Value_Type
     ceil self =
         Value_Type.expect_numeric self <| self.short_circuit_special_floating_point <|
-            new_name = self.naming_helpers.function_name "ceil" [self]
+            new_name = self.naming_helper.function_name "ceil" [self]
             self.make_unary_op "CEIL" new_name
 
     ## Takes the floor of floating-point values, returning integer values.
@@ -771,7 +774,7 @@ type Column
     floor : Column ! Invalid_Value_Type
     floor self =
         Value_Type.expect_numeric self <| self.short_circuit_special_floating_point <|
-            new_name = self.naming_helpers.function_name "floor" [self]
+            new_name = self.naming_helper.function_name "floor" [self]
             self.make_unary_op "FLOOR" new_name
 
     ## PRIVATE
@@ -779,7 +782,7 @@ type Column
     decimal_div : Column -> Column ! Invalid_Value_Type
     decimal_div self other =
         Value_Type.expect_numeric self <| Value_Type.expect_numeric other <|
-            new_name = self.naming_helpers.function_name "decimal_div" [self, other]
+            new_name = self.naming_helper.function_name "decimal_div" [self, other]
             self.make_binary_op "DECIMAL_DIV" other new_name
 
     ## PRIVATE
@@ -787,7 +790,7 @@ type Column
     decimal_mod : Column -> Column ! Invalid_Value_Type
     decimal_mod self other =
         Value_Type.expect_numeric self <| Value_Type.expect_numeric other <|
-            new_name = self.naming_helpers.function_name "decimal_mod" [self, other]
+            new_name = self.naming_helper.function_name "decimal_mod" [self, other]
             self.make_binary_op "DECIMAL_MOD" other new_name
 
     ## Returns a column of first non-`Nothing` value on each row of `self` and
@@ -808,7 +811,7 @@ type Column
         args_with_self = [self]+vec
         common_type = Value_Type_Helpers.find_common_type_for_arguments args_with_self
         common_type.if_not_error <|
-            new_name = self.naming_helpers.function_name "coalesce" args_with_self
+            new_name = self.naming_helper.function_name "coalesce" args_with_self
             op_result = self.make_op "COALESCE" vec new_name
             adapt_unified_column op_result common_type
 
@@ -828,7 +831,7 @@ type Column
     min self values =
         Value_Type_Helpers.check_multi_argument_comparable_op self values <|
             args = Vector.unify_vector_or_element values
-            new_name = self.naming_helpers.function_name "min" [self]+args
+            new_name = self.naming_helper.function_name "min" [self]+args
             self.make_op "ROW_MIN" args new_name
 
     ## Returns a column of maximum on each row of `self` and `values`.
@@ -847,21 +850,21 @@ type Column
     max self values =
         Value_Type_Helpers.check_multi_argument_comparable_op self values <|
             args = Vector.unify_vector_or_element values
-            new_name = self.naming_helpers.function_name "max" [self]+args
+            new_name = self.naming_helper.function_name "max" [self]+args
             self.make_op "ROW_MAX" args new_name
 
     ## Returns a column of booleans, with `True` items at the positions where
        this column contains a `Nothing`.
     is_nothing : Column
     is_nothing self =
-        new_name = self.naming_helpers.to_expression_text self + " is null"
+        new_name = self.naming_helper.concat [self.naming_helper.to_expression_text self, "is null"]
         self.make_unary_op "IS_NULL" new_name
 
     ## Returns a column of booleans, with `True` items at the positions where
        this column contains a NaN. This is only applicable to double columns.
     is_nan : Column
     is_nan self = Value_Type.expect_numeric self <|
-        new_name = self.naming_helpers.function_name "is_nan" [self]
+        new_name = self.naming_helper.function_name "is_nan" [self]
         self.make_unary_op "IS_NAN" new_name
 
     ## Returns a column of booleans, with `True` items at the positions where
@@ -869,7 +872,7 @@ type Column
        columns.
     is_infinite : Column
     is_infinite self = Value_Type.expect_numeric self <|
-        new_name = self.naming_helpers.function_name "is_infinite" [self]
+        new_name = self.naming_helper.function_name "is_infinite" [self]
         self.make_unary_op "IS_INF" new_name
 
     ## PRIVATE
@@ -877,7 +880,7 @@ type Column
        this column contains an empty string or `Nothing`.
     is_empty : Column
     is_empty self = Value_Type.expect_text self <|
-        new_name = self.naming_helpers.to_expression_text self + " is empty"
+        new_name = self.naming_helper.concat [self.naming_helper.to_expression_text self, "is empty"]
         self.make_unary_op "IS_EMPTY" new_name
 
     ## Returns a column of booleans, with `True` items at the positions where
@@ -891,7 +894,7 @@ type Column
              example_is_present = Examples.decimal_column.is_present
     is_present : Column
     is_present self =
-        new_name = self.naming_helpers.function_name "is_present" [self]
+        new_name = self.naming_helper.function_name "is_present" [self]
         self.is_nothing.not . rename new_name
 
     ## PRIVATE
@@ -906,7 +909,7 @@ type Column
          Blank values are `Nothing`, `""` and depending on setting `Number.nan`.
     is_blank : Boolean -> Column
     is_blank self treat_nans_as_blank=False =
-        new_name = self.naming_helpers.function_name "is_blank" [self]
+        new_name = self.naming_helper.function_name "is_blank" [self]
         self_type = self.value_type
         is_blank = case self_type.is_text of
             True -> self.is_empty
@@ -975,7 +978,7 @@ type Column
 
              example_rename = Examples.integer_column.rename "My Numbers"
     rename : Text -> Column ! Illegal_Argument
-    rename self name = self.naming_helpers.ensure_name_is_valid name <|
+    rename self name = self.naming_helper.ensure_name_is_valid name <|
         Column.Value name self.connection self.sql_type_reference self.expression self.context
 
     ## ALIAS order_by
@@ -1036,7 +1039,7 @@ type Column
        on these missing values is vendor specific.
     starts_with : Column | Text -> Case_Sensitivity -> Column
     starts_with self other case_sensitivity=Case_Sensitivity.Default =
-        new_name = self.naming_helpers.function_name "starts_with" [self, other]
+        new_name = self.naming_helper.function_name "starts_with" [self, other]
         make_text_case_op self "starts_with" other case_sensitivity new_name
 
     ## Checks for each element of the column if it ends with `other`.
@@ -1052,7 +1055,7 @@ type Column
        on these missing values is vendor specific.
     ends_with : Column | Text -> Case_Sensitivity -> Column
     ends_with self other case_sensitivity=Case_Sensitivity.Default =
-        new_name = self.naming_helpers.function_name "ends_with" [self, other]
+        new_name = self.naming_helper.function_name "ends_with" [self, other]
         make_text_case_op self "ends_with" other case_sensitivity new_name
 
     ## Checks for each element of the column if it contains `other`.
@@ -1068,7 +1071,7 @@ type Column
        on these missing values is vendor specific.
     contains : Column | Text -> Case_Sensitivity -> Column
     contains self other case_sensitivity=Case_Sensitivity.Default =
-        new_name = self.naming_helpers.function_name "contains" [self, other]
+        new_name = self.naming_helper.function_name "contains" [self, other]
         make_text_case_op self "contains" other case_sensitivity new_name
 
     ## Checks for each element of the column if it matches an SQL-like pattern.
@@ -1090,7 +1093,7 @@ type Column
     like self pattern =
         Value_Type.expect_text self <|
             Value_Type.expect_text pattern <|
-                new_name = self.naming_helpers.binary_operation_name "like" self pattern
+                new_name = self.naming_helper.binary_operation_name "like" self pattern
                 self.make_binary_op "LIKE" pattern new_name
 
     ## This function removes the specified characters, by default any
@@ -1105,7 +1108,7 @@ type Column
     trim self where=Location.Both what='' =
         Value_Type.expect_text self <|
             Value_Type.expect_text what <|
-                new_name = self.naming_helpers.function_name "trim" [self]
+                new_name = self.naming_helper.function_name "trim" [self]
                 operator = case where of
                     Location.Both -> "TRIM"
                     Location.Start -> "LTRIM"
@@ -1184,7 +1187,7 @@ type Column
                 raw_term = case term of
                     _ : Regex -> term.pattern_string
                     _ -> term
-                new_name = self.naming_helpers.function_name "replace" [self, raw_term, new_text]
+                new_name = self.naming_helper.function_name "replace" [self, raw_term, new_text]
                 self.make_op "REPLACE" [raw_term, new_text] new_name [term, params]
 
     ## Gets the year as a number from the date stored in the column.
@@ -1242,7 +1245,7 @@ type Column
     @period Date_Time_Helpers.make_period_selector_for_column
     date_part : Date_Period | Time_Period -> Column ! Invalid_Value_Type | Illegal_Argument
     date_part self period =
-        Date_Time_Helpers.make_date_part_function self period simple_unary_op self.naming_helpers
+        Date_Time_Helpers.make_date_part_function self period simple_unary_op self.naming_helper
 
     ## Computes a time difference between the two dates.
 
@@ -1273,7 +1276,7 @@ type Column
             my_type = self.inferred_precise_value_type
             Value_Type.expect_type end (== my_type) my_type.to_display_text <|
                 Date_Time_Helpers.check_period_aligned_with_value_type my_type period <|
-                    new_name = self.naming_helpers.function_name "date_diff" [self, end, period.to_display_text]
+                    new_name = self.naming_helper.function_name "date_diff" [self, end, period.to_display_text]
                     metadata = self.connection.dialect.prepare_metadata_for_period period my_type
                     self.make_op "date_diff" [end] new_name metadata
 
@@ -1300,7 +1303,7 @@ type Column
             my_type = self.inferred_precise_value_type
             Value_Type.expect_integer amount <|
                 Date_Time_Helpers.check_period_aligned_with_value_type my_type period <|
-                    new_name = self.naming_helpers.function_name "date_add" [self, amount, period.to_display_text]
+                    new_name = self.naming_helper.function_name "date_add" [self, amount, period.to_display_text]
                     metadata = self.connection.dialect.prepare_metadata_for_period period my_type
                     self.make_op "date_add" [amount] new_name metadata
 
@@ -1320,7 +1323,7 @@ type Column
              example_contains = Examples.text_column_1.is_in [1, 2, 5]
     is_in : Column | Vector -> Column
     is_in self vector =
-        new_name = self.naming_helpers.binary_operation_name "in" self vector
+        new_name = self.naming_helper.binary_operation_name "in" self vector
         case vector of
             _ : Vector ->
                 ## This is slightly hacky - we don't provide operand types as we want to
@@ -1551,14 +1554,15 @@ type Column
     sql_type self = self.sql_type_reference.get
 
     ## PRIVATE
-    naming_helpers self = self.connection.dialect.get_naming_helpers
+    naming_helper : Column_Naming_Helper
+    naming_helper self = self.connection.base_connection.column_naming_helper
 
     ## PRIVATE
        Helper for the expression to tell it which functions needs a Vector.
     var_args_functions : Array
     var_args_functions = ['is_in', 'coalesce', 'min', 'max']
 
-    ## PRVIATE
+    ## PRIVATE
        If the column is NaN/Inf, return it immediately as the value; otherwise
        return the expression. If returning immediately, rename to the expression's
        name. If the column is not floating point, just return the expression.

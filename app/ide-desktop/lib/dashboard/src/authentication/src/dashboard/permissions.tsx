@@ -201,7 +201,7 @@ export const DEFAULT_PERMISSIONS: Readonly<Permissions> = {
 export function tryGetSingletonOwnerPermission(
     owner: backend.UserOrOrganization | null,
     user: backend.SimpleUser | null
-) {
+): backend.UserPermission[] {
     return owner != null
         ? [
               {

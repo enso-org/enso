@@ -160,6 +160,9 @@ export default function Editor(props: EditorProps) {
                     }
                 }
             })()
+            return () => {
+                appRunner.stopApp()
+            }
             // The backend MUST NOT be a dependency, since the IDE should only be recreated when a new
             // project is opened, and a local project does not exist on the cloud and vice versa.
             // eslint-disable-next-line react-hooks/exhaustive-deps

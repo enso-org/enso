@@ -11,6 +11,7 @@ import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as hooks from '../../hooks'
 import * as loggerProvider from '../../providers/logger'
+import * as string from '../../string'
 
 import * as pageSwitcher from './pageSwitcher'
 import AssetsTable from './assetsTable'
@@ -23,25 +24,14 @@ import DriveBar from './driveBar'
 /** The `localStorage` key under which the ID of the current directory is stored. */
 const DIRECTORY_STACK_KEY = `${common.PRODUCT_NAME.toLowerCase()}-dashboard-directory-stack`
 
-// ========================
-// === Helper functions ===
-// ========================
+// =================
+// === DriveView ===
+// =================
 
-/** Sanitizes a string for use as a regex. */
-function regexEscape(string: string) {
-    return string.replace(/[\\^$.|?*+()[{]/g, '\\$&')
-}
-
-// =====================
-// === DirectoryView ===
-// =====================
-
-/** Props for a {@link DirectoryView}. */
-export interface DirectoryViewProps {
+/** Props for a {@link DriveView}. */
+export interface DriveViewProps {
     page: pageSwitcher.Page
     initialProjectName: string | null
-    nameOfProjectToImmediatelyOpen: string | null
-    setNameOfProjectToImmediatelyOpen: (nameOfProjectToImmediatelyOpen: string | null) => void
     directoryId: backendModule.DirectoryId | null
     setDirectoryId: (directoryId: backendModule.DirectoryId) => void
     assetListEvents: assetListEventModule.AssetListEvent[]
@@ -58,12 +48,10 @@ export interface DirectoryViewProps {
 }
 
 /** Contains directory path and directory contents (projects, folders, secrets and files). */
-export default function DirectoryView(props: DirectoryViewProps) {
+export default function DriveView(props: DriveViewProps) {
     const {
         page,
         initialProjectName,
-        nameOfProjectToImmediatelyOpen,
-        setNameOfProjectToImmediatelyOpen,
         directoryId,
         setDirectoryId,
         query,
@@ -88,12 +76,14 @@ export default function DirectoryView(props: DirectoryViewProps) {
     const [directoryStack, setDirectoryStack] = React.useState<backendModule.DirectoryAsset[]>([])
     const [isFileBeingDragged, setIsFileBeingDragged] = React.useState(false)
     const [assetEvents, dispatchAssetEvent] = hooks.useEvent<assetEventModule.AssetEvent>()
+    const [nameOfProjectToImmediatelyOpen, setNameOfProjectToImmediatelyOpen] =
+        React.useState(initialProjectName)
 
     const assetFilter = React.useMemo(() => {
         if (query === '') {
             return null
         } else {
-            const regex = new RegExp(regexEscape(query), 'i')
+            const regex = new RegExp(string.regexEscape(query), 'i')
             return (asset: backendModule.AnyAsset) => regex.test(asset.title)
         }
     }, [query])
@@ -177,6 +167,12 @@ export default function DirectoryView(props: DirectoryViewProps) {
             /* should never change */ dispatchAssetEvent,
         ]
     )
+
+    React.useEffect(() => {
+        setAssets([])
+        // `setAssets` is a callback, not a dependency.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [backend])
 
     hooks.useAsyncEffect(
         null,

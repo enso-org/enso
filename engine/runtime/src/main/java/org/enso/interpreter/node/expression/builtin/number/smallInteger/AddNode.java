@@ -13,7 +13,7 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(type = "Small_Integer", name = "+", description = "Addition of numbers.")
 public abstract class AddNode extends Node {
-  private @Child ToEnsoNumberNode toEnsoNumberNode = ToEnsoNumberNode.build();
+  private @Child ToEnsoNumberNode toEnsoNumberNode = ToEnsoNumberNode.create();
 
   abstract Object execute(long self, Object that);
 
