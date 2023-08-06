@@ -31,7 +31,6 @@ use ensogl::application::Application;
 use ensogl::control::io::mouse;
 use ensogl::data::color::Rgba;
 use ensogl::display;
-use ensogl::display::scene;
 use ensogl::display::scene::Scene;
 use ensogl::display::scene::Shape;
 use ensogl::display::shape::StyleWatchFrp;
@@ -180,11 +179,11 @@ ensogl::define_endpoints_2! {
 pub struct View {
     display_object:  display::object::Instance,
     selection:       Rectangle,
-    overlay:         Rectangle,
+    hover_area:      Rectangle,
     /// Resize grip is a rectangle with the size of the container but with a slight offset from the
-    /// overlay shape so that it extends beyond the container at the bottom and right sides.
-    /// The ordering of `overlay`, `selection`, and `resize_grip` is controlled by partition layers
-    /// (see [`View::init`]).
+    /// `hover_area` shape so that it extends beyond the container at the bottom and right sides.
+    /// The ordering of `hover_area`, `selection`, and `resize_grip` is controlled by partition
+    /// layers (see [`View::init`]).
     resize_grip:     Rectangle,
     // TODO : We added a HTML background to the `View`, because "shape" background was
     // overlapping the JS visualization. This should be further investigated
@@ -201,15 +200,15 @@ impl View {
         let selection = Rectangle::default().build(|r| {
             r.set_color(Rgba::transparent());
         });
-        let overlay = Rectangle::default().build(|r| {
+        let hover_area = Rectangle::default().build(|r| {
             r.set_color(INVISIBLE_HOVER_COLOR).set_border_color(INVISIBLE_HOVER_COLOR);
         });
         let resize_grip = Rectangle::default().build(|r| {
             r.set_color(INVISIBLE_HOVER_COLOR).set_border_color(INVISIBLE_HOVER_COLOR);
         });
         display_object.add_child(&selection);
-        selection.add_child(&overlay);
-        overlay.add_child(&resize_grip);
+        selection.add_child(&hover_area);
+        hover_area.add_child(&resize_grip);
         let div = web::document.create_div_or_panic();
         let background_dom = DomSymbol::new(&div);
         display_object.add_child(&background_dom);
@@ -218,7 +217,7 @@ impl View {
         Self {
             display_object,
             selection,
-            overlay,
+            hover_area,
             resize_grip,
             background_dom,
             scene,
@@ -244,7 +243,7 @@ impl View {
     }
 
     fn set_corner_radius(&self, radius: f32) {
-        self.overlay.set_corner_radius(radius);
+        self.hover_area.set_corner_radius(radius);
         self.selection.set_corner_radius(radius);
         let radius = format!("{radius}px");
         self.background_dom.dom().set_style_or_warn("border-radius", radius);
@@ -288,7 +287,7 @@ impl View {
         self.scene.layers.viz.add(&self);
         self.scene.layers.viz_selection.add(&self.selection);
         self.scene.layers.viz_resize_grip.add(&self.resize_grip);
-        self.scene.layers.viz_overlay.add(&self.overlay);
+        self.scene.layers.viz_hover_area.add(&self.hover_area);
         self
     }
 }
@@ -492,15 +491,16 @@ impl ContainerModel {
         let dom = self.view.background_dom.dom();
         let bg_dom = self.fullscreen_view.background_dom.dom();
         if view_state.is_fullscreen() {
-            self.view.overlay.set_size(Vector2(0.0, 0.0));
+            self.view.hover_area.set_size(Vector2(0.0, 0.0));
             dom.set_style_or_warn("width", "0");
             dom.set_style_or_warn("height", "0");
             bg_dom.set_style_or_warn("width", format!("{}px", size[0]));
             bg_dom.set_style_or_warn("height", format!("{}px", size[1]));
         } else {
-            self.view.overlay.set_size(size);
+            // We don't resize `selection` here, because it's handled in "set_selection" method,
+            // which in turn is called on every size change anyway.
+            self.view.hover_area.set_size(size);
             self.view.resize_grip.set_size(size);
-            self.view.selection.set_size(size);
             self.view.loading_spinner.set_size(size);
             dom.set_style_or_warn("width", format!("{}px", size[0]));
             dom.set_style_or_warn("height", format!("{}px", size[1]));
@@ -521,11 +521,6 @@ impl ContainerModel {
         }
     }
 
-    /// Check if given mouse-event-target means this visualization.
-    fn is_this_target(&self, target: scene::PointerTargetId) -> bool {
-        self.view.overlay.is_this_target(target)
-    }
-
     #[profile(Debug)]
     fn next_visualization(
         &self,
@@ -540,6 +535,35 @@ impl ContainerModel {
             from_current.nth(1)
         });
         next_on_list.or_else(|| vis_list.first()).cloned()
+    }
+
+    /// Activate the visualization instance. Returns true if there was an instance to activate.
+    fn activate(&self) -> bool {
+        let vis = &self.visualization;
+        let activate = vis.borrow().as_ref().map(|v| v.activate.clone_ref());
+        match activate {
+            Some(activate) => {
+                activate.emit(());
+                true
+            }
+            None => false,
+        }
+    }
+
+    fn deactivated_by_click(&self, event: &display::object::Event<mouse::Down>) -> bool {
+        event.target().map_or(false, |target| {
+            let vis = &self.visualization;
+            let vis_area = self.view.hover_area.display_object();
+            let inside_me = target.rev_parent_chain().iter().any(|instance| instance == vis_area);
+            let deactivate = vis.borrow().as_ref().map(|v| v.deactivate.clone_ref());
+            match deactivate {
+                Some(deactivate) if !inside_me => {
+                    deactivate.emit(());
+                    true
+                }
+                _ => false,
+            }
+        })
     }
 }
 
@@ -732,34 +756,21 @@ impl Container {
 
         // === Selecting Visualization ===
 
+        let viz_clicked = model.view.hover_area.on_event::<mouse::Down>();
+        let scene_clicked = scene.on_event::<mouse::Down>();
         frp::extend! { network
-            mouse_down_target <- scene.mouse.frp_deprecated.down.map(f_!(scene.mouse.target.get()));
-            selected_by_click <= mouse_down_target.map2(&output.view_state, f!([model] (target,view_state){
-                let vis        = &model.visualization;
-                let activate   = || vis.borrow().as_ref().map(|v| v.activate.clone_ref());
-                let deactivate = || vis.borrow().as_ref().map(|v| v.deactivate.clone_ref());
-                if model.is_this_target(*target) {
-                    if let Some(activate) = activate() {
-                        activate.emit(());
-                        return Some(true);
-                    }
-                } else if !view_state.is_fullscreen() {
-                    if let Some(deactivate) = deactivate() {
-                        deactivate.emit(());
-                        return Some(false);
-                    }
-                }
-                None
-            }));
-            selection_after_click <- selected_by_click.map(|sel| if *sel {1.0} else {0.0});
-            selection.target <+ selection_after_click;
+            selected_by_click <- viz_clicked.map(f_!(model.activate()));
+            deselected_by_click <- scene_clicked.map(f!([model](event) model.deactivated_by_click(event)));
+            selected <- selected_by_click.on_true();
+            deselected <- deselected_by_click.on_true();
+            is_selected <- bool(&deselected, &selected).on_change();
+            selection.target <+ is_selected.map(|s| if *s { 1.0 } else { 0.0 });
             _eval <- selection.value.all_with3(&output.size, &selection_style,
                 f!((value, size, style) {
                     model.set_selection(*size, *value, style);
                 }
             ));
-            is_selected <- selected_by_click || output.fullscreen;
-            output.is_selected <+ is_selected.on_change();
+            output.is_selected <+ is_selected || output.fullscreen;
         }
 
 

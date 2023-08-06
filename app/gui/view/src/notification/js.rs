@@ -4,8 +4,12 @@
 use crate::prelude::*;
 use wasm_bindgen::prelude::*;
 
-use crate::notification::Type;
-use crate::notification::UpdateOptions;
+use crate::notification::api::Content;
+use crate::notification::api::Type;
+use crate::notification::api::UpdateOptions;
+
+use gloo_utils::format::JsValueSerdeExt;
+use uuid::Uuid;
 
 
 
@@ -15,8 +19,12 @@ use crate::notification::UpdateOptions;
 
 /// Toastify's [`toast API`](https://fkhadra.github.io/react-toastify/api/toast) field name within
 /// our application JS object.
-const TOAST_FIELD_NAME: &str = "toast";
+pub const TOAST_FIELD_NAME: &str = "toast";
 
+/// The name of the field with the toast ID in the options object.
+///
+/// See [the documentation](https://fkhadra.github.io/react-toastify/api/toast/#props) for details.
+pub const TOAST_ID_FIELD_IN_OPTIONS: &str = "toastId";
 
 
 // ========================
@@ -40,11 +48,33 @@ pub fn get_toast() -> Result<ToastAPI, JsValue> {
 // === JS bindings ===
 // ===================
 
-// Wrappers for [`toast`](https://react-hot-toast.com/docs/toast) API.
+/// Wrappers for [`toast`](https://react-hot-toast.com/docs/toast) API and related helpers.
 #[wasm_bindgen(inline_js = r#"
     export function sendToast(toast, message, method, options) {
         const target = toast[method];
         return target(message, options);
+    }
+
+    // See [`pretty_print`] Rust wrapper below for the documentation.
+    export function prettyPrint(value) {
+        try {
+            // If it's an `Error`, print its standard properties.
+            if (value instanceof Error) {
+                const { name, message, stack } = value;
+                const errorDetails = { name, message, stack };
+                return JSON.stringify(errorDetails, null, 2);
+            }
+
+            // If it's an object (not `null` and not an `Array`), pretty-print its properties.
+            if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+                return JSON.stringify(value, null, 2);
+            }
+
+            // If it's a primitive value or an `Array`, just convert it to a string.
+            return String(value);
+        } catch (error) {
+            return prettyPrint(error);
+        }
     }
     "#)]
 extern "C" {
@@ -60,7 +90,7 @@ extern "C" {
     #[derive(Clone, Debug)]
     pub type Id;
 
-    /// The unique identifier of a toast.
+    /// The unique identifier of a toast container.
     #[derive(Clone, Debug)]
     pub type ContainerId;
 
@@ -69,7 +99,7 @@ extern "C" {
     #[allow(unsafe_code)]
     pub fn sendToast(
         this: &ToastAPI,
-        message: &str,
+        message: &JsValue,
         method: &str,
         options: &JsValue,
     ) -> Result<Id, JsValue>;
@@ -119,6 +149,18 @@ extern "C" {
     #[wasm_bindgen(catch, method)]
     #[allow(unsafe_code)]
     pub fn done(this: &ToastAPI, id: &Id) -> Result<(), JsValue>;
+
+    /// Pretty-prints any value to a string.
+    ///
+    /// This function's primary purpose is to pretty-print `Error` values, including all
+    /// accessible details. However, it can also handle other types of values, converting
+    /// them to strings as accurately as possible. For `Error` instances, it outputs standard
+    /// properties (`name`, `message`, `stack`). For non-null objects and arrays, it converts
+    /// them to a JSON string with indentation. For all other types of values, it uses
+    /// JavaScript's default string conversion.
+    #[wasm_bindgen(js_name = prettyPrint)]
+    #[allow(unsafe_code)]
+    pub fn pretty_print(value: &JsValue) -> String;
 }
 
 
@@ -129,12 +171,46 @@ extern "C" {
 
 impl ToastAPI {
     /// Send the toast notification.
-    pub fn send(&self, message: &str, method: &str, options: &JsValue) -> Result<Id, JsValue> {
-        sendToast(self, message, method, options)
+    pub fn send(&self, message: &Content, method: &str, options: &JsValue) -> Result<Id, JsValue> {
+        let message =
+            JsValue::from_serde(message).map_err(crate::notification::api::to_js_error)?;
+        sendToast(self, &message, method, options)
+    }
+}
+
+impl Display for Id {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        Display::fmt(&pretty_print(self), f)
+    }
+}
+impl From<&str> for Id {
+    fn from(id: &str) -> Self {
+        let js_value = JsValue::from_str(id);
+        js_value.into()
+    }
+}
+
+impl From<Uuid> for Id {
+    fn from(id: Uuid) -> Self {
+        Self::new(id.to_string())
     }
 }
 
 impl Id {
+    /// Create a new identifier, using the given string.
+    ///
+    /// The two identifiers are equal if their string representations are equal. Please note, that
+    /// identifiers of different notifications must not be equal.
+    pub fn new(id: impl AsRef<str>) -> Self {
+        id.as_ref().into()
+    }
+
+    /// Generate a new, unique identifier.
+    pub fn new_unique() -> Self {
+        let uuid = uuid::Uuid::new_v4();
+        Self::new(uuid.to_string())
+    }
+
     /// Dismisses the toast.
     pub fn dismiss(&self) -> Result<(), JsValue> {
         get_toast()?.dismiss(self)
@@ -156,7 +232,6 @@ impl Id {
     }
 }
 
-
 impl ContainerId {
     /// Clear queue of notifications for this container (relevant if limit is set).
     pub fn clear_waiting_queue(&self) -> Result<(), JsValue> {
@@ -165,7 +240,44 @@ impl ContainerId {
 }
 
 /// Wrapper for sending arbitrary kind of toast.
-pub fn toast(message: &str, r#type: Type, options: &JsValue) -> Result<Id, JsValue> {
+pub fn toast(message: &Content, r#type: Type, options: &JsValue) -> Result<Id, JsValue> {
     let method: &str = r#type.as_ref();
     get_toast()?.send(message, method, options)
+}
+
+
+
+// ======================
+// === Error handling ===
+// ======================
+
+/// Extension trait for `Result<T, JsValue>` that provides a method for handling JavaScript errors.
+pub trait HandleJsError<T>: Sized {
+    /// Format pretty error message.
+    fn pretty_print_error(message: Option<&str>, error: &JsValue) -> String {
+        let mut ret = String::from("Error received from JavaScript.");
+        if let Some(message) = message {
+            ret.push(' ');
+            ret.push_str(message);
+        }
+        ret.push(' ');
+        ret.push_str(&pretty_print(error));
+        ret
+    }
+
+    /// Handle JS error by logging it and returning `None`.
+    fn handle_js_err(self, message: &str) -> Option<T>;
+
+    /// Handle JS error by logging it along with dynamically generated message and returning `None`.
+    fn handle_js_err_with(self, message_provider: impl FnOnce() -> String) -> Option<T> {
+        self.handle_js_err(&message_provider())
+    }
+}
+
+impl<T> HandleJsError<T> for Result<T, JsValue> {
+    fn handle_js_err(self, message: &str) -> Option<T> {
+        self.handle_err(|e| {
+            error!("{}", Self::pretty_print_error(Some(message), &e));
+        })
+    }
 }

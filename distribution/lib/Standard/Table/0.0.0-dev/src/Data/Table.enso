@@ -50,6 +50,7 @@ from project.Internal.Rows_View import Rows_View
 polyglot java import java.util.UUID
 polyglot java import org.enso.base.ObjectComparator
 polyglot java import org.enso.table.data.column.builder.StorageTypeMismatch
+polyglot java import org.enso.table.data.index.MultiValueIndex
 polyglot java import org.enso.table.data.mask.OrderMask
 polyglot java import org.enso.table.data.table.Column as Java_Column
 polyglot java import org.enso.table.data.table.join.Between as Java_Join_Between
@@ -1952,7 +1953,6 @@ type Table
 
         problem_builder.attach_problems_before on_problems <| Illegal_Argument.handle_java_exception <|
             java_key_columns = grouping.map .java_column
-            index = self.java_table.indexFromColumns java_key_columns
 
             name_mapper = if matched_name.is_empty then Aggregate_Column_Helper.default_aggregate_column_name else
                 if validated_values.length == 1 then (_ -> "") else
@@ -1968,6 +1968,7 @@ type Table
             result = case matched_name.is_empty of
                 True ->
                     group_by = grouping.map g->(Aggregate_Column_Helper.java_aggregator g.name (Aggregate_Column.Group_By g))
+                    index = self.java_table.indexFromColumns java_key_columns
                     index.makeTable (group_by + data_columns)
                 False ->
                     aggregate_names = validated_values.map c->
@@ -1978,7 +1979,7 @@ type Table
                         Error.throw (Column_Count_Exceeded.Error inner_panic.getMaximumColumnCount inner_panic.getColumnCount)
                     Panic.catch TooManyColumnsException handler=too_many_columns <|
                         Invalid_Column_Names.handle_java_exception <|
-                            index.makeCrossTabTable java_key_columns matched_name.first.java_column data_columns aggregate_names
+                            self.java_table.makeCrossTabTable java_key_columns matched_name.first.java_column data_columns aggregate_names
 
             on_problems.attach_problems_after (Table.Value result) <|
                 problems = result.getProblems
