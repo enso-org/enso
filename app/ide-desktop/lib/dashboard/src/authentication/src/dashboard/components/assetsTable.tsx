@@ -83,14 +83,8 @@ function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
         keyProp: key,
         item: rawItem,
         initialRowState,
-        state: {
-            assetEvents,
-            dispatchAssetEvent,
-            dispatchAssetListEvent,
-            markItemAsHidden,
-            markItemAsVisible,
-            getDepth,
-        },
+        columns,
+        state: { assetEvents, dispatchAssetEvent, dispatchAssetListEvent, getDepth },
     } = props
     const { backend } = backendProvider.useBackend()
     const { setModal } = modalProvider.useSetModal()
@@ -104,8 +98,23 @@ function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
 
     const doDelete = async () => {
         setPresence(presenceModule.Presence.deleting)
-        markItemAsHidden(key)
         try {
+            if (
+                item.type === backendModule.AssetType.project &&
+                backend.type === backendModule.BackendType.local
+            ) {
+                if (
+                    item.projectState.type !== backendModule.ProjectState.placeholder &&
+                    item.projectState.type !== backendModule.ProjectState.closed
+                ) {
+                    await backend.openProject(item.id, null, item.title)
+                }
+                try {
+                    await backend.closeProject(item.id, item.title)
+                } catch {
+                    // Ignored. The project was already closed.
+                }
+            }
             await backend.deleteAsset(item)
             dispatchAssetListEvent({
                 type: assetListEventModule.AssetListEventType.delete,
@@ -113,7 +122,6 @@ function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
             })
         } catch (error) {
             setPresence(presenceModule.Presence.present)
-            markItemAsVisible(key)
             toastAndLog('Unable to delete project', error)
         }
     }
@@ -170,7 +178,7 @@ function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
         case backendModule.AssetType.specialLoading: {
             return (
                 <tr>
-                    <td colSpan={999} className="p-0 rounded-full border-r">
+                    <td colSpan={columns.length} className="p-0 rounded-full border-r">
                         <div
                             className={`flex justify-center py-2 ${indent.indentClass(
                                 getDepth(key)
@@ -188,7 +196,7 @@ function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
         case backendModule.AssetType.specialEmpty: {
             return (
                 <tr>
-                    <td colSpan={999} className="p-0 rounded-full border-r">
+                    <td colSpan={columns.length} className="p-0 rounded-full border-r">
                         <div
                             className={`flex items-center h-10 py-2 ${indent.indentClass(
                                 getDepth(key)
@@ -214,8 +222,6 @@ export interface AssetsTableState {
     assetEvents: assetEventModule.AssetEvent[]
     dispatchAssetEvent: (event: assetEventModule.AssetEvent) => void
     dispatchAssetListEvent: (event: assetListEventModule.AssetListEvent) => void
-    markItemAsHidden: (key: string) => void
-    markItemAsVisible: (key: string) => void
     getDepth: (id: backendModule.AssetId) => number
     doToggleDirectoryExpansion: (
         directory: backendModule.DirectoryAsset,
@@ -230,7 +236,6 @@ export interface AssetsTableState {
 /** Data associated with a {@link AssetRow}, used for rendering. */
 export interface AssetRowState {
     setPresence: (presence: presenceModule.Presence) => void
-    isRunning: boolean
     isEditingName: boolean
 }
 
@@ -239,7 +244,6 @@ export const INITIAL_ROW_STATE: AssetRowState = Object.freeze({
     setPresence: () => {
         // Ignored. This MUST be replaced by the row component. It should also update `presence`.
     },
-    isRunning: false,
     isEditingName: false,
 })
 
@@ -323,42 +327,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                 return depth != null ? [[key, depth]] : []
             })
         )
-        const oldKeys = keysOfHiddenItemsRef.current
-        keysOfHiddenItemsRef.current = new Set(
-            items.map(backendModule.getAssetId).filter(key => oldKeys.has(key))
-        )
     }, [items])
-
-    // === Tracking number of visually hidden items ===
-
-    const [shouldForceShowPlaceholder, setShouldForceShowPlaceholder] = React.useState(false)
-    const keysOfHiddenItemsRef = React.useRef(new Set<string>())
-
-    const updateShouldForceShowPlaceholder = React.useCallback(() => {
-        setShouldForceShowPlaceholder(
-            visibleItems.every(item => keysOfHiddenItemsRef.current.has(item.id))
-        )
-    }, [visibleItems])
-
-    React.useEffect(updateShouldForceShowPlaceholder, [updateShouldForceShowPlaceholder])
-
-    const markItemAsHidden = React.useCallback(
-        (key: string) => {
-            keysOfHiddenItemsRef.current.add(key)
-            updateShouldForceShowPlaceholder()
-        },
-        [updateShouldForceShowPlaceholder]
-    )
-
-    const markItemAsVisible = React.useCallback(
-        (key: string) => {
-            keysOfHiddenItemsRef.current.delete(key)
-            updateShouldForceShowPlaceholder()
-        },
-        [updateShouldForceShowPlaceholder]
-    )
-
-    // === End tracking number of visually hidden items ===
 
     const expandedDirectoriesRef = React.useRef(new Set<backendModule.DirectoryId>())
     const doToggleDirectoryExpansion = React.useCallback(
@@ -489,7 +458,7 @@ export default function AssetsTable(props: AssetsTableProps) {
                     modifiedAt: dateTime.toRfc3339(new Date()),
                     parentId: event.parentId ?? backendModule.DirectoryId(''),
                     permissions: permissions.tryGetSingletonOwnerPermission(organization),
-                    projectState: { type: backendModule.ProjectState.new },
+                    projectState: { type: backendModule.ProjectState.placeholder },
                     type: backendModule.AssetType.project,
                 }
                 const typeOrder = backendModule.ASSET_TYPE_ORDER[placeholderItem.type]
@@ -604,8 +573,6 @@ export default function AssetsTable(props: AssetsTableProps) {
             assetEvents,
             dispatchAssetEvent,
             dispatchAssetListEvent,
-            markItemAsHidden,
-            markItemAsVisible,
             getDepth,
             doToggleDirectoryExpansion,
             doOpenManually,
@@ -618,8 +585,6 @@ export default function AssetsTable(props: AssetsTableProps) {
             doOpenManually,
             doOpenIde,
             doCloseIde,
-            markItemAsHidden,
-            markItemAsVisible,
             getDepth,
             doToggleDirectoryExpansion,
             /* should never change */ dispatchAssetEvent,
@@ -665,7 +630,6 @@ export default function AssetsTable(props: AssetsTableProps) {
                     initialRowState={INITIAL_ROW_STATE}
                     getKey={backendModule.getAssetId}
                     placeholder={PLACEHOLDER}
-                    forceShowPlaceholder={shouldForceShowPlaceholder}
                     columns={columnModule.getColumnList(backend.type, extraColumns).map(column => ({
                         id: column,
                         className: columnModule.COLUMN_CSS_CLASS[column],

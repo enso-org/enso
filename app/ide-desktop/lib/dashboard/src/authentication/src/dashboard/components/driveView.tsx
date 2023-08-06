@@ -15,16 +15,14 @@ import * as pageSwitcher from './pageSwitcher'
 import AssetsTable from './assetsTable'
 import DriveBar from './driveBar'
 
-// =====================
-// === DirectoryView ===
-// =====================
+// =================
+// === DriveView ===
+// =================
 
-/** Props for a {@link DirectoryView}. */
-export interface DirectoryViewProps {
+/** Props for a {@link DriveView}. */
+export interface DriveViewProps {
     page: pageSwitcher.Page
     initialProjectName: string | null
-    nameOfProjectToImmediatelyOpen: string | null
-    setNameOfProjectToImmediatelyOpen: (nameOfProjectToImmediatelyOpen: string | null) => void
     directoryId: backendModule.DirectoryId | null
     assetListEvents: assetListEventModule.AssetListEvent[]
     dispatchAssetListEvent: (directoryEvent: assetListEventModule.AssetListEvent) => void
@@ -40,12 +38,10 @@ export interface DirectoryViewProps {
 }
 
 /** Contains directory path and directory contents (projects, folders, secrets and files). */
-export default function DirectoryView(props: DirectoryViewProps) {
+export default function DriveView(props: DriveViewProps) {
     const {
         page,
         initialProjectName,
-        nameOfProjectToImmediatelyOpen,
-        setNameOfProjectToImmediatelyOpen,
         directoryId,
         query,
         assetListEvents,
@@ -68,6 +64,8 @@ export default function DirectoryView(props: DirectoryViewProps) {
     const [isLoadingAssets, setIsLoadingAssets] = React.useState(true)
     const [isFileBeingDragged, setIsFileBeingDragged] = React.useState(false)
     const [assetEvents, dispatchAssetEvent] = hooks.useEvent<assetEventModule.AssetEvent>()
+    const [nameOfProjectToImmediatelyOpen, setNameOfProjectToImmediatelyOpen] =
+        React.useState(initialProjectName)
 
     const assetFilter = React.useMemo(() => {
         if (query === '') {
@@ -131,6 +129,12 @@ export default function DirectoryView(props: DirectoryViewProps) {
             /* should never change */ dispatchAssetEvent,
         ]
     )
+
+    React.useEffect(() => {
+        setAssets([])
+        // `setAssets` is a callback, not a dependency.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [backend])
 
     hooks.useAsyncEffect(
         null,
