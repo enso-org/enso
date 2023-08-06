@@ -32,7 +32,10 @@ import org.enso.languageserver.libraries.LibraryConfig
 import org.enso.languageserver.libraries.handler._
 import org.enso.languageserver.monitoring.MonitoringApi.{InitialPing, Ping}
 import org.enso.languageserver.monitoring.MonitoringProtocol
-import org.enso.languageserver.refactoring.RefactoringApi.RenameProject
+import org.enso.languageserver.refactoring.RefactoringApi.{
+  RenameProject,
+  RenameSymbol
+}
 import org.enso.languageserver.requesthandler._
 import org.enso.languageserver.requesthandler.capability._
 import org.enso.languageserver.requesthandler.io._
@@ -40,7 +43,10 @@ import org.enso.languageserver.requesthandler.monitoring.{
   InitialPingHandler,
   PingHandler
 }
-import org.enso.languageserver.requesthandler.refactoring.RenameProjectHandler
+import org.enso.languageserver.requesthandler.refactoring.{
+  RenameProjectHandler,
+  RenameSymbolHandler
+}
 import org.enso.languageserver.requesthandler.text._
 import org.enso.languageserver.requesthandler.visualization.{
   AttachVisualizationHandler,
@@ -76,6 +82,7 @@ import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.ProgressNotification
 
 import java.util.UUID
+
 import scala.concurrent.duration._
 
 /** An actor handling communications between a single client and the language
@@ -573,6 +580,10 @@ class JsonConnectionController(
         requestTimeout,
         libraryConfig.localLibraryManager,
         libraryConfig.publishedLibraryCache
+      ),
+      RenameSymbol -> RenameSymbolHandler.props(
+        requestTimeout,
+        runtimeConnector
       )
     )
   }

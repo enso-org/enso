@@ -1162,6 +1162,13 @@ object Runtime {
       }
     }
 
+    /** A list of edits applied to a module.
+      *
+      * @param module the qualified module name
+      * @param edits the list of text edits
+      */
+    final case class ModuleTextEdits(module: String, edits: Vector[TextEdit])
+
     /** Envelope for an Api request.
       *
       * @param requestId the request identifier.
@@ -1602,6 +1609,25 @@ object Runtime {
       * @param newName the new project name
       */
     final case class ProjectRenamed(namespace: String, newName: String)
+        extends ApiResponse
+
+    /** A request for symbol renaming.
+      *
+      * @param module the qualified module name
+      * @param expressionId the namespace the renamed project belongs to
+      * @param newName the new name
+      */
+    final case class RenameSymbol(
+      module: String,
+      expressionId: ExpressionId,
+      newName: String
+    ) extends ApiRequest
+
+    /** Signals that the symbol has been renamed.
+      *
+      * @param edits the edits to apply
+      */
+    final case class SymbolRenamed(edits: Vector[ModuleTextEdits])
         extends ApiResponse
 
     /** A notification about the changes in the suggestions database.

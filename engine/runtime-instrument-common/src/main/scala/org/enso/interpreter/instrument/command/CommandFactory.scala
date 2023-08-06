@@ -46,6 +46,9 @@ object CommandFactory {
       case payload: Api.RenameProject =>
         new RenameProjectCmd(request.requestId, payload)
 
+      case payload: Api.RenameSymbol =>
+        new RenameSymbolCmd(request.requestId, payload)
+
       case payload: Api.OpenFileNotification =>
         new OpenFileCmd(payload)
       case payload: Api.CloseFileNotification => new CloseFileCmd(payload)
