@@ -8,7 +8,6 @@ use ensogl_core::display::scene;
 use ensogl_core::system::gpu;
 #[cfg(target_arch = "wasm32")]
 use ensogl_core::system::gpu::texture;
-use ensogl_core::system::web::platform;
 use ensogl_text_msdf as msdf;
 use ordered_float::NotNan;
 use owned_ttf_parser as ttf;
@@ -878,10 +877,9 @@ pub struct FontWithGpuData {
 }
 
 impl FontWithGpuData {
-    fn new(font: Font, hinting: Hinting, scene: &scene::Scene) -> Self {
+    fn new(font: Font, hinting: Hinting, context: &Context) -> Self {
         let Hinting { opacity_increase, opacity_exponent } = hinting;
-        let context = get_context(scene);
-        let texture = get_texture(&context);
+        let texture = get_texture(context);
         let atlas = gpu::Uniform::new(texture);
         let opacity_increase = gpu::Uniform::new(opacity_increase);
         let opacity_exponent = gpu::Uniform::new(opacity_exponent);
@@ -929,7 +927,7 @@ shared! { Registry
 #[derive(Debug)]
 pub struct RegistryData {
     embedded: Embedded,
-    fonts:    HashMap<Name, FontWithGpuData>,
+    fonts: HashMap<Name, FontWithGpuData>,
 }
 
 impl {
@@ -952,15 +950,16 @@ impl {
     /// Load a font by name. The font can be loaded either from cache or from the embedded fonts'
     /// registry if not used before. Returns [`None`] if the name is missing in both cache and
     /// embedded font list.
-    pub fn try_load(&mut self, name:impl Into<Name>) -> Option<FontWithGpuData> {
+    pub fn try_load(&mut self, name: impl Into<Name>) -> Option<FontWithGpuData> {
         let name = name.into();
         match self.fonts.entry(name.clone()) {
-            Entry::Occupied (entry) => Some(entry.get().clone_ref()),
-            Entry::Vacant   (entry) => {
+            Entry::Occupied(entry) => Some(entry.get().clone_ref()),
+            Entry::Vacant(entry) => {
                 debug!("Loading font: {:?}", name);
-                let hinting = Hinting::for_font(&name);
+                let scene = scene();
+                let hinting = Hinting::for_font(&name, scene.shape().value());
                 let font = self.embedded.load_font(name)?;
-                let font = FontWithGpuData::new(font, hinting, &scene());
+                let font = FontWithGpuData::new(font, hinting, &get_context(&scene));
                 entry.insert(font.clone_ref());
                 Some(font)
             }
@@ -1002,17 +1001,14 @@ struct Hinting {
 }
 
 impl Hinting {
-    fn for_font(font_name: &str) -> Self {
-        let platform = platform::current();
-        // The optimal hinting values must be found by testing. The [`text_are`] debug scene
+    fn for_font(font_name: &str, shape: scene::Shape) -> Self {
+        let pixel_ratio = shape.pixel_ratio;
+        // The optimal hinting values must be found by testing. The [`text_area`] debug scene
         // supports trying different values at runtime.
-        match (platform, font_name) {
-            (Some(platform::Platform::MacOS), "mplus1p") =>
+        match font_name {
+            "mplus1p" | "enso" if pixel_ratio >= 2.0 =>
                 Self { opacity_increase: 0.4, opacity_exponent: 4.0 },
-            (Some(platform::Platform::Windows), "mplus1p") =>
-                Self { opacity_increase: 0.3, opacity_exponent: 3.0 },
-            (Some(platform::Platform::Linux), "mplus1p") =>
-                Self { opacity_increase: 0.3, opacity_exponent: 3.0 },
+            "mplus1p" | "enso" => Self { opacity_increase: 0.3, opacity_exponent: 3.0 },
             _ => Self::default(),
         }
     }
