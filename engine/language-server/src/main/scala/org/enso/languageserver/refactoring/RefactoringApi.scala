@@ -1,6 +1,6 @@
 package org.enso.languageserver.refactoring
 
-import org.enso.jsonrpc.{HasParams, HasResult, Method, Unused}
+import org.enso.jsonrpc.{Error, HasParams, HasResult, Method, Unused}
 
 import java.util.UUID
 
@@ -35,7 +35,7 @@ object RefactoringApi {
       newName: String
     )
 
-    case class Result(edits: Seq[ModuleTextEdits], newName: String)
+    case class Result(newName: String)
 
     implicit val hasParams: HasParams.Aux[this.type, RenameSymbol.Params] =
       new HasParams[this.type] {
@@ -47,4 +47,11 @@ object RefactoringApi {
         type Result = RenameSymbol.Result
       }
   }
+
+  case class ExpressionNotFoundError(expressionId: UUID)
+      extends Error(9001, s"Expression not found by id [$expressionId]")
+
+  case class FailedToApplyEdits(module: String)
+      extends Error(9002, s"Failed to apply edits to module [$module]")
+
 }

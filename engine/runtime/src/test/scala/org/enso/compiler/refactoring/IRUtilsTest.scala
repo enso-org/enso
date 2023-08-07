@@ -41,7 +41,7 @@ class IRUtilsTest extends AnyWordSpecLike with Matchers with OptionValues {
   private def findUsagesOfLiteral(
     module: IR.Module,
     ir: IR
-  ): Option[Set[IR]] = {
+  ): Option[Set[IR.Name.Literal]] = {
     ir match {
       case literal: IR.Name.Literal =>
         IRUtils.findUsages(module, literal)

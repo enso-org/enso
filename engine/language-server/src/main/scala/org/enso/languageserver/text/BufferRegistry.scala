@@ -43,6 +43,7 @@ import org.enso.languageserver.vcsmanager.VcsProtocol.{
   RestoreRepoResponse,
   SaveRepo
 }
+import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.text.ContentBasedVersioning
 
 import java.util.UUID
@@ -102,6 +103,7 @@ class BufferRegistry(
     super.preStart()
 
     context.system.eventStream.subscribe(self, classOf[FileEvent])
+    context.system.eventStream.subscribe(self, classOf[Api.FileEdit])
   }
 
   override def receive: Receive = running(Map.empty)

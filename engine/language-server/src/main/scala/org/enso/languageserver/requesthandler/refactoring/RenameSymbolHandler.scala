@@ -1,13 +1,12 @@
 package org.enso.languageserver.requesthandler.refactoring
 
 import akka.actor.{Actor, ActorRef, Cancellable, Props}
-import akka.pattern.pipe
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.jsonrpc._
-import org.enso.languageserver.refactoring.ModuleTextEdits
 import org.enso.languageserver.refactoring.RefactoringApi.RenameSymbol
+import org.enso.languageserver.refactoring.RenameFailureMapper
 import org.enso.languageserver.requesthandler.RequestTimeout
-import org.enso.languageserver.runtime.RuntimeFailureMapper
+import org.enso.languageserver.runtime.ExecutionApi
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.polyglot.runtime.Runtime.Api
 
@@ -17,12 +16,10 @@ import scala.concurrent.duration.FiniteDuration
 
 /** A request handler for `refactoring/renameSymbol` commands.
   *
-  * @param runtimeFailureMapper mapper for runtime failures
   * @param timeout a request timeout
   * @param runtimeConnector a reference to the runtime connector
   */
 class RenameSymbolHandler(
-  runtimeFailureMapper: RuntimeFailureMapper,
   timeout: FiniteDuration,
   runtimeConnector: ActorRef
 ) extends Actor
@@ -59,23 +56,25 @@ class RenameSymbolHandler(
       replyTo ! ResponseError(Some(id), Errors.RequestTimeout)
       context.stop(self)
 
-    case Api.Response(_, Api.SymbolRenamed(edits, newName)) =>
-      val moduleTextEdits = edits.map(ModuleTextEdits(_))
+    case Api.Response(_, Api.SymbolRenamed(newName)) =>
       replyTo ! ResponseResult(
         RenameSymbol,
         id,
-        RenameSymbol.Result(moduleTextEdits, newName)
+        RenameSymbol.Result(newName)
       )
       cancellable.cancel()
       context.stop(self)
 
-    case Api.Response(_, error: Api.Error) =>
-      runtimeFailureMapper
-        .mapApiError(error)
-        .map { failure =>
-          ResponseError(Some(id), RuntimeFailureMapper.mapFailure(failure))
-        }
-        .pipeTo(replyTo)
+    case Api.Response(_, Api.ModuleNotFound(moduleName)) =>
+      replyTo ! ResponseError(
+        Some(id),
+        ExecutionApi.ModuleNotFoundError(moduleName)
+      )
+      cancellable.cancel()
+      context.stop(self)
+
+    case Api.Response(_, Api.SymbolRenameFailed(error)) =>
+      replyTo ! ResponseError(Some(id), RenameFailureMapper.mapFailure(error))
       cancellable.cancel()
       context.stop(self)
   }
@@ -86,17 +85,15 @@ object RenameSymbolHandler {
 
   /** Creates configuration object used to create a [[RenameSymbolHandler]].
     *
-    * @param runtimeFailureMapper mapper for runtime failures
     * @param timeout request timeout
     * @param runtimeConnector reference to the runtime connector
     */
   def props(
-    runtimeFailureMapper: RuntimeFailureMapper,
     timeout: FiniteDuration,
     runtimeConnector: ActorRef
   ): Props =
     Props(
-      new RenameSymbolHandler(runtimeFailureMapper, timeout, runtimeConnector)
+      new RenameSymbolHandler(timeout, runtimeConnector)
     )
 
 }

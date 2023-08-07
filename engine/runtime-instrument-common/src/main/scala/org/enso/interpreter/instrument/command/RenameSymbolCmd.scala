@@ -11,7 +11,9 @@ import org.enso.interpreter.service.error.{
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.refactoring.RenameUtils
 import org.enso.refactoring.validation.MethodNameValidation
+import org.enso.text.editing.EditorOps
 
+import java.io.File
 import java.util.logging.Level
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -48,12 +50,22 @@ class RenameSymbolCmd(
       // before applying the refactoring we should make sure that there are no
       // pending edits.
       applyPendingEdits()
-      applyEdits()
+      buildEdits()
     } catch {
       case _: ModuleNotFoundException =>
         reply(Api.ModuleNotFound(request.module))
       case ex: RenameSymbolCmd.ExpressionNotFound =>
-        reply(Api.ExpressionNotFound(ex.expressionId))
+        reply(
+          Api.SymbolRenameFailed(
+            Api.SymbolRenameFailed.ExpressionNotFound(ex.expressionId)
+          )
+        )
+      case ex: RenameSymbolCmd.FailedToApplyEdits =>
+        reply(
+          Api.SymbolRenameFailed(
+            Api.SymbolRenameFailed.FailedToApplyEdits(ex.module)
+          )
+        )
     } finally {
       ctx.locking.releaseWriteCompilationLock()
       logger.log(
@@ -64,7 +76,7 @@ class RenameSymbolCmd(
     }
   }
 
-  private def applyEdits()(implicit ctx: RuntimeContext): Unit = {
+  private def buildEdits()(implicit ctx: RuntimeContext): Unit = {
     val module = ctx.executionService.getContext
       .findModule(request.module)
       .orElseThrow(() => new ModuleNotFoundException(request.module))
@@ -78,14 +90,29 @@ class RenameSymbolCmd(
     val usages = IRUtils
       .findUsages(module.getIr, literal)
       .getOrElse(Set())
+      .concat(Set(literal))
       .flatMap(_.location)
       .map(_.location)
       .toSeq
     val edits =
       RenameUtils.buildEdits(module.getLiteralSource, usages, newName)
 
-    val moduleEdits = Api.ModuleTextEdits(request.module, edits.toVector)
-    reply(Api.SymbolRenamed(Vector(moduleEdits), newName))
+    val oldVersion =
+      ctx.versionCalculator.evalVersion(module.getLiteralSource.toString)
+    val newContents =
+      EditorOps
+        .applyEdits(module.getLiteralSource, edits)
+        .getOrElse(throw new RenameSymbolCmd.FailedToApplyEdits(request.module))
+    val newVersion = ctx.versionCalculator.evalVersion(newContents.toString)
+
+    val fileEdit = Api.FileEdit(
+      new File(module.getPath),
+      edits.toVector,
+      oldVersion.toHexString,
+      newVersion.toHexString
+    )
+    notify(fileEdit)
+    reply(Api.SymbolRenamed(newName))
   }
 
   private def applyPendingEdits()(implicit ctx: RuntimeContext): Unit = {
@@ -148,6 +175,6 @@ object RenameSymbolCmd {
   final private class ExpressionNotFound(val expressionId: IR.ExternalId)
       extends Exception(s"Expression was not found by id [$expressionId].")
 
-  final class NotSupported[A <: IR](val node: Class[A])
-      extends Exception(s"Renaming of [$node] is not supported.")
+  final private class FailedToApplyEdits(val module: String)
+      extends Exception(s"Failed to apply edits to module [$module]")
 }

@@ -117,6 +117,10 @@ object Runtime {
         name  = "visualizationUpdate"
       ),
       new JsonSubTypes.Type(
+        value = classOf[Api.FileEdit],
+        name  = "fileEdit"
+      ),
+      new JsonSubTypes.Type(
         value = classOf[Api.AttachVisualization],
         name  = "attachVisualization"
       ),
@@ -159,6 +163,10 @@ object Runtime {
       new JsonSubTypes.Type(
         value = classOf[Api.SymbolRenamed],
         name  = "symbolRenamed"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.SymbolRenameFailed],
+        name  = "symbolRenameFailed"
       ),
       new JsonSubTypes.Type(
         value = classOf[Api.ContextNotExistError],
@@ -1170,12 +1178,29 @@ object Runtime {
       }
     }
 
-    /** A list of edits applied to a module.
+    /** A list of edits applied to a file.
       *
-      * @param module the qualified module name
+      * @param path the module file path
       * @param edits the list of text edits
+      * @param oldVersion the current version of a buffer
+      * @param newVersion the version of a buffer after applying all edits
       */
-    final case class ModuleTextEdits(module: String, edits: Vector[TextEdit])
+    final case class FileEdit(
+      path: File,
+      edits: Vector[TextEdit],
+      oldVersion: String,
+      newVersion: String
+    ) extends ApiNotification
+        with ToLogString {
+
+      override def toLogString(shouldMask: Boolean): String =
+        "FileEdit(" +
+        s"path=${MaskedPath(path.toPath).toLogString(shouldMask)}," +
+        s"edits=${edits.mkString("[", ",", "]")}" +
+        s"oldVersion=$oldVersion" +
+        s"newVersion=$newVersion" +
+        ")"
+    }
 
     /** Envelope for an Api request.
       *
@@ -1362,13 +1387,6 @@ object Runtime {
       * @param moduleName the module name
       */
     final case class ModuleNotFound(moduleName: String) extends Error
-
-    /** Signals that an expression cannot be found by provided id.
-      *
-      * @param expressionId the id of expression
-      */
-    final case class ExpressionNotFound(expressionId: ExpressionId)
-        extends Error
 
     /** Signals that execution of a context completed.
       *
@@ -1640,13 +1658,47 @@ object Runtime {
 
     /** Signals that the symbol has been renamed.
       *
-      * @param edits the edits to apply
       * @param newName the new name of the symbol
       */
-    final case class SymbolRenamed(
-      edits: Vector[ModuleTextEdits],
-      newName: String
-    ) extends ApiResponse
+    final case class SymbolRenamed(newName: String) extends ApiResponse
+
+    /** Signals that the symbol rename has failed.
+      *
+      * @param error the error that happened
+      */
+    final case class SymbolRenameFailed(error: SymbolRenameFailed.Error)
+        extends ApiResponse
+
+    object SymbolRenameFailed {
+
+      @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+      @JsonSubTypes(
+        Array(
+          new JsonSubTypes.Type(
+            value = classOf[SymbolRenameFailed.ExpressionNotFound],
+            name  = "symbolRenameFailedExpressionNotFound"
+          ),
+          new JsonSubTypes.Type(
+            value = classOf[SymbolRenameFailed.FailedToApplyEdits],
+            name  = "symbolRenameFailedFailedToApplyEdits"
+          )
+        )
+      ) sealed trait Error
+
+      /** Signals that an expression cannot be found by provided id.
+        *
+        * @param expressionId the id of expression
+        */
+      final case class ExpressionNotFound(expressionId: ExpressionId)
+          extends SymbolRenameFailed.Error
+
+      /** Signals that it was unable to apply edits to the current module contents.
+        *
+        * @param module the module name
+        */
+      final case class FailedToApplyEdits(module: String)
+          extends SymbolRenameFailed.Error
+    }
 
     /** A notification about the changes in the suggestions database.
       *

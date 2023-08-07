@@ -55,10 +55,7 @@ import org.enso.languageserver.requesthandler.visualization.{
   ModifyVisualizationHandler
 }
 import org.enso.languageserver.requesthandler.workspace.ProjectInfoHandler
-import org.enso.languageserver.runtime.{
-  ContextRegistryProtocol,
-  RuntimeFailureMapper
-}
+import org.enso.languageserver.runtime.ContextRegistryProtocol
 import org.enso.languageserver.runtime.ExecutionApi._
 import org.enso.languageserver.runtime.VisualizationApi.{
   AttachVisualization,
@@ -103,7 +100,6 @@ import scala.concurrent.duration._
   * @param idlenessMonitor a reference to the idleness monitor actor
   * @param projectSettingsManager a reference to the project settings manager
   * @param libraryConfig configuration of the library ecosystem
-  * @param runtimeFailureMapper mapper for runtime failures
   * @param requestTimeout a request timeout
   */
 class JsonConnectionController(
@@ -124,7 +120,6 @@ class JsonConnectionController(
   val projectSettingsManager: ActorRef,
   val libraryConfig: LibraryConfig,
   val languageServerConfig: Config,
-  val runtimeFailureMapper: RuntimeFailureMapper,
   requestTimeout: FiniteDuration = 10.seconds
 ) extends Actor
     with Stash
@@ -587,7 +582,6 @@ class JsonConnectionController(
         libraryConfig.publishedLibraryCache
       ),
       RenameSymbol -> RenameSymbolHandler.props(
-        runtimeFailureMapper,
         requestTimeout,
         runtimeConnector
       )
@@ -636,7 +630,6 @@ object JsonConnectionController {
     * @param contextRegistry a router that dispatches execution context requests
     * @param suggestionsHandler a reference to the suggestions requests handler
     * @param libraryConfig configuration of the library ecosystem
-    * @param runtimeFailureMapper mapper for runtime failures
     * @param requestTimeout a request timeout
     * @return a configuration object
     */
@@ -658,7 +651,6 @@ object JsonConnectionController {
     projectSettingsManager: ActorRef,
     libraryConfig: LibraryConfig,
     languageServerConfig: Config,
-    runtimeFailureMapper: RuntimeFailureMapper,
     requestTimeout: FiniteDuration = 10.seconds
   ): Props =
     Props(
@@ -680,7 +672,6 @@ object JsonConnectionController {
         projectSettingsManager = projectSettingsManager,
         libraryConfig          = libraryConfig,
         languageServerConfig   = languageServerConfig,
-        runtimeFailureMapper   = runtimeFailureMapper,
         requestTimeout         = requestTimeout
       )
     )

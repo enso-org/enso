@@ -14,7 +14,10 @@ trait IRUtils {
     ir.preorder.find(_.getId == id)
   }
 
-  def findUsages(ir: IR, literal: IR.Name.Literal): Option[Set[IR]] = {
+  def findUsages(
+    ir: IR,
+    literal: IR.Name.Literal
+  ): Option[Set[IR.Name.Literal]] = {
     for {
       metadata <- ir.getMetadata(DataflowAnalysis)
       key = DependencyInfo.Type.Static(literal.getId, literal.getExternalId)

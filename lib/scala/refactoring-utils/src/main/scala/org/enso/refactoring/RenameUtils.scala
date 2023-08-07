@@ -26,10 +26,10 @@ object RenameUtils {
         case ((offset, builder), location) =>
           val start =
             implicitly[IndexedSource[A]]
-              .toPosition(location.start + offset, source)
+              .toPosition(location.start, source)
           val end =
             implicitly[IndexedSource[A]]
-              .toPosition(location.end + offset, source)
+              .toPosition(location.end, source)
           val range = model.Range(start, end)
 
           val newOffset = offset - location.length + newText.length

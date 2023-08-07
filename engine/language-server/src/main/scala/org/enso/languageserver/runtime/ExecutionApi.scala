@@ -277,8 +277,4 @@ object ExecutionApi {
         Encoder[ContextRegistryProtocol.ExecutionDiagnostic].apply(_)
       )
   }
-
-  case class ExpressionNotFoundError(expressionId: UUID)
-      extends Error(2008, s"Expression not found by id [$expressionId]")
-
 }

@@ -8,6 +8,7 @@ import org.enso.interpreter.test.Metadata
 import org.enso.pkg.{Package, PackageManager}
 import org.enso.polyglot._
 import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.text.{ContentBasedVersioning, Sha3_224VersionCalculator}
 import org.enso.text.editing.model
 import org.enso.text.editing.model.TextEdit
 import org.graalvm.polyglot.Context
@@ -91,6 +92,8 @@ class RuntimeRefactoringTest
       Api.Response(Api.ExecutionComplete(contextId))
   }
 
+  val versionCalculator: ContentBasedVersioning = Sha3_224VersionCalculator
+
   override protected def beforeEach(): Unit = {
     context = new TestContext("Test")
     val Some(Api.Response(_, Api.InitializedNotification())) = context.receive
@@ -155,21 +158,28 @@ class RuntimeRefactoringTest
     val newName = "foobar"
     val edits = Vector(
       TextEdit(
+        model.Range(model.Position(1, 4), model.Position(1, 13)),
+        newName
+      ),
+      TextEdit(
         model.Range(model.Position(2, 16), model.Position(2, 25)),
         newName
       )
     )
+    val fileEdit = Api.FileEdit(
+      context.pkg.mainFile,
+      edits,
+      versionCalculator.evalVersion(contents).toHexString,
+      versionCalculator
+        .evalVersion(contents.replaceAll("operator1", newName))
+        .toHexString
+    )
     context.send(
       Api.Request(requestId, Api.RenameSymbol(moduleName, idOperator1, newName))
     )
-    context.receiveNIgnoreStdLib(2, 5) should contain theSameElementsAs Seq(
-      Api.Response(
-        requestId,
-        Api.SymbolRenamed(
-          Vector(Api.ModuleTextEdits(moduleName, edits)),
-          newName
-        )
-      ),
+    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.SymbolRenamed(newName)),
+      Api.Response(None, fileEdit),
       context.executionComplete(contextId)
     )
   }
@@ -234,9 +244,21 @@ class RuntimeRefactoringTest
     val newName = "foobar"
     val edits = Vector(
       TextEdit(
+        model.Range(model.Position(1, 4), model.Position(1, 13)),
+        newName
+      ),
+      TextEdit(
         model.Range(model.Position(2, 16), model.Position(2, 25)),
         newName
       )
+    )
+    val fileEdit = Api.FileEdit(
+      context.pkg.mainFile,
+      edits,
+      versionCalculator.evalVersion(contents).toHexString,
+      versionCalculator
+        .evalVersion(contents.replaceAll("operator1", newName))
+        .toHexString
     )
     context.send(
       Api.Request(
@@ -244,14 +266,9 @@ class RuntimeRefactoringTest
         Api.RenameSymbol(moduleName, symbolOperator1, newName)
       )
     )
-    context.receiveNIgnoreStdLib(2) should contain theSameElementsAs Seq(
-      Api.Response(
-        requestId,
-        Api.SymbolRenamed(
-          Vector(Api.ModuleTextEdits(moduleName, edits)),
-          newName
-        )
-      ),
+    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.SymbolRenamed(newName)),
+      Api.Response(None, fileEdit),
       context.executionComplete(contextId)
     )
 

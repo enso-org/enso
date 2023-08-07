@@ -5,7 +5,6 @@ import org.enso.jsonrpc.ClientControllerFactory
 import org.enso.languageserver.boot.resource.InitializationComponent
 import org.enso.languageserver.data.Config
 import org.enso.languageserver.libraries.LibraryConfig
-import org.enso.languageserver.runtime.RuntimeFailureMapper
 
 import java.util.UUID
 
@@ -33,7 +32,6 @@ class JsonConnectionControllerFactory(
   idlenessMonitor: ActorRef,
   projectSettingsManager: ActorRef,
   libraryConfig: LibraryConfig,
-  runtimeFailureMapper: RuntimeFailureMapper,
   config: Config
 )(implicit system: ActorSystem)
     extends ClientControllerFactory {
@@ -62,7 +60,6 @@ class JsonConnectionControllerFactory(
         idlenessMonitor        = idlenessMonitor,
         projectSettingsManager = projectSettingsManager,
         libraryConfig          = libraryConfig,
-        runtimeFailureMapper   = runtimeFailureMapper,
         languageServerConfig   = config
       ),
       s"json-connection-controller-$clientId"

@@ -1,10 +1,10 @@
 package org.enso.interpreter.instrument.command
 
 import org.enso.interpreter.instrument.execution.{Completion, RuntimeContext}
-import org.enso.polyglot.runtime.Runtime.{Api, ApiResponse}
+import org.enso.polyglot.runtime.Runtime.{Api, ApiNotification, ApiResponse}
 import org.enso.polyglot.runtime.Runtime.Api.RequestId
 
-import scala.concurrent.{ExecutionContext}
+import scala.concurrent.ExecutionContext
 
 /** Base command trait that encapsulates a function request. Uses
   * [[RuntimeContext]] to perform a request.
@@ -30,4 +30,9 @@ abstract class Command(maybeRequestId: Option[RequestId]) {
     ctx.endpoint.sendToClient(Api.Response(maybeRequestId, payload))
   }
 
+  protected def notify(
+    payload: ApiNotification
+  )(implicit ctx: RuntimeContext): Unit = {
+    ctx.endpoint.sendToClient(Api.Response(None, payload))
+  }
 }
