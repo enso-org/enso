@@ -14,6 +14,7 @@ import * as backendProvider from '../../providers/backend'
 import * as errorModule from '../../error'
 import * as http from '../../http'
 import * as localBackend from '../../dashboard/localBackend'
+import * as localStorageProvider from '../../providers/localStorage'
 import * as loggerProvider from '../../providers/logger'
 import * as remoteBackend from '../../dashboard/remoteBackend'
 import * as sessionProvider from './session'
@@ -178,10 +179,11 @@ export function AuthProvider(props: AuthProviderProps) {
         onAuthenticated,
         children,
     } = props
+    const logger = loggerProvider.useLogger()
     const { cognito } = authService
     const { session, deinitializeSession } = sessionProvider.useSession()
     const { setBackendWithoutSavingType } = backendProvider.useSetBackend()
-    const logger = loggerProvider.useLogger()
+    const { localStorage } = localStorageProvider.useLocalStorage()
     // This must not be `hooks.useNavigate` as `goOffline` would be inaccessible,
     // and the function call would error.
     // eslint-disable-next-line no-restricted-properties
@@ -454,6 +456,7 @@ export function AuthProvider(props: AuthProviderProps) {
         deinitializeSession()
         setInitialized(false)
         setUserSession(null)
+        localStorage.clear()
         // This should not omit success and error toasts as it is not possible
         // to render this optimistically.
         await toastify.toast.promise(cognito.signOut(), {
