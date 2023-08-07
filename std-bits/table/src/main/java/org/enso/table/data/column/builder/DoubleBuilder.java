@@ -183,6 +183,11 @@ public class DoubleBuilder extends NumericBuilder {
     return new DoubleStorage(data, currentSize, isMissing);
   }
 
+  /**
+   * Converts and `long` value into `double`.
+   * <p>
+   * It verifies if the integer can be exactly represented in a double, and if not, it reports a warning.
+   */
   private double convertIntegerToDouble(long integer) {
     double floatingPointValue = (double) integer;
     boolean isLosingPrecision = (long) floatingPointValue != integer;
