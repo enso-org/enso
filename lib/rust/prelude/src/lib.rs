@@ -218,7 +218,7 @@ pub fn init_global() {
 
 #[cfg(target_arch = "wasm32")]
 fn init_global_internal() {
-    enso_web::forward_panic_hook_to_console();
+    enso_web::register_panic_hook();
     enso_web::set_stack_trace_limit();
 }
 

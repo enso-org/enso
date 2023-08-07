@@ -29,10 +29,8 @@ use ensogl::display::DomSymbol;
 use ensogl::system::web;
 use ensogl::system::web::traits::*;
 use std::rc::Rc;
-use web::Closure;
 use web::Element;
 use web::HtmlDivElement;
-use web::MouseEvent;
 
 
 
@@ -63,15 +61,6 @@ mod css_id {
 // === ClickableElement ===
 // ========================
 
-
-// === ClickClosure ===
-
-/// Type alias for "on-click" event handlers on buttons.
-type ClickClosure = Closure<dyn FnMut(MouseEvent)>;
-
-
-// === ClickableElement ===
-
 /// Clickable HTML element. It has a single `click` event source that fires an event on each `click`
 /// JS event.
 #[derive(Debug, Clone, CloneRef)]
@@ -79,6 +68,7 @@ struct ClickableElement {
     pub element: Element,
     pub click:   frp::Source,
     pub network: frp::Network,
+    listener:    web::CleanupHandle,
 }
 
 impl Deref for ClickableElement {
@@ -93,10 +83,8 @@ impl ClickableElement {
         frp::new_network! { network
             click <- source_();
         }
-        let closure: ClickClosure = Closure::new(f_!(click.emit(())));
-        let handle = web::add_event_listener(&element, "click", closure);
-        network.store(&handle);
-        Self { element, network, click }
+        let listener = web::add_event_listener(&element, "click", f_!(click.emit(())));
+        Self { element, network, click, listener }
     }
 }
 

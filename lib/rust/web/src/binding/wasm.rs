@@ -1,3 +1,5 @@
+#![allow(missing_docs)]
+
 //! Native bindings to the web-api.
 
 use crate::prelude::*;
@@ -141,3 +143,84 @@ wasm_lazy_global! { window : Window = get_window() }
 
 #[cfg(target_arch = "wasm32")]
 wasm_lazy_global! { document : Document = window.document().unwrap() }
+
+
+
+// ==============================
+// === Listeners with cleanup ===
+// ==============================
+
+#[wasm_bindgen(module = "/js/callbacks_with_cleanup.ts")]
+extern "C" {
+    /// Registered listener callback handle that has js-side cleanup.
+    ///
+    /// When wasm module is destroyed, all cleanup handles are automatically cleaned up on the JS
+    /// side, without invoking any rust code. This is especially important after rust panic, since
+    /// no rust code should be executed once a panic caused abort.
+    #[allow(unsafe_code)]
+    pub type RawCleanupHandle;
+
+    /// Perform cleanup on the JS side. After cleanup, the listener will not be called anymore.
+    #[allow(unsafe_code)]
+    #[wasm_bindgen(structural, method)]
+    pub fn cleanup(this: &RawCleanupHandle);
+
+    /// Register an event listener callback with JS-side cleanup.
+    #[allow(unsafe_code)]
+    #[wasm_bindgen(js_name = registerEventListener)]
+    pub fn register_event_listener(
+        target: &EventTarget,
+        event: &str,
+        callback: &Function,
+        options: &AddEventListenerOptions,
+    ) -> RawCleanupHandle;
+
+
+    /// Register a timeout callback with JS-side cleanup.
+    #[allow(unsafe_code)]
+    #[wasm_bindgen(js_name = registerTimeout)]
+    pub fn register_timeout(callback: &Function, timeout: u32) -> RawCleanupHandle;
+
+    /// Register an interval callback with JS-side cleanup.
+    #[allow(unsafe_code)]
+    #[wasm_bindgen(js_name = registerInterval)]
+    pub fn register_interval(callback: &Function, interval: u32) -> RawCleanupHandle;
+
+    /// Register an animation frame callback with JS-side cleanup.
+    #[allow(unsafe_code)]
+    #[wasm_bindgen(js_name = registerAnimationFrame)]
+    pub fn register_animation_frame(callback: &Function) -> RawCleanupHandle;
+
+    /// Register a microtask callback with JS-side cleanup.
+    #[allow(unsafe_code)]
+    #[wasm_bindgen(js_name = registerQueueMicrotask)]
+    pub fn register_queue_microtask(callback: &Function) -> RawCleanupHandle;
+
+    /// Register a resize observer callback with JS-side cleanup.
+    #[allow(unsafe_code)]
+    #[wasm_bindgen(js_name = registerResizeObserver)]
+    pub fn register_resize_observer(target: &JsValue, callback: &Function) -> RawCleanupHandle;
+
+    /// Unregister all registered event listeners and other JS callbacks. Calling this function
+    /// will likely break the application, since it expects the registered callbacks to be called.
+    /// This function is intended only as a cleanup in the event of a panic.
+    #[allow(unsafe_code)]
+    #[wasm_bindgen(js_name = cleanupAllHandlers)]
+    pub fn cleanup_all_handlers();
+}
+
+/// EnsoGl app
+#[wasm_bindgen]
+extern "C" {
+    pub type EnsoglApp;
+
+    /// Global JS instance of the Ensogl application.
+    #[wasm_bindgen(js_name = "ensoglApp")]
+    pub static ENSOGL_APP: EnsoglApp;
+
+    /// Notify the JS application instance that a rust panic has occurred. This will cause the app
+    /// to display a panic message, allow the user to file a bug report and offer to reload the app.
+    #[allow(unsafe_code)]
+    #[wasm_bindgen(method, js_name = "handlePanic")]
+    pub fn handle_panic(this: &EnsoglApp, msg: &str);
+}

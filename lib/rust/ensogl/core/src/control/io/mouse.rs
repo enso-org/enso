@@ -43,27 +43,26 @@ macro_rules! define_bindings {
                 dom: &$crate::system::web::dom::WithKnownShape<web::EventTarget>,
                 $target: &$crate::system::web::EventTarget,
                 $global_target: &$crate::system::web::EventTarget,
-            ) -> Rc<[web::EventListenerHandle]> {
+            ) -> Rc<[web::CleanupHandle]> {
                 use crate::control::callback::traits::*;
                 use web::JsCast;
-                type EventJsClosure = web::Closure<dyn FnMut(web::JsValue)>;
                 $(
                     let shape = dom.shape.clone_ref();
                     let dispatcher = self.$name.clone_ref();
-                    let closure = move |event: web::JsValue| {
-                        let _profiler = profiler::start_task!(
-                            profiler::APP_LIFETIME,
-                            concat!("mouse_", stringify!($name))
-                        );
-                        let shape = shape.value();
-                        let event = event.unchecked_into::<web::$js_event>();
-                        dispatcher.run_all(&$event::new(event, shape))
-                    };
-                    let closure: EventJsClosure = web::Closure::new(closure);
-                    let js_name = stringify!($js_name);
-                    let opt = event_listener_options();
-                    let $name = web::add_event_listener_with_options
-                        (&$event_target, js_name, closure, opt);
+                    let $name = web::add_event_listener_with_options(
+                        &$event_target,
+                        stringify!($js_name),
+                        event_listener_options(),
+                        move |event| {
+                            let _profiler = profiler::start_task!(
+                                profiler::APP_LIFETIME,
+                                concat!("mouse_", stringify!($name))
+                            );
+                            let shape = shape.value();
+                            let event = event.unchecked_into::<web::$js_event>();
+                            dispatcher.run_all(&$event::new(event, shape))
+                        }
+                    );
                 )*
                 Rc::new([$($name),*])
             }
@@ -83,18 +82,18 @@ macro_rules! define_bindings {
 pub struct MouseManager {
     #[deref]
     dispatchers: EventDispatchers,
-    handles:     Rc<[web::EventListenerHandle]>,
+    handles:     Rc<[web::CleanupHandle]>,
 }
 
 /// Return options for addEventListener function. See also
 /// https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener
-fn event_listener_options() -> web::EventListenerHandleOptions {
+fn event_listener_options() -> web::ListenerOptions {
     // 1. We listen for events in the bubbling phase. If we ever would like to listen in the capture
     // phase, it would need to be set to "bubbling" for the "mouseleave" and "mouseenter" events,
     // as they provide incorrect events for the "capture" phase.
     //
     // 2. We want to prevent default action on wheel events, thus listener cannot be passive.
-    web::EventListenerHandleOptions::new().not_passive()
+    web::ListenerOptions::new().not_passive()
 }
 
 define_bindings! { target, global_target,

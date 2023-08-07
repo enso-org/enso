@@ -7,7 +7,6 @@ use crate::system::gpu::data::GlEnum;
 use crate::system::gpu::shader;
 use crate::system::web;
 
-use web::Closure;
 use web_sys::WebGl2RenderingContext;
 
 
@@ -94,8 +93,8 @@ pub type DeviceContextHandler = web::HtmlCanvasElement;
 /// the context, the context will not be restored automaticaly.
 #[derive(Debug)]
 pub struct ContextLostHandler {
-    on_lost:     web::EventListenerHandle,
-    on_restored: web::EventListenerHandle,
+    on_lost:     web::CleanupHandle,
+    on_restored: web::CleanupHandle,
 }
 
 
@@ -150,14 +149,14 @@ pub fn init_webgl_2_context<D: Display + 'static>(
             let context = Context::from_native(native);
             type Handler = web::JsEventHandler;
             display.set_context(Some(&context));
-            let lost: Handler = Closure::new(f_!([display]
+            let lost = f_!([display] {
                 warn!("Lost the WebGL context.");
                 display.set_context(None)
-            ));
-            let restored: Handler = Closure::new(f_!([display]
+            });
+            let restored = f_!([display] {
                 warn!("Trying to restore the WebGL context.");
                 display.set_context(Some(&context))
-            ));
+            });
             let on_lost = web::add_event_listener(hdc, "webglcontextlost", lost);
             let on_restored = web::add_event_listener(hdc, "webglcontextrestored", restored);
             Ok(ContextLostHandler { on_lost, on_restored })

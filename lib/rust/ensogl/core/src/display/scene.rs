@@ -34,7 +34,7 @@ use crate::system::gpu::shader;
 use crate::system::gpu::Context;
 use crate::system::gpu::ContextLostHandler;
 use crate::system::web;
-use crate::system::web::EventListenerHandle;
+use crate::system::web::CleanupHandle;
 
 use enso_frp as frp;
 use enso_shapely::shared;
@@ -1009,7 +1009,7 @@ pub struct SceneData {
     initial_shader_compilation: Rc<Cell<TaskState>>,
     display_mode: Rc<Cell<glsl::codes::DisplayModes>>,
     extensions: Extensions,
-    disable_context_menu: Rc<EventListenerHandle>,
+    disable_context_menu: CleanupHandle,
 }
 
 impl SceneData {
@@ -1032,7 +1032,7 @@ impl SceneData {
         let style_sheet = world::with_context(|t| t.style_sheet.clone_ref());
         let frp = Frp::new(&dom.root.shape);
         let mouse = Mouse::new(&frp, &display_object, &dom.root, &variables, &display_mode);
-        let disable_context_menu = Rc::new(web::ignore_context_menu(&dom.root));
+        let disable_context_menu = web::ignore_context_menu(&dom.root);
         let global_keyboard = Keyboard::new(&web::window, &display_object);
         let network = &frp.network;
         let extensions = Extensions::default();

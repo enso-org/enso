@@ -39,25 +39,19 @@ macro_rules! define_bindings {
             fn connect(
                 &self,
                 target: &$crate::system::web::EventTarget,
-            ) -> Rc<[web::EventListenerHandle]> {
+            ) -> Rc<[web::CleanupHandle]> {
                 use crate::control::callback::traits::*;
                 use web::JsCast;
-                type EventJsClosure = web::Closure<dyn FnMut(web::JsValue)>;
                 $(
                     let dispatcher = self.$name.clone_ref();
-                    let closure = move |event: web::JsValue| {
+                    let $name = web::add_event_listener(target, stringify!($js_name), move |event| {
                         let _profiler = profiler::start_task!(
                             profiler::APP_LIFETIME,
                             concat!("keyboard_", stringify!($name))
                         );
                         let event = event.unchecked_into::<web::$js_event>();
                         dispatcher.run_all(&$event::new(event))
-                    };
-                    let closure: EventJsClosure = web::Closure::new(closure);
-                    let js_name = stringify!($js_name);
-                    let opt = event_listener_options();
-                    let $name =
-                        web::add_event_listener_with_options(&target, js_name, closure, opt);
+                    });
                 )*
                 Rc::new([$($name),*])
             }
@@ -77,13 +71,7 @@ macro_rules! define_bindings {
 pub struct KeyboardManager {
     #[deref]
     dispatchers: EventDispatchers,
-    handles:     Rc<[web::EventListenerHandle]>,
-}
-
-/// Return options for addEventListener function. See also
-/// https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener
-fn event_listener_options() -> web::EventListenerHandleOptions {
-    default()
+    handles:     Rc<[web::CleanupHandle]>,
 }
 
 define_bindings! {

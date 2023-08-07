@@ -186,6 +186,7 @@ export class App {
     packageInfo: debug.PackageInfo
     config: config.Options
     wasm: any = null
+    disposeModule: (() => void) | null = null
     loader: wasm.Loader | null = null
     assets: Assets<ArrayBuffer> | null = null
     wasmFunctions: string[] = []
@@ -238,8 +239,8 @@ export class App {
     }
 
     /** Log the message on the remote server. */
-    // This method is assumed to be overriden by the App's owner. Eventually it should be removed from the runner
-    // altogether, as it is not its responsibility.
+    // This method is assumed to be overridden by the App's owner. Eventually it should be removed
+    // from the runner altogether, as it is not its responsibility.
     // eslint-disable-next-line @typescript-eslint/require-await, @typescript-eslint/no-unused-vars
     async remoteLog(message: string, data: any) {
         console.warn('Remote logging is not set up.')
@@ -301,9 +302,12 @@ export class App {
                 `const process = "Overridden to prevent Emscripten from redefining module.exports."
                  const module = {}
                  ${pkgJs}
+                 module.exports.disposeModule = () => wasm = undefined;
                  return module.exports`
             )()
             const out: unknown = await snippetsFn.init(wasm)
+            this.disposeModule = snippetsFn.disposeModule
+
             if (this.config.groups.debug.options.enableSpector.value) {
                 /* eslint @typescript-eslint/no-unsafe-member-access: "off" */
                 /* eslint @typescript-eslint/no-unsafe-call: "off" */
@@ -319,8 +323,8 @@ export class App {
         })
     }
 
-    /** Download and load the WASM to memory. */
-    async loadWasm() {
+    /** Request wasm and asset files. */
+    async requestWasm() {
         const loader = new wasm.Loader(this.config)
 
         const assetsUrl = this.config.groups.loader.options.assetsUrl.value
@@ -371,11 +375,18 @@ export class App {
             const data = new Map(Array.from(info.data, ([k, i]) => [k, assetsBlobs[i]!]))
             return new Asset(info.type, info.key, data)
         })
-
-        const pkgJs = await responses.pkgJs.text()
         this.loader = loader
-        this.wasm = await this.compileAndRunWasm(pkgJs, responses.pkgWasm)
         this.assets = new Assets(assets)
+        return {
+            pkgJs: await responses.pkgJs.text(),
+            pkgWasm: responses.pkgWasm,
+        }
+    }
+
+    /** Download and load the WASM to memory. */
+    async loadWasm() {
+        const response = await this.requestWasm()
+        this.wasm = await this.compileAndRunWasm(response.pkgJs, response.pkgWasm)
     }
 
     /** Loads the WASM binary and its dependencies. After the files are fetched, the WASM module is
@@ -557,6 +568,33 @@ export class App {
             const key = name.unmangle(keyMangled)
             rustSetAssetFn(builder, key, data)
         }
+    }
+
+    /**
+     * Handle a panic from Rust. Displays a user-friendly error message and allows easy bug
+     * reporting. Once panic happened, the wasm module must be closed and reloaded from scratch, as
+     * no state can be trusted. There are some challenges with this, as we are not able to directly
+     * stop the execution.
+     */
+    async handlePanic(message: string) {
+        // Remove all references to the old wasm module. The garbage collector should be able to
+        // collect it. We also have to cleanup the scene DOM, as the drop handlers cannot be called.
+        this.disposeModule?.()
+        this.wasm = null
+        document.querySelector('#root > .scene')?.remove()
+
+        await this.printPanicMessage(message)
+        // Once the panic message is acknowledged by the user, restart the application.
+        await this.run()
+    }
+
+    /**
+     * Present the panic message to the user. This method is assumed to be overridden by the App's
+     * owner. Resolving the promise returned by this method will cause the application to restart.
+     */
+    // eslint-disable-next-line @typescript-eslint/require-await
+    async printPanicMessage(message: string): Promise<void> {
+        console.error(message)
     }
 }
 

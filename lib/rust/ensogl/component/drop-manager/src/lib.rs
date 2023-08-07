@@ -30,7 +30,6 @@ use enso_frp as frp;
 use enso_web as web;
 use enso_web::stream::BlobExt;
 use enso_web::stream::ReadableStreamDefaultReader;
-use enso_web::Closure;
 use ensogl_core::display::scene::Scene;
 use ensogl_core::system::web::dom::WithKnownShape;
 
@@ -113,9 +112,6 @@ impl File {
 // === DropFileManager ===
 // =======================
 
-type DropClosure = Closure<dyn Fn(web_sys::DragEvent)>;
-type DragOverClosure = Closure<dyn Fn(web_sys::DragEvent) -> bool>;
-
 #[derive(Clone, Debug, Default)]
 /// The data emitted by the `files_received` frp endpoint.
 pub struct DropEventData {
@@ -130,15 +126,13 @@ pub struct DropEventData {
 /// It adds listeners for drag and drop events to the target passed during construction. It provides
 /// the single frp endpoints emitting a signal when a file is dropped.
 // NOTE[allow_dead] We allow dead fields here, because they keep living closures and network.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Debug)]
 pub struct Manager {
     #[allow(dead_code)]
-    network:          frp::Network,
-    files_received:   frp::Source<DropEventData>,
+    network:        frp::Network,
+    files_received: frp::Source<DropEventData>,
     #[allow(dead_code)]
-    drop_handle:      web::EventListenerHandle,
-    #[allow(dead_code)]
-    drag_over_handle: web::EventListenerHandle,
+    handlers:       [web::CleanupHandle; 2],
 }
 
 impl Manager {
@@ -151,21 +145,18 @@ impl Manager {
         }
 
         let target: &web::EventTarget = dom.deref();
-        let drop: DropClosure = Closure::new(f!([files_received,scene](event:web_sys::DragEvent) {
-            debug!("Dropped files.");
-            event.prevent_default();
-            Self::handle_drop_event(event, &files_received, &scene);
-        }));
-        // To mark element as a valid drop target, the `dragover` event handler should return
-        // `false`. See
-        // https://developer.mozilla.org/en-US/docs/Web/API/HTML_Drag_and_Drop_API/File_drag_and_drop#define_the_drop_zone
-        let drag_over: DragOverClosure = Closure::new(|event: web_sys::DragEvent| {
-            event.prevent_default();
-            false
-        });
-        let drop_handle = web::add_event_listener(target, "drop", drop);
-        let drag_over_handle = web::add_event_listener(target, "dragover", drag_over);
-        Self { network, files_received, drop_handle, drag_over_handle }
+        let received = files_received.clone_ref();
+        let scene = scene.clone_ref();
+        let handlers = [
+            web::add_event_listener(target, "drop", move |event| {
+                let event: web_sys::DragEvent = event.dyn_into().unwrap();
+                debug!("Dropped files.");
+                event.prevent_default();
+                Self::handle_drop_event(event, &received, &scene);
+            }),
+            web::add_event_listener(target, "dragover", |e| e.prevent_default()),
+        ];
+        Self { network, files_received, handlers }
     }
 
     /// The frp endpoint emitting signal when a file is dropped.

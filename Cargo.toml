@@ -33,11 +33,6 @@ members = [
 # The default memebers are those we want to check and test by default.
 default-members = ["app/gui", "lib/rust/*"]
 
-# We are using a version with extended functionality. The changes have been PR'd upstream:
-# https://github.com/rustwasm/console_error_panic_hook/pull/24
-# Remove this patch when the issue is resolved.
-[patch.crates-io]
-console_error_panic_hook = { git = 'https://github.com/enso-org/console_error_panic_hook' }
 
 [profile.dev]
 opt-level = 0
@@ -93,7 +88,7 @@ serde-wasm-bindgen = { version = "0.4.5" }
 tokio = { version = "1.23.0", features = ["full", "tracing"] }
 tokio-stream = { version = "0.1.12", features = ["fs"] }
 tokio-util = { version = "0.7.4", features = ["full"] }
-wasm-bindgen = { version = "0.2.84", features = [] }
+wasm-bindgen = { version = "0.2.87", features = [] }
 wasm-bindgen-test = { version = "0.3.34" }
 anyhow = { version = "1.0.66" }
 failure = { version = "0.1.8" }
@@ -122,7 +117,6 @@ bincode = { version = "2.0.0-rc.1" }
 byte-unit = { version = "4.0.14", features = ["serde"] }
 bytes = { version = "1.1.0" }
 matches = { version = "0.1" }
-console_error_panic_hook = { version = "0.1.6" }
 reqwest = { version = "0.11.5", default-features = false, features = [
   "rustls-tls"
 ] }
@@ -153,3 +147,8 @@ superslice = { version = "1.0.0" }
 # We don't use serde-wasm-bindgen in some cases, because it cannot deal properly with flattened fields, see:
 # https://github.com/cloudflare/serde-wasm-bindgen/issues/9
 gloo-utils = { version = "0.1.7" }
+
+# We are using a version with extended functionality. The changes have been PR'd upstream:
+# https://github.com/rustwasm/console_error_panic_hook/pull/24
+# Remove this patch when the issue is resolved.
+console_error_panic_hook = { git = 'https://github.com/enso-org/console_error_panic_hook' }

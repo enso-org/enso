@@ -14,7 +14,7 @@ const THIS_PATH = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)))
 
 // The names come from a third-party API and cannot be changed.
 /* eslint-disable no-restricted-syntax, @typescript-eslint/naming-convention */
-export const content = [THIS_PATH + '/src/**/*.tsx']
+export const content = [THIS_PATH + '/src/**/*.tsx', THIS_PATH + '../content/src/**/*.tsx']
 export const theme = {
     extend: {
         colors: {

@@ -88,7 +88,7 @@ pub struct Model {
     /// to EnsoGL shapes, and pass them to the DOM instead.
     overlay:         Rectangle,
     display_object:  display::object::Instance,
-    event_handlers:  Rc<RefCell<Vec<web::EventListenerHandle>>>,
+    event_handlers:  Rc<RefCell<Vec<web::CleanupHandle>>>,
 }
 
 impl Model {
@@ -194,13 +194,13 @@ impl Model {
         display_doc: &frp::Source<EntryDocumentation>,
     ) {
         let new_handlers = linked_pages.into_iter().filter_map(|page| {
-            let content = page.page.clone_ref();
             let anchor = html::anchor_name(&page.name);
             if let Some(element) = web::document.get_element_by_id(&anchor) {
-                let closure: web::JsEventHandler = web::Closure::new(f_!([display_doc, content] {
-                    display_doc.emit(content.clone_ref());
-                }));
-                Some(web::add_event_listener(&element, "click", closure))
+                let content = page.page.clone_ref();
+                let display_doc = display_doc.clone_ref();
+                Some(web::add_event_listener(&element, "click", move |_| {
+                    display_doc.emit(content.clone_ref())
+                }))
             } else {
                 None
             }

@@ -9,7 +9,6 @@ use crate::system::web;
 use crate::system::web::resize_observer::ResizeObserver;
 
 use nalgebra::Vector2;
-use web::Closure;
 
 
 
@@ -124,9 +123,12 @@ impl<T> WithKnownShape<T> {
             shape_source <- source();
             shape        <- shape_source.sampler();
         };
-        let callback = Closure::new(f!([shape_source, overridden_pixel_ratio] (w,h)
-            shape_source.emit(Shape::new(w, h, overridden_pixel_ratio.get()))));
-        let observer = Rc::new(ResizeObserver::new(dom.as_ref(), callback));
+        let observer = Rc::new(ResizeObserver::new(
+            dom.as_ref(),
+            f!([shape_source, overridden_pixel_ratio] (w, h) {
+                shape_source.emit(Shape::new(w, h, overridden_pixel_ratio.get()))
+            }),
+        ));
         shape_source.emit(Shape::new_from_element_with_reflow(&element));
         Self { dom, network, shape, shape_source, observer, overridden_pixel_ratio }
     }

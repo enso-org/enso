@@ -511,18 +511,48 @@ mock_data! { Object => JsValue
 
 
 // === EventTarget ===
-mock_data! { EventTarget => Object
-    fn remove_event_listener_with_callback
-        (&self, tp: &str, f: &Function) -> Result<(), JsValue>;
-    fn remove_event_listener_with_callback_and_event_listener_options
-        (&self, tp: &str, f: &Function, opt: &EventListenerOptions) -> Result<(), JsValue>;
-    fn add_event_listener_with_callback
-        (&self, tp: &str, f: &Function) -> Result<(), JsValue>;
-    fn add_event_listener_with_callback_and_bool
-        (&self, tp: &str, f: &Function, opt: bool) -> Result<(), JsValue>;
-    fn add_event_listener_with_callback_and_add_event_listener_options
-        (&self, tp: &str, f: &Function, opt: &AddEventListenerOptions)
-        -> Result<(), JsValue>;
+mock_data! { EventTarget => Object }
+
+// === RawCleanupHandle ===
+
+mock_data! { RawCleanupHandle
+    fn cleanup(&self);
+}
+/// Register an event listener callback with JS-side cleanup.
+pub fn register_event_listener(
+    target: &EventTarget,
+    event: &str,
+    callback: &Function,
+    options: &AddEventListenerOptions,
+) -> RawCleanupHandle {
+    let _ = (target, event, callback, options);
+    RawCleanupHandle::const_new()
+}
+/// Register a timeout callback with JS-side cleanup.
+pub fn register_timeout(callback: &Function, timeout: u32) -> RawCleanupHandle {
+    let _ = (callback, timeout);
+    RawCleanupHandle::const_new()
+}
+/// Register an interval callback with JS-side cleanup.
+pub fn register_interval(callback: &Function, interval: u32) -> RawCleanupHandle {
+    let _ = (callback, interval);
+    RawCleanupHandle::const_new()
+}
+/// Register an animation frame callback with JS-side cleanup.
+pub fn register_animation_frame(callback: &Function) -> RawCleanupHandle {
+    let _ = callback;
+    RawCleanupHandle::const_new()
+}
+/// Register a microtask callback with JS-side cleanup.
+pub fn register_queue_microtask(callback: &Function) -> RawCleanupHandle {
+    let _ = callback;
+    RawCleanupHandle::const_new()
+}
+
+/// Register a resize observer callback with JS-side cleanup.
+pub fn register_resize_observer(target: &JsValue, callback: &Function) -> RawCleanupHandle {
+    let _ = (target, callback);
+    RawCleanupHandle::const_new()
 }
 
 
