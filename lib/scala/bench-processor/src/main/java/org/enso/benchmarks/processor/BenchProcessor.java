@@ -298,6 +298,8 @@ public class BenchProcessor extends AbstractProcessor {
     for (char c : name.toCharArray()) {
       if (isValidChar(c)) {
         normalizedNameSb.append(c);
+      } else if (c == '-') {
+        normalizedNameSb.append("minus");
       } else if (Character.isWhitespace(c) && (peekLastChar(normalizedNameSb) != '_')) {
         normalizedNameSb.append('_');
       }
