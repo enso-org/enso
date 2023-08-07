@@ -11,7 +11,6 @@ import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.problems.AggregatedProblems;
-import org.enso.table.problems.Problem;
 import org.enso.table.util.BitSets;
 
 import java.util.BitSet;
@@ -195,7 +194,7 @@ public class DoubleBuilder extends NumericBuilder {
       if (precisionLoss == null) {
         precisionLoss = new LossOfIntegerPrecision(integer, floatingPointValue);
       } else {
-        precisionLoss.increaseAffectedRows();
+        precisionLoss.incrementAffectedRows();
       }
     }
     return floatingPointValue;

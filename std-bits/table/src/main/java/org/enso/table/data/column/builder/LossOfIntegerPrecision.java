@@ -26,7 +26,7 @@ public class LossOfIntegerPrecision implements Problem {
     return affectedRows;
   }
 
-  void increaseAffectedRows() {
+  void incrementAffectedRows() {
     affectedRows++;
   }
 }
