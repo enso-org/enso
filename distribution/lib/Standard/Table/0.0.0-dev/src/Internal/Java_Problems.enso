@@ -26,7 +26,7 @@ translate_problem p = case p of
     _ : ArithmeticError ->
         Arithmetic_Error.Error p.getMessage
     _ : FloatingPointGrouping ->
-        Floating_Point_Equality.Error p.getAffectedRowsCount p.getExampleValue p.getExampleValueConverted
+        Floating_Point_Equality.Error p.getLocationName
     _ : LossOfIntegerPrecision ->
         Loss_Of_Integer_Precision.Warning p.getAffectedRowsCount p.getExampleValue p.getExampleValueConverted
     _ : UnquotedCharactersInOutput ->
