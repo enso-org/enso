@@ -1355,6 +1355,13 @@ object Runtime {
       */
     final case class ModuleNotFound(moduleName: String) extends Error
 
+    /** Signals that an expression cannot be found by provided id.
+      *
+      * @param expressionId the id of expression
+      */
+    final case class ExpressionNotFound(expressionId: ExpressionId)
+        extends Error
+
     /** Signals that execution of a context completed.
       *
       * @param contextId the context's id
@@ -1626,9 +1633,12 @@ object Runtime {
     /** Signals that the symbol has been renamed.
       *
       * @param edits the edits to apply
+      * @param newName the new name of the symbol
       */
-    final case class SymbolRenamed(edits: Vector[ModuleTextEdits])
-        extends ApiResponse
+    final case class SymbolRenamed(
+      edits: Vector[ModuleTextEdits],
+      newName: String
+    ) extends ApiResponse
 
     /** A notification about the changes in the suggestions database.
       *

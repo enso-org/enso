@@ -1,9 +1,16 @@
 package org.enso.interpreter.instrument.command
 
+import org.enso.compiler.core.IR
+import org.enso.compiler.refactoring.IRUtils
 import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.interpreter.instrument.job.{EnsureCompiledJob, ExecuteJob}
-import org.enso.interpreter.service.error.ModuleNotFoundForFileException
+import org.enso.interpreter.service.error.{
+  ModuleNotFoundException,
+  ModuleNotFoundForFileException
+}
 import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.refactoring.RenameUtils
+import org.enso.refactoring.validation.MethodNameValidation
 
 import java.util.logging.Level
 
@@ -30,21 +37,55 @@ class RenameSymbolCmd(
     } yield ()
 
   private def doRename(implicit ctx: RuntimeContext): Unit = {
-    val logger        = ctx.executionService.getLogger
-    val lockTimestamp = ctx.locking.acquireWriteCompilationLock()
+    val logger = ctx.executionService.getLogger
+    val writeCompilationLockTimestamp =
+      ctx.locking.acquireWriteCompilationLock()
     try {
       logger.log(
         Level.FINE,
         s"Renaming symbol [${request.expressionId}]..."
       )
+      // before applying the refactoring we should make sure that there are no
+      // pending edits.
       applyPendingEdits()
+      applyEdits()
+    } catch {
+      case _: ModuleNotFoundException =>
+        reply(Api.ModuleNotFound(request.module))
+      case ex: RenameSymbolCmd.ExpressionNotFound =>
+        reply(Api.ExpressionNotFound(ex.expressionId))
     } finally {
       ctx.locking.releaseWriteCompilationLock()
+      logger.log(
+        Level.FINEST,
+        s"Kept write compilation lock [${getClass.getSimpleName}] for ${System
+          .currentTimeMillis() - writeCompilationLockTimestamp} milliseconds."
+      )
     }
-    logger.log(
-      Level.FINE,
-      s"Finished renaming symbol [${request.expressionId}] in ${System.currentTimeMillis() - lockTimestamp} milliseconds."
-    )
+  }
+
+  private def applyEdits()(implicit ctx: RuntimeContext): Unit = {
+    val module = ctx.executionService.getContext
+      .findModule(request.module)
+      .orElseThrow(() => new ModuleNotFoundException(request.module))
+    val newName = MethodNameValidation.normalize(request.newName)
+    val literal = IRUtils
+      .findByExternalId(module.getIr, request.expressionId)
+      .flatMap(getLiteral)
+      .getOrElse(
+        throw new RenameSymbolCmd.ExpressionNotFound(request.expressionId)
+      )
+    val usages = IRUtils
+      .findUsages(module.getIr, literal)
+      .getOrElse(Set())
+      .flatMap(_.location)
+      .map(_.location)
+      .toSeq
+    val edits =
+      RenameUtils.buildEdits(module.getLiteralSource, usages, newName)
+
+    val moduleEdits = Api.ModuleTextEdits(request.module, edits.toVector)
+    reply(Api.SymbolRenamed(Vector(moduleEdits), newName))
   }
 
   private def applyPendingEdits()(implicit ctx: RuntimeContext): Unit = {
@@ -95,4 +136,18 @@ class RenameSymbolCmd(
       }
     } yield ()
 
+  private def getLiteral(ir: IR): Option[IR.Name.Literal] =
+    ir match {
+      case literal: IR.Name.Literal => Some(literal)
+      case _                        => None
+    }
+}
+
+object RenameSymbolCmd {
+
+  final private class ExpressionNotFound(val expressionId: IR.ExternalId)
+      extends Exception(s"Expression was not found by id [$expressionId].")
+
+  final class NotSupported[A <: IR](val node: Class[A])
+      extends Exception(s"Renaming of [$node] is not supported.")
 }

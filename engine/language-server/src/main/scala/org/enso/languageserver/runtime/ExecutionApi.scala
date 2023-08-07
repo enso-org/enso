@@ -278,4 +278,7 @@ object ExecutionApi {
       )
   }
 
+  case class ExpressionNotFoundError(expressionId: UUID)
+      extends Error(2008, s"Expression not found by id [$expressionId]")
+
 }

@@ -557,6 +557,12 @@ object ContextRegistryProtocol {
     */
   case class ModuleNotFound(moduleName: String) extends Failure
 
+  /** Signals that an expression cannot be found by the provided id.
+    *
+    * @param expressionId the id of expression
+    */
+  case class ExpressionNotFound(expressionId: UUID) extends Failure
+
   /** Signals that visualization cannot be found.
     */
   case object VisualizationNotFound extends Failure

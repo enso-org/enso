@@ -427,6 +427,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     idlenessMonitor        = idlenessMonitor,
     projectSettingsManager = projectSettingsManager,
     libraryConfig          = libraryConfig,
+    runtimeFailureMapper   = RuntimeFailureMapper(contentRootManagerWrapper),
     config                 = languageServerConfig
   )
   log.trace(

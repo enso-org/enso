@@ -35,7 +35,7 @@ object RefactoringApi {
       newName: String
     )
 
-    case class Result(edits: Seq[ModuleTextEdits])
+    case class Result(edits: Seq[ModuleTextEdits], newName: String)
 
     implicit val hasParams: HasParams.Aux[this.type, RenameSymbol.Params] =
       new HasParams[this.type] {

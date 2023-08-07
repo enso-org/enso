@@ -337,6 +337,7 @@ class BaseServerTest
       idlenessMonitor        = idlenessMonitor,
       projectSettingsManager = projectSettingsManager,
       libraryConfig          = libraryConfig,
+      runtimeFailureMapper   = RuntimeFailureMapper(contentRootManagerWrapper),
       config                 = config
     )
   }

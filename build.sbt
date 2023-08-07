@@ -1450,6 +1450,7 @@ lazy val `runtime-instrument-common` =
         "ENSO_TEST_DISABLE_IR_CACHE" -> "false"
       )
     )
+    .dependsOn(`refactoring-utils`)
     .dependsOn(
       runtime % "compile->compile;test->test;runtime->runtime;bench->bench"
     )
