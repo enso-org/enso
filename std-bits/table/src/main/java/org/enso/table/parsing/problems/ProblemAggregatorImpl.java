@@ -7,7 +7,6 @@ import org.enso.table.problems.Problem;
 public class ProblemAggregatorImpl implements ProblemAggregator {
   public final String relatedColumnName;
   private final List<String> invalidFormatCells = new ArrayList<>();
-  private final List<String> leadingZerosCells = new ArrayList<>();
 
   public ProblemAggregatorImpl(String relatedColumnName) {
     this.relatedColumnName = relatedColumnName;
@@ -25,7 +24,7 @@ public class ProblemAggregatorImpl implements ProblemAggregator {
 
   @Override
   public boolean hasProblems() {
-    return !invalidFormatCells.isEmpty() || !leadingZerosCells.isEmpty();
+    return !invalidFormatCells.isEmpty();
   }
 
   @Override
