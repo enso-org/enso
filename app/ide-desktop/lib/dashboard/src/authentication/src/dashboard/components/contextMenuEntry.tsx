@@ -38,7 +38,7 @@ export default function ContextMenuEntry(props: ContextMenuEntryProps) {
         <button
             disabled={disabled}
             title={title}
-            className="flex items-center place-content-between h-8 px-3 py-1 hover:bg-black-a10 disabled:bg-transparent rounded-2xl text-left disabled:opacity-50"
+            className="flex items-center place-content-between h-8 px-3 py-1 hover:bg-black-a10 disabled:bg-transparent rounded-lg text-left disabled:opacity-50"
             onClick={event => {
                 event.stopPropagation()
                 doAction()
