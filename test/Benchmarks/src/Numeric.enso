@@ -38,7 +38,7 @@ collect_benches group_builder =
     [True, False].map use_bankers->
         [0, -2, 2].map decimal_places->
             name = "round decimal_places=" + decimal_places.to_text + " use_bankers=" + use_bankers.to_text
-            fun = _.round_old decimal_places use_bankers
+            fun = _.round decimal_places use_bankers
             IO.println <| "Benchmarking decimal " + name
             bench_measure (decimals.map fun) "decimal "+name
             IO.println <| "Benchmarking integer " + name
