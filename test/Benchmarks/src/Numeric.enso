@@ -24,15 +24,15 @@ collect_benches group_builder =
     integers = Vector.new vector_size _-> faker.integer -1000000000 1000000000
 
     funs.map pair->
-        name = pair.at 0
+        name = "decimal " + pair.at 0
         fun = pair.at 1
-        IO.println <| "Benchmarking decimal " + name
+        IO.println <| "Benchmarking " + name
         bench_measure (decimals.map fun) name
 
     funs.map pair->
-        name = pair.at 0
+        name = "integer " + pair.at 0
         fun = pair.at 1
-        IO.println <| "Benchmarking integer" + name
+        IO.println <| "Benchmarking " + name
         bench_measure (integers.map fun) name
 
     [True, False].map use_bankers->
@@ -40,9 +40,9 @@ collect_benches group_builder =
             name = "round decimal_places=" + decimal_places.to_text + " use_bankers=" + use_bankers.to_text
             fun = _.round_old decimal_places use_bankers
             IO.println <| "Benchmarking decimal " + name
-            bench_measure (decimals.map fun) "decimal"+name
+            bench_measure (decimals.map fun) "decimal "+name
             IO.println <| "Benchmarking integer " + name
-            bench_measure (integers.map fun) "integer"+name
+            bench_measure (integers.map fun) "integer "+name
 
 bench =
     options = Bench.options . size iter_size . iter num_iterations
