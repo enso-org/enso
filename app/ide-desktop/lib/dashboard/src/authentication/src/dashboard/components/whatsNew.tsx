@@ -2,22 +2,17 @@
 import * as React from 'react'
 
 import DiscordIcon from 'enso-assets/discord.svg'
+import IntegrationsImage from 'enso-assets/integrations.png'
 import YoutubeIcon from 'enso-assets/youtube.svg'
 
 // ================
 // === WhatsNew ===
 // ================
 
-/** Props for a {@link WhatsNew}. */
-export interface WhatsNewProps {
-    visible: boolean
-}
-
 /** Community updates for the app. */
-export default function WhatsNew(props: WhatsNewProps) {
-    const { visible } = props
+export default function WhatsNew() {
     return (
-        <div className={`flex flex-col gap-4 px-4.75 ${visible ? '' : 'hidden'}`}>
+        <div className="flex flex-col gap-4 px-4.75">
             <h2 className="text-xl leading-144.5 py-0.5">Discover what&rsquo;s new</h2>
             <div className="grid gap-3 grid-cols-fill-75">
                 <a
@@ -25,6 +20,9 @@ export default function WhatsNew(props: WhatsNewProps) {
                     rel="noreferrer"
                     target="_blank"
                     href="https://enso.org/"
+                    style={{
+                        background: `url(${IntegrationsImage}) top -85px right -390px / 1055px`,
+                    }}
                 >
                     <div className="absolute flex flex-col bottom-0 p-4">
                         <span className="text-xl font-bold leading-144.5 py-0.5">

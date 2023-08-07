@@ -1,13 +1,17 @@
 /** @file Renders the list of templates from which a project can be created. */
 import * as React from 'react'
 
-import PlusCircledIcon from 'enso-assets/plus_circled.svg'
-
 import GeoImage from 'enso-assets/geo.png'
 import SpreadsheetsImage from 'enso-assets/spreadsheets.png'
 import VisualizeImage from 'enso-assets/visualize.png'
 
+import HeartIcon from 'enso-assets/heart.svg'
+import Logo from 'enso-assets/enso_logo.svg'
+import OpenCountIcon from 'enso-assets/open_count.svg'
+import ProjectIcon from 'enso-assets/project_icon.svg'
+
 import Spinner, * as spinner from './spinner'
+import SvgMask from '../../authentication/components/svgMask'
 
 // =================
 // === Constants ===
@@ -17,6 +21,11 @@ import Spinner, * as spinner from './spinner'
 const SPINNER_SIZE = 64
 /** The duration of the "spinner done" animation. */
 const SPINNER_DONE_DURATION_MS = 1000
+/** A placeholder number of times a sample has been opened, for use until the backend implements
+ * an endpoint. */
+const DUMMY_OPEN_COUNT = 10
+/** A placeholder number of likes for a sample, for use until the backend implements an endpoint. */
+const DUMMY_LIKE_COUNT = 10
 
 // =========================
 // === List of templates ===
@@ -27,7 +36,7 @@ export interface Sample {
     title: string
     description: string
     id: string
-    background: string
+    background?: string
 }
 
 /** The full list of templates. */
@@ -36,46 +45,43 @@ export const SAMPLES: Sample[] = [
         title: 'Colorado COVID',
         id: 'Colorado_COVID',
         description: 'Learn to glue multiple spreadsheets to analyses all your data at once.',
-        background: '#6b7280',
     },
     {
         title: 'KMeans',
         id: 'KMeans',
         description: 'Learn where to open a coffee shop to maximize your income.',
-        background: '#6b7280',
     },
     {
         title: 'NASDAQ Returns',
         id: 'NASDAQReturns',
         description: 'Learn how to clean your data to prepare it for advanced analysis.',
-        background: '#6b7280',
     },
     {
         title: 'Combine spreadsheets',
         id: 'Orders',
         description: 'Glue multiple spreadsheets together to analyse all your data at once.',
-        background: `url("${SpreadsheetsImage}") 50% 11% / 50% no-repeat, #479366`,
+        background: `url("${SpreadsheetsImage}") 50% 11% / 50% no-repeat, rgba(255, 255, 255, 0.70)`,
     },
     {
         title: 'Geospatial analysis',
         id: 'Restaurants',
         description: 'Learn where to open a coffee shop to maximize your income.',
-        background: `url("${GeoImage}") 50% 0% / 186.7768% no-repeat, #181818`,
+        background: `url("${GeoImage}") 50% 0% / 186.7768% no-repeat, rgba(255, 255, 255, 0.70)`,
     },
     {
         title: 'Analyze GitHub stars',
         id: 'Stargazers',
         description: "Find out which of Enso's repositories are most popular over time.",
-        background: `url("${VisualizeImage}") center / cover, #dddddd`,
+        background: `url("${VisualizeImage}") center / cover, rgba(255, 255, 255, 0.70)`,
     },
 ]
 
-// ==========================
-// === EmptyProjectButton ===
-// ==========================
+// =====================
+// === ProjectsEntry ===
+// =====================
 
-/** Props for an {@link EmptyProjectButton}. */
-interface InternalEmptyProjectButtonProps {
+/** Props for an {@link ProjectsEntry}. */
+interface InternalProjectsEntryProps {
     onTemplateClick: (
         name: null,
         onSpinnerStateChange: (spinnerState: spinner.SpinnerState | null) => void
@@ -83,47 +89,50 @@ interface InternalEmptyProjectButtonProps {
 }
 
 /** A button that, when clicked, creates and opens a new blank project. */
-function EmptyProjectButton(props: InternalEmptyProjectButtonProps) {
+function ProjectsEntry(props: InternalProjectsEntryProps) {
     const { onTemplateClick } = props
     const [spinnerState, setSpinnerState] = React.useState<spinner.SpinnerState | null>(null)
 
     return (
-        <button
-            onClick={() => {
-                setSpinnerState(spinner.SpinnerState.initial)
-                onTemplateClick(null, newSpinnerState => {
-                    setSpinnerState(newSpinnerState)
-                    if (newSpinnerState === spinner.SpinnerState.done) {
-                        setTimeout(() => {
-                            setSpinnerState(null)
-                        }, SPINNER_DONE_DURATION_MS)
-                    }
-                })
-            }}
-            className="cursor-pointer relative text-primary h-40"
-        >
-            <div className="flex h-full w-full rounded-2xl">
-                <div className="flex flex-col text-center items-center m-auto">
-                    {spinnerState != null ? (
-                        <div className="p-2">
-                            <Spinner size={SPINNER_SIZE} state={spinnerState} />
-                        </div>
-                    ) : (
-                        <img src={PlusCircledIcon} />
-                    )}
-                    <p className="font-semibold text-sm">New empty project</p>
+        <div className="flex flex-col gap-1.5 h-51">
+            <button
+                className="grow cursor-pointer"
+                onClick={() => {
+                    setSpinnerState(spinner.SpinnerState.initial)
+                    onTemplateClick(null, newSpinnerState => {
+                        setSpinnerState(newSpinnerState)
+                        if (newSpinnerState === spinner.SpinnerState.done) {
+                            setTimeout(() => {
+                                setSpinnerState(null)
+                            }, SPINNER_DONE_DURATION_MS)
+                        }
+                    })
+                }}
+            >
+                <div className="flex bg-frame rounded-2xl w-full h-full">
+                    <div className="flex flex-col text-center items-center gap-3 m-auto">
+                        {spinnerState != null ? (
+                            <div className="p-2">
+                                <Spinner size={SPINNER_SIZE} state={spinnerState} />
+                            </div>
+                        ) : (
+                            <img src={ProjectIcon} />
+                        )}
+                        <p className="font-semibold text-sm">New empty project</p>
+                    </div>
                 </div>
-            </div>
-        </button>
+            </button>
+            <div className="h-4.5" />
+        </div>
     )
 }
 
-// ======================
-// === TemplateButton ===
-// ======================
+// ===================
+// === ProjectTile ===
+// ===================
 
-/** Props for a {@link TemplateButton}. */
-interface InternalTemplateButtonProps {
+/** Props for a {@link ProjectTile}. */
+interface InternalProjectTileProps {
     template: Sample
     onTemplateClick: (
         name: string | null,
@@ -132,9 +141,11 @@ interface InternalTemplateButtonProps {
 }
 
 /** A button that, when clicked, creates and opens a new project based on a template. */
-function TemplateButton(props: InternalTemplateButtonProps) {
+function ProjectTile(props: InternalProjectTileProps) {
     const { template, onTemplateClick } = props
     const [spinnerState, setSpinnerState] = React.useState<spinner.SpinnerState | null>(null)
+    const opens = DUMMY_OPEN_COUNT
+    const likes = DUMMY_LIKE_COUNT
 
     const onSpinnerStateChange = React.useCallback(
         (newSpinnerState: spinner.SpinnerState | null) => {
@@ -149,31 +160,53 @@ function TemplateButton(props: InternalTemplateButtonProps) {
     )
 
     return (
-        <button
-            key={template.title}
-            className="h-40 cursor-pointer"
-            onClick={() => {
-                setSpinnerState(spinner.SpinnerState.initial)
-                onTemplateClick(template.id, onSpinnerStateChange)
-            }}
-        >
-            <div
-                style={{
-                    background: template.background,
+        <div className="flex flex-col gap-1.5 h-51">
+            <button
+                key={template.title}
+                className="grow cursor-pointer"
+                onClick={() => {
+                    setSpinnerState(spinner.SpinnerState.initial)
+                    onTemplateClick(template.id, onSpinnerStateChange)
                 }}
-                className="relative flex flex-col justify-end h-full w-full rounded-2xl overflow-hidden text-white text-left"
             >
-                <div className="bg-black bg-opacity-30 px-4 py-2">
-                    <h2 className="text-sm font-bold">{template.title}</h2>
-                    <div className="text-xs h-16 text-ellipsis py-2">{template.description}</div>
-                </div>
-                {spinnerState != null && (
-                    <div className="absolute grid w-full h-full place-items-center">
-                        <Spinner size={SPINNER_SIZE} state={spinnerState} />
+                <div
+                    style={{
+                        background: template.background,
+                    }}
+                    className="relative flex flex-col bg-frame-selected justify-end h-full w-full rounded-2xl overflow-hidden text-left"
+                >
+                    <div className="backdrop-blur px-4 pt-1.75 pb-3.5">
+                        <h2 className="text-sm font-bold leading-144.5 py-2">{template.title}</h2>
+                        <div className="text-xs h-16 text-ellipsis leading-144.5 pb-px">
+                            {template.description}
+                        </div>
                     </div>
-                )}
+                    {spinnerState != null && (
+                        <div className="absolute grid w-full h-full place-items-center">
+                            <Spinner size={SPINNER_SIZE} state={spinnerState} />
+                        </div>
+                    )}
+                </div>
+            </button>
+            <div className="flex justify-between text-primary h-4.5 px-4 opacity-70">
+                <div className="flex gap-1.5">
+                    <SvgMask src={Logo} />
+                    Enso Team
+                </div>
+                <div className="flex gap-3">
+                    {/* Opens */}
+                    <div className="flex gap-1.5">
+                        <SvgMask src={OpenCountIcon} />
+                        {opens}
+                    </div>
+                    {/* Likes */}
+                    <div className="flex gap-1.5">
+                        <SvgMask src={HeartIcon} />
+                        {likes}
+                    </div>
+                </div>
             </div>
-        </button>
+        </div>
     )
 }
 
@@ -183,7 +216,6 @@ function TemplateButton(props: InternalTemplateButtonProps) {
 
 /** Props for a {@link Samples}. */
 export interface SamplesProps {
-    visible: boolean
     onTemplateClick: (
         name: string | null,
         onSpinnerStateChange: (state: spinner.SpinnerState | null) => void
@@ -192,14 +224,14 @@ export interface SamplesProps {
 
 /** A list of sample projects. */
 export default function Samples(props: SamplesProps) {
-    const { visible, onTemplateClick } = props
+    const { onTemplateClick } = props
     return (
-        <div className={`flex flex-col gap-4 px-4.75 ${visible ? '' : 'hidden'}`}>
+        <div className="flex flex-col gap-4 px-4.75">
             <h2 className="text-xl leading-144.5 py-0.5">Sample and community projects</h2>
             <div className="grid gap-2 grid-cols-fill-60">
-                <EmptyProjectButton onTemplateClick={onTemplateClick} />
+                <ProjectsEntry onTemplateClick={onTemplateClick} />
                 {SAMPLES.map(template => (
-                    <TemplateButton
+                    <ProjectTile
                         key={template.id}
                         template={template}
                         onTemplateClick={onTemplateClick}

@@ -25,6 +25,7 @@ export default function SvgMask(props: SvgMaskProps) {
                 // eslint-disable-next-line @typescript-eslint/naming-convention
                 WebkitMask: urlSrc,
             }}
+            className="w-max h-max"
         >
             {/* This is required for this component to have the right size. */}
             <img src={src} className="opacity-0" />

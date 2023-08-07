@@ -287,7 +287,7 @@ export default function Drive(props: DriveProps) {
         </div>
     ) : (
         <div
-            className={`flex flex-col flex-1 overflow-hidden gap-2.5 px-3.25 ${
+            className={`flex flex-col flex-1 overflow-hidden gap-2.5 px-3.25 mt-8 ${
                 visible ? '' : 'hidden'
             }`}
         >
