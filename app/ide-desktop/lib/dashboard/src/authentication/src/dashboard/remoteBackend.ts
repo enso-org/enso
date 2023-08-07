@@ -408,6 +408,8 @@ export class RemoteBackend extends backend.Backend {
             const project = await response.json()
             return {
                 ...project,
+                ideVersion: project.ide_version,
+                engineVersion: project.engine_version,
                 jsonAddress:
                     project.address != null ? backend.Address(`${project.address}json`) : null,
                 binaryAddress:

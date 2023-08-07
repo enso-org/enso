@@ -139,7 +139,7 @@ export interface CreatedProject extends BaseProject {
 
 /** A `Project` returned by the `listProjects` endpoint. */
 export interface ListedProjectRaw extends CreatedProject {
-    address: Address | null
+    address?: Address
 }
 
 /** A `Project` returned by `listProjects`. */
@@ -157,8 +157,10 @@ export interface UpdatedProject extends BaseProject {
 
 /** A user/organization's project containing and/or currently executing code. */
 export interface ProjectRaw extends ListedProjectRaw {
-    ideVersion: VersionNumber | null
-    engineVersion: VersionNumber | null
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    ide_version: VersionNumber | null
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    engine_version: VersionNumber | null
 }
 
 /** A user/organization's project containing and/or currently executing code. */
