@@ -690,5 +690,5 @@ export abstract class Backend {
     /** Delete a file tag or project tag. */
     abstract deleteTag(tagId: TagId): Promise<void>
     /** Return a list of backend or IDE versions. */
-    abstract listVersions(params: ListVersionsRequestParams): Promise<[Version, ...Version[]]>
+    abstract listVersions(params: ListVersionsRequestParams): Promise<Version[]>
 }

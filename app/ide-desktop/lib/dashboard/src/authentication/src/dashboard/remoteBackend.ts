@@ -657,9 +657,7 @@ export class RemoteBackend extends backend.Backend {
     /** Return list of backend or IDE versions.
      *
      * @throws An error if a non-successful status code (not 200-299) was received. */
-    async listVersions(
-        params: backend.ListVersionsRequestParams
-    ): Promise<[backend.Version, ...backend.Version[]]> {
+    async listVersions(params: backend.ListVersionsRequestParams): Promise<backend.Version[]> {
         const response = await this.get<ListVersionsResponseBody>(
             LIST_VERSIONS_PATH +
                 '?' +

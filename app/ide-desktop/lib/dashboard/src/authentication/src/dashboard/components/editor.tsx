@@ -4,6 +4,7 @@ import * as React from 'react'
 import * as auth from '../../authentication/providers/auth'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
+import * as hooks from '../../hooks'
 
 import GLOBAL_CONFIG from '../../../../../../../../gui/config.yaml' assert { type: 'yaml' }
 
@@ -35,6 +36,7 @@ export default function Editor(props: EditorProps) {
     const { visible, project, appRunner } = props
     const { backend } = backendProvider.useBackend()
     const { accessToken } = auth.useNonPartialUserSession()
+    const toastAndLog = hooks.useToastAndLog()
 
     React.useEffect(() => {
         const ideElement = document.getElementById(IDE_ELEMENT_ID)
@@ -65,30 +67,34 @@ export default function Editor(props: EditorProps) {
             void (async () => {
                 const ideVersion =
                     project.ideVersion?.value ??
-                    (backend.type === backendModule.BackendType.remote
-                        ? await backend.listVersions({
-                              versionType: backendModule.VersionType.ide,
-                              default: true,
-                          })
-                        : null)?.[0].number.value
+                    (
+                        await backend.listVersions({
+                            versionType: backendModule.VersionType.ide,
+                            default: true,
+                        })
+                    )[0]?.number.value
                 const engineVersion =
                     project.engineVersion?.value ??
-                    (backend.type === backendModule.BackendType.remote
-                        ? await backend.listVersions({
-                              versionType: backendModule.VersionType.backend,
-                              default: true,
-                          })
-                        : null)?.[0].number.value
+                    (
+                        await backend.listVersions({
+                            versionType: backendModule.VersionType.backend,
+                            default: true,
+                        })
+                    )[0]?.number.value
                 const jsonAddress = project.jsonAddress
                 const binaryAddress = project.binaryAddress
                 if (ideVersion == null) {
-                    throw new Error('Could not get the IDE version of the project.')
+                    toastAndLog('Could not get the IDE version of the project.')
+                    return
                 } else if (engineVersion == null) {
-                    throw new Error('Could not get the engine version of the project.')
+                    toastAndLog('Could not get the engine version of the project.')
+                    return
                 } else if (jsonAddress == null) {
-                    throw new Error("Could not get the address of the project's JSON endpoint.")
+                    toastAndLog("Could not get the address of the project's JSON endpoint.")
+                    return
                 } else if (binaryAddress == null) {
-                    throw new Error("Could not get the address of the project's binary endpoint.")
+                    toastAndLog("Could not get the address of the project's binary endpoint.")
+                    return
                 } else {
                     let assetsRoot: string
                     switch (backend.type) {

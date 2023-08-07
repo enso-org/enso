@@ -290,11 +290,7 @@ export class LocalBackend extends backend.Backend {
             // eslint-disable-next-line @typescript-eslint/naming-convention
             version_type: params.versionType,
         })
-        const versions: [backend.Version, ...backend.Version[]] = [
-            engineVersionToVersion(engineVersions[0]),
-            ...engineVersions.map<backend.Version>(engineVersionToVersion),
-        ]
-        return versions
+        return engineVersions.map(engineVersionToVersion)
     }
 
     // === Endpoints that intentionally do not work on the Local Backend ===
