@@ -51,6 +51,33 @@ public class DoubleBuilder extends NumericBuilder {
     return FloatType.FLOAT_64;
   }
 
+  /**
+   * Converts the provided LongBuilder to a DoubleBuilder.
+   *
+   * <p>The original LongBuilder becomes invalidated after this operation and should no longer be
+   * used.
+   */
+  static DoubleBuilder retypeFromLongBuilder(LongBuilder longBuilder) {
+    int currentSize = longBuilder.currentSize;
+    DoubleBuilder newBuilder = new DoubleBuilder(longBuilder.isMissing, longBuilder.data, currentSize);
+
+    // Invalidate the old builder.
+    longBuilder.data = null;
+    longBuilder.isMissing = null;
+    longBuilder.currentSize = -1;
+
+    // Translate the data in-place to avoid unnecessary allocations.
+    for (int i = 0; i < currentSize; i++) {
+      if (!newBuilder.isMissing.get(i)) {
+        long currentIntegerValue = newBuilder.data[i];
+        double convertedFloatValue = newBuilder.convertIntegerToDouble(currentIntegerValue);
+        newBuilder.data[i] = Double.doubleToRawLongBits(convertedFloatValue);
+      }
+    }
+
+    return newBuilder;
+  }
+
   @Override
   public void appendNoGrow(Object o) {
     if (o == null) {

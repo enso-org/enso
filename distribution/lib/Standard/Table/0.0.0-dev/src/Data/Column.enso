@@ -55,7 +55,9 @@ type Column
            type that does not allow date/time values, use `fromItemsNoDateConversion` instead.
         expected_storage_type = Nothing
         Invalid_Column_Names.handle_java_exception <| Polyglot_Helpers.handle_polyglot_dataflow_errors <|
-            Column.Value (Java_Column.fromItems name items expected_storage_type)
+            java_column = Java_Problems.unpack_value_with_aggregated_problems Problem_Behavior.Report_Warning <|
+                Java_Column.fromItems name items expected_storage_type
+            Column.Value java_column
 
     ## PRIVATE
        Creates a new column given a name and an internal Java storage.
@@ -75,7 +77,9 @@ type Column
     from_vector_repeated : Text -> Vector -> Integer -> Column
     from_vector_repeated name items repeats =
         Invalid_Column_Names.handle_java_exception <| Illegal_Argument.handle_java_exception <|
-            Column.Value (Java_Column.fromRepeatedItems name items repeats)
+            java_column = Java_Problems.unpack_value_with_aggregated_problems Problem_Behavior.Report_Warning <|
+                Java_Column.fromRepeatedItems name items repeats
+            Column.Value java_column
 
     ## PRIVATE
 

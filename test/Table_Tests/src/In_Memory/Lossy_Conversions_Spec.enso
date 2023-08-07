@@ -54,7 +54,9 @@ spec =
             # No problems if integers only.
             Problems.assume_no_problems c1
 
+            # We start with LongBuilder and will be retyped to DoubleBuilder.
             c2 = Column.from_vector "Y" [1, x, x+1, 1.5]
+            c2.to_vector . should_equal [1, x, x, 1.5]
             w2 = Problems.expect_only_warning Loss_Of_Integer_Precision c2
             w2.affected_rows_count . should_equal 1
             w2.example_value . should_equal x+1
@@ -63,6 +65,7 @@ spec =
             w3 = Problems.expect_only_warning Loss_Of_Integer_Precision t3
             w3.affected_rows_count . should_equal 1
 
+            # Here, we start with DoubleBuilder straight away.
             c4 = Column.from_vector "X" [1.0, x, x+1, x+2, 100]
             w4 = Problems.expect_only_warning Loss_Of_Integer_Precision c4
             w4.affected_rows_count . should_equal 2
@@ -73,10 +76,15 @@ spec =
             Problems.assume_no_problems c5
             c5.to_vector.map .to_text . should_equal (["a", 1.0, x+1].map .to_text)
             # But if we first have floats and ints and only later enter mixed, we again get precision loss:
-            c6 = Column.from_vector "X" [x+1, 1.0, x+2, "a"]
+            c6 = Column.from_vector "X" [x+1, 1.0, x+2, "a", x+3]
             w6 = Problems.expect_only_warning Loss_Of_Integer_Precision c6
+            # The 2 integers that got into DoubleBuilder are affected, the one after upcasting to Mixed is preserved OK.
             w6.affected_rows_count . should_equal 2
-            c6.to_vector.map .to_text . should_equal ([x, 1.0, x, "a"].map .to_text)
+            c6.to_vector.map .to_text . should_equal ([x+0.0, 1.0, x+0.0, "a", x+3].map .to_text)
+
+            # It should also work for from_vector_repeated:
+            c7 = Column.from_vector_repeated "X" [1.5, x+2, 100] 10
+            Problems.expect_only_warning Loss_Of_Integer_Precision c7
 
         Test.specify "should not be reported when numeric operation mixes Float and Integer" <|
             t = table_builder [["A", [y]], ["B", [1.0]]]

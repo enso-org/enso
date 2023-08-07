@@ -599,6 +599,11 @@ type Loss_Of_Integer_Precision
     to_display_text self =
         self.affected_rows_count.to_text+" rows contained integers that are too large to represent exactly as a floating-point number. Some loss of precision will occur. For example, the number "+self.example_value.to_text+" gets converted to "+self.example_value_converted.to_text+"."
 
+    ## PRIVATE
+    to_text : Text
+    to_text self =
+        "(Loss_Of_Integer_Precision.Warning (affected_rows_count = " + self.affected_rows_count.to_text + ") (example_value = " + self.example_value.to_text + ") (example_value_converted = " + self.example_value_converted.to_text + "))"
+
 
 type Invalid_Value_For_Type
     ## PRIVATE
