@@ -5,7 +5,6 @@ import org.enso.table.data.column.builder.NumericBuilder;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.parsing.problems.ProblemAggregator;
 import org.enso.table.parsing.problems.ProblemAggregatorImpl;
-import org.enso.table.problems.WithProblems;
 import org.graalvm.polyglot.Context;
 
 import java.util.Collections;

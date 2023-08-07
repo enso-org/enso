@@ -15,7 +15,6 @@ import org.enso.table.parsing.problems.InvalidRow;
 import org.enso.table.parsing.problems.MismatchedQuote;
 import org.enso.table.parsing.problems.NoOpProblemAggregator;
 import org.enso.table.problems.Problem;
-import org.enso.table.problems.WithProblems;
 import org.enso.table.util.NameDeduplicator;
 import org.graalvm.polyglot.Context;
 

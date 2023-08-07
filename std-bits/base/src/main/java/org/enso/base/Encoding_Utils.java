@@ -13,6 +13,8 @@ import java.util.function.Function;
 import java.util.function.IntFunction;
 import org.enso.base.encoding.ReportingStreamDecoder;
 import org.enso.base.encoding.ReportingStreamEncoder;
+import org.enso.base.problems.ProblemList;
+import org.enso.base.problems.WithProblems;
 import org.enso.base.text.ResultWithWarnings;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
@@ -175,7 +177,7 @@ public class Encoding_Utils {
    * <p>It returns the result returned from the executed action and any encoding problems that
    * occurred when processing it.
    */
-  public static WithProblems<Value, String> with_stream_decoder(
+  public static WithProblems<Value, String, ProblemList<String>> with_stream_decoder(
       InputStream stream, Charset charset, Function<ReportingStreamDecoder, Value> action)
       throws IOException {
     Value result;
@@ -183,7 +185,7 @@ public class Encoding_Utils {
     try (decoder) {
       result = action.apply(decoder);
     }
-    return new WithProblems<>(result, decoder.getReportedProblems());
+    return new WithProblems.fromList(result, decoder.getReportedProblems());
   }
 
   /** Creates a new instance of {@code ReportingStreamEncoder} encoding a given charset. */
@@ -204,7 +206,7 @@ public class Encoding_Utils {
    * <p>It returns the result returned from the executed action and any encoding problems that
    * occurred when processing it.
    */
-  public static WithProblems<Value, String> with_stream_encoder(
+  public static WithProblems<Value, String, ProblemList<String>> with_stream_encoder(
       OutputStream stream,
       Charset charset,
       byte[] replacementSequence,

@@ -111,6 +111,17 @@ spec =
             w.example_value.to_text . should_equal (x+1).to_text
             w.column_name . should_equal "if [C] then [A] else [B]"
 
+        Test.specify "should be reported if `fill_missing` on a double column filled with long and vice-versa" <|
+            t1 = table_builder [["X", [1.0, Nothing, 2.0]]]
+            c1 = t1.at "X" . fill_missing (x+1)
+            Problems.expect_only_warning Loss_Of_Integer_Precision c1
+            c1.to_vector . should_equal [1.0, x, 2.0]
+
+            t2 = table_builder [["X", [x, Nothing, x+1]]]
+            c2 = t2.at "X" . fill_missing 1.0
+            Problems.expect_only_warning Loss_Of_Integer_Precision c2
+            c2.to_vector . should_equal [x, 1.0, x]
+
         Test.specify "should be reported when reading a CSV file" <|
             t = (enso_project.data / "lossy_int.csv") . read
             t.column_names . should_equal ["X", "Y", "Z"]
