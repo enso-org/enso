@@ -35,8 +35,10 @@ measurement iterations, you need to modify the parameter to the `@Measurement`
 annotation.
 
 ### Debugging the benchmarks
-Currently, the best way to debug the benchmark is to set the `@Fork` annotation to 0, and to
-run `withDebug` command like this:
+
+Currently, the best way to debug the benchmark is to set the `@Fork` annotation
+to 0, and to run `withDebug` command like this:
+
 ```
 withDebug --debugger benchOnly -- <fully qualified benchmark name>
 ```
