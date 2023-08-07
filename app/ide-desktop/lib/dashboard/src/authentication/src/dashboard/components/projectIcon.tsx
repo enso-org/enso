@@ -2,7 +2,6 @@
 import * as React from 'react'
 import * as toast from 'react-toastify'
 
-import ArrowUpIcon from 'enso-assets/arrow_up.svg'
 import PlayIcon from 'enso-assets/play.svg'
 import StopIcon from 'enso-assets/stop.svg'
 
@@ -417,16 +416,6 @@ export default function ProjectIcon(props: ProjectIconProps) {
                             <Spinner size={24} state={spinnerState} />
                         </div>
                         <img src={StopIcon} />
-                    </button>
-                    <button
-                        className="w-6"
-                        onClick={clickEvent => {
-                            clickEvent.stopPropagation()
-                            unsetModal()
-                            openIde()
-                        }}
-                    >
-                        <img src={ArrowUpIcon} />
                     </button>
                 </>
             )
