@@ -8,7 +8,7 @@ import org.enso.interpreter.node.expression.builtin.number.utils.ToEnsoNumberNod
 
 @BuiltinMethod(type = "Small_Integer", name = "negate", description = "Negation for numbers.")
 public abstract class NegateNode extends Node {
-  private @Child ToEnsoNumberNode toEnsoNumberNode = ToEnsoNumberNode.build();
+  private @Child ToEnsoNumberNode toEnsoNumberNode = ToEnsoNumberNode.create();
 
   static NegateNode build() {
     return NegateNodeGen.create();

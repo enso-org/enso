@@ -1,32 +1,11 @@
-import project.Collections
-import project.Column_Numeric
-import project.Equality
-import project.Json_Bench
-import project.Natural_Order_Sort
-import project.Number_Parse
-import project.Numeric
-import project.Sum
+import project.Vector.Distinct
+import project.Vector.Operations
 
-import project.Statistics
-import project.Table
-import project.Text
-import project.Time
-import project.Vector
+all_benchmarks =
+    vec_ops = Operations.all
+    vec_distinct = Distinct.collect_benches
+    [vec_ops, vec_distinct]
 
-## A common entry point for all benchmarks. Usually just one suite is run, but
-   sometimes we want to run all benchmarks to ensure our language changes are
-   not breaking them.
 main =
-    Collections.bench
-    Column_Numeric.bench
-    Equality.bench
-    Json_Bench.bench
-    Natural_Order_Sort.bench
-    Number_Parse.bench
-    Numeric.bench
-    Sum.bench
-    Statistics.Main.bench
-    Table.Main.bench
-    Text.Main.bench
-    Time.Main.bench
-    Vector.Main.bench
+    all_benchmarks.each suite->
+        suite.run_main

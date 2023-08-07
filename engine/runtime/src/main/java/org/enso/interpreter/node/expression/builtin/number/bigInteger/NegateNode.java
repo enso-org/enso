@@ -8,7 +8,7 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(type = "Big_Integer", name = "negate", description = "Big integer negation.")
 public class NegateNode extends Node {
-  private @Child ToEnsoNumberNode toEnsoNumberNode = ToEnsoNumberNode.build();
+  private @Child ToEnsoNumberNode toEnsoNumberNode = ToEnsoNumberNode.create();
 
   Object execute(EnsoBigInteger self) {
     return toEnsoNumberNode.execute(BigIntegerOps.negate(self.getValue()));

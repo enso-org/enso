@@ -783,10 +783,11 @@ pub struct HardcodedLayers {
     /// rendered. You should not need to use it directly.
     pub DETACHED: Layer,
     pub root: Layer,
-    pub viz: Layer,
+    pub viz_background: Layer,
     pub viz_selection: RectLayerPartition,
     pub viz_resize_grip: RectLayerPartition,
-    pub viz_overlay: RectLayerPartition,
+    pub viz_hover_area: RectLayerPartition,
+    pub viz: Layer,
     pub below_main: Layer,
     pub main: Layer,
     pub label: Layer,
@@ -826,10 +827,11 @@ impl HardcodedLayers {
         let DETACHED = Layer::new("DETACHED");
         let root = Layer::new_with_camera("root", &main_cam);
 
+        let viz_background = root.create_sublayer("viz_background");
+        let viz_selection = partition_layer(&viz_background, "viz_selection");
+        let viz_resize_grip = partition_layer(&viz_background, "viz_resize_grip");
+        let viz_hover_area = partition_layer(&viz_background, "viz_overlay");
         let viz = root.create_sublayer("viz");
-        let viz_selection = partition_layer(&viz, "viz_selection");
-        let viz_resize_grip = partition_layer(&viz, "viz_resize_grip");
-        let viz_overlay = partition_layer(&viz, "viz_overlay");
         let below_main = root.create_sublayer("below_main");
         let main = root.create_sublayer("main");
         let label = root.create_sublayer("label");
@@ -855,10 +857,11 @@ impl HardcodedLayers {
         Self {
             DETACHED,
             root,
-            viz,
+            viz_background,
             viz_selection,
             viz_resize_grip,
-            viz_overlay,
+            viz_hover_area,
+            viz,
             below_main,
             main,
             label,

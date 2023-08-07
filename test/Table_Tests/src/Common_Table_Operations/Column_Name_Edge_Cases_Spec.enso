@@ -1,0 +1,174 @@
+from Standard.Base import all
+
+# We hide the table constructor as instead we are supposed to use `table_builder` which is backend-agnostic.
+from Standard.Table import all hiding Table
+from Standard.Table.Errors import Clashing_Column_Name, Duplicate_Output_Column_Names
+
+from Standard.Database.Errors import Unsupported_Database_Operation
+
+from Standard.Test import Test, Problems
+import Standard.Test.Extensions
+
+from project.Common_Table_Operations.Util import run_default_backend
+from project.Common_Table_Operations.Core_Spec import weird_names
+
+main = run_default_backend spec
+
+spec setup =
+    table_builder = setup.table_builder
+    materialize = setup.materialize
+    is_case_sensitive = setup.test_selection.supports_case_sensitive_columns
+    Test.group setup.prefix+"Column Naming edge cases" <|
+        Test.specify "case insensitive name collisions - set" <|
+            t1 = table_builder [["X", [1]]]
+            Problems.assume_no_problems (t1.at "X" . rename "x")
+            t2 = t1.set "[X] + 100" "x"
+            case is_case_sensitive of
+                False ->
+                    t2.should_fail_with Clashing_Column_Name
+                True ->
+                    Test.with_clue "The columns should be correctly distinguished." <|
+                        t2.at "X" . to_vector . should_equal [1]
+                        t2.at "x" . to_vector . should_equal [101]
+
+                    ## These tests are mostly inspired by issues described in:
+                       https://github.com/enso-org/enso/issues/7412
+                    Test.with_clue "The distinction must be preserved after complex operations: " <|
+                        t3 = t2.join t2 on="X"
+                        t3.at "X" . to_vector . should_equal [1]
+                        t3.at "x" . to_vector . should_equal [101]
+                        t3.at "Right X" . to_vector . should_equal [1]
+                        t3.at "Right x" . to_vector . should_equal [101]
+
+                        t4 = t2.union t2
+                        t4.at "X" . to_vector . should_equal [1, 1]
+                        t4.at "x" . to_vector . should_equal [101, 101]
+
+                        t5 = t4.reorder_columns "x"
+                        t6 = t5.join t5 on="X"
+                        t6.at "X" . to_vector . should_equal [1, 1, 1, 1]
+                        t6.at "x" . to_vector . should_equal [101, 101, 101, 101]
+                        t6.at "Right X" . to_vector . should_equal [1, 1, 1, 1]
+                        t6.at "Right x" . to_vector . should_equal [101, 101, 101, 101]
+
+        Test.specify "case insensitive name collisions - rename" <|
+            t1 = table_builder [["X", [1]], ["Y", [2]]]
+            t2 = t1.rename_columns [["X", "A"], ["Y", "a"]]
+            case is_case_sensitive of
+                True ->
+                    t2.column_names . should_equal ["A", "a"]
+                    Problems.assume_no_problems t2
+                False ->
+                    t2.column_names . should_equal ["A", "a 1"]
+                    Problems.expect_only_warning Duplicate_Output_Column_Names t2
+
+            t3 = t1.rename_columns [["Y", "x"]]
+            case is_case_sensitive of
+                True ->
+                    t3.column_names . should_equal ["X", "x"]
+                    Problems.assume_no_problems t3
+                False ->
+                    t3.column_names . should_equal ["X 1", "x"]
+                    Problems.expect_only_warning Duplicate_Output_Column_Names t3
+
+        Test.specify "case insensitive name collisions - aggregate" <|
+            t1 = table_builder [["X", [2, 1, 3, 2]]]
+            t2 = t1.aggregate [Aggregate_Column.Maximum "X" "A", Aggregate_Column.Minimum "X" "a"]
+
+            case is_case_sensitive of
+                True ->
+                    t2.column_names . should_equal ["A", "a"]
+                    Problems.assume_no_problems t2
+                False ->
+                    t2.column_names . should_equal ["A", "a 1"]
+                    Problems.expect_only_warning Duplicate_Output_Column_Names t2
+
+            # Ensure that further processing does not break anything either.
+            t3 = t2.join t2 on="A"
+            case is_case_sensitive of
+                True ->  t3.column_names . should_equal ["A", "a", "Right A", "Right a"]
+                False -> t3.column_names . should_equal ["A", "a 1", "Right A", "Right a 1"]
+            t3.at 0 . to_vector . should_equal [3]
+            t3.at 1 . to_vector . should_equal [1]
+
+        Test.specify "case insensitive name collisions - joins" <|
+            t1 = table_builder [["X", [1, 2]], ["a", [3, 4]]]
+            t2 = table_builder [["X", [2, 1]], ["A", [5, 6]]]
+
+            t3 = t1.join t2 on="X" join_kind=Join_Kind.Inner
+            case is_case_sensitive of
+                True ->
+                    t3.column_names . should_equal ["X", "a", "A"]
+                    Problems.assume_no_problems t3
+                False ->
+                    t3.column_names . should_equal ["X", "a", "Right A"]
+                    # No warning here as well, as 'just' adding the prefix is not considered enough to issue a `Duplicate_Output_Column_Names` in join.
+                    Problems.assume_no_problems t3
+
+            t4 = t1.cross_join t2
+            case is_case_sensitive of
+                True ->
+                    t4.column_names . should_equal ["X", "a", "Right X", "A"]
+                    Problems.assume_no_problems t4
+                False ->
+                    t4.column_names . should_equal ["X", "a", "Right X", "Right A"]
+                    # As above with join, no warning.
+                    Problems.assume_no_problems t4
+
+            t5 = t1.join t2 on="X" join_kind=Join_Kind.Left_Exclusive
+            t5.column_names . should_equal ["X", "a"]
+
+        Test.specify "case insensitive name collisions - cross_tab" <|
+            t0 = table_builder [["X", ["a", "A", "b"]], ["Y", [4, 5, 6]]]
+            t1 = t0.cross_tab group_by=[] name_column="X" values=[Aggregate_Column.First "Y"] . sort_columns
+            case setup.is_database of
+                # TODO remove this check once implemented
+                True -> t1.should_fail_with Unsupported_Database_Operation
+                False ->
+                    case is_case_sensitive of
+                        True ->
+                            t1.column_names . should_equal ["A", "a", "b"]
+                            Problems.assume_no_problems t1
+                            t1.at "A" . to_vector . should_equal [5]
+                            t1.at "a" . to_vector . should_equal [4]
+                            t1.at "b" . to_vector . should_equal [6]
+                        False ->
+                            # TODO possibly ensure a more detailed error message is included here so that the user knows the column names come from cross_tab
+                            t1.should_fail_with Clashing_Column_Name
+
+        Test.specify "case insensitive name collisions - transpose" <|
+            t0 = table_builder [["X", [1, 2, 3]], ["Y", [4, 5, 6]]]
+            t1 = t0.transpose attribute_column_name="a" value_column_name="A"
+            case setup.is_database of
+                # TODO remove this check once implemented
+                True -> t1.should_fail_with Unsupported_Database_Operation
+                False ->
+                    case is_case_sensitive of
+                        True ->
+                            t1.column_names . should_equal ["a", "A"]
+                            Problems.assume_no_problems t1
+                        False ->
+                            # TODO specify a more generic error once this is implemented
+                            t1.column_names . should_equal ["a", "A 1"]
+                            Problems.expect_only_warning Duplicate_Output_Column_Names t1
+
+        Test.specify "unicode-normalized-equality vs selecting columns" <|
+            ## In Enso column 'ś' and 's\u0301' are the same entity.
+               But in Databases, quite not necessarily.
+            t1 = table_builder [['ś', [1, 2]], ['X', ['a', 'b']]]
+            t2 = table_builder [['s\u0301', [2, 1]], ['Y', ['x', 'y']]]
+
+            # The two representations of the same string just address the same column:
+            t1.at 'ś' . to_vector . should_equal [1, 2]
+            t1.at 's\u0301' . to_vector . should_equal [1, 2]
+
+            t2.at 's\u0301' . to_vector . should_equal [2, 1]
+            t2.at 'ś' . to_vector . should_equal [2, 1]
+
+            t3 = t1.join t2 on='ś'
+            t3.column_names . should_equal ['ś', 'X', 'Right ś', 'Y']
+            m3 = materialize t3 . order_by 'ś'
+            m3.at 'ś' . to_vector . should_equal [1, 2]
+            m3.at 'X' . to_vector . should_equal ['a', 'b']
+            m3.at 'Right ś' . to_vector . should_equal [1, 2]
+            m3.at 'Y' . to_vector . should_equal ['y', 'x']

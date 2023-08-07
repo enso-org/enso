@@ -9,11 +9,9 @@ import StopIcon from 'enso-assets/stop.svg'
 import * as assetEventModule from '../events/assetEvent'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
-import * as errorModule from '../../error'
 import * as hooks from '../../hooks'
 import * as modalProvider from '../../providers/modal'
 
-import * as assetsTable from './assetsTable'
 import Spinner, * as spinner from './spinner'
 
 // =================
@@ -30,8 +28,10 @@ const CHECK_RESOURCES_INTERVAL_MS = 1000
  * when using the remote backend. */
 const REMOTE_SPINNER_STATE: Record<backendModule.ProjectState, spinner.SpinnerState> = {
     [backendModule.ProjectState.closed]: spinner.SpinnerState.initial,
+    [backendModule.ProjectState.closing]: spinner.SpinnerState.initial,
     [backendModule.ProjectState.created]: spinner.SpinnerState.initial,
     [backendModule.ProjectState.new]: spinner.SpinnerState.initial,
+    [backendModule.ProjectState.placeholder]: spinner.SpinnerState.loadingSlow,
     [backendModule.ProjectState.openInProgress]: spinner.SpinnerState.loadingSlow,
     [backendModule.ProjectState.opened]: spinner.SpinnerState.done,
 }
@@ -39,8 +39,10 @@ const REMOTE_SPINNER_STATE: Record<backendModule.ProjectState, spinner.SpinnerSt
  * when using the local backend. */
 const LOCAL_SPINNER_STATE: Record<backendModule.ProjectState, spinner.SpinnerState> = {
     [backendModule.ProjectState.closed]: spinner.SpinnerState.initial,
+    [backendModule.ProjectState.closing]: spinner.SpinnerState.initial,
     [backendModule.ProjectState.created]: spinner.SpinnerState.initial,
     [backendModule.ProjectState.new]: spinner.SpinnerState.initial,
+    [backendModule.ProjectState.placeholder]: spinner.SpinnerState.loadingMedium,
     [backendModule.ProjectState.openInProgress]: spinner.SpinnerState.loadingMedium,
     [backendModule.ProjectState.opened]: spinner.SpinnerState.done,
 }
@@ -72,9 +74,8 @@ export enum CheckState {
 /** Props for a {@link ProjectIcon}. */
 export interface ProjectIconProps {
     keyProp: string
-    project: backendModule.ProjectAsset
-    rowState: assetsTable.AssetRowState
-    setRowState: React.Dispatch<React.SetStateAction<assetsTable.AssetRowState>>
+    item: backendModule.ProjectAsset
+    setItem: React.Dispatch<React.SetStateAction<backendModule.ProjectAsset>>
     assetEvents: assetEventModule.AssetEvent[]
     /** Called when the project is opened via the {@link ProjectIcon}. */
     doOpenManually: (projectId: backendModule.ProjectId) => void
@@ -87,9 +88,8 @@ export interface ProjectIconProps {
 export default function ProjectIcon(props: ProjectIconProps) {
     const {
         keyProp: key,
-        project,
-        rowState,
-        setRowState,
+        item,
+        setItem,
         assetEvents,
         appRunner,
         doOpenManually,
@@ -98,21 +98,23 @@ export default function ProjectIcon(props: ProjectIconProps) {
     } = props
     const { backend } = backendProvider.useBackend()
     const { unsetModal } = modalProvider.useSetModal()
-
-    const shouldCheckIfActuallyOpen =
-        project.projectState.type === backendModule.ProjectState.openInProgress ||
-        (backend.type === backendModule.BackendType.remote &&
-            project.projectState.type === backendModule.ProjectState.opened)
-
-    const [state, setState] = React.useState(() => {
-        if (shouldCheckIfActuallyOpen) {
-            return backendModule.ProjectState.created
-        } else {
-            return project.projectState.type
-        }
-    })
+    const toastAndLog = hooks.useToastAndLog()
+    const state = item.projectState.type
+    const setState = React.useCallback(
+        (stateOrUpdater: React.SetStateAction<backendModule.ProjectState>) => {
+            if (typeof stateOrUpdater === 'function') {
+                setItem(oldItem => ({
+                    ...oldItem,
+                    projectState: { type: stateOrUpdater(oldItem.projectState.type) },
+                }))
+            } else {
+                setItem(oldItem => ({ ...oldItem, projectState: { type: stateOrUpdater } }))
+            }
+        },
+        [/* should never change */ setItem]
+    )
     const [checkState, setCheckState] = React.useState(CheckState.notChecking)
-    const [spinnerState, setSpinnerState] = React.useState(REMOTE_SPINNER_STATE[state])
+    const [spinnerState, setSpinnerState] = React.useState(spinner.SpinnerState.initial)
     const [onSpinnerStateChange, setOnSpinnerStateChange] = React.useState<
         ((state: spinner.SpinnerState | null) => void) | null
     >(null)
@@ -124,33 +126,50 @@ export default function ProjectIcon(props: ProjectIconProps) {
         try {
             switch (backend.type) {
                 case backendModule.BackendType.remote:
-                    setToastId(toast.toast.loading(LOADING_MESSAGE))
-                    setRowState({ ...rowState, isRunning: true })
-                    await backend.openProject(project.id, null, project.title)
+                    if (
+                        state !== backendModule.ProjectState.openInProgress &&
+                        state !== backendModule.ProjectState.opened
+                    ) {
+                        setToastId(toast.toast.loading(LOADING_MESSAGE))
+                        await backend.openProject(item.id, null, item.title)
+                    }
                     setCheckState(CheckState.checkingStatus)
                     break
                 case backendModule.BackendType.local:
                     setCheckState(CheckState.localProject)
-                    setRowState({ ...rowState, isRunning: true })
-                    await backend.openProject(project.id, null, project.title)
-                    setCheckState(oldCheckState => {
-                        if (oldCheckState === CheckState.localProject) {
-                            setState(backendModule.ProjectState.opened)
-                        }
-                        return oldCheckState
-                    })
+                    await backend.openProject(item.id, null, item.title)
+                    setState(oldState =>
+                        oldState === backendModule.ProjectState.openInProgress
+                            ? backendModule.ProjectState.opened
+                            : oldState
+                    )
                     break
             }
         } catch (error) {
             setCheckState(CheckState.notChecking)
-            toast.toast.error(
-                `Error opening project '${project.title}': ${
-                    errorModule.tryGetMessage(error) ?? 'unknown error'
-                }.`
-            )
+            toastAndLog(`Could not open project '${item.title}'`, error)
             setState(backendModule.ProjectState.closed)
         }
-    }, [backend, project.id, project.title, rowState, /* should never change */ setRowState])
+    }, [
+        state,
+        backend,
+        item.id,
+        item.title,
+        /* should never change */ toastAndLog,
+        /* should never change */ setState,
+    ])
+
+    React.useEffect(() => {
+        if (item.projectState.type === backendModule.ProjectState.openInProgress) {
+            void openProject()
+        }
+        // This MUST only run once, when the component is initially mounted.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
+
+    React.useEffect(() => {
+        setItem(oldItem => ({ ...oldItem, projectState: { type: state } }))
+    }, [state, /* should never change */ setItem])
 
     React.useEffect(() => {
         if (toastId != null) {
@@ -183,19 +202,6 @@ export default function ProjectIcon(props: ProjectIconProps) {
         }
     }, [onSpinnerStateChange])
 
-    React.useEffect(() => {
-        if (toastId != null && state !== backendModule.ProjectState.openInProgress) {
-            toast.toast.dismiss(toastId)
-        }
-    }, [state, toastId])
-
-    React.useEffect(() => {
-        if (shouldCheckIfActuallyOpen) {
-            setState(backendModule.ProjectState.openInProgress)
-            setCheckState(CheckState.checkingResources)
-        }
-    }, [shouldCheckIfActuallyOpen])
-
     hooks.useEventHandler(assetEvents, event => {
         switch (event.type) {
             case assetEventModule.AssetEventType.createDirectory:
@@ -207,11 +213,9 @@ export default function ProjectIcon(props: ProjectIconProps) {
                 break
             }
             case assetEventModule.AssetEventType.openProject: {
-                if (event.id !== project.id) {
+                if (event.id !== item.id) {
                     setShouldOpenWhenReady(false)
-                    if (state === backendModule.ProjectState.opened) {
-                        void closeProject(false)
-                    }
+                    void closeProject(false)
                 } else {
                     setShouldOpenWhenReady(true)
                     void openProject()
@@ -219,17 +223,15 @@ export default function ProjectIcon(props: ProjectIconProps) {
                 break
             }
             case assetEventModule.AssetEventType.cancelOpeningAllProjects: {
-                // `CheckState` should not be set to `notChecking`, as there is currently no way
-                // to actually cancel an open action. Instead, the project should not be opened
-                // automatically.
                 setShouldOpenWhenReady(false)
                 onSpinnerStateChange?.(null)
                 setOnSpinnerStateChange(null)
+                setCheckState(CheckState.notChecking)
+                void closeProject(false)
                 break
             }
             case assetEventModule.AssetEventType.createProject: {
                 if (event.placeholderId === key) {
-                    setState(backendModule.ProjectState.openInProgress)
                     setOnSpinnerStateChange(() => event.onSpinnerStateChange)
                 } else if (event.onSpinnerStateChange === onSpinnerStateChange) {
                     setOnSpinnerStateChange(null)
@@ -259,7 +261,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
                 let previousTimestamp = 0
                 const checkProjectStatus = async () => {
                     try {
-                        const response = await backend.getProjectDetails(project.id, project.title)
+                        const response = await backend.getProjectDetails(item.id, item.title)
                         handle = null
                         if (
                             continuePolling &&
@@ -294,30 +296,26 @@ export default function ProjectIcon(props: ProjectIconProps) {
                 let continuePolling = true
                 let previousTimestamp = 0
                 const checkProjectResources = async () => {
-                    if (backend.type === backendModule.BackendType.local) {
-                        await backend.openProject(project.id, null, project.title)
-                        setState(backendModule.ProjectState.opened)
-                    } else {
-                        try {
-                            // This call will error if the VM is not ready yet.
-                            await backend.checkResources(project.id, project.title)
-                            handle = null
-                            if (continuePolling) {
-                                continuePolling = false
-                                setState(backendModule.ProjectState.opened)
-                                setCheckState(CheckState.done)
-                            }
-                        } catch {
-                            if (continuePolling) {
-                                const nowTimestamp = Number(new Date())
-                                const delay =
-                                    CHECK_RESOURCES_INTERVAL_MS - (nowTimestamp - previousTimestamp)
-                                previousTimestamp = nowTimestamp
-                                handle = window.setTimeout(
-                                    () => void checkProjectResources(),
-                                    Math.max(0, delay)
-                                )
-                            }
+                    try {
+                        // This call will error if the VM is not ready yet.
+                        await backend.checkResources(item.id, item.title)
+                        setToastId(null)
+                        handle = null
+                        if (continuePolling) {
+                            continuePolling = false
+                            setState(backendModule.ProjectState.opened)
+                            setCheckState(CheckState.done)
+                        }
+                    } catch {
+                        if (continuePolling) {
+                            const nowTimestamp = Number(new Date())
+                            const delay =
+                                CHECK_RESOURCES_INTERVAL_MS - (nowTimestamp - previousTimestamp)
+                            previousTimestamp = nowTimestamp
+                            handle = window.setTimeout(
+                                () => void checkProjectResources(),
+                                Math.max(0, delay)
+                            )
                         }
                     }
                 }
@@ -330,32 +328,42 @@ export default function ProjectIcon(props: ProjectIconProps) {
                 }
             }
         }
-    }, [checkState, project.id, project.title, backend])
+        // `backend` is NOT a dependency as an asset belongs to a specific backend.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [checkState, item.id, item.title, /* should never change */ setState])
 
     const closeProject = async (triggerOnClose = true) => {
-        if (triggerOnClose) {
-            onClose()
-        }
+        setToastId(null)
         setShouldOpenWhenReady(false)
-        setState(backendModule.ProjectState.closed)
+        setState(backendModule.ProjectState.closing)
         onSpinnerStateChange?.(null)
         setOnSpinnerStateChange(null)
         appRunner?.stopApp()
         setCheckState(CheckState.notChecking)
-        try {
-            if (
-                backend.type === backendModule.BackendType.local &&
-                state === backendModule.ProjectState.openInProgress
-            ) {
-                // Projects that are not opened cannot be closed.
-                // This is the only way to wait until the project is open.
-                await backend.openProject(project.id, null, project.title)
+        if (
+            state !== backendModule.ProjectState.closing &&
+            state !== backendModule.ProjectState.closed
+        ) {
+            if (triggerOnClose) {
+                onClose()
             }
-            await backend.closeProject(project.id, project.title)
-        } finally {
-            // This is not 100% correct, but it is better than never setting `isRunning` to `false`,
-            // which would prevent the project from ever being deleted.
-            setRowState({ ...rowState, isRunning: false })
+            try {
+                if (
+                    backend.type === backendModule.BackendType.local &&
+                    state === backendModule.ProjectState.openInProgress
+                ) {
+                    // Projects that are not opened cannot be closed.
+                    // This is the only way to wait until the project is open.
+                    await backend.openProject(item.id, null, item.title)
+                }
+                try {
+                    await backend.closeProject(item.id, item.title)
+                } catch {
+                    // Ignored. The project is already closed.
+                }
+            } finally {
+                setState(backendModule.ProjectState.closed)
+            }
         }
     }
 
@@ -363,6 +371,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
         case null:
         case backendModule.ProjectState.created:
         case backendModule.ProjectState.new:
+        case backendModule.ProjectState.closing:
         case backendModule.ProjectState.closed:
             return (
                 <button
@@ -370,13 +379,14 @@ export default function ProjectIcon(props: ProjectIconProps) {
                     onClick={clickEvent => {
                         clickEvent.stopPropagation()
                         unsetModal()
-                        doOpenManually(project.id)
+                        doOpenManually(item.id)
                     }}
                 >
                     <img src={PlayIcon} />
                 </button>
             )
         case backendModule.ProjectState.openInProgress:
+        case backendModule.ProjectState.placeholder:
             return (
                 <button
                     className="w-6"

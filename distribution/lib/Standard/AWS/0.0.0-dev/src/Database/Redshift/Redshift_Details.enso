@@ -7,6 +7,7 @@ import Standard.Database.Connection.Credentials.Credentials
 import Standard.Database.Connection.SSL_Mode.SSL_Mode
 import Standard.Database.Internal.JDBC_Connection
 import Standard.Database.Internal.Postgres.Pgpass
+import Standard.Database.Internal.Postgres.Postgres_Entity_Naming_Properties
 
 import project.AWS_Credential.AWS_Credential
 import project.Database.Redshift.Internal.Redshift_Dialect
@@ -42,7 +43,11 @@ type Redshift_Details
             java_props.setProperty pair.first pair.second
 
         jdbc_connection = JDBC_Connection.create self.jdbc_url properties
-        Connection.new jdbc_connection Redshift_Dialect.redshift
+
+        # TODO [RW] can we inherit these from postgres?
+        entity_naming_properties = Postgres_Entity_Naming_Properties.new jdbc_connection
+
+        Connection.new jdbc_connection Redshift_Dialect.redshift entity_naming_properties
 
     ## PRIVATE
        Provides the jdbc url for the connection.
