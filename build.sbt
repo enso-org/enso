@@ -800,6 +800,7 @@ lazy val `refactoring-utils` = project
     )
   )
   .dependsOn(`runtime-parser`)
+  .dependsOn(`text-buffer`)
   .dependsOn(testkit % Test)
 
 lazy val `project-manager` = (project in file("lib/scala/project-manager"))
