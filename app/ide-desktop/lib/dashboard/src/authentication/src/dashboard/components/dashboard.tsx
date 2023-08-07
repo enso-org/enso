@@ -69,7 +69,9 @@ export default function Dashboard(props: DashboardProps) {
     const [isHelpChatOpen, setIsHelpChatOpen] = React.useState(false)
     const [isHelpChatVisible, setIsHelpChatVisible] = React.useState(false)
     const [loadingProjectManagerDidFail, setLoadingProjectManagerDidFail] = React.useState(false)
-    const [page, setPage] = React.useState(pageSwitcher.Page.drive)
+    const [page, setPage] = React.useState(
+        () => localStorage.get(localStorageModule.LocalStorageKey.page) ?? pageSwitcher.Page.drive
+    )
     const [projectStartupInfo, setProjectStartupInfo] =
         React.useState<backendModule.ProjectStartupInfo | null>(null)
     const [assetListEvents, dispatchAssetListEvent] =
@@ -89,16 +91,12 @@ export default function Dashboard(props: DashboardProps) {
     }, [page, /* should never change */ unsetModal])
 
     React.useEffect(() => {
-        const savedPage = localStorage.get(localStorageModule.LocalStorageKey.page)
-        if (savedPage != null) {
-            setPage(savedPage)
-        }
         const savedProjectStartupInfo = localStorage.get(
             localStorageModule.LocalStorageKey.projectStartupInfo
         )
         if (savedProjectStartupInfo != null) {
             setProjectStartupInfo(savedProjectStartupInfo)
-            if (savedPage !== pageSwitcher.Page.editor) {
+            if (page !== pageSwitcher.Page.editor) {
                 // A workaround to hide the spinner, when the previous project is being loaded in
                 // the background. This `MutationObserver` is disconnected when the loader is
                 // removed from the DOM.
@@ -121,7 +119,9 @@ export default function Dashboard(props: DashboardProps) {
                 observer.observe(document.body, { childList: true })
             }
         }
-    }, [/* should never change */ localStorage])
+        // This MUST only run when the component is mounted.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
 
     React.useEffect(() => {
         if (projectStartupInfo != null) {
