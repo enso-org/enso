@@ -5,6 +5,7 @@ import * as auth from '../../authentication/providers/auth'
 import * as backendModule from '../backend'
 import * as backendProvider from '../../providers/backend'
 import * as hooks from '../../hooks'
+import * as load from '../load'
 
 import GLOBAL_CONFIG from '../../../../../../../../gui/config.yaml' assert { type: 'yaml' }
 
@@ -65,31 +66,9 @@ export default function Editor(props: EditorProps) {
         hasEffectRun = true
         if (project != null) {
             void (async () => {
-                const ideVersion =
-                    project.ideVersion?.value ??
-                    (
-                        await backend.listVersions({
-                            versionType: backendModule.VersionType.ide,
-                            default: true,
-                        })
-                    )[0]?.number.value
-                const engineVersion =
-                    project.engineVersion?.value ??
-                    (
-                        await backend.listVersions({
-                            versionType: backendModule.VersionType.backend,
-                            default: true,
-                        })
-                    )[0]?.number.value
                 const jsonAddress = project.jsonAddress
                 const binaryAddress = project.binaryAddress
-                if (ideVersion == null) {
-                    toastAndLog('Could not get the IDE version of the project.')
-                    return
-                } else if (engineVersion == null) {
-                    toastAndLog('Could not get the engine version of the project.')
-                    return
-                } else if (jsonAddress == null) {
+                if (jsonAddress == null) {
                     toastAndLog("Could not get the address of the project's JSON endpoint.")
                     return
                 } else if (binaryAddress == null) {
@@ -99,7 +78,7 @@ export default function Editor(props: EditorProps) {
                     let assetsRoot: string
                     switch (backend.type) {
                         case backendModule.BackendType.remote: {
-                            assetsRoot = `${IDE_CDN_URL}/${ideVersion}/`
+                            assetsRoot = `${IDE_CDN_URL}/${project.ideVersion.value}/`
                             break
                         }
                         case backendModule.BackendType.local: {
@@ -126,7 +105,9 @@ export default function Editor(props: EditorProps) {
                                 },
                                 engine: {
                                     ...engineConfig,
-                                    preferredVersion: engineVersion,
+                                    ...(project.engineVersion != null
+                                        ? { preferredVersion: project.engineVersion.value }
+                                        : {}),
                                 },
                                 startup: {
                                     project: project.packageName,
@@ -141,25 +122,18 @@ export default function Editor(props: EditorProps) {
                         await runNewProject()
                         return
                     } else {
-                        const script = document.createElement('script')
-                        script.crossOrigin = 'anonymous'
-                        script.src = `${IDE_CDN_URL}/${engineVersion}/index.js.gz`
-                        script.onload = async () => {
-                            document.body.removeChild(script)
-                            const originalUrl = window.location.href
-                            // The URL query contains commandline options when running in the desktop,
-                            // which will break the entrypoint for opening a fresh IDE instance.
-                            history.replaceState(null, '', new URL('.', originalUrl))
-                            await runNewProject()
-                            // Restore original URL so that initialization works correctly on refresh.
-                            history.replaceState(null, '', originalUrl)
-                        }
-                        document.body.appendChild(script)
-                        const style = document.createElement('link')
-                        style.crossOrigin = 'anonymous'
-                        style.rel = 'stylesheet'
-                        style.href = `${IDE_CDN_URL}/${engineVersion}/style.css`
-                        document.body.appendChild(style)
+                        const [style, script] = await Promise.all([
+                            load.loadStyle(`${assetsRoot}style.css`),
+                            load.loadScript(`${assetsRoot}index.js.gz`),
+                        ])
+                        document.body.removeChild(script)
+                        const originalUrl = window.location.href
+                        // The URL query contains commandline options when running in the desktop,
+                        // which will break the entrypoint for opening a fresh IDE instance.
+                        history.replaceState(null, '', new URL('.', originalUrl))
+                        await runNewProject()
+                        // Restore original URL so that initialization works correctly on refresh.
+                        history.replaceState(null, '', originalUrl)
                         return () => {
                             style.remove()
                         }

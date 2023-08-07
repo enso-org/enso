@@ -406,14 +406,28 @@ export class RemoteBackend extends backend.Backend {
             )
         } else {
             const project = await response.json()
-            return {
-                ...project,
-                ideVersion: project.ide_version,
-                engineVersion: project.engine_version,
-                jsonAddress:
-                    project.address != null ? backend.Address(`${project.address}json`) : null,
-                binaryAddress:
-                    project.address != null ? backend.Address(`${project.address}binary`) : null,
+            const ideVersion =
+                project.ide_version ??
+                (
+                    await this.listVersions({
+                        versionType: backend.VersionType.ide,
+                        default: true,
+                    })
+                )[0]?.number
+            if (ideVersion == null) {
+                return this.throw('No IDE version found')
+            } else {
+                return {
+                    ...project,
+                    ideVersion,
+                    engineVersion: project.engine_version,
+                    jsonAddress:
+                        project.address != null ? backend.Address(`${project.address}json`) : null,
+                    binaryAddress:
+                        project.address != null
+                            ? backend.Address(`${project.address}binary`)
+                            : null,
+                }
             }
         }
     }

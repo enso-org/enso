@@ -165,7 +165,8 @@ export interface ProjectRaw extends ListedProjectRaw {
 
 /** A user/organization's project containing and/or currently executing code. */
 export interface Project extends ListedProject {
-    ideVersion: VersionNumber | null
+    /** This must not be null as it is required to determine the base URL for backend assets. */
+    ideVersion: VersionNumber
     engineVersion: VersionNumber | null
 }
 
