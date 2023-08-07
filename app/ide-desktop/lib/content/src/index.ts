@@ -162,7 +162,7 @@ class Main implements AppRunner {
 
     /** Run an app instance with the specified configuration.
      * This includes the scene to run and the WebSocket endpoints to the backend. */
-    async runApp(inputConfig?: StringConfig | null, accessToken?: string) {
+    async runApp(inputConfig: StringConfig | null, accessToken: string | null) {
         this.stopApp()
 
         /** FIXME: https://github.com/enso-org/enso/issues/6475
@@ -266,7 +266,7 @@ class Main implements AppRunner {
                     inputConfig: inputConfig ?? null,
                 })
             } else {
-                void this.runApp(inputConfig)
+                void this.runApp(inputConfig ?? null, null)
             }
         }
     }
@@ -290,7 +290,7 @@ class Main implements AppRunner {
             isAuthenticationDisabled: !config.shouldUseAuthentication,
             shouldShowDashboard: config.shouldUseNewDashboard,
             initialProjectName: config.initialProjectName,
-            onAuthenticated: (accessToken?: string) => {
+            onAuthenticated: (accessToken: string | null) => {
                 if (config.isInAuthenticationFlow) {
                     const initialUrl = localStorage.getItem(INITIAL_URL_KEY)
                     if (initialUrl != null) {

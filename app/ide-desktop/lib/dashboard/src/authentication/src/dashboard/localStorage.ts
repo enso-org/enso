@@ -16,7 +16,7 @@ export enum LocalStorageKey {
     backendType = 'backend-type',
     extraColumns = 'extra-columns',
     isTemplatesListOpen = 'is-templates-list-open',
-    currentlyOpenProject = 'currently-open-project',
+    projectStartupInfo = 'project-startup-info',
 }
 
 /** The data that can be stored in a {@link LocalStorage}. */
@@ -25,7 +25,7 @@ interface LocalStorageData {
     [LocalStorageKey.backendType]: backend.BackendType
     [LocalStorageKey.extraColumns]: column.ExtraColumn[]
     [LocalStorageKey.isTemplatesListOpen]: boolean
-    [LocalStorageKey.currentlyOpenProject]: backend.Project
+    [LocalStorageKey.projectStartupInfo]: backend.ProjectStartupInfo
 }
 
 /** A LocalStorage data manager. */

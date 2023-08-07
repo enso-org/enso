@@ -70,7 +70,8 @@ export default function Dashboard(props: DashboardProps) {
     const [isHelpChatVisible, setIsHelpChatVisible] = React.useState(false)
     const [loadingProjectManagerDidFail, setLoadingProjectManagerDidFail] = React.useState(false)
     const [page, setPage] = React.useState(pageSwitcher.Page.drive)
-    const [project, setProject] = React.useState<backendModule.Project | null>(null)
+    const [projectStartupInfo, setProjectStartupInfo] =
+        React.useState<backendModule.ProjectStartupInfo | null>(null)
     const [assetListEvents, dispatchAssetListEvent] =
         hooks.useEvent<assetListEventModule.AssetListEvent>()
 
@@ -92,11 +93,11 @@ export default function Dashboard(props: DashboardProps) {
         if (savedPage != null) {
             setPage(savedPage)
         }
-        const savedProject = localStorage.get(
-            localStorageModule.LocalStorageKey.currentlyOpenProject
+        const savedProjectStartupInfo = localStorage.get(
+            localStorageModule.LocalStorageKey.projectStartupInfo
         )
-        if (savedProject != null) {
-            setProject(savedProject)
+        if (savedProjectStartupInfo != null) {
+            setProjectStartupInfo(savedProjectStartupInfo)
             if (savedPage !== pageSwitcher.Page.editor) {
                 // A workaround to hide the spinner, when the previous project is being loaded in
                 // the background. This `MutationObserver` is disconnected when the loader is
@@ -123,13 +124,16 @@ export default function Dashboard(props: DashboardProps) {
     }, [/* should never change */ localStorage])
 
     React.useEffect(() => {
-        if (project != null) {
-            localStorage.set(localStorageModule.LocalStorageKey.currentlyOpenProject, project)
+        if (projectStartupInfo != null) {
+            localStorage.set(
+                localStorageModule.LocalStorageKey.projectStartupInfo,
+                projectStartupInfo
+            )
         }
         return () => {
-            localStorage.delete(localStorageModule.LocalStorageKey.currentlyOpenProject)
+            localStorage.delete(localStorageModule.LocalStorageKey.projectStartupInfo)
         }
-    }, [project, /* should never change */ localStorage])
+    }, [projectStartupInfo, /* should never change */ localStorage])
 
     React.useEffect(() => {
         localStorage.set(localStorageModule.LocalStorageKey.page, page)
@@ -253,15 +257,22 @@ export default function Dashboard(props: DashboardProps) {
     const openEditor = React.useCallback(
         async (newProject: backendModule.ProjectAsset) => {
             setPage(pageSwitcher.Page.editor)
-            if (project?.projectId !== newProject.id) {
-                setProject(await backend.getProjectDetails(newProject.id, newProject.title))
+            if (projectStartupInfo?.project.projectId !== newProject.id) {
+                setProjectStartupInfo({
+                    project: await backend.getProjectDetails(newProject.id, newProject.title),
+                    backendType: backend.type,
+                    accessToken:
+                        backend.type === backendModule.BackendType.remote
+                            ? session.accessToken
+                            : null,
+                })
             }
         },
-        [backend, project?.projectId, setPage]
+        [backend, projectStartupInfo?.project.projectId, session.accessToken]
     )
 
     const closeEditor = React.useCallback(() => {
-        setProject(null)
+        setProjectStartupInfo(null)
     }, [])
 
     const closeModalIfExists = React.useCallback(() => {
@@ -283,11 +294,10 @@ export default function Dashboard(props: DashboardProps) {
         >
             <TopBar
                 supportsLocalBackend={supportsLocalBackend}
-                projectName={project?.name ?? null}
                 page={page}
                 setPage={setPage}
                 asset={null}
-                isEditorDisabled={project == null}
+                isEditorDisabled={projectStartupInfo == null}
                 isHelpChatOpen={isHelpChatOpen}
                 setIsHelpChatOpen={setIsHelpChatOpen}
                 setBackendType={setBackendType}
@@ -311,7 +321,7 @@ export default function Dashboard(props: DashboardProps) {
             ) : isListingLocalDirectoryAndWillFail ? (
                 <div className="grow grid place-items-center mx-2">
                     <div className="text-base text-center">
-                        Could not connect to the Project Manager. Please try restarting{' '}
+                        Could not connect to the Project Manager. Please try restarting
                         {common.PRODUCT_NAME}, or manually launching the Project Manager.
                     </div>
                 </div>
@@ -346,7 +356,7 @@ export default function Dashboard(props: DashboardProps) {
             <TheModal />
             <Editor
                 visible={page === pageSwitcher.Page.editor}
-                project={project}
+                projectStartupInfo={projectStartupInfo}
                 appRunner={appRunner}
             />
             {/* `session.accessToken` MUST be present in order for the `Chat` component to work. */}

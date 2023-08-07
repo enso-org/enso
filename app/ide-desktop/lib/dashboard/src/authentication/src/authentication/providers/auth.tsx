@@ -166,7 +166,7 @@ export interface AuthProviderProps {
     supportsLocalBackend: boolean
     authService: authServiceModule.AuthService
     /** Callback to execute once the user has authenticated successfully. */
-    onAuthenticated: (accessToken?: string) => void
+    onAuthenticated: (accessToken: string | null) => void
     children: React.ReactNode
 }
 

@@ -18,7 +18,6 @@ import UserBar from './userBar'
 export interface TopBarProps {
     /** Whether the application may have the local backend running. */
     supportsLocalBackend: boolean
-    projectName: string | null
     page: pageSwitcher.Page
     setPage: (page: pageSwitcher.Page) => void
     asset: backendModule.Asset | null

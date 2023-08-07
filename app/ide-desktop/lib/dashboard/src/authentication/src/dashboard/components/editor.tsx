@@ -1,9 +1,7 @@
 /** @file Container that launches the editor. */
 import * as React from 'react'
 
-import * as auth from '../../authentication/providers/auth'
 import * as backendModule from '../backend'
-import * as backendProvider from '../../providers/backend'
 import * as hooks from '../../hooks'
 import * as load from '../load'
 
@@ -15,7 +13,7 @@ import GLOBAL_CONFIG from '../../../../../../../../gui/config.yaml' assert { typ
 
 /** The `id` attribute of the element into which the IDE will be rendered. */
 const IDE_ELEMENT_ID = 'root'
-const IDE_CDN_URL = 'https://cdn.enso.org/ide'
+const IDE_CDN_BASE_URL = 'https://cdn.enso.org/ide'
 const JS_EXTENSION: Record<backendModule.BackendType, string> = {
     [backendModule.BackendType.remote]: '.js.gz',
     [backendModule.BackendType.local]: '.js',
@@ -28,15 +26,13 @@ const JS_EXTENSION: Record<backendModule.BackendType, string> = {
 /** Props for an {@link Editor}. */
 export interface EditorProps {
     visible: boolean
-    project: backendModule.Project | null
+    projectStartupInfo: backendModule.ProjectStartupInfo | null
     appRunner: AppRunner
 }
 
 /** The container that launches the IDE. */
 export default function Editor(props: EditorProps) {
-    const { visible, project, appRunner } = props
-    const { backend } = backendProvider.useBackend()
-    const { accessToken } = auth.useNonPartialUserSession()
+    const { visible, projectStartupInfo, appRunner } = props
     const toastAndLog = hooks.useToastAndLog()
 
     React.useEffect(() => {
@@ -64,7 +60,8 @@ export default function Editor(props: EditorProps) {
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
         hasEffectRun = true
-        if (project != null) {
+        if (projectStartupInfo != null) {
+            const { project, backendType, accessToken } = projectStartupInfo
             void (async () => {
                 const jsonAddress = project.jsonAddress
                 const binaryAddress = project.binaryAddress
@@ -76,9 +73,9 @@ export default function Editor(props: EditorProps) {
                     return
                 } else {
                     let assetsRoot: string
-                    switch (backend.type) {
+                    switch (backendType) {
                         case backendModule.BackendType.remote: {
-                            assetsRoot = `${IDE_CDN_URL}/${project.ideVersion.value}/`
+                            assetsRoot = `${IDE_CDN_BASE_URL}/${project.ideVersion.value}/`
                             break
                         }
                         case backendModule.BackendType.local: {
@@ -88,7 +85,7 @@ export default function Editor(props: EditorProps) {
                     }
                     const runNewProject = async () => {
                         const engineConfig =
-                            backend.type === backendModule.BackendType.remote
+                            backendType === backendModule.BackendType.remote
                                 ? {
                                       rpcUrl: jsonAddress,
                                       dataUrl: binaryAddress,
@@ -101,7 +98,7 @@ export default function Editor(props: EditorProps) {
                                 loader: {
                                     assetsUrl: `${assetsRoot}dynamic-assets`,
                                     wasmUrl: `${assetsRoot}pkg-opt.wasm`,
-                                    jsUrl: `${assetsRoot}pkg${JS_EXTENSION[backend.type]}`,
+                                    jsUrl: `${assetsRoot}pkg${JS_EXTENSION[backendType]}`,
                                 },
                                 engine: {
                                     ...engineConfig,
@@ -113,12 +110,10 @@ export default function Editor(props: EditorProps) {
                                     project: project.packageName,
                                 },
                             },
-                            // Here we actually need explicit undefined.
-                            // eslint-disable-next-line no-restricted-syntax
-                            accessToken ?? undefined
+                            accessToken
                         )
                     }
-                    if (backend.type === backendModule.BackendType.local) {
+                    if (backendType === backendModule.BackendType.local) {
                         await runNewProject()
                         return
                     } else {
@@ -143,11 +138,12 @@ export default function Editor(props: EditorProps) {
             return () => {
                 appRunner.stopApp()
             }
-            // The backend MUST NOT be a dependency, since the IDE should only be recreated when a new
-            // project is opened, and a local project does not exist on the cloud and vice versa.
-            // eslint-disable-next-line react-hooks/exhaustive-deps
         }
-    }, [project, /* should never change */ appRunner])
+    }, [
+        projectStartupInfo,
+        /* should never change */ appRunner,
+        /* should never change */ toastAndLog,
+    ])
 
     return <></>
 }

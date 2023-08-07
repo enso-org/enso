@@ -116,7 +116,7 @@ export interface AppProps {
     shouldShowDashboard: boolean
     /** The name of the project to open on startup, if any. */
     initialProjectName: string | null
-    onAuthenticated: () => void
+    onAuthenticated: (accessToken: string | null) => void
     appRunner: AppRunner
 }
 

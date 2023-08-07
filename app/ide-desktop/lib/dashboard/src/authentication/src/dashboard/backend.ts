@@ -170,6 +170,13 @@ export interface Project extends ListedProject {
     engineVersion: VersionNumber | null
 }
 
+/** Information required to open a project. */
+export interface ProjectStartupInfo {
+    project: Project
+    backendType: BackendType
+    accessToken: string | null
+}
+
 /** Metadata describing an uploaded file. */
 export interface File {
     // eslint-disable-next-line @typescript-eslint/naming-convention
