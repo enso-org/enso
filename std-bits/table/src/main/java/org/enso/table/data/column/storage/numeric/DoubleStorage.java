@@ -12,6 +12,7 @@ import org.enso.table.data.column.operation.map.numeric.DoubleBooleanOp;
 import org.enso.table.data.column.operation.map.numeric.DoubleComparison;
 import org.enso.table.data.column.operation.map.numeric.DoubleIsInOp;
 import org.enso.table.data.column.operation.map.numeric.DoubleLongMapOpWithSpecialNumericHandling;
+import org.enso.table.data.column.operation.map.numeric.DoubleLongBooleanOp;
 import org.enso.table.data.column.operation.map.numeric.DoubleNumericOp;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
@@ -109,6 +110,17 @@ public final class DoubleStorage extends NumericStorage<Double> {
   public Storage<?> runVectorizedBinaryMap(
       String name, Object argument, MapOperationProblemBuilder problemBuilder) {
     return ops.runBinaryMap(name, this, argument, problemBuilder);
+  }
+
+  @Override
+  public boolean isTernaryOpVectorized(String op) {
+    return ops.isSupportedTernary(op);
+  }
+
+  @Override
+  public Storage<?> runVectorizedTernaryMap(
+          String name, Object argument0, Object argument1, MapOperationProblemBuilder problemBuilder) {
+    return ops.runTernaryMap(name, this, argument0, argument1, problemBuilder);
   }
 
   @Override
@@ -291,10 +303,10 @@ public final class DoubleStorage extends NumericStorage<Double> {
               }
             })
         .add(
-            new DoubleNumericOp(Maps.ROUND) {
+            new DoubleLongBooleanOp(Maps.ROUND) {
               @Override
-              protected double doDouble(double n, int decimalPlaces, boolean useBankers) {
-                return Core_Math_Utils.roundDouble(n, decimalPlaces, use_bankers);
+              protected double doLongBoolean(double n, long decimalPlaces, boolean useBankers, int ix, MapOperationProblemBuilder problemBuilder) {
+                return Core_Math_Utils.roundDouble(n, decimalPlaces, useBankers);
               }
             })
         .add(

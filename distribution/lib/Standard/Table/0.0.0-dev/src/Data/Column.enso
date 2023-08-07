@@ -1,6 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Data.Array_Proxy.Array_Proxy
 import Standard.Base.Data.Index_Sub_Range as Index_Sub_Range_Module
+import Standard.Base.Errors.Common.Arithmetic_Error
 import Standard.Base.Errors.Common.Incomparable_Values
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Common.No_Such_Method
@@ -796,18 +797,17 @@ type Column
             result = action (within_range.iif self Nothing)
             Warning.attach warning result
 
-    round : Column ! Invalid_Value_Type
-    round self = Value_Type.expect_numeric self <|
+    round : Integer -> Boolean -> Column | Illegal_Argument | Invalid_Value_Type
+    round self decimal_places=0 use_bankers=False = Value_Type.expect_numeric self <|
         Illegal_Argument.handle_java_exception <| Arithmetic_Error.handle_java_exception <|
-            new_name = Naming_Helpers.function_name "round" [self]
+            new_name = naming_helper.function_name "round" [self]
             is_integer = self.inferred_precise_value_type.is_integer
             if is_integer && decimal_places >= 0 then self.rename new_name else
                 should_cast_to_integer = decimal_places <= 0 || is_integer
                 target_value_type = if should_cast_to_integer then Value_Type.Integer else self.value_type
-                result =
-                    result_float = simple_unary_op self Java_Storage.Maps.CEIL
-                    cast_if_needed result_float target_value_type
-                result.rename new_name
+                result_float = run_vectorized_ternary_op self Java_Storage.Maps.ROUND decimal_places use_bankers new_name=new_name expected_result_type=target_value_type
+                result = cast_if_needed result_float target_value_type
+                result #result.rename new_name
 
     ## ALIAS int
 
@@ -2122,6 +2122,19 @@ run_vectorized_binary_op column name operand new_name=Nothing fallback_fn=Nothin
             rs = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
                 s1.vectorizedOrFallbackBinaryMap name problem_builder fallback_fn operand skip_nulls storage_type
             Column.Value (Java_Column.new effective_new_name rs)
+    Problem_Behavior.Report_Warning.attach_problems_after result <|
+        Java_Problems.parse_aggregated_problems problem_builder.getProblems
+
+run_vectorized_ternary_op : Column -> Text -> Any -> Any -> Text|Nothing -> Value_Type -> Boolean -> Column
+run_vectorized_ternary_op column name operand0 operand1 new_name=Nothing expected_result_type=Nothing skip_nulls=True =
+    effective_new_name = new_name.if_nothing <|
+        naming_helper.function_name name [column, operand0, operand1]
+    problem_builder = MapOperationProblemBuilder.new column.name
+    storage_type = resolve_storage_type expected_result_type
+    s1 = column.java_column.getStorage
+    rs = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
+        s1.vectorizedTernaryMap name problem_builder operand0 operand1 skip_nulls storage_type
+    result = Column.Value (Java_Column.new effective_new_name rs)
     Problem_Behavior.Report_Warning.attach_problems_after result <|
         Java_Problems.parse_aggregated_problems problem_builder.getProblems
 
