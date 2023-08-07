@@ -73,7 +73,8 @@ export interface ManagePermissionsModalProps {
         users: backendModule.SimpleUser[],
         permissions: backendModule.PermissionAction[]
     ) => void
-    eventTarget: HTMLElement
+    /** If this is `null`, this modal will be centered. */
+    eventTarget: HTMLElement | null
 }
 
 /** A modal with inputs for user email and permission level.
@@ -94,7 +95,7 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
     const { backend } = backendProvider.useBackend()
     const { unsetModal } = modalProvider.useSetModal()
 
-    const position = React.useMemo(() => eventTarget.getBoundingClientRect(), [eventTarget])
+    const position = React.useMemo(() => eventTarget?.getBoundingClientRect(), [eventTarget])
     const [willInviteNewUser, setWillInviteNewUser] = React.useState(false)
     const [users, setUsers] = React.useState<backendModule.SimpleUser[]>([])
     const [matchingUsers, setMatchingUsers] = React.useState(users)
@@ -264,12 +265,19 @@ export default function ManagePermissionsModal(props: ManagePermissionsModalProp
         )
 
         return (
-            <Modal className="absolute overflow-hidden bg-opacity-25 w-full h-full top-0 left-0 z-10">
+            <Modal
+                centered={eventTarget == null}
+                className="absolute overflow-hidden bg-opacity-25 w-full h-full top-0 left-0 z-10"
+            >
                 <form
-                    style={{
-                        left: position.left + window.scrollX,
-                        top: position.top + window.scrollY,
-                    }}
+                    style={
+                        position != null
+                            ? {
+                                  left: position.left + window.scrollX,
+                                  top: position.top + window.scrollY,
+                              }
+                            : {}
+                    }
                     className="sticky bg-white shadow-soft rounded-lg w-64"
                     onSubmit={onSubmit}
                     onClick={mouseEvent => {

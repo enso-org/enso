@@ -9,7 +9,9 @@ import * as modalProvider from '../../providers/modal'
 
 /** Props for a {@link Modal}. */
 export interface ModalProps extends React.PropsWithChildren {
-    centered?: boolean
+    // This can intentionally be `undefined`, in order to simplify consumers of this component.
+    // eslint-disable-next-line no-restricted-syntax
+    centered?: boolean | undefined
     className?: string
 }
 
@@ -24,8 +26,8 @@ export default function Modal(props: ModalProps) {
     return (
         <div
             className={`inset-0 bg-primary ${
-                centered ? 'fixed w-screen h-screen grid place-items-center ' : ''
-            }${className ?? ''}`}
+                centered ? 'fixed w-screen h-screen grid place-items-center' : ''
+            } ${className ?? ''}`}
             onClick={event => {
                 if (event.currentTarget === event.target && getSelection()?.type !== 'Range') {
                     event.stopPropagation()

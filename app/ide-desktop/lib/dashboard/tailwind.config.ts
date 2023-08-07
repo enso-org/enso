@@ -28,6 +28,8 @@ export const theme = {
             label: '#f0f1f3',
             help: '#3f68ce',
             cloud: '#0666be',
+            share: '#64b526',
+            inversed: '#ffffff',
             'frame-bg': 'rgba(255, 255, 255, 0.40)',
             'frame-selected-bg': 'rgba(255, 255, 255, 0.70)',
             'tag-text': 'rgba(255, 255, 255, 0.90)',

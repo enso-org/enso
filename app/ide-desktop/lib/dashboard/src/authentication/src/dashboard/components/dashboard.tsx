@@ -61,6 +61,7 @@ export default function Dashboard(props: DashboardProps) {
     const [loadingProjectManagerDidFail, setLoadingProjectManagerDidFail] = React.useState(false)
     const [page, setPage] = React.useState(pageSwitcher.Page.drive)
     const [project, setProject] = React.useState<backendModule.Project | null>(null)
+    const [projectAsset, setProjectAsset] = React.useState<backendModule.ProjectAsset | null>(null)
     const [assetListEvents, dispatchAssetListEvent] =
         hooks.useEvent<assetListEventModule.AssetListEvent>()
 
@@ -197,6 +198,7 @@ export default function Dashboard(props: DashboardProps) {
             setPage(pageSwitcher.Page.editor)
             if (project?.projectId !== newProject.id) {
                 setProject(await backend.getProjectDetails(newProject.id, newProject.title))
+                setProjectAsset(newProject)
             }
         },
         [backend, project?.projectId, setPage]
@@ -225,7 +227,7 @@ export default function Dashboard(props: DashboardProps) {
         >
             <TopBar
                 supportsLocalBackend={supportsLocalBackend}
-                projectName={project?.name ?? null}
+                projectAsset={projectAsset}
                 page={page}
                 setPage={setPage}
                 asset={null}

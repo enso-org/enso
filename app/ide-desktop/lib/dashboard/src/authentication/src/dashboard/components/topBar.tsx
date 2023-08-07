@@ -18,9 +18,9 @@ import UserBar from './userBar'
 export interface TopBarProps {
     /** Whether the application may have the local backend running. */
     supportsLocalBackend: boolean
-    projectName: string | null
     page: pageSwitcher.Page
     setPage: (page: pageSwitcher.Page) => void
+    projectAsset: backendModule.ProjectAsset | null
     asset: backendModule.Asset | null
     isEditorDisabled: boolean
     setBackendType: (backendType: backendModule.BackendType) => void
@@ -37,6 +37,7 @@ export default function TopBar(props: TopBarProps) {
         supportsLocalBackend,
         page,
         setPage,
+        projectAsset,
         asset,
         isEditorDisabled,
         setBackendType,
@@ -70,7 +71,12 @@ export default function TopBar(props: TopBarProps) {
             <div className="grow" />
             <div className="flex gap-2">
                 <AssetInfoBar asset={asset} />
-                <UserBar isHelpChatOpen={isHelpChatOpen} setIsHelpChatOpen={setIsHelpChatOpen} />
+                <UserBar
+                    page={page}
+                    isHelpChatOpen={isHelpChatOpen}
+                    setIsHelpChatOpen={setIsHelpChatOpen}
+                    projectAsset={projectAsset}
+                />
             </div>
         </div>
     )
