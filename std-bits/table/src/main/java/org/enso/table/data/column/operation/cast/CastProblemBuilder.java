@@ -1,9 +1,8 @@
 package org.enso.table.data.column.operation.cast;
 
-import org.enso.table.problems.AggregatedProblems;
-
 import java.util.ArrayList;
 import java.util.List;
+import org.enso.table.problems.AggregatedProblems;
 
 public class CastProblemBuilder {
   private int failedConversionsCount = 0;

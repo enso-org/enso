@@ -31,8 +31,9 @@ public abstract class DatatypeParser {
   }
 
   /**
-   * Parses a column of texts (represented as a {@code StringStorage}) and returns a new storage, containing the parsed
-   * elements.
+   * Parses a column of texts (represented as a {@code StringStorage}) and returns a new storage,
+   * containing the parsed elements.
    */
-  public abstract WithAggregatedProblems<Storage<?>> parseColumn(String columnName, Storage<String> sourceStorage);
+  public abstract WithAggregatedProblems<Storage<?>> parseColumn(
+      String columnName, Storage<String> sourceStorage);
 }

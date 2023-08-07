@@ -41,7 +41,8 @@ public class TypeInferringParser extends DatatypeParser {
   }
 
   @Override
-  public WithAggregatedProblems<Storage<?>> parseColumn(String columnName, Storage<String> sourceStorage) {
+  public WithAggregatedProblems<Storage<?>> parseColumn(
+      String columnName, Storage<String> sourceStorage) {
     // If there are no values, the Auto parser would guess some random type (the first one that is
     // checked). Instead, we just return the empty column unchanged.
     boolean hasNoValues =
@@ -73,8 +74,7 @@ public class TypeInferringParser extends DatatypeParser {
 
       return new WithAggregatedProblems<>(
           builder.seal(),
-          AggregatedProblems.merge(aggregator.getAggregatedProblems(), builder.getProblems())
-      );
+          AggregatedProblems.merge(aggregator.getAggregatedProblems(), builder.getProblems()));
     }
 
     return fallbackParser.parseColumn(columnName, sourceStorage);

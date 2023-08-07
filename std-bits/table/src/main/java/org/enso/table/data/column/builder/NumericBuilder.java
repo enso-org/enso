@@ -23,7 +23,6 @@ public abstract class NumericBuilder extends TypedBuilder {
     return new LongBuilder(new BitSet(size), new long[size], 0);
   }
 
-
   @Override
   public void appendNulls(int count) {
     isMissing.set(currentSize, currentSize + count);

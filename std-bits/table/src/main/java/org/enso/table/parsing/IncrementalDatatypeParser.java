@@ -21,15 +21,17 @@ public abstract class IncrementalDatatypeParser extends DatatypeParser {
    * capacity should be set properly so that the builder can hold all expected elements.
    *
    * <p>The type returned from {@code parseSingleValue} should be consistent with the types that the
-   * builder returned here expects - it should never return a value that cannot be accepted by the builder.
+   * builder returned here expects - it should never return a value that cannot be accepted by the
+   * builder.
    */
   protected abstract Builder makeBuilderWithCapacity(int capacity);
 
   /**
-   * Parses a column of texts (represented as a {@code StringStorage}) and returns a new storage, containing the parsed
-   * elements.
+   * Parses a column of texts (represented as a {@code StringStorage}) and returns a new storage,
+   * containing the parsed elements.
    */
-  public WithAggregatedProblems<Storage<?>> parseColumn(String columnName, Storage<String> sourceStorage) {
+  public WithAggregatedProblems<Storage<?>> parseColumn(
+      String columnName, Storage<String> sourceStorage) {
     Builder builder = makeBuilderWithCapacity(sourceStorage.size());
     var aggregator = new ProblemAggregatorImpl(columnName);
 
@@ -48,7 +50,6 @@ public abstract class IncrementalDatatypeParser extends DatatypeParser {
 
     return new WithAggregatedProblems<>(
         builder.seal(),
-        AggregatedProblems.merge(aggregator.getAggregatedProblems(), builder.getProblems())
-    );
+        AggregatedProblems.merge(aggregator.getAggregatedProblems(), builder.getProblems()));
   }
 }

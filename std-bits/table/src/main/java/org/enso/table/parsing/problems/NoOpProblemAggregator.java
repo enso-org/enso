@@ -2,18 +2,14 @@ package org.enso.table.parsing.problems;
 
 import org.enso.table.problems.AggregatedProblems;
 
-/**
- * A problem aggregator which ignores problems.
- */
+/** A problem aggregator which ignores problems. */
 public class NoOpProblemAggregator implements ProblemAggregator {
 
   @Override
-  public void reportInvalidFormat(String cell) {
-  }
+  public void reportInvalidFormat(String cell) {}
 
   @Override
-  public void reportMismatchedQuote(String cellText) {
-  }
+  public void reportMismatchedQuote(String cellText) {}
 
   @Override
   public boolean hasProblems() {
