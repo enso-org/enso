@@ -51,7 +51,6 @@ export default function PageSwitcher(props: PageSwitcherProps) {
         <div className="flex shrink-0 gap-4">
             {PAGE_DATA.map(pageData => {
                 const isDisabled =
-                    pageData.page === Page.home ||
                     (pageData.page === Page.editor && isEditorDisabled)
                 return (
                     <Button
