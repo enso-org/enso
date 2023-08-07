@@ -61,7 +61,7 @@ export class LocalStorage {
     /** Delete all entries from the stored data, and save. */
     clear() {
         this.values = {}
-        this.save()
+        localStorage.removeItem(this.localStorageKey)
     }
 
     /** Save the current value of the stored data.. */
