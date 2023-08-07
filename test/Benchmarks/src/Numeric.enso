@@ -51,6 +51,7 @@ bench =
         builder.group "Numbers" options group_builder->
             collect_benches group_builder
 
-    all . run_main
+    all
 
-main = bench
+main =
+    bench.run_main
