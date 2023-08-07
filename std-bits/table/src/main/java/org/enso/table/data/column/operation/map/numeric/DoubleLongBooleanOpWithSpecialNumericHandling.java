@@ -10,9 +10,9 @@ import org.graalvm.polyglot.Context;
 import java.util.BitSet;
 
 /** An operation expecting a numeric argument and returning a number. */
-public abstract class DoubleLongBooleanOp extends TernaryMapOperation<Double, DoubleStorage> {
+public abstract class DoubleLongBooleanOpWithSpecialNumericHandling extends TernaryMapOperation<Double, DoubleStorage> {
 
-    public DoubleLongBooleanOp(String name) {
+    public DoubleLongBooleanOpWithSpecialNumericHandling(String name) {
         super(name);
     }
 
@@ -39,9 +39,21 @@ public abstract class DoubleLongBooleanOp extends TernaryMapOperation<Double, Do
 
         Context context = Context.getCurrent();
         long[] out = new long[storage.size()];
+        BitSet isMissing = new BitSet();
+
         for (int i = 0; i < storage.size(); i++) {
             if (!storage.isNa(i)) {
-                out[i] = Double.doubleToRawLongBits(doLongBoolean(storage.getItem(i), longArg, booleanArg, i, problemBuilder));
+                double item = storage.getItem(i);
+                boolean special = Double.isNaN(item) || Double.isInfinite(item);
+                if (!special) {
+                    out[i] = Double.doubleToRawLongBits(doLongBoolean(storage.getItem(i), longArg, booleanArg, i, problemBuilder));
+                } else {
+                    String msg = "Value is " + item;
+                    problemBuilder.reportArithmeticError(msg, i);
+                    isMissing.set(i);
+                }
+            } else {
+                isMissing.set(i);
             }
 
             context.safepoint();

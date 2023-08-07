@@ -12,7 +12,7 @@ import org.enso.table.data.column.operation.map.numeric.DoubleBooleanOp;
 import org.enso.table.data.column.operation.map.numeric.DoubleComparison;
 import org.enso.table.data.column.operation.map.numeric.DoubleIsInOp;
 import org.enso.table.data.column.operation.map.numeric.DoubleLongMapOpWithSpecialNumericHandling;
-import org.enso.table.data.column.operation.map.numeric.DoubleLongBooleanOp;
+import org.enso.table.data.column.operation.map.numeric.DoubleLongBooleanOpWithSpecialNumericHandling;
 import org.enso.table.data.column.operation.map.numeric.DoubleNumericOp;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
@@ -303,7 +303,7 @@ public final class DoubleStorage extends NumericStorage<Double> {
               }
             })
         .add(
-            new DoubleLongBooleanOp(Maps.ROUND) {
+            new DoubleLongBooleanOpWithSpecialNumericHandling(Maps.ROUND) {
               @Override
               protected double doLongBoolean(double n, long decimalPlaces, boolean useBankers, int ix, MapOperationProblemBuilder problemBuilder) {
                 return Core_Math_Utils.roundDouble(n, decimalPlaces, useBankers);
