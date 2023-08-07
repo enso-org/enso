@@ -55,12 +55,3 @@ parse_aggregated_problems problems =
 
         if problems.getCount == problems_array.length then parsed else
             parsed + [Additional_Warnings.Error (problems.getCount - problems_array.length)]
-
-## PRIVATE
-   Unpacks a `WithAggregatedProblems` instance, extracting the value and
-   attaching any associated problems according to the provided behavior.
-unpack_value_with_aggregated_problems : Problem_Behavior -> WithAggregatedProblems -> Any
-unpack_value_with_aggregated_problems on_problems with_problems =
-    problems = parse_aggregated_problems with_problems.problems
-    on_problems.attach_problems_before problems <|
-        with_problems.value

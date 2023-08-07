@@ -23,6 +23,7 @@ import org.enso.table.excel.ExcelHeaders;
 import org.enso.table.excel.ExcelRange;
 import org.enso.table.excel.ExcelRow;
 import org.enso.table.excel.ExcelSheet;
+import org.enso.table.problems.WithProblems;
 import org.graalvm.polyglot.Context;
 
 /** A table reader for MS Excel files. */

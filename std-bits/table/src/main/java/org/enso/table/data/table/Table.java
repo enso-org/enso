@@ -475,11 +475,7 @@ public class Table {
     IntStream.range(0, id_columns.length).forEach(i -> new_columns[i] = new Column(id_columns[i].getName(), storage[i].seal()));
     new_columns[id_columns.length] = new Column(name_field, storage[id_columns.length].seal());
     new_columns[id_columns.length + 1] = new Column(value_field, storage[id_columns.length + 1].seal());
-
-    AggregatedProblems problems = AggregatedProblems.merge(
-        IntStream.range(0, id_columns.length + 2).mapToObj(i -> storage[i].getProblems()).toArray(AggregatedProblems[]::new)
-    );
-    return new Table(new_columns, problems);
+    return new Table(new_columns);
   }
 
   /**
@@ -531,10 +527,7 @@ public class Table {
         builders.stream()
             .map(builder -> new Column(builder.name, builder.builder.seal()))
             .toArray(Column[]::new);
-    AggregatedProblems problems =
-        AggregatedProblems.merge(
-            builders.stream().map(builder -> builder.builder.getProblems()).toArray(AggregatedProblems[]::new));
-    return new Table(newColumns, problems);
+    return new Table(newColumns, null);
   }
   /** @return a copy of the Table containing a slice of the original data */
   public Table slice(int offset, int limit) {
