@@ -367,6 +367,7 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
     sb.append(indentStr).append("try {").append("\n");
     sb.append(indentStr).append("  " + statement).append("\n");
     sb.append(indentStr).append("} catch (UnsupportedSpecializationException unsupSpecEx) {").append("\n");
+    sb.append(indentStr).append("  CompilerDirectives.transferToInterpreterAndInvalidate();").append("\n");
     sb.append(indentStr).append("  Builtins builtins = EnsoContext.get(bodyNode).getBuiltins();").append("\n");
     sb.append(indentStr).append("  var unimplErr = builtins.error().makeUnimplemented(\"Unsupported specialization: \" + unsupSpecEx.getMessage());").append("\n");
     sb.append(indentStr).append("  throw new PanicException(unimplErr, bodyNode);").append("\n");
