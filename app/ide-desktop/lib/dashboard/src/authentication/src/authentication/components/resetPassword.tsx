@@ -82,6 +82,7 @@ export default function ResetPassword() {
                                     <SvgMask src={AtIcon} />
                                 </SvgIcon>
                                 <Input
+                                    required
                                     id="email"
                                     type="email"
                                     name="email"
@@ -103,6 +104,7 @@ export default function ResetPassword() {
                                     <SvgMask src={LockIcon} />
                                 </SvgIcon>
                                 <Input
+                                    required
                                     id="code"
                                     type="text"
                                     name="code"
@@ -124,6 +126,8 @@ export default function ResetPassword() {
                                     <SvgMask src={LockIcon} />
                                 </SvgIcon>
                                 <Input
+                                    required
+                                    validate
                                     id="new_password"
                                     type="password"
                                     name="new_password"
@@ -147,6 +151,8 @@ export default function ResetPassword() {
                                     <SvgMask src={LockIcon} />
                                 </SvgIcon>
                                 <Input
+                                    required
+                                    validate
                                     id="new_password_confirm"
                                     type="password"
                                     name="new_password_confirm"
