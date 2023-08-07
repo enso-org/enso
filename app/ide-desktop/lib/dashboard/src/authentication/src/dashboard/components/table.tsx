@@ -232,7 +232,7 @@ export default function Table<T, State = never, RowState = never, Key extends st
     )
 
     const itemRows = isLoading ? (
-        <tr className="h-10">
+        <tr className="h-8">
             <td colSpan={columns.length} className="bg-transparent">
                 <div className="grid justify-around w-full">
                     <Spinner size={LOADING_SPINNER_SIZE} state={spinnerState} />
@@ -282,7 +282,7 @@ export default function Table<T, State = never, RowState = never, Key extends st
             <tbody ref={bodyRef}>
                 {itemRows}
                 {placeholder && (
-                    <tr className="h-10 hidden first:table-row">
+                    <tr className="h-8 hidden first:table-row">
                         <td colSpan={columns.length} className="bg-transparent">
                             {placeholder}
                         </td>

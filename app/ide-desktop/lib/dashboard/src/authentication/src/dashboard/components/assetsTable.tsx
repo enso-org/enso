@@ -205,7 +205,7 @@ function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
                 <tr>
                     <td colSpan={columns.length} className="p-0 rounded-full border-r">
                         <div
-                            className={`flex items-center h-10 py-2 ${indent.indentClass(
+                            className={`flex items-center h-8 py-2 ${indent.indentClass(
                                 getDepth(key)
                             )}`}
                         >

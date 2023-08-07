@@ -134,7 +134,7 @@ export default function TableRow<T, State = never, RowState = never, Key extends
                     onContextMenu?.(innerProps, event)
                 }
             }}
-            className={`h-10 transition duration-300 ease-in-out ${className ?? ''} ${
+            className={`h-8 transition duration-300 ease-in-out ${className ?? ''} ${
                 selected ? 'selected' : ''
             }`}
             {...passthrough}
