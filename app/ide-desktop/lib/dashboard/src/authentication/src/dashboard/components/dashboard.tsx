@@ -135,8 +135,8 @@ export default function Dashboard(props: DashboardProps) {
         if (
             supportsLocalBackend &&
             session.type !== authProvider.UserSessionType.offline &&
-            localStorage.get(localStorageModule.LocalStorageKey.backendType) !==
-                backendModule.BackendType.remote
+            localStorage.get(localStorageModule.LocalStorageKey.backendType) ===
+                backendModule.BackendType.local
         ) {
             setBackend(new localBackend.LocalBackend())
             setDirectoryId(backendModule.DirectoryId(''))

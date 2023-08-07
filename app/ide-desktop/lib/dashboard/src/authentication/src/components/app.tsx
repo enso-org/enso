@@ -209,6 +209,8 @@ function AppRouter(props: AppProps) {
             </React.Fragment>
         </router.Routes>
     )
+    /** {@link backendProvider.BackendProvider} depends on
+     * {@link localStorageProvider.LocalStorageProvider}. */
     return (
         <loggerProvider.LoggerProvider logger={logger}>
             <sessionProvider.SessionProvider
@@ -216,20 +218,18 @@ function AppRouter(props: AppProps) {
                 userSession={userSession}
                 registerAuthEventListener={registerAuthEventListener}
             >
-                <backendProvider.BackendProvider initialBackend={initialBackend}>
-                    <authProvider.AuthProvider
-                        shouldStartInOfflineMode={isAuthenticationDisabled}
-                        supportsLocalBackend={supportsLocalBackend}
-                        authService={authService}
-                        onAuthenticated={onAuthenticated}
-                    >
-                        <modalProvider.ModalProvider>
-                            <localStorageProvider.LocalStorageProvider>
-                                {routes}
-                            </localStorageProvider.LocalStorageProvider>
-                        </modalProvider.ModalProvider>
-                    </authProvider.AuthProvider>
-                </backendProvider.BackendProvider>
+                <localStorageProvider.LocalStorageProvider>
+                    <backendProvider.BackendProvider initialBackend={initialBackend}>
+                        <authProvider.AuthProvider
+                            shouldStartInOfflineMode={isAuthenticationDisabled}
+                            supportsLocalBackend={supportsLocalBackend}
+                            authService={authService}
+                            onAuthenticated={onAuthenticated}
+                        >
+                            <modalProvider.ModalProvider>{routes}</modalProvider.ModalProvider>
+                        </authProvider.AuthProvider>
+                    </backendProvider.BackendProvider>
+                </localStorageProvider.LocalStorageProvider>
             </sessionProvider.SessionProvider>
         </loggerProvider.LoggerProvider>
     )
