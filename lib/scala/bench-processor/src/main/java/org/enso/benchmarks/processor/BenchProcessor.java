@@ -121,8 +121,12 @@ public class BenchProcessor extends AbstractProcessor {
             SpecCollector.collectBenchSpecsFromModule(module, annotation.variableName());
         for (ModuleBenchSuite benchSuite : benchSuites) {
           for (BenchGroup group : benchSuite.getGroups()) {
-            generateClassForGroup(
-                group, benchSuite.getModuleQualifiedName(), annotation.variableName());
+            if (!validateGroup(group)) {
+              return false;
+            } else {
+              generateClassForGroup(
+                  group, benchSuite.getModuleQualifiedName(), annotation.variableName());
+            }
           }
         }
         return true;
@@ -153,6 +157,19 @@ public class BenchProcessor extends AbstractProcessor {
         failWithMessage(
             "Failed to generate source file for group '" + group.name() + "': " + e.getMessage());
       }
+    }
+  }
+
+  private boolean validateGroup(BenchGroup group) {
+    List<String> specNames = group.specs().stream().map(BenchSpec::name).collect(Collectors.toList());
+    long distinctNamesCount = specNames.stream().distinct().count();
+    List<String> sortedSpecNames = specNames.stream().sorted().collect(Collectors.toList());
+    if (specNames.size() != distinctNamesCount) {
+      failWithMessage("All benchmark suite names in group '" + group.name() + "' must be unique."
+          + " Found names of the bench suites: " + sortedSpecNames);
+      return false;
+    } else {
+      return true;
     }
   }
 
