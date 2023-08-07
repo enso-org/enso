@@ -2,7 +2,8 @@
 import * as React from 'react'
 
 import * as spinner from './spinner'
-import Templates from './templates'
+import Samples from './samples'
+import WhatsNew from './whatsNew'
 
 // ============
 // === Home ===
@@ -21,8 +22,18 @@ export interface HomeProps {
 export default function Home(props: HomeProps) {
     const { visible, onTemplateClick } = props
     return (
-        <div className={`${visible ? '' : 'hidden'}`}>
-            <Templates onTemplateClick={onTemplateClick} />
-        </div>
+        <>
+            {/* Header */}
+            <div className={`flex flex-col gap-2 px-9.75 py-2.25 ${visible ? '' : 'hidden'}`}>
+                <h1 className="self-center leading-144.5 text-4xl py-0.5">
+                    Welcome to Enso Community
+                </h1>
+                <h2 className="self-center leading-144.5 text-xl py-0.5">
+                    Explore templates, plugins, and data sources to kickstart your next big idea.
+                </h2>
+            </div>
+            <WhatsNew visible={visible} />
+            <Samples visible={visible} onTemplateClick={onTemplateClick} />
+        </>
     )
 }

@@ -29,6 +29,12 @@ import TopBar from './topBar'
 // === Dashboard ===
 // =================
 
+const PAGE_SPECIFIC_STYLES: Record<pageSwitcher.Page, string> = {
+    [pageSwitcher.Page.home]: 'gap-12',
+    [pageSwitcher.Page.drive]: 'gap-8',
+    [pageSwitcher.Page.editor]: 'hidden',
+} as const
+
 /** Props for {@link Dashboard}s that are common to all platforms. */
 export interface DashboardProps {
     /** Whether the application may have the local backend running. */
@@ -210,9 +216,7 @@ export default function Dashboard(props: DashboardProps) {
 
     return (
         <div
-            className={`flex flex-col gap-2 relative select-none text-primary text-xs h-screen pb-2 ${
-                page !== pageSwitcher.Page.editor ? '' : 'hidden'
-            }`}
+            className={`flex flex-col relative select-none text-primary text-xs h-screen pb-2 ${PAGE_SPECIFIC_STYLES[page]}`}
             onContextMenu={event => {
                 event.preventDefault()
                 unsetModal()

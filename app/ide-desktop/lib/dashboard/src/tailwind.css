@@ -100,10 +100,6 @@ body {
       stroke-dasharray: calc(12 * 6.2832) 0;
     }
 
-    .border-dashed-custom {
-      background-image: url("enso-assets/dashed_border.svg");
-    }
-
     .scroll-hidden {
       -ms-overflow-style: none; /* Internet Explorer 10+ */
       scrollbar-width: none; /* Firefox */
@@ -126,14 +122,6 @@ body {
     .rounded-rows > tbody > tr.selected {
       > td {
         background-color: rgba(255, 255, 255, 0.4);
-      }
-    }
-
-    .h-templates-custom {
-      height: 21.5rem;
-
-      @media screen and (min-width: 110.6875rem) {
-        height: 11rem;
       }
     }
 
