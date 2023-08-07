@@ -26,7 +26,6 @@ export interface AssetContextMenuProps<T extends backendModule.AnyAsset> {
     >
     event: Pick<React.MouseEvent, 'pageX' | 'pageY'>
     eventTarget: HTMLElement | null
-    dispatchAssetEvent: (assetEvent: assetEventModule.AssetEvent) => void
     doDelete: () => Promise<void>
 }
 
@@ -35,7 +34,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps<backendMod
     const {
         innerProps: {
             item,
-            state: { dispatchAssetEvent },
+            state: { dispatchAssetEvent, dispatchAssetListEvent },
             setRowState,
         },
         event,
@@ -150,7 +149,10 @@ export default function AssetContextMenu(props: AssetContextMenuProps<backendMod
                     }}
                 />
             </ContextMenu>
-            <GlobalContextMenu {...props} />
+            <GlobalContextMenu
+                directoryId={item.parentId}
+                dispatchAssetListEvent={dispatchAssetListEvent}
+            />
         </ContextMenus>
     )
 }

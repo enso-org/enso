@@ -30,6 +30,7 @@ import ConfirmDeleteModal from './confirmDeleteModal'
 import ContextMenu from './contextMenu'
 import ContextMenuEntry from './contextMenuEntry'
 import ContextMenus from './contextMenus'
+import GlobalContextMenu from './globalContextMenu'
 import Table from './table'
 
 // =================
@@ -159,7 +160,6 @@ function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
                         }}
                         event={{ pageX: 0, pageY: 0 }}
                         eventTarget={tableRowRef.current}
-                        dispatchAssetEvent={dispatchAssetEvent}
                         doDelete={doDelete}
                     />
                 </div>
@@ -221,7 +221,6 @@ function AssetRow(props: AssetRowProps<backendModule.AnyAsset>) {
                                     innerProps={innerProps}
                                     event={event}
                                     eventTarget={event.currentTarget}
-                                    dispatchAssetEvent={dispatchAssetEvent}
                                     doDelete={doDelete}
                                 />,
                                 () => {
@@ -729,6 +728,10 @@ export default function AssetsTable(props: AssetsTableProps) {
                                         doAction={doDeleteAll}
                                     />
                                 </ContextMenu>
+                                <GlobalContextMenu
+                                    directoryId={backend.rootDirectoryId(organization)}
+                                    dispatchAssetListEvent={dispatchAssetListEvent}
+                                />
                             </ContextMenus>
                         )
                     }}

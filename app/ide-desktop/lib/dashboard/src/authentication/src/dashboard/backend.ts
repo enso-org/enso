@@ -18,38 +18,31 @@ export enum BackendType {
 
 /** Unique identifier for a user/organization. */
 export type UserOrOrganizationId = newtype.Newtype<string, 'UserOrOrganizationId'>
-/** Create a {@link UserOrOrganizationId}. */
 export const UserOrOrganizationId = newtype.newtypeConstructor<UserOrOrganizationId>()
 
 /** Unique identifier for a directory. */
 export type DirectoryId = newtype.Newtype<string, 'DirectoryId'>
-/** Create a {@link DirectoryId}. */
 export const DirectoryId = newtype.newtypeConstructor<DirectoryId>()
 
 /** Unique identifier for an asset representing the items inside a directory for which the
  * request to retrive the items has not yet completed. */
 export type LoadingAssetId = newtype.Newtype<string, 'LoadingAssetId'>
-/** Create a {@link LoadingAssetId}. */
 export const LoadingAssetId = newtype.newtypeConstructor<LoadingAssetId>()
 
 /** Unique identifier for an asset representing the nonexistent children of an empty directory. */
 export type EmptyAssetId = newtype.Newtype<string, 'EmptyAssetId'>
-/** Create a {@link EmptyAssetId}. */
 export const EmptyAssetId = newtype.newtypeConstructor<EmptyAssetId>()
 
 /** Unique identifier for a user's project. */
 export type ProjectId = newtype.Newtype<string, 'ProjectId'>
-/** Create a {@link ProjectId}. */
 export const ProjectId = newtype.newtypeConstructor<ProjectId>()
 
 /** Unique identifier for an uploaded file. */
 export type FileId = newtype.Newtype<string, 'FileId'>
-/** Create a {@link FileId}. */
 export const FileId = newtype.newtypeConstructor<FileId>()
 
 /** Unique identifier for a secret environment variable. */
 export type SecretId = newtype.Newtype<string, 'SecretId'>
-/** Create a {@link SecretId}. */
 export const SecretId = newtype.newtypeConstructor<SecretId>()
 
 /** Unique identifier for an arbitrary asset */
@@ -57,32 +50,26 @@ export type AssetId = IdType[keyof IdType]
 
 /** Unique identifier for a file tag or project tag. */
 export type TagId = newtype.Newtype<string, 'TagId'>
-/** Create a {@link TagId}. */
 export const TagId = newtype.newtypeConstructor<TagId>()
 
 /** A URL. */
 export type Address = newtype.Newtype<string, 'Address'>
-/** Create an {@link Address}. */
 export const Address = newtype.newtypeConstructor<Address>()
 
 /** An email address. */
 export type EmailAddress = newtype.Newtype<string, 'EmailAddress'>
-/** Create an {@link EmailAddress}. */
 export const EmailAddress = newtype.newtypeConstructor<EmailAddress>()
 
 /** An AWS S3 file path. */
 export type S3FilePath = newtype.Newtype<string, 'S3FilePath'>
-/** Create an {@link S3FilePath}. */
 export const S3FilePath = newtype.newtypeConstructor<S3FilePath>()
 
 /** An AWS machine configuration. */
 export type Ami = newtype.Newtype<string, 'Ami'>
-/** Create an {@link Ami}. */
 export const Ami = newtype.newtypeConstructor<Ami>()
 
 /** An AWS user ID. */
 export type Subject = newtype.Newtype<string, 'Subject'>
-/** Create a {@link Subject}. */
 export const Subject = newtype.newtypeConstructor<Subject>()
 
 /* eslint-enable @typescript-eslint/no-redeclare */
@@ -543,15 +530,6 @@ export function detectVersionLifecycle(version: string) {
     }
 }
 
-// =======================
-// === rootDirectoryId ===
-// =======================
-
-/** Return the id of the root directory for a user or organization. */
-export function rootDirectoryId(userOrOrganizationId: UserOrOrganizationId) {
-    return DirectoryId(userOrOrganizationId.replace(/^organization-/, `${AssetType.directory}-`))
-}
-
 // ==================
 // === getAssetId ===
 // ==================
@@ -621,6 +599,8 @@ export abstract class Backend {
             }
         }
     }
+    /** Return the root directory id for the given user. */
+    abstract rootDirectoryId(user: UserOrOrganization | null): DirectoryId
     /** Return a list of all users in the same organization. */
     abstract listUsers(): Promise<SimpleUser[]>
     /** Set the username of the current user. */

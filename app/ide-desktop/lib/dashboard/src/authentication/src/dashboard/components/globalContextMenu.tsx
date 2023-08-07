@@ -7,22 +7,18 @@ import * as backendProvider from '../../providers/backend'
 import * as modalProvider from '../../providers/modal'
 import * as shortcuts from '../shortcuts'
 
-import * as assetContextMenu from './assetContextMenu'
 import ContextMenu from './contextMenu'
 import ContextMenuEntry from './contextMenuEntry'
 
 /** Props for a {@link GlobalContextMenu}. */
-export interface GlobalContextMenuProps
-    extends assetContextMenu.AssetContextMenuProps<backendModule.AnyAsset> {}
+export interface GlobalContextMenuProps {
+    directoryId: backendModule.DirectoryId
+    dispatchAssetListEvent: (event: assetListEventModule.AssetListEvent) => void
+}
 
 /** A context menu available everywhere in the directory. */
 export default function GlobalContextMenu(props: GlobalContextMenuProps) {
-    const {
-        innerProps: {
-            item,
-            state: { dispatchAssetListEvent },
-        },
-    } = props
+    const { directoryId, dispatchAssetListEvent } = props
     const { backend } = backendProvider.useBackend()
     const { unsetModal } = modalProvider.useSetModal()
     const filesInputRef = React.useRef<HTMLInputElement>(null)
@@ -40,7 +36,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
                             if (event.currentTarget.files != null) {
                                 dispatchAssetListEvent({
                                     type: assetListEventModule.AssetListEventType.uploadFiles,
-                                    parentId: item.parentId,
+                                    parentId: directoryId,
                                     files: event.currentTarget.files,
                                 })
                             }
@@ -61,7 +57,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
                     unsetModal()
                     dispatchAssetListEvent({
                         type: assetListEventModule.AssetListEventType.newProject,
-                        parentId: item.parentId,
+                        parentId: directoryId,
                         templateId: null,
                         onSpinnerStateChange: null,
                     })
@@ -74,7 +70,7 @@ export default function GlobalContextMenu(props: GlobalContextMenuProps) {
                         unsetModal()
                         dispatchAssetListEvent({
                             type: assetListEventModule.AssetListEventType.newFolder,
-                            parentId: item.parentId,
+                            parentId: directoryId,
                         })
                     }}
                 />
