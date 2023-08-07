@@ -28,8 +28,7 @@ use crate::prelude::*;
 
 use enso_frp as frp;
 use enso_web as web;
-use enso_web::stream::BlobExt;
-use enso_web::stream::ReadableStreamDefaultReader;
+use enso_web::JsCast;
 use ensogl_core::display::scene::Scene;
 use ensogl_core::system::web::dom::WithKnownShape;
 
@@ -60,17 +59,16 @@ pub struct File {
     pub mime_type: ImString,
     pub size:      u64,
     #[derivative(Debug = "ignore")]
-    reader:        Rc<Option<ReadableStreamDefaultReader>>,
+    reader:        Rc<Option<web::ReadableStreamDefaultReader>>,
 }
 
 impl File {
-    /// Constructor from the [`web_sys::File`].
-    pub fn from_js_file(file: &web_sys::File) -> Result<Self, web::JsValue> {
+    /// Constructor from the [`web::File`].
+    pub fn from_js_file(file: &web::File) -> Result<Self, web::JsValue> {
         let name = ImString::new(file.name());
         let size = file.size() as u64;
         let mime_type = ImString::new(file.type_());
-        let blob = AsRef::<web_sys::Blob>::as_ref(file);
-        let reader = blob.stream_reader()?;
+        let reader: web::ReadableStreamDefaultReader = file.stream().get_reader().dyn_into()?;
         let reader = Rc::new(Some(reader));
         Ok(File { name, mime_type, size, reader })
     }
@@ -149,7 +147,7 @@ impl Manager {
         let scene = scene.clone_ref();
         let handlers = [
             web::add_event_listener(target, "drop", move |event| {
-                let event: web_sys::DragEvent = event.dyn_into().unwrap();
+                let event: web::DragEvent = event.dyn_into().unwrap();
                 debug!("Dropped files.");
                 event.prevent_default();
                 Self::handle_drop_event(event, &received, &scene);
@@ -165,7 +163,7 @@ impl Manager {
     }
 
     /// Retrieve the position of the drop event in the scene coordinates.
-    fn event_position(scene: &Scene, event: &web_sys::DragEvent) -> Vector2 {
+    fn event_position(scene: &Scene, event: &web::DragEvent) -> Vector2 {
         let dom: WithKnownShape<web::EventTarget> = scene.dom.root.clone_ref().into();
         let shape = dom.shape.value();
         let base = Vector2::new(0.0, shape.height);
@@ -177,7 +175,7 @@ impl Manager {
     }
 
     fn handle_drop_event(
-        event: web_sys::DragEvent,
+        event: web::DragEvent,
         files_received: &frp::Source<DropEventData>,
         scene: &Scene,
     ) {

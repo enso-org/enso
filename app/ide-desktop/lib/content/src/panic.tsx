@@ -1,7 +1,6 @@
-
 interface PanicMessageProps {
-    message: string;
-    restart: () => void;
+    message: string
+    restart: () => void
 }
 
 export function PanicMessage(props: PanicMessageProps) {
@@ -9,16 +8,13 @@ export function PanicMessage(props: PanicMessageProps) {
         <div className="flex flex-col">
             <h1 className="text-xl font-semibold">Enso has crashed.</h1>
             <p className="mt-3">
-                Enso has encountered a critical error and needs to be restarted. This is a bug, and we
-                would appreciate it if you could report it to us.
+                Enso has encountered a critical error and needs to be restarted. This is a bug, and
+                we would appreciate it if you could report it to us.
             </p>
-            <p>
-                Please include following panic message
-                in your report:
-            </p>
+            <p>Please include following panic message in your report:</p>
             <pre
                 className="overflow-auto mt-2 p-2 bg-gray-200 text-gray-800 border rounded border-gray-400"
-                style={{ maxHeight: '50vh'}}
+                style={{ maxHeight: '50vh' }}
             >
                 {props.message}
             </pre>

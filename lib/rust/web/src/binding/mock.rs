@@ -60,7 +60,7 @@ macro_rules! auto_impl_mock_default {
     };
 }
 
-auto_impl_mock_default!(bool, i16, i32, u32, f64, String);
+auto_impl_mock_default!(bool, i16, i32, u16, u32, f64, String);
 
 
 
@@ -75,11 +75,13 @@ pub trait MockData {}
 #[macro_export]
 macro_rules! mock_struct {
     ( $([$opt:ident])?
+        $(#[$meta:meta])*
         $name:ident $(<$( $param:ident $(: ?$param_tp:ident)? ),*>)? $(=> $deref:ident)?
     ) => {
         #[allow(missing_copy_implementations)]
         #[allow(non_snake_case)]
         #[allow(missing_docs)]
+        $(#[$meta])*
         pub struct $name $(<$($param $(:?$param_tp)?),*>)? {
             $($( $param : PhantomData<$param> ),*)?
         }
@@ -269,12 +271,13 @@ macro_rules! mock_fn_gen_print {
 #[macro_export(local_inner_macros)]
 macro_rules! mock_data {
     ( $([$opt:ident])?
+        $(#[$meta:meta])*
         $name:ident $(<$( $param:ident $(: ?$param_tp:ident)? ),*>)? $(=> $deref:ident)?
         $(
             fn $fn_name:ident $(<$($fn_tp:ident),*>)? ($($args:tt)*) $(-> $out:ty)?;
         )*
     ) => {
-        mock_struct!{$([$opt])? $name $(<$($param $(:?$param_tp)?),*>)? $(=> $deref)?}
+        mock_struct!{$([$opt])? $(#[$meta])* $name $(<$($param $(:?$param_tp)?),*>)? $(=> $deref)?}
         impl $(<$($param $(:?$param_tp)?),*>)? $name $(<$($param),*>)? {
             $(
                 mock_pub_fn!{$fn_name $(<$($fn_tp),*>)? ($($args)*) $(-> $out)?}
@@ -651,6 +654,12 @@ mock_data! { MouseEvent => Event
 }
 
 
+// === DragEvent ===
+mock_data! { DragEvent => MouseEvent
+    fn data_transfer(&self) -> Option<DataTransfer>;
+}
+
+
 // === WheelEvent ===
 mock_data! { WheelEvent => MouseEvent
     fn delta_x(&self) -> f64;
@@ -838,6 +847,57 @@ mock_data! { Performance => EventTarget
     fn time_origin(&self) -> f64;
 }
 
+// === File ===
+mock_data! { DataTransfer => Object
+    fn files(&self) -> Option<FileList>;
+}
+
+mock_data! { FileList => Object
+    fn length(&self) -> u32;
+    fn get(&self, index: u32) -> Option<File>;
+}
+
+mock_data! { File => Blob
+    fn name(&self) -> String;
+    fn size(&self) -> f64;
+    fn type_(&self) -> String;
+}
+mock_data! { Blob => Object
+    fn stream(&self) -> ReadableStream;
+}
+mock_data! { ReadableStream => Object
+    fn get_reader(&self) -> Object;
+}
+mock_data! { ReadableStreamDefaultReader => Object }
+
+// === WebSocket ===
+#[allow(missing_docs)]
+#[derive(Clone, Copy, Debug)]
+pub enum BinaryType {
+    Blob,
+    Arraybuffer,
+}
+
+mock_data! { #[derive(PartialEq)] WebSocket => EventTarget
+    fn new(url: &str) -> Result<WebSocket, JsValue>;
+    fn url(&self) -> String;
+    fn set_binary_type(&self, value: BinaryType);
+    fn close_with_code_and_reason(&self, code: u16, reason: &str) -> Result<(), JsValue>;
+    fn ready_state(&self) -> u16;
+    fn send_with_str(&self, data: &str) -> Result<(), JsValue>;
+    fn send_with_u8_array(&self, data: &[u8]) -> Result<(), JsValue>;
+}
+
+#[allow(missing_docs)]
+impl WebSocket {
+    pub const CONNECTING: u16 = 0;
+    pub const OPEN: u16 = 1;
+    pub const CLOSING: u16 = 2;
+    pub const CLOSED: u16 = 3;
+}
+
+mock_data! { CloseEvent => Event }
+mock_data! { MessageEvent  => Event }
 
 
 // ===============

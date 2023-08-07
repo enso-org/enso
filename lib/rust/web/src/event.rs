@@ -31,10 +31,10 @@ pub mod listener;
 pub trait Type {
     /// The event value -- i.e. the Rust type of a value that will be passed as an argument
     /// to the listener.
-    /// For example `web_sys::CloseEvent`.
+    /// For example `CloseEvent`.
     type Interface: AsRef<Event> + JsCast + 'static;
 
-    /// The type of the EventTarget object that fires this type of event, e.g. `web_sys::WebSocket`.
+    /// The type of the EventTarget object that fires this type of event, e.g. `WebSocket`.
     type Target: AsRef<EventTarget> + AsRef<JsValue> + JsCast + Clone + PartialEq;
 
     /// The type of the event as a string. For example `"close"`.

@@ -39,7 +39,6 @@ pub mod clipboard;
 pub mod event;
 pub mod platform;
 pub mod resize_observer;
-pub mod stream;
 
 pub use std::time::Duration;
 pub use std::time::Instant;
