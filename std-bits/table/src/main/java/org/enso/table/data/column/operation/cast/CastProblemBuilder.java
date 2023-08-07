@@ -1,5 +1,7 @@
 package org.enso.table.data.column.operation.cast;
 
+import org.enso.table.problems.AggregatedProblems;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -10,6 +12,7 @@ public class CastProblemBuilder {
   private static final int MAX_EXAMPLES_COUNT = 3;
   private final ArrayList<Object> failedConversionExamples = new ArrayList<>(MAX_EXAMPLES_COUNT);
   private final ArrayList<String> textTooLongExamples = new ArrayList<>(MAX_EXAMPLES_COUNT);
+  private AggregatedProblems otherProblems = new AggregatedProblems();
 
   public void reportConversionFailure(Object sourceValue) {
     failedConversionsCount++;
@@ -41,5 +44,13 @@ public class CastProblemBuilder {
 
   public List<String> getTextTooLongExamples() {
     return textTooLongExamples;
+  }
+
+  public void aggregateOtherProblems(AggregatedProblems problems) {
+    otherProblems = AggregatedProblems.merge(otherProblems, problems);
+  }
+
+  public AggregatedProblems getAggregatedProblems() {
+    return otherProblems;
   }
 }
