@@ -1,8 +1,9 @@
 package org.enso.table.parsing.problems;
 
+import org.enso.table.problems.AggregatedProblems;
+
 import java.util.ArrayList;
 import java.util.List;
-import org.enso.table.problems.Problem;
 
 public class ProblemAggregatorImpl implements ProblemAggregator {
   public final String relatedColumnName;
@@ -28,14 +29,12 @@ public class ProblemAggregatorImpl implements ProblemAggregator {
   }
 
   @Override
-  public List<Problem> getAggregatedProblems() {
-    List<Problem> problems = new ArrayList<>();
+  public AggregatedProblems getAggregatedProblems() {
+    AggregatedProblems problems = new AggregatedProblems();
 
     if (!invalidFormatCells.isEmpty()) {
       problems.add(new InvalidFormat(relatedColumnName, invalidFormatCells));
     }
-
-    assert problems.isEmpty() == !hasProblems();
 
     return problems;
   }

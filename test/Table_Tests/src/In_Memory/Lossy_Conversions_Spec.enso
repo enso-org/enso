@@ -125,6 +125,6 @@ spec =
             t.at "Y" . to_vector . should_equal [1, x, x, 1]
             Problems.expect_only_warning Loss_Of_Integer_Precision t
 
-            # No loss of precision if Mixed type is used early enough:
-            t.at "Z" . value_type . should_equal Value_Type.Mixed
-            t.at "Z" . map .to_text . to_vector . should_equal (["a", 1.0, (x+1), 23].map .to_text)
+            # In this case, the column is parsed as a string column:
+            t.at "Z" . value_type . should_equal Value_Type.Char
+            t.at "Z" . to_vector . should_equal ["23", "1.0", (x+1).to_text, "'a'"]

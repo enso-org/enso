@@ -70,7 +70,7 @@ type Data_Formatter
     parse self text datatype=Auto on_problems=Problem_Behavior.Report_Warning =
         parser = self.make_datatype_parser datatype
         result = parser.parseIndependentValue text
-        problems = Vector.from_polyglot_array result.problems . map (Parse_Values_Helper.translate_parsing_problem datatype)
+        problems = Vector.from_polyglot_array result.problems.getProblems . map (Parse_Values_Helper.translate_parsing_problem datatype)
         on_problems.attach_problems_after result.value problems
 
     ## PRIVATE
