@@ -8,6 +8,12 @@ public final class MethodNameValidation {
   private static final char CHAR_LOWERCASE_A = 'a';
   private static final char CHAR_LOWERCASE_Z = 'z';
 
+  /**
+   * Normalize the name to make it a valid Enso identifier of a method.
+   *
+   * @param name the name to normalize.
+   * @return the normalized name.
+   */
   public static String normalize(String name) {
     if (name.isEmpty()) {
       return DEFAULT_NAME;
@@ -18,6 +24,10 @@ public final class MethodNameValidation {
     return toLowerSnakeCase(DEFAULT_NAME + "_" + name);
   }
 
+  /**
+   * @return {@code true} if the provided name is a valid identifier of an Enso method and {@code
+   *     false} otherwise.
+   */
   public static boolean isAllowedName(String name) {
     return !name.isEmpty()
         && isLowerCaseAscii(name.charAt(0))

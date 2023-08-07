@@ -13,7 +13,7 @@ object RenameUtils {
     * @param occurrences the occurrences in the source that should be replaced
     * @param newText the text to replace in the provided locations
     * @return a list of text edits that should be applied to the original source
-    * in order to replace the proviced text occurrences with the new text.
+    * in order to replace the provided text occurrences with the new text.
     */
   def buildEdits[A: IndexedSource](
     source: A,

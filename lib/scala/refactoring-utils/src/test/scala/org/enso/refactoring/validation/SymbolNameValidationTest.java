@@ -11,11 +11,13 @@ public class SymbolNameValidationTest {
   @Test
   public void isAllowedName() {
     Assert.assertFalse(MethodNameValidation.isAllowedName(""));
+    Assert.assertFalse(MethodNameValidation.isAllowedName("@#$"));
     Assert.assertFalse(MethodNameValidation.isAllowedName("_foo"));
     Assert.assertFalse(MethodNameValidation.isAllowedName("42"));
     Assert.assertFalse(MethodNameValidation.isAllowedName("42_foo"));
     Assert.assertFalse(MethodNameValidation.isAllowedName("Foo"));
     Assert.assertFalse(MethodNameValidation.isAllowedName("foo_Bar"));
+    Assert.assertFalse(MethodNameValidation.isAllowedName("foo bar"));
 
     Assert.assertTrue(MethodNameValidation.isAllowedName("foo"));
     Assert.assertTrue(MethodNameValidation.isAllowedName("foo_bar"));
@@ -31,6 +33,8 @@ public class SymbolNameValidationTest {
     Assert.assertEquals(MethodNameValidation.DEFAULT_NAME, MethodNameValidation.normalize("!$%"));
     Assert.assertEquals(MethodNameValidation.DEFAULT_NAME, MethodNameValidation.normalize("!_%"));
     Assert.assertEquals(MethodNameValidation.DEFAULT_NAME + "_foo", MethodNameValidation.normalize("_foo"));
+    Assert.assertEquals(MethodNameValidation.DEFAULT_NAME + "_foo", MethodNameValidation.normalize("__foo"));
+    Assert.assertEquals(MethodNameValidation.DEFAULT_NAME + "_foo", MethodNameValidation.normalize("__foo__"));
     Assert.assertEquals("foo_bar", MethodNameValidation.normalize("foo bar"));
     Assert.assertEquals("foo_42", MethodNameValidation.normalize("foo42"));
     Assert.assertEquals("foo_42_bar", MethodNameValidation.normalize("foo42bar"));
